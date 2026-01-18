@@ -7,6 +7,8 @@ const Timer = require('../util/timer');
  * runtime, thread, target, and convenient methods.
  */
 
+let lastInstance;
+
 class BlockUtility {
     constructor (sequencer = null, thread = null) {
         /**
@@ -25,6 +27,8 @@ class BlockUtility {
         this._nowObj = {
             now: () => this.sequencer.runtime.currentMSecs
         };
+
+        lastInstance = this;
     }
 
     /**
@@ -236,6 +240,14 @@ class BlockUtility {
             // eslint-disable-next-line prefer-spread
             return devObject[func].apply(devObject, args);
         }
+    }
+
+    /**
+     * Returns BlockUtility instance to use same instance in runtime and extension.
+     * @returns {BlockUtility} The BlockUtility instance.
+     */
+    static lastInstance () {
+        return lastInstance;
     }
 }
 

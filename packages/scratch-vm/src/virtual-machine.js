@@ -129,14 +129,14 @@ class VirtualMachine extends EventEmitter {
         this.runtime.on(Runtime.USER_PICKED_PERIPHERAL, info => {
             this.emit(Runtime.USER_PICKED_PERIPHERAL, info);
         });
-        this.runtime.on(Runtime.PERIPHERAL_CONNECTED, () =>
-            this.emit(Runtime.PERIPHERAL_CONNECTED)
+        this.runtime.on(Runtime.PERIPHERAL_CONNECTED, data =>
+            this.emit(Runtime.PERIPHERAL_CONNECTED, data)
         );
         this.runtime.on(Runtime.PERIPHERAL_REQUEST_ERROR, () =>
             this.emit(Runtime.PERIPHERAL_REQUEST_ERROR)
         );
-        this.runtime.on(Runtime.PERIPHERAL_DISCONNECTED, () =>
-            this.emit(Runtime.PERIPHERAL_DISCONNECTED)
+        this.runtime.on(Runtime.PERIPHERAL_DISCONNECTED, data =>
+            this.emit(Runtime.PERIPHERAL_DISCONNECTED, data)
         );
         this.runtime.on(Runtime.PERIPHERAL_CONNECTION_LOST_ERROR, data =>
             this.emit(Runtime.PERIPHERAL_CONNECTION_LOST_ERROR, data)
@@ -146,9 +146,6 @@ class VirtualMachine extends EventEmitter {
         );
         this.runtime.on(Runtime.MIC_LISTENING, listening => {
             this.emit(Runtime.MIC_LISTENING, listening);
-        });
-        this.runtime.on(Runtime.EXTENSION_DATA_LOADING, loading => {
-            this.emit(Runtime.EXTENSION_DATA_LOADING, loading);
         });
         this.runtime.on(Runtime.RUNTIME_STARTED, () => {
             this.emit(Runtime.RUNTIME_STARTED);
@@ -300,6 +297,15 @@ class VirtualMachine extends EventEmitter {
      */
     getPeripheralIsConnected (extensionId) {
         return this.runtime.getPeripheralIsConnected(extensionId);
+    }
+
+    /**
+     * Returns connected message.
+     * @param {string} extensionId - the id of the extension.
+     * @returns {string} - connected message.
+     */
+    getPeripheralConnectedMessage (extensionId) {
+        return this.runtime.getPeripheralConnectedMessage(extensionId);
     }
 
     /**
@@ -797,7 +803,7 @@ class VirtualMachine extends EventEmitter {
      * @returns {AudioBuffer} the sound's audio buffer.
      */
     getSoundBuffer (soundIndex) {
-        const id = this.editingTarget.sprite.sounds[soundIndex]?.soundId;
+        const id = this.editingTarget.sprite.sounds[soundIndex].soundId;
         if (id && this.runtime && this.runtime.audioEngine) {
             return this.editingTarget.sprite.soundBank.getSoundPlayer(id).buffer;
         }
@@ -1155,7 +1161,7 @@ class VirtualMachine extends EventEmitter {
      */
     setLocale (locale, messages) {
         if (locale !== formatMessage.setup().locale) {
-            formatMessage.setup({locale: locale, translations: {[locale]: messages}});
+            formatMessage.setup({locale: locale, translations: {[locale]: Object.assign({}, messages)}});
         }
         return this.extensionManager.refreshBlocks();
     }
