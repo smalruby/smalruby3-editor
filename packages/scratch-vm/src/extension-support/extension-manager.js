@@ -24,7 +24,10 @@ const builtinExtensions = {
     makeymakey: () => require('../extensions/scratch3_makeymakey'),
     boost: () => require('../extensions/scratch3_boost'),
     gdxfor: () => require('../extensions/scratch3_gdx_for'),
-    faceSensing: () => require('../extensions/scratch3_face_sensing')
+    faceSensing: () => require('../extensions/scratch3_face_sensing'),
+    mesh: () => require('../extensions/scratch3_mesh'),
+    meshV2: () => require('../extensions/scratch3_mesh_v2'),
+    smalrubotS1: () => require('../extensions/scratch3_smalrubot_s1')
 };
 
 /**
@@ -58,6 +61,21 @@ const builtinExtensions = {
  * @property {Function} resolve - function to call on successful worker startup
  * @property {Function} reject - function to call on failed worker startup
  */
+
+builtinExtensions.microbitMore = () => {
+    const formatMessage = require('format-message');
+    const ext = require('../extensions/microbitMore/index.js');
+    const blockClass = ext.blockClass;
+    blockClass.formatMessage = formatMessage;
+    return blockClass;
+};
+
+builtinExtensions.koshien = () => {
+    const formatMessage = require('format-message');
+    const blockClass = require('../extensions/koshien/index.js');
+    blockClass.formatMessage = formatMessage;
+    return blockClass;
+};
 
 class ExtensionManager {
     constructor (runtime) {

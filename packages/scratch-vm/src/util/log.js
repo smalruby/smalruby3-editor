@@ -1,5 +1,4 @@
-const {Logger} = require('tslog');
+const minilog = require('minilog');
+minilog.enable();
 
-module.exports = new Logger({
-    name: 'scratch-vm'
-});
+module.exports = minilog('vm');

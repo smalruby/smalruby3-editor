@@ -306,6 +306,20 @@ class Target extends EventEmitter {
     }
 
     /**
+     * Sets the variable value with the given id to newValue.
+     * @param {string} id Id of variable to set value.
+     * @param {object} newValue New value for the variable.
+     */
+    setVariableValue (id, newValue) {
+        if (Object.prototype.hasOwnProperty.call(this.variables, id)) {
+            const variable = this.variables[id];
+            if (variable.id === id) {
+                variable.value = newValue;
+            }
+        }
+    }
+
+    /**
      * Renames the variable with the given id to newName.
      * @param {string} id Id of variable to rename.
      * @param {string} newName New name for the variable.
@@ -761,8 +775,7 @@ class Target extends EventEmitter {
         }
         // Rename any local variables that were missed above because they aren't
         // referenced by any blocks
-        for (const id in unreferencedLocalVarIds) {
-            const varId = unreferencedLocalVarIds[id];
+        for (const varId of unreferencedLocalVarIds) {
             const name = this.variables[varId].name;
             const type = this.variables[varId].type;
             renameConflictingLocalVar(varId, name, type);
