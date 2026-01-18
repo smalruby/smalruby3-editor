@@ -803,7 +803,7 @@ class VirtualMachine extends EventEmitter {
      * @returns {AudioBuffer} the sound's audio buffer.
      */
     getSoundBuffer (soundIndex) {
-        const id = this.editingTarget.sprite.sounds[soundIndex].soundId;
+        const id = this.editingTarget.sprite.sounds[soundIndex]?.soundId;
         if (id && this.runtime && this.runtime.audioEngine) {
             return this.editingTarget.sprite.soundBank.getSoundPlayer(id).buffer;
         }
@@ -1161,7 +1161,7 @@ class VirtualMachine extends EventEmitter {
      */
     setLocale (locale, messages) {
         if (locale !== formatMessage.setup().locale) {
-            formatMessage.setup({locale: locale, translations: {[locale]: Object.assign({}, messages)}});
+            formatMessage.setup({locale: locale, translations: {[locale]: messages}});
         }
         return this.extensionManager.refreshBlocks();
     }
