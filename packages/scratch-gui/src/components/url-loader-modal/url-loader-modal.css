@@ -1,0 +1,146 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+
+.modal-content {
+    width: 500px;
+    height: auto;
+    line-height: 1.75;
+}
+
+.header {
+    background-color: $motion-primary;
+}
+
+.body {
+    background: $ui-white;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.inputSection {
+    display: flex;
+    flex-direction: column;
+}
+
+.urlInput {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.urlInput:focus {
+    border-color: $motion-primary;
+    box-shadow: 0 0 0 1px $motion-primary;
+}
+
+.urlInput::placeholder {
+    color: $text-primary-transparent;
+}
+
+.urlInput.inputError {
+    border-color: $error-primary;
+    box-shadow: 0 0 0 1px $error-primary;
+}
+
+.errorMessage {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: $error-primary;
+    line-height: 1.4;
+}
+
+.examplesSection {
+    display: flex;
+    flex-direction: column;
+    margin-top: -0.5rem;
+}
+
+.examplesTitle {
+    font-size: 0.75rem;
+    color: $text-primary;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.examplesList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.exampleItem {
+    font-size: 0.75rem;
+    color: $text-primary-transparent;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    padding-left: 1rem;
+    position: relative;
+}
+
+.exampleItem::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: $text-primary-transparent;
+}
+
+.buttonSection {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.cancelButton,
+.openButton {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+    min-width: 80px;
+}
+
+.cancelButton {
+    background: $ui-white;
+    color: $text-primary;
+    border: 1px solid $ui-black-transparent;
+}
+
+.cancelButton:hover {
+    background: $ui-secondary;
+}
+
+.cancelButton:active {
+    background: $ui-black-transparent;
+}
+
+.openButton {
+    background: $motion-primary;
+    color: $ui-white;
+}
+
+.openButton:hover:not(.disabled) {
+    background: $motion-tertiary;
+}
+
+.openButton:active:not(.disabled) {
+    background: $motion-tertiary;
+}
+
+.openButton.disabled {
+    background: $ui-black-transparent;
+    color: $text-primary-transparent;
+    cursor: not-allowed;
+}

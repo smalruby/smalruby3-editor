@@ -1,0 +1,47 @@
+{
+    "play_until_done": {
+        "snippet": "play_until_done(\"${1:ニャー}\")",
+        "description": "終わるまで (ニャー▼) の音を鳴らす",
+        "type": "method"
+    },
+    "play": {
+        "snippet":"play(\"${1:ニャー}\")",
+        "description": "(ニャー▼) の音を鳴らす",
+        "type": "method"
+    },
+    "stop_all_sounds": {
+        "snippet": "stop_all_sounds",
+        "description": "すべての音を止める",
+        "type": "method"
+    },
+    "change_sound_effect_by": {
+        "snippet": "change_sound_effect_by(\"${1:pitch}\", ${2:10})",
+        "description": "[ピッチ▼] の効果を (10) ずつ変える",
+        "type": "method"
+    },
+    "set_sound_effect": {
+        "snippet": "set_sound_effect(\"${1:pitch}\", ${2:100})",
+        "description": "[ピッチ▼] の効果を (100) にする",
+        "type": "method"
+    },
+    "clear_sound_effects": {
+        "snippet": "clear_sound_effects",
+        "description": "音の効果をなくす",
+        "type": "method"
+    },
+    "volume+=": {
+        "snippet": "self.volume += ${1:-10}",
+        "description": "音量を (-10) ずつ変える",
+        "type": "method"
+    },
+    "volume=": {
+        "snippet": "self.volume = ${1:100}",
+        "description": "音量を (100) %にする",
+        "type": "method"
+    },
+    "volume": {
+        "snippet": "volume",
+        "description": "音量",
+        "type": "variable"
+    }
+}

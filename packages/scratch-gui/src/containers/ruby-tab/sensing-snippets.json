@@ -1,0 +1,172 @@
+{
+    "touching?": {
+        "snippet": "touching?(\"${1:_mouse_}\")",
+        "description": "(マウスのポインター▼) に触れた",
+        "type": "method"
+    },
+    "touching_color?": {
+        "snippet": "touching_color?(\"${1:#571332}\")",
+        "description": "(#571332▼) 色に触れた",
+        "type": "method"
+    },
+    "color_is_touching_color?": {
+        "snippet": "color_is_touching_color?(\"#${1:ce2ef7}\", \"#${2:6a7a0e}\")",
+        "description": "(#ce2ef7▼) 色が (#6a7a0e▼) 色に触れた",
+        "type": "method"
+    },
+    "distance": {
+        "snippet": "distance(\"${1:_mouse_}\")",
+        "description": "(マウス의ポインター▼) までの距離",
+        "type": "method"
+    },
+    "ask": {
+        "snippet": "ask(\"${1:あなたの名前は何ですか?}\")",
+        "description": "(あなたの名前は何ですか？) と聞いて待つ",
+        "type": "method"
+    },
+    "answer": {
+        "snippet": "answer",
+        "description": "答え",
+        "type": "variable"
+    },
+    "Keyboard.pressed?": {
+        "snippet": "Keyboard.pressed?(\"${1:space}\")",
+        "description": "[スペースキー▼] が押された",
+        "type": "method"
+    },
+    "Mouse.down?": {
+        "snippet": "Mouse.down?",
+        "description": "マウスが押された",
+        "type": "method"
+    },
+    "Mouse.x": {
+        "snippet": "Mouse.x",
+        "description": "マウスのx座標",
+        "type": "variable"
+    },
+    "Mouse.y": {
+        "snippet": "Mouse.y",
+        "description": "マウスのy座標",
+        "type": "variable"
+    },
+    "drag_mode=": {
+        "snippet": "self.drag_mode = \"${1:draggable}\"",
+        "description": "ドラッグ [できる▼] ようにする",
+        "type": "method"
+    },
+    "loudness": {
+        "snippet": "loudness",
+        "description": "音量",
+        "type": "variable"
+    },
+    "Timer.value": {
+        "snippet": "Timer.value",
+        "description": "タイマー",
+        "type": "variable"
+    },
+    "Timer.reset": {
+        "snippet": "Timer.reset",
+        "description": "タイマーをリセット",
+        "type": "method"
+    },
+    "stage.backdrop_number": {
+        "snippet": "stage.backdrop_number",
+        "description": "(ステージ▼) の [背景#▼]",
+        "type": "variable"
+    },
+    "stage.backdrop_name": {
+        "snippet": "stage.backdrop_name",
+        "description": "(ステージ▼) の [背景の名前▼]",
+        "type": "variable"
+    },
+    "stage.volume": {
+        "snippet": "stage.volume",
+        "description": "(ステージ▼) の [音量▼]",
+        "type": "variable"
+    },
+    "stage.variable": {
+        "snippet": "stage.variable(\"${1:変数}\")",
+        "description": "(ステージ▼) の [変数▼]",
+        "type": "method"
+    },
+    "sprite.x": {
+        "snippet": "sprite(\"${1:スプライト1}\").x",
+        "description": "(スプライト1▼) の [x座標▼]",
+        "type": "variable"
+    },
+    "sprite.y": {
+        "snippet": "sprite(\"${1:スプライト1}\").y",
+        "description": "(スプライト1▼) の [y座標▼]",
+        "type": "variable"
+    },
+    "sprite.direction": {
+        "snippet": "sprite(\"${1:スプライト1}\").direction",
+        "description": "(スプライト1▼) の [向き▼]",
+        "type": "variable"
+    },
+    "sprite.costume_number": {
+        "snippet": "sprite(\"${1:スプライト1}\").costume_number",
+        "description": "(スプライト1▼) の [コスチューム#▼]",
+        "type": "variable"
+    },
+    "sprite.costume_name": {
+        "snippet": "sprite(\"${1:スプライト1}\").costume_name",
+        "description": "(スプライト1▼) の [コスチューム名▼]",
+        "type": "variable"
+    },
+    "sprite.size": {
+        "snippet": "sprite(\"${1:スプライト1}\").size",
+        "description": "(スプライト1▼) の [大きさ▼]",
+        "type": "variable"
+    },
+    "sprite.volume": {
+        "snippet": "sprite(\"${1:スプライト1}\").volume",
+        "description": "(スプライト1▼) の [音量▼]",
+        "type": "variable"
+    },
+    "current_year": {
+        "snippet": "Time.now.year",
+        "description": "現在の [年▼]",
+        "type": "constant"
+    },
+    "current_month": {
+        "snippet": "Time.now.month",
+        "description": "現在の [月▼]",
+        "type": "constant"
+    },
+    "current_day": {
+        "snippet": "Time.now.day",
+        "description": "現在の [日▼]",
+        "type": "constant"
+    },
+    "current_day_of_week": {
+        "snippet": "Time.now.date",
+        "description": "現在の [曜日▼]",
+        "type": "constant"
+    },
+    "current_hour": {
+        "snippet": "Time.now.hour",
+        "description": "現在の [時▼]",
+        "type": "constant"
+    },
+    "current_minute": {
+        "snippet": "Time.now.min",
+        "description": "現在の [分▼]",
+        "type": "constant"
+    },
+    "current_second": {
+        "snippet": "Time.now.sec",
+        "description": "現在の [秒▼]",
+        "type": "constant"
+    },
+    "days_since_2000": {
+        "snippet": "days_since_2000",
+        "description": "2000年からの日数",
+        "type": "constant"
+    },
+    "user_name": {
+        "snippet": "user_name",
+        "description": "ユーザー名",
+        "type": "constant"
+    }
+}

@@ -29,6 +29,11 @@ import toolboxReducer, {toolboxInitialState} from './toolbox';
 import vmReducer, {vmInitialState} from './vm';
 import vmStatusReducer, {vmStatusInitialState} from './vm-status';
 import workspaceMetricsReducer, {workspaceMetricsInitialState} from './workspace-metrics';
+import blockDisplayReducer, {blockDisplayInitialState} from './block-display';
+import meshV2Reducer, {meshV2InitialState} from './mesh-v2';
+import googleDriveFileReducer, {googleDriveFileInitialState} from './google-drive-file';
+import koshienFileReducer, {koshienFileInitialState} from './koshien-file';
+import rubyCodeReducer, {rubyCodeInitialState} from './ruby-code';
 import throttle from 'redux-throttle';
 
 import decks from '../lib/libraries/decks/index.jsx';
@@ -67,7 +72,12 @@ const buildInitialState = (config: GUIConfig) => ({
     toolbox: toolboxInitialState,
     vm: vmInitialState(config),
     vmStatus: vmStatusInitialState,
-    workspaceMetrics: workspaceMetricsInitialState
+    workspaceMetrics: workspaceMetricsInitialState,
+    blockDisplay: blockDisplayInitialState,
+    meshV2: meshV2InitialState,
+    googleDriveFile: googleDriveFileInitialState,
+    koshienFile: koshienFileInitialState,
+    rubyCode: rubyCodeInitialState
 });
 
 const initPlayer = function (currentState) {
@@ -176,7 +186,12 @@ const guiReducer = combineReducers({
     toolbox: toolboxReducer,
     vm: vmReducer,
     vmStatus: vmStatusReducer,
-    workspaceMetrics: workspaceMetricsReducer
+    workspaceMetrics: workspaceMetricsReducer,
+    blockDisplay: blockDisplayReducer,
+    meshV2: meshV2Reducer,
+    googleDriveFile: googleDriveFileReducer,
+    koshienFile: koshienFileReducer,
+    rubyCode: rubyCodeReducer
 });
 
 export {

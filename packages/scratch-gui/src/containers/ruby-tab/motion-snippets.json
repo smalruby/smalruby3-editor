@@ -1,0 +1,117 @@
+{
+    "move": {
+        "snippet": "move(${1:10})",
+        "description": "(10) 歩動かす",
+        "type": "function"
+    },
+    "turn_right": {
+        "snippet": "turn_right(${1:15})",
+        "description": "時計回りに (15) 度回す",
+        "type": "function"
+    },
+    "turn_left": {
+        "snippet": "turn_left(${1:15})",
+        "description": "反時計回りに (15) 度回す",
+        "type": "function"
+    },
+    "go_to": {
+        "snippet": "go_to(\"${1:_random_}\")",
+        "description": "(どこかの場所▼) へ行く",
+        "type": "function"
+    },
+    "_random_": {
+        "snippet": "_random_",
+        "description": "どこかの場所",
+        "type": "enum_member"
+    },
+    "_mouse_": {
+        "snippet": "_mouse_",
+        "description": "マウスのポインター",
+        "type": "enum_member"
+    },
+    "go_to-xy": {
+        "snippet": "go_to([${1:0}, ${2:0}])",
+        "description": "x座標を (0) 、y座標を (0) にする",
+        "type": "function"
+    },
+    "glide": {
+        "snippet": "glide(\"${1:_random_}\", secs: ${2:1})",
+        "description": "(1) 秒で (どこかの場所▼) へ行く",
+        "type": "function"
+    },
+    "glide-xy": {
+        "snippet": "glide([${1:0}, ${2:0}], secs: ${3:1})",
+        "description": "(1) 秒でx座標を (0) に、y座標を (0) にする",
+        "type": "function"
+    },
+    "direction=": {
+        "snippet": "self.direction = ${1:90}",
+        "description": "(90) 度に向ける",
+        "type": "function"
+    },
+    "point_towards": {
+        "snippet": "point_towards(\"${1:_mouse_}\")",
+        "description": "(マウスのポインター▼) へ向ける",
+        "type": "function"
+    },
+    "x+=": {
+        "snippet": "self.x += ${1:10}",
+        "description": "x座標を (10) ずつ変える",
+        "type": "function"
+    },
+    "x=": {
+        "snippet": "self.x = ${1:0}",
+        "description": "x座標を (0) にする",
+        "type": "function"
+    },
+    "y+=": {
+        "snippet": "self.y += ${1:10}",
+        "description": "y座標を (10) ずつ変える",
+        "type": "function"
+    },
+    "y=": {
+        "snippet": "self.y = ${1:0}",
+        "description": "y座標を (0) にする",
+        "type": "function"
+    },
+    "bounce_if_on_edge": {
+        "snippet": "bounce_if_on_edge",
+        "description": "もし端についたら、跳ね返る",
+        "type": "function"
+    },
+    "rotation_style=": {
+        "snippet": "self.rotation_style = \"${1:left-right}\"",
+        "description": "回転方法を [左右のみ▼] にする",
+        "type": "function"
+    },
+    "left-right": {
+        "snippet": "left-right",
+        "description": "左右のみ",
+        "type": "enum_member"
+    },
+    "don't_rotate": {
+        "snippet": "don't rotate",
+        "description": "回転しない",
+        "type": "enum_member"
+    },
+    "all_around": {
+        "snippet": "all around",
+        "description": "自由に回転",
+        "type": "enum_member"
+    },
+    "x": {
+        "snippet": "x",
+        "description": "x座標",
+        "type": "variable"
+    },
+    "y": {
+        "snippet": "y",
+        "description": "y座標",
+        "type": "variable"
+    },
+    "direction": {
+        "snippet": "direction",
+        "description": "向き",
+        "type": "variable"
+    }
+}

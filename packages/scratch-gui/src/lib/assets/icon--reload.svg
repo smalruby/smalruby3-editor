@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="20px" height="20px" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>reload-icon</title>
+    <desc>Reload icon</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="reload-icon" fill="#FFFFFF">
+            <path d="M10,2 C5.58172,2 2,5.58172 2,10 C2,14.4183 5.58172,18 10,18 C14.4183,18 18,14.4183 18,10 L16,10 C16,13.3137 13.3137,16 10,16 C6.68629,16 4,13.3137 4,10 C4,6.68629 6.68629,4 10,4 L10,7 L15,3.5 L10,0 L10,2 Z" id="reload-path"></path>
+        </g>
+    </g>
+</svg>

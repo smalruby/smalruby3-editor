@@ -1,0 +1,232 @@
+{
+    "music.play_drum": {
+        "snippet": "play_drum(drum: ${1:1}, beats: ${2:0.25})",
+        "description": "((1)スネアドラム▼) のドラムを (0.25) 拍鳴らす",
+        "type": "function"
+    },
+    "music.d-snare": {
+        "snippet": "1",
+        "description": "(1) スネアドラム",
+        "type": "enum_member"
+    },
+    "music.d-bass": {
+        "snippet": "2",
+        "description": "(2) バスドラム",
+        "type": "enum_member"
+    },
+    "music.d-side-stick": {
+        "snippet": "3",
+        "description": "(3) サイドスティック",
+        "type": "enum_member"
+    },
+    "music.d-crash-cymbal": {
+        "snippet": "4",
+        "description": "(4) クラッシュシンバル",
+        "type": "enum_member"
+    },
+    "music.d-open-hihat": {
+        "snippet": "5",
+        "description": "(5) オープンハイハット",
+        "type": "enum_member"
+    },
+    "music.d-closed-hihat": {
+        "snippet": "6",
+        "description": "(6) クローズハイハット",
+        "type": "enum_member"
+    },
+    "music.d-tambourine": {
+        "snippet": "7",
+        "description": "(7) タンバリン",
+        "type": "enum_member"
+    },
+    "music.d-hand-clap": {
+        "snippet": "8",
+        "description": "(8) 手拍子",
+        "type": "enum_member"
+    },
+    "music.d-claves": {
+        "snippet": "9",
+        "description": "(9) クラーベ",
+        "type": "enum_member"
+    },
+    "music.d-wood-block": {
+        "snippet": "10",
+        "description": "(10) ウッドブロック",
+        "type": "enum_member"
+    },
+    "music.d-cowbell": {
+        "snippet": "11",
+        "description": "(11) カウベル",
+        "type": "enum_member"
+    },
+    "music.d-triangle": {
+        "snippet": "12",
+        "description": "(12) トライアングル",
+        "type": "enum_member"
+    },
+    "music.d-bongo": {
+        "snippet": "13",
+        "description": "(13) ボンゴ",
+        "type": "enum_member"
+    },
+    "music.d-conga": {
+        "snippet": "14",
+        "description": "(14) コンガ",
+        "type": "enum_member"
+    },
+    "music.d-cabasa": {
+        "snippet": "15",
+        "description": "(15) カバサ",
+        "type": "enum_member"
+    },
+    "music.d-guiro": {
+        "snippet": "16",
+        "description": "(16) ギロ",
+        "type": "enum_member"
+    },
+    "music.d-vibraslap": {
+        "snippet": "17",
+        "description": "(17) ビブラスラップ",
+        "type": "enum_member"
+    },
+    "music.d-cuica": {
+        "snippet": "18",
+        "description": "(18) クイーカ",
+        "type": "enum_member"
+    },
+    "music.rest": {
+        "snippet": "rest(${1:0.25})",
+        "description": "(0.25) 拍休む",
+        "type": "function"
+    },
+    "music.play_note": {
+        "snippet": "play_note(note: ${1:60}, beats: ${2:0.25})",
+        "description": "(60) の音符を (0.25) 拍鳴らす",
+        "type": "function"
+    },
+    "music.instrument=": {
+        "snippet": "self.instrument = ${1:1}",
+        "description": "楽器を ((1)ピアノ▼) にする",
+        "type": "function"
+    },
+    "music.i-piano": {
+        "snippet": "1",
+        "description": "(1) ピアノ",
+        "type": "enum_member"
+    },
+    "music.i-electric-piano": {
+        "snippet": "2",
+        "description": "(2) 電子ピアノ",
+        "type": "enum_member"
+    },
+    "music.i-organ": {
+        "snippet": "3",
+        "description": "(3) オルガン",
+        "type": "enum_member"
+    },
+    "music.i-guitar": {
+        "snippet": "4",
+        "description": "(4) ギター",
+        "type": "enum_member"
+    },
+    "music.i-electric-guitar": {
+        "snippet": "5",
+        "description": "(5) エレキギター",
+        "type": "enum_member"
+    },
+    "music.i-bass": {
+        "snippet": "6",
+        "description": "(6) ベース",
+        "type": "enum_member"
+    },
+    "music.i-pizzicato": {
+        "snippet": "7",
+        "description": "(7) ピチカート",
+        "type": "enum_member"
+    },
+    "music.i-cello": {
+        "snippet": "8",
+        "description": "(8) チェロ",
+        "type": "enum_member"
+    },
+    "music.i-trombone": {
+        "snippet": "9",
+        "description": "(9) トロンボーン",
+        "type": "enum_member"
+    },
+    "music.i-clarinet": {
+        "snippet": "10",
+        "description": "(10) クラリネット",
+        "type": "enum_member"
+    },
+    "music.i-saxophone": {
+        "snippet": "11",
+        "description": "(11) サクソフォン",
+        "type": "enum_member"
+    },
+    "music.i-flute": {
+        "snippet": "12",
+        "description": "(12) フルート",
+        "type": "enum_member"
+    },
+    "music.i-wooden-flute": {
+        "snippet": "13",
+        "description": "(13) 木管フルート",
+        "type": "enum_member"
+    },
+    "music.i-bassoon": {
+        "snippet": "14",
+        "description": "(14) バスーン",
+        "type": "enum_member"
+    },
+    "music.i-choir": {
+        "snippet": "15",
+        "description": "(15) 合唱団",
+        "type": "enum_member"
+    },
+    "music.i-vibraphone": {
+        "snippet": "16",
+        "description": "(16) ビブラフォン",
+        "type": "enum_member"
+    },
+    "music.i-music-box": {
+        "snippet": "17",
+        "description": "(17) ミュージックボックス",
+        "type": "enum_member"
+    },
+    "music.i-steel-drum": {
+        "snippet": "18",
+        "description": "(18) スチールドラム",
+        "type": "enum_member"
+    },
+    "music.i-marimba": {
+        "snippet": "19",
+        "description": "(19) マリンバ",
+        "type": "enum_member"
+    },
+    "music.i-synth-lead": {
+        "snippet": "20",
+        "description": "(20) シンセリード",
+        "type": "enum_member"
+    },
+    "music.i-synth-pad": {
+        "snippet": "21",
+        "description": "(21) シンセパッド",
+        "type": "enum_member"
+    },
+    "music.tempo=": {
+        "snippet": "self.tempo = ${1:60}",
+        "description": "テンポを (60) にする",
+        "type": "function"
+    },
+    "music.tempo+=": {
+        "snippet": "self.tempo += ${1:20}",
+        "description": "テンポを (20) ずつ変える",
+        "type": "function"
+    },
+    "music.tempo": {
+        "snippet": "tempo",
+        "description": "テンポ",
+        "type": "variable"
+    }
+}

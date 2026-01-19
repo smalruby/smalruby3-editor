@@ -1,0 +1,142 @@
+{
+    "koshien.connect_game": {
+        "snippet": "koshien.connect_game(name: ${1:\"player1\"})",
+        "description": "プレイヤー名を (player1) にして、ゲームサーバへ接続する",
+        "type": "function"
+    },
+    "koshien.set_message": {
+        "snippet": "koshien.set_message(${1:\"hello\"})",
+        "description": "メッセージを (hello) にする",
+        "type": "function"
+    },
+    "koshien.move_to": {
+        "snippet": "koshien.move_to(${1:\"0:0\"})",
+        "description": "座標 (0:0) に移動する",
+        "type": "function"
+    },
+    "koshien.get_map_area": {
+        "snippet": "koshien.get_map_area(${1:\"0:0\"})",
+        "description": "座標 (0:0) 付近のマップ情報を取得する",
+        "type": "function"
+    },
+    "koshien.map": {
+        "snippet": "koshien.map(${1:\"0:0\"})",
+        "description": "座標 (0:0) のマップ情報",
+        "type": "variable"
+    },
+    "koshien.calc_goal_route": {
+        "snippet": "koshien.calc_route(result: list(${4:\"$最短経路\"}))",
+        "description": "ゴールまでの最短経路をリスト [最短経路] に保存する",
+        "type": "function"
+    },
+    "koshien.calc_route": {
+        "snippet": "koshien.calc_route(result: list(${1:\"$最短経路\"}), src: ${2:\"0:0\"}, dst: ${3:\"0:0\"}, except_cells: list(${4:\"$通らない座標\"}))",
+        "description": "最短経路 (始点 座標 (0:0) 終点 座標 (0:0) 通らない座標 リスト [通らない座標]) をリスト [最短経路] に保存する",
+        "type": "function"
+    },
+    "koshien.set_dynamite": {
+        "snippet": "koshien.set_dynamite(${1:\"0:0\"})",
+        "description": "ダイナマイトを座標 (0:0) に置く",
+        "type": "function"
+    },
+    "koshien.set_bomb": {
+        "snippet": "koshien.set_bomb(${1:\"0:0\"})",
+        "description": "爆弾を座標 (0:0) に置く",
+        "type": "function"
+    },
+    "koshien.map_all": {
+        "snippet": "$すべてのマップ情報 = koshien.map_all",
+        "description": "すべてのマップ情報",
+        "type": "variable"
+    },
+    "koshien.map_from": {
+        "snippet": "$マップ情報 = koshien.map_from(${1:\"0:0\"}, ${2:$すべてのマップ情報})",
+        "description": "座標 (0:0) のマップ情報を [すべてのマップ情報] から読み込む",
+        "type": "variable"
+    },
+    "koshien.locate_objects": {
+        "snippet": "koshien.locate_objects(result: list(${1:\"$地形・アイテムの座標\"}), cent: ${2:\"0:0\"}, sq_size: ${3:5}, objects: ${4:\"ABCD\"})",
+        "description": "範囲内の地形・アイテム (中心 座標 (0:0) 、範囲 (5) 、地形・アイテム (ABCD) )をリスト [地形・アイテムの座標] に保存する",
+        "type": "function"
+    },
+    "koshien.other_player": {
+        "snippet": "koshien.other_player",
+        "description": "[対戦キャラクタ] の [座標]",
+        "type": "variable"
+    },
+    "koshien.other_player_x": {
+        "snippet": "koshien.other_player_x",
+        "description": "[対戦キャラクタ] の [x座標]",
+        "type": "variable"
+    },
+    "koshien.other_player_y": {
+        "snippet": "koshien.other_player_y",
+        "description": "[対戦キャラクタ] の [y座標]",
+        "type": "variable"
+    },
+    "koshien.player": {
+        "snippet": "koshien.player",
+        "description": "[プレイヤー] の [座標]",
+        "type": "variable"
+    },
+    "koshien.player_x": {
+        "snippet": "koshien.player_x",
+        "description": "[プレイヤー] の [x座標]",
+        "type": "variable"
+    },
+    "koshien.player_y": {
+        "snippet": "koshien.player_y",
+        "description": "[プレイヤー] の [y座標]",
+        "type": "variable"
+    },
+    "koshien.enemy": {
+        "snippet": "koshien.enemy",
+        "description": "[妨害キャラクター] の [座標]",
+        "type": "variable"
+    },
+    "koshien.enemy_x": {
+        "snippet": "koshien.enemy_x",
+        "description": "[妨害キャラクター] の [x座標]",
+        "type": "variable"
+    },
+    "koshien.enemy_y": {
+        "snippet": "koshien.enemy_y",
+        "description": "[妨害キャラクター] の [y座標]",
+        "type": "variable"
+    },
+    "koshien.goal": {
+        "snippet": "koshien.goal",
+        "description": "[ゴール] の [x座標]",
+        "type": "variable"
+    },
+    "koshien.goal_x": {
+        "snippet": "koshien.goal_x",
+        "description": "[ゴール] の [x座標]",
+        "type": "variable"
+    },
+    "koshien.goal_y": {
+        "snippet": "koshien.goal_y",
+        "description": "[ゴール] の [y座標]",
+        "type": "variable"
+    },
+    "koshien.turn_over": {
+        "snippet": "koshien.turn_over",
+        "description": "ターンを終了する",
+        "type": "function"
+    },
+    "koshien.position_of_x": {
+        "snippet": "koshien.position_of_x(${1:\"0:0\"})",
+        "description": "(0:0) の [x座標]",
+        "type": "variable"
+    },
+    "koshien.position_of_y": {
+        "snippet": "koshien.position_of_y(${1:\"0:0\"})",
+        "description": "(0:0) の [y座標]",
+        "type": "variable"
+    },
+    "koshien.object": {
+        "snippet": "koshien.object(${1:\"unknown\"})",
+        "description": "[未探索のマス]",
+        "type": "variable"
+    }
+}

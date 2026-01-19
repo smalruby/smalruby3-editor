@@ -1,0 +1,7 @@
+{
+    "mesh.sensor_value": {
+        "snippet": "mesh.sensor_value(\"${1: }\")",
+        "description": "( ▼) センサーの値",
+        "type": "variable"
+    }
+}

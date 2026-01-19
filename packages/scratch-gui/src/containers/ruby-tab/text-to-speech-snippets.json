@@ -1,0 +1,17 @@
+{
+    "text2speech.speak": {
+        "snippet": "text2speech.speak(\"${1:こんにちは}\")",
+        "description": "(こんにちは) としゃべる",
+        "type": "function"
+    },
+    "text2speech.voice=": {
+        "snippet": "text2speech.voice = \"${1:alto}\"",
+        "description": "声を (アルト▼) にする",
+        "type": "function"
+    },
+    "text2speech.language=": {
+        "snippet": "text2speech.language = \"${1:ja}\"",
+        "description": "言語を (日本語▼) にする",
+        "type": "function"
+    }
+}

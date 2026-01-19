@@ -1,0 +1,107 @@
+{
+    "say-for": {
+        "snippet": "say(\"${1:こんにちは!}\", ${2:2})",
+        "description": "(こんにちは!) と (2) 秒言う",
+        "type": "function"
+    },
+    "say": {
+        "snippet": "say(\"${1:こんにちは!}\")",
+        "description": "(こんにちは!) と言う",
+        "type": "function"
+    },
+    "think-for": {
+        "snippet": "think(\"${1:うーん...}\", ${2:2})",
+        "description": "(うーん...) と (2) 秒考える",
+        "type": "function"
+    },
+    "think": {
+        "snippet": "think(\"${1:うーん...}\")",
+        "description": "(うーん...) と考える",
+        "type": "function"
+    },
+    "switch_costume": {
+        "snippet": "switch_costume(\"${1:コスチューム1}\")",
+        "description": "コスチュームを (コスチューム1▼) にする",
+        "type": "function"
+    },
+    "next_costume": {
+        "snippet": "next_costume",
+        "description": "次のコスチュームにする",
+        "type": "function"
+    },
+    "switch_backdrop": {
+        "snippet": "switch_backdrop(\"${1:背景1}\")",
+        "description": "背景を (背景1▼) にする",
+        "type": "function"
+    },
+    "next_backdrop": {
+        "snippet": "next_backdrop",
+        "description": "次の背景にする",
+        "type": "function"
+    },
+    "size+=": {
+        "snippet": "self.size += ${1:10}",
+        "description": "大きさを (10) ずつ変える",
+        "type": "function"
+    },
+    "size=": {
+        "snippet": "self.size = ${1:100}",
+        "description": "大きさを (100) %にする",
+        "type": "function"
+    },
+    "change_effect_by": {
+        "snippet": "change_effect_by(\"${1:color}\", ${2:25})",
+        "description": "[色▼] の効果を (25) ずつかえる",
+        "type": "function"
+    },
+    "set_effect": {
+        "snippet": "set_effect(\"${1:color}\", ${2:0})",
+        "description": "[色▼] の効果を (0) にする",
+        "type": "function"
+    },
+    "clear_graphic_effects": {
+        "snippet": "clear_graphic_effects",
+        "description": "画像効果をなくす",
+        "type": "function"
+    },
+    "show": {
+        "snippet": "show",
+        "description": "表示する",
+        "type": "function"
+    },
+    "hide": {
+        "snippet": "hide",
+        "description": "隠す",
+        "type": "function"
+    },
+    "go_layers": {
+        "snippet": "go_layers(${1:1}, \"${2:forward}\")",
+        "description": "(1) 層 [手前に出す▼]",
+        "type": "function"
+    },
+    "costume_number": {
+        "snippet": "costume_number",
+        "description": "コスチュームの [番号▼]",
+        "type": "variable"
+    },
+    "costume_name": {
+        "snippet": "costume_name",
+        "description": "コスチュームの [名前▼]",
+        "type": "variable"
+    },
+    "backdrop_number": {
+        "snippet": "backdrop_number",
+        "description": "背景の [番号▼]",
+        "type": "variable"
+    },
+    "backdrop_name": {
+        "snippet": "backdrop_name",
+        "description": "背景の [名前▼]",
+        "type": "variable"
+    },
+    "size": {
+        "snippet": "size",
+        "description": "大きさ",
+        "type": "variable"
+    }
+}

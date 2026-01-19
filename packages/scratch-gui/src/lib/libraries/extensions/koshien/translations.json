@@ -1,0 +1,14 @@
+{
+  "en": {
+    "koshien.entry.name": "Smalruby Koshien",
+    "koshien.entry.description": "Smalruby Koshien AI."
+  },
+  "ja": {
+    "koshien.entry.name": "スモウルビー甲子園",
+    "koshien.entry.description": "スモウルビー甲子園のAIを作成する。"
+  },
+  "ja-Hira": {
+    "koshien.entry.name": "スモウルビー こうしえん",
+    "koshien.entry.description": "スモウルビー こうしえんのエー・アイをさくせいする。"
+  }
+}

@@ -1,0 +1,12 @@
+{
+    "translate.translate": {
+        "snippet": "translate(\"${1:こんにちは}\", \"${2:en}\")",
+        "description": "(こんにちは) を (英語▼) に翻訳する",
+        "type": "variable"
+    },
+    "translate.language": {
+        "snippet": "language",
+        "description": "言語",
+        "type": "variable"
+    }
+}

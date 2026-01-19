@@ -1,0 +1,7 @@
+{
+    "def": {
+        "snippet": "def self.${1:ブロック名}(${2:number_or_text})\n\t${3}\nend",
+        "description": "定義 ブロック名 (number_or_text)",
+        "type": "snippet"
+    }
+}

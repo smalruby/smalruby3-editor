@@ -219,6 +219,12 @@
     vertical-align: middle;
 }
 
+.mesh-icon {
+    width: 21px;
+    height: 21px;
+    margin-right: 0.5rem;
+}
+
 .collapsible-label {
     margin: 0 .5rem 0 .25rem;
 }
@@ -228,11 +234,35 @@
 }
 
 @media only screen and (max-width: 1024px) {
-    .tutorials-label, .collapsible-label, .debug-label{
+    .learn-label, .collapsible-label, .debug-label{
         display: none;
     }
 
     .help-icon {
         margin-right: 0;
     }
+}
+
+.save-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    color: $ui-white;
+    opacity: 0.9;
+    white-space: nowrap;
+}
+
+.save-status-spinner {
+    flex-shrink: 0;
+}
+
+.mesh-v2-domain {
+    display: inline-block;
+    vertical-align: bottom;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
