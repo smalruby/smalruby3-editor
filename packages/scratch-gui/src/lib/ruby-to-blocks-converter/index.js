@@ -9,7 +9,7 @@ if (!Opal) {
     throw new Error('Opal is not defined. Make sure ruby-parser is imported first.');
 }
 
-// eslint-disable-next-line import/no-unresolved
+ 
 import {Variable} from './constants';
 
 import Primitive from './primitive';
@@ -58,7 +58,7 @@ const messages = defineMessages({
     }
 });
 
-/* eslint-disable no-invalid-this */
+ 
 const ColorRegexp = /^#[0-9a-fA-F]{6}$/;
 
 // from scratch-vm/src/serialization/sb3.js
@@ -464,7 +464,6 @@ class RubyToBlocksConverter {
      * Determines the receiver name for method call registration and lookup.
      * This method analyzes the receiver object from Ruby AST and returns the corresponding
      * receiver name string used in the register pattern system.
-     *
      * @param {*} receiver - The receiver object from Ruby AST (primitives, blocks, constants, etc.)
      * @returns {string|null} The receiver name string, or null if cannot be determined:
      *   - 'stage': when receiver is self/nil and current target is stage

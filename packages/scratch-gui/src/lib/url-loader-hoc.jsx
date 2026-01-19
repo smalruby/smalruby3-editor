@@ -1,7 +1,8 @@
 import bindAll from 'lodash.bindall';
 import React from 'react';
 import PropTypes from 'prop-types';
-import {defineMessages, intlShape, injectIntl} from 'react-intl';
+import {defineMessages, injectIntl} from 'react-intl';
+import intlShape from './intlShape';
 import {connect} from 'react-redux';
 import log from '../lib/log';
 import sharedMessages from './shared-messages';
@@ -196,27 +197,25 @@ const URLLoaderHOC = function (WrappedComponent) {
 
         render () {
             const {
-                /* eslint-disable no-unused-vars */
-                cancelFileUpload,
-                closeFileMenu: closeFileMenuProp,
-                closeUrlLoaderModal: closeUrlLoaderModalProp,
-                intl,
-                isLoadingUpload,
-                isShowingWithoutId,
-                loadingState,
-                onError,
-                onLoadedProject: onLoadedProjectProp,
-                onLoadingFinished,
-                onLoadingStarted,
-                onSetProjectTitle,
-                openUrlLoaderModal: openUrlLoaderModalProp,
-                projectChanged,
-                requestProjectUpload: requestProjectUploadProp,
-                setProjectId: setProjectIdProp,
-                userOwnsProject,
+                cancelFileUpload: _cancelFileUpload,
+                closeFileMenu: _closeFileMenuProp,
+                closeUrlLoaderModal: _closeUrlLoaderModalProp,
+                intl: _intl,
+                isLoadingUpload: _isLoadingUpload,
+                isShowingWithoutId: _isShowingWithoutId,
+                loadingState: _loadingState,
+                onError: _onError,
+                onLoadedProject: _onLoadedProjectProp,
+                onLoadingFinished: _onLoadingFinished,
+                onLoadingStarted: _onLoadingStarted,
+                onSetProjectTitle: _onSetProjectTitle,
+                openUrlLoaderModal: _openUrlLoaderModalProp,
+                projectChanged: _projectChanged,
+                requestProjectUpload: _requestProjectUploadProp,
+                setProjectId: _setProjectIdProp,
+                userOwnsProject: _userOwnsProject,
                 vm,
-                onStartSelectingUrlLoad: onStartSelectingUrlLoadProp,
-                /* eslint-enable no-unused-vars */
+                onStartSelectingUrlLoad: _onStartSelectingUrlLoadProp,
                 ...componentProps
             } = this.props;
             return (

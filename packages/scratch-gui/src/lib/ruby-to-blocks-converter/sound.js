@@ -111,7 +111,7 @@ const SoundConverter = {
     },
 
     // Keep onOpAsgn for volume+= operator
-    // eslint-disable-next-line no-unused-vars
+     
     onOpAsgn: function (lh, operator, rh) {
         let block;
         if (this._isBlock(lh) && lh.opcode === 'sound_volume' && operator === '+' && this._isNumberOrBlock(rh)) {

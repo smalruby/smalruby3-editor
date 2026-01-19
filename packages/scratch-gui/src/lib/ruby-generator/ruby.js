@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Ruby Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
- * @return {RubyGenerator} same as param.
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     const getUnquoteText = function (block, fieldName, order) {

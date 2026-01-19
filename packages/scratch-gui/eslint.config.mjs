@@ -67,6 +67,7 @@ export default eslintConfigScratch.defineConfig(
             'require-atomic-updates': 'warn',
             '@typescript-eslint/no-unused-vars': ['warn', {
                 args: 'after-used',
+                argsIgnorePattern: '^_',
                 caughtErrors: 'none', // TODO: use caughtErrorsPattern instead
                 varsIgnorePattern: '^_'
             }],

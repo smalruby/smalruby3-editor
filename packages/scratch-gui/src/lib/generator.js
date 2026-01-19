@@ -86,7 +86,7 @@ class Generator {
      * String for use in the "custom" attribute of a category in toolbox xml.
      * This string indicates that the category should be dynamically populated with
      * procedure blocks.
-     * @const {string}
+     * @constant {string}
      */
     static get PROCEDURE_CATEGORY_NAME () {
         return Blockly.PROCEDURE_CATEGORY_NAME;
@@ -121,7 +121,7 @@ class Generator {
      * Generate code for RenderedTarget's all blocks to the specified language.
      * @param {RenderedTarget} target RenderedTarget to generate code from.
      * @param {object} options Options to generate code.
-     * @return {string} Generated code.
+     * @returns {string} Generated code.
      */
     targetToCode_ (target, options) {
         this.currentTarget = target;
@@ -179,7 +179,7 @@ class Generator {
      * Generate code for RenderedTarget's all blocks to the specified language.
      * @param {RenderedTarget} target RenderedTarget to generate code from.
      * @param {object} options Options to generate code.
-     * @return {string} Generated code.
+     * @returns {string} Generated code.
      */
     targetToCode (target, options) {
         this.initTargets(options);
@@ -191,7 +191,7 @@ class Generator {
      * Generate code for array of RenderedTarget's all blocks to the specified language.
      * @param {Array} targets Array of RenderedTarget to generate code from.
      * @param {object} options Options to generate code.
-     * @return {string} Generated code.
+     * @returns {string} Generated code.
      */
     targetsToCode (targets, options) {
         this.initTargets(options);
@@ -215,7 +215,7 @@ class Generator {
      * Prepend a common prefix onto each line of code.
      * @param {string} text The lines of code.
      * @param {string} prefix The common prefix.
-     * @return {string} The prefixed lines of code.
+     * @returns {string} The prefixed lines of code.
      */
     prefixLines (text, prefix = this.INDENT) {
         return prefix + text.replace(/(?!\n$)\n/g, `\n${prefix}`);
@@ -250,7 +250,7 @@ class Generator {
     /**
      * Recursively spider a tree of blocks, returning all their comments.
      * @param {!object} block The block from which to start spidering.
-     * @return {string} Concatenated list of comments.
+     * @returns {string} Concatenated list of comments.
      */
     allNestedComments (block) {
         const comments = [];
@@ -271,7 +271,7 @@ class Generator {
     /**
      * Generate code for the specified block (and attached blocks).
      * @param {object} block The block to generate code for.
-     * @return {string|!Array} For statement blocks, the generated code.
+     * @returns {string|!Array} For statement blocks, the generated code.
      *     For value blocks, an array containing the generated code and an
      *     operator order value.  Returns '' if block is null.
      */
@@ -319,7 +319,7 @@ class Generator {
      * @param {string} name The name of the input.
      * @param {number} outerOrder The maximum binding strength (minimum order value)
      *     of any operators adjacent to "block".
-     * @return {string} Generated code or '' if no blocks are connected or the
+     * @returns {string} Generated code or '' if no blocks are connected or the
      *     specified input does not exist.
      */
     valueToCode (block, name, outerOrder) {
@@ -391,7 +391,7 @@ class Generator {
      * Generate code representing the statement.  Indent the code.
      * @param {!object} block The block containing the input.
      * @param {string} name The name of the input.
-     * @return {string} Generated code or '' if no blocks are connected.
+     * @returns {string} Generated code or '' if no blocks are connected.
      */
     statementToCode (block, name) {
         const branch = block.inputs[name];
@@ -416,7 +416,7 @@ class Generator {
      * If loop is empty, add a statment prefix for the loop block.
      * @param {string} branch Code for loop contents.
      * @param {string} id ID of enclosing block.
-     * @return {string} Loop contents, with infinite loop trap added.
+     * @returns {string} Loop contents, with infinite loop trap added.
      */
     addLoopTrap (branch, id) {
         id = id.replace(/\$/g, '$$$$');
@@ -442,9 +442,9 @@ class Generator {
      * Hook for code to run before a target code generation starts.
      * Subclasses may override this, e.g. to initialise the database of variable
      * names.
-     * @param {!object} options Options to generate code.
+     * @param {!object} _options Options to generate code.
      */
-    init (options) { // eslint-disable-line no-unused-vars
+    init (_options) {
         // Optionally override
     }
 
@@ -453,10 +453,10 @@ class Generator {
      * Subclasses may override this, e.g. to prepend the generated code with the
      * variable definitions.
      * @param {string} code Generated code.
-     * @param {!object} options Options to generate code.
-     * @return {string} Completed code.
+     * @param {!object} _options Options to generate code.
+     * @returns {string} Completed code.
      */
-    finish (code, options) { // eslint-disable-line no-unused-vars
+    finish (code, _options) {
         // Optionally override
         return code;
     }
@@ -465,9 +465,9 @@ class Generator {
      * Hook for code to run before all targets code generation starts.
      * Subclasses may override this, e.g. to initialise the database of variable
      * names.
-     * @param {!object} options Options to generate code.
+     * @param {!object} _options Options to generate code.
      */
-    initTargets (options) { // eslint-disable-line no-unused-vars
+    initTargets (_options) {
         // Optionally override
     }
 
@@ -476,10 +476,10 @@ class Generator {
      * Subclasses may override this, e.g. to prepend the generated code with the
      * variable definitions.
      * @param {string} code Generated code.
-     * @param {!object} options Options to generate code.
-     * @return {string} Completed code.
+     * @param {!object} _options Options to generate code.
+     * @returns {string} Completed code.
      */
-    finishTargets (code, options) { // eslint-disable-line no-unused-vars
+    finishTargets (code, _options) {
         // Optionally override
         return code;
     }
@@ -490,7 +490,7 @@ class Generator {
      * Subclasses may override this, e.g. if their language does not allow
      * naked values.
      * @param {string} line Line of generated code.
-     * @return {string} Legal line of code.
+     * @returns {string} Legal line of code.
      */
     scrubNakedValue (line) {
         // Optionally override
@@ -505,7 +505,7 @@ class Generator {
      * value blocks.
      * @param {!object} _block The current block.
      * @param {string} code The JavaScript code created for this block.
-     * @return {string} JavaScript code with comments and subsequent blocks added.
+     * @returns {string} JavaScript code with comments and subsequent blocks added.
      * @private
      */
     scrub_ (_block, code) {
@@ -523,10 +523,9 @@ class Generator {
      * used for different code values.
      *
      * The code gets output when finish() is called.
-     *
      * @param {string} desiredName The desired name of the function (e.g., isPrime).
      * @param {!Array.<string>} code A list of statements.  Use '  ' for indents.
-     * @return {string} The actual name of the new function.  This may differ
+     * @returns {string} The actual name of the new function.  This may differ
      *     from desiredName if the former has already been taken by the user.
      * @private
      */

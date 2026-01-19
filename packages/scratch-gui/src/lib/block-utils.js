@@ -1,5 +1,5 @@
 /**
- * @fileoverview Utility functions and constants for block handling
+ * @file Utility functions and constants for block handling
  */
 
 // Define blocks for each category based on make-toolbox-xml.js

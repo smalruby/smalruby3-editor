@@ -1,7 +1,7 @@
 /**
  * Define Ruby blocks
  * @param {ScratchBlocks} ScratchBlocks target to define Ruby blocks.
- * @return {ScratchBlocks} ScratchBlocks defined ScratchBlocks.
+ * @returns {ScratchBlocks} ScratchBlocks defined ScratchBlocks.
  */
 export default function (ScratchBlocks) {
     const name = 'ruby';

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import bindAll from 'lodash.bindall';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -330,14 +331,12 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
 
         render () {
             const {
-                /* eslint-disable no-unused-vars */
-                closeFileMenu: closeFileMenuProp,
+                closeFileMenu: _closeFileMenuProp,
                 intl,
-                locale,
-                projectTitle,
-                saveProjectSb3,
-                targetCodeToBlocks,
-                /* eslint-enable no-unused-vars */
+                locale: _locale,
+                projectTitle: _projectTitle,
+                saveProjectSb3: _saveProjectSb3,
+                targetCodeToBlocks: _targetCodeToBlocks,
                 ...componentProps
             } = this.props;
 

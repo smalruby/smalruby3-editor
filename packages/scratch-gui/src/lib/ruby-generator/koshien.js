@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Microbit More Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
- * @return {RubyGenerator} same as param.
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     Generator.koshien_connectGame = function (block) {

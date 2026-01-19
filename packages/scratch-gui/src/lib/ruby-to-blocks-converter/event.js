@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-unresolved
 import {KeyOptions, Variable} from './constants';
 
 const GreaterThanMenu = [

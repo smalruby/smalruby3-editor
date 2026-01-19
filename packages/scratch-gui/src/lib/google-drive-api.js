@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Google Drive API Integration
  *

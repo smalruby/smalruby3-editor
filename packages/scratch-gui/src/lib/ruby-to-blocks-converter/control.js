@@ -1,10 +1,10 @@
 import _ from 'lodash';
 
-/* eslint-disable no-invalid-this */
-const createControlRepeatBlock = function (times, body) {
-    const block = this._createBlock('control_repeat', 'statement');
-    this._addNumberInput(block, 'TIMES', 'math_whole_number', times, 10);
-    this._addSubstack(block, body);
+ 
+const createControlRepeatBlock = function (converter, times, body) {
+    const block = converter._createBlock('control_repeat', 'statement');
+    converter._addNumberInput(block, 'TIMES', 'math_whole_number', times, 10);
+    converter._addSubstack(block, body);
     return block;
 };
 
@@ -13,7 +13,7 @@ const StopOptions = [
     'this script',
     'other scripts in sprite'
 ];
-/* eslint-enable no-invalid-this */
+ 
 
 /**
  * Control converter
@@ -37,7 +37,7 @@ const ControlConverter = {
             if (!converter._isNumberOrBlock(args[0])) return null;
 
             const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
-            return createControlRepeatBlock.call(converter, args[0], cleanedRubyBlock);
+            return createControlRepeatBlock(converter, args[0], cleanedRubyBlock);
         });
 
         // loop { block } and forever { block } - control_forever
@@ -83,7 +83,7 @@ const ControlConverter = {
             if (!rubyBlock || !converter._isNumberOrBlock(receiver)) return null;
 
             const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
-            return createControlRepeatBlock.call(converter, receiver, cleanedRubyBlock);
+            return createControlRepeatBlock(converter, receiver, cleanedRubyBlock);
         });
 
         // when_start_as_a_clone { block } (sprite only)

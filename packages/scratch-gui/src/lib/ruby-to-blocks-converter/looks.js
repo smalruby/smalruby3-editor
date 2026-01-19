@@ -2,10 +2,12 @@
 import _ from 'lodash';
 import {RubyToBlocksConverterError} from './errors';
 
-/* eslint-disable no-invalid-this */
-const createBlockWithMessage = function (opcode, message, defaultMessage) {
-    const block = this._createBlock(opcode, 'statement');
-    this._addTextInput(block, 'MESSAGE', this._isNumber(message) ? message.toString() : message, defaultMessage);
+ 
+const createBlockWithMessage = function (converter, opcode, message, defaultMessage) {
+    const block = converter._createBlock(opcode, 'statement');
+    converter._addTextInput(
+        block, 'MESSAGE', converter._isNumber(message) ? message.toString() : message, defaultMessage
+    );
     return block;
 };
 
@@ -29,14 +31,14 @@ const ForwardBackward = [
     'backward'
 ];
 
-/* eslint-disable no-invalid-this */
-const validateCostume = function (costumeName, args) {
+ 
+const validateCostume = function (converter, costumeName, args) {
     // Skip validation if no target context (e.g., in tests)
-    if (!this._context.target || !this._context.target.getCostumes) {
+    if (!converter._context.target || !converter._context.target.getCostumes) {
         return;
     }
 
-    const costumes = this._context.target.getCostumes();
+    const costumes = converter._context.target.getCostumes();
     const costumeExists = costumes.some(costume => costume.name === costumeName);
     if (!costumeExists) {
         throw new RubyToBlocksConverterError(
@@ -46,7 +48,7 @@ const validateCostume = function (costumeName, args) {
     }
 };
 
-const validateBackdrop = function (backdropName, args) {
+const validateBackdrop = function (converter, backdropName, args) {
     // Allow special backdrop values
     const specialBackdrops = ['next backdrop', 'previous backdrop', 'random backdrop'];
     if (specialBackdrops.includes(backdropName)) {
@@ -54,11 +56,11 @@ const validateBackdrop = function (backdropName, args) {
     }
 
     // Skip validation if no VM context (e.g., in tests)
-    if (!this.vm || !this.vm.runtime || !this.vm.runtime.getTargetForStage) {
+    if (!converter.vm || !converter.vm.runtime || !converter.vm.runtime.getTargetForStage) {
         return;
     }
 
-    const stage = this.vm.runtime.getTargetForStage();
+    const stage = converter.vm.runtime.getTargetForStage();
     if (!stage || !stage.getCostumes) {
         return;
     }
@@ -72,7 +74,7 @@ const validateBackdrop = function (backdropName, args) {
         );
     }
 };
-/* eslint-enable no-invalid-this */
+ 
 
 /**
  * Looks converter
@@ -84,7 +86,7 @@ const LooksConverter = {
                 const {args} = params;
                 if (!converter._isNumberOrStringOrBlock(args[0])) return null;
 
-                const block = createBlockWithMessage.call(converter, 'looks_say', args[0], 'Hello!');
+                const block = createBlockWithMessage(converter, 'looks_say', args[0], 'Hello!');
                 block.comment = converter.createComment(`@ruby:method:${methodName}`, block.id, 200, 0);
                 return block;
             });
@@ -105,7 +107,7 @@ const LooksConverter = {
                     defaultMessage = 'Hmm...';
                 }
 
-                return createBlockWithMessage.call(converter, opcode, args[0], defaultMessage);
+                return createBlockWithMessage(converter, opcode, args[0], defaultMessage);
             });
         });
 
@@ -124,7 +126,7 @@ const LooksConverter = {
                     defaultMessage = 'Hmm...';
                 }
 
-                const block = createBlockWithMessage.call(converter, opcode, args[0], defaultMessage);
+                const block = createBlockWithMessage(converter, opcode, args[0], defaultMessage);
                 converter._addNumberInput(block, 'SECS', 'math_number', args[1], 2);
                 return block;
             });
@@ -134,7 +136,7 @@ const LooksConverter = {
             const {args} = params;
             if (!converter._isString(args[0])) return null;
 
-            validateCostume.call(converter, args[0].toString(), args);
+            validateCostume(converter, args[0].toString(), args);
             const block = converter._createBlock('looks_switchcostumeto', 'statement');
             converter._addInput(block, 'COSTUME', converter._createFieldBlock('looks_costume', 'COSTUME', args[0]));
             return block;
@@ -144,7 +146,7 @@ const LooksConverter = {
             const {args} = params;
             if (!converter._isString(args[0])) return null;
 
-            validateBackdrop.call(converter, args[0].toString(), args);
+            validateBackdrop(converter, args[0].toString(), args);
             const block = converter._createBlock('looks_switchbackdropto', 'statement');
             converter._addInput(block, 'BACKDROP', converter._createFieldBlock('looks_backdrops', 'BACKDROP', args[0]));
             return block;
@@ -154,7 +156,7 @@ const LooksConverter = {
             const {args} = params;
             if (!converter._isString(args[0])) return null;
 
-            validateBackdrop.call(converter, args[0].toString(), args);
+            validateBackdrop(converter, args[0].toString(), args);
             const block = converter._createBlock('looks_switchbackdroptoandwait', 'statement');
             converter._addInput(block, 'BACKDROP', converter._createFieldBlock('looks_backdrops', 'BACKDROP', args[0]));
             return block;
@@ -256,7 +258,7 @@ const LooksConverter = {
         );
     },
 
-    // eslint-disable-next-line no-unused-vars
+     
     onOpAsgn: function (lh, operator, rh) {
         let block;
         if (this._isBlock(lh) && lh.opcode === 'looks_size' && operator === '+' && this._isNumberOrBlock(rh)) {

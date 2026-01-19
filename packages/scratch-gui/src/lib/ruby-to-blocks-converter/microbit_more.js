@@ -194,7 +194,7 @@ const MicrobitMoreConverter = {
             }
 
             const block =
-                  converter.changeRubyExpressionBlock(receiver, 'microbitMore_isButtonPressed', 'value_boolean');
+                converter.changeRubyExpressionBlock(receiver, 'microbitMore_isButtonPressed', 'value_boolean');
             converter.addField(block, 'NAME', args[0]);
             return block;
         });
@@ -240,7 +240,7 @@ const MicrobitMoreConverter = {
             }
 
             const block =
-                  converter.changeRubyExpressionBlock(receiver, 'microbitMore_isPinTouched', 'value_boolean');
+                converter.changeRubyExpressionBlock(receiver, 'microbitMore_isPinTouched', 'value_boolean');
             converter.addField(block, 'NAME', args[0]);
             return block;
         });
@@ -312,7 +312,7 @@ const MicrobitMoreConverter = {
             }
 
             const block =
-                  converter.changeRubyExpressionBlock(receiver, 'microbitMore_isTilted', 'value_boolean');
+                converter.changeRubyExpressionBlock(receiver, 'microbitMore_isTilted', 'value_boolean');
             converter.addField(block, 'DIRECTION', args[0]);
             return block;
         });
@@ -794,7 +794,7 @@ const MicrobitMoreConverter = {
             }
 
             const block =
-                  converter.changeRubyExpressionBlock(receiver, 'microbitMore_isButtonPressed', 'value_boolean');
+                converter.changeRubyExpressionBlock(receiver, 'microbitMore_isButtonPressed', 'value_boolean');
             converter.addField(block, 'NAME', args[0]);
             return block;
         });
@@ -839,7 +839,7 @@ const MicrobitMoreConverter = {
             }
 
             const block =
-                  converter.changeRubyExpressionBlock(receiver, 'microbitMore_isPinTouched', 'value_boolean');
+                converter.changeRubyExpressionBlock(receiver, 'microbitMore_isPinTouched', 'value_boolean');
             converter.addField(block, 'NAME', args[0]);
             return block;
         });
@@ -911,7 +911,7 @@ const MicrobitMoreConverter = {
             }
 
             const block =
-                  converter.changeRubyExpressionBlock(receiver, 'microbitMore_isTilted', 'value_boolean');
+                converter.changeRubyExpressionBlock(receiver, 'microbitMore_isTilted', 'value_boolean');
             converter.addField(block, 'DIRECTION', args[0]);
             return block;
         });
