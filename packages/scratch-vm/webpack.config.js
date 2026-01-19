@@ -20,6 +20,14 @@ const nodeBuilder = new ScratchWebpackConfigBuilder(common)
                 name: 'VirtualMachine'
             }
         }
+    })
+    .addModuleRule({
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto',
+        resolve: {
+            fullySpecified: false
+        }
     });
 
 const webBuilder = new ScratchWebpackConfigBuilder(common)
@@ -121,6 +129,14 @@ const playgroundBuilder = webBuilder
         loader: 'expose-loader',
         options: {
             exposes: 'ScratchRender'
+        }
+    })
+    .addModuleRule({
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto',
+        resolve: {
+            fullySpecified: false
         }
     })
     .addPlugin(
