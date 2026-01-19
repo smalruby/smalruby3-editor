@@ -1,0 +1,67 @@
+{
+    "sleep": {
+        "snippet": "sleep(${1:1})",
+        "description": "(1) 秒待つ",
+        "type": "function"
+    },
+    "times": {
+        "snippet": "${1:10}.times do\n\t${2}\nend",
+        "description": "(10) 回繰り返す",
+        "type": "snippet"
+    },
+    "loop": {
+        "snippet": "loop do\n\t${1}\nend",
+        "description": "ずっと",
+        "type": "snippet"
+    },
+    "if": {
+        "snippet": "if ${1:false}\n\t${2}\nend",
+        "description": "もし < > なら",
+        "type": "snippet"
+    },
+    "if-else": {
+        "snippet": "if ${1:false}\n\t${2}\nelse\n\t${3}\nend",
+        "description": "もし < > なら、でなければ",
+        "type": "snippet"
+    },
+    "wait-until": {
+        "snippet": "wait until ${1:false}",
+        "description": "< > まで待つ",
+        "type": "function"
+    },
+    "until": {
+        "snippet": "until ${1:false}\n\t${2}\nend",
+        "description": "< > まで繰り返す",
+        "type": "snippet"
+    },
+    "stop-all": {
+        "snippet": "stop(\"${1:all}\")",
+        "description": "[すべてを止める▼]",
+        "type": "function"
+    },
+    "stop-this": {
+        "snippet": "stop(\"${1:this script}\")",
+        "description": "[このスクリプトを止める▼]",
+        "type": "function"
+    },
+    "stop-other": {
+        "snippet": "stop(\"${1:other scripts in sprite}\")",
+        "description": "[スプライトの他のスクリプトを止める▼]",
+        "type": "function"
+    },
+    "when_start_as_a_clone": {
+        "snippet": "when_start_as_a_clone do\n\t${1}\nend",
+        "description": "クローンされたとき",
+        "type": "event"
+    },
+    "create_clone": {
+        "snippet": "create_clone(\"${1:_myself_}\")",
+        "description": "(自分自身▼) のクローンを作る",
+        "type": "function"
+    },
+    "delete_this_clone": {
+        "snippet": "delete_this_clone",
+        "description": "このクローンを削除する",
+        "type": "function"
+    }
+}

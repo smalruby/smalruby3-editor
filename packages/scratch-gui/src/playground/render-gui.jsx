@@ -9,7 +9,7 @@ import log from '../lib/log.js';
 import {PLATFORM} from '../lib/platform.js';
 
 const onClickLogo = () => {
-    window.location = 'https://scratch.mit.edu';
+    window.location = 'https://smalruby.jp';
 };
 
 const handleTelemetryModalCancel = () => {
@@ -78,9 +78,9 @@ export default appTarget => {
             /> :
             <WrappedGui
                 canEditTitle
-                backpackVisible
-                showComingSoon
-                backpackHost={backpackHost}
+                backpackVisible={false}
+                showComingSoon={false}
+                backpackHost={null}
                 canSave={false}
                 onClickLogo={onClickLogo}
             />

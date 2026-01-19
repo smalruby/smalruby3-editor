@@ -1,0 +1,82 @@
+{
+    "smalrubot_s1.action": {
+        "snippet": "smalrubot_s1.action(\"${1:forward}\")",
+        "description": "[進める▼]",
+        "type": "function"
+    },
+    "smalrubot_s1.a-forward": {
+        "snippet": "forward",
+        "description": "進める",
+        "type": "enum_member"
+    },
+    "smalrubot_s1.a-backward": {
+        "snippet": "backward",
+        "description": "バックさせる",
+        "type": "enum_member"
+    },
+    "smalrubot_s1.a-turn-left": {
+        "snippet": "left",
+        "description": "左に曲げる",
+        "type": "enum_member"
+    },
+    "smalrubot_s1.a-turn-right": {
+        "snippet": "right",
+        "description": "右に曲げる",
+        "type": "enum_member"
+    },
+    "smalrubot_s1.a-stop": {
+        "snippet": "stop",
+        "description": "止める",
+        "type": "enum_member"
+    },
+    "smalrubot_s1.action-in": {
+        "snippet": "smalrubot_s1.action(\"${1:forward}\", ${2:0.5})",
+        "description": "(0.5) 秒 [進める▼]",
+        "type": "function"
+    },
+    "smalrubot_s1.bend_arm": {
+        "snippet": "smalrubot_s1.bend_arm(${1:90}, ${2:1})",
+        "description": "(1) 秒でアームを (90) 度に曲げる",
+        "type": "function"
+    },
+    "smalrubot_s1.sensor_value": {
+        "snippet": "smalrubot_s1.sensor_value(\"${1:left}\")",
+        "description": "[左▼] のセンサー",
+        "type": "variable"
+    },
+    "smalrubot_s1.d-left": {
+        "snippet": "left",
+        "description": "左",
+        "type": "enum_member"
+    },
+    "smalrubot_s1.d-right": {
+        "snippet": "right",
+        "description": "右",
+        "type": "enum_member"
+    },
+    "smalrubot_s1.led_on": {
+        "snippet": "smalrubot_s1.led(\"${1:left}\", true)",
+        "description": "[左▼] のLEDをオンにする",
+        "type": "function"
+    },
+    "smalrubot_s1.led_off": {
+        "snippet": "smalrubot_s1.led(\"${1:left}\", false)",
+        "description": "[左▼] のLEDをオフにする",
+        "type": "function"
+    },
+    "smalrubot_s1.get_motor_speed": {
+        "snippet": "smalrubot_s1.get_motor_speed(\"${1:left}\")",
+        "description": "[左▼] DCモーターの速度 (%)",
+        "type": "variable"
+    },
+    "smalrubot_s1.set_motor_speed": {
+        "snippet": "smalrubot_s1.set_motor_speed(\"${1:left}\", ${1:50})",
+        "description": "[左▼] DCモーターの速度を (50) (%) にする",
+        "type": "function"
+    },
+    "smalrubot_s1.arm_calibration=": {
+        "snippet": "smalrubot_s1.arm_calibration = ${1:0}",
+        "description": "アームを (0) 度調整する",
+        "type": "function"
+    }
+}

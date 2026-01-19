@@ -31,6 +31,11 @@ import Alerts from '../../containers/alerts.jsx';
 import DragLayer from '../../containers/drag-layer.jsx';
 import ConnectionModal from '../../containers/connection-modal.jsx';
 import TelemetryModal from '../telemetry-modal/telemetry-modal.jsx';
+import BlockDisplayModal from '../../containers/block-display-modal.jsx';
+import MeshDomainModal from '../../containers/mesh-domain-modal.jsx';
+import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
+import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
+import RubyTab from '../../containers/ruby-tab.jsx';
 
 import layout, {STAGE_SIZE_MODES} from '../../lib/layout-constants';
 import {resolveStageSize} from '../../lib/screen-utils';
@@ -42,9 +47,19 @@ import styles from './gui.css';
 import codeIcon from './icon--code.svg';
 import costumesIcon from './icon--costumes.svg';
 import soundsIcon from './icon--sounds.svg';
+import rubyIcon from './icon--ruby.svg';
 import DebugModal from '../debug-modal/debug-modal.jsx';
 import {setPlatform} from '../../reducers/platform.js';
 import {setTheme} from '../../reducers/settings.js';
+import {
+    activateTab,
+    RUBY_TAB_INDEX
+} from '../../reducers/editor-tab';
+import {
+    closeUrlLoaderModal,
+    closeKoshienTestModal,
+    closeMeshDomainModal
+} from '../../reducers/modals';
 import {PLATFORM} from '../../lib/platform.js';
 
 const ariaMessages = defineMessages({
@@ -124,6 +139,7 @@ const GUIComponent = props => {
         backdropLibraryVisible,
         backpackHost,
         backpackVisible,
+        blockDisplayModalVisible,
         blocksId,
         blocksTabVisible,
         cardsVisible,
@@ -155,10 +171,12 @@ const GUIComponent = props => {
         isShared,
         isTelemetryEnabled,
         isTotallyNormal,
+        koshienTestModalVisible,
         loading,
         logo,
         manuallySaveThumbnails,
         menuBarHidden,
+        meshDomainModalVisible,
         renderLogin,
         onClickAbout,
         onClickAccountNav,
@@ -167,6 +185,7 @@ const GUIComponent = props => {
         onOpenRegistration,
         onToggleLoginOpen,
         onActivateCostumesTab,
+        onActivateRubyTab,
         onActivateSoundsTab,
         onActivateTab,
         onClickLogo,
@@ -178,7 +197,9 @@ const GUIComponent = props => {
         onRequestCloseBackdropLibrary,
         onRequestCloseCostumeLibrary,
         onRequestCloseDebugModal,
+        onRequestCloseKoshienTestModal,
         onRequestCloseTelemetryModal,
+        onRequestCloseUrlLoaderModal,
         onSeeCommunity,
         onShare,
         onShowPrivacyPolicy,
@@ -187,22 +208,25 @@ const GUIComponent = props => {
         onTelemetryModalOptIn,
         onTelemetryModalOptOut,
         onUpdateProjectThumbnail,
+        onUrlLoaderSubmit,
         showComingSoon,
         showNewFeatureCallouts,
         soundsTabVisible,
+        rubyTabVisible,
         stageSizeMode,
         targetIsStage,
         telemetryModalVisible,
         colorMode,
         theme,
         tipsLibraryVisible,
+        urlLoaderModalVisible,
         useExternalPeripheralList,
         username,
         userOwnsProject,
         hideTutorialProjects,
         vm,
         ...componentProps
-    } = omit(props, 'dispatch', 'setPlatform');
+    } = omit(props, 'dispatch', 'setPlatform', 'onRequestCloseMeshDomainModal', 'onStartSelectingUrlLoad');
     if (children) {
         return <Box {...componentProps}>{children}</Box>;
     }
@@ -287,6 +311,20 @@ const GUIComponent = props => {
                         onShowPrivacyPolicy={onShowPrivacyPolicy}
                     />
                 ) : null}
+                {urlLoaderModalVisible ? (
+                    <URLLoaderModal
+                        onRequestClose={onRequestCloseUrlLoaderModal}
+                        onLoadUrl={onUrlLoaderSubmit}
+                    />
+                ) : null}
+                {meshDomainModalVisible ? (
+                    <MeshDomainModal />
+                ) : null}
+                {koshienTestModalVisible ? (
+                    <KoshienTestModal
+                        onRequestClose={onRequestCloseKoshienTestModal}
+                    />
+                ) : null}
                 {loading ? (
                     <Loader />
                 ) : null}
@@ -329,6 +367,9 @@ const GUIComponent = props => {
                         vm={vm}
                         onRequestClose={onRequestCloseBackdropLibrary}
                     />
+                ) : null}
+                {blockDisplayModalVisible ? (
+                    <BlockDisplayModal />
                 ) : null}
                 {!menuBarHidden && <MenuBar
                     ariaRole="banner"
@@ -460,6 +501,22 @@ const GUIComponent = props => {
                                             id="gui.gui.soundsTab"
                                         />
                                     </Tab>
+                                    <Tab
+                                        className={tabClassNames.tab}
+                                        onClick={onActivateRubyTab}
+                                        role="tab"
+                                        tabIndex="0"
+                                    >
+                                        <img
+                                            draggable={false}
+                                            src={rubyIcon}
+                                        />
+                                        <FormattedMessage
+                                            defaultMessage="Ruby"
+                                            description="Button to get to the Ruby panel"
+                                            id="gui.smalruby3.gui.rubyTab"
+                                        />
+                                    </Tab>
                                 </TabList>
                             </Box>
                             <TabPanel
@@ -523,6 +580,16 @@ const GUIComponent = props => {
                                         vm={vm}
                                     /> : null}
                             </TabPanel>
+                            <TabPanel
+                                className={tabClassNames.tabPanel}
+                                role="tabpanel"
+                            >
+                                <RubyTab
+                                    isVisible={rubyTabVisible}
+                                    vm={vm}
+                                    onProjectTelemetryEvent={onProjectTelemetryEvent}
+                                />
+                            </TabPanel>
                         </Tabs>
                         {backpackVisible ? (
                             <Backpack
@@ -581,6 +648,7 @@ GUIComponent.propTypes = {
     backpackHost: PropTypes.string,
     backpackVisible: PropTypes.bool,
     basePath: PropTypes.string,
+    blockDisplayModalVisible: PropTypes.bool,
     blocksTabVisible: PropTypes.bool,
     blocksId: PropTypes.string,
     canChangeLanguage: PropTypes.bool,
@@ -610,11 +678,14 @@ GUIComponent.propTypes = {
     isRtl: PropTypes.bool,
     isShared: PropTypes.bool,
     isTotallyNormal: PropTypes.bool,
+    koshienTestModalVisible: PropTypes.bool,
     loading: PropTypes.bool,
     logo: PropTypes.string,
     manuallySaveThumbnails: PropTypes.bool,
     menuBarHidden: PropTypes.bool,
+    meshDomainModalVisible: PropTypes.bool,
     onActivateCostumesTab: PropTypes.func,
+    onActivateRubyTab: PropTypes.func,
     onActivateSoundsTab: PropTypes.func,
     onActivateTab: PropTypes.func,
     onClickAccountNav: PropTypes.func,
@@ -628,23 +699,29 @@ GUIComponent.propTypes = {
     onRequestCloseBackdropLibrary: PropTypes.func,
     onRequestCloseCostumeLibrary: PropTypes.func,
     onRequestCloseDebugModal: PropTypes.func,
+    onRequestCloseKoshienTestModal: PropTypes.func,
+    onRequestCloseMeshDomainModal: PropTypes.func,
     onRequestCloseTelemetryModal: PropTypes.func,
+    onRequestCloseUrlLoaderModal: PropTypes.func,
     onSeeCommunity: PropTypes.func,
     onShare: PropTypes.func,
     onShowPrivacyPolicy: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
+    onStartSelectingUrlLoad: PropTypes.func,
     onTabSelect: PropTypes.func,
     onTelemetryModalCancel: PropTypes.func,
     onTelemetryModalOptIn: PropTypes.func,
     onTelemetryModalOptOut: PropTypes.func,
     onToggleLoginOpen: PropTypes.func,
     onUpdateProjectThumbnail: PropTypes.func,
+    onUrlLoaderSubmit: PropTypes.func,
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
     renderLogin: PropTypes.func,
     setTheme: PropTypes.func.isRequired,
     showComingSoon: PropTypes.bool,
     showNewFeatureCallouts: PropTypes.bool,
     soundsTabVisible: PropTypes.bool,
+    rubyTabVisible: PropTypes.bool,
     stageSizeMode: PropTypes.oneOf(Object.keys(STAGE_SIZE_MODES)),
     setPlatform: PropTypes.func,
     targetIsStage: PropTypes.bool,
@@ -652,6 +729,7 @@ GUIComponent.propTypes = {
     colorMode: PropTypes.string,
     theme: PropTypes.string,
     tipsLibraryVisible: PropTypes.bool,
+    urlLoaderModalVisible: PropTypes.bool,
     useExternalPeripheralList: PropTypes.bool, // true for CDM, false for normal Scratch Link
     username: PropTypes.string,
     userOwnsProject: PropTypes.bool,
@@ -693,12 +771,20 @@ const mapStateToProps = state => ({
     blocksId: state.scratchGui.timeTravel.year.toString(),
     stageSizeMode: state.scratchGui.stageSize.stageSize,
     colorMode: state.scratchGui.settings.colorMode,
-    theme: state.scratchGui.settings.theme
+    theme: state.scratchGui.settings.theme,
+    blockDisplayModalVisible: state.scratchGui.blockDisplay.modalVisible,
+    meshDomainModalVisible: state.scratchGui.modals.meshDomainModal,
+    koshienTestModalVisible: state.scratchGui.modals.koshienTestModal,
+    urlLoaderModalVisible: state.scratchGui.modals.urlLoaderModal
 });
 
 const mapDispatchToProps = dispatch => ({
     setPlatform: platform => dispatch(setPlatform(platform)),
-    setTheme: theme => dispatch(setTheme(theme))
+    setTheme: theme => dispatch(setTheme(theme)),
+    onActivateRubyTab: () => dispatch(activateTab(RUBY_TAB_INDEX)),
+    onRequestCloseMeshDomainModal: () => dispatch(closeMeshDomainModal()),
+    onRequestCloseKoshienTestModal: () => dispatch(closeKoshienTestModal()),
+    onRequestCloseUrlLoaderModal: () => dispatch(closeUrlLoaderModal())
 });
 
 export default connect(mapStateToProps,

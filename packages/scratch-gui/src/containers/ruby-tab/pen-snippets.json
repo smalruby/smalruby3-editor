@@ -1,0 +1,77 @@
+{
+    "pen.clear": {
+        "snippet": "Pen.clear",
+        "description": "全部消す",
+        "type": "function"
+    },
+    "pen.stamp": {
+        "snippet": "pen.stamp",
+        "description": "スタンプ",
+        "type": "function"
+    },
+    "pen.down": {
+        "snippet": "pen.down",
+        "description": "ペンを下ろす",
+        "type": "function"
+    },
+    "pen.up": {
+        "snippet": "pen.up",
+        "description": "ペンを上げる",
+        "type": "function"
+    },
+    "pen.color=#": {
+        "snippet": "pen.color = \"#${1:7a2d74}\"",
+        "description": "ペンの色を (#7a2d74) にする",
+        "type": "function"
+    },
+    "pen.color+=": {
+        "snippet": "pen.color += ${1:10}",
+        "description": "ペンの [色▼] を (10) ずつ変える",
+        "type": "function"
+    },
+    "pen.saturation+=": {
+        "snippet": "pen.saturation += ${1:10}",
+        "description": "ペンの [鮮やかさ▼] を (10) ずつ変える",
+        "type": "function"
+    },
+    "pen.brightness+=": {
+        "snippet": "pen.brightness += ${1:10}",
+        "description": "ペンの [明るさ▼] を (10) ずつ変える",
+        "type": "function"
+    },
+    "pen.transparency+=": {
+        "snippet": "pen.transparency += ${1:10}",
+        "description": "ペンの [透明度▼] を (10) ずつ変える",
+        "type": "function"
+    },
+    "pen.color=": {
+        "snippet": "pen.color = ${1:50}",
+        "description": "ペンの [色▼] を (50) にする",
+        "type": "function"
+    },
+    "pen.saturation=": {
+        "snippet": "pen.saturation = ${1:50}",
+        "description": "ペンの [鮮やかさ▼] を (50) にする",
+        "type": "function"
+    },
+    "pen.brightness=": {
+        "snippet": "pen.brightness = ${1:50}",
+        "description": "ペンの [明るさ▼] を (50) にする",
+        "type": "function"
+    },
+    "pen.transparency=": {
+        "snippet": "pen.transparency = ${1:50}",
+        "description": "ペンの [透明度▼] を (50) にする",
+        "type": "function"
+    },
+    "pen.size+=": {
+        "snippet": "pen.size += ${1:1}",
+        "description": "ペンの太さを (1) ずつ変える",
+        "type": "function"
+    },
+    "pen.size=": {
+        "snippet": "pen.size = ${1:1}",
+        "description": "ペンの太さを (1) にする",
+        "type": "function"
+    }
+}

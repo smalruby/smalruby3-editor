@@ -1,0 +1,107 @@
+{
+    "rand": {
+        "snippet": "rand(${1:1}..${2:10})",
+        "description": "(1) から (10) までの乱数",
+        "type": "variable"
+    },
+    "and": {
+        "snippet": "${1:false} && ${2:false}",
+        "description": "< > かつ < >",
+        "type": "variable"
+    },
+    "or": {
+        "snippet": "${1:false} || ${2:false}",
+        "description": "< > または < >",
+        "type": "variable"
+    },
+    "not": {
+        "snippet": "!${1:false}",
+        "description": "< > ではない",
+        "type": "variable"
+    },
+    "string+": {
+        "snippet": "\"${1:りんご}\" + \"${2:バナナ}\"",
+        "description": "(りんご) と (バナナ)",
+        "type": "variable"
+    },
+    "string[]": {
+        "snippet": "\"${1:りんご}\"[${2:1}]",
+        "description": "(りんご) の (1) 番目の文字",
+        "type": "variable"
+    },
+    "string.length": {
+        "snippet": "\"${1:りんご}\".length",
+        "description": "(りんご) の長さ",
+        "type": "variable"
+    },
+    "string.include?": {
+        "snippet": "\"${1:りんご}\".include?(\"${2:り}\")",
+        "description": "(りんご) に (り) が含まれる",
+        "type": "value"
+    },
+    "round": {
+        "snippet": "${1:0}.round",
+        "description": "(0) を四捨五入",
+        "type": "variable"
+    },
+    "abs": {
+        "snippet": "${1:0}.abs",
+        "description": "(0) の [絶対値▼]",
+        "type": "variable"
+    },
+    "floor": {
+        "snippet": "${1:0}.floor",
+        "description": "(0) の [切り下げ▼]",
+        "type": "variable"
+    },
+    "ceil": {
+        "snippet": "${1:0}.ceil",
+        "description": "(0) の [切り上げ▼]",
+        "type": "variable"
+    },
+    "sqrt": {
+        "snippet": "Math.sqrt(${1:0})",
+        "description": "(0) の [平方根▼]",
+        "type": "variable"
+    },
+    "sin": {
+        "snippet": "Math.sin(${1:0})",
+        "description": "(0) の [sin▼]",
+        "type": "variable"
+    },
+    "cos": {
+        "snippet": "Math.cos(${1:0})",
+        "description": "(0) の [cons▼]",
+        "type": "variable"
+    },
+    "tan": {
+        "snippet": "Math.tan(${1:0})",
+        "description": "(0) の [tan▼]",
+        "type": "variable"
+    },
+    "asin": {
+        "snippet": "Math.asin(${1:0})",
+        "description": "(0) の [asin▼]",
+        "type": "variable"
+    },
+    "acos": {
+        "snippet": "Math.acos(${1:0})",
+        "description": "(0) の [acos▼]",
+        "type": "variable"
+    },
+    "atan": {
+        "snippet": "Math.atan(${1:0})",
+        "description": "(0) の [atan▼]",
+        "type": "variable"
+    },
+    "log": {
+        "snippet": "Math.log(${1:0})",
+        "description": "(0) の [In▼]",
+        "type": "variable"
+    },
+    "log10": {
+        "snippet": "Math.log10(${1:0})",
+        "description": "(0) の [log▼]",
+        "type": "variable"
+    }
+}

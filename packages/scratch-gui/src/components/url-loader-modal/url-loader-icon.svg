@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="20px" height="20px" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Created for Smalruby3 URL Loader -->
+    <title>URL Loader</title>
+    <desc>URL Loader Icon</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round">
+        <g id="URL-Loader" stroke="#FFFFFF" stroke-width="1.25">
+            <g id="url-icon" transform="translate(2.000000, 2.000000)">
+                <!-- Globe/world icon base -->
+                <circle cx="8" cy="8" r="7" fill="none"/>
+                <!-- Latitude lines -->
+                <path d="M1,8 L15,8" fill="none"/>
+                <path d="M2.5,5 L13.5,5" fill="none"/>
+                <path d="M2.5,11 L13.5,11" fill="none"/>
+                <!-- Longitude lines -->
+                <path d="M8,1 C6,3 6,13 8,15" fill="none"/>
+                <path d="M8,1 C10,3 10,13 8,15" fill="none"/>
+                <!-- Connection/link symbol -->
+                <path d="M5,3 L7,3 C7.5,3 8,3.5 8,4 L8,4 C8,4.5 7.5,5 7,5 L5,5" fill="none"/>
+                <path d="M9,11 L11,11 C11.5,11 12,11.5 12,12 L12,12 C12,12.5 11.5,13 11,13 L9,13" fill="none"/>
+            </g>
+        </g>
+    </g>
+</svg>

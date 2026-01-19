@@ -27,3 +27,14 @@ npm-*
 
 # for act
 .secrets
+
+# Generated files
+src/generated/
+
+# Downloaded hex files
+static/microbit/
+static/microbitMore/
+
+# Build output
+build/
+dist/

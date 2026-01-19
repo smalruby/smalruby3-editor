@@ -11,6 +11,8 @@ const MENU_MODE = 'modeMenu';
 const MENU_SETTINGS = 'settingsMenu';
 const MENU_COLOR_MODE = 'colorModeMenu';
 const MENU_THEME = 'themeMenu';
+const MENU_KOSHIEN = 'koshienMenu';
+const MENU_MESH_V2 = 'meshV2Menu';
 
 class Menu {
     constructor (id) {
@@ -61,7 +63,9 @@ const rootMenu = new Menu('root')
     .addChild(new Menu(MENU_SETTINGS))
     .addChild(new Menu(MENU_LOGIN))
     .addChild(new Menu(MENU_ACCOUNT))
-    .addChild(new Menu(MENU_ABOUT));
+    .addChild(new Menu(MENU_ABOUT))
+    .addChild(new Menu(MENU_KOSHIEN))
+    .addChild(new Menu(MENU_MESH_V2));
 
 const initialState = {
     [MENU_ABOUT]: false,
@@ -73,7 +77,9 @@ const initialState = {
     [MENU_MODE]: false,
     [MENU_SETTINGS]: false,
     [MENU_COLOR_MODE]: false,
-    [MENU_THEME]: false
+    [MENU_THEME]: false,
+    [MENU_KOSHIEN]: false,
+    [MENU_MESH_V2]: false
 };
 
 const reducer = function (state, action) {
@@ -153,6 +159,14 @@ const openThemeMenu = () => openMenu(MENU_THEME);
 const closeThemeMenu = () => closeMenu(MENU_THEME);
 const themeMenuOpen = state => state.scratchGui.menus[MENU_THEME];
 
+const openKoshienMenu = () => openMenu(MENU_KOSHIEN);
+const closeKoshienMenu = () => closeMenu(MENU_KOSHIEN);
+const koshienMenuOpen = state => state.scratchGui.menus[MENU_KOSHIEN];
+
+const openMeshV2Menu = () => openMenu(MENU_MESH_V2);
+const closeMeshV2Menu = () => closeMenu(MENU_MESH_V2);
+const meshV2MenuOpen = state => state.scratchGui.menus[MENU_MESH_V2];
+
 export {
     reducer as default,
     initialState as menuInitialState,
@@ -185,5 +199,11 @@ export {
     colorModeMenuOpen,
     openThemeMenu,
     closeThemeMenu,
-    themeMenuOpen
+    themeMenuOpen,
+    openKoshienMenu,
+    closeKoshienMenu,
+    koshienMenuOpen,
+    openMeshV2Menu,
+    closeMeshV2Menu,
+    meshV2MenuOpen
 };

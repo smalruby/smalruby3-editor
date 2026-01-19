@@ -45,6 +45,14 @@ const webBuilder = new ScratchWebpackConfigBuilder(common)
         options: {
             exposes: 'VirtualMachine'
         }
+    })
+    .addModuleRule({
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto',
+        resolve: {
+            fullySpecified: false
+        }
     });
 
 const playgroundBuilder = webBuilder
