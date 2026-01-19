@@ -1,5 +1,7 @@
-require('opal');
-require('opal-parser');
+if (typeof global.Opal === 'undefined' && typeof window.Opal === 'undefined') {
+    require('opal');
+    require('opal-parser');
+}
 
 const Opal = global.Opal || window.Opal;
 if (!Opal) {

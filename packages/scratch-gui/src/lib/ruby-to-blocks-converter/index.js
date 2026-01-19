@@ -1,11 +1,14 @@
-require('opal');
-require('opal-parser');
-const Opal = global.Opal || window.Opal;
 import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 import log from '../log';
 import Blockly from 'scratch-blocks';
 import RubyParser from '../ruby-parser';
+
+const Opal = global.Opal || window.Opal;
+if (!Opal) {
+    throw new Error('Opal is not defined. Make sure ruby-parser is imported first.');
+}
+
 // eslint-disable-next-line import/no-unresolved
 import {Variable} from './constants';
 
