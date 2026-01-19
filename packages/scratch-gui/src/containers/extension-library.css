@@ -1,0 +1,25 @@
+@import "../components/modal/modal.css";
+
+.show-all-extensions-label {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: normal;
+    cursor: pointer;
+    user-select: none;
+    color: $ui-white;
+    white-space: nowrap;
+    padding: 1rem;
+}
+
+.show-all-extensions-checkbox {
+    cursor: pointer;
+}
+
+[dir="ltr"] .show-all-extensions-checkbox {
+    margin-right: 0.5rem;
+}
+
+[dir="rtl"] .show-all-extensions-checkbox {
+    margin-left: 0.5rem;
+}
