@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Procedures Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
- * @return {RubyGenerator} same as param.
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     // Helper function to convert argument names to snake_case lowercase
@@ -30,7 +30,7 @@ export default function (Generator) {
         }
         const args = [];
         const paramNamesIdsAndDefaults =
-              Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(block.mutation.proccode);
+            Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(block.mutation.proccode);
         if (isCall) {
             const ids = paramNamesIdsAndDefaults[1];
             const defaults = paramNamesIdsAndDefaults[2];

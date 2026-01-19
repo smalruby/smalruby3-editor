@@ -47,7 +47,7 @@ class GoogleDriveSaveDialog extends React.Component {
     componentDidUpdate (prevProps) {
         // Reset state when dialog is shown
         if (this.props.isVisible && !prevProps.isVisible) {
-            this.setState({ // eslint-disable-line react/no-did-update-set-state
+            this.setState({
                 filename: this.props.defaultFilename || '',
                 saveLocation: 'my-drive',
                 selectedFolderId: null,

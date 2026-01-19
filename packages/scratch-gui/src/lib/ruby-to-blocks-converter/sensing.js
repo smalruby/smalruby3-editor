@@ -14,7 +14,7 @@ const spriteCall = function (name) {
 };
 
 const Stage = 'stage';
-/* eslint-enable no-invalid-this */
+ 
 
 /**
  * Sensing converter

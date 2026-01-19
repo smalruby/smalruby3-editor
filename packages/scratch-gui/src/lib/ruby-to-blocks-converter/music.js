@@ -74,7 +74,7 @@ const MusicConverter = {
     },
 
     // Keep onOpAsgn for tempo+= operator
-    // eslint-disable-next-line no-unused-vars
+     
     onOpAsgn: function (lh, operator, rh) {
         let block;
         if (this._isBlock(lh) && operator === '+' && this._isNumberOrBlock(rh)) {

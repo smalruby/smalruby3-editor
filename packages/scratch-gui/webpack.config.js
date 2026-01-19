@@ -27,7 +27,6 @@ const cssModuleExceptions = [
 ];
 
 const opalConfig = require('./opal/config-opal');
-const opalParserConfig = require('./opal/config-opal-parser');
 
 const baseConfig = new ScratchWebpackConfigBuilder(
     {

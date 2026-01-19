@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import bindAll from 'lodash.bindall';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -180,19 +181,17 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
 
         render () {
             const {
-                /* eslint-disable no-unused-vars */
-                closeFileMenu: closeFileMenuProp,
+                closeFileMenu: _closeFileMenuProp,
                 intl,
-                isLoadingUpload,
-                loadingState,
-                locale,
-                onCloseLoadingProject,
-                onLoadingFinished,
-                onLoadingStarted,
-                onSetProjectTitle,
-                openUrlLoaderModal,
-                vm,
-                /* eslint-enable no-unused-vars */
+                isLoadingUpload: _isLoadingUpload,
+                loadingState: _loadingState,
+                locale: _locale,
+                onCloseLoadingProject: _onCloseLoadingProject,
+                onLoadingFinished: _onLoadingFinished,
+                onLoadingStarted: _onLoadingStarted,
+                onSetProjectTitle: _onSetProjectTitle,
+                openUrlLoaderModal: _openUrlLoaderModal,
+                vm: _vm,
                 ...componentProps
             } = this.props;
 

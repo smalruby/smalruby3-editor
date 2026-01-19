@@ -66,15 +66,13 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
 
         render () {
             const {
-                /* eslint-disable no-unused-vars */
-                editingTarget,
-                convertedRubyCodeState,
-                onActivateRubyTab,
-                onHighlightTarget,
-                onShowConvertRubyToBlocksErrorAlert,
-                rubyCode,
-                updateRubyCodeErrorsState,
-                /* eslint-enable no-unused-vars */
+                editingTarget: _editingTarget,
+                convertedRubyCodeState: _convertedRubyCodeState,
+                onActivateRubyTab: _onActivateRubyTab,
+                onHighlightTarget: _onHighlightTarget,
+                onShowConvertRubyToBlocksErrorAlert: _onShowConvertRubyToBlocksErrorAlert,
+                rubyCode: _rubyCode,
+                updateRubyCodeErrorsState: _updateRubyCodeErrorsState,
                 ...componentProps
             } = this.props;
             return (

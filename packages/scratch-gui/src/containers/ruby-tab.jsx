@@ -90,7 +90,7 @@ class RubyTab extends React.Component {
         if (modified) {
             const targetId = this.props.rubyCode.target ? this.props.rubyCode.target.id : null;
             const changedTarget =
-                  this.props.vm.editingTarget && this.props.rubyCode.target &&
+                this.props.vm.editingTarget && this.props.rubyCode.target &&
                   this.props.vm.editingTarget.id !== targetId;
             if (changedTarget || this.props.blocksTabVisible) {
                 const converter = this.props.targetCodeToBlocks(this.props.intl);

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import {loader} from '@monaco-editor/react';
 
 // Configure loader to use a specific version from CDN to match our local NLS messages

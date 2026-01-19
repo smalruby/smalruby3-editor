@@ -1,3 +1,4 @@
+/* global Opal */
 const configOpalParser = {};
 
 if (typeof module !== 'undefined' && module.exports) {

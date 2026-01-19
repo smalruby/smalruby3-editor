@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Google API Dynamic Script Loader
  *

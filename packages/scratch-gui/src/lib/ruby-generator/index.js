@@ -108,7 +108,7 @@ RubyGenerator.ORDER_AND_OR = 21;           // and or
 RubyGenerator.ORDER_NONE = 99;             // (...)
 /* eslint-enable no-multi-spaces */
 
-RubyGenerator.init = function (options) { // eslint-disable-line no-unused-vars
+RubyGenerator.init = function (_options) {
     this.definitions_ = {};
     if (this.variableDB_) {
         this.variableDB_.reset();
@@ -169,7 +169,7 @@ RubyGenerator.initTargets = function (options) {
     }
 };
 
-RubyGenerator.finishTargets = function (code, options) { // eslint-disable-line no-unused-vars
+RubyGenerator.finishTargets = function (code, _options) {
     let s = '';
     const requires = Object.keys(this.requires_).map(name => this.requires_[name]);
     if (requires.length > 0) {

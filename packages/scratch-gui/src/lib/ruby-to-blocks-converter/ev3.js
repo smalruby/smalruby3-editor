@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import _ from 'lodash';
 
 const Ev3 = 'ev3';

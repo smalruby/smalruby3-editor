@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Video Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
- * @return {RubyGenerator} same as param.
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     Generator.videoSensing_whenMotionGreaterThan = function (block) {

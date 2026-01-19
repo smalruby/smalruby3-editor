@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for BOOST Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
- * @return {RubyGenerator} same as param.
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     Generator.boost_menu_MOTOR_ID = function (block) {

@@ -93,7 +93,7 @@ const VideoConverter = {
             if (!converter.isNumberOrBlock(args[0])) return null;
 
             const block =
-                  converter.changeRubyExpressionBlock(receiver, 'videoSensing_setVideoTransparency', 'statement');
+                converter.changeRubyExpressionBlock(receiver, 'videoSensing_setVideoTransparency', 'statement');
             converter.addNumberInput(block, 'TRANSPARENCY', 'math_number', args[0], 50);
             return block;
         });

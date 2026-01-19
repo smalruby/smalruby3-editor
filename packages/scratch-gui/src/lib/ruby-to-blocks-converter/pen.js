@@ -200,7 +200,7 @@ const PenConverter = {
         });
     },
 
-    // eslint-disable-next-line no-unused-vars
+     
     onOpAsgn: function (lh, operator, rh) {
         let block;
         if (this.isRubyExpression(lh) && operator === '+' && this._isNumberOrBlock(rh)) {

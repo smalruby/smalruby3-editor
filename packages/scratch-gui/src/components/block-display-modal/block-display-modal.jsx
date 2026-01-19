@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';

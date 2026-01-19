@@ -1,3 +1,4 @@
+/* global Opal */
 const configOpal = {
     unsupported_features_severity: 'ignore'
 };

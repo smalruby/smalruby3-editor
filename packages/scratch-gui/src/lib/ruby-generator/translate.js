@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Translate Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
- * @return {RubyGenerator} same as param.
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     Generator.translate_getTranslate = function (block) {

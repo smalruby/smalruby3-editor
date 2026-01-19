@@ -45,7 +45,7 @@ const KeyOptions = [
 
 /**
  * scratch-vm/src/engine/variable.jsからコピー
- * @const
+ * @constant
  */
 const Variable = {
     SCALAR_TYPE: '',
