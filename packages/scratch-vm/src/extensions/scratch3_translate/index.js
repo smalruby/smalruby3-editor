@@ -24,7 +24,7 @@ const blockIconURI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYA
  * The url of the translate server.
  * @type {string}
  */
-const serverURL = 'https://translate-service.scratch.mit.edu/';
+const serverURL = 'https://api.smalruby.app/scratch-api-proxy/';
 
 /**
  * How long to wait in ms before timing out requests to translate server.
