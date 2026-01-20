@@ -1,9 +1,13 @@
 const path = require('path');
 const webpack = require('webpack');
+const fs = require('fs');
 
 // Plugins
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const WorkboxPlugin = require('workbox-webpack-plugin');
+const WebpackPwaManifest = require('webpack-pwa-manifest');
+const assetsManifest = require('./src/assetsManifest.json');
 
 const ScratchWebpackConfigBuilder = require('scratch-webpack-configuration');
 
@@ -51,7 +55,8 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         resolve: {
             fallback: {
                 Buffer: require.resolve('buffer/'),
-                stream: require.resolve('stream-browserify')
+                stream: require.resolve('stream-browserify'),
+                process: require.resolve('process/browser')
             },
             alias: {
                 'opal': path.resolve(__dirname, 'opal/opal.min.js'),
@@ -59,6 +64,9 @@ const baseConfig = new ScratchWebpackConfigBuilder(
             }
         }
     })
+    .addPlugin(new webpack.ProvidePlugin({
+        process: 'process/browser'
+    }))
     .addModuleRule({
         test: /\.mjs$/,
         include: /node_modules/,
@@ -85,7 +93,15 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         'process.env.DEBUG': Boolean(process.env.DEBUG),
         'process.env.GA_ID': `"${process.env.GA_ID || 'UA-000000-01'}"`,
         'process.env.GTM_ENV_AUTH': `"${process.env.GTM_ENV_AUTH || ''}"`,
-        'process.env.GTM_ID': process.env.GTM_ID ? `"${process.env.GTM_ID}"` : null
+        'process.env.GTM_ID': process.env.GTM_ID ? `"${process.env.GTM_ID}"` : null,
+        'process.env.GOOGLE_CLIENT_ID': `"${process.env.GOOGLE_CLIENT_ID || ''}"`,
+        'process.env.GOOGLE_API_KEY': `"${process.env.GOOGLE_API_KEY || ''}"`,
+        'process.env.MESH_GRAPHQL_ENDPOINT': `"${process.env.MESH_GRAPHQL_ENDPOINT || ''}"`,
+        'process.env.MESH_API_KEY': `"${process.env.MESH_API_KEY || ''}"`,
+        'process.env.MESH_AWS_REGION': `"${process.env.MESH_AWS_REGION || ''}"`,
+        'process.env.MESH_DATA_UPDATE_INTERVAL_MS': `"${process.env.MESH_DATA_UPDATE_INTERVAL_MS || ''}"`,
+        'process.env.MESH_EVENT_BATCH_INTERVAL_MS': `"${process.env.MESH_EVENT_BATCH_INTERVAL_MS || ''}"`,
+        'process.env.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS': `"${process.env.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS || ''}"`
     }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
@@ -194,35 +210,45 @@ const buildConfig = baseConfig.clone()
         ...commonHtmlWebpackPluginOptions,
         chunks: ['gui'],
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI'
+        title: 'Scratch 3.0 GUI',
+        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
+        pwa: process.env.NODE_ENV === 'production'
     }))
     .addPlugin(new HtmlWebpackPlugin({
         ...commonHtmlWebpackPluginOptions,
         chunks: ['guistandalone'],
         filename: 'standalone.html',
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI: Standalone Mode'
+        title: 'Scratch 3.0 GUI: Standalone Mode',
+        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
+        pwa: process.env.NODE_ENV === 'production'
     }))
     .addPlugin(new HtmlWebpackPlugin({
         ...commonHtmlWebpackPluginOptions,
         chunks: ['blocksonly'],
         filename: 'blocks-only.html',
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI: Blocks Only Example'
+        title: 'Scratch 3.0 GUI: Blocks Only Example',
+        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
+        pwa: process.env.NODE_ENV === 'production'
     }))
     .addPlugin(new HtmlWebpackPlugin({
         ...commonHtmlWebpackPluginOptions,
         chunks: ['compatibilitytesting'],
         filename: 'compatibility-testing.html',
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI: Compatibility Testing'
+        title: 'Scratch 3.0 GUI: Compatibility Testing',
+        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
+        pwa: process.env.NODE_ENV === 'production'
     }))
     .addPlugin(new HtmlWebpackPlugin({
         ...commonHtmlWebpackPluginOptions,
         chunks: ['player'],
         filename: 'player.html',
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI: Player Example'
+        title: 'Scratch 3.0 GUI: Player Example',
+        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
+        pwa: process.env.NODE_ENV === 'production'
     }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
@@ -238,6 +264,42 @@ const buildConfig = baseConfig.clone()
         ]
     }));
 
+const buildWithPwaConfig = buildConfig.clone()
+    .addPlugin(
+        new WorkboxPlugin.GenerateSW({
+            disableDevLogs: !process.env.DEBUG,
+            clientsClaim: true,
+            skipWaiting: true,
+            additionalManifestEntries: assetsManifest,
+            exclude: [
+                /\.DS_Store/
+            ],
+            maximumFileSizeToCacheInBytes: 32 * 1024 * 1024
+        })
+    )
+    .addPlugin(
+        new WebpackPwaManifest({
+            publicPath: './',
+            name: 'Smalruby',
+            short_name: 'Smalruby',
+            description: 'GraphicaL User Interface for creating and running Smalruby 3.0 projects',
+            background_color: '#ffffff',
+            orientation: 'any',
+            crossorigin: 'use-credentials',
+            inject: true,
+            ios: {
+                'apple-mobile-web-app-title': 'Smalruby',
+                'apple-mobile-web-app-status-bar-style': 'default'
+            },
+            icons: [
+                {
+                    src: path.resolve('static/pwa-icon.png'),
+                    sizes: [96, 128, 192, 256, 384, 512] // multiple sizes
+                }
+            ]
+        })
+    );
+
 // Skip building `dist/` unless explicitly requested
 // It roughly doubles build time and isn't needed for `scratch-gui` development
 // If you need non-production `dist/` for local dev, such as for `scratch-www` work, you can run something like:
@@ -248,7 +310,19 @@ let config;
 switch (process.env.BUILD_TYPE) {
 case 'dist': config = distConfig.get(); break;
 case 'dist-standalone': config = distStandaloneConfig.get(); break;
-default: config = buildConfig.get(); break;
+default: config = buildWithPwaConfig.get(); break;
 }
 
-module.exports = buildDist ? config : buildConfig.get();
+const finalConfig = buildDist ? config : buildWithPwaConfig.get();
+
+// Override devServer headers to allow Google Picker API to work
+// Must be done after .get() to ensure it's not overridden by ScratchWebpackConfigBuilder
+if (!buildDist && finalConfig.devServer) {
+    finalConfig.devServer.headers = {
+        ...finalConfig.devServer.headers,
+        'Cross-Origin-Opener-Policy': 'unsafe-none',
+        'Cross-Origin-Embedder-Policy': 'unsafe-none'
+    };
+}
+
+module.exports = finalConfig;
