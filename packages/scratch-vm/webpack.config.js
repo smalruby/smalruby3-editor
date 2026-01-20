@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
@@ -19,6 +20,14 @@ const nodeBuilder = new ScratchWebpackConfigBuilder(common)
             library: {
                 name: 'VirtualMachine'
             }
+        }
+    })
+    .addModuleRule({
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto',
+        resolve: {
+            fullySpecified: false
         }
     });
 
@@ -53,7 +62,14 @@ const webBuilder = new ScratchWebpackConfigBuilder(common)
         resolve: {
             fullySpecified: false
         }
-    });
+    })
+    .addPlugin(new webpack.DefinePlugin({
+        'process.env.MESH_GRAPHQL_ENDPOINT': JSON.stringify(process.env.MESH_GRAPHQL_ENDPOINT),
+        'process.env.MESH_API_KEY': JSON.stringify(process.env.MESH_API_KEY),
+        'process.env.MESH_AWS_REGION': JSON.stringify(process.env.MESH_AWS_REGION),
+        'process.env.MESH_DATA_UPDATE_INTERVAL_MS': JSON.stringify(process.env.MESH_DATA_UPDATE_INTERVAL_MS),
+        'process.env.MESH_EVENT_BATCH_INTERVAL_MS': JSON.stringify(process.env.MESH_EVENT_BATCH_INTERVAL_MS)
+    }));
 
 const playgroundBuilder = webBuilder
     .clone()
@@ -121,6 +137,14 @@ const playgroundBuilder = webBuilder
         loader: 'expose-loader',
         options: {
             exposes: 'ScratchRender'
+        }
+    })
+    .addModuleRule({
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto',
+        resolve: {
+            fullySpecified: false
         }
     })
     .addPlugin(
