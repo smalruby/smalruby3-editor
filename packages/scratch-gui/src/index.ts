@@ -1,3 +1,4 @@
+import './lib/log-suppression';
 import {buildInitialState} from './reducers/gui';
 import {legacyConfig} from './legacy-config';
 

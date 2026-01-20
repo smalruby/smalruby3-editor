@@ -1,3 +1,4 @@
+import './lib/log-suppression';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import GUI from './containers/gui';
