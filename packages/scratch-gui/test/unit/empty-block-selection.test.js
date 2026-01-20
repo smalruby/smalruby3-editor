@@ -1,13 +1,12 @@
 /**
- * @fileoverview Test for empty block selection filtering behavior
+ * @file Test for empty block selection filtering behavior
  */
 
 import makeToolboxXML from '../../src/lib/make-toolbox-xml';
-import {defaultColors} from '../../src/lib/settings/themes';
+import {defaultColors} from '../../src/lib/settings/color-mode';
 
 describe('Empty block selection filtering', () => {
     test('should show no blocks when empty allowed patterns are provided', () => {
-        const emptyPatterns = [];
         const targetId = 'testSprite';
 
         const xml = makeToolboxXML(false, false, targetId, [], '', '', '', defaultColors, '', true);
