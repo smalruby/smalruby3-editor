@@ -1,3 +1,4 @@
+import '../lib/log-suppression';
 import React from 'react';
 import ReactDomClient from 'react-dom/client';
 import {connect} from 'react-redux';
