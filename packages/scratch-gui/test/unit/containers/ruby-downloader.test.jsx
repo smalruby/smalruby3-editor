@@ -1,9 +1,13 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {render, fireEvent, waitFor} from '@testing-library/react';
 import {Provider} from 'react-redux';
 import configureStore from 'redux-mock-store';
 import RubyDownloader from '../../../src/containers/ruby-downloader';
-import VM from 'scratch-vm';
+import _RubyGenerator from '../../../src/lib/ruby-generator';
+
+jest.mock('../../../src/lib/ruby-generator', () => ({
+    targetsToCode: jest.fn(() => 'mocked ruby code')
+}));
 
 describe('RubyDownloader Container', () => {
     const mockStore = configureStore();
@@ -11,10 +15,13 @@ describe('RubyDownloader Container', () => {
     let vm;
 
     beforeEach(() => {
-        vm = new VM();
-        vm.runtime.targets = [
-            {id: 'stage', blocks: {}, isStage: true}
-        ];
+        vm = {
+            runtime: {
+                targets: [
+                    {id: 'stage', blocks: {}, isStage: true}
+                ]
+            }
+        };
         store = mockStore({
             scratchGui: {
                 koshienFile: {
@@ -37,32 +44,27 @@ describe('RubyDownloader Container', () => {
         window.showSaveFilePicker = jest.fn();
     });
 
-    test('calls onSaveError when showSaveFilePicker rejects', (done) => {
-        const error = {name: 'AbortError', message: 'Abort'};
+    test('calls onSaveError when showSaveFilePicker rejects', async () => {
+        const error = new Error('Abort');
+        error.name = 'AbortError';
         window.showSaveFilePicker.mockImplementation(() => Promise.reject(error));
 
-        const onSaveError = (err) => {
-            try {
-                expect(err).toBe(error);
-                done();
-            } catch (e) {
-                done.fail(e);
-            }
-        };
+        const onSaveError = jest.fn();
 
-        const wrapper = mount(
+        const {getByText} = render(
             <Provider store={store}>
                 <RubyDownloader onSaveError={onSaveError}>
                     {(className, downloadProject) => (
-                        <button id="download-button" onClick={downloadProject}>Download</button>
+                        <button onClick={downloadProject}>Download</button>
                     )}
                 </RubyDownloader>
             </Provider>
         );
 
-        // Mock saveRuby to avoid complex VM dependencies
-        wrapper.find('RubyDownloader').instance().saveRuby = jest.fn(() => new Blob(['test'], {type: 'text/plain'}));
+        fireEvent.click(getByText('Download'));
 
-        wrapper.find('#download-button').simulate('click');
+        await waitFor(() => {
+            expect(onSaveError).toHaveBeenCalledWith(error);
+        });
     });
 });

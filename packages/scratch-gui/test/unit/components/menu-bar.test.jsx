@@ -32,6 +32,42 @@ describe('MenuBar Component', () => {
             vm: new VM(),
             platform: {
                 platform: PLATFORM.WEB
+            },
+            targets: {
+                editingTarget: 'target-id'
+            },
+            rubyCode: {
+                target: null,
+                code: '',
+                modified: false,
+                errors: [],
+                markers: [],
+                fontSize: 16
+            },
+            koshienFile: {
+                extensionLoadCounter: 0,
+                aiSaveStatus: {}
+            },
+            googleDriveFile: {
+                isGoogleDriveFile: false
+            },
+            meshV2: {
+                domain: null
+            },
+            projectChanged: false,
+            projectTitle: 'Untitled'
+        },
+        session: {
+            session: {
+                user: {
+                    username: 'test-user',
+                    membership_avatar_badge: null,
+                    thumbnailUrl: ''
+                }
+            },
+            permissions: {
+                educator: false,
+                student: false
             }
         }
     });
@@ -65,8 +101,7 @@ describe('MenuBar Component', () => {
     
         test('not clicking on About button does not call the handler', () => {
             const onClickAbout = jest.fn();
-            const {container} = renderWithIntl(getComponent({onClickAbout}));
-            const button = container.querySelector('button');
+            renderWithIntl(getComponent({onClickAbout}));
     
             expect(onClickAbout).toHaveBeenCalledTimes(0);
         });
