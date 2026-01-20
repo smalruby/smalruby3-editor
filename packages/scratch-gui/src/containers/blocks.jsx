@@ -393,6 +393,47 @@ class Blocks extends React.Component {
         const dom = this.ScratchBlocks.Xml.textToDom(data.xml);
         try {
             this.ScratchBlocks.Xml.clearWorkspaceAndLoadFromXml(dom, this.workspace);
+
+            // When we converted blocks from Ruby, update top block positions.
+            if (this.props.vm.editingTarget) {
+                const blocks = this.props.vm.editingTarget.blocks;
+                const scripts = blocks.getScripts();
+                let fromRuby = false;
+                for (let i = 0; i < scripts.length; i++) {
+                    const topBlockId = scripts[i];
+                    const topBlock = blocks.getBlock(topBlockId);
+                    if (typeof topBlock.x === 'undefined' || typeof topBlock.y === 'undefined') {
+                        fromRuby = true;
+                        break;
+                    }
+                }
+                if (fromRuby) {
+                    this.workspace.cleanUp();
+
+                    // Re-calculate the position of the comments.
+                    this.workspace.getTopComments(false).forEach(comment => {
+                        if (comment.blockId) {
+                            const block = this.workspace.getBlockById(comment.blockId);
+                            if (block) {
+                                const blockXY = block.getRelativeToSurfaceXY();
+                                const blockHW = block.getHeightWidth();
+                                const rtl = this.workspace.RTL;
+                                if (rtl) {
+                                    comment.setAnchorLocation(
+                                        blockXY.x - (blockHW.width / 2),
+                                        blockXY.y + (blockHW.height / 2)
+                                    );
+                                } else {
+                                    comment.setAnchorLocation(
+                                        blockXY.x + (blockHW.width / 2),
+                                        blockXY.y + (blockHW.height / 2)
+                                    );
+                                }
+                            }
+                        }
+                    });
+                }
+            }
         } catch (error) {
             // The workspace is likely incomplete. What did update should be
             // functional.

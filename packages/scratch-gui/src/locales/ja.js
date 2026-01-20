@@ -3,6 +3,7 @@ export default {
     'gui.modal.stop': '中止',
     'gui.menuBar.loadFromUrl': 'Scratchから読み込む',
     'gui.menuBar.meshV2': 'メッシュ',
+    'gui.sharedMessages.loadFromComputerTitle': 'コンピューターから読み込む',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブから読み込む',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーを保存...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブに直ちに保存',

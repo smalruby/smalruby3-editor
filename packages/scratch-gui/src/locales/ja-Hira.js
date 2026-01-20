@@ -1,6 +1,7 @@
 export default {
     'gui.modal.reload': 'さいよみこみ',
     'gui.menuBar.meshV2': 'メッシュ',
+    'gui.sharedMessages.loadFromComputerTitle': 'コンピューターからよみこむ',
     'gui.menuBar.loadFromUrl': 'Scratchからよみこむ',
     'gui.urlLoader.loadError': 'プロジェクトURLのよみこみにしっぱいしました。',
     'gui.urlLoader.invalidUrl': 'ゆうこうなScratchプロジェクトURLをにゅうりょくしてください。',
