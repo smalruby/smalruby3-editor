@@ -274,7 +274,7 @@ const buildWithPwaConfig = buildConfig.clone()
             exclude: [
                 /\.DS_Store/
             ],
-            maximumFileSizeToCacheInBytes: 32 * 1024 * 1024
+            maximumFileSizeToCacheInBytes: 64 * 1024 * 1024
         })
     )
     .addPlugin(
