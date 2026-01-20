@@ -313,7 +313,7 @@ case 'dist-standalone': config = distStandaloneConfig.get(); break;
 default: config = buildWithPwaConfig.get(); break;
 }
 
-const finalConfig = buildDist ? config : buildWithPwaConfig.get();
+const finalConfig = buildDist ? config : buildConfig.get();
 
 // Override devServer headers to allow Google Picker API to work
 // Must be done after .get() to ensure it's not overridden by ScratchWebpackConfigBuilder

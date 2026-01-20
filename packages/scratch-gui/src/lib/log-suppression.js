@@ -17,7 +17,8 @@ const ignoredWarnings = [
     'componentWillUpdate has been renamed',
     'findDOMNode is deprecated',
     'The AudioContext was not allowed to start',
-    'apple-mobile-web-app-capable'
+    'apple-mobile-web-app-capable',
+    'GenerateSW has been called multiple times'
 ];
 
 /**
