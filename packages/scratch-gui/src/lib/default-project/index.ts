@@ -3,10 +3,9 @@ import {TranslatorFunction} from '../../gui-config';
 
  
 import popWav from '!arraybuffer-loader!./83a9787d4cb6f3b7632b4ddfebf74367.wav?';
-import meowWav from '!arraybuffer-loader!./83c36d806dc92327b9e7049a565c6bff.wav?';
+import hattiMeowWav from '!arraybuffer-loader!./cf51a0c4088942d95bcc20af13202710.wav?';
 import backdrop from '!raw-loader!./cd21514d0531fdffb22204e0ec5ed84a.svg?';
-import costume1 from '!raw-loader!./bcf454acf82e4504149f7ffe07081dbc.svg?';
-import costume2 from '!raw-loader!./0fb9be3e8397c983338cb71dc84d0b25.svg?';
+import hattiCostume from '!raw-loader!./7499cf6ec438d0c7af6f896bc6adc294.svg?';
  
 
 declare function require(path: 'fastestsmallesttextencoderdecoder'): { TextEncoder: typeof TextEncoder };
@@ -35,25 +34,20 @@ const defaultProject = (translator?: TranslatorFunction) => {
         dataFormat: 'WAV',
         data: new Uint8Array(popWav)
     }, {
-        id: '83c36d806dc92327b9e7049a565c6bff',
+        id: 'cf51a0c4088942d95bcc20af13202710',
         assetType: 'Sound',
         dataFormat: 'WAV',
-        data: new Uint8Array(meowWav)
+        data: new Uint8Array(hattiMeowWav)
     }, {
         id: 'cd21514d0531fdffb22204e0ec5ed84a',
         assetType: 'ImageVector',
         dataFormat: 'SVG',
         data: encoder.encode(backdrop)
     }, {
-        id: 'bcf454acf82e4504149f7ffe07081dbc',
+        id: '7499cf6ec438d0c7af6f896bc6adc294',
         assetType: 'ImageVector',
         dataFormat: 'SVG',
-        data: encoder.encode(costume1)
-    }, {
-        id: '0fb9be3e8397c983338cb71dc84d0b25',
-        assetType: 'ImageVector',
-        dataFormat: 'SVG',
-        data: encoder.encode(costume2)
+        data: encoder.encode(hattiCostume)
     }];
 };
 
