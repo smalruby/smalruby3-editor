@@ -1,6 +1,10 @@
 export default {
     'gui.modal.reload': 'さいよみこみ',
     'gui.menuBar.meshV2': 'メッシュ',
+    'gui.sharedMessages.backdrop': 'はいけい{index}',
+    'gui.sharedMessages.costume': 'コスチューム{index}',
+    'gui.sharedMessages.pop': 'ポップ',
+    'gui.sharedMessages.sprite': 'スプライト{index}',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターからよみこむ',
     'gui.menuBar.loadFromUrl': 'Scratchからよみこむ',
     'gui.urlLoader.loadError': 'プロジェクトURLのよみこみにしっぱいしました。',
