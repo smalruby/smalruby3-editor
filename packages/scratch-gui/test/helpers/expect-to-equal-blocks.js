@@ -1,5 +1,5 @@
-import Blocks from '@scratch/scratch-vm/src/engine/blocks';
-import Variable from '@scratch/scratch-vm/src/engine/variable';
+import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import RubyToBlocksConverter from '../../src/lib/ruby-to-blocks-converter';
 
 // for debug

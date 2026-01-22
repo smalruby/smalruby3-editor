@@ -1,7 +1,7 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import {render} from '@testing-library/react';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 
 import vmListenerHOC from '../../../src/lib/vm-listener-hoc.jsx';
 import '@testing-library/jest-dom';

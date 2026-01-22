@@ -10,7 +10,7 @@ import {PLATFORM} from '../../../src/lib/platform';
 
 import configureStore from 'redux-mock-store';
 import {Provider} from 'react-redux';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 
 describe('MenuBar Component', () => {
     const store = configureStore()({

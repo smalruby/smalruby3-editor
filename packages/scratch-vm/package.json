@@ -52,8 +52,8 @@
     "allow-incomplete-coverage": true
   },
   "dependencies": {
-    "@scratch/scratch-render": "12.3.1",
-    "@scratch/scratch-svg-renderer": "12.3.1",
+    "@smalruby/scratch-render": "12.3.1",
+    "@smalruby/scratch-svg-renderer": "12.3.1",
     "@vernier/godirect": "1.8.3",
     "arraybuffer-loader": "1.0.8",
     "atob": "2.1.2",

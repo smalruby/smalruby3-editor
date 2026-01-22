@@ -2,7 +2,7 @@ import React from 'react';
 import {renderWithIntl} from '../../helpers/intl-helpers.jsx';
 import configureStore from 'redux-mock-store';
 import {Provider} from 'react-redux';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 
 import SpriteSelectorItemContainer from '../../../src/containers/sprite-selector-item';
 import {legacyConfig} from '../../../src/legacy-config';
