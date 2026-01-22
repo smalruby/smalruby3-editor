@@ -4,7 +4,7 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import {render} from '@testing-library/react';
 import {LoadingState} from '../../../src/reducers/project-state';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 import {legacyConfig} from '../../../src/legacy-config';
 
 import projectSaverHOC from '../../../src/lib/project-saver-hoc.jsx';

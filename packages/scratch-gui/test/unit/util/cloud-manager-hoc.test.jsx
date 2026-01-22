@@ -2,7 +2,7 @@ import 'web-audio-test-api';
 
 import React from 'react';
 import configureStore from 'redux-mock-store';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 import {LoadingState} from '../../../src/reducers/project-state';
 import CloudProvider from '../../../src/lib/cloud-provider';
 import {render} from '@testing-library/react';

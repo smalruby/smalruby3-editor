@@ -210,7 +210,7 @@ const buildConfig = baseConfig.clone()
         ...commonHtmlWebpackPluginOptions,
         chunks: ['gui'],
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI',
+        title: 'Smalruby',
         originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
         pwa: process.env.NODE_ENV === 'production'
     }))
@@ -219,7 +219,7 @@ const buildConfig = baseConfig.clone()
         chunks: ['guistandalone'],
         filename: 'standalone.html',
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI: Standalone Mode',
+        title: 'Smalruby: Standalone Mode',
         originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
         pwa: process.env.NODE_ENV === 'production'
     }))
@@ -228,7 +228,7 @@ const buildConfig = baseConfig.clone()
         chunks: ['blocksonly'],
         filename: 'blocks-only.html',
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI: Blocks Only Example',
+        title: 'Smalruby: Blocks Only Example',
         originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
         pwa: process.env.NODE_ENV === 'production'
     }))
@@ -237,7 +237,7 @@ const buildConfig = baseConfig.clone()
         chunks: ['compatibilitytesting'],
         filename: 'compatibility-testing.html',
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI: Compatibility Testing',
+        title: 'Smalruby: Compatibility Testing',
         originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
         pwa: process.env.NODE_ENV === 'production'
     }))
@@ -246,7 +246,7 @@ const buildConfig = baseConfig.clone()
         chunks: ['player'],
         filename: 'player.html',
         template: 'src/playground/index.ejs',
-        title: 'Scratch 3.0 GUI: Player Example',
+        title: 'Smalruby: Player Example',
         originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
         pwa: process.env.NODE_ENV === 'production'
     }))

@@ -7,7 +7,7 @@ WebAudioTestAPI.setState({
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import {render} from '@testing-library/react';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 import {LoadingState} from '../../../src/reducers/project-state';
 
 import vmManagerHOC from '../../../src/lib/vm-manager-hoc.jsx';

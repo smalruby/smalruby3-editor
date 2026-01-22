@@ -1,5 +1,5 @@
 {
-  "name": "@scratch/scratch-svg-renderer",
+  "name": "@smalruby/scratch-svg-renderer",
   "version": "12.3.1",
   "description": "SVG renderer for Scratch",
   "main": "./dist/node/scratch-svg-renderer.js",
@@ -25,12 +25,12 @@
     "test:unit": "tap ./test/*.js",
     "watch": "webpack --watch"
   },
-  "author": "Massachusetts Institute of Technology",
+  "author": "Ruby Programming Shounendan",
   "license": "AGPL-3.0-only",
-  "homepage": "https://github.com/scratchfoundation/scratch-svg-renderer#readme",
+  "homepage": "https://github.com/smalruby/smalruby3-editor#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/scratchfoundation/scratch-editor.git"
+    "url": "https://github.com/smalruby/smalruby3-editor.git"
   },
   "peerDependencies": {
     "scratch-render-fonts": "^1.0.0"

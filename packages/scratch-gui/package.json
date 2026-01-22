@@ -1,13 +1,13 @@
 {
-  "name": "@scratch/scratch-gui",
+  "name": "@smalruby/scratch-gui",
   "version": "12.3.1",
   "description": "Graphical User Interface for creating and running Scratch 3.0 projects",
-  "author": "Massachusetts Institute of Technology",
+  "author": "Ruby Programming Shounendan",
   "license": "AGPL-3.0-only",
-  "homepage": "https://github.com/scratchfoundation/scratch-gui#readme",
+  "homepage": "https://github.com/smalruby/smalruby3-editor#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/scratchfoundation/scratch-editor.git"
+    "url": "https://github.com/smalruby/smalruby3-editor.git"
   },
   "main": "./dist/scratch-gui.js",
   "types": "./dist/types/index.d.ts",
@@ -66,9 +66,9 @@
     "@microbit/microbit-universal-hex": "0.2.2",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-context-menu": "2.2.16",
-    "@scratch/scratch-render": "12.3.1",
-    "@scratch/scratch-svg-renderer": "12.3.1",
-    "@scratch/scratch-vm": "12.3.1",
+    "@smalruby/scratch-render": "12.3.1",
+    "@smalruby/scratch-svg-renderer": "12.3.1",
+    "@smalruby/scratch-vm": "12.3.1",
     "@tensorflow-models/face-detection": "1.0.3",
     "@tensorflow/tfjs": "4.22.0",
     "@testing-library/user-event": "14.6.1",
@@ -213,7 +213,7 @@
       "src/test.js"
     ],
     "moduleNameMapper": {
-      "^@scratch/scratch-vm/(.*)$": "<rootDir>/../scratch-vm/$1",
+      "^@smalruby/scratch-vm/(.*)$": "<rootDir>/../scratch-vm/$1",
       "^scratch-vm/(.*)$": "<rootDir>/../scratch-vm/$1",
       "opal": "<rootDir>/opal/opal.min.js",
       "opal-parser": "<rootDir>/opal/opal-parser.min.js",
