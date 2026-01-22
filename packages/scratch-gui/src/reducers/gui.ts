@@ -30,6 +30,7 @@ import vmReducer, {vmInitialState} from './vm';
 import vmStatusReducer, {vmStatusInitialState} from './vm-status';
 import workspaceMetricsReducer, {workspaceMetricsInitialState} from './workspace-metrics';
 import blockDisplayReducer, {blockDisplayInitialState} from './block-display';
+import extensionFilterReducer, {extensionFilterInitialState} from './extension-filter';
 import meshV2Reducer, {meshV2InitialState} from './mesh-v2';
 import googleDriveFileReducer, {googleDriveFileInitialState} from './google-drive-file';
 import koshienFileReducer, {koshienFileInitialState} from './koshien-file';
@@ -74,6 +75,7 @@ const buildInitialState = (config: GUIConfig) => ({
     vmStatus: vmStatusInitialState,
     workspaceMetrics: workspaceMetricsInitialState,
     blockDisplay: blockDisplayInitialState,
+    extensionFilter: extensionFilterInitialState,
     meshV2: meshV2InitialState,
     googleDriveFile: googleDriveFileInitialState,
     koshienFile: koshienFileInitialState,
@@ -188,6 +190,7 @@ const guiReducer = combineReducers({
     vmStatus: vmStatusReducer,
     workspaceMetrics: workspaceMetricsReducer,
     blockDisplay: blockDisplayReducer,
+    extensionFilter: extensionFilterReducer,
     meshV2: meshV2Reducer,
     googleDriveFile: googleDriveFileReducer,
     koshienFile: koshienFileReducer,

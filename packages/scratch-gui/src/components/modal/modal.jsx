@@ -26,6 +26,7 @@ const ModalComponent = props => (
         onRequestClose={props.onRequestClose}
     >
         <Box
+            className={styles.box}
             dir={props.isRtl ? 'rtl' : 'ltr'}
             direction="column"
             grow={1}
@@ -65,6 +66,16 @@ const ModalComponent = props => (
                     ) : null}
                     {props.contentLabel}
                 </div>
+                {props.headerActions ? (
+                    <div
+                        className={classNames(
+                            styles.headerItem,
+                            styles.headerItemActions
+                        )}
+                    >
+                        {props.headerActions}
+                    </div>
+                ) : null}
                 <div
                     className={classNames(
                         styles.headerItem,
@@ -91,6 +102,11 @@ const ModalComponent = props => (
                     )}
                 </div>
             </div>
+            {props.loading ? (
+                <div className={styles.progressBar}>
+                    <div className={styles.progressBarValue} />
+                </div>
+            ) : null}
             {props.children}
         </Box>
     </ReactModal>
@@ -104,9 +120,11 @@ ModalComponent.propTypes = {
         PropTypes.object
     ]).isRequired,
     fullScreen: PropTypes.bool,
+    headerActions: PropTypes.node,
     headerClassName: PropTypes.string,
     headerImage: PropTypes.string,
     isRtl: PropTypes.bool,
+    loading: PropTypes.bool,
     onHelp: PropTypes.func,
     onRequestClose: PropTypes.func
 };
