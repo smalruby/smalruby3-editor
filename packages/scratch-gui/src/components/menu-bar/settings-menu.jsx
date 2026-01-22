@@ -6,7 +6,7 @@ import {connect} from 'react-redux';
 
 import LanguageMenu from './language-menu.jsx';
 import MenuBarMenu from './menu-bar-menu.jsx';
-import {MenuSection} from '../menu/menu.jsx';
+import {MenuSection, MenuItem} from '../menu/menu.jsx';
 import PreferenceMenu from './preference-menu.jsx';
 
 import {DEFAULT_MODE, HIGH_CONTRAST_MODE, colorModeMap} from '../../lib/settings/color-mode/index.js';
@@ -21,6 +21,7 @@ import styles from './settings-menu.css';
 import dropdownCaret from './dropdown-caret.svg';
 import settingsIcon from './icon--settings.svg';
 import themeIcon from '../../lib/assets/icon--theme.svg';
+import blockDisplayIcon from './block-display-icon.svg';
 import {colorModeMenuOpen, themeMenuOpen, openColorModeMenu, openThemeMenu} from '../../reducers/menus.js';
 
 const enabledColorModes = [DEFAULT_MODE, HIGH_CONTRAST_MODE];
@@ -37,6 +38,7 @@ const SettingsMenu = ({
     onChangeColorMode,
     onRequestOpenColorMode,
     onRequestOpenTheme,
+    onOpenBlockDisplayModal,
     activeTheme,
     onChangeTheme,
     onRequestClose,
@@ -116,6 +118,19 @@ const SettingsMenu = ({
                         onRequestCloseSettings={onRequestClose}
                         onRequestOpen={onRequestOpenColorMode}
                     />}
+                    <MenuItem onClick={onOpenBlockDisplayModal}>
+                        <div className={styles.option}>
+                            <img
+                                className={styles.icon}
+                                src={blockDisplayIcon}
+                            />
+                            <FormattedMessage
+                                defaultMessage="Block Display..."
+                                description="Block display settings menu item"
+                                id="gui.menuBar.blockDisplay"
+                            />
+                        </div>
+                    </MenuItem>
                 </MenuSection>
             </MenuBarMenu>
         </div>
@@ -132,6 +147,7 @@ SettingsMenu.propTypes = {
     onChangeColorMode: PropTypes.func,
     onRequestOpenColorMode: PropTypes.func,
     isColorModeMenuOpen: PropTypes.bool,
+    onOpenBlockDisplayModal: PropTypes.func,
     activeTheme: PropTypes.string,
     onChangeTheme: PropTypes.func,
     onRequestOpenTheme: PropTypes.func,
@@ -154,6 +170,9 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     },
     onRequestOpenTheme: () => {
         dispatch(openThemeMenu());
+    },
+    onOpenBlockDisplayModal: () => {
+        ownProps.onOpenBlockDisplayModal();
     },
     onChangeColorMode: colorMode => {
         dispatch(setColorMode(colorMode));

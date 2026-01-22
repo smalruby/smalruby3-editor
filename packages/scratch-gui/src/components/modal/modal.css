@@ -168,3 +168,51 @@ $sides: 20rem;
 [dir="rtl"] .help-button {
     padding-left: 0;
 }
+
+/* Header actions (generic) */
+.header-item-actions {
+    padding: 0;
+    z-index: 1;
+}
+
+[dir="ltr"] .header-item-actions {
+    margin-left: -4.75rem;
+}
+
+[dir="rtl"] .header-item-actions {
+    margin-right: -4.75rem;
+}
+
+.box {
+    position: relative;
+}
+
+.progress-bar {
+    height: 4px;
+    width: 100%;
+    background-color: $ui-white-transparent;
+    overflow: hidden;
+    position: absolute;
+    top: $library-header-height;
+    z-index: 1;
+}
+
+.progress-bar-value {
+    width: 100%;
+    height: 100%;
+    background-color: $control-primary;
+    animation: indeterminate 2s linear infinite;
+    transform-origin: 0% 50%;
+}
+
+@keyframes indeterminate {
+    0% {
+        transform: translateX(-100%) scaleX(0.2);
+    }
+    50% {
+        transform: translateX(0%) scaleX(0.5);
+    }
+    100% {
+        transform: translateX(100%) scaleX(0.2);
+    }
+}

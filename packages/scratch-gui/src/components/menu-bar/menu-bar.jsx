@@ -17,6 +17,7 @@ import ShareButton from './share-button.jsx';
 import {ComingSoonTooltip} from '../coming-soon/coming-soon.jsx';
 import Divider from '../divider/divider.jsx';
 import SaveStatus from './save-status.jsx';
+import Spinner from '../spinner/spinner.jsx';
 import ProjectWatcher from '../../containers/project-watcher.jsx';
 import MenuBarMenu from './menu-bar-menu.jsx';
 import {MenuItem, MenuSection} from '../menu/menu.jsx';
@@ -110,7 +111,7 @@ import styles from './menu-bar.css';
 
 import helpIcon from '../../lib/assets/icon--tutorials.svg';
 import mystuffIcon from './icon--mystuff.png';
-import profileIcon from './icon--profile.png';
+import profileIcon from './profile-hatti.png';
 import remixIcon from './icon--remix.svg';
 import dropdownCaret from './dropdown-caret.svg';
 import aboutIcon from './icon--about.svg';
@@ -1183,6 +1184,93 @@ class MenuBar extends React.Component {
                             <SaveStatus />
                         )}
                     </div>
+                    {this.props.googleDriveSaveStatus === 'saving' && (
+                        <div className={styles.saveStatus}>
+                            <Spinner
+                                className={styles.saveStatusSpinner}
+                                level="info"
+                                small
+                            />
+                            <FormattedMessage
+                                defaultMessage="Saving project..."
+                                id="gui.menuBar.savingToGoogleDrive"
+                            />
+                        </div>
+                    )}
+                    {this.props.googleDriveSaveStatus === 'saved' && (
+                        <div className={styles.saveStatus}>
+                            <FormattedMessage
+                                defaultMessage="Project saved."
+                                id="gui.menuBar.savedToGoogleDrive"
+                            />
+                        </div>
+                    )}
+                    {this.props.googleDriveFile &&
+                        this.props.googleDriveFile.isGoogleDriveFile &&
+                        this.props.projectChanged &&
+                        this.props.googleDriveSaveDirectStatus !== 'saving' &&
+                        this.props.googleDriveSaveDirectStatus !== 'saved' && (
+                        <div className={styles.saveStatus}>
+                            <Button
+                                className={styles.saveDirectlyButton}
+                                title={this.props.googleDriveSaveDirectStatus === 'auth_error' ?
+                                    this.props.intl.formatMessage({
+                                        id: 'gui.menuBar.authExpired',
+                                        defaultMessage: 'Authentication expired. Click to save.'
+                                    }) :
+                                    null
+                                }
+                                onClick={this.handleSaveDirectlyToGoogleDrive}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Save directly"
+                                    id="gui.menuBar.saveDirectlyButton"
+                                />
+                            </Button>
+                        </div>
+                    )}
+                    {this.props.googleDriveSaveDirectStatus === 'saving' && (
+                        <div className={styles.saveStatus}>
+                            <Spinner
+                                className={styles.saveStatusSpinner}
+                                level="info"
+                                small
+                            />
+                            <FormattedMessage
+                                defaultMessage="Saving project..."
+                                id="gui.menuBar.savingToGoogleDrive"
+                            />
+                        </div>
+                    )}
+                    {this.props.googleDriveSaveDirectStatus === 'saved' && (
+                        <div className={styles.saveStatus}>
+                            <FormattedMessage
+                                defaultMessage="Project saved."
+                                id="gui.menuBar.savedToGoogleDrive"
+                            />
+                        </div>
+                    )}
+                    {this.props.aiSaveStatus === 'saving' && (
+                        <div className={styles.saveStatus}>
+                            <Spinner
+                                className={styles.saveStatusSpinner}
+                                level="info"
+                                small
+                            />
+                            <FormattedMessage
+                                defaultMessage="Saving AI..."
+                                id="gui.menuBar.aiSaving"
+                            />
+                        </div>
+                    )}
+                    {this.props.aiSaveStatus === 'saved' && (
+                        <div className={styles.saveStatus}>
+                            <FormattedMessage
+                                defaultMessage="AI saved."
+                                id="gui.menuBar.aiSaved"
+                            />
+                        </div>
+                    )}
 
                     {menuOpts.canHaveSession ? (
                         this.props.username ? (
@@ -1314,7 +1402,7 @@ class MenuBar extends React.Component {
                                                 src={profileIcon}
                                             />
                                             <span>
-                                                {'scratch-cat'}
+                                                {'smalruby-hatti'}
                                             </span>
                                             <img
                                                 className={styles.dropdownCaretIcon}
