@@ -42,7 +42,8 @@ const ConnectionModalComponent = props => {
     );
     return (<Modal
         className={styles.modalContent}
-        contentLabel={props.name}
+        contentLabel={typeof props.name === 'string' ? props.name : props.title}
+        headerTitle={props.name}
         headerClassName={styles.header}
         headerImage={props.connectionSmallIconURL}
         id="connectionModal"

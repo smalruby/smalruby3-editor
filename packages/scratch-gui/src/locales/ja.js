@@ -2,6 +2,7 @@ export default {
     'gui.modal.reload': '再読み込み',
     'gui.modal.stop': '中止',
     'gui.menuBar.loadFromUrl': 'Scratchから読み込む',
+    'gui.menuBar.colorMode': 'カラーモード',
     'gui.menuBar.meshV2': 'メッシュ',
     'gui.sharedMessages.backdrop': '背景{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',
