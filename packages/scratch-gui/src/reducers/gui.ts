@@ -1,7 +1,6 @@
 import {applyMiddleware, compose, combineReducers} from 'redux';
 import alertsReducer, {alertsInitialState} from './alerts';
 import assetDragReducer, {assetDragInitialState} from './asset-drag';
-import cardsReducer, {cardsInitialState} from './cards';
 import colorPickerReducer, {colorPickerInitialState} from './color-picker';
 import connectionModalReducer, {connectionModalInitialState} from './connection-modal';
 import customProceduresReducer, {customProceduresInitialState} from './custom-procedures';
@@ -37,7 +36,6 @@ import koshienFileReducer, {koshienFileInitialState} from './koshien-file';
 import rubyCodeReducer, {rubyCodeInitialState} from './ruby-code';
 import throttle from 'redux-throttle';
 
-import decks from '../lib/libraries/decks/index.jsx';
 import {GUIConfig} from '../gui-config';
 
 const guiMiddleware = compose(applyMiddleware(throttle(300, {leading: true, trailing: true})));
@@ -46,7 +44,6 @@ const buildInitialState = (config: GUIConfig) => ({
     alerts: alertsInitialState,
     assetDrag: assetDragInitialState,
     blockDrag: blockDragInitialState,
-    cards: cardsInitialState,
     colorPicker: colorPickerInitialState,
     config,
     connectionModal: connectionModalInitialState,
@@ -120,24 +117,6 @@ const initEmbedded = function (currentState) {
     );
 };
 
-const initTutorialCard = function (currentState, deckId) {
-    return Object.assign(
-        {},
-        currentState,
-        {
-            cards: {
-                visible: true,
-                content: decks,
-                activeDeckId: deckId,
-                expanded: true,
-                step: 0,
-                x: 0,
-                y: 0,
-                dragging: false
-            }
-        }
-    );
-};
 
 const initTelemetryModal = function (currentState) {
     return Object.assign(
@@ -161,7 +140,6 @@ const guiReducer = combineReducers({
     alerts: alertsReducer,
     assetDrag: assetDragReducer,
     blockDrag: blockDragReducer,
-    cards: cardsReducer,
     colorPicker: colorPickerReducer,
     connectionModal: connectionModalReducer,
     config: configReducer,
@@ -204,6 +182,5 @@ export {
     initEmbedded,
     initFullScreen,
     initPlayer,
-    initTelemetryModal,
-    initTutorialCard
+    initTelemetryModal
 };
