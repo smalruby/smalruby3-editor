@@ -15,8 +15,15 @@ import Filter from '../filter/filter.jsx';
 import TagButton from '../../containers/tag-button.jsx';
 import {legacyConfig} from '../../legacy-config';
 import Spinner from '../spinner/spinner.jsx';
-import {CATEGORIES} from '../../../src/lib/libraries/decks/index.jsx';
 import {getLocalStorageValue, setLocalStorageValue} from '../../lib/local-storage.js';
+
+// Tutorial categories - kept for message definitions (tutorials have been removed from Smalruby)
+const CATEGORIES = {
+    gettingStarted: 'gettingStarted',
+    basics: 'basics',
+    intermediate: 'intermediate',
+    prompts: 'prompts'
+};
 
 import styles from './library.css';
 

@@ -164,7 +164,6 @@ const mapStateToProps = (state, ownProps) => {
         alertsVisible: state.scratchGui.alerts.visible,
         backdropLibraryVisible: state.scratchGui.modals.backdropLibrary,
         blocksTabVisible: state.scratchGui.editorTab.activeTabIndex === BLOCKS_TAB_INDEX,
-        cardsVisible: state.scratchGui.cards.visible,
         connectionModalVisible: state.scratchGui.modals.connectionModal,
         costumeLibraryVisible: state.scratchGui.modals.costumeLibrary,
         costumesTabVisible: state.scratchGui.editorTab.activeTabIndex === COSTUMES_TAB_INDEX,
@@ -185,7 +184,6 @@ const mapStateToProps = (state, ownProps) => {
             state.scratchGui.targets.stage.id === state.scratchGui.targets.editingTarget
         ),
         telemetryModalVisible: state.scratchGui.modals.telemetryModal,
-        tipsLibraryVisible: state.scratchGui.modals.tipsLibrary,
         vm: state.scratchGui.vm
     };
 };

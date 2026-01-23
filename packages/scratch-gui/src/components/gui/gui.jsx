@@ -25,8 +25,6 @@ import Watermark from '../../containers/watermark.jsx';
 import Backpack from '../../containers/backpack.jsx';
 import ExtensionsButton from '../extension-button/extension-button.jsx';
 import WebGlModal from '../../containers/webgl-modal.jsx';
-import TipsLibrary from '../../containers/tips-library.jsx';
-import Cards from '../../containers/cards.jsx';
 import Alerts from '../../containers/alerts.jsx';
 import DragLayer from '../../containers/drag-layer.jsx';
 import ConnectionModal from '../../containers/connection-modal.jsx';
@@ -142,7 +140,6 @@ const GUIComponent = props => {
         blockDisplayModalVisible,
         blocksId,
         blocksTabVisible,
-        cardsVisible,
         canChangeLanguage,
         canChangeColorMode,
         canChangeTheme,
@@ -218,7 +215,6 @@ const GUIComponent = props => {
         telemetryModalVisible,
         colorMode,
         theme,
-        tipsLibraryVisible,
         urlLoaderModalVisible,
         useExternalPeripheralList,
         username,
@@ -334,15 +330,6 @@ const GUIComponent = props => {
                 {isRendererSupported ? null : (
                     <WebGlModal isRtl={isRtl} />
                 )}
-                {tipsLibraryVisible ? (
-                    <TipsLibrary
-                        hideTutorialProjects={hideTutorialProjects}
-                        onTutorialSelect={onTutorialSelect}
-                    />
-                ) : null}
-                {cardsVisible ? (
-                    <Cards />
-                ) : null}
                 {alertsVisible ? (
                     <Alerts className={styles.alertsContainer} />
                 ) : null}
@@ -662,7 +649,6 @@ GUIComponent.propTypes = {
     canSave: PropTypes.bool,
     canShare: PropTypes.bool,
     canUseCloud: PropTypes.bool,
-    cardsVisible: PropTypes.bool,
     children: PropTypes.node,
     costumeLibraryVisible: PropTypes.bool,
     costumesTabVisible: PropTypes.bool,
@@ -728,7 +714,6 @@ GUIComponent.propTypes = {
     telemetryModalVisible: PropTypes.bool,
     colorMode: PropTypes.string,
     theme: PropTypes.string,
-    tipsLibraryVisible: PropTypes.bool,
     urlLoaderModalVisible: PropTypes.bool,
     useExternalPeripheralList: PropTypes.bool, // true for CDM, false for normal Scratch Link
     username: PropTypes.string,

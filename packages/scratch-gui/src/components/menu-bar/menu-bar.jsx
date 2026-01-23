@@ -36,7 +36,6 @@ import GoogleDriveSaveDialog from '../google-drive-save-dialog/google-drive-save
 import SettingsMenu from './settings-menu.jsx';
 
 import {
-    openTipsLibrary,
     openDebugModal,
     openKoshienTestModal,
     openMeshDomainModal,
@@ -1631,7 +1630,6 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = (dispatch, ownProps) => ({
     autoUpdateProject: () => dispatch(autoUpdateProject()),
-    onOpenTipLibrary: () => dispatch(openTipsLibrary()),
     onOpenDebugModal: () => dispatch(openDebugModal()),
     onOpenConnectionModal: id => {
         dispatch(setConnectionModalExtensionId(id));
