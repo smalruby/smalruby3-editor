@@ -25,6 +25,7 @@ import {injectExtensionBlockMode, injectExtensionCategoryMode} from '../lib/sett
 
 import {connect} from 'react-redux';
 import {updateToolbox} from '../reducers/toolbox';
+import {setScratchBlocks} from '../reducers/block-display';
 import {activateColorPicker} from '../reducers/color-picker';
 import {closeExtensionLibrary, openSoundRecorder, openConnectionModal} from '../reducers/modals';
 import {activateCustomProcedures, deactivateCustomProcedures} from '../reducers/custom-procedures';
@@ -93,6 +94,7 @@ class Blocks extends React.Component {
     }
     componentDidMount () {
         this.ScratchBlocks = VMScratchBlocks(this.props.vm, this.props.useCatBlocks);
+        this.props.onSetScratchBlocks(this.ScratchBlocks);
         this.ScratchBlocks.prompt = this.handlePromptStart;
         this.ScratchBlocks.statusButtonCallback = this.handleConnectionModalStart;
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
@@ -600,7 +602,6 @@ class Blocks extends React.Component {
             });
     }
     render () {
-         
         const {
             anyModalVisible,
             canUseCloud,
@@ -614,6 +615,7 @@ class Blocks extends React.Component {
             onActivateColorPicker,
             onOpenConnectionModal,
             onOpenSoundRecorder,
+            onSetScratchBlocks,
             updateToolboxState,
             onActivateCustomProcedures,
             onRequestCloseExtensionLibrary,
@@ -624,7 +626,7 @@ class Blocks extends React.Component {
             workspaceMetrics,
             ...props
         } = this.props;
-         
+
         return (
             <React.Fragment>
                 <DroppableBlocks
@@ -676,13 +678,17 @@ Blocks.propTypes = {
     isRtl: PropTypes.bool,
     isVisible: PropTypes.bool,
     locale: PropTypes.string.isRequired,
-    messages: PropTypes.objectOf(PropTypes.string),
+    messages: PropTypes.objectOf(PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.object
+    ])),
     onActivateColorPicker: PropTypes.func,
     onActivateCustomProcedures: PropTypes.func,
     onOpenConnectionModal: PropTypes.func,
     onOpenSoundRecorder: PropTypes.func,
     onRequestCloseCustomProcedures: PropTypes.func,
     onRequestCloseExtensionLibrary: PropTypes.func,
+    onSetScratchBlocks: PropTypes.func,
     options: PropTypes.shape({
         media: PropTypes.string,
         zoom: PropTypes.shape({
@@ -760,6 +766,9 @@ const mapDispatchToProps = dispatch => ({
     },
     onRequestCloseCustomProcedures: data => {
         dispatch(deactivateCustomProcedures(data));
+    },
+    onSetScratchBlocks: scratchBlocks => {
+        dispatch(setScratchBlocks(scratchBlocks));
     },
     updateToolboxState: toolboxXML => {
         dispatch(updateToolbox(toolboxXML));

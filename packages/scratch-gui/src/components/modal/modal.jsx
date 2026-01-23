@@ -64,7 +64,7 @@ const ModalComponent = props => (
                             src={props.headerImage}
                         />
                     ) : null}
-                    {props.contentLabel}
+                    {props.headerTitle || props.contentLabel}
                 </div>
                 {props.headerActions ? (
                     <div
@@ -123,6 +123,7 @@ ModalComponent.propTypes = {
     headerActions: PropTypes.node,
     headerClassName: PropTypes.string,
     headerImage: PropTypes.string,
+    headerTitle: PropTypes.node,
     isRtl: PropTypes.bool,
     loading: PropTypes.bool,
     onHelp: PropTypes.func,
