@@ -342,6 +342,7 @@ class LibraryComponent extends React.Component {
         ));
     }
     constructKey (data) {
+        if (data.extensionId) return data.extensionId;
         return typeof data.name === 'string' ? data.name : data.rawURL;
     }
     scrollToTop () {
@@ -413,6 +414,7 @@ class LibraryComponent extends React.Component {
             <Modal
                 fullScreen
                 contentLabel={this.props.title}
+                headerActions={this.props.headerActions}
                 id={this.props.id}
                 onRequestClose={this.handleClose}
             >
@@ -475,7 +477,7 @@ class LibraryComponent extends React.Component {
 
 LibraryComponent.propTypes = {
     data: PropTypes.arrayOf(
-         
+
         // An item in the library
         PropTypes.shape({
             // @todo remove md5/rawURL prop from library, refactor to use storage
@@ -486,9 +488,10 @@ LibraryComponent.propTypes = {
             ]),
             rawURL: PropTypes.string
         })
-         
+
     ),
     filterable: PropTypes.bool,
+    headerActions: PropTypes.node,
     withCategories: PropTypes.bool,
     id: PropTypes.string.isRequired,
     intl: intlShape.isRequired,
