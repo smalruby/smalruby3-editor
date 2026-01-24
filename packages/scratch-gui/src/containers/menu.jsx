@@ -31,21 +31,7 @@ class Menu extends React.Component {
         document.removeEventListener('mouseup', this.handleClick);
     }
     handleClick (e) {
-        if (!this.props.open) return;
-
-        // Check if clicked element is a menu item (li element within menu)
-        let target = e.target;
-        while (target && target !== this.menu) {
-            if (target.tagName === 'LI' && this.menu.contains(target)) {
-                // Clicked on a menu item, close the menu
-                this.props.onRequestClose();
-                return;
-            }
-            target = target.parentElement;
-        }
-
-        // Clicked outside the menu, close it
-        if (!this.menu.contains(e.target)) {
+        if (this.props.open && !this.menu.contains(e.target)) {
             this.props.onRequestClose();
         }
     }

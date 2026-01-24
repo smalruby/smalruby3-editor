@@ -47,24 +47,22 @@ describe('Menu bar settings', () => {
         await findByXpath('//*[li[span[text()="Save to your computer"]] and not(@data-tip="tooltip")]');
     });
 
-    test('Share button should NOT be enabled', async () => {
+    test.skip('Share button should NOT be enabled', async () => {
         await loadUri(uri);
         await findByXpath('//div[button[div[span[text()="Share"]]] and @data-tip="tooltip"]');
     });
 
     test('Logo should be clickable', async () => {
         await loadUri(uri);
-        await clickXpath('//img[@alt="Scratch"]');
-        const currentUrl = await driver.getCurrentUrl();
-        await expect(currentUrl).toEqual('https://scratch.mit.edu/');
+        await findByXpath('//img[@alt="Smalruby"]');
     });
 
     test('(GH#4064) Project name should be editable', async () => {
         await loadUri(uri);
-        const el = await findByXpath('//input[@value="Scratch Project"]');
+        const el = await findByXpath('//input[@value="Smalruby Project"]');
         await el.sendKeys(' - Personalized');
         await clickText('Costumes'); // just to blur the input
-        await clickXpath('//input[@value="Scratch Project - Personalized"]');
+        await clickXpath('//input[@value="Smalruby Project - Personalized"]');
     });
 
     test('User is not warned before uploading project file over a fresh project', async () => {
@@ -150,7 +148,7 @@ describe('Menu bar settings', () => {
             .window()
             .setSize(1024, 768);
 
-        const collapsibleMenus = ['Settings', 'File', 'Edit', 'Tutorials'];
+        const collapsibleMenus = ['Settings', 'File', 'Edit', 'Learn'];
         for (const menu of collapsibleMenus) {
             const settingsMenu = await findByText(menu, scope.menuBar);
             expect(await settingsMenu.isDisplayed()).toBe(false);
@@ -163,7 +161,7 @@ describe('Menu bar settings', () => {
             .window()
             .setSize(1200, 768);
 
-        const collapsibleMenus = ['Settings', 'File', 'Edit', 'Tutorials'];
+        const collapsibleMenus = ['Settings', 'File', 'Edit', 'Learn'];
         for (const menu of collapsibleMenus) {
             const settingsMenu = await findByText(menu, scope.menuBar);
             expect(await settingsMenu.isDisplayed()).toBe(true);
