@@ -133,7 +133,7 @@ const playgroundBuilder = webBuilder
         }
     })
     .addModuleRule({
-        test: require.resolve('@scratch/scratch-render'),
+        test: require.resolve('@smalruby/scratch-render'),
         loader: 'expose-loader',
         options: {
             exposes: 'ScratchRender'
@@ -158,10 +158,10 @@ const playgroundBuilder = webBuilder
                     from: '../../node_modules/scratch-storage/dist/web'
                 },
                 {
-                    from: '../../node_modules/@scratch/scratch-render/dist/web'
+                    from: '../../node_modules/@smalruby/scratch-render/dist/web'
                 },
                 {
-                    from: '../../node_modules/@scratch/scratch-svg-renderer/dist/web'
+                    from: '../../node_modules/@smalruby/scratch-svg-renderer/dist/web'
                 },
                 {
                     from: 'src/playground'

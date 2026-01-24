@@ -16,7 +16,7 @@ import DropAreaHOC from '../lib/drop-area-hoc.jsx';
 import {GUIStoragePropType} from '../gui-config';
 
 import {connect} from 'react-redux';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 
 
 const dragTypes = [DragConstants.COSTUME, DragConstants.SOUND, DragConstants.SPRITE];

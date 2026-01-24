@@ -47,9 +47,9 @@ const ScratchStorage = require('scratch-storage').ScratchStorage;
 const VirtualMachine = require('..');
 const Runtime = require('../engine/runtime');
 
-const ScratchRender = require('@scratch/scratch-render');
+const ScratchRender = require('@smalruby/scratch-render');
 const AudioEngine = require('scratch-audio');
-const ScratchSVGRenderer = require('@scratch/scratch-svg-renderer');
+const ScratchSVGRenderer = require('@smalruby/scratch-svg-renderer');
 
 const Scratch = window.Scratch = window.Scratch || {};
 

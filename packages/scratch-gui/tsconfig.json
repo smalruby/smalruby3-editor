@@ -11,7 +11,7 @@
     "module": "commonjs",
     "baseUrl": ".",
     "paths": {
-      "@scratch/scratch-vm": ["../scratch-vm/src/index.js"]
+      "@smalruby/scratch-vm": ["../scratch-vm/src/index.js"]
     },
     "types": ["./src/types.d.ts"],
 

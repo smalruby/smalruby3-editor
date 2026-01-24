@@ -31,7 +31,7 @@ var canvas = document.getElementById('myStage');
 var debug = document.getElementById('myDebug');
 
 // Instantiate the renderer
-var renderer = new require('@scratch/scratch-render')(canvas);
+var renderer = new require('@smalruby/scratch-render')(canvas);
 
 // Connect to debug canvas
 renderer.setDebugCanvas(debug);

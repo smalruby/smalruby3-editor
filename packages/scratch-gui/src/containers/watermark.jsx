@@ -6,7 +6,7 @@ import {connect} from 'react-redux';
 
 import ThrottledPropertyHOC from '../lib/throttled-property-hoc.jsx';
 
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 import getCostumeUrl from '../lib/get-costume-url';
 import {GUIStoragePropType} from '../gui-config';
 

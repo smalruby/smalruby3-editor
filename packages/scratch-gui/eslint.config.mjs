@@ -126,7 +126,7 @@ export default eslintConfigScratch.defineConfig(
             // TODO: figure out why this is needed...
             // probably something with eslint-plugin-import's parser or resolver
             'import/core-modules': [
-                '@scratch/scratch-vm/src/extension-support/block-type'
+                '@smalruby/scratch-vm/src/extension-support/block-type'
             ]
         }
     },

@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import bindAll from 'lodash.bindall';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 import PaintEditor from 'scratch-paint';
-import {inlineSvgFonts} from '@scratch/scratch-svg-renderer';
+import {inlineSvgFonts} from '@smalruby/scratch-svg-renderer';
 
 import {connect} from 'react-redux';
 

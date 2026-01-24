@@ -11,7 +11,7 @@ import {
     updateRubyCodeTarget,
     updateRubyFontSize
 } from '../reducers/ruby-code';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 import {BLOCKS_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
