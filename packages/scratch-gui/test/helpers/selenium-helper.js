@@ -108,7 +108,9 @@ class SeleniumHelper {
             'getSauceDriver',
             'getLogs',
             'loadUri',
-            'rightClickText'
+            'rightClickText',
+            'notExistsByXpath',
+            'urlFor'
         ]);
 
         this.Key = webdriver.Key; // map Key constants, for sending special keys
@@ -278,6 +280,27 @@ class SeleniumHelper {
      * @returns {Promise} A promise that resolves when the URI is loaded.
      */
     async loadUri (uri) {
+        const locale = 'locale=en';
+        if (uri.indexOf('locale=') < 0) {
+            if (uri.indexOf('?') >= 0) {
+                uri = uri.replace('?', `?${locale}&`);
+            } else if (uri.indexOf('#') >= 0) {
+                uri = uri.replace('#', `?${locale}#`);
+            } else {
+                uri = `${uri}?${locale}`;
+            }
+        }
+        if (uri.indexOf('showAllExtensions=') < 0) {
+            const showAllExtensions = 'showAllExtensions=true';
+            if (uri.indexOf('?') >= 0) {
+                uri = uri.replace('?', `?${showAllExtensions}&`);
+            } else if (uri.indexOf('#') >= 0) {
+                uri = uri.replace('#', `?${showAllExtensions}#`);
+            } else {
+                uri = `${uri}?${showAllExtensions}`;
+            }
+        }
+
         const outerError = new Error(`loadUri failed with arguments:\n\turi: ${uri}`);
         try {
             await this.setTitle(`loadUri ${uri}`);
@@ -423,6 +446,25 @@ class SeleniumHelper {
         } catch (cause) {
             throw await enhanceError(outerError, cause);
         }
+    }
+
+    notExistsByXpath (xpath, timeoutMessage = `notExistsByXpath timed out for path: ${xpath}`) {
+        return this.driver.wait(() => this.driver.findElements(By.xpath(xpath))
+            .then(elements => elements.length === 0 || elements.every(i => !i.isDisplayed())),
+        DEFAULT_TIMEOUT_MILLISECONDS, timeoutMessage);
+    }
+
+    /**
+     * Generate a URL for the given path.
+     * @param {string} pathName The path to generate a URL for.
+     * @returns {string} The URL.
+     */
+    urlFor (pathName) {
+        const buildPath = path.resolve(__dirname, '../../build/index.html');
+        if (pathName === '/') {
+            return buildPath;
+        }
+        return `${buildPath}${pathName}`;
     }
 }
 
