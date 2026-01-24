@@ -1,5 +1,9 @@
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
+import {
+    SETTINGS_MENU_XPATH,
+    FILE_MENU_XPATH
+} from '../helpers/menu-xpaths';
 
 const {
     clickText,
@@ -16,11 +20,6 @@ const {
 const uri = path.resolve(__dirname, '../../build/index.html');
 
 let driver;
-
-const FILE_MENU_XPATH = '//div[contains(@class, "menu-bar_menu-bar-item")]' +
-    '[*[contains(@class, "menu-bar_collapsible-label")]//*[text()="File"]]';
-const SETTINGS_MENU_XPATH = '//div[contains(@class, "menu-bar_menu-bar-item")]' +
-    '[*[contains(@class, "settings-menu_dropdown-label")]//*[text()="Settings"]]';
 
 describe('Localization', () => {
     beforeAll(() => {

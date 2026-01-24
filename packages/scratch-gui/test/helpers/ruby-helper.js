@@ -29,7 +29,13 @@ class RubyHelper {
         return this.driver.executeScript(`return window.monacoEditor.getValue();`);
     }
 
-    fillInRubyProgram (code) {
+    async fillInRubyProgram (code) {
+        // Wait for monacoEditor to be available
+        await this.driver.wait(async () => {
+            const available = await this.driver.executeScript('return typeof window.monacoEditor !== "undefined";');
+            return available;
+        }, 10000, 'monacoEditor did not become available');
+
         code = code.replace(/\n/g, '\\n').replace(/'/g, "\\'");
         return this.driver.executeScript(`window.monacoEditor.setValue('${code}');`);
     }
@@ -78,14 +84,14 @@ class RubyHelper {
         await this.clickText('Ruby', '*[@role="tab"]');
         await this.fillInRubyProgram(inputCode);
         await this.clickText('Code', '*[@role="tab"]');
-        
+
         // Dismiss any alerts that might be blocking subsequent clicks
         await this.dismissAlertsIfPresent();
-        
+
         await this.clickXpath(EDIT_MENU_XPATH);
         await this.clickText('Generate Ruby from Code');
         await this.clickText('Ruby', '*[@role="tab"]');
-        
+
         // If expectedCode is provided, use it; otherwise expect the same as input
         const expected = expectedCode !== null ? expectedCode : inputCode;
         expect(await this.currentRubyProgram()).toEqual(`${expected}\n`);

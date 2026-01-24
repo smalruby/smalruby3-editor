@@ -1,5 +1,6 @@
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
+import {SETTINGS_MENU_XPATH} from '../helpers/menu-xpaths';
 
 const {
     clickText,
@@ -20,9 +21,6 @@ const {
 const uri = path.resolve(__dirname, '../../build/standalone.html');
 
 let driver;
-
-const SETTINGS_MENU_XPATH = '//div[contains(@class, "menu-bar_menu-bar-item")]' +
-    '[*[contains(@class, "settings-menu_dropdown-label")]//*[text()="Settings"]]';
 
 // A test suite cloned from `blocks.test.js` which acts as a way to check that the
 // standalone way of initialization is working
