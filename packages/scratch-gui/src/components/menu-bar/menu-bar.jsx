@@ -289,23 +289,18 @@ class MenuBar extends React.Component {
         const readyToReplaceProject = this.props.confirmReadyToReplaceProject(
             this.props.intl.formatMessage(sharedMessages.replaceProjectWarning)
         );
-        this.props.onRequestCloseFile();
         if (readyToReplaceProject) {
             this.props.onClickNew(this.props.canSave && this.props.canCreateNew);
         }
-        this.props.onRequestCloseFile();
     }
     handleClickRemix () {
         this.props.onClickRemix();
-        this.props.onRequestCloseFile();
     }
     handleClickSave () {
         this.props.onClickSave();
-        this.props.onRequestCloseFile();
     }
     handleClickSaveAsCopy () {
         this.props.onClickSaveAsCopy();
-        this.props.onRequestCloseFile();
     }
     handleClickSeeCommunity (waitForUpdate) {
         if (this.props.shouldSaveBeforeTransition()) {
@@ -361,7 +356,6 @@ class MenuBar extends React.Component {
     handleRestoreOption (restoreFun) {
         return () => {
             restoreFun();
-            this.props.onRequestCloseEdit();
         };
     }
     handleKeyPress (event) {
@@ -373,7 +367,6 @@ class MenuBar extends React.Component {
     }
     getSaveToComputerHandler (downloadProjectCallback) {
         return () => {
-            this.props.onRequestCloseFile();
             downloadProjectCallback();
             if (this.props.onProjectTelemetryEvent) {
                 const metadata = collectMetadata(this.props.vm, this.props.projectTitle, this.props.locale);
@@ -390,8 +383,6 @@ class MenuBar extends React.Component {
         };
     }
     handleAISaveFinished () {
-        // Close the Koshien menu
-        this.props.onRequestCloseKoshien();
         // Set AI save status to 'saved'
         this.props.onSetAiSaveStatus('saved');
         // Clear status after 3 seconds
@@ -400,7 +391,6 @@ class MenuBar extends React.Component {
         }, 3000);
     }
     handleClickKoshienEntryForm () {
-        this.props.onRequestCloseKoshien();
         window.open('https://smalruby-koshien.netlab.jp/entry-form.html', '_blank', 'noopener,noreferrer');
     }
     handleClickLearn () {
@@ -419,8 +409,6 @@ class MenuBar extends React.Component {
             // Option B: Save after displaying the modal
             // Open the Koshien test modal
             this.props.onOpenKoshienTestModal();
-            // Close the Koshien menu
-            this.props.onRequestCloseKoshien();
             // Set AI save status to 'saving'
             this.props.onSetAiSaveStatus('saving');
             // Call download callback
@@ -428,8 +416,6 @@ class MenuBar extends React.Component {
         };
     }
     handleAISaveAsFinished () {
-        // Close the Koshien menu
-        this.props.onRequestCloseKoshien();
         // Set AI save status to 'saved'
         this.props.onSetAiSaveStatus('saved');
         // Clear status after 3 seconds
@@ -451,7 +437,6 @@ class MenuBar extends React.Component {
     }
     handleClickGenerateRubyFromCode () {
         this.props.updateRubyCodeTargetState(this.props.vm.editingTarget);
-        this.props.onRequestCloseEdit();
     }
     handleExtensionAdded () {
         // Dispatch Redux action to trigger re-render
@@ -460,15 +445,10 @@ class MenuBar extends React.Component {
         }
     }
     handleMeshV2MenuClick () {
-        // Close the Mesh V2 menu
-        this.props.onRequestCloseMeshV2();
-
         // Open connection modal
         this.props.onOpenConnectionModal('meshV2');
     }
     handleMeshDomainClick () {
-        // Close the Mesh V2 menu
-        this.props.onRequestCloseMeshV2();
 
         const extension = this.props.vm && this.props.vm.runtime &&
             this.props.vm.runtime.peripheralExtensions &&
@@ -607,7 +587,6 @@ class MenuBar extends React.Component {
     wrapAboutMenuCallback (callback) {
         return () => {
             callback();
-            this.props.onRequestCloseAbout();
         };
     }
     render () {
@@ -843,7 +822,10 @@ class MenuBar extends React.Component {
                                 )}</DeletionRestorer>
                                 <MenuSection>
                                     <TurboMode>{(toggleTurboMode, {turboMode}) => (
-                                        <MenuItem onClick={toggleTurboMode}>
+                                        <MenuItem
+                                            closeOnClick={false}
+                                            onClick={toggleTurboMode}
+                                        >
                                             {turboMode ? (
                                                 <FormattedMessage
                                                     defaultMessage="Turn off Turbo Mode"

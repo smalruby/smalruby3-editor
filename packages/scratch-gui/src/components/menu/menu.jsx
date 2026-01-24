@@ -62,6 +62,7 @@ Submenu.propTypes = {
 const MenuItem = ({
     children,
     className,
+    closeOnClick = true,
     expanded = false,
     onClick
 }) => (
@@ -72,6 +73,7 @@ const MenuItem = ({
             className,
             {[styles.expanded]: expanded}
         )}
+        data-close-on-click={closeOnClick}
         onClick={onClick}
     >
         {children}
@@ -81,6 +83,7 @@ const MenuItem = ({
 MenuItem.propTypes = {
     children: PropTypes.node,
     className: PropTypes.string,
+    closeOnClick: PropTypes.bool,
     expanded: PropTypes.bool,
     onClick: PropTypes.func
 };

@@ -31,7 +31,33 @@ class Menu extends React.Component {
         document.removeEventListener('mouseup', this.handleClick);
     }
     handleClick (e) {
-        if (this.props.open && !this.menu.contains(e.target)) {
+        if (!this.props.open) return;
+
+        // Check if clicked element is a menu item (li element within menu)
+        let target = e.target;
+        while (target && target !== this.menu) {
+            if (target.tagName === 'LI' && this.menu.contains(target)) {
+                // Check if this menu item should close the menu
+                const closeOnClick = target.getAttribute('data-close-on-click');
+                // Default to true if attribute is not set (null)
+                // closeOnClick can be "true" or "false" as a string
+                if (closeOnClick === 'false') {
+                    // Don't close the menu for this item
+                    return;
+                }
+                // Clicked on a menu item, close the menu after React event handlers execute
+                // In React 18, document listeners may fire before React synthetic events,
+                // so we need to delay closing the menu to allow MenuItem onClick to execute
+                setTimeout(() => {
+                    this.props.onRequestClose();
+                }, 0);
+                return;
+            }
+            target = target.parentElement;
+        }
+
+        // Clicked outside the menu, close it
+        if (!this.menu.contains(e.target)) {
             this.props.onRequestClose();
         }
     }
