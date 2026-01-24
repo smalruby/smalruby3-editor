@@ -1,11 +1,10 @@
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
 import RubyHelper from '../helpers/ruby-helper';
-
-const FILE_MENU_XPATH = '//div[contains(@class, "menu-bar_menu-bar-item")]' +
-    '[*[contains(@class, "menu-bar_collapsible-label")]//*[text()="File"]]';
-const EDIT_MENU_XPATH = '//div[contains(@class, "menu-bar_menu-bar-item")]' +
-    '[*[contains(@class, "menu-bar_collapsible-label")]//*[text()="Edit"]]';
+import {
+    FILE_MENU_XPATH,
+    EDIT_MENU_XPATH
+} from '../helpers/menu-xpaths';
 
 const seleniumHelper = new SeleniumHelper();
 const {
