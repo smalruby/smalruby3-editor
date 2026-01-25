@@ -25,14 +25,19 @@ import {
     closeBackdropLibrary,
     closeTelemetryModal,
     openExtensionLibrary,
-    closeDebugModal
+    closeDebugModal,
+    closeMeshDomainModal,
+    closeKoshienTestModal,
+    closeUrlLoaderModal
 } from '../reducers/modals';
 
 import {setPlatform} from '../reducers/platform';
+import {setTheme} from '../reducers/settings';
 
 import FontLoaderHOC from '../lib/font-loader-hoc.jsx';
 import LocalizationHOC from '../lib/localization-hoc.jsx';
 import SBFileUploaderHOC from '../lib/sb-file-uploader-hoc.jsx';
+import URLLoaderHOC from '../lib/url-loader-hoc.jsx';
 import ProjectFetcherHOC from '../lib/project-fetcher-hoc.jsx';
 import TitledHOC from '../lib/titled-hoc.jsx';
 import ProjectSaverHOC from '../lib/project-saver-hoc.jsx';
@@ -53,7 +58,7 @@ class GUI extends React.Component {
         this.props.onVmInit(this.props.vm);
         this.props.storage.setProjectMetadata?.(this.props.projectId);
         if (this.props.platform) {
-            this.props.setPlatform(this.props.platform);
+            this.props.onSetPlatform(this.props.platform);
         }
     }
     componentDidUpdate (prevProps) {
@@ -132,7 +137,7 @@ GUI.propTypes = {
     onUpdateProjectId: PropTypes.func,
     onVmInit: PropTypes.func,
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
-    setPlatform: PropTypes.func.isRequired,
+    onSetPlatform: PropTypes.func.isRequired,
     /**
      * Whether to highlight new editor features in the UI.
      */
@@ -141,6 +146,21 @@ GUI.propTypes = {
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     shouldStopProject: PropTypes.bool,
     telemetryModalVisible: PropTypes.bool,
+    meshDomainModalVisible: PropTypes.bool,
+    koshienTestModalVisible: PropTypes.bool,
+    urlLoaderModalVisible: PropTypes.bool,
+    onRequestCloseMeshDomainModal: PropTypes.func,
+    onRequestCloseKoshienTestModal: PropTypes.func,
+    onRequestCloseUrlLoaderModal: PropTypes.func,
+    onActivateRubyTab: PropTypes.func,
+    onUrlLoaderSubmit: PropTypes.func,
+    onStartSelectingUrlLoad: PropTypes.func,
+    blocksId: PropTypes.string,
+    stageSizeMode: PropTypes.string,
+    colorMode: PropTypes.string,
+    theme: PropTypes.string,
+    blockDisplayModalVisible: PropTypes.bool,
+    onSetTheme: PropTypes.func,
     username: PropTypes.string,
     userOwnsProject: PropTypes.bool,
     // TODO: Is this unused?
@@ -184,6 +204,14 @@ const mapStateToProps = (state, ownProps) => {
             state.scratchGui.targets.stage.id === state.scratchGui.targets.editingTarget
         ),
         telemetryModalVisible: state.scratchGui.modals.telemetryModal,
+        meshDomainModalVisible: state.scratchGui.modals.meshDomainModal,
+        koshienTestModalVisible: state.scratchGui.modals.koshienTestModal,
+        urlLoaderModalVisible: state.scratchGui.modals.urlLoaderModal,
+        blocksId: state.scratchGui.timeTravel.year.toString(),
+        stageSizeMode: state.scratchGui.stageSize.stageSize,
+        colorMode: state.scratchGui.settings.colorMode,
+        theme: state.scratchGui.settings.theme,
+        blockDisplayModalVisible: state.scratchGui.blockDisplay.modalVisible,
         vm: state.scratchGui.vm
     };
 };
@@ -193,11 +221,16 @@ const mapDispatchToProps = dispatch => ({
     onActivateTab: tab => dispatch(activateTab(tab)),
     onActivateCostumesTab: () => dispatch(activateTab(COSTUMES_TAB_INDEX)),
     onActivateSoundsTab: () => dispatch(activateTab(SOUNDS_TAB_INDEX)),
-    setPlatform: platform => dispatch(setPlatform(platform)),
+    onActivateRubyTab: () => dispatch(activateTab(RUBY_TAB_INDEX)),
+    onSetPlatform: platform => dispatch(setPlatform(platform)),
+    onSetTheme: theme => dispatch(setTheme(theme)),
     onRequestCloseBackdropLibrary: () => dispatch(closeBackdropLibrary()),
     onRequestCloseCostumeLibrary: () => dispatch(closeCostumeLibrary()),
     onRequestCloseDebugModal: () => dispatch(closeDebugModal()),
-    onRequestCloseTelemetryModal: () => dispatch(closeTelemetryModal())
+    onRequestCloseTelemetryModal: () => dispatch(closeTelemetryModal()),
+    onRequestCloseMeshDomainModal: () => dispatch(closeMeshDomainModal()),
+    onRequestCloseKoshienTestModal: () => dispatch(closeKoshienTestModal()),
+    onRequestCloseUrlLoaderModal: () => dispatch(closeUrlLoaderModal())
 });
 
 const ConnectedGUI = injectIntl(connect(
@@ -219,6 +252,7 @@ const WrappedGui = compose(
     vmListenerHOC,
     vmManagerHOC,
     SBFileUploaderHOC,
+    URLLoaderHOC,
     cloudManagerHOC,
     systemPreferencesHOC
 )(ConnectedGUI);

@@ -3,7 +3,6 @@ import omit from 'lodash.omit';
 import PropTypes from 'prop-types';
 import React, {useEffect, useCallback} from 'react';
 import {defineMessages, FormattedMessage, useIntl} from 'react-intl';
-import {connect} from 'react-redux';
 import MediaQuery from 'react-responsive';
 import {Tab, Tabs, TabList, TabPanel} from 'react-tabs';
 import tabStyles from 'react-tabs/style/react-tabs.css';
@@ -47,17 +46,6 @@ import costumesIcon from './icon--costumes.svg';
 import soundsIcon from './icon--sounds.svg';
 import rubyIcon from './icon--ruby.svg';
 import DebugModal from '../debug-modal/debug-modal.jsx';
-import {setPlatform} from '../../reducers/platform.js';
-import {setTheme} from '../../reducers/settings.js';
-import {
-    activateTab,
-    RUBY_TAB_INDEX
-} from '../../reducers/editor-tab';
-import {
-    closeUrlLoaderModal,
-    closeKoshienTestModal,
-    closeMeshDomainModal
-} from '../../reducers/modals';
 import {PLATFORM} from '../../lib/platform.js';
 
 const ariaMessages = defineMessages({
@@ -206,6 +194,8 @@ const GUIComponent = props => {
         onTelemetryModalOptOut,
         onUpdateProjectThumbnail,
         onUrlLoaderSubmit,
+        onSetPlatform,
+        onSetTheme,
         showComingSoon,
         showNewFeatureCallouts,
         soundsTabVisible,
@@ -222,18 +212,16 @@ const GUIComponent = props => {
         hideTutorialProjects,
         vm,
         ...componentProps
-    } = omit(props, 'dispatch', 'setPlatform', 'onRequestCloseMeshDomainModal', 'onStartSelectingUrlLoad');
+    } = omit(props, 'dispatch', 'platform');
     if (children) {
         return <Box {...componentProps}>{children}</Box>;
     }
 
     useEffect(() => {
         if (props.platform) {
-            // TODO: This uses the imported `setPlatform` directly,
-            // but it should probably use the dispatched version from props.
-            setPlatform(props.platform);
+            onSetPlatform(props.platform);
         }
-    }, [props.platform]);
+    }, [props.platform, onSetPlatform]);
 
     useEffect(() => {
         if (
@@ -242,9 +230,9 @@ const GUIComponent = props => {
         ) {
             // If the preferred theme is not available, fall back to default.
             // TODO: It would be cleaner to do this on redux init.
-            props.setTheme(DEFAULT_THEME);
+            onSetTheme(DEFAULT_THEME);
         }
-    }, [theme, hasActiveMembership, props.setTheme]);
+    }, [theme, hasActiveMembership, onSetTheme, isFetchingUserData]);
 
     const tabClassNames = {
         tabs: styles.tabs,
@@ -394,6 +382,7 @@ const GUIComponent = props => {
                     onSeeCommunity={onSeeCommunity}
                     onShare={onShare}
                     onStartSelectingFileUpload={onStartSelectingFileUpload}
+                    onStartSelectingUrlLoad={onStartSelectingUrlLoad}
                     onToggleLoginOpen={onToggleLoginOpen}
                     userOwnsProject={userOwnsProject}
                     username={username}
@@ -686,14 +675,12 @@ GUIComponent.propTypes = {
     onRequestCloseCostumeLibrary: PropTypes.func,
     onRequestCloseDebugModal: PropTypes.func,
     onRequestCloseKoshienTestModal: PropTypes.func,
-    onRequestCloseMeshDomainModal: PropTypes.func,
     onRequestCloseTelemetryModal: PropTypes.func,
     onRequestCloseUrlLoaderModal: PropTypes.func,
     onSeeCommunity: PropTypes.func,
     onShare: PropTypes.func,
     onShowPrivacyPolicy: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
-    onStartSelectingUrlLoad: PropTypes.func,
     onTabSelect: PropTypes.func,
     onTelemetryModalCancel: PropTypes.func,
     onTelemetryModalOptIn: PropTypes.func,
@@ -701,15 +688,15 @@ GUIComponent.propTypes = {
     onToggleLoginOpen: PropTypes.func,
     onUpdateProjectThumbnail: PropTypes.func,
     onUrlLoaderSubmit: PropTypes.func,
+    onSetPlatform: PropTypes.func,
+    onSetTheme: PropTypes.func.isRequired,
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
     renderLogin: PropTypes.func,
-    setTheme: PropTypes.func.isRequired,
     showComingSoon: PropTypes.bool,
     showNewFeatureCallouts: PropTypes.bool,
     soundsTabVisible: PropTypes.bool,
     rubyTabVisible: PropTypes.bool,
     stageSizeMode: PropTypes.oneOf(Object.keys(STAGE_SIZE_MODES)),
-    setPlatform: PropTypes.func,
     targetIsStage: PropTypes.bool,
     telemetryModalVisible: PropTypes.bool,
     colorMode: PropTypes.string,
@@ -751,26 +738,4 @@ GUIComponent.defaultProps = {
     useExternalPeripheralList: false
 };
 
-const mapStateToProps = state => ({
-    // This is the button's mode, as opposed to the actual current state
-    blocksId: state.scratchGui.timeTravel.year.toString(),
-    stageSizeMode: state.scratchGui.stageSize.stageSize,
-    colorMode: state.scratchGui.settings.colorMode,
-    theme: state.scratchGui.settings.theme,
-    blockDisplayModalVisible: state.scratchGui.blockDisplay.modalVisible,
-    meshDomainModalVisible: state.scratchGui.modals.meshDomainModal,
-    koshienTestModalVisible: state.scratchGui.modals.koshienTestModal,
-    urlLoaderModalVisible: state.scratchGui.modals.urlLoaderModal
-});
-
-const mapDispatchToProps = dispatch => ({
-    setPlatform: platform => dispatch(setPlatform(platform)),
-    setTheme: theme => dispatch(setTheme(theme)),
-    onActivateRubyTab: () => dispatch(activateTab(RUBY_TAB_INDEX)),
-    onRequestCloseMeshDomainModal: () => dispatch(closeMeshDomainModal()),
-    onRequestCloseKoshienTestModal: () => dispatch(closeKoshienTestModal()),
-    onRequestCloseUrlLoaderModal: () => dispatch(closeUrlLoaderModal())
-});
-
-export default connect(mapStateToProps,
-    mapDispatchToProps)(GUIComponent);
+export default GUIComponent;
