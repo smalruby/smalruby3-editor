@@ -14,6 +14,7 @@ import packageJson from '../../package.json';
 const {Button, By, until} = webdriver;
 
 const USE_HEADLESS = process.env.USE_HEADLESS !== 'no';
+const IS_ROOT_USER = process.getuid() === 0;
 
 // The main reason for this timeout is so that we can control the timeout message and report details;
 // if we hit the Jasmine default timeout then we get a terse message that we can't control.
@@ -179,13 +180,16 @@ class SeleniumHelper {
         const options = new chrome.Options();
         const args = [];
         if (USE_HEADLESS) {
-            args.push('--headless');
+            args.push('--headless=new');
         }
 
-        args.push('--no-sandbox');
+        if (IS_ROOT_USER) {
+            args.push('--no-sandbox');
+            args.push('--disable-setuid-sandbox');
+        }
+
         args.push('--disable-dev-shm-usage');
-        args.push('--use-gl=swiftshader');
-        args.push('--ignore-gpu-blocklist');
+        args.push('--disable-extensions');
 
         // Stub getUserMedia to always not allow access
         args.push('--use-fake-ui-for-media-stream=deny');
@@ -515,9 +519,18 @@ class SeleniumHelper {
     }
 
     notExistsByXpath (xpath, timeoutMessage = `notExistsByXpath timed out for path: ${xpath}`) {
-        return this.driver.wait(() => this.driver.findElements(By.xpath(xpath))
-            .then(elements => elements.length === 0 || elements.every(i => !i.isDisplayed())),
-        DEFAULT_TIMEOUT_MILLISECONDS, timeoutMessage);
+        return this.driver.wait(async () => {
+            const elements = await this.driver.findElements(By.xpath(xpath));
+            if (elements.length === 0) return true;
+            const displays = await Promise.all(elements.map(async i => {
+                try {
+                    return await i.isDisplayed();
+                } catch (e) {
+                    return false;
+                }
+            }));
+            return displays.every(d => !d);
+        }, DEFAULT_TIMEOUT_MILLISECONDS, timeoutMessage);
     }
 
     /**
