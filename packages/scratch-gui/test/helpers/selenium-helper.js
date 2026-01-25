@@ -13,6 +13,7 @@ import packageJson from '../../package.json';
 const {Button, By, until} = webdriver;
 
 const USE_HEADLESS = process.env.USE_HEADLESS !== 'no';
+const IS_ROOT_USER = process.getuid() === 0;
 
 // The main reason for this timeout is so that we can control the timeout message and report details;
 // if we hit the Jasmine default timeout then we get a terse message that we can't control.
@@ -178,8 +179,16 @@ class SeleniumHelper {
         const chromeCapabilities = webdriver.Capabilities.chrome();
         const args = [];
         if (USE_HEADLESS) {
-            args.push('--headless');
+            args.push('--headless=new');
         }
+
+        if (IS_ROOT_USER) {
+            args.push('--no-sandbox');
+            args.push('--disable-setuid-sandbox');
+        }
+
+        args.push('--disable-dev-shm-usage');
+        args.push('--disable-extensions');
 
         // Stub getUserMedia to always not allow access
         args.push('--use-fake-ui-for-media-stream=deny');
