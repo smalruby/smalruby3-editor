@@ -119,6 +119,8 @@ class SeleniumHelper {
         // this type declaration suppresses IDE type warnings throughout this file
         /** @type {webdriver.ThenableWebDriver} */
         this.driver = null;
+
+        this.until = until;
     }
 
     /**

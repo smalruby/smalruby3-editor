@@ -15,7 +15,8 @@ const {
     Key,
     loadUri,
     rightClickText,
-    scope
+    scope,
+    until
 } = new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/standalone.html');
@@ -184,7 +185,7 @@ describe('Working with the blocks', () => {
         await clickText('Meow', scope.blocksTab); // Click "play sound <Meow> until done" block
         await clickText('record'); // Click "record..." option in the block's sound menu
         // Access has been force denied, so close the alert that comes up
-        await driver.sleep(1000); // getUserMedia requests are very slow to fail for some reason
+        await driver.wait(until.alertIsPresent(), 1000); // getUserMedia requests are very slow to fail for some reason
         await driver.switchTo().alert()
             .accept();
         await findByText('Record Sound'); // Sound recorder is open
