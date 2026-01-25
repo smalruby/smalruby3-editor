@@ -8,7 +8,8 @@ const {
     findByText,
     findByXpath,
     getDriver,
-    loadUri
+    loadUri,
+    notExistsByXpath
 } = new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/index.html');
@@ -26,6 +27,7 @@ describe('Loading scratch gui', () => {
 
     test('Loading project file from computer succeeds, without opening failure alert', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//div[contains(@class, "loader_background")]');
         await clickXpath(FILE_MENU_XPATH);
         await clickText('Load from your computer');
         const input = await findByXpath('//input[@accept=".sb,.sb2,.sb3"]');
@@ -36,6 +38,7 @@ describe('Loading scratch gui', () => {
 
     test('Loading project file from computer gives project the filename from file', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//div[contains(@class, "loader_background")]');
         await clickXpath(FILE_MENU_XPATH);
         await clickText('Load from your computer');
         const input = await findByXpath('//input[@accept=".sb,.sb2,.sb3"]');
@@ -46,6 +49,7 @@ describe('Loading scratch gui', () => {
 
     test('Load sb3 project with a missing svg costume', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//div[contains(@class, "loader_background")]');
         await clickXpath(FILE_MENU_XPATH);
         await clickText('Load from your computer');
         const input = await findByXpath('//input[@accept=".sb,.sb2,.sb3"]');
@@ -57,6 +61,7 @@ describe('Loading scratch gui', () => {
 
     test('Load sb3 project with an invalid svg costume', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//div[contains(@class, "loader_background")]');
         await clickXpath(FILE_MENU_XPATH);
         await clickText('Load from your computer');
         const input = await findByXpath('//input[@accept=".sb,.sb2,.sb3"]');
@@ -68,6 +73,7 @@ describe('Loading scratch gui', () => {
 
     test('Load sb2 project with a missing svg costume', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//div[contains(@class, "loader_background")]');
         await clickXpath(FILE_MENU_XPATH);
         await clickText('Load from your computer');
         const input = await findByXpath('//input[@accept=".sb,.sb2,.sb3"]');
@@ -79,6 +85,7 @@ describe('Loading scratch gui', () => {
 
     test('Load sb2 project with an invalid svg costume', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//div[contains(@class, "loader_background")]');
         await clickXpath(FILE_MENU_XPATH);
         await clickText('Load from your computer');
         const input = await findByXpath('//input[@accept=".sb,.sb2,.sb3"]');
@@ -90,6 +97,7 @@ describe('Loading scratch gui', () => {
 
     test('Load sb3 project with a missing bmp costume', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//div[contains(@class, "loader_background")]');
         await clickXpath(FILE_MENU_XPATH);
         await clickText('Load from your computer');
         const input = await findByXpath('//input[@accept=".sb,.sb2,.sb3"]');
@@ -101,6 +109,7 @@ describe('Loading scratch gui', () => {
 
     test('Load sb3 project with an invalid bmp costume', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//div[contains(@class, "loader_background")]');
         await clickXpath(FILE_MENU_XPATH);
         await clickText('Load from your computer');
         const input = await findByXpath('//input[@accept=".sb,.sb2,.sb3"]');

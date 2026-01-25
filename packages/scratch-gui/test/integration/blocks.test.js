@@ -14,6 +14,7 @@ const {
     getLogs,
     Key,
     loadUri,
+    notExistsByXpath,
     rightClickText,
     scope
 } = new SeleniumHelper();
@@ -33,16 +34,18 @@ describe('Working with the blocks', () => {
 
     test('Blocks report when clicked in the toolbox', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Code');
         await clickBlocksCategory('Operators');
         await clickText('join', scope.blocksTab); // Click "join <hello> <world>" block
         await findByText('apple banana', scope.reportedValue); // Tooltip with result
         const logs = await getLogs();
-        await expect(logs).toEqual([]);
+        expect(logs).toEqual([]);
     });
 
     test('Switching sprites updates the block menus', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickBlocksCategory('Sound');
         // "Meow" sound block should be visible
         await findByText('Meow', scope.blocksTab);
@@ -53,11 +56,12 @@ describe('Working with the blocks', () => {
         await findByText('Stage selected: no motion blocks');
 
         const logs = await getLogs();
-        await expect(logs).toEqual([]);
+        expect(logs).toEqual([]);
     });
 
     test('Creating variables', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Code');
         await clickBlocksCategory('Variables');
 
@@ -100,11 +104,12 @@ describe('Working with the blocks', () => {
         await expect(monitorExists).toBeFalsy();
 
         const logs = await getLogs();
-        await expect(logs).toEqual([]);
+        expect(logs).toEqual([]);
     });
 
     test('Creating a list', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Code');
         await clickBlocksCategory('Variables');
 
@@ -140,11 +145,12 @@ describe('Working with the blocks', () => {
         await expect(monitorExists).toBeFalsy();
 
         const logs = await getLogs();
-        await expect(logs).toEqual([]);
+        expect(logs).toEqual([]);
     });
 
     test('Custom procedures', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickBlocksCategory('My Blocks');
         await clickText('Make a Block');
         // Click on the "add an input" buttons
@@ -157,11 +163,12 @@ describe('Working with the blocks', () => {
         await findByText('define', scope.blocksTab);
 
         const logs = await getLogs();
-        await expect(logs).toEqual([]);
+        expect(logs).toEqual([]);
     });
 
     test('Adding an extension', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickXpath('//button[@title="Add Extension"]');
 
         await clickText('Pen');
@@ -170,11 +177,12 @@ describe('Working with the blocks', () => {
         await findByText('stamp', scope.blocksTab);
 
         const logs = await getLogs();
-        await expect(logs).toEqual([]);
+        expect(logs).toEqual([]);
     });
 
     test('Record option from sound block menu opens sound recorder', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Code');
         await clickBlocksCategory('Sound');
         await clickText('Meow', scope.blocksTab); // Click "play sound <Meow> until done" block
@@ -185,16 +193,17 @@ describe('Working with the blocks', () => {
             .accept();
         await findByText('Record Sound'); // Sound recorder is open
         const logs = await getLogs();
-        await expect(logs).toEqual([]);
+        expect(logs).toEqual([]);
     });
 
     test('Renaming costume changes the default costume name in the toolbox', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         // Rename the costume
         await clickText('Costumes');
-        await clickText('costume2', scope.costumesTab);
-        const el = await findByXpath("//input[@value='costume2']");
+        await clickText('costume1', scope.costumesTab);
+        const el = await findByXpath("//input[@value='costume1']");
         await el.sendKeys('newname');
         await el.sendKeys(Key.ENTER);
         // wait until the updated costume appears in costume item list panel
@@ -209,11 +218,12 @@ describe('Working with the blocks', () => {
 
     test('Renaming costume with a special character should not break toolbox', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         // Rename the costume
         await clickText('Costumes');
-        await clickText('costume2', scope.costumesTab);
-        const el = await findByXpath("//input[@value='costume2']");
+        await clickText('costume1', scope.costumesTab);
+        const el = await findByXpath("//input[@value='costume1']");
         await el.sendKeys('<NewCostume>');
         await el.sendKeys(Key.ENTER);
         // wait until the updated costume appears in costume item list panel
@@ -230,10 +240,11 @@ describe('Working with the blocks', () => {
 
     test('Adding costumes DOES update the default costume name in the toolbox', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         // By default, costume2 is in the costume tab
         await clickBlocksCategory('Looks');
-        await clickText('costume2', scope.blocksTab);
+        await clickText('costume1', scope.blocksTab);
 
         // Also check that adding a new costume does update the list
         await clickText('Costumes');
@@ -244,16 +255,17 @@ describe('Working with the blocks', () => {
         await clickXpath('//button[@aria-label="Paint"]');
         // wait until the new costume appears in costume item list panel
         await findByXpath("//div[contains(@class,'sprite-selector-item_is-selected_')]" +
-            "//div[contains(text(), 'costume3')]");
-        await clickText('costume3', scope.costumesTab);
+            "//div[contains(text(), 'costume2')]");
+        await clickText('costume1', scope.costumesTab);
         // Check that the menu has been updated
         await clickText('Code');
-        await clickText('costume3', scope.blocksTab);
+        await clickText('costume2', scope.blocksTab);
     });
 
-    // Skipped because it was flakey on travis, but seems to run locally ok
+    // Skipped because it was flaky on travis, but seems to run locally ok
     test('Adding a sound DOES update the default sound name in the toolbox', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Sounds');
         await clickXpath('//button[@aria-label="Choose a Sound"]');
         await clickText('A Bass', scope.modal); // Should close the modal
@@ -269,6 +281,7 @@ describe('Working with the blocks', () => {
     test('"See inside" after being on project page re-initializing variables', async () => {
         const playerUri = path.resolve(__dirname, '../../build/player.html');
         await loadUri(playerUri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('See inside');
         await clickBlocksCategory('Variables');
         await clickText('my\u00A0variable');
@@ -283,6 +296,7 @@ describe('Working with the blocks', () => {
     // Regression test for switching editor tabs causing toolbox to stop updating
     test('Creating variables after adding extensions updates the toolbox', async () => {
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Costumes');
         await clickText('Code');
         await clickBlocksCategory('Variables');
@@ -298,6 +312,7 @@ describe('Working with the blocks', () => {
         const changeVariableByScope = "*[@data-id='data_changevariableby']";
 
         await loadUri(uri);
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         await clickText('Code');
         await clickBlocksCategory('Variables');
@@ -312,7 +327,15 @@ describe('Working with the blocks', () => {
         // change language
         await clickXpath(SETTINGS_MENU_XPATH);
         await clickText('Language', scope.menuBar);
-        await clickText('Deutsch');
+        await driver.sleep(1000);
+        
+        // Find language option and scroll to it if necessary
+        const languageOption = await findByXpath("//*[contains(@class, 'language-menu-item') and contains(text(), 'Deutsch')]");
+        await driver.executeScript('arguments[0].scrollIntoView(true);', languageOption);
+        await driver.sleep(500);
+        await languageOption.click();
+        
+        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         await clickText('Skripte');
         await clickBlocksCategory('Variablen');

@@ -327,7 +327,7 @@ class SeleniumHelper {
     }
 
     /**
-     * Click an element by xpath.
+     * Click an element by xpath, waiting for it to be clickable.
      * @param {string} xpath The xpath to click.
      * @returns {Promise<void>} A promise that resolves when the element is clicked.
      */
@@ -335,8 +335,16 @@ class SeleniumHelper {
         const outerError = new Error(`clickXpath failed with arguments:\n\txpath: ${xpath}`);
         try {
             await this.setTitle(`clickXpath ${xpath}`);
-            const el = await this.findByXpath(xpath);
-            return el.click();
+            const el = await this.driver.wait(until.elementLocated(By.xpath(xpath)), DEFAULT_TIMEOUT_MILLISECONDS);
+            await this.driver.wait(until.elementIsVisible(el), DEFAULT_TIMEOUT_MILLISECONDS);
+            await this.driver.wait(async () => {
+                try {
+                    await el.click();
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }, DEFAULT_TIMEOUT_MILLISECONDS);
         } catch (cause) {
             throw await enhanceError(outerError, cause, this.driver);
         }
@@ -416,31 +424,56 @@ class SeleniumHelper {
 
     /**
      * Get selected browser log entries.
-     * @param {Array.<string>} [whitelist] An optional list of log strings to allow. Default: see implementation.
-     * @returns {Promise<Array.<webdriver.logging.Entry>>} A promise that resolves to the log entries.
+     * @param {object|Array.<string>} [options] Options object or legacy whitelist array.
+     * @param {Array.<string>} [options.whitelist] List of log strings to exclude.
+     * Default: ['The play() request was interrupted by a call to pause()']
+     * @param {boolean} [options.includeAllLevels] If true, include all log levels
+     * (INFO, WARNING, SEVERE). If false, only SEVERE. Default: false
+     * @returns {Promise<Array.<webdriver.logging.Entry>>} A promise that resolves
+     * to the log entries.
+     * @example
+     * // Get SEVERE logs only (default)
+     * const logs = await getLogs();
+     *
+     * // Get all log levels for debugging
+     * const allLogs = await getLogs({includeAllLevels: true});
+     *
+     * // Legacy usage (backward compatible)
+     * const logs = await getLogs(['known warning']);
      */
-    async getLogs (whitelist) {
-        const outerError = new Error(`getLogs failed with arguments:\n\twhitelist: ${whitelist}`);
+    async getLogs (options = {}) {
+        // Backward compatibility: if array is passed, treat it as whitelist
+        if (Array.isArray(options)) {
+            options = {whitelist: options};
+        }
+
+        const {
+            whitelist = ['The play() request was interrupted by a call to pause()'],
+            includeAllLevels = false
+        } = options;
+
+        const outerError = new Error(`getLogs failed with arguments:\n\toptions: ${JSON.stringify(options)}`);
         try {
-            await this.setTitle(`getLogs ${whitelist}`);
-            if (!whitelist) {
-                // Default whitelist
-                whitelist = [
-                    'The play() request was interrupted by a call to pause()'
-                ];
-            }
+            await this.setTitle(`getLogs ${JSON.stringify(options)}`);
             const entries = await this.driver.manage()
                 .logs()
                 .get('browser');
+
             return entries.filter(entry => {
                 const message = entry.message;
+
+                // Check whitelist: if message contains any whitelisted string, exclude it
                 for (const element of whitelist) {
                     if (message.indexOf(element) !== -1) {
                         return false;
-                    } else if (entry.level !== 'SEVERE') { // WARNING: this doesn't do what it looks like it does!
-                        return false;
                     }
                 }
+
+                // If includeAllLevels is false, only include SEVERE level logs
+                if (!includeAllLevels && entry.level !== 'SEVERE') {
+                    return false;
+                }
+
                 return true;
             });
         } catch (cause) {
