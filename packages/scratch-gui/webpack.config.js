@@ -2,6 +2,9 @@ const path = require('path');
 const webpack = require('webpack');
 const fs = require('fs');
 
+// Load environment variables from monorepo root
+require('dotenv').config({path: path.resolve(__dirname, '../../.env')});
+
 // Plugins
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
