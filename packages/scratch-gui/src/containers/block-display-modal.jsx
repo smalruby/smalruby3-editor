@@ -81,6 +81,7 @@ class BlockDisplayModal extends React.Component {
         }
 
         this.props.onSetSelectedBlocks(currentBlocks);
+        this.props.onSetProjectChanged();
     }
 
     handleBlockChange (categoryId, blockId, isSelected) {
@@ -99,10 +100,12 @@ class BlockDisplayModal extends React.Component {
         }
 
         this.props.onSetSelectedBlocks(currentBlocks);
+        this.props.onSetProjectChanged();
     }
 
     handleSelectAll () {
         this.props.onSetSelectedBlocks(CATEGORY_BLOCKS);
+        this.props.onSetProjectChanged();
     }
 
     handleSelectNone () {
@@ -116,6 +119,7 @@ class BlockDisplayModal extends React.Component {
             operators: []
         };
         this.props.onSetSelectedBlocks(emptyBlocks);
+        this.props.onSetProjectChanged();
     }
 
     handleClose () {
