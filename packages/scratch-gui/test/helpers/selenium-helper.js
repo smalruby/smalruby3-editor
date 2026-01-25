@@ -303,8 +303,8 @@ class SeleniumHelper {
                 uri = `${uri}?${locale}`;
             }
         }
+        const showAllExtensions = 'showAllExtensions=1';
         if (uri.indexOf('showAllExtensions=') < 0) {
-            const showAllExtensions = 'showAllExtensions=true';
             if (uri.indexOf('?') >= 0) {
                 uri = uri.replace('?', `?${showAllExtensions}&`);
             } else if (uri.indexOf('#') >= 0) {

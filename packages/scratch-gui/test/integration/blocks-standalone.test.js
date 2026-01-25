@@ -67,6 +67,7 @@ describe('Working with the blocks', () => {
         // Expect a default variable "my variable" to be visible
         await clickText('my\u00A0variable', scope.blocksTab);
         await findByText('0', scope.reportedValue);
+        await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
         await clickText('Make a Variable');
         let el = await findByXpath("//input[@name='New variable name:']");
@@ -81,6 +82,7 @@ describe('Working with the blocks', () => {
         await clickBlocksCategory('Variables');
         await clickText('score', scope.blocksTab);
         await findByText('0', scope.reportedValue); // Tooltip with result
+        await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
         // And there should be a monitor visible
         await rightClickText('score', scope.monitors);
@@ -118,8 +120,11 @@ describe('Working with the blocks', () => {
 
         // Click the "add <thing> to list" block 3 times
         await clickText('add', scope.blocksTab);
+        await driver.sleep(100);
         await clickText('add', scope.blocksTab);
+        await driver.sleep(100);
         await clickText('add', scope.blocksTab);
+        await driver.sleep(100);
         await clickText('list1', scope.blocksTab);
         await findByText('thing thing thing', scope.reportedValue); // Tooltip with result
         await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
@@ -198,8 +203,8 @@ describe('Working with the blocks', () => {
 
         // Rename the costume
         await clickText('Costumes');
-        await clickText('costume2', scope.costumesTab);
-        const el = await findByXpath("//input[@value='costume2']");
+        await clickText('costume1', scope.costumesTab);
+        const el = await findByXpath("//input[@value='costume1']");
         await el.sendKeys('newname');
         await el.sendKeys(Key.ENTER);
         // wait until the updated costume appears in costume item list panel
@@ -217,8 +222,8 @@ describe('Working with the blocks', () => {
 
         // Rename the costume
         await clickText('Costumes');
-        await clickText('costume2', scope.costumesTab);
-        const el = await findByXpath("//input[@value='costume2']");
+        await clickText('costume1', scope.costumesTab);
+        const el = await findByXpath("//input[@value='costume1']");
         await el.sendKeys('<NewCostume>');
         await el.sendKeys(Key.ENTER);
         // wait until the updated costume appears in costume item list panel
@@ -236,9 +241,9 @@ describe('Working with the blocks', () => {
     test('Adding costumes DOES update the default costume name in the toolbox', async () => {
         await loadUri(uri);
 
-        // By default, costume2 is in the costume tab
+        // By default, costume1 is in the costume tab
         await clickBlocksCategory('Looks');
-        await clickText('costume2', scope.blocksTab);
+        await clickText('costume1', scope.blocksTab);
 
         // Also check that adding a new costume does update the list
         await clickText('Costumes');
@@ -249,11 +254,11 @@ describe('Working with the blocks', () => {
         await clickXpath('//button[@aria-label="Paint"]');
         // wait until the new costume appears in costume item list panel
         await findByXpath("//div[contains(@class,'sprite-selector-item_is-selected_')]" +
-            "//div[contains(text(), 'costume3')]");
-        await clickText('costume3', scope.costumesTab);
+            "//div[contains(text(), 'costume2')]");
+        await clickText('costume2', scope.costumesTab);
         // Check that the menu has been updated
         await clickText('Code');
-        await clickText('costume3', scope.blocksTab);
+        await clickText('costume2', scope.blocksTab);
     });
 
     // Skipped because it was flakey on travis, but seems to run locally ok
@@ -313,6 +318,7 @@ describe('Working with the blocks', () => {
         // check reported value 1
         await clickText(myVariable, scope.blocksTab);
         await findByText('1', scope.reportedValue);
+        await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
         // change language
         await clickXpath(SETTINGS_MENU_XPATH);
@@ -325,6 +331,7 @@ describe('Working with the blocks', () => {
         // make sure "my variable" is still 1
         await clickText(myVariable);
         await findByText('1', scope.reportedValue);
+        await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
         // change step from 1 to 10
         await clickText('1', changeVariableByScope);
