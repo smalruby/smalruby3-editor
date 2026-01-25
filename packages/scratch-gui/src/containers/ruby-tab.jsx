@@ -69,6 +69,12 @@ class RubyTab extends React.Component {
             }
         }
 
+        if (this.props.rubyCode.code !== prevProps.rubyCode.code && !this.props.rubyCode.modified) {
+            if (this.editorRef && this.monacoRef) {
+                this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
+            }
+        }
+
         if (this.props.rubyCode.errors !== prevProps.rubyCode.errors) {
             if (this.editorRef && this.monacoRef) {
                 const markers = this.props.rubyCode.errors.map(err => ({

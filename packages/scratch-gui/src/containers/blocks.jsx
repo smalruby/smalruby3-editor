@@ -481,20 +481,31 @@ class Blocks extends React.Component {
                                 const blockXY = block.getRelativeToSurfaceXY();
                                 const blockHW = block.getHeightWidth();
                                 const rtl = this.workspace.RTL;
-                                if (rtl) {
-                                    comment.setAnchorLocation(
-                                        blockXY.x - (blockHW.width / 2),
-                                        blockXY.y + (blockHW.height / 2)
-                                    );
-                                } else {
-                                    comment.setAnchorLocation(
-                                        blockXY.x + (blockHW.width / 2),
-                                        blockXY.y + (blockHW.height / 2)
-                                    );
+                                const x = rtl ?
+                                    blockXY.x - blockHW.width - 20 - comment.getWidth() :
+                                    blockXY.x + blockHW.width + 20;
+                                const y = blockXY.y;
+                                comment.moveTo(x, y);
+
+                                const targetComments = this.props.vm.editingTarget.comments;
+                                if (targetComments && targetComments[comment.id]) {
+                                    targetComments[comment.id].x = x;
+                                    targetComments[comment.id].y = y;
                                 }
                             }
                         }
                     });
+
+                    this.workspace.getTopBlocks(false).forEach(wsTopBlock => {
+                        const topBlock = blocks.getBlock(wsTopBlock.id);
+                        if (topBlock) {
+                            const xy = wsTopBlock.getRelativeToSurfaceXY();
+                            topBlock.x = xy.x;
+                            topBlock.y = xy.y;
+                        }
+                    });
+
+                    this.updateToolbox();
                 }
             }
         } catch (error) {
