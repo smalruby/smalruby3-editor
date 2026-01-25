@@ -18,6 +18,20 @@ const AlertLevels = {
 
 const alerts = [
     {
+        alertId: 'convertRubyToBlocksError',
+        clearList: ['convertRubyToBlocksError'],
+        closeButton: true,
+        content: (
+            <FormattedMessage
+                defaultMessage="Could not convert Ruby to Code. Please fix Ruby!"
+                description="Message indicating that project could not be converted Ruby to Blocks"
+                id="gui.smalruby3.alerts.convertRubyToBlocksError"
+            />
+        ),
+        level: AlertLevels.WARN,
+        maxDisplaySecs: 5
+    },
+    {
         alertId: 'createSuccess',
         alertType: AlertTypes.STANDARD,
         clearList: ['createSuccess', 'creating', 'createCopySuccess', 'creatingCopy',
