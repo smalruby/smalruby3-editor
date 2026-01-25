@@ -121,6 +121,7 @@ describe('Working with the blocks', () => {
         await clickText('add', scope.blocksTab);
         await clickText('list1', scope.blocksTab);
         await findByText('thing thing thing', scope.reportedValue); // Tooltip with result
+        await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
         // Interact with the monitor, adding an item
         await findByText('list1', scope.monitors); // Just to be sure it is there
@@ -133,6 +134,7 @@ describe('Working with the blocks', () => {
         // Check that the list value has been propagated.
         await clickText('list1', scope.blocksTab);
         await findByText('thing thing thing thing2', scope.reportedValue); // Tooltip with result
+        await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
         // Hiding the monitor via context menu should work
         await rightClickText('list1', scope.monitors);
