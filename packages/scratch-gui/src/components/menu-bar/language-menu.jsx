@@ -47,6 +47,7 @@ class LanguageMenu extends React.PureComponent {
         return (
             <MenuItem
                 expanded={this.props.menuOpen}
+                closeOnClick={false}
             >
                 <div
                     className={styles.option}

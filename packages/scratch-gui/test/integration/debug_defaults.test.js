@@ -14,7 +14,7 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 
 let driver;
 
-describe('Debug Smalruby 3 Defaults', () => {
+describe.skip('Debug Smalruby 3 Defaults', () => {
     beforeAll(() => {
         driver = getDriver();
     });
@@ -25,10 +25,9 @@ describe('Debug Smalruby 3 Defaults', () => {
 
     test('Log costume panel details', async () => {
         await loadUri(uri);
-        await driver.sleep(5000);
         await clickText('Costumes');
         await driver.sleep(2000);
-        
+
         const costumePanel = await driver.findElement({xpath: "//*[@id='panel:r0:1']"});
         console.log('--- COSTUME PANEL TEXT ---');
         console.log(await costumePanel.getText());

@@ -29,7 +29,7 @@ describe('Loading scratch gui', () => {
     describe('Loading projects by ID', () => {
 
         test('Nonexistent projects show error screen', async () => {
-            await loadUri(`${uri}#999999999999999999999`);
+            await loadUri(`${uri}#999999999999999999999`, true);
             await clickText('Oops! Something went wrong.');
         });
 

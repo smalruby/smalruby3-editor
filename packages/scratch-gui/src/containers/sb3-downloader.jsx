@@ -1,9 +1,14 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {injectIntl} from 'react-intl';
+import intlShape from '../lib/intlShape.js';
 import {connect} from 'react-redux';
 import {projectTitleInitialState} from '../reducers/project-title';
 import downloadBlob from '../lib/download-blob';
+
+import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
+
 /**
  * Project saver component passes a downloadProject function to its child.
  * It expects this child to be a function with the signature
@@ -26,11 +31,17 @@ class SB3Downloader extends React.Component {
         ]);
     }
     downloadProject () {
-        this.props.saveProjectSb3().then(content => {
-            if (this.props.onSaveFinished) {
-                this.props.onSaveFinished();
-            }
-            downloadBlob(this.props.projectFilename, content);
+        const converter = this.props.targetCodeToBlocks(this.props.intl);
+        if (!converter.result) {
+            return;
+        }
+        converter.apply().then(() => {
+            this.props.saveProjectSb3().then(content => {
+                if (this.props.onSaveFinished) {
+                    this.props.onSaveFinished();
+                }
+                downloadBlob(this.props.projectFilename, content);
+            });
         });
     }
     render () {
@@ -55,9 +66,11 @@ const getProjectFilename = (curTitle, defaultTitle) => {
 SB3Downloader.propTypes = {
     children: PropTypes.func,
     className: PropTypes.string,
+    intl: intlShape.isRequired,
     onSaveFinished: PropTypes.func,
     projectFilename: PropTypes.string,
-    saveProjectSb3: PropTypes.func
+    saveProjectSb3: PropTypes.func,
+    targetCodeToBlocks: PropTypes.func
 };
 SB3Downloader.defaultProps = {
     className: ''
@@ -68,7 +81,7 @@ const mapStateToProps = state => ({
     projectFilename: getProjectFilename(state.scratchGui.projectTitle, projectTitleInitialState)
 });
 
-export default connect(
+export default RubyToBlocksConverterHOC(injectIntl(connect(
     mapStateToProps,
     () => ({}) // omit dispatch prop
-)(SB3Downloader);
+)(SB3Downloader)));
