@@ -8,9 +8,7 @@ const {
     findByText,
     findByXpath,
     getDriver,
-    loadUri,
-    waitForLoadingFinished,
-    notExistsByXpath
+    loadUri
 } = new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/index.html');

@@ -281,6 +281,16 @@ class SeleniumHelper {
      * @returns {Promise} A promise that resolves when the URI is loaded.
      */
     async loadUri (uri) {
+        const test = 'test=1';
+        if (uri.indexOf('test=') < 0) {
+            if (uri.indexOf('?') >= 0) {
+                uri = uri.replace('?', `?${test}&`);
+            } else if (uri.indexOf('#') >= 0) {
+                uri = uri.replace('#', `?${test}#`);
+            } else {
+                uri = `${uri}?${test}`;
+            }
+        }
         const locale = 'locale=en';
         if (uri.indexOf('locale=') < 0) {
             if (uri.indexOf('?') >= 0) {
