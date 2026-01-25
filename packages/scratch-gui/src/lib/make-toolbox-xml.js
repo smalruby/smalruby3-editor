@@ -1,14 +1,10 @@
 import ScratchBlocks from 'scratch-blocks';
 import {defaultColors} from './settings/color-mode';
-import {CATEGORY_BLOCKS, parseHexFormatToSelectedBlocks} from './block-utils';
+import {parseHexFormatToSelectedBlocks} from './block-utils';
 
 const categorySeparator = '<sep gap="36"/>';
 
 const blockSeparator = '<sep gap="36"/>'; // At default scale, about 28px
-
-// Calculate total number of default blocks once at module load time
-// Add 2 for variables_ and myBlocks_ which are not in CATEGORY_BLOCKS
-const TOTAL_DEFAULT_BLOCKS = Object.values(CATEGORY_BLOCKS).reduce((total, blocks) => total + blocks.length, 0) + 2;
 
 const motion = function (isInitialSetup, isStage, targetId, colors) {
     const stageSelected = ScratchBlocks.ScratchMsgs.translate(
@@ -895,12 +891,10 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
  * @param {?string} soundName -  The name of the default selected sound dropdown.
  * @param {?object} colors - The colors for the color mode.
  * @param {?string} onlyBlocks - The only_blocks URL parameter for filtering blocks.
- * @param {boolean} isOnlyBlocksSpecified - Whether the only_blocks parameter was explicitly provided.
  * @returns {string} - a ScratchBlocks-style XML document for the contents of the toolbox.
  */
 const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categoriesXML = [],
-    costumeName = '', backdropName = '', soundName = '', colors = defaultColors, onlyBlocks = null,
-    isOnlyBlocksSpecified = false) {
+    costumeName = '', backdropName = '', soundName = '', colors = defaultColors, onlyBlocks = null) {
     isStage = isInitialSetup || isStage;
     const gap = [categorySeparator];
 
@@ -936,11 +930,8 @@ const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categ
     const variablesXML = moveCategory('data') || variables(isInitialSetup, isStage, targetId, colors.data);
     const myBlocksXML = moveCategory('procedures') || myBlocks(isInitialSetup, isStage, targetId, colors.more);
 
-    // Check if this is the default all blocks state (no filtering intended)
-    const isDefaultAllBlocks = allowedPatterns.length >= TOTAL_DEFAULT_BLOCKS;
-
-    // Apply filtering to core categories if only_blocks parameter is provided and not default all blocks
-    if (isOnlyBlocksSpecified && !isDefaultAllBlocks) {
+    // Apply filtering to core categories if only_blocks parameter is provided
+    if (onlyBlocks !== null) {
         // Special case: when allowedPatterns is empty, hide all blocks
         if (allowedPatterns.length === 0) {
             motionXML = filterAllBlocks(motionXML);

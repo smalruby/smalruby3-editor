@@ -2,7 +2,9 @@ import bindAll from 'lodash.bindall';
 import debounce from 'lodash.debounce';
 import defaultsDeep from 'lodash.defaultsdeep';
 import makeToolboxXML from '../lib/make-toolbox-xml';
+import {CATEGORY_BLOCKS} from '../lib/block-utils';
 import PropTypes from 'prop-types';
+import queryString from 'query-string';
 import React from 'react';
 import VMScratchBlocks from '../lib/blocks';
 import VM from '@smalruby/scratch-vm';
@@ -46,6 +48,8 @@ const addFunctionListener = (object, property, callback) => {
         return result;
     };
 };
+
+const TOTAL_DEFAULT_BLOCKS = Object.values(CATEGORY_BLOCKS).reduce((total, blocks) => total + blocks.length, 0);
 
 const DroppableBlocks = DropAreaHOC([
     DragConstants.BACKPACK_CODE
@@ -164,13 +168,22 @@ class Blocks extends React.Component {
             this.props.customProceduresVisible !== nextProps.customProceduresVisible ||
             this.props.locale !== nextProps.locale ||
             this.props.anyModalVisible !== nextProps.anyModalVisible ||
-            this.props.stageSize !== nextProps.stageSize
+            this.props.stageSize !== nextProps.stageSize ||
+            this.props.selectedBlocks !== nextProps.selectedBlocks
         );
     }
     componentDidUpdate (prevProps) {
         // If any modals are open, call hideChaff to close z-indexed field editors
         if (this.props.anyModalVisible && !prevProps.anyModalVisible) {
             this.ScratchBlocks.hideChaff();
+        }
+
+        // If selectedBlocks changed, update toolbox
+        if (this.props.selectedBlocks !== prevProps.selectedBlocks) {
+            const toolboxXML = this.getToolboxXML();
+            if (toolboxXML) {
+                this.props.updateToolboxState(toolboxXML);
+            }
         }
 
         // Only rerender the toolbox when the blocks are visible and the xml is
@@ -353,6 +366,29 @@ class Blocks extends React.Component {
     onVisualReport (data) {
         this.workspace.reportValue(data.id, data.value);
     }
+
+    // Extract only_blocks setting from Stage comments
+    extractOnlyBlocksFromStageComments () {
+        try {
+            const stage = this.props.vm.runtime.getTargetForStage();
+            if (!stage || !stage.comments) return null;
+
+            // Search through Stage comments for only_blocks pattern
+            for (const commentId in stage.comments) {
+                const comment = stage.comments[commentId];
+                if (comment && comment.text) {
+                    const match = comment.text.match(/only_blocks=([^\s\n]+)/);
+                    if (match) {
+                        return match[1];
+                    }
+                }
+            }
+            return null;
+        } catch (error) {
+            return null;
+        }
+    }
+
     getToolboxXML () {
         // Use try/catch because this requires digging pretty deep into the VM
         // Code inside intentionally ignores several error situations (no stage, etc.)
@@ -369,11 +405,36 @@ class Blocks extends React.Component {
                 this.props.vm.runtime.getBlocksXML(target),
                 this.props.colorMode
             );
+
+            // Check for only_blocks setting in Stage comments first (highest priority)
+            let onlyBlocks = this.extractOnlyBlocksFromStageComments();
+
+            // If no Stage comment setting, check URL parameter
+            if (!onlyBlocks) {
+                const queryParams = queryString.parse(window.location.search);
+                onlyBlocks = queryParams.only_blocks;
+            }
+
+            // If no URL parameter, use GUI settings to generate only_blocks equivalent
+            if (!onlyBlocks && this.props.selectedBlocks) {
+                // Convert selectedBlocks to onlyBlocks format (individual block IDs)
+                const selectedBlockIds = [];
+                Object.values(this.props.selectedBlocks).forEach(categoryBlocks => {
+                    selectedBlockIds.push(...categoryBlocks);
+                });
+
+                // If not all blocks are selected, generate onlyBlocks string
+                if (selectedBlockIds.length < TOTAL_DEFAULT_BLOCKS) {
+                    onlyBlocks = selectedBlockIds.join(',');
+                }
+            }
+
             return makeToolboxXML(false, target.isStage, target.id, dynamicBlocksXML,
                 targetCostumes[targetCostumes.length - 1].name,
                 stageCostumes[stageCostumes.length - 1].name,
                 targetSounds.length > 0 ? targetSounds[targetSounds.length - 1].name : '',
-                getColorsForMode(this.props.colorMode)
+                getColorsForMode(this.props.colorMode),
+                onlyBlocks
             );
         } catch {
             return null;
@@ -603,27 +664,27 @@ class Blocks extends React.Component {
     }
     render () {
         const {
-            anyModalVisible,
-            canUseCloud,
+            anyModalVisible: _anyModalVisible,
+            canUseCloud: _canUseCloud,
             customProceduresVisible,
             extensionLibraryVisible,
             options,
-            stageSize,
+            stageSize: _stageSize,
             vm,
-            isRtl,
-            isVisible,
-            onActivateColorPicker,
-            onOpenConnectionModal,
-            onOpenSoundRecorder,
-            onSetScratchBlocks,
-            updateToolboxState,
-            onActivateCustomProcedures,
+            isRtl: _isRtl,
+            isVisible: _isVisible,
+            onActivateColorPicker: _onActivateColorPicker,
+            onOpenConnectionModal: _onOpenConnectionModal,
+            onOpenSoundRecorder: _onOpenSoundRecorder,
+            onSetScratchBlocks: _onSetScratchBlocks,
+            updateToolboxState: _updateToolboxState,
+            onActivateCustomProcedures: _onActivateCustomProcedures,
             onRequestCloseExtensionLibrary,
-            onRequestCloseCustomProcedures,
-            toolboxXML,
-            updateMetrics: updateMetricsProp,
-            useCatBlocks,
-            workspaceMetrics,
+            onRequestCloseCustomProcedures: _onRequestCloseCustomProcedures,
+            toolboxXML: _toolboxXML,
+            updateMetrics: _updateMetricsProp,
+            useCatBlocks: _useCatBlocks,
+            workspaceMetrics: _workspaceMetrics,
             ...props
         } = this.props;
 
@@ -671,6 +732,7 @@ class Blocks extends React.Component {
 }
 
 Blocks.propTypes = {
+    selectedBlocks: PropTypes.object,
     anyModalVisible: PropTypes.bool,
     canUseCloud: PropTypes.bool,
     customProceduresVisible: PropTypes.bool,
@@ -744,6 +806,7 @@ const mapStateToProps = state => ({
     isRtl: state.locales.isRtl,
     locale: state.locales.locale,
     messages: state.locales.messages,
+    selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
     customProceduresVisible: state.scratchGui.customProcedures.active,
     workspaceMetrics: state.scratchGui.workspaceMetrics,
