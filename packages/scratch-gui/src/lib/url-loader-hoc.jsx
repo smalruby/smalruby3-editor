@@ -31,6 +31,7 @@ import {
 import {
     closeFileMenu
 } from '../reducers/menus';
+import {GUIStoragePropType} from '../gui-config';
 
 const messages = defineMessages({
     loadError: {
@@ -158,10 +159,12 @@ const URLLoaderHOC = function (WrappedComponent) {
                     const projectToken = data.project_token;
 
                     // Now load the project using storage system (like project-fetcher-hoc.jsx)
-                    const storage = this.props.vm.runtime.storage;
-                    storage.setProjectToken(projectToken);
+                    const storage = this.props.storage;
+                    storage.setProjectToken?.(projectToken);
 
-                    return storage.load(storage.AssetType.Project, projectId, storage.DataFormat.JSON);
+                    return storage.scratchStorage.load(
+                        storage.scratchStorage.AssetType.Project, projectId, storage.scratchStorage.DataFormat.JSON
+                    );
                 })
                 .then(projectAsset => {
                     if (projectAsset) {
@@ -250,6 +253,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         projectChanged: PropTypes.bool,
         requestProjectUpload: PropTypes.func,
         setProjectId: PropTypes.func,
+        storage: GUIStoragePropType,
         userOwnsProject: PropTypes.bool,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
@@ -267,6 +271,7 @@ const URLLoaderHOC = function (WrappedComponent) {
             isShowingWithoutId: getIsShowingWithoutId(loadingState),
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
+            storage: state.scratchGui.config.storage,
             userOwnsProject: ownProps.authorUsername && user &&
                 (ownProps.authorUsername === user.username),
             vm: state.scratchGui.vm
