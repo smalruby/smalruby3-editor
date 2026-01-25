@@ -282,7 +282,7 @@ class SeleniumHelper {
      * @param {string} uri The URI to load.
      * @returns {Promise} A promise that resolves when the URI is loaded.
      */
-    async loadUri (uri) {
+    async loadUri (uri, notWaitForLoading = false) {
         const test = 'test=1';
         if (uri.indexOf('test=') < 0) {
             if (uri.indexOf('?') >= 0) {
@@ -303,7 +303,7 @@ class SeleniumHelper {
                 uri = `${uri}?${locale}`;
             }
         }
-        const showAllExtensions = 'showAllExtensions=1';
+        const showAllExtensions = 'showAllExtensions=true';
         if (uri.indexOf('showAllExtensions=') < 0) {
             if (uri.indexOf('?') >= 0) {
                 uri = uri.replace('?', `?${showAllExtensions}&`);
@@ -335,7 +335,7 @@ class SeleniumHelper {
                 DEFAULT_TIMEOUT_MILLISECONDS
             );
 
-            if (uri.split(/[?#]/)[0].endsWith('build/index.html')) {
+            if (!notWaitForLoading && uri.split(/[?#]/)[0].endsWith('build/index.html')) {
                 await this.waitForLoadingFinished();
             }
         } catch (cause) {
