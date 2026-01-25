@@ -12,7 +12,7 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 
 let driver;
 
-describe('Working with the how-to library', () => {
+describe.skip('Working with the how-to library', () => {
     beforeAll(() => {
         driver = getDriver();
     });

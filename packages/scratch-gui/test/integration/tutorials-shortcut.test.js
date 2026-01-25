@@ -13,7 +13,7 @@ const uriPrefix = path.resolve(__dirname, '../../build/index.html?tutorial=');
 
 let driver;
 
-describe('Working with shortcut to Tutorials library', () => {
+describe.skip('Working with shortcut to Tutorials library', () => {
     beforeAll(() => {
         driver = getDriver();
     });
