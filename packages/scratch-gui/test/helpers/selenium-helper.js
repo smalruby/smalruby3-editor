@@ -519,9 +519,18 @@ class SeleniumHelper {
     }
 
     notExistsByXpath (xpath, timeoutMessage = `notExistsByXpath timed out for path: ${xpath}`) {
-        return this.driver.wait(() => this.driver.findElements(By.xpath(xpath))
-            .then(elements => elements.length === 0 || elements.every(i => !i.isDisplayed())),
-        DEFAULT_TIMEOUT_MILLISECONDS, timeoutMessage);
+        return this.driver.wait(async () => {
+            const elements = await this.driver.findElements(By.xpath(xpath));
+            if (elements.length === 0) return true;
+            const displays = await Promise.all(elements.map(async i => {
+                try {
+                    return await i.isDisplayed();
+                } catch (e) {
+                    return false;
+                }
+            }));
+            return displays.every(d => !d);
+        }, DEFAULT_TIMEOUT_MILLISECONDS, timeoutMessage);
     }
 
     /**
