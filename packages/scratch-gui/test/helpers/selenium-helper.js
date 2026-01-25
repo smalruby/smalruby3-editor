@@ -7,7 +7,6 @@ import path from 'path';
 
 import bindAll from 'lodash.bindall';
 import webdriver from 'selenium-webdriver';
-import chrome from 'selenium-webdriver/chrome';
 
 import packageJson from '../../package.json';
 
@@ -176,16 +175,11 @@ class SeleniumHelper {
      * @returns {webdriver.ThenableWebDriver} The new driver.
      */
     getDriver () {
-        const options = new chrome.Options();
+        const chromeCapabilities = webdriver.Capabilities.chrome();
         const args = [];
         if (USE_HEADLESS) {
             args.push('--headless');
         }
-
-        args.push('--no-sandbox');
-        args.push('--disable-dev-shm-usage');
-        args.push('--use-gl=swiftshader');
-        args.push('--ignore-gpu-blocklist');
 
         // Stub getUserMedia to always not allow access
         args.push('--use-fake-ui-for-media-stream=deny');
@@ -194,15 +188,13 @@ class SeleniumHelper {
         // This is especially important on Windows, where Selenium directs JS console messages to stdout
         args.push('--autoplay-policy=no-user-gesture-required');
 
-        options.addArguments(...args);
-
-        const loggingPrefs = new webdriver.logging.Preferences();
-        loggingPrefs.setLevel(webdriver.logging.Type.PERFORMANCE, webdriver.logging.Level.ALL);
-        options.setLoggingPrefs(loggingPrefs);
-
+        chromeCapabilities.set('chromeOptions', {args});
+        chromeCapabilities.setLoggingPrefs({
+            performance: 'ALL'
+        });
         this.driver = new webdriver.Builder()
             .forBrowser('chrome')
-            .setChromeOptions(options)
+            .withCapabilities(chromeCapabilities)
             .build();
         return this.driver;
     }
