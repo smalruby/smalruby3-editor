@@ -74,6 +74,30 @@
     border-left: 1px solid $ui-black-transparent;
 }
 
+.blocks :global(.blocklyFlyout:hover) {
+    overflow: visible;
+    clip-path: inset(0 -100vw 0 0);
+    -webkit-clip-path: inset(0 -100vw 0 0);
+}
+
+[dir="rtl"] .blocks :global(.blocklyFlyout:hover) {
+    clip-path: inset(0 0 0 -100vw);
+    -webkit-clip-path: inset(0 0 0 -100vw);
+}
+
+.blocks :global(.blocklyFlyout:hover .blocklyWorkspace) {
+    clip-path: none;
+    -webkit-clip-path: none;
+}
+
+.blocks :global(.blocklyFlyout:hover .blocklyScrollbarBackground:hover) {
+    opacity: 0.4;
+}
+
+.blocks :global(.blocklyFlyout .blocklyFlyoutScrollbar) {
+    margin-left: 4px;
+}
+
 
 .blocks :global(.blocklyBlockDragSurface) {
     /*
