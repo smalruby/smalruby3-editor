@@ -7,6 +7,7 @@ import path from 'path';
 
 import bindAll from 'lodash.bindall';
 import webdriver from 'selenium-webdriver';
+import chrome from 'selenium-webdriver/chrome';
 
 import packageJson from '../../package.json';
 
@@ -176,7 +177,7 @@ class SeleniumHelper {
      * @returns {webdriver.ThenableWebDriver} The new driver.
      */
     getDriver () {
-        const chromeCapabilities = webdriver.Capabilities.chrome();
+        const options = new chrome.Options();
         const args = [];
         if (USE_HEADLESS) {
             args.push('--headless=new');
@@ -197,13 +198,15 @@ class SeleniumHelper {
         // This is especially important on Windows, where Selenium directs JS console messages to stdout
         args.push('--autoplay-policy=no-user-gesture-required');
 
-        chromeCapabilities.set('chromeOptions', {args});
-        chromeCapabilities.setLoggingPrefs({
-            performance: 'ALL'
-        });
+        options.addArguments(...args);
+
+        const loggingPrefs = new webdriver.logging.Preferences();
+        loggingPrefs.setLevel(webdriver.logging.Type.PERFORMANCE, webdriver.logging.Level.ALL);
+        options.setLoggingPrefs(loggingPrefs);
+
         this.driver = new webdriver.Builder()
             .forBrowser('chrome')
-            .withCapabilities(chromeCapabilities)
+            .setChromeOptions(options)
             .build();
         return this.driver;
     }
@@ -516,9 +519,18 @@ class SeleniumHelper {
     }
 
     notExistsByXpath (xpath, timeoutMessage = `notExistsByXpath timed out for path: ${xpath}`) {
-        return this.driver.wait(() => this.driver.findElements(By.xpath(xpath))
-            .then(elements => elements.length === 0 || elements.every(i => !i.isDisplayed())),
-        DEFAULT_TIMEOUT_MILLISECONDS, timeoutMessage);
+        return this.driver.wait(async () => {
+            const elements = await this.driver.findElements(By.xpath(xpath));
+            if (elements.length === 0) return true;
+            const displays = await Promise.all(elements.map(async i => {
+                try {
+                    return await i.isDisplayed();
+                } catch (e) {
+                    return false;
+                }
+            }));
+            return displays.every(d => !d);
+        }, DEFAULT_TIMEOUT_MILLISECONDS, timeoutMessage);
     }
 
     /**
