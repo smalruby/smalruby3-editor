@@ -121,7 +121,7 @@ const baseConfig = new ScratchWebpackConfigBuilder(
                 force: true
             },
             {
-                context: '../../node_modules/@scratch/scratch-vm/dist/web',
+                context: '../../node_modules/@smalruby/scratch-vm/dist/web',
                 from: 'extension-worker.{js,js.map}',
                 noErrorOnMissing: true
             },

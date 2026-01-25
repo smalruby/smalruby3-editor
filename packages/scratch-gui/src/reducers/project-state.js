@@ -435,8 +435,14 @@ const onLoadedProject = (loadingState, canSave, success) => {
         }
         // failed to load default project; show error
         return {type: START_ERROR};
+    case LoadingState.SHOWING_WITHOUT_ID:
+    case LoadingState.SHOWING_WITH_ID:
+        // Project is already showing; this can happen when onLoadedProject is called
+        // after the project has already finished loading. Just return to showing state.
+        return {type: RETURN_TO_SHOWING};
     default:
-        return;
+        // For states like SHOWING_WITH_ID, return a no-op action
+        return {type: RETURN_TO_SHOWING};
     }
 };
 

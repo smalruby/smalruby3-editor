@@ -5,7 +5,7 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {projectTitleInitialState} from '../reducers/project-title';
 import RubyGenerator from '../lib/ruby-generator';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 import {rubyCodeShape} from '../reducers/ruby-code';
 import {setKoshienFileHandle, clearKoshienFileHandle} from '../reducers/koshien-file';
 

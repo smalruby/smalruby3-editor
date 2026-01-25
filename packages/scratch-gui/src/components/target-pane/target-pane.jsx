@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 import {legacyConfig} from '../../legacy-config';
 import SpriteLibrary from '../../containers/sprite-library.jsx';
 import SpriteSelectorComponent from '../sprite-selector/sprite-selector.jsx';

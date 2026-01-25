@@ -1,5 +1,5 @@
 {
-  "name": "@scratch/task-herder",
+  "name": "@smalruby/task-herder",
   "version": "12.3.1",
   "description": "An asynchronous task runner with configurable rate limiting / throttling and concurrency control.",
   "keywords": [

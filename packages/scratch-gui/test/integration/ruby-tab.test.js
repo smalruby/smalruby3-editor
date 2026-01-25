@@ -17,6 +17,8 @@ const {
     getDriver,
     getLogs,
     loadUri,
+    waitForLoadingFinished,
+    notExistsByXpath,
     rightClickText,
     scope
     /* eslint-enable no-unused-vars */
@@ -70,8 +72,8 @@ describe('convert Code from Ruby', () => {
         test('clicked Code', async () => {
             await clickText('Code', '*[@role="tab"]');
 
-            await findByXpath('//li[contains(@id, "react-tabs-") and @aria-selected="false"]/span[text()="Code"]');
-            await findByXpath('//li[contains(@id, "react-tabs-") and @aria-selected="true"]/span[text()="Ruby"]');
+            await findByXpath('//li[@role="tab" and @aria-selected="false"]/span[text()="Code"]');
+            await findByXpath('//li[@role="tab" and @aria-selected="true"]/span[text()="Ruby"]');
             await findByXpath(
                 '//*[contains(@class, "alert_alert-message")]/' +
                     'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]'
@@ -136,8 +138,8 @@ describe('convert Code from Ruby', () => {
             expect(await currentRubyProgram()).toEqual('move(10)\n');
 
             await clickText('Code', '*[@role="tab"]');
-            await findByXpath('//li[contains(@id, "react-tabs-") and @aria-selected="true"]/span[text()="Code"]');
-            await findByXpath('//li[contains(@id, "react-tabs-") and @aria-selected="false"]/span[text()="Ruby"]');
+            await findByXpath('//li[@role="tab" and @aria-selected="true"]/span[text()="Code"]');
+            await findByXpath('//li[@role="tab" and @aria-selected="false"]/span[text()="Ruby"]');
         });
     });
 });

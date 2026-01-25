@@ -38,6 +38,21 @@ import throttle from 'redux-throttle';
 
 import {GUIConfig} from '../gui-config';
 
+const getIsTest = () => {
+    if (typeof window === 'undefined') return false;
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('test') === 'true' || urlParams.get('test') === '1';
+};
+
+const testInitialState = {
+    isTest: getIsTest()
+};
+
+const testReducer = function (state) {
+    if (typeof state === 'undefined') state = testInitialState;
+    return state;
+};
+
 const guiMiddleware = compose(applyMiddleware(throttle(300, {leading: true, trailing: true})));
 
 const buildInitialState = (config: GUIConfig) => ({
@@ -76,7 +91,8 @@ const buildInitialState = (config: GUIConfig) => ({
     meshV2: meshV2InitialState,
     googleDriveFile: googleDriveFileInitialState,
     koshienFile: koshienFileInitialState,
-    rubyCode: rubyCodeInitialState
+    rubyCode: rubyCodeInitialState,
+    test: testInitialState
 });
 
 const initPlayer = function (currentState) {
@@ -172,7 +188,8 @@ const guiReducer = combineReducers({
     meshV2: meshV2Reducer,
     googleDriveFile: googleDriveFileReducer,
     koshienFile: koshienFileReducer,
-    rubyCode: rubyCodeReducer
+    rubyCode: rubyCodeReducer,
+    test: testReducer
 });
 
 export {

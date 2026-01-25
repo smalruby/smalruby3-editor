@@ -83,7 +83,9 @@ const SBFileUploaderHOC = function (WrappedComponent) {
             this.inputElement.onchange = this.handleChange; // connects to step 3
             document.body.appendChild(this.inputElement);
             // simulate a click to open file chooser dialog
-            this.inputElement.click();
+            if (!this.props.isTest) {
+                this.inputElement.click();
+            }
         }
         // step 3: user has picked a file using the file chooser dialog.
         // We don't actually load the file here, we only decide whether to do so.
@@ -210,6 +212,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         intl: intlShape.isRequired,
         isLoadingUpload: PropTypes.bool,
         isShowingWithoutId: PropTypes.bool,
+        isTest: PropTypes.bool,
         loadingState: PropTypes.oneOf(LoadingStates),
         onLoadingFinished: PropTypes.func,
         onLoadingStarted: PropTypes.func,
@@ -227,6 +230,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         return {
             isLoadingUpload: getIsLoadingUpload(loadingState),
             isShowingWithoutId: getIsShowingWithoutId(loadingState),
+            isTest: state.scratchGui.test.isTest,
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
             userOwnsProject: ownProps.userOwnsProject ?? (

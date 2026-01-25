@@ -3,7 +3,7 @@ import React from 'react';
 import bindAll from 'lodash.bindall';
 import {defineMessages, injectIntl} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 
 import AssetPanel from '../components/asset-panel/asset-panel.jsx';
 import soundIcon from '../components/asset-panel/icon--sound.svg';

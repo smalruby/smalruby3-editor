@@ -18,12 +18,14 @@ class MenuItem extends React.Component {
         const {
             children,
             className,
+            closeOnClick,
             onClick
         } = this.props;
         const clickAction = onClick ? onClick : this.navigateToHref;
         return (
             <MenuItemComponent
                 className={className}
+                closeOnClick={closeOnClick}
                 onClick={clickAction}
             >
                 {children}
@@ -35,6 +37,7 @@ class MenuItem extends React.Component {
 MenuItem.propTypes = {
     children: PropTypes.node,
     className: PropTypes.string,
+    closeOnClick: PropTypes.bool,
     // can take an onClick prop, or take an href and build an onClick handler
     href: PropTypes.string,
     onClick: PropTypes.func

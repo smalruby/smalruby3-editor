@@ -2,7 +2,7 @@ import {FormattedMessage, defineMessages, useIntl} from 'react-intl';
 import PropTypes from 'prop-types';
 import React, {useCallback} from 'react';
 import {connect} from 'react-redux';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 
 import Box from '../box/box.jsx';
 import Button from '../button/button.jsx';

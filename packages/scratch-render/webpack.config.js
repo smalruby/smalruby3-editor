@@ -12,6 +12,9 @@ const baseConfig = new ScratchWebpackConfigBuilder({
         resolve: {
             fallback: {
                 Buffer: require.resolve('buffer/')
+            },
+            alias: {
+                '@smalruby/scratch-svg-renderer': path.resolve(__dirname, '../scratch-svg-renderer/src/index.js')
             }
         }
     });
@@ -72,7 +75,7 @@ const nodeConfig = baseConfig.clone()
             '!ify-loader!grapheme-breaker': 'grapheme-breaker',
             '!ify-loader!linebreak': 'linebreak',
             'hull.js': true,
-            'scratch-svg-renderer': true,
+            '@smalruby/scratch-svg-renderer': true,
             'twgl.js': true,
             'xml-escape': true
         }

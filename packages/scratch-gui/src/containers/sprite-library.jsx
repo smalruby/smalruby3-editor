@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {injectIntl, defineMessages} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 
 import spriteLibraryContent from '../lib/libraries/sprites.json';
 import randomizeSpritePosition from '../lib/randomize-sprite-position';

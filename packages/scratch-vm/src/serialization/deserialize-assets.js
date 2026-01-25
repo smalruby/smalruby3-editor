@@ -1,6 +1,6 @@
 const JSZip = require('jszip');
 const log = require('../util/log');
-const {sanitizeSvg} = require('@scratch/scratch-svg-renderer');
+const {sanitizeSvg} = require('@smalruby/scratch-svg-renderer');
 
 /**
  * Deserializes sound from file into storage cache so that it can

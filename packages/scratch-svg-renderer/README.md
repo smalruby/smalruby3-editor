@@ -27,7 +27,7 @@ npm install
 ## How to include in a Node.js App
 
 ```js
-import SvgRenderer from '@scratch/scratch-svg-renderer';
+import SvgRenderer from '@smalruby/scratch-svg-renderer';
 
 const svgRenderer = new SvgRenderer();
 
