@@ -1,6 +1,9 @@
 const path = require('path');
 const webpack = require('webpack');
 
+// Load environment variables from monorepo root
+require('dotenv').config({path: path.resolve(__dirname, '../../.env')});
+
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const ScratchWebpackConfigBuilder = require('scratch-webpack-configuration');
