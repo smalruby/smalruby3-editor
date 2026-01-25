@@ -8,6 +8,7 @@ const {
     getDriver,
     getLogs,
     loadUri,
+    waitForLoadingFinished,
     notExistsByXpath,
     scope,
     textExists
@@ -28,7 +29,6 @@ describe('only_blocks URL parameter filtering', () => {
 
     test('Shows all blocks when only_blocks parameter is not specified', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
         await clickText('Code');
         
         // Check basic functionality - just verify core categories exist
@@ -42,7 +42,6 @@ describe('only_blocks URL parameter filtering', () => {
     test('Shows only motion blocks when only_blocks=motion_', async () => {
         const testUri = `${uri}?only_blocks=motion_`;
         await loadUri(testUri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
         await clickText('Code');
         
         // Motion category should be visible and contain blocks
@@ -60,7 +59,6 @@ describe('only_blocks URL parameter filtering', () => {
     test('Variables category is always visible regardless of filter', async () => {
         const testUri = `${uri}?only_blocks=motion_`;
         await loadUri(testUri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
         await clickText('Code');
         
         // Variables should be present and functional

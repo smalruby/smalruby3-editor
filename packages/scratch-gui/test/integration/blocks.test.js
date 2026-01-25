@@ -14,6 +14,7 @@ const {
     getLogs,
     Key,
     loadUri,
+    waitForLoadingFinished,
     notExistsByXpath,
     rightClickText,
     scope
@@ -34,7 +35,6 @@ describe('Working with the blocks', () => {
 
     test('Blocks report when clicked in the toolbox', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Code');
         await clickBlocksCategory('Operators');
         await clickText('join', scope.blocksTab); // Click "join <hello> <world>" block
@@ -45,7 +45,6 @@ describe('Working with the blocks', () => {
 
     test('Switching sprites updates the block menus', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickBlocksCategory('Sound');
         // "Meow" sound block should be visible
         await findByText('Meow', scope.blocksTab);
@@ -61,7 +60,6 @@ describe('Working with the blocks', () => {
 
     test('Creating variables', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Code');
         await clickBlocksCategory('Variables');
 
@@ -109,7 +107,6 @@ describe('Working with the blocks', () => {
 
     test('Creating a list', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Code');
         await clickBlocksCategory('Variables');
 
@@ -150,7 +147,6 @@ describe('Working with the blocks', () => {
 
     test('Custom procedures', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickBlocksCategory('My Blocks');
         await clickText('Make a Block');
         // Click on the "add an input" buttons
@@ -168,7 +164,6 @@ describe('Working with the blocks', () => {
 
     test('Adding an extension', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickXpath('//button[@title="Add Extension"]');
 
         await clickText('Pen');
@@ -182,7 +177,6 @@ describe('Working with the blocks', () => {
 
     test('Record option from sound block menu opens sound recorder', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Code');
         await clickBlocksCategory('Sound');
         await clickText('Meow', scope.blocksTab); // Click "play sound <Meow> until done" block
@@ -198,7 +192,6 @@ describe('Working with the blocks', () => {
 
     test('Renaming costume changes the default costume name in the toolbox', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         // Rename the costume
         await clickText('Costumes');
@@ -218,7 +211,6 @@ describe('Working with the blocks', () => {
 
     test('Renaming costume with a special character should not break toolbox', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         // Rename the costume
         await clickText('Costumes');
@@ -240,7 +232,6 @@ describe('Working with the blocks', () => {
 
     test('Adding costumes DOES update the default costume name in the toolbox', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         // By default, costume2 is in the costume tab
         await clickBlocksCategory('Looks');
@@ -265,7 +256,6 @@ describe('Working with the blocks', () => {
     // Skipped because it was flaky on travis, but seems to run locally ok
     test('Adding a sound DOES update the default sound name in the toolbox', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Sounds');
         await clickXpath('//button[@aria-label="Choose a Sound"]');
         await clickText('A Bass', scope.modal); // Should close the modal
@@ -281,7 +271,6 @@ describe('Working with the blocks', () => {
     test('"See inside" after being on project page re-initializing variables', async () => {
         const playerUri = path.resolve(__dirname, '../../build/player.html');
         await loadUri(playerUri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('See inside');
         await clickBlocksCategory('Variables');
         await clickText('my\u00A0variable');
@@ -296,7 +285,6 @@ describe('Working with the blocks', () => {
     // Regression test for switching editor tabs causing toolbox to stop updating
     test('Creating variables after adding extensions updates the toolbox', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
         await clickText('Costumes');
         await clickText('Code');
         await clickBlocksCategory('Variables');
@@ -312,7 +300,6 @@ describe('Working with the blocks', () => {
         const changeVariableByScope = "*[@data-id='data_changevariableby']";
 
         await loadUri(uri);
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         await clickText('Code');
         await clickBlocksCategory('Variables');
@@ -328,14 +315,14 @@ describe('Working with the blocks', () => {
         await clickXpath(SETTINGS_MENU_XPATH);
         await clickText('Language', scope.menuBar);
         await driver.sleep(1000);
-        
+
         // Find language option and scroll to it if necessary
         const languageOption = await findByXpath("//*[contains(@class, 'language-menu-item') and contains(text(), 'Deutsch')]");
         await driver.executeScript('arguments[0].scrollIntoView(true);', languageOption);
         await driver.sleep(500);
         await languageOption.click();
-        
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
+
+        await waitForLoadingFinished();
 
         await clickText('Skripte');
         await clickBlocksCategory('Variablen');

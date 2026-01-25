@@ -9,6 +9,7 @@ const {
     getDriver,
     getLogs,
     loadUri,
+    waitForLoadingFinished,
     notExistsByXpath,
     rightClickText,
     scope
@@ -21,11 +22,6 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 
 let driver;
 
-const syncLoader = async () => {
-    await driver.sleep(1000);
-    await notExistsByXpath('//*[contains(@class, "loader_background")]');
-};
-
 describe('Working with costumes', () => {
     beforeAll(() => {
         driver = getDriver();
@@ -37,7 +33,6 @@ describe('Working with costumes', () => {
 
     test('Adding a costume through the library', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         await clickXpath('//button[@aria-label="Choose a Costume"]');
         const el = await findByXpath("//input[@placeholder='Search']");
@@ -50,7 +45,6 @@ describe('Working with costumes', () => {
 
     test('Adding a costume by surprise button', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
         await driver.actions().mouseMove(el)
@@ -63,7 +57,6 @@ describe('Working with costumes', () => {
 
     test('Adding a costume by paint button', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
         await driver.actions().mouseMove(el)
@@ -76,7 +69,6 @@ describe('Working with costumes', () => {
 
     test('Duplicating a costume', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
 
         await rightClickText('costume1', scope.costumesTab);
@@ -92,7 +84,6 @@ describe('Working with costumes', () => {
 
     test('Converting bitmap/vector in paint editor', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
 
         await rightClickText('costume1', scope.costumesTab);
@@ -120,7 +111,6 @@ describe('Working with costumes', () => {
 
     test('Undo/redo in the paint editor', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         await clickText('costume1', scope.costumesTab);
         await clickText('Convert to Bitmap', scope.costumesTab);
@@ -135,7 +125,6 @@ describe('Working with costumes', () => {
 
     test('Adding an svg from file', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
         await driver.actions().mouseMove(el)
@@ -151,7 +140,6 @@ describe('Working with costumes', () => {
 
     test('Adding a png from file (gh-3582)', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
         await driver.actions().mouseMove(el)
@@ -166,7 +154,6 @@ describe('Working with costumes', () => {
 
     test('Adding a bmp from file', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
         await driver.actions().mouseMove(el)
@@ -181,7 +168,6 @@ describe('Working with costumes', () => {
 
     test('Adding several costumes with a gif', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
         await driver.actions().mouseMove(el)
@@ -203,7 +189,6 @@ describe('Working with costumes', () => {
 
     test('Adding a letter costume through the Letters filter in the library', async () => {
         await loadUri(uri);
-        await syncLoader();
         await driver.manage()
             .window()
             .setSize(1244, 768); // Letters filter not visible at 1024 width
@@ -222,7 +207,6 @@ describe('Working with costumes', () => {
             path.resolve(__dirname, '../fixtures/100-100.svg')
         ];
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
         await driver.actions().mouseMove(el)
@@ -240,7 +224,6 @@ describe('Working with costumes', () => {
 
     test('Load an invalid svg from scratch3 as costume', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
         await driver.actions().mouseMove(el)
@@ -255,7 +238,6 @@ describe('Working with costumes', () => {
 
     test('Load an invalid svg from scratch2 as costume', async () => {
         await loadUri(uri);
-        await syncLoader();
         await clickText('Costumes');
         const el = await findByXpath('//button[@aria-label="Choose a Costume"]');
         await driver.actions().mouseMove(el)

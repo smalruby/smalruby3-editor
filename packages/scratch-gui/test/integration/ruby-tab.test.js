@@ -17,6 +17,7 @@ const {
     getDriver,
     getLogs,
     loadUri,
+    waitForLoadingFinished,
     notExistsByXpath,
     rightClickText,
     scope
@@ -44,8 +45,6 @@ describe('convert Code from Ruby', () => {
 
     test('Code from Ruby -> Ruby from Code', async () => {
         await loadUri(uri);
-        await findByXpath('//*[contains(@class, "loader_background")]');
-        await notExistsByXpath('//*[contains(@class, "loader_background")]');
 
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('move(\\n10\\n)\\n');
@@ -63,8 +62,6 @@ describe('convert Code from Ruby', () => {
     describe('syntax error', () => {
         beforeEach(async () => {
             await loadUri(uri);
-            await findByXpath('//*[contains(@class, "loader_background")]');
-            await notExistsByXpath('//*[contains(@class, "loader_background")]');
             await clickText('Ruby', '*[@role="tab"]');
             await fillInRubyProgram('move(10)');
             await clickText('Code', '*[@role="tab"]');

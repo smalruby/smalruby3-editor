@@ -108,6 +108,7 @@ class SeleniumHelper {
             'getSauceDriver',
             'getLogs',
             'loadUri',
+            'waitForLoadingFinished',
             'rightClickText',
             'notExistsByXpath',
             'urlFor'
@@ -321,9 +322,21 @@ class SeleniumHelper {
                 async () => await this.driver.executeScript('return document.readyState;') === 'complete',
                 DEFAULT_TIMEOUT_MILLISECONDS
             );
+
+            if (uri.split(/[?#]/)[0].endsWith('build/index.html')) {
+                await this.waitForLoadingFinished();
+            }
         } catch (cause) {
             throw await enhanceError(outerError, cause, this.driver);
         }
+    }
+
+    /**
+     * Wait for the loading background to disappear.
+     * @returns {Promise} A promise that resolves when the loading background is gone.
+     */
+    async waitForLoadingFinished () {
+        return this.notExistsByXpath('//div[contains(@class, "loader_background")]');
     }
 
     /**

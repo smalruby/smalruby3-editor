@@ -10,6 +10,7 @@ const {
     getDriver,
     getLogs,
     loadUri,
+    waitForLoadingFinished,
     notExistsByXpath,
     scope,
     textExists
@@ -30,7 +31,6 @@ describe('Block Display Modal', () => {
 
     test('Open block display settings from menu', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
 
         // Click Settings menu
         await clickXpath(SETTINGS_MENU_XPATH);
@@ -93,7 +93,6 @@ describe('Block Display Modal', () => {
 
     test('Copy URL button is displayed in block display modal', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
 
         // Click Settings menu
         await clickXpath(SETTINGS_MENU_XPATH);
@@ -131,7 +130,6 @@ describe('Block Display Modal', () => {
 
     test('Copy URL button generates correct only_blocks URL when blocks are deselected', async () => {
         await loadUri(uri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
 
         // Click Settings menu
         await clickXpath(SETTINGS_MENU_XPATH);
@@ -172,7 +170,6 @@ describe('Block Display Modal', () => {
         // Test with URL parameter that specifies only looks_say block
         const testUri = uri + '?only_blocks=looks_say';
         await loadUri(testUri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
 
         // Go to Code tab to check block visibility
         await clickText('Code');
@@ -199,7 +196,6 @@ describe('Block Display Modal', () => {
         // Test with category prefix (motion_) which should select all motion blocks
         const testUri = uri + '?only_blocks=motion_';
         await loadUri(testUri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
 
         // Open block display modal to verify initial selection
         await clickXpath(SETTINGS_MENU_XPATH);
@@ -227,7 +223,6 @@ describe('Block Display Modal', () => {
     test('All blocks should be checked by default when no only_blocks parameter', async () => {
         // Load page without any only_blocks parameter
         await loadUri(uri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
 
         // Click Settings menu
         await clickXpath(SETTINGS_MENU_XPATH);
@@ -268,7 +263,6 @@ describe('Block Display Modal', () => {
         // Test with URL parameter that specifies only looks_say block
         const testUri = uri + '?only_blocks=looks_say';
         await loadUri(testUri);
-        await notExistsByXpath('//*[div[contains(@class, "loader_background")]]');
 
         // Go to Code tab to check block visibility
         await clickText('Code');
