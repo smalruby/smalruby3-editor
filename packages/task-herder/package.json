@@ -36,7 +36,7 @@
     "lint": "eslint && prettier --check .",
     "preview": "vite preview",
     "test": "npm run lint && vitest run --coverage",
-    "test:unit": "cross-env VITEST_JUNIT_OUTPUT_FILE=test-results/task-herder-unit-tests-results.xml vitest run --coverage",
+    "test:unit": "cross-env VITEST_JUNIT_OUTPUT_FILE=test-results/unit-tests-results.xml vitest run --coverage",
     "test:integration": "echo \"No integration tests\""
   },
   "devDependencies": {

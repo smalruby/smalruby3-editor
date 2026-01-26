@@ -56,9 +56,9 @@
     "start": "webpack serve",
     "test": "npm run test:lint && npm run test:unit && npm run test:integration",
     "lint": "eslint",
-    "test:integration": "cross-env JEST_JUNIT_OUTPUT_NAME=scratch-gui-integration-tests-results.xml jest --maxWorkers=4 test[\\\\/]integration",
+    "test:integration": "cross-env JEST_JUNIT_OUTPUT_NAME=integration-tests-results.xml jest --maxWorkers=4 test[\\\\/]integration",
     "test:lint": "eslint",
-    "test:unit": "cross-env JEST_JUNIT_OUTPUT_NAME=scratch-gui-unit-tests-results.xml jest test[\\\\/]unit",
+    "test:unit": "cross-env JEST_JUNIT_OUTPUT_NAME=unit-tests-results.xml jest test[\\\\/]unit",
     "test:smoke": "jest --runInBand test[\\\\/]smoke",
     "watch": "webpack --watch"
   },
