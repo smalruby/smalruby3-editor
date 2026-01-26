@@ -48,7 +48,10 @@ describe('SBFileUploaderHOC', () => {
                 projectState: {
                     loadingState: LoadingState.SHOWING_WITHOUT_ID
                 },
-                vm: {}
+                vm: {},
+                test: {
+                    isTest: false
+                }
             },
             locales: {
                 locale: 'en'
