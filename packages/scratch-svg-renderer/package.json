@@ -18,6 +18,7 @@
   ],
   "scripts": {
     "build": "npm run clean && webpack",
+    "build:dev": "npm run clean && webpack",
     "clean": "rimraf dist playground",
     "start": "webpack-dev-server",
     "test": "npm run test:lint && npm run test:unit",

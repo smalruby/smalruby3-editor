@@ -28,6 +28,7 @@
   ],
   "scripts": {
     "build": "npm run docs && webpack --progress",
+    "build:dev": "npm run docs && webpack --progress",
     "clean": "rimraf dist playground",
     "coverage": "tap ./test/{unit,integration}/*.js --coverage --coverage-report=lcov",
     "docs": "jsdoc -c .jsdoc.json",

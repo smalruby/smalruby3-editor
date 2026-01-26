@@ -31,6 +31,7 @@
     "clean": "rimraf dist",
     "dev": "vite",
     "build": "tsc --project tsconfig.build.json && vite build",
+    "build:dev": "tsc --project tsconfig.build.json && vite build",
     "format": "prettier --write . && eslint --fix",
     "lint": "eslint && prettier --check .",
     "preview": "vite preview",

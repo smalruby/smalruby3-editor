@@ -11,9 +11,8 @@
     "url": "https://github.com/scratchfoundation/scratch-editor.git"
   },
   "scripts": {
-    "build": "npm run build:vm && npm run build:gui",
-    "build:vm": "npm run build --workspace=packages/task-herder --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm",
-    "build:gui": "cross-env NODE_ENV=production npm run build --workspace=packages/scratch-gui",
+    "build": "cross-env NODE_ENV=production npm run --workspaces build",
+    "build:dev": "npm run --workspaces build:dev",
     "build-monorepo": "cross-env-shell ./scripts/build-monorepo.sh",
     "clean": "npm run --workspaces clean",
     "lint": "npm run lint:gui && npm run lint:vm",

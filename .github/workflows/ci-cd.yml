@@ -44,7 +44,7 @@ jobs:
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
       - name: Build packages
-        run: npm run build
+        run: npm run build:dev
       - name: Lint
         run: npm run lint
       - name: Run Unit Tests
