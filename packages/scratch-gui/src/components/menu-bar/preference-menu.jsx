@@ -58,7 +58,10 @@ const PreferenceMenu = ({
     const itemKeys = useMemo(() => Object.keys(itemsMap), [itemsMap]);
     const selectedItem = useMemo(() => itemsMap[selectedItemKey], [itemsMap, selectedItemKey]);
     return (
-        <MenuItem expanded={open} closeOnClick={false}>
+        <MenuItem
+            expanded={open}
+            closeOnClick={false}
+        >
             <div
                 className={styles.option}
                 onClick={onRequestOpen}

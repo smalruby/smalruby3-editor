@@ -24,14 +24,18 @@
   ],
   "scripts": {
     "build": "webpack --progress && npm run docs",
+    "build:dev": "webpack --progress && npm run docs",
     "clean": "rimraf dist playground",
     "docs": "jsdoc -c .jsdoc.json",
     "lint": "eslint",
+    "test:lint": "eslint",
     "prepublish": "npm run build",
     "prepublish-watch": "npm run watch",
     "start": "webpack-dev-server",
     "tap": "tap test/unit test/integration",
     "test": "npm run lint && npm run tap",
+    "test:unit": "tap test/unit && mkdirp test-results && tap replay --reporter=junit --reporter-file=test-results/unit-tests-results.xml test/unit",
+    "test:integration": "tap test/integration && mkdirp test-results && tap replay --reporter=junit --reporter-file=test-results/integration-tests-results.xml test/integration",
     "watch": "webpack --progress --watch --watch-poll"
   },
   "tap": {

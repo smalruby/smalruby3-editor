@@ -130,9 +130,20 @@ export default eslintConfigScratch.defineConfig(
             ]
         }
     },
+    {
+        files: ['src/locales/*.js'],
+        rules: {
+            'max-len': 'off'
+        }
+    },
     globalIgnores([
         'build/**/*',
         'dist/**/*',
-        'node_modules/**/*'
+        'node_modules/**/*',
+        'opal/**/*',
+        'static/**/*',
+        'test/**/*',
+        'src/examples/**/*',
+        'coverage/**/*'
     ])
 );

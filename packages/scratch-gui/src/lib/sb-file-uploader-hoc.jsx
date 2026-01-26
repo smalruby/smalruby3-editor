@@ -176,7 +176,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         }
         render () {
             const {
-                 
+
                 cancelFileUpload,
                 closeFileMenu: closeFileMenuProp,
                 isLoadingUpload,
@@ -187,7 +187,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 onSetProjectTitle,
                 projectChanged,
                 requestProjectUpload: requestProjectUploadProp,
-                 
+
 
                 // Intentionally propagating this one as well, since it's used in MenuBar
                 // userOwnsProject,

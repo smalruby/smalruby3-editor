@@ -28,6 +28,7 @@
   ],
   "scripts": {
     "build": "npm run docs && webpack --progress",
+    "build:dev": "npm run docs && webpack --progress",
     "clean": "rimraf dist playground",
     "coverage": "tap ./test/{unit,integration}/*.js --coverage --coverage-report=lcov",
     "docs": "jsdoc -c .jsdoc.json",
@@ -40,6 +41,8 @@
     "tap:unit": "tap ./test/unit/*.js",
     "tap:integration": "tap ./test/integration/*.js",
     "test": "npm run lint && npm run tap",
+    "test:unit": "tap ./test/unit/*.js && mkdirp test-results && tap replay --reporter=junit --reporter-file=test-results/unit-tests-results.xml ./test/unit/*.js",
+    "test:integration": "tap ./test/integration/*.js && mkdirp test-results && tap replay --reporter=junit --reporter-file=test-results/integration-tests-results.xml ./test/integration/*.js",
     "watch": "webpack --progress --watch"
   },
   "browserslist": [
