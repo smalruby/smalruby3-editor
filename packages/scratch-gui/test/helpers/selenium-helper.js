@@ -7,7 +7,6 @@ import path from 'path';
 
 import bindAll from 'lodash.bindall';
 import webdriver from 'selenium-webdriver';
-import chrome from 'selenium-webdriver/chrome';
 
 import packageJson from '../../package.json';
 
@@ -177,7 +176,7 @@ class SeleniumHelper {
      * @returns {webdriver.ThenableWebDriver} The new driver.
      */
     getDriver () {
-        const options = new chrome.Options();
+        const chromeCapabilities = webdriver.Capabilities.chrome();
         const args = [];
         if (USE_HEADLESS) {
             args.push('--headless=new');
@@ -198,15 +197,13 @@ class SeleniumHelper {
         // This is especially important on Windows, where Selenium directs JS console messages to stdout
         args.push('--autoplay-policy=no-user-gesture-required');
 
-        options.addArguments(...args);
-
-        const loggingPrefs = new webdriver.logging.Preferences();
-        loggingPrefs.setLevel(webdriver.logging.Type.PERFORMANCE, webdriver.logging.Level.ALL);
-        options.setLoggingPrefs(loggingPrefs);
-
+        chromeCapabilities.set('chromeOptions', {args});
+        chromeCapabilities.setLoggingPrefs({
+            performance: 'ALL'
+        });
         this.driver = new webdriver.Builder()
             .forBrowser('chrome')
-            .setChromeOptions(options)
+            .withCapabilities(chromeCapabilities)
             .build();
         return this.driver;
     }
@@ -259,7 +256,7 @@ class SeleniumHelper {
      * @returns {string} The xpath.
      */
     textToXpath (text, scope) {
-        return `//body//${scope || '*'}//*[contains(text(), '${text}')]`;
+        return `//body//${scope || '*'}//*[contains(text(), '${text}')]`
     }
 
     /**
@@ -287,6 +284,15 @@ class SeleniumHelper {
         } catch (cause) {
             throw await enhanceError(outerError, cause, this.driver);
         }
+    }
+
+    /**
+     * Scroll an element into view using JavaScript.
+     * @param {webdriver.WebElement} element The element to scroll.
+     * @returns {Promise<void>} A promise that resolves when the element is scrolled into view.
+     */
+    async scrollIntoView (element) {
+        await this.driver.executeScript('arguments[0].scrollIntoView();', element);
     }
 
     /**
@@ -334,8 +340,8 @@ class SeleniumHelper {
             // which fails because the block is offscreen.
             // We should set this back to 1024x768 once we find a good way to fix that test.
             // Using `scrollIntoView` didn't seem to do the trick.
-            const WINDOW_WIDTH = 1024;
-            const WINDOW_HEIGHT = 960;
+            const WINDOW_WIDTH = 1280;
+            const WINDOW_HEIGHT = 1024;
             await this.driver
                 .get(`file://${uri}`);
             await this.driver
@@ -373,15 +379,30 @@ class SeleniumHelper {
         try {
             await this.setTitle(`clickXpath ${xpath}`);
             const el = await this.driver.wait(until.elementLocated(By.xpath(xpath)), DEFAULT_TIMEOUT_MILLISECONDS);
-            await this.driver.wait(until.elementIsVisible(el), DEFAULT_TIMEOUT_MILLISECONDS);
-            await this.driver.wait(async () => {
-                try {
-                    await el.click();
-                    return true;
-                } catch (e) {
-                    return false;
-                }
-            }, DEFAULT_TIMEOUT_MILLISECONDS);
+            try {
+                await this.driver.wait(until.elementIsVisible(el), DEFAULT_TIMEOUT_MILLISECONDS);
+                await el.click();
+            } catch (e) {
+                // JS click fallback using mouse events
+                await this.driver.executeScript(`
+                    var el = arguments[0];
+                    var rect = el.getBoundingClientRect();
+                    var x = rect.left + rect.width / 2;
+                    var y = rect.top + rect.height / 2;
+                    var events = ["pointerdown", "mousedown", "pointerup", "mouseup", "click"];
+                    events.forEach(function(name) {
+                        var eventClass = name.startsWith("pointer") ? PointerEvent : MouseEvent;
+                        var ev = new eventClass(name, {
+                            clientX: x,
+                            clientY: y,
+                            bubbles: true,
+                            cancelable: true,
+                            view: window
+                        });
+                        el.dispatchEvent(ev);
+                    });
+                `, el);
+            }
         } catch (cause) {
             throw await enhanceError(outerError, cause, this.driver);
         }
@@ -398,7 +419,30 @@ class SeleniumHelper {
         try {
             await this.setTitle(`clickText ${text}`);
             const el = await this.findByText(text, scope);
-            return el.click();
+            try {
+                await this.driver.wait(until.elementIsVisible(el), DEFAULT_TIMEOUT_MILLISECONDS);
+                await el.click();
+            } catch (e) {
+                // JS click fallback using mouse events
+                await this.driver.executeScript(`
+                    var el = arguments[0];
+                    var rect = el.getBoundingClientRect();
+                    var x = rect.left + rect.width / 2;
+                    var y = rect.top + rect.height / 2;
+                    var events = ["pointerdown", "mousedown", "pointerup", "mouseup", "click"];
+                    events.forEach(function(name) {
+                        var eventClass = name.startsWith("pointer") ? PointerEvent : MouseEvent;
+                        var ev = new eventClass(name, {
+                            clientX: x,
+                            clientY: y,
+                            bubbles: true,
+                            cancelable: true,
+                            view: window
+                        });
+                        el.dispatchEvent(ev);
+                    });
+                `, el);
+            }
         } catch (cause) {
             throw await enhanceError(outerError, cause, this.driver);
         }
@@ -421,7 +465,7 @@ class SeleniumHelper {
             await this.clickText(categoryText, 'div[contains(concat(" ", @class), " blocks_blocks_")]');
             await this.driver.sleep(500); // Wait for scroll to finish
         } catch (cause) {
-            throw await enhanceError(outerError, cause);
+            throw await enhanceError(outerError, cause, this.driver);
         }
     }
 
