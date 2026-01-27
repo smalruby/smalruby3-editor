@@ -24,7 +24,7 @@
     "test": "npm run test:lint && npm run test:unit",
     "lint": "eslint",
     "test:lint": "eslint",
-    "test:unit": "tap ./test/*.js && mkdirp test-results && tap replay --reporter=junit --reporter-file=test-results/unit-tests-results.xml ./test/*.js",
+    "test:unit": "tap ./test/*.js && mkdirp test-results && tap ./test/*.js --reporter=junit --reporter-file=test-results/unit-tests-results.xml",
     "test:integration": "echo \"No integration tests\"",
     "watch": "webpack --watch"
   },
