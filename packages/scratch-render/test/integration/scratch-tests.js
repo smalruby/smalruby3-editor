@@ -119,7 +119,7 @@ const testFile = async (file, page) => {
     let browser;
     try {
         browser = await chromium.launch();
-    } catch (e) {
+    } catch {
         test('skip - browser not found', t => {
             t.skip('browser not found');
             t.end();
