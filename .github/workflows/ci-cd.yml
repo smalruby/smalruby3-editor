@@ -99,6 +99,9 @@ jobs:
           MESH_GRAPHQL_ENDPOINT: ${{ secrets.MESH_GRAPHQL_ENDPOINT }}
           MESH_API_KEY: ${{ secrets.MESH_API_KEY }}
           MESH_AWS_REGION: ${{ secrets.MESH_AWS_REGION }}
+          MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
+          MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
+          MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
         run: npm run build
       - name: Store Build Output
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
@@ -139,3 +142,55 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./packages/scratch-gui/build
           full_commit_message: "Build for ${{ github.sha }} ${{ github.event.head_commit.message }}"
+      - name: Set branch name
+        id: branch
+        run: echo "BRANCH_NAME=${{ github.head_ref || github.ref_name }}" >> $GITHUB_OUTPUT
+      - name: Rebuild for branch GitHub Pages
+        if: |
+          (!(
+            github.ref == 'refs/heads/develop' ||
+            github.ref == 'refs/heads/master' ||
+            github.ref == 'refs/heads/main' ||
+            startsWith(github.ref, 'refs/heads/hotfix/') ||
+            startsWith(github.ref, 'refs/heads/dependabot/') ||
+            startsWith(github.ref, 'refs/heads/renovate/')
+          ))
+        env:
+          PUBLIC_PATH: /smalruby3-editor/${{ steps.branch.outputs.BRANCH_NAME }}/
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MESH_GRAPHQL_ENDPOINT: ${{ secrets.MESH_GRAPHQL_ENDPOINT }}
+          MESH_API_KEY: ${{ secrets.MESH_API_KEY }}
+          MESH_AWS_REGION: ${{ secrets.MESH_AWS_REGION }}
+          MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
+          MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
+          MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+        run: cd packages/scratch-gui && npm exec node ./scripts/postbuild.mjs
+      - name: Prepare deployment files for branch GitHub Pages
+        if: |
+          (!(
+            github.ref == 'refs/heads/develop' ||
+            github.ref == 'refs/heads/master' ||
+            github.ref == 'refs/heads/main' ||
+            startsWith(github.ref, 'refs/heads/hotfix/') ||
+            startsWith(github.ref, 'refs/heads/dependabot/') ||
+            startsWith(github.ref, 'refs/heads/renovate/')
+          ))
+        run: touch packages/scratch-gui/build/.nojekyll
+      - name: Deploy playground to GitHub Pages for branch
+        if: |
+          (!(
+            github.ref == 'refs/heads/develop' ||
+            github.ref == 'refs/heads/master' ||
+            github.ref == 'refs/heads/main' ||
+            startsWith(github.ref, 'refs/heads/hotfix/') ||
+            startsWith(github.ref, 'refs/heads/dependabot/') ||
+            startsWith(github.ref, 'refs/heads/renovate/')
+          ))
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./packages/scratch-gui/build
+          full_commit_message: "Build for ${{ steps.branch.outputs.BRANCH_NAME }} (${{ github.sha }}) ${{ github.event.head_commit.message }}"
+          destination_dir: ${{ steps.branch.outputs.BRANCH_NAME }}
+          keep_files: true
