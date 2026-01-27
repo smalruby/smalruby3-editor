@@ -7,7 +7,16 @@ const indexHTML = path.resolve(__dirname, 'index.html');
 
 // immediately invoked async function to let us wait for each test to finish before starting the next.
 (async () => {
-    const browser = await chromium.launch();
+    let browser;
+    try {
+        browser = await chromium.launch();
+    } catch (e) {
+        test('skip - browser not found', t => {
+            t.skip('browser not found');
+            t.end();
+        });
+        return;
+    }
     const page = await browser.newPage();
 
     await page.goto(`file://${indexHTML}`);
