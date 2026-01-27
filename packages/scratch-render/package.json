@@ -34,12 +34,16 @@
     "start": "webpack-dev-server",
     "tap": "tap test/unit test/integration",
     "test": "npm run lint && npm run tap",
-    "test:unit": "(tap test/unit --allow-empty-coverage || true) && mkdirp test-results && (tap replay --reporter=junit --reporter-file=test-results/unit-tests-results.xml || true)",
-    "test:integration": "npx playwright install chromium --with-deps && (tap test/integration --allow-empty-coverage || true) && mkdirp test-results && (tap replay --reporter=junit --reporter-file=test-results/integration-tests-results.xml || true)",
+    "test:unit": "tap test/unit --allow-empty-coverage && mkdirp test-results && tap replay test/unit --reporter=junit --reporter-file=test-results/unit-tests-results.xml",
+    "test:integration": "npx playwright install chromium --with-deps && tap test/integration --allow-empty-coverage && mkdirp test-results && tap replay test/integration --reporter=junit --reporter-file=test-results/integration-tests-results.xml",
     "watch": "webpack --progress --watch --watch-poll"
   },
   "tap": {
-    "allow-incomplete-coverage": true
+    "allow-incomplete-coverage": true,
+    "statements": 0,
+    "branches": 0,
+    "lines": 0,
+    "functions": 0
   },
   "browserslist": [
     "Chrome >= 63",
