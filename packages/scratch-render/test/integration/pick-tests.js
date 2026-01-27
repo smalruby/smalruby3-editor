@@ -22,16 +22,7 @@ const runFile = async (file, action, page, script) => {
 
 // immediately invoked async function to let us wait for each test to finish before starting the next.
 (async () => {
-    let browser;
-    try {
-        browser = await chromium.launch();
-    } catch {
-        test('skip - browser not found', t => {
-            t.skip('browser not found');
-            t.end();
-        });
-        return;
-    }
+    const browser = await chromium.launch();
     const page = await browser.newPage();
 
     const testOperation = async function (name, action, expect) {
@@ -114,7 +105,7 @@ const runFile = async (file, action, page, script) => {
     await browser.close();
 })().catch(err => {
     // Handle promise rejections by exiting with a nonzero code to ensure that tests don't erroneously pass
-     
+
     console.error(err.message);
     process.exit(1);
 });

@@ -116,16 +116,7 @@ const testFile = async (file, page) => {
 
 // immediately invoked async function to let us wait for each test to finish before starting the next.
 (async () => {
-    let browser;
-    try {
-        browser = await chromium.launch();
-    } catch {
-        test('skip - browser not found', t => {
-            t.skip('browser not found');
-            t.end();
-        });
-        return;
-    }
+    const browser = await chromium.launch();
     const page = await browser.newPage();
 
     const files = fs.readdirSync(testDir())
@@ -137,9 +128,12 @@ const testFile = async (file, page) => {
 
     // close the browser window we used
     await browser.close();
+
+    // Exit cleanly after successful test completion
+    process.exit(0);
 })().catch(err => {
     // Handle promise rejections by exiting with a nonzero code to ensure that tests don't erroneously pass
-     
+
     console.error(err.message);
     process.exit(1);
 });
