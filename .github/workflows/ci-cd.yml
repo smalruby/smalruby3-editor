@@ -43,11 +43,23 @@ jobs:
           EOF
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
       - name: Build packages
         run: npm run build:dev
       - name: Lint
         run: npm run lint
+      - name: Create test-results directories
+        run: |
+          mkdir -p packages/task-herder/test-results
+          mkdir -p packages/scratch-svg-renderer/test-results
+          mkdir -p packages/scratch-render/test-results
+          mkdir -p packages/scratch-vm/test-results
+          mkdir -p packages/scratch-gui/test-results
       - name: Run Unit Tests
+        env:
+          TAP_REPORTER: junit
+          TAP_REPORTER_FILE: test-results/unit-tests-results.xml
         run: npm run test:unit
       - name: Store Test Results
         if: always() # Even if tests fail
@@ -56,3 +68,129 @@ jobs:
           name: test-output-unit
           path: |
             packages/*/test-results/*
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4000
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          cache: 'npm'
+          node-version-file: '.nvmrc'
+      - name: Info
+        run: |
+          cat <<EOF
+          Node version: $(node --version)
+          NPM version: $(npm --version)
+          GitHub ref: ${{ github.ref }}
+          GitHub head ref: ${{ github.head_ref }}
+          EOF
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
+      - name: Run Build
+        env:
+          NODE_ENV: production
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MESH_GRAPHQL_ENDPOINT: ${{ secrets.MESH_GRAPHQL_ENDPOINT }}
+          MESH_API_KEY: ${{ secrets.MESH_API_KEY }}
+          MESH_AWS_REGION: ${{ secrets.MESH_AWS_REGION }}
+          MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
+          MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
+          MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+        run: npm run build
+      - name: Store Build Output
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: build-output
+          path: packages/scratch-gui/build
+      - name: Store Dist Output
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: dist-output
+          path: packages/scratch-gui/dist
+      - name: Create test-results directories
+        run: |
+          mkdir -p packages/task-herder/test-results
+          mkdir -p packages/scratch-svg-renderer/test-results
+          mkdir -p packages/scratch-render/test-results
+          mkdir -p packages/scratch-vm/test-results
+          mkdir -p packages/scratch-gui/test-results
+      - name: Run Integration Tests
+        env:
+          JEST_JUNIT_OUTPUT_DIR: packages/scratch-gui/test-results
+          TAP_REPORTER: junit
+          TAP_REPORTER_FILE: test-results/integration-tests-results.xml
+        run: npm run test:integration
+      - name: Store Test Results
+        if: always() # Even if tests fail
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: test-output-integration
+          path: packages/*/test-results/*
+      - name: Prepare deployment files
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        run: touch packages/scratch-gui/build/.nojekyll
+      - name: Deploy to smalruby3-editor GitHub Pages
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./packages/scratch-gui/build
+          full_commit_message: "Build for ${{ github.sha }} ${{ github.event.head_commit.message }}"
+      - name: Set branch name
+        id: branch
+        run: echo "BRANCH_NAME=${{ github.head_ref || github.ref_name }}" >> $GITHUB_OUTPUT
+      - name: Rebuild for branch GitHub Pages
+        if: |
+          (!(
+            github.ref == 'refs/heads/develop' ||
+            github.ref == 'refs/heads/master' ||
+            github.ref == 'refs/heads/main' ||
+            startsWith(github.ref, 'refs/heads/hotfix/') ||
+            startsWith(github.ref, 'refs/heads/dependabot/') ||
+            startsWith(github.ref, 'refs/heads/renovate/')
+          ))
+        env:
+          PUBLIC_PATH: /smalruby3-editor/${{ steps.branch.outputs.BRANCH_NAME }}/
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MESH_GRAPHQL_ENDPOINT: ${{ secrets.MESH_GRAPHQL_ENDPOINT }}
+          MESH_API_KEY: ${{ secrets.MESH_API_KEY }}
+          MESH_AWS_REGION: ${{ secrets.MESH_AWS_REGION }}
+          MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
+          MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
+          MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+        run: cd packages/scratch-gui && npm exec node ./scripts/postbuild.mjs
+      - name: Prepare deployment files for branch GitHub Pages
+        if: |
+          (!(
+            github.ref == 'refs/heads/develop' ||
+            github.ref == 'refs/heads/master' ||
+            github.ref == 'refs/heads/main' ||
+            startsWith(github.ref, 'refs/heads/hotfix/') ||
+            startsWith(github.ref, 'refs/heads/dependabot/') ||
+            startsWith(github.ref, 'refs/heads/renovate/')
+          ))
+        run: touch packages/scratch-gui/build/.nojekyll
+      - name: Deploy playground to GitHub Pages for branch
+        if: |
+          (!(
+            github.ref == 'refs/heads/develop' ||
+            github.ref == 'refs/heads/master' ||
+            github.ref == 'refs/heads/main' ||
+            startsWith(github.ref, 'refs/heads/hotfix/') ||
+            startsWith(github.ref, 'refs/heads/dependabot/') ||
+            startsWith(github.ref, 'refs/heads/renovate/')
+          ))
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./packages/scratch-gui/build
+          full_commit_message: "Build for ${{ steps.branch.outputs.BRANCH_NAME }} (${{ github.sha }}) ${{ github.event.head_commit.message }}"
+          destination_dir: ${{ steps.branch.outputs.BRANCH_NAME }}
+          keep_files: true

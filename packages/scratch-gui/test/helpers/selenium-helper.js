@@ -7,7 +7,6 @@ import path from 'path';
 
 import bindAll from 'lodash.bindall';
 import webdriver from 'selenium-webdriver';
-import chrome from 'selenium-webdriver/chrome';
 
 import packageJson from '../../package.json';
 
@@ -177,7 +176,7 @@ class SeleniumHelper {
      * @returns {webdriver.ThenableWebDriver} The new driver.
      */
     getDriver () {
-        const options = new chrome.Options();
+        const chromeCapabilities = webdriver.Capabilities.chrome();
         const args = [];
         if (USE_HEADLESS) {
             args.push('--headless=new');
@@ -198,15 +197,13 @@ class SeleniumHelper {
         // This is especially important on Windows, where Selenium directs JS console messages to stdout
         args.push('--autoplay-policy=no-user-gesture-required');
 
-        options.addArguments(...args);
-
-        const loggingPrefs = new webdriver.logging.Preferences();
-        loggingPrefs.setLevel(webdriver.logging.Type.PERFORMANCE, webdriver.logging.Level.ALL);
-        options.setLoggingPrefs(loggingPrefs);
-
+        chromeCapabilities.set('chromeOptions', {args});
+        chromeCapabilities.setLoggingPrefs({
+            performance: 'ALL'
+        });
         this.driver = new webdriver.Builder()
             .forBrowser('chrome')
-            .setChromeOptions(options)
+            .withCapabilities(chromeCapabilities)
             .build();
         return this.driver;
     }
@@ -421,7 +418,7 @@ class SeleniumHelper {
             await this.clickText(categoryText, 'div[contains(concat(" ", @class), " blocks_blocks_")]');
             await this.driver.sleep(500); // Wait for scroll to finish
         } catch (cause) {
-            throw await enhanceError(outerError, cause);
+            throw await enhanceError(outerError, cause, this.driver);
         }
     }
 
