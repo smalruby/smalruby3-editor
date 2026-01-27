@@ -49,7 +49,17 @@ jobs:
         run: npm run build:dev
       - name: Lint
         run: npm run lint
+      - name: Create test-results directories
+        run: |
+          mkdir -p packages/task-herder/test-results
+          mkdir -p packages/scratch-svg-renderer/test-results
+          mkdir -p packages/scratch-render/test-results
+          mkdir -p packages/scratch-vm/test-results
+          mkdir -p packages/scratch-gui/test-results
       - name: Run Unit Tests
+        env:
+          TAP_REPORTER: junit
+          TAP_REPORTER_FILE: test-results/unit-tests-results.xml
         run: npm run test:unit
       - name: Store Test Results
         if: always() # Even if tests fail
@@ -100,16 +110,25 @@ jobs:
         with:
           name: dist-output
           path: packages/scratch-gui/dist
+      - name: Create test-results directories
+        run: |
+          mkdir -p packages/task-herder/test-results
+          mkdir -p packages/scratch-svg-renderer/test-results
+          mkdir -p packages/scratch-render/test-results
+          mkdir -p packages/scratch-vm/test-results
+          mkdir -p packages/scratch-gui/test-results
       - name: Run Integration Tests
         env:
           JEST_JUNIT_OUTPUT_DIR: packages/scratch-gui/test-results
+          TAP_REPORTER: junit
+          TAP_REPORTER_FILE: test-results/integration-tests-results.xml
         run: npm run test:integration
       - name: Store Test Results
         if: always() # Even if tests fail
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: test-output-integration
-          path: packages/scratch-gui/test-results/*
+          path: packages/*/test-results/*
       - name: Prepare deployment files
         if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         run: touch packages/scratch-gui/build/.nojekyll
