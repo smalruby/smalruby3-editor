@@ -43,6 +43,8 @@ jobs:
           EOF
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
       - name: Build packages
         run: npm run build:dev
       - name: Lint
@@ -77,6 +79,8 @@ jobs:
           EOF
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
       - name: Run Build
         env:
           NODE_ENV: production
