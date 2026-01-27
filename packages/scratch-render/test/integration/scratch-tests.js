@@ -128,9 +128,6 @@ const testFile = async (file, page) => {
 
     // close the browser window we used
     await browser.close();
-
-    // Exit cleanly after successful test completion
-    process.exit(0);
 })().catch(err => {
     // Handle promise rejections by exiting with a nonzero code to ensure that tests don't erroneously pass
 
