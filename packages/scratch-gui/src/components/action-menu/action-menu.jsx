@@ -25,8 +25,6 @@ class ActionMenu extends React.Component {
             forceHide: false
         };
         this.mainTooltipId = `tooltip-${Math.random()}`;
-        // Flag to ignore mouse leave events after click (React 18 phantom events)
-        this.ignoreMouseLeave = false;
     }
     componentDidMount () {
         // Touch start on the main button is caught to trigger open and not click
@@ -50,14 +48,8 @@ class ActionMenu extends React.Component {
         if (this.closeTimeoutId) {
             clearTimeout(this.closeTimeoutId);
         }
-        // Reset flag on unmount
-        this.ignoreMouseLeave = false;
     }
     handleClosePopover () {
-        // Ignore mouse leave events if a click just happened (React 18 phantom events)
-        if (this.ignoreMouseLeave) {
-            return;
-        }
         this.closeTimeoutId = setTimeout(() => {
             this.setState({isOpen: false});
             this.closeTimeoutId = null;
@@ -69,8 +61,6 @@ class ActionMenu extends React.Component {
             clearTimeout(this.closeTimeoutId);
             this.closeTimeoutId = null;
         } else if (!this.state.isOpen) {
-            // Reset flags when menu is reopened (user hovered again after click)
-            this.ignoreMouseLeave = false;
             this.setState({
                 isOpen: true,
                 forceHide: false
@@ -93,8 +83,6 @@ class ActionMenu extends React.Component {
                 clearTimeout(this.closeTimeoutId);
                 this.closeTimeoutId = null;
             }
-            // Ignore subsequent mouse leave events (React 18 phantom events during modal display)
-            this.ignoreMouseLeave = true;
 
             ReactTooltip.hide();
             if (fn) fn(event);
