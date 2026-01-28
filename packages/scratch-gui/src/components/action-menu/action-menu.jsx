@@ -45,6 +45,9 @@ class ActionMenu extends React.Component {
     componentWillUnmount () {
         this.buttonRef.removeEventListener('touchstart', this.handleTouchStart);
         document.removeEventListener('touchstart', this.handleTouchOutside);
+        if (this.closeTimeoutId) {
+            clearTimeout(this.closeTimeoutId);
+        }
     }
     handleClosePopover () {
         this.closeTimeoutId = setTimeout(() => {
@@ -82,7 +85,7 @@ class ActionMenu extends React.Component {
             // This prevents keyboard events from triggering the button
             this.buttonRef.blur();
             this.setState({forceHide: true, isOpen: false}, () => {
-                setTimeout(() => this.setState({forceHide: false}));
+                setTimeout(() => this.setState({forceHide: false}), CLOSE_DELAY);
             });
         };
     }

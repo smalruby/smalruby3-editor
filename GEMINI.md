@@ -83,11 +83,17 @@ docker compose run --rm app bash -c "cd packages/scratch-vm && npm run tap:unit"
 
 ### `scratch-gui`
 ```bash
-# Run GUI unit tests
+# Run GUI unit tests (runs ALL unit tests in the package)
 docker compose run --rm app bash -c "cd packages/scratch-gui && npm run test:unit"
 
-# Run GUI integration tests (requires build:dev first)
+# Run a specific unit test
+docker compose run --rm app bash -c "cd packages/scratch-gui && npx jest test/unit/components/action-menu.test.jsx"
+
+# Run GUI integration tests (requires build:dev first; runs ALL integration tests)
 docker compose run --rm app bash -c "cd packages/scratch-gui && npm run build:dev && npm run test:integration"
+
+# Run a specific integration test (requires build:dev first)
+docker compose run --rm app bash -c "cd packages/scratch-gui && npx jest test/integration/your-test.test.js"
 ```
 
 ## Package-Specific Details
