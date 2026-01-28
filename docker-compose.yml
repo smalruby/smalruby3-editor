@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    environment:
+      - SMALRUBY3_HOST=0.0.0.0
+      - PORT=8601
+      - NODE_ENV
+      - DEBUG
+      - GOOGLE_CLIENT_ID
+      - GOOGLE_API_KEY
+      - MESH_GRAPHQL_ENDPOINT
+      - MESH_API_KEY
+      - MESH_AWS_REGION
+      - MESH_DATA_UPDATE_INTERVAL_MS
+      - MESH_EVENT_BATCH_INTERVAL_MS
+    working_dir: /app
+    shm_size: '4gb'
+    command: npm start
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      - type: volume
+        source: smalruby3-editor_root_npm
+        target: /root/.npm
+      - type: volume
+        source: smalruby3-editor_root_cache
+        target: /root/.cache
+      - type: volume
+        source: smalruby3-editor_node_modules
+        target: /app/node_modules
+    ports:
+      - 0.0.0.0:8601:8601
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+volumes:
+  smalruby3-editor_root_npm:
+  smalruby3-editor_root_cache:
+  smalruby3-editor_node_modules:
