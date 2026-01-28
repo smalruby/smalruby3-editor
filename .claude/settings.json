@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__serena",
+      "Bash(docker compose run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "600000"
+  },
+  "mcpServers": {
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "smalruby3-editor"
+      ],
+    "env": {}
+    }
+  }
+}
