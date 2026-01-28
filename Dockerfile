@@ -1,8 +1,8 @@
 FROM node:20-bookworm-slim
-LABEL maintaner "Kouji Takao"
+LABEL maintainer="Kouji Takao"
 
-ENV LANG C.UTF-8
-ENV DEBIAN_FRONTEND noninteractive
+ENV LANG=C.UTF-8
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN \
   set -eux \
@@ -28,11 +28,11 @@ RUN npx playwright install chromium --with-deps
 # Link chromium to google-chrome just in case
 RUN ln -s /usr/bin/chromium /usr/bin/google-chrome
 
-ENV NODE_OPTIONS --max-old-space-size=4000
+ENV NODE_OPTIONS="--max-old-space-size=4000"
 
 EXPOSE 8601
 
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD npm start
+CMD ["npm", "start"]

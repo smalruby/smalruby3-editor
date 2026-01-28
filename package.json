@@ -22,7 +22,8 @@
     "test:integration": "npm run --workspaces test:integration",
     "refresh-gh-workflow": "ts-node scripts/build-gha-workflows.ts",
     "update-legal": "npm --workspaces exec -c 'rm -f ./{LICENSE,TRADEMARK} && cp -f ../../{LICENSE,TRADEMARK} .'",
-    "version": "cross-env-shell ./scripts/npm-version.sh"
+    "version": "cross-env-shell ./scripts/npm-version.sh",
+    "start": "npm run --workspace=packages/scratch-gui start"
   },
   "config": {
     "commitizen": {

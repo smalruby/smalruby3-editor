@@ -1,10 +1,38 @@
 name: CI/CD
 
 on:
-  pull_request: # Runs whenever a pull request is created or updated (including from another fork)
-  push: # Runs whenever a commit is pushed to the repository...
-    branches: [main, master, develop, hotfix/*] # ...on any of these branches
-  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+  pull_request:
+    paths-ignore:
+      - '.claude/**'
+      - '.gemini/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'GEMINI.md'
+      - '.editorconfig'
+      - '.env.example'
+      - '.gitignore'
+      - '.mcp.json'
+      - 'entrypoint.sh'
+      - 'README.md'
+      - 'Release.md'
+      - 'TRADEMARK'
+  push:
+    branches: [main, master, develop, hotfix/*]
+    paths-ignore:
+      - '.claude/**'
+      - '.gemini/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'GEMINI.md'
+      - '.editorconfig'
+      - '.env.example'
+      - '.gitignore'
+      - '.mcp.json'
+      - 'entrypoint.sh'
+      - 'README.md'
+      - 'Release.md'
+      - 'TRADEMARK'
+  workflow_dispatch:
 
 concurrency:
   group: "${{ github.workflow }} @ ${{ github.head_ref || github.ref }}"
