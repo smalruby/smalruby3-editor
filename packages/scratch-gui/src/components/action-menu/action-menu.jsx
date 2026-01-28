@@ -59,7 +59,6 @@ class ActionMenu extends React.Component {
             return;
         }
         this.closeTimeoutId = setTimeout(() => {
-            ReactTooltip.hide();
             this.setState({isOpen: false});
             this.closeTimeoutId = null;
         }, CLOSE_DELAY);
