@@ -35,6 +35,11 @@ class ActionMenu extends React.Component {
         document.addEventListener('touchstart', this.handleTouchOutside);
     }
     shouldComponentUpdate (newProps, newState) {
+        // This check prevents re-rendering while the project is updating.
+        // @todo check only the state and the title because it is enough to know
+        //  if anything substantial has changed
+        // This is needed because of the sloppy way the props are passed as a new object,
+        //  which should be refactored.
         return newState.isOpen !== this.state.isOpen ||
             newState.forceHide !== this.state.forceHide ||
             newProps.title !== this.props.title;
