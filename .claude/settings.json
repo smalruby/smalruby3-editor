@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__serena",
+      "Bash(docker compose run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "600000"
+  }
+}
