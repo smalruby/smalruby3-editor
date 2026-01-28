@@ -45,9 +45,6 @@ class ActionMenu extends React.Component {
     componentWillUnmount () {
         this.buttonRef.removeEventListener('touchstart', this.handleTouchStart);
         document.removeEventListener('touchstart', this.handleTouchOutside);
-        if (this.closeTimeoutId) {
-            clearTimeout(this.closeTimeoutId);
-        }
     }
     handleClosePopover () {
         this.closeTimeoutId = setTimeout(() => {
@@ -79,11 +76,6 @@ class ActionMenu extends React.Component {
         // for now all this work is to ensure the menu closes BEFORE the
         // (possibly slow) action is started.
         return event => {
-            if (this.closeTimeoutId) {
-                clearTimeout(this.closeTimeoutId);
-                this.closeTimeoutId = null;
-            }
-
             ReactTooltip.hide();
             if (fn) fn(event);
             // Blur the button so it does not keep focus after being clicked
