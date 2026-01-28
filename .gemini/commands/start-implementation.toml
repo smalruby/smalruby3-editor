@@ -1,0 +1,16 @@
+# .gemini/commands/start-implementation.toml
+
+description="Issueの内容に従って実装を開始するタスク"
+prompt = """
+{{args}} の GitHub Issueの内容を理解して実装します。
+
+https://github.com/smalruby/smalruby3-editor/issues/1 のように末尾がIssueのIDの場合はIssueの説明を元に実装します。
+
+また、 https://github.com/smalruby/smalruby3-editor/issues/20#issuecomment-3753821153 のように末尾にコメントへのハッシュを含む場合は、Issueの説明と当該コメントを読み込んで実装します。
+コメントを読み込んだ際、すべてのコメントを読み込むことになるため、その中から指定されたコメントを見つけて、その内容だけを実装します。他の部分を実装しないようにし、できるだけ、なにを実装してほしいのか、実装する予定なのかをインタビューします。
+
+Please use gh command to fetch the issue contents and operation GitHub.
+
+TDDで実装します。
+実装後は、lint, commit, push, make PR.
+"""
