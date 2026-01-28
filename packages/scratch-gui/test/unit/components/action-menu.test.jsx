@@ -41,28 +41,29 @@ describe('ActionMenu Component', () => {
         jest.clearAllMocks();
     });
 
-    test('clickDelayer keeps forceHide true for CLOSE_DELAY', () => {
+    test('clickDelayer sets forceHide and keeps it until re-hover', () => {
         jest.useFakeTimers();
         const {container} = renderWithIntl(<ActionMenu {...defaultProps} />);
         const mainButton = container.querySelector('.main-button');
-        
-        fireEvent.click(mainButton);
-        
         const menuContainer = container.firstChild;
-        expect(menuContainer.classList.contains('force-hidden')).toBe(true);
-        
-        // It should still be true after 100ms (buggy version would be false)
-        act(() => {
-            jest.advanceTimersByTime(100);
-        });
-        expect(menuContainer.classList.contains('force-hidden')).toBe(true);
-        
-        // It should be false after 300ms
-        act(() => {
-            jest.advanceTimersByTime(250); // Total 350ms
-        });
+
+        // 1. Initial state
         expect(menuContainer.classList.contains('force-hidden')).toBe(false);
-        
+
+        // 2. Click button
+        fireEvent.click(mainButton);
+        expect(menuContainer.classList.contains('force-hidden')).toBe(true);
+
+        // 3. Should stay force-hidden even after long delay
+        act(() => {
+            jest.advanceTimersByTime(1000);
+        });
+        expect(menuContainer.classList.contains('force-hidden')).toBe(true);
+
+        // 4. Re-hover should reset force-hidden
+        fireEvent.mouseEnter(menuContainer);
+        expect(menuContainer.classList.contains('force-hidden')).toBe(false);
+
         jest.useRealTimers();
     });
 

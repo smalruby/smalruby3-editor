@@ -25,6 +25,8 @@ class ActionMenu extends React.Component {
             forceHide: false
         };
         this.mainTooltipId = `tooltip-${Math.random()}`;
+        // Flag to ignore mouse leave events after click (React 18 phantom events)
+        this.ignoreMouseLeave = false;
     }
     componentDidMount () {
         // Touch start on the main button is caught to trigger open and not click
@@ -33,11 +35,6 @@ class ActionMenu extends React.Component {
         document.addEventListener('touchstart', this.handleTouchOutside);
     }
     shouldComponentUpdate (newProps, newState) {
-        // This check prevents re-rendering while the project is updating.
-        // @todo check only the state and the title because it is enough to know
-        //  if anything substantial has changed
-        // This is needed because of the sloppy way the props are passed as a new object,
-        //  which should be refactored.
         return newState.isOpen !== this.state.isOpen ||
             newState.forceHide !== this.state.forceHide ||
             newProps.title !== this.props.title;
@@ -48,9 +45,16 @@ class ActionMenu extends React.Component {
         if (this.closeTimeoutId) {
             clearTimeout(this.closeTimeoutId);
         }
+        // Reset flag on unmount
+        this.ignoreMouseLeave = false;
     }
     handleClosePopover () {
+        // Ignore mouse leave events if a click just happened (React 18 phantom events)
+        if (this.ignoreMouseLeave) {
+            return;
+        }
         this.closeTimeoutId = setTimeout(() => {
+            ReactTooltip.hide();
             this.setState({isOpen: false});
             this.closeTimeoutId = null;
         }, CLOSE_DELAY);
@@ -61,6 +65,8 @@ class ActionMenu extends React.Component {
             clearTimeout(this.closeTimeoutId);
             this.closeTimeoutId = null;
         } else if (!this.state.isOpen) {
+            // Reset flags when menu is reopened (user hovered again after click)
+            this.ignoreMouseLeave = false;
             this.setState({
                 isOpen: true,
                 forceHide: false
@@ -79,14 +85,22 @@ class ActionMenu extends React.Component {
         // for now all this work is to ensure the menu closes BEFORE the
         // (possibly slow) action is started.
         return event => {
+            if (this.closeTimeoutId) {
+                clearTimeout(this.closeTimeoutId);
+                this.closeTimeoutId = null;
+            }
+            // Ignore subsequent mouse leave events (React 18 phantom events during modal display)
+            this.ignoreMouseLeave = true;
+
             ReactTooltip.hide();
             if (fn) fn(event);
             // Blur the button so it does not keep focus after being clicked
             // This prevents keyboard events from triggering the button
             this.buttonRef.blur();
-            this.setState({forceHide: true, isOpen: false}, () => {
-                setTimeout(() => this.setState({forceHide: false}), CLOSE_DELAY);
-            });
+            this.setState({forceHide: true, isOpen: false});
+            // Don't reset forceHide automatically - wait for user to move mouse away and back
+            // This prevents tooltip from reappearing while modal is open
+            // forceHide will be reset in handleToggleOpenState when user hovers again
         };
     }
     handleTouchStart (e) {
@@ -159,7 +173,7 @@ class ActionMenu extends React.Component {
                                         })}
                                         data-for={tooltipId}
                                         data-tip={title}
-                                        onClick={hasFileInput ? handleClick : this.clickDelayer(handleClick)}
+                                        onClick={this.clickDelayer(handleClick)}
                                     >
                                         <img
                                             className={styles.moreIcon}
