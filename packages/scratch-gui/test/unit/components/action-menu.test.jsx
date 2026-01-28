@@ -69,23 +69,28 @@ describe('ActionMenu Component', () => {
 
     test('componentWillUnmount clears timeout', () => {
         jest.useFakeTimers();
-        // Use act to wrap rendering and interaction
-        let wrapper;
-        wrapper = renderWithIntl(<ActionMenu {...defaultProps} />);
-        
-        // We need to access the instance to set the timeout or trigger the method
-        // But with @testing-library/react it's better to trigger events.
-        // The issue might be that fireEvent.mouseLeave doesn't trigger the internal state correctly in JSDOM
-        // Let's try to advance timers if needed, but here we just want to see if unmount calls clearTimeout.
-        
-        const menuContainer = wrapper.container.firstChild;
-        fireEvent.mouseLeave(menuContainer);
-        
         const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
         
-        wrapper.unmount();
+        let wrapper;
+        act(() => {
+            wrapper = renderWithIntl(<ActionMenu {...defaultProps} />);
+        });
+        
+        const menuContainer = wrapper.container.querySelector('.menu-container');
+        
+        // Trigger mouseLeave to set closeTimeoutId
+        act(() => {
+            fireEvent.mouseLeave(menuContainer);
+        });
+        
+        // Unmount should clear the timeout
+        act(() => {
+            wrapper.unmount();
+        });
         
         expect(clearTimeoutSpy).toHaveBeenCalled();
+        
+        clearTimeoutSpy.mockRestore();
         jest.useRealTimers();
     });
 });
