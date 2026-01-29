@@ -21,4 +21,3 @@ Before considering a task complete and preparing a Pull Request:
    ```
 6. **Git Status**: Check for untracked files and ensure all changes are staged.
 7. **Commit**: Use Conventional Commits.
-8. **Submodule Reference** (if applicable): Ensure that if you modified a submodule, the parent repository reference is updated.
