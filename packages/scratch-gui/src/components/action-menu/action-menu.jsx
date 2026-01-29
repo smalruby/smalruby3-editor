@@ -45,9 +45,6 @@ class ActionMenu extends React.Component {
     componentWillUnmount () {
         this.buttonRef.removeEventListener('touchstart', this.handleTouchStart);
         document.removeEventListener('touchstart', this.handleTouchOutside);
-        if (this.closeTimeoutId) {
-            clearTimeout(this.closeTimeoutId);
-        }
     }
     handleClosePopover () {
         this.closeTimeoutId = setTimeout(() => {
