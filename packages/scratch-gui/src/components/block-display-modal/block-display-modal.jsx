@@ -10,7 +10,7 @@ import {CATEGORY_BLOCKS, generateBlockOrder} from '../../lib/block-utils';
 
 import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
-import blockDisplayIcon from '../menu-bar/block-display-icon.svg';
+import blockDisplayIcon from '../menu-bar/block-display-icon.png';
 import copyIcon from './icon--clipboard-copy.svg';
 import fileIcon from '../menu-bar/icon--file.svg';
 
@@ -268,11 +268,11 @@ class BlockDisplayModal extends React.Component {
         if (!stage) return;
 
         const commentText = `only_blocks=${onlyBlocks}`;
-        
+
         // Check for existing only_blocks comment
         const comments = stage.comments;
         let existingComment = null;
-        
+
         // Find the first comment containing 'only_blocks='
         for (const commentId in comments) {
             const comment = comments[commentId];
@@ -281,7 +281,7 @@ class BlockDisplayModal extends React.Component {
                 break;
             }
         }
-        
+
         if (existingComment) {
             // Update existing comment
             existingComment.text = commentText;
@@ -301,7 +301,7 @@ class BlockDisplayModal extends React.Component {
         }
 
         vm.emitWorkspaceUpdate();
-        
+
         // Mark project as changed
         this.props.onSetProjectChanged();
     }

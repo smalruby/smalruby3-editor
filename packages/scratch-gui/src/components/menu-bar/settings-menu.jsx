@@ -21,7 +21,7 @@ import styles from './settings-menu.css';
 import dropdownCaret from './dropdown-caret.svg';
 import settingsIcon from './icon--settings.svg';
 import themeIcon from '../../lib/assets/icon--theme.svg';
-import blockDisplayIcon from './block-display-icon.svg';
+import blockDisplayIcon from './block-display-icon.png';
 import {colorModeMenuOpen, themeMenuOpen, openColorModeMenu, openThemeMenu} from '../../reducers/menus.js';
 
 const enabledColorModes = [DEFAULT_MODE, HIGH_CONTRAST_MODE];
