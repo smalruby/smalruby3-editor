@@ -117,9 +117,22 @@ jobs:
           EOF
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(npm show @playwright/test version)" >> $GITHUB_ENV
+      - name: Cache Playwright binaries
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
       - name: Install Playwright
         run: npx playwright install chromium --with-deps
-      - name: Run Build
+      - name: Build Dependencies
+        env:
+          NODE_ENV: production
+        run: npm run build --workspace=packages/scratch-vm --workspace=packages/scratch-render --workspace=packages/scratch-svg-renderer
+      - name: Build GUI
         env:
           NODE_ENV: production
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
@@ -130,7 +143,7 @@ jobs:
           MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
           MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
           MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
-        run: npm run build
+        run: npm run build:www --workspace=packages/scratch-gui
       - name: Store Build Output
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
@@ -153,7 +166,7 @@ jobs:
           JEST_JUNIT_OUTPUT_DIR: packages/scratch-gui/test-results
           TAP_REPORTER: junit
           TAP_REPORTER_FILE: test-results/integration-tests-results.xml
-        run: npm run test:integration
+        run: npm run test:integration -- --maxWorkers=$(nproc)
       - name: Store Test Results
         if: always() # Even if tests fail
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
