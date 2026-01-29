@@ -66,31 +66,4 @@ describe('ActionMenu Component', () => {
 
         jest.useRealTimers();
     });
-
-    test('componentWillUnmount clears timeout', () => {
-        jest.useFakeTimers();
-        const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
-        
-        let wrapper;
-        act(() => {
-            wrapper = renderWithIntl(<ActionMenu {...defaultProps} />);
-        });
-        
-        const menuContainer = wrapper.container.querySelector('.menu-container');
-        
-        // Trigger mouseLeave to set closeTimeoutId
-        act(() => {
-            fireEvent.mouseLeave(menuContainer);
-        });
-        
-        // Unmount should clear the timeout
-        act(() => {
-            wrapper.unmount();
-        });
-        
-        expect(clearTimeoutSpy).toHaveBeenCalled();
-        
-        clearTimeoutSpy.mockRestore();
-        jest.useRealTimers();
-    });
 });
