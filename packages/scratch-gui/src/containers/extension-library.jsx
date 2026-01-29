@@ -68,9 +68,11 @@ class ExtensionLibrary extends React.PureComponent {
         }
     }
     render () {
-        const {
-            showAllExtensions
-        } = this.props;
+        const query = new URLSearchParams(window.location.search);
+        const showAllExtensionsParam = query.get('showAllExtensions');
+        const showAllExtensions = showAllExtensionsParam === 'true' ? true :
+            showAllExtensionsParam === 'false' ? false :
+                this.props.showAllExtensions;
 
         const extensionLibraryThumbnailData = extensionLibraryContent
             .filter(extension => {
