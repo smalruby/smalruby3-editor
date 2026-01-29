@@ -1,0 +1,11 @@
+# .gemini/commands/commit-local-changes.toml
+
+description="ローカルの修正をコミットする"
+prompt = """
+Understand my local changes.
+もし現在のブランチが develop であれば、新しいブランチを作成する。
+lint, commit, push.
+まだ PR を作成していなければ PR を作成する。
+
+Use the `gh` command to fetch issue content and interact with GitHub.
+"""

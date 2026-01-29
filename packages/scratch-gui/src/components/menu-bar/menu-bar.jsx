@@ -1002,6 +1002,9 @@ class MenuBar extends React.Component {
                                 <FormattedMessage {...ariaMessages.debug} />
                             </span>
                         </div>
+                    </div>
+                    <Divider className={classNames(styles.divider)} />
+                    <div className={styles.fileGroup}>
                         {(() => {
                             const meshV2Status = this.getMeshV2Status();
                             if (!meshV2Status.loaded) return null;
