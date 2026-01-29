@@ -68,20 +68,12 @@ class ExtensionLibrary extends React.PureComponent {
         }
     }
     render () {
-        const query = new URLSearchParams(window.location.search);
-        const extensionsParam = query.get('extensions') || '';
-        const showMeshV2 = extensionsParam.split(',').includes('meshV2');
-
-        const showAllExtensionsParam = query.get('showAllExtensions');
-        const showAllExtensions = showAllExtensionsParam === 'true' ? true :
-            showAllExtensionsParam === 'false' ? false :
-                this.props.showAllExtensions;
+        const {
+            showAllExtensions
+        } = this.props;
 
         const extensionLibraryThumbnailData = extensionLibraryContent
             .filter(extension => {
-                if (extension.extensionId === 'meshV2' && !showMeshV2) {
-                    return false;
-                }
                 if (!showAllExtensions && extension.defaultHidden) {
                     return false;
                 }
