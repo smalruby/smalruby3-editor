@@ -81,9 +81,10 @@ class ActionMenu extends React.Component {
             // Blur the button so it does not keep focus after being clicked
             // This prevents keyboard events from triggering the button
             this.buttonRef.blur();
-            this.setState({forceHide: true, isOpen: false}, () => {
-                setTimeout(() => this.setState({forceHide: false}));
-            });
+            this.setState({forceHide: true, isOpen: false});
+            // Don't reset forceHide automatically - wait for user to move mouse away and back
+            // This prevents tooltip from reappearing while modal is open
+            // forceHide will be reset in handleToggleOpenState when user hovers again
         };
     }
     handleTouchStart (e) {
@@ -156,7 +157,7 @@ class ActionMenu extends React.Component {
                                         })}
                                         data-for={tooltipId}
                                         data-tip={title}
-                                        onClick={hasFileInput ? handleClick : this.clickDelayer(handleClick)}
+                                        onClick={this.clickDelayer(handleClick)}
                                     >
                                         <img
                                             className={styles.moreIcon}
