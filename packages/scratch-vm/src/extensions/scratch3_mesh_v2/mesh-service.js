@@ -155,6 +155,11 @@ class MeshV2Service {
 
         this.disconnectCallback = null;
 
+        // === Smalruby: Start of network filter detection feature ===
+        // Store last error for network filter detection (HTTP 503 from proxy like i-Filter)
+        this.lastError = null;
+        // === Smalruby: End of network filter detection feature ===
+
         // Cost tracking
         this.costTracking = {
             connectionStartTime: null,
@@ -201,6 +206,36 @@ class MeshV2Service {
 
         return null;
     }
+
+    // === Smalruby: Start of network filter detection feature ===
+    /**
+     * Check if the error is caused by network filtering (503 Service Unavailable).
+     * Network filters (e.g., i-Filter proxy) block requests before reaching AppSync
+     * and return HTTP 503. The error payload content is undefined and depends on
+     * the proxy implementation, so we can ONLY rely on the HTTP status code.
+     * @param {Error} error - The error to check.
+     * @returns {boolean} True if the error is caused by network filtering.
+     */
+    isNetworkFilterError (error) {
+        if (!error) return false;
+
+        // Primary check: HTTP status code 503 from network error
+        // This is the ONLY reliable indicator when blocked by proxy (e.g., i-Filter)
+        if (error.networkError && error.networkError.statusCode === 503) {
+            log.info('Mesh V2: Detected network filter error (HTTP 503)');
+            return true;
+        }
+
+        // Fallback: Check for 503 in error message (less reliable)
+        // Some GraphQL clients may include status code in message
+        if (error.message && error.message.includes('503')) {
+            log.info('Mesh V2: Detected network filter error (503 in message)');
+            return true;
+        }
+
+        return false;
+    }
+    // === Smalruby: End of network filter detection feature ===
 
     setDisconnectCallback (callback) {
         this.disconnectCallback = callback;
@@ -335,6 +370,9 @@ class MeshV2Service {
             return group;
         } catch (error) {
             log.error(`Mesh V2: Failed to create group: ${error}`);
+            // === Smalruby: Store error for network filter detection ===
+            this.lastError = error;
+            // === Smalruby: End ===
             throw error;
         }
     }
@@ -360,6 +398,9 @@ class MeshV2Service {
             return groups;
         } catch (error) {
             log.error(`Mesh V2: Failed to list groups: ${error}`);
+            // === Smalruby: Store error for network filter detection ===
+            this.lastError = error;
+            // === Smalruby: End ===
             throw error;
         }
     }
@@ -413,6 +454,9 @@ class MeshV2Service {
             return node;
         } catch (error) {
             log.error(`Mesh V2: Failed to join group: ${error}`);
+            // === Smalruby: Store error for network filter detection ===
+            this.lastError = error;
+            // === Smalruby: End ===
             throw error;
         }
     }

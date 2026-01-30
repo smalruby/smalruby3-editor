@@ -1,0 +1,155 @@
+// === Smalruby: Network filter detection feature ===
+// This component displays a message when meshV2 is blocked by network filter (HTTP 503)
+// such as i-Filter proxy in schools or enterprises.
+
+import {FormattedMessage} from 'react-intl';
+import PropTypes from 'prop-types';
+import classNames from 'classnames';
+import React from 'react';
+
+import Box from '../box/box.jsx';
+import Dots from './dots.jsx';
+import helpIcon from './icons/help.svg';
+import backIcon from './icons/back.svg';
+import copyIcon from './icons/copy.svg';
+
+import styles from './connection-modal.css';
+
+const NetworkFilteredStep = props => {
+    const [copied, setCopied] = React.useState(false);
+
+    const networkInfoMessage = `スモウルビーのメッシュ機能を使うため、ネットワークの制限を解除してください。
+
+利用するネットワークの情報
+プロトコル: https, wss (WebSocket)
+ホスト: api.smalruby.app, graphql.api.smalruby.app
+URL: https://graphql.api.smalruby.app/, wss://graphql.api.smalruby.app/`;
+
+    const handleCopy = React.useCallback(() => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(networkInfoMessage)
+                .then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                })
+                .catch(() => {
+                    // Silently fail - user can manually copy
+                });
+        } else {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = networkInfoMessage;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } catch (e) {
+                // Silently fail - user can manually copy
+            }
+            document.body.removeChild(textArea);
+        }
+    }, [networkInfoMessage]);
+
+    return (
+        <Box className={styles.body}>
+            <Box className={styles.activityArea}>
+                <Box className={styles.centeredRow}>
+                    <div className={styles.peripheralActivity}>
+                        <img
+                            className={styles.peripheralActivityIcon}
+                            src={props.connectionIconURL}
+                        />
+                    </div>
+                </Box>
+            </Box>
+            <Box className={styles.bottomArea}>
+                <div className={classNames(styles.bottomAreaItem, styles.instructions)}>
+                    <FormattedMessage
+                        defaultMessage="ネットワークの制限により、現在、あたらしいメッシュ機能が使えません。{br}ネットワーク管理者に次の情報を伝え、制限の解除をご依頼ください。"
+                        description="Message when mesh v2 is blocked by network filter"
+                        id="gui.connection.networkFiltered.message"
+                        values={{
+                            br: <br />
+                        }}
+                    />
+                </div>
+                <div className={classNames(styles.bottomAreaItem, styles.networkInfo)}>
+                    <pre className={styles.networkInfoText}>
+                        {networkInfoMessage}
+                    </pre>
+                    <button
+                        className={styles.copyButton}
+                        onClick={handleCopy}
+                    >
+                        <img
+                            className={styles.buttonIconLeft}
+                            src={copyIcon}
+                        />
+                        {copied ? (
+                            <FormattedMessage
+                                defaultMessage="Copied!"
+                                description="Message shown after copying to clipboard"
+                                id="gui.connection.networkFiltered.copied"
+                            />
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Copy to clipboard"
+                                description="Button to copy network info to clipboard"
+                                id="gui.connection.networkFiltered.copyButton"
+                            />
+                        )}
+                    </button>
+                </div>
+                <Dots
+                    error
+                    className={styles.bottomAreaItem}
+                    total={3}
+                />
+                <Box className={classNames(styles.bottomAreaItem, styles.buttonRow)}>
+                    <button
+                        className={styles.connectionButton}
+                        onClick={props.onScanning}
+                    >
+                        <img
+                            className={classNames(styles.buttonIconLeft, styles.buttonIconBack)}
+                            src={backIcon}
+                        />
+                        <FormattedMessage
+                            defaultMessage="Try again"
+                            description="Button to retry connection"
+                            id="gui.connection.networkFiltered.tryagainbutton"
+                        />
+                    </button>
+                    <button
+                        className={styles.connectionButton}
+                        onClick={props.onHelp}
+                    >
+                        <img
+                            className={styles.buttonIconLeft}
+                            src={helpIcon}
+                        />
+                        <FormattedMessage
+                            defaultMessage="Help"
+                            description="Button to view help content"
+                            id="gui.connection.networkFiltered.helpbutton"
+                        />
+                    </button>
+                </Box>
+            </Box>
+        </Box>
+    );
+};
+
+NetworkFilteredStep.propTypes = {
+    connectionIconURL: PropTypes.string.isRequired,
+    onHelp: PropTypes.func,
+    onScanning: PropTypes.func
+};
+
+export default NetworkFilteredStep;
+
+// === Smalruby: End of network filter detection feature ===

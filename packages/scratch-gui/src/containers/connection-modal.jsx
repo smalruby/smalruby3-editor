@@ -72,7 +72,23 @@ class ConnectionModal extends React.Component {
             this.props.onCancel();
         }
     }
-    handleError () {
+    handleError (event) {
+        // === Smalruby: Start of network filter detection feature ===
+        // Check if this is a network filter error (HTTP 503 from proxy like i-Filter)
+        if (event && event.errorType === 'networkFilter' &&
+            this.props.extensionId === 'meshV2') {
+            this.setState({
+                phase: PHASES.networkFiltered
+            });
+            analytics.event({
+                category: 'extensions',
+                action: 'network filter error',
+                label: this.props.extensionId
+            });
+            return;
+        }
+        // === Smalruby: End of network filter detection feature ===
+
         // Assume errors that come in during scanning phase are the result of not
         // having scratch-link installed.
         if (this.state.phase === PHASES.scanning || this.state.phase === PHASES.unavailable) {

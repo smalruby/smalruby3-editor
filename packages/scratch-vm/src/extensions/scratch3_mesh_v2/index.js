@@ -66,8 +66,19 @@ class Scratch3MeshV2Blocks {
             createClient();
             this.meshService = new MeshV2Service(this, this.nodeId, this.domain);
             this.meshService.setDisconnectCallback(reason => {
+                // === Smalruby: Start of network filter detection feature ===
+                // Check if error is caused by network filter (HTTP 503 from proxy like i-Filter)
+                const errorType = this.meshService &&
+                    this.meshService.lastError &&
+                    this.meshService.isNetworkFilterError(this.meshService.lastError) ?
+                    'networkFilter' :
+                    null;
+                // === Smalruby: End of network filter detection feature ===
+
                 if (reason === 'GroupNotFound' || reason === 'expired') {
-                    this.setConnectionState('error');
+                    // === Smalruby: Pass errorType to setConnectionState ===
+                    this.setConnectionState('error', errorType);
+                    // === Smalruby: End ===
                 } else {
                     this.setConnectionState('disconnected');
                 }
@@ -283,10 +294,12 @@ class Scratch3MeshV2Blocks {
     /**
      * Set the connection state and emit appropriate events.
      * @param {string} state - The new connection state ('disconnected', 'scanning', 'connecting', 'connected', 'error')
+     * @param {string|null} errorType - Optional error type ('networkFilter' when blocked by proxy like i-Filter)
      */
-    setConnectionState (state) {
+    setConnectionState (state, errorType = null) {
         const prevState = this.connectionState;
-        log.info(`Mesh V2: Connection state transition: ${prevState} -> ${state}`);
+        const errorInfo = errorType ? ` (errorType: ${errorType})` : '';
+        log.info(`Mesh V2: Connection state transition: ${prevState} -> ${state}${errorInfo}`);
         this.connectionState = state;
 
         if (state !== 'disconnected') {
@@ -298,10 +311,13 @@ class Scratch3MeshV2Blocks {
             this.runtime.emit(this.runtime.constructor.PERIPHERAL_CONNECTED);
             break;
         case 'error':
+            // === Smalruby: Include errorType in event for GUI to handle network filter errors ===
             // Emit error event only, do not emit PERIPHERAL_DISCONNECTED
             this.runtime.emit(this.runtime.constructor.PERIPHERAL_REQUEST_ERROR, {
-                extensionId: Scratch3MeshV2Blocks.EXTENSION_ID
+                extensionId: Scratch3MeshV2Blocks.EXTENSION_ID,
+                errorType: errorType // 'networkFilter' when blocked by proxy (e.g., i-Filter)
             });
+            // === Smalruby: End ===
             if (prevState === 'connected' && !this.isExplicitDisconnect) {
                 this.runtime.emit(this.runtime.constructor.PERIPHERAL_CONNECTION_LOST_ERROR, {
                     extensionId: Scratch3MeshV2Blocks.EXTENSION_ID
