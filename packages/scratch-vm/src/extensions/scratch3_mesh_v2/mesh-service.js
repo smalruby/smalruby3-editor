@@ -221,7 +221,16 @@ class MeshV2Service {
      * @returns {boolean} True if the error is caused by network filtering.
      */
     isNetworkFilterError (error) {
-        if (!error) return false;
+        if (!error) {
+            log.debug('Mesh V2: isNetworkFilterError called with null/undefined error');
+            return false;
+        }
+
+        log.debug('Mesh V2: Checking if error is network filter error:', {
+            hasNetworkError: !!error.networkError,
+            statusCode: error.networkError?.statusCode,
+            message: error.message
+        });
 
         // Primary check: HTTP status code 503 from network error
         // This is the ONLY reliable indicator when blocked by proxy (e.g., i-Filter)
@@ -237,6 +246,7 @@ class MeshV2Service {
             return true;
         }
 
+        log.debug('Mesh V2: Error is NOT a network filter error');
         return false;
     }
 

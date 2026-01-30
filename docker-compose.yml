@@ -13,6 +13,7 @@ services:
       - MESH_AWS_REGION
       - MESH_DATA_UPDATE_INTERVAL_MS
       - MESH_EVENT_BATCH_INTERVAL_MS
+      - MESH_NETWORK_FILTER
     working_dir: /app
     shm_size: '4gb'
     command: npm start

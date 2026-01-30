@@ -241,6 +241,16 @@ class Scratch3MeshV2Blocks {
             /* istanbul ignore next */
             .catch(err => {
                 log.error(`Mesh V2: Scan failed: ${err}`);
+                // Check if error is caused by network filter (HTTP 503)
+                log.debug('Mesh V2: Checking lastError:', this.meshService?.lastError);
+                const errorType = this.meshService &&
+                    this.meshService.lastError &&
+                    this.meshService.isNetworkFilterError(this.meshService.lastError) ?
+                    'networkFilter' :
+                    null;
+                log.info(`Mesh V2: Setting error state with errorType: ${errorType}`);
+                // Set error state to trigger error UI
+                this.setConnectionState('error', errorType);
             });
     }
 
