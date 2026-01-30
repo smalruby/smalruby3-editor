@@ -66,19 +66,16 @@ class Scratch3MeshV2Blocks {
             createClient();
             this.meshService = new MeshV2Service(this, this.nodeId, this.domain);
             this.meshService.setDisconnectCallback(reason => {
-                // === Smalruby: Start of network filter detection feature ===
                 // Check if error is caused by network filter (HTTP 503 from proxy like i-Filter)
                 const errorType = this.meshService &&
                     this.meshService.lastError &&
                     this.meshService.isNetworkFilterError(this.meshService.lastError) ?
                     'networkFilter' :
                     null;
-                // === Smalruby: End of network filter detection feature ===
 
                 if (reason === 'GroupNotFound' || reason === 'expired') {
-                    // === Smalruby: Pass errorType to setConnectionState ===
+                    // Pass errorType to setConnectionState for network filter error handling
                     this.setConnectionState('error', errorType);
-                    // === Smalruby: End ===
                 } else {
                     this.setConnectionState('disconnected');
                 }
@@ -311,13 +308,11 @@ class Scratch3MeshV2Blocks {
             this.runtime.emit(this.runtime.constructor.PERIPHERAL_CONNECTED);
             break;
         case 'error':
-            // === Smalruby: Include errorType in event for GUI to handle network filter errors ===
-            // Emit error event only, do not emit PERIPHERAL_DISCONNECTED
+            // Emit error event with errorType for GUI to handle network filter errors
             this.runtime.emit(this.runtime.constructor.PERIPHERAL_REQUEST_ERROR, {
                 extensionId: Scratch3MeshV2Blocks.EXTENSION_ID,
                 errorType: errorType // 'networkFilter' when blocked by proxy (e.g., i-Filter)
             });
-            // === Smalruby: End ===
             if (prevState === 'connected' && !this.isExplicitDisconnect) {
                 this.runtime.emit(this.runtime.constructor.PERIPHERAL_CONNECTION_LOST_ERROR, {
                     extensionId: Scratch3MeshV2Blocks.EXTENSION_ID

@@ -155,10 +155,15 @@ class MeshV2Service {
 
         this.disconnectCallback = null;
 
-        // === Smalruby: Start of network filter detection feature ===
         // Store last error for network filter detection (HTTP 503 from proxy like i-Filter)
         this.lastError = null;
-        // === Smalruby: End of network filter detection feature ===
+
+        // Test mode: Simulate network filter (HTTP 503) when MESH_NETWORK_FILTER=true
+        this.simulateNetworkFilter = process.env.MESH_NETWORK_FILTER === 'true';
+        if (this.simulateNetworkFilter) {
+            log.warn('Mesh V2: Network filter test mode enabled (MESH_NETWORK_FILTER=true)');
+            log.warn('Mesh V2: All GraphQL requests will return HTTP 503 for testing');
+        }
 
         // Cost tracking
         this.costTracking = {
@@ -207,7 +212,6 @@ class MeshV2Service {
         return null;
     }
 
-    // === Smalruby: Start of network filter detection feature ===
     /**
      * Check if the error is caused by network filtering (503 Service Unavailable).
      * Network filters (e.g., i-Filter proxy) block requests before reaching AppSync
@@ -235,7 +239,35 @@ class MeshV2Service {
 
         return false;
     }
-    // === Smalruby: End of network filter detection feature ===
+
+    /**
+     * Create a simulated HTTP 503 error for testing network filter detection.
+     * This simulates the error structure returned by i-Filter or similar proxies.
+     * @returns {Error} Error object with HTTP 503 structure.
+     * @private
+     */
+    _createSimulated503Error () {
+        const error = new Error('Network error: Service Unavailable');
+        error.networkError = {
+            statusCode: 503,
+            bodyText: 'Simulated network filter block (MESH_NETWORK_FILTER=true)'
+        };
+        error.graphQLErrors = [];
+        return error;
+    }
+
+    /**
+     * Check if network filter test mode is enabled and throw 503 error if so.
+     * @throws {Error} HTTP 503 error if MESH_NETWORK_FILTER=true.
+     * @private
+     */
+    _checkSimulateNetworkFilter () {
+        if (this.simulateNetworkFilter) {
+            const error = this._createSimulated503Error();
+            this.lastError = error;
+            throw error;
+        }
+    }
 
     setDisconnectCallback (callback) {
         this.disconnectCallback = callback;
@@ -313,6 +345,9 @@ class MeshV2Service {
         if (!this.client) throw new Error('Client not initialized');
 
         try {
+            // Simulate network filter (503) for testing when MESH_NETWORK_FILTER=true
+            this._checkSimulateNetworkFilter();
+
             if (!this.domain) {
                 await this.createDomain();
             }
@@ -370,9 +405,8 @@ class MeshV2Service {
             return group;
         } catch (error) {
             log.error(`Mesh V2: Failed to create group: ${error}`);
-            // === Smalruby: Store error for network filter detection ===
+            // Store error for network filter detection
             this.lastError = error;
-            // === Smalruby: End ===
             throw error;
         }
     }
@@ -381,6 +415,9 @@ class MeshV2Service {
         if (!this.client) throw new Error('Client not initialized');
 
         try {
+            // Simulate network filter (503) for testing when MESH_NETWORK_FILTER=true
+            this._checkSimulateNetworkFilter();
+
             if (!this.domain) {
                 await this.createDomain();
             }
@@ -398,9 +435,8 @@ class MeshV2Service {
             return groups;
         } catch (error) {
             log.error(`Mesh V2: Failed to list groups: ${error}`);
-            // === Smalruby: Store error for network filter detection ===
+            // Store error for network filter detection
             this.lastError = error;
-            // === Smalruby: End ===
             throw error;
         }
     }
@@ -409,6 +445,9 @@ class MeshV2Service {
         if (!this.client) throw new Error('Client not initialized');
 
         try {
+            // Simulate network filter (503) for testing when MESH_NETWORK_FILTER=true
+            this._checkSimulateNetworkFilter();
+
             this.costTracking.mutationCount++;
             this.lastFetchTime = new Date().toISOString();
             log.info(`Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before joinGroup)`);
@@ -454,9 +493,8 @@ class MeshV2Service {
             return node;
         } catch (error) {
             log.error(`Mesh V2: Failed to join group: ${error}`);
-            // === Smalruby: Store error for network filter detection ===
+            // Store error for network filter detection
             this.lastError = error;
-            // === Smalruby: End ===
             throw error;
         }
     }
