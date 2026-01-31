@@ -255,6 +255,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.operator_round': '(　) をししゃごにゅう',
     'gui.smalruby3.blockDisplayModal.operator_mathop': '(　) の [ぜったいち▼]',
     'gui.extensionLibrary.showAllExtensions': 'すべてのかくちょうきのうをひょうじ',
+    'gui.extensionLibrary.meshDeprecationWarning': 'じゅうらいのメッシュかくちょうきのうは4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': 'うえにかたむいた',
@@ -266,5 +267,10 @@ export default {
     'gui.connection.updatePeripheral.microbitMoreUpdateSuccessful': 'MicrobitMoreのアップデートにせいこうしました！',
     'gui.connection.updatePeripheral.microbitMoreTiltToLightUp': 'micro:bitをかたむけて25このLEDをすべててんとうさせるとかんりょうです。',
     'gui.connection.scanning.updatePeripheralButton': 'アップデート',
-    'gui.connection.auto-scanning.updatePeripheralButton': 'アップデート'
+    'gui.connection.auto-scanning.updatePeripheralButton': 'アップデート',
+    'gui.connection.networkFiltered.message': 'あたらしいメッシュきのうがつかえません。{br}ネットワークかんりしゃにせいげんのかいじょをごいらいください。',
+    'gui.connection.networkFiltered.copied': 'コピーしました！',
+    'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
+    'gui.connection.networkFiltered.tryagainbutton': 'もういちどためす',
+    'gui.connection.networkFiltered.useLegacyMeshButton': 'じゅうらいのメッシュをつかう'
 };

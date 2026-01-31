@@ -4,6 +4,9 @@ const minilog = require('minilog');
 minilog.suggest.deny('vm', 'debug');
 minilog.suggest.deny('vm', 'info');
 
+// Force network filter test mode to be disabled in unit tests
+process.env.MESH_NETWORK_FILTER = 'false';
+
 const URLSearchParams = require('url').URLSearchParams;
 const MeshV2Blocks = require('../../src/extensions/scratch3_mesh_v2/index.js');
 const Variable = require('../../src/engine/variable');
@@ -239,7 +242,7 @@ test('Mesh V2 Blocks', t => {
         st.equal(events.length, 2);
         st.equal(events[0].event, 'PERIPHERAL_REQUEST_ERROR');
         st.equal(events[1].event, 'PERIPHERAL_DISCONNECTED');
-        st.same(events[0].data, {extensionId: 'meshV2'});
+        st.same(events[0].data, {extensionId: 'meshV2', errorType: null});
         st.same(events[1].data, {extensionId: 'meshV2'});
 
         st.end();

@@ -25,6 +25,13 @@ const messages = defineMessages({
         defaultMessage: 'Enter the URL of the extension',
         description: 'Prompt for unoffical extension url',
         id: 'gui.extensionLibrary.extensionUrl'
+    },
+    meshDeprecationWarning: {
+        defaultMessage: 'The legacy mesh extension can only be used until April 30. ' +
+            'If you want to continue using the legacy mesh extension, select OK. ' +
+            'Otherwise, if you want to use the new mesh extension, select Cancel.',
+        description: 'Warning message for legacy mesh extension deprecation',
+        id: 'gui.extensionLibrary.meshDeprecationWarning'
     }
 });
 
@@ -51,12 +58,24 @@ class ExtensionLibrary extends React.PureComponent {
         this.props.onToggleShowAllExtensions(event.target.checked);
     }
     handleItemSelect (item) {
-        const id = item.extensionId;
+        let id = item.extensionId;
         let url = item.extensionURL ? item.extensionURL : id;
         if (!item.disabled && !id) {
             // eslint-disable-next-line no-alert
             url = prompt(this.props.intl.formatMessage(messages.extensionUrl));
         }
+
+        // Special handling for legacy mesh extension
+        if (id === 'mesh' && !item.disabled) {
+            // eslint-disable-next-line no-alert
+            const useLegacyMesh = confirm(this.props.intl.formatMessage(messages.meshDeprecationWarning));
+            if (!useLegacyMesh) {
+                // User selected Cancel - use meshV2 instead
+                id = 'meshV2';
+                url = 'meshV2';
+            }
+        }
+
         if (id && !item.disabled) {
             if (this.props.vm.extensionManager.isExtensionLoaded(url)) {
                 this.props.onCategorySelected(id);

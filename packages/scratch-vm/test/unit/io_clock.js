@@ -20,18 +20,24 @@ test('cycle', t => {
     const c = new Clock(rt);
 
     t.ok(c.projectTimer() <= 0.1);
+
+    // Wait a small amount of time to ensure currentMSecs will be different
+    // when _step() is called, preventing flaky test failures
     setTimeout(() => {
-        c.resetProjectTimer();
+        rt._step();
+        t.ok(c.projectTimer() > 0);
+
         setTimeout(() => {
-            // The timer shouldn't advance until all threads have been stepped
-            t.ok(c.projectTimer() === 0);
-            c.pause();
-            t.ok(c.projectTimer() === 0);
-            c.resume();
-            t.ok(c.projectTimer() === 0);
-            t.end();
+            c.resetProjectTimer();
+            setTimeout(() => {
+                // The timer shouldn't advance until all threads have been stepped
+                t.ok(c.projectTimer() === 0);
+                c.pause();
+                t.ok(c.projectTimer() === 0);
+                c.resume();
+                t.ok(c.projectTimer() === 0);
+                t.end();
+            }, 100);
         }, 100);
-    }, 100);
-    rt._step();
-    t.ok(c.projectTimer() > 0);
+    }, 10);
 });

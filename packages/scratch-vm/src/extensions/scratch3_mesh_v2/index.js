@@ -66,8 +66,16 @@ class Scratch3MeshV2Blocks {
             createClient();
             this.meshService = new MeshV2Service(this, this.nodeId, this.domain);
             this.meshService.setDisconnectCallback(reason => {
+                // Check if error is caused by network filter (HTTP 503 from proxy like i-Filter)
+                const errorType = this.meshService &&
+                    this.meshService.lastError &&
+                    this.meshService.isNetworkFilterError(this.meshService.lastError) ?
+                    'networkFilter' :
+                    null;
+
                 if (reason === 'GroupNotFound' || reason === 'expired') {
-                    this.setConnectionState('error');
+                    // Pass errorType to setConnectionState for network filter error handling
+                    this.setConnectionState('error', errorType);
                 } else {
                     this.setConnectionState('disconnected');
                 }
@@ -233,6 +241,16 @@ class Scratch3MeshV2Blocks {
             /* istanbul ignore next */
             .catch(err => {
                 log.error(`Mesh V2: Scan failed: ${err}`);
+                // Check if error is caused by network filter (HTTP 503)
+                log.debug('Mesh V2: Checking lastError:', this.meshService?.lastError);
+                const errorType = this.meshService &&
+                    this.meshService.lastError &&
+                    this.meshService.isNetworkFilterError(this.meshService.lastError) ?
+                    'networkFilter' :
+                    null;
+                log.info(`Mesh V2: Setting error state with errorType: ${errorType}`);
+                // Set error state to trigger error UI
+                this.setConnectionState('error', errorType);
             });
     }
 
@@ -283,10 +301,12 @@ class Scratch3MeshV2Blocks {
     /**
      * Set the connection state and emit appropriate events.
      * @param {string} state - The new connection state ('disconnected', 'scanning', 'connecting', 'connected', 'error')
+     * @param {string|null} errorType - Optional error type ('networkFilter' when blocked by proxy like i-Filter)
      */
-    setConnectionState (state) {
+    setConnectionState (state, errorType = null) {
         const prevState = this.connectionState;
-        log.info(`Mesh V2: Connection state transition: ${prevState} -> ${state}`);
+        const errorInfo = errorType ? ` (errorType: ${errorType})` : '';
+        log.info(`Mesh V2: Connection state transition: ${prevState} -> ${state}${errorInfo}`);
         this.connectionState = state;
 
         if (state !== 'disconnected') {
@@ -298,9 +318,10 @@ class Scratch3MeshV2Blocks {
             this.runtime.emit(this.runtime.constructor.PERIPHERAL_CONNECTED);
             break;
         case 'error':
-            // Emit error event only, do not emit PERIPHERAL_DISCONNECTED
+            // Emit error event with errorType for GUI to handle network filter errors
             this.runtime.emit(this.runtime.constructor.PERIPHERAL_REQUEST_ERROR, {
-                extensionId: Scratch3MeshV2Blocks.EXTENSION_ID
+                extensionId: Scratch3MeshV2Blocks.EXTENSION_ID,
+                errorType: errorType // 'networkFilter' when blocked by proxy (e.g., i-Filter)
             });
             if (prevState === 'connected' && !this.isExplicitDisconnect) {
                 this.runtime.emit(this.runtime.constructor.PERIPHERAL_CONNECTION_LOST_ERROR, {

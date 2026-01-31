@@ -7,7 +7,8 @@ import analytics from '../lib/analytics';
 import extensionData from '../lib/libraries/extensions/index.jsx';
 import {connect} from 'react-redux';
 
-import {closeConnectionModal} from '../reducers/modals';
+import {closeConnectionModal, openConnectionModal} from '../reducers/modals';
+import {setConnectionModalExtensionId} from '../reducers/connection-modal';
 import {isMicroBitUpdateSupported, selectAndUpdateMicroBit} from '../lib/microbit-update';
 
 class ConnectionModal extends React.Component {
@@ -22,7 +23,8 @@ class ConnectionModal extends React.Component {
             'handleError',
             'handleHelp',
             'handleSendUpdate',
-            'handleUpdatePeripheral'
+            'handleUpdatePeripheral',
+            'handleUseLegacyMesh'
         ]);
         this.state = {
             extension: extensionData.find(ext => ext.extensionId === props.extensionId),
@@ -72,7 +74,21 @@ class ConnectionModal extends React.Component {
             this.props.onCancel();
         }
     }
-    handleError () {
+    handleError (event) {
+        // Check if this is a network filter error (HTTP 503 from proxy like i-Filter)
+        if (event && event.errorType === 'networkFilter' &&
+            this.props.extensionId === 'meshV2') {
+            this.setState({
+                phase: PHASES.networkFiltered
+            });
+            analytics.event({
+                category: 'extensions',
+                action: 'network filter error',
+                label: this.props.extensionId
+            });
+            return;
+        }
+
         // Assume errors that come in during scanning phase are the result of not
         // having scratch-link installed.
         if (this.state.phase === PHASES.scanning || this.state.phase === PHASES.unavailable) {
@@ -133,6 +149,29 @@ class ConnectionModal extends React.Component {
         // TODO: get this functionality from the extension
         return selectAndUpdateMicroBit(progressCallback);
     }
+    handleUseLegacyMesh () {
+        const meshExtensionId = 'mesh';
+
+        analytics.event({
+            category: 'extensions',
+            action: 'use legacy mesh from network filter error',
+            label: this.props.extensionId
+        });
+
+        // Close current modal first
+        this.props.onCancel();
+
+        // Wait for modal to close before loading mesh extension
+        setTimeout(() => {
+            // Load legacy mesh extension if not already loaded
+            if (!this.props.vm.extensionManager.isExtensionLoaded(meshExtensionId)) {
+                this.props.vm.extensionManager.loadExtensionURL(meshExtensionId);
+            }
+
+            // Open connection modal for mesh extension
+            this.props.onUseLegacyMesh(meshExtensionId);
+        }, 300); // Wait 300ms for modal close animation to complete
+    }
     render () {
         const canUpdatePeripheral = (this.props.extensionId === 'microbit') && isMicroBitUpdateSupported();
         return (
@@ -158,6 +197,7 @@ class ConnectionModal extends React.Component {
                 onScanning={this.handleScanning}
                 onSendPeripheralUpdate={canUpdatePeripheral ? this.handleSendUpdate : null}
                 onUpdatePeripheral={canUpdatePeripheral ? this.handleUpdatePeripheral : null}
+                onUseLegacyMesh={this.handleUseLegacyMesh}
             />
         );
     }
@@ -166,6 +206,7 @@ class ConnectionModal extends React.Component {
 ConnectionModal.propTypes = {
     extensionId: PropTypes.string.isRequired,
     onCancel: PropTypes.func.isRequired,
+    onUseLegacyMesh: PropTypes.func.isRequired,
     useExternalPeripheralList: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired
 };
@@ -177,6 +218,10 @@ const mapStateToProps = state => ({
 const mapDispatchToProps = dispatch => ({
     onCancel: () => {
         dispatch(closeConnectionModal());
+    },
+    onUseLegacyMesh: extensionId => {
+        dispatch(setConnectionModalExtensionId(extensionId));
+        dispatch(openConnectionModal());
     }
 });
 
