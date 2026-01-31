@@ -150,23 +150,27 @@ class ConnectionModal extends React.Component {
         return selectAndUpdateMicroBit(progressCallback);
     }
     handleUseLegacyMesh () {
-        // Load legacy mesh extension if not already loaded
         const meshExtensionId = 'mesh';
-        if (!this.props.vm.extensionManager.isExtensionLoaded(meshExtensionId)) {
-            this.props.vm.extensionManager.loadExtensionURL(meshExtensionId);
-        }
-
-        // Close current modal
-        this.props.onCancel();
-
-        // Open connection modal for mesh extension
-        this.props.onUseLegacyMesh(meshExtensionId);
 
         analytics.event({
             category: 'extensions',
             action: 'use legacy mesh from network filter error',
             label: this.props.extensionId
         });
+
+        // Close current modal first
+        this.props.onCancel();
+
+        // Wait for modal to close before loading mesh extension
+        setTimeout(() => {
+            // Load legacy mesh extension if not already loaded
+            if (!this.props.vm.extensionManager.isExtensionLoaded(meshExtensionId)) {
+                this.props.vm.extensionManager.loadExtensionURL(meshExtensionId);
+            }
+
+            // Open connection modal for mesh extension
+            this.props.onUseLegacyMesh(meshExtensionId);
+        }, 300); // Wait 300ms for modal close animation to complete
     }
     render () {
         const canUpdatePeripheral = (this.props.extensionId === 'microbit') && isMicroBitUpdateSupported();
