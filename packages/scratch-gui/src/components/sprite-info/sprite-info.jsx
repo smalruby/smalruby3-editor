@@ -116,7 +116,10 @@ class SpriteInfo extends React.Component {
                         </div> :
                         null
                 }
-                <Label text="x">
+                <Label
+                    text="x"
+                    above={stageSize === STAGE_DISPLAY_SIZES.middle}
+                >
                     <BufferedInput
                         small
                         disabled={this.props.disabled}
@@ -143,7 +146,10 @@ class SpriteInfo extends React.Component {
                         </div> :
                         null
                 }
-                <Label text="y">
+                <Label
+                    text="y"
+                    above={stageSize === STAGE_DISPLAY_SIZES.middle}
+                >
                     <BufferedInput
                         small
                         disabled={this.props.disabled}
