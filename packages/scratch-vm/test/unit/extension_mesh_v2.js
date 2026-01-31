@@ -4,6 +4,9 @@ const minilog = require('minilog');
 minilog.suggest.deny('vm', 'debug');
 minilog.suggest.deny('vm', 'info');
 
+// Force network filter test mode to be disabled in unit tests
+process.env.MESH_NETWORK_FILTER = 'false';
+
 const URLSearchParams = require('url').URLSearchParams;
 const MeshV2Blocks = require('../../src/extensions/scratch3_mesh_v2/index.js');
 const Variable = require('../../src/engine/variable');

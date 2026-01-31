@@ -4,6 +4,9 @@ const minilog = require('minilog');
 // Suppress debug logs during tests
 minilog.suggest.deny('vm', 'debug');
 
+// Force network filter test mode to be disabled in unit tests
+process.env.MESH_NETWORK_FILTER = 'false';
+
 const MeshV2Service = require('../../src/extensions/scratch3_mesh_v2/mesh-service');
 const log = require('../../src/util/log');
 
