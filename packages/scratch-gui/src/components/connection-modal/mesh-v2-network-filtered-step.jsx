@@ -1,6 +1,7 @@
-// === Smalruby: Network filter detection feature ===
-// This component displays a message when meshV2 is blocked by network filter (HTTP 503)
-// such as i-Filter proxy in schools or enterprises.
+// === Smalruby: MeshV2 network filter detection feature ===
+// This component is specific to meshV2 extension and displays an error message
+// when the extension is blocked by network filter (HTTP 503) such as i-Filter proxy
+// in schools or enterprises.
 
 import {FormattedMessage} from 'react-intl';
 import PropTypes from 'prop-types';
@@ -15,7 +16,7 @@ import copyIcon from './icons/copy.svg';
 
 import styles from './connection-modal.css';
 
-const NetworkFilteredStep = props => {
+const MeshV2NetworkFilteredStep = props => {
     const [copied, setCopied] = React.useState(false);
 
     const networkInfoMessage = `スモウルビーのメッシュ機能を使うため、ネットワークの制限を解除してください。
@@ -137,11 +138,11 @@ URL: https://graphql.api.smalruby.app/, wss://graphql.api.smalruby.app/`;
     );
 };
 
-NetworkFilteredStep.propTypes = {
+MeshV2NetworkFilteredStep.propTypes = {
     onHelp: PropTypes.func,
     onScanning: PropTypes.func
 };
 
-export default NetworkFilteredStep;
+export default MeshV2NetworkFilteredStep;
 
-// === Smalruby: End of network filter detection feature ===
+// === Smalruby: End of MeshV2 network filter detection feature ===
