@@ -19,6 +19,7 @@ export default {
     'gui.smalruby3.telemetryOptIn.body2': 'The information we collect includes language selection, blocks usage, and some events like saving, loading, and uploading a project. We DO NOT collect any personal information.',
     'gui.telemetryOptIn.buttonTextNo': 'No, thanks',
     'gui.extensionLibrary.showAllExtensions': 'Show all extensions',
+    'gui.extensionLibrary.meshDeprecationWarning': 'The legacy mesh extension can only be used until April 30. If you want to continue using the legacy mesh extension, select OK. Otherwise, if you want to use the new mesh extension, select Cancel.',
     'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '"{ SOURCE }" could not be converted the block.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': "Yes, I'd like to help improve Smalruby",

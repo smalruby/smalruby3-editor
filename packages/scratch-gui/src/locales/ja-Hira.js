@@ -255,6 +255,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.operator_round': '(　) をししゃごにゅう',
     'gui.smalruby3.blockDisplayModal.operator_mathop': '(　) の [ぜったいち▼]',
     'gui.extensionLibrary.showAllExtensions': 'すべてのかくちょうきのうをひょうじ',
+    'gui.extensionLibrary.meshDeprecationWarning': 'じゅうらいのメッシュかくちょうきのうは4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': 'うえにかたむいた',
