@@ -266,5 +266,10 @@ export default {
     'gui.connection.updatePeripheral.microbitMoreUpdateSuccessful': 'MicrobitMoreのアップデートにせいこうしました！',
     'gui.connection.updatePeripheral.microbitMoreTiltToLightUp': 'micro:bitをかたむけて25このLEDをすべててんとうさせるとかんりょうです。',
     'gui.connection.scanning.updatePeripheralButton': 'アップデート',
-    'gui.connection.auto-scanning.updatePeripheralButton': 'アップデート'
+    'gui.connection.auto-scanning.updatePeripheralButton': 'アップデート',
+    'gui.connection.networkFiltered.message': 'あたらしいメッシュきのうがつかえません。{br}ネットワークかんりしゃにせいげんのかいじょをごいらいください。',
+    'gui.connection.networkFiltered.copied': 'コピーしました！',
+    'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
+    'gui.connection.networkFiltered.tryagainbutton': 'もういちどためす',
+    'gui.connection.networkFiltered.helpbutton': 'ヘルプ'
 };

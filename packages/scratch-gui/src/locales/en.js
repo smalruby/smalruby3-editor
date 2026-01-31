@@ -208,5 +208,12 @@ export default {
     'gui.urlLoader.urlExamplesTitle': 'URL Examples',
     'gui.urlLoader.urlExampleScratch': 'https://scratch.mit.edu/projects/{project_id}/',
     'gui.urlLoader.urlExampleGoogleDrive': 'https://drive.google.com/file/d/{file_id}/view?usp=drive_link',
-    'gui.modal.stop': 'Stop'
+    'gui.modal.stop': 'Stop',
+
+    // Network Filter Error messages
+    'gui.connection.networkFiltered.message': 'The new mesh feature is unavailable.{br}Please ask your network administrator to remove the restriction.',
+    'gui.connection.networkFiltered.copied': 'Copied!',
+    'gui.connection.networkFiltered.copyButton': 'Copy to clipboard',
+    'gui.connection.networkFiltered.tryagainbutton': 'Try again',
+    'gui.connection.networkFiltered.helpbutton': 'Help'
 };

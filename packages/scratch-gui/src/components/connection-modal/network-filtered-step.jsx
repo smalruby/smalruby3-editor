@@ -56,20 +56,13 @@ URL: https://graphql.api.smalruby.app/, wss://graphql.api.smalruby.app/`;
 
     return (
         <Box className={styles.body}>
-            <Box className={styles.activityArea}>
-                <Box className={styles.centeredRow}>
-                    <div className={styles.peripheralActivity}>
-                        <img
-                            className={styles.peripheralActivityIcon}
-                            src={props.connectionIconURL}
-                        />
-                    </div>
-                </Box>
-            </Box>
             <Box className={styles.bottomArea}>
                 <div className={classNames(styles.bottomAreaItem, styles.instructions)}>
                     <FormattedMessage
-                        defaultMessage="ネットワークの制限により、現在、あたらしいメッシュ機能が使えません。{br}ネットワーク管理者に次の情報を伝え、制限の解除をご依頼ください。"
+                        defaultMessage={
+                            'The new mesh feature is unavailable.{br}' +
+                            'Please ask your network administrator to remove the restriction.'
+                        }
                         description="Message when mesh v2 is blocked by network filter"
                         id="gui.connection.networkFiltered.message"
                         values={{
@@ -145,7 +138,6 @@ URL: https://graphql.api.smalruby.app/, wss://graphql.api.smalruby.app/`;
 };
 
 NetworkFilteredStep.propTypes = {
-    connectionIconURL: PropTypes.string.isRequired,
     onHelp: PropTypes.func,
     onScanning: PropTypes.func
 };
