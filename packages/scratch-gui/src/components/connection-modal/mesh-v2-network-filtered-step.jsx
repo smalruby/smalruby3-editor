@@ -10,7 +10,6 @@ import React from 'react';
 
 import Box from '../box/box.jsx';
 import Dots from './dots.jsx';
-import helpIcon from './icons/help.svg';
 import backIcon from './icons/back.svg';
 import copyIcon from './icons/copy.svg';
 
@@ -120,16 +119,12 @@ URL: https://graphql.api.smalruby.app/, wss://graphql.api.smalruby.app/`;
                     </button>
                     <button
                         className={styles.connectionButton}
-                        onClick={props.onHelp}
+                        onClick={props.onUseLegacyMesh}
                     >
-                        <img
-                            className={styles.buttonIconLeft}
-                            src={helpIcon}
-                        />
                         <FormattedMessage
-                            defaultMessage="Help"
-                            description="Button to view help content"
-                            id="gui.connection.networkFiltered.helpbutton"
+                            defaultMessage="Use legacy mesh"
+                            description="Button to use legacy mesh extension"
+                            id="gui.connection.networkFiltered.useLegacyMeshButton"
                         />
                     </button>
                 </Box>
@@ -139,8 +134,8 @@ URL: https://graphql.api.smalruby.app/, wss://graphql.api.smalruby.app/`;
 };
 
 MeshV2NetworkFilteredStep.propTypes = {
-    onHelp: PropTypes.func,
-    onScanning: PropTypes.func
+    onScanning: PropTypes.func,
+    onUseLegacyMesh: PropTypes.func
 };
 
 export default MeshV2NetworkFilteredStep;

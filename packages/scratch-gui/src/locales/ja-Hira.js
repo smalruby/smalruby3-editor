@@ -271,5 +271,5 @@ export default {
     'gui.connection.networkFiltered.copied': 'コピーしました！',
     'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
     'gui.connection.networkFiltered.tryagainbutton': 'もういちどためす',
-    'gui.connection.networkFiltered.helpbutton': 'ヘルプ'
+    'gui.connection.networkFiltered.useLegacyMeshButton': 'じゅうらいのメッシュをつかう'
 };
