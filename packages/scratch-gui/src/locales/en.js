@@ -216,5 +216,6 @@ export default {
     'gui.connection.networkFiltered.copied': 'Copied!',
     'gui.connection.networkFiltered.copyButton': 'Copy to clipboard',
     'gui.connection.networkFiltered.tryagainbutton': 'Try again',
-    'gui.connection.networkFiltered.useLegacyMeshButton': 'Use legacy mesh'
+    'gui.connection.networkFiltered.useLegacyMeshButton': 'Use legacy mesh',
+    'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage'
 };
