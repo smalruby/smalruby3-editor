@@ -23,7 +23,8 @@
     "refresh-gh-workflow": "ts-node scripts/build-gha-workflows.ts",
     "update-legal": "npm --workspaces exec -c 'rm -f ./{LICENSE,TRADEMARK} && cp -f ../../{LICENSE,TRADEMARK} .'",
     "version": "cross-env-shell ./scripts/npm-version.sh",
-    "start": "npm run --workspace=packages/scratch-gui start"
+    "start": "npm run --workspace=packages/scratch-gui start",
+    "start:dist": "npm run --workspace=packages/scratch-gui start:dist"
   },
   "config": {
     "commitizen": {

@@ -15,6 +15,7 @@ RUN \
     less \
     lv \
     vim \
+    jq \
     chromium \
     chromium-driver \
     libgl1-mesa-dri \

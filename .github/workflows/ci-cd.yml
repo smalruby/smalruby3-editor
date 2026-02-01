@@ -166,13 +166,13 @@ jobs:
           path: packages/*/test-results/*
       - name: Prepare deployment files for smalruby.app
         if: github.ref == 'refs/heads/develop'
-        run: touch packages/scratch-gui/build/.nojekyll
+        run: touch packages/scratch-gui/dist/.nojekyll
       - name: Deploy to smalruby.app GitHub Pages
         uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4
         if: github.ref == 'refs/heads/develop'
         with:
           deploy_key: ${{ secrets.SMALRUBY_APP_DEPLOY_KEY }}
-          publish_dir: ./packages/scratch-gui/build
+          publish_dir: ./packages/scratch-gui/dist
           full_commit_message: "Build for ${{ github.sha }} ${{ github.event.head_commit.message }}"
           cname: smalruby.app
           external_repository: smalruby/smalruby.app
