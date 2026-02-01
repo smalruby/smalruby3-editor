@@ -14,6 +14,7 @@ import {STAGE_SIZE_MODES} from '../../lib/layout-constants';
 import fullScreenIcon from './icon--fullscreen.svg';
 import largeStageIcon from './icon--large-stage.svg';
 import smallStageIcon from './icon--small-stage.svg';
+import middleStageIcon from './icon--middle-stage.svg';
 import unFullScreenIcon from './icon--unfullscreen.svg';
 
 import scratchLogo from '../menu-bar/scratch-logo.svg';
@@ -32,6 +33,11 @@ const messages = defineMessages({
         defaultMessage: 'Switch to small stage',
         description: 'Button to change stage size to small',
         id: 'gui.stageHeader.stageSizeSmall'
+    },
+    middleStageSizeMessage: {
+        defaultMessage: 'Switch to middle stage',
+        description: 'Button to change stage size to middle',
+        id: 'gui.stageHeader.stageSizeMiddle'
     },
     fullStageSizeMessage: {
         defaultMessage: 'Enter full screen mode',
@@ -63,6 +69,7 @@ const StageHeaderComponent = function (props) {
         onKeyPress,
         onSetStageLarge,
         onSetStageSmall,
+        onSetStageMiddle,
         onSetStageFull,
         onSetStageUnFull,
         onUpdateProjectThumbnail,
@@ -150,6 +157,13 @@ const StageHeaderComponent = function (props) {
                                 title: intl.formatMessage(messages.smallStageSizeMessage)
                             },
                             {
+                                handleClick: onSetStageMiddle,
+                                icon: middleStageIcon,
+                                iconClassName: styles.stageButtonIcon,
+                                isSelected: stageSizeMode === STAGE_SIZE_MODES.middle,
+                                title: intl.formatMessage(messages.middleStageSizeMessage)
+                            },
+                            {
                                 handleClick: onSetStageLarge,
                                 icon: largeStageIcon,
                                 iconClassName: styles.stageButtonIcon,
@@ -212,6 +226,7 @@ StageHeaderComponent.propTypes = {
     onSetStageFull: PropTypes.func.isRequired,
     onSetStageLarge: PropTypes.func.isRequired,
     onSetStageSmall: PropTypes.func.isRequired,
+    onSetStageMiddle: PropTypes.func.isRequired,
     onSetStageUnFull: PropTypes.func.isRequired,
     onUpdateProjectThumbnail: PropTypes.func,
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

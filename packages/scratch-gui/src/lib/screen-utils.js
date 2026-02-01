@@ -29,6 +29,9 @@ const resolveStageSize = (stageSizeMode, isFullSize) => {
     if (stageSizeMode === STAGE_SIZE_MODES.small) {
         return STAGE_DISPLAY_SIZES.small;
     }
+    if (stageSizeMode === STAGE_SIZE_MODES.middle) {
+        return STAGE_DISPLAY_SIZES.middle;
+    }
     if (isFullSize) {
         return STAGE_DISPLAY_SIZES.large;
     }

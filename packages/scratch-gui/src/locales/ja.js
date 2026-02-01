@@ -272,5 +272,6 @@ export default {
     'gui.connection.networkFiltered.copied': 'コピーしました！',
     'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
     'gui.connection.networkFiltered.tryagainbutton': 'もう一度試す',
-    'gui.connection.networkFiltered.useLegacyMeshButton': '従来のメッシュを使う'
+    'gui.connection.networkFiltered.useLegacyMeshButton': '従来のメッシュを使う',
+    'gui.stageHeader.stageSizeMiddle': '中サイズのステージに切り替える'
 };
