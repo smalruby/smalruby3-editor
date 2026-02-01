@@ -25,7 +25,8 @@ let driver;
 
 // A test suite cloned from `blocks.test.js` which acts as a way to check that the
 // standalone way of initialization is working
-describe('Working with the blocks', () => {
+// NOTE: Skipped in Smalruby as standalone.html is not built (not used in Smalruby)
+describe.skip('Working with the blocks', () => {
     beforeAll(() => {
         driver = getDriver();
     });

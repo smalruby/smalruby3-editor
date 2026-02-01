@@ -195,11 +195,12 @@ const buildConfig = baseConfig.clone()
     .enableDevServer(process.env.PORT || 8601)
     .merge({
         entry: {
-            gui: './src/playground/index.jsx',
-            guistandalone: './src/playground/standalone.jsx',
-            blocksonly: './src/playground/blocks-only.jsx',
-            compatibilitytesting: './src/playground/compatibility-testing.jsx',
-            player: './src/playground/player.jsx'
+            gui: './src/playground/index.jsx'
+            // Removed unused entry points to reduce build time:
+            // guistandalone: './src/playground/standalone.jsx',
+            // blocksonly: './src/playground/blocks-only.jsx',
+            // compatibilitytesting: './src/playground/compatibility-testing.jsx',
+            // player: './src/playground/player.jsx'
         },
         output: {
             path: path.resolve(__dirname, 'build'),
@@ -219,42 +220,43 @@ const buildConfig = baseConfig.clone()
         originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
         pwa: process.env.NODE_ENV === 'production'
     }))
-    .addPlugin(new HtmlWebpackPlugin({
-        ...commonHtmlWebpackPluginOptions,
-        chunks: ['guistandalone'],
-        filename: 'standalone.html',
-        template: 'src/playground/index.ejs',
-        title: 'Smalruby: Standalone Mode',
-        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
-        pwa: process.env.NODE_ENV === 'production'
-    }))
-    .addPlugin(new HtmlWebpackPlugin({
-        ...commonHtmlWebpackPluginOptions,
-        chunks: ['blocksonly'],
-        filename: 'blocks-only.html',
-        template: 'src/playground/index.ejs',
-        title: 'Smalruby: Blocks Only Example',
-        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
-        pwa: process.env.NODE_ENV === 'production'
-    }))
-    .addPlugin(new HtmlWebpackPlugin({
-        ...commonHtmlWebpackPluginOptions,
-        chunks: ['compatibilitytesting'],
-        filename: 'compatibility-testing.html',
-        template: 'src/playground/index.ejs',
-        title: 'Smalruby: Compatibility Testing',
-        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
-        pwa: process.env.NODE_ENV === 'production'
-    }))
-    .addPlugin(new HtmlWebpackPlugin({
-        ...commonHtmlWebpackPluginOptions,
-        chunks: ['player'],
-        filename: 'player.html',
-        template: 'src/playground/index.ejs',
-        title: 'Smalruby: Player Example',
-        originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
-        pwa: process.env.NODE_ENV === 'production'
-    }))
+    // Removed unused HTML files to reduce build time:
+    // .addPlugin(new HtmlWebpackPlugin({
+    //     ...commonHtmlWebpackPluginOptions,
+    //     chunks: ['guistandalone'],
+    //     filename: 'standalone.html',
+    //     template: 'src/playground/index.ejs',
+    //     title: 'Smalruby: Standalone Mode',
+    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
+    //     pwa: process.env.NODE_ENV === 'production'
+    // }))
+    // .addPlugin(new HtmlWebpackPlugin({
+    //     ...commonHtmlWebpackPluginOptions,
+    //     chunks: ['blocksonly'],
+    //     filename: 'blocks-only.html',
+    //     template: 'src/playground/index.ejs',
+    //     title: 'Smalruby: Blocks Only Example',
+    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
+    //     pwa: process.env.NODE_ENV === 'production'
+    // }))
+    // .addPlugin(new HtmlWebpackPlugin({
+    //     ...commonHtmlWebpackPluginOptions,
+    //     chunks: ['compatibilitytesting'],
+    //     filename: 'compatibility-testing.html',
+    //     template: 'src/playground/index.ejs',
+    //     title: 'Smalruby: Compatibility Testing',
+    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
+    //     pwa: process.env.NODE_ENV === 'production'
+    // }))
+    // .addPlugin(new HtmlWebpackPlugin({
+    //     ...commonHtmlWebpackPluginOptions,
+    //     chunks: ['player'],
+    //     filename: 'player.html',
+    //     template: 'src/playground/index.ejs',
+    //     title: 'Smalruby: Player Example',
+    //     originTrials: JSON.parse(fs.readFileSync('origin-trials.json')),
+    //     pwa: process.env.NODE_ENV === 'production'
+    // }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
             {
@@ -279,7 +281,9 @@ const buildWithPwaConfig = buildConfig.clone()
             exclude: [
                 /\.DS_Store/
             ],
-            maximumFileSizeToCacheInBytes: 64 * 1024 * 1024
+            maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
+            // Don't add revision to files that already have hash in filename
+            dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./
         })
     )
     .addPlugin(
@@ -310,6 +314,7 @@ const distWithHtmlConfig = buildConfig.clone()
     .merge({
         devtool: false, // Disable source maps for production
         output: {
+            filename: '[name].[contenthash].js', // Add contenthash for cache busting
             path: path.resolve(__dirname, 'dist'),
             clean: false
         },
@@ -331,7 +336,9 @@ const distWithHtmlConfig = buildConfig.clone()
             exclude: [
                 /\.DS_Store/
             ],
-            maximumFileSizeToCacheInBytes: 64 * 1024 * 1024
+            maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
+            // Don't add revision to files that already have hash in filename
+            dontCacheBustURLsMatching: /\.[0-9a-f]{8,}\./
         })
     )
     .addPlugin(
