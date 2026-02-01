@@ -317,12 +317,7 @@ const distWithHtmlConfig = buildConfig.clone()
             minimize: true,
             minimizer: [
                 new TerserPlugin({
-                    parallel: 1, // Limit parallel processing to avoid memory issues
-                    terserOptions: {
-                        compress: {
-                            drop_console: false // Keep console for debugging
-                        }
-                    }
+                    minify: TerserPlugin.esbuildMinify
                 })
             ]
         }
