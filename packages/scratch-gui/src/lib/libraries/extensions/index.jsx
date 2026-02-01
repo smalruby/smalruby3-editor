@@ -46,6 +46,9 @@ import gdxforInsetIconURL from './gdxfor/gdxfor-small.svg';
 import gdxforConnectionIconURL from './gdxfor/gdxfor-illustration.svg';
 import gdxforConnectionSmallIconURL from './gdxfor/gdxfor-small.svg';
 
+import faceSensingIconURL from './faceSensing/faceSensing.png';
+import faceSensingInsetIconURL from './faceSensing/faceSensing-small.svg';
+
 import meshIconURL from './mesh/mesh.png';
 import meshInsetIconURL from './mesh/mesh-small.png';
 import meshConnectionIconURL from './mesh/mesh-illustration.png';
@@ -64,7 +67,7 @@ import meshV2ConnectionSmallIconURL from './mesh_v2/mesh-small.png';
 import microbitMore from './microbitMore/index.jsx';
 import koshien from './koshien/index.jsx';
 
-const extensions = [
+export default [
     {
         name: (
             <FormattedMessage
@@ -121,6 +124,26 @@ const extensions = [
                 defaultMessage="Sense motion with the camera."
                 description="Description for the 'Video Sensing' extension"
                 id="gui.extension.videosensing.description"
+            />
+        ),
+        featured: true
+    },
+    {
+        name: (
+            <FormattedMessage
+                defaultMessage="Face Sensing"
+                description="Name for the 'Face Sensing' extension"
+                id="gui.extension.faceSensing.name"
+            />
+        ),
+        extensionId: 'faceSensing',
+        iconURL: faceSensingIconURL,
+        insetIconURL: faceSensingInsetIconURL,
+        description: (
+            <FormattedMessage
+                defaultMessage="Sense faces with the camera."
+                description="Description for the 'Face Sensing' extension"
+                id="gui.extension.faceSensing.description"
             />
         ),
         featured: true
@@ -207,6 +230,20 @@ const extensions = [
         useAutoScan: false,
         connectionIconURL: microbitConnectionIconURL,
         connectionSmallIconURL: microbitConnectionSmallIconURL,
+        prescanMessage: (
+            <FormattedMessage
+                defaultMessage="Turn on your micro:bit, then press the button below to start searching for your device."
+                description="Prompt before searching for a micro:bit"
+                id="gui.extension.microbit.prescanMessage"
+            />
+        ),
+        scanBeginMessage: (
+            <FormattedMessage
+                defaultMessage="Keep your micro:bit on and nearby."
+                description="Information shown while searching for a micro:bit, before one is found"
+                id="gui.extension.microbit.scanBeginMessage"
+            />
+        ),
         connectingMessage: (
             <FormattedMessage
                 defaultMessage="Connecting"
@@ -217,6 +254,51 @@ const extensions = [
         helpLink: 'https://scratch.mit.edu/microbit'
     },
     microbitMore,
+    {
+        name: 'Go Direct Force & Acceleration',
+        extensionId: 'gdxfor',
+        collaborator: 'Vernier',
+        iconURL: gdxforIconURL,
+        insetIconURL: gdxforInsetIconURL,
+        description: (
+            <FormattedMessage
+                defaultMessage="Sense push, pull, motion, and spin."
+                description="Description for the Vernier Go Direct Force and Acceleration sensor extension"
+                id="gui.extension.gdxfor.description"
+            />
+        ),
+        featured: true,
+        defaultHidden: true,
+        disabled: false,
+        bluetoothRequired: true,
+        internetConnectionRequired: true,
+        launchPeripheralConnectionFlow: true,
+        useAutoScan: false,
+        connectionIconURL: gdxforConnectionIconURL,
+        connectionSmallIconURL: gdxforConnectionSmallIconURL,
+        prescanMessage: (
+            <FormattedMessage
+                defaultMessage="Turn on your Go Direct, then press the button below to start searching for your device."
+                description="Prompt before searching for a Vernier Go Direct device"
+                id="gui.extension.gdxfor.prescanMessage"
+            />
+        ),
+        scanBeginMessage: (
+            <FormattedMessage
+                defaultMessage="Keep your Vernier Go Direct on and nearby."
+                description="Information shown while searching for a Vernier Go Direct, before one is found"
+                id="gui.extension.gdxfor.scanBeginMessage"
+            />
+        ),
+        connectingMessage: (
+            <FormattedMessage
+                defaultMessage="Connecting"
+                description="Message to help people connect to their force and acceleration sensor."
+                id="gui.extension.gdxfor.connectingMessage"
+            />
+        ),
+        helpLink: 'https://scratch.mit.edu/vernier'
+    },
     {
         name: 'LEGO MINDSTORMS EV3',
         extensionId: 'ev3',
@@ -239,6 +321,20 @@ const extensions = [
         useAutoScan: false,
         connectionIconURL: ev3ConnectionIconURL,
         connectionSmallIconURL: ev3ConnectionSmallIconURL,
+        prescanMessage: (
+            <FormattedMessage
+                defaultMessage="Turn on your LEGO EV3, then press the button below to start searching for your device."
+                description="Prompt before searching for a LEGO EV3"
+                id="gui.extension.ev3.prescanMessage"
+            />
+        ),
+        scanBeginMessage: (
+            <FormattedMessage
+                defaultMessage="Keep your LEGO EV3 on and nearby."
+                description="Information shown while searching for a LEGO EV3, before one is found"
+                id="gui.extension.ev3.scanBeginMessage"
+            />
+        ),
         connectingMessage: (
             <FormattedMessage
                 defaultMessage="Connecting. Make sure the pin on your EV3 is set to 1234."
@@ -271,6 +367,21 @@ const extensions = [
         connectionIconURL: boostConnectionIconURL,
         connectionSmallIconURL: boostConnectionSmallIconURL,
         connectionTipIconURL: boostConnectionTipIconURL,
+        prescanMessage: (
+            <FormattedMessage
+                // eslint-disable-next-line max-len
+                defaultMessage="Press the button on your LEGO BOOST, then press the button below to start searching for your device."
+                description="Prompt before searching for a LEGO BOOST"
+                id="gui.extension.boost.prescanMessage"
+            />
+        ),
+        scanBeginMessage: (
+            <FormattedMessage
+                defaultMessage="Keep your LEGO BOOST awake and nearby."
+                description="Information shown while searching for a LEGO BOOST, before one is found"
+                id="gui.extension.boost.scanBeginMessage"
+            />
+        ),
         connectingMessage: (
             <FormattedMessage
                 defaultMessage="Connecting"
@@ -303,6 +414,21 @@ const extensions = [
         connectionIconURL: wedo2ConnectionIconURL,
         connectionSmallIconURL: wedo2ConnectionSmallIconURL,
         connectionTipIconURL: wedo2ConnectionTipIconURL,
+        prescanMessage: (
+            <FormattedMessage
+                // eslint-disable-next-line max-len
+                defaultMessage="Press the button on your LEGO WeDo 2.0, then press the button below to start searching for your device."
+                description="Prompt before searching for a LEGO WeDo 2.0"
+                id="gui.extension.wedo2.prescanMessage"
+            />
+        ),
+        scanBeginMessage: (
+            <FormattedMessage
+                defaultMessage="Keep your LEGO WeDo 2.0 awake and nearby."
+                description="Information shown while searching for a LEGO WeDo 2.0, before one is found"
+                id="gui.extension.wedo2.scanBeginMessage"
+            />
+        ),
         connectingMessage: (
             <FormattedMessage
                 defaultMessage="Connecting"
@@ -311,37 +437,6 @@ const extensions = [
             />
         ),
         helpLink: 'https://scratch.mit.edu/wedo'
-    },
-    {
-        name: 'Go Direct Force & Acceleration',
-        extensionId: 'gdxfor',
-        collaborator: 'Vernier',
-        iconURL: gdxforIconURL,
-        insetIconURL: gdxforInsetIconURL,
-        description: (
-            <FormattedMessage
-                defaultMessage="Sense push, pull, motion, and spin."
-                description="Description for the Vernier Go Direct Force and Acceleration sensor extension"
-                id="gui.extension.gdxfor.description"
-            />
-        ),
-        featured: true,
-        defaultHidden: true,
-        disabled: false,
-        bluetoothRequired: true,
-        internetConnectionRequired: true,
-        launchPeripheralConnectionFlow: true,
-        useAutoScan: false,
-        connectionIconURL: gdxforConnectionIconURL,
-        connectionSmallIconURL: gdxforConnectionSmallIconURL,
-        connectingMessage: (
-            <FormattedMessage
-                defaultMessage="Connecting"
-                description="Message to help people connect to their force and acceleration sensor."
-                id="gui.extension.gdxfor.connectingMessage"
-            />
-        ),
-        helpLink: 'https://scratch.mit.edu/vernier'
     },
     {
         name: (
@@ -448,5 +543,3 @@ const extensions = [
     },
     koshien
 ];
-
-export default extensions;
