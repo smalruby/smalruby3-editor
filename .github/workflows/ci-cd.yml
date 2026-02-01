@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - '.claude/**'
       - '.gemini/**'
+      - '.serena/**'
       - 'Dockerfile'
       - 'docker-compose.yml'
       - 'GEMINI.md'
@@ -21,6 +22,7 @@ on:
     paths-ignore:
       - '.claude/**'
       - '.gemini/**'
+      - '.serena/**'
       - 'Dockerfile'
       - 'docker-compose.yml'
       - 'GEMINI.md'
