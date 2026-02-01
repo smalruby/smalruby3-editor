@@ -8,6 +8,7 @@ require('dotenv').config({path: path.resolve(__dirname, '../../.env')});
 // Plugins
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const WorkboxPlugin = require('workbox-webpack-plugin');
 const WebpackPwaManifest = require('webpack-pwa-manifest');
 const assetsManifest = require('./src/assetsManifest.json');
@@ -304,6 +305,63 @@ const buildWithPwaConfig = buildConfig.clone()
         })
     );
 
+// build the production website in `dist/` with HTML, PWA, and optimized assets
+const distWithHtmlConfig = buildConfig.clone()
+    .merge({
+        devtool: false, // Disable source maps for production
+        output: {
+            path: path.resolve(__dirname, 'dist'),
+            clean: false
+        },
+        optimization: {
+            minimize: true,
+            minimizer: [
+                new TerserPlugin({
+                    parallel: 1, // Limit parallel processing to avoid memory issues
+                    terserOptions: {
+                        compress: {
+                            drop_console: false // Keep console for debugging
+                        }
+                    }
+                })
+            ]
+        }
+    })
+    .addPlugin(
+        new WorkboxPlugin.GenerateSW({
+            disableDevLogs: !process.env.DEBUG,
+            clientsClaim: true,
+            skipWaiting: true,
+            additionalManifestEntries: assetsManifest,
+            exclude: [
+                /\.DS_Store/
+            ],
+            maximumFileSizeToCacheInBytes: 64 * 1024 * 1024
+        })
+    )
+    .addPlugin(
+        new WebpackPwaManifest({
+            publicPath: './',
+            name: 'Smalruby',
+            short_name: 'Smalruby',
+            description: 'GraphicaL User Interface for creating and running Smalruby 3.0 projects',
+            background_color: '#ffffff',
+            orientation: 'any',
+            crossorigin: 'use-credentials',
+            inject: true,
+            ios: {
+                'apple-mobile-web-app-title': 'Smalruby',
+                'apple-mobile-web-app-status-bar-style': 'default'
+            },
+            icons: [
+                {
+                    src: path.resolve('static/pwa-icon.png'),
+                    sizes: [96, 128, 192, 256, 384, 512] // multiple sizes
+                }
+            ]
+        })
+    );
+
 // Skip building `dist/` unless explicitly requested
 // It roughly doubles build time and isn't needed for `scratch-gui` development
 // If you need non-production `dist/` for local dev, such as for `scratch-www` work, you can run something like:
@@ -314,6 +372,7 @@ let config;
 switch (process.env.BUILD_TYPE) {
 case 'dist': config = distConfig.get(); break;
 case 'dist-standalone': config = distStandaloneConfig.get(); break;
+case 'dist-html': config = distWithHtmlConfig.get(); break;
 default: config = buildWithPwaConfig.get(); break;
 }
 
