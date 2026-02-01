@@ -132,6 +132,8 @@ jobs:
           MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
           MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
           MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+          GTM_ID: ${{ github.ref == 'refs/heads/develop' && secrets.GTM_ID || '' }}
+          GTM_ENV_AUTH: ${{ github.ref == 'refs/heads/develop' && secrets.GTM_ENV_AUTH || '' }}
         run: npm run build
       - name: Store Build Output
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
@@ -162,6 +164,18 @@ jobs:
         with:
           name: test-output-integration
           path: packages/*/test-results/*
+      - name: Prepare deployment files for smalruby.app
+        if: github.ref == 'refs/heads/develop'
+        run: touch packages/scratch-gui/build/.nojekyll
+      - name: Deploy to smalruby.app GitHub Pages
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4
+        if: github.ref == 'refs/heads/develop'
+        with:
+          deploy_key: ${{ secrets.SMALRUBY_APP_DEPLOY_KEY }}
+          publish_dir: ./packages/scratch-gui/build
+          full_commit_message: "Build for ${{ github.sha }} ${{ github.event.head_commit.message }}"
+          cname: smalruby.app
+          external_repository: smalruby/smalruby.app
       - name: Prepare deployment files
         if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         run: touch packages/scratch-gui/build/.nojekyll
@@ -195,6 +209,8 @@ jobs:
           MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
           MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
           MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+          GTM_ID: ''
+          GTM_ENV_AUTH: ''
         run: cd packages/scratch-gui && npm exec node ./scripts/postbuild.mjs
       - name: Prepare deployment files for branch GitHub Pages
         if: |
