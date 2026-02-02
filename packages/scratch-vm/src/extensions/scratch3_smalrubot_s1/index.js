@@ -206,55 +206,90 @@ class Smalrubot {
 
     disconnect () {
         debug(() => 'Smalrubot.disconnect');
+        log.info('[Disconnect] Starting disconnect sequence');
 
         if (this.connectionState === 'disconnected') {
             debug(() => 'Already disconnected.');
+            log.info('[Disconnect] Already in disconnected state, skipping');
             return Promise.resolve();
         }
 
         if (!this.serialPort) {
             debug(() => 'Already disconnected.');
+            log.info('[Disconnect] No serial port, setting state to disconnected');
             this.setConnectionState('disconnected');
             return Promise.resolve();
         }
 
+        log.info('[Disconnect] Stopping all operations before cleanup');
         return this.stopAll()
-            .catch(error => log.error(error))
+            .catch(error => {
+                log.warn('[Disconnect] Error during stopAll (expected during physical disconnect):', error);
+            })
             .then(() => {
+                log.info('[Disconnect] Starting resource cleanup');
                 let promise = Promise.resolve();
+
                 if (this.reader) {
+                    log.info('[Disconnect] Canceling reader');
                     promise = promise
                         .then(() => this.reader.cancel())
                         .then(() => {
+                            log.info('[Disconnect] Reader canceled successfully');
                             this.reader = null;
                         })
-                        .catch(error => log.error(error));
+                        .catch(error => {
+                            log.warn('[Disconnect] Error canceling reader (may already be closed):', error);
+                            this.reader = null;
+                        });
                 }
 
                 if (this.writer) {
+                    log.info('[Disconnect] Closing writer');
                     promise = promise
                         .then(() => this.writer.close())
                         .then(() => {
+                            log.info('[Disconnect] Writer closed successfully');
                             this.writer = null;
                             this.writing = false;
                             this.writeQueue = [];
                         })
-                        .catch(error => log.error(error));
+                        .catch(error => {
+                            log.warn('[Disconnect] Error closing writer (may be in ERRORED state):', error);
+                            this.writer = null;
+                            this.writing = false;
+                            this.writeQueue = [];
+                        });
                 }
 
+                log.info('[Disconnect] Closing serial port');
                 promise = promise
                     .then(() => this.serialPort.close())
                     .then(() => {
+                        log.info('[Disconnect] Serial port closed successfully');
                         this.serialPort = null;
-
-                        this.setConnectionState('disconnected');
+                    })
+                    .catch(error => {
+                        // Port may already be closed due to physical disconnection
+                        // This is expected behavior and should not prevent state transition
+                        log.warn('[Disconnect] Error closing serial port (may already be closed):', error);
+                        this.serialPort = null;
                     });
 
                 return promise;
             })
+            .then(() => {
+                // CRITICAL: Always transition to disconnected state, even if errors occurred
+                // This ensures the GUI reflects the actual state and allows reconnection
+                log.info('[Disconnect] Setting connection state to disconnected');
+                this.setConnectionState('disconnected');
+                log.info('[Disconnect] Disconnect sequence completed successfully');
+            })
             .catch(error => {
-                log.error(error);
-                throw error;
+                // Log any unexpected errors but still ensure state transition
+                log.error('[Disconnect] Unexpected error during disconnect:', error);
+                log.info('[Disconnect] Ensuring state transition despite errors');
+                this.setConnectionState('disconnected');
             });
     }
 
@@ -376,26 +411,36 @@ class Smalrubot {
         const prevConnectionState = this.connectionState;
 
         debug(() => `Set connection state: from=<${prevConnectionState}> to=<${connectionState}>`);
+        log.info(`[SetConnectionState] Transitioning from '${prevConnectionState}' to '${connectionState}'`);
 
         this.connectionState = connectionState;
 
         switch (this.connectionState) {
         case 'scanned':
+            log.info('[SetConnectionState] Emitting PERIPHERAL_LIST_UPDATE event');
             this.emitRuntime('PERIPHERAL_LIST_UPDATE', {0: {peripheralId: 0}});
             break;
         case 'connected':
+            log.info('[SetConnectionState] Emitting PERIPHERAL_CONNECTED event');
             this.emitRuntime('PERIPHERAL_CONNECTED');
             break;
         case 'disconnected':
             if (prevConnectionState === 'connecting') {
+                log.info('[SetConnectionState] Connection failed during connect phase, ' +
+                    'emitting PERIPHERAL_REQUEST_ERROR');
                 this.emitRuntime('PERIPHERAL_REQUEST_ERROR', {
                     extensionId: Scratch3SmalrubotS1Blocks.EXTENSION_ID // eslint-disable-line
                 });
             } else if (prevConnectionState !== 'disconnecting' && prevConnectionState !== 'disconnected') {
+                log.info('[SetConnectionState] Unexpected disconnection detected, ' +
+                    'emitting PERIPHERAL_CONNECTION_LOST_ERROR');
                 this.emitRuntime('PERIPHERAL_CONNECTION_LOST_ERROR', {
                     extensionId: Scratch3SmalrubotS1Blocks.EXTENSION_ID // eslint-disable-line
                 });
+            } else {
+                log.info('[SetConnectionState] Normal disconnection, no error events emitted');
             }
+            log.info('[SetConnectionState] Emitting PERIPHERAL_DISCONNECTED event');
             this.emitRuntime('PERIPHERAL_DISCONNECTED');
             break;
         }
@@ -554,7 +599,8 @@ class SmalrubotS1 extends Smalrubot {
                 return updateSensorValuesLoop();
             })
             .catch(error => {
-                log.error(`Error reading from Smalrubot: reason=<${error}>`);
+                log.error(`[UpdateSensorValues] Error reading from Smalrubot: ${error.name}: ${error.message}`);
+                log.info('[UpdateSensorValues] Physical disconnection detected, initiating disconnect cleanup');
 
                 this.disconnect();
             });
