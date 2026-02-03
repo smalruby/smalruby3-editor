@@ -7,6 +7,7 @@ import Box from '../box/box.jsx';
 import Dots from './dots.jsx';
 import helpIcon from './icons/help.svg';
 import backIcon from './icons/back.svg';
+import enterUpdateIcon from './icons/enter-update.svg';
 import bluetoothIcon from './icons/bluetooth.svg';
 import scratchLinkIcon from './icons/scratchlink.svg';
 
@@ -60,6 +61,15 @@ const UnavailableStep = props => (
                 className={styles.bottomAreaItem}
                 total={3}
             />
+            {props.onUpdatePeripheral && (
+                <div className={classNames(styles.bottomAreaItem, styles.instructions)}>
+                    <FormattedMessage
+                        defaultMessage="If you don't see your device, you may need to update it to work with Scratch."
+                        description="Prompt for updating a peripheral device"
+                        id="gui.connection.scanning.updatePeripheralPrompt"
+                    />
+                </div>
+            )}
             <Box className={classNames(styles.bottomAreaItem, styles.buttonRow)}>
                 <button
                     className={styles.connectionButton}
@@ -89,6 +99,22 @@ const UnavailableStep = props => (
                         id="gui.connection.unavailable.helpbutton"
                     />
                 </button>
+                {props.onUpdatePeripheral && (
+                    <button
+                        className={styles.connectionButton}
+                        onClick={props.onUpdatePeripheral}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Update my Device"
+                            description="Button to enter the peripheral update mode"
+                            id="gui.connection.unavailable.updatePeripheralButton"
+                        />
+                        <img
+                            className={styles.buttonIconRight}
+                            src={enterUpdateIcon}
+                        />
+                    </button>
+                )}
             </Box>
         </Box>
     </Box>
@@ -96,7 +122,8 @@ const UnavailableStep = props => (
 
 UnavailableStep.propTypes = {
     onHelp: PropTypes.func,
-    onScanning: PropTypes.func
+    onScanning: PropTypes.func,
+    onUpdatePeripheral: PropTypes.func
 };
 
 export default UnavailableStep;

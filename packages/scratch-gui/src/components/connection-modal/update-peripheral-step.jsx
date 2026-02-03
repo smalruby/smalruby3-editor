@@ -136,11 +136,30 @@ class UpdatePeripheralStep extends React.Component {
     renderResults () {
         let resultsContent;
         if (this.state.err === null) {
-            resultsContent = (<FormattedMessage
-                defaultMessage="Update successful!"
-                description="Message to indicate that the peripheral update was successful"
-                id="gui.connection.updatePeripheral.updateSuccessful"
-            />);
+            if (this.props.extensionId === 'microbitMore') {
+                resultsContent = (
+                    <Box>
+                        <FormattedMessage
+                            defaultMessage="MicrobitMore update was successful!"
+                            description="Message to indicate that the microbitMore update was successful"
+                            id="gui.connection.updatePeripheral.microbitMoreUpdateSuccessful"
+                        />
+                        <div className={styles.importantInstruction}>
+                            <FormattedMessage
+                                defaultMessage="Tilt your micro:bit to light up all 25 LEDs to complete the update."
+                                description="Instructions for microbitMore to tilt the device after update"
+                                id="gui.connection.updatePeripheral.microbitMoreTiltToLightUp"
+                            />
+                        </div>
+                    </Box>
+                );
+            } else {
+                resultsContent = (<FormattedMessage
+                    defaultMessage="Update successful!"
+                    description="Message to indicate that the peripheral update was successful"
+                    id="gui.connection.updatePeripheral.updateSuccessful"
+                />);
+            }
         } else if (this.state.err.message === 'No valid interfaces found.') {
             // this is a special case where the micro:bit's communication firmware is too old to support WebUSB
             resultsContent = (<BalancedFormattedMessage
@@ -255,6 +274,7 @@ class UpdatePeripheralStep extends React.Component {
 
 UpdatePeripheralStep.propTypes = {
     connectionSmallIconURL: PropTypes.string,
+    extensionId: PropTypes.string,
     name: PropTypes.string.isRequired,
     onScanning: PropTypes.func.isRequired,
     onSendPeripheralUpdate: PropTypes.func.isRequired
