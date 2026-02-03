@@ -47,7 +47,7 @@ permissions:
   pull-requests: write # comment on released pull requests
 
 jobs:
-  test:
+  lint-and-unit-test:
     runs-on: ubuntu-latest
     if: |
       (!(
@@ -73,17 +73,12 @@ jobs:
           EOF
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
-      - name: Install Playwright
-        run: npx playwright install chromium --with-deps
       - name: Build packages
         run: npm run build:dev
       - name: Lint
         run: npm run lint
       - name: Create test-results directories
         run: |
-          mkdir -p packages/task-herder/test-results
-          mkdir -p packages/scratch-svg-renderer/test-results
-          mkdir -p packages/scratch-render/test-results
           mkdir -p packages/scratch-vm/test-results
           mkdir -p packages/scratch-gui/test-results
       - name: Run Unit Tests
@@ -99,7 +94,7 @@ jobs:
           path: |
             packages/*/test-results/*
 
-  build-and-deploy:
+  integration-test:
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=4000
@@ -119,8 +114,46 @@ jobs:
           EOF
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
-      - name: Install Playwright
-        run: npx playwright install chromium --with-deps
+      - name: Build packages
+        run: npm run build:dev
+      - name: Create test-results directories
+        run: |
+          mkdir -p packages/scratch-vm/test-results
+          mkdir -p packages/scratch-gui/test-results
+      - name: Run Integration Tests
+        env:
+          JEST_JUNIT_OUTPUT_DIR: packages/scratch-gui/test-results
+          TAP_REPORTER: junit
+          TAP_REPORTER_FILE: test-results/integration-tests-results.xml
+        run: npm run test:integration
+      - name: Store Test Results
+        if: always() # Even if tests fail
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: test-output-integration
+          path: packages/*/test-results/*
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: integration-test
+    env:
+      NODE_OPTIONS: --max-old-space-size=4000
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          cache: 'npm'
+          node-version-file: '.nvmrc'
+      - name: Info
+        run: |
+          cat <<EOF
+          Node version: $(node --version)
+          NPM version: $(npm --version)
+          GitHub ref: ${{ github.ref }}
+          GitHub head ref: ${{ github.head_ref }}
+          EOF
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
       - name: Run Build
         env:
           NODE_ENV: production
@@ -145,25 +178,6 @@ jobs:
         with:
           name: dist-output
           path: packages/scratch-gui/dist
-      - name: Create test-results directories
-        run: |
-          mkdir -p packages/task-herder/test-results
-          mkdir -p packages/scratch-svg-renderer/test-results
-          mkdir -p packages/scratch-render/test-results
-          mkdir -p packages/scratch-vm/test-results
-          mkdir -p packages/scratch-gui/test-results
-      - name: Run Integration Tests
-        env:
-          JEST_JUNIT_OUTPUT_DIR: packages/scratch-gui/test-results
-          TAP_REPORTER: junit
-          TAP_REPORTER_FILE: test-results/integration-tests-results.xml
-        run: npm run test:integration
-      - name: Store Test Results
-        if: always() # Even if tests fail
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
-        with:
-          name: test-output-integration
-          path: packages/*/test-results/*
       - name: Prepare deployment files for smalruby.app
         if: github.ref == 'refs/heads/develop'
         run: touch packages/scratch-gui/dist/.nojekyll
