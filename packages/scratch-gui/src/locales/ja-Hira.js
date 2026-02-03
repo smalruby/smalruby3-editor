@@ -268,6 +268,8 @@ export default {
     'gui.connection.updatePeripheral.microbitMoreTiltToLightUp': 'micro:bitをかたむけて25このLEDをすべててんとうさせるとかんりょうです。',
     'gui.connection.scanning.updatePeripheralButton': 'アップデート',
     'gui.connection.auto-scanning.updatePeripheralButton': 'アップデート',
+    'gui.connection.error.updatePeripheralButton': 'アップデート',
+    'gui.connection.unavailable.updatePeripheralButton': 'アップデート',
     'gui.connection.networkFiltered.message': 'あたらしいメッシュきのうがつかえません。{br}ネットワークかんりしゃにせいげんのかいじょをごいらいください。',
     'gui.connection.networkFiltered.copied': 'コピーしました！',
     'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
