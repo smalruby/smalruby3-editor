@@ -17,7 +17,7 @@
     "clean": "npm run --workspaces clean",
     "lint": "npm run --workspaces lint",
     "prepare": "husky install",
-    "test": "npm run test:unit && npm run test:integration",
+    "test": "npm run build:dev && npm run test:unit && npm run test:integration",
     "test:unit": "npm run test:unit --workspace=packages/scratch-vm --workspace=packages/scratch-gui",
     "test:integration": "npm run test:integration --workspace=packages/scratch-vm --workspace=packages/scratch-gui",
     "refresh-gh-workflow": "ts-node scripts/build-gha-workflows.ts",
