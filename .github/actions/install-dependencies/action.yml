@@ -33,6 +33,7 @@ runs:
           packages/*/node_modules
           packages/*/src/generated
           packages/scratch-gui/static/microbit
+          packages/scratch-gui/static/microbitMore
         key: ${{ runner.os }}-npm-${{ hashFiles('.nvmrc', 'package-lock.json') }}
     - if: steps.restore-node-modules-cache.outputs.cache-hit != 'true'
       name: Install NPM dependencies
@@ -47,4 +48,5 @@ runs:
           packages/*/node_modules
           packages/*/src/generated
           packages/scratch-gui/static/microbit
+          packages/scratch-gui/static/microbitMore
         key: ${{ runner.os }}-npm-${{ hashFiles('.nvmrc', 'package-lock.json') }}

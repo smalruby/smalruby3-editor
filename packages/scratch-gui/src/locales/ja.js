@@ -268,6 +268,8 @@ export default {
     'gui.connection.updatePeripheral.microbitMoreTiltToLightUp': 'micro:bitを傾けて25個のLEDをすべて点灯させると完了です。',
     'gui.connection.scanning.updatePeripheralButton': 'アップデート',
     'gui.connection.auto-scanning.updatePeripheralButton': 'アップデート',
+    'gui.connection.error.updatePeripheralButton': 'アップデート',
+    'gui.connection.unavailable.updatePeripheralButton': 'アップデート',
     'gui.connection.networkFiltered.message': 'あたらしいメッシュ機能が使えません。{br}ネットワーク管理者に制限の解除をご依頼ください。',
     'gui.connection.networkFiltered.copied': 'コピーしました！',
     'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',

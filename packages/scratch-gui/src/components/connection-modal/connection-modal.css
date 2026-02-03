@@ -499,3 +499,8 @@
     height: 1rem;
 }
 /* === Smalruby: End of network filter detection feature === */
+
+.important-instruction {
+    font-weight: bold;
+    color: $ui-red;
+}
