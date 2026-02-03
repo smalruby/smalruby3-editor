@@ -7,6 +7,7 @@ import Box from '../box/box.jsx';
 import Dots from './dots.jsx';
 import helpIcon from './icons/help.svg';
 import backIcon from './icons/back.svg';
+import enterUpdateIcon from './icons/enter-update.svg';
 
 import styles from './connection-modal.css';
 
@@ -30,6 +31,15 @@ const ErrorStep = props => (
                     id="gui.connection.error.errorMessage"
                 />
             </div>
+            {props.onUpdatePeripheral && (
+                <div className={classNames(styles.bottomAreaItem, styles.instructions)}>
+                    <FormattedMessage
+                        defaultMessage="If you don't see your device, you may need to update it to work with Scratch."
+                        description="Prompt for updating a peripheral device"
+                        id="gui.connection.scanning.updatePeripheralPrompt"
+                    />
+                </div>
+            )}
             <Dots
                 error
                 className={styles.bottomAreaItem}
@@ -64,6 +74,22 @@ const ErrorStep = props => (
                         id="gui.connection.error.helpbutton"
                     />
                 </button>
+                {props.onUpdatePeripheral && (
+                    <button
+                        className={styles.connectionButton}
+                        onClick={props.onUpdatePeripheral}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Update my Device"
+                            description="Button to enter the peripheral update mode"
+                            id="gui.connection.error.updatePeripheralButton"
+                        />
+                        <img
+                            className={styles.buttonIconRight}
+                            src={enterUpdateIcon}
+                        />
+                    </button>
+                )}
             </Box>
         </Box>
     </Box>
@@ -72,7 +98,8 @@ const ErrorStep = props => (
 ErrorStep.propTypes = {
     connectionIconURL: PropTypes.string.isRequired,
     onHelp: PropTypes.func,
-    onScanning: PropTypes.func
+    onScanning: PropTypes.func,
+    onUpdatePeripheral: PropTypes.func
 };
 
 export default ErrorStep;
