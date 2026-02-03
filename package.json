@@ -15,7 +15,7 @@
     "build:dev": "npm run --workspaces build:dev",
     "build-monorepo": "cross-env-shell ./scripts/build-monorepo.sh",
     "clean": "npm run --workspaces clean",
-    "lint": "npm run --workspaces lint",
+    "lint": "npm run lint --workspace=packages/scratch-vm --workspace=packages/scratch-gui",
     "prepare": "husky install",
     "test": "npm run build:dev && npm run test:unit && npm run test:integration",
     "test:unit": "npm run test:unit --workspace=packages/scratch-vm --workspace=packages/scratch-gui",

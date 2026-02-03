@@ -11,7 +11,7 @@ class WebBLE {
     /**
      * A BLE peripheral object.  It handles connecting, over Web Bluetooth API, to
      * BLE peripherals, and reading and writing data to them.
-     * @param {Runtime} runtime - the Runtime for sending/receiving GUI update events.
+     * @param {object} runtime - the Runtime for sending/receiving GUI update events.
      * @param {string} extensionId - the id of the extension using this object.
      * @param {object} peripheralOptions - the list of options for peripheral discovery.
      * @param {object} connectCallback - a callback for connection.
@@ -20,13 +20,13 @@ class WebBLE {
     constructor (runtime, extensionId, peripheralOptions, connectCallback, resetCallback = null) {
         /**
          * Remote device which have been connected.
-         * @type {BluetoothDevice}
+         * @type {object}
          */
         this._device = null;
 
         /**
          * Remote GATT server
-         * @type {BluetoothRemoteGATTServer}
+         * @type {object}
          */
         this._server = null;
 
@@ -96,7 +96,7 @@ class WebBLE {
     }
 
     /**
-     * @returns {bool} whether the peripheral is connected.
+     * @returns {boolean} whether the peripheral is connected.
      */
     isConnected () {
         if (!this._server) return false;

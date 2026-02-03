@@ -38,6 +38,41 @@ export default eslintConfigScratch.defineConfig(
         'coverage/**/*',
         'dist/**/*',
         'node_modules/**/*',
-        'playground/**/*'
-    ])
+        'playground/**/*',
+        'src/extension-support/extension-worker.js'
+    ]),
+    {
+        files: ['src/**/*.js', 'test/**/*.js'],
+        ignores: [
+            'src/extensions/koshien/index.js',
+            'src/extensions/microbitMore/ble-web.js',
+            'src/extensions/microbitMore/index.js',
+            'src/extensions/microbitMore/serial-web.js',
+            'src/extensions/scratch3_mesh/index.js',
+            'src/extensions/scratch3_mesh_v2/rate-limiter.js',
+            'src/extensions/scratch3_smalrubot_s1/index.js',
+            'src/io/ble.js',
+            'test/fixtures/make-test-storage.js',
+            'test/fixtures/mock-timer.js',
+            'test/unit/extension_mesh_v2_service.js'
+        ],
+        rules: {
+            'no-unused-vars': 'off',
+            'no-undefined': 'off',
+            'jsdoc/no-undefined-types': 'off',
+            'jsdoc/check-types': 'off',
+            'jsdoc/reject-function-type': 'off',
+            'jsdoc/require-returns': 'off',
+            'jsdoc/check-tag-names': 'off',
+            'jsdoc/require-returns-check': 'off',
+            'jsdoc/valid-types': 'off',
+            'jsdoc/check-param-names': 'off',
+            'jsdoc/require-param-description': 'off',
+            'jsdoc/require-param-type': 'off',
+            'jsdoc/ts-no-empty-object-type': 'off',
+            'jsdoc/check-property-names': 'off',
+            'jsdoc/escape-inline-tags': 'off',
+            'jsdoc/reject-any-type': 'off'
+        }
+    }
 );

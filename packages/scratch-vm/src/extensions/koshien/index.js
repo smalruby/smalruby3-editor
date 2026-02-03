@@ -91,14 +91,14 @@ const KoshienObjectName = {
 class KoshienClient {
     /**
      * Construct a Client of Smalruby Koshien game server.
-     * @param {Runtime} runtime - the Scratch 3.0 runtime
+     * @param {object} runtime - the Scratch 3.0 runtime
      * @param {string} extensionId - the id of the extension
      */
     constructor (runtime, extensionId) {
 
         /**
          * The Scratch 3.0 runtime used to trigger the green flag button.
-         * @type {Runtime}
+         * @type {object}
          * @private
          */
         this.runtime = runtime;
@@ -146,7 +146,7 @@ class KoshienBlocks {
 
     /**
      * A translation object which is used in this class.
-     * @param {FormatObject} formatter - translation object
+     * @param {object} formatter - translation object
      */
     static set formatMessage (formatter) {
         formatMessage = formatter;
@@ -398,12 +398,12 @@ class KoshienBlocks {
 
     /**
      * Construct a set of Koshien blocks.
-     * @param {Runtime} runtime - the Scratch 3.0 runtime.
+     * @param {object} runtime - the Scratch 3.0 runtime.
      */
     constructor (runtime) {
         /**
          * The Scratch 3.0 runtime.
-         * @type {Runtime}
+         * @type {object}
          */
         this.runtime = runtime;
 
@@ -910,7 +910,7 @@ class KoshienBlocks {
 
     /**
      * turn over
-     * @param args
+     * @param {object} args - the block's arguments.
      */
     // eslint-disable-next-line no-unused-vars
     turnOver (args) {

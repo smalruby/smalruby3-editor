@@ -29,8 +29,8 @@ class RateLimiter {
 
     /**
      * Add a request to the queue.
-     * @param {any} data - Data to send.
-     * @param {Function} sendFunction - Asynchronous function to send data.
+     * @param {object} data - Data to send.
+     * @param {function(object): Promise} sendFunction - Asynchronous function to send data.
      * @returns {Promise} - Resolves with the result of sendFunction.
      */
     send (data, sendFunction) {
@@ -53,9 +53,9 @@ class RateLimiter {
     /**
      * Merge data into existing queue item if possible.
      * @param {Array} dataArray - New data to merge.
-     * @param {Function} sendFunction - Function associated with the data.
-     * @param {Function} resolve - Promise resolve callback.
-     * @param {Function} reject - Promise reject callback.
+     * @param {function(object): Promise} sendFunction - Function associated with the data.
+     * @param {function(object)} resolve - Promise resolve callback.
+     * @param {function(object)} reject - Promise reject callback.
      */
     mergeIntoQueue (dataArray, sendFunction, resolve, reject) {
         let merged = false;

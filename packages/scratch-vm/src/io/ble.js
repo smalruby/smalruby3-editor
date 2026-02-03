@@ -5,7 +5,7 @@ class BLE extends JSONRPC {
     /**
      * A BLE peripheral socket object.  It handles connecting, over web sockets, to
      * BLE peripherals, and reading and writing data to them.
-     * @param {Runtime} runtime - the Runtime for sending/receiving GUI update events.
+     * @param {object} runtime - the Runtime for sending/receiving GUI update events.
      * @param {string} extensionId - the id of the extension using this socket.
      * @param {object} peripheralOptions - the list of options for peripheral discovery.
      * @param {object} connectCallback - a callback for connection.
@@ -89,7 +89,7 @@ class BLE extends JSONRPC {
     }
 
     /**
-     * @returns {bool} whether the peripheral is connected.
+     * @returns {boolean} whether the peripheral is connected.
      */
     isConnected () {
         return this._connected;
@@ -166,7 +166,7 @@ class BLE extends JSONRPC {
      * Handle a received call from the socket.
      * @param {string} method - a received method label.
      * @param {object} params - a received list of parameters.
-     * @returns {object} - optional return value.
+     * @returns {object|undefined} - optional return value.
      */
     didReceiveCall (method, params) {
         switch (method) {

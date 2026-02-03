@@ -844,7 +844,7 @@ class SmalrubotS1 extends Smalrubot {
 
 /**
  * Host for the Smalrubot S1-related blocks
- * @param {Runtime} runtime - the runtime instantiating this block package.
+ * @param {object} runtime - the runtime instantiating this block package.
  * @class
  */
 class Scratch3SmalrubotS1Blocks {
@@ -985,7 +985,7 @@ class Scratch3SmalrubotS1Blocks {
     constructor (runtime) {
         /**
          * The runtime instantiating this block package.
-         * @type {Runtime}
+         * @type {object}
          */
         this.runtime = runtime;
         this.runtime.on('PROJECT_STOP_ALL', this.stopAll.bind(this));

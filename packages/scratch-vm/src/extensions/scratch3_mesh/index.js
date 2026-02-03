@@ -38,7 +38,7 @@ const MESH_ID_LABEL_CHARACTERS = {
 
 /**
  * Host for the Mesh-related blocks
- * @param {Runtime} runtime - the runtime instantiating this block package.
+ * @param {object} runtime - the runtime instantiating this block package.
  * @class
  */
 class Scratch3MeshBlocks {
@@ -60,7 +60,7 @@ class Scratch3MeshBlocks {
         log.info('Loading OLD Mesh extension (SkyWay)');
         /**
          * The runtime instantiating this block package.
-         * @type {Runtime}
+         * @type {object}
          */
         this.runtime = runtime;
 

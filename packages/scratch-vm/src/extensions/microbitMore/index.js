@@ -421,14 +421,14 @@ class MbitMore {
 
     /**
      * Construct a MicroBit communication object.
-     * @param {Runtime} runtime - the Scratch 3.0 runtime
+     * @param {object} runtime - the Scratch 3.0 runtime
      * @param {string} extensionId - the id of the extension
      */
     constructor (runtime, extensionId) {
 
         /**
          * The Scratch 3.0 runtime used to trigger the green flag button.
-         * @type {Runtime}
+         * @type {object}
          * @private
          */
         this.runtime = runtime;
@@ -478,7 +478,7 @@ class MbitMore {
 
         /**
          * The most recently received gesture events.
-         * @type {Object.<number, number>}
+         * @type {object}
          * @private
          */
         this.gestureEvents = {};
@@ -662,7 +662,7 @@ class MbitMore {
      * Set pull mode to the pin.
      * @param {number} pinIndex - index of the pin
      * @param {MbitMorePullModeID} pullMode - pull mode to set
-     * @param {BlockUtility} util - utility object provided from the runtime
+     * @param {object} util - utility object provided from the runtime
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     setPullMode (pinIndex, pullMode, util) {
@@ -683,7 +683,7 @@ class MbitMore {
      * Set pin to digital output mode on the level.
      * @param {number} pinIndex - Index of pin.
      * @param {boolean} level - Value in digital (true = High)
-     * @param {BlockUtility} util - utility object provided by the runtime.
+     * @param {object} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     setPinOutput (pinIndex, level, util) {
@@ -706,7 +706,7 @@ class MbitMore {
      * Set the pin to PWM mode on the level.
      * @param {number} pinIndex - index of the pin
      * @param {number} level - value of analog output [0..1024].
-     * @param {BlockUtility} util - utility object provided by the runtime.
+     * @param {object} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     setPinPWM (pinIndex, level, util) {
@@ -736,7 +736,7 @@ class MbitMore {
      * @param {number} range - the span of possible values. '0' means default(2000).
      * @param {number} center - the center point from which to calculate the lower and upper bounds.
      *                          '0' means default(1500).
-     * @param {BlockUtility} util - utility object provided by the runtime.
+     * @param {object} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     setPinServo (pinIndex, angle, range, center, util) {
@@ -767,7 +767,6 @@ class MbitMore {
 
     /**
      * Read light level from the light sensor.
-     * @param {object} util - utility object provided by the runtime.
      * @returns {number} - value of the light level [0..255].
      */
     readLightLevel () {
@@ -1225,7 +1224,7 @@ class MbitMore {
     /**
      * Send multiple commands sequentially.
      * @param {Array.<{id: number, message: Uint8Array}>} commands array of command.
-     * @param {BlockUtility} util - utility object provided by the runtime.
+     * @param {object} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when the all commands was sent.
      */
     sendCommandSet (commands, util) {
@@ -1509,7 +1508,7 @@ class MbitMore {
      * Set event type to be get from the pin.
      * @param {number} pinIndex - Index of the pin to set.
      * @param {MbitMorePinEventType} eventType - Event type to set.
-     * @param {BlockUtility} util - utility object provided by the runtime.
+     * @param {object} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     listenPinEventType (pinIndex, eventType, util) {
@@ -1529,7 +1528,7 @@ class MbitMore {
      * Send data to micro:bit.
      * @param {string} label - label of the data [ascii]
      * @param {string} content - content of the data [ascii | number]
-     * @param {BlockUtility} util - utility object provided by the runtime.
+     * @param {object} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when sending done or undefined if this process was yield.
      */
     sendData (label, content, util) {
@@ -1598,7 +1597,7 @@ class MbitMoreBlocks {
 
     /**
      * A translation object which is used in this class.
-     * @param {FormatObject} formatter - translation object
+     * @param {object} formatter - translation object
      */
     static set formatMessage (formatter) {
         formatMessage = formatter;
@@ -2282,12 +2281,12 @@ class MbitMoreBlocks {
 
     /**
      * Construct a set of MicroBit blocks.
-     * @param {Runtime} runtime - the Scratch 3.0 runtime.
+     * @param {object} runtime - the Scratch 3.0 runtime.
      */
     constructor (runtime) {
         /**
          * The Scratch 3.0 runtime.
-         * @type {Runtime}
+         * @type {object}
          */
         this.runtime = runtime;
 
@@ -2300,13 +2299,13 @@ class MbitMoreBlocks {
 
         /**
          * The previous timestamps of button events.
-         * @type {Object.<number, Object.<number, number>>}
+         * @type {object}
          */
         this.prevButtonEvents = {};
 
         /**
          * The previous timestamps of gesture events.
-         * @type {Object.<number, number>}
+         * @type {object}
          */
         this.prevGestureEvents = {};
 
@@ -2336,13 +2335,13 @@ class MbitMoreBlocks {
 
         /**
          * The previous timestamps of pin events.
-         * @type {Object.<number, Object.<number, number>>}
+         * @type {object}
          */
         this.prevPinEvents = {};
 
         /**
          * The previous timestamps of messages.
-         * @type {Object.<number, Object>}
+         * @type {object}
          */
         this.prevReceivedData = {};
 
@@ -3075,7 +3074,6 @@ class MbitMoreBlocks {
      * Test whether the A or B button is pressed
      * @param {object} args - the block's arguments.
      * @param {string} args.NAME - name of the button.
-     * @param {object} util - utility object provided by the runtime.
      * @returns {boolean} - whether the button is pressed or not.
      */
     isButtonPressed (args) {
@@ -3407,6 +3405,7 @@ class MbitMoreBlocks {
                 return new Promise(resolve => setTimeout(resolve, delay * (textLength + 5)));
             });
         }
+        return null;
     }
 
     /**
@@ -3437,7 +3436,7 @@ class MbitMoreBlocks {
         let delay = parseInt(args.DELAY, 10);
         delay = isNaN(delay) ? 120 : delay; // Use default delay if NaN.
         const resultPromise = this._peripheral.displayText(text, delay, util);
-        if (!resultPromise) return; // This thread was yielded.
+        if (!resultPromise) return null; // This thread was yielded.
         const yieldDelay = delay * ((6 * text.length) + 6);
         return new Promise(resolve => {
             setTimeout(() => {
@@ -3475,7 +3474,6 @@ class MbitMoreBlocks {
 
     /**
      * Get amount of light (0 - 255) on the LEDs.
-     * @param {object} args - the block's arguments.
      * @returns {number} - light level.
      */
     getLightLevel () {
@@ -3485,7 +3483,6 @@ class MbitMoreBlocks {
 
     /**
      * Get temperature (integer in celsius) of micro:bit.
-     * @param {object} args - the block's arguments.
      * @returns {number} - value of temperature [centigrade].
      */
     getTemperature () {
@@ -3500,7 +3497,7 @@ class MbitMoreBlocks {
      */
     getSoundLevel (args, util) {
         const resultPromise = this._peripheral.configMic(true, util);
-        if (!resultPromise) return; // This thread was yielded.
+        if (!resultPromise) return null; // This thread was yielded.
         return resultPromise
             .then(micState => {
                 if (micState) {
@@ -3528,7 +3525,7 @@ class MbitMoreBlocks {
     getAnalogValue (args, util) {
         const pinIndex = parseInt(args.PIN, 10);
         const resultPromise = this._peripheral.readAnalogIn(pinIndex, util);
-        if (!resultPromise) return;
+        if (!resultPromise) return null;
         return resultPromise.then(level => Math.round(level * 100 * 10 / 1024) / 10);
     }
 
@@ -3545,14 +3542,14 @@ class MbitMoreBlocks {
     /**
      * Send data with label.
      * @param {object} args - the block's arguments.
-     * @property {string} args.LABEL - label of the data.
-     * @property {string} args.DATA - content of the data.
+     * @param {string} args.LABEL - label of the data.
+     * @param {string} args.DATA - content of the data.
      * @param {object} util - utility object provided by the runtime.
      * @returns {?Promise} - a Promise that resolves when the process was done or undefined if this process was yield.
      */
     sendData (args, util) {
         if (args.LABEL.length <= 0) {
-            return;
+            return null;
         }
         return this._peripheral.sendData(args.LABEL, args.DATA, util);
     }
@@ -3562,8 +3559,8 @@ class MbitMoreBlocks {
      * @param {object} args - the block's arguments.
      * @param {number} args.PIN - pin ID.
      * @param {MbitMorePullModeName} args.MODE - mode to set.
-     * @param {BlockUtility} util - utility object provided by the runtime.
-     * @returns {promise | undefined} - a Promise that resolves when the command was sent
+     * @param {object} util - utility object provided by the runtime.
+     * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
     setPullMode (args, util) {
@@ -3576,7 +3573,7 @@ class MbitMoreBlocks {
      * @param {number} args.PIN - pin ID.
      * @param {boolean | string | number} args.LEVEL - value to be set.
      * @param {object} util - utility object provided by the runtime.
-     * @returns {promise | undefined} - a Promise that resolves when the command was sent
+     * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
     setDigitalOut (args, util) {
@@ -3596,8 +3593,8 @@ class MbitMoreBlocks {
      * @param {object} args - the block's arguments.
      * @param {number} args.PIN - pin ID.
      * @param {number} args.LEVEL - value[%] for PWM.
-     * @param {BlockUtility} util - utility object provided by the runtime.
-     * @returns {promise | undefined} - a Promise that resolves when the command was sent
+     * @param {object} util - utility object provided by the runtime.
+     * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
     setAnalogOut (args, util) {
@@ -3618,8 +3615,8 @@ class MbitMoreBlocks {
      * Set the pin to Servo mode and angle.
      * @param {object} args - the block's arguments.
      * @param {number} args.PIN - pin ID.
-     * @param {BlockUtility} util - utility object provided by the runtime.
-     * @returns {promise | undefined} - a Promise that resolves when the command was sent
+     * @param {object} util - utility object provided by the runtime.
+     * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
     setServo (args, util) {
@@ -3679,7 +3676,7 @@ class MbitMoreBlocks {
      * @param {string} args.FREQ - wave frequency to play
      * @param {string} args.VOL laudness of tone
      * @param {object} util - utility object provided by the runtime.
-     * @returns {promise | undefined} - a Promise that resolves when the command was sent
+     * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
     playTone (args, util) {
@@ -3693,7 +3690,7 @@ class MbitMoreBlocks {
      * Stop playing tone on the speaker.
      * @param {object} args - the block's arguments.
      * @param {object} util - utility object provided by the runtime.
-     * @returns {promise | undefined} - a Promise that resolves when the command was sent
+     * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
     stopTone (args, util) {
@@ -3705,8 +3702,8 @@ class MbitMoreBlocks {
      * @param {object} args - the block's arguments.
      * @param {number} args.PIN - pin ID.
      * @param {string} args.EVENT_TYPE - event to listen.
-     * @param {BlockUtility} util - utility object provided by the runtime.
-     * @returns {promise | undefined} - a Promise that resolves when the command was sent
+     * @param {object} util - utility object provided by the runtime.
+     * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
     listenPinEventType (args, util) {
@@ -3714,11 +3711,10 @@ class MbitMoreBlocks {
     }
 
     /**
-     * Rerutn value (timestamp of the edge or duration of the pulse) of the event or 0 when the event is not received.
+     * Return value (timestamp of the edge or duration of the pulse) of the event or 0 when the event is not received.
      * @param {object} args - the block's arguments.
      * @param {number} args.PIN - pin ID.
      * @param {string} args.EVENT - event value to get.
-     * @param {object} util - utility object provided by the runtime.
      * @returns {number} - timestamp of the event or 0.
      */
     getPinEventValue (args) {
@@ -3843,7 +3839,7 @@ class MbitMoreBlocks {
     /**
      * Test whether a micro:bit connected.
      * @param {object} args - the block's arguments.
-     * @property {string} args.STATE - the state of connection to check.
+     * @param {string} args.STATE - the state of connection to check.
      * @returns {boolean} - true if the state is matched.
      */
     whenConnectionChanged (args) {

@@ -1,4 +1,3 @@
-/* eslint-disable require-atomic-updates */
 const test = require('tap').test;
 const minilog = require('minilog');
 // Suppress debug logs during tests
