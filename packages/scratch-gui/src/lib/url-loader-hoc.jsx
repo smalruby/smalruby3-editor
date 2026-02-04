@@ -258,7 +258,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
             runtime: PropTypes.shape({
-                storage: PropTypes.object
+                storage: PropTypes.shape({})
             })
         })
     };

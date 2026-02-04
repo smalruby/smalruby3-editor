@@ -146,7 +146,7 @@ class KoshienBlocks {
 
     /**
      * A translation object which is used in this class.
-     * @param {FormatObject} formatter - translation object
+     * @param {FormatMessage} formatter - translation object
      */
     static set formatMessage (formatter) {
         formatMessage = formatter;
@@ -910,7 +910,7 @@ class KoshienBlocks {
 
     /**
      * turn over
-     * @param args
+     * @param {object} args - the block's arguments.
      */
     // eslint-disable-next-line no-unused-vars
     turnOver (args) {

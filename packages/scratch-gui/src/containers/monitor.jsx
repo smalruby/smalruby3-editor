@@ -243,12 +243,12 @@ Monitor.propTypes = {
     min: PropTypes.number,
     mode: PropTypes.oneOf(['default', 'slider', 'large', 'list']),
     monitorLayout: PropTypes.shape({
-        monitors: PropTypes.object, // eslint-disable-line react/forbid-prop-types
-        savedMonitorPositions: PropTypes.object // eslint-disable-line react/forbid-prop-types
+        monitors: PropTypes.object,
+        savedMonitorPositions: PropTypes.object
     }).isRequired,
     onDragEnd: PropTypes.func.isRequired,
     opcode: PropTypes.string.isRequired,
-    params: PropTypes.object, // eslint-disable-line react/forbid-prop-types
+    params: PropTypes.object,
     removeMonitorRect: PropTypes.func.isRequired,
     resizeMonitorRect: PropTypes.func.isRequired,
     spriteName: PropTypes.string,

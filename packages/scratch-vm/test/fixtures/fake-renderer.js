@@ -15,11 +15,11 @@ FakeRenderer.prototype.createBitmapSkin = function () {
     return this._nextSkinId++;
 };
 
-FakeRenderer.prototype.getSkinSize = function (d) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.getSkinSize = function (d) {
     return [0, 0];
 };
 
-FakeRenderer.prototype.getSkinRotationCenter = function (d) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.getSkinRotationCenter = function (d) {
     return [0, 0];
 };
 
@@ -31,7 +31,7 @@ FakeRenderer.prototype.getFencedPositionOfDrawable = function (d, p) {
     return [p[0], p[1]];
 };
 
-FakeRenderer.prototype.updateDrawableSkinId = function (d, skinId) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.updateDrawableSkinId = function (d, skinId) {
 };
 
 FakeRenderer.prototype.updateDrawablePosition = function (d, position) {
@@ -40,31 +40,31 @@ FakeRenderer.prototype.updateDrawablePosition = function (d, position) {
 };
 
 FakeRenderer.prototype.updateDrawableDirectionScale =
-    function (d, direction, scale) {}; // eslint-disable-line no-unused-vars
+    function (d, direction, scale) {};
 
-FakeRenderer.prototype.updateDrawableVisible = function (d, visible) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.updateDrawableVisible = function (d, visible) {
 };
 
-FakeRenderer.prototype.updateDrawableEffect = function (d, effectName, value) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.updateDrawableEffect = function (d, effectName, value) {
 };
 
-FakeRenderer.prototype.getCurrentSkinSize = function (d) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.getCurrentSkinSize = function (d) {
     return [0, 0];
 };
 
-FakeRenderer.prototype.pick = function (x, y, a, b, d) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.pick = function (x, y, a, b, d) {
     return true;
 };
 
-FakeRenderer.prototype.drawableTouching = function (d, x, y, w, h) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.drawableTouching = function (d, x, y, w, h) {
     return true;
 };
 
-FakeRenderer.prototype.isTouchingColor = function (d, c) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.isTouchingColor = function (d, c) {
     return true;
 };
 
-FakeRenderer.prototype.getBounds = function (d) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.getBounds = function (d) {
     return {left: this.x, right: this.x, top: this.y, bottom: this.y};
 };
 
@@ -81,7 +81,7 @@ FakeRenderer.prototype.setDrawableOrder = function (d, a, optG, optA, optB) {
     return this.order;
 };
 
-FakeRenderer.prototype.getDrawableOrder = function (d) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.getDrawableOrder = function (d) {
     return 'stub';
 };
 
@@ -89,10 +89,10 @@ FakeRenderer.prototype.pick = function (x, y, a, b, c) {
     return c[0];
 };
 
-FakeRenderer.prototype.isTouchingColor = function (a, b) { // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.isTouchingColor = function (a, b) {
     return false;
 };
 
-FakeRenderer.prototype.setLayerGroupOrdering = function (a) {}; // eslint-disable-line no-unused-vars
+FakeRenderer.prototype.setLayerGroupOrdering = function (a) {};
 
 module.exports = FakeRenderer;

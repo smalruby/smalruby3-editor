@@ -528,12 +528,12 @@ class BlockDisplayModal extends React.Component {
 BlockDisplayModal.propTypes = {
     intl: intlShape.isRequired,
     onRequestClose: PropTypes.func.isRequired,
-    selectedBlocks: PropTypes.object.isRequired,
-    scratchBlocks: PropTypes.object,
+    selectedBlocks: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.string)).isRequired,
+    scratchBlocks: PropTypes.instanceOf(Object),
     onCategoryChange: PropTypes.func.isRequired,
     onBlockChange: PropTypes.func.isRequired,
     onSetProjectChanged: PropTypes.func.isRequired,
-    vm: PropTypes.object
+    vm: PropTypes.instanceOf(Object)
 };
 
 export default injectIntl(BlockDisplayModal);

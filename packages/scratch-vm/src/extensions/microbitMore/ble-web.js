@@ -20,13 +20,13 @@ class WebBLE {
     constructor (runtime, extensionId, peripheralOptions, connectCallback, resetCallback = null) {
         /**
          * Remote device which have been connected.
-         * @type {BluetoothDevice}
+         * @type {object}
          */
         this._device = null;
 
         /**
          * Remote GATT server
-         * @type {BluetoothRemoteGATTServer}
+         * @type {object}
          */
         this._server = null;
 
@@ -96,7 +96,7 @@ class WebBLE {
     }
 
     /**
-     * @returns {bool} whether the peripheral is connected.
+     * @returns {boolean} whether the peripheral is connected.
      */
     isConnected () {
         if (!this._server) return false;

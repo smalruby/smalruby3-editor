@@ -77,6 +77,7 @@ class Generator {
 
     /**
      * Category to separate generated function names from variables and procedures.
+     * @returns {string} Category name.
      */
     static get NAME_TYPE () {
         return Blockly.NAME_TYPE;
@@ -86,7 +87,7 @@ class Generator {
      * String for use in the "custom" attribute of a category in toolbox xml.
      * This string indicates that the category should be dynamically populated with
      * procedure blocks.
-     * @constant {string}
+     * @returns {string} Category name.
      */
     static get PROCEDURE_CATEGORY_NAME () {
         return Blockly.PROCEDURE_CATEGORY_NAME;
@@ -189,7 +190,7 @@ class Generator {
 
     /**
      * Generate code for array of RenderedTarget's all blocks to the specified language.
-     * @param {Array} targets Array of RenderedTarget to generate code from.
+     * @param {Array.<RenderedTarget>} targets Array of RenderedTarget to generate code from.
      * @param {object} options Options to generate code.
      * @returns {string} Generated code.
      */

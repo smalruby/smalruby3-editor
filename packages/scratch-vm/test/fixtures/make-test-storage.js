@@ -4,7 +4,7 @@ const ASSET_SERVER = 'https://cdn.assets.scratch.mit.edu/';
 const PROJECT_SERVER = 'https://cdn.projects.scratch.mit.edu/';
 
 /**
- * @param {Asset} asset - calculate a URL for this asset.
+ * @param {object} asset - calculate a URL for this asset.
  * @returns {string} a URL to download a project file.
  */
 const getProjectUrl = function (asset) {
@@ -17,7 +17,7 @@ const getProjectUrl = function (asset) {
 };
 
 /**
- * @param {Asset} asset - calculate a URL for this asset.
+ * @param {object} asset - calculate a URL for this asset.
  * @returns {string} a URL to download a project asset (PNG, WAV, etc.)
  */
 const getAssetUrl = function (asset) {

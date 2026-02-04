@@ -8,10 +8,10 @@ import xhr from 'xhr';
  * @param {number} projectId the ID of the project, null if a new project.
  * @param {object} vmState the JSON project representation.
  * @param {object} params the request params.
- * @property {?number} params.originalId the original project ID if a copy/remix.
- * @property {?boolean} params.isCopy a flag indicating if this save is creating a copy.
- * @property {?boolean} params.isRemix a flag indicating if this save is creating a remix.
- * @property {?string} params.title the title of the project.
+ * @param {?number} params.originalId the original project ID if a copy/remix.
+ * @param {?boolean} params.isCopy a flag indicating if this save is creating a copy.
+ * @param {?boolean} params.isRemix a flag indicating if this save is creating a remix.
+ * @param {?string} params.title the title of the project.
  * @returns {Promise} A promise that resolves when the network request resolves.
  */
 export default function (projectHost, projectId, vmState, params) {
@@ -45,13 +45,13 @@ export default function (projectHost, projectId, vmState, params) {
     return new Promise((resolve, reject) => {
         xhr(opts, (err, response) => {
             if (err) return reject(err);
-            if (response.statusCode !== 200) return reject(response.statusCode);
+            if (response.statusCode !== 200) return reject(new Error(response.statusCode));
             let body;
             try {
                 // Since we didn't set json: true, we have to parse manually
                 body = JSON.parse(response.body);
             } catch (e) {
-                return reject(e);
+                return reject(e instanceof Error ? e : new Error(e));
             }
             body.id = projectId;
             if (creatingProject) {

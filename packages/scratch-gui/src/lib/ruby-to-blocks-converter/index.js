@@ -464,7 +464,7 @@ class RubyToBlocksConverter {
      * Determines the receiver name for method call registration and lookup.
      * This method analyzes the receiver object from Ruby AST and returns the corresponding
      * receiver name string used in the register pattern system.
-     * @param {*} receiver - The receiver object from Ruby AST (primitives, blocks, constants, etc.)
+     * @param {object} receiver - The receiver object from Ruby AST (primitives, blocks, constants, etc.)
      * @returns {string|null} The receiver name string, or null if cannot be determined:
      *   - 'stage': when receiver is self/nil and current target is stage
      *   - 'sprite': when receiver is self/nil and current target is sprite

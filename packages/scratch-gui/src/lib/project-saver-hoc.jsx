@@ -52,7 +52,7 @@ const ProjectSaverHOC = function (WrappedComponent) {
                 'tryToAutoSave'
             ]);
         }
-        componentWillMount () {
+        UNSAFE_componentWillMount () {
             if (!this.props.noBeforeUnloadHandler && typeof window === 'object') {
                 // Note: it might be better to use a listener instead of assigning onbeforeunload;
                 // but then it'd be hard to turn this listening off in our tests
@@ -259,7 +259,7 @@ const ProjectSaverHOC = function (WrappedComponent) {
                         // Asset servers respond with {status: ok} for successful POSTs
                         if (response.status !== 'ok') {
                             // Errors include a `code` property, e.g. "Forbidden"
-                            return Promise.reject(response.code);
+                            return Promise.reject(new Error(response.code));
                         }
                         asset.clean = true;
                     })
@@ -310,42 +310,42 @@ const ProjectSaverHOC = function (WrappedComponent) {
         render () {
             const {
                  
-                autoSaveTimeoutId,
-                autoSaveIntervalSecs,
-                isCreatingCopy,
-                isCreatingNew,
-                projectChanged,
+                autoSaveTimeoutId: _autoSaveTimeoutId,
+                autoSaveIntervalSecs: _autoSaveIntervalSecs,
+                isCreatingCopy: _isCreatingCopy,
+                isCreatingNew: _isCreatingNew,
+                projectChanged: _projectChanged,
                 isAnyCreatingNewState,
-                isLoading,
-                isManualUpdating,
-                isRemixing,
-                isShowingSaveable,
-                isShowingWithId,
-                isShowingWithoutId,
-                isUpdating,
-                loadingState,
-                onAutoUpdateProject,
-                onCreatedProject,
-                onCreateProject,
-                onProjectError,
-                onRemixing,
-                onSetProjectUnchanged,
-                onSetProjectThumbnailer,
-                onSetProjectSaver,
-                onShowAlert,
-                onShowCopySuccessAlert,
-                onShowRemixSuccessAlert,
-                onShowCreatingCopyAlert,
-                onShowCreatingRemixAlert,
-                onShowSaveSuccessAlert,
-                onShowSavingAlert,
-                onUpdatedProject,
-                onUpdateProjectData,
-                noBeforeUnloadHandler,
-                reduxProjectId,
-                reduxProjectTitle,
-                setAutoSaveTimeoutId: setAutoSaveTimeoutIdProp,
-                saveThumbnailOnLoad,
+                isLoading: _isLoading,
+                isManualUpdating: _isManualUpdating,
+                isRemixing: _isRemixing,
+                isShowingSaveable: _isShowingSaveable,
+                isShowingWithId: _isShowingWithId,
+                isShowingWithoutId: _isShowingWithoutId,
+                isUpdating: _isUpdating,
+                loadingState: _loadingState,
+                onAutoUpdateProject: _onAutoUpdateProject,
+                onCreatedProject: _onCreatedProject,
+                onCreateProject: _onCreateProject,
+                onProjectError: _onProjectError,
+                onRemixing: _onRemixing,
+                onSetProjectUnchanged: _onSetProjectUnchanged,
+                onSetProjectThumbnailer: _onSetProjectThumbnailer,
+                onSetProjectSaver: _onSetProjectSaver,
+                onShowAlert: _onShowAlert,
+                onShowCopySuccessAlert: _onShowCopySuccessAlert,
+                onShowRemixSuccessAlert: _onShowRemixSuccessAlert,
+                onShowCreatingCopyAlert: _onShowCreatingCopyAlert,
+                onShowCreatingRemixAlert: _onShowCreatingRemixAlert,
+                onShowSaveSuccessAlert: _onShowSaveSuccessAlert,
+                onShowSavingAlert: _onShowSavingAlert,
+                onUpdatedProject: _onUpdatedProject,
+                onUpdateProjectData: _onUpdateProjectData,
+                noBeforeUnloadHandler: _noBeforeUnloadHandler,
+                reduxProjectId: _reduxProjectId,
+                reduxProjectTitle: _reduxProjectTitle,
+                setAutoSaveTimeoutId: _setAutoSaveTimeoutIdProp,
+                saveThumbnailOnLoad: _saveThumbnailOnLoad,
                  
                 ...componentProps
             } = this.props;

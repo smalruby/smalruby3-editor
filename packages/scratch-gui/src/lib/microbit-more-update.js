@@ -7,7 +7,6 @@ import keyMirror from 'keymirror';
 
 import log from './log.js';
 
-// eslint-disable-next-line import/no-unresolved -- for CI
 import hexUrl from '../generated/microbit-more-hex-url.cjs';
 
 /**

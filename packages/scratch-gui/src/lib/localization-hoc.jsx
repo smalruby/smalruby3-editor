@@ -20,8 +20,8 @@ const LocalizationHOC = function (WrappedComponent) {
         }
         render () {
             const {
-                locale,
-                onSetLanguage,
+                locale: _locale,
+                onSetLanguage: _onSetLanguage,
                 ...componentProps
             } = this.props;
             return (

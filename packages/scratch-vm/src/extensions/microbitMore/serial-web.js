@@ -1,4 +1,5 @@
 const log = require('../../util/log');
+
 const uint8ArrayToBase64 = array => window.btoa(String.fromCharCode(...array));
 const base64ToUint8Array = base64 => {
     const raw = window.atob(base64);
@@ -56,8 +57,8 @@ class WebSerial {
      * @param {Runtime} runtime - the Runtime for sending/receiving GUI update events.
      * @param {string} extensionId - the id of the extension using this object.
      * @param {object} peripheralOptions - the list of options for peripheral discovery.
-     * @param {function} connectCallback - a callback for connection.
-     * @param {function} resetCallback - a callback for resetting extension state.
+     * @param {function(): void} connectCallback - a callback for connection.
+     * @param {function(): void} [resetCallback] - a callback for resetting extension state.
      */
     constructor (runtime, extensionId, peripheralOptions, connectCallback, resetCallback = null) {
         /**
@@ -214,7 +215,7 @@ class WebSerial {
     }
 
     /**
-     * @returns {bool} whether the peripheral is connected.
+     * @returns {boolean} whether the peripheral is connected.
      */
     isConnected () {
         return this.state === 'open';
@@ -290,7 +291,7 @@ class WebSerial {
      * Start receiving notifications from the device.
      * @param {number} _serviceId - the ble service to read. (ignore it for serial-port)
      * @param {number} characteristicId - the ble characteristic to get notifications from.
-     * @param {Function?} onCharacteristicChanged - callback for characteristic change notifications
+     * @param {function(string): void} [onCharacteristicChanged] - callback for characteristic change notifications
      *  like function(base64message).
      * @returns {Promise} - a Promise which will resolve when requested start notification.
      */
@@ -341,7 +342,7 @@ class WebSerial {
      * @param {number} serviceId - the ble service to read.
      * @param {number} characteristicId - the ble characteristic to read.
      * @param {boolean} optStartNotifications - whether to start receiving characteristic change notifications.
-     * @param {function} onCharacteristicChanged - callback for characteristic change notifications
+     * @param {function(string): void} [onCharacteristicChanged] - callback for characteristic change notifications
      *  like function(base64message).
      * @returns {Promise} - a Promise from the remote read request which resolve {message: base64string}.
      */
