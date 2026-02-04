@@ -1,7 +1,5 @@
 const log = require('../../util/log');
 
-/** @typedef {import('../../engine/runtime')} Runtime */
-
 const uint8ArrayToBase64 = array => window.btoa(String.fromCharCode(...array));
 const base64ToUint8Array = base64 => {
     const raw = window.atob(base64);

@@ -2,8 +2,6 @@ import _ from 'lodash';
 import log from './log';
 import Blockly from 'scratch-blocks';
 
-/** @typedef {import('@smalruby/scratch-vm/src/sprites/rendered-target')} RenderedTarget */
-
 /**
  * Class for a code generator that translates the blocks into a language.
  *

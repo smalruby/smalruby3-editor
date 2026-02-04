@@ -1,7 +1,5 @@
 const JSONRPC = require('../util/jsonrpc');
 
-/** @typedef {import('../engine/runtime')} Runtime */
-
 class BLE extends JSONRPC {
 
     /**

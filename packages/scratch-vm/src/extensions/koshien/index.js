@@ -3,9 +3,6 @@ const BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
 
-/** @typedef {import('../../engine/runtime')} Runtime */
-/** @typedef {import('format-message')} FormatMessage */
-
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}

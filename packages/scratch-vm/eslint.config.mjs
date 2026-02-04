@@ -74,5 +74,19 @@ export default eslintConfigScratch.defineConfig(
             'jsdoc/escape-inline-tags': 'off',
             'jsdoc/reject-any-type': 'off'
         }
+    },
+    {
+        files: [
+            'src/extensions/koshien/index.js',
+            'src/extensions/microbitMore/ble-web.js',
+            'src/extensions/microbitMore/index.js',
+            'src/extensions/microbitMore/serial-web.js',
+            'src/extensions/scratch3_mesh/index.js',
+            'src/extensions/scratch3_smalrubot_s1/index.js',
+            'src/io/ble.js'
+        ],
+        rules: {
+            'jsdoc/no-undefined-types': 'off'
+        }
     }
 );

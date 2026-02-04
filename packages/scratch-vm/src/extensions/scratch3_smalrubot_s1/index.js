@@ -8,8 +8,6 @@ const formatMessage = require('format-message');
 const Cast = require('../../util/cast');
 const Timer = require('../../util/timer');
 
-/** @typedef {import('../../engine/runtime')} Runtime */
-
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}

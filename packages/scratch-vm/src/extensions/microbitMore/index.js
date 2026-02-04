@@ -8,10 +8,6 @@ import translations from './translations.json';
 import BLE from './ble-llk';
 import WebSerial from './serial-web';
 
-/** @typedef {import('../../engine/runtime')} Runtime */
-/** @typedef {import('../../engine/block-utility')} BlockUtility */
-/** @typedef {import('format-message')} FormatMessage */
-
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}

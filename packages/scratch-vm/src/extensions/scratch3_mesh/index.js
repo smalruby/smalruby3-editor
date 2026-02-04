@@ -8,8 +8,6 @@ const Variable = require('../../engine/variable');
 const MeshHost = require('./mesh-host');
 const MeshPeer = require('./mesh-peer');
 
-/** @typedef {import('../../engine/runtime')} Runtime */
-
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}

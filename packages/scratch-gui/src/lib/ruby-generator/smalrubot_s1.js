@@ -1,5 +1,3 @@
-/** @typedef {import("./index")} RubyGenerator */
-
 /**
  * Define Ruby code generator for Smalrubot S1 Blocks
  * @param {RubyGenerator} Generator The RubyGenerator

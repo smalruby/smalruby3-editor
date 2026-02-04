@@ -1,5 +1,3 @@
-/** @typedef {import("./index")} RubyGenerator */
-
 /**
  * Define Ruby code generator for Colour Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
