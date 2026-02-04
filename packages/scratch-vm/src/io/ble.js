@@ -1,11 +1,13 @@
 const JSONRPC = require('../util/jsonrpc');
 
+/** @typedef {import('../engine/runtime')} Runtime */
+
 class BLE extends JSONRPC {
 
     /**
      * A BLE peripheral socket object.  It handles connecting, over web sockets, to
      * BLE peripherals, and reading and writing data to them.
-     * @param {object} runtime - the Runtime for sending/receiving GUI update events.
+     * @param {Runtime} runtime - the Runtime for sending/receiving GUI update events.
      * @param {string} extensionId - the id of the extension using this socket.
      * @param {object} peripheralOptions - the list of options for peripheral discovery.
      * @param {object} connectCallback - a callback for connection.

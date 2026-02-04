@@ -1,7 +1,9 @@
+/** @typedef {import("./index")} RubyGenerator */
+
 /**
  * Define Ruby code generator for Translate Blocks
- * @param {object} Generator The RubyGenerator
- * @returns {object} same as param.
+ * @param {RubyGenerator} Generator The RubyGenerator
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     Generator.translate_getTranslate = function (block) {

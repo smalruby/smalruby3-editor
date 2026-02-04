@@ -1,5 +1,7 @@
 const log = require('../../util/log');
 
+/** @typedef {import('../../engine/runtime')} Runtime */
+
 const uint8ArrayToBase64 = array => window.btoa(String.fromCharCode(...array));
 const base64ToUint8Array = base64 => {
     const raw = window.atob(base64);
@@ -11,7 +13,7 @@ class WebBLE {
     /**
      * A BLE peripheral object.  It handles connecting, over Web Bluetooth API, to
      * BLE peripherals, and reading and writing data to them.
-     * @param {object} runtime - the Runtime for sending/receiving GUI update events.
+     * @param {Runtime} runtime - the Runtime for sending/receiving GUI update events.
      * @param {string} extensionId - the id of the extension using this object.
      * @param {object} peripheralOptions - the list of options for peripheral discovery.
      * @param {object} connectCallback - a callback for connection.

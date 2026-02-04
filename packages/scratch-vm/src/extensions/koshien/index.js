@@ -3,6 +3,9 @@ const BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
 
+/** @typedef {import('../../engine/runtime')} Runtime */
+/** @typedef {import('format-message')} FormatMessage */
+
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -91,14 +94,14 @@ const KoshienObjectName = {
 class KoshienClient {
     /**
      * Construct a Client of Smalruby Koshien game server.
-     * @param {object} runtime - the Scratch 3.0 runtime
+     * @param {Runtime} runtime - the Scratch 3.0 runtime
      * @param {string} extensionId - the id of the extension
      */
     constructor (runtime, extensionId) {
 
         /**
          * The Scratch 3.0 runtime used to trigger the green flag button.
-         * @type {object}
+         * @type {Runtime}
          * @private
          */
         this.runtime = runtime;
@@ -146,7 +149,7 @@ class KoshienBlocks {
 
     /**
      * A translation object which is used in this class.
-     * @param {object} formatter - translation object
+     * @param {FormatMessage} formatter - translation object
      */
     static set formatMessage (formatter) {
         formatMessage = formatter;
@@ -398,12 +401,12 @@ class KoshienBlocks {
 
     /**
      * Construct a set of Koshien blocks.
-     * @param {object} runtime - the Scratch 3.0 runtime.
+     * @param {Runtime} runtime - the Scratch 3.0 runtime.
      */
     constructor (runtime) {
         /**
          * The Scratch 3.0 runtime.
-         * @type {object}
+         * @type {Runtime}
          */
         this.runtime = runtime;
 

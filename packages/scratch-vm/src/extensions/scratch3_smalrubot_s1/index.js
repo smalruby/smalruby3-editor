@@ -8,6 +8,8 @@ const formatMessage = require('format-message');
 const Cast = require('../../util/cast');
 const Timer = require('../../util/timer');
 
+/** @typedef {import('../../engine/runtime')} Runtime */
+
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -844,7 +846,7 @@ class SmalrubotS1 extends Smalrubot {
 
 /**
  * Host for the Smalrubot S1-related blocks
- * @param {object} runtime - the runtime instantiating this block package.
+ * @param {Runtime} runtime - the runtime instantiating this block package.
  * @class
  */
 class Scratch3SmalrubotS1Blocks {
@@ -985,7 +987,7 @@ class Scratch3SmalrubotS1Blocks {
     constructor (runtime) {
         /**
          * The runtime instantiating this block package.
-         * @type {object}
+         * @type {Runtime}
          */
         this.runtime = runtime;
         this.runtime.on('PROJECT_STOP_ALL', this.stopAll.bind(this));

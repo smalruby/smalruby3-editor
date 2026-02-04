@@ -8,6 +8,10 @@ import translations from './translations.json';
 import BLE from './ble-llk';
 import WebSerial from './serial-web';
 
+/** @typedef {import('../../engine/runtime')} Runtime */
+/** @typedef {import('../../engine/block-utility')} BlockUtility */
+/** @typedef {import('format-message')} FormatMessage */
+
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -421,14 +425,14 @@ class MbitMore {
 
     /**
      * Construct a MicroBit communication object.
-     * @param {object} runtime - the Scratch 3.0 runtime
+     * @param {Runtime} runtime - the Scratch 3.0 runtime
      * @param {string} extensionId - the id of the extension
      */
     constructor (runtime, extensionId) {
 
         /**
          * The Scratch 3.0 runtime used to trigger the green flag button.
-         * @type {object}
+         * @type {Runtime}
          * @private
          */
         this.runtime = runtime;
@@ -662,7 +666,7 @@ class MbitMore {
      * Set pull mode to the pin.
      * @param {number} pinIndex - index of the pin
      * @param {MbitMorePullModeID} pullMode - pull mode to set
-     * @param {object} util - utility object provided from the runtime
+     * @param {BlockUtility} util - utility object provided from the runtime
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     setPullMode (pinIndex, pullMode, util) {
@@ -683,7 +687,7 @@ class MbitMore {
      * Set pin to digital output mode on the level.
      * @param {number} pinIndex - Index of pin.
      * @param {boolean} level - Value in digital (true = High)
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     setPinOutput (pinIndex, level, util) {
@@ -706,7 +710,7 @@ class MbitMore {
      * Set the pin to PWM mode on the level.
      * @param {number} pinIndex - index of the pin
      * @param {number} level - value of analog output [0..1024].
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     setPinPWM (pinIndex, level, util) {
@@ -736,7 +740,7 @@ class MbitMore {
      * @param {number} range - the span of possible values. '0' means default(2000).
      * @param {number} center - the center point from which to calculate the lower and upper bounds.
      *                          '0' means default(1500).
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     setPinServo (pinIndex, angle, range, center, util) {
@@ -1224,7 +1228,7 @@ class MbitMore {
     /**
      * Send multiple commands sequentially.
      * @param {Array.<{id: number, message: Uint8Array}>} commands array of command.
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when the all commands was sent.
      */
     sendCommandSet (commands, util) {
@@ -1508,7 +1512,7 @@ class MbitMore {
      * Set event type to be get from the pin.
      * @param {number} pinIndex - Index of the pin to set.
      * @param {MbitMorePinEventType} eventType - Event type to set.
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when command sending done or undefined if this process was yield.
      */
     listenPinEventType (pinIndex, eventType, util) {
@@ -1528,7 +1532,7 @@ class MbitMore {
      * Send data to micro:bit.
      * @param {string} label - label of the data [ascii]
      * @param {string} content - content of the data [ascii | number]
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {?Promise} a Promise that resolves when sending done or undefined if this process was yield.
      */
     sendData (label, content, util) {
@@ -1597,7 +1601,7 @@ class MbitMoreBlocks {
 
     /**
      * A translation object which is used in this class.
-     * @param {object} formatter - translation object
+     * @param {FormatMessage} formatter - translation object
      */
     static set formatMessage (formatter) {
         formatMessage = formatter;
@@ -2281,12 +2285,12 @@ class MbitMoreBlocks {
 
     /**
      * Construct a set of MicroBit blocks.
-     * @param {object} runtime - the Scratch 3.0 runtime.
+     * @param {Runtime} runtime - the Scratch 3.0 runtime.
      */
     constructor (runtime) {
         /**
          * The Scratch 3.0 runtime.
-         * @type {object}
+         * @type {Runtime}
          */
         this.runtime = runtime;
 
@@ -3559,7 +3563,7 @@ class MbitMoreBlocks {
      * @param {object} args - the block's arguments.
      * @param {number} args.PIN - pin ID.
      * @param {MbitMorePullModeName} args.MODE - mode to set.
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
@@ -3593,7 +3597,7 @@ class MbitMoreBlocks {
      * @param {object} args - the block's arguments.
      * @param {number} args.PIN - pin ID.
      * @param {number} args.LEVEL - value[%] for PWM.
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
@@ -3615,7 +3619,7 @@ class MbitMoreBlocks {
      * Set the pin to Servo mode and angle.
      * @param {object} args - the block's arguments.
      * @param {number} args.PIN - pin ID.
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */
@@ -3702,7 +3706,7 @@ class MbitMoreBlocks {
      * @param {object} args - the block's arguments.
      * @param {number} args.PIN - pin ID.
      * @param {string} args.EVENT_TYPE - event to listen.
-     * @param {object} util - utility object provided by the runtime.
+     * @param {BlockUtility} util - utility object provided by the runtime.
      * @returns {Promise | undefined} - a Promise that resolves when the command was sent
      *                                 or undefined if this process was yield.
      */

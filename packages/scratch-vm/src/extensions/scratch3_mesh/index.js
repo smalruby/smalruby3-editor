@@ -8,6 +8,8 @@ const Variable = require('../../engine/variable');
 const MeshHost = require('./mesh-host');
 const MeshPeer = require('./mesh-peer');
 
+/** @typedef {import('../../engine/runtime')} Runtime */
+
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -38,7 +40,7 @@ const MESH_ID_LABEL_CHARACTERS = {
 
 /**
  * Host for the Mesh-related blocks
- * @param {object} runtime - the runtime instantiating this block package.
+ * @param {Runtime} runtime - the runtime instantiating this block package.
  * @class
  */
 class Scratch3MeshBlocks {
@@ -60,7 +62,7 @@ class Scratch3MeshBlocks {
         log.info('Loading OLD Mesh extension (SkyWay)');
         /**
          * The runtime instantiating this block package.
-         * @type {object}
+         * @type {Runtime}
          */
         this.runtime = runtime;
 

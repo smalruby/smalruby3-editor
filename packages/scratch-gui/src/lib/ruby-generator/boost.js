@@ -1,7 +1,9 @@
+/** @typedef {import('./index')} RubyGenerator */
+
 /**
  * Define Ruby code generator for BOOST Blocks
- * @param {object} Generator The RubyGenerator
- * @returns {object} same as param.
+ * @param {RubyGenerator} Generator The RubyGenerator
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     Generator.boost_menu_MOTOR_ID = function (block) {

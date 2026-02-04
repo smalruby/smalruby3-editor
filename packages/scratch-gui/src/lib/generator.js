@@ -2,6 +2,8 @@ import _ from 'lodash';
 import log from './log';
 import Blockly from 'scratch-blocks';
 
+/** @typedef {import('@smalruby/scratch-vm/src/sprites/rendered-target')} RenderedTarget */
+
 /**
  * Class for a code generator that translates the blocks into a language.
  *
@@ -120,7 +122,7 @@ class Generator {
 
     /**
      * Generate code for RenderedTarget's all blocks to the specified language.
-     * @param {object} target RenderedTarget to generate code from.
+     * @param {RenderedTarget} target RenderedTarget to generate code from.
      * @param {object} options Options to generate code.
      * @returns {string} Generated code.
      */
@@ -178,7 +180,7 @@ class Generator {
 
     /**
      * Generate code for RenderedTarget's all blocks to the specified language.
-     * @param {object} target RenderedTarget to generate code from.
+     * @param {RenderedTarget} target RenderedTarget to generate code from.
      * @param {object} options Options to generate code.
      * @returns {string} Generated code.
      */
@@ -190,7 +192,7 @@ class Generator {
 
     /**
      * Generate code for array of RenderedTarget's all blocks to the specified language.
-     * @param {Array} targets Array of RenderedTarget to generate code from.
+     * @param {Array.<RenderedTarget>} targets Array of RenderedTarget to generate code from.
      * @param {object} options Options to generate code.
      * @returns {string} Generated code.
      */

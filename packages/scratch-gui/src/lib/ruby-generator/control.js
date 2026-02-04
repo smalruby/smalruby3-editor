@@ -1,7 +1,9 @@
+/** @typedef {import("./index")} RubyGenerator */
+
 /**
  * Define Ruby code generator for Control Blocks
- * @param {object} Generator The RubyGenerator
- * @returns {object} same as param.
+ * @param {RubyGenerator} Generator The RubyGenerator
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     Generator.control_wait = function (block) {

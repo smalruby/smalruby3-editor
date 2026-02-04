@@ -1,7 +1,9 @@
+/** @typedef {import("./index")} RubyGenerator */
+
 /**
  * Define Ruby code generator for WeDo 2.0 Blocks
- * @param {object} Generator The RubyGenerator
- * @returns {object} same as param.
+ * @param {RubyGenerator} Generator The RubyGenerator
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     Generator.wedo2_menu_MOTOR_ID = function (block) {

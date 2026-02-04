@@ -1,7 +1,9 @@
+/** @typedef {import("./index")} RubyGenerator */
+
 /**
  * Define Ruby code generator for Go Direct Force & Acceleration Blocks
- * @param {object} Generator The RubyGenerator
- * @returns {object} same as param.
+ * @param {RubyGenerator} Generator The RubyGenerator
+ * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
     Generator.gdxfor_menu_gestureOptions = function (block) {
