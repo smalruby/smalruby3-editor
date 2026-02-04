@@ -37,7 +37,7 @@ class MockTimer {
          * Map of timeout ID to pending timeout callback info.
          * @type {Map.<object>}
          * @property {number} time - the time at/after which this handler should run
-         * @property {object} handler - the handler to call when the time comes
+         * @property {function(): void} handler - the handler to call when the time comes
          */
         this._timeouts = new Map();
     }
@@ -95,7 +95,7 @@ class MockTimer {
     /**
      * Call a handler function after a specified amount of time has elapsed.
      * Guaranteed to happen in between "ticks" of JavaScript.
-     * @param {object} handler - function to call after the timeout
+     * @param {function(): void} handler - function to call after the timeout
      * @param {number} timeout - number of milliseconds to delay before calling the handler
      * @returns {number} - the ID of the new timeout.
      * @memberof MockTimer
