@@ -142,8 +142,8 @@ class BlockDisplayModal extends React.Component {
 }
 
 BlockDisplayModal.propTypes = {
-    selectedBlocks: PropTypes.object,
-    scratchBlocks: PropTypes.object,
+    selectedBlocks: PropTypes.objectOf(PropTypes.arrayOf(PropTypes.string)),
+    scratchBlocks: PropTypes.instanceOf(Object),
     onSetSelectedBlocks: PropTypes.func.isRequired,
     onRequestClose: PropTypes.func.isRequired,
     onSetProjectChanged: PropTypes.func.isRequired

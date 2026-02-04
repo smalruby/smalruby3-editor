@@ -112,7 +112,7 @@ class GoogleDriveAPI {
 
     /**
      * Show Google Picker to select a file
-     * @param {Function} callback - Called when user selects a file
+     * @param {function(object): void} callback - Called when user selects a file
      * @param {string} locale - Locale code (e.g., 'en', 'ja') for picker UI language
      * @param {string} title - Title for the picker dialog
      * @returns {Promise<void>} Promise that resolves when picker is shown
@@ -280,7 +280,7 @@ class GoogleDriveAPI {
 
     /**
      * Show Google Picker to select a folder
-     * @param {Function} callback - Called when user selects a folder
+     * @param {function(object): void} callback - Called when user selects a folder
      * @param {string} locale - Locale code (e.g., 'en', 'ja') for picker UI language
      * @param {string} title - Title for the picker dialog
      * @returns {Promise<void>} Promise that resolves when picker is shown

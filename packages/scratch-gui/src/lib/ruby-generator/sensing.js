@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Sensing Blocks
- * @param {RubyGenerator} Generator The RubyGenerator
- * @returns {RubyGenerator} same as param.
+ * @param {object} Generator The RubyGenerator
+ * @returns {object} same as param.
  */
 export default function (Generator) {
     Generator.sensing_touchingobject = function (block) {

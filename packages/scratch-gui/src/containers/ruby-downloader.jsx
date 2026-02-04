@@ -134,7 +134,7 @@ RubyDownloader.propTypes = {
     children: PropTypes.func,
     className: PropTypes.string,
     forceFilePicker: PropTypes.bool,
-    koshienFileHandle: PropTypes.object,
+    koshienFileHandle: PropTypes.shape({}),
     onSaveFinished: PropTypes.func,
     onSaveError: PropTypes.func,
     onSetKoshienFileHandle: PropTypes.func,

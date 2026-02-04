@@ -16,7 +16,7 @@ import sendUpdateGlyph from './icons/send-update-white.svg';
 
 import styles from './connection-modal.css';
 
-/** @enum{string} UPDATE_ACTIVITY */
+/** @enum {string} UPDATE_ACTIVITY */
 const UPDATE_ACTIVITY = keyMirror({
     getReady: null,
     sendUpdate: null,
@@ -41,7 +41,7 @@ class UpdatePeripheralStep extends React.Component {
             /** @type {Error?} */
             err: null,
 
-            /** @type {any} */
+            /** @type {object} */
             res: null
         };
     }

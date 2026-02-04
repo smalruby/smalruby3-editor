@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Microbit More Blocks
- * @param {RubyGenerator} Generator The RubyGenerator
- * @returns {RubyGenerator} same as param.
+ * @param {object} Generator The RubyGenerator
+ * @returns {object} same as param.
  */
 export default function (Generator) {
     Generator.microbitMore_whenConnectionChanged = function (block) {

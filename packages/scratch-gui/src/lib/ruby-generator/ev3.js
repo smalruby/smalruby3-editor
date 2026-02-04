@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for LEGO_EV3 Blocks
- * @param {RubyGenerator} Generator The RubyGenerator
- * @returns {RubyGenerator} same as param.
+ * @param {object} Generator The RubyGenerator
+ * @returns {object} same as param.
  */
 export default function (Generator) {
     const Ev3SensorMenu = ['1', '2', '3', '4'];

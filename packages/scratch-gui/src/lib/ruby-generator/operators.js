@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Operators Blocks
- * @param {RubyGenerator} Generator The RubyGenerator
- * @returns {RubyGenerator} same as param.
+ * @param {object} Generator The RubyGenerator
+ * @returns {object} same as param.
  */
 export default function (Generator) {
     Generator.operator_add = function (block) {

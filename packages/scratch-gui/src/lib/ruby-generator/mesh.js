@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Mesh Blocks
- * @param {RubyGenerator} Generator The RubyGenerator
- * @returns {RubyGenerator} same as param.
+ * @param {object} Generator The RubyGenerator
+ * @returns {object} same as param.
  */
 export default function (Generator) {
     Generator.mesh_menu_variableNames = function (block) {

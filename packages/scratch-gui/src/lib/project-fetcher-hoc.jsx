@@ -100,19 +100,19 @@ const ProjectFetcherHOC = function (WrappedComponent) {
         render () {
             const {
                  
-                assetHost,
-                intl,
-                isLoadingProject: isLoadingProjectProp,
-                loadingState,
-                onActivateTab,
-                onError: onErrorProp,
-                onFetchedProjectData: onFetchedProjectDataProp,
-                onProjectUnchanged,
-                projectHost,
-                projectId,
-                projectToken,
-                reduxProjectId,
-                setProjectId: setProjectIdProp,
+                assetHost: _assetHost,
+                intl: _intl,
+                isLoadingProject: _isLoadingProjectProp,
+                loadingState: _loadingState,
+                onActivateTab: _onActivateTab,
+                onError: _onErrorProp,
+                onFetchedProjectData: _onFetchedProjectDataProp,
+                onProjectUnchanged: _onProjectUnchanged,
+                projectHost: _projectHost,
+                projectId: _projectId,
+                projectToken: _projectToken,
+                reduxProjectId: _reduxProjectId,
+                setProjectId: _setProjectIdProp,
                  
                 isFetchingWithId: isFetchingWithIdProp,
                 ...componentProps

@@ -1,7 +1,7 @@
 /**
  * Define Ruby code generator for Music Blocks
- * @param {RubyGenerator} Generator The RubyGenerator
- * @returns {RubyGenerator} same as param.
+ * @param {object} Generator The RubyGenerator
+ * @returns {object} same as param.
  */
 export default function (Generator) {
     Generator.music_playDrumForBeats = function (block) {

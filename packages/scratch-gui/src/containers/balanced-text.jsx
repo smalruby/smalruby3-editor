@@ -87,7 +87,7 @@ class BalancedText extends React.Component {
 BalancedText.propTypes = {
     children: PropTypes.node,
     resize: PropTypes.bool,
-    style: PropTypes.object // eslint-disable-line react/forbid-prop-types
+    style: PropTypes.object
 };
 
 BalancedText.defaultProps = {

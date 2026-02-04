@@ -44,9 +44,9 @@ const HashParserHOC = function (WrappedComponent) {
         render () {
             const {
                  
-                isFetchingWithoutId: isFetchingWithoutIdProp,
-                reduxProjectId,
-                setProjectId: setProjectIdProp,
+                isFetchingWithoutId: _isFetchingWithoutIdProp,
+                reduxProjectId: _reduxProjectId,
+                setProjectId: _setProjectIdProp,
                  
                 ...componentProps
             } = this.props;
