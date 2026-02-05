@@ -1,17 +1,17 @@
 /**
- * Define Ruby code generator for Mesh Blocks
+ * Define Ruby code generator for MeshV2 Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
  * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
-    Generator.mesh_menu_variableNames = function (block) {
+    Generator.meshV2_menu_variableNames = function (block) {
         const name = Generator.quote_(Generator.getFieldValue(block, 'variableNames') || ' ');
         return [name, Generator.ORDER_ATOMIC];
     };
 
-    Generator.mesh_getSensorValue = function (block) {
+    Generator.meshV2_getSensorValue = function (block) {
         const name = Generator.valueToCode(block, 'NAME', Generator.ORDER_NONE) || '" "';
-        return [`mesh_v1.sensor_value(${name})`, Generator.ORDER_ATOMIC];
+        return [`mesh.sensor_value(${name})`, Generator.ORDER_ATOMIC];
     };
 
     return Generator;

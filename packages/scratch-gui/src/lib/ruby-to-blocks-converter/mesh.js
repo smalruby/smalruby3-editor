@@ -1,4 +1,4 @@
-const Mesh = 'mesh';
+const Mesh = 'mesh_v1';
 
 /**
  * Mesh extension converter
