@@ -29,6 +29,7 @@ import EV3Blocks from './ev3.js';
 import WeDo2Blocks from './wedo2.js';
 import GdxForBlocks from './gdx_for.js';
 import MeshBlocks from './mesh.js';
+import MeshV2Blocks from './mesh_v2.js';
 import SmalrubotS1Blocks from './smalrubot_s1.js';
 import KoshienBlocks from './koshien.js';
 
@@ -497,6 +498,7 @@ EV3Blocks(RubyGenerator);
 WeDo2Blocks(RubyGenerator);
 GdxForBlocks(RubyGenerator);
 MeshBlocks(RubyGenerator);
+MeshV2Blocks(RubyGenerator);
 SmalrubotS1Blocks(RubyGenerator);
 KoshienBlocks(RubyGenerator);
 

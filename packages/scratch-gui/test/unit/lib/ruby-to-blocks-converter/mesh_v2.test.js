@@ -4,29 +4,25 @@ import {
     convertAndExpectRubyBlockError
 } from '../../../helpers/expect-to-equal-blocks';
 
-describe('RubyToBlocksConverter/Mesh', () => {
+describe('RubyToBlocksConverter/MeshV2', () => {
     let converter;
     let target;
-    let code;
-    let expected;
 
     beforeEach(() => {
         converter = new RubyToBlocksConverter(null);
         target = null;
-        code = null;
-        expected = null;
     });
 
-    test('mesh_getSensorValue', () => {
-        code = 'mesh_v1.sensor_value(" ")';
-        expected = [
+    test('meshV2_getSensorValue', () => {
+        const code = 'mesh.sensor_value(" ")';
+        const expected = [
             {
-                opcode: 'mesh_getSensorValue',
+                opcode: 'meshV2_getSensorValue',
                 inputs: [
                     {
                         name: 'NAME',
                         block: {
-                            opcode: 'mesh_menu_variableNames',
+                            opcode: 'meshV2_menu_variableNames',
                             fields: [
                                 {
                                     name: 'variableNames',
@@ -42,9 +38,9 @@ describe('RubyToBlocksConverter/Mesh', () => {
         convertAndExpectToEqualBlocks(converter, target, code, expected);
 
         [
-            'mesh_v1.sensor_value()',
-            'mesh_v1.sensor_value(1)',
-            'mesh_v1.sensor_value("arg1", "arg2")'
+            'mesh.sensor_value()',
+            'mesh.sensor_value(1)',
+            'mesh.sensor_value("arg1", "arg2")'
         ].forEach(s => {
             convertAndExpectRubyBlockError(converter, target, s);
         });

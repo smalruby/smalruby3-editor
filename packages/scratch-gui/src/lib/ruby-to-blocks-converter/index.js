@@ -32,6 +32,7 @@ import EV3Converter from './ev3';
 import Wedo2Converter from './wedo2';
 import GdxForConverter from './gdx_for';
 import MeshConverter from './mesh';
+import MeshV2Converter from './mesh_v2';
 import SmalrubotS1Converter from './smalrubot_s1';
 import BoostConverter from './boost';
 import TranslateConverter from './translate';
@@ -115,6 +116,7 @@ class RubyToBlocksConverter {
             Text2SpeechConverter,
             Wedo2Converter,
             MicrobitMoreConverter,
+            MeshV2Converter,
             MeshConverter,
             KoshienConverter,
             BoostConverter,
