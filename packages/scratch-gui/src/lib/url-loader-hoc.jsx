@@ -168,8 +168,17 @@ const URLLoaderHOC = function (WrappedComponent) {
                 })
                 .then(projectAsset => {
                     if (projectAsset) {
-                        // Load project directly to VM (like sb-file-uploader-hoc.jsx for LOADING_VM_FILE_UPLOAD)
-                        return this.props.vm.loadProject(projectAsset.data);
+                        // smalruby: mesh V1 to V2 migration
+                        return this.props.vm.hasMeshV1Project(projectAsset.data)
+                            .then(hasMeshV1 => {
+                                let migrateMeshV1ToV2 = false;
+                                if (hasMeshV1) {
+                                    migrateMeshV1ToV2 = confirm( // eslint-disable-line no-alert
+                                        this.props.intl.formatMessage(sharedMessages.migrateMeshV1Warning)
+                                    );
+                                }
+                                return this.props.vm.loadProject(projectAsset.data, {migrateMeshV1ToV2});
+                            });
                     }
                     throw new Error('Could not find project');
                 })
@@ -257,6 +266,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         userOwnsProject: PropTypes.bool,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
+            hasMeshV1Project: PropTypes.func,
             runtime: PropTypes.shape({
                 storage: PropTypes.shape({})
             })
