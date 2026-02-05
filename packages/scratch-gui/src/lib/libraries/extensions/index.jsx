@@ -441,7 +441,7 @@ export default [
     {
         name: (
             <FormattedMessage
-                defaultMessage="Mesh"
+                defaultMessage="Old Mesh"
                 description="Name for the 'Mesh' extension"
                 id="gui.smalruby3.extension.mesh.name"
             />
@@ -475,7 +475,7 @@ export default [
     {
         name: (
             <FormattedMessage
-                defaultMessage="Mesh V2"
+                defaultMessage="Mesh"
                 description="Name for the 'Mesh V2' extension"
                 id="gui.smalruby3.extension.meshV2.name"
             />
