@@ -147,7 +147,11 @@ class Scratch3MeshV2Blocks {
     getInfo () {
         return {
             id: Scratch3MeshV2Blocks.EXTENSION_ID,
-            name: Scratch3MeshV2Blocks.EXTENSION_NAME,
+            name: formatMessage({
+                id: 'meshV2.categoryName',
+                default: 'Mesh',
+                description: 'Label for the meshV2 extension category'
+            }),
             blockIconURI: blockIconURI,
             showStatusButton: true,
             blocks: [

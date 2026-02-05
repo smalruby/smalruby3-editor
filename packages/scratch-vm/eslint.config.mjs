@@ -23,6 +23,7 @@ export default eslintConfigScratch.defineConfig(
     {
         files: [
             '*.{,c,m}js', // for example, webpack.config.js
+            'scripts/**/*.{,c,m}js',
             'test/**/*.{,c,m}js'
         ],
         extends: [eslintConfigScratch.legacy.node],
