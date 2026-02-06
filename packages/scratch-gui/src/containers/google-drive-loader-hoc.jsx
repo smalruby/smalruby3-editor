@@ -146,7 +146,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                     .then(hasMeshV1 => {
                         let migrateMeshV1ToV2 = false;
                         if (hasMeshV1) {
-                            migrateMeshV1ToV2 = confirm( // eslint-disable-line no-alert
+                            migrateMeshV1ToV2 = !confirm( // eslint-disable-line no-alert
                                 this.props.intl.formatMessage(sharedMessages.migrateMeshV1Warning)
                             );
                         }

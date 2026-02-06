@@ -10,7 +10,7 @@ export default {
     'gui.sharedMessages.sprite': 'スプライト{index}',
     'gui.sharedMessages.replaceProjectWarning': '現在のプロジェクトの内容を置き換えますか？',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターから読み込む',
-    'gui.sharedMessages.migrateMeshV1Warning': 'このプロジェクトには古いメッシュブロックが含まれています。メッシュV2に移行しますか？',
+    'gui.sharedMessages.migrateMeshV1Warning': 'このプロジェクトには従来のメッシュ拡張機能が含まれていますので4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブから読み込む',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーを保存...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブに直ちに保存',
