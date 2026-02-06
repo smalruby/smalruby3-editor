@@ -15,6 +15,9 @@ import UpdatePeripheralStep from './update-peripheral-step.jsx';
 // === Smalruby: Start of network filter detection feature ===
 import MeshV2NetworkFilteredStep from './mesh-v2-network-filtered-step.jsx';
 // === Smalruby: End of network filter detection feature ===
+// === Smalruby: Start of meshV2 initial step feature ===
+import MeshV2InitialStep from './mesh-v2-initial-step.jsx';
+// === Smalruby: End of meshV2 initial step feature ===
 
 import styles from './connection-modal.css';
 
@@ -27,6 +30,9 @@ const PHASES = keyMirror({
     // === Smalruby: Start of network filter detection feature ===
     networkFiltered: null,
     // === Smalruby: End of network filter detection feature ===
+    // === Smalruby: Start of meshV2 initial step feature ===
+    meshV2Initial: null,
+    // === Smalruby: End of meshV2 initial step feature ===
     updatePeripheral: null
 });
 
@@ -65,6 +71,9 @@ const ConnectionModalComponent = props => {
             {/* === Smalruby: Start of network filter detection feature === */}
             {props.phase === PHASES.networkFiltered && <MeshV2NetworkFilteredStep {...props} />}
             {/* === Smalruby: End of network filter detection feature === */}
+            {/* === Smalruby: Start of meshV2 initial step feature === */}
+            {props.phase === PHASES.meshV2Initial && <MeshV2InitialStep {...props} />}
+            {/* === Smalruby: End of meshV2 initial step feature === */}
             {props.phase === PHASES.updatePeripheral && <UpdatePeripheralStep {...props} />}
         </Box>
     </Modal>);

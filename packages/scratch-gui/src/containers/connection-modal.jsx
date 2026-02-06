@@ -14,6 +14,9 @@ import {
     isMicroBitUpdateSupported as isMicroBitMoreUpdateSupported,
     selectAndUpdateMicroBit as selectAndUpdateMicroBitMore
 } from '../lib/microbit-more-update';
+// === Smalruby: Start of meshV2 initial step feature ===
+import {setDomain as setMeshV2Domain} from '../reducers/mesh-v2';
+// === Smalruby: End of meshV2 initial step feature ===
 
 class ConnectionModal extends React.Component {
     constructor (props) {
@@ -28,12 +31,22 @@ class ConnectionModal extends React.Component {
             'handleHelp',
             'handleSendUpdate',
             'handleUpdatePeripheral',
-            'handleUseLegacyMesh'
+            'handleUseLegacyMesh',
+            // === Smalruby: Start of meshV2 initial step feature ===
+            'handleMeshV2CreateGroup',
+            'handleMeshV2JoinGroup',
+            'handleMeshV2DomainChange'
+            // === Smalruby: End of meshV2 initial step feature ===
         ]);
+        // === Smalruby: Start of meshV2 initial step feature ===
+        // For meshV2, show initial step first unless already connected
+        const initialPhase = props.vm.getPeripheralIsConnected(props.extensionId) ?
+            PHASES.connected :
+            (props.extensionId === 'meshV2' ? PHASES.meshV2Initial : PHASES.scanning);
+        // === Smalruby: End of meshV2 initial step feature ===
         this.state = {
             extension: extensionData.find(ext => ext.extensionId === props.extensionId),
-            phase: props.vm.getPeripheralIsConnected(props.extensionId) ?
-                PHASES.connected : PHASES.scanning
+            phase: initialPhase
         };
     }
     componentDidMount () {
@@ -179,6 +192,42 @@ class ConnectionModal extends React.Component {
             this.props.onUseLegacyMesh(meshExtensionId);
         }, 300); // Wait 300ms for modal close animation to complete
     }
+    // === Smalruby: Start of meshV2 initial step feature ===
+    handleMeshV2CreateGroup () {
+        // Connect as host using special host ID
+        this.handleConnecting('meshV2_host');
+        analytics.event({
+            category: 'extensions',
+            action: 'meshV2 create group',
+            label: this.props.extensionId
+        });
+    }
+    handleMeshV2JoinGroup () {
+        // Switch to scanning phase to show group list
+        this.handleScanning();
+        analytics.event({
+            category: 'extensions',
+            action: 'meshV2 join group',
+            label: this.props.extensionId
+        });
+    }
+    handleMeshV2DomainChange (domain) {
+        // Save domain to Redux
+        this.props.onDomainChange(domain);
+
+        // Save domain to VM extension
+        const extension = this.props.vm.runtime.peripheralExtensions.meshV2;
+        if (extension && extension.setDomain) {
+            extension.setDomain(domain);
+        }
+
+        analytics.event({
+            category: 'extensions',
+            action: 'meshV2 domain change',
+            label: this.props.extensionId
+        });
+    }
+    // === Smalruby: End of meshV2 initial step feature ===
     render () {
         const canUpdatePeripheral = ((this.props.extensionId === 'microbit') && isMicroBitUpdateSupported()) ||
             ((this.props.extensionId === 'microbitMore') && isMicroBitMoreUpdateSupported());
@@ -188,6 +237,9 @@ class ConnectionModal extends React.Component {
                 connectionIconURL={this.state.extension && this.state.extension.connectionIconURL}
                 connectionSmallIconURL={this.state.extension && this.state.extension.connectionSmallIconURL}
                 connectionTipIconURL={this.state.extension && this.state.extension.connectionTipIconURL}
+                // === Smalruby: Start of meshV2 initial step feature ===
+                domain={this.props.meshV2Domain}
+                // === Smalruby: End of meshV2 initial step feature ===
                 extensionId={this.props.extensionId}
                 name={this.state.extension && this.state.extension.name}
                 phase={this.state.phase}
@@ -200,6 +252,11 @@ class ConnectionModal extends React.Component {
                 onCancel={this.handleCancel}
                 onConnected={this.handleConnected}
                 onConnecting={this.handleConnecting}
+                // === Smalruby: Start of meshV2 initial step feature ===
+                onCreateGroup={this.handleMeshV2CreateGroup}
+                onDomainChange={this.handleMeshV2DomainChange}
+                onJoinGroup={this.handleMeshV2JoinGroup}
+                // === Smalruby: End of meshV2 initial step feature ===
                 onDisconnect={this.handleDisconnect}
                 onHelp={this.handleHelp}
                 onScanning={this.handleScanning}
@@ -213,6 +270,10 @@ class ConnectionModal extends React.Component {
 
 ConnectionModal.propTypes = {
     extensionId: PropTypes.string.isRequired,
+    // === Smalruby: Start of meshV2 initial step feature ===
+    meshV2Domain: PropTypes.string,
+    onDomainChange: PropTypes.func.isRequired,
+    // === Smalruby: End of meshV2 initial step feature ===
     onCancel: PropTypes.func.isRequired,
     onUseLegacyMesh: PropTypes.func.isRequired,
     useExternalPeripheralList: PropTypes.bool,
@@ -220,13 +281,21 @@ ConnectionModal.propTypes = {
 };
 
 const mapStateToProps = state => ({
-    extensionId: state.scratchGui.connectionModal.extensionId
+    extensionId: state.scratchGui.connectionModal.extensionId,
+    // === Smalruby: Start of meshV2 initial step feature ===
+    meshV2Domain: state.scratchGui.meshV2.domain
+    // === Smalruby: End of meshV2 initial step feature ===
 });
 
 const mapDispatchToProps = dispatch => ({
     onCancel: () => {
         dispatch(closeConnectionModal());
     },
+    // === Smalruby: Start of meshV2 initial step feature ===
+    onDomainChange: domain => {
+        dispatch(setMeshV2Domain(domain));
+    },
+    // === Smalruby: End of meshV2 initial step feature ===
     onUseLegacyMesh: extensionId => {
         dispatch(setConnectionModalExtensionId(extensionId));
         dispatch(openConnectionModal());
