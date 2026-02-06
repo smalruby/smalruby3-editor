@@ -10,6 +10,7 @@ export default {
     'gui.sharedMessages.sprite': 'スプライト{index}',
     'gui.sharedMessages.replaceProjectWarning': 'げんざいのプロジェクトのないようを おきかえますか？',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターからよみこむ',
+    'gui.sharedMessages.migrateMeshV1Warning': 'このプロジェクトにはじゅうらいのメッシュかくちょうきのうがふくまれていますので4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブからよみこむ',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーをほぞん...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブにただちにほぞん',

@@ -6,6 +6,7 @@ import {defineMessages, injectIntl} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
 import {connect} from 'react-redux';
 import log from '../lib/log';
+import sharedMessages from '../lib/shared-messages';
 
 import googleDriveAPI from '../lib/google-drive-api';
 import {
@@ -140,7 +141,17 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                 const content = new Uint8Array(fileData);
 
                 // Load the project
-                this.props.vm.loadProject(content)
+                // smalruby: mesh V1 to V2 migration
+                this.props.vm.hasMeshV1Project(content)
+                    .then(hasMeshV1 => {
+                        let migrateMeshV1ToV2 = false;
+                        if (hasMeshV1) {
+                            migrateMeshV1ToV2 = !confirm( // eslint-disable-line no-alert
+                                this.props.intl.formatMessage(sharedMessages.migrateMeshV1Warning)
+                            );
+                        }
+                        return this.props.vm.loadProject(content, {migrateMeshV1ToV2});
+                    })
                     .then(() => {
                         // Store Google Drive file metadata for direct save functionality
                         this.props.onSetGoogleDriveFile(fileId, fileName, null);
@@ -219,7 +230,8 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         onSetProjectUnchanged: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
         vm: PropTypes.shape({
-            loadProject: PropTypes.func
+            loadProject: PropTypes.func,
+            hasMeshV1Project: PropTypes.func
         })
     };
 

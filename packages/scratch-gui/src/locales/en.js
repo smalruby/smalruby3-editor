@@ -218,5 +218,6 @@ export default {
     'gui.connection.networkFiltered.copyButton': 'Copy to clipboard',
     'gui.connection.networkFiltered.tryagainbutton': 'Try again',
     'gui.connection.networkFiltered.useLegacyMeshButton': 'Use legacy mesh',
-    'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage'
+    'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage',
+    'gui.sharedMessages.migrateMeshV1Warning': 'This project contains legacy Mesh extensions and can only be used until April 30th. Select OK to continue using the legacy Mesh extensions. Select Cancel to use the new Mesh extensions instead.'
 };

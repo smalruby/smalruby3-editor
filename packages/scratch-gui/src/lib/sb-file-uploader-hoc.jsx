@@ -143,7 +143,18 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 this.props.onLoadingStarted();
                 const filename = this.fileToUpload && this.fileToUpload.name;
                 let loadingSuccess = false;
-                this.props.vm.loadProject(this.fileReader.result)
+
+                // smalruby: mesh V1 to V2 migration
+                this.props.vm.hasMeshV1Project(this.fileReader.result)
+                    .then(hasMeshV1 => {
+                        let migrateMeshV1ToV2 = false;
+                        if (hasMeshV1) {
+                            migrateMeshV1ToV2 = !confirm( // eslint-disable-line no-alert
+                                this.props.intl.formatMessage(sharedMessages.migrateMeshV1Warning)
+                            );
+                        }
+                        return this.props.vm.loadProject(this.fileReader.result, {migrateMeshV1ToV2});
+                    })
                     .then(() => {
                         if (filename) {
                             const uploadedProjectTitle = getProjectTitleFromFilename(filename);
@@ -221,7 +232,8 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         requestProjectUpload: PropTypes.func,
         userOwnsProject: PropTypes.bool,
         vm: PropTypes.shape({
-            loadProject: PropTypes.func
+            loadProject: PropTypes.func,
+            hasMeshV1Project: PropTypes.func
         })
     };
     const mapStateToProps = (state, ownProps) => {
