@@ -39,27 +39,34 @@ export default function (Generator) {
 
     Generator.data_setvariableto = function (block) {
         const comment = Generator.getCommentText(block);
+        const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
 
-        // Check if this is a return value assignment marker (no VALUE input)
+        // Check if this is a return value assignment
         if (comment && comment.startsWith('@ruby:return:')) {
-            // This block marks where the return value will be stored,
-            // but doesn't actually contain the value (it's in the previous procedures_call).
-            // The actual assignment will be suppressed by procedures_call generator.
-            // Return empty string to suppress output.
-            return '';
+            if (!hasValueInput) {
+                // This is a marker block for Rule 2 (Method call in expression), suppress output.
+                return '';
+            }
+            // This is Rule 1 (Method definition).
+            // Check if this is the last block in procedure definition
+            if (block._isLastReturnInProcedure) {
+                // Output just the value (implicit return)
+                const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
+                return `${Generator.nosToCode(value)}\n`;
+            }
+            // Not the last block, output normal variable assignment
         }
 
         const variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
 
         // Check if this is a return value marker block (return variable with no VALUE input)
-        const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
         if (!hasValueInput) {
             // Check if variable name matches return variable pattern
             let varName = variable;
-            if (varName[0] === '@') {
+            if (varName && varName[0] === '@') {
                 varName = varName.substring(1);
             }
-            if (varName.startsWith('_return_')) {
+            if (varName && varName.startsWith('_return_')) {
                 // This is a marker block for return value, suppress output
                 return '';
             }

@@ -19,7 +19,11 @@ export default function (Generator) {
         const customBlock = Generator.getInputTargetBlock(block, 'custom_block');
 
         // Save and temporarily clear block.next to prevent scrub_ from processing it
-        const savedNext = block.next;
+        // Use cached value if this is a second call for the same block
+        const savedNext = '_savedBodyNext' in block ? block._savedBodyNext : block.next;
+        if (!('_savedBodyNext' in block)) {
+            block._savedBodyNext = block.next;
+        }
         block.next = null;
 
         // Generate method header (def self.method_name(args))
@@ -28,9 +32,7 @@ export default function (Generator) {
         // Generate method body from the saved next block
         const bodyBlock = Generator.getBlock(savedNext);
         if (bodyBlock) {
-            let bodyCode = '';
-
-            // Find the last block in the chain
+            // Find the last block in the chain and mark it
             let lastBlock = bodyBlock;
             while (lastBlock.next) {
                 const nextBlock = Generator.getBlock(lastBlock.next);
@@ -38,51 +40,18 @@ export default function (Generator) {
                 lastBlock = nextBlock;
             }
 
-            // Check if the last block is a return value assignment
+            // Mark the last block so data_setvariableto knows it's the final expression
             if (Generator.isRubyReturnAssignment(lastBlock)) {
-                // Find the block before the last block
-                let beforeLastBlock = null;
-                if (bodyBlock.id !== lastBlock.id) {
-                    let currentBlock = bodyBlock;
-                    while (currentBlock && currentBlock.next) {
-                        const nextBlock = Generator.getBlock(currentBlock.next);
-                        if (nextBlock && nextBlock.id === lastBlock.id) {
-                            beforeLastBlock = currentBlock;
-                            break;
-                        }
-                        currentBlock = nextBlock;
-                    }
-                }
-
-                // Temporarily remove the last block from the chain
-                const savedLastNext = beforeLastBlock ? beforeLastBlock.next : null;
-                if (beforeLastBlock) {
-                    beforeLastBlock.next = null;
-                }
-
-                // Generate all statements except the last one
-                if (bodyBlock.id !== lastBlock.id) {
-                    bodyCode = Generator.statementToCode(bodyBlock);
-                }
-
-                // Restore the chain
-                if (beforeLastBlock && savedLastNext) {
-                    beforeLastBlock.next = savedLastNext;
-                }
-
-                // Add the return value assignment as the last expression
-                const field = Generator.getField(lastBlock, 'VARIABLE');
-                if (field && field.id) {
-                    const variable = Generator.variableName(field.id);
-                    const value = Generator.valueToCode(lastBlock, 'VALUE', Generator.ORDER_NONE) || '0';
-                    bodyCode += `${variable} = ${Generator.nosToCode(value)}\n`;
-                }
-            } else {
-                // No return value, generate body normally
-                bodyCode = Generator.statementToCode(bodyBlock);
+                lastBlock._isLastReturnInProcedure = true;
             }
 
+            const bodyCode = Generator.blockToCode(bodyBlock);
             code += Generator.prefixLines(bodyCode, Generator.INDENT);
+
+            // Clean up the flag
+            if (lastBlock._isLastReturnInProcedure) {
+                delete lastBlock._isLastReturnInProcedure;
+            }
         }
 
         code += 'end\n';

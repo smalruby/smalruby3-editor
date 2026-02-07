@@ -28,7 +28,7 @@ const MyBlocksConverter = {
 
             // Add comment if procedure has return value
             if (procedure.hasReturnValue) {
-                block.comment = `@ruby:return:${name}`;
+                block.comment = converter._createComment(`@ruby:return:${name}`, block.id);
             }
 
             if (Object.prototype.hasOwnProperty.call(converter._context.procedureCallBlocks, procedure.id)) {
@@ -61,7 +61,7 @@ const MyBlocksConverter = {
 
             // If procedure has return value and this is used in expression context,
             // create marker block and return variable reference
-            if (procedure.hasReturnValue && converter._isValueContext()) {
+            if (procedure.hasReturnValue && converter._context.isValue) {
                 const variable = converter._lookupOrCreateVariable(`@_return_${name}`);
 
                 // Create marker block (data_setvariableto with no VALUE input)
@@ -73,9 +73,9 @@ const MyBlocksConverter = {
                             value: variable.name,
                             variableType: variable.type
                         }
-                    },
-                    comment: `@ruby:return:${name}`
+                    }
                 });
+                markerBlock.comment = converter._createComment(`@ruby:return:${name}`, markerBlock.id);
 
                 // Link blocks: procedures_call -> marker_block
                 block.next = markerBlock.id;
@@ -90,9 +90,9 @@ const MyBlocksConverter = {
                             value: variable.name,
                             variableType: variable.type
                         }
-                    },
-                    comment: '@ruby:return'
+                    }
                 });
+                varBlock.comment = converter._createComment('@ruby:return', varBlock.id);
 
                 // Return array: [statement_chain_start, value_block]
                 return [block, varBlock];
@@ -193,9 +193,9 @@ const MyBlocksConverter = {
                                 value: variable.name,
                                 variableType: variable.type
                             }
-                        },
-                        comment: `@ruby:return:${procedureName}`
+                        }
                     });
+                    returnBlock.comment = converter._createComment(`@ruby:return:${procedureName}`, returnBlock.id);
                     converter._addTextInput(
                         returnBlock, 'VALUE', converter._isNumber(last) ? last.toString() : last, '0'
                     );

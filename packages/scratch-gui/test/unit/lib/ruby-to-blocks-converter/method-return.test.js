@@ -326,5 +326,88 @@ describe('RubyToBlocksConverter/Method Return', () => {
             convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
+        test('explicit return variable assignment should NOT add @ruby:return comment', () => {
+            const code = `
+                def self.add(a, b)
+                  @_return_add = a + b
+                end
+            `;
+            const expected = [
+                {
+                    opcode: 'procedures_definition',
+                    inputs: [
+                        {
+                            name: 'custom_block',
+                            block: {
+                                opcode: 'procedures_prototype',
+                                mutation: {
+                                    proccode: 'add %s %s',
+                                    arguments: [
+                                        {
+                                            name: 'a',
+                                            type: 'string_number'
+                                        },
+                                        {
+                                            name: 'b',
+                                            type: 'string_number'
+                                        }
+                                    ]
+                                },
+                                shadow: true
+                            }
+                        }
+                    ],
+                    next: {
+                        opcode: 'data_setvariableto',
+                        fields: [
+                            {
+                                name: 'VARIABLE',
+                                variable: '@_return_add'
+                            }
+                        ],
+                        inputs: [
+                            {
+                                name: 'VALUE',
+                                block: {
+                                    opcode: 'operator_add',
+                                    inputs: [
+                                        {
+                                            name: 'NUM1',
+                                            block: {
+                                                opcode: 'argument_reporter_string_number',
+                                                fields: [
+                                                    {
+                                                        name: 'VALUE',
+                                                        value: 'a'
+                                                    }
+                                                ]
+                                            },
+                                            shadow: expectedInfo.makeNumber('')
+                                        },
+                                        {
+                                            name: 'NUM2',
+                                            block: {
+                                                opcode: 'argument_reporter_string_number',
+                                                fields: [
+                                                    {
+                                                        name: 'VALUE',
+                                                        value: 'b'
+                                                    }
+                                                ]
+                                            },
+                                            shadow: expectedInfo.makeNumber('')
+                                        }
+                                    ]
+                                },
+                                shadow: expectedInfo.makeText('0')
+                            }
+                        ]
+                        // NOTE: No comment field - this is the key assertion
+                    }
+                }
+            ];
+            convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
     });
 });

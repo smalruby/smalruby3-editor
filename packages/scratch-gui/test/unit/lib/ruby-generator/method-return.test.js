@@ -91,7 +91,8 @@ describe('RubyGenerator/MethodReturn', () => {
                 c1: { id: 'c1', blockId: 'b3', text: '@ruby:return:add' }
             };
             const code = generateCode(blocks, ['b1'], comments);
-            expect(code).toBe('def self.add(x, y)\n  @_return_add = x + y\nend\n');
+            // With @ruby:return comment, this is an implicit return - output just the value
+            expect(code).toBe('def self.add(x, y)\n  x + y\nend\n');
         });
 
         test('standalone add(1, 2)', () => {
@@ -155,6 +156,52 @@ describe('RubyGenerator/MethodReturn', () => {
             };
             const code = generateCode(blocks, ['b1'], comments);
             expect(code).toBe('say(add(1, 2))\n');
+        });
+
+        test('explicit return variable assignment (without comment)', () => {
+            const blocks = {
+                b1: {
+                    id: 'b1',
+                    opcode: 'procedures_definition',
+                    inputs: { custom_block: { block: 'b2' } },
+                    next: 'b3',
+                    topLevel: true
+                },
+                b2: {
+                    id: 'b2',
+                    opcode: 'procedures_prototype',
+                    mutation: { proccode: 'add %s %s' },
+                    shadow: true
+                },
+                b3: {
+                    id: 'b3',
+                    opcode: 'data_setvariableto',
+                    fields: { VARIABLE: { id: 'v1', value: '_return_add' } },
+                    inputs: { VALUE: { block: 'b4' } }
+                    // NOTE: No comment - this is a user-written assignment
+                },
+                b4: {
+                    id: 'b4',
+                    opcode: 'operator_add',
+                    inputs: {
+                        NUM1: { block: 'b5' },
+                        NUM2: { block: 'b6' }
+                    }
+                },
+                b5: {
+                    id: 'b5',
+                    opcode: 'argument_reporter_string_number',
+                    fields: { VALUE: { value: 'x' } }
+                },
+                b6: {
+                    id: 'b6',
+                    opcode: 'argument_reporter_string_number',
+                    fields: { VALUE: { value: 'y' } }
+                }
+            };
+            const code = generateCode(blocks, ['b1'], {});
+            // Without @ruby:return comment, output normal variable assignment
+            expect(code).toBe('def self.add(x, y)\n  @_return_add = x + y\nend\n');
         });
     });
 

@@ -175,7 +175,8 @@ class RubyToBlocksConverter {
             variables: {},
             lists: {},
             broadcastMsgs: {},
-            procedures: {}
+            procedures: {},
+            isValue: false
         };
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());
@@ -188,7 +189,7 @@ class RubyToBlocksConverter {
         this._loadVariables(target);
         try {
             const root = RubyParser.$parse(code);
-            let blocks = this._process(root);
+            let blocks = this._process(root, false);
             if (blocks === null || blocks === Opal.nil) {
                 return true;
             }
@@ -1404,7 +1405,7 @@ class RubyToBlocksConverter {
         return expression.toString() === textBlock.fields.TEXT.value;
     }
 
-    _process (node) {
+    _process (node, isValue = true) {
         if (!node) {
             return null;
         }
@@ -1413,30 +1414,56 @@ class RubyToBlocksConverter {
         }
         node = node.$to_ast();
         this._context.currentNode = node;
+
+        const savedIsValue = this._context.isValue;
+        this._context.isValue = isValue;
+
         const handlerName = '_' + _.camelCase(`on_${node.type}`); // eslint-disable-line prefer-template
+        let result;
         if (_.isFunction(this[handlerName])) {
-            return this[handlerName](node);
+            result = this[handlerName](node);
+        } else {
+            throw new RubyToBlocksConverterError(node, `not supported node type: ${node.type}`);
         }
-        throw new RubyToBlocksConverterError(node, `not supported node type: ${node.type}`);
+
+        this._context.isValue = savedIsValue;
+        return result;
     }
 
     _processStatement (node) {
-        let blocks = this._process(node);
+        let blocks = this._process(node, false);
         if (!_.isArray(blocks)) {
             blocks = [blocks];
         }
+        if (blocks.length >= 2 && this._isBlock(blocks[0])) {
+            // It's a multi-block result, link them
+            for (let i = 0; i < blocks.length - 1; i++) {
+                if (this._isBlock(blocks[i]) && this._isBlock(blocks[i + 1])) {
+                    blocks[i].next = blocks[i + 1].id;
+                    blocks[i + 1].parent = blocks[i].id;
+                }
+            }
+        }
         const block = blocks[0];
-        if (blocks.length >= 2 || (block !== Opal.nil && !this._isStatementBlock(block))) {
+        if (block !== Opal.nil && !this._isStatementBlock(block)) {
             throw new RubyToBlocksConverterError(node, 'include not statement blocks');
         }
         return block;
     }
 
     _processCondition (node) {
-        let cond = this._process(node);
-        if (_.isArray(cond) && cond.length === 1) {
-            cond = cond[0];
+        let cond = this._process(node, true);
+        const split = this._splitPreBlocksAndValue(cond);
+        if (split.preBlocks.length > 0) {
+            if (!this._isFalseOrBooleanBlock(split.value)) {
+                throw new RubyToBlocksConverterError(
+                    node,
+                    `condition is not boolean: ${this._getSource(node)}`
+                );
+            }
+            return [...split.preBlocks, split.value];
         }
+        cond = split.value;
         if (!this._isFalseOrBooleanBlock(cond)) {
             throw new RubyToBlocksConverterError(
                 node,
@@ -1449,7 +1476,7 @@ class RubyToBlocksConverter {
     _onBegin (node) {
         const blocks = [];
         node.children.forEach(childNode => {
-            const block = this._process(childNode);
+            const block = this._process(childNode, false);
             if (_.isArray(block)) {
                 block.forEach(b => {
                     blocks.push(b);
@@ -1513,12 +1540,19 @@ class RubyToBlocksConverter {
     _onSend (node, rubyBlockArgsNode, rubyBlockNode) {
         const saved = this._saveContext();
 
+        const preBlocks = [];
         let receiver = this._process(node.children[0]);
-        if (_.isArray(receiver) && receiver.length === 1) {
-            receiver = receiver[0];
-        }
+        const split = this._splitPreBlocksAndValue(receiver);
+        receiver = split.value;
+        preBlocks.push(...split.preBlocks);
+
         const name = node.children[1].toString();
-        const args = node.children.slice(2).map(childNode => this._process(childNode));
+        const args = node.children.slice(2).map(childNode => {
+            const result = this._process(childNode);
+            const s = this._splitPreBlocksAndValue(result);
+            preBlocks.push(...s.preBlocks);
+            return s.value;
+        });
 
         let rubyBlockArgs;
         if (rubyBlockArgsNode) {
@@ -1559,7 +1593,24 @@ class RubyToBlocksConverter {
                 block = this._createRubyStatementBlock(this._getSource(node), node);
             }
         }
+
+        if (preBlocks.length > 0 && block) {
+            return [...preBlocks, block];
+        }
         return block;
+    }
+
+    _splitPreBlocksAndValue (result) {
+        if (_.isArray(result) && result.length > 0 && this._isBlock(result[0])) {
+            return {
+                preBlocks: result.slice(0, result.length - 1),
+                value: result[result.length - 1]
+            };
+        }
+        return {
+            preBlocks: [],
+            value: result
+        };
     }
 
     _onSelf (node) {
@@ -1663,7 +1714,12 @@ class RubyToBlocksConverter {
 
         const saved = this._saveContext();
 
-        const cond = this._processCondition(node.children[0]);
+        const preBlocks = [];
+        let cond = this._processCondition(node.children[0]);
+        const split = this._splitPreBlocksAndValue(cond);
+        cond = split.value;
+        preBlocks.push(...split.preBlocks);
+
         const statement = this._processStatement(node.children[1]);
         let elseStatement;
         if (node.children[2] !== Opal.nil ||
@@ -1677,6 +1733,10 @@ class RubyToBlocksConverter {
 
             block = this._createRubyStatementBlock(this._getSource(node), node);
         }
+
+        if (preBlocks.length > 0 && block) {
+            return [...preBlocks, block];
+        }
         return block;
     }
 
@@ -1685,7 +1745,12 @@ class RubyToBlocksConverter {
 
         const saved = this._saveContext();
 
-        const cond = this._processCondition(node.children[0]);
+        const preBlocks = [];
+        let cond = this._processCondition(node.children[0]);
+        const split = this._splitPreBlocksAndValue(cond);
+        cond = split.value;
+        preBlocks.push(...split.preBlocks);
+
         const statement = this._processStatement(node.children[1]);
 
         let block = this._callConvertersHandler('onUntil', cond, statement);
@@ -1693,6 +1758,10 @@ class RubyToBlocksConverter {
             this._restoreContext(saved);
 
             block = this._createRubyStatementBlock(this._getSource(node), node);
+        }
+
+        if (preBlocks.length > 0 && block) {
+            return [...preBlocks, block];
         }
         return block;
     }
@@ -1702,9 +1771,18 @@ class RubyToBlocksConverter {
 
         const saved = this._saveContext();
 
-        const lh = this._process(node.children[0]);
+        const preBlocks = [];
+        let lh = this._process(node.children[0]);
+        let split = this._splitPreBlocksAndValue(lh);
+        lh = split.value;
+        preBlocks.push(...split.preBlocks);
+
         const operator = node.children[1].toString();
-        const rh = this._process(node.children[2]);
+
+        let rh = this._process(node.children[2]);
+        split = this._splitPreBlocksAndValue(rh);
+        rh = split.value;
+        preBlocks.push(...split.preBlocks);
 
         let block = this._callConvertersHandler('onOpAsgn', lh, operator, rh);
         if (!block) {
@@ -1713,21 +1791,46 @@ class RubyToBlocksConverter {
             block = this._createRubyStatementBlock(this._getSource(node), node);
         }
 
+        if (preBlocks.length > 0 && block) {
+            return [...preBlocks, block];
+        }
         return block;
     }
 
     _onAnd (node) {
         this._checkNumChildren(node, 2);
 
-        const operands = node.children.map(childNode => this._processCondition(childNode));
-        return this._callConvertersHandler('onAnd', operands);
+        const preBlocks = [];
+        const operands = node.children.map(childNode => {
+            const result = this._processCondition(childNode);
+            const s = this._splitPreBlocksAndValue(result);
+            preBlocks.push(...s.preBlocks);
+            return s.value;
+        });
+
+        const block = this._callConvertersHandler('onAnd', operands);
+        if (preBlocks.length > 0 && block) {
+            return [...preBlocks, block];
+        }
+        return block;
     }
 
     _onOr (node) {
         this._checkNumChildren(node, 2);
 
-        const operands = node.children.map(childNode => this._processCondition(childNode));
-        return this._callConvertersHandler('onOr', operands);
+        const preBlocks = [];
+        const operands = node.children.map(childNode => {
+            const result = this._processCondition(childNode);
+            const s = this._splitPreBlocksAndValue(result);
+            preBlocks.push(...s.preBlocks);
+            return s.value;
+        });
+
+        const block = this._callConvertersHandler('onOr', operands);
+        if (preBlocks.length > 0 && block) {
+            return [...preBlocks, block];
+        }
+        return block;
     }
 
     _onVar (node, scope) {
@@ -1782,8 +1885,13 @@ class RubyToBlocksConverter {
 
         const saved = this._saveContext();
 
+        const preBlocks = [];
         const variable = this._lookupOrCreateVariable(node.children[0]);
-        const rh = this._process(node.children[1]);
+        let rh = this._process(node.children[1]);
+        const split = this._splitPreBlocksAndValue(rh);
+        rh = split.value;
+        preBlocks.push(...split.preBlocks);
+
         let block = this._callConvertersHandler('onVasgn', scope, variable, rh);
         if (!block) {
             this._restoreContext(saved);
@@ -1791,6 +1899,9 @@ class RubyToBlocksConverter {
             block = this._createRubyStatementBlock(this._getSource(node), node);
         }
 
+        if (preBlocks.length > 0 && block) {
+            return [...preBlocks, block];
+        }
         return block;
     }
 

@@ -46,7 +46,13 @@ describe('Ruby Tab: My Blocks category blocks', () => {
             procedure(10)
         `;
 
-        await expectInterconvertBetweenCodeAndRuby(codeWithUppercaseArg, expectedCodeWithLowercaseArg);
+        try {
+            await expectInterconvertBetweenCodeAndRuby(codeWithUppercaseArg, expectedCodeWithLowercaseArg);
+        } catch (e) {
+            const logs = await seleniumHelper.getLogs({includeAllLevels: true});
+            console.log('Browser logs (Procedure arguments):', logs);
+            throw e;
+        }
     });
 
     test('Ruby -> Code -> Ruby', async () => {
@@ -73,6 +79,34 @@ describe('Ruby Tab: My Blocks category blocks', () => {
               say(add(1, 5))
             end
         `;
-        await expectInterconvertBetweenCodeAndRuby(code);
+        try {
+            await expectInterconvertBetweenCodeAndRuby(code);
+        } catch (e) {
+            const logs = await seleniumHelper.getLogs({includeAllLevels: true});
+            console.log('Browser logs (Method with return value):', logs);
+            throw e;
+        }
+    });
+
+    test('Method with explicit return variable assignment should be convertible', async () => {
+        await loadUri(urlFor('/'));
+
+        const code = dedent`
+            def self.add(a, b)
+              @_return_add = a + b
+            end
+
+            when_flag_clicked do
+              add(1, 5)
+              say(@_return_add)
+            end
+        `;
+        try {
+            await expectInterconvertBetweenCodeAndRuby(code);
+        } catch (e) {
+            const logs = await seleniumHelper.getLogs({includeAllLevels: true});
+            console.log('Browser logs (Explicit return variable):', logs);
+            throw e;
+        }
     });
 });
