@@ -2,7 +2,7 @@
 
 description="Task to start implementation based on issue content"
 prompt = """
-Understand and implement the GitHub Issue provided in {{args}}.
+Understand and implement the GitHub Issue or the implementation plan file (Markdown) provided in {{args}}.
 
 If the URL ends with an Issue ID (e.g., .../issues/1), implement based on the issue description.
 
