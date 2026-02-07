@@ -1601,6 +1601,13 @@ class RubyToBlocksConverter {
     }
 
     _splitPreBlocksAndValue (result) {
+        if (_.isArray(result) && result.length === 1) {
+            // Single element array - extract the value
+            return {
+                preBlocks: [],
+                value: result[0]
+            };
+        }
         if (_.isArray(result) && result.length > 0 && this._isBlock(result[0])) {
             return {
                 preBlocks: result.slice(0, result.length - 1),
