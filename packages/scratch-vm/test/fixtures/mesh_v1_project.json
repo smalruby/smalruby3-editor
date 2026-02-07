@@ -1,0 +1,39 @@
+{
+  "targets": [
+    {
+      "isStage": true,
+      "name": "Stage",
+      "variables": {},
+      "lists": {},
+      "broadcasts": {},
+      "blocks": {
+        "block1": {
+          "opcode": "mesh_sendBroadcast",
+          "next": null,
+          "parent": null,
+          "inputs": {},
+          "fields": {},
+          "shadow": false,
+          "topLevel": true
+        }
+      },
+      "comments": {},
+      "currentCostume": 0,
+      "costumes": [],
+      "sounds": [],
+      "volume": 100,
+      "layerOrder": 0,
+      "tempo": 60,
+      "videoTransparency": 50,
+      "videoState": "on",
+      "textToSpeechLanguage": null
+    }
+  ],
+  "monitors": [],
+  "extensions": ["mesh"],
+  "meta": {
+    "semver": "3.0.0",
+    "vm": "0.2.0",
+    "agent": "Smalruby"
+  }
+}

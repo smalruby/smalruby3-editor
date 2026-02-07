@@ -18,6 +18,7 @@ const formatMessage = require('format-message');
 
 const Variable = require('./engine/variable');
 const newBlockIds = require('./util/new-block-ids');
+const {detectMeshV1Blocks, migrateMeshV1Blocks} = require('./serialization/mesh-migration');
 
 const {loadCostume} = require('./import/load-costume.js');
 const {loadSound} = require('./import/load-sound.js');
@@ -311,9 +312,10 @@ class VirtualMachine extends EventEmitter {
     /**
      * Load a Scratch project from a .sb, .sb2, .sb3 or json string.
      * @param {string | object} input A json string, object, or ArrayBuffer representing the project to load.
+     * @param {object} options Optional configuration for loading the project.
      * @returns {!Promise} Promise that resolves after targets are installed.
      */
-    loadProject (input) {
+    loadProject (input, options = {}) {
         if (typeof input === 'object' && !(input instanceof ArrayBuffer) &&
           !ArrayBuffer.isView(input)) {
             // If the input is an object and not any ArrayBuffer
@@ -358,12 +360,54 @@ class VirtualMachine extends EventEmitter {
             });
 
         return validationPromise
-            .then(validatedInput => this.deserializeProject(validatedInput[0], validatedInput[1]))
+            .then(validatedInput => {
+                // smalruby: mesh V1 to V2 migration
+                let projectJSON = validatedInput[0];
+                if (options.migrateMeshV1ToV2) {
+                    projectJSON = migrateMeshV1Blocks(projectJSON);
+                }
+                return this.deserializeProject(projectJSON, validatedInput[1]);
+            })
             .then(() => this.runtime.handleProjectLoaded())
             .catch(error => {
                 // Intentionally rejecting here (want errors to be handled by caller)
                 if (Object.prototype.hasOwnProperty.call(error, 'validationError')) {
                     return Promise.reject(JSON.stringify(error));
+                }
+                return Promise.reject(error);
+            });
+    }
+
+    /**
+     * Check if a project contains any legacy mesh blocks.
+     * @param {string | object} input A json string, object, or ArrayBuffer representing the project to check.
+     * @returns {Promise<boolean>} Promise that resolves to true if legacy mesh blocks are found.
+     */
+    hasMeshV1Project (input) {
+        if (typeof input === 'object' && !(input instanceof ArrayBuffer) &&
+          !ArrayBuffer.isView(input)) {
+            input = JSON.stringify(input);
+        }
+
+        return new Promise((resolve, reject) => {
+            const validate = require('scratch-parser');
+            validate(input, false, (error, res) => {
+                if (error) return reject(error);
+                resolve(detectMeshV1Blocks(res[0]));
+            });
+        })
+            .catch(error => {
+                const {SB1File, ValidationError} = require('scratch-sb1-converter');
+
+                try {
+                    const sb1 = new SB1File(input);
+                    return Promise.resolve(detectMeshV1Blocks(sb1.json));
+                } catch (sb1Error) {
+                    if (sb1Error instanceof ValidationError) {
+                        // The input does not validate as a Scratch 1 file.
+                    } else {
+                        return Promise.reject(sb1Error);
+                    }
                 }
                 return Promise.reject(error);
             });
