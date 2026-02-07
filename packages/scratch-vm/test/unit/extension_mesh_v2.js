@@ -104,9 +104,8 @@ test('Mesh V2 Blocks', t => {
         // Since it's async, we need to wait
         setImmediate(() => {
             st.equal(mockRuntime.lastEmittedEvent, 'PERIPHERAL_LIST_UPDATE');
-            st.equal(mockRuntime.lastEmittedData.length, 2); // Host option + 1 valid group
-            st.equal(mockRuntime.lastEmittedData[0].peripheralId, 'meshV2_host');
-            st.equal(mockRuntime.lastEmittedData[1].peripheralId, 'group1');
+            st.equal(mockRuntime.lastEmittedData.length, 1); // 1 valid group (Host option removed)
+            st.equal(mockRuntime.lastEmittedData[0].peripheralId, 'group1');
             st.same(blocks.discoveredGroups, mockGroups);
             st.end();
         });
