@@ -1053,7 +1053,42 @@ class MenuBar extends React.Component {
                                         </MenuItem>
                                         <MenuSection>
                                             <MenuItem onClick={this.handleMeshV2MenuClick}>
-                                                {meshV2Status.message}
+                                                {typeof meshV2Status.message === 'object' ? (
+                                                    <div className={styles.meshV2StatusMultiline}>
+                                                        <div className={styles.meshV2StatusLine}>
+                                                            <FormattedMessage
+                                                                id="mesh.domainLabel"
+                                                                defaultMessage="Domain: {domain}"
+                                                                description="Label for mesh domain in menu"
+                                                                values={{
+                                                                    domain: <span className={styles.meshV2Domain}>
+                                                                        {meshV2Status.message.domain}
+                                                                    </span>
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className={styles.meshV2StatusLine}>
+                                                            <FormattedMessage
+                                                                id="mesh.groupLabel"
+                                                                defaultMessage="Group: {group}"
+                                                                description="Label for mesh group in menu"
+                                                                values={{group: meshV2Status.message.group}}
+                                                            />
+                                                        </div>
+                                                        {meshV2Status.message.expiresAt && (
+                                                            <div className={styles.meshV2StatusLine}>
+                                                                <FormattedMessage
+                                                                    id="mesh.expiresLabel"
+                                                                    defaultMessage="Expires: {time}"
+                                                                    description="Label for mesh expiration time in menu"
+                                                                    values={{time: meshV2Status.message.expiresAt}}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    meshV2Status.message
+                                                )}
                                             </MenuItem>
                                         </MenuSection>
                                     </MenuBarMenu>
