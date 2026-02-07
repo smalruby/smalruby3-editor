@@ -279,12 +279,13 @@ export default {
     'gui.connection.networkFiltered.useLegacyMeshButton': 'じゅうらいのメッシュをつかう',
 
     // MeshV2 Initial Step messages
+    'gui.connection.meshV2Initial.domainPlaceholder': 'ドメインめいをにゅうりょく...',
     'gui.connection.meshV2Initial.createGroup': 'メッシュのホストになる',
     'gui.connection.meshV2Initial.createGroupDescription': 'グループのさくせい',
     'gui.connection.meshV2Initial.joinGroup': 'メッシュにさんかする',
     'gui.connection.meshV2Initial.joinGroupDescription': 'グループにさんか',
     'gui.connection.meshV2Initial.domainLabel': 'ドメイン',
-    'gui.connection.meshV2Initial.domainHelp': 'グループがいちらんにひょうじされないばあいはドメインをせっていしてください。がっこうなどのしせつのゆうびんばんごうがさいてきです。',
+    'gui.connection.meshV2Initial.domainHelp': 'ホストがいちらんにひょうじされないばあいはドメインをせっていしてください。{br}がっこうなどのしせつのゆうびんばんごうがさいてきです。',
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメインめいにむこうなもじがふくまれています。',
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメインめいがながすぎます（さいだい256もじ）。',
     'gui.stageHeader.stageSizeMiddle': 'ちゅうサイズのステージにきりかえる'

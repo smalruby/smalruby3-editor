@@ -220,12 +220,13 @@ export default {
     'gui.connection.networkFiltered.useLegacyMeshButton': 'Use legacy mesh',
 
     // MeshV2 Initial Step messages
+    'gui.connection.meshV2Initial.domainPlaceholder': 'Enter domain name...',
     'gui.connection.meshV2Initial.createGroup': 'Become Mesh Host',
     'gui.connection.meshV2Initial.createGroupDescription': 'Create Group',
     'gui.connection.meshV2Initial.joinGroup': 'Join Mesh',
     'gui.connection.meshV2Initial.joinGroupDescription': 'Join Group',
     'gui.connection.meshV2Initial.domainLabel': 'Domain',
-    'gui.connection.meshV2Initial.domainHelp': 'If groups are not displayed in the list, please set a domain. A postal code for your school or facility is recommended.',
+    'gui.connection.meshV2Initial.domainHelp': 'If groups are not displayed in the list, please set a domain.{br}A postal code for your school or facility is recommended.',
     'gui.connection.meshV2Initial.domainInvalidError': 'Domain name contains invalid characters.',
     'gui.connection.meshV2Initial.domainTooLongError': 'Domain name is too long (max 256 characters).',
     'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage',

@@ -279,12 +279,13 @@ export default {
     'gui.connection.networkFiltered.useLegacyMeshButton': '従来のメッシュを使う',
 
     // MeshV2 Initial Step messages
+    'gui.connection.meshV2Initial.domainPlaceholder': 'ドメイン名を入力...',
     'gui.connection.meshV2Initial.createGroup': 'メッシュのホストになる',
     'gui.connection.meshV2Initial.createGroupDescription': 'グループの作成',
     'gui.connection.meshV2Initial.joinGroup': 'メッシュに参加する',
     'gui.connection.meshV2Initial.joinGroupDescription': 'グループに参加',
     'gui.connection.meshV2Initial.domainLabel': 'ドメイン',
-    'gui.connection.meshV2Initial.domainHelp': 'グループが一覧に表示されない場合はドメインを設定してください。学校などの施設の郵便番号が最適です。',
+    'gui.connection.meshV2Initial.domainHelp': 'ホスト名が一覧に表示されない場合はドメインを設定してください。{br}学校などの施設の郵便番号が最適です。',
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメイン名に無効な文字が含まれています。',
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。',
     'gui.stageHeader.stageSizeMiddle': '中サイズのステージに切り替える'

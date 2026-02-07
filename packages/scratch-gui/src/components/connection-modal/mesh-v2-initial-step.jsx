@@ -2,7 +2,7 @@
 // This component shows initial connection options for meshV2 extension
 // with two main actions: create group (become host) or join group.
 
-import {FormattedMessage} from 'react-intl';
+import {defineMessages, FormattedMessage, useIntl} from 'react-intl';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import React from 'react';
@@ -15,9 +15,18 @@ import joinGroupImage from './mesh_v2_join_group.png';
 import styles from './connection-modal.css';
 import initialStepStyles from './mesh-v2-initial-step.css';
 
+const messages = defineMessages({
+    domainPlaceholder: {
+        defaultMessage: 'Enter domain name...',
+        description: 'Placeholder text for domain input field',
+        id: 'gui.connection.meshV2Initial.domainPlaceholder'
+    }
+});
+
 const MeshV2InitialStep = props => {
     const [domain, setDomain] = React.useState(props.domain || '');
     const [error, setError] = React.useState(null);
+    const intl = useIntl();
 
     const validate = React.useCallback(domainValue => {
         if (!domainValue) return null;
@@ -106,20 +115,13 @@ const MeshV2InitialStep = props => {
                 </Box>
 
                 <Box className={classNames(styles.bottomAreaItem, initialStepStyles.domainSection)}>
-                    <label className={initialStepStyles.domainLabel}>
-                        <FormattedMessage
-                            defaultMessage="Domain"
-                            description="Label for domain input field"
-                            id="gui.connection.meshV2Initial.domainLabel"
-                        />
-                    </label>
                     <input
                         className={classNames(initialStepStyles.domainInput, {
                             [initialStepStyles.inputError]: error
                         })}
                         type="text"
                         value={domain}
-                        placeholder="100-0014"
+                        placeholder={intl.formatMessage(messages.domainPlaceholder)}
                         onChange={handleDomainChange}
                     />
                     {error === 'tooLong' && (
@@ -143,11 +145,14 @@ const MeshV2InitialStep = props => {
                     <div className={initialStepStyles.domainHelp}>
                         <FormattedMessage
                             defaultMessage={
-                                'If groups are not displayed in the list, please set a domain. ' +
+                                'If groups are not displayed in the list, please set a domain. {br}' +
                                 'A postal code for your school or facility is recommended.'
                             }
                             description="Help text for domain input"
                             id="gui.connection.meshV2Initial.domainHelp"
+                            values={{
+                                br: <br />
+                            }}
                         />
                     </div>
                 </Box>
