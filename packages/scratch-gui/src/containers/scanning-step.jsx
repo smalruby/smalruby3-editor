@@ -73,10 +73,12 @@ class ScanningStep extends React.Component {
         return (
             <ScanningStepComponent
                 connectionSmallIconURL={this.props.connectionSmallIconURL}
+                extensionId={this.props.extensionId}
                 peripheralList={this.state.peripheralList}
                 phase={this.state.phase}
                 scanning={this.state.scanning}
                 title={this.props.extensionId}
+                onBack={this.props.onBack}
                 onConnected={this.props.onConnected}
                 onConnecting={this.props.onConnecting}
                 onRefresh={this.handleRefresh}
@@ -89,6 +91,7 @@ class ScanningStep extends React.Component {
 ScanningStep.propTypes = {
     connectionSmallIconURL: PropTypes.string,
     extensionId: PropTypes.string.isRequired,
+    onBack: PropTypes.func,
     onConnected: PropTypes.func.isRequired,
     onConnecting: PropTypes.func.isRequired,
     onUpdatePeripheral: PropTypes.func,

@@ -90,6 +90,20 @@ const ScanningStep = props => {
                 total={3}
             />
             <Box className={classNames(styles.bottomAreaItem, styles.buttonRow)}>
+                {/* === Smalruby: Start of back button for meshV2 === */}
+                {props.extensionId === 'meshV2' && props.onBack && (
+                    <button
+                        className={styles.connectionButton}
+                        onClick={props.onBack}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Back"
+                            description="Button to go back to initial step"
+                            id="gui.connection.scanning.backButton"
+                        />
+                    </button>
+                )}
+                {/* === Smalruby: End of back button for meshV2 === */}
                 <button
                     className={styles.connectionButton}
                     onClick={props.onRefresh}
@@ -127,6 +141,8 @@ const ScanningStep = props => {
 
 ScanningStep.propTypes = {
     connectionSmallIconURL: PropTypes.string,
+    extensionId: PropTypes.string,
+    onBack: PropTypes.func,
     onConnecting: PropTypes.func,
     onRefresh: PropTypes.func,
     onUpdatePeripheral: PropTypes.func,
