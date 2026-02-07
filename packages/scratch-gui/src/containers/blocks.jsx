@@ -478,6 +478,11 @@ class Blocks extends React.Component {
                         if (comment.blockId) {
                             const block = this.workspace.getBlockById(comment.blockId);
                             if (block) {
+                                // Minimize @ruby:return comments (internal metadata)
+                                if (comment.text && comment.text.startsWith('@ruby:return')) {
+                                    comment.setMinimized(true);
+                                }
+
                                 const blockXY = block.getRelativeToSurfaceXY();
                                 const blockHW = block.getHeightWidth();
                                 const rtl = this.workspace.RTL;

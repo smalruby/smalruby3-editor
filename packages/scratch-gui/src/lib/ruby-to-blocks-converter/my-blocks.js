@@ -1,6 +1,9 @@
 import _ from 'lodash';
 import Blockly from 'scratch-blocks';
+import Primitive from './primitive';
 import {RubyToBlocksConverterError} from './errors';
+
+const Opal = global.Opal || window.Opal;
 
 /**
  * My Blocks converter
@@ -22,6 +25,11 @@ const MyBlocksConverter = {
                     warp: 'false'
                 }
             });
+
+            // Add comment if procedure has return value
+            if (procedure.hasReturnValue) {
+                block.comment = `@ruby:return:${name}`;
+            }
 
             if (Object.prototype.hasOwnProperty.call(converter._context.procedureCallBlocks, procedure.id)) {
                 converter._context.procedureCallBlocks[procedure.id].push(block.id);
@@ -50,6 +58,45 @@ const MyBlocksConverter = {
                     `invalid type of My Block "${name}" argument #${i + 1}`
                 );
             });
+
+            // If procedure has return value and this is used in expression context,
+            // create marker block and return variable reference
+            if (procedure.hasReturnValue && converter._isValueContext()) {
+                const variable = converter._lookupOrCreateVariable(`@_return_${name}`);
+
+                // Create marker block (data_setvariableto with no VALUE input)
+                const markerBlock = converter._createBlock('data_setvariableto', 'statement', {
+                    fields: {
+                        VARIABLE: {
+                            name: 'VARIABLE',
+                            id: variable.id,
+                            value: variable.name,
+                            variableType: variable.type
+                        }
+                    },
+                    comment: `@ruby:return:${name}`
+                });
+
+                // Link blocks: procedures_call -> marker_block
+                block.next = markerBlock.id;
+                markerBlock.parent = block.id;
+
+                // Create variable reference block
+                const varBlock = converter._createBlock('data_variable', 'value_variable', {
+                    fields: {
+                        VARIABLE: {
+                            name: 'VARIABLE',
+                            id: variable.id,
+                            value: variable.name,
+                            variableType: variable.type
+                        }
+                    },
+                    comment: '@ruby:return'
+                });
+
+                // Return array: [statement_chain_start, value_block]
+                return [block, varBlock];
+            }
 
             return block;
         });
@@ -88,7 +135,7 @@ const MyBlocksConverter = {
 
         converter.registerOnDefs((node, saved) => {
             const receiver = converter._process(node.children[0]);
-            if (!converter._isSelf(receiver)) {
+            if (!converter._isSelf(receiver) && receiver !== Opal.nil) {
                 return null;
             }
 
@@ -131,6 +178,39 @@ const MyBlocksConverter = {
             let body = converter._process(node.children[3]);
             if (!_.isArray(body)) {
                 body = [body];
+            }
+            if (body.length > 0) {
+                const lastIdx = body.length - 1;
+                const last = body[lastIdx];
+                if (converter._isValueBlock(last) &&
+                    !(last instanceof Primitive && (last.type === 'self' || last.type === 'nil'))) {
+                    const variable = converter._lookupOrCreateVariable(`@_return_${procedureName}`);
+                    const returnBlock = converter._createBlock('data_setvariableto', 'statement', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: variable.id,
+                                value: variable.name,
+                                variableType: variable.type
+                            }
+                        },
+                        comment: `@ruby:return:${procedureName}`
+                    });
+                    converter._addTextInput(
+                        returnBlock, 'VALUE', converter._isNumber(last) ? last.toString() : last, '0'
+                    );
+                    body[lastIdx] = returnBlock;
+
+                    // Mark procedure as having a return value
+                    procedure.hasReturnValue = true;
+
+                    // Re-link the body if it's a sequence
+                    if (lastIdx > 0) {
+                        const prev = converter._lastBlock(body[lastIdx - 1]);
+                        prev.next = returnBlock.id;
+                        returnBlock.parent = prev.id;
+                    }
+                }
             }
             if (converter._isBlock(body[0])) {
                 block.next = body[0].id;

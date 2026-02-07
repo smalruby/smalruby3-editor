@@ -60,4 +60,19 @@ describe('Ruby Tab: My Blocks category blocks', () => {
         `;
         await expectInterconvertBetweenCodeAndRuby(code);
     });
+
+    test('Method with return value should be convertible', async () => {
+        await loadUri(urlFor('/'));
+
+        const code = dedent`
+            def self.add(a, b)
+              a + b
+            end
+
+            when_flag_clicked do
+              say(add(1, 5))
+            end
+        `;
+        await expectInterconvertBetweenCodeAndRuby(code);
+    });
 });

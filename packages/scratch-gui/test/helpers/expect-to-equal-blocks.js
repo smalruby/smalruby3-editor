@@ -198,6 +198,13 @@ const expectToEqualBlock = function (context, parent, actualBlock, expectedBlock
     expectToEqualMutation(context, block, blocks.getMutation(block), expected.mutation);
 
     expectToEqualBranches(context, block, expected.branches);
+    
+    if (expected.comment) {
+        expect(block.comment).not.toBeNull();
+        const actualComment = context.converter._context.comments[block.comment];
+        expect(actualComment.text).toEqual(expected.comment.text);
+        expect(actualComment.minimized).toEqual(expected.comment.minimized);
+    }
 
     if (expected.next) {
         expectToEqualBlock(context, block.id, blocks.getBlock(blocks.getNextBlock(block.id)), expected.next);

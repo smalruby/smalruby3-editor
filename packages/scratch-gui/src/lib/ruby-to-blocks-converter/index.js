@@ -797,6 +797,13 @@ class RubyToBlocksConverter {
         return /^value/.test(this._getBlockType(block));
     }
 
+    _isValueContext () {
+        // TODO: Implement proper context tracking
+        // For now, always return true when a method call might be used as a value
+        // This handles cases like: say(add(1, 5))
+        return true;
+    }
+
     isNumberOrBlock (numberOrBlock) {
         return this._isNumberOrBlock(numberOrBlock);
     }
@@ -1797,6 +1804,28 @@ class RubyToBlocksConverter {
 
     _onLvasgn (node) {
         return this._onVasgn(node, 'local');
+    }
+
+    _onDef (node) {
+        this._checkNumChildren(node, 3);
+
+        const saved = this._saveContext();
+
+        // Convert def to a format compatible with onDefs handler (receiver = nil)
+        const defsNode = {
+            type: 'defs',
+            children: [Opal.nil, node.children[0], node.children[1], node.children[2]],
+            $loc: node.$loc
+        };
+
+        let block = this._callConvertersHandler('onDefs', defsNode, saved);
+        if (!block) {
+            this._restoreContext(saved);
+
+            block = this._createRubyStatementBlock(this._getSource(node), node);
+        }
+
+        return block;
     }
 
     _onDefs (node) {

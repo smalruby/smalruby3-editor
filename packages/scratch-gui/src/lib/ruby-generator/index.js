@@ -111,6 +111,7 @@ RubyGenerator.ORDER_NONE = 99;             // (...)
 
 RubyGenerator.init = function (_options) {
     this.definitions_ = {};
+    this.returnCallCache_ = {}; // Clear return value call cache
     if (this.variableDB_) {
         this.variableDB_.reset();
     } else {
