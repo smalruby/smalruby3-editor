@@ -26,7 +26,6 @@ import {
     closeTelemetryModal,
     openExtensionLibrary,
     closeDebugModal,
-    closeMeshDomainModal,
     closeKoshienTestModal,
     closeUrlLoaderModal
 } from '../reducers/modals';
@@ -146,10 +145,8 @@ GUI.propTypes = {
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     shouldStopProject: PropTypes.bool,
     telemetryModalVisible: PropTypes.bool,
-    meshDomainModalVisible: PropTypes.bool,
     koshienTestModalVisible: PropTypes.bool,
     urlLoaderModalVisible: PropTypes.bool,
-    onRequestCloseMeshDomainModal: PropTypes.func,
     onRequestCloseKoshienTestModal: PropTypes.func,
     onRequestCloseUrlLoaderModal: PropTypes.func,
     onActivateRubyTab: PropTypes.func,
@@ -204,7 +201,6 @@ const mapStateToProps = (state, ownProps) => {
             state.scratchGui.targets.stage.id === state.scratchGui.targets.editingTarget
         ),
         telemetryModalVisible: state.scratchGui.modals.telemetryModal,
-        meshDomainModalVisible: state.scratchGui.modals.meshDomainModal,
         koshienTestModalVisible: state.scratchGui.modals.koshienTestModal,
         urlLoaderModalVisible: state.scratchGui.modals.urlLoaderModal,
         blocksId: state.scratchGui.timeTravel.year.toString(),
@@ -228,7 +224,6 @@ const mapDispatchToProps = dispatch => ({
     onRequestCloseCostumeLibrary: () => dispatch(closeCostumeLibrary()),
     onRequestCloseDebugModal: () => dispatch(closeDebugModal()),
     onRequestCloseTelemetryModal: () => dispatch(closeTelemetryModal()),
-    onRequestCloseMeshDomainModal: () => dispatch(closeMeshDomainModal()),
     onRequestCloseKoshienTestModal: () => dispatch(closeKoshienTestModal()),
     onRequestCloseUrlLoaderModal: () => dispatch(closeUrlLoaderModal())
 });

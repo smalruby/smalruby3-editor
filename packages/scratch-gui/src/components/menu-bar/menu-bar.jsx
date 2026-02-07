@@ -38,7 +38,6 @@ import SettingsMenu from './settings-menu.jsx';
 import {
     openDebugModal,
     openKoshienTestModal,
-    openMeshDomainModal,
     openUrlLoaderModal,
     openConnectionModal
 } from '../../reducers/modals';
@@ -247,7 +246,6 @@ class MenuBar extends React.Component {
             'handleExtensionAdded',
             'handleClickKoshienEntryForm',
             'handleMeshV2MenuClick',
-            'handleMeshDomainClick',
             'handleClickLearn'
         ]);
     }
@@ -447,20 +445,6 @@ class MenuBar extends React.Component {
     handleMeshV2MenuClick () {
         // Open connection modal
         this.props.onOpenConnectionModal('meshV2');
-    }
-    handleMeshDomainClick () {
-
-        const extension = this.props.vm && this.props.vm.runtime &&
-            this.props.vm.runtime.peripheralExtensions &&
-            this.props.vm.runtime.peripheralExtensions.meshV2;
-        if (extension && (extension.connectionState === 'connected' || extension.connectionState === 'connecting')) {
-            alert(this.props.intl.formatMessage({ // eslint-disable-line no-alert
-                id: 'mesh.domainConnectedAlert',
-                default: 'Mesh V2 is connected. To change the domain, please disconnect first.'
-            }));
-            return;
-        }
-        this.props.onOpenMeshDomainModal();
     }
     syncMeshV2Domain () {
         const extension = this.props.vm && this.props.vm.runtime &&
@@ -1034,23 +1018,6 @@ class MenuBar extends React.Component {
                                         place={this.props.isRtl ? 'left' : 'right'}
                                         onRequestClose={this.props.onRequestCloseMeshV2}
                                     >
-                                        <MenuItem onClick={this.handleMeshDomainClick}>
-                                            <FormattedMessage
-                                                defaultMessage="Domain: {domain}"
-                                                description="Label for Mesh V2 domain"
-                                                id="mesh.domain"
-                                                values={{
-                                                    domain: (
-                                                        <span className={styles.meshV2Domain}>
-                                                            {this.props.meshV2Domain || this.props.intl.formatMessage({
-                                                                id: 'mesh.domainNotSet',
-                                                                defaultMessage: 'Not set'
-                                                            })}
-                                                        </span>
-                                                    )
-                                                }}
-                                            />
-                                        </MenuItem>
                                         <MenuSection>
                                             <MenuItem onClick={this.handleMeshV2MenuClick}>
                                                 {typeof meshV2Status.message === 'object' ? (
@@ -1534,7 +1501,6 @@ MenuBar.propTypes = {
     onOpenRegistration: PropTypes.func,
     onOpenBlockDisplayModal: PropTypes.func,
     onOpenConnectionModal: PropTypes.func,
-    onOpenMeshDomainModal: PropTypes.func,
     onOpenDebugModal: PropTypes.func,
     onOpenKoshienTestModal: PropTypes.func,
     onProjectTelemetryEvent: PropTypes.func,
@@ -1655,7 +1621,6 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
         dispatch(setConnectionModalExtensionId(id));
         dispatch(openConnectionModal());
     },
-    onOpenMeshDomainModal: () => dispatch(openMeshDomainModal()),
     onOpenBlockDisplayModal: () => dispatch(openBlockDisplayModal()),
     onOpenKoshienTestModal: () => dispatch(openKoshienTestModal()),
     onClickAccount: () => dispatch(openAccountMenu()),
