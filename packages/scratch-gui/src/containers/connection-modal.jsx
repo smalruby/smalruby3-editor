@@ -35,7 +35,8 @@ class ConnectionModal extends React.Component {
             // === Smalruby: Start of meshV2 initial step feature ===
             'handleMeshV2CreateGroup',
             'handleMeshV2JoinGroup',
-            'handleMeshV2DomainChange'
+            'handleMeshV2DomainChange',
+            'handleBackToInitial'
             // === Smalruby: End of meshV2 initial step feature ===
         ]);
         // === Smalruby: Start of meshV2 initial step feature ===
@@ -227,6 +228,19 @@ class ConnectionModal extends React.Component {
             label: this.props.extensionId
         });
     }
+    // === Smalruby: Start of meshV2 back button feature ===
+    handleBackToInitial () {
+        // For meshV2, go back to initial step (mesh-v2-initial-step)
+        this.setState({
+            phase: PHASES.meshV2Initial
+        });
+        analytics.event({
+            category: 'extensions',
+            action: 'back to initial step',
+            label: this.props.extensionId
+        });
+    }
+    // === Smalruby: End of meshV2 back button feature ===
     // === Smalruby: End of meshV2 initial step feature ===
     render () {
         const canUpdatePeripheral = ((this.props.extensionId === 'microbit') && isMicroBitUpdateSupported()) ||
@@ -249,6 +263,9 @@ class ConnectionModal extends React.Component {
                 useAutoScan={this.state.extension && this.state.extension.useAutoScan}
                 useExternalPeripheralList={this.props.useExternalPeripheralList}
                 vm={this.props.vm}
+                // === Smalruby: Start of meshV2 back button feature ===
+                onBack={this.props.extensionId === 'meshV2' ? this.handleBackToInitial : null}
+                // === Smalruby: End of meshV2 back button feature ===
                 onCancel={this.handleCancel}
                 onConnected={this.handleConnected}
                 onConnecting={this.handleConnecting}

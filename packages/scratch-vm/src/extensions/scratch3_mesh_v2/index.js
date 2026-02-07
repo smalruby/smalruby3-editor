@@ -229,17 +229,6 @@ class Scratch3MeshV2Blocks {
                 domain: group.domain
             }));
 
-            // Add 'Become Host' option
-            peripherals.unshift({
-                peripheralId: MESH_V2_HOST_ID,
-                name: formatMessage({
-                    id: 'mesh.hostPeripheralName',
-                    default: 'Become Mesh Host [{ MESH_ID }]',
-                    description: 'label for becoming Host Mesh in connect modal for Mesh extension'
-                }, {MESH_ID: this.makeMeshIdLabel(this.nodeId)}),
-                rssi: 0
-            });
-
             this.runtime.emit(this.runtime.constructor.PERIPHERAL_LIST_UPDATE, peripherals);
         })
             /* istanbul ignore next */
