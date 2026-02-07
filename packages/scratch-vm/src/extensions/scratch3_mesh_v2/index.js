@@ -408,34 +408,32 @@ class Scratch3MeshV2Blocks {
 
     /* istanbul ignore next */
     menuMessage () {
+        const domainDisplay = this.domain || formatMessage({
+            id: 'mesh.domainNotSet',
+            default: 'Not set',
+            description: 'label for domain not set in mesh menu'
+        });
+
         if (this.meshService && this.meshService.groupId) {
             const meshIdLabel = this.makeMeshIdLabel(this.meshService.groupName);
             const expiresAt = this.formatExpiresAt(this.meshService.expiresAt);
 
-            if (this.meshService.isHost) {
-                return formatMessage({
-                    id: 'mesh.registeredHostMenu',
-                    default: '{ MESH_ID } ({ EXPIRES_AT })',
-                    description: 'concise label for registered Host Mesh in menu bar'
-                }, {
-                    MESH_ID: meshIdLabel,
-                    EXPIRES_AT: expiresAt
-                });
-            }
-            return formatMessage({
-                id: 'mesh.joinedMeshMenu',
-                default: '{ MESH_ID } ({ EXPIRES_AT })',
-                description: 'concise label for joined Mesh in menu bar'
-            }, {
-                MESH_ID: meshIdLabel,
-                EXPIRES_AT: expiresAt
-            });
+            return {
+                domain: domainDisplay,
+                group: `✔【${meshIdLabel}】`,
+                expiresAt: `⏳ ${expiresAt}`
+            };
         }
-        return formatMessage({
-            id: 'mesh.notConnectedMenu',
-            default: 'Not connected',
-            description: 'concise label for not connected in menu bar'
-        });
+
+        return {
+            domain: domainDisplay,
+            group: formatMessage({
+                id: 'mesh.notJoined',
+                default: '!Not joined',
+                description: 'label for not joined group in mesh menu'
+            }),
+            expiresAt: null
+        };
     }
 
     // HOC logic
