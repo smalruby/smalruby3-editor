@@ -26,6 +26,8 @@ export default {
     'gui.menuBar.koshienEntryForm': '参加申し込み',
     'gui.menuBar.aiSaving': 'ルビーを保存中...',
     'gui.menuBar.aiSaved': 'ルビーが保存されました。',
+    'gui.stageHeader.stageSizeMiddle': '中サイズのステージに切り替える',
+
     'gui.koshienTestModal.title': 'スモウルビー甲子園のAIを試す',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトの読み込みに失敗しました。',
     'gui.googleDriveLoader.authError': 'Google ドライブの認証に失敗しました。もう一度お試しください。',
@@ -95,6 +97,10 @@ export default {
     'mesh.joinedMeshMenu': '✔【{MESH_ID}】 ⏳️{EXPIRES_AT}まで',
     'mesh.domain': 'ドメイン: {domain}',
     'mesh.domainNotSet': '未設定',
+    'mesh.domainLabel': 'ドメイン: {domain}',
+    'mesh.groupLabel': 'グループ: {group}',
+    'mesh.expiresLabel': '接続期限: {time}',
+    'mesh.notJoined': '!参加していません',
     'mesh.domainModalTitle': 'meshV2 ドメイン設定',
     'mesh.domainPlaceholder': 'ドメイン名を入力...',
     'mesh.domainSaveButton': '保存',
@@ -272,10 +278,20 @@ export default {
     'gui.connection.auto-scanning.updatePeripheralButton': 'アップデート',
     'gui.connection.error.updatePeripheralButton': 'アップデート',
     'gui.connection.unavailable.updatePeripheralButton': 'アップデート',
+    'gui.connection.scanning.backButton': '戻る',
     'gui.connection.networkFiltered.message': 'あたらしいメッシュ機能が使えません。{br}ネットワーク管理者に制限の解除をご依頼ください。',
     'gui.connection.networkFiltered.copied': 'コピーしました！',
     'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
     'gui.connection.networkFiltered.tryagainbutton': 'もう一度試す',
     'gui.connection.networkFiltered.useLegacyMeshButton': '従来のメッシュを使う',
-    'gui.stageHeader.stageSizeMiddle': '中サイズのステージに切り替える'
+
+    // MeshV2 Initial Step messages
+    'gui.connection.meshV2Initial.domainPlaceholder': 'ドメイン名を入力...',
+    'gui.connection.meshV2Initial.createGroup': 'メッシュのホストになる',
+    'gui.connection.meshV2Initial.createGroupDescription': 'グループの作成',
+    'gui.connection.meshV2Initial.joinGroup': 'メッシュに参加する',
+    'gui.connection.meshV2Initial.joinGroupDescription': 'グループに参加',
+    'gui.connection.meshV2Initial.domainHelp': 'ホスト名が一覧に表示されない場合はドメインを設定してください。{br}学校などの施設の郵便番号が最適です。',
+    'gui.connection.meshV2Initial.domainInvalidError': 'ドメイン名に無効な文字が含まれています。',
+    'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。'
 };

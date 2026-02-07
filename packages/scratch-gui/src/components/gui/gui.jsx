@@ -29,7 +29,6 @@ import DragLayer from '../../containers/drag-layer.jsx';
 import ConnectionModal from '../../containers/connection-modal.jsx';
 import TelemetryModal from '../telemetry-modal/telemetry-modal.jsx';
 import BlockDisplayModal from '../../containers/block-display-modal.jsx';
-import MeshDomainModal from '../../containers/mesh-domain-modal.jsx';
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
@@ -161,7 +160,6 @@ const GUIComponent = props => {
         logo,
         manuallySaveThumbnails,
         menuBarHidden,
-        meshDomainModalVisible,
         renderLogin,
         onClickAbout,
         onClickAccountNav,
@@ -183,7 +181,6 @@ const GUIComponent = props => {
         onRequestCloseCostumeLibrary,
         onRequestCloseDebugModal,
         onRequestCloseKoshienTestModal,
-        onRequestCloseMeshDomainModal,
         onRequestCloseTelemetryModal,
         onRequestCloseUrlLoaderModal,
         onSeeCommunity,
@@ -302,9 +299,6 @@ const GUIComponent = props => {
                         onRequestClose={onRequestCloseUrlLoaderModal}
                         onLoadUrl={onUrlLoaderSubmit}
                     />
-                ) : null}
-                {meshDomainModalVisible ? (
-                    <MeshDomainModal />
                 ) : null}
                 {koshienTestModalVisible ? (
                     <KoshienTestModal
@@ -660,7 +654,6 @@ GUIComponent.propTypes = {
     logo: PropTypes.string,
     manuallySaveThumbnails: PropTypes.bool,
     menuBarHidden: PropTypes.bool,
-    meshDomainModalVisible: PropTypes.bool,
     onActivateCostumesTab: PropTypes.func,
     onActivateRubyTab: PropTypes.func,
     onActivateSoundsTab: PropTypes.func,
@@ -677,7 +670,6 @@ GUIComponent.propTypes = {
     onRequestCloseCostumeLibrary: PropTypes.func,
     onRequestCloseDebugModal: PropTypes.func,
     onRequestCloseKoshienTestModal: PropTypes.func,
-    onRequestCloseMeshDomainModal: PropTypes.func,
     onRequestCloseTelemetryModal: PropTypes.func,
     onRequestCloseUrlLoaderModal: PropTypes.func,
     onSeeCommunity: PropTypes.func,

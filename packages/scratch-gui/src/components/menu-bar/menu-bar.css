@@ -266,3 +266,15 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* Multi-line mesh status in menu */
+.mesh-v2-status-multiline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.mesh-v2-status-line {
+    font-size: 0.75rem;
+    line-height: 1.5rem;
+}

@@ -12,7 +12,6 @@ const MODAL_SPRITE_LIBRARY = 'spriteLibrary';
 const MODAL_SOUND_RECORDER = 'soundRecorder';
 const MODAL_CONNECTION = 'connectionModal';
 const MODAL_URL_LOADER = 'urlLoaderModal';
-const MODAL_MESH_DOMAIN = 'meshDomainModal';
 const MODAL_KOSHIEN_TEST = 'koshienTestModal';
 
 const initialState = {
@@ -27,7 +26,6 @@ const initialState = {
     [MODAL_SOUND_RECORDER]: false,
     [MODAL_CONNECTION]: false,
     [MODAL_URL_LOADER]: false,
-    [MODAL_MESH_DOMAIN]: false,
     [MODAL_KOSHIEN_TEST]: false
 };
 
@@ -91,9 +89,6 @@ const openConnectionModal = function () {
 const openUrlLoaderModal = function () {
     return openModal(MODAL_URL_LOADER);
 };
-const openMeshDomainModal = function () {
-    return openModal(MODAL_MESH_DOMAIN);
-};
 const openKoshienTestModal = function () {
     return openModal(MODAL_KOSHIEN_TEST);
 };
@@ -130,9 +125,6 @@ const closeConnectionModal = function () {
 const closeUrlLoaderModal = function () {
     return closeModal(MODAL_URL_LOADER);
 };
-const closeMeshDomainModal = function () {
-    return closeModal(MODAL_MESH_DOMAIN);
-};
 const closeKoshienTestModal = function () {
     return closeModal(MODAL_KOSHIEN_TEST);
 };
@@ -150,7 +142,6 @@ export {
     openTelemetryModal,
     openConnectionModal,
     openUrlLoaderModal,
-    openMeshDomainModal,
     openKoshienTestModal,
     closeBackdropLibrary,
     closeCostumeLibrary,
@@ -163,6 +154,5 @@ export {
     closeTelemetryModal,
     closeConnectionModal,
     closeUrlLoaderModal,
-    closeMeshDomainModal,
     closeKoshienTestModal
 };

@@ -104,9 +104,8 @@ test('Mesh V2 Blocks', t => {
         // Since it's async, we need to wait
         setImmediate(() => {
             st.equal(mockRuntime.lastEmittedEvent, 'PERIPHERAL_LIST_UPDATE');
-            st.equal(mockRuntime.lastEmittedData.length, 2); // Host option + 1 valid group
-            st.equal(mockRuntime.lastEmittedData[0].peripheralId, 'meshV2_host');
-            st.equal(mockRuntime.lastEmittedData[1].peripheralId, 'group1');
+            st.equal(mockRuntime.lastEmittedData.length, 1); // 1 valid group (Host option removed)
+            st.equal(mockRuntime.lastEmittedData[0].peripheralId, 'group1');
             st.same(blocks.discoveredGroups, mockGroups);
             st.end();
         });
@@ -499,6 +498,62 @@ test('Mesh V2 Blocks', t => {
         };
         st.equal(blocks.meshService.shouldDisconnectOnError(networkError), null);
 
+        st.end();
+    });
+
+    t.test('menuMessage returns structured object when not connected', st => {
+        const runtime = createMockRuntime();
+        const blocks = new MeshV2Blocks(runtime);
+        const message = blocks.menuMessage();
+
+        st.type(message, 'object', 'message should be an object');
+        st.ok(message.domain, 'should have domain property');
+        st.ok(message.group, 'should have group property');
+        st.notOk(message.expiresAt, 'should not have expiresAt when not connected');
+        st.ok(message.group.includes('!'), 'group should indicate not joined');
+        st.end();
+    });
+
+    t.test('menuMessage returns structured object when connected', st => {
+        const runtime = createMockRuntime();
+        const blocks = new MeshV2Blocks(runtime);
+        blocks.meshService = {
+            groupId: 'test-group-id',
+            groupName: 'abcdef',
+            expiresAt: new Date('2024-01-01T11:17:00Z').toISOString(),
+            isHost: false
+        };
+
+        const message = blocks.menuMessage();
+
+        st.type(message, 'object', 'message should be an object');
+        st.ok(message.domain, 'should have domain property');
+        st.ok(message.group, 'should have group property');
+        st.ok(message.expiresAt, 'should have expiresAt when connected');
+        st.match(message.group, /【.*】/, 'group should contain mesh ID label');
+        st.match(message.expiresAt, /⏳/, 'expiresAt should contain clock emoji');
+        st.end();
+    });
+
+    t.test('menuMessage uses domain from extension', st => {
+        const runtime = createMockRuntime();
+        const blocks = new MeshV2Blocks(runtime);
+        blocks.domain = '100-0014';
+
+        const message = blocks.menuMessage();
+
+        st.equal(message.domain, '100-0014', 'should use set domain');
+        st.end();
+    });
+
+    t.test('menuMessage shows "Not set" when domain is not set', st => {
+        const runtime = createMockRuntime();
+        const blocks = new MeshV2Blocks(runtime);
+        blocks.domain = null;
+
+        const message = blocks.menuMessage();
+
+        st.match(message.domain, /Not set|未設定/, 'should show "Not set" for domain');
         st.end();
     });
 

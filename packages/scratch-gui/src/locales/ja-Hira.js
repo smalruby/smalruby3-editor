@@ -26,6 +26,8 @@ export default {
     'gui.menuBar.koshienEntryForm': 'さんかもうしこみ',
     'gui.menuBar.aiSaving': 'ルビーをほぞんちゅう...',
     'gui.menuBar.aiSaved': 'ルビーがほぞんされました。',
+    'gui.stageHeader.stageSizeMiddle': 'ちゅうサイズのステージにきりかえる',
+
     'gui.koshienTestModal.title': 'スモウルビーこうしえんのAIをためす',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトのよみこみにしっぱいしました。',
     'gui.googleDriveLoader.authError': 'Google ドライブのにんしょうにしっぱいしました。もういちどおためしください。',
@@ -95,6 +97,10 @@ export default {
     'mesh.joinedMeshMenu': '✔【{ MESH_ID }】 ⏳️{ EXPIRES_AT }まで',
     'mesh.domain': 'ドメイン: {domain}',
     'mesh.domainNotSet': 'みせってい',
+    'mesh.domainLabel': 'ドメイン: {domain}',
+    'mesh.groupLabel': 'グループ: {group}',
+    'mesh.expiresLabel': 'せつぞくきげん: {time}',
+    'mesh.notJoined': '!さんかしていません',
     'mesh.domainModalTitle': 'meshV2 ドメインせってい',
     'mesh.domainPlaceholder': 'ドメインめいをにゅうりょく...',
     'mesh.domainSaveButton': 'ほぞん',
@@ -272,10 +278,20 @@ export default {
     'gui.connection.auto-scanning.updatePeripheralButton': 'アップデート',
     'gui.connection.error.updatePeripheralButton': 'アップデート',
     'gui.connection.unavailable.updatePeripheralButton': 'アップデート',
+    'gui.connection.scanning.backButton': 'もどる',
     'gui.connection.networkFiltered.message': 'あたらしいメッシュきのうがつかえません。{br}ネットワークかんりしゃにせいげんのかいじょをごいらいください。',
     'gui.connection.networkFiltered.copied': 'コピーしました！',
     'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
     'gui.connection.networkFiltered.tryagainbutton': 'もういちどためす',
     'gui.connection.networkFiltered.useLegacyMeshButton': 'じゅうらいのメッシュをつかう',
-    'gui.stageHeader.stageSizeMiddle': 'ちゅうサイズのステージにきりかえる'
+
+    // MeshV2 Initial Step messages
+    'gui.connection.meshV2Initial.domainPlaceholder': 'ドメインめいをにゅうりょく...',
+    'gui.connection.meshV2Initial.createGroup': 'メッシュのホストになる',
+    'gui.connection.meshV2Initial.createGroupDescription': 'グループのさくせい',
+    'gui.connection.meshV2Initial.joinGroup': 'メッシュにさんかする',
+    'gui.connection.meshV2Initial.joinGroupDescription': 'グループにさんか',
+    'gui.connection.meshV2Initial.domainHelp': 'ホストがいちらんにひょうじされないばあいはドメインをせっていしてください。{br}がっこうなどのしせつのゆうびんばんごうがさいてきです。',
+    'gui.connection.meshV2Initial.domainInvalidError': 'ドメインめいにむこうなもじがふくまれています。',
+    'gui.connection.meshV2Initial.domainTooLongError': 'ドメインめいがながすぎます（さいだい256もじ）。'
 };
