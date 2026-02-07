@@ -1,4 +1,7 @@
 export default {
+    'gui.sharedMessages.migrateMeshV1Warning': 'This project contains legacy Mesh extensions and can only be used until April 30th. Select OK to continue using the legacy Mesh extensions. Select Cancel to use the new Mesh extensions instead.',
+    'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage',
+
     'gui.smalruby3.crashMessage.description': 'We are so sorry, but it looks like Smalruby has crashed. This bug has been automatically reported to the Smalruby Team. Please refresh your page to try again.',
     'gui.smalruby3.gui.defaultProjectTitle': 'Smalruby Project',
     'gui.smalruby3.gui.rubyTab': 'Ruby',
@@ -229,10 +232,7 @@ export default {
     'gui.connection.meshV2Initial.createGroupDescription': 'Create Group',
     'gui.connection.meshV2Initial.joinGroup': 'Join Mesh',
     'gui.connection.meshV2Initial.joinGroupDescription': 'Join Group',
-    'gui.connection.meshV2Initial.domainLabel': 'Domain',
     'gui.connection.meshV2Initial.domainHelp': 'If groups are not displayed in the list, please set a domain.{br}A postal code for your school or facility is recommended.',
     'gui.connection.meshV2Initial.domainInvalidError': 'Domain name contains invalid characters.',
-    'gui.connection.meshV2Initial.domainTooLongError': 'Domain name is too long (max 256 characters).',
-    'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage',
-    'gui.sharedMessages.migrateMeshV1Warning': 'This project contains legacy Mesh extensions and can only be used until April 30th. Select OK to continue using the legacy Mesh extensions. Select Cancel to use the new Mesh extensions instead.'
+    'gui.connection.meshV2Initial.domainTooLongError': 'Domain name is too long (max 256 characters).'
 };

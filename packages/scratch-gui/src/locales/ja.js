@@ -26,6 +26,8 @@ export default {
     'gui.menuBar.koshienEntryForm': '参加申し込み',
     'gui.menuBar.aiSaving': 'ルビーを保存中...',
     'gui.menuBar.aiSaved': 'ルビーが保存されました。',
+    'gui.stageHeader.stageSizeMiddle': '中サイズのステージに切り替える',
+
     'gui.koshienTestModal.title': 'スモウルビー甲子園のAIを試す',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトの読み込みに失敗しました。',
     'gui.googleDriveLoader.authError': 'Google ドライブの認証に失敗しました。もう一度お試しください。',
@@ -288,9 +290,7 @@ export default {
     'gui.connection.meshV2Initial.createGroupDescription': 'グループの作成',
     'gui.connection.meshV2Initial.joinGroup': 'メッシュに参加する',
     'gui.connection.meshV2Initial.joinGroupDescription': 'グループに参加',
-    'gui.connection.meshV2Initial.domainLabel': 'ドメイン',
     'gui.connection.meshV2Initial.domainHelp': 'ホスト名が一覧に表示されない場合はドメインを設定してください。{br}学校などの施設の郵便番号が最適です。',
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメイン名に無効な文字が含まれています。',
-    'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。',
-    'gui.stageHeader.stageSizeMiddle': '中サイズのステージに切り替える'
+    'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。'
 };

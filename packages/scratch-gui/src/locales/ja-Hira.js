@@ -26,6 +26,8 @@ export default {
     'gui.menuBar.koshienEntryForm': 'さんかもうしこみ',
     'gui.menuBar.aiSaving': 'ルビーをほぞんちゅう...',
     'gui.menuBar.aiSaved': 'ルビーがほぞんされました。',
+    'gui.stageHeader.stageSizeMiddle': 'ちゅうサイズのステージにきりかえる',
+
     'gui.koshienTestModal.title': 'スモウルビーこうしえんのAIをためす',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトのよみこみにしっぱいしました。',
     'gui.googleDriveLoader.authError': 'Google ドライブのにんしょうにしっぱいしました。もういちどおためしください。',
@@ -288,9 +290,7 @@ export default {
     'gui.connection.meshV2Initial.createGroupDescription': 'グループのさくせい',
     'gui.connection.meshV2Initial.joinGroup': 'メッシュにさんかする',
     'gui.connection.meshV2Initial.joinGroupDescription': 'グループにさんか',
-    'gui.connection.meshV2Initial.domainLabel': 'ドメイン',
     'gui.connection.meshV2Initial.domainHelp': 'ホストがいちらんにひょうじされないばあいはドメインをせっていしてください。{br}がっこうなどのしせつのゆうびんばんごうがさいてきです。',
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメインめいにむこうなもじがふくまれています。',
-    'gui.connection.meshV2Initial.domainTooLongError': 'ドメインめいがながすぎます（さいだい256もじ）。',
-    'gui.stageHeader.stageSizeMiddle': 'ちゅうサイズのステージにきりかえる'
+    'gui.connection.meshV2Initial.domainTooLongError': 'ドメインめいがながすぎます（さいだい256もじ）。'
 };
