@@ -220,6 +220,7 @@ export default {
     'gui.modal.stop': 'Stop',
 
     // Network Filter Error messages
+    'gui.connection.scanning.backButton': 'Back',
     'gui.connection.networkFiltered.message': 'The new mesh feature is unavailable.{br}Please ask your network administrator to remove the restriction.',
     'gui.connection.networkFiltered.copied': 'Copied!',
     'gui.connection.networkFiltered.copyButton': 'Copy to clipboard',
