@@ -177,12 +177,39 @@ class RubyToBlocksConverter {
             lists: {},
             broadcastMsgs: {},
             procedures: {},
+            methodCallCounts: {},
+            methodCallIndices: {},
             isValue: false,
             inMyBlockDefinition: false
         };
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());
         }
+    }
+
+    _countMethodCalls (node) {
+        const counts = {};
+        if (!node || node === Opal.nil) return counts;
+
+        const queue = [node.$to_ast ? node.$to_ast() : node];
+        while (queue.length > 0) {
+            const ast = queue.shift();
+            if (!ast || typeof ast.type !== 'string' || !ast.children) continue;
+
+            if (ast.type === 'send') {
+                const name = ast.children[1].toString();
+                const procedure = this._lookupProcedure(name);
+                if (procedure && procedure.hasReturnValue) {
+                    counts[name] = (counts[name] || 0) + 1;
+                }
+            }
+            ast.children.forEach(child => {
+                if (child && typeof child.type === 'string' && child.children) {
+                    queue.push(child);
+                }
+            });
+        }
+        return counts;
     }
 
     targetCodeToBlocks (target, code) {
@@ -1424,6 +1451,11 @@ class RubyToBlocksConverter {
 
         const savedIsValue = this._context.isValue;
         this._context.isValue = isValue;
+
+        if (!isValue) {
+            this._context.methodCallCounts = this._countMethodCalls(node);
+            this._context.methodCallIndices = {};
+        }
 
         const handlerName = '_' + _.camelCase(`on_${node.type}`); // eslint-disable-line prefer-template
         let result;

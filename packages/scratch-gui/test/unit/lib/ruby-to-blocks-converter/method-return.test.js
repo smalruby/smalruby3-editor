@@ -514,14 +514,19 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
             const blocks = converter.blocks;
             
-            // Verify the chain: hat -> add(1, 5) -> add(?, 3) -> say(?)
+            // Verify the chain: hat -> add(1, 5) -> evacuation -> add(?, 3) -> say(?)
             const hatBlock = Object.values(blocks).find(b => b.opcode === 'event_whenflagclicked');
             const firstCallId = hatBlock.next;
             const firstCall = blocks[firstCallId];
             expect(firstCall.opcode).toBe('procedures_call');
             expect(firstCall.mutation.proccode).toBe('add %s %s');
             
-            const secondCallId = firstCall.next;
+            const evacuationId = firstCall.next;
+            const evacuation = blocks[evacuationId];
+            expect(evacuation.opcode).toBe('data_setvariableto');
+            expect(evacuation.fields.VARIABLE.value).toBe('_return_add_1');
+            
+            const secondCallId = evacuation.next;
             const secondCall = blocks[secondCallId];
             expect(secondCall.opcode).toBe('procedures_call');
             expect(secondCall.mutation.proccode).toBe('add %s %s');
@@ -532,7 +537,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
             // Check arguments
             const arg1Id = Object.values(secondCall.inputs)[0].block;
-            expect(blocks[arg1Id].fields.VARIABLE.value).toBe('_return_add');
+            expect(blocks[arg1Id].fields.VARIABLE.value).toBe('_return_add_1');
             expect(thirdCall.inputs.MESSAGE.block).toBeDefined();
             expect(blocks[thirdCall.inputs.MESSAGE.block].fields.VARIABLE.value).toBe('_return_add');
 
@@ -563,7 +568,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(generatedRuby).toMatch(/say\(add\(add\(add\(1, 2\), 3\), 4\)\)/);
         });
 
-        test('unsupported: multiple calls at same level: say(add(add(1, 5), add(2, 3)))', async () => {
+        test('multiple calls at same level: say(add(add(1, 5), add(2, 3)))', async () => {
             const code = `
                 def add(a, b)
                   a + b
@@ -581,8 +586,179 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
             const generatedRuby = RubyGenerator.targetToCode(target);
             
-            // Phase 1 limitation: results in collision
-            expect(generatedRuby).toMatch(/say\(add\(add\(2, 3\), @_return_add\)\)/);
+            expect(generatedRuby).toMatch(/say\(add\(add\(1, 5\), add\(2, 3\)\)\)/);
+        });
+
+        test('complex nested calls: say(add(add(add(1, 2), 3), add(4, 5)))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+
+                when_flag_clicked do
+                  say(add(add(add(1, 2), 3), add(4, 5)))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            
+            expect(generatedRuby).toMatch(/say\(add\(add\(add\(1, 2\), 3\), add\(4, 5\)\)\)/);
+        });
+
+        test('very complex nested calls: say(add(add(add(1, 2), add(3, 4)), add(5, 6)))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+
+                when_flag_clicked do
+                  say(add(add(add(1, 2), add(3, 4)), add(5, 6)))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            
+            expect(generatedRuby).toMatch(/say\(add\(add\(add\(1, 2\), add\(3, 4\)\), add\(5, 6\)\)\)/);
+        });
+
+        test('mixed method names: say(add(calculate(1), 2))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+                def calculate(x)
+                  x * 2
+                end
+
+                when_flag_clicked do
+                  say(add(calculate(1), 2))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            
+            expect(generatedRuby).toMatch(/say\(add\(calculate\(1\), 2\)\)/);
+        });
+
+        test('evacuation blocks for multiple calls at same level: say(add(add(2, 5), add(4, 6)))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+
+                when_flag_clicked do
+                  say(add(add(2, 5), add(4, 6)))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            const blocks = converter.blocks;
+
+            // Find blocks by comment to verify their presence and order
+            const firstCall = Object.values(blocks).find(b =>
+                b.opcode === 'procedures_call' &&
+                b.comment && converter._context.comments[b.comment].text === '@ruby:return:add:1'
+            );
+            expect(firstCall).toBeDefined();
+
+            const firstEvacuation = blocks[firstCall.next];
+            expect(firstEvacuation.opcode).toBe('data_setvariableto');
+            expect(firstEvacuation.fields.VARIABLE.value).toBe('_return_add_1');
+            expect(converter._context.comments[firstEvacuation.comment].text).toBe('@ruby:return:add:1');
+
+            const secondCall = blocks[firstEvacuation.next];
+            expect(secondCall.opcode).toBe('procedures_call');
+            expect(converter._context.comments[secondCall.comment].text).toBe('@ruby:return:add:2');
+
+            const secondEvacuation = blocks[secondCall.next];
+            expect(secondEvacuation.opcode).toBe('data_setvariableto');
+            expect(secondEvacuation.fields.VARIABLE.value).toBe('_return_add_2');
+            expect(converter._context.comments[secondEvacuation.comment].text).toBe('@ruby:return:add:2');
+
+            const topCall = blocks[secondEvacuation.next];
+            expect(topCall.opcode).toBe('procedures_call');
+            expect(converter._context.comments[topCall.comment].text).toBe('@ruby:return:add');
+
+            // Top call should NOT have an evacuation block after it
+            const sayBlock = blocks[topCall.next];
+            expect(sayBlock.opcode).toBe('looks_say');
+
+            // Verify Blocks -> Ruby suppresses evacuation blocks
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            
+            expect(generatedRuby).not.toMatch(/@_return_add_1 = @_return_add/);
+            expect(generatedRuby).not.toMatch(/@_return_add_2 = @_return_add/);
+            expect(generatedRuby).toMatch(/say\(add\(add\(2, 5\), add\(4, 6\)\)\)/);
+        });
+
+        test('evacuation blocks for 3-level nesting: say(add(add(add(1, 2), 3), 4))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+
+                when_flag_clicked do
+                  say(add(add(add(1, 2), 3), 4))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            const blocks = converter.blocks;
+
+            // add(1, 2) -> index 1
+            const firstCall = Object.values(blocks).find(b =>
+                b.opcode === 'procedures_call' &&
+                b.comment && converter._context.comments[b.comment].text === '@ruby:return:add:1'
+            );
+            expect(firstCall).toBeDefined();
+
+            const firstEvacuation = blocks[firstCall.next];
+            expect(firstEvacuation.opcode).toBe('data_setvariableto');
+            expect(firstEvacuation.fields.VARIABLE.value).toBe('_return_add_1');
+
+            // add(@_return_add_1, 3) -> index 2
+            const secondCall = blocks[firstEvacuation.next];
+            expect(secondCall.opcode).toBe('procedures_call');
+            expect(converter._context.comments[secondCall.comment].text).toBe('@ruby:return:add:2');
+
+            const secondEvacuation = blocks[secondCall.next];
+            expect(secondEvacuation.opcode).toBe('data_setvariableto');
+            expect(secondEvacuation.fields.VARIABLE.value).toBe('_return_add_2');
+
+            // add(@_return_add_2, 4) -> index 3 (last)
+            const topCall = blocks[secondEvacuation.next];
+            expect(topCall.opcode).toBe('procedures_call');
+            expect(converter._context.comments[topCall.comment].text).toBe('@ruby:return:add');
+
+            // No evacuation after top call
+            const sayBlock = blocks[topCall.next];
+            expect(sayBlock.opcode).toBe('looks_say');
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            
+            expect(generatedRuby).toMatch(/say\(add\(add\(add\(1, 2\), 3\), 4\)\)/);
         });
     });
 });
