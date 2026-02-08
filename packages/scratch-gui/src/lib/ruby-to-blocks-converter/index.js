@@ -176,7 +176,8 @@ class RubyToBlocksConverter {
             lists: {},
             broadcastMsgs: {},
             procedures: {},
-            isValue: false
+            isValue: false,
+            inMyBlockDefinition: false
         };
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());
@@ -213,15 +214,6 @@ class RubyToBlocksConverter {
             });
             Object.keys(this._context.blocks).forEach(blockId => {
                 const block = this._context.blocks[blockId];
-                if (this._isRubyBlock(block)) {
-                    throw new RubyToBlocksConverterError(
-                        block.node,
-                        this._translator(
-                            messages.wrongInstruction,
-                            {SOURCE: this._getSource(block.node)}
-                        )
-                    );
-                }
 
                 const extensionID = getExtensionIdForOpcode(block.opcode);
                 if (extensionID) {
@@ -1428,7 +1420,10 @@ class RubyToBlocksConverter {
     }
 
     _processStatement (node) {
+        const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
+        this._context.inMyBlockDefinition = true;
         let blocks = this._process(node, false);
+        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
         if (!_.isArray(blocks)) {
             blocks = [blocks];
         }
@@ -1586,6 +1581,8 @@ class RubyToBlocksConverter {
                 this._addTextInput(block, 'STATEMENT', this._getSource(node));
                 this._addTextInput(block, 'ARGS', this._getSource(rubyBlockArgsNode));
                 this._addSubstack(block, this._processStatement(rubyBlockNode));
+            } else if (this._context.isValue) {
+                block = this._createRubyExpressionBlock(this._getSource(node), node);
             } else {
                 block = this._createRubyStatementBlock(this._getSource(node), node);
             }
@@ -1925,6 +1922,8 @@ class RubyToBlocksConverter {
         this._checkNumChildren(node, 3);
 
         const saved = this._saveContext();
+        const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
+        this._context.inMyBlockDefinition = true;
 
         // Convert def to a format compatible with onDefs handler (receiver = nil)
         const defsNode = {
@@ -1934,6 +1933,7 @@ class RubyToBlocksConverter {
         };
 
         let block = this._callConvertersHandler('onDefs', defsNode, saved);
+        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
         if (!block) {
             this._restoreContext(saved);
 
@@ -1947,8 +1947,11 @@ class RubyToBlocksConverter {
         this._checkNumChildren(node, 4);
 
         const saved = this._saveContext();
+        const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
+        this._context.inMyBlockDefinition = true;
 
         let block = this._callConvertersHandler('onDefs', node, saved);
+        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
         if (!block) {
             this._restoreContext(saved);
 
