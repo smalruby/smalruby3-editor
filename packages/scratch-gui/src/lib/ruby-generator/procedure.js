@@ -16,9 +16,72 @@ export default function (Generator) {
     };
 
     Generator.procedures_definition = function (block) {
-        block.isStatement = true;
         const customBlock = Generator.getInputTargetBlock(block, 'custom_block');
-        return Generator.blockToCode(customBlock);
+
+        // Save and temporarily clear block.next to prevent scrub_ from processing it
+        const savedNext = block.next;
+        block.next = null;
+
+        // Generate method header (def self.method_name(args))
+        let code = Generator.blockToCode(customBlock);
+
+        // Generate method body from the saved next block
+        const bodyBlock = Generator.getBlock(savedNext);
+        if (bodyBlock) {
+            // Find the last block in the chain and mark it
+            let lastBlock = bodyBlock;
+            while (lastBlock.next) {
+                const nextBlock = Generator.getBlock(lastBlock.next);
+                if (!nextBlock) break;
+                lastBlock = nextBlock;
+            }
+
+            // Mark the last block so data_setvariableto knows it's the final expression
+            if (Generator.isRubyReturnAssignment(lastBlock)) {
+                lastBlock._isLastReturnInProcedure = true;
+            }
+
+            const bodyCode = Generator.blockToCode(bodyBlock);
+            code += Generator.prefixLines(bodyCode, Generator.INDENT);
+
+            // Clean up the flag
+            if (lastBlock._isLastReturnInProcedure) {
+                delete lastBlock._isLastReturnInProcedure;
+            }
+        }
+
+        code += 'end\n';
+
+        // Restore block.next to prevent permanent modification of the block object
+        // This is critical for subsequent calls to targetToCode
+        // Note: We set it to null temporarily to prevent scrub_ from processing it,
+        // but we must restore it here to avoid breaking future code generation
+        block.next = savedNext;
+
+        // Mark this block so scrub_ knows not to process block.next
+        // (we've already manually processed it above)
+        block._skipNextInScrub = true;
+
+        return code;
+    };
+
+    Generator.isRubyReturnAssignment = function (block) {
+        if (!block || block.opcode !== 'data_setvariableto') return false;
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:return:')) return true;
+
+        const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
+        if (!hasValueInput) {
+            const variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+            let varName = variable;
+            if (varName && varName[0] === '@') {
+                varName = varName.substring(1);
+            }
+            if (varName && varName.startsWith('_return_')) {
+                return true;
+            }
+        }
+        return false;
     };
 
     const blockToMethod = function (block, isCall) {
@@ -52,10 +115,43 @@ export default function (Generator) {
             }
         }
         const argsString = args.length > 0 ? `(${args.join(', ')})` : '';
-        return `${isCall ? '' : 'def self.'}${methodName}${argsString}\n`;
+        if (isCall) {
+            return `${methodName}${argsString}\n`;
+        }
+        return `def self.${methodName}${argsString}\n`;
     };
 
     Generator.procedures_call = function (block) {
+        // Check if this procedures_call has @ruby:return:methodName comment
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:return:')) {
+            const methodName = comment.replace('@ruby:return:', '');
+
+            // Store the method call in cache for data_variable to retrieve
+            if (!Generator.returnCallCache_) {
+                Generator.returnCallCache_ = {};
+            }
+            Generator.returnCallCache_[methodName] = blockToMethod(block, true).trim();
+
+            // This call will be integrated by data_variable later, suppress output
+            if (block.isExpression) {
+                delete block.isExpression;
+                return [Generator.returnCallCache_[methodName], Generator.ORDER_FUNCTION_CALL];
+            }
+
+            // Return value is used elsewhere, suppress standalone output
+            return '';
+        }
+
+        const nextBlock = Generator.getBlock(block.next);
+        if (Generator.isRubyReturnAssignment(nextBlock)) {
+            if (block.isExpression) {
+                delete block.isExpression;
+                return [blockToMethod(block, true).trim(), Generator.ORDER_FUNCTION_CALL];
+            }
+            // Statement mode, but it will be handled as an expression by the next block.
+            return '';
+        }
         return blockToMethod(block, true);
     };
 

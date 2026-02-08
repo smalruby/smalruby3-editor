@@ -79,6 +79,9 @@ docker compose run --rm app bash -c "cd packages/scratch-vm && npm test"
 
 # Run specific tap tests
 docker compose run --rm app bash -c "cd packages/scratch-vm && npm run tap:unit"
+
+# Run a specific test
+docker compose run --rm app bash -c "cd packages/scratch-vm && npx tap path/to/test"
 ```
 
 ### `scratch-gui`

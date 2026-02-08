@@ -5,12 +5,61 @@
  */
 export default function (Generator) {
     Generator.data_variable = function (block) {
-        const variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+        let variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:return:')) {
+            const methodName = comment.replace('@ruby:return:', '');
+
+            // Check if we have a cached method call for this method
+            if (Generator.returnCallCache_ && Generator.returnCallCache_[methodName]) {
+                const methodCall = Generator.returnCallCache_[methodName];
+                // Clear the cache entry after use
+                delete Generator.returnCallCache_[methodName];
+                return [methodCall, Generator.ORDER_FUNCTION_CALL];
+            }
+
+            // Fallback: if no cached call found, use the variable with @ prefix
+            if (variable[0] !== '@') {
+                variable = `@${variable}`;
+            }
+        }
         return [variable, Generator.ORDER_ATOMIC];
     };
 
     Generator.data_setvariableto = function (block) {
+        const comment = Generator.getCommentText(block);
+        const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
+
+        // Check if this is a return value assignment
+        if (comment && comment.startsWith('@ruby:return:')) {
+            if (!hasValueInput) {
+                // Marker block with no value, suppress output
+                return '';
+            }
+            // Check if this is the last block in procedure definition
+            if (block._isLastReturnInProcedure) {
+                // Output just the value (implicit return)
+                const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
+                return `${Generator.nosToCode(value)}\n`;
+            }
+            // Not the last block, output normal variable assignment
+        }
+
         const variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+
+        // Check if this is a return value marker block (return variable with no VALUE input)
+        if (!hasValueInput) {
+            // Check if variable name matches return variable pattern
+            let varName = variable;
+            if (varName && varName[0] === '@') {
+                varName = varName.substring(1);
+            }
+            if (varName && varName.startsWith('_return_')) {
+                // This is a marker block for return value, suppress output
+                return '';
+            }
+        }
+
         const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
         return `${variable} = ${Generator.nosToCode(value)}\n`;
     };

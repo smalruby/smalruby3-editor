@@ -111,6 +111,7 @@ RubyGenerator.ORDER_NONE = 99;             // (...)
 
 RubyGenerator.init = function (_options) {
     this.definitions_ = {};
+    this.returnCallCache_ = {}; // Clear return value call cache
     if (this.variableDB_) {
         this.variableDB_.reset();
     } else {
@@ -385,8 +386,16 @@ RubyGenerator.scrub_ = function (block, code) {
         }
     }
 
-    const nextBlock = this.getBlock(block.next);
-    let nextCode = this.blockToCode(nextBlock);
+    // Check if this block has explicitly marked that its next chain should not be processed
+    // (e.g., procedures_definition manually processes its body blocks)
+    let nextCode = '';
+    if (block._skipNextInScrub) {
+        // Clean up the flag
+        delete block._skipNextInScrub;
+    } else {
+        const nextBlock = this.getBlock(block.next);
+        nextCode = this.blockToCode(nextBlock);
+    }
     let endCode = '';
     if (block.isStatement) {
         if (nextCode !== '') {

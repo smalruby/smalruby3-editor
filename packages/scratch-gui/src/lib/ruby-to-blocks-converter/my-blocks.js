@@ -1,6 +1,9 @@
 import _ from 'lodash';
 import Blockly from 'scratch-blocks';
+import Primitive from './primitive';
 import {RubyToBlocksConverterError} from './errors';
+
+const Opal = global.Opal || window.Opal;
 
 /**
  * My Blocks converter
@@ -22,6 +25,11 @@ const MyBlocksConverter = {
                     warp: 'false'
                 }
             });
+
+            // Add comment if procedure has return value and used as value
+            if (procedure.hasReturnValue && converter.isValueContext()) {
+                block.comment = converter._createComment(`@ruby:return:${name}`, block.id);
+            }
 
             if (Object.prototype.hasOwnProperty.call(converter._context.procedureCallBlocks, procedure.id)) {
                 converter._context.procedureCallBlocks[procedure.id].push(block.id);
@@ -50,6 +58,26 @@ const MyBlocksConverter = {
                     `invalid type of My Block "${name}" argument #${i + 1}`
                 );
             });
+
+            // If procedure has return value and used in value context,
+            // return [procedures_call, data_variable] for the converter
+            if (procedure.hasReturnValue && converter.isValueContext()) {
+                const variable = converter._lookupOrCreateVariable(`@_return_${name}`);
+
+                const varBlock = converter._createBlock('data_variable', 'value_variable', {
+                    fields: {
+                        VARIABLE: {
+                            name: 'VARIABLE',
+                            id: variable.id,
+                            value: variable.name,
+                            variableType: variable.type
+                        }
+                    }
+                });
+                varBlock.comment = converter._createComment(`@ruby:return:${name}`, varBlock.id);
+
+                return [block, varBlock];
+            }
 
             return block;
         });
@@ -88,7 +116,7 @@ const MyBlocksConverter = {
 
         converter.registerOnDefs((node, saved) => {
             const receiver = converter._process(node.children[0]);
-            if (!converter._isSelf(receiver)) {
+            if (!converter._isSelf(receiver) && receiver !== Opal.nil) {
                 return null;
             }
 
@@ -128,9 +156,47 @@ const MyBlocksConverter = {
                 procedure.argumentBlocks.push(inputBlock);
             });
 
-            let body = converter._process(node.children[3]);
+            // Process method body - use _process instead of _processStatement
+            // because the last expression can be a value (which will be wrapped in return assignment)
+            const savedInMyBlockDefinition = converter._context.inMyBlockDefinition;
+            converter._context.inMyBlockDefinition = true;
+            let body = converter._process(node.children[3], false);
             if (!_.isArray(body)) {
                 body = [body];
+            }
+            converter._context.inMyBlockDefinition = savedInMyBlockDefinition;
+            if (body.length > 0) {
+                const lastIdx = body.length - 1;
+                const last = body[lastIdx];
+                if (converter._isValueBlock(last) &&
+                    !(last instanceof Primitive && (last.type === 'self' || last.type === 'nil'))) {
+                    const variable = converter._lookupOrCreateVariable(`@_return_${procedureName}`);
+                    const returnBlock = converter._createBlock('data_setvariableto', 'statement', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: variable.id,
+                                value: variable.name,
+                                variableType: variable.type
+                            }
+                        }
+                    });
+                    returnBlock.comment = converter._createComment(`@ruby:return:${procedureName}`, returnBlock.id);
+                    converter._addTextInput(
+                        returnBlock, 'VALUE', converter._isNumber(last) ? last.toString() : last, '0'
+                    );
+                    body[lastIdx] = returnBlock;
+
+                    // Mark procedure as having a return value
+                    procedure.hasReturnValue = true;
+
+                    // Re-link the body if it's a sequence
+                    if (lastIdx > 0) {
+                        const prev = converter._lastBlock(body[lastIdx - 1]);
+                        prev.next = returnBlock.id;
+                        returnBlock.parent = prev.id;
+                    }
+                }
             }
             if (converter._isBlock(body[0])) {
                 block.next = body[0].id;
