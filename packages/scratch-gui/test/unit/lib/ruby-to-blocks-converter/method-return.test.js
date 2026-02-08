@@ -532,7 +532,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
             // Check arguments
             const arg1Id = Object.values(secondCall.inputs)[0].block;
-            expect(blocks[arg1Id].fields.VARIABLE.value).toBe('_return_add');
+            expect(blocks[arg1Id].fields.VARIABLE.value).toBe('_return_add_1');
             expect(thirdCall.inputs.MESSAGE.block).toBeDefined();
             expect(blocks[thirdCall.inputs.MESSAGE.block].fields.VARIABLE.value).toBe('_return_add');
 
@@ -563,7 +563,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(generatedRuby).toMatch(/say\(add\(add\(add\(1, 2\), 3\), 4\)\)/);
         });
 
-        test('unsupported: multiple calls at same level: say(add(add(1, 5), add(2, 3)))', async () => {
+        test('multiple calls at same level: say(add(add(1, 5), add(2, 3)))', async () => {
             const code = `
                 def add(a, b)
                   a + b
@@ -581,8 +581,73 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
             const generatedRuby = RubyGenerator.targetToCode(target);
             
-            // Phase 1 limitation: results in collision
-            expect(generatedRuby).toMatch(/say\(add\(add\(2, 3\), @_return_add\)\)/);
+            expect(generatedRuby).toMatch(/say\(add\(add\(1, 5\), add\(2, 3\)\)\)/);
+        });
+
+        test('complex nested calls: say(add(add(add(1, 2), 3), add(4, 5)))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+
+                when_flag_clicked do
+                  say(add(add(add(1, 2), 3), add(4, 5)))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            
+            expect(generatedRuby).toMatch(/say\(add\(add\(add\(1, 2\), 3\), add\(4, 5\)\)\)/);
+        });
+
+        test('very complex nested calls: say(add(add(add(1, 2), add(3, 4)), add(5, 6)))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+
+                when_flag_clicked do
+                  say(add(add(add(1, 2), add(3, 4)), add(5, 6)))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            
+            expect(generatedRuby).toMatch(/say\(add\(add\(add\(1, 2\), add\(3, 4\)\), add\(5, 6\)\)\)/);
+        });
+
+        test('mixed method names: say(add(calculate(1), 2))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+                def calculate(x)
+                  x * 2
+                end
+
+                when_flag_clicked do
+                  say(add(calculate(1), 2))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            
+            expect(generatedRuby).toMatch(/say\(add\(calculate\(1\), 2\)\)/);
         });
     });
 });
