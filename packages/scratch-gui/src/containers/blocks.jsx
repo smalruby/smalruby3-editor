@@ -484,11 +484,9 @@ class Blocks extends React.Component {
                                 }
 
                                 const blockXY = block.getRelativeToSurfaceXY();
-                                const blockHW = block.getHeightWidth();
+                                const commentHW = comment.getHeightWidth();
                                 const rtl = this.workspace.RTL;
-                                const x = rtl ?
-                                    blockXY.x - blockHW.width - 20 - comment.getWidth() :
-                                    blockXY.x + blockHW.width + 20;
+                                const x = rtl ? 20 : -commentHW.width - 20;
                                 const y = blockXY.y;
                                 comment.moveTo(x, y);
 
