@@ -26,9 +26,16 @@ const MyBlocksConverter = {
                 }
             });
 
+            // If procedure has return value and used as value, but NOT in method definition,
+            // fall back to ruby_expression (cannot use procedures_call as value at top level)
+            if (procedure.hasReturnValue && converter.isValueContext() && !converter._context.inMyBlockDefinition) {
+                // Return null to signal fallback to ruby_expression
+                return null;
+            }
+
             // Add comment if procedure has return value and used as value
-            // Add comment inside method definitions or event handlers (anywhere except top-level)
-            if (procedure.hasReturnValue && converter.isValueContext()) {
+            // (only inside method definitions or event handlers)
+            if (procedure.hasReturnValue && converter.isValueContext() && converter._context.inMyBlockDefinition) {
                 block.comment = converter._createComment(`@ruby:return:${name}`, block.id);
             }
 

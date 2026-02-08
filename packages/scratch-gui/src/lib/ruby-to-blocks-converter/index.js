@@ -74,6 +74,7 @@ const CORE_EXTENSIONS = [
     'motion',
     'operator',
     'procedures',
+    'ruby', // Ruby blocks are built-in (defined via defineRubyBlocks), not an extension
     'sensing',
     'sound'
 ];
