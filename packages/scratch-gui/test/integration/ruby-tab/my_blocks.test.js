@@ -89,6 +89,25 @@ describe('Ruby Tab: My Blocks category blocks', () => {
         }
     });
 
+    test('Method call with return value at top-level should fall back to ruby_expression', async () => {
+        await loadUri(urlFor('/'));
+
+        const code = dedent`
+            def self.add(a, b)
+              a + b
+            end
+
+            say(add(1, 5))
+        `;
+        try {
+            await expectInterconvertBetweenCodeAndRuby(code);
+        } catch (e) {
+            const logs = await seleniumHelper.getLogs({includeAllLevels: true});
+            console.log('Browser logs (Top-level method call):', logs);
+            throw e;
+        }
+    });
+
     test('Method with explicit return variable assignment should be convertible', async () => {
         await loadUri(urlFor('/'));
 

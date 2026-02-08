@@ -27,6 +27,7 @@ const MyBlocksConverter = {
             });
 
             // Add comment if procedure has return value and used as value
+            // Add comment inside method definitions or event handlers (anywhere except top-level)
             if (procedure.hasReturnValue && converter.isValueContext()) {
                 block.comment = converter._createComment(`@ruby:return:${name}`, block.id);
             }
@@ -60,11 +61,8 @@ const MyBlocksConverter = {
             });
 
             // If procedure has return value and this is used in expression context,
-            // create marker block and return variable reference
-            if (procedure.hasReturnValue && converter.isValueContext()) {
-                if (!converter._context.inMyBlockDefinition) {
-                    return null;
-                }
+            // create marker block and return variable reference (only inside method definitions)
+            if (procedure.hasReturnValue && converter.isValueContext() && converter._context.inMyBlockDefinition) {
                 const variable = converter._lookupOrCreateVariable(`@_return_${name}`);
 
                 // Create marker block (data_setvariableto with no VALUE input)
@@ -178,10 +176,15 @@ const MyBlocksConverter = {
                 procedure.argumentBlocks.push(inputBlock);
             });
 
-            let body = converter._process(node.children[3]);
+            // Process method body - use _process instead of _processStatement
+            // because the last expression can be a value (which will be wrapped in return assignment)
+            const savedInMyBlockDefinition = converter._context.inMyBlockDefinition;
+            converter._context.inMyBlockDefinition = true;
+            let body = converter._process(node.children[3], false);
             if (!_.isArray(body)) {
                 body = [body];
             }
+            converter._context.inMyBlockDefinition = savedInMyBlockDefinition;
             if (body.length > 0) {
                 const lastIdx = body.length - 1;
                 const last = body[lastIdx];

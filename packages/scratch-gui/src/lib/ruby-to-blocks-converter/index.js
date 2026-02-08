@@ -1419,11 +1419,12 @@ class RubyToBlocksConverter {
         return result;
     }
 
-    _processStatement (node) {
+    _processStatement (node, inMyBlockDefinition = null) {
         const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
-        this._context.inMyBlockDefinition = true;
+        if (inMyBlockDefinition !== null) {
+            this._context.inMyBlockDefinition = inMyBlockDefinition;
+        }
         let blocks = this._process(node, false);
-        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
         if (!_.isArray(blocks)) {
             blocks = [blocks];
         }
@@ -1438,8 +1439,12 @@ class RubyToBlocksConverter {
         }
         const block = blocks[0];
         if (block !== Opal.nil && !this._isStatementBlock(block)) {
-            throw new RubyToBlocksConverterError(node, 'include not statement blocks');
+            if (!(this._context.inMyBlockDefinition && block.opcode === 'data_setvariableto')) {
+                this._context.inMyBlockDefinition = savedInMyBlockDefinition;
+                throw new RubyToBlocksConverterError(node, 'include not statement blocks');
+            }
         }
+        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
         return block;
     }
 
@@ -1466,6 +1471,8 @@ class RubyToBlocksConverter {
     }
 
     _onBegin (node) {
+        const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
+        this._context.inMyBlockDefinition = false;
         const blocks = [];
         node.children.forEach(childNode => {
             const block = this._process(childNode, false);
@@ -1477,6 +1484,7 @@ class RubyToBlocksConverter {
                 blocks.push(block);
             }
         });
+        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
 
         let prevBlock = null;
         const result = [];
@@ -1922,8 +1930,6 @@ class RubyToBlocksConverter {
         this._checkNumChildren(node, 3);
 
         const saved = this._saveContext();
-        const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
-        this._context.inMyBlockDefinition = true;
 
         // Convert def to a format compatible with onDefs handler (receiver = nil)
         const defsNode = {
@@ -1933,7 +1939,6 @@ class RubyToBlocksConverter {
         };
 
         let block = this._callConvertersHandler('onDefs', defsNode, saved);
-        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
         if (!block) {
             this._restoreContext(saved);
 
@@ -1947,11 +1952,8 @@ class RubyToBlocksConverter {
         this._checkNumChildren(node, 4);
 
         const saved = this._saveContext();
-        const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
-        this._context.inMyBlockDefinition = true;
 
         let block = this._callConvertersHandler('onDefs', node, saved);
-        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
         if (!block) {
             this._restoreContext(saved);
 

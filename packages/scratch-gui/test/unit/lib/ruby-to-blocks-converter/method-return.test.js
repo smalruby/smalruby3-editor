@@ -459,7 +459,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             `;
             const result = converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
-            
+
             // Should NOT have a procedures_call block for add(1, 5) because it's used as a value
             // and we're at top-level, so it falls back to ruby_expression.
             const proceduresCall = Object.values(converter.blocks).find(b => b.opcode === 'procedures_call');
