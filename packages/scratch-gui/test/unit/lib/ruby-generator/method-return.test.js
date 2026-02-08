@@ -117,7 +117,7 @@ describe('RubyGenerator/MethodReturn', () => {
             expect(code).toBe('add(1, 2)\n');
         });
 
-        test('standalone add(1, 2) with comment (should still output)', () => {
+        test('standalone add(1, 2) with comment (should suppress output)', () => {
             const blocks = {
                 b1: {
                     id: 'b1',
@@ -136,10 +136,10 @@ describe('RubyGenerator/MethodReturn', () => {
                 c1: { id: 'c1', blockId: 'b1', text: '@ruby:return:add' }
             };
             setBlocks(blocks, comments);
-            // Even with @ruby:return comment, if it's not followed by a return assignment,
-            // it should output the method call.
+            // With @ruby:return:add comment, output should be suppressed
+            // (will be output by data_variable with @ruby:return:add)
             const code = RubyGenerator.blockToCode(blocks.b1);
-            expect(code).toBe('add(1, 2)\n');
+            expect(code).toBe('');
         });
 
         test('use return value in say', () => {
@@ -159,25 +159,18 @@ describe('RubyGenerator/MethodReturn', () => {
                 b3: { id: 'b3', opcode: 'math_number', fields: { NUM: { value: '2' } }, shadow: true },
                 b4: {
                     id: 'b4',
-                    opcode: 'data_setvariableto',
-                    fields: { VARIABLE: { id: 'v1', value: '_return_add' } },
-                    inputs: {},
-                    next: 'b5'
+                    opcode: 'looks_say',
+                    inputs: { MESSAGE: { block: 'b5' } }
                 },
                 b5: {
                     id: 'b5',
-                    opcode: 'looks_say',
-                    inputs: { MESSAGE: { block: 'b6' } }
-                },
-                b6: {
-                    id: 'b6',
                     opcode: 'data_variable',
                     fields: { VARIABLE: { id: 'v1', value: '_return_add' } }
                 }
             };
             const comments = {
                 c1: { id: 'c1', blockId: 'b1', text: '@ruby:return:add' },
-                c2: { id: 'c2', blockId: 'b6', text: '@ruby:return' }
+                c2: { id: 'c2', blockId: 'b5', text: '@ruby:return:add' }
             };
             const code = generateCode(blocks, ['b1'], comments);
             expect(code).toBe('say(add(1, 2))\n');

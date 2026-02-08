@@ -89,7 +89,7 @@ describe('Ruby Tab: My Blocks category blocks', () => {
         }
     });
 
-    test('Method call with return value at top-level should fall back to ruby_expression', async () => {
+    test('Method call with return value at top-level should be convertible', async () => {
         await loadUri(urlFor('/'));
 
         const code = dedent`

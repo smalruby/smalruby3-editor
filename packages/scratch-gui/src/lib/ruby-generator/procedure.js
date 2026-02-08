@@ -141,13 +141,9 @@ export default function (Generator) {
                 return [Generator.returnCallCache_[methodName], Generator.ORDER_FUNCTION_CALL];
             }
 
-            // Check if this is followed by a return assignment
-            const nextBlock = Generator.getBlock(block.next);
-            if (Generator.isRubyReturnAssignment(nextBlock)) {
-                return '';
-            }
-            // If not followed by return assignment, output it normally even with the comment
-            return blockToMethod(block, true);
+            // If this call has @ruby:return comment, it means the return value is being used
+            // somewhere (via data_variable with @ruby:return comment), so suppress standalone output
+            return '';
         }
 
         const nextBlock = Generator.getBlock(block.next);

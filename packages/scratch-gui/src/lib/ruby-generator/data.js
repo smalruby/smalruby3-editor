@@ -7,26 +7,17 @@ export default function (Generator) {
     Generator.data_variable = function (block) {
         let variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
         const comment = Generator.getCommentText(block);
-        if (comment && comment === '@ruby:return') {
-            // This is a return value reference, try to find the corresponding method call
-            // Variable name format: @_return_methodName or _return_methodName
-            let varName = variable;
-            if (varName[0] === '@') {
-                varName = varName.substring(1);
-            }
+        if (comment && comment.startsWith('@ruby:return:')) {
+            // This is a return value reference with method name
+            // Extract method name from comment: @ruby:return:add -> add
+            const methodName = comment.replace('@ruby:return:', '');
 
-            // Extract method name from variable name
-            const match = varName.match(/^_return_(.+)$/);
-            if (match) {
-                const methodName = match[1];
-
-                // Check if we have a cached method call for this method
-                if (Generator.returnCallCache_ && Generator.returnCallCache_[methodName]) {
-                    const methodCall = Generator.returnCallCache_[methodName];
-                    // Clear the cache entry after use
-                    delete Generator.returnCallCache_[methodName];
-                    return [methodCall, Generator.ORDER_FUNCTION_CALL];
-                }
+            // Check if we have a cached method call for this method
+            if (Generator.returnCallCache_ && Generator.returnCallCache_[methodName]) {
+                const methodCall = Generator.returnCallCache_[methodName];
+                // Clear the cache entry after use
+                delete Generator.returnCallCache_[methodName];
+                return [methodCall, Generator.ORDER_FUNCTION_CALL];
             }
 
             // Fallback: if no cached call found, use the variable with @ prefix

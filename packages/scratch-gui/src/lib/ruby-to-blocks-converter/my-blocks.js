@@ -16,24 +16,6 @@ const MyBlocksConverter = {
 
             if (procedure.argumentIds.length !== args.length) return null;
 
-            // If procedure has return value and used as value, but NOT in method definition,
-            // fall back to ruby_expression (cannot use procedures_call as value at top level)
-            if (procedure.hasReturnValue && converter.isValueContext() && !converter._context.inMyBlockDefinition) {
-                // Create ruby_expression block with @ruby:return comment
-                const callExpression = `${name}(${args.map((arg, i) => {
-                    if (converter._isNumber(arg)) return arg.toString();
-                    if (converter._isString(arg)) return `"${arg}"`;
-                    if (converter._isBlock(arg)) {
-                        const argNode = converter._context.currentNode.children[2].children[i];
-                        return converter._getSource(argNode);
-                    }
-                    return arg.toString();
-                }).join(', ')})`;
-                const block = converter.createRubyExpressionBlock(callExpression, converter._context.currentNode);
-                block.comment = converter._createComment(`@ruby:return:${name}`, block.id);
-                return block;
-            }
-
             const block = converter._createBlock('procedures_call', 'statement', {
                 mutation: {
                     argumentids: JSON.stringify(procedure.argumentIds),
@@ -45,8 +27,7 @@ const MyBlocksConverter = {
             });
 
             // Add comment if procedure has return value and used as value
-            // (only inside method definitions or event handlers)
-            if (procedure.hasReturnValue && converter.isValueContext() && converter._context.inMyBlockDefinition) {
+            if (procedure.hasReturnValue && converter.isValueContext()) {
                 block.comment = converter._createComment(`@ruby:return:${name}`, block.id);
             }
 
@@ -78,29 +59,12 @@ const MyBlocksConverter = {
                 );
             });
 
-            // If procedure has return value and this is used in expression context,
-            // create marker block and return variable reference (only inside method definitions)
-            if (procedure.hasReturnValue && converter.isValueContext() && converter._context.inMyBlockDefinition) {
+            // If procedure has return value and used in value context,
+            // return [procedures_call, data_variable] so converter can use the return value
+            if (procedure.hasReturnValue && converter.isValueContext()) {
                 const variable = converter._lookupOrCreateVariable(`@_return_${name}`);
 
-                // Create marker block (data_setvariableto with no VALUE input)
-                const markerBlock = converter._createBlock('data_setvariableto', 'statement', {
-                    fields: {
-                        VARIABLE: {
-                            name: 'VARIABLE',
-                            id: variable.id,
-                            value: variable.name,
-                            variableType: variable.type
-                        }
-                    }
-                });
-                markerBlock.comment = converter._createComment(`@ruby:return:${name}`, markerBlock.id);
-
-                // Link blocks: procedures_call -> marker_block
-                block.next = markerBlock.id;
-                markerBlock.parent = block.id;
-
-                // Create variable reference block
+                // Create variable reference block with @ruby:return:methodName comment
                 const varBlock = converter._createBlock('data_variable', 'value_variable', {
                     fields: {
                         VARIABLE: {
@@ -111,9 +75,10 @@ const MyBlocksConverter = {
                         }
                     }
                 });
-                varBlock.comment = converter._createComment('@ruby:return', varBlock.id);
+                // Add method name to the comment so RubyGenerator can replace it with method call
+                varBlock.comment = converter._createComment(`@ruby:return:${name}`, varBlock.id);
 
-                // Return array: [statement_chain_start, value_block]
+                // Return array: [statement_block, value_block]
                 return [block, varBlock];
             }
 

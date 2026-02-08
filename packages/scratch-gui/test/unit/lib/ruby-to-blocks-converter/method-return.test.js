@@ -449,32 +449,37 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(comment.text).toBe('@ruby:return:add');
         });
 
-        test('should NOT create return marker block for top-level method calls used as value', () => {
+        test('top-level method call with return value should create procedures_call + data_variable', () => {
             const code = `
                 def add(a, b)
                   a + b
                 end
-                
+
                 say(add(1, 5))
             `;
             const result = converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
-            // Should NOT have a procedures_call block for add(1, 5) because it's used as a value
-            // and we're at top-level, so it falls back to ruby_expression.
+            // Should have a procedures_call block with @ruby:return comment
             const proceduresCall = Object.values(converter.blocks).find(b => b.opcode === 'procedures_call');
-            expect(proceduresCall).toBeUndefined();
+            expect(proceduresCall).toBeDefined();
+            expect(proceduresCall.comment).toBeDefined();
+            const callComment = converter._context.comments[proceduresCall.comment];
+            expect(callComment.text).toBe('@ruby:return:add');
 
-            // The value input of say should be a ruby_expression block containing "add(1, 5)"
+            // The value input of say should be a data_variable block with @ruby:return:add comment
             const sayBlock = Object.values(converter.blocks).find(b => b.opcode === 'looks_say');
             expect(sayBlock).toBeDefined();
             const valueBlockId = sayBlock.inputs.MESSAGE.block;
             const valueBlock = converter.blocks[valueBlockId];
-            expect(valueBlock.opcode).toBe('ruby_expression');
-            
-            const expressionBlockId = valueBlock.inputs.EXPRESSION.block;
-            const expressionBlock = converter.blocks[expressionBlockId];
-            expect(expressionBlock.fields.TEXT.value).toBe('add(1, 5)');
+            expect(valueBlock.opcode).toBe('data_variable');
+            expect(valueBlock.comment).toBeDefined();
+            const varComment = converter._context.comments[valueBlock.comment];
+            expect(varComment.text).toBe('@ruby:return:add');
+
+            // procedures_call should come before say in the block chain
+            expect(proceduresCall.next).toBe(sayBlock.id);
+            expect(sayBlock.parent).toBe(proceduresCall.id);
         });
 
     });
