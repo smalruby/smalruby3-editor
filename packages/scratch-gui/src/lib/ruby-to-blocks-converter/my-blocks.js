@@ -16,6 +16,24 @@ const MyBlocksConverter = {
 
             if (procedure.argumentIds.length !== args.length) return null;
 
+            // If procedure has return value and used as value, but NOT in method definition,
+            // fall back to ruby_expression (cannot use procedures_call as value at top level)
+            if (procedure.hasReturnValue && converter.isValueContext() && !converter._context.inMyBlockDefinition) {
+                // Create ruby_expression block with @ruby:return comment
+                const callExpression = `${name}(${args.map((arg, i) => {
+                    if (converter._isNumber(arg)) return arg.toString();
+                    if (converter._isString(arg)) return `"${arg}"`;
+                    if (converter._isBlock(arg)) {
+                        const argNode = converter._context.currentNode.children[2].children[i];
+                        return converter._getSource(argNode);
+                    }
+                    return arg.toString();
+                }).join(', ')})`;
+                const block = converter.createRubyExpressionBlock(callExpression, converter._context.currentNode);
+                block.comment = converter._createComment(`@ruby:return:${name}`, block.id);
+                return block;
+            }
+
             const block = converter._createBlock('procedures_call', 'statement', {
                 mutation: {
                     argumentids: JSON.stringify(procedure.argumentIds),
@@ -25,13 +43,6 @@ const MyBlocksConverter = {
                     warp: 'false'
                 }
             });
-
-            // If procedure has return value and used as value, but NOT in method definition,
-            // fall back to ruby_expression (cannot use procedures_call as value at top level)
-            if (procedure.hasReturnValue && converter.isValueContext() && !converter._context.inMyBlockDefinition) {
-                // Return null to signal fallback to ruby_expression
-                return null;
-            }
 
             // Add comment if procedure has return value and used as value
             // (only inside method definitions or event handlers)

@@ -216,6 +216,23 @@ class RubyToBlocksConverter {
             Object.keys(this._context.blocks).forEach(blockId => {
                 const block = this._context.blocks[blockId];
 
+                // Reject ruby blocks (ruby_statement, ruby_expression, ruby_range, etc.)
+                // UNLESS they have @ruby:return comment (legitimate fallback for procedures)
+                if (this._isRubyBlock(block)) {
+                    const hasReturnComment = block.comment &&
+                        this._context.comments[block.comment] &&
+                        this._context.comments[block.comment].text.startsWith('@ruby:return');
+                    if (!hasReturnComment) {
+                        throw new RubyToBlocksConverterError(
+                            block.node,
+                            this._translator(
+                                messages.wrongInstruction,
+                                {SOURCE: this._getSource(block.node)}
+                            )
+                        );
+                    }
+                }
+
                 const extensionID = getExtensionIdForOpcode(block.opcode);
                 if (extensionID) {
                     this._context.extensionIDs.add(extensionID);
@@ -1590,8 +1607,6 @@ class RubyToBlocksConverter {
                 this._addTextInput(block, 'STATEMENT', this._getSource(node));
                 this._addTextInput(block, 'ARGS', this._getSource(rubyBlockArgsNode));
                 this._addSubstack(block, this._processStatement(rubyBlockNode));
-            } else if (this._context.isValue) {
-                block = this._createRubyExpressionBlock(this._getSource(node), node);
             } else {
                 block = this._createRubyStatementBlock(this._getSource(node), node);
             }
