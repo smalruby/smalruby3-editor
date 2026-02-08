@@ -70,14 +70,51 @@ const MyBlocksConverter = {
             });
 
             // If procedure has return value and used in value context,
-            // return [procedures_call, data_variable] for the converter
+            // return [procedures_call, evacuation_block, data_variable] for the converter
             if (procedure.hasReturnValue && converter.isValueContext()) {
+                const commentText = converter._context.comments[block.comment].text;
+                const resultBlocks = [block];
+
                 let varSuffix = '';
                 if (callIndex < callCount) {
                     varSuffix = `_${callIndex}`;
-                }
-                const variable = converter._lookupOrCreateVariable(`@_return_${name}${varSuffix}`);
 
+                    // Create evacuation block: @_return_name_N = @_return_name
+                    const targetVariable = converter._lookupOrCreateVariable(`@_return_${name}${varSuffix}`);
+                    const sourceVariable = converter._lookupOrCreateVariable(`@_return_${name}`);
+
+                    const sourceBlock = converter._createBlock('data_variable', 'value_variable', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: sourceVariable.id,
+                                value: sourceVariable.name,
+                                variableType: sourceVariable.type
+                            }
+                        }
+                    });
+
+                    const evacuationBlock = converter._createBlock('data_setvariableto', 'statement', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: targetVariable.id,
+                                value: targetVariable.name,
+                                variableType: targetVariable.type
+                            }
+                        },
+                        inputs: {
+                            VALUE: {
+                                name: 'VALUE',
+                                block: sourceBlock.id
+                            }
+                        }
+                    });
+                    evacuationBlock.comment = converter._createComment(commentText, evacuationBlock.id);
+                    resultBlocks.push(evacuationBlock);
+                }
+
+                const variable = converter._lookupOrCreateVariable(`@_return_${name}${varSuffix}`);
                 const varBlock = converter._createBlock('data_variable', 'value_variable', {
                     fields: {
                         VARIABLE: {
@@ -88,10 +125,10 @@ const MyBlocksConverter = {
                         }
                     }
                 });
-                const commentText = converter._context.comments[block.comment].text;
                 varBlock.comment = converter._createComment(commentText, varBlock.id);
+                resultBlocks.push(varBlock);
 
-                return [block, varBlock];
+                return resultBlocks;
             }
 
             return block;

@@ -32,6 +32,11 @@ export default function (Generator) {
 
         // Check if this is a return value assignment
         if (comment && comment.startsWith('@ruby:return:')) {
+            // Check if it is an evacuation block (has a number at the end)
+            if (/^@ruby:return:\w+:\d+$/.test(comment)) {
+                return '';
+            }
+
             if (!hasValueInput) {
                 // Marker block with no value, suppress output
                 return '';
