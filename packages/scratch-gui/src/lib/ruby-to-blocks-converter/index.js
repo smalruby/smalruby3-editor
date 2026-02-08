@@ -1613,6 +1613,9 @@ class RubyToBlocksConverter {
         }
 
         if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
             return [...preBlocks, block];
         }
         return block;
@@ -1760,6 +1763,9 @@ class RubyToBlocksConverter {
         }
 
         if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
             return [...preBlocks, block];
         }
         return block;
@@ -1786,6 +1792,9 @@ class RubyToBlocksConverter {
         }
 
         if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
             return [...preBlocks, block];
         }
         return block;
@@ -1817,6 +1826,9 @@ class RubyToBlocksConverter {
         }
 
         if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
             return [...preBlocks, block];
         }
         return block;
@@ -1835,6 +1847,9 @@ class RubyToBlocksConverter {
 
         const block = this._callConvertersHandler('onAnd', operands);
         if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
             return [...preBlocks, block];
         }
         return block;
@@ -1853,6 +1868,9 @@ class RubyToBlocksConverter {
 
         const block = this._callConvertersHandler('onOr', operands);
         if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
             return [...preBlocks, block];
         }
         return block;
@@ -1925,6 +1943,9 @@ class RubyToBlocksConverter {
         }
 
         if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
             return [...preBlocks, block];
         }
         return block;

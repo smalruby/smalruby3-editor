@@ -21,14 +21,31 @@ describe('RubyToBlocksConverter/Method Return', () => {
             variables: {},
             lists: {},
             broadcastMsgs: {},
+            comments: {},
             isStage: false,
             createVariable: function (id, name, type) {
                 this.variables[id] = new Variable(id, name, type);
+            },
+            createComment: function (id, blockId, text, x, y, width, height, minimized) {
+                this.comments[id] = {
+                    id: id,
+                    blockId: blockId,
+                    text: text,
+                    x: x,
+                    y: y,
+                    width: width,
+                    height: height,
+                    minimized: minimized
+                };
             }
         };
         const vm = {
             runtime: runtime,
-            emitWorkspaceUpdate: () => {}
+            emitWorkspaceUpdate: () => {},
+            extensionManager: {
+                isExtensionLoaded: () => true,
+                loadExtensionURL: () => Promise.resolve()
+            }
         };
         converter = new RubyToBlocksConverter(vm);
         converter._context.target = target;
@@ -482,5 +499,90 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(sayBlock.parent).toBe(proceduresCall.id);
         });
 
+        test('nested method call with return value: say(add(add(1, 5), 3))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+
+                when_flag_clicked do
+                  say(add(add(1, 5), 3))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            const blocks = converter.blocks;
+            
+            // Verify the chain: hat -> add(1, 5) -> add(?, 3) -> say(?)
+            const hatBlock = Object.values(blocks).find(b => b.opcode === 'event_whenflagclicked');
+            const firstCallId = hatBlock.next;
+            const firstCall = blocks[firstCallId];
+            expect(firstCall.opcode).toBe('procedures_call');
+            expect(firstCall.mutation.proccode).toBe('add %s %s');
+            
+            const secondCallId = firstCall.next;
+            const secondCall = blocks[secondCallId];
+            expect(secondCall.opcode).toBe('procedures_call');
+            expect(secondCall.mutation.proccode).toBe('add %s %s');
+            
+            const thirdCallId = secondCall.next;
+            const thirdCall = blocks[thirdCallId];
+            expect(thirdCall.opcode).toBe('looks_say');
+
+            // Check arguments
+            const arg1Id = Object.values(secondCall.inputs)[0].block;
+            expect(blocks[arg1Id].fields.VARIABLE.value).toBe('_return_add');
+            expect(thirdCall.inputs.MESSAGE.block).toBeDefined();
+            expect(blocks[thirdCall.inputs.MESSAGE.block].fields.VARIABLE.value).toBe('_return_add');
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            expect(generatedRuby).toMatch(/say\(add\(add\(1, 5\), 3\)\)/);
+        });
+
+        test('3-level nested method call with return value: say(add(add(add(1, 2), 3), 4))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+
+                when_flag_clicked do
+                  say(add(add(add(1, 2), 3), 4))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            expect(generatedRuby).toMatch(/say\(add\(add\(add\(1, 2\), 3\), 4\)\)/);
+        });
+
+        test('unsupported: multiple calls at same level: say(add(add(1, 5), add(2, 3)))', async () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+
+                when_flag_clicked do
+                  say(add(add(1, 5), add(2, 3)))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            // Verify Blocks -> Ruby
+            await converter.applyTargetBlocks(target);
+            const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
+            const generatedRuby = RubyGenerator.targetToCode(target);
+            
+            // Phase 1 limitation: results in collision
+            expect(generatedRuby).toMatch(/say\(add\(add\(2, 3\), @_return_add\)\)/);
+        });
     });
 });
