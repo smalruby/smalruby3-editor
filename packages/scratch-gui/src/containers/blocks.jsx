@@ -454,6 +454,7 @@ class Blocks extends React.Component {
         // Remove and reattach the workspace listener (but allow flyout events)
         this.workspace.removeChangeListener(this.props.vm.blockListener);
         const dom = this.ScratchBlocks.Xml.textToDom(data.xml);
+        let fromRuby = false;
         try {
             this.ScratchBlocks.Xml.clearWorkspaceAndLoadFromXml(dom, this.workspace);
 
@@ -461,7 +462,6 @@ class Blocks extends React.Component {
             if (this.props.vm.editingTarget) {
                 const blocks = this.props.vm.editingTarget.blocks;
                 const scripts = blocks.getScripts();
-                let fromRuby = false;
                 for (let i = 0; i < scripts.length; i++) {
                     const topBlockId = scripts[i];
                     const topBlock = blocks.getBlock(topBlockId);
@@ -508,6 +508,12 @@ class Blocks extends React.Component {
                         }
                     });
 
+                    if (this.workspace.options && this.workspace.options.zoomOptions) {
+                        this.workspace.markFocused();
+                        this.workspace.setScale(this.workspace.options.zoomOptions.startScale);
+                        this.workspace.scrollCenter();
+                    }
+
                     this.updateToolbox();
                 }
             }
@@ -528,7 +534,10 @@ class Blocks extends React.Component {
         }
         this.workspace.addChangeListener(this.props.vm.blockListener);
 
-        if (this.props.vm.editingTarget && this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id]) {
+        if (!fromRuby &&
+            this.props.vm.editingTarget &&
+            this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id]
+        ) {
             const {scrollX, scrollY, scale} = this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id];
             this.workspace.scrollX = scrollX;
             this.workspace.scrollY = scrollY;
