@@ -68,7 +68,20 @@ export default function (Generator) {
     Generator.isRubyReturnAssignment = function (block) {
         if (!block || block.opcode !== 'data_setvariableto') return false;
         const comment = Generator.getCommentText(block);
-        return comment && comment.startsWith('@ruby:return:');
+        if (comment && comment.startsWith('@ruby:return:')) return true;
+
+        const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
+        if (!hasValueInput) {
+            const variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+            let varName = variable;
+            if (varName && varName[0] === '@') {
+                varName = varName.substring(1);
+            }
+            if (varName && varName.startsWith('_return_')) {
+                return true;
+            }
+        }
+        return false;
     };
 
     const blockToMethod = function (block, isCall) {
@@ -103,11 +116,6 @@ export default function (Generator) {
         }
         const argsString = args.length > 0 ? `(${args.join(', ')})` : '';
         if (isCall) {
-            const nextBlock = Generator.getBlock(block.next);
-            if (Generator.isRubyReturnAssignment(nextBlock)) {
-                // Return null because this block is handled as an expression by the next block
-                return null;
-            }
             return `${methodName}${argsString}\n`;
         }
         return `def self.${methodName}${argsString}\n`;
@@ -132,7 +140,14 @@ export default function (Generator) {
                 delete block.isExpression;
                 return [Generator.returnCallCache_[methodName], Generator.ORDER_FUNCTION_CALL];
             }
-            return '';
+
+            // Check if this is followed by a return assignment
+            const nextBlock = Generator.getBlock(block.next);
+            if (Generator.isRubyReturnAssignment(nextBlock)) {
+                return '';
+            }
+            // If not followed by return assignment, output it normally even with the comment
+            return blockToMethod(block, true);
         }
 
         const nextBlock = Generator.getBlock(block.next);

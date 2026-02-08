@@ -117,6 +117,31 @@ describe('RubyGenerator/MethodReturn', () => {
             expect(code).toBe('add(1, 2)\n');
         });
 
+        test('standalone add(1, 2) with comment (should still output)', () => {
+            const blocks = {
+                b1: {
+                    id: 'b1',
+                    opcode: 'procedures_call',
+                    mutation: { proccode: 'add %s %s' },
+                    inputs: {
+                        i1: { block: 'b2' },
+                        i2: { block: 'b3' }
+                    },
+                    topLevel: true
+                },
+                b2: { id: 'b2', opcode: 'math_number', fields: { NUM: { value: '1' } }, shadow: true },
+                b3: { id: 'b3', opcode: 'math_number', fields: { NUM: { value: '2' } }, shadow: true }
+            };
+            const comments = {
+                c1: { id: 'c1', blockId: 'b1', text: '@ruby:return:add' }
+            };
+            setBlocks(blocks, comments);
+            // Even with @ruby:return comment, if it's not followed by a return assignment,
+            // it should output the method call.
+            const code = RubyGenerator.blockToCode(blocks.b1);
+            expect(code).toBe('add(1, 2)\n');
+        });
+
         test('use return value in say', () => {
             const blocks = {
                 b1: {

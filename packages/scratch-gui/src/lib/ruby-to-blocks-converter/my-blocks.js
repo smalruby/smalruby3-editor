@@ -26,8 +26,8 @@ const MyBlocksConverter = {
                 }
             });
 
-            // Add comment if procedure has return value
-            if (procedure.hasReturnValue) {
+            // Add comment if procedure has return value and used as value
+            if (procedure.hasReturnValue && converter.isValueContext()) {
                 block.comment = converter._createComment(`@ruby:return:${name}`, block.id);
             }
 

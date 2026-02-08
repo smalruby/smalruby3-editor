@@ -409,5 +409,45 @@ describe('RubyToBlocksConverter/Method Return', () => {
             convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
+        test('should NOT add @ruby:return comment to procedures_call when NOT used as a value', () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+                
+                when_flag_clicked do
+                  add(1, 5)
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            
+            // Find the procedures_call block
+            const proceduresCall = Object.values(converter.blocks).find(b => b.opcode === 'procedures_call');
+            expect(proceduresCall).toBeDefined();
+            expect(proceduresCall.comment).toBeUndefined();
+        });
+
+        test('should add @ruby:return comment to procedures_call when used as a value', () => {
+            const code = `
+                def add(a, b)
+                  a + b
+                end
+                
+                when_flag_clicked do
+                  say(add(1, 5))
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            
+            // Find the procedures_call block
+            const proceduresCall = Object.values(converter.blocks).find(b => b.opcode === 'procedures_call');
+            expect(proceduresCall).toBeDefined();
+            expect(proceduresCall.comment).toBeDefined();
+            const comment = converter._context.comments[proceduresCall.comment];
+            expect(comment.text).toBe('@ruby:return:add');
+        });
+
     });
 });
