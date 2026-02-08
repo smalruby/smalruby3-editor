@@ -19,11 +19,7 @@ export default function (Generator) {
         const customBlock = Generator.getInputTargetBlock(block, 'custom_block');
 
         // Save and temporarily clear block.next to prevent scrub_ from processing it
-        // Use cached value if this is a second call for the same block
-        const savedNext = '_savedBodyNext' in block ? block._savedBodyNext : block.next;
-        if (!('_savedBodyNext' in block)) {
-            block._savedBodyNext = block.next;
-        }
+        const savedNext = block.next;
         block.next = null;
 
         // Generate method header (def self.method_name(args))
@@ -56,8 +52,15 @@ export default function (Generator) {
 
         code += 'end\n';
 
-        // Don't restore block.next because we've already processed it as the method body
-        // Restoring it would cause targetToCode to process it again as a next block
+        // Restore block.next to prevent permanent modification of the block object
+        // This is critical for subsequent calls to targetToCode
+        // Note: We set it to null temporarily to prevent scrub_ from processing it,
+        // but we must restore it here to avoid breaking future code generation
+        block.next = savedNext;
+
+        // Mark this block so scrub_ knows not to process block.next
+        // (we've already manually processed it above)
+        block._skipNextInScrub = true;
 
         return code;
     };

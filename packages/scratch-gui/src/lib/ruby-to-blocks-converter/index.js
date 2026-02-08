@@ -9,7 +9,7 @@ if (!Opal) {
     throw new Error('Opal is not defined. Make sure ruby-parser is imported first.');
 }
 
- 
+
 import {Variable} from './constants';
 
 import Primitive from './primitive';
@@ -59,7 +59,7 @@ const messages = defineMessages({
     }
 });
 
- 
+
 const ColorRegexp = /^#[0-9a-fA-F]{6}$/;
 
 // from scratch-vm/src/serialization/sb3.js
@@ -798,11 +798,8 @@ class RubyToBlocksConverter {
         return /^value/.test(this._getBlockType(block));
     }
 
-    _isValueContext () {
-        // TODO: Implement proper context tracking
-        // For now, always return true when a method call might be used as a value
-        // This handles cases like: say(add(1, 5))
-        return true;
+    isValueContext () {
+        return this._context.isValue;
     }
 
     isNumberOrBlock (numberOrBlock) {

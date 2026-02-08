@@ -61,7 +61,7 @@ const MyBlocksConverter = {
 
             // If procedure has return value and this is used in expression context,
             // create marker block and return variable reference
-            if (procedure.hasReturnValue && converter._context.isValue) {
+            if (procedure.hasReturnValue && converter.isValueContext()) {
                 const variable = converter._lookupOrCreateVariable(`@_return_${name}`);
 
                 // Create marker block (data_setvariableto with no VALUE input)

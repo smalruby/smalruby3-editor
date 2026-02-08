@@ -1,6 +1,7 @@
 import dedent from 'dedent';
 import SeleniumHelper from '../../helpers/selenium-helper';
 import RubyHelper from '../../helpers/ruby-helper';
+import {EDIT_MENU_XPATH} from '../../helpers/menu-xpaths';
 
 const seleniumHelper = new SeleniumHelper();
 const {
@@ -106,6 +107,111 @@ describe('Ruby Tab: My Blocks category blocks', () => {
         } catch (e) {
             const logs = await seleniumHelper.getLogs({includeAllLevels: true});
             console.log('Browser logs (Explicit return variable):', logs);
+            throw e;
+        }
+    });
+
+    test('Double conversion should not lose method body: minimal', async () => {
+        await loadUri(urlFor('/'));
+
+        const code = dedent`
+            def self.add
+              move(10)
+            end
+        `;
+
+        try {
+            // First conversion: Ruby -> Code -> Ruby
+            await rubyHelper.clickText('Ruby', '*[@role="tab"]');
+            await rubyHelper.fillInRubyProgram(code);
+            await rubyHelper.clickText('Code', '*[@role="tab"]');
+
+            // Dismiss any alerts
+            await rubyHelper.dismissAlertsIfPresent();
+
+            await rubyHelper.clickXpath(EDIT_MENU_XPATH);
+            await rubyHelper.clickText('Generate Ruby from Code');
+            await rubyHelper.clickText('Ruby', '*[@role="tab"]');
+
+            // Check first conversion result
+            const firstResult = await rubyHelper.currentRubyProgram();
+            expect(firstResult).toContain('def self.add');
+            expect(firstResult).toContain('move(10)');
+            expect(firstResult).not.toMatch(/def self\.add\s*end/);
+
+            // Second conversion: Ruby -> Code -> Ruby (THIS IS WHERE THE BUG OCCURS)
+            // Without changing the Ruby code, go to Code tab again
+            await rubyHelper.clickText('Code', '*[@role="tab"]');
+
+            // Dismiss any alerts
+            await rubyHelper.dismissAlertsIfPresent();
+
+            // Convert back to Ruby
+            await rubyHelper.clickXpath(EDIT_MENU_XPATH);
+            await rubyHelper.clickText('Generate Ruby from Code');
+            await rubyHelper.clickText('Ruby', '*[@role="tab"]');
+
+            // Check second conversion result - method body should still be present
+            const secondResult = await rubyHelper.currentRubyProgram();
+            expect(secondResult).toContain('def self.add');
+            expect(secondResult).toContain('move(10)');
+            expect(secondResult).not.toMatch(/def self\.add\s*end/);
+        } catch (e) {
+            const logs = await seleniumHelper.getLogs({includeAllLevels: true});
+            console.log('Browser logs (Double conversion):', logs);
+            throw e;
+        }
+    });
+
+    test('Double conversion should not lose method body: return value', async () => {
+        await loadUri(urlFor('/'));
+
+        // Use the minimal reproduction case from memo.md
+        const code = dedent`
+            def self.add(a, b)
+              a + b
+            end
+        `;
+
+        try {
+            // First conversion: Ruby -> Code -> Ruby
+            await rubyHelper.clickText('Ruby', '*[@role="tab"]');
+            await rubyHelper.fillInRubyProgram(code);
+            await rubyHelper.clickText('Code', '*[@role="tab"]');
+
+            // Dismiss any alerts
+            await rubyHelper.dismissAlertsIfPresent();
+
+            await rubyHelper.clickXpath(EDIT_MENU_XPATH);
+            await rubyHelper.clickText('Generate Ruby from Code');
+            await rubyHelper.clickText('Ruby', '*[@role="tab"]');
+
+            // Check first conversion result
+            const firstResult = await rubyHelper.currentRubyProgram();
+            expect(firstResult).toContain('def self.add');
+            expect(firstResult).toContain('a + b');
+            expect(firstResult).not.toMatch(/def self\.add\([^)]*\)\s*end/);
+
+            // Second conversion: Ruby -> Code -> Ruby (THIS IS WHERE THE BUG OCCURS)
+            // Without changing the Ruby code, go to Code tab again
+            await rubyHelper.clickText('Code', '*[@role="tab"]');
+
+            // Dismiss any alerts
+            await rubyHelper.dismissAlertsIfPresent();
+
+            // Convert back to Ruby
+            await rubyHelper.clickXpath(EDIT_MENU_XPATH);
+            await rubyHelper.clickText('Generate Ruby from Code');
+            await rubyHelper.clickText('Ruby', '*[@role="tab"]');
+
+            // Check second conversion result - method body should still be present
+            const secondResult = await rubyHelper.currentRubyProgram();
+            expect(secondResult).toContain('def self.add');
+            expect(secondResult).toContain('a + b');
+            expect(secondResult).not.toMatch(/def self\.add\([^)]*\)\s*end/);
+        } catch (e) {
+            const logs = await seleniumHelper.getLogs({includeAllLevels: true});
+            console.log('Browser logs (Double conversion):', logs);
             throw e;
         }
     });
