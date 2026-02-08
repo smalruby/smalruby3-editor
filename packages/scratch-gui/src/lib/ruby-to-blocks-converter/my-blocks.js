@@ -60,11 +60,10 @@ const MyBlocksConverter = {
             });
 
             // If procedure has return value and used in value context,
-            // return [procedures_call, data_variable] so converter can use the return value
+            // return [procedures_call, data_variable] for the converter
             if (procedure.hasReturnValue && converter.isValueContext()) {
                 const variable = converter._lookupOrCreateVariable(`@_return_${name}`);
 
-                // Create variable reference block with @ruby:return:methodName comment
                 const varBlock = converter._createBlock('data_variable', 'value_variable', {
                     fields: {
                         VARIABLE: {
@@ -75,10 +74,8 @@ const MyBlocksConverter = {
                         }
                     }
                 });
-                // Add method name to the comment so RubyGenerator can replace it with method call
                 varBlock.comment = converter._createComment(`@ruby:return:${name}`, varBlock.id);
 
-                // Return array: [statement_block, value_block]
                 return [block, varBlock];
             }
 

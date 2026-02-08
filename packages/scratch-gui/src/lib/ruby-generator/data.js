@@ -8,8 +8,6 @@ export default function (Generator) {
         let variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
         const comment = Generator.getCommentText(block);
         if (comment && comment.startsWith('@ruby:return:')) {
-            // This is a return value reference with method name
-            // Extract method name from comment: @ruby:return:add -> add
             const methodName = comment.replace('@ruby:return:', '');
 
             // Check if we have a cached method call for this method
@@ -35,10 +33,9 @@ export default function (Generator) {
         // Check if this is a return value assignment
         if (comment && comment.startsWith('@ruby:return:')) {
             if (!hasValueInput) {
-                // This is a marker block for Rule 2 (Method call in expression), suppress output.
+                // Marker block with no value, suppress output
                 return '';
             }
-            // This is Rule 1 (Method definition).
             // Check if this is the last block in procedure definition
             if (block._isLastReturnInProcedure) {
                 // Output just the value (implicit return)

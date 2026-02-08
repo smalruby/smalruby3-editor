@@ -125,7 +125,6 @@ export default function (Generator) {
         // Check if this procedures_call has @ruby:return:methodName comment
         const comment = Generator.getCommentText(block);
         if (comment && comment.startsWith('@ruby:return:')) {
-            // Extract method name from comment
             const methodName = comment.replace('@ruby:return:', '');
 
             // Store the method call in cache for data_variable to retrieve
@@ -135,14 +134,12 @@ export default function (Generator) {
             Generator.returnCallCache_[methodName] = blockToMethod(block, true).trim();
 
             // This call will be integrated by data_variable later, suppress output
-            // Return empty string (not null) to allow next block processing
             if (block.isExpression) {
                 delete block.isExpression;
                 return [Generator.returnCallCache_[methodName], Generator.ORDER_FUNCTION_CALL];
             }
 
-            // If this call has @ruby:return comment, it means the return value is being used
-            // somewhere (via data_variable with @ruby:return comment), so suppress standalone output
+            // Return value is used elsewhere, suppress standalone output
             return '';
         }
 
