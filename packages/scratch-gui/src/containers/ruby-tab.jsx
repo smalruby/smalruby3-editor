@@ -82,20 +82,7 @@ class RubyTab extends React.Component {
         }
 
         if (this.props.rubyCode.errors !== prevProps.rubyCode.errors) {
-            if (this.editorRef && this.monacoRef) {
-                const markers = this.props.rubyCode.errors.map(err => ({
-                    startLineNumber: err.row + 1,
-                    startColumn: err.column + 1,
-                    endLineNumber: err.row + 1,
-                    endColumn: (err.source ? err.column + err.source.length + 1 : 1000),
-                    message: err.text,
-                    severity: this.monacoRef.MarkerSeverity.Error
-                }));
-                this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', markers);
-                if (markers.length > 0) {
-                    this.editorRef.trigger('source', 'editor.action.marker.next');
-                }
-            }
+            this.showErrors(this.props.rubyCode.errors);
         }
 
         let modified = this.props.rubyCode.modified;
@@ -134,21 +121,7 @@ class RubyTab extends React.Component {
                     });
                     return;
                 }
-                const error = converter.errors[0];
-                if (this.editorRef && this.monacoRef) {
-                    const markers = converter.errors.map(err => ({
-                        startLineNumber: err.row + 1,
-                        startColumn: err.column + 1,
-                        endLineNumber: err.row + 1,
-                        endColumn: (err.source ? err.column + err.source.length + 1 : 1000),
-                        message: err.text,
-                        severity: this.monacoRef.MarkerSeverity.Error
-                    }));
-                    this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', markers);
-                    this.editorRef.setPosition({lineNumber: error.row + 1, column: error.column + 1});
-                    this.editorRef.focus();
-                    this.editorRef.trigger('source', 'editor.action.marker.next');
-                }
+                this.showErrors(converter.errors);
             }
         }
 
@@ -178,6 +151,26 @@ class RubyTab extends React.Component {
         }
     }
 
+    showErrors (errors) {
+        if (this.editorRef && this.monacoRef) {
+            const markers = errors.map(err => ({
+                startLineNumber: err.row + 1,
+                startColumn: err.column + 1,
+                endLineNumber: err.row + 1,
+                endColumn: (err.source ? err.column + err.source.length + 1 : 1000),
+                message: err.text,
+                severity: this.monacoRef.MarkerSeverity.Error
+            }));
+            this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', markers);
+            if (markers.length > 0) {
+                const error = errors[0];
+                this.editorRef.setPosition({lineNumber: error.row + 1, column: error.column + 1});
+                this.editorRef.focus();
+                this.editorRef.trigger('source', 'editor.action.marker.next');
+            }
+        }
+    }
+
     handleRubyVersionChange (oldVersion, newVersion) {
         if (this.props.rubyCode.modified) {
             const converter = this.props.targetCodeToBlocks(this.props.intl);
@@ -188,23 +181,7 @@ class RubyTab extends React.Component {
             } else {
                 this.props.onRevertRubyVersion(oldVersion);
                 this.props.onShowAlert('rubyVersionChangeFailed');
-                if (this.editorRef && this.monacoRef) {
-                    const markers = converter.errors.map(err => ({
-                        startLineNumber: err.row + 1,
-                        startColumn: err.column + 1,
-                        endLineNumber: err.row + 1,
-                        endColumn: (err.source ? err.column + err.source.length + 1 : 1000),
-                        message: err.text,
-                        severity: this.monacoRef.MarkerSeverity.Error
-                    }));
-                    this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', markers);
-                    this.editorRef.setPosition({
-                        lineNumber: converter.errors[0].row + 1,
-                        column: converter.errors[0].column + 1
-                    });
-                    this.editorRef.focus();
-                    this.editorRef.trigger('source', 'editor.action.marker.next');
-                }
+                this.showErrors(converter.errors);
             }
         } else {
             this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
