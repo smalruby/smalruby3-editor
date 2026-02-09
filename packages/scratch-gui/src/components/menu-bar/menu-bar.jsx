@@ -1093,7 +1093,6 @@ class MenuBar extends React.Component {
                                         <RubyDownloader
                                             onSaveError={this.handleAISaveError}
                                             onSaveFinished={this.handleAISaveFinished}
-                                            version="1"
                                         >
                                             {(className, downloadProjectCallback) => (
                                                 <MenuItem
@@ -1112,7 +1111,6 @@ class MenuBar extends React.Component {
                                             forceFilePicker
                                             onSaveError={this.handleAISaveError}
                                             onSaveFinished={this.handleAISaveAsFinished}
-                                            version="1"
                                         >
                                             {(className, downloadProjectCallback) => (
                                                 <MenuItem
@@ -1132,7 +1130,6 @@ class MenuBar extends React.Component {
                                         <RubyDownloader
                                             onSaveError={this.handleAISaveError}
                                             onSaveFinished={this.handleAISaveFinished}
-                                            version="1"
                                         >
                                             {(className, downloadProjectCallback) => (
                                                 <MenuItem

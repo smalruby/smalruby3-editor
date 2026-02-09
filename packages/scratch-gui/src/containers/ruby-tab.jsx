@@ -336,7 +336,6 @@ class RubyTab extends React.Component {
                     <RubyDownloader
                         onSaveError={this.handleAISaveError}
                         onSaveFinished={this.handleAISaveFinished}
-                        version="1"
                     >
                         {(_, downloadProjectCallback) => (
                             <button

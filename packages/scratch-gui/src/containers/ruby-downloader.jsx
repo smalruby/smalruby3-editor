@@ -34,7 +34,7 @@ class RubyDownloader extends React.Component {
         const options = {
             requires: ['smalruby3'],
             withSpriteNew: true,
-            version: this.props.version || this.props.rubyVersion
+            version: this.props.rubyVersion
         };
         if (this.props.rubyCode.modified) {
             options.targetsCode = {
@@ -142,7 +142,6 @@ RubyDownloader.propTypes = {
     projectFilename: PropTypes.string,
     rubyCode: rubyCodeShape,
     rubyVersion: PropTypes.string,
-    version: PropTypes.string,
     sprites: PropTypes.objectOf(PropTypes.shape({
         id: PropTypes.string.isRequired,
         order: PropTypes.number.isRequired
