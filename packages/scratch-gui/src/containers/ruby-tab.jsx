@@ -181,6 +181,9 @@ class RubyTab extends React.Component {
             const converter = this.props.targetCodeToBlocks(this.props.intl);
             if (converter.result) {
                 converter.apply().then(() => {
+                    if (this.editorRef && this.monacoRef) {
+                        this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
+                    }
                     this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
                 });
             } else {
@@ -190,6 +193,9 @@ class RubyTab extends React.Component {
                 this.showErrors(converter.errors);
             }
         } else {
+            if (this.editorRef && this.monacoRef) {
+                this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
+            }
             this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
         }
     }
