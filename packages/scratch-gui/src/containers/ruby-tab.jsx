@@ -54,12 +54,16 @@ class RubyTab extends React.Component {
         this.containerRef = null;
         this.resizeObserver = null;
         this.completionProvider = null;
+        this.lastProcessedVersion = props.rubyVersion;
 
         loadMonacoLocale(props.locale);
     }
 
     componentDidUpdate (prevProps) {
         if (this.props.rubyVersion !== prevProps.rubyVersion) {
+            if (this.props.rubyVersion === this.lastProcessedVersion) {
+                return;
+            }
             this.handleRubyVersionChange(prevProps.rubyVersion, this.props.rubyVersion);
         }
 
@@ -172,6 +176,7 @@ class RubyTab extends React.Component {
     }
 
     handleRubyVersionChange (oldVersion, newVersion) {
+        this.lastProcessedVersion = newVersion;
         if (this.props.rubyCode.modified) {
             const converter = this.props.targetCodeToBlocks(this.props.intl);
             if (converter.result) {
@@ -179,6 +184,7 @@ class RubyTab extends React.Component {
                     this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
                 });
             } else {
+                this.lastProcessedVersion = oldVersion;
                 this.props.onRevertRubyVersion(oldVersion);
                 this.props.onShowAlert('rubyVersionChangeFailed');
                 this.showErrors(converter.errors);
