@@ -13,7 +13,7 @@ import {
     updateRubyFontSize
 } from '../reducers/ruby-code';
 import {setRubyVersion} from '../reducers/settings';
-import {showStandardAlert, closeAlertWithId} from '../reducers/alerts';
+import {showAlertWithTimeout, closeAlertWithId} from '../reducers/alerts';
 import VM from '@smalruby/scratch-vm';
 import {BLOCKS_TAB_INDEX} from '../reducers/editor-tab';
 
@@ -439,7 +439,7 @@ const mapDispatchToProps = dispatch => ({
     updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors)),
     updateRubyCodeTargetState: (target, version) => dispatch(updateRubyCodeTarget(target, version)),
     onRevertRubyVersion: version => dispatch(setRubyVersion(version)),
-    onShowAlert: alertId => dispatch(showStandardAlert(alertId)),
+    onShowAlert: alertId => showAlertWithTimeout(dispatch, alertId),
     onDismissAlert: alertId => dispatch(closeAlertWithId(alertId)),
     onRequestCloseFile: () => dispatch(closeFileMenu()),
     onSetAiSaveStatus: status => dispatch(setAiSaveStatus(status)),
