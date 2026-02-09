@@ -8,6 +8,7 @@ import Editor from '@monaco-editor/react';
 import {
     rubyCodeShape,
     updateRubyCode,
+    updateRubyCodeErrors,
     updateRubyCodeTarget,
     updateRubyFontSize
 } from '../reducers/ruby-code';
@@ -184,6 +185,7 @@ class RubyTab extends React.Component {
                     if (this.editorRef && this.monacoRef) {
                         this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
                     }
+                    this.props.updateRubyCodeErrorsState([]);
                     this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
                 });
             } else {
@@ -196,6 +198,7 @@ class RubyTab extends React.Component {
             if (this.editorRef && this.monacoRef) {
                 this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
             }
+            this.props.updateRubyCodeErrorsState([]);
             this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
         }
     }
@@ -412,6 +415,7 @@ RubyTab.propTypes = {
     rubyCode: rubyCodeShape,
     rubyVersion: PropTypes.string,
     targetCodeToBlocks: PropTypes.func,
+    updateRubyCodeErrorsState: PropTypes.func,
     updateRubyCodeTargetState: PropTypes.func,
     vm: PropTypes.instanceOf(VM).isRequired,
     projectTitle: PropTypes.string,
@@ -430,6 +434,7 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
     onChange: code => dispatch(updateRubyCode(code)),
+    updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors)),
     updateRubyCodeTargetState: (target, version) => dispatch(updateRubyCodeTarget(target, version)),
     onRevertRubyVersion: version => dispatch(setRubyVersion(version)),
     onShowAlert: alertId => dispatch(showStandardAlert(alertId)),
