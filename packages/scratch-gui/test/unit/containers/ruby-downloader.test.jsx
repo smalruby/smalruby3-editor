@@ -37,6 +37,9 @@ describe('RubyDownloader Container', () => {
                     modified: false,
                     code: '',
                     target: {id: 'target', blocks: {}}
+                },
+                settings: {
+                    rubyVersion: '1'
                 }
             }
         });
