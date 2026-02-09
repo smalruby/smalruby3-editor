@@ -15,6 +15,8 @@ import {
     onLoadedProject
 } from '../reducers/project-state';
 import {setProjectTitle} from '../reducers/project-title';
+import {setRubyVersion} from '../reducers/settings';
+import {persistRubyVersion} from '../lib/settings/ruby-version/persistence';
 import {setGoogleDriveFile} from '../reducers/google-drive-file';
 import {setProjectUnchanged} from '../reducers/project-changed';
 import {
@@ -152,7 +154,11 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                         }
                         return this.props.vm.loadProject(content, {migrateMeshV1ToV2});
                     })
-                    .then(() => {
+                    .then(() => this.props.vm.hasKoshienProject(content))
+                    .then(hasKoshien => {
+                        if (hasKoshien) {
+                            this.props.onSetRubyVersion('1');
+                        }
                         // Store Google Drive file metadata for direct save functionality
                         this.props.onSetGoogleDriveFile(fileId, fileName, null);
                         // Mark project as unchanged after loading from Google Drive
@@ -227,11 +233,13 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         onLoadingStarted: PropTypes.func,
         onSetGoogleDriveFile: PropTypes.func,
         onSetProjectTitle: PropTypes.func,
+        onSetRubyVersion: PropTypes.func,
         onSetProjectUnchanged: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
-            hasMeshV1Project: PropTypes.func
+            hasMeshV1Project: PropTypes.func,
+            hasKoshienProject: PropTypes.func
         })
     };
 
@@ -252,6 +260,10 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         onLoadingStarted: () => dispatch(openLoadingProject()),
         onSetGoogleDriveFile: (fileId, fileName, folderId) => dispatch(setGoogleDriveFile(fileId, fileName, folderId)),
         onSetProjectTitle: title => dispatch(setProjectTitle(title)),
+        onSetRubyVersion: version => {
+            dispatch(setRubyVersion(version));
+            persistRubyVersion(version);
+        },
         onSetProjectUnchanged: () => dispatch(setProjectUnchanged())
     });
 

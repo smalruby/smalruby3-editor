@@ -15,6 +15,8 @@ import {
     requestProjectUpload
 } from '../reducers/project-state';
 import {setProjectTitle} from '../reducers/project-title';
+import {setRubyVersion} from '../reducers/settings';
+import {persistRubyVersion} from './settings/ruby-version/persistence';
 import {
     openLoadingProject,
     closeLoadingProject
@@ -155,7 +157,11 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                         }
                         return this.props.vm.loadProject(this.fileReader.result, {migrateMeshV1ToV2});
                     })
-                    .then(() => {
+                    .then(() => this.props.vm.hasKoshienProject(this.fileReader.result))
+                    .then(hasKoshien => {
+                        if (hasKoshien) {
+                            this.props.onSetRubyVersion('1');
+                        }
                         if (filename) {
                             const uploadedProjectTitle = getProjectTitleFromFilename(filename);
                             this.props.onSetProjectTitle(uploadedProjectTitle);
@@ -228,12 +234,14 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         onLoadingFinished: PropTypes.func,
         onLoadingStarted: PropTypes.func,
         onSetProjectTitle: PropTypes.func,
+        onSetRubyVersion: PropTypes.func,
         projectChanged: PropTypes.bool,
         requestProjectUpload: PropTypes.func,
         userOwnsProject: PropTypes.bool,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
-            hasMeshV1Project: PropTypes.func
+            hasMeshV1Project: PropTypes.func,
+            hasKoshienProject: PropTypes.func
         })
     };
     const mapStateToProps = (state, ownProps) => {
@@ -265,6 +273,10 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         // show project loading screen
         onLoadingStarted: () => dispatch(openLoadingProject()),
         onSetProjectTitle: title => dispatch(setProjectTitle(title)),
+        onSetRubyVersion: version => {
+            dispatch(setRubyVersion(version));
+            persistRubyVersion(version);
+        },
         // step 4: transition the project state so we're ready to handle the new
         // project data. When this is done, the project state transition will be
         // noticed by componentDidUpdate()

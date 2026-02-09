@@ -22,6 +22,8 @@ import {
     requestProjectUpload
 } from '../reducers/project-state';
 import {setProjectTitle} from '../reducers/project-title';
+import {setRubyVersion} from '../reducers/settings';
+import {persistRubyVersion} from './settings/ruby-version/persistence';
 import {
     openLoadingProject,
     closeLoadingProject,
@@ -178,6 +180,12 @@ const URLLoaderHOC = function (WrappedComponent) {
                                     );
                                 }
                                 return this.props.vm.loadProject(projectAsset.data, {migrateMeshV1ToV2});
+                            })
+                            .then(() => this.props.vm.hasKoshienProject(projectAsset.data))
+                            .then(hasKoshien => {
+                                if (hasKoshien) {
+                                    this.props.onSetRubyVersion('1');
+                                }
                             });
                     }
                     throw new Error('Could not find project');
@@ -257,6 +265,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         onLoadingFinished: PropTypes.func,
         onLoadingStarted: PropTypes.func,
         onSetProjectTitle: PropTypes.func,
+        onSetRubyVersion: PropTypes.func,
         onStartSelectingUrlLoad: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
         projectChanged: PropTypes.bool,
@@ -267,6 +276,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
             hasMeshV1Project: PropTypes.func,
+            hasKoshienProject: PropTypes.func,
             runtime: PropTypes.shape({
                 storage: PropTypes.shape({})
             })
@@ -301,6 +311,10 @@ const URLLoaderHOC = function (WrappedComponent) {
         },
         onLoadingStarted: () => dispatch(openLoadingProject()),
         onSetProjectTitle: title => dispatch(setProjectTitle(title)),
+        onSetRubyVersion: version => {
+            dispatch(setRubyVersion(version));
+            persistRubyVersion(version);
+        },
         openUrlLoaderModal: () => dispatch(openUrlLoaderModal()),
         requestProjectUpload: loadingState => dispatch(requestProjectUpload(loadingState)),
         setProjectId: projectId => dispatch(setProjectId(projectId))

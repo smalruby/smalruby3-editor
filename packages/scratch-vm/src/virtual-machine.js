@@ -18,7 +18,7 @@ const formatMessage = require('format-message');
 
 const Variable = require('./engine/variable');
 const newBlockIds = require('./util/new-block-ids');
-const {detectMeshV1Blocks, migrateMeshV1Blocks} = require('./serialization/mesh-migration');
+const {detectMeshV1Blocks, detectKoshien, migrateMeshV1Blocks} = require('./serialization/smalruby-migration');
 
 const {loadCostume} = require('./import/load-costume.js');
 const {loadSound} = require('./import/load-sound.js');
@@ -397,6 +397,28 @@ class VirtualMachine extends EventEmitter {
             });
         })
             .then(validatedInput => detectMeshV1Blocks(validatedInput[0]))
+            .catch(() => false);
+    }
+
+    /**
+     * Detect if the project contains koshien extension.
+     * @param {string | object} input A json string, object, or ArrayBuffer representing the project to load.
+     * @returns {Promise<boolean>} Promise that resolves to true if koshien extension is found.
+     */
+    hasKoshienProject (input) {
+        if (typeof input === 'object' && !(input instanceof ArrayBuffer) &&
+          !ArrayBuffer.isView(input)) {
+            input = JSON.stringify(input);
+        }
+
+        return new Promise((resolve, reject) => {
+            const validate = require('scratch-parser');
+            validate(input, false, (error, res) => {
+                if (error) return reject(error);
+                resolve(res);
+            });
+        })
+            .then(validatedInput => detectKoshien(validatedInput[0]))
             .catch(() => false);
     }
 
