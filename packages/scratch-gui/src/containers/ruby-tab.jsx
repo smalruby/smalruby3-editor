@@ -74,16 +74,14 @@ class RubyTab extends React.Component {
 
         if (prevProps.isVisible && !this.props.isVisible) {
             if (this.editorRef && this.monacoRef) {
-                this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
+                this.clearErrors();
                 // Close any active widgets (peek view, hover, etc.)
                 this.editorRef.trigger('source', 'closeMarkersNavigation');
             }
         }
 
         if (this.props.rubyCode.code !== prevProps.rubyCode.code && !this.props.rubyCode.modified) {
-            if (this.editorRef && this.monacoRef) {
-                this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
-            }
+            this.clearErrors();
         }
 
         if (this.props.rubyCode.errors !== prevProps.rubyCode.errors) {
@@ -102,9 +100,7 @@ class RubyTab extends React.Component {
                     converter.apply().then(() => {
                         modified = false;
 
-                        if (this.editorRef && this.monacoRef) {
-                            this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
-                        }
+                        this.clearErrors();
 
                         if (!modified) {
                             const editingTargetChanged = this.props.editingTarget &&
@@ -156,6 +152,15 @@ class RubyTab extends React.Component {
         }
     }
 
+    clearErrors () {
+        if (this.editorRef && this.monacoRef) {
+            this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
+        }
+        if (this.props.rubyCode.errors.length > 0) {
+            this.props.updateRubyCodeErrorsState([]);
+        }
+    }
+
     showErrors (errors) {
         if (this.editorRef && this.monacoRef) {
             const markers = errors.map(err => ({
@@ -182,10 +187,7 @@ class RubyTab extends React.Component {
             const converter = this.props.targetCodeToBlocks(this.props.intl);
             if (converter.result) {
                 converter.apply().then(() => {
-                    if (this.editorRef && this.monacoRef) {
-                        this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
-                    }
-                    this.props.updateRubyCodeErrorsState([]);
+                    this.clearErrors();
                     this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
                 });
             } else {
@@ -195,10 +197,7 @@ class RubyTab extends React.Component {
                 this.showErrors(converter.errors);
             }
         } else {
-            if (this.editorRef && this.monacoRef) {
-                this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
-            }
-            this.props.updateRubyCodeErrorsState([]);
+            this.clearErrors();
             this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
         }
     }
