@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, {useMemo} from 'react';
-import {FormattedMessage} from 'react-intl';
+import React, {useCallback, useMemo} from 'react';
+import {FormattedMessage, useIntl} from 'react-intl';
 import {connect} from 'react-redux';
 
 import LanguageMenu from './language-menu.jsx';
@@ -37,6 +37,7 @@ import {
 const enabledColorModes = [DEFAULT_MODE, HIGH_CONTRAST_MODE];
 
 const SettingsMenu = ({
+    vm,
     canChangeLanguage,
     canChangeColorMode,
     canChangeTheme,
@@ -59,6 +60,7 @@ const SettingsMenu = ({
     onRequestOpen,
     settingsMenuOpen
 }) => {
+    const intl = useIntl();
     const enabledColorModesMap = useMemo(() => Object.keys(colorModeMap).reduce((acc, colorMode) => {
         if (enabledColorModes.includes(colorMode)) {
             acc[colorMode] = colorModeMap[colorMode];
@@ -73,6 +75,15 @@ const SettingsMenu = ({
         return acc;
     }, {}), [hasActiveMembership]);
     const availableThemesLength = useMemo(() => Object.keys(availableThemesMap).length, [availableThemesMap]);
+
+    const handleChangeRubyVersion = useCallback(rubyVersion => {
+        if (rubyVersion === '2' && vm.extensionManager && vm.extensionManager.isExtensionLoaded('koshien')) {
+            // eslint-disable-next-line no-alert
+            alert(intl.formatMessage(rubyVersionMessages.koshienCannotChangeRubyVersion));
+            return;
+        }
+        onChangeRubyVersion(rubyVersion);
+    }, [intl, vm, onChangeRubyVersion]);
 
     return (
         <div
@@ -135,7 +146,7 @@ const SettingsMenu = ({
                     <PreferenceMenu
                         open={isRubyVersionMenuOpen}
                         itemsMap={rubyVersionMap}
-                        onChange={onChangeRubyVersion}
+                        onChange={handleChangeRubyVersion}
                         defaultMenuIconSrc={rubyIcon}
                         submenuLabel={rubyVersionMessages.rubyMenu}
                         selectedItemKey={activeRubyVersion}
@@ -163,6 +174,11 @@ const SettingsMenu = ({
 };
 
 SettingsMenu.propTypes = {
+    vm: PropTypes.shape({
+        extensionManager: PropTypes.shape({
+            isExtensionLoaded: PropTypes.func
+        })
+    }),
     canChangeLanguage: PropTypes.bool,
     canChangeColorMode: PropTypes.bool,
     canChangeTheme: PropTypes.bool,
@@ -187,6 +203,7 @@ SettingsMenu.propTypes = {
 };
 
 const mapStateToProps = state => ({
+    vm: state.scratchGui.vm,
     activeColorMode: state.scratchGui.settings.colorMode,
     activeTheme: state.scratchGui.settings.theme,
     activeRubyVersion: state.scratchGui.settings.rubyVersion,

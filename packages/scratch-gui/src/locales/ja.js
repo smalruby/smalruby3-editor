@@ -27,6 +27,7 @@ export default {
     'gui.menuBar.saveAIAs': 'AIに名前をつけて保存...',
     'gui.menuBar.testAI': 'AIを試す',
     'gui.menuBar.koshienEntryForm': '参加申し込み',
+    'gui.menuBar.koshienCannotChangeRubyVersion': 'スモウルビー甲子園拡張機能が読み込まれているときは、Rubyのバージョンを変更できません。',
     'gui.menuBar.aiSaving': 'ルビーを保存中...',
     'gui.menuBar.aiSaved': 'ルビーが保存されました。',
     'gui.smalruby3.alerts.rubyVersionChangeFailed': 'ルビーのバージョンを変更できません：先にルビーのコードのエラーを直してください。',
@@ -268,6 +269,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.operator_mathop': '(　) の [絶対値▼]',
     'gui.extensionLibrary.showAllExtensions': 'すべての拡張機能を表示',
     'gui.extensionLibrary.meshDeprecationWarning': '従来のメッシュ拡張機能は4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
+    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'スモウルビー甲子園拡張機能はRuby バージョン1でのみ利用可能です。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': '上に傾いた',
