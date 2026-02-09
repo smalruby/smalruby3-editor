@@ -11,6 +11,7 @@ const MENU_MODE = 'modeMenu';
 const MENU_SETTINGS = 'settingsMenu';
 const MENU_COLOR_MODE = 'colorModeMenu';
 const MENU_THEME = 'themeMenu';
+const MENU_RUBY_VERSION = 'rubyVersionMenu';
 const MENU_KOSHIEN = 'koshienMenu';
 const MENU_MESH_V2 = 'meshV2Menu';
 
@@ -56,6 +57,7 @@ const rootMenu = new Menu('root')
             .addChild(new Menu(MENU_LANGUAGE))
             .addChild(new Menu(MENU_COLOR_MODE))
             .addChild(new Menu(MENU_THEME))
+            .addChild(new Menu(MENU_RUBY_VERSION))
     )
     .addChild(new Menu(MENU_FILE))
     .addChild(new Menu(MENU_EDIT))
@@ -78,6 +80,7 @@ const initialState = {
     [MENU_SETTINGS]: false,
     [MENU_COLOR_MODE]: false,
     [MENU_THEME]: false,
+    [MENU_RUBY_VERSION]: false,
     [MENU_KOSHIEN]: false,
     [MENU_MESH_V2]: false
 };
@@ -159,6 +162,10 @@ const openThemeMenu = () => openMenu(MENU_THEME);
 const closeThemeMenu = () => closeMenu(MENU_THEME);
 const themeMenuOpen = state => state.scratchGui.menus[MENU_THEME];
 
+const openRubyVersionMenu = () => openMenu(MENU_RUBY_VERSION);
+const closeRubyVersionMenu = () => closeMenu(MENU_RUBY_VERSION);
+const rubyVersionMenuOpen = state => state.scratchGui.menus[MENU_RUBY_VERSION];
+
 const openKoshienMenu = () => openMenu(MENU_KOSHIEN);
 const closeKoshienMenu = () => closeMenu(MENU_KOSHIEN);
 const koshienMenuOpen = state => state.scratchGui.menus[MENU_KOSHIEN];
@@ -200,6 +207,9 @@ export {
     openThemeMenu,
     closeThemeMenu,
     themeMenuOpen,
+    openRubyVersionMenu,
+    closeRubyVersionMenu,
+    rubyVersionMenuOpen,
     openKoshienMenu,
     closeKoshienMenu,
     koshienMenuOpen,

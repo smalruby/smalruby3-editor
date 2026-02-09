@@ -11,9 +11,11 @@ import PreferenceMenu from './preference-menu.jsx';
 
 import {DEFAULT_MODE, HIGH_CONTRAST_MODE, colorModeMap} from '../../lib/settings/color-mode/index.js';
 import {themeMap} from '../../lib/settings/theme/index.js';
+import {rubyVersionMap} from '../../lib/settings/ruby-version/index.js';
 import {persistColorMode} from '../../lib/settings/color-mode/persistence.js';
 import {persistTheme} from '../../lib/settings/theme/persistence.js';
-import {setColorMode, setTheme} from '../../reducers/settings.js';
+import {persistRubyVersion} from '../../lib/settings/ruby-version/persistence.js';
+import {setColorMode, setTheme, setRubyVersion} from '../../reducers/settings.js';
 
 import menuBarStyles from './menu-bar.css';
 import styles from './settings-menu.css';
@@ -21,8 +23,16 @@ import styles from './settings-menu.css';
 import dropdownCaret from './dropdown-caret.svg';
 import settingsIcon from './icon--settings.svg';
 import themeIcon from '../../lib/assets/icon--theme.svg';
+import rubyIcon from '../../containers/ruby-tab/icon--ruby.svg';
 import blockDisplayIcon from './block-display-icon.png';
-import {colorModeMenuOpen, themeMenuOpen, openColorModeMenu, openThemeMenu} from '../../reducers/menus.js';
+import {
+    colorModeMenuOpen,
+    themeMenuOpen,
+    rubyVersionMenuOpen,
+    openColorModeMenu,
+    openThemeMenu,
+    openRubyVersionMenu
+} from '../../reducers/menus.js';
 
 const enabledColorModes = [DEFAULT_MODE, HIGH_CONTRAST_MODE];
 
@@ -34,10 +44,14 @@ const SettingsMenu = ({
     isRtl,
     isColorModeMenuOpen,
     isThemeMenuOpen,
+    isRubyVersionMenuOpen,
     activeColorMode,
+    activeRubyVersion,
     onChangeColorMode,
+    onChangeRubyVersion,
     onRequestOpenColorMode,
     onRequestOpenTheme,
+    onRequestOpenRubyVersion,
     onOpenBlockDisplayModal,
     activeTheme,
     onChangeTheme,
@@ -104,6 +118,21 @@ const SettingsMenu = ({
                             onRequestCloseSettings={onRequestClose}
                             onRequestOpen={onRequestOpenTheme}
                         />}
+                    <PreferenceMenu
+                        open={isRubyVersionMenuOpen}
+                        itemsMap={rubyVersionMap}
+                        onChange={onChangeRubyVersion}
+                        defaultMenuIconSrc={rubyIcon}
+                        submenuLabel={{
+                            defaultMessage: 'Ruby',
+                            description: 'Ruby version sub-menu',
+                            id: 'gui.menuBar.rubyVersion'
+                        }}
+                        selectedItemKey={activeRubyVersion}
+                        isRtl={isRtl}
+                        onRequestCloseSettings={onRequestClose}
+                        onRequestOpen={onRequestOpenRubyVersion}
+                    />
                     {canChangeColorMode && <PreferenceMenu
                         open={isColorModeMenuOpen}
                         itemsMap={enabledColorModesMap}
@@ -147,10 +176,14 @@ SettingsMenu.propTypes = {
     onChangeColorMode: PropTypes.func,
     onRequestOpenColorMode: PropTypes.func,
     isColorModeMenuOpen: PropTypes.bool,
+    isRubyVersionMenuOpen: PropTypes.bool,
     onOpenBlockDisplayModal: PropTypes.func,
     activeTheme: PropTypes.string,
+    activeRubyVersion: PropTypes.number,
     onChangeTheme: PropTypes.func,
+    onChangeRubyVersion: PropTypes.func,
     onRequestOpenTheme: PropTypes.func,
+    onRequestOpenRubyVersion: PropTypes.func,
     isThemeMenuOpen: PropTypes.bool,
     onRequestClose: PropTypes.func,
     onRequestOpen: PropTypes.func,
@@ -160,8 +193,10 @@ SettingsMenu.propTypes = {
 const mapStateToProps = state => ({
     activeColorMode: state.scratchGui.settings.colorMode,
     activeTheme: state.scratchGui.settings.theme,
+    activeRubyVersion: state.scratchGui.settings.rubyVersion,
     isColorModeMenuOpen: colorModeMenuOpen(state),
-    isThemeMenuOpen: themeMenuOpen(state)
+    isThemeMenuOpen: themeMenuOpen(state),
+    isRubyVersionMenuOpen: rubyVersionMenuOpen(state)
 });
 
 const mapDispatchToProps = (dispatch, ownProps) => ({
@@ -170,6 +205,9 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     },
     onRequestOpenTheme: () => {
         dispatch(openThemeMenu());
+    },
+    onRequestOpenRubyVersion: () => {
+        dispatch(openRubyVersionMenu());
     },
     onOpenBlockDisplayModal: () => {
         ownProps.onOpenBlockDisplayModal();
@@ -183,6 +221,11 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
         dispatch(setTheme(theme));
         ownProps.onRequestClose();
         persistTheme(theme);
+    },
+    onChangeRubyVersion: rubyVersion => {
+        dispatch(setRubyVersion(rubyVersion));
+        ownProps.onRequestClose();
+        persistRubyVersion(rubyVersion);
     }
 });
 

@@ -11,6 +11,8 @@ import {
     updateRubyCodeTarget,
     updateRubyFontSize
 } from '../reducers/ruby-code';
+import {setRubyVersion} from '../reducers/settings';
+import {showStandardAlert} from '../reducers/alerts';
 import VM from '@smalruby/scratch-vm';
 import {BLOCKS_TAB_INDEX} from '../reducers/editor-tab';
 
@@ -57,6 +59,10 @@ class RubyTab extends React.Component {
     }
 
     componentDidUpdate (prevProps) {
+        if (this.props.rubyVersion !== prevProps.rubyVersion) {
+            this.handleRubyVersionChange(prevProps.rubyVersion, this.props.rubyVersion);
+        }
+
         if (this.props.locale !== prevProps.locale) {
             loadMonacoLocale(this.props.locale);
         }
@@ -109,9 +115,13 @@ class RubyTab extends React.Component {
                         }
 
                         if (!modified) {
-                            if ((this.props.isVisible && !prevProps.isVisible) ||
-                                (this.props.editingTarget && this.props.editingTarget !== prevProps.editingTarget)) {
-                                this.props.updateRubyCodeTargetState(this.props.vm.editingTarget);
+                            const editingTargetChanged = this.props.editingTarget &&
+                                this.props.editingTarget !== prevProps.editingTarget;
+                            if ((this.props.isVisible && !prevProps.isVisible) || editingTargetChanged) {
+                                this.props.updateRubyCodeTargetState(
+                                    this.props.vm.editingTarget,
+                                    this.props.rubyVersion
+                                );
                             }
                         }
 
@@ -143,9 +153,10 @@ class RubyTab extends React.Component {
         }
 
         if (!modified) {
-            if ((this.props.isVisible && !prevProps.isVisible) ||
-                (this.props.editingTarget && this.props.editingTarget !== prevProps.editingTarget)) {
-                this.props.updateRubyCodeTargetState(this.props.vm.editingTarget);
+            const editingTargetChanged = this.props.editingTarget &&
+                this.props.editingTarget !== prevProps.editingTarget;
+            if ((this.props.isVisible && !prevProps.isVisible) || editingTargetChanged) {
+                this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, this.props.rubyVersion);
             }
         }
 
@@ -164,6 +175,39 @@ class RubyTab extends React.Component {
         if (this.completionProvider) {
             this.completionProvider.dispose();
             this.completionProvider = null;
+        }
+    }
+
+    handleRubyVersionChange (oldVersion, newVersion) {
+        if (this.props.rubyCode.modified) {
+            const converter = this.props.targetCodeToBlocks(this.props.intl);
+            if (converter.result) {
+                converter.apply().then(() => {
+                    this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
+                });
+            } else {
+                this.props.onRevertRubyVersion(oldVersion);
+                this.props.onShowAlert('rubyVersionChangeFailed');
+                if (this.editorRef && this.monacoRef) {
+                    const markers = converter.errors.map(err => ({
+                        startLineNumber: err.row + 1,
+                        startColumn: err.column + 1,
+                        endLineNumber: err.row + 1,
+                        endColumn: (err.source ? err.column + err.source.length + 1 : 1000),
+                        message: err.text,
+                        severity: this.monacoRef.MarkerSeverity.Error
+                    }));
+                    this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', markers);
+                    this.editorRef.setPosition({
+                        lineNumber: converter.errors[0].row + 1,
+                        column: converter.errors[0].column + 1
+                    });
+                    this.editorRef.focus();
+                    this.editorRef.trigger('source', 'editor.action.marker.next');
+                }
+            }
+        } else {
+            this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
         }
     }
 
@@ -374,7 +418,10 @@ RubyTab.propTypes = {
     onSetAiSaveStatus: PropTypes.func,
     onClearAiSaveStatus: PropTypes.func,
     onFontSizeChange: PropTypes.func,
+    onRevertRubyVersion: PropTypes.func,
+    onShowAlert: PropTypes.func,
     rubyCode: rubyCodeShape,
+    rubyVersion: PropTypes.number,
     targetCodeToBlocks: PropTypes.func,
     updateRubyCodeTargetState: PropTypes.func,
     vm: PropTypes.instanceOf(VM).isRequired,
@@ -386,6 +433,7 @@ const mapStateToProps = state => ({
     blocksTabVisible: state.scratchGui.editorTab.activeTabIndex === BLOCKS_TAB_INDEX,
     editingTarget: state.scratchGui.targets.editingTarget,
     rubyCode: state.scratchGui.rubyCode,
+    rubyVersion: state.scratchGui.settings.rubyVersion,
     vm: state.scratchGui.vm,
     projectTitle: state.scratchGui.projectTitle,
     locale: state.locales.locale
@@ -393,7 +441,9 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
     onChange: code => dispatch(updateRubyCode(code)),
-    updateRubyCodeTargetState: target => dispatch(updateRubyCodeTarget(target)),
+    updateRubyCodeTargetState: (target, version) => dispatch(updateRubyCodeTarget(target, version)),
+    onRevertRubyVersion: version => dispatch(setRubyVersion(version)),
+    onShowAlert: alertId => dispatch(showStandardAlert(alertId)),
     onRequestCloseFile: () => dispatch(closeFileMenu()),
     onSetAiSaveStatus: status => dispatch(setAiSaveStatus(status)),
     onClearAiSaveStatus: () => dispatch(clearAiSaveStatus()),
