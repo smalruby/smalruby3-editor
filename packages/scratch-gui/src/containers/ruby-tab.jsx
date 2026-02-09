@@ -13,7 +13,7 @@ import {
     updateRubyFontSize
 } from '../reducers/ruby-code';
 import {setRubyVersion} from '../reducers/settings';
-import {showStandardAlert} from '../reducers/alerts';
+import {showStandardAlert, closeAlertWithId} from '../reducers/alerts';
 import VM from '@smalruby/scratch-vm';
 import {BLOCKS_TAB_INDEX} from '../reducers/editor-tab';
 
@@ -75,8 +75,6 @@ class RubyTab extends React.Component {
         if (prevProps.isVisible && !this.props.isVisible) {
             if (this.editorRef && this.monacoRef) {
                 this.clearErrors();
-                // Close any active widgets (peek view, hover, etc.)
-                this.editorRef.trigger('source', 'closeMarkersNavigation');
             }
         }
 
@@ -155,10 +153,14 @@ class RubyTab extends React.Component {
     clearErrors () {
         if (this.editorRef && this.monacoRef) {
             this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
+            // Close any active widgets (peek view, hover, etc.)
+            this.editorRef.trigger('source', 'closeMarkersNavigation');
         }
         if (this.props.rubyCode.errors.length > 0) {
             this.props.updateRubyCodeErrorsState([]);
         }
+        this.props.onDismissAlert('convertRubyToBlocksError');
+        this.props.onDismissAlert('rubyVersionChangeFailed');
     }
 
     showErrors (errors) {
@@ -411,6 +413,7 @@ RubyTab.propTypes = {
     onFontSizeChange: PropTypes.func,
     onRevertRubyVersion: PropTypes.func,
     onShowAlert: PropTypes.func,
+    onDismissAlert: PropTypes.func,
     rubyCode: rubyCodeShape,
     rubyVersion: PropTypes.string,
     targetCodeToBlocks: PropTypes.func,
@@ -437,6 +440,7 @@ const mapDispatchToProps = dispatch => ({
     updateRubyCodeTargetState: (target, version) => dispatch(updateRubyCodeTarget(target, version)),
     onRevertRubyVersion: version => dispatch(setRubyVersion(version)),
     onShowAlert: alertId => dispatch(showStandardAlert(alertId)),
+    onDismissAlert: alertId => dispatch(closeAlertWithId(alertId)),
     onRequestCloseFile: () => dispatch(closeFileMenu()),
     onSetAiSaveStatus: status => dispatch(setAiSaveStatus(status)),
     onClearAiSaveStatus: () => dispatch(clearAiSaveStatus()),
