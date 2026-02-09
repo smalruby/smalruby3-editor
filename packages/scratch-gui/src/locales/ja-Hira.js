@@ -28,6 +28,7 @@ export default {
     'gui.menuBar.testAI': 'AIをためす',
     'gui.menuBar.koshienEntryForm': 'さんかもうしこみ',
     'gui.menuBar.koshienCannotChangeRubyVersion': 'スモウルビーこうしえんかくちょうきのうがよみこまれているときは、Rubyのバージョンをへんこうできません。',
+    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'スモウルビーこうしえんかくちょうきのうは Ruby v1 でのみりようできます。',
     'gui.menuBar.aiSaving': 'ルビーをほぞんちゅう...',
     'gui.menuBar.aiSaved': 'ルビーがほぞんされました。',
     'gui.smalruby3.alerts.rubyVersionChangeFailed': 'ルビーのバージョンをへんこうできません：さきにルビーのコードのエラーをなおしてください。',

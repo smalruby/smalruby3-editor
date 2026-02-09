@@ -32,6 +32,11 @@ const messages = defineMessages({
             'Otherwise, if you want to use the new mesh extension, select Cancel.',
         description: 'Warning message for legacy mesh extension deprecation',
         id: 'gui.extensionLibrary.meshDeprecationWarning'
+    },
+    koshienOnlyAvailableForRubyV1: {
+        defaultMessage: 'The Koshien extension is only available for Ruby v1',
+        description: 'Error message when trying to use Koshien extension with non-Ruby v1',
+        id: 'gui.extensionLibrary.koshienOnlyAvailableForRubyV1'
     }
 });
 
@@ -74,6 +79,13 @@ class ExtensionLibrary extends React.PureComponent {
                 id = 'meshV2';
                 url = 'meshV2';
             }
+        }
+
+        if (id === 'koshien' && !item.disabled && this.props.rubyVersion !== '1') {
+            // Koshien extension is only available for Ruby v1
+            // eslint-disable-next-line no-alert
+            alert(this.props.intl.formatMessage(messages.koshienOnlyAvailableForRubyV1));
+            return;
         }
 
         if (id && !item.disabled) {
@@ -154,11 +166,13 @@ ExtensionLibrary.propTypes = {
     visible: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired,
     username: PropTypes.string,
-    showNewFeatureCallouts: PropTypes.bool
+    showNewFeatureCallouts: PropTypes.bool,
+    rubyVersion: PropTypes.string
 };
 
 const mapStateToProps = state => ({
-    showAllExtensions: state.scratchGui.extensionFilter.showAllExtensions
+    showAllExtensions: state.scratchGui.extensionFilter.showAllExtensions,
+    rubyVersion: state.scratchGui.settings.rubyVersion
 });
 
 const mapDispatchToProps = dispatch => ({
