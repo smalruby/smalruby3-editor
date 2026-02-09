@@ -93,8 +93,9 @@ const getExtensionIdForOpcode = function (opcode) {
  * Class for a block converter that translates ruby code into the blocks.
  */
 class RubyToBlocksConverter {
-    constructor (vm) {
+    constructor (vm, options) {
         this.vm = vm;
+        this.version = options && options.version ? options.version : 1;
         this._translator = message => message.defaultMessage;
         this._receiverToMethods = {};
         this._receiverToMyBlocks = {};
@@ -2042,8 +2043,8 @@ const NullRubyToBlocksConverter = {
     apply: () => Promise.resolve()
 };
 
-const targetCodeToBlocks = function (vm, target, code, intl) {
-    const converter = new RubyToBlocksConverter(vm);
+const targetCodeToBlocks = function (vm, target, code, intl, options) {
+    const converter = new RubyToBlocksConverter(vm, options);
     if (intl) {
         converter.setTranslatorFunction(intl.formatMessage);
     }

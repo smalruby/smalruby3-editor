@@ -45,7 +45,8 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
                     this.props.vm,
                     this.props.rubyCode.target,
                     this.props.rubyCode.code,
-                    intl
+                    intl,
+                    {version: this.props.rubyVersion}
                 );
                 if (!converter.result) {
                     this.props.vm.setEditingTarget(this.props.rubyCode.target.id);
@@ -91,6 +92,7 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
         onHighlightTarget: PropTypes.func,
         onShowConvertRubyToBlocksErrorAlert: PropTypes.func,
         rubyCode: rubyCodeShape,
+        rubyVersion: PropTypes.string,
         updateRubyCodeErrorsState: PropTypes.func,
         vm: PropTypes.instanceOf(VM)
     };
@@ -98,6 +100,7 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
     const mapStateToProps = state => ({
         editingTarget: state.scratchGui.targets.editingTarget,
         rubyCode: state.scratchGui.rubyCode,
+        rubyVersion: state.scratchGui.settings.rubyVersion,
         vm: state.scratchGui.vm
     });
 

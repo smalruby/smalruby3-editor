@@ -3,6 +3,9 @@ export default {
     'gui.modal.stop': '中止',
     'gui.menuBar.loadFromUrl': 'Scratchから読み込む',
     'gui.menuBar.colorMode': 'カラーモード',
+    'gui.menuBar.rubyVersion': 'ルビー',
+    'gui.rubyVersion.v1': 'バージョン1 (初期設定)',
+    'gui.rubyVersion.v2': 'バージョン2',
     'gui.menuBar.meshV2': 'メッシュ',
     'gui.sharedMessages.backdrop': '背景{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',
@@ -26,6 +29,7 @@ export default {
     'gui.menuBar.koshienEntryForm': '参加申し込み',
     'gui.menuBar.aiSaving': 'ルビーを保存中...',
     'gui.menuBar.aiSaved': 'ルビーが保存されました。',
+    'gui.smalruby3.alerts.rubyVersionChangeFailed': 'ルビーのバージョンを変更できません：先にルビーのコードのエラーを直してください。',
     'gui.stageHeader.stageSizeMiddle': '中サイズのステージに切り替える',
 
     'gui.koshienTestModal.title': 'スモウルビー甲子園のAIを試す',

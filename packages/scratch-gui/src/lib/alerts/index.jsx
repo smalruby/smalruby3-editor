@@ -32,6 +32,20 @@ const alerts = [
         maxDisplaySecs: 5
     },
     {
+        alertId: 'rubyVersionChangeFailed',
+        clearList: ['rubyVersionChangeFailed'],
+        closeButton: true,
+        content: (
+            <FormattedMessage
+                defaultMessage="Cannot change Ruby version: Please fix Ruby code errors first."
+                description="Message indicating that Ruby version change failed due to Ruby code errors"
+                id="gui.smalruby3.alerts.rubyVersionChangeFailed"
+            />
+        ),
+        level: AlertLevels.WARN,
+        maxDisplaySecs: 5
+    },
+    {
         alertId: 'createSuccess',
         alertType: AlertTypes.STANDARD,
         clearList: ['createSuccess', 'creating', 'createCopySuccess', 'creatingCopy',

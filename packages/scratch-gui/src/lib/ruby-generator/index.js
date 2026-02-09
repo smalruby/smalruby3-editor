@@ -109,9 +109,10 @@ RubyGenerator.ORDER_AND_OR = 21;           // and or
 RubyGenerator.ORDER_NONE = 99;             // (...)
 /* eslint-enable no-multi-spaces */
 
-RubyGenerator.init = function (_options) {
+RubyGenerator.init = function (options) {
     this.definitions_ = {};
     this.returnCallCache_ = {}; // Clear return value call cache
+    this.version = options && options.version ? options.version : '1';
     if (this.variableDB_) {
         this.variableDB_.reset();
     } else {

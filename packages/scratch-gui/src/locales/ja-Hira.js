@@ -3,6 +3,9 @@ export default {
     'gui.modal.stop': 'ちゅうし',
     'gui.menuBar.loadFromUrl': 'Scratchからよみこむ',
     'gui.menuBar.colorMode': 'カラーモード',
+    'gui.menuBar.rubyVersion': 'ルビー',
+    'gui.rubyVersion.v1': 'バージョン1 (しょきせってい)',
+    'gui.rubyVersion.v2': 'バージョン2',
     'gui.menuBar.meshV2': 'メッシュ',
     'gui.sharedMessages.backdrop': 'はいけい{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',
@@ -26,6 +29,7 @@ export default {
     'gui.menuBar.koshienEntryForm': 'さんかもうしこみ',
     'gui.menuBar.aiSaving': 'ルビーをほぞんちゅう...',
     'gui.menuBar.aiSaved': 'ルビーがほぞんされました。',
+    'gui.smalruby3.alerts.rubyVersionChangeFailed': 'ルビーのバージョンをへんこうできません：さきにルビーのコードのエラーをなおしてください。',
     'gui.stageHeader.stageSizeMiddle': 'ちゅうサイズのステージにきりかえる',
 
     'gui.koshienTestModal.title': 'スモウルビーこうしえんのAIをためす',

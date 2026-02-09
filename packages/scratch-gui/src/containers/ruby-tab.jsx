@@ -8,9 +8,12 @@ import Editor from '@monaco-editor/react';
 import {
     rubyCodeShape,
     updateRubyCode,
+    updateRubyCodeErrors,
     updateRubyCodeTarget,
     updateRubyFontSize
 } from '../reducers/ruby-code';
+import {setRubyVersion} from '../reducers/settings';
+import {showAlertWithTimeout, closeAlertWithId} from '../reducers/alerts';
 import VM from '@smalruby/scratch-vm';
 import {BLOCKS_TAB_INDEX} from '../reducers/editor-tab';
 
@@ -52,44 +55,35 @@ class RubyTab extends React.Component {
         this.containerRef = null;
         this.resizeObserver = null;
         this.completionProvider = null;
+        this.lastProcessedVersion = props.rubyVersion;
 
         loadMonacoLocale(props.locale);
     }
 
     componentDidUpdate (prevProps) {
+        if (this.props.rubyVersion !== prevProps.rubyVersion) {
+            if (this.props.rubyVersion === this.lastProcessedVersion) {
+                return;
+            }
+            this.handleRubyVersionChange(prevProps.rubyVersion, this.props.rubyVersion);
+        }
+
         if (this.props.locale !== prevProps.locale) {
             loadMonacoLocale(this.props.locale);
         }
 
         if (prevProps.isVisible && !this.props.isVisible) {
             if (this.editorRef && this.monacoRef) {
-                this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
-                // Close any active widgets (peek view, hover, etc.)
-                this.editorRef.trigger('source', 'closeMarkersNavigation');
+                this.clearErrors();
             }
         }
 
         if (this.props.rubyCode.code !== prevProps.rubyCode.code && !this.props.rubyCode.modified) {
-            if (this.editorRef && this.monacoRef) {
-                this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
-            }
+            this.clearErrors();
         }
 
         if (this.props.rubyCode.errors !== prevProps.rubyCode.errors) {
-            if (this.editorRef && this.monacoRef) {
-                const markers = this.props.rubyCode.errors.map(err => ({
-                    startLineNumber: err.row + 1,
-                    startColumn: err.column + 1,
-                    endLineNumber: err.row + 1,
-                    endColumn: (err.source ? err.column + err.source.length + 1 : 1000),
-                    message: err.text,
-                    severity: this.monacoRef.MarkerSeverity.Error
-                }));
-                this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', markers);
-                if (markers.length > 0) {
-                    this.editorRef.trigger('source', 'editor.action.marker.next');
-                }
-            }
+            this.showErrors(this.props.rubyCode.errors);
         }
 
         let modified = this.props.rubyCode.modified;
@@ -104,14 +98,16 @@ class RubyTab extends React.Component {
                     converter.apply().then(() => {
                         modified = false;
 
-                        if (this.editorRef && this.monacoRef) {
-                            this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
-                        }
+                        this.clearErrors();
 
                         if (!modified) {
-                            if ((this.props.isVisible && !prevProps.isVisible) ||
-                                (this.props.editingTarget && this.props.editingTarget !== prevProps.editingTarget)) {
-                                this.props.updateRubyCodeTargetState(this.props.vm.editingTarget);
+                            const editingTargetChanged = this.props.editingTarget &&
+                                this.props.editingTarget !== prevProps.editingTarget;
+                            if ((this.props.isVisible && !prevProps.isVisible) || editingTargetChanged) {
+                                this.props.updateRubyCodeTargetState(
+                                    this.props.vm.editingTarget,
+                                    this.props.rubyVersion
+                                );
                             }
                         }
 
@@ -124,28 +120,15 @@ class RubyTab extends React.Component {
                     });
                     return;
                 }
-                const error = converter.errors[0];
-                if (this.editorRef && this.monacoRef) {
-                    const markers = converter.errors.map(err => ({
-                        startLineNumber: err.row + 1,
-                        startColumn: err.column + 1,
-                        endLineNumber: err.row + 1,
-                        endColumn: (err.source ? err.column + err.source.length + 1 : 1000),
-                        message: err.text,
-                        severity: this.monacoRef.MarkerSeverity.Error
-                    }));
-                    this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', markers);
-                    this.editorRef.setPosition({lineNumber: error.row + 1, column: error.column + 1});
-                    this.editorRef.focus();
-                    this.editorRef.trigger('source', 'editor.action.marker.next');
-                }
+                this.showErrors(converter.errors);
             }
         }
 
         if (!modified) {
-            if ((this.props.isVisible && !prevProps.isVisible) ||
-                (this.props.editingTarget && this.props.editingTarget !== prevProps.editingTarget)) {
-                this.props.updateRubyCodeTargetState(this.props.vm.editingTarget);
+            const editingTargetChanged = this.props.editingTarget &&
+                this.props.editingTarget !== prevProps.editingTarget;
+            if ((this.props.isVisible && !prevProps.isVisible) || editingTargetChanged) {
+                this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, this.props.rubyVersion);
             }
         }
 
@@ -164,6 +147,60 @@ class RubyTab extends React.Component {
         if (this.completionProvider) {
             this.completionProvider.dispose();
             this.completionProvider = null;
+        }
+    }
+
+    clearErrors () {
+        if (this.editorRef && this.monacoRef) {
+            this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', []);
+            // Close any active widgets (peek view, hover, etc.)
+            this.editorRef.trigger('source', 'closeMarkersNavigation');
+        }
+        if (this.props.rubyCode.errors.length > 0) {
+            this.props.updateRubyCodeErrorsState([]);
+        }
+        this.props.onDismissAlert('convertRubyToBlocksError');
+        this.props.onDismissAlert('rubyVersionChangeFailed');
+    }
+
+    showErrors (errors) {
+        if (this.editorRef && this.monacoRef) {
+            const markers = errors.map(err => ({
+                startLineNumber: err.row + 1,
+                startColumn: err.column + 1,
+                endLineNumber: err.row + 1,
+                endColumn: (err.source ? err.column + err.source.length + 1 : 1000),
+                message: err.text,
+                severity: this.monacoRef.MarkerSeverity.Error
+            }));
+            this.monacoRef.editor.setModelMarkers(this.editorRef.getModel(), 'smalruby', markers);
+            if (markers.length > 0) {
+                const error = errors[0];
+                this.editorRef.setPosition({lineNumber: error.row + 1, column: error.column + 1});
+                this.editorRef.focus();
+                this.editorRef.trigger('source', 'editor.action.marker.next');
+            }
+        }
+    }
+
+    handleRubyVersionChange (oldVersion, newVersion) {
+        this.lastProcessedVersion = newVersion;
+        if (this.props.rubyCode.modified) {
+            const converter = this.props.targetCodeToBlocks(this.props.intl);
+            if (converter.result) {
+                converter.apply().then(() => {
+                    this.clearErrors();
+                    this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
+                });
+            } else {
+                this.lastProcessedVersion = oldVersion;
+                this.props.onRevertRubyVersion(oldVersion);
+                this.props.onShowAlert('rubyVersionChangeFailed');
+                this.showErrors(converter.errors);
+            }
+        } else {
+            this.clearErrors();
+            this.props.updateRubyCodeTargetState(this.props.vm.editingTarget, newVersion);
         }
     }
 
@@ -374,8 +411,13 @@ RubyTab.propTypes = {
     onSetAiSaveStatus: PropTypes.func,
     onClearAiSaveStatus: PropTypes.func,
     onFontSizeChange: PropTypes.func,
+    onRevertRubyVersion: PropTypes.func,
+    onShowAlert: PropTypes.func,
+    onDismissAlert: PropTypes.func,
     rubyCode: rubyCodeShape,
+    rubyVersion: PropTypes.string,
     targetCodeToBlocks: PropTypes.func,
+    updateRubyCodeErrorsState: PropTypes.func,
     updateRubyCodeTargetState: PropTypes.func,
     vm: PropTypes.instanceOf(VM).isRequired,
     projectTitle: PropTypes.string,
@@ -386,6 +428,7 @@ const mapStateToProps = state => ({
     blocksTabVisible: state.scratchGui.editorTab.activeTabIndex === BLOCKS_TAB_INDEX,
     editingTarget: state.scratchGui.targets.editingTarget,
     rubyCode: state.scratchGui.rubyCode,
+    rubyVersion: state.scratchGui.settings.rubyVersion,
     vm: state.scratchGui.vm,
     projectTitle: state.scratchGui.projectTitle,
     locale: state.locales.locale
@@ -393,7 +436,11 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
     onChange: code => dispatch(updateRubyCode(code)),
-    updateRubyCodeTargetState: target => dispatch(updateRubyCodeTarget(target)),
+    updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors)),
+    updateRubyCodeTargetState: (target, version) => dispatch(updateRubyCodeTarget(target, version)),
+    onRevertRubyVersion: version => dispatch(setRubyVersion(version)),
+    onShowAlert: alertId => showAlertWithTimeout(dispatch, alertId),
+    onDismissAlert: alertId => dispatch(closeAlertWithId(alertId)),
     onRequestCloseFile: () => dispatch(closeFileMenu()),
     onSetAiSaveStatus: status => dispatch(setAiSaveStatus(status)),
     onClearAiSaveStatus: () => dispatch(clearAiSaveStatus()),

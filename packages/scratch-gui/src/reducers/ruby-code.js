@@ -59,7 +59,7 @@ const reducer = function (state, action) {
         return Object.assign({}, state, {
             modified: false,
             target: action.target,
-            code: RubyGenerator.targetToCode(action.target),
+            code: RubyGenerator.targetToCode(action.target, {version: action.version}),
             errors: [],
             markers: []
         });
@@ -93,10 +93,11 @@ const updateRubyCode = function (code) {
     };
 };
 
-const updateRubyCodeTarget = function (target) {
+const updateRubyCodeTarget = function (target, version) {
     return {
         type: UPDATE_RUBYCODE_TARGET,
-        target: target
+        target: target,
+        version: version
     };
 };
 
