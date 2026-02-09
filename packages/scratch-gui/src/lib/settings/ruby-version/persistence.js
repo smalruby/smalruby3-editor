@@ -1,11 +1,9 @@
-import cookie from 'cookie';
-
 import {VERSION_1, VERSION_2} from '.';
 
-const COOKIE_KEY = 'smalruby:rubyVersion';
+const STORAGE_KEY = 'smalruby:rubyVersion';
 const VERSION_SWITCH_DATE = new Date('2026-04-01T00:00:00Z');
 
-const isValidRubyVersion = version => [VERSION_1, VERSION_2].includes(Number(version));
+const isValidRubyVersion = version => [VERSION_1, VERSION_2].includes(version);
 
 const getDefaultVersion = () => {
     const now = new Date();
@@ -13,12 +11,15 @@ const getDefaultVersion = () => {
 };
 
 const detectRubyVersion = () => {
-    const obj = cookie.parse(document.cookie) || {};
-    const rubyVersionCookie = obj[COOKIE_KEY];
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return getDefaultVersion();
+    }
 
-    if (isValidRubyVersion(rubyVersionCookie)) return Number(rubyVersionCookie);
+    const rubyVersion = window.localStorage.getItem(STORAGE_KEY);
 
-    // No cookie set. Fall back to date-based default
+    if (isValidRubyVersion(rubyVersion)) return rubyVersion;
+
+    // No preference set. Fall back to date-based default
     return getDefaultVersion();
 };
 
@@ -27,8 +28,9 @@ const persistRubyVersion = version => {
         throw new Error(`Invalid ruby version: ${version}`);
     }
 
-    const expires = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toUTCString();
-    document.cookie = `${COOKIE_KEY}=${version};expires=${expires};path=/`;
+    if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEY, version);
+    }
 };
 
 export {

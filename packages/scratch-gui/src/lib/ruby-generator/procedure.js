@@ -118,7 +118,7 @@ export default function (Generator) {
         if (isCall) {
             return `${methodName}${argsString}\n`;
         }
-        if (Generator.version === 2) {
+        if (Generator.version.toString() === '2') {
             return `def ${methodName}${argsString}\n`;
         }
         return `def self.${methodName}${argsString}\n`;

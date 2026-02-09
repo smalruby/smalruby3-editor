@@ -421,7 +421,7 @@ RubyTab.propTypes = {
     onRevertRubyVersion: PropTypes.func,
     onShowAlert: PropTypes.func,
     rubyCode: rubyCodeShape,
-    rubyVersion: PropTypes.number,
+    rubyVersion: PropTypes.string,
     targetCodeToBlocks: PropTypes.func,
     updateRubyCodeTargetState: PropTypes.func,
     vm: PropTypes.instanceOf(VM).isRequired,

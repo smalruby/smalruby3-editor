@@ -92,7 +92,7 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
         onHighlightTarget: PropTypes.func,
         onShowConvertRubyToBlocksErrorAlert: PropTypes.func,
         rubyCode: rubyCodeShape,
-        rubyVersion: PropTypes.number,
+        rubyVersion: PropTypes.string,
         updateRubyCodeErrorsState: PropTypes.func,
         vm: PropTypes.instanceOf(VM)
     };

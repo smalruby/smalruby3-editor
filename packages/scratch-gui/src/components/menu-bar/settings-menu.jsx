@@ -11,7 +11,7 @@ import PreferenceMenu from './preference-menu.jsx';
 
 import {DEFAULT_MODE, HIGH_CONTRAST_MODE, colorModeMap} from '../../lib/settings/color-mode/index.js';
 import {themeMap} from '../../lib/settings/theme/index.js';
-import {rubyVersionMap} from '../../lib/settings/ruby-version/index.js';
+import {rubyVersionMap, messages as rubyVersionMessages} from '../../lib/settings/ruby-version/index.js';
 import {persistColorMode} from '../../lib/settings/color-mode/persistence.js';
 import {persistTheme} from '../../lib/settings/theme/persistence.js';
 import {persistRubyVersion} from '../../lib/settings/ruby-version/persistence.js';
@@ -118,21 +118,6 @@ const SettingsMenu = ({
                             onRequestCloseSettings={onRequestClose}
                             onRequestOpen={onRequestOpenTheme}
                         />}
-                    <PreferenceMenu
-                        open={isRubyVersionMenuOpen}
-                        itemsMap={rubyVersionMap}
-                        onChange={onChangeRubyVersion}
-                        defaultMenuIconSrc={rubyIcon}
-                        submenuLabel={{
-                            defaultMessage: 'Ruby',
-                            description: 'Ruby version sub-menu',
-                            id: 'gui.menuBar.rubyVersion'
-                        }}
-                        selectedItemKey={activeRubyVersion}
-                        isRtl={isRtl}
-                        onRequestCloseSettings={onRequestClose}
-                        onRequestOpen={onRequestOpenRubyVersion}
-                    />
                     {canChangeColorMode && <PreferenceMenu
                         open={isColorModeMenuOpen}
                         itemsMap={enabledColorModesMap}
@@ -147,6 +132,17 @@ const SettingsMenu = ({
                         onRequestCloseSettings={onRequestClose}
                         onRequestOpen={onRequestOpenColorMode}
                     />}
+                    <PreferenceMenu
+                        open={isRubyVersionMenuOpen}
+                        itemsMap={rubyVersionMap}
+                        onChange={onChangeRubyVersion}
+                        defaultMenuIconSrc={rubyIcon}
+                        submenuLabel={rubyVersionMessages.rubyMenu}
+                        selectedItemKey={activeRubyVersion}
+                        isRtl={isRtl}
+                        onRequestCloseSettings={onRequestClose}
+                        onRequestOpen={onRequestOpenRubyVersion}
+                    />
                     <MenuItem onClick={onOpenBlockDisplayModal}>
                         <div className={styles.option}>
                             <img
@@ -179,7 +175,7 @@ SettingsMenu.propTypes = {
     isRubyVersionMenuOpen: PropTypes.bool,
     onOpenBlockDisplayModal: PropTypes.func,
     activeTheme: PropTypes.string,
-    activeRubyVersion: PropTypes.number,
+    activeRubyVersion: PropTypes.string,
     onChangeTheme: PropTypes.func,
     onChangeRubyVersion: PropTypes.func,
     onRequestOpenTheme: PropTypes.func,
