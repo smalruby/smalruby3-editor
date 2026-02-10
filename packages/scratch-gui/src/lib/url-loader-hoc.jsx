@@ -184,6 +184,11 @@ const URLLoaderHOC = function (WrappedComponent) {
                             .then(() => this.props.vm.hasKoshienProject(projectAsset.data))
                             .then(hasKoshien => {
                                 if (hasKoshien) {
+                                    if (this.props.rubyVersion !== '1') {
+                                        alert(this.props.intl.formatMessage( // eslint-disable-line no-alert
+                                            sharedMessages.changedRubyVersionByKoshien
+                                        ));
+                                    }
                                     this.props.onSetRubyVersion('1');
                                 }
                             });
@@ -233,6 +238,7 @@ const URLLoaderHOC = function (WrappedComponent) {
                 openUrlLoaderModal: _openUrlLoaderModalProp,
                 projectChanged: _projectChanged,
                 requestProjectUpload: _requestProjectUploadProp,
+                rubyVersion: _rubyVersion,
                 setProjectId: _setProjectIdProp,
                 userOwnsProject: _userOwnsProject,
                 vm,
@@ -271,6 +277,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         openUrlLoaderModal: PropTypes.func,
         projectChanged: PropTypes.bool,
         requestProjectUpload: PropTypes.func,
+        rubyVersion: PropTypes.string,
         setProjectId: PropTypes.func,
         storage: GUIStoragePropType,
         userOwnsProject: PropTypes.bool,
@@ -292,6 +299,7 @@ const URLLoaderHOC = function (WrappedComponent) {
             isShowingWithoutId: getIsShowingWithoutId(loadingState),
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
+            rubyVersion: state.scratchGui.settings.rubyVersion,
             storage: state.scratchGui.config.storage,
             userOwnsProject: ownProps.authorUsername && user &&
                 (ownProps.authorUsername === user.username),

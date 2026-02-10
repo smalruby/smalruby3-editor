@@ -14,6 +14,7 @@ export default {
     'gui.sharedMessages.replaceProjectWarning': 'げんざいのプロジェクトのないようを おきかえますか？',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターからよみこむ',
     'gui.sharedMessages.migrateMeshV1Warning': 'このプロジェクトにはじゅうらいのメッシュかくちょうきのうがふくまれていますので4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
+    'gui.sharedMessages.changedRubyVersionByKoshien': 'このプロジェクトにはスモウルビーこうしえんかくちょうきのうがふくまれていますのでルビーをバージョン1にへんこうしました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブからよみこむ',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーをほぞん...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブにただちにほぞん',

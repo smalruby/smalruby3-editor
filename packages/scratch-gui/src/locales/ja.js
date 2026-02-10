@@ -14,6 +14,7 @@ export default {
     'gui.sharedMessages.replaceProjectWarning': '現在のプロジェクトの内容を置き換えますか？',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターから読み込む',
     'gui.sharedMessages.migrateMeshV1Warning': 'このプロジェクトには従来のメッシュ拡張機能が含まれていますので4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
+    'gui.sharedMessages.changedRubyVersionByKoshien': 'このプロジェクトにはスモウルビー甲子園拡張機能が含まれていますのでルビーをバージョン1に変更しました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブから読み込む',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーを保存...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブに直ちに保存',

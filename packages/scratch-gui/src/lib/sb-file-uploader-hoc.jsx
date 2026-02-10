@@ -160,6 +160,11 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                     .then(() => this.props.vm.hasKoshienProject(this.fileReader.result))
                     .then(hasKoshien => {
                         if (hasKoshien) {
+                            if (this.props.rubyVersion !== '1') {
+                                alert(this.props.intl.formatMessage( // eslint-disable-line no-alert
+                                    sharedMessages.changedRubyVersionByKoshien
+                                ));
+                            }
                             this.props.onSetRubyVersion('1');
                         }
                         if (filename) {
@@ -205,6 +210,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 onSetRubyVersion,
                 projectChanged,
                 requestProjectUpload: requestProjectUploadProp,
+                rubyVersion,
 
 
                 // Intentionally propagating this one as well, since it's used in MenuBar
@@ -238,6 +244,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         onSetRubyVersion: PropTypes.func,
         projectChanged: PropTypes.bool,
         requestProjectUpload: PropTypes.func,
+        rubyVersion: PropTypes.string,
         userOwnsProject: PropTypes.bool,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
@@ -254,6 +261,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
             isTest: state.scratchGui.test.isTest,
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
+            rubyVersion: state.scratchGui.settings.rubyVersion,
             userOwnsProject: ownProps.userOwnsProject ?? (
                 ownProps.authorUsername && user &&
                     (ownProps.authorUsername === user.username)

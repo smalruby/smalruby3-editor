@@ -1,6 +1,7 @@
 export default {
     'gui.sharedMessages.migrateMeshV1Warning': 'This project contains legacy Mesh extensions and can only be used until April 30th. Select OK to continue using the legacy Mesh extensions. Select Cancel to use the new Mesh extensions instead.',
     'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage',
+    'gui.sharedMessages.changedRubyVersionByKoshien': 'This project contains the Smalruby Koshien extension, so the Ruby version has been changed to version 1.',
 
     'gui.smalruby3.crashMessage.description': 'We are so sorry, but it looks like Smalruby has crashed. This bug has been automatically reported to the Smalruby Team. Please refresh your page to try again.',
     'gui.smalruby3.gui.defaultProjectTitle': 'Smalruby Project',

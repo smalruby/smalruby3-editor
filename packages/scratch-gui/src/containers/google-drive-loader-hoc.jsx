@@ -157,6 +157,11 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                     .then(() => this.props.vm.hasKoshienProject(content))
                     .then(hasKoshien => {
                         if (hasKoshien) {
+                            if (this.props.rubyVersion !== '1') {
+                                alert(this.props.intl.formatMessage( // eslint-disable-line no-alert
+                                    sharedMessages.changedRubyVersionByKoshien
+                                ));
+                            }
                             this.props.onSetRubyVersion('1');
                         }
                         // Store Google Drive file metadata for direct save functionality
@@ -209,6 +214,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                 onSetProjectTitle: _onSetProjectTitle,
                 onSetRubyVersion: _onSetRubyVersion,
                 openUrlLoaderModal: _openUrlLoaderModal,
+                rubyVersion: _rubyVersion,
                 vm: _vm,
                 ...componentProps
             } = this.props;
@@ -237,6 +243,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         onSetRubyVersion: PropTypes.func,
         onSetProjectUnchanged: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
+        rubyVersion: PropTypes.string,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
             hasMeshV1Project: PropTypes.func,
@@ -248,6 +255,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         isLoadingUpload: getIsLoadingUpload(state.scratchGui.projectState.loadingState),
         loadingState: state.scratchGui.projectState.loadingState,
         locale: state.locales.locale,
+        rubyVersion: state.scratchGui.settings.rubyVersion,
         vm: state.scratchGui.vm
     });
 
