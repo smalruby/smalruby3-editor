@@ -172,6 +172,8 @@ const MyBlocksConverter = {
                 return null;
             }
 
+            converter._enterScope('method');
+
             const procedureName = node.children[1].toString();
             const block = converter._createBlock('procedures_definition', 'hat', {
                 topLevel: true
@@ -190,7 +192,8 @@ const MyBlocksConverter = {
                 const normalizedName = converter._toSnakeCaseLowercase(originalName);
 
                 procedure.argumentNames.push(normalizedName);
-                procedure.argumentVariables.push(converter._lookupOrCreateVariable(normalizedName));
+                const variable = converter._lookupOrCreateVariable(normalizedName, true);
+                procedure.argumentVariables.push(variable);
                 procedure.procCode.push('%s');
                 procedure.argumentDefaults.push('');
                 const inputId = Blockly.utils.genUid();
@@ -217,6 +220,9 @@ const MyBlocksConverter = {
                 body = [body];
             }
             converter._context.inMyBlockDefinition = savedInMyBlockDefinition;
+
+            converter._exitScope();
+
             if (body.length > 0) {
                 const lastIdx = body.length - 1;
                 const last = body[lastIdx];

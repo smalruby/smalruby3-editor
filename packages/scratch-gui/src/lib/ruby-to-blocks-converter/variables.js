@@ -10,7 +10,7 @@ const VariablesConverter = {
             if (!converter._isString(args[0])) return null;
 
             const variable = converter._lookupOrCreateVariable(args[0]);
-            if (variable.scope !== 'local') {
+            if (variable.scope === 'global' || variable.scope === 'instance') {
                 return converter._createBlock('data_showvariable', 'statement', {
                     fields: {
                         VARIABLE: {
@@ -30,7 +30,7 @@ const VariablesConverter = {
             if (!converter._isString(args[0])) return null;
 
             const variable = converter._lookupOrCreateVariable(args[0]);
-            if (variable.scope !== 'local') {
+            if (variable.scope === 'global' || variable.scope === 'instance') {
                 return converter._createBlock('data_hidevariable', 'statement', {
                     fields: {
                         VARIABLE: {
@@ -50,7 +50,7 @@ const VariablesConverter = {
             if (!converter._isString(args[0])) return null;
 
             const variable = converter._lookupOrCreateList(args[0]);
-            if (variable.scope !== 'local') {
+            if (variable.scope === 'global' || variable.scope === 'instance') {
                 return converter._createBlock('data_listcontents', 'value_variable', {
                     fields: {
                         LIST: {
@@ -70,7 +70,7 @@ const VariablesConverter = {
             if (!converter._isString(args[0])) return null;
 
             const variable = converter._lookupOrCreateList(args[0]);
-            if (variable.scope !== 'local') {
+            if (variable.scope === 'global' || variable.scope === 'instance') {
                 return converter._createBlock('data_showlist', 'statement', {
                     fields: {
                         LIST: {
@@ -90,7 +90,7 @@ const VariablesConverter = {
             if (!converter._isString(args[0])) return null;
 
             const variable = converter._lookupOrCreateList(args[0]);
-            if (variable.scope !== 'local') {
+            if (variable.scope === 'global' || variable.scope === 'instance') {
                 return converter._createBlock('data_hidelist', 'statement', {
                     fields: {
                         LIST: {
@@ -201,7 +201,7 @@ const VariablesConverter = {
             let block;
             if (operator === '+' && converter._isString(lh) && converter._isNumberOrBlock(rh)) {
                 const variable = converter._lookupOrCreateVariable(lh);
-                if (variable.scope !== 'local') {
+                if (variable.scope === 'global' || variable.scope === 'instance') {
                     block = converter._createBlock('data_changevariableby', 'statement', {
                         fields: {
                             VARIABLE: {
@@ -213,6 +213,39 @@ const VariablesConverter = {
                         }
                     });
                     converter._addNumberInput(block, 'VALUE', 'math_number', rh, 1);
+                } else {
+                    // Assignment for local variables
+                    block = converter._createBlock('data_setvariableto', 'statement', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: variable.id,
+                                value: variable.name,
+                                variableType: variable.type
+                            }
+                        }
+                    });
+
+                    const commentText = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
+                    block.comment = converter._createComment(commentText, block.id);
+
+                    const variableBlock = converter._createBlock('data_variable', 'value_variable', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: variable.id,
+                                value: variable.name,
+                                variableType: variable.type
+                            }
+                        }
+                    });
+                    variableBlock.comment = converter._createComment(commentText, variableBlock.id);
+
+                    const addBlock = converter._createBlock('operator_add', 'value');
+                    converter._addInput(addBlock, 'NUM1', variableBlock);
+                    converter._addNumberInput(addBlock, 'NUM2', 'math_number', rh, 1);
+
+                    converter._addInput(block, 'VALUE', addBlock);
                 }
             }
             return block;
@@ -230,6 +263,22 @@ const VariablesConverter = {
                         }
                     }
                 });
+            } else if (scope === 'local' && !variable.isArgument) {
+                const block = converter._createBlock('data_variable', 'value_variable', {
+                    fields: {
+                        VARIABLE: {
+                            name: 'VARIABLE',
+                            id: variable.id,
+                            value: variable.name,
+                            variableType: variable.type
+                        }
+                    }
+                });
+
+                const commentText = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
+                block.comment = converter._createComment(commentText, block.id);
+
+                return block;
             }
             return null;
         });
@@ -247,6 +296,25 @@ const VariablesConverter = {
                             }
                         }
                     });
+                    converter._addTextInput(block, 'VALUE', converter._isNumber(rh) ? rh.toString() : rh, '0');
+                    return block;
+                }
+            } else if (scope === 'local' && !variable.isArgument) {
+                if (converter._isNumberOrBlock(rh) || converter._isStringOrBlock(rh)) {
+                    const block = converter._createBlock('data_setvariableto', 'statement', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: variable.id,
+                                value: variable.name,
+                                variableType: variable.type
+                            }
+                        }
+                    });
+
+                    const commentText = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
+                    block.comment = converter._createComment(commentText, block.id);
+
                     converter._addTextInput(block, 'VALUE', converter._isNumber(rh) ? rh.toString() : rh, '0');
                     return block;
                 }
