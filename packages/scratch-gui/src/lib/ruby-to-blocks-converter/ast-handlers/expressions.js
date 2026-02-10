@@ -194,9 +194,11 @@ const ExpressionHandlers = {
         this._checkNumChildren(node, 1);
 
         const originalVarName = node.children[0].toString();
+        // Normalize variable name to match how arguments and other locals are stored
+        const normalizedVarName = this._toSnakeCaseLowercase(originalVarName);
 
-        // Look up or create local variable
-        const variable = this._lookupOrCreateVariable(originalVarName);
+        // Look up or create local variable using normalized name
+        const variable = this._lookupOrCreateVariable(normalizedVarName);
 
         if (variable) {
             const block = this._callConvertersHandler('onVar', 'local', variable);
@@ -205,7 +207,7 @@ const ExpressionHandlers = {
             }
         }
 
-        return this._toSnakeCaseLowercase(originalVarName);
+        return normalizedVarName;
     }
 };
 

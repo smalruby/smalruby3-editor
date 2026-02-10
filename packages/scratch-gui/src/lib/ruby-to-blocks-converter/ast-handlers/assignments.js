@@ -49,7 +49,12 @@ const AssignmentHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
-        const variable = this._lookupOrCreateVariable(node.children[0]);
+        // Normalize variable name for local variables to match how arguments are stored
+        let varName = node.children[0].toString();
+        if (scope === 'local') {
+            varName = this._toSnakeCaseLowercase(varName);
+        }
+        const variable = this._lookupOrCreateVariable(varName);
         let rh = this._process(node.children[1]);
         const split = this._splitPreBlocksAndValue(rh);
         rh = split.value;
