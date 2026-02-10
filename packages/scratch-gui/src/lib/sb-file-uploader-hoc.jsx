@@ -6,6 +6,7 @@ import intlShape from './intlShape';
 import {connect} from 'react-redux';
 import log from '../lib/log';
 import sharedMessages from './shared-messages';
+import {loadProjectWithChecks} from './project-loader-utils';
 
 import {
     LoadingStates,
@@ -146,27 +147,14 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 const filename = this.fileToUpload && this.fileToUpload.name;
                 let loadingSuccess = false;
 
-                // smalruby: mesh V1 to V2 migration
-                this.props.vm.hasMeshV1Project(this.fileReader.result)
-                    .then(hasMeshV1 => {
-                        let migrateMeshV1ToV2 = false;
-                        if (hasMeshV1) {
-                            migrateMeshV1ToV2 = !confirm( // eslint-disable-line no-alert
-                                this.props.intl.formatMessage(sharedMessages.migrateMeshV1Warning)
-                            );
-                        }
-                        return this.props.vm.loadProject(this.fileReader.result, {migrateMeshV1ToV2});
-                    })
-                    .then(() => this.props.vm.hasKoshienProject(this.fileReader.result))
-                    .then(hasKoshien => {
-                        if (hasKoshien) {
-                            if (this.props.rubyVersion !== '1') {
-                                alert(this.props.intl.formatMessage( // eslint-disable-line no-alert
-                                    sharedMessages.changedRubyVersionByKoshien
-                                ));
-                            }
-                            this.props.onSetRubyVersion('1');
-                        }
+                loadProjectWithChecks(
+                    this.props.vm,
+                    this.props.intl,
+                    this.fileReader.result,
+                    this.props.rubyVersion,
+                    this.props.onSetRubyVersion
+                )
+                    .then(() => {
                         if (filename) {
                             const uploadedProjectTitle = getProjectTitleFromFilename(filename);
                             this.props.onSetProjectTitle(uploadedProjectTitle);

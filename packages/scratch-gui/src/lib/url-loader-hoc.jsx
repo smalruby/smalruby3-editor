@@ -6,6 +6,7 @@ import intlShape from './intlShape';
 import {connect} from 'react-redux';
 import log from '../lib/log';
 import sharedMessages from './shared-messages';
+import {loadProjectWithChecks} from './project-loader-utils';
 
 import {
     extractScratchProjectId,
@@ -170,28 +171,13 @@ const URLLoaderHOC = function (WrappedComponent) {
                 })
                 .then(projectAsset => {
                     if (projectAsset) {
-                        // smalruby: mesh V1 to V2 migration
-                        return this.props.vm.hasMeshV1Project(projectAsset.data)
-                            .then(hasMeshV1 => {
-                                let migrateMeshV1ToV2 = false;
-                                if (hasMeshV1) {
-                                    migrateMeshV1ToV2 = !confirm( // eslint-disable-line no-alert
-                                        this.props.intl.formatMessage(sharedMessages.migrateMeshV1Warning)
-                                    );
-                                }
-                                return this.props.vm.loadProject(projectAsset.data, {migrateMeshV1ToV2});
-                            })
-                            .then(() => this.props.vm.hasKoshienProject(projectAsset.data))
-                            .then(hasKoshien => {
-                                if (hasKoshien) {
-                                    if (this.props.rubyVersion !== '1') {
-                                        alert(this.props.intl.formatMessage( // eslint-disable-line no-alert
-                                            sharedMessages.changedRubyVersionByKoshien
-                                        ));
-                                    }
-                                    this.props.onSetRubyVersion('1');
-                                }
-                            });
+                        return loadProjectWithChecks(
+                            this.props.vm,
+                            this.props.intl,
+                            projectAsset.data,
+                            this.props.rubyVersion,
+                            this.props.onSetRubyVersion
+                        );
                     }
                     throw new Error('Could not find project');
                 })
