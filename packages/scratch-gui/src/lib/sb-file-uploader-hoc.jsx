@@ -202,6 +202,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 onLoadingFinished,
                 onLoadingStarted,
                 onSetProjectTitle,
+                onSetRubyVersion,
                 projectChanged,
                 requestProjectUpload: requestProjectUploadProp,
 

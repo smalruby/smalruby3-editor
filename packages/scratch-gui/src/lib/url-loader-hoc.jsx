@@ -229,6 +229,7 @@ const URLLoaderHOC = function (WrappedComponent) {
                 onLoadingFinished: _onLoadingFinished,
                 onLoadingStarted: _onLoadingStarted,
                 onSetProjectTitle: _onSetProjectTitle,
+                onSetRubyVersion: _onSetRubyVersion,
                 openUrlLoaderModal: _openUrlLoaderModalProp,
                 projectChanged: _projectChanged,
                 requestProjectUpload: _requestProjectUploadProp,

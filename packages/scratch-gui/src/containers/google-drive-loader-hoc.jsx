@@ -207,6 +207,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                 onLoadingFinished: _onLoadingFinished,
                 onLoadingStarted: _onLoadingStarted,
                 onSetProjectTitle: _onSetProjectTitle,
+                onSetRubyVersion: _onSetRubyVersion,
                 openUrlLoaderModal: _openUrlLoaderModal,
                 vm: _vm,
                 ...componentProps
