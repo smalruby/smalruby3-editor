@@ -7,6 +7,7 @@ import intlShape from '../lib/intlShape.js';
 import {connect} from 'react-redux';
 import log from '../lib/log';
 import sharedMessages from '../lib/shared-messages';
+import {loadProjectWithChecks} from '../lib/project-loader-utils';
 
 import googleDriveAPI from '../lib/google-drive-api';
 import {
@@ -15,6 +16,8 @@ import {
     onLoadedProject
 } from '../reducers/project-state';
 import {setProjectTitle} from '../reducers/project-title';
+import {setRubyVersion} from '../reducers/settings';
+import {persistRubyVersion} from '../lib/settings/ruby-version/persistence';
 import {setGoogleDriveFile} from '../reducers/google-drive-file';
 import {setProjectUnchanged} from '../reducers/project-changed';
 import {
@@ -141,17 +144,13 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                 const content = new Uint8Array(fileData);
 
                 // Load the project
-                // smalruby: mesh V1 to V2 migration
-                this.props.vm.hasMeshV1Project(content)
-                    .then(hasMeshV1 => {
-                        let migrateMeshV1ToV2 = false;
-                        if (hasMeshV1) {
-                            migrateMeshV1ToV2 = !confirm( // eslint-disable-line no-alert
-                                this.props.intl.formatMessage(sharedMessages.migrateMeshV1Warning)
-                            );
-                        }
-                        return this.props.vm.loadProject(content, {migrateMeshV1ToV2});
-                    })
+                loadProjectWithChecks(
+                    this.props.vm,
+                    this.props.intl,
+                    content,
+                    this.props.rubyVersion,
+                    this.props.onSetRubyVersion
+                )
                     .then(() => {
                         // Store Google Drive file metadata for direct save functionality
                         this.props.onSetGoogleDriveFile(fileId, fileName, null);
@@ -201,7 +200,9 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                 onLoadingFinished: _onLoadingFinished,
                 onLoadingStarted: _onLoadingStarted,
                 onSetProjectTitle: _onSetProjectTitle,
+                onSetRubyVersion: _onSetRubyVersion,
                 openUrlLoaderModal: _openUrlLoaderModal,
+                rubyVersion: _rubyVersion,
                 vm: _vm,
                 ...componentProps
             } = this.props;
@@ -227,11 +228,14 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         onLoadingStarted: PropTypes.func,
         onSetGoogleDriveFile: PropTypes.func,
         onSetProjectTitle: PropTypes.func,
+        onSetRubyVersion: PropTypes.func,
         onSetProjectUnchanged: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
+        rubyVersion: PropTypes.string,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
-            hasMeshV1Project: PropTypes.func
+            hasMeshV1Project: PropTypes.func,
+            hasKoshienProject: PropTypes.func
         })
     };
 
@@ -239,6 +243,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         isLoadingUpload: getIsLoadingUpload(state.scratchGui.projectState.loadingState),
         loadingState: state.scratchGui.projectState.loadingState,
         locale: state.locales.locale,
+        rubyVersion: state.scratchGui.settings.rubyVersion,
         vm: state.scratchGui.vm
     });
 
@@ -252,6 +257,10 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         onLoadingStarted: () => dispatch(openLoadingProject()),
         onSetGoogleDriveFile: (fileId, fileName, folderId) => dispatch(setGoogleDriveFile(fileId, fileName, folderId)),
         onSetProjectTitle: title => dispatch(setProjectTitle(title)),
+        onSetRubyVersion: version => {
+            dispatch(setRubyVersion(version));
+            persistRubyVersion(version);
+        },
         onSetProjectUnchanged: () => dispatch(setProjectUnchanged())
     });
 

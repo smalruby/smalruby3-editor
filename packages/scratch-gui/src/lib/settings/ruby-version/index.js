@@ -18,6 +18,11 @@ const messages = defineMessages({
         id: 'gui.menuBar.rubyVersion',
         defaultMessage: 'Ruby',
         description: 'Ruby version sub-menu'
+    },
+    koshienCannotChangeRubyVersion: {
+        id: 'gui.menuBar.koshienCannotChangeRubyVersion',
+        defaultMessage: 'The Ruby version cannot be changed when the Koshien extension is loaded.',
+        description: 'Alert message when trying to change Ruby version with Koshien extension'
     }
 });
 

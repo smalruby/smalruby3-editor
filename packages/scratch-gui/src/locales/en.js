@@ -1,6 +1,7 @@
 export default {
     'gui.sharedMessages.migrateMeshV1Warning': 'This project contains legacy Mesh extensions and can only be used until April 30th. Select OK to continue using the legacy Mesh extensions. Select Cancel to use the new Mesh extensions instead.',
     'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage',
+    'gui.sharedMessages.changedRubyVersionByKoshien': 'This project contains the Smalruby Koshien extension, so the Ruby version has been changed to version 1.',
 
     'gui.smalruby3.crashMessage.description': 'We are so sorry, but it looks like Smalruby has crashed. This bug has been automatically reported to the Smalruby Team. Please refresh your page to try again.',
     'gui.smalruby3.gui.defaultProjectTitle': 'Smalruby Project',
@@ -23,6 +24,7 @@ export default {
     'gui.telemetryOptIn.buttonTextNo': 'No, thanks',
     'gui.extensionLibrary.showAllExtensions': 'Show all extensions',
     'gui.extensionLibrary.meshDeprecationWarning': 'The legacy mesh extension can only be used until April 30. If you want to continue using the legacy mesh extension, select OK. Otherwise, if you want to use the new mesh extension, select Cancel.',
+    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'The Koshien extension is only available for Ruby v1',
     'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '"{ SOURCE }" could not be converted the block.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': "Yes, I'd like to help improve Smalruby",
@@ -92,6 +94,7 @@ export default {
     'gui.menuBar.blockDisplay': 'Block Display...',
     'gui.menuBar.learn': 'Learn',
     'gui.menuBar.koshienEntryForm': 'Entry Form',
+    'gui.menuBar.koshienCannotChangeRubyVersion': 'The Ruby version cannot be changed when the Koshien extension is loaded.',
 
     // Block Display Modal - Block Messages
     // Motion blocks

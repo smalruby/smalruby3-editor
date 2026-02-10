@@ -48,6 +48,9 @@ describe('SBFileUploaderHOC', () => {
                 projectState: {
                     loadingState: LoadingState.SHOWING_WITHOUT_ID
                 },
+                settings: {
+                    rubyVersion: '1'
+                },
                 vm: {},
                 test: {
                     isTest: false

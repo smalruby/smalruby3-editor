@@ -35,6 +35,12 @@ const reactIntlMessages = defineMessages({
         id: 'gui.sharedMessages.migrateMeshV1Warning',
         defaultMessage: 'This project contains old Mesh blocks. Would you like to migrate them to Mesh V2?',
         description: 'Confirmation that user wants to migrate old Mesh blocks to Mesh V2'
+    },
+    changedRubyVersionByKoshien: {
+        id: 'gui.sharedMessages.changedRubyVersionByKoshien',
+        defaultMessage: 'This project contains the Smalruby Koshien extension, ' +
+            'so the Ruby version has been changed to version 1.',
+        description: 'Alert message when Ruby version is changed to 1 because project contains Koshien extension'
     }
 });
 

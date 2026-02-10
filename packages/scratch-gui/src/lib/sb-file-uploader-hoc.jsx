@@ -6,6 +6,7 @@ import intlShape from './intlShape';
 import {connect} from 'react-redux';
 import log from '../lib/log';
 import sharedMessages from './shared-messages';
+import {loadProjectWithChecks} from './project-loader-utils';
 
 import {
     LoadingStates,
@@ -15,6 +16,8 @@ import {
     requestProjectUpload
 } from '../reducers/project-state';
 import {setProjectTitle} from '../reducers/project-title';
+import {setRubyVersion} from '../reducers/settings';
+import {persistRubyVersion} from './settings/ruby-version/persistence';
 import {
     openLoadingProject,
     closeLoadingProject
@@ -144,17 +147,13 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 const filename = this.fileToUpload && this.fileToUpload.name;
                 let loadingSuccess = false;
 
-                // smalruby: mesh V1 to V2 migration
-                this.props.vm.hasMeshV1Project(this.fileReader.result)
-                    .then(hasMeshV1 => {
-                        let migrateMeshV1ToV2 = false;
-                        if (hasMeshV1) {
-                            migrateMeshV1ToV2 = !confirm( // eslint-disable-line no-alert
-                                this.props.intl.formatMessage(sharedMessages.migrateMeshV1Warning)
-                            );
-                        }
-                        return this.props.vm.loadProject(this.fileReader.result, {migrateMeshV1ToV2});
-                    })
+                loadProjectWithChecks(
+                    this.props.vm,
+                    this.props.intl,
+                    this.fileReader.result,
+                    this.props.rubyVersion,
+                    this.props.onSetRubyVersion
+                )
                     .then(() => {
                         if (filename) {
                             const uploadedProjectTitle = getProjectTitleFromFilename(filename);
@@ -196,8 +195,10 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 onLoadingFinished,
                 onLoadingStarted,
                 onSetProjectTitle,
+                onSetRubyVersion,
                 projectChanged,
                 requestProjectUpload: requestProjectUploadProp,
+                rubyVersion,
 
 
                 // Intentionally propagating this one as well, since it's used in MenuBar
@@ -228,12 +229,15 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         onLoadingFinished: PropTypes.func,
         onLoadingStarted: PropTypes.func,
         onSetProjectTitle: PropTypes.func,
+        onSetRubyVersion: PropTypes.func,
         projectChanged: PropTypes.bool,
         requestProjectUpload: PropTypes.func,
+        rubyVersion: PropTypes.string,
         userOwnsProject: PropTypes.bool,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
-            hasMeshV1Project: PropTypes.func
+            hasMeshV1Project: PropTypes.func,
+            hasKoshienProject: PropTypes.func
         })
     };
     const mapStateToProps = (state, ownProps) => {
@@ -245,6 +249,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
             isTest: state.scratchGui.test.isTest,
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
+            rubyVersion: state.scratchGui.settings.rubyVersion,
             userOwnsProject: ownProps.userOwnsProject ?? (
                 ownProps.authorUsername && user &&
                     (ownProps.authorUsername === user.username)
@@ -265,6 +270,10 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         // show project loading screen
         onLoadingStarted: () => dispatch(openLoadingProject()),
         onSetProjectTitle: title => dispatch(setProjectTitle(title)),
+        onSetRubyVersion: version => {
+            dispatch(setRubyVersion(version));
+            persistRubyVersion(version);
+        },
         // step 4: transition the project state so we're ready to handle the new
         // project data. When this is done, the project state transition will be
         // noticed by componentDidUpdate()

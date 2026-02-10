@@ -14,6 +14,7 @@ export default {
     'gui.sharedMessages.replaceProjectWarning': 'げんざいのプロジェクトのないようを おきかえますか？',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターからよみこむ',
     'gui.sharedMessages.migrateMeshV1Warning': 'このプロジェクトにはじゅうらいのメッシュかくちょうきのうがふくまれていますので4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
+    'gui.sharedMessages.changedRubyVersionByKoshien': 'このプロジェクトにはスモウルビーこうしえんかくちょうきのうがふくまれていますのでルビーをバージョン1にへんこうしました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブからよみこむ',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーをほぞん...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブにただちにほぞん',
@@ -27,6 +28,7 @@ export default {
     'gui.menuBar.saveAIAs': 'AIになまえをつけてほぞん...',
     'gui.menuBar.testAI': 'AIをためす',
     'gui.menuBar.koshienEntryForm': 'さんかもうしこみ',
+    'gui.menuBar.koshienCannotChangeRubyVersion': 'スモウルビーこうしえんかくちょうきのうがよみこまれているときは、Rubyのバージョンをへんこうできません。',
     'gui.menuBar.aiSaving': 'ルビーをほぞんちゅう...',
     'gui.menuBar.aiSaved': 'ルビーがほぞんされました。',
     'gui.smalruby3.alerts.rubyVersionChangeFailed': 'ルビーのバージョンをへんこうできません：さきにルビーのコードのエラーをなおしてください。',
@@ -268,6 +270,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.operator_mathop': '(　) の [ぜったいち▼]',
     'gui.extensionLibrary.showAllExtensions': 'すべてのかくちょうきのうをひょうじ',
     'gui.extensionLibrary.meshDeprecationWarning': 'じゅうらいのメッシュかくちょうきのうは4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
+    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'スモウルビーこうしえんかくちょうきのうは Ruby v1 でのみりようできます。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': 'うえにかたむいた',

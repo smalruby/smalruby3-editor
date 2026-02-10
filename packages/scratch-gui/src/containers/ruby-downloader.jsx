@@ -33,7 +33,8 @@ class RubyDownloader extends React.Component {
         }
         const options = {
             requires: ['smalruby3'],
-            withSpriteNew: true
+            withSpriteNew: true,
+            version: this.props.rubyVersion
         };
         if (this.props.rubyCode.modified) {
             options.targetsCode = {
@@ -140,6 +141,7 @@ RubyDownloader.propTypes = {
     onSetKoshienFileHandle: PropTypes.func,
     projectFilename: PropTypes.string,
     rubyCode: rubyCodeShape,
+    rubyVersion: PropTypes.string,
     sprites: PropTypes.objectOf(PropTypes.shape({
         id: PropTypes.string.isRequired,
         order: PropTypes.number.isRequired
@@ -159,7 +161,8 @@ const mapStateToProps = state => ({
     sprites: state.scratchGui.targets.sprites,
     stage: state.scratchGui.targets.stage,
     vm: state.scratchGui.vm,
-    rubyCode: state.scratchGui.rubyCode
+    rubyCode: state.scratchGui.rubyCode,
+    rubyVersion: state.scratchGui.settings.rubyVersion
 });
 
 const mapDispatchToProps = dispatch => ({

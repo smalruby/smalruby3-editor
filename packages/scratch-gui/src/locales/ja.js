@@ -14,6 +14,7 @@ export default {
     'gui.sharedMessages.replaceProjectWarning': '現在のプロジェクトの内容を置き換えますか？',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターから読み込む',
     'gui.sharedMessages.migrateMeshV1Warning': 'このプロジェクトには従来のメッシュ拡張機能が含まれていますので4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
+    'gui.sharedMessages.changedRubyVersionByKoshien': 'このプロジェクトにはスモウルビー甲子園拡張機能が含まれていますのでルビーをバージョン1に変更しました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブから読み込む',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーを保存...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブに直ちに保存',
@@ -27,6 +28,7 @@ export default {
     'gui.menuBar.saveAIAs': 'AIに名前をつけて保存...',
     'gui.menuBar.testAI': 'AIを試す',
     'gui.menuBar.koshienEntryForm': '参加申し込み',
+    'gui.menuBar.koshienCannotChangeRubyVersion': 'スモウルビー甲子園拡張機能が読み込まれているときは、Rubyのバージョンを変更できません。',
     'gui.menuBar.aiSaving': 'ルビーを保存中...',
     'gui.menuBar.aiSaved': 'ルビーが保存されました。',
     'gui.smalruby3.alerts.rubyVersionChangeFailed': 'ルビーのバージョンを変更できません：先にルビーのコードのエラーを直してください。',
@@ -268,6 +270,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.operator_mathop': '(　) の [絶対値▼]',
     'gui.extensionLibrary.showAllExtensions': 'すべての拡張機能を表示',
     'gui.extensionLibrary.meshDeprecationWarning': '従来のメッシュ拡張機能は4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
+    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'スモウルビー甲子園拡張機能は Ruby v1 でのみ利用できます。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': '上に傾いた',

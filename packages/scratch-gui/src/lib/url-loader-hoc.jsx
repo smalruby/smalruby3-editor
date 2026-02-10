@@ -6,6 +6,7 @@ import intlShape from './intlShape';
 import {connect} from 'react-redux';
 import log from '../lib/log';
 import sharedMessages from './shared-messages';
+import {loadProjectWithChecks} from './project-loader-utils';
 
 import {
     extractScratchProjectId,
@@ -22,6 +23,8 @@ import {
     requestProjectUpload
 } from '../reducers/project-state';
 import {setProjectTitle} from '../reducers/project-title';
+import {setRubyVersion} from '../reducers/settings';
+import {persistRubyVersion} from './settings/ruby-version/persistence';
 import {
     openLoadingProject,
     closeLoadingProject,
@@ -168,17 +171,13 @@ const URLLoaderHOC = function (WrappedComponent) {
                 })
                 .then(projectAsset => {
                     if (projectAsset) {
-                        // smalruby: mesh V1 to V2 migration
-                        return this.props.vm.hasMeshV1Project(projectAsset.data)
-                            .then(hasMeshV1 => {
-                                let migrateMeshV1ToV2 = false;
-                                if (hasMeshV1) {
-                                    migrateMeshV1ToV2 = !confirm( // eslint-disable-line no-alert
-                                        this.props.intl.formatMessage(sharedMessages.migrateMeshV1Warning)
-                                    );
-                                }
-                                return this.props.vm.loadProject(projectAsset.data, {migrateMeshV1ToV2});
-                            });
+                        return loadProjectWithChecks(
+                            this.props.vm,
+                            this.props.intl,
+                            projectAsset.data,
+                            this.props.rubyVersion,
+                            this.props.onSetRubyVersion
+                        );
                     }
                     throw new Error('Could not find project');
                 })
@@ -221,9 +220,11 @@ const URLLoaderHOC = function (WrappedComponent) {
                 onLoadingFinished: _onLoadingFinished,
                 onLoadingStarted: _onLoadingStarted,
                 onSetProjectTitle: _onSetProjectTitle,
+                onSetRubyVersion: _onSetRubyVersion,
                 openUrlLoaderModal: _openUrlLoaderModalProp,
                 projectChanged: _projectChanged,
                 requestProjectUpload: _requestProjectUploadProp,
+                rubyVersion: _rubyVersion,
                 setProjectId: _setProjectIdProp,
                 userOwnsProject: _userOwnsProject,
                 vm,
@@ -257,16 +258,19 @@ const URLLoaderHOC = function (WrappedComponent) {
         onLoadingFinished: PropTypes.func,
         onLoadingStarted: PropTypes.func,
         onSetProjectTitle: PropTypes.func,
+        onSetRubyVersion: PropTypes.func,
         onStartSelectingUrlLoad: PropTypes.func,
         openUrlLoaderModal: PropTypes.func,
         projectChanged: PropTypes.bool,
         requestProjectUpload: PropTypes.func,
+        rubyVersion: PropTypes.string,
         setProjectId: PropTypes.func,
         storage: GUIStoragePropType,
         userOwnsProject: PropTypes.bool,
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
             hasMeshV1Project: PropTypes.func,
+            hasKoshienProject: PropTypes.func,
             runtime: PropTypes.shape({
                 storage: PropTypes.shape({})
             })
@@ -281,6 +285,7 @@ const URLLoaderHOC = function (WrappedComponent) {
             isShowingWithoutId: getIsShowingWithoutId(loadingState),
             loadingState: loadingState,
             projectChanged: state.scratchGui.projectChanged,
+            rubyVersion: state.scratchGui.settings.rubyVersion,
             storage: state.scratchGui.config.storage,
             userOwnsProject: ownProps.authorUsername && user &&
                 (ownProps.authorUsername === user.username),
@@ -301,6 +306,10 @@ const URLLoaderHOC = function (WrappedComponent) {
         },
         onLoadingStarted: () => dispatch(openLoadingProject()),
         onSetProjectTitle: title => dispatch(setProjectTitle(title)),
+        onSetRubyVersion: version => {
+            dispatch(setRubyVersion(version));
+            persistRubyVersion(version);
+        },
         openUrlLoaderModal: () => dispatch(openUrlLoaderModal()),
         requestProjectUpload: loadingState => dispatch(requestProjectUpload(loadingState)),
         setProjectId: projectId => dispatch(setProjectId(projectId))

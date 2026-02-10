@@ -21,6 +21,13 @@ const detectMeshV1Blocks = projectJSON => {
     return false;
 };
 
+const detectKoshien = projectJSON => {
+    if (Array.isArray(projectJSON.extensions)) {
+        return projectJSON.extensions.indexOf('koshien') !== -1;
+    }
+    return false;
+};
+
 /**
  * Migrate the project JSON from legacy mesh to meshV2.
  * @param {object} projectJSON The project JSON to migrate.
@@ -54,5 +61,6 @@ const migrateMeshV1Blocks = projectJSON => {
 
 module.exports = {
     detectMeshV1Blocks,
+    detectKoshien,
     migrateMeshV1Blocks
 };
