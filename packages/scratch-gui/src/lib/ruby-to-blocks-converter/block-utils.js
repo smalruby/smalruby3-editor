@@ -322,26 +322,36 @@ const BlockUtils = {
             return blocks;
         }
         let prevBlock = null;
+        const result = [];
         blocks.forEach(block => {
             if (!this._isBlock(block)) {
                 prevBlock = null;
                 return;
             }
 
-            // Only link if this block doesn't already have a parent
-            if (prevBlock && this._getBlockType(prevBlock) === 'statement' && !block.parent) {
-                prevBlock.next = block.id;
-                block.parent = prevBlock.id;
-            }
-
             const blockType = this._getBlockType(block);
             if (blockType === 'statement') {
+                if (prevBlock && !block.parent) {
+                    prevBlock.next = block.id;
+                    block.parent = prevBlock.id;
+                } else if (!block.parent) {
+                    result.push(block);
+                }
                 prevBlock = block;
+            } else if (blockType === 'terminate') {
+                if (prevBlock && !block.parent) {
+                    prevBlock.next = block.id;
+                    block.parent = prevBlock.id;
+                } else if (!block.parent) {
+                    result.push(block);
+                }
+                prevBlock = null;
             } else {
+                result.push(block);
                 prevBlock = null;
             }
         });
-        return blocks;
+        return result;
     }
 };
 
