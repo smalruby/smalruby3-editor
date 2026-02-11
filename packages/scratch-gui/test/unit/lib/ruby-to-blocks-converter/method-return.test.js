@@ -67,10 +67,10 @@ describe('RubyToBlocksConverter/Method Return', () => {
                             block: {
                                 opcode: 'procedures_prototype',
                                 mutation: {
-                                    proccode: 'made_block %s',
+                                    proccode: 'made_block @%s',
                                     arguments: [
                                         {
-                                            name: 'arg1',
+                                            name: '@arg1',
                                             type: 'string_number'
                                         }
                                     ]
@@ -89,7 +89,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                     fields: [
                                         {
                                             name: 'VALUE',
-                                            value: 'arg1'
+                                            value: '@arg1'
                                         }
                                     ]
                                 },
@@ -119,14 +119,14 @@ describe('RubyToBlocksConverter/Method Return', () => {
                             block: {
                                 opcode: 'procedures_prototype',
                                 mutation: {
-                                    proccode: 'add %s %s',
+                                    proccode: 'add @%s @%s',
                                     arguments: [
                                         {
-                                            name: 'a',
+                                            name: '@a',
                                             type: 'string_number'
                                         },
                                         {
-                                            name: 'b',
+                                            name: '@b',
                                             type: 'string_number'
                                         }
                                     ]
@@ -156,7 +156,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                 fields: [
                                                     {
                                                         name: 'VALUE',
-                                                        value: 'a'
+                                                        value: '@a'
                                                     }
                                                 ]
                                             },
@@ -169,7 +169,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                 fields: [
                                                     {
                                                         name: 'VALUE',
-                                                        value: 'b'
+                                                        value: '@b'
                                                     }
                                                 ]
                                             },
@@ -205,10 +205,10 @@ describe('RubyToBlocksConverter/Method Return', () => {
                             block: {
                                 opcode: 'procedures_prototype',
                                 mutation: {
-                                    proccode: 'greet %s',
+                                    proccode: 'greet @%s',
                                     arguments: [
                                         {
-                                            name: 'name',
+                                            name: '@name',
                                             type: 'string_number'
                                         }
                                     ]
@@ -257,10 +257,10 @@ describe('RubyToBlocksConverter/Method Return', () => {
                             block: {
                                 opcode: 'procedures_prototype',
                                 mutation: {
-                                    proccode: 'calculate %s',
+                                    proccode: 'calculate @%s',
                                     arguments: [
                                         {
-                                            name: 'x',
+                                            name: '@x',
                                             type: 'string_number'
                                         }
                                     ]
@@ -308,7 +308,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                     fields: [
                                                         {
                                                             name: 'VALUE',
-                                                            value: 'x'
+                                                            value: '@x'
                                                         }
                                                     ]
                                                 },
@@ -358,14 +358,14 @@ describe('RubyToBlocksConverter/Method Return', () => {
                             block: {
                                 opcode: 'procedures_prototype',
                                 mutation: {
-                                    proccode: 'add %s %s',
+                                    proccode: 'add @%s @%s',
                                     arguments: [
                                         {
-                                            name: 'a',
+                                            name: '@a',
                                             type: 'string_number'
                                         },
                                         {
-                                            name: 'b',
+                                            name: '@b',
                                             type: 'string_number'
                                         }
                                     ]
@@ -395,7 +395,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                 fields: [
                                                     {
                                                         name: 'VALUE',
-                                                        value: 'a'
+                                                        value: '@a'
                                                     }
                                                 ]
                                             },
@@ -408,7 +408,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                                                 fields: [
                                                     {
                                                         name: 'VALUE',
-                                                        value: 'b'
+                                                        value: '@b'
                                                     }
                                                 ]
                                             },
@@ -442,6 +442,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             // Find the procedures_call block
             const proceduresCall = Object.values(converter.blocks).find(b => b.opcode === 'procedures_call');
             expect(proceduresCall).toBeDefined();
+            expect(proceduresCall.mutation.proccode).toBe('add @%s @%s');
             expect(proceduresCall.comment).toBeUndefined();
         });
 
@@ -461,6 +462,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             // Find the procedures_call block
             const proceduresCall = Object.values(converter.blocks).find(b => b.opcode === 'procedures_call');
             expect(proceduresCall).toBeDefined();
+            expect(proceduresCall.mutation.proccode).toBe('add @%s @%s');
             expect(proceduresCall.comment).toBeDefined();
             const comment = converter._context.comments[proceduresCall.comment];
             expect(comment.text).toBe('@ruby:return:add');
@@ -519,7 +521,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const firstCallId = hatBlock.next;
             const firstCall = blocks[firstCallId];
             expect(firstCall.opcode).toBe('procedures_call');
-            expect(firstCall.mutation.proccode).toBe('add %s %s');
+            expect(firstCall.mutation.proccode).toBe('add @%s @%s');
             
             const evacuationId = firstCall.next;
             const evacuation = blocks[evacuationId];
@@ -529,7 +531,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const secondCallId = evacuation.next;
             const secondCall = blocks[secondCallId];
             expect(secondCall.opcode).toBe('procedures_call');
-            expect(secondCall.mutation.proccode).toBe('add %s %s');
+            expect(secondCall.mutation.proccode).toBe('add @%s @%s');
             
             const thirdCallId = secondCall.next;
             const thirdCall = blocks[thirdCallId];

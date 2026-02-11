@@ -216,7 +216,8 @@ class RubyToBlocksConverter {
                     if (!Object.prototype.hasOwnProperty.call(stage.variables, variable.id)) {
                         stage.createVariable(variable.id, variable.name, variable.type);
                     }
-                } else if (!target.isStage) {
+                } else {
+                    // instance or local
                     if (!Object.prototype.hasOwnProperty.call(target.variables, variable.id)) {
                         target.createVariable(variable.id, variable.name, variable.type);
                     }
