@@ -140,7 +140,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                         fields: [
                             {
                                 name: 'VARIABLE',
-                                variable: '@_return_add'
+                                variable: '@_return_add_'
                             }
                         ],
                         inputs: [
@@ -289,13 +289,12 @@ describe('RubyToBlocksConverter/Method Return', () => {
                         ],
                         next: {
                             opcode: 'data_setvariableto',
-                            fields: [
-                                {
-                                    name: 'VARIABLE',
-                                    variable: '@_return_calculate'
-                                }
-                            ],
-                            inputs: [
+                                                    fields: [
+                                                        {
+                                                            name: 'VARIABLE',
+                                                            variable: '@_return_calculate_'
+                                                        }
+                                                    ],                            inputs: [
                                 {
                                     name: 'VALUE',
                                     block: {
@@ -346,7 +345,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
         test('explicit return variable assignment should NOT add @ruby:return comment', () => {
             const code = `
                 def self.add(a, b)
-                  @_return_add = a + b
+                  @_return_add_ = a + b
                 end
             `;
             const expected = [
@@ -379,7 +378,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                         fields: [
                             {
                                 name: 'VARIABLE',
-                                variable: '@_return_add'
+                                variable: '@_return_add_'
                             }
                         ],
                         inputs: [
@@ -524,7 +523,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const evacuationId = firstCall.next;
             const evacuation = blocks[evacuationId];
             expect(evacuation.opcode).toBe('data_setvariableto');
-            expect(evacuation.fields.VARIABLE.value).toBe('_return_add_1');
+            expect(evacuation.fields.VARIABLE.value).toBe('_return_add_1_');
             
             const secondCallId = evacuation.next;
             const secondCall = blocks[secondCallId];
@@ -537,9 +536,9 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
             // Check arguments
             const arg1Id = Object.values(secondCall.inputs)[0].block;
-            expect(blocks[arg1Id].fields.VARIABLE.value).toBe('_return_add_1');
+            expect(blocks[arg1Id].fields.VARIABLE.value).toBe('_return_add_1_');
             expect(thirdCall.inputs.MESSAGE.block).toBeDefined();
-            expect(blocks[thirdCall.inputs.MESSAGE.block].fields.VARIABLE.value).toBe('_return_add');
+            expect(blocks[thirdCall.inputs.MESSAGE.block].fields.VARIABLE.value).toBe('_return_add_');
 
             // Verify Blocks -> Ruby
             await converter.applyTargetBlocks(target);
@@ -679,7 +678,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
             const firstEvacuation = blocks[firstCall.next];
             expect(firstEvacuation.opcode).toBe('data_setvariableto');
-            expect(firstEvacuation.fields.VARIABLE.value).toBe('_return_add_1');
+            expect(firstEvacuation.fields.VARIABLE.value).toBe('_return_add_1_');
             expect(converter._context.comments[firstEvacuation.comment].text).toBe('@ruby:return:add:1');
 
             const secondCall = blocks[firstEvacuation.next];
@@ -688,7 +687,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
             const secondEvacuation = blocks[secondCall.next];
             expect(secondEvacuation.opcode).toBe('data_setvariableto');
-            expect(secondEvacuation.fields.VARIABLE.value).toBe('_return_add_2');
+            expect(secondEvacuation.fields.VARIABLE.value).toBe('_return_add_2_');
             expect(converter._context.comments[secondEvacuation.comment].text).toBe('@ruby:return:add:2');
 
             const topCall = blocks[secondEvacuation.next];
@@ -704,8 +703,8 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const RubyGenerator = require('../../../../src/lib/ruby-generator').default;
             const generatedRuby = RubyGenerator.targetToCode(target);
             
-            expect(generatedRuby).not.toMatch(/@_return_add_1 = @_return_add/);
-            expect(generatedRuby).not.toMatch(/@_return_add_2 = @_return_add/);
+            expect(generatedRuby).not.toMatch(/@_return_add_1_ = @_return_add_/);
+            expect(generatedRuby).not.toMatch(/@_return_add_2_ = @_return_add_/);
             expect(generatedRuby).toMatch(/say\(add\(add\(2, 5\), add\(4, 6\)\)\)/);
         });
 
@@ -733,7 +732,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
             const firstEvacuation = blocks[firstCall.next];
             expect(firstEvacuation.opcode).toBe('data_setvariableto');
-            expect(firstEvacuation.fields.VARIABLE.value).toBe('_return_add_1');
+            expect(firstEvacuation.fields.VARIABLE.value).toBe('_return_add_1_');
 
             // add(@_return_add_1, 3) -> index 2
             const secondCall = blocks[firstEvacuation.next];
@@ -742,7 +741,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
             const secondEvacuation = blocks[secondCall.next];
             expect(secondEvacuation.opcode).toBe('data_setvariableto');
-            expect(secondEvacuation.fields.VARIABLE.value).toBe('_return_add_2');
+            expect(secondEvacuation.fields.VARIABLE.value).toBe('_return_add_2_');
 
             // add(@_return_add_2, 4) -> index 3 (last)
             const topCall = blocks[secondEvacuation.next];

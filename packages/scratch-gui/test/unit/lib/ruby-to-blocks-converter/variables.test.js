@@ -882,4 +882,41 @@ describe('RubyToBlocksConverter/Variables', () => {
             expect(res).toBeTruthy();
         });
     });
+
+    describe('Pseudo-Local Variable Naming', () => {
+        test('local variable should have leading and trailing underscores and scope index', () => {
+            const code = 'x = 1';
+            const expected = [
+                {
+                    opcode: 'data_setvariableto',
+                    fields: [
+                        {
+                            name: 'VARIABLE',
+                            variable: '_x_1_'
+                        }
+                    ],
+                    inputs: [
+                        {
+                            name: 'VALUE',
+                            block: expectedInfo.makeText('1')
+                        }
+                    ]
+                }
+            ];
+            convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('local variable in method should have scope index 2', () => {
+            const code = `
+                def self.test
+                  y = 2
+                end
+            `;
+            const res = converter.targetCodeToBlocks(target, code);
+            expect(res).toBeTruthy();
+            const setVarBlock = Object.values(converter.blocks).find(b => b.opcode === 'data_setvariableto');
+            expect(setVarBlock).toBeDefined();
+            expect(setVarBlock.fields.VARIABLE.value).toBe('_y_2_');
+        });
+    });
 });
