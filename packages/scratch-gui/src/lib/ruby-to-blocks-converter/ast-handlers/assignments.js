@@ -31,10 +31,15 @@ const AssignmentHandlers = {
         }
 
         if (preBlocks.length > 0 && block) {
-            if (_.isArray(block)) {
-                return [...preBlocks, ...block];
+            const allBlocks = _.isArray(block) ? [...preBlocks, ...block] : [...preBlocks, block];
+            this._linkBlocks(allBlocks);
+            // If there's only one top-level block (all others are linked as children), return it
+            // Otherwise return the array (e.g., evacuation blocks need to remain as an array)
+            const topLevelBlocks = allBlocks.filter(b => this._isBlock(b) && !b.parent);
+            if (topLevelBlocks.length === 1) {
+                return topLevelBlocks[0];
             }
-            return [...preBlocks, block];
+            return allBlocks;
         }
         return block;
     },
@@ -68,10 +73,15 @@ const AssignmentHandlers = {
         }
 
         if (preBlocks.length > 0 && block) {
-            if (_.isArray(block)) {
-                return [...preBlocks, ...block];
+            const allBlocks = _.isArray(block) ? [...preBlocks, ...block] : [...preBlocks, block];
+            this._linkBlocks(allBlocks);
+            // If there's only one top-level block (all others are linked as children), return it
+            // Otherwise return the array (e.g., evacuation blocks need to remain as an array)
+            const topLevelBlocks = allBlocks.filter(b => this._isBlock(b) && !b.parent);
+            if (topLevelBlocks.length === 1) {
+                return topLevelBlocks[0];
             }
-            return [...preBlocks, block];
+            return allBlocks;
         }
         return block;
     },
