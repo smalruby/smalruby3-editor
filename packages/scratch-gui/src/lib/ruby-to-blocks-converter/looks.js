@@ -82,13 +82,49 @@ const validateBackdrop = function (converter, backdropName, args) {
 const LooksConverter = {
     register: function (converter) {
         ['print', 'puts', 'p'].forEach(methodName => {
-            converter.registerOnSend('sprite', methodName, 1, params => {
+            converter.registerOnSend('sprite', methodName, -1, params => {
                 const {args} = params;
-                if (!converter._isNumberOrStringOrBlock(args[0])) return null;
+                if (args.length === 0) return null;
+                if (!args.every(arg => converter._isNumberOrStringOrBlock(arg))) return null;
 
-                const block = createBlockWithMessage(converter, 'looks_say', args[0], 'Hello!');
-                block.comment = converter.createComment(`@ruby:method:${methodName}`, block.id, 200, 0);
-                return block;
+                let firstBlock = null;
+                let lastBlock = null;
+
+                args.forEach(arg => {
+                    const block = converter._createBlock('looks_sayforsecs', 'statement');
+                    converter._addTextInput(
+                        block, 'MESSAGE', converter._isNumber(arg) ? arg.toString() : arg, 'Hello!'
+                    );
+                    converter._addNumberInput(block, 'SECS', 'math_number', 1, 1);
+
+                    let commentText = `@ruby:method:${methodName}`;
+                    if (converter._isNumber(arg)) {
+                        let typeName;
+                        if (arg.type === 'int') {
+                            typeName = 'Integer';
+                        } else if (arg.type === 'float') {
+                            typeName = 'Float';
+                        } else if (_.isNumber(arg)) {
+                            typeName = Number.isInteger(arg) ? 'Integer' : 'Float';
+                        }
+                        if (typeName) {
+                            commentText += `,@ruby:argument:1:type:${typeName}`;
+                        }
+                    }
+
+                    block.comment = converter.createComment(commentText, block.id, 200, 0);
+
+                    if (!firstBlock) {
+                        firstBlock = block;
+                    }
+                    if (lastBlock) {
+                        lastBlock.next = block.id;
+                        block.parent = lastBlock.id;
+                    }
+                    lastBlock = block;
+                });
+
+                return firstBlock;
             });
         });
 

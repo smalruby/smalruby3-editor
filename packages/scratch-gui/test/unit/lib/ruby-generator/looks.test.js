@@ -30,43 +30,86 @@ describe('RubyGenerator/Looks', () => {
         test('with @ruby:method:print', () => {
             const block = {
                 id: 'block-id',
-                opcode: 'looks_say',
+                opcode: 'looks_sayforsecs',
                 inputs: {
-                    MESSAGE: {}
+                    MESSAGE: {},
+                    SECS: {}
                 }
             };
             RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:print' };
-            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"Hello!"');
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('"Hello!"')
+                .mockReturnValueOnce('1');
             const expected = 'print("Hello!")\n';
-            expect(RubyGenerator.looks_say(block)).toEqual(expected);
+            expect(RubyGenerator.looks_sayforsecs(block)).toEqual(expected);
         });
 
         test('with @ruby:method:puts', () => {
             const block = {
                 id: 'block-id',
-                opcode: 'looks_say',
+                opcode: 'looks_sayforsecs',
                 inputs: {
-                    MESSAGE: {}
+                    MESSAGE: {},
+                    SECS: {}
                 }
             };
             RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:puts' };
-            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"Hello!"');
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('"Hello!"')
+                .mockReturnValueOnce('1');
             const expected = 'puts("Hello!")\n';
-            expect(RubyGenerator.looks_say(block)).toEqual(expected);
+            expect(RubyGenerator.looks_sayforsecs(block)).toEqual(expected);
         });
 
         test('with @ruby:method:p', () => {
             const block = {
                 id: 'block-id',
-                opcode: 'looks_say',
+                opcode: 'looks_sayforsecs',
                 inputs: {
-                    MESSAGE: {}
+                    MESSAGE: {},
+                    SECS: {}
                 }
             };
             RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:p' };
-            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"Hello!"');
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('"Hello!"')
+                .mockReturnValueOnce('1');
             const expected = 'p("Hello!")\n';
-            expect(RubyGenerator.looks_say(block)).toEqual(expected);
+            expect(RubyGenerator.looks_sayforsecs(block)).toEqual(expected);
+        });
+
+        test('with @ruby:method:puts and @ruby:argument:1:type:Integer', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'looks_sayforsecs',
+                inputs: {
+                    MESSAGE: {},
+                    SECS: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:puts,@ruby:argument:1:type:Integer' };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('"10"')
+                .mockReturnValueOnce('1');
+            const expected = 'puts(10)\n';
+            expect(RubyGenerator.looks_sayforsecs(block)).toEqual(expected);
+        });
+
+        test('with @ruby:method:puts and @ruby:argument:1:type:Float', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'looks_sayforsecs',
+                inputs: {
+                    MESSAGE: {},
+                    SECS: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:puts,@ruby:argument:1:type:Float' };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('"3.5"')
+                .mockReturnValueOnce('1');
+            const expected = 'puts(3.5)\n';
+            expect(RubyGenerator.looks_sayforsecs(block)).toEqual(expected);
         });
 
         test('with unknown @ruby: tag defaults to say', () => {
@@ -86,25 +129,29 @@ describe('RubyGenerator/Looks', () => {
         test('print with newline character', () => {
             const block = {
                 id: 'block-id',
-                opcode: 'looks_say',
-                inputs: { MESSAGE: {} }
+                opcode: 'looks_sayforsecs',
+                inputs: { MESSAGE: {}, SECS: {} }
             };
             RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:print' };
-            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"Hello, Ruby.\\n"');
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('"Hello, Ruby.\\n"')
+                .mockReturnValueOnce('1');
             const expected = 'print("Hello, Ruby.\\n")\n';
-            expect(RubyGenerator.looks_say(block)).toEqual(expected);
+            expect(RubyGenerator.looks_sayforsecs(block)).toEqual(expected);
         });
 
         test('puts with tab character', () => {
             const block = {
                 id: 'block-id',
-                opcode: 'looks_say',
-                inputs: { MESSAGE: {} }
+                opcode: 'looks_sayforsecs',
+                inputs: { MESSAGE: {}, SECS: {} }
             };
             RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:puts' };
-            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"Hello\\tRuby"');
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('"Hello\\tRuby"')
+                .mockReturnValueOnce('1');
             const expected = 'puts("Hello\\tRuby")\n';
-            expect(RubyGenerator.looks_say(block)).toEqual(expected);
+            expect(RubyGenerator.looks_sayforsecs(block)).toEqual(expected);
         });
     });
 

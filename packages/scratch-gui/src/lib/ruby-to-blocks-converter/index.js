@@ -395,12 +395,18 @@ class RubyToBlocksConverter {
         if (!methodToNumArgs) return null;
         const numArgsToNumRubyBlockArgs = methodToNumArgs[name];
         if (!numArgsToNumRubyBlockArgs) return null;
-        const numRubyBlockArgsToCreateBlockFuncs = numArgsToNumRubyBlockArgs[args.length];
+        let numRubyBlockArgsToCreateBlockFuncs = numArgsToNumRubyBlockArgs[args.length];
+        if (!numRubyBlockArgsToCreateBlockFuncs) {
+            numRubyBlockArgsToCreateBlockFuncs = numArgsToNumRubyBlockArgs[-1];
+        }
         if (!numRubyBlockArgsToCreateBlockFuncs) return null;
 
         let numRubyBlockArgs = 'none';
         if (rubyBlock) numRubyBlockArgs = rubyBlockArgs.length;
-        const createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs[numRubyBlockArgs];
+        let createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs[numRubyBlockArgs];
+        if (!createBlockFuncs) {
+            createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs[-1];
+        }
         if (!createBlockFuncs) return null;
 
         const params = {

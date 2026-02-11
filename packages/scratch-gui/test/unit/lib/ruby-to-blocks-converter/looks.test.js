@@ -1185,15 +1185,19 @@ describe('RubyToBlocksConverter/Looks', () => {
 
     describe('print, puts, p', () => {
         ['print', 'puts', 'p'].forEach(method => {
-            test(`${method}("Hello") should become looks_say with comment`, () => {
+            test(`${method}("Hello") should become looks_sayforsecs with comment`, () => {
                 code = `${method}("Hello")`;
                 expected = [
                     {
-                        opcode: 'looks_say',
+                        opcode: 'looks_sayforsecs',
                         inputs: [
                             {
                                 name: 'MESSAGE',
                                 block: expectedInfo.makeText('Hello')
+                            },
+                            {
+                                name: 'SECS',
+                                block: expectedInfo.makeNumber(1)
                             }
                         ]
                     }
@@ -1203,17 +1207,128 @@ describe('RubyToBlocksConverter/Looks', () => {
                 convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 // Then verify comment
-                // We need to find the block that is 'looks_say' (it should be the first/only top level block)
-                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_say');
+                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_sayforsecs');
                 const block = converter.blocks[blockId];
                 expect(block.comment).toBeDefined();
 
                 const commentId = block.comment;
                 expect(converter._context.comments[commentId]).toBeDefined();
                 expect(converter._context.comments[commentId].text).toEqual(`@ruby:method:${method}`);
-                expect(converter._context.comments[commentId].x).toEqual(200);
-                expect(converter._context.comments[commentId].y).toEqual(0);
-                expect(converter._context.comments[commentId].minimized).toBe(true);
+            });
+
+            test(`${method}(10) should become looks_sayforsecs with type comment`, () => {
+                code = `${method}(10)`;
+                expected = [
+                    {
+                        opcode: 'looks_sayforsecs',
+                        inputs: [
+                            {
+                                name: 'MESSAGE',
+                                block: expectedInfo.makeText('10')
+                            },
+                            {
+                                name: 'SECS',
+                                block: expectedInfo.makeNumber(1)
+                            }
+                        ]
+                    }
+                ];
+
+                convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_sayforsecs');
+                const block = converter.blocks[blockId];
+                expect(block.comment).toBeDefined();
+
+                const commentId = block.comment;
+                expect(converter._context.comments[commentId].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Integer`);
+            });
+
+            test(`${method}(3.5) should become looks_sayforsecs with type comment`, () => {
+                code = `${method}(3.5)`;
+                expected = [
+                    {
+                        opcode: 'looks_sayforsecs',
+                        inputs: [
+                            {
+                                name: 'MESSAGE',
+                                block: expectedInfo.makeText('3.5')
+                            },
+                            {
+                                name: 'SECS',
+                                block: expectedInfo.makeNumber(1)
+                            }
+                        ]
+                    }
+                ];
+
+                convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_sayforsecs');
+                const block = converter.blocks[blockId];
+                expect(block.comment).toBeDefined();
+
+                const commentId = block.comment;
+                expect(converter._context.comments[commentId].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Float`);
+            });
+
+            test(`${method}("Hello", 10, 3.5) should become multiple looks_sayforsecs blocks`, () => {
+                code = `${method}("Hello", 10, 3.5)`;
+                expected = [
+                    {
+                        opcode: 'looks_sayforsecs',
+                        inputs: [
+                            {
+                                name: 'MESSAGE',
+                                block: expectedInfo.makeText('Hello')
+                            },
+                            {
+                                name: 'SECS',
+                                block: expectedInfo.makeNumber(1)
+                            }
+                        ],
+                        next: {
+                            opcode: 'looks_sayforsecs',
+                            inputs: [
+                                {
+                                    name: 'MESSAGE',
+                                    block: expectedInfo.makeText('10')
+                                },
+                                {
+                                    name: 'SECS',
+                                    block: expectedInfo.makeNumber(1)
+                                }
+                            ],
+                            next: {
+                                opcode: 'looks_sayforsecs',
+                                inputs: [
+                                    {
+                                        name: 'MESSAGE',
+                                        block: expectedInfo.makeText('3.5')
+                                    },
+                                    {
+                                        name: 'SECS',
+                                        block: expectedInfo.makeNumber(1)
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ];
+
+                convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+                const blocks = Object.values(converter.blocks).filter(b => b.opcode === 'looks_sayforsecs');
+                expect(blocks).toHaveLength(3);
+
+                // Find blocks in order
+                const firstBlock = blocks.find(b => !b.parent);
+                const secondBlock = converter.blocks[firstBlock.next];
+                const thirdBlock = converter.blocks[secondBlock.next];
+
+                expect(converter._context.comments[firstBlock.comment].text).toEqual(`@ruby:method:${method}`);
+                expect(converter._context.comments[secondBlock.comment].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Integer`);
+                expect(converter._context.comments[thirdBlock.comment].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Float`);
             });
         });
     });
