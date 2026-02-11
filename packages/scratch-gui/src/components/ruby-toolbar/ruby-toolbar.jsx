@@ -42,13 +42,9 @@ const messages = defineMessages({
 class RubyToolbar extends React.Component {
     constructor (props) {
         super(props);
-        this.state = {
-            searchValue: ''
-        };
         this.handlePrevSprite = this.handlePrevSprite.bind(this);
         this.handleNextSprite = this.handleNextSprite.bind(this);
         this.handleSearchChange = this.handleSearchChange.bind(this);
-        this.handleSearchSelect = this.handleSearchSelect.bind(this);
         this.handleUndo = this.handleUndo.bind(this);
         this.handleRedo = this.handleRedo.bind(this);
     }
@@ -112,14 +108,9 @@ class RubyToolbar extends React.Component {
     }
 
     handleSearchChange (e) {
-        this.setState({searchValue: e.target.value});
-    }
-
-    handleSearchSelect (e) {
         const targetId = e.target.value;
         if (targetId) {
             this.props.onSelectTarget(targetId);
-            this.setState({searchValue: ''});
         }
     }
 
@@ -214,15 +205,11 @@ class RubyToolbar extends React.Component {
 
                 {/* Navigation Control */}
                 <div className={styles.searchControlWrapper}>
-                    <input
+                    <select
                         className={styles.searchControl}
-                        type="text"
-                        list="sprite-list"
-                        value={this.state.searchValue || currentName}
+                        value={this.props.editingTarget?.id || ''}
                         onChange={this.handleSearchChange}
-                        placeholder={intl.formatMessage(messages.searchPlaceholder)}
-                    />
-                    <datalist id="sprite-list">
+                    >
                         {stage && (
                             <option
                                 key={stage.id}
@@ -239,7 +226,7 @@ class RubyToolbar extends React.Component {
                                 {this.getTargetName(sprite)}
                             </option>
                         ))}
-                    </datalist>
+                    </select>
                 </div>
 
                 <div className={styles.separator} />
@@ -253,7 +240,7 @@ class RubyToolbar extends React.Component {
                         aria-label={intl.formatMessage(messages.undo)}
                         title={intl.formatMessage(messages.undo)}
                     >
-                        ⟲
+                        ↶
                     </button>
                     <button
                         className={styles.button}
@@ -262,7 +249,7 @@ class RubyToolbar extends React.Component {
                         aria-label={intl.formatMessage(messages.redo)}
                         title={intl.formatMessage(messages.redo)}
                     >
-                        ⟳
+                        ↷
                     </button>
                 </div>
             </div>
