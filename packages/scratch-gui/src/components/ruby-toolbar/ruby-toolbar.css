@@ -1,0 +1,75 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    background-color: #f2f2f2;
+    border-bottom: 1px solid hsla(0, 0%, 0%, 0.15);
+    padding: 4px 8px;
+    gap: 8px;
+}
+
+.navGroup {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.button {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #575e75;
+    transition: background-color 0.2s;
+}
+
+.button:hover:not(:disabled) {
+    background-color: #e0e0e0;
+}
+
+.button:active:not(:disabled) {
+    background-color: #d0d0d0;
+}
+
+.button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.searchControlWrapper {
+    flex: 1;
+    max-width: 400px;
+}
+
+.searchControl {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+    color: #575e75;
+}
+
+.searchControl:focus {
+    outline: none;
+    border-color: #4c97ff;
+    box-shadow: 0 0 0 2px rgba(76, 151, 255, 0.2);
+}
+
+.separator {
+    width: 1px;
+    height: 24px;
+    background-color: #d0d0d0;
+    margin: 0 4px;
+}

@@ -238,5 +238,13 @@ export default {
     'gui.connection.meshV2Initial.joinGroupDescription': 'Join Group',
     'gui.connection.meshV2Initial.domainHelp': 'If groups are not displayed in the list, please set a domain.{br}A postal code for your school or facility is recommended.',
     'gui.connection.meshV2Initial.domainInvalidError': 'Domain name contains invalid characters.',
-    'gui.connection.meshV2Initial.domainTooLongError': 'Domain name is too long (max 256 characters).'
+    'gui.connection.meshV2Initial.domainTooLongError': 'Domain name is too long (max 256 characters).',
+
+    // Ruby Toolbar messages
+    'gui.rubyToolbar.searchPlaceholder': 'Search sprites...',
+    'gui.rubyToolbar.prevSprite': 'Previous sprite',
+    'gui.rubyToolbar.nextSprite': 'Next sprite',
+    'gui.rubyToolbar.undo': 'Undo',
+    'gui.rubyToolbar.redo': 'Redo',
+    'gui.rubyToolbar.stage': 'Stage'
 };

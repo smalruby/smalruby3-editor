@@ -24,6 +24,7 @@ import {smalrubyLanguage} from './ruby-tab/smalruby-mode';
 
 import rubyIcon from './ruby-tab/icon--ruby.svg';
 import RubyDownloader from './ruby-downloader.jsx';
+import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
 import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
@@ -47,7 +48,8 @@ class RubyTab extends React.Component {
             'getSaveToComputerHandler',
             'getSaveAIHandler',
             'handleAISaveFinished',
-            'handleAISaveError'
+            'handleAISaveError',
+            'handleSelectTarget'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
         this.editorRef = null;
@@ -295,9 +297,20 @@ class RubyTab extends React.Component {
         this.props.onClearAiSaveStatus();
     }
 
+    handleSelectTarget (targetId) {
+        // Set editing target in VM
+        const target = this.props.vm.runtime.getTargetById(targetId);
+        if (target) {
+            this.props.vm.setEditingTarget(target.id);
+        }
+    }
+
     render () {
         const {
-            rubyCode
+            rubyCode,
+            editingTarget,
+            vm,
+            intl
         } = this.props;
         const {
             code,
@@ -310,6 +323,13 @@ class RubyTab extends React.Component {
                     ref={this.setContainerRef}
                     className={styles.editorContainer}
                 >
+                    <RubyToolbar
+                        editingTarget={editingTarget}
+                        vm={vm}
+                        editorRef={this.editorRef}
+                        onSelectTarget={this.handleSelectTarget}
+                        intl={intl}
+                    />
                     <div className={styles.editorWrapper}>
                         <Editor
                             key={this.props.locale}

@@ -111,7 +111,7 @@ $arrow-rounding: 0.125rem;
 
 .editorWrapper {
     position: absolute;
-    top: 0;
+    top: 36px; /* Toolbar height */
     left: 0;
     right: 0;
     bottom: 0;
