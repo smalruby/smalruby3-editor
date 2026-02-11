@@ -83,7 +83,7 @@ describe('RubyToBlocksConverter/Gets', () => {
                 }
             ];
             expected[0].next = {
-                opcode: 'looks_say',
+                opcode: 'looks_sayforsecs',
                 inputs: [
                     {
                         name: 'MESSAGE',
@@ -95,6 +95,10 @@ describe('RubyToBlocksConverter/Gets', () => {
                             }
                         },
                         shadow: expectedInfo.makeText('Hello!')
+                    },
+                    {
+                        name: 'SECS',
+                        block: expectedInfo.makeNumber(1)
                     }
                 ],
                 comment: {
