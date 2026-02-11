@@ -40,11 +40,19 @@ export default function (Generator) {
     };
 
     Generator.sensing_askandwait = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:method:gets')) {
+            return '';
+        }
         const question = Generator.valueToCode(block, 'QUESTION', Generator.ORDER_NONE) || null;
         return `ask(${question})\n`;
     };
 
-    Generator.sensing_answer = function () {
+    Generator.sensing_answer = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:method:gets')) {
+            return ['gets', Generator.ORDER_ATOMIC];
+        }
         return ['answer', Generator.ORDER_ATOMIC];
     };
 

@@ -134,9 +134,22 @@ class RubyToBlocksConverter {
             if (!_.isArray(blocks)) {
                 blocks = [blocks];
             }
+            if (blocks.length >= 2 && this._isBlock(blocks[0])) {
+                for (let i = 0; i < blocks.length - 1; i++) {
+                    if (this._isBlock(blocks[i]) && this._isBlock(blocks[i + 1]) &&
+                        this._isStatementBlock(blocks[i]) &&
+                        this._isStatementBlock(blocks[i + 1]) &&
+                        !blocks[i].next && !blocks[i + 1].parent) {
+                        blocks[i].next = blocks[i + 1].id;
+                        blocks[i + 1].parent = blocks[i].id;
+                    }
+                }
+            }
             blocks.forEach(block => {
                 if (this._isBlock(block)) {
-                    block.topLevel = true;
+                    if (!block.parent) {
+                        block.topLevel = true;
+                    }
                 } else {
                     const Primitive = require('./primitive').default;
                     if (block instanceof Primitive) {
