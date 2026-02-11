@@ -308,7 +308,6 @@ class RubyTab extends React.Component {
     render () {
         const {
             rubyCode,
-            editingTarget,
             vm,
             intl
         } = this.props;
@@ -324,7 +323,7 @@ class RubyTab extends React.Component {
                     className={styles.editorContainer}
                 >
                     <RubyToolbar
-                        editingTarget={editingTarget}
+                        editingTarget={vm.editingTarget}
                         vm={vm}
                         editorRef={this.editorRef}
                         onSelectTarget={this.handleSelectTarget}

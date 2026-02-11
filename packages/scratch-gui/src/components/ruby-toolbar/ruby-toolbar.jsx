@@ -136,10 +136,22 @@ class RubyToolbar extends React.Component {
     }
 
     getTargetName (target) {
+        if (!target) {
+            return '';
+        }
         if (target.isStage) {
             return this.props.intl.formatMessage(messages.stage);
         }
-        return target.sprite ? target.sprite.name : target.getName();
+        // Try getName() method first (VM target objects have this)
+        if (typeof target.getName === 'function') {
+            return target.getName();
+        }
+        // Fallback to sprite.name property
+        if (target.sprite && target.sprite.name) {
+            return target.sprite.name;
+        }
+        // Last resort: use name property directly
+        return target.name || '';
     }
 
     getCurrentTargetName () {
@@ -259,14 +271,7 @@ class RubyToolbar extends React.Component {
 }
 
 RubyToolbar.propTypes = {
-    editingTarget: PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        sprite: PropTypes.shape({
-            name: PropTypes.string
-        }),
-        isStage: PropTypes.bool,
-        getName: PropTypes.func
-    }),
+    editingTarget: PropTypes.object,
     vm: PropTypes.instanceOf(VM).isRequired,
     editorRef: PropTypes.object,
     onSelectTarget: PropTypes.func.isRequired,
