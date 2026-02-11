@@ -123,18 +123,43 @@ Before considering a task complete and preparing a Pull Request, follow these st
     ```
 3.  **Run Unit Tests**:
     ```bash
+    # all tests
     docker compose run --rm app npm run test:unit
+    # run specific test (scratch-vm or scratch-gui)
+    docker compose run --rm app bash -c "cd /app/packages/scratch-vm && npm exec tap test/path/to/your-test.js"
+    docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/path/to/your-test.js"
     ```
-4.  **Run Integration Tests** (if applicable):
+4.  **Build the application**:
     ```bash
-    docker compose run --rm app npm run test:integration
+    docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run build:dev"
     ```
-5.  **Build Check**: Ensure the project builds successfully.
+5.  **Run Integration Tests** (if applicable):
+    ```bash
+    # all tests
+    docker compose run --rm app npm run test:integration
+    # run specific test (scratch-vm or scratch-gui)
+    docker compose run --rm app bash -c "cd /app/packages/scratch-vm && npm exec tap test/path/to/your-test.js"
+    docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/path/to/your-test.js"
+    ```
+6.  **Debug with browser logs**:
+    ```javascript
+    import SeleniumHelper from '../helpers/selenium-helper';
+    const { getLogs } = new SeleniumHelper();
+
+    test('Your test', async () => {
+        // ... test code ...
+
+        // Get all logs (INFO, WARNING, SEVERE)
+        const logs = await getLogs({ includeAllLevels: true });
+        console.log('Browser logs:', logs);
+    });
+    ```
+7.  **Build Check**: Ensure the project builds successfully.
     ```bash
     docker compose run --rm app npm run build
     ```
-6.  **Git Status**: Check for untracked files and ensure all changes are staged.
-7.  **Commit**: Use Conventional Commits and ensure you are NOT on the `develop` branch.
+8.  **Git Status**: Check for untracked files and ensure all changes are staged.
+9.  **Commit**: Use Conventional Commits and ensure you are NOT on the `develop` branch.
 
 ## Contribution Guidelines
 
