@@ -78,9 +78,9 @@ const MyBlocksConverter = {
                 if (callIndex < callCount) {
                     varSuffix = `_${callIndex}`;
 
-                    // Create evacuation block: @_return_name_N = @_return_name
-                    const targetVariable = converter._lookupOrCreateVariable(`@_return_${name}${varSuffix}`);
-                    const sourceVariable = converter._lookupOrCreateVariable(`@_return_${name}`);
+                    // Create evacuation block: @_return_name_N_ = @_return_name_
+                    const targetVariable = converter._lookupOrCreateVariable(`@_return_${name}${varSuffix}_`);
+                    const sourceVariable = converter._lookupOrCreateVariable(`@_return_${name}_`);
 
                     const sourceBlock = converter._createBlock('data_variable', 'value_variable', {
                         fields: {
@@ -113,7 +113,7 @@ const MyBlocksConverter = {
                     resultBlocks.push(evacuationBlock);
                 }
 
-                const variable = converter._lookupOrCreateVariable(`@_return_${name}${varSuffix}`);
+                const variable = converter._lookupOrCreateVariable(`@_return_${name}${varSuffix}_`);
                 const varBlock = converter._createBlock('data_variable', 'value_variable', {
                     fields: {
                         VARIABLE: {
@@ -233,7 +233,7 @@ const MyBlocksConverter = {
                 const last = body[lastIdx];
                 if (converter._isValueBlock(last) &&
                     !(last instanceof Primitive && (last.type === 'self' || last.type === 'nil'))) {
-                    const variable = converter._lookupOrCreateVariable(`@_return_${procedureName}`);
+                    const variable = converter._lookupOrCreateVariable(`@_return_${procedureName}_`);
                     const returnBlock = converter._createBlock('data_setvariableto', 'statement', {
                         fields: {
                             VARIABLE: {

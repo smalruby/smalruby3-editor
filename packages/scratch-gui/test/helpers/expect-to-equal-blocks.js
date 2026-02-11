@@ -223,7 +223,7 @@ const expectToEqualBlocks = function (converter, expectedBlocksInfo) {
     const context = {
         converter: converter,
         blocks: blocks,
-        variables: converter.variables,
+        variables: Object.assign({}, converter.variables, converter._context.localVariables),
         lists: converter.lists,
         broadcastMsgs: converter.broadcastMsgs
     };
@@ -410,7 +410,7 @@ const rubyToExpected = function (converter, target, code) {
     const context = {
         converter: converter,
         blocks: blocks,
-        variables: converter.variables,
+        variables: Object.assign({}, converter.variables, converter._context.localVariables),
         lists: converter.lists,
         broadcastMsgs: converter.broadcastMsgs
     };
