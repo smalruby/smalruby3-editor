@@ -99,7 +99,7 @@ describe('Ruby Tab: Looks category blocks', () => {
         test('Ruby -> Code -> Ruby with type preservation', async () => {
             await loadUri(urlFor('/'));
 
-            const code = dedent`
+            const inputCode = dedent`
                 puts("ハロー！")
                 puts(10)
                 puts(3.5)
@@ -113,7 +113,27 @@ describe('Ruby Tab: Looks category blocks', () => {
                 p(5.5)
                 p("Blocks", 40, 5.5)
             `;
-            await expectInterconvertBetweenCodeAndRuby(code);
+            const expectedCode = dedent`
+                puts("ハロー！")
+                puts(10)
+                puts(3.5)
+                puts("Hello")
+                puts(10)
+                puts(3.5)
+                print("World")
+                print(20)
+                print(4.5)
+                print("Ruby")
+                print(30)
+                print(4.5)
+                p("Test")
+                p(30)
+                p(5.5)
+                p("Blocks")
+                p(40)
+                p(5.5)
+            `;
+            await expectInterconvertBetweenCodeAndRuby(inputCode, expectedCode);
         });
     });
 });

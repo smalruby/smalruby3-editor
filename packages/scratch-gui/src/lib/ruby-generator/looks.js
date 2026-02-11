@@ -50,33 +50,20 @@ export default function (Generator) {
     Generator.looks_sayforsecs = function (block) {
         const message = Generator.valueToCode(block, 'MESSAGE', Generator.ORDER_NONE) || Generator.quote_('');
         const secs = Generator.valueToCode(block, 'SECS', Generator.ORDER_NONE) || '0';
-        return `say(${message}, ${secs})\n`;
-    };
-
-    Generator.looks_say = function (block) {
-        const message = Generator.valueToCode(block, 'MESSAGE', Generator.ORDER_NONE) || Generator.quote_('');
         const comment = Generator.getCommentText(block);
         if (comment) {
             const commentParts = comment.split(/,(?=@ruby:)/);
             let methodName = null;
             let argumentType = null;
-            let multipleArguments = null;
             for (const part of commentParts) {
                 if (part.startsWith('@ruby:method:')) {
                     methodName = part.substring(13);
                 } else if (part.startsWith('@ruby:argument:1:type:')) {
                     argumentType = part.substring(22);
-                } else if (part.startsWith('@ruby:argument:1:')) {
-                    multipleArguments = part.substring(17);
                 }
             }
 
-            if (methodName && ['print', 'puts', 'p'].includes(methodName)) {
-                if (multipleArguments) {
-                    const args = parseArgumentList(multipleArguments);
-                    return `${methodName}(${args.join(', ')})\n`;
-                }
-
+            if (methodName && ['print', 'puts', 'p'].includes(methodName) && secs === '1') {
                 let argument = message;
                 if (argumentType && (argumentType === 'Integer' || argumentType === 'Float')) {
                     if (argument.startsWith('"') && argument.endsWith('"')) {
@@ -88,6 +75,11 @@ export default function (Generator) {
                 return `${methodName}(${argument})\n`;
             }
         }
+        return `say(${message}, ${secs})\n`;
+    };
+
+    Generator.looks_say = function (block) {
+        const message = Generator.valueToCode(block, 'MESSAGE', Generator.ORDER_NONE) || Generator.quote_('');
         return `say(${message})\n`;
     };
 

@@ -87,18 +87,25 @@ const LooksConverter = {
                 if (args.length === 0) return null;
                 if (!args.every(arg => converter._isNumberOrStringOrBlock(arg))) return null;
 
-                if (args.length === 1) {
-                    const block = createBlockWithMessage(converter, 'looks_say', args[0], 'Hello!');
+                let firstBlock = null;
+                let lastBlock = null;
+
+                args.forEach(arg => {
+                    const block = converter._createBlock('looks_sayforsecs', 'statement');
+                    converter._addTextInput(
+                        block, 'MESSAGE', converter._isNumber(arg) ? arg.toString() : arg, 'Hello!'
+                    );
+                    converter._addNumberInput(block, 'SECS', 'math_number', 1, 1);
 
                     let commentText = `@ruby:method:${methodName}`;
-                    if (converter._isNumber(args[0])) {
+                    if (converter._isNumber(arg)) {
                         let typeName;
-                        if (args[0].type === 'int') {
+                        if (arg.type === 'int') {
                             typeName = 'Integer';
-                        } else if (args[0].type === 'float') {
+                        } else if (arg.type === 'float') {
                             typeName = 'Float';
-                        } else if (_.isNumber(args[0])) {
-                            typeName = Number.isInteger(args[0]) ? 'Integer' : 'Float';
+                        } else if (_.isNumber(arg)) {
+                            typeName = Number.isInteger(arg) ? 'Integer' : 'Float';
                         }
                         if (typeName) {
                             commentText += `,@ruby:argument:1:type:${typeName}`;
@@ -106,32 +113,18 @@ const LooksConverter = {
                     }
 
                     block.comment = converter.createComment(commentText, block.id, 200, 0);
-                    return block;
-                }
 
-                const messageValues = args.map(arg => {
-                    if (converter._isString(arg)) {
-                        return arg.toString();
-                    } else if (converter._isNumber(arg)) {
-                        return arg.toString();
+                    if (!firstBlock) {
+                        firstBlock = block;
                     }
-                    return '';
-                });
-                const message = messageValues.join(' ');
-                const block = createBlockWithMessage(converter, 'looks_say', message, 'Hello!');
-
-                const argValues = args.map(arg => {
-                    if (converter._isString(arg)) {
-                        return `"${arg.toString().replace(/"/g, '\\"')}"`;
-                    } else if (converter._isNumber(arg)) {
-                        return arg.toString();
+                    if (lastBlock) {
+                        lastBlock.next = block.id;
+                        block.parent = lastBlock.id;
                     }
-                    return '';
+                    lastBlock = block;
                 });
-                const commentText = `@ruby:method:${methodName},@ruby:argument:1:${argValues.join(',')}`;
-                block.comment = converter.createComment(commentText, block.id, 200, 0);
 
-                return block;
+                return firstBlock;
             });
         });
 
