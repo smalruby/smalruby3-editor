@@ -7,6 +7,16 @@ export default function (Generator) {
     Generator.data_variable = function (block) {
         let variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
         const comment = Generator.getCommentText(block);
+
+        // Check for local variable metadata
+        if (comment && comment.startsWith('@ruby:lvar:')) {
+            const parts = comment.split(':');
+            if (parts.length === 4) {
+                const originalName = parts[2];
+                return [originalName, Generator.ORDER_ATOMIC];
+            }
+        }
+
         if (comment && comment.startsWith('@ruby:return:')) {
             const methodName = comment.replace('@ruby:return:', '');
 
@@ -29,6 +39,19 @@ export default function (Generator) {
     Generator.data_setvariableto = function (block) {
         const comment = Generator.getCommentText(block);
         const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
+
+        // Check for local variable metadata
+        if (comment && comment.startsWith('@ruby:lvar:')) {
+            const parts = comment.split(':');
+            if (parts.length === 4) {
+                const originalName = parts[2];
+                if (!hasValueInput) {
+                    return '';
+                }
+                const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
+                return `${originalName} = ${Generator.nosToCode(value)}\n`;
+            }
+        }
 
         // Check if this is a return value assignment
         if (comment && comment.startsWith('@ruby:return:')) {
