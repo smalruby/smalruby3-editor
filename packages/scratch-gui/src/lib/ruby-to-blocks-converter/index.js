@@ -134,6 +134,11 @@ class RubyToBlocksConverter {
             if (!_.isArray(blocks)) {
                 blocks = [blocks];
             }
+            // Link blocks if root is not a begin node (begin nodes handle linking internally)
+            // This is needed for cases like "text = gets" where a single statement returns multiple blocks
+            if (root.$type() !== 'begin') {
+                blocks = this._linkBlocks(blocks);
+            }
             blocks.forEach(block => {
                 if (this._isBlock(block)) {
                     if (!block.parent) {
