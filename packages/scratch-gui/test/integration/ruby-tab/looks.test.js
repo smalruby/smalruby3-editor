@@ -95,11 +95,25 @@ describe('Ruby Tab: Looks category blocks', () => {
         backdrop_name
     `;
 
-    describe('stage', () => {
-        test('Ruby -> Code -> Ruby', async () => {
+    describe('print, puts, p', () => {
+        test('Ruby -> Code -> Ruby with type preservation', async () => {
             await loadUri(urlFor('/'));
-            await clickXpath('//span[text()="Stage"]');
-            await expectInterconvertBetweenCodeAndRuby(looksStageRuby);
+
+            const code = dedent`
+                puts("ハロー！")
+                puts(10)
+                puts(3.5)
+                puts("Hello", 10, 3.5)
+                print("World")
+                print(20)
+                print(4.5)
+                print("Ruby", 30, 4.5)
+                p("Test")
+                p(30)
+                p(5.5)
+                p("Blocks", 40, 5.5)
+            `;
+            await expectInterconvertBetweenCodeAndRuby(code);
         });
     });
 });

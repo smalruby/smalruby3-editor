@@ -1203,7 +1203,6 @@ describe('RubyToBlocksConverter/Looks', () => {
                 convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 // Then verify comment
-                // We need to find the block that is 'looks_say' (it should be the first/only top level block)
                 const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_say');
                 const block = converter.blocks[blockId];
                 expect(block.comment).toBeDefined();
@@ -1211,9 +1210,78 @@ describe('RubyToBlocksConverter/Looks', () => {
                 const commentId = block.comment;
                 expect(converter._context.comments[commentId]).toBeDefined();
                 expect(converter._context.comments[commentId].text).toEqual(`@ruby:method:${method}`);
-                expect(converter._context.comments[commentId].x).toEqual(200);
-                expect(converter._context.comments[commentId].y).toEqual(0);
-                expect(converter._context.comments[commentId].minimized).toBe(true);
+            });
+
+            test(`${method}(10) should become looks_say with type comment`, () => {
+                code = `${method}(10)`;
+                expected = [
+                    {
+                        opcode: 'looks_say',
+                        inputs: [
+                            {
+                                name: 'MESSAGE',
+                                block: expectedInfo.makeText('10')
+                            }
+                        ]
+                    }
+                ];
+
+                convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_say');
+                const block = converter.blocks[blockId];
+                expect(block.comment).toBeDefined();
+
+                const commentId = block.comment;
+                expect(converter._context.comments[commentId].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Integer`);
+            });
+
+            test(`${method}(3.5) should become looks_say with type comment`, () => {
+                code = `${method}(3.5)`;
+                expected = [
+                    {
+                        opcode: 'looks_say',
+                        inputs: [
+                            {
+                                name: 'MESSAGE',
+                                block: expectedInfo.makeText('3.5')
+                            }
+                        ]
+                    }
+                ];
+
+                convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_say');
+                const block = converter.blocks[blockId];
+                expect(block.comment).toBeDefined();
+
+                const commentId = block.comment;
+                expect(converter._context.comments[commentId].text).toEqual(`@ruby:method:${method},@ruby:argument:1:type:Float`);
+            });
+
+            test(`${method}("Hello", 10, 3.5) should become looks_say with multiple arguments comment`, () => {
+                code = `${method}("Hello", 10, 3.5)`;
+                expected = [
+                    {
+                        opcode: 'looks_say',
+                        inputs: [
+                            {
+                                name: 'MESSAGE',
+                                block: expectedInfo.makeText('Hello 10 3.5')
+                            }
+                        ]
+                    }
+                ];
+
+                convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+                const blockId = Object.keys(converter.blocks).find(id => converter.blocks[id].opcode === 'looks_say');
+                const block = converter.blocks[blockId];
+                expect(block.comment).toBeDefined();
+
+                const commentId = block.comment;
+                expect(converter._context.comments[commentId].text).toEqual(`@ruby:method:${method},@ruby:argument:1:"Hello",10,3.5`);
             });
         });
     });

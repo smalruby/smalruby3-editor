@@ -69,6 +69,48 @@ describe('RubyGenerator/Looks', () => {
             expect(RubyGenerator.looks_say(block)).toEqual(expected);
         });
 
+        test('with @ruby:method:puts and @ruby:argument:1:type:Integer', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'looks_say',
+                inputs: {
+                    MESSAGE: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:puts,@ruby:argument:1:type:Integer' };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"10"');
+            const expected = 'puts(10)\n';
+            expect(RubyGenerator.looks_say(block)).toEqual(expected);
+        });
+
+        test('with @ruby:method:puts and @ruby:argument:1:type:Float', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'looks_say',
+                inputs: {
+                    MESSAGE: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:puts,@ruby:argument:1:type:Float' };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"3.5"');
+            const expected = 'puts(3.5)\n';
+            expect(RubyGenerator.looks_say(block)).toEqual(expected);
+        });
+
+        test('with @ruby:method:puts and multiple arguments', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'looks_say',
+                inputs: {
+                    MESSAGE: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:puts,@ruby:argument:1:"Hello",10,3.5' };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"Hello 10 3.5"');
+            const expected = 'puts("Hello", 10, 3.5)\n';
+            expect(RubyGenerator.looks_say(block)).toEqual(expected);
+        });
+
         test('with unknown @ruby: tag defaults to say', () => {
             const block = {
                 id: 'block-id',
