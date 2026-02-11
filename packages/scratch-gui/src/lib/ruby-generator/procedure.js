@@ -86,7 +86,7 @@ export default function (Generator) {
 
     const blockToMethod = function (block, isCall) {
         let methodName = block.mutation.proccode.split(' ')
-            .filter(i => !/^@?%[sb]$/.test(i))
+            .filter(i => !/^%[sb]$/.test(i))
             .join('_');
         if (methodName.length === 0) {
             methodName = 'procedure';

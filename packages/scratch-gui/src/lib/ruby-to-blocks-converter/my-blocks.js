@@ -147,8 +147,8 @@ const MyBlocksConverter = {
                     opcode = 'argument_reporter_string_number';
                     blockType = 'value';
                 }
-                // Use normalized variable name (should already be in snake_case lowercase and have @ prefix)
-                const normalizedName = variable.name;
+                // Use normalized variable name (should already be in snake_case lowercase)
+                const normalizedName = converter._toSnakeCaseLowercase(variable.name);
                 block = converter._createBlock(opcode, blockType, {
                     fields: {
                         VALUE: {
@@ -191,12 +191,10 @@ const MyBlocksConverter = {
                 // Convert argument name to snake_case lowercase
                 const normalizedName = converter._toSnakeCaseLowercase(originalName);
 
+                procedure.argumentNames.push(normalizedName);
                 const variable = converter._lookupOrCreateVariable(normalizedName, true);
-                const transformedName = variable.name;
-
-                procedure.argumentNames.push(transformedName);
                 procedure.argumentVariables.push(variable);
-                procedure.procCode.push(`@${variable.isBoolean ? '%b' : '%s'}`);
+                procedure.procCode.push('%s');
                 procedure.argumentDefaults.push('');
                 const inputId = Blockly.utils.genUid();
                 procedure.argumentIds.push(inputId);
@@ -204,7 +202,7 @@ const MyBlocksConverter = {
                     fields: {
                         VALUE: {
                             name: 'VALUE',
-                            value: transformedName
+                            value: normalizedName
                         }
                     },
                     shadow: true
@@ -267,7 +265,7 @@ const MyBlocksConverter = {
             procedure.argumentVariables.forEach((v, i) => {
                 if (v.isBoolean) {
                     booleanIndexes.push(i);
-                    procedure.procCode[i + 1] = '@%b';
+                    procedure.procCode[i + 1] = '%b';
                     procedure.argumentDefaults[i] = 'false';
                     procedure.argumentBlocks[i].opcode = 'argument_reporter_boolean';
                     converter._setBlockType(procedure.argumentBlocks[i], 'value_boolean');

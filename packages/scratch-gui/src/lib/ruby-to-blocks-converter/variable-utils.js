@@ -59,8 +59,7 @@ const VariableUtils = {
 
         if (scope === 'local') {
             // Create transformed name - arguments DO NOT get indexed
-            // Local variables and arguments must start with @ to be instance variables in Ruby representation
-            const transformedName = isArgument ? `@${varName}` : `@${varName}_${scopeIndex}_`;
+            const transformedName = isArgument ? varName : `${varName}_${scopeIndex}_`;
 
             // Check if this transformed name already exists in global store
             variable = this._context[storeName][transformedName];
