@@ -315,6 +315,33 @@ const BlockUtils = {
         delete block.inputs.EXPRESSION;
 
         return block;
+    },
+
+    _linkBlocks (blocks) {
+        if (!_.isArray(blocks) || blocks.length < 2) {
+            return blocks;
+        }
+        let prevBlock = null;
+        blocks.forEach(block => {
+            if (!this._isBlock(block)) {
+                prevBlock = null;
+                return;
+            }
+
+            // Only link if this block doesn't already have a parent
+            if (prevBlock && this._getBlockType(prevBlock) === 'statement' && !block.parent) {
+                prevBlock.next = block.id;
+                block.parent = prevBlock.id;
+            }
+
+            const blockType = this._getBlockType(block);
+            if (blockType === 'statement') {
+                prevBlock = block;
+            } else {
+                prevBlock = null;
+            }
+        });
+        return blocks;
     }
 };
 

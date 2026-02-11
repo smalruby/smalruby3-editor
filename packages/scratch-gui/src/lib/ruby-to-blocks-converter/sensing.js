@@ -152,6 +152,18 @@ const SensingConverter = {
             return block;
         });
 
+        // Gets method (all targets)
+        converter.registerOnSend('self', 'gets', 0, () => {
+            const askBlock = converter.createBlock('sensing_askandwait', 'statement');
+            converter.addTextInput(askBlock, 'QUESTION', '', '');
+            askBlock.comment = converter.createComment('@ruby:method:gets', askBlock.id);
+
+            const answerBlock = converter.createBlock('sensing_answer', 'value');
+            answerBlock.comment = converter.createComment('@ruby:method:gets', answerBlock.id);
+
+            return [askBlock, answerBlock];
+        });
+
         // Drag mode method (sprite only)
         converter.registerOnSend('sprite', 'drag_mode=', 1, params => {
             const {args} = params;
