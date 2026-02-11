@@ -157,5 +157,31 @@ describe('RubyToBlocksConverter/Gets', () => {
             expected = [e];
             convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
+
+        test('standalone gets (value block handling)', () => {
+            code = 'gets';
+            const askBlock = {
+                opcode: 'sensing_askandwait',
+                inputs: [
+                    {
+                        name: 'QUESTION',
+                        block: expectedInfo.makeText('')
+                    }
+                ],
+                comment: {
+                    text: '@ruby:method:gets',
+                    minimized: true
+                }
+            };
+            const answerBlock = {
+                opcode: 'sensing_answer',
+                comment: {
+                    text: '@ruby:method:gets',
+                    minimized: true
+                }
+            };
+            expected = [askBlock, answerBlock];
+            convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
     });
 });
