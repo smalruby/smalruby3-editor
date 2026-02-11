@@ -208,18 +208,19 @@ class RubyToBlocksConverter {
         } else {
             stage = this.vm.runtime.getTargetForStage();
         }
+
         // Handle global/instance/local variables and lists
         ['variables', 'lists', 'localVariables'].forEach(storeName => {
             Object.keys(this._context[storeName]).forEach(name => {
                 const variable = this._context[storeName][name];
+                if (variable.isArgument) return;
+
                 if (variable.scope === 'global') {
                     if (!Object.prototype.hasOwnProperty.call(stage.variables, variable.id)) {
                         stage.createVariable(variable.id, variable.name, variable.type);
                     }
-                } else if (!target.isStage) {
-                    if (!Object.prototype.hasOwnProperty.call(target.variables, variable.id)) {
-                        target.createVariable(variable.id, variable.name, variable.type);
-                    }
+                } else if (!Object.prototype.hasOwnProperty.call(target.variables, variable.id)) {
+                    target.createVariable(variable.id, variable.name, variable.type);
                 }
             });
         });

@@ -50,8 +50,7 @@ const MyBlocksConverter = {
             args.forEach((arg, i) => {
                 const argumentId = procedure.argumentIds[i];
                 if (converter._isFalseOrBooleanBlock(arg)) {
-                    if (procedure.argumentVariables[i].isBoolean ||
-                        converter._changeToBooleanArgument(procedure.argumentNames[i])) {
+                    if (procedure.argumentVariables[i].isBoolean) {
                         if (!converter._isFalse(arg)) {
                             converter._addInput(block, argumentId, arg, null);
                         }
@@ -185,7 +184,13 @@ const MyBlocksConverter = {
             });
             converter._addInput(block, 'custom_block', customBlock);
 
-            converter._context.localVariables = {};
+            // Clear arguments from localVariables to allow reuse of names across different methods
+            Object.keys(converter._context.localVariables).forEach(key => {
+                if (converter._context.localVariables[key].isArgument) {
+                    delete converter._context.localVariables[key];
+                }
+            });
+
             converter._process(node.children[2]).forEach(n => {
                 const originalName = n.toString();
                 // Convert argument name to snake_case lowercase
@@ -299,8 +304,6 @@ const MyBlocksConverter = {
                 tagName: 'mutation',
                 warp: 'false'
             };
-
-            converter._restoreContext({localVariables: saved.localVariables});
 
             return block;
         });

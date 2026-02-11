@@ -40,7 +40,8 @@ const VariableUtils = {
             const currentScope = this._getCurrentScope();
             if (currentScope && currentScope.localVars[varName]) {
                 const existingVar = currentScope.localVars[varName];
-                return this._context.localVariables[existingVar.transformedName];
+                const sName = type === Variable.SCALAR_TYPE ? 'localVariables' : 'lists';
+                return this._context[sName][existingVar.transformedName];
             }
         }
 
