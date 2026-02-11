@@ -4,49 +4,6 @@
  * @returns {RubyGenerator} same as param.
  */
 export default function (Generator) {
-    const parseArgumentList = function (argString) {
-        const args = [];
-        let current = '';
-        let inQuotes = false;
-        let escapeNext = false;
-
-        for (let i = 0; i < argString.length; i++) {
-            const char = argString[i];
-
-            if (escapeNext) {
-                current += char;
-                escapeNext = false;
-                continue;
-            }
-
-            if (char === '\\') {
-                escapeNext = true;
-                current += char;
-                continue;
-            }
-
-            if (char === '"') {
-                inQuotes = !inQuotes;
-                current += char;
-                continue;
-            }
-
-            if (char === ',' && !inQuotes) {
-                args.push(current.trim());
-                current = '';
-                continue;
-            }
-
-            current += char;
-        }
-
-        if (current) {
-            args.push(current.trim());
-        }
-
-        return args;
-    };
-
     Generator.looks_sayforsecs = function (block) {
         const message = Generator.valueToCode(block, 'MESSAGE', Generator.ORDER_NONE) || Generator.quote_('');
         const secs = Generator.valueToCode(block, 'SECS', Generator.ORDER_NONE) || '0';
