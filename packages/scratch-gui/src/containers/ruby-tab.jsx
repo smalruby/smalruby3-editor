@@ -457,14 +457,27 @@ class RubyTab extends React.Component {
                     return;
                 }
 
-                // Step 5: Execute block using VM's toggleScript
-                this.props.vm.runtime.toggleScript(blockId, {
+                // Step 5: Get the top-level block of the stack
+                // This ensures that clicking any block in a stack executes from the top
+                const topBlockId = this.props.vm.editingTarget.blocks.getTopLevelScript(blockId);
+
+                // eslint-disable-next-line no-console
+                console.log('[handleExecuteLine] topBlockId:', topBlockId);
+
+                if (!topBlockId) {
+                    // Could not find top-level block
+                    this.props.onShowAlert('cannotExecuteLine');
+                    return;
+                }
+
+                // Step 6: Execute block stack from the top using VM's toggleScript
+                this.props.vm.runtime.toggleScript(topBlockId, {
                     target: this.props.vm.editingTarget,
                     stackClick: true
                 });
 
                 // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] Block executed:', blockId);
+                console.log('[handleExecuteLine] Block executed:', topBlockId);
             })
             .catch(error => {
                 // Handle apply error
