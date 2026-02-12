@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "mcp__serena",
-      "Bash(docker compose run:*)"
+      "Bash(docker compose run:*)",
+      "Read(notes/**)"
     ],
     "deny": [],
     "ask": []
