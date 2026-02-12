@@ -226,7 +226,7 @@ const RubyToolbar = props => {
     }, [props]);
 
     const handleExecuteLine = useCallback(() => {
-        if (!props.editorRef || !props.converter) {
+        if (!props.editorRef) {
             return;
         }
 
@@ -234,20 +234,9 @@ const RubyToolbar = props => {
         const position = props.editorRef.getPosition();
         const lineNumber = position.lineNumber;
 
-        // Get block ID from line number
-        const blockId = props.converter.getBlockIdForLine(lineNumber);
-
-        if (!blockId) {
-            // No executable block found
-            if (props.onExecuteLineError) {
-                props.onExecuteLineError();
-            }
-            return;
-        }
-
-        // Execute block
+        // Trigger conversion and execution
         if (props.onExecuteLine) {
-            props.onExecuteLine(blockId);
+            props.onExecuteLine(lineNumber);
         }
     }, [props]);
 
@@ -294,7 +283,7 @@ const RubyToolbar = props => {
                 <button
                     className={styles.iconButton}
                     onClick={handleExecuteLine}
-                    disabled={!props.editorRef || !props.converter}
+                    disabled={!props.editorRef}
                     aria-label={intl.formatMessage(messages.executeLine)}
                     title={intl.formatMessage(messages.executeLine)}
                 >
@@ -428,13 +417,9 @@ RubyToolbar.propTypes = {
     editingTarget: PropTypes.object,
     vm: PropTypes.instanceOf(VM).isRequired,
     editorRef: PropTypes.object,
-    converter: PropTypes.shape({
-        getBlockIdForLine: PropTypes.func
-    }),
     onSelectTarget: PropTypes.func.isRequired,
     onDownload: PropTypes.func,
-    onExecuteLine: PropTypes.func,
-    onExecuteLineError: PropTypes.func
+    onExecuteLine: PropTypes.func
 };
 
 export default RubyToolbar;

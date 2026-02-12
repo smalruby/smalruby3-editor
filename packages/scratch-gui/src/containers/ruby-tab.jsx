@@ -49,12 +49,8 @@ class RubyTab extends React.Component {
             'handleAISaveError',
             'handleSelectTarget',
             'handleDownload',
-            'handleExecuteLine',
-            'handleExecuteLineError'
+            'handleExecuteLine'
         ]);
-        this.state = {
-            converter: null
-        };
         this.mainTooltipId = 'ruby-downloader-tooltip';
         this.editorRef = null;
         this.monacoRef = null;
@@ -105,9 +101,6 @@ class RubyTab extends React.Component {
                     converter.apply().then(() => {
                         modified = false;
 
-                        // Save converter for execute line feature
-                        this.setState({converter});
-
                         this.clearErrors();
 
                         if (!modified) {
@@ -130,8 +123,6 @@ class RubyTab extends React.Component {
                     });
                     return;
                 }
-                // Clear converter on conversion failure
-                this.setState({converter: null});
                 this.showErrors(converter.errors);
             }
         }
@@ -323,17 +314,41 @@ class RubyTab extends React.Component {
         }
     }
 
-    handleExecuteLine (blockId) {
-        // Execute block using VM's toggleScript
-        this.props.vm.runtime.toggleScript(blockId, {
-            target: this.props.vm.editingTarget,
-            stackClick: true
-        });
-    }
+    handleExecuteLine (lineNumber) {
+        // Step 1: Convert Ruby to blocks
+        const converter = this.props.targetCodeToBlocks(this.props.intl);
 
-    handleExecuteLineError () {
-        // Show alert when line cannot be executed
-        this.props.onShowAlert('cannotExecuteLine');
+        // Step 2: Check for conversion errors
+        if (!converter.result) {
+            // Show conversion error
+            this.props.onShowAlert('convertRubyToBlocksError');
+            this.props.updateRubyCodeErrorsState(converter.errors);
+            this.showErrors(converter.errors);
+            return;
+        }
+
+        // Step 3: Apply blocks to VM
+        converter.apply()
+            .then(() => {
+                // Step 4: Get block ID from line number
+                const blockId = converter.getBlockIdForLine(lineNumber);
+
+                if (!blockId) {
+                    // No executable block found at this line
+                    this.props.onShowAlert('cannotExecuteLine');
+                    return;
+                }
+
+                // Step 5: Execute block using VM's toggleScript
+                this.props.vm.runtime.toggleScript(blockId, {
+                    target: this.props.vm.editingTarget,
+                    stackClick: true
+                });
+            })
+            .catch(() => {
+                // Handle apply error
+                this.props.onShowAlert('convertRubyToBlocksError');
+            });
     }
 
     render () {
@@ -356,11 +371,9 @@ class RubyTab extends React.Component {
                         editingTarget={vm.editingTarget}
                         vm={vm}
                         editorRef={this.editorRef}
-                        converter={this.state.converter}
                         onSelectTarget={this.handleSelectTarget}
                         onDownload={this.handleDownload}
                         onExecuteLine={this.handleExecuteLine}
-                        onExecuteLineError={this.handleExecuteLineError}
                     />
                     <div className={styles.editorWrapper}>
                         <Editor
