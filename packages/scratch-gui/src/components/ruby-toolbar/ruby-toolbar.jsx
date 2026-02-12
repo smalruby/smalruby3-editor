@@ -11,7 +11,7 @@ import iconUndo from './icon--undo.svg';
 import iconRedo from './icon--redo.svg';
 import iconBack from './icon--back.svg';
 import iconForward from './icon--forward.svg';
-import iconCheck from './icon--check.svg';
+import iconDownload from './icon--download.svg';
 
 const messages = defineMessages({
     search: {
@@ -44,10 +44,10 @@ const messages = defineMessages({
         defaultMessage: 'Search sprites by name',
         description: 'Placeholder for command input'
     },
-    check: {
-        id: 'gui.rubyToolbar.check',
-        defaultMessage: 'Check syntax',
-        description: 'Tooltip for check button'
+    download: {
+        id: 'gui.rubyToolbar.download',
+        defaultMessage: 'Download Ruby code',
+        description: 'Tooltip for download button'
     },
     stage: {
         id: 'gui.rubyToolbar.stage',
@@ -75,7 +75,8 @@ class RubyToolbar extends React.Component {
         this.handleCommandBlur = this.handleCommandBlur.bind(this);
         this.handleCommandKeyDown = this.handleCommandKeyDown.bind(this);
         this.handleSelectTarget = this.handleSelectTarget.bind(this);
-        this.handleCheck = this.handleCheck.bind(this);
+        this.handleSelectTargetFromDropdown = this.handleSelectTargetFromDropdown.bind(this);
+        this.handleDownload = this.handleDownload.bind(this);
     }
 
     getSortedSprites () {
@@ -226,10 +227,15 @@ class RubyToolbar extends React.Component {
         this.setState({commandValue: '', showDropdown: false});
     }
 
-    handleCheck () {
-        // Trigger conversion to blocks to check syntax
-        if (this.props.onCheck) {
-            this.props.onCheck();
+    handleSelectTargetFromDropdown (e) {
+        const targetId = e.currentTarget.dataset.targetId;
+        this.handleSelectTarget(targetId);
+    }
+
+    handleDownload () {
+        // Trigger download Ruby code
+        if (this.props.onDownload) {
+            this.props.onDownload();
         }
     }
 
@@ -358,7 +364,8 @@ class RubyToolbar extends React.Component {
                                     <div
                                         key={target.id}
                                         className={styles.dropdownItem}
-                                        onMouseDown={() => this.handleSelectTarget(target.id)}
+                                        data-target-id={target.id}
+                                        onMouseDown={this.handleSelectTargetFromDropdown}
                                     >
                                         {this.highlightMatch(this.getTargetName(target), commandValue)}
                                     </div>
@@ -372,12 +379,12 @@ class RubyToolbar extends React.Component {
                 <div className={styles.toolbarPart}>
                     <button
                         className={styles.iconButton}
-                        onClick={this.handleCheck}
-                        aria-label={intl.formatMessage(messages.check)}
-                        title={intl.formatMessage(messages.check)}
+                        onClick={this.handleDownload}
+                        aria-label={intl.formatMessage(messages.download)}
+                        title={intl.formatMessage(messages.download)}
                     >
                         <img
-                            src={iconCheck}
+                            src={iconDownload}
                             alt=""
                         />
                     </button>
@@ -397,7 +404,7 @@ RubyToolbar.propTypes = {
     vm: PropTypes.instanceOf(VM).isRequired,
     editorRef: PropTypes.object,
     onSelectTarget: PropTypes.func.isRequired,
-    onCheck: PropTypes.func,
+    onDownload: PropTypes.func,
     intl: intlShape.isRequired
 };
 

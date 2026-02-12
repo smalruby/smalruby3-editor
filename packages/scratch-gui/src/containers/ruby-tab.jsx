@@ -1,7 +1,7 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {FormattedMessage, injectIntl} from 'react-intl';
+import {injectIntl} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
 import {connect} from 'react-redux';
 import Editor from '@monaco-editor/react';
@@ -22,14 +22,12 @@ import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import SnippetsCompleter from './ruby-tab/snippets-completer';
 import {smalrubyLanguage} from './ruby-tab/smalruby-mode';
 
-import rubyIcon from './ruby-tab/icon--ruby.svg';
 import RubyDownloader from './ruby-downloader.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
 import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
 import styles from './ruby-tab/ruby-tab.css';
-import ReactTooltip from 'react-tooltip';
 import {loadMonacoLocale} from '../lib/monaco-i18n-helper';
 
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
@@ -50,7 +48,7 @@ class RubyTab extends React.Component {
             'handleAISaveFinished',
             'handleAISaveError',
             'handleSelectTarget',
-            'handleCheck'
+            'handleDownload'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
         this.editorRef = null;
@@ -59,6 +57,7 @@ class RubyTab extends React.Component {
         this.resizeObserver = null;
         this.completionProvider = null;
         this.lastProcessedVersion = props.rubyVersion;
+        this.downloadCallbackRef = null;
 
         loadMonacoLocale(props.locale);
     }
@@ -306,15 +305,11 @@ class RubyTab extends React.Component {
         }
     }
 
-    handleCheck () {
-        // Trigger conversion to check syntax
-        const converter = this.props.targetCodeToBlocks(this.props.intl);
-        if (converter.result) {
-            // Conversion succeeded - clear errors
-            this.clearErrors();
-        } else {
-            // Conversion failed - show errors
-            this.showErrors(converter.errors);
+    handleDownload () {
+        // Trigger Ruby code download
+        if (this.downloadCallbackRef) {
+            const handler = this.getSaveToComputerHandler(this.downloadCallbackRef);
+            handler();
         }
     }
 
@@ -340,7 +335,7 @@ class RubyTab extends React.Component {
                         vm={vm}
                         editorRef={this.editorRef}
                         onSelectTarget={this.handleSelectTarget}
-                        onCheck={this.handleCheck}
+                        onDownload={this.handleDownload}
                         intl={intl}
                     />
                     <div className={styles.editorWrapper}>
@@ -365,40 +360,16 @@ class RubyTab extends React.Component {
                         />
                     </div>
                 </div>
-                <div className={styles.downloadWrapper}>
-                    <RubyDownloader
-                        onSaveError={this.handleAISaveError}
-                        onSaveFinished={this.handleAISaveFinished}
-                    >
-                        {(_, downloadProjectCallback) => (
-                            <button
-                                className={styles.downloadButton}
-                                onClick={this.getSaveAIHandler(downloadProjectCallback)}
-                                data-tip
-                                data-for={'ruby-downloader-tooltip'}
-                            >
-                                <img
-                                    src={rubyIcon}
-                                    alt="ruby download"
-                                    className={styles.downloadIcon}
-                                />
-
-                            </button>
-                        )}
-                    </RubyDownloader>
-                    <ReactTooltip
-                        id={this.mainTooltipId}
-                        place="top"
-                        effect="solid"
-                        className={styles.tooltip}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Download Ruby code to your compute"
-                            description="Menu bar item for downloading Ruby code to your computer"
-                            id="gui.smalruby3.menuBar.downloadRubyCodeToComputer"
-                        />
-                    </ReactTooltip>
-                </div>
+                {/* Hidden RubyDownloader for storing download callback */}
+                <RubyDownloader
+                    onSaveError={this.handleAISaveError}
+                    onSaveFinished={this.handleAISaveFinished}
+                >
+                    {(_, downloadProjectCallback) => {
+                        this.downloadCallbackRef = downloadProjectCallback;
+                        return null;
+                    }}
+                </RubyDownloader>
                 <div className={styles.zoomControlsWrapper}>
                     <button
                         className={styles.zoomButton}

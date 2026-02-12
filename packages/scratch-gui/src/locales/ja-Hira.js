@@ -309,6 +309,6 @@ export default {
     'gui.rubyToolbar.undo': 'もとにもどす',
     'gui.rubyToolbar.redo': 'やりなおす',
     'gui.rubyToolbar.commandPlaceholder': 'スプライトをなまえでけんさく',
-    'gui.rubyToolbar.check': 'ぶんぽうをチェック',
+    'gui.rubyToolbar.download': 'Rubyコードをダウンロード',
     'gui.rubyToolbar.stage': 'ステージ'
 };

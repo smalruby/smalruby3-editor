@@ -247,6 +247,6 @@ export default {
     'gui.rubyToolbar.undo': 'Undo',
     'gui.rubyToolbar.redo': 'Redo',
     'gui.rubyToolbar.commandPlaceholder': 'Search sprites by name',
-    'gui.rubyToolbar.check': 'Check syntax',
+    'gui.rubyToolbar.download': 'Download Ruby code',
     'gui.rubyToolbar.stage': 'Stage'
 };
