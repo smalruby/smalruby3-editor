@@ -217,7 +217,7 @@ class RubyToolbar extends React.Component {
         if (e.key === 'Escape') {
             this.setState({commandValue: '', showDropdown: false});
             e.target.blur();
-        } else if (e.key === 'Enter' && this.state.filteredTargets.length > 0) {
+        } else if (e.key === 'Enter' && !e.isComposing && this.state.filteredTargets.length > 0) {
             this.handleSelectTarget(this.state.filteredTargets[0].id);
         }
     }
