@@ -6,21 +6,18 @@ import intlShape from '../../lib/intlShape.js';
 
 import styles from './ruby-toolbar.css';
 
+import iconSearch from './icon--search.svg';
+import iconUndo from './icon--undo.svg';
+import iconRedo from './icon--redo.svg';
+import iconBack from './icon--back.svg';
+import iconForward from './icon--forward.svg';
+import iconCheck from './icon--check.svg';
+
 const messages = defineMessages({
-    searchPlaceholder: {
-        id: 'gui.rubyToolbar.searchPlaceholder',
-        defaultMessage: 'Search sprites...',
-        description: 'Placeholder text for sprite search input'
-    },
-    prevSprite: {
-        id: 'gui.rubyToolbar.prevSprite',
-        defaultMessage: 'Previous sprite',
-        description: 'Tooltip for previous sprite button'
-    },
-    nextSprite: {
-        id: 'gui.rubyToolbar.nextSprite',
-        defaultMessage: 'Next sprite',
-        description: 'Tooltip for next sprite button'
+    search: {
+        id: 'gui.rubyToolbar.search',
+        defaultMessage: 'Search',
+        description: 'Tooltip for search button'
     },
     undo: {
         id: 'gui.rubyToolbar.undo',
@@ -32,6 +29,26 @@ const messages = defineMessages({
         defaultMessage: 'Redo',
         description: 'Tooltip for redo button'
     },
+    prevSprite: {
+        id: 'gui.rubyToolbar.prevSprite',
+        defaultMessage: 'Previous sprite',
+        description: 'Tooltip for previous sprite button'
+    },
+    nextSprite: {
+        id: 'gui.rubyToolbar.nextSprite',
+        defaultMessage: 'Next sprite',
+        description: 'Tooltip for next sprite button'
+    },
+    commandPlaceholder: {
+        id: 'gui.rubyToolbar.commandPlaceholder',
+        defaultMessage: 'Search sprites by name',
+        description: 'Placeholder for command input'
+    },
+    check: {
+        id: 'gui.rubyToolbar.check',
+        defaultMessage: 'Check syntax',
+        description: 'Tooltip for check button'
+    },
     stage: {
         id: 'gui.rubyToolbar.stage',
         defaultMessage: 'Stage',
@@ -42,11 +59,23 @@ const messages = defineMessages({
 class RubyToolbar extends React.Component {
     constructor (props) {
         super(props);
-        this.handlePrevSprite = this.handlePrevSprite.bind(this);
-        this.handleNextSprite = this.handleNextSprite.bind(this);
-        this.handleSearchChange = this.handleSearchChange.bind(this);
+        this.state = {
+            commandValue: '',
+            showDropdown: false,
+            filteredTargets: []
+        };
+
+        this.handleSearch = this.handleSearch.bind(this);
         this.handleUndo = this.handleUndo.bind(this);
         this.handleRedo = this.handleRedo.bind(this);
+        this.handlePrevSprite = this.handlePrevSprite.bind(this);
+        this.handleNextSprite = this.handleNextSprite.bind(this);
+        this.handleCommandChange = this.handleCommandChange.bind(this);
+        this.handleCommandFocus = this.handleCommandFocus.bind(this);
+        this.handleCommandBlur = this.handleCommandBlur.bind(this);
+        this.handleCommandKeyDown = this.handleCommandKeyDown.bind(this);
+        this.handleSelectTarget = this.handleSelectTarget.bind(this);
+        this.handleCheck = this.handleCheck.bind(this);
     }
 
     getSortedSprites () {
@@ -54,14 +83,19 @@ class RubyToolbar extends React.Component {
             return [];
         }
         const targets = this.props.vm.runtime.targets;
-        // Filter out stage and sort by drawableID (display order)
         const sprites = targets
             .filter(t => !t.isStage)
-            .sort((a, b) => {
-                // Sort by layer order (higher layer = later in array)
-                return a.getLayerOrder() - b.getLayerOrder();
-            });
+            .sort((a, b) => a.getLayerOrder() - b.getLayerOrder());
         return sprites;
+    }
+
+    getAllTargets () {
+        if (!this.props.vm || !this.props.vm.runtime) {
+            return [];
+        }
+        const stage = this.props.vm.runtime.targets.find(t => t.isStage);
+        const sprites = this.getSortedSprites();
+        return stage ? [stage, ...sprites] : sprites;
     }
 
     getCurrentSpriteIndex () {
@@ -70,47 +104,26 @@ class RubyToolbar extends React.Component {
         return sprites.findIndex(s => s.id === currentId);
     }
 
-    handlePrevSprite () {
-        const sprites = this.getSortedSprites();
-        const currentIndex = this.getCurrentSpriteIndex();
-
-        if (this.props.editingTarget?.isStage) {
-            // On stage, do nothing (← button should be disabled)
-            return;
+    getTargetName (target) {
+        if (!target) {
+            return '';
         }
-
-        if (currentIndex === 0) {
-            // First sprite → go to stage
-            const stage = this.props.vm.runtime.targets.find(t => t.isStage);
-            if (stage) {
-                this.props.onSelectTarget(stage.id);
-            }
-        } else if (currentIndex > 0) {
-            // Go to previous sprite
-            this.props.onSelectTarget(sprites[currentIndex - 1].id);
+        if (target.isStage) {
+            return this.props.intl.formatMessage(messages.stage);
         }
+        if (typeof target.getName === 'function') {
+            return target.getName();
+        }
+        if (target.sprite && target.sprite.name) {
+            return target.sprite.name;
+        }
+        return target.name || '';
     }
 
-    handleNextSprite () {
-        const sprites = this.getSortedSprites();
-        const currentIndex = this.getCurrentSpriteIndex();
-
-        if (this.props.editingTarget?.isStage) {
-            // Stage → go to first sprite
-            if (sprites.length > 0) {
-                this.props.onSelectTarget(sprites[0].id);
-            }
-        } else if (currentIndex >= 0 && currentIndex < sprites.length - 1) {
-            // Go to next sprite
-            this.props.onSelectTarget(sprites[currentIndex + 1].id);
-        }
-        // On last sprite, do nothing (→ button should be disabled)
-    }
-
-    handleSearchChange (e) {
-        const targetId = e.target.value;
-        if (targetId) {
-            this.props.onSelectTarget(targetId);
+    handleSearch () {
+        if (this.props.editorRef) {
+            // Trigger Monaco Editor's search action
+            this.props.editorRef.trigger('keyboard', 'actions.find', null);
         }
     }
 
@@ -126,39 +139,106 @@ class RubyToolbar extends React.Component {
         }
     }
 
-    getTargetName (target) {
-        if (!target) {
-            return '';
+    handlePrevSprite () {
+        const sprites = this.getSortedSprites();
+        const currentIndex = this.getCurrentSpriteIndex();
+
+        if (this.props.editingTarget?.isStage) {
+            return;
         }
-        if (target.isStage) {
-            return this.props.intl.formatMessage(messages.stage);
+
+        if (currentIndex === 0) {
+            const stage = this.props.vm.runtime.targets.find(t => t.isStage);
+            if (stage) {
+                this.props.onSelectTarget(stage.id);
+            }
+        } else if (currentIndex > 0) {
+            this.props.onSelectTarget(sprites[currentIndex - 1].id);
         }
-        // Try getName() method first (VM target objects have this)
-        if (typeof target.getName === 'function') {
-            return target.getName();
-        }
-        // Fallback to sprite.name property
-        if (target.sprite && target.sprite.name) {
-            return target.sprite.name;
-        }
-        // Last resort: use name property directly
-        return target.name || '';
     }
 
-    getCurrentTargetName () {
-        if (!this.props.editingTarget) {
-            return '';
+    handleNextSprite () {
+        const sprites = this.getSortedSprites();
+        const currentIndex = this.getCurrentSpriteIndex();
+
+        if (this.props.editingTarget?.isStage) {
+            if (sprites.length > 0) {
+                this.props.onSelectTarget(sprites[0].id);
+            }
+        } else if (currentIndex >= 0 && currentIndex < sprites.length - 1) {
+            this.props.onSelectTarget(sprites[currentIndex + 1].id);
         }
-        return this.getTargetName(this.props.editingTarget);
+    }
+
+    handleCommandChange (e) {
+        const value = e.target.value;
+        this.setState({commandValue: value});
+
+        if (value.startsWith('>')) {
+            // Command mode - TODO: implement Monaco command palette
+            this.setState({showDropdown: false});
+        } else {
+            // Sprite search mode
+            const allTargets = this.getAllTargets();
+            const filtered = allTargets.filter(target => {
+                const name = this.getTargetName(target).toLowerCase();
+                return name.includes(value.toLowerCase());
+            });
+            this.setState({
+                showDropdown: value.length > 0 && filtered.length > 0,
+                filteredTargets: filtered
+            });
+        }
+    }
+
+    handleCommandFocus () {
+        if (this.state.commandValue && !this.state.commandValue.startsWith('>')) {
+            const allTargets = this.getAllTargets();
+            const filtered = allTargets.filter(target => {
+                const name = this.getTargetName(target).toLowerCase();
+                return name.includes(this.state.commandValue.toLowerCase());
+            });
+            this.setState({
+                showDropdown: filtered.length > 0,
+                filteredTargets: filtered
+            });
+        }
+    }
+
+    handleCommandBlur () {
+        // Delay to allow click on dropdown item
+        setTimeout(() => {
+            this.setState({showDropdown: false});
+        }, 200);
+    }
+
+    handleCommandKeyDown (e) {
+        if (e.key === 'Escape') {
+            this.setState({commandValue: '', showDropdown: false});
+            e.target.blur();
+        } else if (e.key === 'Enter' && this.state.filteredTargets.length > 0) {
+            this.handleSelectTarget(this.state.filteredTargets[0].id);
+        }
+    }
+
+    handleSelectTarget (targetId) {
+        this.props.onSelectTarget(targetId);
+        this.setState({commandValue: '', showDropdown: false});
+    }
+
+    handleCheck () {
+        // Trigger conversion to blocks to check syntax
+        if (this.props.onCheck) {
+            this.props.onCheck();
+        }
     }
 
     canGoPrev () {
-        // Can't go prev if on stage or no sprites
         if (this.props.editingTarget?.isStage) {
             return false;
         }
         const currentIndex = this.getCurrentSpriteIndex();
-        return currentIndex >= 0; // Can always go to stage
+        return currentIndex >= 0;
     }
 
     canGoNext () {
@@ -167,90 +247,145 @@ class RubyToolbar extends React.Component {
             return false;
         }
         if (this.props.editingTarget?.isStage) {
-            return true; // Can go to first sprite
+            return true;
         }
         const currentIndex = this.getCurrentSpriteIndex();
         return currentIndex >= 0 && currentIndex < sprites.length - 1;
     }
 
+    highlightMatch (text, query) {
+        if (!query) return text;
+        const index = text.toLowerCase().indexOf(query.toLowerCase());
+        if (index === -1) return text;
+
+        return (
+            <>
+                {text.substring(0, index)}
+                <span className={styles.highlight}>
+                    {text.substring(index, index + query.length)}
+                </span>
+                {text.substring(index + query.length)}
+            </>
+        );
+    }
+
     render () {
         const {intl} = this.props;
-        const sprites = this.getSortedSprites();
-        const stage = this.props.vm?.runtime?.targets?.find(t => t.isStage);
-        const currentName = this.getCurrentTargetName();
+        const {commandValue, showDropdown, filteredTargets} = this.state;
 
         return (
             <div className={styles.toolbar}>
-                {/* Sprite Navigation */}
-                <div className={styles.navGroup}>
+                {/* Edit Part */}
+                <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
                     <button
-                        className={styles.button}
-                        onClick={this.handlePrevSprite}
-                        disabled={!this.canGoPrev()}
-                        aria-label={intl.formatMessage(messages.prevSprite)}
-                        title={intl.formatMessage(messages.prevSprite)}
+                        className={styles.iconButton}
+                        onClick={this.handleSearch}
+                        disabled={!this.props.editorRef}
+                        aria-label={intl.formatMessage(messages.search)}
+                        title={intl.formatMessage(messages.search)}
                     >
-                        ←
+                        <img
+                            src={iconSearch}
+                            alt=""
+                        />
                     </button>
                     <button
-                        className={styles.button}
-                        onClick={this.handleNextSprite}
-                        disabled={!this.canGoNext()}
-                        aria-label={intl.formatMessage(messages.nextSprite)}
-                        title={intl.formatMessage(messages.nextSprite)}
-                    >
-                        →
-                    </button>
-                </div>
-
-                {/* Navigation Control */}
-                <div className={styles.searchControlWrapper}>
-                    <select
-                        className={styles.searchControl}
-                        value={this.props.editingTarget?.id || ''}
-                        onChange={this.handleSearchChange}
-                    >
-                        {stage && (
-                            <option
-                                key={stage.id}
-                                value={stage.id}
-                            >
-                                {this.getTargetName(stage)}
-                            </option>
-                        )}
-                        {sprites.map(sprite => (
-                            <option
-                                key={sprite.id}
-                                value={sprite.id}
-                            >
-                                {this.getTargetName(sprite)}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className={styles.separator} />
-
-                {/* Editor Operations */}
-                <div className={styles.navGroup}>
-                    <button
-                        className={styles.button}
+                        className={styles.iconButton}
                         onClick={this.handleUndo}
                         disabled={!this.props.editorRef}
                         aria-label={intl.formatMessage(messages.undo)}
                         title={intl.formatMessage(messages.undo)}
                     >
-                        ↶
+                        <img
+                            src={iconUndo}
+                            alt=""
+                        />
                     </button>
                     <button
-                        className={styles.button}
+                        className={styles.iconButton}
                         onClick={this.handleRedo}
                         disabled={!this.props.editorRef}
                         aria-label={intl.formatMessage(messages.redo)}
                         title={intl.formatMessage(messages.redo)}
                     >
-                        ↷
+                        <img
+                            src={iconRedo}
+                            alt=""
+                        />
                     </button>
+                </div>
+
+                {/* Navigation & Command Part */}
+                <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
+                    <button
+                        className={styles.iconButton}
+                        onClick={this.handlePrevSprite}
+                        disabled={!this.canGoPrev()}
+                        aria-label={intl.formatMessage(messages.prevSprite)}
+                        title={intl.formatMessage(messages.prevSprite)}
+                    >
+                        <img
+                            src={iconBack}
+                            alt=""
+                        />
+                    </button>
+                    <button
+                        className={styles.iconButton}
+                        onClick={this.handleNextSprite}
+                        disabled={!this.canGoNext()}
+                        aria-label={intl.formatMessage(messages.nextSprite)}
+                        title={intl.formatMessage(messages.nextSprite)}
+                    >
+                        <img
+                            src={iconForward}
+                            alt=""
+                        />
+                    </button>
+                    <div className={styles.commandWrapper}>
+                        <input
+                            className={styles.commandInput}
+                            type="text"
+                            value={commandValue}
+                            onChange={this.handleCommandChange}
+                            onFocus={this.handleCommandFocus}
+                            onBlur={this.handleCommandBlur}
+                            onKeyDown={this.handleCommandKeyDown}
+                            placeholder={intl.formatMessage(messages.commandPlaceholder)}
+                        />
+                        {showDropdown && (
+                            <div className={styles.dropdown}>
+                                {filteredTargets.map(target => (
+                                    <div
+                                        key={target.id}
+                                        className={styles.dropdownItem}
+                                        onMouseDown={() => this.handleSelectTarget(target.id)}
+                                    >
+                                        {this.highlightMatch(this.getTargetName(target), commandValue)}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Run Part */}
+                <div className={styles.toolbarPart}>
+                    <button
+                        className={styles.iconButton}
+                        onClick={this.handleCheck}
+                        aria-label={intl.formatMessage(messages.check)}
+                        title={intl.formatMessage(messages.check)}
+                    >
+                        <img
+                            src={iconCheck}
+                            alt=""
+                        />
+                    </button>
+                </div>
+
+                {/* Three-dot Menu Part - TODO */}
+                <div className={`${styles.toolbarPart} ${styles.modRight}`}>
+                    {/* Placeholder for three-dot menu */}
                 </div>
             </div>
         );
@@ -262,6 +397,7 @@ RubyToolbar.propTypes = {
     vm: PropTypes.instanceOf(VM).isRequired,
     editorRef: PropTypes.object,
     onSelectTarget: PropTypes.func.isRequired,
+    onCheck: PropTypes.func,
     intl: intlShape.isRequired
 };
 

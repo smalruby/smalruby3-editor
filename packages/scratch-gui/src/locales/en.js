@@ -241,10 +241,12 @@ export default {
     'gui.connection.meshV2Initial.domainTooLongError': 'Domain name is too long (max 256 characters).',
 
     // Ruby Toolbar messages
-    'gui.rubyToolbar.searchPlaceholder': 'Search sprites...',
+    'gui.rubyToolbar.search': 'Search',
     'gui.rubyToolbar.prevSprite': 'Previous sprite',
     'gui.rubyToolbar.nextSprite': 'Next sprite',
     'gui.rubyToolbar.undo': 'Undo',
     'gui.rubyToolbar.redo': 'Redo',
+    'gui.rubyToolbar.commandPlaceholder': 'Search sprites by name',
+    'gui.rubyToolbar.check': 'Check syntax',
     'gui.rubyToolbar.stage': 'Stage'
 };

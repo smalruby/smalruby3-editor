@@ -49,7 +49,8 @@ class RubyTab extends React.Component {
             'getSaveAIHandler',
             'handleAISaveFinished',
             'handleAISaveError',
-            'handleSelectTarget'
+            'handleSelectTarget',
+            'handleCheck'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
         this.editorRef = null;
@@ -305,6 +306,18 @@ class RubyTab extends React.Component {
         }
     }
 
+    handleCheck () {
+        // Trigger conversion to check syntax
+        const converter = this.props.targetCodeToBlocks(this.props.intl);
+        if (converter.result) {
+            // Conversion succeeded - clear errors
+            this.clearErrors();
+        } else {
+            // Conversion failed - show errors
+            this.showErrors(converter.errors);
+        }
+    }
+
     render () {
         const {
             rubyCode,
@@ -327,6 +340,7 @@ class RubyTab extends React.Component {
                         vm={vm}
                         editorRef={this.editorRef}
                         onSelectTarget={this.handleSelectTarget}
+                        onCheck={this.handleCheck}
                         intl={intl}
                     />
                     <div className={styles.editorWrapper}>

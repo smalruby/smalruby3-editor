@@ -303,10 +303,12 @@ export default {
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメインめいがながすぎます（さいだい256もじ）。',
 
     // Ruby Toolbar messages
-    'gui.rubyToolbar.searchPlaceholder': 'スプライトをけんさく...',
+    'gui.rubyToolbar.search': 'けんさく',
     'gui.rubyToolbar.prevSprite': 'まえのスプライト',
     'gui.rubyToolbar.nextSprite': 'つぎのスプライト',
     'gui.rubyToolbar.undo': 'もとにもどす',
     'gui.rubyToolbar.redo': 'やりなおす',
+    'gui.rubyToolbar.commandPlaceholder': 'スプライトをなまえでけんさく',
+    'gui.rubyToolbar.check': 'ぶんぽうをチェック',
     'gui.rubyToolbar.stage': 'ステージ'
 };

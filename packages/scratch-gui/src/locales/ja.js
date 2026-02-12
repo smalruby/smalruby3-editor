@@ -303,10 +303,12 @@ export default {
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。',
 
     // Ruby Toolbar messages
-    'gui.rubyToolbar.searchPlaceholder': 'スプライトを検索...',
+    'gui.rubyToolbar.search': '検索',
     'gui.rubyToolbar.prevSprite': '前のスプライト',
     'gui.rubyToolbar.nextSprite': '次のスプライト',
     'gui.rubyToolbar.undo': '元に戻す',
     'gui.rubyToolbar.redo': 'やり直す',
+    'gui.rubyToolbar.commandPlaceholder': 'スプライトを名前で検索',
+    'gui.rubyToolbar.check': '文法をチェック',
     'gui.rubyToolbar.stage': 'ステージ'
 };

@@ -4,78 +4,132 @@
 .toolbar {
     display: flex;
     align-items: center;
-    height: 36px;
-    background-color: #f2f2f2;
-    border-bottom: 1px solid hsla(0, 0%, 0%, 0.15);
-    padding: 4px 8px;
-    gap: 8px;
+    justify-content: space-between;
+    height: calc(6 * $grid-unit); /* 48px */
+    background-color: white;
+    border-bottom: 1px dashed $ui-pane-border;
+    padding: 0 calc(2 * $grid-unit);
+    gap: calc(2 * $grid-unit);
 }
 
-.navGroup {
+.toolbarPart {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: $grid-unit;
 }
 
-.button {
-    width: 28px;
-    height: 28px;
-    padding: 4px;
+.modDashedBorder {
+    border-right: 1px dashed $ui-pane-border;
+    padding-right: calc(2 * $grid-unit);
+}
+
+[dir="rtl"] .modDashedBorder {
+    border-left: 1px dashed $ui-pane-border;
+    border-right: none;
+    padding-left: calc(2 * $grid-unit);
+    padding-right: 0;
+}
+
+.modCenter {
+    flex: 1;
+    justify-content: center;
+}
+
+.modRight {
+    margin-left: auto;
+}
+
+.iconButton {
+    width: calc(4 * $grid-unit); /* 32px */
+    height: calc(4 * $grid-unit); /* 32px */
+    padding: 0;
     border: none;
     background-color: transparent;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: $form-radius;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
-    font-weight: bold;
-    color: #575e75;
     transition: background-color 0.2s;
 }
 
-.button:hover:not(:disabled) {
-    background-color: #e0e0e0;
+.iconButton:hover:not(:disabled) {
+    background-color: $ui-secondary;
 }
 
-.button:active:not(:disabled) {
-    background-color: #d0d0d0;
+.iconButton:active:not(:disabled) {
+    background-color: $ui-tertiary;
 }
 
-.button:disabled {
+.iconButton:disabled {
     opacity: 0.4;
     cursor: not-allowed;
 }
 
-.searchControlWrapper {
-    flex: 1;
-    max-width: 400px;
+.iconButton img {
+    width: 20px;
+    height: 20px;
 }
 
-.searchControl {
+.commandWrapper {
+    position: relative;
+    min-width: 300px;
+    max-width: 500px;
+}
+
+.commandInput {
     width: 100%;
-    padding: 4px 8px;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-    font-size: 14px;
+    height: calc(4 * $grid-unit); /* 32px */
+    padding: 0 calc(1.5 * $grid-unit);
+    border: 1px solid $ui-black-transparent;
+    border-radius: $form-radius;
+    font-size: 0.875rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background-color: white;
-    color: #575e75;
-    cursor: pointer;
-}
-
-.searchControl:focus {
+    color: $text-primary;
     outline: none;
-    border-color: #4c97ff;
-    box-shadow: 0 0 0 2px rgba(76, 151, 255, 0.2);
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.searchControl:hover {
-    border-color: #b0b0b0;
+.commandInput::placeholder {
+    color: $text-primary-transparent;
 }
 
-.separator {
-    width: 1px;
-    height: 24px;
-    background-color: #d0d0d0;
-    margin: 0 4px;
+.commandInput:hover {
+    border-color: $motion-primary;
+}
+
+.commandInput:focus {
+    border-color: $motion-primary;
+    box-shadow: 0 0 0 $space $ui-blue-20percent;
+}
+
+.dropdown {
+    position: absolute;
+    top: calc(100% + $space);
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid $ui-black-transparent;
+    border-radius: $form-radius;
+    box-shadow: $box-shadow;
+    z-index: 100;
+}
+
+.dropdownItem {
+    padding: $space calc(1.5 * $grid-unit);
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: $text-primary;
+}
+
+.dropdownItem:hover {
+    background-color: $ui-secondary;
+}
+
+.highlight {
+    background-color: $motion-primary-transparent;
+    font-weight: bold;
 }
