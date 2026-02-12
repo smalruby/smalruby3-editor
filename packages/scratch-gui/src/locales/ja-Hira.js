@@ -79,6 +79,7 @@ export default {
     'gui.smalruby3.unsupportedBrowser.previewfaq': 'スモウルビーは スクラッチ 3.0をベースにかいはつしていますので、くわしくしりたいばあいは スクラッチ の {previewFaqLink} をごらんください。',
     'gui.smalruby3.webglModal.description': 'ざんねんながら、ブラウザーやコンピューターが{webGlLink}ようです。このぎじゅつはスモウルビー3.0のじっこうにひっすです。',
     'gui.smalruby3.alerts.convertRubyToBlocksError': 'ルビーからコードにへんかんできませんでした。ルビーをなおしてください！',
+    'gui.alerts.cannotExecuteLine': 'このぎょうはじっこうできません。',
     'gui.smalruby3.telemetryOptIn.label': 'スモウルビーをかいぜんするためのりようじょうきょうのほうこく',
     'gui.smalruby3.telemetryOptIn.body1': 'スモウルビーのかいはつしゃはせかいじゅうでスモウルビーがどのようにつかわれているのかをりかいしたいとかんがえています。そのてだすけのために、みなさんのスモウルビーのりようじょうきょうをスモウルビーのかいはつしゃにていきょうしていただけないでしょうか。',
     'gui.smalruby3.telemetryOptIn.body2': 'ていきょうしていただくじょうほうにはどのげんごをせんたくしたか、どのブロックをつかったか、ほぞん・よみこみ・プロジェクトのアップロードなどのイベントをふくみます。ただし、ユーザめいなどのこじんてきなじょうほうはいっさいふくみません。',
@@ -303,6 +304,7 @@ export default {
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメインめいがながすぎます（さいだい256もじ）。',
 
     // Ruby Toolbar messages
+    'gui.rubyToolbar.executeLine': 'カーソルぎょうをじっこう',
     'gui.rubyToolbar.search': 'けんさく',
     'gui.rubyToolbar.prevSprite': 'まえのスプライト',
     'gui.rubyToolbar.nextSprite': 'つぎのスプライト',

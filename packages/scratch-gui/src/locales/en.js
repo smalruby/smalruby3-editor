@@ -18,6 +18,7 @@ export default {
     'gui.smalruby3.unsupportedBrowser.previewfaq': 'Smalruby is based Scratch 3.0. So to learn more, go to the {previewFaqLink}.',
     'gui.smalruby3.webglModal.description': 'Unfortunately it looks like your browser or computer {webGlLink}. This technology is needed for Smalruby 3.0 to run.',
     'gui.smalruby3.alerts.convertRubyToBlocksError': 'Could not convert Ruby to Code. Please fix Ruby!',
+    'gui.alerts.cannotExecuteLine': 'This line cannot be executed.',
     'gui.smalruby3.telemetryOptIn.label': 'Report statistics to improve Smalruby',
     'gui.smalruby3.telemetryOptIn.body1': 'The Smalruby Team is always looking to better understand how Smalruby is used around the world. To help support this effort, you can allow Smalruby to automatically send usage information to the Smalruby Team.',
     'gui.smalruby3.telemetryOptIn.body2': 'The information we collect includes language selection, blocks usage, and some events like saving, loading, and uploading a project. We DO NOT collect any personal information.',
@@ -241,6 +242,7 @@ export default {
     'gui.connection.meshV2Initial.domainTooLongError': 'Domain name is too long (max 256 characters).',
 
     // Ruby Toolbar messages
+    'gui.rubyToolbar.executeLine': 'Execute current line',
     'gui.rubyToolbar.search': 'Search',
     'gui.rubyToolbar.prevSprite': 'Previous sprite',
     'gui.rubyToolbar.nextSprite': 'Next sprite',

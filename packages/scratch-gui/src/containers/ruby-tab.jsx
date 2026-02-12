@@ -48,8 +48,13 @@ class RubyTab extends React.Component {
             'handleAISaveFinished',
             'handleAISaveError',
             'handleSelectTarget',
-            'handleDownload'
+            'handleDownload',
+            'handleExecuteLine',
+            'handleExecuteLineError'
         ]);
+        this.state = {
+            converter: null
+        };
         this.mainTooltipId = 'ruby-downloader-tooltip';
         this.editorRef = null;
         this.monacoRef = null;
@@ -100,6 +105,9 @@ class RubyTab extends React.Component {
                     converter.apply().then(() => {
                         modified = false;
 
+                        // Save converter for execute line feature
+                        this.setState({converter});
+
                         this.clearErrors();
 
                         if (!modified) {
@@ -122,6 +130,8 @@ class RubyTab extends React.Component {
                     });
                     return;
                 }
+                // Clear converter on conversion failure
+                this.setState({converter: null});
                 this.showErrors(converter.errors);
             }
         }
@@ -313,6 +323,19 @@ class RubyTab extends React.Component {
         }
     }
 
+    handleExecuteLine (blockId) {
+        // Execute block using VM's toggleScript
+        this.props.vm.runtime.toggleScript(blockId, {
+            target: this.props.vm.editingTarget,
+            stackClick: true
+        });
+    }
+
+    handleExecuteLineError () {
+        // Show alert when line cannot be executed
+        this.props.onShowAlert('cannotExecuteLine');
+    }
+
     render () {
         const {
             rubyCode,
@@ -333,8 +356,11 @@ class RubyTab extends React.Component {
                         editingTarget={vm.editingTarget}
                         vm={vm}
                         editorRef={this.editorRef}
+                        converter={this.state.converter}
                         onSelectTarget={this.handleSelectTarget}
                         onDownload={this.handleDownload}
+                        onExecuteLine={this.handleExecuteLine}
+                        onExecuteLineError={this.handleExecuteLineError}
                     />
                     <div className={styles.editorWrapper}>
                         <Editor

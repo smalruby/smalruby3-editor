@@ -127,6 +127,7 @@ class RubyToBlocksConverter {
         this._loadVariables(target);
         try {
             const root = RubyParser.$parse(code);
+            this._context.rootNode = root; // Save root node for line mapping
             let blocks = this._process(root, false);
             if (blocks === null || blocks === Opal.nil) {
                 return true;
@@ -476,6 +477,67 @@ class RubyToBlocksConverter {
         }
 
         return null;
+    }
+
+    /**
+     * Find AST node at the given line number
+     * @param {number} lineNumber - Line number (1-indexed)
+     * @returns {object|null} AST node or null if not found
+     */
+    findNodeAtLine (lineNumber) {
+        if (!this._context.rootNode) {
+            return null;
+        }
+
+        let matchedNode = null;
+        let maxDepth = -1;
+
+        const traverse = (node, depth) => {
+            if (!node || node === Opal.nil) return;
+
+            try {
+                const loc = node.$loc();
+                if (loc && loc !== Opal.nil) {
+                    const startLine = loc.$line();
+                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
+
+                    if (startLine <= lineNumber && lineNumber <= endLine) {
+                        if (depth > maxDepth) {
+                            maxDepth = depth;
+                            matchedNode = node;
+                        }
+                    }
+                }
+
+                // Traverse children
+                const children = node.$children ? node.$children() : null;
+                if (children && children !== Opal.nil) {
+                    const childArray = children.$to_a ? children.$to_a() : [];
+                    childArray.forEach(child => {
+                        traverse(child, depth + 1);
+                    });
+                }
+            } catch (e) {
+                // Ignore nodes without location info
+            }
+        };
+
+        traverse(this._context.rootNode, 0);
+        return matchedNode;
+    }
+
+    /**
+     * Get block ID for the given line number
+     * @param {number} lineNumber - Line number (1-indexed)
+     * @returns {string|null} Block ID or null if not found
+     */
+    getBlockIdForLine (lineNumber) {
+        const node = this.findNodeAtLine(lineNumber);
+        if (!node) {
+            return null;
+        }
+
+        return this._context.nodeToBlockMap.get(node) || null;
     }
 }
 

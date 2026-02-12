@@ -29,7 +29,9 @@ const ContextUtils = {
             inMyBlockDefinition: false,
             scopeStack: [],
             scopeCounter: 1, // Top-level scope is always 1
-            currentScopeIndex: 1 // Default to top-level scope
+            currentScopeIndex: 1, // Default to top-level scope
+            nodeToBlockMap: new Map(), // Map ASTノード to ブロックID
+            rootNode: null // ルートASTノード
         };
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());
