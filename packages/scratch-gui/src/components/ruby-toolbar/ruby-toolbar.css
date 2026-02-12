@@ -71,6 +71,34 @@
     height: 20px;
 }
 
+.buttonGroup {
+    display: flex;
+}
+
+.buttonGroup .iconButton {
+    border-radius: 0;
+    border: 1px solid $ui-black-transparent;
+}
+
+.buttonGroup .iconButton:not(:last-child) {
+    border-right: none;
+}
+
+[dir="rtl"] .buttonGroup .iconButton:not(:last-child) {
+    border-left: none;
+    border-right: 1px solid $ui-black-transparent;
+}
+
+.buttonGroup .iconButton:first-child,
+[dir="rtl"] .buttonGroup .iconButton:last-child {
+    border-radius: $form-radius 0 0 $form-radius;
+}
+
+.buttonGroup .iconButton:last-child,
+[dir="rtl"] .buttonGroup .iconButton:first-child {
+    border-radius: 0 $form-radius $form-radius 0;
+}
+
 .commandWrapper {
     position: relative;
     min-width: 300px;

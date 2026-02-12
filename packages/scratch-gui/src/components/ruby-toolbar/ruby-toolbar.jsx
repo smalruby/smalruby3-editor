@@ -283,30 +283,32 @@ class RubyToolbar extends React.Component {
             <div className={styles.toolbar}>
                 {/* Edit Part */}
                 <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
-                    <button
-                        className={styles.iconButton}
-                        onClick={this.handleUndo}
-                        disabled={!this.props.editorRef}
-                        aria-label={intl.formatMessage(messages.undo)}
-                        title={intl.formatMessage(messages.undo)}
-                    >
-                        <img
-                            src={iconUndo}
-                            alt=""
-                        />
-                    </button>
-                    <button
-                        className={styles.iconButton}
-                        onClick={this.handleRedo}
-                        disabled={!this.props.editorRef}
-                        aria-label={intl.formatMessage(messages.redo)}
-                        title={intl.formatMessage(messages.redo)}
-                    >
-                        <img
-                            src={iconRedo}
-                            alt=""
-                        />
-                    </button>
+                    <div className={styles.buttonGroup}>
+                        <button
+                            className={styles.iconButton}
+                            onClick={this.handleUndo}
+                            disabled={!this.props.editorRef}
+                            aria-label={intl.formatMessage(messages.undo)}
+                            title={intl.formatMessage(messages.undo)}
+                        >
+                            <img
+                                src={iconUndo}
+                                alt=""
+                            />
+                        </button>
+                        <button
+                            className={styles.iconButton}
+                            onClick={this.handleRedo}
+                            disabled={!this.props.editorRef}
+                            aria-label={intl.formatMessage(messages.redo)}
+                            title={intl.formatMessage(messages.redo)}
+                        >
+                            <img
+                                src={iconRedo}
+                                alt=""
+                            />
+                        </button>
+                    </div>
                     <button
                         className={styles.iconButton}
                         onClick={this.handleSearch}
