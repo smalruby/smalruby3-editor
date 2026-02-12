@@ -316,8 +316,7 @@ class RubyTab extends React.Component {
     render () {
         const {
             rubyCode,
-            vm,
-            intl
+            vm
         } = this.props;
         const {
             code,
@@ -336,7 +335,6 @@ class RubyTab extends React.Component {
                         editorRef={this.editorRef}
                         onSelectTarget={this.handleSelectTarget}
                         onDownload={this.handleDownload}
-                        intl={intl}
                     />
                     <div className={styles.editorWrapper}>
                         <Editor

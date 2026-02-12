@@ -1,8 +1,7 @@
-import React from 'react';
+import React, {useState, useCallback} from 'react';
 import PropTypes from 'prop-types';
-import {defineMessages, injectIntl} from 'react-intl';
+import {defineMessages, useIntl} from 'react-intl';
 import VM from '@smalruby/scratch-vm';
-import intlShape from '../../lib/intlShape.js';
 
 import styles from './ruby-toolbar.css';
 
@@ -56,61 +55,44 @@ const messages = defineMessages({
     }
 });
 
-class RubyToolbar extends React.Component {
-    constructor (props) {
-        super(props);
-        this.state = {
-            commandValue: '',
-            showDropdown: false,
-            filteredTargets: []
-        };
+const RubyToolbar = props => {
+    const intl = useIntl();
+    const [commandValue, setCommandValue] = useState('');
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [filteredTargets, setFilteredTargets] = useState([]);
 
-        this.handleSearch = this.handleSearch.bind(this);
-        this.handleUndo = this.handleUndo.bind(this);
-        this.handleRedo = this.handleRedo.bind(this);
-        this.handlePrevSprite = this.handlePrevSprite.bind(this);
-        this.handleNextSprite = this.handleNextSprite.bind(this);
-        this.handleCommandChange = this.handleCommandChange.bind(this);
-        this.handleCommandFocus = this.handleCommandFocus.bind(this);
-        this.handleCommandBlur = this.handleCommandBlur.bind(this);
-        this.handleCommandKeyDown = this.handleCommandKeyDown.bind(this);
-        this.handleSelectTarget = this.handleSelectTarget.bind(this);
-        this.handleSelectTargetFromDropdown = this.handleSelectTargetFromDropdown.bind(this);
-        this.handleDownload = this.handleDownload.bind(this);
-    }
-
-    getSortedSprites () {
-        if (!this.props.vm || !this.props.vm.runtime) {
+    const getSortedSprites = useCallback(() => {
+        if (!props.vm || !props.vm.runtime) {
             return [];
         }
-        const targets = this.props.vm.runtime.targets;
+        const targets = props.vm.runtime.targets;
         const sprites = targets
             .filter(t => !t.isStage)
             .sort((a, b) => a.getLayerOrder() - b.getLayerOrder());
         return sprites;
-    }
+    }, [props.vm]);
 
-    getAllTargets () {
-        if (!this.props.vm || !this.props.vm.runtime) {
+    const getAllTargets = useCallback(() => {
+        if (!props.vm || !props.vm.runtime) {
             return [];
         }
-        const stage = this.props.vm.runtime.targets.find(t => t.isStage);
-        const sprites = this.getSortedSprites();
+        const stage = props.vm.runtime.targets.find(t => t.isStage);
+        const sprites = getSortedSprites();
         return stage ? [stage, ...sprites] : sprites;
-    }
+    }, [props.vm, getSortedSprites]);
 
-    getCurrentSpriteIndex () {
-        const sprites = this.getSortedSprites();
-        const currentId = this.props.editingTarget?.id;
+    const getCurrentSpriteIndex = useCallback(() => {
+        const sprites = getSortedSprites();
+        const currentId = props.editingTarget?.id;
         return sprites.findIndex(s => s.id === currentId);
-    }
+    }, [getSortedSprites, props.editingTarget]);
 
-    getTargetName (target) {
+    const getTargetName = useCallback(target => {
         if (!target) {
             return '';
         }
         if (target.isStage) {
-            return this.props.intl.formatMessage(messages.stage);
+            return intl.formatMessage(messages.stage);
         }
         if (typeof target.getName === 'function') {
             return target.getName();
@@ -119,147 +101,145 @@ class RubyToolbar extends React.Component {
             return target.sprite.name;
         }
         return target.name || '';
-    }
+    }, [intl]);
 
-    handleSearch () {
-        if (this.props.editorRef) {
+    const handleSearch = useCallback(() => {
+        if (props.editorRef) {
             // Trigger Monaco Editor's search action
-            this.props.editorRef.trigger('keyboard', 'actions.find', null);
+            props.editorRef.trigger('keyboard', 'actions.find', null);
         }
-    }
+    }, [props.editorRef]);
 
-    handleUndo () {
-        if (this.props.editorRef) {
-            this.props.editorRef.trigger('keyboard', 'undo', null);
+    const handleUndo = useCallback(() => {
+        if (props.editorRef) {
+            props.editorRef.trigger('keyboard', 'undo', null);
         }
-    }
+    }, [props.editorRef]);
 
-    handleRedo () {
-        if (this.props.editorRef) {
-            this.props.editorRef.trigger('keyboard', 'redo', null);
+    const handleRedo = useCallback(() => {
+        if (props.editorRef) {
+            props.editorRef.trigger('keyboard', 'redo', null);
         }
-    }
+    }, [props.editorRef]);
 
-    handlePrevSprite () {
-        const sprites = this.getSortedSprites();
-        const currentIndex = this.getCurrentSpriteIndex();
+    const handlePrevSprite = useCallback(() => {
+        const sprites = getSortedSprites();
+        const currentIndex = getCurrentSpriteIndex();
 
-        if (this.props.editingTarget?.isStage) {
+        if (props.editingTarget?.isStage) {
             return;
         }
 
         if (currentIndex === 0) {
-            const stage = this.props.vm.runtime.targets.find(t => t.isStage);
+            const stage = props.vm.runtime.targets.find(t => t.isStage);
             if (stage) {
-                this.props.onSelectTarget(stage.id);
+                props.onSelectTarget(stage.id);
             }
         } else if (currentIndex > 0) {
-            this.props.onSelectTarget(sprites[currentIndex - 1].id);
+            props.onSelectTarget(sprites[currentIndex - 1].id);
         }
-    }
+    }, [getSortedSprites, getCurrentSpriteIndex, props]);
 
-    handleNextSprite () {
-        const sprites = this.getSortedSprites();
-        const currentIndex = this.getCurrentSpriteIndex();
+    const handleNextSprite = useCallback(() => {
+        const sprites = getSortedSprites();
+        const currentIndex = getCurrentSpriteIndex();
 
-        if (this.props.editingTarget?.isStage) {
+        if (props.editingTarget?.isStage) {
             if (sprites.length > 0) {
-                this.props.onSelectTarget(sprites[0].id);
+                props.onSelectTarget(sprites[0].id);
             }
         } else if (currentIndex >= 0 && currentIndex < sprites.length - 1) {
-            this.props.onSelectTarget(sprites[currentIndex + 1].id);
+            props.onSelectTarget(sprites[currentIndex + 1].id);
         }
-    }
+    }, [getSortedSprites, getCurrentSpriteIndex, props]);
 
-    handleCommandChange (e) {
+    const handleCommandChange = useCallback(e => {
         const value = e.target.value;
-        this.setState({commandValue: value});
+        setCommandValue(value);
 
         if (value.startsWith('>')) {
             // Command mode - TODO: implement Monaco command palette
-            this.setState({showDropdown: false});
+            setShowDropdown(false);
         } else {
             // Sprite search mode
-            const allTargets = this.getAllTargets();
+            const allTargets = getAllTargets();
             const filtered = allTargets.filter(target => {
-                const name = this.getTargetName(target).toLowerCase();
+                const name = getTargetName(target).toLowerCase();
                 return name.includes(value.toLowerCase());
             });
-            this.setState({
-                showDropdown: value.length > 0 && filtered.length > 0,
-                filteredTargets: filtered
-            });
+            setShowDropdown(value.length > 0 && filtered.length > 0);
+            setFilteredTargets(filtered);
         }
-    }
+    }, [getAllTargets, getTargetName]);
 
-    handleCommandFocus () {
-        if (this.state.commandValue && !this.state.commandValue.startsWith('>')) {
-            const allTargets = this.getAllTargets();
+    const handleCommandFocus = useCallback(() => {
+        if (commandValue && !commandValue.startsWith('>')) {
+            const allTargets = getAllTargets();
             const filtered = allTargets.filter(target => {
-                const name = this.getTargetName(target).toLowerCase();
-                return name.includes(this.state.commandValue.toLowerCase());
+                const name = getTargetName(target).toLowerCase();
+                return name.includes(commandValue.toLowerCase());
             });
-            this.setState({
-                showDropdown: filtered.length > 0,
-                filteredTargets: filtered
-            });
+            setShowDropdown(filtered.length > 0);
+            setFilteredTargets(filtered);
         }
-    }
+    }, [commandValue, getAllTargets, getTargetName]);
 
-    handleCommandBlur () {
+    const handleCommandBlur = useCallback(() => {
         // Delay to allow click on dropdown item
         setTimeout(() => {
-            this.setState({showDropdown: false});
+            setShowDropdown(false);
         }, 200);
-    }
+    }, []);
 
-    handleCommandKeyDown (e) {
+    const handleSelectTarget = useCallback(targetId => {
+        props.onSelectTarget(targetId);
+        setCommandValue('');
+        setShowDropdown(false);
+    }, [props]);
+
+    const handleCommandKeyDown = useCallback(e => {
         if (e.key === 'Escape') {
-            this.setState({commandValue: '', showDropdown: false});
+            setCommandValue('');
+            setShowDropdown(false);
             e.target.blur();
-        } else if (e.key === 'Enter' && !e.isComposing && this.state.filteredTargets.length > 0) {
-            this.handleSelectTarget(this.state.filteredTargets[0].id);
+        } else if (e.key === 'Enter' && !e.isComposing && filteredTargets.length > 0) {
+            handleSelectTarget(filteredTargets[0].id);
         }
-    }
+    }, [filteredTargets, handleSelectTarget]);
 
-    handleSelectTarget (targetId) {
-        this.props.onSelectTarget(targetId);
-        this.setState({commandValue: '', showDropdown: false});
-    }
-
-    handleSelectTargetFromDropdown (e) {
+    const handleSelectTargetFromDropdown = useCallback(e => {
         const targetId = e.currentTarget.dataset.targetId;
-        this.handleSelectTarget(targetId);
-    }
+        handleSelectTarget(targetId);
+    }, [handleSelectTarget]);
 
-    handleDownload () {
+    const handleDownload = useCallback(() => {
         // Trigger download Ruby code
-        if (this.props.onDownload) {
-            this.props.onDownload();
+        if (props.onDownload) {
+            props.onDownload();
         }
-    }
+    }, [props]);
 
-    canGoPrev () {
-        if (this.props.editingTarget?.isStage) {
+    const canGoPrev = useCallback(() => {
+        if (props.editingTarget?.isStage) {
             return false;
         }
-        const currentIndex = this.getCurrentSpriteIndex();
+        const currentIndex = getCurrentSpriteIndex();
         return currentIndex >= 0;
-    }
+    }, [props.editingTarget, getCurrentSpriteIndex]);
 
-    canGoNext () {
-        const sprites = this.getSortedSprites();
+    const canGoNext = useCallback(() => {
+        const sprites = getSortedSprites();
         if (sprites.length === 0) {
             return false;
         }
-        if (this.props.editingTarget?.isStage) {
+        if (props.editingTarget?.isStage) {
             return true;
         }
-        const currentIndex = this.getCurrentSpriteIndex();
+        const currentIndex = getCurrentSpriteIndex();
         return currentIndex >= 0 && currentIndex < sprites.length - 1;
-    }
+    }, [getSortedSprites, props.editingTarget, getCurrentSpriteIndex]);
 
-    highlightMatch (text, query) {
+    const highlightMatch = useCallback((text, query) => {
         if (!query) return text;
         const index = text.toLowerCase().indexOf(query.toLowerCase());
         if (index === -1) return text;
@@ -273,141 +253,135 @@ class RubyToolbar extends React.Component {
                 {text.substring(index + query.length)}
             </>
         );
-    }
+    }, []);
 
-    render () {
-        const {intl} = this.props;
-        const {commandValue, showDropdown, filteredTargets} = this.state;
-
-        return (
-            <div className={styles.toolbar}>
-                {/* Edit Part */}
-                <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
-                    <div className={styles.buttonGroup}>
-                        <button
-                            className={styles.iconButton}
-                            onClick={this.handleUndo}
-                            disabled={!this.props.editorRef}
-                            aria-label={intl.formatMessage(messages.undo)}
-                            title={intl.formatMessage(messages.undo)}
-                        >
-                            <img
-                                src={iconUndo}
-                                alt=""
-                            />
-                        </button>
-                        <button
-                            className={styles.iconButton}
-                            onClick={this.handleRedo}
-                            disabled={!this.props.editorRef}
-                            aria-label={intl.formatMessage(messages.redo)}
-                            title={intl.formatMessage(messages.redo)}
-                        >
-                            <img
-                                src={iconRedo}
-                                alt=""
-                            />
-                        </button>
-                    </div>
+    return (
+        <div className={styles.toolbar}>
+            {/* Edit Part */}
+            <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
+                <div className={styles.buttonGroup}>
                     <button
                         className={styles.iconButton}
-                        onClick={this.handleSearch}
-                        disabled={!this.props.editorRef}
-                        aria-label={intl.formatMessage(messages.search)}
-                        title={intl.formatMessage(messages.search)}
+                        onClick={handleUndo}
+                        disabled={!props.editorRef}
+                        aria-label={intl.formatMessage(messages.undo)}
+                        title={intl.formatMessage(messages.undo)}
                     >
                         <img
-                            src={iconSearch}
+                            src={iconUndo}
+                            alt=""
+                        />
+                    </button>
+                    <button
+                        className={styles.iconButton}
+                        onClick={handleRedo}
+                        disabled={!props.editorRef}
+                        aria-label={intl.formatMessage(messages.redo)}
+                        title={intl.formatMessage(messages.redo)}
+                    >
+                        <img
+                            src={iconRedo}
                             alt=""
                         />
                     </button>
                 </div>
+                <button
+                    className={styles.iconButton}
+                    onClick={handleSearch}
+                    disabled={!props.editorRef}
+                    aria-label={intl.formatMessage(messages.search)}
+                    title={intl.formatMessage(messages.search)}
+                >
+                    <img
+                        src={iconSearch}
+                        alt=""
+                    />
+                </button>
+            </div>
 
-                {/* Navigation & Command Part */}
-                <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
-                    <button
-                        className={styles.iconButton}
-                        onClick={this.handlePrevSprite}
-                        disabled={!this.canGoPrev()}
-                        aria-label={intl.formatMessage(messages.prevSprite)}
-                        title={intl.formatMessage(messages.prevSprite)}
-                    >
-                        <img
-                            src={iconBack}
-                            alt=""
-                        />
-                    </button>
-                    <button
-                        className={styles.iconButton}
-                        onClick={this.handleNextSprite}
-                        disabled={!this.canGoNext()}
-                        aria-label={intl.formatMessage(messages.nextSprite)}
-                        title={intl.formatMessage(messages.nextSprite)}
-                    >
-                        <img
-                            src={iconForward}
-                            alt=""
-                        />
-                    </button>
-                    <div className={styles.commandWrapper}>
-                        <input
-                            className={styles.commandInput}
-                            type="text"
-                            value={commandValue}
-                            onChange={this.handleCommandChange}
-                            onFocus={this.handleCommandFocus}
-                            onBlur={this.handleCommandBlur}
-                            onKeyDown={this.handleCommandKeyDown}
-                            placeholder={intl.formatMessage(messages.commandPlaceholder)}
-                        />
-                        {showDropdown && (
-                            <div className={styles.dropdown}>
-                                {filteredTargets.map(target => (
-                                    <div
-                                        key={target.id}
-                                        className={styles.dropdownItem}
-                                        data-target-id={target.id}
-                                        onMouseDown={this.handleSelectTargetFromDropdown}
-                                    >
-                                        {this.highlightMatch(this.getTargetName(target), commandValue)}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Run Part */}
-                <div className={styles.toolbarPart}>
-                    <button
-                        className={styles.iconButton}
-                        onClick={this.handleDownload}
-                        aria-label={intl.formatMessage(messages.download)}
-                        title={intl.formatMessage(messages.download)}
-                    >
-                        <img
-                            src={iconDownload}
-                            alt=""
-                        />
-                    </button>
-                </div>
-
-                {/* Three-dot Menu Part - TODO */}
-                <div className={`${styles.toolbarPart} ${styles.modRight}`}>
-                    {/* Placeholder for three-dot menu */}
+            {/* Navigation & Command Part */}
+            <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
+                <button
+                    className={styles.iconButton}
+                    onClick={handlePrevSprite}
+                    disabled={!canGoPrev()}
+                    aria-label={intl.formatMessage(messages.prevSprite)}
+                    title={intl.formatMessage(messages.prevSprite)}
+                >
+                    <img
+                        src={iconBack}
+                        alt=""
+                    />
+                </button>
+                <button
+                    className={styles.iconButton}
+                    onClick={handleNextSprite}
+                    disabled={!canGoNext()}
+                    aria-label={intl.formatMessage(messages.nextSprite)}
+                    title={intl.formatMessage(messages.nextSprite)}
+                >
+                    <img
+                        src={iconForward}
+                        alt=""
+                    />
+                </button>
+                <div className={styles.commandWrapper}>
+                    <input
+                        className={styles.commandInput}
+                        type="text"
+                        value={commandValue}
+                        onChange={handleCommandChange}
+                        onFocus={handleCommandFocus}
+                        onBlur={handleCommandBlur}
+                        onKeyDown={handleCommandKeyDown}
+                        placeholder={intl.formatMessage(messages.commandPlaceholder)}
+                    />
+                    {showDropdown && (
+                        <div className={styles.dropdown}>
+                            {filteredTargets.map(target => (
+                                <div
+                                    key={target.id}
+                                    className={styles.dropdownItem}
+                                    data-target-id={target.id}
+                                    onMouseDown={handleSelectTargetFromDropdown}
+                                >
+                                    {highlightMatch(getTargetName(target), commandValue)}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
-        );
-    }
-}
+
+            {/* Run Part */}
+            <div className={styles.toolbarPart}>
+                <button
+                    className={styles.iconButton}
+                    onClick={handleDownload}
+                    aria-label={intl.formatMessage(messages.download)}
+                    title={intl.formatMessage(messages.download)}
+                >
+                    <img
+                        src={iconDownload}
+                        alt=""
+                    />
+                </button>
+            </div>
+
+            {/* Three-dot Menu Part - TODO */}
+            <div className={`${styles.toolbarPart} ${styles.modRight}`}>
+                {/* Placeholder for three-dot menu */}
+            </div>
+        </div>
+    );
+};
 
 RubyToolbar.propTypes = {
     editingTarget: PropTypes.object,
     vm: PropTypes.instanceOf(VM).isRequired,
     editorRef: PropTypes.object,
     onSelectTarget: PropTypes.func.isRequired,
-    onDownload: PropTypes.func,
-    intl: intlShape.isRequired
+    onDownload: PropTypes.func
 };
 
-export default injectIntl(RubyToolbar);
+export default RubyToolbar;
