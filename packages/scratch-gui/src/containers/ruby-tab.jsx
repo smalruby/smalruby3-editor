@@ -322,7 +322,6 @@ class RubyTab extends React.Component {
             return null;
         }
 
-        // Collect all nodes that match the line number, with their depths
         const matchedNodes = [];
 
         const traverse = (node, depth) => {
@@ -339,7 +338,6 @@ class RubyTab extends React.Component {
                     }
                 }
 
-                // Traverse children
                 const children = node.$children ? node.$children() : null;
                 if (children && children !== Opal.nil) {
                     const childArray = children.$to_a ? children.$to_a() : [];
@@ -358,8 +356,7 @@ class RubyTab extends React.Component {
             return null;
         }
 
-        // Find the shallowest node (lowest depth) that exists in nodeToBlockMap
-        // This ensures we get the parent block (e.g., looks_say) rather than child blocks (e.g., text)
+        // Select parent block (shallowest node) rather than child blocks
         let bestMatch = null;
         let minDepth = Infinity;
 
@@ -375,8 +372,6 @@ class RubyTab extends React.Component {
     }
 
     handleExecuteLine (lineNumber) {
-        // Step 1: Convert Ruby to blocks directly without HOC
-        // (HOC returns NullConverter if modified=false, but we always need fresh conversion)
         const converter = targetCodeToBlocks(
             this.props.vm,
             this.props.rubyCode.target,
@@ -385,56 +380,43 @@ class RubyTab extends React.Component {
             {version: this.props.rubyVersion}
         );
 
-        // Step 2: Check for conversion errors
         if (!converter.result) {
-            // Show conversion error
             this.props.onShowAlert('convertRubyToBlocksError');
             this.props.updateRubyCodeErrorsState(converter.errors);
             this.showErrors(converter.errors);
             return;
         }
 
-        // Save mapping before apply (apply may modify converter state)
         const nodeToBlockMap = converter._context.nodeToBlockMap;
         const rootNode = converter._context.rootNode;
 
-        // Step 3: Apply blocks to VM
         converter.apply()
             .then(() => {
-                // Step 4: Get block ID from line number using saved mapping
                 const blockId = this.getBlockIdForLine(lineNumber, rootNode, nodeToBlockMap);
 
                 if (!blockId) {
-                    // No executable block found at this line
                     // eslint-disable-next-line no-console
                     console.warn(`[handleExecuteLine] No executable block found at line ${lineNumber}`);
                     this.props.onShowAlert('cannotExecuteLine');
                     return;
                 }
 
-                // Step 5: Get the top-level block of the stack
-                // This ensures that clicking any block in a stack executes from the top
+                // Execute from top of block stack (like Scratch's behavior)
                 const topBlockId = this.props.vm.editingTarget.blocks.getTopLevelScript(blockId);
 
                 if (!topBlockId) {
-                    // Could not find top-level block
                     // eslint-disable-next-line no-console
                     console.warn(`[handleExecuteLine] Could not find top-level block for blockId ${blockId}`);
                     this.props.onShowAlert('cannotExecuteLine');
                     return;
                 }
 
-                // Step 6: Execute block stack from the top using VM's toggleScript
                 this.props.vm.runtime.toggleScript(topBlockId, {
                     target: this.props.vm.editingTarget,
                     stackClick: true
                 });
-
-                // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] Block executed:', topBlockId);
             })
             .catch(error => {
-                // Handle apply error
                 // eslint-disable-next-line no-console
                 console.error('[handleExecuteLine] Apply error:', error);
                 this.props.onShowAlert('convertRubyToBlocksError');

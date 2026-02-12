@@ -385,20 +385,17 @@ class RubyToBlocksConverter {
                     procedure: procedure
                 };
 
-                // Set currentNode so that _createBlock can map it to block ID
                 const previousNode = this._context.currentNode;
                 this._context.currentNode = node;
 
                 for (const handler of this._receiverToMyBlocks[receiverName]) {
                     const block = handler.apply(this, [params]);
                     if (block) {
-                        // Restore previous currentNode
                         this._context.currentNode = previousNode;
                         return block;
                     }
                 }
 
-                // Restore previous currentNode
                 this._context.currentNode = previousNode;
             }
         }
@@ -431,7 +428,6 @@ class RubyToBlocksConverter {
             node: node
         };
 
-        // Set currentNode so that _createBlock can map it to block ID
         const previousNode = this._context.currentNode;
         this._context.currentNode = node;
 
@@ -439,13 +435,11 @@ class RubyToBlocksConverter {
             const createBlockFunc = createBlockFuncs[i];
             const block = createBlockFunc.apply(this, [params]);
             if (block) {
-                // Restore previous currentNode
                 this._context.currentNode = previousNode;
                 return block;
             }
         }
 
-        // Restore previous currentNode
         this._context.currentNode = previousNode;
 
         return null;
