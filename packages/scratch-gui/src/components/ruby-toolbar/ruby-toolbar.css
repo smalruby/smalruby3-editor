@@ -81,27 +81,37 @@
     width: 100%;
     height: 2rem; /* 32px */
     padding: 0 0.75rem;
-    border: 1px solid hsla(0, 0%, 0%, 0.15);
-    border-radius: $form-radius;
-    font-size: 0.875rem;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: white;
-    color: #575e75;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 0.625rem;
+    font-weight: bold;
+    color: $text-primary;
+    border-width: 1px;
+    border-style: solid;
+    border-color: $ui-black-transparent;
+    border-radius: 2rem;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: text;
+    transition: 0.25s ease-out;
+    box-shadow: none;
+    /* For truncating overflowing text gracefully */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .commandInput::placeholder {
-    color: hsla(225, 15%, 40%, 0.5);
+    color: $text-primary-transparent;
+    font-weight: normal;
 }
 
 .commandInput:hover {
-    border-color: #4c97ff;
+    border-color: $looks-secondary;
 }
 
 .commandInput:focus {
-    border-color: #4c97ff;
-    box-shadow: 0 0 0 $space hsla(215, 100%, 65%, 0.2);
+    border-color: $looks-secondary;
+    box-shadow: 0 0 0 0.25rem $looks-transparent;
 }
 
 .dropdown {
