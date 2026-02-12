@@ -1669,12 +1669,6 @@ class Runtime extends EventEmitter {
      * @returns {!Thread} The newly created thread.
      */
     _pushThread (id, target, opts) {
-        // eslint-disable-next-line no-console
-        console.log('[VM _pushThread] id:', id);
-        // eslint-disable-next-line no-console
-        console.log('[VM _pushThread] target:', target);
-        // eslint-disable-next-line no-console
-        console.log('[VM _pushThread] target.blocks:', target.blocks);
         const thread = new Thread(id);
         thread.target = target;
         thread.stackClick = Boolean(opts && opts.stackClick);
@@ -1683,14 +1677,8 @@ class Runtime extends EventEmitter {
             this.monitorBlocks :
             target.blocks;
 
-        // eslint-disable-next-line no-console
-        console.log('[VM _pushThread] blockContainer:', thread.blockContainer);
-        // eslint-disable-next-line no-console
-        console.log('[VM _pushThread] block exists:', thread.blockContainer.getBlock(id));
         thread.pushStack(id);
         this.threads.push(thread);
-        // eslint-disable-next-line no-console
-        console.log('[VM _pushThread] Thread pushed to queue');
         return thread;
     }
 
@@ -1763,10 +1751,6 @@ class Runtime extends EventEmitter {
      *     determines whether we show a visual report when turning on the script.
      */
     toggleScript (topBlockId, opts) {
-        // eslint-disable-next-line no-console
-        console.log('[VM toggleScript] topBlockId:', topBlockId);
-        // eslint-disable-next-line no-console
-        console.log('[VM toggleScript] opts:', opts);
         opts = Object.assign({
             target: this._editingTarget,
             stackClick: false
@@ -1788,11 +1772,7 @@ class Runtime extends EventEmitter {
             }
         }
         // Otherwise add it.
-        // eslint-disable-next-line no-console
-        console.log('[VM toggleScript] Creating new thread for block:', topBlockId);
         this._pushThread(topBlockId, opts.target, opts);
-        // eslint-disable-next-line no-console
-        console.log('[VM toggleScript] Thread created, threads.length:', this.threads.length);
     }
 
     /**

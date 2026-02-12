@@ -319,15 +319,8 @@ class RubyTab extends React.Component {
     getBlockIdForLine (lineNumber, rootNode, nodeToBlockMap) {
         const Opal = global.Opal || window.Opal;
         if (!rootNode || !nodeToBlockMap) {
-            // eslint-disable-next-line no-console
-            console.log('[getBlockIdForLine] Missing rootNode or nodeToBlockMap');
             return null;
         }
-
-        // eslint-disable-next-line no-console
-        console.log('[getBlockIdForLine] Searching for line:', lineNumber);
-        // eslint-disable-next-line no-console
-        console.log('[getBlockIdForLine] nodeToBlockMap size:', nodeToBlockMap.size);
 
         // Collect all nodes that match the line number, with their depths
         const matchedNodes = [];
@@ -342,14 +335,6 @@ class RubyTab extends React.Component {
                     const endLine = loc.$last_line ? loc.$last_line() : startLine;
 
                     if (startLine <= lineNumber && lineNumber <= endLine) {
-                        const nodeType = node.$type ? node.$type() : 'unknown';
-                        // eslint-disable-next-line no-console
-                        console.log(`[getBlockIdForLine] Matched node at depth ${depth}:`, {
-                            type: nodeType,
-                            startLine,
-                            endLine,
-                            hasBlockId: nodeToBlockMap.has(node)
-                        });
                         matchedNodes.push({node, depth});
                     }
                 }
@@ -369,9 +354,6 @@ class RubyTab extends React.Component {
 
         traverse(rootNode, 0);
 
-        // eslint-disable-next-line no-console
-        console.log('[getBlockIdForLine] Total matched nodes:', matchedNodes.length);
-
         if (matchedNodes.length === 0) {
             return null;
         }
@@ -383,30 +365,16 @@ class RubyTab extends React.Component {
 
         for (const {node, depth} of matchedNodes) {
             const blockId = nodeToBlockMap.get(node);
-            if (blockId) {
-                // eslint-disable-next-line no-console
-                console.log(`[getBlockIdForLine] Node at depth ${depth} has blockId:`, blockId);
-                if (depth < minDepth) {
-                    minDepth = depth;
-                    bestMatch = blockId;
-                }
+            if (blockId && depth < minDepth) {
+                minDepth = depth;
+                bestMatch = blockId;
             }
         }
-
-        // eslint-disable-next-line no-console
-        console.log('[getBlockIdForLine] Best match:', {blockId: bestMatch, depth: minDepth});
 
         return bestMatch;
     }
 
     handleExecuteLine (lineNumber) {
-        // eslint-disable-next-line no-console
-        console.log('[handleExecuteLine] lineNumber:', lineNumber);
-        // eslint-disable-next-line no-console
-        console.log('[handleExecuteLine] rubyCode.code:', this.props.rubyCode.code);
-        // eslint-disable-next-line no-console
-        console.log('[handleExecuteLine] rubyCode.target:', this.props.rubyCode.target);
-
         // Step 1: Convert Ruby to blocks directly without HOC
         // (HOC returns NullConverter if modified=false, but we always need fresh conversion)
         const converter = targetCodeToBlocks(
@@ -416,11 +384,6 @@ class RubyTab extends React.Component {
             this.props.intl,
             {version: this.props.rubyVersion}
         );
-
-        // eslint-disable-next-line no-console
-        console.log('[handleExecuteLine] converter.result:', converter.result);
-        // eslint-disable-next-line no-console
-        console.log('[handleExecuteLine] converter.errors:', converter.errors);
 
         // Step 2: Check for conversion errors
         if (!converter.result) {
@@ -438,21 +401,13 @@ class RubyTab extends React.Component {
         // Step 3: Apply blocks to VM
         converter.apply()
             .then(() => {
-                // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] Apply successful');
-                // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] nodeToBlockMap:', nodeToBlockMap);
-                // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] rootNode:', rootNode);
-
                 // Step 4: Get block ID from line number using saved mapping
                 const blockId = this.getBlockIdForLine(lineNumber, rootNode, nodeToBlockMap);
 
-                // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] blockId:', blockId);
-
                 if (!blockId) {
                     // No executable block found at this line
+                    // eslint-disable-next-line no-console
+                    console.warn(`[handleExecuteLine] No executable block found at line ${lineNumber}`);
                     this.props.onShowAlert('cannotExecuteLine');
                     return;
                 }
@@ -461,11 +416,10 @@ class RubyTab extends React.Component {
                 // This ensures that clicking any block in a stack executes from the top
                 const topBlockId = this.props.vm.editingTarget.blocks.getTopLevelScript(blockId);
 
-                // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] topBlockId:', topBlockId);
-
                 if (!topBlockId) {
                     // Could not find top-level block
+                    // eslint-disable-next-line no-console
+                    console.warn(`[handleExecuteLine] Could not find top-level block for blockId ${blockId}`);
                     this.props.onShowAlert('cannotExecuteLine');
                     return;
                 }

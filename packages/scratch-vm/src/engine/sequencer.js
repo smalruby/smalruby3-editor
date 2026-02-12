@@ -177,11 +177,7 @@ class Sequencer {
      * @param {!Thread} thread Thread object to step.
      */
     stepThread (thread) {
-        // eslint-disable-next-line no-console
-        console.log('[VM stepThread] Starting, topBlock:', thread.topBlock);
         let currentBlockId = thread.peekStack();
-        // eslint-disable-next-line no-console
-        console.log('[VM stepThread] currentBlockId:', currentBlockId);
         if (!currentBlockId) {
             // A "null block" - empty branch.
             thread.popStack();
@@ -189,8 +185,6 @@ class Sequencer {
             // Did the null follow a hat block?
             if (thread.stack.length === 0) {
                 thread.status = Thread.STATUS_DONE;
-                // eslint-disable-next-line no-console
-                console.log('[VM stepThread] Thread done (empty stack)');
                 return;
             }
         }
