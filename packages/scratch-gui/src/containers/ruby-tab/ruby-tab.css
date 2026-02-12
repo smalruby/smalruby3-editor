@@ -111,8 +111,13 @@ $arrow-rounding: 0.125rem;
 
 .editorWrapper {
     position: absolute;
-    top: 0;
+    top: 3rem; /* Toolbar height: 48px */
     left: 0;
     right: 0;
     bottom: 0;
+}
+
+/* Override Monaco Editor find widget position to prevent it from being cut off */
+.editorWrapper :global(.monaco-editor .find-widget) {
+    right: 48px !important;
 }

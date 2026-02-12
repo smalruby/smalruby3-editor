@@ -1,0 +1,173 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 3rem; /* 48px */
+    background-color: white;
+    border-bottom: 1px dashed hsla(0, 0%, 0%, 0.15);
+    padding: 0 $space;
+    gap: $space;
+}
+
+.toolbarPart {
+    display: flex;
+    align-items: center;
+    gap: calc($space / 2);
+}
+
+.modDashedBorder {
+    border-right: 1px dashed hsla(0, 0%, 0%, 0.15);
+    padding-right: $space;
+}
+
+[dir="rtl"] .modDashedBorder {
+    border-left: 1px dashed hsla(0, 0%, 0%, 0.15);
+    border-right: none;
+    padding-left: $space;
+    padding-right: 0;
+}
+
+.modCenter {
+    flex: 1;
+    justify-content: center;
+}
+
+.modRight {
+    margin-left: auto;
+}
+
+.iconButton {
+    width: 2rem; /* 32px */
+    height: 2rem; /* 32px */
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    border-radius: $form-radius;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.iconButton:hover:not(:disabled) {
+    background-color: hsla(0, 0%, 0%, 0.05);
+}
+
+.iconButton:active:not(:disabled) {
+    background-color: hsla(0, 0%, 0%, 0.1);
+}
+
+.iconButton:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.iconButton img {
+    width: 20px;
+    height: 20px;
+}
+
+.buttonGroup {
+    display: flex;
+}
+
+.buttonGroup .iconButton {
+    border-radius: 0;
+    border: 1px solid $ui-black-transparent;
+}
+
+.buttonGroup .iconButton:not(:last-child) {
+    border-right: none;
+}
+
+[dir="rtl"] .buttonGroup .iconButton:not(:last-child) {
+    border-left: none;
+    border-right: 1px solid $ui-black-transparent;
+}
+
+.buttonGroup .iconButton:first-child,
+[dir="rtl"] .buttonGroup .iconButton:last-child {
+    border-radius: $form-radius 0 0 $form-radius;
+}
+
+.buttonGroup .iconButton:last-child,
+[dir="rtl"] .buttonGroup .iconButton:first-child {
+    border-radius: 0 $form-radius $form-radius 0;
+}
+
+.commandWrapper {
+    position: relative;
+    min-width: 300px;
+    max-width: 500px;
+}
+
+.commandInput {
+    width: 100%;
+    height: 2rem; /* 32px */
+    padding: 0 0.75rem;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 0.625rem;
+    font-weight: bold;
+    color: $text-primary;
+    border-width: 1px;
+    border-style: solid;
+    border-color: $ui-black-transparent;
+    border-radius: 2rem;
+    outline: none;
+    cursor: text;
+    transition: 0.25s ease-out;
+    box-shadow: none;
+    /* For truncating overflowing text gracefully */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.commandInput::placeholder {
+    color: $text-primary-transparent;
+    font-weight: normal;
+}
+
+.commandInput:hover {
+    border-color: $looks-secondary;
+}
+
+.commandInput:focus {
+    border-color: $looks-secondary;
+    box-shadow: 0 0 0 0.25rem $looks-transparent;
+}
+
+.dropdown {
+    position: absolute;
+    top: calc(100% + calc($space / 2));
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: $form-radius;
+    box-shadow: 0 0 8px 1px hsla(0, 0%, 0%, 0.15);
+    z-index: 100;
+}
+
+.dropdownItem {
+    padding: $space 0.75rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #575e75;
+}
+
+.dropdownItem:hover {
+    background-color: hsla(0, 0%, 0%, 0.05);
+}
+
+.highlight {
+    background-color: hsla(215, 100%, 65%, 0.25);
+    font-weight: bold;
+}
