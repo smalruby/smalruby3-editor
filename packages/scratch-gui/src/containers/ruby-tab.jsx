@@ -315,8 +315,20 @@ class RubyTab extends React.Component {
     }
 
     handleExecuteLine (lineNumber) {
+        // eslint-disable-next-line no-console
+        console.log('[handleExecuteLine] lineNumber:', lineNumber);
+        // eslint-disable-next-line no-console
+        console.log('[handleExecuteLine] rubyCode.code:', this.props.rubyCode.code);
+        // eslint-disable-next-line no-console
+        console.log('[handleExecuteLine] rubyCode.target:', this.props.rubyCode.target);
+
         // Step 1: Convert Ruby to blocks
         const converter = this.props.targetCodeToBlocks(this.props.intl);
+
+        // eslint-disable-next-line no-console
+        console.log('[handleExecuteLine] converter.result:', converter.result);
+        // eslint-disable-next-line no-console
+        console.log('[handleExecuteLine] converter.errors:', converter.errors);
 
         // Step 2: Check for conversion errors
         if (!converter.result) {
@@ -330,8 +342,21 @@ class RubyTab extends React.Component {
         // Step 3: Apply blocks to VM
         converter.apply()
             .then(() => {
+                // eslint-disable-next-line no-console
+                console.log('[handleExecuteLine] Apply successful');
+                // eslint-disable-next-line no-console
+                console.log('[handleExecuteLine] converter._context.blocks:', converter._context.blocks);
+                // eslint-disable-next-line no-console
+                console.log(
+                    '[handleExecuteLine] converter._context.nodeToBlockMap:',
+                    converter._context.nodeToBlockMap
+                );
+
                 // Step 4: Get block ID from line number
                 const blockId = converter.getBlockIdForLine(lineNumber);
+
+                // eslint-disable-next-line no-console
+                console.log('[handleExecuteLine] blockId:', blockId);
 
                 if (!blockId) {
                     // No executable block found at this line
@@ -344,9 +369,14 @@ class RubyTab extends React.Component {
                     target: this.props.vm.editingTarget,
                     stackClick: true
                 });
+
+                // eslint-disable-next-line no-console
+                console.log('[handleExecuteLine] Block executed:', blockId);
             })
-            .catch(() => {
+            .catch(error => {
                 // Handle apply error
+                // eslint-disable-next-line no-console
+                console.error('[handleExecuteLine] Apply error:', error);
                 this.props.onShowAlert('convertRubyToBlocksError');
             });
     }
