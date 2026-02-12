@@ -18,6 +18,7 @@ import VM from '@smalruby/scratch-vm';
 import {BLOCKS_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
+import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
 
 import SnippetsCompleter from './ruby-tab/snippets-completer';
 import {smalrubyLanguage} from './ruby-tab/smalruby-mode';
@@ -371,8 +372,15 @@ class RubyTab extends React.Component {
         // eslint-disable-next-line no-console
         console.log('[handleExecuteLine] rubyCode.target:', this.props.rubyCode.target);
 
-        // Step 1: Convert Ruby to blocks
-        const converter = this.props.targetCodeToBlocks(this.props.intl);
+        // Step 1: Convert Ruby to blocks directly without HOC
+        // (HOC returns NullConverter if modified=false, but we always need fresh conversion)
+        const converter = targetCodeToBlocks(
+            this.props.vm,
+            this.props.rubyCode.target,
+            this.props.rubyCode.code,
+            this.props.intl,
+            {version: this.props.rubyVersion}
+        );
 
         // eslint-disable-next-line no-console
         console.log('[handleExecuteLine] converter.result:', converter.result);
