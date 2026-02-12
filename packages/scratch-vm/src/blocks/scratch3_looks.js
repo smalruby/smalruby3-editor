@@ -328,11 +328,21 @@ class Scratch3LooksBlocks {
     }
 
     say (args, util) {
+        // eslint-disable-next-line no-console
+        console.log('[VM looks.say] args.MESSAGE:', args.MESSAGE);
+        // eslint-disable-next-line no-console
+        console.log('[VM looks.say] util.target:', util.target);
         // @TODO in 2.0 calling say/think resets the right/left bias of the bubble
         this.runtime.emit(Scratch3LooksBlocks.SAY_OR_THINK, util.target, 'say', args.MESSAGE);
+        // eslint-disable-next-line no-console
+        console.log('[VM looks.say] Event emitted');
     }
 
     sayforsecs (args, util) {
+        // eslint-disable-next-line no-console
+        console.log('[VM looks.sayforsecs] args.MESSAGE:', args.MESSAGE);
+        // eslint-disable-next-line no-console
+        console.log('[VM looks.sayforsecs] args.SECS:', args.SECS);
         this.say(args, util);
         const target = util.target;
         const usageId = this._getBubbleState(target).usageId;

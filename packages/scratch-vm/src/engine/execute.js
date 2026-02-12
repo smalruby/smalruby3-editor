@@ -409,6 +409,9 @@ const execute = function (sequencer, thread) {
     const currentBlockId = thread.peekStack();
     const currentStackFrame = thread.peekStackFrame();
 
+    // eslint-disable-next-line no-console
+    console.log('[VM execute] currentBlockId:', currentBlockId);
+
     let blockContainer = thread.blockContainer;
     let blockCached = BlocksExecuteCache.getCached(blockContainer, currentBlockId, BlockCached);
     if (blockCached === null) {
@@ -490,9 +493,14 @@ const execute = function (sequencer, thread) {
 
     const start = i;
 
+    // eslint-disable-next-line no-console
+    console.log('[VM execute] ops.length:', length);
+
     for (; i < length; i++) {
         const lastOperation = i === length - 1;
         const opCached = ops[i];
+        // eslint-disable-next-line no-console
+        console.log('[VM execute] Executing op:', i, 'opcode:', opCached.opcode);
 
         const blockFunction = opCached._blockFunction;
 
