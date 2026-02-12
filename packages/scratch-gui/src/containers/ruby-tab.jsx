@@ -322,8 +322,8 @@ class RubyTab extends React.Component {
             return null;
         }
 
-        let matchedNode = null;
-        let maxDepth = -1;
+        // Collect all nodes that match the line number, with their depths
+        const matchedNodes = [];
 
         const traverse = (node, depth) => {
             if (!node || node === Opal.nil) return;
@@ -335,10 +335,7 @@ class RubyTab extends React.Component {
                     const endLine = loc.$last_line ? loc.$last_line() : startLine;
 
                     if (startLine <= lineNumber && lineNumber <= endLine) {
-                        if (depth > maxDepth) {
-                            maxDepth = depth;
-                            matchedNode = node;
-                        }
+                        matchedNodes.push({node, depth});
                     }
                 }
 
@@ -357,11 +354,24 @@ class RubyTab extends React.Component {
 
         traverse(rootNode, 0);
 
-        if (!matchedNode) {
+        if (matchedNodes.length === 0) {
             return null;
         }
 
-        return nodeToBlockMap.get(matchedNode) || null;
+        // Find the shallowest node (lowest depth) that exists in nodeToBlockMap
+        // This ensures we get the parent block (e.g., looks_say) rather than child blocks (e.g., text)
+        let bestMatch = null;
+        let minDepth = Infinity;
+
+        for (const {node, depth} of matchedNodes) {
+            const blockId = nodeToBlockMap.get(node);
+            if (blockId && depth < minDepth) {
+                minDepth = depth;
+                bestMatch = blockId;
+            }
+        }
+
+        return bestMatch;
     }
 
     handleExecuteLine (lineNumber) {
