@@ -279,18 +279,6 @@ class RubyToolbar extends React.Component {
                 <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
                     <button
                         className={styles.iconButton}
-                        onClick={this.handleSearch}
-                        disabled={!this.props.editorRef}
-                        aria-label={intl.formatMessage(messages.search)}
-                        title={intl.formatMessage(messages.search)}
-                    >
-                        <img
-                            src={iconSearch}
-                            alt=""
-                        />
-                    </button>
-                    <button
-                        className={styles.iconButton}
                         onClick={this.handleUndo}
                         disabled={!this.props.editorRef}
                         aria-label={intl.formatMessage(messages.undo)}
@@ -310,6 +298,18 @@ class RubyToolbar extends React.Component {
                     >
                         <img
                             src={iconRedo}
+                            alt=""
+                        />
+                    </button>
+                    <button
+                        className={styles.iconButton}
+                        onClick={this.handleSearch}
+                        disabled={!this.props.editorRef}
+                        aria-label={intl.formatMessage(messages.search)}
+                        title={intl.formatMessage(messages.search)}
+                    >
+                        <img
+                            src={iconSearch}
                             alt=""
                         />
                     </button>
