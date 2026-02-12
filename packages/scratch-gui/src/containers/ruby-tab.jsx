@@ -49,6 +49,7 @@ class RubyTab extends React.Component {
             'handleAISaveError',
             'handleSelectTarget',
             'handleDownload',
+            'getBlockIdForLine',
             'handleExecuteLine'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
@@ -314,6 +315,54 @@ class RubyTab extends React.Component {
         }
     }
 
+    getBlockIdForLine (lineNumber, rootNode, nodeToBlockMap) {
+        const Opal = global.Opal || window.Opal;
+        if (!rootNode || !nodeToBlockMap) {
+            return null;
+        }
+
+        let matchedNode = null;
+        let maxDepth = -1;
+
+        const traverse = (node, depth) => {
+            if (!node || node === Opal.nil) return;
+
+            try {
+                const loc = node.$loc();
+                if (loc && loc !== Opal.nil) {
+                    const startLine = loc.$line();
+                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
+
+                    if (startLine <= lineNumber && lineNumber <= endLine) {
+                        if (depth > maxDepth) {
+                            maxDepth = depth;
+                            matchedNode = node;
+                        }
+                    }
+                }
+
+                // Traverse children
+                const children = node.$children ? node.$children() : null;
+                if (children && children !== Opal.nil) {
+                    const childArray = children.$to_a ? children.$to_a() : [];
+                    childArray.forEach(child => {
+                        traverse(child, depth + 1);
+                    });
+                }
+            } catch (e) {
+                // Ignore nodes without location info
+            }
+        };
+
+        traverse(rootNode, 0);
+
+        if (!matchedNode) {
+            return null;
+        }
+
+        return nodeToBlockMap.get(matchedNode) || null;
+    }
+
     handleExecuteLine (lineNumber) {
         // eslint-disable-next-line no-console
         console.log('[handleExecuteLine] lineNumber:', lineNumber);
@@ -339,21 +388,22 @@ class RubyTab extends React.Component {
             return;
         }
 
+        // Save mapping before apply (apply may modify converter state)
+        const nodeToBlockMap = converter._context.nodeToBlockMap;
+        const rootNode = converter._context.rootNode;
+
         // Step 3: Apply blocks to VM
         converter.apply()
             .then(() => {
                 // eslint-disable-next-line no-console
                 console.log('[handleExecuteLine] Apply successful');
                 // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] converter._context.blocks:', converter._context.blocks);
+                console.log('[handleExecuteLine] nodeToBlockMap:', nodeToBlockMap);
                 // eslint-disable-next-line no-console
-                console.log(
-                    '[handleExecuteLine] converter._context.nodeToBlockMap:',
-                    converter._context.nodeToBlockMap
-                );
+                console.log('[handleExecuteLine] rootNode:', rootNode);
 
-                // Step 4: Get block ID from line number
-                const blockId = converter.getBlockIdForLine(lineNumber);
+                // Step 4: Get block ID from line number using saved mapping
+                const blockId = this.getBlockIdForLine(lineNumber, rootNode, nodeToBlockMap);
 
                 // eslint-disable-next-line no-console
                 console.log('[handleExecuteLine] blockId:', blockId);
