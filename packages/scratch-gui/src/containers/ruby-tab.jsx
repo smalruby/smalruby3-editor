@@ -319,8 +319,15 @@ class RubyTab extends React.Component {
     getBlockIdForLine (lineNumber, rootNode, nodeToBlockMap) {
         const Opal = global.Opal || window.Opal;
         if (!rootNode || !nodeToBlockMap) {
+            // eslint-disable-next-line no-console
+            console.log('[getBlockIdForLine] Missing rootNode or nodeToBlockMap');
             return null;
         }
+
+        // eslint-disable-next-line no-console
+        console.log('[getBlockIdForLine] Searching for line:', lineNumber);
+        // eslint-disable-next-line no-console
+        console.log('[getBlockIdForLine] nodeToBlockMap size:', nodeToBlockMap.size);
 
         // Collect all nodes that match the line number, with their depths
         const matchedNodes = [];
@@ -335,6 +342,14 @@ class RubyTab extends React.Component {
                     const endLine = loc.$last_line ? loc.$last_line() : startLine;
 
                     if (startLine <= lineNumber && lineNumber <= endLine) {
+                        const nodeType = node.$type ? node.$type() : 'unknown';
+                        // eslint-disable-next-line no-console
+                        console.log(`[getBlockIdForLine] Matched node at depth ${depth}:`, {
+                            type: nodeType,
+                            startLine,
+                            endLine,
+                            hasBlockId: nodeToBlockMap.has(node)
+                        });
                         matchedNodes.push({node, depth});
                     }
                 }
@@ -354,6 +369,9 @@ class RubyTab extends React.Component {
 
         traverse(rootNode, 0);
 
+        // eslint-disable-next-line no-console
+        console.log('[getBlockIdForLine] Total matched nodes:', matchedNodes.length);
+
         if (matchedNodes.length === 0) {
             return null;
         }
@@ -365,11 +383,18 @@ class RubyTab extends React.Component {
 
         for (const {node, depth} of matchedNodes) {
             const blockId = nodeToBlockMap.get(node);
-            if (blockId && depth < minDepth) {
-                minDepth = depth;
-                bestMatch = blockId;
+            if (blockId) {
+                // eslint-disable-next-line no-console
+                console.log(`[getBlockIdForLine] Node at depth ${depth} has blockId:`, blockId);
+                if (depth < minDepth) {
+                    minDepth = depth;
+                    bestMatch = blockId;
+                }
             }
         }
+
+        // eslint-disable-next-line no-console
+        console.log('[getBlockIdForLine] Best match:', {blockId: bestMatch, depth: minDepth});
 
         return bestMatch;
     }
