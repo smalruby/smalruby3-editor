@@ -306,7 +306,7 @@ const RubyToolbar = props => {
                     <button
                         className={styles.iconButton}
                         onClick={handleUndo}
-                        disabled={!props.editorRef}
+                        disabled={!props.editorRef || !props.canUndo}
                         aria-label={intl.formatMessage(messages.undo)}
                         title={intl.formatMessage(messages.undo)}
                     >
@@ -318,7 +318,7 @@ const RubyToolbar = props => {
                     <button
                         className={styles.iconButton}
                         onClick={handleRedo}
-                        disabled={!props.editorRef}
+                        disabled={!props.editorRef || !props.canRedo}
                         aria-label={intl.formatMessage(messages.redo)}
                         title={intl.formatMessage(messages.redo)}
                     >
@@ -426,7 +426,9 @@ RubyToolbar.propTypes = {
     onSelectTarget: PropTypes.func.isRequired,
     onDownload: PropTypes.func,
     onExecuteLine: PropTypes.func,
-    isRunning: PropTypes.bool
+    isRunning: PropTypes.bool,
+    canUndo: PropTypes.bool,
+    canRedo: PropTypes.bool
 };
 
 export default RubyToolbar;

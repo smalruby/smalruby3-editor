@@ -53,7 +53,8 @@ class RubyTab extends React.Component {
             'getBlockIdForLine',
             'handleExecuteLine',
             'handleScriptGlowOn',
-            'handleScriptGlowOff'
+            'handleScriptGlowOff',
+            'updateUndoRedoState'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
         this.editorRef = null;
@@ -64,9 +65,12 @@ class RubyTab extends React.Component {
         this.lastProcessedVersion = props.rubyVersion;
         this.downloadCallbackRef = null;
         this.executingLineDecoration = null;
+        this.contentChangeListener = null;
         this.state = {
             runningBlockId: null,
-            executingLine: null
+            executingLine: null,
+            canUndo: false,
+            canRedo: false
         };
 
         loadMonacoLocale(props.locale);
@@ -168,6 +172,10 @@ class RubyTab extends React.Component {
             this.completionProvider.dispose();
             this.completionProvider = null;
         }
+        if (this.contentChangeListener) {
+            this.contentChangeListener.dispose();
+            this.contentChangeListener = null;
+        }
     }
 
     clearErrors () {
@@ -253,6 +261,38 @@ class RubyTab extends React.Component {
                 editor.layout();
             });
             this.resizeObserver.observe(this.containerRef);
+        }
+
+        // Monitor undo/redo stack changes
+        this.contentChangeListener = editor.onDidChangeModelContent(() => {
+            this.updateUndoRedoState();
+        });
+
+        // Set initial undo/redo state
+        this.updateUndoRedoState();
+    }
+
+    updateUndoRedoState () {
+        if (!this.editorRef) {
+            return;
+        }
+
+        const model = this.editorRef.getModel();
+        if (!model) {
+            return;
+        }
+
+        // Access internal _commandManager to check undo/redo stack state
+        // Note: This uses private API which may change in future Monaco Editor versions
+        const commandManager = model._commandManager;
+        if (commandManager) {
+            const canUndo = commandManager.undoStack && commandManager.undoStack.length > 0;
+            const canRedo = commandManager.redoStack && commandManager.redoStack.length > 0;
+
+            this.setState({
+                canUndo,
+                canRedo
+            });
         }
     }
 
@@ -512,6 +552,8 @@ class RubyTab extends React.Component {
                         onDownload={this.handleDownload}
                         onExecuteLine={this.handleExecuteLine}
                         isRunning={!!this.state.runningBlockId}
+                        canUndo={this.state.canUndo}
+                        canRedo={this.state.canRedo}
                     />
                     <div className={styles.editorWrapper}>
                         <Editor
