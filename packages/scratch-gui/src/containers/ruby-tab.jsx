@@ -51,7 +51,9 @@ class RubyTab extends React.Component {
             'handleSelectTarget',
             'handleDownload',
             'getBlockIdForLine',
-            'handleExecuteLine'
+            'handleExecuteLine',
+            'handleScriptGlowOn',
+            'handleScriptGlowOff'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
         this.editorRef = null;
@@ -61,6 +63,9 @@ class RubyTab extends React.Component {
         this.completionProvider = null;
         this.lastProcessedVersion = props.rubyVersion;
         this.downloadCallbackRef = null;
+        this.state = {
+            runningBlockId: null
+        };
 
         loadMonacoLocale(props.locale);
     }
@@ -145,7 +150,14 @@ class RubyTab extends React.Component {
         }
     }
 
+    componentDidMount () {
+        this.props.vm.addListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
+        this.props.vm.addListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
+    }
+
     componentWillUnmount () {
+        this.props.vm.removeListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
+        this.props.vm.removeListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
         }
@@ -371,7 +383,26 @@ class RubyTab extends React.Component {
         return bestMatch;
     }
 
+    handleScriptGlowOn (data) {
+        this.setState({runningBlockId: data.id});
+    }
+
+    handleScriptGlowOff (data) {
+        if (this.state.runningBlockId === data.id) {
+            this.setState({runningBlockId: null});
+        }
+    }
+
     handleExecuteLine (lineNumber) {
+        // If already running, stop it
+        if (this.state.runningBlockId) {
+            this.props.vm.runtime.toggleScript(this.state.runningBlockId, {
+                target: this.props.vm.editingTarget,
+                stackClick: true
+            });
+            return;
+        }
+
         const converter = targetCodeToBlocks(
             this.props.vm,
             this.props.rubyCode.target,
@@ -446,6 +477,7 @@ class RubyTab extends React.Component {
                         onSelectTarget={this.handleSelectTarget}
                         onDownload={this.handleDownload}
                         onExecuteLine={this.handleExecuteLine}
+                        isRunning={!!this.state.runningBlockId}
                     />
                     <div className={styles.editorWrapper}>
                         <Editor

@@ -6,6 +6,7 @@ import VM from '@smalruby/scratch-vm';
 import styles from './ruby-toolbar.css';
 
 import iconPlay from './icon--play.svg';
+import iconStop from './icon--stop.svg';
 import iconSearch from './icon--search.svg';
 import iconUndo from './icon--undo.svg';
 import iconRedo from './icon--redo.svg';
@@ -18,6 +19,11 @@ const messages = defineMessages({
         id: 'gui.rubyToolbar.executeLine',
         defaultMessage: 'Execute current line',
         description: 'Tooltip for execute line button'
+    },
+    stopExecution: {
+        id: 'gui.rubyToolbar.stopExecution',
+        defaultMessage: 'Stop execution',
+        description: 'Tooltip for stop execution button'
     },
     search: {
         id: 'gui.rubyToolbar.search',
@@ -284,11 +290,11 @@ const RubyToolbar = props => {
                     className={styles.iconButton}
                     onClick={handleExecuteLine}
                     disabled={!props.editorRef}
-                    aria-label={intl.formatMessage(messages.executeLine)}
-                    title={intl.formatMessage(messages.executeLine)}
+                    aria-label={intl.formatMessage(props.isRunning ? messages.stopExecution : messages.executeLine)}
+                    title={intl.formatMessage(props.isRunning ? messages.stopExecution : messages.executeLine)}
                 >
                     <img
-                        src={iconPlay}
+                        src={props.isRunning ? iconStop : iconPlay}
                         alt=""
                     />
                 </button>
@@ -419,7 +425,8 @@ RubyToolbar.propTypes = {
     editorRef: PropTypes.object,
     onSelectTarget: PropTypes.func.isRequired,
     onDownload: PropTypes.func,
-    onExecuteLine: PropTypes.func
+    onExecuteLine: PropTypes.func,
+    isRunning: PropTypes.bool
 };
 
 export default RubyToolbar;

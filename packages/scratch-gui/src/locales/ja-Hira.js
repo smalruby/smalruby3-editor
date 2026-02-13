@@ -305,6 +305,7 @@ export default {
 
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソルぎょうをじっこう',
+    'gui.rubyToolbar.stopExecution': 'じっこうをていし',
     'gui.rubyToolbar.search': 'けんさく',
     'gui.rubyToolbar.prevSprite': 'まえのスプライト',
     'gui.rubyToolbar.nextSprite': 'つぎのスプライト',

@@ -243,6 +243,7 @@ export default {
 
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'Execute current line',
+    'gui.rubyToolbar.stopExecution': 'Stop execution',
     'gui.rubyToolbar.search': 'Search',
     'gui.rubyToolbar.prevSprite': 'Previous sprite',
     'gui.rubyToolbar.nextSprite': 'Next sprite',

@@ -305,6 +305,7 @@ export default {
 
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソル行を実行',
+    'gui.rubyToolbar.stopExecution': '実行を停止',
     'gui.rubyToolbar.search': '検索',
     'gui.rubyToolbar.prevSprite': '前のスプライト',
     'gui.rubyToolbar.nextSprite': '次のスプライト',
