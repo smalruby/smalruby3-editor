@@ -557,34 +557,18 @@ class RubyToBlocksConverter {
      * Get block ID for the given line number using O(1) map lookup with fallback.
      * The lineToNodeMap is populated during AST processing with a shallowest-first strategy,
      * so this returns the parent block for nested statements.
-     *
      * If no direct mapping exists for the line (e.g., line contains only `do` or `end`),
      * falls back to finding the shallowest node whose range contains the line.
-     *
      * @param {number} lineNumber - Line number (1-indexed)
      * @returns {string|null} Block ID or null if not found
      */
     getBlockIdForLine (lineNumber) {
         const entry = this._context.lineToNodeMap.get(lineNumber);
-        // eslint-disable-next-line no-console
-        console.log('[getBlockIdForLine] Looking up line', lineNumber, {
-            entry,
-            hasEntry: !!entry,
-            nodeToBlockMapSize: this._context.nodeToBlockMap.size
-        });
 
         if (!entry) {
-            // eslint-disable-next-line no-console
-            console.warn('[getBlockIdForLine] No direct entry in lineToNodeMap for line', lineNumber, '- trying fallback');
-
             // Fallback 1: Find the shallowest node whose range contains this line
             const fallbackEntry = this._findContainingNode(lineNumber);
             if (fallbackEntry) {
-                // eslint-disable-next-line no-console
-                console.log('[getBlockIdForLine] Fallback found containing node:', {
-                    nodeType: fallbackEntry.node.type,
-                    depth: fallbackEntry.depth
-                });
                 const blockId = this._context.nodeToBlockMap.get(fallbackEntry.node);
                 if (blockId) return blockId;
             }
@@ -592,8 +576,6 @@ class RubyToBlocksConverter {
             // Fallback 2: Find the nearest executable line before this line
             const nearestLine = this._findNearestExecutableLine(lineNumber);
             if (nearestLine !== null) {
-                // eslint-disable-next-line no-console
-                console.log('[getBlockIdForLine] Using nearest executable line:', nearestLine);
                 return this.getBlockIdForLine(nearestLine);
             }
 
@@ -601,26 +583,11 @@ class RubyToBlocksConverter {
         }
 
         const blockId = this._context.nodeToBlockMap.get(entry.node);
-        // eslint-disable-next-line no-console
-        console.log('[getBlockIdForLine] Node to block lookup:', {
-            node: entry.node,
-            nodeType: entry.node.type,
-            blockId,
-            hasBlockId: !!blockId
-        });
 
         // If direct mapping exists but node has no block, try fallback
         if (!blockId) {
-            // eslint-disable-next-line no-console
-            console.warn('[getBlockIdForLine] Direct node has no block - trying fallback');
-
             const fallbackEntry = this._findContainingNode(lineNumber);
             if (fallbackEntry) {
-                // eslint-disable-next-line no-console
-                console.log('[getBlockIdForLine] Fallback found containing node:', {
-                    nodeType: fallbackEntry.node.type,
-                    depth: fallbackEntry.depth
-                });
                 const fallbackBlockId = this._context.nodeToBlockMap.get(fallbackEntry.node);
                 return fallbackBlockId || null;
             }
@@ -634,7 +601,7 @@ class RubyToBlocksConverter {
      * This is used as a fallback when no direct line mapping exists.
      * Searches through all nodes in nodeToBlockMap (which have associated blocks).
      * @param {number} lineNumber - Line number to search for
-     * @returns {{node: Object, depth: number}|null} Entry with node and depth, or null
+     * @returns {{node: object, depth: number}|null} Entry with node and depth, or null
      */
     _findContainingNode (lineNumber) {
         let bestMatchNode = null;
@@ -656,8 +623,8 @@ class RubyToBlocksConverter {
                         // Keep the shallowest (smallest range) matching node
                         // If multiple nodes have same range, keep first found
                         const range = endLine - startLine;
-                        const currentBestRange = bestMatchEndLine !== null ?
-                            bestMatchEndLine - bestMatchStartLine : Infinity;
+                        const currentBestRange = bestMatchEndLine === null ? Infinity :
+                            bestMatchEndLine - bestMatchStartLine;
 
                         if (range < currentBestRange ||
                             (range === currentBestRange && startLine < bestMatchStartLine)) {
@@ -673,14 +640,7 @@ class RubyToBlocksConverter {
         }
 
         if (bestMatchNode) {
-            // eslint-disable-next-line no-console
-            console.log('[_findContainingNode] Found containing node:', {
-                nodeType: bestMatchNode.type,
-                startLine: bestMatchStartLine,
-                endLine: bestMatchEndLine,
-                lineNumber
-            });
-            return {node: bestMatchNode, depth: 0}; // depth is not critical for fallback
+            return {node: bestMatchNode, depth: 0};
         }
 
         return null;
@@ -710,7 +670,7 @@ class RubyToBlocksConverter {
      * Get the line range for a top-level script block.
      * Returns the minimum and maximum line numbers covered by all blocks in the script.
      * @param {string} topBlockId - ID of the top-level block
-     * @param {Object} blocks - Blocks object from VM target
+     * @param {object} blocks - Blocks object from VM target
      * @returns {{startLine: number, endLine: number}|null} Line range or null if not found
      */
     getLineRangeForTopLevelScript (topBlockId, blocks) {
@@ -725,14 +685,6 @@ class RubyToBlocksConverter {
             if (!blockId) return;
 
             const block = blocks.getBlock ? blocks.getBlock(blockId) : blocks[blockId];
-            // eslint-disable-next-line no-console
-            console.log('[visitBlock] Visiting block:', {
-                blockId,
-                opcode: block ? block.opcode : 'undefined',
-                hasNext: !!(block && block.next),
-                hasInputs: !!(block && block.inputs),
-                inputKeys: block && block.inputs ? Object.keys(block.inputs) : []
-            });
 
             // Find the node for this block
             for (const [node, id] of this._context.nodeToBlockMap.entries()) {
@@ -744,13 +696,6 @@ class RubyToBlocksConverter {
                             const endLine = loc.$last_line ? loc.$last_line() : startLine;
 
                             if (startLine !== null && endLine !== null) {
-                                // eslint-disable-next-line no-console
-                                console.log('[visitBlock] Found lines for block:', {
-                                    blockId,
-                                    nodeType: node.type,
-                                    startLine,
-                                    endLine
-                                });
                                 minLine = Math.min(minLine, startLine);
                                 maxLine = Math.max(maxLine, endLine);
                                 foundAny = true;
@@ -770,16 +715,7 @@ class RubyToBlocksConverter {
 
             // Visit inputs (for nested blocks and substacks)
             if (block && block.inputs) {
-                Object.entries(block.inputs).forEach(([key, input]) => {
-                    // eslint-disable-next-line no-console
-                    console.log('[visitBlock] Checking input:', {
-                        blockId,
-                        inputKey: key,
-                        inputType: input ? typeof input : 'undefined',
-                        hasBlock: !!(input && input.block),
-                        inputBlock: input ? input.block : null
-                    });
-
+                Object.entries(block.inputs).forEach(([_key, input]) => {
                     if (input && input.block) {
                         visitBlock(input.block);
                     }
@@ -790,10 +726,7 @@ class RubyToBlocksConverter {
         visitBlock(topBlockId);
 
         if (foundAny) {
-            // Check if any container nodes (block, begin, kwbegin) overlap with this range
-            // and extend the range to include their closing 'end' lines
-            // We only want to extend with the SMALLEST matching container to avoid including too much
-            const originalMaxLine = maxLine;
+            // Extend range to include closing 'end' lines from container nodes
             let bestContainer = null;
             let bestContainerSize = Infinity;
 
@@ -805,10 +738,9 @@ class RubyToBlocksConverter {
                         return;
                     }
 
-                    // If container starts at our minLine and ends after our maxLine
+                    // If container starts at minLine and ends after maxLine
                     if (container.startLine === minLine && container.endLine > maxLine) {
                         const containerSize = container.endLine - container.startLine;
-                        // Choose the smallest matching container
                         if (containerSize < bestContainerSize) {
                             bestContainer = container;
                             bestContainerSize = containerSize;
@@ -817,24 +749,10 @@ class RubyToBlocksConverter {
                 });
 
                 if (bestContainer) {
-                    // eslint-disable-next-line no-console
-                    console.log('[getLineRangeForTopLevelScript] Extending range with container node:', {
-                        containerType: bestContainer.type,
-                        containerRange: `${bestContainer.startLine}-${bestContainer.endLine}`,
-                        originalMaxLine,
-                        newMaxLine: bestContainer.endLine
-                    });
                     maxLine = bestContainer.endLine;
                 }
             }
 
-            // eslint-disable-next-line no-console
-            console.log('[getLineRangeForTopLevelScript] Found line range:', {
-                topBlockId,
-                startLine: minLine,
-                endLine: maxLine,
-                extended: maxLine > originalMaxLine
-            });
             return {startLine: minLine, endLine: maxLine};
         }
 

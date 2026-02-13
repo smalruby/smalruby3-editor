@@ -460,13 +460,6 @@ class RubyTab extends React.Component {
             return;
         }
 
-        // eslint-disable-next-line no-console
-        console.log('[handleExecuteLine] Line adjustment:', {
-            requestedLine: lineNumber,
-            actualLine: targetLine,
-            wasAdjusted: lineNumber !== targetLine
-        });
-
         const converter = targetCodeToBlocks(
             this.props.vm,
             this.props.rubyCode.target,
@@ -474,15 +467,6 @@ class RubyTab extends React.Component {
             this.props.intl,
             {version: this.props.rubyVersion}
         );
-
-        // Debug: Check state right after targetCodeToBlocks
-        // eslint-disable-next-line no-console
-        console.log('[handleExecuteLine] After targetCodeToBlocks:', {
-            result: converter.result,
-            lineToNodeMapSize: converter._context.lineToNodeMap.size,
-            nodeToBlockMapSize: converter._context.nodeToBlockMap.size,
-            lineToNodeMapKeys: Array.from(converter._context.lineToNodeMap.keys())
-        });
 
         if (!converter.result) {
             this.props.onShowAlert('convertRubyToBlocksError');
@@ -493,29 +477,7 @@ class RubyTab extends React.Component {
 
         converter.apply()
             .then(() => {
-                // Debug: Log converter context state
-                // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] Debug info:', {
-                    lineNumber: targetLine,
-                    lineToNodeMapSize: converter._context.lineToNodeMap.size,
-                    nodeToBlockMapSize: converter._context.nodeToBlockMap.size,
-                    lineToNodeMapKeys: Array.from(converter._context.lineToNodeMap.keys()),
-                    lineToNodeMapEntries: Array.from(converter._context.lineToNodeMap.entries()).map(([line, entry]) => ({
-                        line,
-                        depth: entry.depth,
-                        nodeType: entry.node.type
-                    }))
-                });
-
                 const blockId = converter.getBlockIdForLine(targetLine);
-
-                // Debug: Log the result
-                // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] getBlockIdForLine result:', {
-                    lineNumber: targetLine,
-                    blockId,
-                    entry: converter._context.lineToNodeMap.get(targetLine)
-                });
 
                 if (!blockId) {
                     // eslint-disable-next-line no-console
@@ -534,24 +496,10 @@ class RubyTab extends React.Component {
                     return;
                 }
 
-                // Get the line range for the entire script block
                 const blocks = this.props.vm.editingTarget.blocks;
-
-                // Debug: Check if block exists
-                // eslint-disable-next-line no-console
-                console.log('[handleExecuteLine] Block structure check:', {
-                    topBlockId,
-                    blockExists: !!blocks.getBlock(topBlockId),
-                    blockData: blocks.getBlock(topBlockId),
-                    allBlockIds: Object.keys(blocks._blocks).slice(0, 10) // First 10 IDs
-                });
-
                 const lineRange = converter.getLineRangeForTopLevelScript(topBlockId, blocks);
 
-                // Highlight the entire script range if available, otherwise just the target line
                 if (lineRange) {
-                    // eslint-disable-next-line no-console
-                    console.log('[handleExecuteLine] Highlighting range:', lineRange);
                     this.setState({executingLine: targetLine});
                     this.highlightExecutingLineRange(lineRange.startLine, lineRange.endLine);
                 } else {

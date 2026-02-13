@@ -47,55 +47,29 @@ const CoreHandlers = {
         }
 
         if (startLine !== null && endLine !== null) {
-            // eslint-disable-next-line no-console
-            console.log('[_process] Processing node:', {
-                type: node.type,
-                startLine,
-                endLine,
-                depth,
-                hasOpalLoc: !!(node.$loc && node.$loc()),
-                hasJSLoc: !!(node.loc && node.loc.expression)
-            });
-
-            // Skip container nodes that don't generate blocks themselves
-            // These are wrapper/grouping nodes that contain actual executable statements:
+            // Container nodes are wrapper/grouping nodes that contain executable statements:
             // - 'begin': Multiple statement grouping (e.g., implicit begin in def/class)
             // - 'kwbegin': Explicit begin...end block
             // - 'block': Ruby blocks with do...end or {...}
             const containerNodeTypes = ['begin', 'kwbegin', 'block'];
             const isContainerNode = containerNodeTypes.includes(node.type);
 
-            if (!isContainerNode) {
-                for (let line = startLine; line <= endLine; line++) {
-                    const existingEntry = this._context.lineToNodeMap.get(line);
-                    // Store if no entry exists OR current node is shallower
-                    if (!existingEntry || depth < existingEntry.depth) {
-                        // eslint-disable-next-line no-console
-                        console.log('[_process] Setting lineToNodeMap:', {
-                            line,
-                            nodeType: node.type,
-                            depth,
-                            replacing: existingEntry ? `${existingEntry.node.type} (depth ${existingEntry.depth})` : 'none'
-                        });
-                        this._context.lineToNodeMap.set(line, {node, depth});
-                    }
-                }
-            } else {
-                // Store container node ranges for later use in getLineRangeForTopLevelScript
-                // This allows us to include closing 'end' lines in highlight ranges
+            if (isContainerNode) {
+                // Store container node ranges to include closing 'end' lines in highlight ranges
                 this._context.containerNodeRanges.push({
                     type: node.type,
                     startLine,
                     endLine,
                     depth
                 });
-                // eslint-disable-next-line no-console
-                console.log('[_process] Stored container node range:', {
-                    type: node.type,
-                    startLine,
-                    endLine,
-                    depth
-                });
+            } else {
+                // Map lines to nodes with shallowest-first strategy
+                for (let line = startLine; line <= endLine; line++) {
+                    const existingEntry = this._context.lineToNodeMap.get(line);
+                    if (!existingEntry || depth < existingEntry.depth) {
+                        this._context.lineToNodeMap.set(line, {node, depth});
+                    }
+                }
             }
         } else if (depth === 0) {
             // Only log for root node to avoid spam
