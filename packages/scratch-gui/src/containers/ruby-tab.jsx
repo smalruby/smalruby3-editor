@@ -282,12 +282,13 @@ class RubyTab extends React.Component {
             return;
         }
 
-        // Access internal _commandManager to check undo/redo stack state
+        // Access internal _undoRedoService to check undo/redo state
         // Note: This uses private API which may change in future Monaco Editor versions
-        const commandManager = model._commandManager;
-        if (commandManager) {
-            const canUndo = commandManager.undoStack && commandManager.undoStack.length > 0;
-            const canRedo = commandManager.redoStack && commandManager.redoStack.length > 0;
+        const undoRedoService = model._undoRedoService;
+        if (undoRedoService && typeof undoRedoService.canUndo === 'function') {
+            const resource = model.uri;
+            const canUndo = undoRedoService.canUndo(resource);
+            const canRedo = undoRedoService.canRedo(resource);
 
             this.setState({
                 canUndo,
