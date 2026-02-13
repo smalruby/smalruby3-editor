@@ -426,6 +426,15 @@ class RubyTab extends React.Component {
             {version: this.props.rubyVersion}
         );
 
+        // Debug: Check state right after targetCodeToBlocks
+        // eslint-disable-next-line no-console
+        console.log('[handleExecuteLine] After targetCodeToBlocks:', {
+            result: converter.result,
+            lineToNodeMapSize: converter._context.lineToNodeMap.size,
+            nodeToBlockMapSize: converter._context.nodeToBlockMap.size,
+            lineToNodeMapKeys: Array.from(converter._context.lineToNodeMap.keys())
+        });
+
         if (!converter.result) {
             this.props.onShowAlert('convertRubyToBlocksError');
             this.props.updateRubyCodeErrorsState(converter.errors);
@@ -435,7 +444,29 @@ class RubyTab extends React.Component {
 
         converter.apply()
             .then(() => {
+                // Debug: Log converter context state
+                // eslint-disable-next-line no-console
+                console.log('[handleExecuteLine] Debug info:', {
+                    lineNumber,
+                    lineToNodeMapSize: converter._context.lineToNodeMap.size,
+                    nodeToBlockMapSize: converter._context.nodeToBlockMap.size,
+                    lineToNodeMapKeys: Array.from(converter._context.lineToNodeMap.keys()),
+                    lineToNodeMapEntries: Array.from(converter._context.lineToNodeMap.entries()).map(([line, entry]) => ({
+                        line,
+                        depth: entry.depth,
+                        nodeType: entry.node.type
+                    }))
+                });
+
                 const blockId = converter.getBlockIdForLine(lineNumber);
+
+                // Debug: Log the result
+                // eslint-disable-next-line no-console
+                console.log('[handleExecuteLine] getBlockIdForLine result:', {
+                    lineNumber,
+                    blockId,
+                    entry: converter._context.lineToNodeMap.get(lineNumber)
+                });
 
                 if (!blockId) {
                     // eslint-disable-next-line no-console

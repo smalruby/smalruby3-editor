@@ -554,19 +554,156 @@ class RubyToBlocksConverter {
     }
 
     /**
-     * Get block ID for the given line number using O(1) map lookup.
+     * Get block ID for the given line number using O(1) map lookup with fallback.
      * The lineToNodeMap is populated during AST processing with a shallowest-first strategy,
      * so this returns the parent block for nested statements.
+     *
+     * If no direct mapping exists for the line (e.g., line contains only `do` or `end`),
+     * falls back to finding the shallowest node whose range contains the line.
+     *
      * @param {number} lineNumber - Line number (1-indexed)
      * @returns {string|null} Block ID or null if not found
      */
     getBlockIdForLine (lineNumber) {
         const entry = this._context.lineToNodeMap.get(lineNumber);
+        // eslint-disable-next-line no-console
+        console.log('[getBlockIdForLine] Looking up line', lineNumber, {
+            entry,
+            hasEntry: !!entry,
+            nodeToBlockMapSize: this._context.nodeToBlockMap.size
+        });
+
         if (!entry) {
+            // eslint-disable-next-line no-console
+            console.warn('[getBlockIdForLine] No direct entry in lineToNodeMap for line', lineNumber, '- trying fallback');
+
+            // Fallback 1: Find the shallowest node whose range contains this line
+            const fallbackEntry = this._findContainingNode(lineNumber);
+            if (fallbackEntry) {
+                // eslint-disable-next-line no-console
+                console.log('[getBlockIdForLine] Fallback found containing node:', {
+                    nodeType: fallbackEntry.node.type,
+                    depth: fallbackEntry.depth
+                });
+                const blockId = this._context.nodeToBlockMap.get(fallbackEntry.node);
+                if (blockId) return blockId;
+            }
+
+            // Fallback 2: Find the nearest executable line before this line
+            const nearestLine = this._findNearestExecutableLine(lineNumber);
+            if (nearestLine !== null) {
+                // eslint-disable-next-line no-console
+                console.log('[getBlockIdForLine] Using nearest executable line:', nearestLine);
+                return this.getBlockIdForLine(nearestLine);
+            }
+
             return null;
         }
 
-        return this._context.nodeToBlockMap.get(entry.node) || null;
+        const blockId = this._context.nodeToBlockMap.get(entry.node);
+        // eslint-disable-next-line no-console
+        console.log('[getBlockIdForLine] Node to block lookup:', {
+            node: entry.node,
+            nodeType: entry.node.type,
+            blockId,
+            hasBlockId: !!blockId
+        });
+
+        // If direct mapping exists but node has no block, try fallback
+        if (!blockId) {
+            // eslint-disable-next-line no-console
+            console.warn('[getBlockIdForLine] Direct node has no block - trying fallback');
+
+            const fallbackEntry = this._findContainingNode(lineNumber);
+            if (fallbackEntry) {
+                // eslint-disable-next-line no-console
+                console.log('[getBlockIdForLine] Fallback found containing node:', {
+                    nodeType: fallbackEntry.node.type,
+                    depth: fallbackEntry.depth
+                });
+                const fallbackBlockId = this._context.nodeToBlockMap.get(fallbackEntry.node);
+                return fallbackBlockId || null;
+            }
+        }
+
+        return blockId || null;
+    }
+
+    /**
+     * Find the shallowest node whose line range contains the given line number.
+     * This is used as a fallback when no direct line mapping exists.
+     * Searches through all nodes in nodeToBlockMap (which have associated blocks).
+     * @param {number} lineNumber - Line number to search for
+     * @returns {{node: Object, depth: number}|null} Entry with node and depth, or null
+     */
+    _findContainingNode (lineNumber) {
+        let bestMatchNode = null;
+        let bestMatchStartLine = null;
+        let bestMatchEndLine = null;
+
+        // Search through all nodes that have blocks (nodeToBlockMap)
+        for (const [node] of this._context.nodeToBlockMap.entries()) {
+            try {
+                // Get line range for this node
+                const loc = node.$loc ? node.$loc() : null;
+                if (loc && loc !== Opal.nil) {
+                    const startLine = loc.$line ? loc.$line() : null;
+                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
+
+                    // Check if this node's range contains the target line
+                    if (startLine !== null && endLine !== null &&
+                        startLine <= lineNumber && lineNumber <= endLine) {
+                        // Keep the shallowest (smallest range) matching node
+                        // If multiple nodes have same range, keep first found
+                        const range = endLine - startLine;
+                        const currentBestRange = bestMatchEndLine !== null ?
+                            bestMatchEndLine - bestMatchStartLine : Infinity;
+
+                        if (range < currentBestRange ||
+                            (range === currentBestRange && startLine < bestMatchStartLine)) {
+                            bestMatchNode = node;
+                            bestMatchStartLine = startLine;
+                            bestMatchEndLine = endLine;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Ignore errors when accessing location
+            }
+        }
+
+        if (bestMatchNode) {
+            // eslint-disable-next-line no-console
+            console.log('[_findContainingNode] Found containing node:', {
+                nodeType: bestMatchNode.type,
+                startLine: bestMatchStartLine,
+                endLine: bestMatchEndLine,
+                lineNumber
+            });
+            return {node: bestMatchNode, depth: 0}; // depth is not critical for fallback
+        }
+
+        return null;
+    }
+
+    /**
+     * Find the nearest executable line before the given line number.
+     * Searches backwards from the target line to find a line with an executable block.
+     * @param {number} lineNumber - Line number to start searching from
+     * @returns {number|null} Nearest executable line number, or null if not found
+     */
+    _findNearestExecutableLine (lineNumber) {
+        // Search backwards from the line before the target
+        for (let line = lineNumber - 1; line >= 1; line--) {
+            const entry = this._context.lineToNodeMap.get(line);
+            if (entry) {
+                const blockId = this._context.nodeToBlockMap.get(entry.node);
+                if (blockId) {
+                    return line;
+                }
+            }
+        }
+        return null;
     }
 }
 

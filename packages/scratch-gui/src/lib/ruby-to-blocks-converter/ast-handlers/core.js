@@ -23,17 +23,76 @@ const CoreHandlers = {
         this._context.processDepth = depth + 1;
 
         // Populate lineToNodeMap with shallowest-first strategy
-        if (node.loc && node.loc.expression && node.loc.expression.begin_pos && node.loc.expression.end_pos) {
-            const startLine = node.loc.expression.begin_pos.line;
-            const endLine = node.loc.expression.end_pos.line;
+        // Try to extract line information from the node
+        let startLine = null;
+        let endLine = null;
 
-            for (let line = startLine; line <= endLine; line++) {
-                const existingEntry = this._context.lineToNodeMap.get(line);
-                // Store if no entry exists OR current node is shallower
-                if (!existingEntry || depth < existingEntry.depth) {
-                    this._context.lineToNodeMap.set(line, {node, depth});
-                }
+        try {
+            // Check if node has location information via Opal methods
+            const loc = node.$loc ? node.$loc() : null;
+            if (loc && loc !== Opal.nil) {
+                startLine = loc.$line ? loc.$line() : null;
+                endLine = loc.$last_line ? loc.$last_line() : startLine;
             }
+        } catch (e) {
+            // Ignore errors when accessing location
+        }
+
+        // Also check JavaScript object structure (for direct AST access)
+        if (!startLine && node.loc && node.loc.expression) {
+            if (node.loc.expression.begin_pos && node.loc.expression.end_pos) {
+                startLine = node.loc.expression.begin_pos.line;
+                endLine = node.loc.expression.end_pos.line;
+            }
+        }
+
+        if (startLine !== null && endLine !== null) {
+            // eslint-disable-next-line no-console
+            console.log('[_process] Processing node:', {
+                type: node.type,
+                startLine,
+                endLine,
+                depth,
+                hasOpalLoc: !!(node.$loc && node.$loc()),
+                hasJSLoc: !!(node.loc && node.loc.expression)
+            });
+
+            // Skip container nodes that don't generate blocks themselves
+            // These are wrapper/grouping nodes that contain actual executable statements:
+            // - 'begin': Multiple statement grouping (e.g., implicit begin in def/class)
+            // - 'kwbegin': Explicit begin...end block
+            // - 'block': Ruby blocks with do...end or {...}
+            const containerNodeTypes = ['begin', 'kwbegin', 'block'];
+            const isContainerNode = containerNodeTypes.includes(node.type);
+
+            if (!isContainerNode) {
+                for (let line = startLine; line <= endLine; line++) {
+                    const existingEntry = this._context.lineToNodeMap.get(line);
+                    // Store if no entry exists OR current node is shallower
+                    if (!existingEntry || depth < existingEntry.depth) {
+                        // eslint-disable-next-line no-console
+                        console.log('[_process] Setting lineToNodeMap:', {
+                            line,
+                            nodeType: node.type,
+                            depth,
+                            replacing: existingEntry ? `${existingEntry.node.type} (depth ${existingEntry.depth})` : 'none'
+                        });
+                        this._context.lineToNodeMap.set(line, {node, depth});
+                    }
+                }
+            } else {
+                // eslint-disable-next-line no-console
+                console.log('[_process] Skipping container node for lineToNodeMap:', node.type);
+            }
+        } else if (depth === 0) {
+            // Only log for root node to avoid spam
+            // eslint-disable-next-line no-console
+            console.warn('[_process] No location info for root node:', {
+                type: node.type,
+                hasLoc: !!node.loc,
+                hasOpalLoc: !!(node.$loc && node.$loc()),
+                nodeKeys: Object.keys(node)
+            });
         }
 
         const savedIsValue = this._context.isValue;
