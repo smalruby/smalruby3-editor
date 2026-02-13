@@ -42,6 +42,11 @@ const ContextUtils = {
         if (!target || !target.variables) {
             return;
         }
+
+        // Pattern to detect local variables: _%rubyIdentifier%_%number%_
+        // These should NOT be loaded as they are temporary and scope-specific
+        const localVarPattern = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u;
+
         let scope;
         if (target.isStage) {
             scope = 'global';
@@ -50,6 +55,16 @@ const ContextUtils = {
         }
         Object.keys(target.variables).forEach(blockId => {
             const variable = target.variables[blockId];
+
+            // Skip local variables - they should not be loaded from target
+            if (localVarPattern.test(variable.name)) {
+                // eslint-disable-next-line no-console
+                console.log(
+                    `[CONTEXT DEBUG] Skipping local variable from _loadVariables: ${variable.name}`
+                );
+                return;
+            }
+
             let storeName;
             if (variable.type === Variable.SCALAR_TYPE) {
                 storeName = 'variables';
