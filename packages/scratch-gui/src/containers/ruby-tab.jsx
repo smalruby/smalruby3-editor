@@ -50,7 +50,6 @@ class RubyTab extends React.Component {
             'handleAISaveError',
             'handleSelectTarget',
             'handleDownload',
-            'getBlockIdForLine',
             'handleExecuteLine',
             'handleScriptGlowOn',
             'handleScriptGlowOff',
@@ -372,61 +371,6 @@ class RubyTab extends React.Component {
         }
     }
 
-    getBlockIdForLine (lineNumber, rootNode, nodeToBlockMap) {
-        const Opal = global.Opal || window.Opal;
-        if (!rootNode || !nodeToBlockMap) {
-            return null;
-        }
-
-        const matchedNodes = [];
-
-        const traverse = (node, depth) => {
-            if (!node || node === Opal.nil) return;
-
-            try {
-                const loc = node.$loc();
-                if (loc && loc !== Opal.nil) {
-                    const startLine = loc.$line();
-                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
-
-                    if (startLine <= lineNumber && lineNumber <= endLine) {
-                        matchedNodes.push({node, depth});
-                    }
-                }
-
-                const children = node.$children ? node.$children() : null;
-                if (children && children !== Opal.nil) {
-                    const childArray = children.$to_a ? children.$to_a() : [];
-                    childArray.forEach(child => {
-                        traverse(child, depth + 1);
-                    });
-                }
-            } catch (e) {
-                // Ignore nodes without location info
-            }
-        };
-
-        traverse(rootNode, 0);
-
-        if (matchedNodes.length === 0) {
-            return null;
-        }
-
-        // Select parent block (shallowest node) rather than child blocks
-        let bestMatch = null;
-        let minDepth = Infinity;
-
-        for (const {node, depth} of matchedNodes) {
-            const blockId = nodeToBlockMap.get(node);
-            if (blockId && depth < minDepth) {
-                minDepth = depth;
-                bestMatch = blockId;
-            }
-        }
-
-        return bestMatch;
-    }
-
     handleScriptGlowOn (data) {
         this.setState({runningBlockId: data.id});
     }
@@ -489,12 +433,9 @@ class RubyTab extends React.Component {
             return;
         }
 
-        const nodeToBlockMap = converter._context.nodeToBlockMap;
-        const rootNode = converter._context.rootNode;
-
         converter.apply()
             .then(() => {
-                const blockId = this.getBlockIdForLine(lineNumber, rootNode, nodeToBlockMap);
+                const blockId = converter.getBlockIdForLine(lineNumber);
 
                 if (!blockId) {
                     // eslint-disable-next-line no-console

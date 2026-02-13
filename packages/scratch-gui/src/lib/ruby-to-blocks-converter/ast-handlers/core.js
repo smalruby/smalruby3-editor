@@ -18,6 +18,24 @@ const CoreHandlers = {
         node = node.$to_ast();
         this._context.currentNode = node;
 
+        // Track depth for lineToNodeMap
+        const depth = this._context.processDepth || 0;
+        this._context.processDepth = depth + 1;
+
+        // Populate lineToNodeMap with shallowest-first strategy
+        if (node.loc && node.loc.expression && node.loc.expression.begin_pos && node.loc.expression.end_pos) {
+            const startLine = node.loc.expression.begin_pos.line;
+            const endLine = node.loc.expression.end_pos.line;
+
+            for (let line = startLine; line <= endLine; line++) {
+                const existingEntry = this._context.lineToNodeMap.get(line);
+                // Store if no entry exists OR current node is shallower
+                if (!existingEntry || depth < existingEntry.depth) {
+                    this._context.lineToNodeMap.set(line, {node, depth});
+                }
+            }
+        }
+
         const savedIsValue = this._context.isValue;
         this._context.isValue = isValue;
 
@@ -35,6 +53,7 @@ const CoreHandlers = {
         }
 
         this._context.isValue = savedIsValue;
+        this._context.processDepth = depth; // Restore depth after processing
         return result;
     },
 

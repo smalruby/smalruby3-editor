@@ -554,64 +554,19 @@ class RubyToBlocksConverter {
     }
 
     /**
-     * Find AST node at the given line number
-     * @param {number} lineNumber - Line number (1-indexed)
-     * @returns {object|null} AST node or null if not found
-     */
-    findNodeAtLine (lineNumber) {
-        if (!this._context.rootNode) {
-            return null;
-        }
-
-        let matchedNode = null;
-        let maxDepth = -1;
-
-        const traverse = (node, depth) => {
-            if (!node || node === Opal.nil) return;
-
-            try {
-                const loc = node.$loc();
-                if (loc && loc !== Opal.nil) {
-                    const startLine = loc.$line();
-                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
-
-                    if (startLine <= lineNumber && lineNumber <= endLine) {
-                        if (depth > maxDepth) {
-                            maxDepth = depth;
-                            matchedNode = node;
-                        }
-                    }
-                }
-
-                // Traverse children
-                const children = node.$children ? node.$children() : null;
-                if (children && children !== Opal.nil) {
-                    const childArray = children.$to_a ? children.$to_a() : [];
-                    childArray.forEach(child => {
-                        traverse(child, depth + 1);
-                    });
-                }
-            } catch (e) {
-                // Ignore nodes without location info
-            }
-        };
-
-        traverse(this._context.rootNode, 0);
-        return matchedNode;
-    }
-
-    /**
-     * Get block ID for the given line number
+     * Get block ID for the given line number using O(1) map lookup.
+     * The lineToNodeMap is populated during AST processing with a shallowest-first strategy,
+     * so this returns the parent block for nested statements.
      * @param {number} lineNumber - Line number (1-indexed)
      * @returns {string|null} Block ID or null if not found
      */
     getBlockIdForLine (lineNumber) {
-        const node = this.findNodeAtLine(lineNumber);
-        if (!node) {
+        const entry = this._context.lineToNodeMap.get(lineNumber);
+        if (!entry) {
             return null;
         }
 
-        return this._context.nodeToBlockMap.get(node) || null;
+        return this._context.nodeToBlockMap.get(entry.node) || null;
     }
 }
 
