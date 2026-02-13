@@ -126,14 +126,3 @@ $arrow-rounding: 0.125rem;
 .editorWrapper :global(.executing-line) {
     background-color: rgba(133, 92, 214, 0.2) !important;
 }
-
-/* Glyph margin (left icon area) highlight */
-.editorWrapper :global(.executing-line-glyph) {
-    background-color: rgba(133, 92, 214, 0.2) !important;
-    width: 100% !important;
-}
-
-/* Line numbers highlight */
-.editorWrapper :global(.monaco-editor .margin-view-overlays .line-numbers.executing-line-glyph) {
-    background-color: rgba(133, 92, 214, 0.2) !important;
-}

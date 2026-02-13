@@ -415,9 +415,7 @@ class RubyTab extends React.Component {
             range: new this.monacoRef.Range(lineNumber, 1, lineNumber, 1),
             options: {
                 isWholeLine: true,
-                className: 'executing-line',
-                glyphMarginClassName: 'executing-line-glyph',
-                linesDecorationsClassName: 'executing-line-glyph'
+                className: 'executing-line'
             }
         }]);
 
@@ -529,8 +527,7 @@ class RubyTab extends React.Component {
                                 renderWhitespace: 'all',
                                 scrollBeyondLastLine: true,
                                 tabSize: 2,
-                                fixedOverflowWidgets: true,
-                                glyphMargin: true
+                                fixedOverflowWidgets: true
                             }}
                             theme="vs"
                             value={code}
