@@ -116,25 +116,38 @@ const RubyToolbar = props => {
     }, [intl]);
 
     const handleSearch = useCallback(() => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
         if (props.editorRef) {
             // Trigger Monaco Editor's search action
             props.editorRef.trigger('keyboard', 'actions.find', null);
         }
-    }, [props.editorRef]);
+    }, [props]);
 
     const handleUndo = useCallback(() => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
         if (props.editorRef) {
             props.editorRef.trigger('keyboard', 'undo', null);
         }
-    }, [props.editorRef]);
+    }, [props]);
 
     const handleRedo = useCallback(() => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
         if (props.editorRef) {
             props.editorRef.trigger('keyboard', 'redo', null);
         }
-    }, [props.editorRef]);
+    }, [props]);
 
     const handlePrevSprite = useCallback(() => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
+
         const sprites = getSortedSprites();
         const currentIndex = getCurrentSpriteIndex();
 
@@ -153,6 +166,10 @@ const RubyToolbar = props => {
     }, [getSortedSprites, getCurrentSpriteIndex, props]);
 
     const handleNextSprite = useCallback(() => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
+
         const sprites = getSortedSprites();
         const currentIndex = getCurrentSpriteIndex();
 
@@ -204,6 +221,9 @@ const RubyToolbar = props => {
     }, []);
 
     const handleSelectTarget = useCallback(targetId => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
         props.onSelectTarget(targetId);
         setCommandValue('');
         setShowDropdown(false);
@@ -225,6 +245,9 @@ const RubyToolbar = props => {
     }, [handleSelectTarget]);
 
     const handleDownload = useCallback(() => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
         // Trigger download Ruby code
         if (props.onDownload) {
             props.onDownload();
@@ -426,6 +449,7 @@ RubyToolbar.propTypes = {
     onSelectTarget: PropTypes.func.isRequired,
     onDownload: PropTypes.func,
     onExecuteLine: PropTypes.func,
+    onDismissBubble: PropTypes.func,
     isRunning: PropTypes.bool,
     canUndo: PropTypes.bool,
     canRedo: PropTypes.bool

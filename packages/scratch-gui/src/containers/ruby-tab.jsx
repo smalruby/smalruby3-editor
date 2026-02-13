@@ -15,7 +15,7 @@ import {
 import {setRubyVersion} from '../reducers/settings';
 import {showAlertWithTimeout, closeAlertWithId} from '../reducers/alerts';
 import VM from '@smalruby/scratch-vm';
-import {BLOCKS_TAB_INDEX} from '../reducers/editor-tab';
+import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
@@ -53,6 +53,8 @@ class RubyTab extends React.Component {
             'handleExecuteLine',
             'handleScriptGlowOn',
             'handleScriptGlowOff',
+            'handleVisualReport',
+            'handleDismissBubble',
             'updateUndoRedoState'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
@@ -65,6 +67,7 @@ class RubyTab extends React.Component {
         this.downloadCallbackRef = null;
         this.executingLineDecoration = null;
         this.contentChangeListener = null;
+        this.bubbleRef = null;
         this.state = {
             runningBlockId: null,
             executingLine: null,
@@ -78,6 +81,7 @@ class RubyTab extends React.Component {
     componentDidMount () {
         this.props.vm.addListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
         this.props.vm.addListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
+        this.props.vm.addListener('VISUAL_REPORT', this.handleVisualReport);
     }
 
     componentDidUpdate (prevProps) {
@@ -90,6 +94,11 @@ class RubyTab extends React.Component {
 
         if (this.props.locale !== prevProps.locale) {
             loadMonacoLocale(this.props.locale);
+        }
+
+        if (prevProps.activeTabIndex === RUBY_TAB_INDEX &&
+            this.props.activeTabIndex !== RUBY_TAB_INDEX) {
+            this.handleDismissBubble();
         }
 
         if (prevProps.isVisible && !this.props.isVisible) {
@@ -163,6 +172,12 @@ class RubyTab extends React.Component {
     componentWillUnmount () {
         this.props.vm.removeListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
         this.props.vm.removeListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
+        this.props.vm.removeListener('VISUAL_REPORT', this.handleVisualReport);
+        this.handleDismissBubble();
+        if (this.bubbleRef) {
+            document.body.removeChild(this.bubbleRef);
+            this.bubbleRef = null;
+        }
         this.clearExecutingLineHighlight();
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
@@ -262,12 +277,18 @@ class RubyTab extends React.Component {
             this.resizeObserver.observe(this.containerRef);
         }
 
-        // Monitor undo/redo stack changes
         this.contentChangeListener = editor.onDidChangeModelContent(() => {
             this.updateUndoRedoState();
         });
 
-        // Set initial undo/redo state
+        editor.onDidChangeCursorPosition(() => {
+            this.handleDismissBubble();
+        });
+
+        editor.onMouseDown(() => {
+            this.handleDismissBubble();
+        });
+
         this.updateUndoRedoState();
     }
 
@@ -379,6 +400,46 @@ class RubyTab extends React.Component {
         if (this.state.runningBlockId === data.id) {
             this.setState({runningBlockId: null, executingLine: null});
             this.clearExecutingLineHighlight();
+        }
+    }
+
+    handleVisualReport (data) {
+        if (this.props.activeTabIndex !== RUBY_TAB_INDEX) {
+            return;
+        }
+
+        const button = document.querySelector('button[aria-label*="カーソル行を実行"]') ||
+                       document.querySelector('button[aria-label*="Execute current line"]') ||
+                       document.querySelector('button[aria-label*="実行を停止"]') ||
+                       document.querySelector('button[aria-label*="Stop execution"]');
+        if (!button) {
+            return;
+        }
+
+        const rect = button.getBoundingClientRect();
+
+        if (!this.bubbleRef) {
+            this.bubbleRef = document.createElement('div');
+            this.bubbleRef.className = styles.valueReportBubble;
+            document.body.appendChild(this.bubbleRef);
+        }
+
+        this.bubbleRef.textContent = String(data.value);
+
+        const x = rect.right + 10;
+        const y = rect.top;
+
+        this.bubbleRef.style.left = `${x}px`;
+        this.bubbleRef.style.top = `${y}px`;
+
+        requestAnimationFrame(() => {
+            this.bubbleRef.classList.add(styles.visible);
+        });
+    }
+
+    handleDismissBubble () {
+        if (this.bubbleRef) {
+            this.bubbleRef.classList.remove(styles.visible);
         }
     }
 
@@ -543,6 +604,7 @@ class RubyTab extends React.Component {
                         onSelectTarget={this.handleSelectTarget}
                         onDownload={this.handleDownload}
                         onExecuteLine={this.handleExecuteLine}
+                        onDismissBubble={this.handleDismissBubble}
                         isRunning={!!this.state.runningBlockId}
                         canUndo={this.state.canUndo}
                         canRedo={this.state.canRedo}
@@ -634,7 +696,8 @@ RubyTab.propTypes = {
     updateRubyCodeTargetState: PropTypes.func,
     vm: PropTypes.instanceOf(VM).isRequired,
     projectTitle: PropTypes.string,
-    locale: PropTypes.string
+    locale: PropTypes.string,
+    activeTabIndex: PropTypes.number
 };
 
 const mapStateToProps = state => ({
@@ -644,7 +707,8 @@ const mapStateToProps = state => ({
     rubyVersion: state.scratchGui.settings.rubyVersion,
     vm: state.scratchGui.vm,
     projectTitle: state.scratchGui.projectTitle,
-    locale: state.locales.locale
+    locale: state.locales.locale,
+    activeTabIndex: state.scratchGui.editorTab.activeTabIndex
 });
 
 const mapDispatchToProps = dispatch => ({

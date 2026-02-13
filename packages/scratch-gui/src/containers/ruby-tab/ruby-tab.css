@@ -117,12 +117,55 @@ $arrow-rounding: 0.125rem;
     bottom: 0;
 }
 
-/* Override Monaco Editor find widget position to prevent it from being cut off */
+/* Override Monaco Editor find widget position */
 .editorWrapper :global(.monaco-editor .find-widget) {
     right: 48px !important;
 }
 
-/* Executing line highlight */
 .editorWrapper :global(.executing-line) {
     background-color: rgba(133, 92, 214, 0.2) !important;
+}
+
+/* Value report bubble */
+.valueReportBubble {
+    position: fixed;
+    z-index: 1000;
+    background-color: #FFFFFF;
+    border: 1px solid #AAAAAA;
+    border-radius: 4px;
+    padding: 4px 8px;
+    box-sizing: content-box;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    min-width: 50px;
+    max-width: 300px;
+    max-height: 200px;
+    overflow: auto;
+    word-wrap: break-word;
+    word-break: break-all;
+    text-align: center;
+    font-family: "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 0.8em;
+    line-height: 1.2;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+}
+
+.valueReportBubble.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.valueReportBubble::before {
+    content: '';
+    position: absolute;
+    left: -9px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+    width: 16px;
+    height: 16px;
+    background-color: #FFFFFF;
+    border-left: 1px solid #AAAAAA;
+    border-bottom: 1px solid #AAAAAA;
 }

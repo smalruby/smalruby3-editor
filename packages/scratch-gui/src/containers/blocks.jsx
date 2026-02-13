@@ -37,7 +37,8 @@ import {isTimeTravel2020} from '../reducers/time-travel';
 
 import {
     activateTab,
-    SOUNDS_TAB_INDEX
+    SOUNDS_TAB_INDEX,
+    RUBY_TAB_INDEX
 } from '../reducers/editor-tab';
 
 const addFunctionListener = (object, property, callback) => {
@@ -364,6 +365,10 @@ class Blocks extends React.Component {
         this.workspace.glowBlock(data.id, false);
     }
     onVisualReport (data) {
+        // Don't show visual report in Code tab when Ruby tab is active
+        if (this.props.activeTabIndex === RUBY_TAB_INDEX) {
+            return;
+        }
         this.workspace.reportValue(data.id, data.value);
     }
 
@@ -791,6 +796,7 @@ Blocks.propTypes = {
     updateToolboxState: PropTypes.func,
     useCatBlocks: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired,
+    activeTabIndex: PropTypes.number,
     workspaceMetrics: PropTypes.shape({
         targets: PropTypes.objectOf(PropTypes.object)
     }),
@@ -831,6 +837,7 @@ const mapStateToProps = state => ({
     messages: state.locales.messages,
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
+    activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     customProceduresVisible: state.scratchGui.customProcedures.active,
     workspaceMetrics: state.scratchGui.workspaceMetrics,
     useCatBlocks: isTimeTravel2020(state) || state.scratchGui.settings.theme === CAT_BLOCKS_THEME
