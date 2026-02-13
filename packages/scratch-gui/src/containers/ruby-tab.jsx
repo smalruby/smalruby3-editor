@@ -18,6 +18,7 @@ import VM from '@smalruby/scratch-vm';
 import {BLOCKS_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
+import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
 
 import SnippetsCompleter from './ruby-tab/snippets-completer';
 import {smalrubyLanguage} from './ruby-tab/smalruby-mode';
@@ -48,7 +49,11 @@ class RubyTab extends React.Component {
             'handleAISaveFinished',
             'handleAISaveError',
             'handleSelectTarget',
-            'handleDownload'
+            'handleDownload',
+            'getBlockIdForLine',
+            'handleExecuteLine',
+            'handleScriptGlowOn',
+            'handleScriptGlowOff'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
         this.editorRef = null;
@@ -58,8 +63,18 @@ class RubyTab extends React.Component {
         this.completionProvider = null;
         this.lastProcessedVersion = props.rubyVersion;
         this.downloadCallbackRef = null;
+        this.executingLineDecoration = null;
+        this.state = {
+            runningBlockId: null,
+            executingLine: null
+        };
 
         loadMonacoLocale(props.locale);
+    }
+
+    componentDidMount () {
+        this.props.vm.addListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
+        this.props.vm.addListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
     }
 
     componentDidUpdate (prevProps) {
@@ -143,6 +158,9 @@ class RubyTab extends React.Component {
     }
 
     componentWillUnmount () {
+        this.props.vm.removeListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
+        this.props.vm.removeListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
+        this.clearExecutingLineHighlight();
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
         }
@@ -313,6 +331,163 @@ class RubyTab extends React.Component {
         }
     }
 
+    getBlockIdForLine (lineNumber, rootNode, nodeToBlockMap) {
+        const Opal = global.Opal || window.Opal;
+        if (!rootNode || !nodeToBlockMap) {
+            return null;
+        }
+
+        const matchedNodes = [];
+
+        const traverse = (node, depth) => {
+            if (!node || node === Opal.nil) return;
+
+            try {
+                const loc = node.$loc();
+                if (loc && loc !== Opal.nil) {
+                    const startLine = loc.$line();
+                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
+
+                    if (startLine <= lineNumber && lineNumber <= endLine) {
+                        matchedNodes.push({node, depth});
+                    }
+                }
+
+                const children = node.$children ? node.$children() : null;
+                if (children && children !== Opal.nil) {
+                    const childArray = children.$to_a ? children.$to_a() : [];
+                    childArray.forEach(child => {
+                        traverse(child, depth + 1);
+                    });
+                }
+            } catch (e) {
+                // Ignore nodes without location info
+            }
+        };
+
+        traverse(rootNode, 0);
+
+        if (matchedNodes.length === 0) {
+            return null;
+        }
+
+        // Select parent block (shallowest node) rather than child blocks
+        let bestMatch = null;
+        let minDepth = Infinity;
+
+        for (const {node, depth} of matchedNodes) {
+            const blockId = nodeToBlockMap.get(node);
+            if (blockId && depth < minDepth) {
+                minDepth = depth;
+                bestMatch = blockId;
+            }
+        }
+
+        return bestMatch;
+    }
+
+    handleScriptGlowOn (data) {
+        this.setState({runningBlockId: data.id});
+    }
+
+    handleScriptGlowOff (data) {
+        if (this.state.runningBlockId === data.id) {
+            this.setState({runningBlockId: null, executingLine: null});
+            this.clearExecutingLineHighlight();
+        }
+    }
+
+    clearExecutingLineHighlight () {
+        if (this.executingLineDecoration) {
+            this.executingLineDecoration.clear();
+            this.executingLineDecoration = null;
+        }
+    }
+
+    highlightExecutingLine (lineNumber) {
+        if (!this.editorRef || !this.monacoRef) {
+            return;
+        }
+
+        this.clearExecutingLineHighlight();
+
+        this.executingLineDecoration = this.editorRef.createDecorationsCollection([{
+            range: new this.monacoRef.Range(lineNumber, 1, lineNumber, 1),
+            options: {
+                isWholeLine: true,
+                className: 'executing-line'
+            }
+        }]);
+
+        // Scroll to the executing line
+        this.editorRef.revealLineInCenter(lineNumber);
+    }
+
+    handleExecuteLine (lineNumber) {
+        // If already running, stop it
+        if (this.state.runningBlockId) {
+            this.props.vm.runtime.toggleScript(this.state.runningBlockId, {
+                target: this.props.vm.editingTarget,
+                stackClick: true
+            });
+            return;
+        }
+
+        const converter = targetCodeToBlocks(
+            this.props.vm,
+            this.props.rubyCode.target,
+            this.props.rubyCode.code,
+            this.props.intl,
+            {version: this.props.rubyVersion}
+        );
+
+        if (!converter.result) {
+            this.props.onShowAlert('convertRubyToBlocksError');
+            this.props.updateRubyCodeErrorsState(converter.errors);
+            this.showErrors(converter.errors);
+            return;
+        }
+
+        const nodeToBlockMap = converter._context.nodeToBlockMap;
+        const rootNode = converter._context.rootNode;
+
+        converter.apply()
+            .then(() => {
+                const blockId = this.getBlockIdForLine(lineNumber, rootNode, nodeToBlockMap);
+
+                if (!blockId) {
+                    // eslint-disable-next-line no-console
+                    console.warn(`[handleExecuteLine] No executable block found at line ${lineNumber}`);
+                    this.props.onShowAlert('cannotExecuteLine');
+                    return;
+                }
+
+                // Execute from top of block stack (like Scratch's behavior)
+                const topBlockId = this.props.vm.editingTarget.blocks.getTopLevelScript(blockId);
+
+                if (!topBlockId) {
+                    // eslint-disable-next-line no-console
+                    console.warn(`[handleExecuteLine] Could not find top-level block for blockId ${blockId}`);
+                    this.props.onShowAlert('cannotExecuteLine');
+                    return;
+                }
+
+                // Highlight the executing line
+                this.setState({executingLine: lineNumber});
+                this.highlightExecutingLine(lineNumber);
+
+                this.props.vm.runtime.toggleScript(topBlockId, {
+                    target: this.props.vm.editingTarget,
+                    stackClick: true
+                });
+            })
+            .catch(error => {
+                // eslint-disable-next-line no-console
+                console.error('[handleExecuteLine] Apply error:', error);
+                this.props.onShowAlert('convertRubyToBlocksError');
+            });
+    }
+
     render () {
         const {
             rubyCode,
@@ -335,6 +510,8 @@ class RubyTab extends React.Component {
                         editorRef={this.editorRef}
                         onSelectTarget={this.handleSelectTarget}
                         onDownload={this.handleDownload}
+                        onExecuteLine={this.handleExecuteLine}
+                        isRunning={!!this.state.runningBlockId}
                     />
                     <div className={styles.editorWrapper}>
                         <Editor

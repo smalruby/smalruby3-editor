@@ -257,6 +257,20 @@ const alerts = [
         ),
         iconSpinner: true,
         level: AlertLevels.SUCCESS
+    },
+    {
+        alertId: 'cannotExecuteLine',
+        clearList: ['cannotExecuteLine'],
+        closeButton: true,
+        content: (
+            <FormattedMessage
+                defaultMessage="This line cannot be executed."
+                description="Alert shown when user tries to execute a non-executable line"
+                id="gui.alerts.cannotExecuteLine"
+            />
+        ),
+        level: AlertLevels.WARN,
+        maxDisplaySecs: 5
     }
 ];
 

@@ -60,6 +60,12 @@ const BlockUtils = {
         }
         this._context.blocks[block.id] = block;
         this._context.blockTypes[block.id] = type;
+
+        // Map current node to block ID for line execution feature
+        if (this._context.currentNode && this._context.currentNode !== Opal.nil) {
+            this._context.nodeToBlockMap.set(this._context.currentNode, block.id);
+        }
+
         return block;
     },
 
@@ -161,11 +167,16 @@ const BlockUtils = {
     },
 
     _addNumberInput (block, name, opcode, inputValue, shadowValue) {
+        const previousNode = this._context.currentNode;
+        this._context.currentNode = null;
+
         let shadowBlock;
         if (!this._isNumber(inputValue)) {
             shadowBlock = this._createNumberBlock(opcode, shadowValue);
         }
         this._addInput(block, name, this._createNumberBlock(opcode, inputValue), shadowBlock);
+
+        this._context.currentNode = previousNode;
     },
 
     addNoteInput (block, name, inputValue, shadowValue) {
@@ -173,12 +184,17 @@ const BlockUtils = {
     },
 
     _addNoteInput (block, name, inputValue, shadowValue) {
+        const previousNode = this._context.currentNode;
+        this._context.currentNode = null;
+
         let shadowBlock;
         const opcode = 'note';
         if (!this._isNumber(inputValue)) {
             shadowBlock = this._createNoteBlock(opcode, shadowValue);
         }
         this._addInput(block, name, this._createNoteBlock(opcode, inputValue), shadowBlock);
+
+        this._context.currentNode = previousNode;
     },
 
     _createNoteBlock (opcode, value) {
@@ -193,11 +209,16 @@ const BlockUtils = {
     },
 
     _addTextInput (block, name, inputValue, shadowValue) {
+        const previousNode = this._context.currentNode;
+        this._context.currentNode = null;
+
         let shadowBlock;
         if (!this._isString(inputValue)) {
             shadowBlock = this._createTextBlock(shadowValue);
         }
         this._addInput(block, name, this._createTextBlock(inputValue), shadowBlock);
+
+        this._context.currentNode = previousNode;
     },
 
     addFieldInput (block, name, opcode, fieldName, inputValue, shadowValue) {
@@ -205,11 +226,16 @@ const BlockUtils = {
     },
 
     _addFieldInput (block, name, opcode, fieldName, inputValue, shadowValue) {
+        const previousNode = this._context.currentNode;
+        this._context.currentNode = null;
+
         let shadowBlock;
         if (!this._isString(inputValue)) {
             shadowBlock = this._createFieldBlock(opcode, fieldName, shadowValue);
         }
         this._addInput(block, name, this._createFieldBlock(opcode, fieldName, inputValue), shadowBlock);
+
+        this._context.currentNode = previousNode;
     },
 
     _addSubstack (block, substackBlock, num = 1) {

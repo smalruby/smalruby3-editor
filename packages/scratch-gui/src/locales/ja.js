@@ -79,6 +79,7 @@ export default {
     'gui.smalruby3.unsupportedBrowser.previewfaq': 'スモウルビーは Scratch 3.0をベースに開発していますので、詳しく知りたい場合は Scratch の {previewFaqLink} をご覧ください。',
     'gui.smalruby3.webglModal.description': '残念ながら、ブラウザーやコンピューターが{webGlLink}ようです。この技術はスモウルビー3.0の実行に必須です。',
     'gui.smalruby3.alerts.convertRubyToBlocksError': 'ルビーからコードに変換できませんでした。ルビーを修正してください！',
+    'gui.alerts.cannotExecuteLine': 'この行は実行できません。',
     'gui.smalruby3.telemetryOptIn.label': 'スモウルビーを改善するための利用状況の報告',
     'gui.smalruby3.telemetryOptIn.body1': 'スモウルビーの開発者は世界中でスモウルビーがどのように使われているのかを理解したいと考えています。その手助けのために、みなさんのスモウルビーの利用状況をスモウルビーの開発者に提供していただけないでしょうか。',
     'gui.smalruby3.telemetryOptIn.body2': '提供していただく情報にはどの言語を選択したか、どのブロックを使ったか、保存・読み込み・プロジェクトのアップロードなどのイベントを含みます。ただし、ユーザ名などの個人的な情報は一切含みません。',
@@ -303,6 +304,8 @@ export default {
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。',
 
     // Ruby Toolbar messages
+    'gui.rubyToolbar.executeLine': 'カーソル行を実行',
+    'gui.rubyToolbar.stopExecution': '実行を停止',
     'gui.rubyToolbar.search': '検索',
     'gui.rubyToolbar.prevSprite': '前のスプライト',
     'gui.rubyToolbar.nextSprite': '次のスプライト',

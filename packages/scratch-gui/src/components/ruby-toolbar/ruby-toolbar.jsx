@@ -5,6 +5,8 @@ import VM from '@smalruby/scratch-vm';
 
 import styles from './ruby-toolbar.css';
 
+import iconPlay from './icon--play.svg';
+import iconStop from './icon--stop.svg';
 import iconSearch from './icon--search.svg';
 import iconUndo from './icon--undo.svg';
 import iconRedo from './icon--redo.svg';
@@ -13,6 +15,16 @@ import iconForward from './icon--forward.svg';
 import iconDownload from './icon--download.svg';
 
 const messages = defineMessages({
+    executeLine: {
+        id: 'gui.rubyToolbar.executeLine',
+        defaultMessage: 'Execute current line',
+        description: 'Tooltip for execute line button'
+    },
+    stopExecution: {
+        id: 'gui.rubyToolbar.stopExecution',
+        defaultMessage: 'Stop execution',
+        description: 'Tooltip for stop execution button'
+    },
     search: {
         id: 'gui.rubyToolbar.search',
         defaultMessage: 'Search',
@@ -219,6 +231,21 @@ const RubyToolbar = props => {
         }
     }, [props]);
 
+    const handleExecuteLine = useCallback(() => {
+        if (!props.editorRef) {
+            return;
+        }
+
+        // Get current cursor position
+        const position = props.editorRef.getPosition();
+        const lineNumber = position.lineNumber;
+
+        // Trigger conversion and execution
+        if (props.onExecuteLine) {
+            props.onExecuteLine(lineNumber);
+        }
+    }, [props]);
+
     const canGoPrev = useCallback(() => {
         if (props.editingTarget?.isStage) {
             return false;
@@ -257,6 +284,22 @@ const RubyToolbar = props => {
 
     return (
         <div className={styles.toolbar}>
+            {/* Run Part */}
+            <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
+                <button
+                    className={styles.iconButton}
+                    onClick={handleExecuteLine}
+                    disabled={!props.editorRef}
+                    aria-label={intl.formatMessage(props.isRunning ? messages.stopExecution : messages.executeLine)}
+                    title={intl.formatMessage(props.isRunning ? messages.stopExecution : messages.executeLine)}
+                >
+                    <img
+                        src={props.isRunning ? iconStop : iconPlay}
+                        alt=""
+                    />
+                </button>
+            </div>
+
             {/* Edit Part */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
                 <div className={styles.buttonGroup}>
@@ -353,7 +396,7 @@ const RubyToolbar = props => {
                 </div>
             </div>
 
-            {/* Run Part */}
+            {/* Download Part */}
             <div className={styles.toolbarPart}>
                 <button
                     className={styles.iconButton}
@@ -381,7 +424,9 @@ RubyToolbar.propTypes = {
     vm: PropTypes.instanceOf(VM).isRequired,
     editorRef: PropTypes.object,
     onSelectTarget: PropTypes.func.isRequired,
-    onDownload: PropTypes.func
+    onDownload: PropTypes.func,
+    onExecuteLine: PropTypes.func,
+    isRunning: PropTypes.bool
 };
 
 export default RubyToolbar;

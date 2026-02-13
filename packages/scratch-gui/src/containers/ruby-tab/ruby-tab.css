@@ -121,3 +121,8 @@ $arrow-rounding: 0.125rem;
 .editorWrapper :global(.monaco-editor .find-widget) {
     right: 48px !important;
 }
+
+/* Executing line highlight */
+.editorWrapper :global(.executing-line) {
+    background-color: rgba(133, 92, 214, 0.2) !important;
+}
