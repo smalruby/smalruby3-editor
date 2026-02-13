@@ -418,10 +418,39 @@ class RubyTab extends React.Component {
             return;
         }
 
+        // Find the actual line to execute (skip empty lines)
+        const rubyCode = this.props.rubyCode.code;
+        const lines = rubyCode.split('\n');
+        let targetLine = lineNumber;
+
+        // If the current line is empty or whitespace-only, search upwards for a non-empty line
+        while (targetLine >= 1) {
+            const line = lines[targetLine - 1]; // Convert to 0-indexed
+            if (line && line.trim() !== '') {
+                break;
+            }
+            targetLine--;
+        }
+
+        // If no non-empty line found, cannot execute
+        if (targetLine < 1) {
+            // eslint-disable-next-line no-console
+            console.warn('[handleExecuteLine] No non-empty line found');
+            this.props.onShowAlert('cannotExecuteLine');
+            return;
+        }
+
+        // eslint-disable-next-line no-console
+        console.log('[handleExecuteLine] Line adjustment:', {
+            requestedLine: lineNumber,
+            actualLine: targetLine,
+            wasAdjusted: lineNumber !== targetLine
+        });
+
         const converter = targetCodeToBlocks(
             this.props.vm,
             this.props.rubyCode.target,
-            this.props.rubyCode.code,
+            rubyCode,
             this.props.intl,
             {version: this.props.rubyVersion}
         );
@@ -447,7 +476,7 @@ class RubyTab extends React.Component {
                 // Debug: Log converter context state
                 // eslint-disable-next-line no-console
                 console.log('[handleExecuteLine] Debug info:', {
-                    lineNumber,
+                    lineNumber: targetLine,
                     lineToNodeMapSize: converter._context.lineToNodeMap.size,
                     nodeToBlockMapSize: converter._context.nodeToBlockMap.size,
                     lineToNodeMapKeys: Array.from(converter._context.lineToNodeMap.keys()),
@@ -458,19 +487,19 @@ class RubyTab extends React.Component {
                     }))
                 });
 
-                const blockId = converter.getBlockIdForLine(lineNumber);
+                const blockId = converter.getBlockIdForLine(targetLine);
 
                 // Debug: Log the result
                 // eslint-disable-next-line no-console
                 console.log('[handleExecuteLine] getBlockIdForLine result:', {
-                    lineNumber,
+                    lineNumber: targetLine,
                     blockId,
-                    entry: converter._context.lineToNodeMap.get(lineNumber)
+                    entry: converter._context.lineToNodeMap.get(targetLine)
                 });
 
                 if (!blockId) {
                     // eslint-disable-next-line no-console
-                    console.warn(`[handleExecuteLine] No executable block found at line ${lineNumber}`);
+                    console.warn(`[handleExecuteLine] No executable block found at line ${targetLine}`);
                     this.props.onShowAlert('cannotExecuteLine');
                     return;
                 }
@@ -485,9 +514,9 @@ class RubyTab extends React.Component {
                     return;
                 }
 
-                // Highlight the executing line
-                this.setState({executingLine: lineNumber});
-                this.highlightExecutingLine(lineNumber);
+                // Highlight the actual executing line (not the requested line if it was empty)
+                this.setState({executingLine: targetLine});
+                this.highlightExecutingLine(targetLine);
 
                 this.props.vm.runtime.toggleScript(topBlockId, {
                     target: this.props.vm.editingTarget,
