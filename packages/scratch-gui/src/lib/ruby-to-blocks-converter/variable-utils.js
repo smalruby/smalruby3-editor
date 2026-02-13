@@ -20,6 +20,12 @@ const VariableUtils = {
 
     _lookupOrCreateVariableOrList (name, type, isArgument = false) {
         name = name.toString();
+        // eslint-disable-next-line no-console
+        console.log(
+            `[VARUTIL DEBUG] _lookupOrCreateVariableOrList called: ` +
+            `name="${name}", type="${type}", isArgument=${isArgument}`
+        );
+
         let scope;
         let varName;
         let scopeIndex = null;
@@ -27,20 +33,34 @@ const VariableUtils = {
         if (name[0] === '$') {
             varName = name.slice(1);
             scope = 'global';
+            // eslint-disable-next-line no-console
+            console.log(`[VARUTIL DEBUG] Detected global variable: varName="${varName}"`);
         } else if (name[0] === '@') {
             varName = name.slice(1);
             scope = 'instance';
+            // eslint-disable-next-line no-console
+            console.log(`[VARUTIL DEBUG] Detected instance variable: varName="${varName}"`);
         } else {
             // Local variable - transform to pseudo-local
             varName = name;
             scope = 'local';
             scopeIndex = this._getScopeIndex();
+            // eslint-disable-next-line no-console
+            console.log(
+                `[VARUTIL DEBUG] Detected local variable: ` +
+                `varName="${varName}", scopeIndex=${scopeIndex}`
+            );
 
             // Check if already exists in current scope
             const currentScope = this._getCurrentScope();
             if (currentScope && currentScope.localVars[varName]) {
                 const existingVar = currentScope.localVars[varName];
                 const sName = type === Variable.SCALAR_TYPE ? 'localVariables' : 'lists';
+                // eslint-disable-next-line no-console
+                console.log(
+                    `[VARUTIL DEBUG] Local variable already exists in current scope, ` +
+                    `returning from ${sName}[${existingVar.transformedName}]`
+                );
                 return this._context[sName][existingVar.transformedName];
             }
         }
@@ -55,17 +75,31 @@ const VariableUtils = {
         } else {
             storeName = 'lists';
         }
+        // eslint-disable-next-line no-console
+        console.log(`[VARUTIL DEBUG] Selected storeName: ${storeName}`);
 
         let variable = this._context[storeName][varName];
 
         if (scope === 'local') {
             // Create transformed name - arguments DO NOT get indexed
             const transformedName = isArgument ? varName : `_${varName}_${scopeIndex}_`;
+            // eslint-disable-next-line no-console
+            console.log(`[VARUTIL DEBUG] Transformed name: "${transformedName}"`);
 
             // Check if this transformed name already exists in global store
             variable = this._context[storeName][transformedName];
 
-            if (!variable) {
+            if (variable) {
+                // eslint-disable-next-line no-console
+                console.log(
+                    `[VARUTIL DEBUG] Found EXISTING local variable in ` +
+                    `${storeName}[${transformedName}] with ID: ${variable.id}`
+                );
+            } else {
+                // eslint-disable-next-line no-console
+                console.log(
+                    `[VARUTIL DEBUG] Creating NEW local variable in ${storeName}[${transformedName}]`
+                );
                 variable = {
                     id: Blockly.utils.genUid(),
                     name: transformedName,
@@ -76,6 +110,8 @@ const VariableUtils = {
                     isArgument: isArgument
                 };
                 this._context[storeName][transformedName] = variable;
+                // eslint-disable-next-line no-console
+                console.log(`[VARUTIL DEBUG] Created with ID: ${variable.id}`);
             }
 
             // Track in current scope
@@ -85,8 +121,15 @@ const VariableUtils = {
                     transformedName: transformedName,
                     variable: variable
                 };
+                // eslint-disable-next-line no-console
+                console.log(`[VARUTIL DEBUG] Tracked in current scope`);
             }
         } else if (variable) {
+            // eslint-disable-next-line no-console
+            console.log(
+                `[VARUTIL DEBUG] Found EXISTING ${scope} variable in ` +
+                `${storeName}[${varName}] with ID: ${variable.id}`
+            );
             // Check for variable scope change - only for global/instance variables
             if (variable.scope !== scope) {
                 throw new RubyToBlocksConverterError(
@@ -95,6 +138,10 @@ const VariableUtils = {
                 );
             }
         } else {
+            // eslint-disable-next-line no-console
+            console.log(
+                `[VARUTIL DEBUG] Creating NEW ${scope} variable in ${storeName}[${varName}]`
+            );
             variable = {
                 id: Blockly.utils.genUid(),
                 name: varName,
@@ -102,7 +149,15 @@ const VariableUtils = {
                 type: type
             };
             this._context[storeName][varName] = variable;
+            // eslint-disable-next-line no-console
+            console.log(`[VARUTIL DEBUG] Created with ID: ${variable.id}`);
         }
+
+        // eslint-disable-next-line no-console
+        console.log(
+            `[VARUTIL DEBUG] Returning variable: ` +
+            `name="${variable.name}", id="${variable.id}", scope="${variable.scope}"`
+        );
         return variable;
     },
 
