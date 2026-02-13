@@ -53,7 +53,21 @@ const Variable = {
     BROADCAST_MESSAGE_TYPE: 'broadcast_msg'
 };
 
+/**
+ * Pattern to match local variables created by RubyToBlocksConverter.
+ * Format: _%rubyIdentifier%_%scopeIndex%_
+ * Examples: _text_1_, _foo_bar_2_, _高尾_3_
+ *
+ * This pattern matches:
+ * - Underscore prefix
+ * - Ruby identifier (starts with lowercase letter, underscore, or non-ASCII letter)
+ * - Underscore + number (scope index) + underscore suffix
+ * @constant
+ */
+const LOCAL_VARIABLE_PATTERN = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u;
+
 export {
     KeyOptions,
-    Variable
+    Variable,
+    LOCAL_VARIABLE_PATTERN
 };

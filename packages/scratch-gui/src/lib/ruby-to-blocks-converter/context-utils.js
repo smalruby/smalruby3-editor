@@ -1,4 +1,4 @@
-import {Variable} from './constants';
+import {Variable, LOCAL_VARIABLE_PATTERN} from './constants';
 
 const Opal = global.Opal || window.Opal;
 
@@ -42,6 +42,7 @@ const ContextUtils = {
         if (!target || !target.variables) {
             return;
         }
+
         let scope;
         if (target.isStage) {
             scope = 'global';
@@ -50,6 +51,13 @@ const ContextUtils = {
         }
         Object.keys(target.variables).forEach(blockId => {
             const variable = target.variables[blockId];
+
+            // Skip local variables - they should not be loaded from target
+            // Local variables are scope-specific and temporary
+            if (LOCAL_VARIABLE_PATTERN.test(variable.name)) {
+                return;
+            }
+
             let storeName;
             if (variable.type === Variable.SCALAR_TYPE) {
                 storeName = 'variables';

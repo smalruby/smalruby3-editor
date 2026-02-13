@@ -40,6 +40,15 @@ describe('Ruby Roundtrip/Method Return', () => {
             createVariable: function (id, name, type) {
                 this.variables[id] = new Variable(id, name, type);
             },
+            lookupVariableByNameAndType: function (name, type) {
+                for (const varId in this.variables) {
+                    const currVar = this.variables[varId];
+                    if (currVar.name === name && currVar.type === type) {
+                        return currVar;
+                    }
+                }
+                return null;
+            },
             createComment: function (id, blockId, text, x, y, width, height, minimized) {
                 this.comments[id] = {
                     id,
