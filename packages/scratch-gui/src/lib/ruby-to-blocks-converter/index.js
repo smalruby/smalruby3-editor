@@ -217,20 +217,73 @@ class RubyToBlocksConverter {
             stage = this.vm.runtime.getTargetForStage();
         }
 
+        // Delete existing local variables (pattern: _%rubyLocalVarName%_%number%_)
+        // from target before applying new blocks.
+        // This prevents ID conflicts when re-executing code with local variables.
+        // Pattern matches: _xxx_0_, _foo_bar_1_, _snake_case_name_2_, etc.
+        const localVarPattern = /^_.+_\d+_$/;
+        const varsToDelete = [];
+        for (const varId in target.variables) {
+            const variable = target.variables[varId];
+            if (localVarPattern.test(variable.name)) {
+                varsToDelete.push(varId);
+            }
+        }
+        varsToDelete.forEach(varId => {
+            target.deleteVariable(varId);
+        });
+
         // Handle global/instance/local variables and lists
+        // Map of old variable IDs to new IDs (for reusing existing variables)
+        const variableIdMap = {};
+
         ['variables', 'lists', 'localVariables'].forEach(storeName => {
             Object.keys(this._context[storeName]).forEach(name => {
                 const variable = this._context[storeName][name];
                 if (variable.isArgument) return;
 
+                const oldId = variable.id;
+                let existingVar = null;
+
                 if (variable.scope === 'global') {
-                    if (!Object.prototype.hasOwnProperty.call(stage.variables, variable.id)) {
+                    // Check if variable already exists by name and type
+                    existingVar = stage.lookupVariableByNameAndType(variable.name, variable.type);
+                    if (existingVar) {
+                        // Reuse existing variable ID
+                        variableIdMap[oldId] = existingVar.id;
+                        variable.id = existingVar.id;
+                    } else if (!Object.prototype.hasOwnProperty.call(stage.variables, variable.id)) {
                         stage.createVariable(variable.id, variable.name, variable.type);
                     }
-                } else if (!Object.prototype.hasOwnProperty.call(target.variables, variable.id)) {
-                    target.createVariable(variable.id, variable.name, variable.type);
+                } else {
+                    // For local variables, always create new (they were deleted above)
+                    // For instance variables, check if already exists and reuse
+                    if (variable.scope !== 'local') {
+                        existingVar = target.lookupVariableByNameAndType(variable.name, variable.type, true);
+                        if (existingVar) {
+                            // Reuse existing variable ID
+                            variableIdMap[oldId] = existingVar.id;
+                            variable.id = existingVar.id;
+                        }
+                    }
+                    if (!existingVar && !Object.prototype.hasOwnProperty.call(target.variables, variable.id)) {
+                        target.createVariable(variable.id, variable.name, variable.type);
+                    }
                 }
             });
+        });
+
+        // Update variable IDs in blocks
+        Object.keys(this._context.blocks).forEach(blockId => {
+            const block = this._context.blocks[blockId];
+            if (block.fields) {
+                ['VARIABLE', 'LIST'].forEach(fieldName => {
+                    const field = block.fields[fieldName];
+                    if (field && variableIdMap[field.id]) {
+                        field.id = variableIdMap[field.id];
+                    }
+                });
+            }
         });
 
         Object.keys(this._context.broadcastMsgs).forEach(name => {
