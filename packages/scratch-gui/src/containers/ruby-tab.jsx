@@ -63,11 +63,18 @@ class RubyTab extends React.Component {
         this.completionProvider = null;
         this.lastProcessedVersion = props.rubyVersion;
         this.downloadCallbackRef = null;
+        this.executingLineDecoration = null;
         this.state = {
-            runningBlockId: null
+            runningBlockId: null,
+            executingLine: null
         };
 
         loadMonacoLocale(props.locale);
+    }
+
+    componentDidMount () {
+        this.props.vm.addListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
+        this.props.vm.addListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
     }
 
     componentDidUpdate (prevProps) {
@@ -150,14 +157,10 @@ class RubyTab extends React.Component {
         }
     }
 
-    componentDidMount () {
-        this.props.vm.addListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
-        this.props.vm.addListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
-    }
-
     componentWillUnmount () {
         this.props.vm.removeListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
         this.props.vm.removeListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
+        this.clearExecutingLineHighlight();
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
         }
@@ -389,8 +392,37 @@ class RubyTab extends React.Component {
 
     handleScriptGlowOff (data) {
         if (this.state.runningBlockId === data.id) {
-            this.setState({runningBlockId: null});
+            this.setState({runningBlockId: null, executingLine: null});
+            this.clearExecutingLineHighlight();
         }
+    }
+
+    clearExecutingLineHighlight () {
+        if (this.executingLineDecoration) {
+            this.executingLineDecoration.clear();
+            this.executingLineDecoration = null;
+        }
+    }
+
+    highlightExecutingLine (lineNumber) {
+        if (!this.editorRef || !this.monacoRef) {
+            return;
+        }
+
+        this.clearExecutingLineHighlight();
+
+        this.executingLineDecoration = this.editorRef.createDecorationsCollection([{
+            range: new this.monacoRef.Range(lineNumber, 1, lineNumber, 1),
+            options: {
+                isWholeLine: true,
+                className: 'executing-line',
+                glyphMarginClassName: 'executing-line-glyph',
+                linesDecorationsClassName: 'executing-line-glyph'
+            }
+        }]);
+
+        // Scroll to the executing line
+        this.editorRef.revealLineInCenter(lineNumber);
     }
 
     handleExecuteLine (lineNumber) {
@@ -441,6 +473,10 @@ class RubyTab extends React.Component {
                     this.props.onShowAlert('cannotExecuteLine');
                     return;
                 }
+
+                // Highlight the executing line
+                this.setState({executingLine: lineNumber});
+                this.highlightExecutingLine(lineNumber);
 
                 this.props.vm.runtime.toggleScript(topBlockId, {
                     target: this.props.vm.editingTarget,
@@ -493,7 +529,8 @@ class RubyTab extends React.Component {
                                 renderWhitespace: 'all',
                                 scrollBeyondLastLine: true,
                                 tabSize: 2,
-                                fixedOverflowWidgets: true
+                                fixedOverflowWidgets: true,
+                                glyphMargin: true
                             }}
                             theme="vs"
                             value={code}
