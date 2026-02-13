@@ -217,11 +217,15 @@ class RubyToBlocksConverter {
             stage = this.vm.runtime.getTargetForStage();
         }
 
-        // Delete existing local variables (pattern: _%rubyLocalVarName%_%number%_)
+        // Delete existing local variables (pattern: _%rubyIdentifier%_%number%_)
         // from target before applying new blocks.
         // This prevents ID conflicts when re-executing code with local variables.
-        // Pattern matches: _xxx_0_, _foo_bar_1_, _snake_case_name_2_, etc.
-        const localVarPattern = /^_.+_\d+_$/;
+        // Ruby identifier: Unicode-aware pattern that matches:
+        // - Starts with: letter (not uppercase ASCII) or underscore
+        // - Followed by: letters (any language), numbers, or underscores
+        // Pattern matches: _xxx_0_, _foo_bar_1_, _高尾_2_, _日本語_5_, etc.
+        // Uses negative lookahead (?![A-Z]) to exclude uppercase ASCII at start
+        const localVarPattern = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u;
         const varsToDelete = [];
         for (const varId in target.variables) {
             const variable = target.variables[varId];
