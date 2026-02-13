@@ -18,6 +18,70 @@ const CoreHandlers = {
         node = node.$to_ast();
         this._context.currentNode = node;
 
+        // Track depth for lineToNodeMap
+        const depth = this._context.processDepth || 0;
+        this._context.processDepth = depth + 1;
+
+        // Populate lineToNodeMap with shallowest-first strategy
+        // Try to extract line information from the node
+        let startLine = null;
+        let endLine = null;
+
+        try {
+            // Check if node has location information via Opal methods
+            const loc = node.$loc ? node.$loc() : null;
+            if (loc && loc !== Opal.nil) {
+                startLine = loc.$line ? loc.$line() : null;
+                endLine = loc.$last_line ? loc.$last_line() : startLine;
+            }
+        } catch (e) {
+            // Ignore errors when accessing location
+        }
+
+        // Also check JavaScript object structure (for direct AST access)
+        if (!startLine && node.loc && node.loc.expression) {
+            if (node.loc.expression.begin_pos && node.loc.expression.end_pos) {
+                startLine = node.loc.expression.begin_pos.line;
+                endLine = node.loc.expression.end_pos.line;
+            }
+        }
+
+        if (startLine !== null && endLine !== null) {
+            // Container nodes are wrapper/grouping nodes that contain executable statements:
+            // - 'begin': Multiple statement grouping (e.g., implicit begin in def/class)
+            // - 'kwbegin': Explicit begin...end block
+            // - 'block': Ruby blocks with do...end or {...}
+            const containerNodeTypes = ['begin', 'kwbegin', 'block'];
+            const isContainerNode = containerNodeTypes.includes(node.type);
+
+            if (isContainerNode) {
+                // Store container node ranges to include closing 'end' lines in highlight ranges
+                this._context.containerNodeRanges.push({
+                    type: node.type,
+                    startLine,
+                    endLine,
+                    depth
+                });
+            } else {
+                // Map lines to nodes with shallowest-first strategy
+                for (let line = startLine; line <= endLine; line++) {
+                    const existingEntry = this._context.lineToNodeMap.get(line);
+                    if (!existingEntry || depth < existingEntry.depth) {
+                        this._context.lineToNodeMap.set(line, {node, depth});
+                    }
+                }
+            }
+        } else if (depth === 0) {
+            // Only log for root node to avoid spam
+            // eslint-disable-next-line no-console
+            console.warn('[_process] No location info for root node:', {
+                type: node.type,
+                hasLoc: !!node.loc,
+                hasOpalLoc: !!(node.$loc && node.$loc()),
+                nodeKeys: Object.keys(node)
+            });
+        }
+
         const savedIsValue = this._context.isValue;
         this._context.isValue = isValue;
 
@@ -35,6 +99,7 @@ const CoreHandlers = {
         }
 
         this._context.isValue = savedIsValue;
+        this._context.processDepth = depth; // Restore depth after processing
         return result;
     },
 

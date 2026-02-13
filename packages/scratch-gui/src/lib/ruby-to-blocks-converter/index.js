@@ -554,64 +554,209 @@ class RubyToBlocksConverter {
     }
 
     /**
-     * Find AST node at the given line number
-     * @param {number} lineNumber - Line number (1-indexed)
-     * @returns {object|null} AST node or null if not found
-     */
-    findNodeAtLine (lineNumber) {
-        if (!this._context.rootNode) {
-            return null;
-        }
-
-        let matchedNode = null;
-        let maxDepth = -1;
-
-        const traverse = (node, depth) => {
-            if (!node || node === Opal.nil) return;
-
-            try {
-                const loc = node.$loc();
-                if (loc && loc !== Opal.nil) {
-                    const startLine = loc.$line();
-                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
-
-                    if (startLine <= lineNumber && lineNumber <= endLine) {
-                        if (depth > maxDepth) {
-                            maxDepth = depth;
-                            matchedNode = node;
-                        }
-                    }
-                }
-
-                // Traverse children
-                const children = node.$children ? node.$children() : null;
-                if (children && children !== Opal.nil) {
-                    const childArray = children.$to_a ? children.$to_a() : [];
-                    childArray.forEach(child => {
-                        traverse(child, depth + 1);
-                    });
-                }
-            } catch (e) {
-                // Ignore nodes without location info
-            }
-        };
-
-        traverse(this._context.rootNode, 0);
-        return matchedNode;
-    }
-
-    /**
-     * Get block ID for the given line number
+     * Get block ID for the given line number using O(1) map lookup with fallback.
+     * The lineToNodeMap is populated during AST processing with a shallowest-first strategy,
+     * so this returns the parent block for nested statements.
+     * If no direct mapping exists for the line (e.g., line contains only `do` or `end`),
+     * falls back to finding the shallowest node whose range contains the line.
      * @param {number} lineNumber - Line number (1-indexed)
      * @returns {string|null} Block ID or null if not found
      */
     getBlockIdForLine (lineNumber) {
-        const node = this.findNodeAtLine(lineNumber);
-        if (!node) {
+        const entry = this._context.lineToNodeMap.get(lineNumber);
+
+        if (!entry) {
+            // Fallback 1: Find the shallowest node whose range contains this line
+            const fallbackEntry = this._findContainingNode(lineNumber);
+            if (fallbackEntry) {
+                const blockId = this._context.nodeToBlockMap.get(fallbackEntry.node);
+                if (blockId) return blockId;
+            }
+
+            // Fallback 2: Find the nearest executable line before this line
+            const nearestLine = this._findNearestExecutableLine(lineNumber);
+            if (nearestLine !== null) {
+                return this.getBlockIdForLine(nearestLine);
+            }
+
             return null;
         }
 
-        return this._context.nodeToBlockMap.get(node) || null;
+        const blockId = this._context.nodeToBlockMap.get(entry.node);
+
+        // If direct mapping exists but node has no block, try fallback
+        if (!blockId) {
+            const fallbackEntry = this._findContainingNode(lineNumber);
+            if (fallbackEntry) {
+                const fallbackBlockId = this._context.nodeToBlockMap.get(fallbackEntry.node);
+                return fallbackBlockId || null;
+            }
+        }
+
+        return blockId || null;
+    }
+
+    /**
+     * Find the shallowest node whose line range contains the given line number.
+     * This is used as a fallback when no direct line mapping exists.
+     * Searches through all nodes in nodeToBlockMap (which have associated blocks).
+     * @param {number} lineNumber - Line number to search for
+     * @returns {{node: object, depth: number}|null} Entry with node and depth, or null
+     */
+    _findContainingNode (lineNumber) {
+        let bestMatchNode = null;
+        let bestMatchStartLine = null;
+        let bestMatchEndLine = null;
+
+        // Search through all nodes that have blocks (nodeToBlockMap)
+        for (const [node] of this._context.nodeToBlockMap.entries()) {
+            try {
+                // Get line range for this node
+                const loc = node.$loc ? node.$loc() : null;
+                if (loc && loc !== Opal.nil) {
+                    const startLine = loc.$line ? loc.$line() : null;
+                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
+
+                    // Check if this node's range contains the target line
+                    if (startLine !== null && endLine !== null &&
+                        startLine <= lineNumber && lineNumber <= endLine) {
+                        // Keep the shallowest (smallest range) matching node
+                        // If multiple nodes have same range, keep first found
+                        const range = endLine - startLine;
+                        const currentBestRange = bestMatchEndLine === null ? Infinity :
+                            bestMatchEndLine - bestMatchStartLine;
+
+                        if (range < currentBestRange ||
+                            (range === currentBestRange && startLine < bestMatchStartLine)) {
+                            bestMatchNode = node;
+                            bestMatchStartLine = startLine;
+                            bestMatchEndLine = endLine;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Ignore errors when accessing location
+            }
+        }
+
+        if (bestMatchNode) {
+            return {node: bestMatchNode, depth: 0};
+        }
+
+        return null;
+    }
+
+    /**
+     * Find the nearest executable line before the given line number.
+     * Searches backwards from the target line to find a line with an executable block.
+     * @param {number} lineNumber - Line number to start searching from
+     * @returns {number|null} Nearest executable line number, or null if not found
+     */
+    _findNearestExecutableLine (lineNumber) {
+        // Search backwards from the line before the target
+        for (let line = lineNumber - 1; line >= 1; line--) {
+            const entry = this._context.lineToNodeMap.get(line);
+            if (entry) {
+                const blockId = this._context.nodeToBlockMap.get(entry.node);
+                if (blockId) {
+                    return line;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get the line range for a top-level script block.
+     * Returns the minimum and maximum line numbers covered by all blocks in the script.
+     * @param {string} topBlockId - ID of the top-level block
+     * @param {object} blocks - Blocks object from VM target
+     * @returns {{startLine: number, endLine: number}|null} Line range or null if not found
+     */
+    getLineRangeForTopLevelScript (topBlockId, blocks) {
+        if (!topBlockId || !blocks) return null;
+
+        let minLine = Infinity;
+        let maxLine = -Infinity;
+        let foundAny = false;
+
+        // Traverse all blocks in the script
+        const visitBlock = blockId => {
+            if (!blockId) return;
+
+            const block = blocks.getBlock ? blocks.getBlock(blockId) : blocks[blockId];
+
+            // Find the node for this block
+            for (const [node, id] of this._context.nodeToBlockMap.entries()) {
+                if (id === blockId) {
+                    try {
+                        const loc = node.$loc ? node.$loc() : null;
+                        if (loc && loc !== Opal.nil) {
+                            const startLine = loc.$line ? loc.$line() : null;
+                            const endLine = loc.$last_line ? loc.$last_line() : startLine;
+
+                            if (startLine !== null && endLine !== null) {
+                                minLine = Math.min(minLine, startLine);
+                                maxLine = Math.max(maxLine, endLine);
+                                foundAny = true;
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore errors
+                    }
+                    break;
+                }
+            }
+
+            // Visit next block
+            if (block && block.next) {
+                visitBlock(block.next);
+            }
+
+            // Visit inputs (for nested blocks and substacks)
+            if (block && block.inputs) {
+                Object.entries(block.inputs).forEach(([_key, input]) => {
+                    if (input && input.block) {
+                        visitBlock(input.block);
+                    }
+                });
+            }
+        };
+
+        visitBlock(topBlockId);
+
+        if (foundAny) {
+            // Extend range to include closing 'end' lines from container nodes
+            let bestContainer = null;
+            let bestContainerSize = Infinity;
+
+            if (this._context.containerNodeRanges) {
+                this._context.containerNodeRanges.forEach(container => {
+                    // Only consider 'block' type containers (do...end blocks)
+                    // Skip 'begin' and 'kwbegin' as they are often too broad
+                    if (container.type !== 'block') {
+                        return;
+                    }
+
+                    // If container starts at minLine and ends after maxLine
+                    if (container.startLine === minLine && container.endLine > maxLine) {
+                        const containerSize = container.endLine - container.startLine;
+                        if (containerSize < bestContainerSize) {
+                            bestContainer = container;
+                            bestContainerSize = containerSize;
+                        }
+                    }
+                });
+
+                if (bestContainer) {
+                    maxLine = bestContainer.endLine;
+                }
+            }
+
+            return {startLine: minLine, endLine: maxLine};
+        }
+
+        return null;
     }
 }
 

@@ -50,7 +50,6 @@ class RubyTab extends React.Component {
             'handleAISaveError',
             'handleSelectTarget',
             'handleDownload',
-            'getBlockIdForLine',
             'handleExecuteLine',
             'handleScriptGlowOn',
             'handleScriptGlowOff',
@@ -372,61 +371,6 @@ class RubyTab extends React.Component {
         }
     }
 
-    getBlockIdForLine (lineNumber, rootNode, nodeToBlockMap) {
-        const Opal = global.Opal || window.Opal;
-        if (!rootNode || !nodeToBlockMap) {
-            return null;
-        }
-
-        const matchedNodes = [];
-
-        const traverse = (node, depth) => {
-            if (!node || node === Opal.nil) return;
-
-            try {
-                const loc = node.$loc();
-                if (loc && loc !== Opal.nil) {
-                    const startLine = loc.$line();
-                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
-
-                    if (startLine <= lineNumber && lineNumber <= endLine) {
-                        matchedNodes.push({node, depth});
-                    }
-                }
-
-                const children = node.$children ? node.$children() : null;
-                if (children && children !== Opal.nil) {
-                    const childArray = children.$to_a ? children.$to_a() : [];
-                    childArray.forEach(child => {
-                        traverse(child, depth + 1);
-                    });
-                }
-            } catch (e) {
-                // Ignore nodes without location info
-            }
-        };
-
-        traverse(rootNode, 0);
-
-        if (matchedNodes.length === 0) {
-            return null;
-        }
-
-        // Select parent block (shallowest node) rather than child blocks
-        let bestMatch = null;
-        let minDepth = Infinity;
-
-        for (const {node, depth} of matchedNodes) {
-            const blockId = nodeToBlockMap.get(node);
-            if (blockId && depth < minDepth) {
-                minDepth = depth;
-                bestMatch = blockId;
-            }
-        }
-
-        return bestMatch;
-    }
-
     handleScriptGlowOn (data) {
         this.setState({runningBlockId: data.id});
     }
@@ -464,6 +408,26 @@ class RubyTab extends React.Component {
         this.editorRef.revealLineInCenter(lineNumber);
     }
 
+    highlightExecutingLineRange (startLine, endLine) {
+        if (!this.editorRef || !this.monacoRef) {
+            return;
+        }
+
+        this.clearExecutingLineHighlight();
+
+        this.executingLineDecoration = this.editorRef.createDecorationsCollection([{
+            range: new this.monacoRef.Range(startLine, 1, endLine, 1),
+            options: {
+                isWholeLine: true,
+                className: 'executing-line'
+            }
+        }]);
+
+        // Scroll to reveal the range (center on the middle line)
+        const middleLine = Math.floor((startLine + endLine) / 2);
+        this.editorRef.revealLineInCenter(middleLine);
+    }
+
     handleExecuteLine (lineNumber) {
         // If already running, stop it
         if (this.state.runningBlockId) {
@@ -474,10 +438,32 @@ class RubyTab extends React.Component {
             return;
         }
 
+        // Find the actual line to execute (skip empty lines)
+        const rubyCode = this.props.rubyCode.code;
+        const lines = rubyCode.split('\n');
+        let targetLine = lineNumber;
+
+        // If the current line is empty or whitespace-only, search upwards for a non-empty line
+        while (targetLine >= 1) {
+            const line = lines[targetLine - 1]; // Convert to 0-indexed
+            if (line && line.trim() !== '') {
+                break;
+            }
+            targetLine--;
+        }
+
+        // If no non-empty line found, cannot execute
+        if (targetLine < 1) {
+            // eslint-disable-next-line no-console
+            console.warn('[handleExecuteLine] No non-empty line found');
+            this.props.onShowAlert('cannotExecuteLine');
+            return;
+        }
+
         const converter = targetCodeToBlocks(
             this.props.vm,
             this.props.rubyCode.target,
-            this.props.rubyCode.code,
+            rubyCode,
             this.props.intl,
             {version: this.props.rubyVersion}
         );
@@ -489,16 +475,13 @@ class RubyTab extends React.Component {
             return;
         }
 
-        const nodeToBlockMap = converter._context.nodeToBlockMap;
-        const rootNode = converter._context.rootNode;
-
         converter.apply()
             .then(() => {
-                const blockId = this.getBlockIdForLine(lineNumber, rootNode, nodeToBlockMap);
+                const blockId = converter.getBlockIdForLine(targetLine);
 
                 if (!blockId) {
                     // eslint-disable-next-line no-console
-                    console.warn(`[handleExecuteLine] No executable block found at line ${lineNumber}`);
+                    console.warn(`[handleExecuteLine] No executable block found at line ${targetLine}`);
                     this.props.onShowAlert('cannotExecuteLine');
                     return;
                 }
@@ -513,9 +496,17 @@ class RubyTab extends React.Component {
                     return;
                 }
 
-                // Highlight the executing line
-                this.setState({executingLine: lineNumber});
-                this.highlightExecutingLine(lineNumber);
+                const blocks = this.props.vm.editingTarget.blocks;
+                const lineRange = converter.getLineRangeForTopLevelScript(topBlockId, blocks);
+
+                if (lineRange) {
+                    this.setState({executingLine: targetLine});
+                    this.highlightExecutingLineRange(lineRange.startLine, lineRange.endLine);
+                } else {
+                    // Fallback to single line highlight
+                    this.setState({executingLine: targetLine});
+                    this.highlightExecutingLine(targetLine);
+                }
 
                 this.props.vm.runtime.toggleScript(topBlockId, {
                     target: this.props.vm.editingTarget,
