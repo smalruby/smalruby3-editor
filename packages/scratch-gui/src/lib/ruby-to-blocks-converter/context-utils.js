@@ -32,6 +32,7 @@ const ContextUtils = {
             currentScopeIndex: 1,
             nodeToBlockMap: new Map(),
             lineToNodeMap: new Map(),
+            containerNodeRanges: [], // Store {startLine, endLine} for container nodes (block, begin, kwbegin)
             processDepth: 0,
             rootNode: null
         };

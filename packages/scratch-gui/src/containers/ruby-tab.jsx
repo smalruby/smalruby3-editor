@@ -408,6 +408,26 @@ class RubyTab extends React.Component {
         this.editorRef.revealLineInCenter(lineNumber);
     }
 
+    highlightExecutingLineRange (startLine, endLine) {
+        if (!this.editorRef || !this.monacoRef) {
+            return;
+        }
+
+        this.clearExecutingLineHighlight();
+
+        this.executingLineDecoration = this.editorRef.createDecorationsCollection([{
+            range: new this.monacoRef.Range(startLine, 1, endLine, 1),
+            options: {
+                isWholeLine: true,
+                className: 'executing-line'
+            }
+        }]);
+
+        // Scroll to reveal the range (center on the middle line)
+        const middleLine = Math.floor((startLine + endLine) / 2);
+        this.editorRef.revealLineInCenter(middleLine);
+    }
+
     handleExecuteLine (lineNumber) {
         // If already running, stop it
         if (this.state.runningBlockId) {
@@ -514,9 +534,31 @@ class RubyTab extends React.Component {
                     return;
                 }
 
-                // Highlight the actual executing line (not the requested line if it was empty)
-                this.setState({executingLine: targetLine});
-                this.highlightExecutingLine(targetLine);
+                // Get the line range for the entire script block
+                const blocks = this.props.vm.editingTarget.blocks;
+
+                // Debug: Check if block exists
+                // eslint-disable-next-line no-console
+                console.log('[handleExecuteLine] Block structure check:', {
+                    topBlockId,
+                    blockExists: !!blocks.getBlock(topBlockId),
+                    blockData: blocks.getBlock(topBlockId),
+                    allBlockIds: Object.keys(blocks._blocks).slice(0, 10) // First 10 IDs
+                });
+
+                const lineRange = converter.getLineRangeForTopLevelScript(topBlockId, blocks);
+
+                // Highlight the entire script range if available, otherwise just the target line
+                if (lineRange) {
+                    // eslint-disable-next-line no-console
+                    console.log('[handleExecuteLine] Highlighting range:', lineRange);
+                    this.setState({executingLine: targetLine});
+                    this.highlightExecutingLineRange(lineRange.startLine, lineRange.endLine);
+                } else {
+                    // Fallback to single line highlight
+                    this.setState({executingLine: targetLine});
+                    this.highlightExecutingLine(targetLine);
+                }
 
                 this.props.vm.runtime.toggleScript(topBlockId, {
                     target: this.props.vm.editingTarget,

@@ -81,8 +81,21 @@ const CoreHandlers = {
                     }
                 }
             } else {
+                // Store container node ranges for later use in getLineRangeForTopLevelScript
+                // This allows us to include closing 'end' lines in highlight ranges
+                this._context.containerNodeRanges.push({
+                    type: node.type,
+                    startLine,
+                    endLine,
+                    depth
+                });
                 // eslint-disable-next-line no-console
-                console.log('[_process] Skipping container node for lineToNodeMap:', node.type);
+                console.log('[_process] Stored container node range:', {
+                    type: node.type,
+                    startLine,
+                    endLine,
+                    depth
+                });
             }
         } else if (depth === 0) {
             // Only log for root node to avoid spam

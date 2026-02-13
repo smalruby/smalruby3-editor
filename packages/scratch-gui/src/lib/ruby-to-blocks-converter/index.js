@@ -705,6 +705,141 @@ class RubyToBlocksConverter {
         }
         return null;
     }
+
+    /**
+     * Get the line range for a top-level script block.
+     * Returns the minimum and maximum line numbers covered by all blocks in the script.
+     * @param {string} topBlockId - ID of the top-level block
+     * @param {Object} blocks - Blocks object from VM target
+     * @returns {{startLine: number, endLine: number}|null} Line range or null if not found
+     */
+    getLineRangeForTopLevelScript (topBlockId, blocks) {
+        if (!topBlockId || !blocks) return null;
+
+        let minLine = Infinity;
+        let maxLine = -Infinity;
+        let foundAny = false;
+
+        // Traverse all blocks in the script
+        const visitBlock = blockId => {
+            if (!blockId) return;
+
+            const block = blocks.getBlock ? blocks.getBlock(blockId) : blocks[blockId];
+            // eslint-disable-next-line no-console
+            console.log('[visitBlock] Visiting block:', {
+                blockId,
+                opcode: block ? block.opcode : 'undefined',
+                hasNext: !!(block && block.next),
+                hasInputs: !!(block && block.inputs),
+                inputKeys: block && block.inputs ? Object.keys(block.inputs) : []
+            });
+
+            // Find the node for this block
+            for (const [node, id] of this._context.nodeToBlockMap.entries()) {
+                if (id === blockId) {
+                    try {
+                        const loc = node.$loc ? node.$loc() : null;
+                        if (loc && loc !== Opal.nil) {
+                            const startLine = loc.$line ? loc.$line() : null;
+                            const endLine = loc.$last_line ? loc.$last_line() : startLine;
+
+                            if (startLine !== null && endLine !== null) {
+                                // eslint-disable-next-line no-console
+                                console.log('[visitBlock] Found lines for block:', {
+                                    blockId,
+                                    nodeType: node.type,
+                                    startLine,
+                                    endLine
+                                });
+                                minLine = Math.min(minLine, startLine);
+                                maxLine = Math.max(maxLine, endLine);
+                                foundAny = true;
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore errors
+                    }
+                    break;
+                }
+            }
+
+            // Visit next block
+            if (block && block.next) {
+                visitBlock(block.next);
+            }
+
+            // Visit inputs (for nested blocks and substacks)
+            if (block && block.inputs) {
+                Object.entries(block.inputs).forEach(([key, input]) => {
+                    // eslint-disable-next-line no-console
+                    console.log('[visitBlock] Checking input:', {
+                        blockId,
+                        inputKey: key,
+                        inputType: input ? typeof input : 'undefined',
+                        hasBlock: !!(input && input.block),
+                        inputBlock: input ? input.block : null
+                    });
+
+                    if (input && input.block) {
+                        visitBlock(input.block);
+                    }
+                });
+            }
+        };
+
+        visitBlock(topBlockId);
+
+        if (foundAny) {
+            // Check if any container nodes (block, begin, kwbegin) overlap with this range
+            // and extend the range to include their closing 'end' lines
+            // We only want to extend with the SMALLEST matching container to avoid including too much
+            const originalMaxLine = maxLine;
+            let bestContainer = null;
+            let bestContainerSize = Infinity;
+
+            if (this._context.containerNodeRanges) {
+                this._context.containerNodeRanges.forEach(container => {
+                    // Only consider 'block' type containers (do...end blocks)
+                    // Skip 'begin' and 'kwbegin' as they are often too broad
+                    if (container.type !== 'block') {
+                        return;
+                    }
+
+                    // If container starts at our minLine and ends after our maxLine
+                    if (container.startLine === minLine && container.endLine > maxLine) {
+                        const containerSize = container.endLine - container.startLine;
+                        // Choose the smallest matching container
+                        if (containerSize < bestContainerSize) {
+                            bestContainer = container;
+                            bestContainerSize = containerSize;
+                        }
+                    }
+                });
+
+                if (bestContainer) {
+                    // eslint-disable-next-line no-console
+                    console.log('[getLineRangeForTopLevelScript] Extending range with container node:', {
+                        containerType: bestContainer.type,
+                        containerRange: `${bestContainer.startLine}-${bestContainer.endLine}`,
+                        originalMaxLine,
+                        newMaxLine: bestContainer.endLine
+                    });
+                    maxLine = bestContainer.endLine;
+                }
+            }
+
+            // eslint-disable-next-line no-console
+            console.log('[getLineRangeForTopLevelScript] Found line range:', {
+                topBlockId,
+                startLine: minLine,
+                endLine: maxLine,
+                extended: maxLine > originalMaxLine
+            });
+            return {startLine: minLine, endLine: maxLine};
+        }
+
+        return null;
+    }
 }
 
 // Mixin methods
