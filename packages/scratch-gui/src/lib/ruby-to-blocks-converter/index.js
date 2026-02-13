@@ -227,63 +227,161 @@ class RubyToBlocksConverter {
         // Uses negative lookahead (?![A-Z]) to exclude uppercase ASCII at start
         const localVarPattern = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u;
         const varsToDelete = [];
+
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Starting local variable deletion check');
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Pattern:', localVarPattern);
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Existing target variables:', Object.keys(target.variables).map(id => ({
+            id,
+            name: target.variables[id].name
+        })));
+
         for (const varId in target.variables) {
             const variable = target.variables[varId];
-            if (localVarPattern.test(variable.name)) {
+            const matches = localVarPattern.test(variable.name);
+            // eslint-disable-next-line no-console
+            console.log(`[DEBUG] Testing variable "${variable.name}" (id: ${varId}): matches=${matches}`);
+            if (matches) {
                 varsToDelete.push(varId);
             }
         }
+
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Variables to delete:', varsToDelete.map(id => ({
+            id,
+            name: target.variables[id].name
+        })));
+
         varsToDelete.forEach(varId => {
             target.deleteVariable(varId);
         });
+
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] After deletion, remaining target variables:', Object.keys(target.variables).map(id => ({
+            id,
+            name: target.variables[id].name
+        })));
 
         // Handle global/instance/local variables and lists
         // Map of old variable IDs to new IDs (for reusing existing variables)
         const variableIdMap = {};
 
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Starting variable creation');
+
         ['variables', 'lists', 'localVariables'].forEach(storeName => {
+            // eslint-disable-next-line no-console
+            console.log(`[DEBUG] Processing storeName: ${storeName}`);
+            // eslint-disable-next-line no-console
+            console.log(`[DEBUG] Variables in ${storeName}:`, Object.keys(this._context[storeName]).map(name => ({
+                name,
+                id: this._context[storeName][name].id,
+                scope: this._context[storeName][name].scope,
+                type: this._context[storeName][name].type,
+                isArgument: this._context[storeName][name].isArgument
+            })));
+
             Object.keys(this._context[storeName]).forEach(name => {
                 const variable = this._context[storeName][name];
-                if (variable.isArgument) return;
+                if (variable.isArgument) {
+                    // eslint-disable-next-line no-console
+                    console.log(`[DEBUG] Skipping argument variable: ${name}`);
+                    return;
+                }
 
                 const oldId = variable.id;
                 let existingVar = null;
 
+                // eslint-disable-next-line no-console
+                console.log(
+                    `[DEBUG] Processing variable: name="${variable.name}", ` +
+                    `id="${oldId}", scope="${variable.scope}", type="${variable.type}"`
+                );
+
                 if (variable.scope === 'global') {
                     // Check if variable already exists by name and type
                     existingVar = stage.lookupVariableByNameAndType(variable.name, variable.type);
+                    // eslint-disable-next-line no-console
+                    console.log(
+                        `[DEBUG] Global variable lookup result: existingVar=${existingVar ? existingVar.id : 'null'}`
+                    );
                     if (existingVar) {
                         // Reuse existing variable ID
                         variableIdMap[oldId] = existingVar.id;
                         variable.id = existingVar.id;
-                    } else if (!Object.prototype.hasOwnProperty.call(stage.variables, variable.id)) {
+                        // eslint-disable-next-line no-console
+                        console.log(`[DEBUG] Reusing global variable ID: ${oldId} -> ${existingVar.id}`);
+                    } else if (Object.prototype.hasOwnProperty.call(stage.variables, variable.id)) {
+                        // eslint-disable-next-line no-console
+                        console.log(`[DEBUG] Global variable already exists in stage: id="${variable.id}"`);
+                    } else {
+                        // eslint-disable-next-line no-console
+                        console.log(
+                            `[DEBUG] Creating new global variable: ` +
+                            `id="${variable.id}", name="${variable.name}"`
+                        );
                         stage.createVariable(variable.id, variable.name, variable.type);
                     }
                 } else {
                     // For local variables, always create new (they were deleted above)
                     // For instance variables, check if already exists and reuse
-                    if (variable.scope !== 'local') {
+                    if (variable.scope === 'local') {
+                        // eslint-disable-next-line no-console
+                        console.log(`[DEBUG] Local variable - will create new (scope="${variable.scope}")`);
+                    } else {
                         existingVar = target.lookupVariableByNameAndType(variable.name, variable.type, true);
+                        // eslint-disable-next-line no-console
+                        console.log(
+                            `[DEBUG] Instance variable lookup result: ` +
+                            `existingVar=${existingVar ? existingVar.id : 'null'}`
+                        );
                         if (existingVar) {
                             // Reuse existing variable ID
                             variableIdMap[oldId] = existingVar.id;
                             variable.id = existingVar.id;
+                            // eslint-disable-next-line no-console
+                            console.log(`[DEBUG] Reusing instance variable ID: ${oldId} -> ${existingVar.id}`);
                         }
                     }
-                    if (!existingVar && !Object.prototype.hasOwnProperty.call(target.variables, variable.id)) {
+                    if (existingVar) {
+                        // Variable was reused, no need to create
+                    } else if (Object.prototype.hasOwnProperty.call(target.variables, variable.id)) {
+                        // eslint-disable-next-line no-console
+                        console.log(
+                            `[DEBUG] Target variable already exists: ` +
+                            `id="${variable.id}", name="${variable.name}"`
+                        );
+                    } else {
+                        // eslint-disable-next-line no-console
+                        console.log(
+                            `[DEBUG] Creating new target variable: ` +
+                            `id="${variable.id}", name="${variable.name}", scope="${variable.scope}"`
+                        );
                         target.createVariable(variable.id, variable.name, variable.type);
                     }
                 }
             });
         });
 
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Variable ID map:', variableIdMap);
+
         // Update variable IDs in blocks
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Updating variable IDs in blocks');
         Object.keys(this._context.blocks).forEach(blockId => {
             const block = this._context.blocks[blockId];
             if (block.fields) {
                 ['VARIABLE', 'LIST'].forEach(fieldName => {
                     const field = block.fields[fieldName];
                     if (field && variableIdMap[field.id]) {
+                        // eslint-disable-next-line no-console
+                        console.log(
+                            `[DEBUG] Updating ${fieldName} ID in block ${blockId}: ` +
+                            `${field.id} -> ${variableIdMap[field.id]}`
+                        );
                         field.id = variableIdMap[field.id];
                     }
                 });
