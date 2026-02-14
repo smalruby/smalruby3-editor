@@ -333,5 +333,6 @@ export default {
     'gui.tipsLibrary.tutorials': 'チュートリアルを選ぶ',
     'gui.libraryTags.ruby': 'Ruby',
     'gui.libraryTags.firstTime': 'はじめて',
-    'gui.libraryCategories.gettingStarted': '始めましょう'
+    'gui.libraryCategories.gettingStarted': '始めましょう',
+    'gui.menuBar.tutorialTooltip': 'Rubyを試してみよう!'
 };

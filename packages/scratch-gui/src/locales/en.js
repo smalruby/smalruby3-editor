@@ -271,5 +271,6 @@ export default {
     'gui.tipsLibrary.tutorials': 'Choose a Tutorial',
     'gui.libraryTags.ruby': 'Ruby',
     'gui.libraryTags.firstTime': 'First Time',
-    'gui.libraryCategories.gettingStarted': 'Getting Started'
+    'gui.libraryCategories.gettingStarted': 'Getting Started',
+    'gui.menuBar.tutorialTooltip': 'Try Ruby!'
 };

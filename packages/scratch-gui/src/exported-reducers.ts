@@ -20,6 +20,7 @@ import {
 } from './reducers/modals.js';
 import {setStageSize} from './reducers/stage-size';
 import {activateDeck} from './reducers/cards';
+import {markTutorialSeen} from './reducers/tutorial-onboarding';
 
 export const guiReducers = {
     locales: LocalesReducer,
@@ -39,6 +40,7 @@ export {
     setProjectId,
     setStageSize,
     activateDeck,
+    markTutorialSeen,
 
     openLoadingProject,
     closeLoadingProject,

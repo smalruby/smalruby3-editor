@@ -278,3 +278,8 @@
     font-size: 0.75rem;
     line-height: 1.5rem;
 }
+
+/* Tutorial tooltip wrapper */
+.tutorial-button-wrapper {
+    position: relative;
+}

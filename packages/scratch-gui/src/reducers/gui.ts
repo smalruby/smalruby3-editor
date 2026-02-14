@@ -35,6 +35,7 @@ import googleDriveFileReducer, {googleDriveFileInitialState} from './google-driv
 import koshienFileReducer, {koshienFileInitialState} from './koshien-file';
 import rubyCodeReducer, {rubyCodeInitialState} from './ruby-code';
 import cardsReducer, {cardsInitialState} from './cards';
+import tutorialOnboardingReducer, {tutorialOnboardingInitialState} from './tutorial-onboarding';
 import throttle from 'redux-throttle';
 
 import {GUIConfig} from '../gui-config';
@@ -94,6 +95,7 @@ const buildInitialState = (config: GUIConfig) => ({
     koshienFile: koshienFileInitialState,
     rubyCode: rubyCodeInitialState,
     cards: cardsInitialState,
+    tutorialOnboarding: tutorialOnboardingInitialState,
     test: testInitialState
 });
 
@@ -192,6 +194,7 @@ const guiReducer = combineReducers({
     koshienFile: koshienFileReducer,
     rubyCode: rubyCodeReducer,
     cards: cardsReducer,
+    tutorialOnboarding: tutorialOnboardingReducer,
     test: testReducer
 });
 

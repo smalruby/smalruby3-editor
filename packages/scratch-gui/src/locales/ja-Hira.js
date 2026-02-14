@@ -322,5 +322,6 @@ export default {
     'gui.cards.insert-code': 'このコードをにゅうりょく',
     'gui.libraryTags.ruby': 'Ruby',
     'gui.libraryTags.firstTime': 'はじめて',
-    'gui.libraryCategories.gettingStarted': 'はじめましょう'
+    'gui.libraryCategories.gettingStarted': 'はじめましょう',
+    'gui.menuBar.tutorialTooltip': 'Rubyをためしてみよう!'
 };
