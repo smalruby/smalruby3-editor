@@ -2,8 +2,8 @@ const MARK_TUTORIAL_SEEN = 'scratch-gui/tutorial-onboarding/MARK_TUTORIAL_SEEN';
 const MARK_RUBY_TAB_USED = 'scratch-gui/tutorial-onboarding/MARK_RUBY_TAB_USED';
 const DISMISS_TOOLTIP = 'scratch-gui/tutorial-onboarding/DISMISS_TOOLTIP';
 
-const STORAGE_KEY_TUTORIAL_SEEN = 'smalruby.tutorialSeen';
-const STORAGE_KEY_RUBY_TAB_USED = 'smalruby.rubyTabUsed';
+const STORAGE_KEY_TUTORIAL_SEEN = 'smalruby:tutorialSeen';
+const STORAGE_KEY_RUBY_TAB_USED = 'smalruby:rubyTabUsed';
 
 // Load initial state from localStorage
 const loadFromStorage = () => {

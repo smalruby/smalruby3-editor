@@ -39,8 +39,8 @@ describe('Smalruby Tutorials', () => {
     });
 
     test('can open tutorials by url id', async () => {
-        // urlId for getting-started is 'getstarted'
-        await loadUri(`${uriPrefix}getstarted`);
+        // urlId for intro-getting-started is 'getStarted'
+        await loadUri(`${uriPrefix}getStarted`);
         // should open the tutorial card immediately
         await findByXpath('//div[contains(@class, "card_card_")]');
 
@@ -50,7 +50,7 @@ describe('Smalruby Tutorials', () => {
     });
 
     test('can close tutorial card', async () => {
-        await loadUri(`${uriPrefix}getstarted`);
+        await loadUri(`${uriPrefix}getStarted`);
         await findByXpath('//div[contains(@class, "card_card_")]');
 
         // Click the close button
