@@ -348,12 +348,11 @@ const Cards = props => {
         step,
         expanded,
         showVideos,
-        visible,
         ...posProps
     } = props;
     let {x, y} = posProps;
 
-    if (activeDeckId === null || !visible) return null;
+    if (activeDeckId === null) return null;
 
     // Tutorial cards need to calculate their own dragging bounds
     // to allow for dragging the cards off the left, right and bottom
@@ -485,7 +484,6 @@ Cards.propTypes = {
     onStartDrag: PropTypes.func,
     showVideos: PropTypes.bool,
     step: PropTypes.number.isRequired,
-    visible: PropTypes.bool.isRequired,
     x: PropTypes.number,
     y: PropTypes.number
 };

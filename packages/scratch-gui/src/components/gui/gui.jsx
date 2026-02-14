@@ -140,6 +140,7 @@ const GUIComponent = props => {
         canCreateCopy,
         canShare,
         canUseCloud,
+        cardsVisible,
         children,
         connectionModalVisible,
         costumeLibraryVisible,
@@ -313,7 +314,9 @@ const GUIComponent = props => {
                     onTutorialSelect={onTutorialSelect}
                     onRequestClose={onRequestCloseTipsLibrary}
                 />
-                <Cards />
+                {cardsVisible ? (
+                    <Cards />
+                ) : null}
                 {loading ? (
                     <Loader />
                 ) : null}
@@ -643,6 +646,7 @@ GUIComponent.propTypes = {
     canSave: PropTypes.bool,
     canShare: PropTypes.bool,
     canUseCloud: PropTypes.bool,
+    cardsVisible: PropTypes.bool,
     children: PropTypes.node,
     costumeLibraryVisible: PropTypes.bool,
     costumesTabVisible: PropTypes.bool,
