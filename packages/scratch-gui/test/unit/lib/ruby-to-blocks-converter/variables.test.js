@@ -1,5 +1,5 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import Variable from 'scratch-vm/src/engine/variable';
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import {
     convertAndExpectToEqualBlocks,
     convertAndExpectRubyBlockError,

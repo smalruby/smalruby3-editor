@@ -84,7 +84,8 @@
       "^@smalruby/scratch-render/(.*)$": "<rootDir>/../scratch-render/$1",
       "^@smalruby/scratch-svg-renderer/(.*)$": "<rootDir>/../scratch-svg-renderer/$1",
       "^@smalruby/scratch-vm/(.*)$": "<rootDir>/../scratch-vm/$1",
-      "opal": "<rootDir>/opal/opal.min.js"
+      "opal": "<rootDir>/opal/opal.min.js",
+      "opal-parser": "<rootDir>/opal/opal-parser.min.js"
     },
     "reporters": [
       "default",
@@ -96,7 +97,8 @@
       ]
     ],
     "setupFiles": [
-      "raf/polyfill"
+      "raf/polyfill",
+      "<rootDir>/test/setup-opal.js"
     ],
     "testEnvironment": "jsdom",
     "testPathIgnorePatterns": [
