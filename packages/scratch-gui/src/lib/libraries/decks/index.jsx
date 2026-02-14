@@ -7,7 +7,7 @@ import {FormattedMessage} from 'react-intl';
 import libraryIntro from './thumbnails/getting-started.jpg';
 
 const decks = {
-    'getting-started': {
+    'intro-getting-started': {
         name: (
             <FormattedMessage
                 defaultMessage="さあ、始めましょう"
@@ -55,7 +55,7 @@ end`
                 image: 'introRunRuby'
             }
         ],
-        urlId: 'getstarted'
+        urlId: 'getStarted'
     }
 };
 
