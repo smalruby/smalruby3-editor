@@ -32,9 +32,11 @@
   ],
   "scripts": {
     "build": "webpack --progress && npm run docs",
+    "build:dev": "webpack --progress && npm run docs",
     "clean": "rimraf dist playground",
     "docs": "typedoc",
     "lint": "eslint",
+    "test:lint": "eslint",
     "prepublish-watch": "npm run watch",
     "prepublish": "npm run build",
     "start": "webpack-dev-server",
