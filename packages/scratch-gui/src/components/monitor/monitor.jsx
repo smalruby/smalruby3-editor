@@ -59,7 +59,10 @@ const MonitorComponent = props => (
                         props.onNextMode
                 }
             >
-                <ContextMenu.Trigger className="ContextMenuTrigger">
+                <ContextMenu.Trigger
+                    className="ContextMenuTrigger"
+                    disabled={!props.draggable}
+                >
                     {React.createElement(modes[props.mode], {
                         categoryColor: getCategoryColor(
                             props.colorMode,

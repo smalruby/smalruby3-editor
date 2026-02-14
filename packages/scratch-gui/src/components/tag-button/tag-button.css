@@ -14,6 +14,15 @@
     max-height: 1rem;
 }
 
-.active {
+.tag-button.active {
     background: $data-primary;
+}
+
+.tag-button:focus-visible {
+    /*
+    The outline appears cropped when a tag button is focused because the tag list uses overflow: hidden
+    in order to hide excess items when overflowing. This offset is a workaround to keep the outline visible
+    without restructuring the tag list.
+    */
+    outline-offset: -2px;
 }

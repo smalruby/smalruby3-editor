@@ -33,6 +33,7 @@ import {
 
 import {setPlatform} from '../reducers/platform';
 import {setTheme} from '../reducers/settings';
+import {setDynamicAssets} from '../reducers/dynamic-assets';
 
 import FontLoaderHOC from '../lib/font-loader-hoc.jsx';
 import LocalizationHOC from '../lib/localization-hoc.jsx';
@@ -51,6 +52,11 @@ import {PLATFORM} from '../lib/platform.js';
 import GUIComponent from '../components/gui/gui.jsx';
 import {GUIStoragePropType} from '../gui-config';
 import {AccountMenuOptionsPropTypes} from '../lib/account-menu-options';
+import {
+    costumeShape,
+    soundShape,
+    spriteShape
+} from '../lib/assets-prop-types.js';
 
 class GUI extends React.Component {
     componentDidMount () {
@@ -60,8 +66,14 @@ class GUI extends React.Component {
         if (this.props.platform) {
             this.props.onSetPlatform(this.props.platform);
         }
+        if (this.props.dynamicAssets) {
+            this.props.onUpdateDynamicAssets(this.props.dynamicAssets);
+        }
     }
     componentDidUpdate (prevProps) {
+        if (this.props.dynamicAssets !== prevProps.dynamicAssets) {
+            this.props.onUpdateDynamicAssets(this.props.dynamicAssets);
+        }
         if (this.props.projectId !== prevProps.projectId) {
             if (this.props.projectId !== null) {
                 this.props.onUpdateProjectId(this.props.projectId);
@@ -122,6 +134,12 @@ GUI.propTypes = {
     assetHost: PropTypes.string,
     children: PropTypes.node,
     cloudHost: PropTypes.string,
+    dynamicAssets: PropTypes.shape({
+        backdrops: PropTypes.arrayOf(costumeShape),
+        costumes: PropTypes.arrayOf(costumeShape),
+        sounds: PropTypes.arrayOf(soundShape),
+        sprites: PropTypes.arrayOf(spriteShape)
+    }),
     error: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
     fetchingProject: PropTypes.bool,
     intl: intlShape,
@@ -135,11 +153,13 @@ GUI.propTypes = {
     onSeeCommunity: PropTypes.func,
     onStorageInit: PropTypes.func,
     onUpdateProjectId: PropTypes.func,
+    onUpdateDynamicAssets: PropTypes.func,
     onVmInit: PropTypes.func,
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
     onSetPlatform: PropTypes.func.isRequired,
     /**
-     * Whether to highlight new editor features in the UI.
+     * Indicates whether we should highlight new editor features in the UI.
+     * Used only when there are new features to highlight.
      */
     showNewFeatureCallouts: PropTypes.bool,
     projectHost: PropTypes.string,
@@ -218,6 +238,7 @@ const mapStateToProps = (state, ownProps) => {
 const mapDispatchToProps = dispatch => ({
     onExtensionButtonClick: () => dispatch(openExtensionLibrary()),
     onActivateTab: tab => dispatch(activateTab(tab)),
+    onUpdateDynamicAssets: dynamicAssets => dispatch(setDynamicAssets(dynamicAssets)),
     onActivateCostumesTab: () => dispatch(activateTab(COSTUMES_TAB_INDEX)),
     onActivateSoundsTab: () => dispatch(activateTab(SOUNDS_TAB_INDEX)),
     onActivateRubyTab: () => dispatch(activateTab(RUBY_TAB_INDEX)),

@@ -4,9 +4,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {defineMessages, injectIntl} from 'react-intl';
 import intlShape from '../../lib/intlShape.js';
-// eslint-disable-next-line import/no-unresolved
-import {driver} from 'driver.js';
-import 'driver.js/dist/driver.css';
 
 import LibraryItem from '../../containers/library-item.jsx';
 import Modal from '../../containers/modal.jsx';
@@ -26,9 +23,7 @@ const CATEGORIES = {
 };
 
 import styles from './library.css';
-
-const localStorageAvailable =
-    'localStorage' in window && window.localStorage !== null;
+import {ModalFocusContext} from '../../contexts/modal-focus-context.jsx';
 
 const messages = defineMessages({
     filterPlaceholder: {
@@ -40,12 +35,6 @@ const messages = defineMessages({
         id: 'gui.library.allTag',
         defaultMessage: 'All',
         description: 'Label for library tag to revert to all items after filtering by tag.'
-    },
-    faceSensingModalCallout: {
-        id: 'gui.library.faceSensingCallout',
-        description: 'Description for Face Sensing callout',
-        // eslint-disable-next-line max-len
-        defaultMessage: 'You can now use your face to control your projects, like making a sprite follow wherever your nose goes!'
     },
     // Strings here need to be defined statically
     // https://formatjs.io/docs/getting-started/message-declaration/#pre-declaring-using-definemessage-for-later-consumption-less-recommended
@@ -68,11 +57,20 @@ const messages = defineMessages({
         id: `gui.library.prompts`,
         defaultMessage: 'Prompts',
         description: 'Label for prompts category'
+    },
+    membershipTag: {
+        defaultMessage: 'Membership',
+        description: 'Tag for filtering a library for member only assets',
+        id: 'gui.library.membershipTag'
     }
 });
 
 const ALL_TAG = {tag: 'all', intlLabel: messages.allTag};
 const tagListPrefix = [ALL_TAG];
+
+// Membership tag manually added to the tag list if any member-only assets are present.
+// Member-only assets are displayed as a separate tag to allow users to filter by them.
+const MEMBERSHIP_TAG = {tag: 'membership', intlLabel: messages.membershipTag};
 
 /**
  * Find the AssetType which corresponds to a particular file extension. For example, 'png' => AssetType.ImageBitmap.
@@ -132,17 +130,7 @@ const getItemIcons = function (item) {
     }
 };
 
-// Default to true to make sure we don't end up showing the feature
-// callouts multiple times if localStorage isn't available.
-const hasUsedFaceSensing = (username = 'guest') => {
-    if (!localStorageAvailable) return true;
-    return getLocalStorageValue('hasUsedFaceSensing', username) === true;
-};
-
-const setHasUsedFaceSensing = (username = 'guest') => {
-    if (!localStorageAvailable) return;
-    setLocalStorageValue('hasUsedFaceSensing', username, true);
-};
+const getMemberOnlyTags = data => (data && data.some(item => item.isMemberOnly) ? [MEMBERSHIP_TAG] : []);
 
 class LibraryComponent extends React.Component {
     constructor (props) {
@@ -156,7 +144,6 @@ class LibraryComponent extends React.Component {
             'handlePlayingEnd',
             'handleSelect',
             'handleTagClick',
-            'handleScroll',
             'setFilteredDataRef'
         ]);
         this.state = {
@@ -164,10 +151,8 @@ class LibraryComponent extends React.Component {
             filterQuery: '',
             selectedTag: ALL_TAG.tag,
             loaded: false,
-            shouldShowFaceSensingCallout: props.showNewFeatureCallouts && !hasUsedFaceSensing(props.username)
+            memberTags: getMemberOnlyTags(props.data)
         };
-
-        this.driver = null;
     }
     componentDidMount () {
         // Allow the spinner to display before loading the content
@@ -177,84 +162,29 @@ class LibraryComponent extends React.Component {
         if (this.props.setStopHandler) this.props.setStopHandler(this.handlePlayingEnd);
     }
     componentDidUpdate (prevProps, prevState) {
+        if (prevProps.data !== this.props.data) {
+            this.setState({
+                memberTags: getMemberOnlyTags(this.props.data)
+            });
+        }
+
         if (prevState.filterQuery !== this.state.filterQuery ||
             prevState.selectedTag !== this.state.selectedTag) {
             this.scrollToTop();
         }
-
-        // We need to create the driver when the content is loaded for the target element to exist
-        if (!prevState.loaded && this.state.loaded && this.state.shouldShowFaceSensingCallout) {
-            const onFirstClick = () => {
-                const isExtensionItemVisible = document.getElementById('faceSensing');
-                if (!isExtensionItemVisible) return;
-
-                const tooltip = driver({
-                    allowClose: false,
-                    allowInteraction: true,
-                    overlayColor: 'transparent',
-                    popoverOffset: -2,
-                    steps: [{
-                        element: 'div[id="faceSensing"]',
-                        popover: {
-                            description: this.props.intl.formatMessage(messages.faceSensingModalCallout),
-                            side: 'left',
-                            align: 'start',
-                            popoverClass: 'tooltip-face-sensing-modal',
-                            showButtons: []
-                        }
-                    }]
-                });
-
-                this.driver = tooltip;
-                tooltip.drive();
-            };
-
-            window.addEventListener('click', onFirstClick, {once: true});
-            this.filteredDataRef.addEventListener('scroll', this.handleScroll);
-        }
     }
-    componentWillUnmount () {
-        if (this.driver) {
-            this.driver.destroy();
-            this.driver = null;
-        }
 
-        if (this.animationFrameId) {
-            window.cancelAnimationFrame(this.animationFrameId);
-        }
+    static contextType = ModalFocusContext;
 
-        this.filteredDataRef.removeEventListener('scroll', this.handleScroll);
-    }
-    handleScroll () {
-        if (this.animationFrameId) return;
-
-        this.animationFrameId = window.requestAnimationFrame(() => {
-            if (this.driver) {
-                this.driver.refresh();
-            }
-
-            this.animationFrameId = null;
-        });
-    }
     handleSelect (id) {
         const selectedItem = this.getFilteredData().find(item => this.constructKey(item) === id);
-
-        if (this.state.shouldShowFaceSensingCallout && selectedItem.extensionId === 'faceSensing') {
-            if (!this.driver) {
-                return;
-            }
-
-            setHasUsedFaceSensing(this.props.username);
-            this.setState({
-                shouldShowFaceSensingCallout: false
-            });
-        }
 
         this.handleClose();
         this.props.onItemSelected(selectedItem);
     }
     handleClose () {
         this.props.onRequestClose();
+        this.context.restoreFocus();
     }
     handleTagClick (tag) {
         if (this.state.playingItem === null) {
@@ -373,7 +303,7 @@ class LibraryComponent extends React.Component {
             onMouseEnter={this.handleMouseEnter}
             onMouseLeave={this.handleMouseLeave}
             onSelect={this.handleSelect}
-            showItemCallout={this.state.shouldShowFaceSensingCallout && data.extensionId === 'faceSensing'}
+            isMemberOnly={data.isMemberOnly}
         />);
     }
     renderData (data) {
@@ -438,13 +368,14 @@ class LibraryComponent extends React.Component {
                         )}
                         {this.props.tags &&
                             <div className={styles.tagWrapper}>
-                                {tagListPrefix.concat(this.props.tags).map((tagProps, id) => (
+                                {tagListPrefix.concat(this.props.tags, this.state.memberTags).map((tagProps, id) => (
                                     <TagButton
                                         active={this.state.selectedTag === tagProps.tag.toLowerCase()}
                                         className={classNames(
                                             styles.filterBarItem,
                                             styles.tagButton,
-                                            tagProps.className
+                                            tagProps.className,
+                                            {[styles.membershipTag]: tagProps.tag.toLowerCase() === MEMBERSHIP_TAG.tag}
                                         )}
                                         key={`tag-button-${id}`}
                                         onClick={this.handleTagClick}
@@ -502,9 +433,7 @@ LibraryComponent.propTypes = {
     setStopHandler: PropTypes.func,
     showPlayButton: PropTypes.bool,
     tags: PropTypes.arrayOf(PropTypes.shape(TagButton.propTypes)),
-    title: PropTypes.string.isRequired,
-    username: PropTypes.string,
-    showNewFeatureCallouts: PropTypes.bool
+    title: PropTypes.string.isRequired
 };
 
 LibraryComponent.defaultProps = {

@@ -14,6 +14,7 @@ exports[`MonitorListComponent it renders the correct step size for discrete slid
     >
       <span
         class="ContextMenuTrigger"
+        data-disabled=""
         data-state="closed"
       >
         <div>
@@ -54,6 +55,7 @@ exports[`MonitorListComponent it renders the correct step size for non-discrete 
     >
       <span
         class="ContextMenuTrigger"
+        data-disabled=""
         data-state="closed"
       >
         <div>

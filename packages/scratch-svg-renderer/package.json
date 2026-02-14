@@ -2,13 +2,27 @@
   "name": "@smalruby/scratch-svg-renderer",
   "version": "12.3.1",
   "description": "SVG renderer for Scratch",
-  "main": "./dist/node/scratch-svg-renderer.js",
-  "browser": "./dist/web/scratch-svg-renderer.js",
+  "keywords": [],
+  "homepage": "https://github.com/smalruby/smalruby3-editor#readme",
+  "bugs": {
+    "url": "https://github.com/scratchfoundation/scratch-editor/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smalruby/smalruby3-editor.git"
+  },
+  "license": "AGPL-3.0-only",
+  "author": "Ruby Programming Shounendan",
   "exports": {
     "webpack": "./src/index.js",
     "browser": "./dist/web/scratch-svg-renderer.js",
     "node": "./dist/node/scratch-svg-renderer.js",
     "default": "./src/index.js"
+  },
+  "main": "./dist/node/scratch-svg-renderer.js",
+  "browser": "./dist/web/scratch-svg-renderer.js",
+  "directories": {
+    "test": "test"
   },
   "files": [
     "dist",
@@ -18,26 +32,19 @@
   ],
   "scripts": {
     "build": "npm run clean && webpack",
-    "build:dev": "npm run clean && webpack",
     "clean": "rimraf dist playground",
     "start": "webpack-dev-server",
     "test": "npm run test:lint && npm run test:unit",
-    "lint": "eslint",
     "test:lint": "eslint",
     "test:unit": "tap ./test/*.js",
-    "test:integration": "echo \"No integration tests\"",
     "watch": "webpack --watch"
   },
-  "author": "Ruby Programming Shounendan",
-  "license": "AGPL-3.0-only",
-  "homepage": "https://github.com/smalruby/smalruby3-editor#readme",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/smalruby/smalruby3-editor.git"
-  },
-  "peerDependencies": {
-    "scratch-render-fonts": "^1.0.0"
-  },
+  "browserslist": [
+    "Chrome >= 63",
+    "Edge >= 15",
+    "Firefox >= 57",
+    "Safari >= 11"
+  ],
   "tap": {
     "allow-incomplete-coverage": true
   },
@@ -46,35 +53,32 @@
     "base64-loader": "1.0.0",
     "css-tree": "1.1.3",
     "fastestsmallesttextencoderdecoder": "1.0.22",
-    "isomorphic-dompurify": "2.26.0",
+    "isomorphic-dompurify": "2.36.0",
     "transformation-matrix": "1.15.3",
     "tslog": "4.10.2"
   },
   "devDependencies": {
-    "@babel/core": "7.28.6",
-    "@babel/preset-env": "7.28.6",
+    "@babel/core": "7.29.0",
+    "@babel/preset-env": "7.29.0",
     "babel-loader": "9.2.1",
     "copy-webpack-plugin": "6.4.1",
     "eslint": "9.39.2",
-    "eslint-config-scratch": "12.0.46",
+    "eslint-config-scratch": "12.0.49",
     "globals": "16.5.0",
     "jsdom": "13.2.0",
     "mkdirp": "2.1.6",
     "rimraf": "3.0.2",
     "scratch-render-fonts": "1.0.252",
-    "scratch-semantic-release-config": "4.0.0",
-    "scratch-webpack-configuration": "3.1.0",
-    "semantic-release": "19.0.5",
-    "tap": "21.5.0",
-    "webpack": "5.104.1",
+    "scratch-semantic-release-config": "4.0.1",
+    "scratch-webpack-configuration": "3.1.1",
+    "semantic-release": "25.0.3",
+    "tap": "21.5.1",
+    "webpack": "5.105.1",
     "webpack-cli": "5.1.4",
     "webpack-dev-server": "5.2.3",
     "xmldom": "0.1.31"
   },
-  "browserslist": [
-    "Chrome >= 63",
-    "Edge >= 15",
-    "Firefox >= 57",
-    "Safari >= 11"
-  ]
+  "peerDependencies": {
+    "scratch-render-fonts": "^1.0.0"
+  }
 }

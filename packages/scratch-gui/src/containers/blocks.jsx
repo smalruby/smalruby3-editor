@@ -742,8 +742,6 @@ class Blocks extends React.Component {
                         vm={vm}
                         onCategorySelected={this.handleCategorySelected}
                         onRequestClose={onRequestCloseExtensionLibrary}
-                        showNewFeatureCallouts={this.props.showNewFeatureCallouts}
-                        username={this.props.username}
                     />
                 ) : null}
                 {customProceduresVisible ? (
@@ -799,9 +797,7 @@ Blocks.propTypes = {
     activeTabIndex: PropTypes.number,
     workspaceMetrics: PropTypes.shape({
         targets: PropTypes.objectOf(PropTypes.object)
-    }),
-    showNewFeatureCallouts: PropTypes.bool,
-    username: PropTypes.string
+    })
 };
 
 Blocks.defaultOptions = {

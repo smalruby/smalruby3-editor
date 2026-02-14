@@ -7,6 +7,7 @@ import {injectIntl} from 'react-intl';
 
 import LibraryItemComponent from '../components/library-item/library-item.jsx';
 import {PLATFORM} from '../lib/platform.js';
+import {KEY} from '../lib/navigation-keys.js';
 
 
 class LibraryItem extends React.PureComponent {
@@ -16,7 +17,7 @@ class LibraryItem extends React.PureComponent {
             'handleBlur',
             'handleClick',
             'handleFocus',
-            'handleKeyPress',
+            'handleKeyDown',
             'handleMouseEnter',
             'handleMouseLeave',
             'handlePlay',
@@ -48,10 +49,28 @@ class LibraryItem extends React.PureComponent {
             this.handleMouseEnter(id);
         }
     }
-    handleKeyPress (e) {
-        if (e.key === ' ' || e.key === 'Enter') {
+    handleKeyDown (e) {
+        if (this.props.disabled) {
+            return;
+        }
+
+        if (e.key === KEY.ENTER) {
             e.preventDefault();
             this.props.onSelect(this.props.id);
+        }
+        /*
+            - Costumes, Sprites, and Backdrops are selectable with both ENTER and SPACE.
+            - Sounds are selectable with ENTER; SPACE previews the sound.
+        */
+        if (e.key === KEY.SPACE) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (this.props.showPlayButton) {
+                this.handlePlay();
+            } else {
+                this.props.onSelect(this.props.id);
+            }
         }
     }
     handleMouseEnter () {
@@ -130,12 +149,12 @@ class LibraryItem extends React.PureComponent {
                 onBlur={this.handleBlur}
                 onClick={this.handleClick}
                 onFocus={this.handleFocus}
-                onKeyPress={this.handleKeyPress}
+                onKeyDown={this.handleKeyDown}
                 onMouseEnter={this.handleMouseEnter}
                 onMouseLeave={this.handleMouseLeave}
                 onPlay={this.handlePlay}
                 onStop={this.handleStop}
-                showItemCallout={this.props.showItemCallout}
+                isMemberOnly={this.props.isMemberOnly}
             />
         );
     }
@@ -173,7 +192,7 @@ LibraryItem.propTypes = {
     onSelect: PropTypes.func.isRequired,
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
     showPlayButton: PropTypes.bool,
-    showItemCallout: PropTypes.bool
+    isMemberOnly: PropTypes.bool
 };
 
 export default compose(

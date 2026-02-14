@@ -2,8 +2,11 @@ import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {defineMessages, injectIntl} from 'react-intl';
+import {connect} from 'react-redux';
 import intlShape from '../lib/intlShape.js';
+import {costumeShape} from '../lib/assets-prop-types.js';
 import VM from '@smalruby/scratch-vm';
+import mergeDynamicAssets from '../lib/merge-dynamic-assets.js';
 
 import backdropLibraryContent from '../lib/libraries/backdrops.json';
 import backdropTags from '../lib/libraries/backdrop-tags';
@@ -22,8 +25,10 @@ class BackdropLibrary extends React.Component {
     constructor (props) {
         super(props);
         bindAll(this, [
-            'handleItemSelect'
+            'handleItemSelect',
+            'mergeDynamicAssets'
         ]);
+        this.processedBackdrops = {};
     }
     handleItemSelect (item) {
         const vmBackdrop = {
@@ -36,10 +41,22 @@ class BackdropLibrary extends React.Component {
         // Do not switch to stage, just add the backdrop
         this.props.vm.addBackdrop(item.md5ext, vmBackdrop);
     }
+    mergeDynamicAssets () {
+        if (this.processedBackdrops.source === this.props.dynamicBackdrops) {
+            return this.processedBackdrops.data;
+        }
+        this.processedBackdrops = mergeDynamicAssets(
+            backdropLibraryContent,
+            this.props.dynamicBackdrops
+        );
+
+        return this.processedBackdrops.data;
+    }
     render () {
+        const mergedAssets = this.mergeDynamicAssets();
         return (
             <LibraryComponent
-                data={backdropLibraryContent}
+                data={mergedAssets}
                 id="backdropLibrary"
                 tags={backdropTags}
                 title={this.props.intl.formatMessage(messages.libraryTitle)}
@@ -48,12 +65,17 @@ class BackdropLibrary extends React.Component {
             />
         );
     }
-}
+};
+
+const mapStateToProps = state => ({
+    dynamicBackdrops: state.scratchGui.dynamicAssets.backdrops
+});
 
 BackdropLibrary.propTypes = {
+    dynamicBackdrops: PropTypes.arrayOf(costumeShape),
     intl: intlShape.isRequired,
     onRequestClose: PropTypes.func,
     vm: PropTypes.instanceOf(VM).isRequired
 };
 
-export default injectIntl(BackdropLibrary);
+export default injectIntl(connect(mapStateToProps)(BackdropLibrary));

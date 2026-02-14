@@ -1,4 +1,4 @@
-import {FormattedMessage} from 'react-intl';
+import {defineMessages, FormattedMessage, injectIntl} from 'react-intl';
 import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import React from 'react';
@@ -7,14 +7,22 @@ import Box from '../box/box.jsx';
 import ScratchImage from '../scratch-image/scratch-image.jsx';
 import PlayButton from '../../containers/play-button.jsx';
 import styles from './library-item.css';
-import './library-item.raw.css';
 import classNames from 'classnames';
 
 import bluetoothIconURL from './bluetooth.svg';
 import internetConnectionIconURL from './internet-connection.svg';
+import memberAssetIconURL from './lib-icon--member-asset.svg';
+import intlShape from '../../lib/intlShape';
 
 import {PLATFORM} from '../../lib/platform.js';
 
+const messages = defineMessages({
+    memberAssetImgAlt: {
+        defaultMessage: 'Blue star icon indicating an asset is for members',
+        description: 'Alt text for star icon indicating an asset is for members',
+        id: 'gui.libraryItem.memberAssetImgAlt'
+    }
+});
  
 class LibraryItemComponent extends React.PureComponent {
     constructor (props) {
@@ -46,7 +54,7 @@ class LibraryItemComponent extends React.PureComponent {
     }
     render () {
         return this.props.featured ? (
-            <div
+            <button
                 id={this.props.extensionId}
                 className={classNames(
                     styles.libraryItem,
@@ -55,10 +63,14 @@ class LibraryItemComponent extends React.PureComponent {
                         [styles.disabled]: this.props.disabled
                     },
                     this.props.extensionId ? styles.libraryItemExtension : null,
-                    this.props.hidden ? styles.hidden : null,
-                    this.props.showItemCallout ? styles.radiate : null
+                    this.props.hidden ? styles.hidden : null
                 )}
                 onClick={this.props.onClick}
+                onKeyDown={this.props.onKeyDown}
+                // onFocus and onBlur are currently unused for extensions,
+                // but are included for potential future use
+                onBlur={this.props.onBlur}
+                onFocus={this.props.onFocus}
             >
                 <div className={styles.contentWrapper}>
                     <div className={styles.featuredImageContainer}>
@@ -139,7 +151,7 @@ class LibraryItemComponent extends React.PureComponent {
                             </div>
                         ) : null}
                 </div>
-            </div>
+            </button>
         ) : (
             <Box
                 className={classNames(
@@ -147,15 +159,21 @@ class LibraryItemComponent extends React.PureComponent {
                         [styles.hidden]: this.props.hidden
                     }
                 )}
-                role="button"
-                tabIndex="0"
+                element="button"
                 onBlur={this.props.onBlur}
                 onClick={this.props.onClick}
                 onFocus={this.props.onFocus}
-                onKeyPress={this.props.onKeyPress}
+                onKeyDown={this.props.onKeyDown}
                 onMouseEnter={this.props.showPlayButton ? null : this.props.onMouseEnter}
                 onMouseLeave={this.props.showPlayButton ? null : this.props.onMouseLeave}
             >
+                {this.props.isMemberOnly && (
+                    <img
+                        src={memberAssetIconURL}
+                        className={styles.memberAssetIcon}
+                        alt={this.props.intl.formatMessage(messages.memberAssetImgAlt)}
+                    />
+                )}
                 {/* Layers of wrapping is to prevent layout thrashing on animation */}
                 <Box className={styles.libraryItemImageContainerWrapper}>
                     <Box
@@ -181,6 +199,7 @@ class LibraryItemComponent extends React.PureComponent {
 
 
 LibraryItemComponent.propTypes = {
+    intl: intlShape,
     bluetoothRequired: PropTypes.bool,
     collaborator: PropTypes.string,
     description: PropTypes.oneOfType([
@@ -202,14 +221,14 @@ LibraryItemComponent.propTypes = {
     onBlur: PropTypes.func.isRequired,
     onClick: PropTypes.func.isRequired,
     onFocus: PropTypes.func.isRequired,
-    onKeyPress: PropTypes.func.isRequired,
+    onKeyDown: PropTypes.func.isRequired,
     onMouseEnter: PropTypes.func.isRequired,
     onMouseLeave: PropTypes.func.isRequired,
     onPlay: PropTypes.func.isRequired,
     onStop: PropTypes.func.isRequired,
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
     showPlayButton: PropTypes.bool,
-    showItemCallout: PropTypes.bool
+    isMemberOnly: PropTypes.bool
 };
 
 LibraryItemComponent.defaultProps = {
@@ -217,4 +236,7 @@ LibraryItemComponent.defaultProps = {
     showPlayButton: false
 };
 
-export default LibraryItemComponent;
+const IntlLibraryItemComponent = injectIntl(LibraryItemComponent);
+IntlLibraryItemComponent.propTypes = LibraryItemComponent.propTypes;
+
+export default IntlLibraryItemComponent;

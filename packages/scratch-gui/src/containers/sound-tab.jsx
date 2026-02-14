@@ -39,6 +39,10 @@ import {
 
 import {setRestore} from '../reducers/restore-deletion';
 import {showStandardAlert, closeAlertWithId} from '../reducers/alerts';
+import {ModalFocusContext} from '../contexts/modal-focus-context.jsx';
+
+import {soundShape} from '../lib/assets-prop-types.js';
+import mergeDynamicAssets from '../lib/merge-dynamic-assets.js';
 
 class SoundTab extends React.Component {
     constructor (props) {
@@ -52,10 +56,13 @@ class SoundTab extends React.Component {
             'handleSurpriseSound',
             'handleFileUploadClick',
             'handleSoundUpload',
+            'handleNewSoundFromLibraryClick',
             'handleDrop',
-            'setFileInput'
+            'setFileInput',
+            'mergeDynamicAssets'
         ]);
         this.state = {selectedSoundIndex: 0};
+        this.processedSounds = {};
     }
 
     componentWillReceiveProps (nextProps) {
@@ -76,6 +83,19 @@ class SoundTab extends React.Component {
         } else if (this.state.selectedSoundIndex > target.sounds.length - 1) {
             this.setState({selectedSoundIndex: Math.max(target.sounds.length - 1, 0)});
         }
+    }
+
+    static contextType = ModalFocusContext;
+
+    mergeDynamicAssets () {
+        if (this.processedSounds.source === this.props.dynamicSounds) {
+            return this.processedSounds.data;
+        }
+        this.processedSounds = mergeDynamicAssets(
+            soundLibraryContent,
+            this.props.dynamicSounds
+        );
+        return this.processedSounds.data;
     }
 
     handleSelectSound (soundIndex) {
@@ -112,7 +132,9 @@ class SoundTab extends React.Component {
     }
 
     handleSurpriseSound () {
-        const soundItem = soundLibraryContent[Math.floor(Math.random() * soundLibraryContent.length)];
+        const sounds = this.mergeDynamicAssets();
+        
+        const soundItem = sounds[Math.floor(Math.random() * sounds.length)];
         const vmSound = {
             format: soundItem.dataFormat,
             md5: soundItem.md5ext,
@@ -127,6 +149,11 @@ class SoundTab extends React.Component {
 
     handleFileUploadClick () {
         this.fileInput.click();
+    }
+
+    handleNewSoundFromLibraryClick (e) {
+        this.context.captureFocus();
+        this.props.onNewSoundFromLibraryClick(e);
     }
 
     handleSoundUpload (e) {
@@ -229,7 +256,7 @@ class SoundTab extends React.Component {
                 buttons={[{
                     title: intl.formatMessage(messages.addSound),
                     img: addSoundFromLibraryIcon,
-                    onClick: onNewSoundFromLibraryClick
+                    onClick: this.handleNewSoundFromLibraryClick
                 }, {
                     title: intl.formatMessage(messages.fileUploadSound),
                     img: fileUploadIcon,
@@ -249,7 +276,7 @@ class SoundTab extends React.Component {
                 }, {
                     title: intl.formatMessage(messages.addSound),
                     img: searchIcon,
-                    onClick: onNewSoundFromLibraryClick
+                    onClick: this.handleNewSoundFromLibraryClick
                 }]}
                 dragType={DragConstants.SOUND}
                 isRtl={isRtl}
@@ -308,7 +335,8 @@ SoundTab.propTypes = {
             name: PropTypes.string.isRequired
         }))
     }),
-    vm: PropTypes.instanceOf(VM).isRequired
+    vm: PropTypes.instanceOf(VM).isRequired,
+    dynamicSounds: PropTypes.arrayOf(soundShape)
 };
 
 const mapStateToProps = state => ({
@@ -317,7 +345,8 @@ const mapStateToProps = state => ({
     sprites: state.scratchGui.targets.sprites,
     stage: state.scratchGui.targets.stage,
     soundLibraryVisible: state.scratchGui.modals.soundLibrary,
-    soundRecorderVisible: state.scratchGui.modals.soundRecorder
+    soundRecorderVisible: state.scratchGui.modals.soundRecorder,
+    dynamicSounds: state.scratchGui.dynamicAssets.sounds
 });
 
 const mapDispatchToProps = dispatch => ({

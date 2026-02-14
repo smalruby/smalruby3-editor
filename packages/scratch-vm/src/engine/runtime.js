@@ -32,6 +32,10 @@ const Video = require('../io/video');
 const StringUtil = require('../util/string-util');
 const uid = require('../util/uid');
 
+/**
+ * @import {ScratchStorage} from 'scratch-storage'
+ */
+
 const defaultBlockPackages = {
     scratch3_control: require('../blocks/scratch3_control'),
     scratch3_event: require('../blocks/scratch3_event'),
@@ -1654,6 +1658,26 @@ class Runtime extends EventEmitter {
         this.storage = storage;
         fetchWithTimeout.setFetch(storage.scratchFetch.scratchFetch);
         this.resetRunId();
+
+        // How many seconds should an action "cost" after we've exhausted the burst allowance?
+        // Setting this too high makes the extension frustrating to use, but setting it too low costs us real money.
+        // We should tune this over time based on user feedback and our budget.
+        const secondsPerAction = 4;
+
+        /** @type {Parameters<typeof storage.scratchFetch.createQueue>[1]} */
+        const extensionServiceQueueOptions = {
+            burstLimit: 3, // How many actions can be sent in a short time if we haven't done any for a while?
+            concurrency: 1, // Number of concurrent connections to the service
+            queueCostLimit: 10, // Don't queue more actions than can finish before the `fetchWithTimeout` timeout.
+            sustainRate: 1 / secondsPerAction // See `secondsPerAction` above.
+        };
+
+        /** @todo The extensions should probably specify their own queue options (within existing limits) */
+        ['scratch.mit.edu', 'scratch.org'].forEach(scratchDomain => {
+            ['synthesis-service', 'translate-service'].forEach(service => {
+                storage.scratchFetch.createQueue(`${service}.${scratchDomain}`, extensionServiceQueueOptions);
+            });
+        });
     }
 
     // -----------------------------------------------------------------------------
