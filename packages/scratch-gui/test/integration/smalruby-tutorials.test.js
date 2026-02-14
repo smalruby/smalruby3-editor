@@ -3,6 +3,7 @@ import SeleniumHelper from '../helpers/selenium-helper';
 
 const {
     clickText,
+    clickXpath,
     findByXpath,
     getDriver,
     getLogs,
@@ -48,5 +49,17 @@ describe('Smalruby Tutorials', () => {
         const logs = await getLogs({includeAllLevels: true});
         const severeLogs = logs.filter(l => l.level.name === 'SEVERE');
         expect(severeLogs).toEqual([]);
+    });
+
+    test('can close tutorial card', async () => {
+        await loadUri(`${uriPrefix}getstarted`);
+        await findByXpath('//div[contains(@class, "card_card_")]');
+
+        // Click the close button
+        await clickText('Close');
+
+        // Verify the card is gone
+        const cards = await driver.findElements({xpath: '//div[contains(@class, "card_card_")]'});
+        expect(cards.length).toBe(0);
     });
 });

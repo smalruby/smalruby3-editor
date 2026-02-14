@@ -1,5 +1,5 @@
 import reducer from '../../../src/reducers/cards';
-import {activateDeck, nextStep, prevStep} from '../../../src/reducers/cards';
+import {activateDeck, nextStep, prevStep, closeCards} from '../../../src/reducers/cards';
 
 describe('cards reducer', () => {
     test('should return initial state', () => {
@@ -39,5 +39,12 @@ describe('cards reducer', () => {
         let state = reducer(undefined, activateDeck('getting-started'));
         state = reducer(state, prevStep());
         expect(state.step).toBe(0);
+    });
+
+    test('should close cards', () => {
+        let state = reducer(undefined, activateDeck('getting-started'));
+        expect(state.visible).toBe(true);
+        state = reducer(state, closeCards());
+        expect(state.visible).toBe(false);
     });
 });
