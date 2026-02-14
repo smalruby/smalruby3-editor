@@ -93,7 +93,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.alwaysVisibleTitle': 'Always Visible:',
     'gui.smalruby3.blockDisplayModal.blocksSubtitle': ' Blocks',
     'gui.menuBar.blockDisplay': 'Block Display...',
-    'gui.menuBar.learn': 'Learn',
+    'gui.menuBar.tutorials': 'Tutorials',
     'gui.menuBar.koshienEntryForm': 'Entry Form',
     'gui.menuBar.koshienCannotChangeRubyVersion': 'The Ruby version cannot be changed when the Koshien extension is loaded.',
 
@@ -251,5 +251,18 @@ export default {
     'gui.rubyToolbar.redo': 'Redo',
     'gui.rubyToolbar.commandPlaceholder': 'Search sprites by name',
     'gui.rubyToolbar.download': 'Download Ruby code',
-    'gui.rubyToolbar.stage': 'Stage'
+    'gui.rubyToolbar.stage': 'Stage',
+
+    // Tutorials
+    'gui.howtos.getting-started.name': 'Getting Started',
+    'gui.howtos.getting-started.step.move': 'Add a move block',
+    'gui.howtos.getting-started.step.say': 'Add a say block',
+    'gui.howtos.getting-started.step.greenFlag': 'Click the green flag to start',
+    'gui.cards.all-tutorials': 'Tutorials',
+    'gui.cards.shrink': 'Shrink',
+    'gui.cards.expand': 'Expand',
+    'gui.cards.close': 'Close',
+    'gui.cards.more-things-to-try': 'More things to try!',
+    'gui.cards.see-more': 'See more',
+    'gui.tipsLibrary.tutorials': 'Choose a Tutorial'
 };

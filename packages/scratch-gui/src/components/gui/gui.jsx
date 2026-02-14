@@ -31,6 +31,8 @@ import TelemetryModal from '../telemetry-modal/telemetry-modal.jsx';
 import BlockDisplayModal from '../../containers/block-display-modal.jsx';
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
+import TipsLibrary from '../../containers/tips-library.jsx';
+import Cards from '../../containers/cards.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
 
 import layout, {STAGE_SIZE_MODES} from '../../lib/layout-constants';
@@ -305,6 +307,11 @@ const GUIComponent = props => {
                         onRequestClose={onRequestCloseKoshienTestModal}
                     />
                 ) : null}
+                <TipsLibrary
+                    hideTutorialProjects={hideTutorialProjects}
+                    onTutorialSelect={onTutorialSelect}
+                />
+                <Cards />
                 {loading ? (
                     <Loader />
                 ) : null}
