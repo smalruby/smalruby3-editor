@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkGUI=self.webpackChunkGUI||[]).push([[122],{87478(e,n,s){s.d(n,{jaImages:()=>a});const a={introMove:s(40437),introSay:s(51020),introGreenFlag:s(63430)}}}]);
