@@ -183,6 +183,7 @@ const GUIComponent = props => {
         onRequestCloseCostumeLibrary,
         onRequestCloseDebugModal,
         onRequestCloseKoshienTestModal,
+        onRequestCloseTipsLibrary,
         onRequestCloseTelemetryModal,
         onRequestCloseUrlLoaderModal,
         onSeeCommunity,
@@ -310,6 +311,7 @@ const GUIComponent = props => {
                 <TipsLibrary
                     hideTutorialProjects={hideTutorialProjects}
                     onTutorialSelect={onTutorialSelect}
+                    onRequestClose={onRequestCloseTipsLibrary}
                 />
                 <Cards />
                 {loading ? (
@@ -677,6 +679,7 @@ GUIComponent.propTypes = {
     onRequestCloseCostumeLibrary: PropTypes.func,
     onRequestCloseDebugModal: PropTypes.func,
     onRequestCloseKoshienTestModal: PropTypes.func,
+    onRequestCloseTipsLibrary: PropTypes.func,
     onRequestCloseTelemetryModal: PropTypes.func,
     onRequestCloseUrlLoaderModal: PropTypes.func,
     onSeeCommunity: PropTypes.func,
