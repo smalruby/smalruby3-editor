@@ -312,7 +312,7 @@ export default {
     'gui.rubyToolbar.undo': '元に戻す',
     'gui.rubyToolbar.redo': 'やり直す',
     'gui.rubyToolbar.commandPlaceholder': 'スプライトを名前で検索',
-    'gui.rubyToolbar.download': 'Rubyコードをダウンロード',
+    'gui.rubyToolbar.download': 'ルビースクリプトをダウンロード',
     'gui.rubyToolbar.stage': 'ステージ',
 
     // Tutorials
@@ -320,7 +320,7 @@ export default {
     'gui.howtos.getting-started.step.move': '「10歩動かす」ブロックを追加する',
     'gui.howtos.getting-started.step.say': '「こんにちはと言う」ブロックを追加する',
     'gui.howtos.getting-started.step.greenFlag': '🏁をクリックしてスタート！',
-    'gui.howtos.getting-started.step.rubyTab': 'ブロックだけじゃない。Rubyでもプログラムを作れる',
+    'gui.howtos.getting-started.step.rubyTab': 'ブロックだけじゃない。ルビーでもプログラムを作れる',
     'gui.howtos.getting-started.step.bounceCode': 'ネコが行ったり来たりするプログラムを作ってみよう',
     'gui.howtos.getting-started.step.runRuby': '作ったプログラムを実行しよう',
     'gui.cards.all-tutorials': 'チュートリアル',
@@ -331,8 +331,8 @@ export default {
     'gui.cards.see-more': 'もっと見る',
     'gui.cards.insert-code': 'このコードを入力',
     'gui.tipsLibrary.tutorials': 'チュートリアルを選ぶ',
-    'gui.libraryTags.ruby': 'Ruby',
+    'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': '始めましょう',
-    'gui.menuBar.tutorialTooltip': 'Rubyを試してみよう!'
+    'gui.menuBar.tutorialTooltip': 'ルビーを試してみよう!'
 };

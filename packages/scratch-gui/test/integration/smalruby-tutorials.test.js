@@ -10,7 +10,7 @@ const {
     loadUri
 } = new SeleniumHelper();
 
-const uri = path.resolve(__dirname, '../../build/index.html?tutorial=all');
+const uri = path.resolve(__dirname, '../../build/index.html');
 const uriPrefix = path.resolve(__dirname, '../../build/index.html?tutorial=');
 
 let driver;
@@ -26,7 +26,7 @@ describe('Smalruby Tutorials', () => {
 
     test('opens with the Tutorial Library showing and no severe logs', async () => {
         await loadUri(uri);
-        await clickText('Getting Started');
+        await clickText('Try Ruby!');
         await findByXpath('//div[contains(@class, "card_card_")]');
 
         // Make sure the background is still interactable
