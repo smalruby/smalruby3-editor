@@ -125,5 +125,20 @@ export default defineMessages({
         defaultMessage: 'Letters',
         description: 'Tag for filtering a library for letters',
         id: 'gui.libraryTags.letters'
+    },
+    ruby: {
+        defaultMessage: 'Ruby',
+        description: 'Tag for filtering a library for Ruby',
+        id: 'gui.libraryTags.ruby'
+    },
+    firstTime: {
+        defaultMessage: 'First Time',
+        description: 'Tag for filtering a library for first time users',
+        id: 'gui.libraryTags.firstTime'
+    },
+    gettingStarted: {
+        defaultMessage: 'Getting Started',
+        description: 'Category for getting started tutorials',
+        id: 'gui.libraryCategories.gettingStarted'
     }
 });

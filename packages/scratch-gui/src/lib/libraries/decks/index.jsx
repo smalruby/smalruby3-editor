@@ -5,6 +5,7 @@ import {FormattedMessage} from 'react-intl';
 // translated in thumbnails.
 // Intro
 import libraryIntro from './thumbnails/getting-started.jpg';
+import {CATEGORIES} from '../tutorial-tags';
 
 const decks = {
     'intro-getting-started': {
@@ -16,6 +17,7 @@ const decks = {
             />
         ),
         tags: ['ruby', 'はじめて'],
+        category: CATEGORIES.gettingStarted,
         img: libraryIntro,
         steps: [
             {

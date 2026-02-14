@@ -330,5 +330,8 @@ export default {
     'gui.cards.more-things-to-try': '他にもやってみよう！',
     'gui.cards.see-more': 'もっと見る',
     'gui.cards.insert-code': 'このコードを入力',
-    'gui.tipsLibrary.tutorials': 'チュートリアルを選ぶ'
+    'gui.tipsLibrary.tutorials': 'チュートリアルを選ぶ',
+    'gui.libraryTags.ruby': 'Ruby',
+    'gui.libraryTags.firstTime': 'はじめて',
+    'gui.libraryCategories.gettingStarted': '始めましょう'
 };

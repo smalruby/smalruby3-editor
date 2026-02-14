@@ -319,5 +319,8 @@ export default {
     'gui.howtos.getting-started.step.rubyTab': 'ブロックだけじゃない。Rubyでもプログラムをつくれる',
     'gui.howtos.getting-started.step.bounceCode': 'ネコがいったりきたりするプログラムをつくってみよう',
     'gui.howtos.getting-started.step.runRuby': 'つくったプログラムをじっこうしよう',
-    'gui.cards.insert-code': 'このコードをにゅうりょく'
+    'gui.cards.insert-code': 'このコードをにゅうりょく',
+    'gui.libraryTags.ruby': 'Ruby',
+    'gui.libraryTags.firstTime': 'はじめて',
+    'gui.libraryCategories.gettingStarted': 'はじめましょう'
 };

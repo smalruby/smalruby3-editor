@@ -268,5 +268,8 @@ export default {
     'gui.cards.more-things-to-try': 'More things to try!',
     'gui.cards.see-more': 'See more',
     'gui.cards.insert-code': 'Insert This Code',
-    'gui.tipsLibrary.tutorials': 'Choose a Tutorial'
+    'gui.tipsLibrary.tutorials': 'Choose a Tutorial',
+    'gui.libraryTags.ruby': 'Ruby',
+    'gui.libraryTags.firstTime': 'First Time',
+    'gui.libraryCategories.gettingStarted': 'Getting Started'
 };
