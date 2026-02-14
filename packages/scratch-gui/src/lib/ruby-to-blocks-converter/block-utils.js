@@ -62,7 +62,7 @@ const BlockUtils = {
         this._context.blockTypes[block.id] = type;
 
         // Map current node to block ID for line execution feature
-        if (this._context.currentNode && this._context.currentNode !== Opal.nil) {
+        if (!block.shadow && this._context.currentNode && this._context.currentNode !== Opal.nil) {
             this._context.nodeToBlockMap.set(this._context.currentNode, block.id);
         }
 
