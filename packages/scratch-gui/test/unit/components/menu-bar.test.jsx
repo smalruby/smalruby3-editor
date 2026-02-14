@@ -7,6 +7,7 @@ import {DEFAULT_MODE} from '../../../src/lib/settings/color-mode';
 import {fireEvent} from '@testing-library/react';
 
 import {PLATFORM} from '../../../src/lib/platform';
+import {tutorialOnboardingInitialState} from '../../../src/reducers/tutorial-onboarding';
 
 import configureStore from 'redux-mock-store';
 import {Provider} from 'react-redux';
@@ -54,6 +55,7 @@ describe('MenuBar Component', () => {
             meshV2: {
                 domain: null
             },
+            tutorialOnboarding: tutorialOnboardingInitialState,
             projectChanged: false,
             projectTitle: 'Untitled'
         },

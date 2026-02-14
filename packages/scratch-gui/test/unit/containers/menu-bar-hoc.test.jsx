@@ -3,6 +3,7 @@ import configureStore from 'redux-mock-store';
 import MenuBarHOC from '../../../src/containers/menu-bar-hoc.jsx';
 import {render} from '@testing-library/react';
 import '@testing-library/jest-dom';
+import {tutorialOnboardingInitialState} from '../../../src/reducers/tutorial-onboarding';
 
 // TODO rewrite this test to use react-testing-library
 
@@ -14,7 +15,8 @@ describe('Menu Bar HOC', () => {
     beforeEach(() => {
         store = mockStore({
             scratchGui: {
-                projectChanged: true
+                projectChanged: true,
+                tutorialOnboarding: tutorialOnboardingInitialState
             }
         });
 
