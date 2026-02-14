@@ -34,6 +34,8 @@ import meshV2Reducer, {meshV2InitialState} from './mesh-v2';
 import googleDriveFileReducer, {googleDriveFileInitialState} from './google-drive-file';
 import koshienFileReducer, {koshienFileInitialState} from './koshien-file';
 import rubyCodeReducer, {rubyCodeInitialState} from './ruby-code';
+import cardsReducer, {cardsInitialState} from './cards';
+import tutorialOnboardingReducer, {tutorialOnboardingInitialState} from './tutorial-onboarding';
 import throttle from 'redux-throttle';
 
 import {GUIConfig} from '../gui-config';
@@ -92,6 +94,8 @@ const buildInitialState = (config: GUIConfig) => ({
     googleDriveFile: googleDriveFileInitialState,
     koshienFile: koshienFileInitialState,
     rubyCode: rubyCodeInitialState,
+    cards: cardsInitialState,
+    tutorialOnboarding: tutorialOnboardingInitialState,
     test: testInitialState
 });
 
@@ -189,6 +193,8 @@ const guiReducer = combineReducers({
     googleDriveFile: googleDriveFileReducer,
     koshienFile: koshienFileReducer,
     rubyCode: rubyCodeReducer,
+    cards: cardsReducer,
+    tutorialOnboarding: tutorialOnboardingReducer,
     test: testReducer
 });
 

@@ -1,0 +1,63 @@
+import path from 'path';
+import SeleniumHelper from '../helpers/selenium-helper';
+
+const {
+    clickText,
+    clickXpath,
+    findByXpath,
+    getDriver,
+    getLogs,
+    loadUri
+} = new SeleniumHelper();
+
+const uri = path.resolve(__dirname, '../../build/index.html');
+const uriPrefix = path.resolve(__dirname, '../../build/index.html?tutorial=');
+
+let driver;
+
+describe('Smalruby Tutorials', () => {
+    beforeAll(() => {
+        driver = getDriver();
+    });
+
+    afterAll(async () => {
+        await driver.quit();
+    });
+
+    test('opens with the Tutorial Library showing and no severe logs', async () => {
+        await loadUri(uri);
+        await clickText('Try Ruby!');
+        await findByXpath('//div[contains(@class, "card_card_")]');
+
+        // Make sure the background is still interactable
+        await clickText('Costumes');
+        await clickText('Code');
+
+        const logs = await getLogs({includeAllLevels: true});
+        const severeLogs = logs.filter(l => l.level.name === 'SEVERE');
+        expect(severeLogs).toEqual([]);
+    });
+
+    test('can open tutorials by url id', async () => {
+        // urlId for intro-getting-started is 'getStarted'
+        await loadUri(`${uriPrefix}getStarted`);
+        // should open the tutorial card immediately
+        await findByXpath('//div[contains(@class, "card_card_")]');
+
+        const logs = await getLogs({includeAllLevels: true});
+        const severeLogs = logs.filter(l => l.level.name === 'SEVERE');
+        expect(severeLogs).toEqual([]);
+    });
+
+    test('can close tutorial card', async () => {
+        await loadUri(`${uriPrefix}getStarted`);
+        await findByXpath('//div[contains(@class, "card_card_")]');
+
+        // Click the close button
+        await clickText('Close');
+
+        // Verify the card is gone
+        const cards = await driver.findElements({xpath: '//div[contains(@class, "card_card_")]'});
+        expect(cards.length).toBe(0);
+    });
+});

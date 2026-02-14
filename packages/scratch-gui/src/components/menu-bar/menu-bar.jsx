@@ -34,6 +34,7 @@ import GoogleDriveLoaderHOC from '../../containers/google-drive-loader-hoc.jsx';
 import GoogleDriveSaverHOC from '../../containers/google-drive-saver-hoc.jsx';
 import GoogleDriveSaveDialog from '../google-drive-save-dialog/google-drive-save-dialog.jsx';
 import SettingsMenu from './settings-menu.jsx';
+import TutorialTooltip from './tutorial-tooltip.jsx';
 
 import {
     openDebugModal,
@@ -133,10 +134,10 @@ import sharedMessages from '../../lib/shared-messages';
 import {AccountMenuOptionsPropTypes} from '../../lib/account-menu-options';
 
 const ariaMessages = defineMessages({
-    learn: {
-        id: 'gui.menuBar.learn',
-        defaultMessage: 'Learn',
-        description: 'accessibility text for the learn button'
+    tutorials: {
+        id: 'gui.menuBar.tutorials',
+        defaultMessage: 'Tutorials',
+        description: 'accessibility text for the tutorials button'
     },
     debug: {
         id: 'gui.menuBar.debug',
@@ -246,7 +247,7 @@ class MenuBar extends React.Component {
             'handleExtensionAdded',
             'handleClickKoshienEntryForm',
             'handleMeshV2MenuClick',
-            'handleClickLearn'
+            'handleClickTutorials'
         ]);
     }
     componentDidMount () {
@@ -391,8 +392,14 @@ class MenuBar extends React.Component {
     handleClickKoshienEntryForm () {
         window.open('https://smalruby-koshien.netlab.jp/entry-form.html', '_blank', 'noopener,noreferrer');
     }
-    handleClickLearn () {
-        window.open('https://github.com/smalruby/smalruby.jp/wiki/study', '_blank', 'noopener,noreferrer');
+    handleClickTutorials () {
+        if (this.props.showTutorialTooltip) {
+            // First-time user: activate tutorial directly
+            this.props.onActivateTutorial();
+        } else {
+            // Returning user: open tips library
+            this.props.onOpenTipsLibrary();
+        }
     }
     getSaveAIAsHandler (downloadProjectCallback) {
         return () => {
@@ -961,17 +968,24 @@ class MenuBar extends React.Component {
                     <Divider className={classNames(styles.divider)} />
                     <div className={styles.fileGroup}>
                         <div
-                            aria-label={this.props.intl.formatMessage(ariaMessages.learn)}
-                            className={classNames(styles.menuBarItem, styles.noOffset, styles.hoverable)}
-                            onClick={this.handleClickLearn}
+                            className={styles.tutorialButtonWrapper}
                         >
-                            <img
-                                className={styles.helpIcon}
-                                src={helpIcon}
-                            />
-                            <span className={styles.learnLabel}>
-                                <FormattedMessage {...ariaMessages.learn} />
-                            </span>
+                            <div
+                                aria-label={this.props.intl.formatMessage(ariaMessages.tutorials)}
+                                className={classNames(styles.menuBarItem, styles.noOffset, styles.hoverable)}
+                                onClick={this.handleClickTutorials}
+                            >
+                                <img
+                                    className={styles.helpIcon}
+                                    src={helpIcon}
+                                />
+                                <span className={styles.learnLabel}>
+                                    <FormattedMessage {...ariaMessages.tutorials} />
+                                </span>
+                            </div>
+                            {this.props.showTutorialTooltip ? (
+                                <TutorialTooltip onClick={this.handleClickTutorials} />
+                            ) : null}
                         </div>
                         <div
                             aria-label={this.props.intl.formatMessage(ariaMessages.debug)}
@@ -1489,6 +1503,9 @@ MenuBar.propTypes = {
     onClickKoshien: PropTypes.func,
     onClickLogin: PropTypes.func,
     onClickLogo: PropTypes.func,
+    onOpenTipsLibrary: PropTypes.func,
+    onActivateTutorial: PropTypes.func,
+    showTutorialTooltip: PropTypes.bool,
     onClickMeshV2: PropTypes.func,
     onClickMode: PropTypes.func,
     onClickNew: PropTypes.func,

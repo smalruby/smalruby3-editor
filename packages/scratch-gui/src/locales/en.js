@@ -93,7 +93,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.alwaysVisibleTitle': 'Always Visible:',
     'gui.smalruby3.blockDisplayModal.blocksSubtitle': ' Blocks',
     'gui.menuBar.blockDisplay': 'Block Display...',
-    'gui.menuBar.learn': 'Learn',
+    'gui.menuBar.tutorials': 'Tutorials',
     'gui.menuBar.koshienEntryForm': 'Entry Form',
     'gui.menuBar.koshienCannotChangeRubyVersion': 'The Ruby version cannot be changed when the Koshien extension is loaded.',
 
@@ -251,5 +251,26 @@ export default {
     'gui.rubyToolbar.redo': 'Redo',
     'gui.rubyToolbar.commandPlaceholder': 'Search sprites by name',
     'gui.rubyToolbar.download': 'Download Ruby code',
-    'gui.rubyToolbar.stage': 'Stage'
+    'gui.rubyToolbar.stage': 'Stage',
+
+    // Tutorials
+    'gui.howtos.getting-started.name': 'Getting Started',
+    'gui.howtos.getting-started.step.move': 'Add a move block',
+    'gui.howtos.getting-started.step.say': 'Add a say block',
+    'gui.howtos.getting-started.step.greenFlag': 'Click the green flag to start',
+    'gui.howtos.getting-started.step.rubyTab': 'Not just blocks. You can also create programs with Ruby',
+    'gui.howtos.getting-started.step.bounceCode': "Let's create a program that makes the cat move back and forth",
+    'gui.howtos.getting-started.step.runRuby': "Let's run the program you created",
+    'gui.cards.all-tutorials': 'Tutorials',
+    'gui.cards.shrink': 'Shrink',
+    'gui.cards.expand': 'Expand',
+    'gui.cards.close': 'Close',
+    'gui.cards.more-things-to-try': 'More things to try!',
+    'gui.cards.see-more': 'See more',
+    'gui.cards.insert-code': 'Insert This Code',
+    'gui.tipsLibrary.tutorials': 'Choose a Tutorial',
+    'gui.libraryTags.ruby': 'Ruby',
+    'gui.libraryTags.firstTime': 'First Time',
+    'gui.libraryCategories.gettingStarted': 'Getting Started',
+    'gui.menuBar.tutorialTooltip': 'Try Ruby!'
 };

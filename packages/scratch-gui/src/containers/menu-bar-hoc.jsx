@@ -3,6 +3,10 @@ import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import React from 'react';
 
+import {openTipsLibrary} from '../reducers/modals';
+import {activateDeck} from '../reducers/cards';
+import {markTutorialSeen, shouldShowTooltip} from '../reducers/tutorial-onboarding';
+
 const MenuBarHOC = function (WrappedComponent) {
     class MenuBarContainer extends React.PureComponent {
         constructor (props) {
@@ -49,9 +53,16 @@ const MenuBarHOC = function (WrappedComponent) {
         confirmWithMessage: message => (confirm(message)) // eslint-disable-line no-alert
     };
     const mapStateToProps = state => ({
-        projectChanged: state.scratchGui.projectChanged
+        projectChanged: state.scratchGui.projectChanged,
+        showTutorialTooltip: shouldShowTooltip(state)
     });
-    const mapDispatchToProps = () => ({});
+    const mapDispatchToProps = dispatch => ({
+        onOpenTipsLibrary: () => dispatch(openTipsLibrary()),
+        onActivateTutorial: () => {
+            dispatch(markTutorialSeen());
+            dispatch(activateDeck('intro-getting-started'));
+        }
+    });
     // Allow incoming props to override redux-provided props. Used to mock in tests.
     const mergeProps = (stateProps, dispatchProps, ownProps) => Object.assign(
         {}, stateProps, dispatchProps, ownProps

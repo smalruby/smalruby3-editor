@@ -31,6 +31,8 @@ import TelemetryModal from '../telemetry-modal/telemetry-modal.jsx';
 import BlockDisplayModal from '../../containers/block-display-modal.jsx';
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
+import TipsLibrary from '../../containers/tips-library.jsx';
+import Cards from '../../containers/cards.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
 
 import layout, {STAGE_SIZE_MODES} from '../../lib/layout-constants';
@@ -138,6 +140,7 @@ const GUIComponent = props => {
         canCreateCopy,
         canShare,
         canUseCloud,
+        cardsVisible,
         children,
         connectionModalVisible,
         costumeLibraryVisible,
@@ -181,6 +184,7 @@ const GUIComponent = props => {
         onRequestCloseCostumeLibrary,
         onRequestCloseDebugModal,
         onRequestCloseKoshienTestModal,
+        onRequestCloseTipsLibrary,
         onRequestCloseTelemetryModal,
         onRequestCloseUrlLoaderModal,
         onSeeCommunity,
@@ -304,6 +308,14 @@ const GUIComponent = props => {
                     <KoshienTestModal
                         onRequestClose={onRequestCloseKoshienTestModal}
                     />
+                ) : null}
+                <TipsLibrary
+                    hideTutorialProjects={hideTutorialProjects}
+                    onTutorialSelect={onTutorialSelect}
+                    onRequestClose={onRequestCloseTipsLibrary}
+                />
+                {cardsVisible ? (
+                    <Cards />
                 ) : null}
                 {loading ? (
                     <Loader />
@@ -634,6 +646,7 @@ GUIComponent.propTypes = {
     canSave: PropTypes.bool,
     canShare: PropTypes.bool,
     canUseCloud: PropTypes.bool,
+    cardsVisible: PropTypes.bool,
     children: PropTypes.node,
     costumeLibraryVisible: PropTypes.bool,
     costumesTabVisible: PropTypes.bool,
@@ -670,6 +683,7 @@ GUIComponent.propTypes = {
     onRequestCloseCostumeLibrary: PropTypes.func,
     onRequestCloseDebugModal: PropTypes.func,
     onRequestCloseKoshienTestModal: PropTypes.func,
+    onRequestCloseTipsLibrary: PropTypes.func,
     onRequestCloseTelemetryModal: PropTypes.func,
     onRequestCloseUrlLoaderModal: PropTypes.func,
     onSeeCommunity: PropTypes.func,

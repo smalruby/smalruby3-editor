@@ -27,7 +27,8 @@ import {
     openExtensionLibrary,
     closeDebugModal,
     closeKoshienTestModal,
-    closeUrlLoaderModal
+    closeUrlLoaderModal,
+    closeTipsLibrary
 } from '../reducers/modals';
 
 import {setPlatform} from '../reducers/platform';
@@ -182,6 +183,7 @@ const mapStateToProps = (state, ownProps) => {
         backdropLibraryVisible: state.scratchGui.modals.backdropLibrary,
         blocksTabVisible: state.scratchGui.editorTab.activeTabIndex === BLOCKS_TAB_INDEX,
         connectionModalVisible: state.scratchGui.modals.connectionModal,
+        cardsVisible: state.scratchGui.cards.visible,
         costumeLibraryVisible: state.scratchGui.modals.costumeLibrary,
         costumesTabVisible: state.scratchGui.editorTab.activeTabIndex === COSTUMES_TAB_INDEX,
         debugModalVisible: state.scratchGui.modals.debugModal,
@@ -201,6 +203,7 @@ const mapStateToProps = (state, ownProps) => {
             state.scratchGui.targets.stage.id === state.scratchGui.targets.editingTarget
         ),
         telemetryModalVisible: state.scratchGui.modals.telemetryModal,
+        tipsLibraryVisible: state.scratchGui.modals.tipsLibrary,
         koshienTestModalVisible: state.scratchGui.modals.koshienTestModal,
         urlLoaderModalVisible: state.scratchGui.modals.urlLoaderModal,
         blocksId: state.scratchGui.timeTravel.year.toString(),
@@ -225,7 +228,8 @@ const mapDispatchToProps = dispatch => ({
     onRequestCloseDebugModal: () => dispatch(closeDebugModal()),
     onRequestCloseTelemetryModal: () => dispatch(closeTelemetryModal()),
     onRequestCloseKoshienTestModal: () => dispatch(closeKoshienTestModal()),
-    onRequestCloseUrlLoaderModal: () => dispatch(closeUrlLoaderModal())
+    onRequestCloseUrlLoaderModal: () => dispatch(closeUrlLoaderModal()),
+    onRequestCloseTipsLibrary: () => dispatch(closeTipsLibrary())
 });
 
 const ConnectedGUI = injectIntl(connect(

@@ -14,6 +14,7 @@ import {
 } from '../reducers/ruby-code';
 import {setRubyVersion} from '../reducers/settings';
 import {showAlertWithTimeout, closeAlertWithId} from '../reducers/alerts';
+import {markRubyTabUsed} from '../reducers/tutorial-onboarding';
 import VM from '@smalruby/scratch-vm';
 import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 
@@ -166,6 +167,8 @@ class RubyTab extends React.Component {
                 this.editorRef.focus();
                 this.editorRef.layout();
             }
+            // Mark Ruby tab as used for tutorial onboarding
+            this.props.onMarkRubyTabUsed();
         }
     }
 
@@ -689,6 +692,7 @@ RubyTab.propTypes = {
     onRevertRubyVersion: PropTypes.func,
     onShowAlert: PropTypes.func,
     onDismissAlert: PropTypes.func,
+    onMarkRubyTabUsed: PropTypes.func,
     rubyCode: rubyCodeShape,
     rubyVersion: PropTypes.string,
     targetCodeToBlocks: PropTypes.func,
@@ -721,7 +725,8 @@ const mapDispatchToProps = dispatch => ({
     onRequestCloseFile: () => dispatch(closeFileMenu()),
     onSetAiSaveStatus: status => dispatch(setAiSaveStatus(status)),
     onClearAiSaveStatus: () => dispatch(clearAiSaveStatus()),
-    onFontSizeChange: fontSize => dispatch(updateRubyFontSize(fontSize))
+    onFontSizeChange: fontSize => dispatch(updateRubyFontSize(fontSize)),
+    onMarkRubyTabUsed: () => dispatch(markRubyTabUsed())
 });
 
 export default RubyToBlocksConverterHOC(injectIntl(connect(

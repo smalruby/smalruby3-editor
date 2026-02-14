@@ -312,6 +312,16 @@ export default {
     'gui.rubyToolbar.undo': 'もとにもどす',
     'gui.rubyToolbar.redo': 'やりなおす',
     'gui.rubyToolbar.commandPlaceholder': 'スプライトをなまえでけんさく',
-    'gui.rubyToolbar.download': 'Rubyコードをダウンロード',
-    'gui.rubyToolbar.stage': 'ステージ'
+    'gui.rubyToolbar.download': 'ルビースクリプトをダウンロード',
+    'gui.rubyToolbar.stage': 'ステージ',
+
+    // Tutorials
+    'gui.howtos.getting-started.step.rubyTab': 'ブロックだけじゃない。ルビーでもプログラムをつくれる',
+    'gui.howtos.getting-started.step.bounceCode': 'ネコがいったりきたりするプログラムをつくってみよう',
+    'gui.howtos.getting-started.step.runRuby': 'つくったプログラムをじっこうしよう',
+    'gui.cards.insert-code': 'このコードをにゅうりょく',
+    'gui.libraryTags.ruby': 'ルビー',
+    'gui.libraryTags.firstTime': 'はじめて',
+    'gui.libraryCategories.gettingStarted': 'はじめましょう',
+    'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!'
 };
