@@ -193,3 +193,24 @@ Packages depend on each other through workspace references:
 - All packages are built together in dependency order
 
 When modifying packages that affect others, test compatibility after changes.
+
+## Upstream Integration
+
+This project is a fork of the [Scratch Editor](https://github.com/scratchfoundation/scratch-editor) maintained by the Scratch Foundation.
+
+### Upstream Repository Configuration
+
+- **Upstream remote**: `https://github.com/scratchfoundation/scratch-editor.git`
+- **Upstream branch**: `develop` (NOT main or master)
+- **Local development branch**: `develop`
+
+### Fetching Upstream Changes
+
+**CRITICAL**: The upstream repository contains a GitHub Pages branch with extremely large changes. Always fetch **only the specific branch** you need to avoid downloading unnecessary data:
+
+```bash
+# Fetch only the develop branch from upstream
+git fetch -p upstream develop
+
+# DO NOT use bare `git fetch upstream` - it will fetch all branches including gh-pages
+```
