@@ -1,13 +1,13 @@
-// Intro
-import introMove from './steps/intro-1-move.ja.gif';
-import introSay from './steps/intro-2-say.ja.gif';
-import introGreenFlag from './steps/intro-3-green-flag.ja.gif';
+// Getting Started
+import introRubyTab from './steps/intro-1-ruby-tab.ja.gif';
+import introBounceCode from './steps/intro-2-bounce-code.ja.gif';
+import introRunRuby from './steps/intro-3-run-ruby.ja.gif';
 
 const jaImages = {
-    // Intro
-    introMove: introMove,
-    introSay: introSay,
-    introGreenFlag: introGreenFlag
+    // Getting Started
+    introRubyTab: introRubyTab,
+    introBounceCode: introBounceCode,
+    introRunRuby: introRunRuby
 };
 
 export {jaImages};

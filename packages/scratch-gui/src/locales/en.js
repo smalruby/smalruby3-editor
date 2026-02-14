@@ -258,11 +258,15 @@ export default {
     'gui.howtos.getting-started.step.move': 'Add a move block',
     'gui.howtos.getting-started.step.say': 'Add a say block',
     'gui.howtos.getting-started.step.greenFlag': 'Click the green flag to start',
+    'gui.howtos.getting-started.step.rubyTab': 'Not just blocks. You can also create programs with Ruby',
+    'gui.howtos.getting-started.step.bounceCode': "Let's create a program that makes the cat move back and forth",
+    'gui.howtos.getting-started.step.runRuby': "Let's run the program you created",
     'gui.cards.all-tutorials': 'Tutorials',
     'gui.cards.shrink': 'Shrink',
     'gui.cards.expand': 'Expand',
     'gui.cards.close': 'Close',
     'gui.cards.more-things-to-try': 'More things to try!',
     'gui.cards.see-more': 'See more',
+    'gui.cards.insert-code': 'Insert This Code',
     'gui.tipsLibrary.tutorials': 'Choose a Tutorial'
 };

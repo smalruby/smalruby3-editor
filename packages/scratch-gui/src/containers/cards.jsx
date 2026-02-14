@@ -17,6 +17,15 @@ import {
     openTipsLibrary
 } from '../reducers/modals';
 
+import {
+    activateTab,
+    RUBY_TAB_INDEX
+} from '../reducers/editor-tab';
+
+import {
+    updateRubyCode
+} from '../reducers/ruby-code';
+
 import CardsComponent from '../components/cards/cards.jsx';
 import {loadImageData} from '../lib/libraries/decks/translate-image.js';
 import {PLATFORM} from '../lib/platform.js';
@@ -77,7 +86,11 @@ const mapDispatchToProps = dispatch => ({
     onPrevStep: () => dispatch(prevStep()),
     onDrag: (e_, data) => dispatch(dragCard(data.x, data.y)),
     onStartDrag: () => dispatch(startDrag()),
-    onEndDrag: () => dispatch(endDrag())
+    onEndDrag: () => dispatch(endDrag()),
+    onInsertCodeFactory: code => () => {
+        dispatch(activateTab(RUBY_TAB_INDEX));
+        dispatch(updateRubyCode(code));
+    }
 });
 
 export default connect(

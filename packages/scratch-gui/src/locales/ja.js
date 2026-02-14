@@ -320,11 +320,15 @@ export default {
     'gui.howtos.getting-started.step.move': '「10歩動かす」ブロックを追加する',
     'gui.howtos.getting-started.step.say': '「こんにちはと言う」ブロックを追加する',
     'gui.howtos.getting-started.step.greenFlag': '🏁をクリックしてスタート！',
+    'gui.howtos.getting-started.step.rubyTab': 'ブロックだけじゃない。Rubyでもプログラムを作れる',
+    'gui.howtos.getting-started.step.bounceCode': 'ネコが行ったり来たりするプログラムを作ってみよう',
+    'gui.howtos.getting-started.step.runRuby': '作ったプログラムを実行しよう',
     'gui.cards.all-tutorials': 'チュートリアル',
     'gui.cards.shrink': '縮小',
     'gui.cards.expand': '展開',
     'gui.cards.close': '閉じる',
     'gui.cards.more-things-to-try': '他にもやってみよう！',
     'gui.cards.see-more': 'もっと見る',
+    'gui.cards.insert-code': 'このコードを入力',
     'gui.tipsLibrary.tutorials': 'チュートリアルを選ぶ'
 };

@@ -10,46 +10,49 @@ const decks = {
     'getting-started': {
         name: (
             <FormattedMessage
-                defaultMessage="Getting Started"
+                defaultMessage="さあ、始めましょう"
                 description="Name for the 'Getting Started' tutorial"
                 id="gui.howtos.getting-started.name"
             />
         ),
-        tags: ['animation'],
+        tags: ['ruby', 'はじめて'],
         img: libraryIntro,
         steps: [
             {
-                video: 'intro-move-sayhello'
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ブロックだけじゃない。Rubyでもプログラムを作れる"
+                        description="Step 1: Introduce Ruby tab"
+                        id="gui.howtos.getting-started.step.rubyTab"
+                    />
+                ),
+                image: 'introRubyTab'
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="Add a move block"
-                        description="Step title for adding a move block"
-                        id="gui.howtos.getting-started.step.move"
+                        defaultMessage="ネコが行ったり来たりするプログラムを作ってみよう"
+                        description="Step 2: Create bounce program"
+                        id="gui.howtos.getting-started.step.bounceCode"
                     />
                 ),
-                image: 'introMove'
+                image: 'introBounceCode',
+                code: `when_flag_clicked do
+  loop do
+    move(10)
+    bounce_if_on_edge
+  end
+end`
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="Add a say block"
-                        description="Step title for adding a say block"
-                        id="gui.howtos.getting-started.step.say"
+                        defaultMessage="作ったプログラムを実行しよう"
+                        description="Step 3: Run the program"
+                        id="gui.howtos.getting-started.step.runRuby"
                     />
                 ),
-                image: 'introSay'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="Click the green flag to start"
-                        description="Step title for clicking the green flag"
-                        id="gui.howtos.getting-started.step.greenFlag"
-                    />
-                ),
-                image: 'introGreenFlag'
+                image: 'introRunRuby'
             }
         ],
         urlId: 'getstarted'

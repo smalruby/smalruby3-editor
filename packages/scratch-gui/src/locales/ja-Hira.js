@@ -313,5 +313,11 @@ export default {
     'gui.rubyToolbar.redo': 'やりなおす',
     'gui.rubyToolbar.commandPlaceholder': 'スプライトをなまえでけんさく',
     'gui.rubyToolbar.download': 'Rubyコードをダウンロード',
-    'gui.rubyToolbar.stage': 'ステージ'
+    'gui.rubyToolbar.stage': 'ステージ',
+
+    // Tutorials
+    'gui.howtos.getting-started.step.rubyTab': 'ブロックだけじゃない。Rubyでもプログラムをつくれる',
+    'gui.howtos.getting-started.step.bounceCode': 'ネコがいったりきたりするプログラムをつくってみよう',
+    'gui.howtos.getting-started.step.runRuby': 'つくったプログラムをじっこうしよう',
+    'gui.cards.insert-code': 'このコードをにゅうりょく'
 };

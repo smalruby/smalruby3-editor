@@ -304,3 +304,31 @@ body .card-container {
 .hidden {
     display: none;
 }
+
+/* Insert Code Button */
+.insert-code-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 1rem;
+    background-color: $ui-green;
+    color: $ui-white;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.insert-code-button:hover {
+    background-color: $ui-green-2;
+}
+
+.insert-code-button .code-icon {
+    width: 1rem;
+    height: 1rem;
+    filter: brightness(0) invert(1);
+}

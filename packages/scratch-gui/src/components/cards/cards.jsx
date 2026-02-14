@@ -14,6 +14,7 @@ import leftArrow from './icon--prev.svg';
 
 import helpIcon from '../../lib/assets/icon--tutorials.svg';
 import closeIcon from './icon--close.svg';
+import codeIcon from './icon--code.svg';
 
 import {translateVideo} from '../../lib/libraries/decks/translate-video.js';
 import {translateImage} from '../../lib/libraries/decks/translate-image.js';
@@ -149,7 +150,7 @@ VideoStep.propTypes = {
     video: PropTypes.string.isRequired
 };
 
-const ImageStep = ({title, image}) => (<Fragment>
+const ImageStep = ({title, image, code, onInsertCodeFactory}) => (<Fragment>
     <div className={styles.stepTitle}>
         {title}
     </div>
@@ -161,11 +162,29 @@ const ImageStep = ({title, image}) => (<Fragment>
             src={image}
         />
     </div>
+    {code && onInsertCodeFactory ? (
+        <button
+            className={styles.insertCodeButton}
+            onClick={onInsertCodeFactory(code)}
+        >
+            <img
+                className={styles.codeIcon}
+                src={codeIcon}
+            />
+            <FormattedMessage
+                defaultMessage="Insert This Code"
+                description="Button to insert code into Ruby tab"
+                id="gui.cards.insert-code"
+            />
+        </button>
+    ) : null}
 </Fragment>
 );
 
 ImageStep.propTypes = {
+    code: PropTypes.string,
     image: PropTypes.string.isRequired,
+    onInsertCodeFactory: PropTypes.func,
     title: PropTypes.node.isRequired
 };
 
@@ -342,6 +361,7 @@ const Cards = props => {
         onDrag,
         onStartDrag,
         onEndDrag,
+        onInsertCodeFactory,
         onShowAll,
         onNextStep,
         onPrevStep,
@@ -435,7 +455,9 @@ const Cards = props => {
                                             )
                                     ) : (
                                         <ImageStep
+                                            code={steps[step].code}
                                             image={translateImage(steps[step].image, locale)}
+                                            onInsertCodeFactory={onInsertCodeFactory}
                                             title={steps[step].title}
                                         />
                                     )
@@ -465,6 +487,7 @@ Cards.propTypes = {
                 title: PropTypes.node,
                 image: PropTypes.string,
                 video: PropTypes.string,
+                code: PropTypes.string,
                 deckIds: PropTypes.arrayOf(PropTypes.string)
             }))
         })
@@ -477,6 +500,7 @@ Cards.propTypes = {
     onCloseCards: PropTypes.func.isRequired,
     onDrag: PropTypes.func,
     onEndDrag: PropTypes.func,
+    onInsertCodeFactory: PropTypes.func,
     onNextStep: PropTypes.func.isRequired,
     onPrevStep: PropTypes.func.isRequired,
     onShowAll: PropTypes.func,
