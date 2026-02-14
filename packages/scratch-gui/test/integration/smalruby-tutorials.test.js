@@ -26,8 +26,6 @@ describe('Smalruby Tutorials', () => {
 
     test('opens with the Tutorial Library showing and no severe logs', async () => {
         await loadUri(uri);
-        // "さあ、始めましょう" is the name of Getting Started in Japanese
-        // In English test environment:
         await clickText('Getting Started');
         await findByXpath('//div[contains(@class, "card_card_")]');
 
