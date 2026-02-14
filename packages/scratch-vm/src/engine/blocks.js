@@ -214,7 +214,9 @@ class Blocks {
         let block = this._blocks[id];
         if (typeof block === 'undefined') return null;
         while (block.parent !== null) {
-            block = this._blocks[block.parent];
+            const parentBlock = this._blocks[block.parent];
+            if (typeof parentBlock === 'undefined') return block.id;
+            block = parentBlock;
         }
         return block.id;
     }

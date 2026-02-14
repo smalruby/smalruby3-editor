@@ -584,16 +584,25 @@ class RubyToBlocksConverter {
 
         const blockId = this._context.nodeToBlockMap.get(entry.node);
 
-        // If direct mapping exists but node has no block, try fallback
-        if (!blockId) {
+        // If direct mapping exists but node has no block, or block was deleted, try fallback
+        if (!blockId || !this._context.blocks[blockId]) {
             const fallbackEntry = this._findContainingNode(lineNumber);
             if (fallbackEntry) {
                 const fallbackBlockId = this._context.nodeToBlockMap.get(fallbackEntry.node);
-                return fallbackBlockId || null;
+                if (fallbackBlockId && this._context.blocks[fallbackBlockId]) {
+                    return fallbackBlockId;
+                }
             }
+
+            const nearestLine = this._findNearestExecutableLine(lineNumber);
+            if (nearestLine !== null) {
+                return this.getBlockIdForLine(nearestLine);
+            }
+
+            return null;
         }
 
-        return blockId || null;
+        return blockId;
     }
 
     /**
