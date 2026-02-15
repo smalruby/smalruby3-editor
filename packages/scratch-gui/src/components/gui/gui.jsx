@@ -557,16 +557,6 @@ const GUIComponent = props => {
                                     className={tabClassNames.tabPanel}
                                     role="tabpanel"
                                 >
-                                    <RubyTab
-                                        isVisible={rubyTabVisible}
-                                        vm={vm}
-                                        onProjectTelemetryEvent={onProjectTelemetryEvent}
-                                    />
-                                </TabPanel>
-                                <TabPanel
-                                    className={tabClassNames.tabPanel}
-                                    role="tabpanel"
-                                >
                                     {costumesTabVisible ? <CostumeTab
                                         ariaLabel={targetIsStage ? intl.formatMessage(ariaMessages.backdropsPanel) :
                                             intl.formatMessage(ariaMessages.costumesPanel)}
