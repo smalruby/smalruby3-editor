@@ -442,9 +442,25 @@ class BlockDisplayModal extends React.Component {
                                                     category.messageKey}
                                             </div>
                                             {categoryBlocks.map(blockType => {
-                                                const messageId = `gui.smalruby3.blockDisplayModal.${blockType}`;
                                                 const selectedBlocksInCategory = selectedBlocks[category.id] || [];
                                                 const isBlockSelected = selectedBlocksInCategory.includes(blockType);
+
+                                                // Try to get block name from ScratchBlocks.Msg first
+                                                // Convert block type to uppercase key format (e.g., sensing_online → SENSING_ONLINE)
+                                                const scratchBlocksKey = blockType.toUpperCase();
+                                                let blockName;
+
+                                                if (scratchBlocks && scratchBlocks.Msg && scratchBlocks.Msg[scratchBlocksKey]) {
+                                                    // Use ScratchBlocks translation if available
+                                                    blockName = scratchBlocks.Msg[scratchBlocksKey];
+                                                } else {
+                                                    // Fallback to custom translation
+                                                    const messageId = `gui.smalruby3.blockDisplayModal.${blockType}`;
+                                                    blockName = intl.formatMessage({
+                                                        id: messageId,
+                                                        defaultMessage: blockType
+                                                    });
+                                                }
 
                                                 return (
                                                     <div
@@ -461,10 +477,7 @@ class BlockDisplayModal extends React.Component {
                                                                 onChange={this.handleBlockChange}
                                                             />
                                                             <span className={styles.blockName}>
-                                                                {intl.formatMessage({
-                                                                    id: messageId,
-                                                                    defaultMessage: blockType
-                                                                })}
+                                                                {blockName}
                                                             </span>
                                                         </label>
                                                     </div>
