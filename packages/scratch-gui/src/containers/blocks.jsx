@@ -439,7 +439,8 @@ class Blocks extends React.Component {
                 stageCostumes[stageCostumes.length - 1].name,
                 targetSounds.length > 0 ? targetSounds[targetSounds.length - 1].name : '',
                 getColorsForMode(this.props.colorMode),
-                onlyBlocks
+                onlyBlocks,
+                !!onlyBlocks // isOnlyBlocksSpecified: true if onlyBlocks has a value
             );
         } catch {
             return null;
