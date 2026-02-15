@@ -792,7 +792,7 @@ const shouldIncludeBlock = function (blockType, allowedPatterns) {
 
 /**
  * Hides a category completely when no blocks are selected
- * @param {string} categoryXML - The XML string for a category (unused)
+ * @param {string} _categoryXML - The XML string for a category (unused)
  * @returns {string} - Empty string to hide the category
  */
 const filterAllBlocks = function (_categoryXML) {
@@ -894,8 +894,11 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
  * @param {?boolean} isOnlyBlocksSpecified - Whether the onlyBlocks parameter was explicitly specified.
  * @returns {string} - a ScratchBlocks-style XML document for the contents of the toolbox.
  */
-const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categoriesXML = [],
-    costumeName = '', backdropName = '', soundName = '', colors = defaultColors, onlyBlocks = null, isOnlyBlocksSpecified = false) {
+const makeToolboxXML = function (
+    isInitialSetup, isStage = true, targetId, categoriesXML = [],
+    costumeName = '', backdropName = '', soundName = '', colors = defaultColors,
+    onlyBlocks = null, isOnlyBlocksSpecified = false
+) {
     isStage = isInitialSetup || isStage;
     const gap = [categorySeparator];
 

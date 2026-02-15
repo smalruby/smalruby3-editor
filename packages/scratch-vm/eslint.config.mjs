@@ -11,7 +11,9 @@ export default eslintConfigScratch.defineConfig(
             globals: globals.browser
         },
         rules: {
-            'no-unused-vars': 'warn'
+            'no-unused-vars': 'warn',
+            'format-message/literal-pattern': 'off',
+            'format-message/literal-locale': 'off'
         }
     },
     {
@@ -40,11 +42,17 @@ export default eslintConfigScratch.defineConfig(
         'dist/**/*',
         'node_modules/**/*',
         'playground/**/*',
-        'src/extension-support/extension-worker.js'
+        'src/extension-support/extension-worker.js',
+        'src/engine/runtime.js',
+        'src/extension-support/extension-manager.js',
+        'src/util/maybe-format-message.js'
     ]),
     {
         files: ['src/**/*.js', 'test/**/*.js'],
         ignores: [
+            'src/engine/runtime.js',
+            'src/extension-support/extension-manager.js',
+            'src/util/maybe-format-message.js',
             'src/extensions/koshien/index.js',
             'src/extensions/microbitMore/ble-web.js',
             'src/extensions/microbitMore/index.js',
@@ -88,6 +96,18 @@ export default eslintConfigScratch.defineConfig(
         ],
         rules: {
             'jsdoc/no-undefined-types': 'off'
+        }
+    },
+    {
+        // upstream files with format-message warnings
+        files: [
+            'src/engine/runtime.js',
+            'src/extension-support/extension-manager.js',
+            'src/util/maybe-format-message.js'
+        ],
+        rules: {
+            'format-message/literal-pattern': 'off',
+            'format-message/literal-locale': 'off'
         }
     }
 );
