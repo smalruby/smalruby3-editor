@@ -137,7 +137,7 @@ describe('only_blocks parameter initialization', () => {
             // Expected: motion_setx + all other categories
             // Actual (bug): some categories empty
             const result = initializeBlockSelectionFromOnlyBlocks('00048ffffffffffffffffffff7');
-            
+
             // This should fail initially due to the bug - motion should only have motion_setx
             // but other categories should have all blocks
             expect(result.motion).toEqual(['motion_setx']);
@@ -147,6 +147,60 @@ describe('only_blocks parameter initialization', () => {
             expect(result.control.length).toBeGreaterThan(0); // Should not be empty
             expect(result.sensing.length).toBeGreaterThan(0); // Should not be empty
             expect(result.operators.length).toBeGreaterThan(0); // Should not be empty
+        });
+
+        describe('backward compatibility for sensing_online addition', () => {
+            test('should NOT include sensing_online when URL has no flag for it (pre-addition URL)', () => {
+                // Before sensing_online was added, URL params only had 80 bits (0-79)
+                // sensing_online is at bit 80, so old URLs lack this bit
+                // Expected: sensing_online should NOT be included (unspecified bits = 0)
+                // This hex param: all bits set to 1 for the first 80 blocks
+                // (20 hex digits = 80 bits, sensing_online at bit 80 is not specified)
+                const result = initializeBlockSelectionFromOnlyBlocks('0ffffffffffffffffffff');
+
+                // All blocks up to bit 79 should be selected
+                expect(result.motion.length).toBe(15);
+                expect(result.looks.length).toBe(21);
+                expect(result.sound.length).toBe(8);
+                expect(result.event.length).toBe(8);
+                expect(result.control.length).toBe(11);
+
+                // sensing should include blocks up to dayssince2000 (bit 79)
+                expect(result.sensing).toContain('sensing_dayssince2000'); // bit 79
+
+                // sensing_online (bit 80) and sensing_username (bit 81) are NOT specified
+                // so they should NOT be selected
+                expect(result.sensing).not.toContain('sensing_online'); // bit 80
+                expect(result.sensing).not.toContain('sensing_username'); // bit 81
+            });
+
+            test('should include sensing_online when explicitly set to 1', () => {
+                // Explicitly include sensing_online by setting bit 80 to 1
+                // 20 hex digits (80 bits) + 1 more hex digit for bits 80-83
+                // Bit 80 is position 0 in the 21st hex digit
+                // In reversed bit order: 1000 (binary) = 0x1 (hex)
+                const result = initializeBlockSelectionFromOnlyBlocks('0ffffffffffffffffffff1');
+
+                expect(result.sensing).toContain('sensing_online');
+            });
+
+            test('should exclude sensing_online when explicitly set to 0', () => {
+                // Explicitly exclude sensing_online by setting bit 80 to 0
+                // while keeping sensing_username (bit 81) selected
+                // Bits 80-83: we want 80=0, 81=1, 82=0, 83=0 → binary 0100
+                // With bit reversal (LSB first): 0010 → hex 0x2
+                // Need 20 'f's (bits 0-79) + '2' (bits 80-83)
+                const result = initializeBlockSelectionFromOnlyBlocks('0ffffffffffffffffffff2');
+
+                // sensing_dayssince2000 (bit 79) should be selected
+                expect(result.sensing).toContain('sensing_dayssince2000');
+
+                // sensing_online (bit 80) should NOT be selected
+                expect(result.sensing).not.toContain('sensing_online');
+
+                // sensing_username (bit 81) should be selected
+                expect(result.sensing).toContain('sensing_username');
+            });
         });
     });
 });
