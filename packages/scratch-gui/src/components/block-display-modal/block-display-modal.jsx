@@ -39,7 +39,7 @@ const BLOCK_CATEGORIES = [
     {id: 'motion', messageKey: 'CATEGORY_MOTION'},
     {id: 'looks', messageKey: 'CATEGORY_LOOKS'},
     {id: 'sound', messageKey: 'CATEGORY_SOUND'},
-    {id: 'events', messageKey: 'CATEGORY_EVENTS'},
+    {id: 'event', messageKey: 'CATEGORY_EVENTS'},
     {id: 'control', messageKey: 'CATEGORY_CONTROL'},
     {id: 'sensing', messageKey: 'CATEGORY_SENSING'},
     {id: 'operators', messageKey: 'CATEGORY_OPERATORS'}

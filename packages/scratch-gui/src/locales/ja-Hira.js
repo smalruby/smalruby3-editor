@@ -248,6 +248,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.sensing_of': '(ステージ▼) の [はいけい#▼]',
     'gui.smalruby3.blockDisplayModal.sensing_current': 'げんざいの [ねん▼]',
     'gui.smalruby3.blockDisplayModal.sensing_dayssince2000': '2000ねんからのにっすう',
+    'gui.smalruby3.blockDisplayModal.sensing_online': 'オンライン',
     'gui.smalruby3.blockDisplayModal.sensing_username': 'ユーザーめい',
 
     // Operator blocks

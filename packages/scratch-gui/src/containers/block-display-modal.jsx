@@ -31,7 +31,7 @@ const CATEGORY_BLOCKS = {
         'sound_playuntildone', 'sound_play', 'sound_stopallsounds', 'sound_changeeffectby',
         'sound_seteffectto', 'sound_cleareffects', 'sound_changevolumeby', 'sound_setvolumeto'
     ],
-    events: [
+    event: [
         'event_whenflagclicked', 'event_whenkeypressed', 'event_whenthisspriteclicked',
         'event_whenbackdropswitchesto', 'event_whengreaterthan', 'event_whenbroadcastreceived',
         'event_broadcast', 'event_broadcastandwait'
@@ -46,7 +46,7 @@ const CATEGORY_BLOCKS = {
         'sensing_distanceto', 'sensing_askandwait', 'sensing_answer', 'sensing_keypressed',
         'sensing_mousedown', 'sensing_mousex', 'sensing_mousey', 'sensing_setdragmode',
         'sensing_loudness', 'sensing_timer', 'sensing_resettimer', 'sensing_of',
-        'sensing_current', 'sensing_dayssince2000', 'sensing_username'
+        'sensing_current', 'sensing_dayssince2000', 'sensing_online', 'sensing_username'
     ],
     operators: [
         'operator_add', 'operator_subtract', 'operator_multiply', 'operator_divide',
@@ -113,7 +113,7 @@ class BlockDisplayModal extends React.Component {
             motion: [],
             looks: [],
             sound: [],
-            events: [],
+            event: [],
             control: [],
             sensing: [],
             operators: []
