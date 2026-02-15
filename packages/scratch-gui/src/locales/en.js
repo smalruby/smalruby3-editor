@@ -189,6 +189,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.sensing_of': '[backdrop # ▼] of (Stage ▼)',
     'gui.smalruby3.blockDisplayModal.sensing_current': 'current [year ▼]',
     'gui.smalruby3.blockDisplayModal.sensing_dayssince2000': 'days since 2000',
+    'gui.smalruby3.blockDisplayModal.sensing_online': 'online',
     'gui.smalruby3.blockDisplayModal.sensing_username': 'username',
 
     // Operator blocks

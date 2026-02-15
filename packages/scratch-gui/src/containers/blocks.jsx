@@ -235,6 +235,13 @@ class Blocks extends React.Component {
     }
     setLocale () {
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
+
+        // Add Smalruby-specific block translations that differ from upstream
+        if (this.props.locale === 'ja' || this.props.locale === 'ja-Hira') {
+            // Override Japanese translation for sensing_online to use Japanese text
+            this.ScratchBlocks.Msg.SENSING_ONLINE = 'オンライン?';
+        }
+
         this.props.vm.setLocale(this.props.locale, this.props.messages)
             .then(() => {
                 this.workspace.getFlyout().setRecyclingEnabled(false);

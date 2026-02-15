@@ -1,4 +1,4 @@
-// === Smalruby: MeshV2 network filter detection feature ===
+// === Smalruby: This file is Smalruby-specific (MeshV2 network filter detection) ===
 // This component is specific to meshV2 extension and displays an error message
 // when the extension is blocked by network filter (HTTP 503) such as i-Filter proxy
 // in schools or enterprises.
@@ -139,5 +139,3 @@ MeshV2NetworkFilteredStep.propTypes = {
 };
 
 export default MeshV2NetworkFilteredStep;
-
-// === Smalruby: End of MeshV2 network filter detection feature ===
