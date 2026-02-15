@@ -1,6 +1,6 @@
 {
   "name": "@smalruby/scratch-svg-renderer",
-  "version": "12.3.1",
+  "version": "12.6.2",
   "description": "SVG renderer for Scratch",
   "keywords": [],
   "homepage": "https://github.com/smalruby/smalruby3-editor#readme",

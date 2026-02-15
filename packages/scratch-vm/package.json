@@ -1,6 +1,6 @@
 {
   "name": "@smalruby/scratch-vm",
-  "version": "12.3.1",
+  "version": "12.6.2",
   "description": "Virtual Machine for Scratch 3.0",
   "keywords": [],
   "homepage": "https://github.com/smalruby/smalruby3-editor#readme",
@@ -85,8 +85,8 @@
     "text-encoding": "0.7.0",
     "tslog": "4.10.2",
     "uuid": "8.3.2",
-    "@smalruby/scratch-render": "12.3.1",
-    "@smalruby/scratch-svg-renderer": "12.3.1"
+    "@smalruby/scratch-render": "12.6.2",
+    "@smalruby/scratch-svg-renderer": "12.6.2"
   },
   "devDependencies": {
     "@babel/core": "7.29.0",

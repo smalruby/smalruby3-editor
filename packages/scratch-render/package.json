@@ -1,6 +1,6 @@
 {
   "name": "@smalruby/scratch-render",
-  "version": "12.3.1",
+  "version": "12.6.2",
   "description": "WebGL Renderer for Scratch 3.0",
   "keywords": [],
   "homepage": "https://github.com/smalruby/smalruby3-editor#readme",
@@ -58,7 +58,7 @@
     "allow-incomplete-coverage": true
   },
   "dependencies": {
-    "@smalruby/scratch-svg-renderer": "12.3.1",
+    "@smalruby/scratch-svg-renderer": "12.6.2",
     "grapheme-breaker": "0.3.2",
     "hull.js": "0.2.10",
     "ify-loader": "1.1.0",
@@ -71,7 +71,7 @@
     "@babel/core": "7.29.0",
     "@babel/polyfill": "7.12.1",
     "@babel/preset-env": "7.29.0",
-    "@smalruby/scratch-vm": "12.3.1",
+    "@smalruby/scratch-vm": "12.6.2",
     "babel-loader": "9.2.1",
     "copy-webpack-plugin": "6.4.1",
     "docdash": "0.4.0",
