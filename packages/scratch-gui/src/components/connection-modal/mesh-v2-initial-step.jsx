@@ -1,4 +1,4 @@
-// === Smalruby: MeshV2 initial connection step ===
+// === Smalruby: This file is Smalruby-specific (MeshV2 initial connection step) ===
 // This component shows initial connection options for meshV2 extension
 // with two main actions: create group (become host) or join group.
 
@@ -169,5 +169,3 @@ MeshV2InitialStep.propTypes = {
 };
 
 export default MeshV2InitialStep;
-
-// === Smalruby: End of MeshV2 initial connection step ===
