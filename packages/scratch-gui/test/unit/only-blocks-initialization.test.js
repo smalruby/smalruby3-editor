@@ -11,7 +11,7 @@ describe('only_blocks parameter initialization', () => {
             motion: CATEGORY_BLOCKS.motion,
             looks: CATEGORY_BLOCKS.looks,
             sound: CATEGORY_BLOCKS.sound,
-            events: CATEGORY_BLOCKS.events,
+            event: CATEGORY_BLOCKS.event,
             control: CATEGORY_BLOCKS.control,
             sensing: CATEGORY_BLOCKS.sensing,
             operators: CATEGORY_BLOCKS.operators
@@ -24,7 +24,7 @@ describe('only_blocks parameter initialization', () => {
             motion: [],
             looks: [],
             sound: [],
-            events: [],
+            event: [],
             control: [],
             sensing: [],
             operators: []
@@ -104,7 +104,7 @@ describe('only_blocks parameter initialization', () => {
             expect(result.motion).toEqual(CATEGORY_BLOCKS.motion);
             expect(result.looks).toEqual(CATEGORY_BLOCKS.looks);
             expect(result.sound).toEqual(CATEGORY_BLOCKS.sound);
-            expect(result.events).toEqual(CATEGORY_BLOCKS.events);
+            expect(result.event).toEqual(CATEGORY_BLOCKS.event);
             expect(result.control).toEqual(CATEGORY_BLOCKS.control);
             expect(result.sensing).toEqual(CATEGORY_BLOCKS.sensing);
             expect(result.operators).toEqual(CATEGORY_BLOCKS.operators);
@@ -117,7 +117,7 @@ describe('only_blocks parameter initialization', () => {
                 motion: [],
                 looks: [],
                 sound: [],
-                events: [],
+                event: [],
                 control: [],
                 sensing: [],
                 operators: []
@@ -143,7 +143,7 @@ describe('only_blocks parameter initialization', () => {
             expect(result.motion).toEqual(['motion_setx']);
             expect(result.looks.length).toBeGreaterThan(0); // Should not be empty
             expect(result.sound.length).toBeGreaterThan(0); // Should not be empty
-            expect(result.events.length).toBeGreaterThan(0); // Should not be empty
+            expect(result.event.length).toBeGreaterThan(0); // Should not be empty
             expect(result.control.length).toBeGreaterThan(0); // Should not be empty
             expect(result.sensing.length).toBeGreaterThan(0); // Should not be empty
             expect(result.operators.length).toBeGreaterThan(0); // Should not be empty
