@@ -202,5 +202,53 @@ describe('only_blocks parameter initialization', () => {
                 expect(result.sensing).toContain('sensing_username');
             });
         });
+
+        describe('backward compatibility for events_ prefix (legacy format)', () => {
+            test('should support events_ prefix for selecting all event blocks', () => {
+                // Old URLs used "events_" but we renamed category to "event"
+                // Should be converted to "event_" automatically
+                const result = initializeBlockSelectionFromOnlyBlocks('events_');
+
+                // All event blocks should be selected
+                expect(result.event).toEqual(CATEGORY_BLOCKS.event);
+
+                // Other categories should be empty
+                expect(result.motion).toEqual([]);
+                expect(result.looks).toEqual([]);
+            });
+
+            test('should support events_xxx prefix for selecting specific event blocks', () => {
+                // Old URLs used "events_whenflagclicked" format
+                // Should be converted to "event_whenflagclicked" automatically
+                const result = initializeBlockSelectionFromOnlyBlocks('events_whenflagclicked');
+
+                // Only the specific event block should be selected
+                expect(result.event).toEqual(['event_whenflagclicked']);
+
+                // Other event blocks should not be selected
+                expect(result.event).not.toContain('event_whenkeypressed');
+            });
+
+            test('should support mixed events_ and event_ in same parameter', () => {
+                // Support mixing old and new formats
+                const result = initializeBlockSelectionFromOnlyBlocks(
+                    'events_whenflagclicked,event_whenkeypressed'
+                );
+
+                // Both blocks should be selected
+                expect(result.event).toContain('event_whenflagclicked');
+                expect(result.event).toContain('event_whenkeypressed');
+                expect(result.event.length).toBe(2);
+            });
+
+            test('should support events_ with period separator', () => {
+                const result = initializeBlockSelectionFromOnlyBlocks(
+                    'motion_movesteps.events_whenflagclicked'
+                );
+
+                expect(result.motion).toEqual(['motion_movesteps']);
+                expect(result.event).toEqual(['event_whenflagclicked']);
+            });
+        });
     });
 });

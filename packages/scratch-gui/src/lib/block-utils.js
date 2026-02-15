@@ -214,13 +214,17 @@ export const initializeBlockSelectionFromOnlyBlocks = onlyBlocks => {
     // If empty string provided, return empty selections
     if (!onlyBlocks) return selectedBlocks;
 
+    // Backward compatibility: convert "events_" to "event_" (legacy format)
+    // This supports old URLs that used "events" category name
+    let processedBlocks = onlyBlocks.replace(/events_/g, 'event_');
+
     // Check if hex format (starts with '0')
-    if (onlyBlocks.startsWith('0') && onlyBlocks.length > 1) {
-        return parseHexFormatToSelectedBlocks(onlyBlocks);
+    if (processedBlocks.startsWith('0') && processedBlocks.length > 1) {
+        return parseHexFormatToSelectedBlocks(processedBlocks);
     }
 
     // Parse only_blocks parameter (legacy format)
-    const patterns = onlyBlocks.split(/[,.]/)
+    const patterns = processedBlocks.split(/[,.]/)
         .map(pattern => pattern.trim())
         .filter(pattern => pattern.length > 0);
 
