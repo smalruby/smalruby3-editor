@@ -55,7 +55,7 @@ export const CATEGORY_BLOCKS = {
         'sound_changevolumeby',
         'sound_setvolumeto'
     ],
-    events: [
+    event: [
         'event_whenflagclicked',
         'event_whenkeypressed',
         'event_whenthisspriteclicked',
@@ -96,6 +96,7 @@ export const CATEGORY_BLOCKS = {
         'sensing_of',
         'sensing_current',
         'sensing_dayssince2000',
+        'sensing_online',
         'sensing_username'
     ],
     operators: [
@@ -126,7 +127,7 @@ export const CATEGORY_BLOCKS = {
  */
 export const generateBlockOrder = function () {
     const blockOrder = [];
-    const categoryOrder = ['motion', 'looks', 'sound', 'events', 'control', 'sensing', 'operators'];
+    const categoryOrder = ['motion', 'looks', 'sound', 'event', 'control', 'sensing', 'operators'];
     
     categoryOrder.forEach(categoryId => {
         const categoryBlocks = CATEGORY_BLOCKS[categoryId] || [];
