@@ -58,7 +58,7 @@
     "allow-incomplete-coverage": true
   },
   "dependencies": {
-    "@scratch/scratch-svg-renderer": "12.6.2",
+    "@smalruby/scratch-svg-renderer": "12.3.1",
     "grapheme-breaker": "0.3.2",
     "hull.js": "0.2.10",
     "ify-loader": "1.1.0",
@@ -71,7 +71,6 @@
     "@babel/core": "7.29.0",
     "@babel/polyfill": "7.12.1",
     "@babel/preset-env": "7.29.0",
-    "@scratch/scratch-vm": "12.6.2",
     "@smalruby/scratch-vm": "12.3.1",
     "babel-loader": "9.2.1",
     "copy-webpack-plugin": "6.4.1",
@@ -81,7 +80,6 @@
     "gh-pages": "1.2.0",
     "globals": "16.5.0",
     "html-webpack-plugin": "5.6.6",
-    "jsdoc": "3.6.11",
     "playwright-chromium": "1.58.2",
     "scratch-render-fonts": "1.0.252",
     "scratch-semantic-release-config": "4.0.1",
