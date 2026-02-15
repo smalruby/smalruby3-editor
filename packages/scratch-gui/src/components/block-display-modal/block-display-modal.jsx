@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -246,8 +245,7 @@ class BlockDisplayModal extends React.Component {
                 this.setState({copyButtonState: 'normal'});
             }, 2000);
         } catch (error) {
-            // Handle copy failure
-            console.warn('Failed to copy URL to clipboard:', error);
+            // Handle copy failure - silently reset button state
             this.setState({copyButtonState: 'normal'});
         }
     }
@@ -446,11 +444,13 @@ class BlockDisplayModal extends React.Component {
                                                 const isBlockSelected = selectedBlocksInCategory.includes(blockType);
 
                                                 // Try to get block name from ScratchBlocks.Msg first
-                                                // Convert block type to uppercase key format (e.g., sensing_online → SENSING_ONLINE)
+                                                // Convert block type to uppercase key format
+                                                // (e.g., sensing_online → SENSING_ONLINE)
                                                 const scratchBlocksKey = blockType.toUpperCase();
                                                 let blockName;
 
-                                                if (scratchBlocks && scratchBlocks.Msg && scratchBlocks.Msg[scratchBlocksKey]) {
+                                                if (scratchBlocks && scratchBlocks.Msg &&
+                                                    scratchBlocks.Msg[scratchBlocksKey]) {
                                                     // Use ScratchBlocks translation if available
                                                     blockName = scratchBlocks.Msg[scratchBlocksKey];
                                                 } else {

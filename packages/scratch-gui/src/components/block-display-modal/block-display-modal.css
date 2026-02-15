@@ -205,8 +205,8 @@
     border-color: rgb(189, 66, 189);
 }
 
-.categoryItem[data-category="events"] .checkbox:checked,
-.categoryItem[data-category="events"] .checkbox:indeterminate {
+.categoryItem[data-category="event"] .checkbox:checked,
+.categoryItem[data-category="event"] .checkbox:indeterminate {
     background-color: rgb(255, 191, 0);
     border-color: rgb(204, 153, 0);
 }
@@ -263,7 +263,7 @@
     border-color: rgb(189, 66, 189);
 }
 
-.blockCheckbox[data-category="events"]:checked {
+.blockCheckbox[data-category="event"]:checked {
     background-color: rgb(255, 191, 0);
     border-color: rgb(204, 153, 0);
 }
