@@ -272,5 +272,6 @@ export default {
     'gui.libraryTags.ruby': 'Ruby',
     'gui.libraryTags.firstTime': 'First Time',
     'gui.libraryCategories.gettingStarted': 'Getting Started',
-    'gui.menuBar.tutorialTooltip': 'Try Ruby!'
+    'gui.menuBar.tutorialTooltip': 'Try Ruby!',
+    'gui.aria.clearButton': 'Clear'
 };

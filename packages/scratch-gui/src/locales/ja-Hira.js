@@ -323,5 +323,6 @@ export default {
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
-    'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!'
+    'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!',
+    'gui.aria.clearButton': 'クリア'
 };
