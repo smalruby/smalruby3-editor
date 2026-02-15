@@ -232,3 +232,24 @@ git fetch -p upstream develop
 
 # DO NOT use bare `git fetch upstream` - it will fetch all branches including gh-pages
 ```
+
+### Merging Upstream Changes
+
+**Use the `/upstream:merge` slash command for interactive, semi-automated merge workflow**:
+
+```bash
+/upstream:merge
+```
+
+This command provides:
+
+- Step-by-step guidance for merge execution
+- Automatic conflict detection for known areas (gui.ts, extension-manager.js)
+- Resolution guidance with code markers
+- Automated testing (lint, build, unit, integration)
+- Progress tracking and documentation generation
+- PR creation with comprehensive summary
+
+**Manual merge is NOT recommended** - use the slash command to ensure consistent process and complete documentation.
+
+See `.claude/commands/upstream-merge.md` for detailed workflow documentation.
