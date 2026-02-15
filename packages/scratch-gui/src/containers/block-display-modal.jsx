@@ -70,6 +70,11 @@ class BlockDisplayModal extends React.Component {
     }
 
     handleCategoryToggle (categoryId, isSelected) {
+        console.log('[DEBUG] handleCategoryToggle called', {categoryId, isSelected});
+        console.log('[DEBUG] Current selectedBlocks:', this.props.selectedBlocks);
+        console.log('[DEBUG] CATEGORY_BLOCKS keys:', Object.keys(CATEGORY_BLOCKS));
+        console.log('[DEBUG] CATEGORY_BLOCKS[categoryId]:', CATEGORY_BLOCKS[categoryId]);
+
         const currentBlocks = {...this.props.selectedBlocks};
 
         if (isSelected) {
@@ -80,11 +85,16 @@ class BlockDisplayModal extends React.Component {
             currentBlocks[categoryId] = [];
         }
 
+        console.log('[DEBUG] New selectedBlocks:', currentBlocks);
         this.props.onSetSelectedBlocks(currentBlocks);
         this.props.onSetProjectChanged();
     }
 
     handleBlockChange (categoryId, blockId, isSelected) {
+        console.log('[DEBUG] handleBlockChange called', {categoryId, blockId, isSelected});
+        console.log('[DEBUG] Current selectedBlocks:', this.props.selectedBlocks);
+        console.log('[DEBUG] Current selectedBlocks[categoryId]:', this.props.selectedBlocks[categoryId]);
+
         const currentBlocks = {...this.props.selectedBlocks};
 
         // Update the specific block
@@ -99,6 +109,7 @@ class BlockDisplayModal extends React.Component {
             currentBlocks[categoryId].splice(index, 1);
         }
 
+        console.log('[DEBUG] New selectedBlocks:', currentBlocks);
         this.props.onSetSelectedBlocks(currentBlocks);
         this.props.onSetProjectChanged();
     }

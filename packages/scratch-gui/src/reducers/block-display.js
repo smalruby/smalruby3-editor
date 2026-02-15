@@ -26,8 +26,11 @@ const initialState = {
 const reducer = function (state, action) {
     if (typeof state === 'undefined') state = initialState;
 
+    console.log('[DEBUG] block-display reducer called', {action: action.type, state});
+
     // Migrate old 'events' key to 'event' for backward compatibility when loading state
     if (state && state.selectedBlocks && state.selectedBlocks.events && !state.selectedBlocks.event) {
+        console.log('[DEBUG] Migrating state.selectedBlocks.events to event');
         state = {
             ...state,
             selectedBlocks: {
@@ -36,10 +39,12 @@ const reducer = function (state, action) {
             }
         };
         delete state.selectedBlocks.events;
+        console.log('[DEBUG] After migration:', state);
     }
 
     switch (action.type) {
     case SET_SELECTED_BLOCKS:
+        console.log('[DEBUG] SET_SELECTED_BLOCKS with:', action.blocks);
         return Object.assign({}, state, {
             selectedBlocks: action.blocks
         });
@@ -57,14 +62,18 @@ const reducer = function (state, action) {
 };
 
 const setSelectedBlocks = function (blocks) {
+    console.log('[DEBUG] setSelectedBlocks called with:', blocks);
+
     // Migrate old 'events' key to 'event' for backward compatibility
     let migratedBlocks = blocks;
     if (blocks && blocks.events && !blocks.event) {
+        console.log('[DEBUG] Migrating events to event key');
         migratedBlocks = {...blocks};
         migratedBlocks.event = blocks.events;
         delete migratedBlocks.events;
     }
 
+    console.log('[DEBUG] setSelectedBlocks returning:', migratedBlocks);
     return {
         type: SET_SELECTED_BLOCKS,
         blocks: migratedBlocks
