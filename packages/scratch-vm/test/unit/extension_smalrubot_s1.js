@@ -67,11 +67,14 @@ const createMockSerialPort = ({closeThrows = false} = {}) => {
 
 test('Smalrubot S1 Blocks', t => {
     // Mock Web Serial API
-    global.navigator = {
+    // Use global._mockNavigator to avoid Navigator object conversion in Node.js
+    const mockNavigator = {
         serial: {
             requestPort: () => Promise.resolve(createMockSerialPort())
         }
     };
+
+    global._mockNavigator = mockNavigator;
 
     t.test('constructor', st => {
         const mockRuntime = createMockRuntime();
