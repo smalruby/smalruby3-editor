@@ -161,11 +161,50 @@ Received 4 'Tab' and 5 'TabPanel'.
 
 ---
 
-## Next Steps
+## Resolution Summary
 
-1. Read gui.jsx to check Tab/TabPanel structure
-2. Fix Tab/TabPanel mismatch
-3. Re-run failing tests locally
-4. Update test selectors if needed
-5. Fix block display modal functionality
-6. Document all changes in conflict-resolutions.md
+### Fixed Issues
+
+1. ✅ **Tab/TabPanel Mismatch** (Commit: 51ee3bb66)
+   - Removed duplicate RubyTab panel in gui.jsx (lines 556-565)
+   - Result: 4 Tabs and 4 TabPanels correctly matched
+   - Fixed React Tabs error and panel ID issues
+
+2. ✅ **Block Display Filtering** (Commit: 2342d7ccf)
+   - Added `isOnlyBlocksSpecified` parameter to makeToolboxXML call in blocks.jsx
+   - Changed: `makeToolboxXML(..., onlyBlocks)` → `makeToolboxXML(..., onlyBlocks, !!onlyBlocks)`
+   - Result: Redux state selectedBlocks now correctly filters toolbox
+
+3. ✅ **Integration Test Results**
+   - block-display-modal.test.js: 7/7 tests passed ✅
+   - blocks.test.js: 13/14 tests passed (1 skipped) ✅
+   - sprites.test.js: 19/19 tests passed ✅
+
+### Root Cause Analysis
+
+**Problem 1: Tab/TabPanel Mismatch**
+- The Ruby tab panel was accidentally duplicated during merge
+- This caused panel IDs to shift, breaking element selectors in tests
+- React Tabs reported: "4 Tabs but 5 TabPanels"
+
+**Problem 2: Block Display Feature Not Working**
+- Redux state `selectedBlocks` was converted to `onlyBlocks` string correctly
+- However, `isOnlyBlocksSpecified` parameter was not set to `true`
+- make-toolbox-xml.js only applies filtering when `isOnlyBlocksSpecified` is `true`
+- Result: Block hiding feature didn't work when using the modal
+
+### Files Modified
+
+1. src/components/gui/gui.jsx:556-565 - Removed duplicate Ruby panel
+2. src/containers/blocks.jsx:442 - Added isOnlyBlocksSpecified parameter
+3. test/integration/block-display-modal.test.js:79 - Added 1000ms wait for toolbox update
+
+---
+
+## Completion
+
+All identified integration test failures have been resolved. The fixes addressed the root causes:
+- Tab/TabPanel structural issue from merge
+- Missing parameter for block filtering feature
+
+CI integration tests should now pass.
