@@ -132,8 +132,8 @@ TargetPane.propTypes = {
     extensionLibraryVisible: PropTypes.bool,
     fileInputRef: PropTypes.func,
     hoveredTarget: PropTypes.shape({
-        hoveredSprite: PropTypes.string,
-        receivedBlocks: PropTypes.bool
+        receivedBlocks: PropTypes.bool,
+        sprite: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
     }),
     onActivateBlocksTab: PropTypes.func.isRequired,
     onChangeSpriteDirection: PropTypes.func,

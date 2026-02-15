@@ -149,8 +149,8 @@ const SpriteSelectorComponent = function (props) {
 SpriteSelectorComponent.propTypes = {
     editingTarget: PropTypes.string,
     hoveredTarget: PropTypes.shape({
-        hoveredSprite: PropTypes.string,
-        receivedBlocks: PropTypes.bool
+        receivedBlocks: PropTypes.bool,
+        sprite: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
     }),
     onChangeSpriteDirection: PropTypes.func,
     onChangeSpriteName: PropTypes.func,
