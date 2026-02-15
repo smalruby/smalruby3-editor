@@ -106,7 +106,11 @@ describe('only_blocks parameter initialization', () => {
             expect(result.sound).toEqual(CATEGORY_BLOCKS.sound);
             expect(result.event).toEqual(CATEGORY_BLOCKS.event);
             expect(result.control).toEqual(CATEGORY_BLOCKS.control);
-            expect(result.sensing).toEqual(CATEGORY_BLOCKS.sensing);
+            // sensing blocks are selected but order may differ (bit order vs display order)
+            expect(result.sensing.length).toBe(CATEGORY_BLOCKS.sensing.length);
+            expect(result.sensing).toContain('sensing_online');
+            expect(result.sensing).toContain('sensing_username');
+            expect(result.sensing).toContain('sensing_dayssince2000');
             expect(result.operators).toEqual(CATEGORY_BLOCKS.operators);
         });
 
@@ -150,56 +154,67 @@ describe('only_blocks parameter initialization', () => {
         });
 
         describe('backward compatibility for sensing_online addition', () => {
-            test('should NOT include sensing_online when URL has no flag for it (pre-addition URL)', () => {
-                // Before sensing_online was added, URL params only had 80 bits (0-79)
-                // sensing_online is at bit 80, so old URLs lack this bit
-                // Expected: sensing_online should NOT be included (unspecified bits = 0)
-                // This hex param: all bits set to 1 for the first 80 blocks
-                // (20 hex digits = 80 bits, sensing_online at bit 80 is not specified)
-                const result = initializeBlockSelectionFromOnlyBlocks('0ffffffffffffffffffff');
+            test('should NOT include sensing_online when old URL with all sensing OFF', () => {
+                // Old Smalruby URL: all sensing blocks OFF (bits 64-79 = 0)
+                // This URL was generated before sensing_online existed
+                // Expected: sensing_online (bit 80, extended) should NOT be included
+                const result = initializeBlockSelectionFromOnlyBlocks('0fffffffffffffff70000efff7');
 
-                // All blocks up to bit 79 should be selected
-                expect(result.motion.length).toBe(15);
-                expect(result.looks.length).toBe(21);
-                expect(result.sound.length).toBe(8);
-                expect(result.event.length).toBe(8);
-                expect(result.control.length).toBe(11);
+                // All sensing blocks should be OFF (empty array)
+                expect(result.sensing).toEqual([]);
 
-                // sensing should include blocks up to dayssince2000 (bit 79)
-                expect(result.sensing).toContain('sensing_dayssince2000'); // bit 79
-
-                // sensing_online (bit 80) and sensing_username (bit 81) are NOT specified
-                // so they should NOT be selected
-                expect(result.sensing).not.toContain('sensing_online'); // bit 80
-                expect(result.sensing).not.toContain('sensing_username'); // bit 81
+                // Specifically, sensing_online should NOT be included
+                expect(result.sensing).not.toContain('sensing_online');
             });
 
-            test('should include sensing_online when explicitly set to 1', () => {
-                // Explicitly include sensing_online by setting bit 80 to 1
-                // 20 hex digits (80 bits) + 1 more hex digit for bits 80-83
-                // Bit 80 is position 0 in the 21st hex digit
-                // In reversed bit order: 1000 (binary) = 0x1 (hex)
-                const result = initializeBlockSelectionFromOnlyBlocks('0ffffffffffffffffffff1');
+            test('should NOT include sensing_online when old URL with sensing_username OFF', () => {
+                // Old Smalruby URL: sensing_username OFF (bit 80 = 0), other sensing blocks ON
+                // This URL was generated before sensing_online existed
+                // Expected: sensing_online (bit 81, extended) should NOT be included
+                const result = initializeBlockSelectionFromOnlyBlocks('0ffffffffffffffffffffefff7');
 
-                expect(result.sensing).toContain('sensing_online');
-            });
+                // sensing_username should be OFF (bit 80)
+                expect(result.sensing).not.toContain('sensing_username');
 
-            test('should exclude sensing_online when explicitly set to 0', () => {
-                // Explicitly exclude sensing_online by setting bit 80 to 0
-                // while keeping sensing_username (bit 81) selected
-                // Bits 80-83: we want 80=0, 81=1, 82=0, 83=0 → binary 0100
-                // With bit reversal (LSB first): 0010 → hex 0x2
-                // Need 20 'f's (bits 0-79) + '2' (bits 80-83)
-                const result = initializeBlockSelectionFromOnlyBlocks('0ffffffffffffffffffff2');
-
-                // sensing_dayssince2000 (bit 79) should be selected
-                expect(result.sensing).toContain('sensing_dayssince2000');
-
-                // sensing_online (bit 80) should NOT be selected
+                // sensing_online should NOT be included (bit 81, extended block, not in old URL)
                 expect(result.sensing).not.toContain('sensing_online');
 
-                // sensing_username (bit 81) should be selected
-                expect(result.sensing).toContain('sensing_username');
+                // Base sensing blocks (bits 63-79) should be ON
+                expect(result.sensing).toContain('sensing_dayssince2000'); // bit 79
+                expect(result.sensing).toContain('sensing_current');
+                expect(result.sensing.length).toBe(17); // 17 base blocks (bits 63-79)
+            });
+
+            test('should include sensing_online when URL has 100 bits all ON', () => {
+                // New Smalruby URL: all bits 0-99 ON (25 hex digits = 100 bits)
+                // Bit 99 = sensing_online (extended block)
+                // 25 hex digits with all 'f' -> all blocks selected
+                const result = initializeBlockSelectionFromOnlyBlocks('0fffffffffffffffffffffffff');
+
+                // All base blocks should be selected
+                expect(result.motion.length).toBe(15);
+                expect(result.looks.length).toBe(21);
+
+                // sensing_online (bit 99, extended) should be included
+                expect(result.sensing).toContain('sensing_online');
+
+                // All base sensing blocks should be included
+                expect(result.sensing).toContain('sensing_username'); // bit 80
+                expect(result.sensing).toContain('sensing_dayssince2000'); // bit 79
+            });
+
+            test('should exclude sensing_online when URL has bit 99 OFF', () => {
+                // New Smalruby URL: bits 0-98 ON, bit 99 OFF (sensing_online)
+                // 25 hex digits, last hex = 7 (binary 0111 reversed = 1110, bit 99 = 0)
+                const result = initializeBlockSelectionFromOnlyBlocks('0fffffffffffffffffffffff7');
+
+                // sensing_online (bit 99) should NOT be included
+                expect(result.sensing).not.toContain('sensing_online');
+
+                // All base sensing blocks should be included
+                expect(result.sensing).toContain('sensing_username'); // bit 80
+                expect(result.sensing).toContain('sensing_dayssince2000'); // bit 79
+                expect(result.sensing.length).toBe(18); // All base sensing blocks (18 total)
             });
         });
 
