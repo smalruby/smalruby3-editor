@@ -96,6 +96,24 @@ Run integration tests only:
 docker compose run --rm app npm run test:integration
 ```
 
+**IMPORTANT**: `test:unit` and `test:integration` commands do NOT accept file arguments. To run individual test files, use `npm exec` (or `npx`):
+
+For unit tests (uses tap):
+
+```bash
+# scratch-vm unit tests
+docker compose run --rm app bash -c "cd packages/scratch-vm && npm exec tap test/unit/specific-file.js"
+
+# scratch-gui unit tests
+docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec tap test/unit/specific-file.test.js"
+```
+
+For integration tests (uses jest):
+
+```bash
+docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest test/integration/specific-file.test.js"
+```
+
 ### Linting
 
 ```bash
