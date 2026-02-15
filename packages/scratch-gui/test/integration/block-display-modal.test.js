@@ -75,6 +75,9 @@ describe('Block Display Modal', () => {
         // Go to Code tab to check if Looks category is hidden
         await clickText('Code');
 
+        // Wait for toolbox to update
+        await driver.sleep(1000);
+
         // Check if Looks category is no longer visible (if it was unchecked)
         // Note: This depends on the actual implementation behavior
         if (!initialState) {

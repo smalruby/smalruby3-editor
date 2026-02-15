@@ -1,10 +1,17 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, {useCallback, useRef} from 'react';
 
 import filterIcon from './icon--filter.svg';
 import xIcon from './icon--x.svg';
 import styles from './filter.css';
+import {defineMessage, useIntl} from 'react-intl';
+
+const ariaLabel = defineMessage({
+    id: 'gui.aria.clearButton',
+    defaultMessage: 'Clear',
+    description: 'ARIA label for the clear input button'
+});
 
 const FilterComponent = props => {
     const {
@@ -15,6 +22,18 @@ const FilterComponent = props => {
         filterQuery,
         inputClassName
     } = props;
+    const intl = useIntl();
+    const inputRef = useRef(null);
+
+    const handleClear = useCallback(e => {
+        onClear(e);
+
+        // Return focus to the input after clearing
+        if (inputRef?.current) {
+            inputRef.current.focus();
+        }
+    }, [onClear]);
+
     return (
         <div
             className={classNames(className, styles.filter, {
@@ -26,21 +45,26 @@ const FilterComponent = props => {
                 src={filterIcon}
             />
             <input
+                ref={inputRef}
                 className={classNames(styles.filterInput, inputClassName)}
                 placeholder={placeholderText}
                 type="text"
                 value={filterQuery}
                 onChange={onChange}
             />
-            <div
+            <button
+                type="button"
                 className={styles.xIconWrapper}
-                onClick={onClear}
+                onClick={handleClear}
+                aria-label={intl.formatMessage(ariaLabel)}
+                // Make x button focusable only when visible
+                tabIndex={filterQuery.length > 0 ? 0 : -1}
             >
                 <img
                     className={styles.xIcon}
                     src={xIcon}
                 />
-            </div>
+            </button>
         </div>
     );
 };

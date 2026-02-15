@@ -235,6 +235,13 @@ class Blocks extends React.Component {
     }
     setLocale () {
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
+
+        // Add Smalruby-specific block translations that differ from upstream
+        if (this.props.locale === 'ja' || this.props.locale === 'ja-Hira') {
+            // Override Japanese translation for sensing_online to use Japanese text
+            this.ScratchBlocks.Msg.SENSING_ONLINE = 'オンライン?';
+        }
+
         this.props.vm.setLocale(this.props.locale, this.props.messages)
             .then(() => {
                 this.workspace.getFlyout().setRecyclingEnabled(false);
@@ -439,7 +446,8 @@ class Blocks extends React.Component {
                 stageCostumes[stageCostumes.length - 1].name,
                 targetSounds.length > 0 ? targetSounds[targetSounds.length - 1].name : '',
                 getColorsForMode(this.props.colorMode),
-                onlyBlocks
+                onlyBlocks,
+                !!onlyBlocks // isOnlyBlocksSpecified: true if onlyBlocks has a value
             );
         } catch {
             return null;
@@ -742,8 +750,6 @@ class Blocks extends React.Component {
                         vm={vm}
                         onCategorySelected={this.handleCategorySelected}
                         onRequestClose={onRequestCloseExtensionLibrary}
-                        showNewFeatureCallouts={this.props.showNewFeatureCallouts}
-                        username={this.props.username}
                     />
                 ) : null}
                 {customProceduresVisible ? (
@@ -799,9 +805,7 @@ Blocks.propTypes = {
     activeTabIndex: PropTypes.number,
     workspaceMetrics: PropTypes.shape({
         targets: PropTypes.objectOf(PropTypes.object)
-    }),
-    showNewFeatureCallouts: PropTypes.bool,
-    username: PropTypes.string
+    })
 };
 
 Blocks.defaultOptions = {

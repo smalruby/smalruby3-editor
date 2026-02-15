@@ -879,6 +879,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
     });
 
     expectNoArgsMethod('sensing_dayssince2000', 'days_since_2000', 'value');
+    expectNoArgsMethod('sensing_online', 'online?', 'value');
     expectNoArgsMethod('sensing_username', 'user_name', 'value');
 
     describe('Stage/Sprite validation', () => {
@@ -922,6 +923,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
                 'Timer.value',
                 'Timer.reset',
                 'days_since_2000',
+                'online?',
                 'user_name'
             ];
 
@@ -950,6 +952,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
                 'Timer.value',
                 'Timer.reset',
                 'days_since_2000',
+                'online?',
                 'user_name'
             ];
 

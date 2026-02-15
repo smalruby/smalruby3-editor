@@ -55,6 +55,11 @@ describe('MenuBar Component', () => {
             meshV2: {
                 domain: null
             },
+            cards: {
+                visible: false,
+                activeDeckId: null,
+                step: 0
+            },
             tutorialOnboarding: tutorialOnboardingInitialState,
             projectChanged: false,
             projectTitle: 'Untitled'

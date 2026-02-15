@@ -59,6 +59,9 @@
     pointer-events: none;
     cursor: default;
     transition: opacity 0.05s linear;
+
+    border: none;
+    background: none;
 }
 
 [dir="ltr"] .x-icon-wrapper {

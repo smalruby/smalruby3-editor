@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {defineMessages, injectIntl} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
+import {soundShape} from '../lib/assets-prop-types.js';
 import VM from '@smalruby/scratch-vm';
 import AudioEngine from 'scratch-audio';
 
@@ -13,6 +14,7 @@ import soundIconRtl from '../components/library-item/lib-icon--sound-rtl.svg';
 
 import soundLibraryContent from '../lib/libraries/sounds.json';
 import soundTags from '../lib/libraries/sound-tags';
+import mergeDynamicAssets from '../lib/merge-dynamic-assets.js';
 
 import {connect} from 'react-redux';
 
@@ -32,7 +34,8 @@ class SoundLibrary extends React.PureComponent {
             'handleItemMouseEnter',
             'handleItemMouseLeave',
             'onStop',
-            'setStopHandler'
+            'setStopHandler',
+            'mergeDynamicAssets'
         ]);
 
         /**
@@ -51,6 +54,7 @@ class SoundLibrary extends React.PureComponent {
          * function to call when the sound ends
          */
         this.handleStop = null;
+        this.processedSounds = {};
     }
     componentDidMount () {
         this.audioEngine = new AudioEngine();
@@ -150,9 +154,21 @@ class SoundLibrary extends React.PureComponent {
             this.props.onNewSound();
         });
     }
+    mergeDynamicAssets () {
+        if (this.processedSounds.source === this.props.dynamicSounds) {
+            return this.processedSounds.data;
+        }
+        this.processedSounds = mergeDynamicAssets(
+            soundLibraryContent,
+            this.props.dynamicSounds
+        );
+        return this.processedSounds.data;
+    }
     render () {
+        const data = this.mergeDynamicAssets();
+
         // @todo need to use this hack to avoid library using md5 for image
-        const soundLibraryThumbnailData = soundLibraryContent.map(sound => {
+        const soundLibraryThumbnailData = data.map(sound => {
             const {
                 md5ext,
                 ...otherData
@@ -182,6 +198,7 @@ class SoundLibrary extends React.PureComponent {
 }
 
 SoundLibrary.propTypes = {
+    dynamicSounds: PropTypes.arrayOf(soundShape),
     intl: intlShape.isRequired,
     isRtl: PropTypes.bool,
     onNewSound: PropTypes.func.isRequired,
@@ -190,6 +207,7 @@ SoundLibrary.propTypes = {
 };
 
 const mapStateToProps = state => ({
+    dynamicSounds: state.scratchGui.dynamicAssets.sounds,
     isRtl: state.locales.isRtl
 });
 

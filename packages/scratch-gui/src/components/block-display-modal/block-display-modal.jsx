@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -39,7 +38,7 @@ const BLOCK_CATEGORIES = [
     {id: 'motion', messageKey: 'CATEGORY_MOTION'},
     {id: 'looks', messageKey: 'CATEGORY_LOOKS'},
     {id: 'sound', messageKey: 'CATEGORY_SOUND'},
-    {id: 'events', messageKey: 'CATEGORY_EVENTS'},
+    {id: 'event', messageKey: 'CATEGORY_EVENTS'},
     {id: 'control', messageKey: 'CATEGORY_CONTROL'},
     {id: 'sensing', messageKey: 'CATEGORY_SENSING'},
     {id: 'operators', messageKey: 'CATEGORY_OPERATORS'}
@@ -246,8 +245,7 @@ class BlockDisplayModal extends React.Component {
                 this.setState({copyButtonState: 'normal'});
             }, 2000);
         } catch (error) {
-            // Handle copy failure
-            console.warn('Failed to copy URL to clipboard:', error);
+            // Handle copy failure - silently reset button state
             this.setState({copyButtonState: 'normal'});
         }
     }
@@ -442,9 +440,27 @@ class BlockDisplayModal extends React.Component {
                                                     category.messageKey}
                                             </div>
                                             {categoryBlocks.map(blockType => {
-                                                const messageId = `gui.smalruby3.blockDisplayModal.${blockType}`;
                                                 const selectedBlocksInCategory = selectedBlocks[category.id] || [];
                                                 const isBlockSelected = selectedBlocksInCategory.includes(blockType);
+
+                                                // Try to get block name from ScratchBlocks.Msg first
+                                                // Convert block type to uppercase key format
+                                                // (e.g., sensing_online → SENSING_ONLINE)
+                                                const scratchBlocksKey = blockType.toUpperCase();
+                                                let blockName;
+
+                                                if (scratchBlocks && scratchBlocks.Msg &&
+                                                    scratchBlocks.Msg[scratchBlocksKey]) {
+                                                    // Use ScratchBlocks translation if available
+                                                    blockName = scratchBlocks.Msg[scratchBlocksKey];
+                                                } else {
+                                                    // Fallback to custom translation
+                                                    const messageId = `gui.smalruby3.blockDisplayModal.${blockType}`;
+                                                    blockName = intl.formatMessage({
+                                                        id: messageId,
+                                                        defaultMessage: blockType
+                                                    });
+                                                }
 
                                                 return (
                                                     <div
@@ -461,10 +477,7 @@ class BlockDisplayModal extends React.Component {
                                                                 onChange={this.handleBlockChange}
                                                             />
                                                             <span className={styles.blockName}>
-                                                                {intl.formatMessage({
-                                                                    id: messageId,
-                                                                    defaultMessage: blockType
-                                                                })}
+                                                                {blockName}
                                                             </span>
                                                         </label>
                                                     </div>

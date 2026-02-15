@@ -189,9 +189,8 @@ class UpdatePeripheralStep extends React.Component {
                     <textarea
                         className={styles.scratchLinkErrorDetails}
                         readOnly
-                    >
-                        {this.state.err.message}
-                    </textarea>
+                        value={this.state.err.message}
+                    />
                 </Box>
             );
         }

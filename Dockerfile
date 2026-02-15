@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM node:24-bookworm-slim
 LABEL maintainer="Kouji Takao"
 
 ENV LANG=C.UTF-8

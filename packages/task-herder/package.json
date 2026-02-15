@@ -1,6 +1,6 @@
 {
   "name": "@smalruby/task-herder",
-  "version": "12.3.1",
+  "version": "12.6.2",
   "description": "An asynchronous task runner with configurable rate limiting / throttling and concurrency control.",
   "keywords": [
     "rate limit",
@@ -10,16 +10,9 @@
     "concurrency",
     "concurrent"
   ],
-  "author": "Scratch Foundation",
   "license": "AGPL-3.0-only",
+  "author": "Ruby Programming Shounendan",
   "type": "module",
-  "files": [
-    "LICENSE",
-    "README.md",
-    "dist"
-  ],
-  "main": "dist/task-herder.umd.cjs",
-  "module": "dist/task-herder.js",
   "exports": {
     ".": {
       "import": "./dist/task-herder.js",
@@ -27,6 +20,16 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "main": "dist/task-herder.umd.cjs",
+  "module": "dist/task-herder.js",
+  "directories": {
+    "test": "test"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist"
+  ],
   "scripts": {
     "clean": "rimraf dist",
     "dev": "vite",
@@ -39,18 +42,22 @@
     "test:unit": "vitest run --coverage",
     "test:integration": "echo \"No integration tests\""
   },
+  "overrides": {
+    "vite": "npm:rolldown-vite@7.3.1"
+  },
   "devDependencies": {
-    "@vitest/coverage-v8": "4.0.17",
+    "@vitest/coverage-v8": "4.0.18",
     "eslint": "9.39.2",
-    "eslint-config-scratch": "12.0.46",
-    "prettier": "3.8.0",
+    "eslint-config-scratch": "12.0.49",
+    "prettier": "3.8.1",
     "rimraf": "6.1.2",
     "typescript": "5.9.3",
     "unplugin-dts": "1.0.0-beta.6",
     "vite": "npm:rolldown-vite@7.3.1",
-    "vitest": "4.0.17"
+    "vitest": "4.0.18"
   },
-  "overrides": {
-    "vite": "npm:rolldown-vite@7.3.1"
+  "homepage": "https://github.com/smalruby/smalruby3-editor#readme",
+  "repository": {
+    "url": "https://github.com/smalruby/smalruby3-editor.git"
   }
 }

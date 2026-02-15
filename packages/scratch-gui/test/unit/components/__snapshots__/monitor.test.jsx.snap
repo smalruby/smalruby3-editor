@@ -7,6 +7,7 @@ exports[`Monitor Component it selects the correct colors based on dark mode 1`] 
 >
   <span
     class="ContextMenuTrigger"
+    data-disabled=""
     data-state="closed"
   >
     <div>
@@ -30,6 +31,7 @@ exports[`Monitor Component it selects the correct colors based on default color 
 >
   <span
     class="ContextMenuTrigger"
+    data-disabled=""
     data-state="closed"
   >
     <div>

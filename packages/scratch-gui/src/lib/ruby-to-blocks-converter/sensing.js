@@ -26,6 +26,7 @@ const SensingConverter = {
             {method: 'answer', opcode: 'sensing_answer'},
             {method: 'loudness', opcode: 'sensing_loudness'},
             {method: 'days_since_2000', opcode: 'sensing_dayssince2000'},
+            {method: 'online?', opcode: 'sensing_online'},
             {method: 'user_name', opcode: 'sensing_username'}
         ];
 

@@ -10,6 +10,7 @@ if (!bowser.msie) {
     const initAudioContext = () => {
         document.removeEventListener('mousedown', initAudioContext);
         document.removeEventListener('touchstart', initAudioContext);
+        document.removeEventListener('keydown', initAudioContext);
         if (AUDIO_CONTEXT) return;
 
         AUDIO_CONTEXT = new (window.AudioContext ||
@@ -18,6 +19,7 @@ if (!bowser.msie) {
     };
     document.addEventListener('mousedown', initAudioContext);
     document.addEventListener('touchstart', initAudioContext);
+    document.addEventListener('keydown', initAudioContext);
 }
 
 /**

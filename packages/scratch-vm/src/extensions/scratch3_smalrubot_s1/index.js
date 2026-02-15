@@ -118,8 +118,22 @@ class Smalrubot {
     constructor (runtime) {
         this.runtime = runtime;
 
-        if ('serial' in navigator) {
-            this.serial = navigator.serial;
+        // Access navigator with fallback for test environments
+        // In browser: navigator is available globally
+        // In Node.js tests: use global._mockNavigator to avoid Navigator object conversion
+        let nav;
+        try {
+            // Try global._mockNavigator first (for tests)
+            nav = (typeof global !== 'undefined' && global._mockNavigator) ||
+                  // Then try native navigator
+                  (typeof navigator !== 'undefined' && navigator) ||
+                  {};
+        } catch (e) {
+            nav = {};
+        }
+
+        if ('serial' in nav) {
+            this.serial = nav.serial;
         } else {
             this.emitRuntime('PERIPHERAL_REQUEST_ERROR', {
                 extensionId: Scratch3SmalrubotS1Blocks.EXTENSION_ID // eslint-disable-line

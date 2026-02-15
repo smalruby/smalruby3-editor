@@ -121,6 +121,13 @@ export default eslintConfigScratch.defineConfig(
         }
     },
     {
+        // upstream files with jsdoc warnings
+        files: ['src/lib/merge-dynamic-assets.js'],
+        rules: {
+            'jsdoc/check-types': 'off'
+        }
+    },
+    {
         files: ['test/unit/util/define-dynamic-block.test.js'],
         settings: {
             // TODO: figure out why this is needed...

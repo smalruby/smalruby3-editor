@@ -61,4 +61,15 @@ describe('RubyGenerator/Sensing', () => {
             expect(RubyGenerator.sensing_answer(block)).toEqual(expected);
         });
     });
+
+    describe('sensing_online', () => {
+        test('generates online?', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'sensing_online'
+            };
+            const expected = ['online?', RubyGenerator.ORDER_ATOMIC];
+            expect(RubyGenerator.sensing_online(block)).toEqual(expected);
+        });
+    });
 });

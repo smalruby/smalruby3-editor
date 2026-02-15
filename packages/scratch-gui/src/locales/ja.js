@@ -248,6 +248,7 @@ export default {
     'gui.smalruby3.blockDisplayModal.sensing_of': '(ステージ▼) の [背景#▼]',
     'gui.smalruby3.blockDisplayModal.sensing_current': '現在の [年▼]',
     'gui.smalruby3.blockDisplayModal.sensing_dayssince2000': '2000年からの日数',
+    'gui.smalruby3.blockDisplayModal.sensing_online': 'オンライン',
     'gui.smalruby3.blockDisplayModal.sensing_username': 'ユーザー名',
 
     // Operator blocks
@@ -334,5 +335,6 @@ export default {
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': '始めましょう',
-    'gui.menuBar.tutorialTooltip': 'ルビーを試してみよう!'
+    'gui.menuBar.tutorialTooltip': 'ルビーを試してみよう!',
+    'gui.aria.clearButton': 'クリア'
 };

@@ -6,6 +6,7 @@ const categorySeparator = '<sep gap="36"/>';
 
 const blockSeparator = '<sep gap="36"/>'; // At default scale, about 28px
 
+
 const motion = function (isInitialSetup, isStage, targetId, colors) {
     const stageSelected = ScratchBlocks.ScratchMsgs.translate(
         'MOTION_STAGE_SELECTED',
@@ -513,6 +514,7 @@ const sensing = function (isInitialSetup, isStage, targetId, colors) {
         <block id="current" type="sensing_current"/>
         <block type="sensing_dayssince2000"/>
         ${blockSeparator}
+        <block id="online" type="sensing_online" />
         <block type="sensing_username"/>
         ${categorySeparator}
     </category>
@@ -736,7 +738,7 @@ const myBlocks = function (isInitialSetup, isStage, targetId, colors) {
     </category>
     `;
 };
- 
+
 
 const xmlOpen = '<xml style="display: none">';
 const xmlClose = '</xml>';
@@ -748,21 +750,21 @@ const xmlClose = '</xml>';
  */
 const parseOnlyBlocks = function (onlyBlocks) {
     if (!onlyBlocks) return [];
-    
+
     // Check if hex format (starts with '0')
     if (onlyBlocks.startsWith('0') && onlyBlocks.length > 1) {
         // Parse hex format and convert to allowed patterns
         const selectedBlocks = parseHexFormatToSelectedBlocks(onlyBlocks);
         const allowedPatterns = [];
-        
+
         Object.keys(selectedBlocks).forEach(categoryId => {
             const blocksInCategory = selectedBlocks[categoryId] || [];
             allowedPatterns.push(...blocksInCategory);
         });
-        
+
         return allowedPatterns;
     }
-    
+
     // Support both comma (,) and period (.) as separators (legacy format)
     return onlyBlocks.split(/[,.]/)
         .map(pattern => pattern.trim())
@@ -790,10 +792,9 @@ const shouldIncludeBlock = function (blockType, allowedPatterns) {
 
 /**
  * Hides a category completely when no blocks are selected
- * @param {string} categoryXML - The XML string for a category (unused)
+ * @param {string} _categoryXML - The XML string for a category (unused)
  * @returns {string} - Empty string to hide the category
  */
- 
 const filterAllBlocks = function (_categoryXML) {
     // When no blocks are selected, return empty string to hide the entire category
     return '';
@@ -805,7 +806,6 @@ const filterAllBlocks = function (_categoryXML) {
  * @param {Array.<string>} allowedPatterns - Array of allowed patterns
  * @returns {string} - Filtered category XML
  */
- 
 const filterBlocks = function (categoryXML, allowedPatterns) {
     if (!allowedPatterns || allowedPatterns.length === 0) return categoryXML;
 
@@ -818,7 +818,7 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
     const elements = categoryXML.match(elementRegex) || [];
 
     const filteredElements = [];
-    
+
     for (const element of elements) {
         if (element.includes('<sep')) {
             // Keep separator elements
@@ -838,7 +838,7 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
     // Remove consecutive separators, keeping only one
     const consolidatedElements = [];
     let lastWasSeparator = false;
-    
+
     for (const element of filteredElements) {
         const isSeparator = element.includes('<sep');
         if (isSeparator) {
@@ -868,7 +868,7 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
     const categoryHeader = categoryXML.match(/<category[^>]*>/)[0];
     const categoryFooter = '</category>';
     const blockContent = consolidatedElements.join('\n        ');
-    
+
     // Only add category separator if the original XML had separators
     const hasSeparators = consolidatedElements.some(el => el.includes('<sep'));
     const categorySeparatorLine = hasSeparators ? `\n        ${categorySeparator}` : '';
@@ -891,10 +891,14 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
  * @param {?string} soundName -  The name of the default selected sound dropdown.
  * @param {?object} colors - The colors for the color mode.
  * @param {?string} onlyBlocks - The only_blocks URL parameter for filtering blocks.
+ * @param {?boolean} isOnlyBlocksSpecified - Whether the onlyBlocks parameter was explicitly specified.
  * @returns {string} - a ScratchBlocks-style XML document for the contents of the toolbox.
  */
-const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categoriesXML = [],
-    costumeName = '', backdropName = '', soundName = '', colors = defaultColors, onlyBlocks = null) {
+const makeToolboxXML = function (
+    isInitialSetup, isStage = true, targetId, categoriesXML = [],
+    costumeName = '', backdropName = '', soundName = '', colors = defaultColors,
+    onlyBlocks = null, isOnlyBlocksSpecified = false
+) {
     isStage = isInitialSetup || isStage;
     const gap = [categorySeparator];
 
@@ -921,7 +925,7 @@ const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categ
     let looksXML = moveCategory('looks') ||
         looks(isInitialSetup, isStage, targetId, costumeName, backdropName, colors.looks);
     let soundXML = moveCategory('sound') || sound(isInitialSetup, isStage, targetId, soundName, colors.sounds);
-    let eventsXML = moveCategory('events') || events(isInitialSetup, isStage, targetId, colors.event);
+    let eventsXML = moveCategory('event') || events(isInitialSetup, isStage, targetId, colors.event);
     let controlXML = moveCategory('control') || control(isInitialSetup, isStage, targetId, colors.control);
     let sensingXML = moveCategory('sensing') || sensing(isInitialSetup, isStage, targetId, colors.sensing);
     let operatorsXML = moveCategory('operators') || operators(isInitialSetup, isStage, targetId, colors.operators);
@@ -931,7 +935,7 @@ const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categ
     const myBlocksXML = moveCategory('procedures') || myBlocks(isInitialSetup, isStage, targetId, colors.more);
 
     // Apply filtering to core categories if only_blocks parameter is provided
-    if (onlyBlocks !== null) {
+    if (isOnlyBlocksSpecified) {
         // Special case: when allowedPatterns is empty, hide all blocks
         if (allowedPatterns.length === 0) {
             motionXML = filterAllBlocks(motionXML);
