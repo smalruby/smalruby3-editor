@@ -1,4 +1,4 @@
-/* === Smalruby: MeshV2 initial step styles === */
+/* === Smalruby: This file is Smalruby-specific (MeshV2 initial step styles) === */
 
 .buttonContainer {
     display: flex;
@@ -114,5 +114,3 @@
         max-width: none;
     }
 }
-
-/* === Smalruby: End of MeshV2 initial step styles === */

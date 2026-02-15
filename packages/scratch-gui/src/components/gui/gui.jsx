@@ -201,9 +201,14 @@ const GUIComponent = props => {
         onTelemetryModalOptOut,
         onUpdateProjectThumbnail,
         onUrlLoaderSubmit,
+        // === Smalruby: Start of Redux action props prevention ===
+        // When adding new Redux actions in mapDispatchToProps that start with "on",
+        // add them here to prevent React warnings about unknown event handler props
+        // being spread onto DOM elements via {...componentProps}
         onUpdateDynamicAssets,
         onSetPlatform,
         onSetTheme,
+        // === Smalruby: End of Redux action props prevention ===
         rubyTabVisible,
         showComingSoon,
         soundsTabVisible,

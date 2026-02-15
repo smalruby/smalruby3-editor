@@ -1,0 +1,10 @@
+{
+  "lastMerge": {
+    "date": "2026-02-14",
+    "upstreamCommit": "5f063605b67927f01647f56a8abf28b972a292bd",
+    "smalrubyCommit": "8220cde2ad0589dc5decfae18ae17ca66c57562b",
+    "mergeCommit": "58b3f1c7c",
+    "notes": "PR #431 green flag keyboard focus fix - 93 upstream commits merged"
+  },
+  "previousMerges": []
+}

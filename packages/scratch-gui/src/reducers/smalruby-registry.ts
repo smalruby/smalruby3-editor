@@ -1,0 +1,47 @@
+/**
+ * Smalruby-specific Redux state registry
+ *
+ * This file centralizes all Smalruby customizations to Redux state management.
+ * By importing from this single registry file, we minimize merge conflicts when
+ * updating from upstream scratch-gui.
+ *
+ * When adding new Smalruby reducers:
+ * 1. Add the import statement here
+ * 2. Add to smalrubyReducers object
+ * 3. Add to smalrubyInitialState object
+ *
+ * No changes needed in gui.ts - it imports this registry.
+ */
+
+import meshV2Reducer, {meshV2InitialState} from './mesh-v2';
+import googleDriveFileReducer, {googleDriveFileInitialState} from './google-drive-file';
+import koshienFileReducer, {koshienFileInitialState} from './koshien-file';
+import rubyCodeReducer, {rubyCodeInitialState} from './ruby-code';
+import cardsReducer, {cardsInitialState} from './cards';
+import tutorialOnboardingReducer, {tutorialOnboardingInitialState} from './tutorial-onboarding';
+
+/**
+ * All Smalruby reducers
+ * These will be spread into combineReducers() in gui.ts
+ */
+export const smalrubyReducers = {
+    meshV2: meshV2Reducer,
+    googleDriveFile: googleDriveFileReducer,
+    koshienFile: koshienFileReducer,
+    rubyCode: rubyCodeReducer,
+    cards: cardsReducer,
+    tutorialOnboarding: tutorialOnboardingReducer
+};
+
+/**
+ * All Smalruby initial state values
+ * These will be spread into buildInitialState() in gui.ts
+ */
+export const smalrubyInitialState = {
+    meshV2: meshV2InitialState,
+    googleDriveFile: googleDriveFileInitialState,
+    koshienFile: koshienFileInitialState,
+    rubyCode: rubyCodeInitialState,
+    cards: cardsInitialState,
+    tutorialOnboarding: tutorialOnboardingInitialState
+};
