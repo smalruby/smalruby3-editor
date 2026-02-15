@@ -111,6 +111,8 @@ describe('Ruby Tab: Sensing category blocks', () => {
 
                 days_since_2000
 
+                online?
+
                 user_name
             `;
             await expectInterconvertBetweenCodeAndRuby(code);
@@ -160,6 +162,8 @@ describe('Ruby Tab: Sensing category blocks', () => {
             Time.now.sec
 
             days_since_2000
+
+            online?
 
             user_name
         `;

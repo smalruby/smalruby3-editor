@@ -143,6 +143,10 @@ export default function (Generator) {
         return ['days_since_2000', Generator.ORDER_ATOMIC];
     };
 
+    Generator.sensing_online = function () {
+        return ['online?', Generator.ORDER_ATOMIC];
+    };
+
     Generator.sensing_username = function () {
         return ['user_name', Generator.ORDER_ATOMIC];
     };

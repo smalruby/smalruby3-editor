@@ -25,6 +25,19 @@ const initialState = {
 
 const reducer = function (state, action) {
     if (typeof state === 'undefined') state = initialState;
+
+    // Migrate old 'events' key to 'event' for backward compatibility when loading state
+    if (state && state.selectedBlocks && state.selectedBlocks.events && !state.selectedBlocks.event) {
+        state = {
+            ...state,
+            selectedBlocks: {
+                ...state.selectedBlocks,
+                event: state.selectedBlocks.events
+            }
+        };
+        delete state.selectedBlocks.events;
+    }
+
     switch (action.type) {
     case SET_SELECTED_BLOCKS:
         return Object.assign({}, state, {
@@ -44,9 +57,17 @@ const reducer = function (state, action) {
 };
 
 const setSelectedBlocks = function (blocks) {
+    // Migrate old 'events' key to 'event' for backward compatibility
+    let migratedBlocks = blocks;
+    if (blocks && blocks.events && !blocks.event) {
+        migratedBlocks = {...blocks};
+        migratedBlocks.event = blocks.events;
+        delete migratedBlocks.events;
+    }
+
     return {
         type: SET_SELECTED_BLOCKS,
-        blocks: blocks
+        blocks: migratedBlocks
     };
 };
 
