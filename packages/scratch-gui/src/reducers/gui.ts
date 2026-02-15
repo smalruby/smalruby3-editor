@@ -31,12 +31,9 @@ import vmStatusReducer, {vmStatusInitialState} from './vm-status';
 import workspaceMetricsReducer, {workspaceMetricsInitialState} from './workspace-metrics';
 import blockDisplayReducer, {blockDisplayInitialState} from './block-display';
 import extensionFilterReducer, {extensionFilterInitialState} from './extension-filter';
-import meshV2Reducer, {meshV2InitialState} from './mesh-v2';
-import googleDriveFileReducer, {googleDriveFileInitialState} from './google-drive-file';
-import koshienFileReducer, {koshienFileInitialState} from './koshien-file';
-import rubyCodeReducer, {rubyCodeInitialState} from './ruby-code';
-import cardsReducer, {cardsInitialState} from './cards';
-import tutorialOnboardingReducer, {tutorialOnboardingInitialState} from './tutorial-onboarding';
+// === Smalruby: Start of Redux state registry ===
+import {smalrubyReducers, smalrubyInitialState} from './smalruby-registry';
+// === Smalruby: End of Redux state registry ===
 import throttle from 'redux-throttle';
 
 import {GUIConfig} from '../gui-config';
@@ -92,12 +89,9 @@ const buildInitialState = (config: GUIConfig) => ({
     workspaceMetrics: workspaceMetricsInitialState,
     blockDisplay: blockDisplayInitialState,
     extensionFilter: extensionFilterInitialState,
-    meshV2: meshV2InitialState,
-    googleDriveFile: googleDriveFileInitialState,
-    koshienFile: koshienFileInitialState,
-    rubyCode: rubyCodeInitialState,
-    cards: cardsInitialState,
-    tutorialOnboarding: tutorialOnboardingInitialState,
+    // === Smalruby: Start of initial state ===
+    ...smalrubyInitialState,
+    // === Smalruby: End of initial state ===
     test: testInitialState
 });
 
@@ -192,12 +186,9 @@ const guiReducer = combineReducers({
     workspaceMetrics: workspaceMetricsReducer,
     blockDisplay: blockDisplayReducer,
     extensionFilter: extensionFilterReducer,
-    meshV2: meshV2Reducer,
-    googleDriveFile: googleDriveFileReducer,
-    koshienFile: koshienFileReducer,
-    rubyCode: rubyCodeReducer,
-    cards: cardsReducer,
-    tutorialOnboarding: tutorialOnboardingReducer,
+    // === Smalruby: Start of reducers ===
+    ...smalrubyReducers,
+    // === Smalruby: End of reducers ===
     test: testReducer
 });
 

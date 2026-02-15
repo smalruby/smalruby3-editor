@@ -62,20 +62,10 @@ const builtinExtensions = {
  * @property {Function} reject - function to call on failed worker startup
  */
 
-builtinExtensions.microbitMore = () => {
-    const formatMessage = require('format-message');
-    const ext = require('../extensions/microbitMore/index.js');
-    const blockClass = ext.blockClass;
-    blockClass.formatMessage = formatMessage;
-    return blockClass;
-};
-
-builtinExtensions.koshien = () => {
-    const formatMessage = require('format-message');
-    const blockClass = require('../extensions/koshien/index.js');
-    blockClass.formatMessage = formatMessage;
-    return blockClass;
-};
+// === Smalruby: Start of extension registration ===
+const registerSmalrubyExtensions = require('./smalruby-extensions');
+registerSmalrubyExtensions(builtinExtensions);
+// === Smalruby: End of extension registration ===
 
 class ExtensionManager {
     constructor (runtime) {
