@@ -63,6 +63,10 @@ describe('Ruby Tab: Operators category blocks', () => {
 
             0.round
 
+            0.to_s
+
+            "".to_i
+
             0.abs
 
             0.floor

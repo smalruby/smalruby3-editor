@@ -1049,4 +1049,102 @@ describe('RubyToBlocksConverter/Operators', () => {
             convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
     });
+
+    test('to_s', () => {
+        code = 'x.to_s';
+        expected = [
+            {
+                opcode: 'operator_join',
+                inputs: [
+                    {
+                        name: 'STRING1',
+                        block: rubyToExpected(converter, target, 'x')[0],
+                        shadow: expectedInfo.makeText('')
+                    },
+                    {
+                        name: 'STRING2',
+                        block: expectedInfo.makeText(''),
+                        shadow: expectedInfo.makeText('')
+                    }
+                ],
+                comment: {
+                    text: '@ruby:to_s',
+                    minimized: true
+                }
+            }
+        ];
+        convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        code = '123.to_s';
+        expected = [
+            {
+                opcode: 'operator_join',
+                inputs: [
+                    {
+                        name: 'STRING1',
+                        block: expectedInfo.makeNumber(123)
+                    },
+                    {
+                        name: 'STRING2',
+                        block: expectedInfo.makeText(''),
+                        shadow: expectedInfo.makeText('')
+                    }
+                ],
+                comment: {
+                    text: '@ruby:to_s',
+                    minimized: true
+                }
+            }
+        ];
+        convertAndExpectToEqualBlocks(converter, target, code, expected);
+    });
+
+    test('to_i', () => {
+        code = 'x.to_i';
+        expected = [
+            {
+                opcode: 'operator_add',
+                inputs: [
+                    {
+                        name: 'NUM1',
+                        block: rubyToExpected(converter, target, 'x')[0],
+                        shadow: expectedInfo.makeNumber('')
+                    },
+                    {
+                        name: 'NUM2',
+                        block: expectedInfo.makeNumber(0),
+                        shadow: expectedInfo.makeNumber(0)
+                    }
+                ],
+                comment: {
+                    text: '@ruby:to_i',
+                    minimized: true
+                }
+            }
+        ];
+        convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        code = '"123".to_i';
+        expected = [
+            {
+                opcode: 'operator_add',
+                inputs: [
+                    {
+                        name: 'NUM1',
+                        block: expectedInfo.makeText('123')
+                    },
+                    {
+                        name: 'NUM2',
+                        block: expectedInfo.makeNumber(0),
+                        shadow: expectedInfo.makeNumber(0)
+                    }
+                ],
+                comment: {
+                    text: '@ruby:to_i',
+                    minimized: true
+                }
+            }
+        ];
+        convertAndExpectToEqualBlocks(converter, target, code, expected);
+    });
 });

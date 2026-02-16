@@ -145,6 +145,34 @@ const OperatorsConverter = {
             return block;
         });
 
+        converter.registerOnSend(['variable', 'number', 'string', 'block'], 'to_s', 0, params => {
+            const {receiver} = params;
+
+            const block = converter._createBlock('operator_join', 'value');
+            if (converter._isNumber(receiver)) {
+                converter._addNumberInput(block, 'STRING1', 'math_number', receiver, '');
+            } else {
+                converter._addTextInput(block, 'STRING1', receiver, '');
+            }
+            converter._addTextInput(block, 'STRING2', '', '');
+            block.comment = converter._createComment('@ruby:to_s', block.id);
+            return block;
+        });
+
+        converter.registerOnSend(['variable', 'number', 'string', 'block'], 'to_i', 0, params => {
+            const {receiver} = params;
+
+            const block = converter._createBlock('operator_add', 'value');
+            if (converter._isString(receiver)) {
+                converter._addTextInput(block, 'NUM1', receiver, '');
+            } else {
+                converter._addNumberInput(block, 'NUM1', 'math_number', receiver, '');
+            }
+            converter._addNumberInput(block, 'NUM2', 'math_number', 0, '');
+            block.comment = converter._createComment('@ruby:to_i', block.id);
+            return block;
+        });
+
         ['abs', 'floor', 'ceil'].forEach(methodName => {
             converter.registerOnSend(['variable', 'number', 'block'], methodName, 0, params => {
                 const {receiver} = params;
