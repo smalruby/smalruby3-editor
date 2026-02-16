@@ -128,7 +128,7 @@ class Smalrubot {
                   // Then try native navigator
                   (typeof navigator !== 'undefined' && navigator) ||
                   {};
-        } catch (e) {
+        } catch {
             nav = {};
         }
 

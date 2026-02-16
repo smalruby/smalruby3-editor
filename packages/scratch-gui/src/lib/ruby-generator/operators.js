@@ -5,6 +5,12 @@
  */
 export default function (Generator) {
     Generator.operator_add = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment === '@ruby:to_i') {
+            const value = Generator.valueToCode(block, 'NUM1', Generator.ORDER_FUNCTION_CALL) || 0;
+            return [`${value}.to_i`, Generator.ORDER_FUNCTION_CALL];
+        }
+
         const order = Generator.ORDER_ADDITIVE;
         const num1 = Generator.valueToCode(block, 'NUM1', order) || 0;
         const num2 = Generator.valueToCode(block, 'NUM2', order) || 0;
@@ -84,6 +90,13 @@ export default function (Generator) {
     };
 
     Generator.operator_join = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment === '@ruby:to_s') {
+            const value = Generator.valueToCode(block, 'STRING1', Generator.ORDER_FUNCTION_CALL) ||
+                Generator.quote_('');
+            return [`${value}.to_s`, Generator.ORDER_FUNCTION_CALL];
+        }
+
         const order = Generator.ORDER_ADDITIVE;
         const rightStr = Generator.valueToCode(block, 'STRING1', order) || Generator.quote_('');
         const leftStr = Generator.valueToCode(block, 'STRING2', order) || Generator.quote_('');
