@@ -23,17 +23,18 @@ const decks = {
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="ブロックだけじゃない。Rubyでもプログラムを作れる"
+                        defaultMessage="ブロックの次はルビー(Ruby)にチャレンジしてみよう！"
                         description="Step 1: Introduce Ruby tab"
                         id="gui.howtos.getting-started.step.rubyTab"
                     />
                 ),
-                image: 'introRubyTab'
+                image: 'introRubyTab',
+                animationTarget: 'nextButton'
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="ネコが行ったり来たりするプログラムを作ってみよう"
+                        defaultMessage="ルビーを表示してプログラムを入力してみよう"
                         description="Step 2: Create bounce program"
                         id="gui.howtos.getting-started.step.bounceCode"
                     />
@@ -44,17 +45,29 @@ const decks = {
     move(10)
     bounce_if_on_edge
   end
-end`
+end`,
+                animationTarget: 'insertCodeButton'
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="作ったプログラムを実行しよう"
+                        defaultMessage="実行ボタンを押してプログラムを実行しよう"
                         description="Step 3: Run the program"
                         id="gui.howtos.getting-started.step.runRuby"
                     />
                 ),
-                image: 'introRunRuby'
+                image: 'introRunRuby',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ネコが行ったり来たりするプログラムができました🎉"
+                        description="Step 4: Celebrate first program"
+                        id="gui.howtos.getting-started.step.firstProgram"
+                    />
+                ),
+                image: 'introFirstProgram'
             }
         ],
         urlId: 'getStarted'
