@@ -317,10 +317,11 @@ export default {
     'gui.rubyToolbar.stage': 'ステージ',
 
     // Tutorials
-    'gui.howtos.getting-started.step.rubyTab': 'ブロックだけじゃない。ルビーでもプログラムをつくれる',
-    'gui.howtos.getting-started.step.bounceCode': 'ネコがいったりきたりするプログラムをつくってみよう',
-    'gui.howtos.getting-started.step.runRuby': 'つくったプログラムをじっこうしよう',
-    'gui.cards.insert-code': 'このコードをにゅうりょく',
+    'gui.howtos.getting-started.step.rubyTab': 'ブロックのつぎはルビー(Ruby)にチャレンジしてみよう！',
+    'gui.howtos.getting-started.step.bounceCode': 'ルビーをひょうじしてプログラムをにゅうりょくしてみよう',
+    'gui.howtos.getting-started.step.runRuby': 'じっこうボタンをおしてプログラムをじっこうしよう',
+    'gui.howtos.getting-started.step.firstProgram': 'ネコがいったりきたりするプログラムができました🎉',
+    'gui.cards.insert-code': 'プログラムをにゅうりょくする',
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
