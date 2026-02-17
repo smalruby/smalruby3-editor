@@ -150,6 +150,7 @@ VideoStep.propTypes = {
     video: PropTypes.string.isRequired
 };
 
+// === Smalruby: Start of tutorial glow animation (insert-code button overlay) ===
 const ImageStep = ({title, image, code, onInsertCodeFactory, animateInsertCode}) => (<Fragment>
     <div className={styles.stepTitle}>
         {title}
@@ -184,13 +185,15 @@ const ImageStep = ({title, image, code, onInsertCodeFactory, animateInsertCode})
 );
 
 ImageStep.propTypes = {
-    animateInsertCode: PropTypes.bool,
+    animateInsertCode: PropTypes.bool, // Smalruby: tutorial glow animation
     code: PropTypes.string,
     image: PropTypes.string.isRequired,
     onInsertCodeFactory: PropTypes.func,
     title: PropTypes.node.isRequired
 };
+// === Smalruby: End of tutorial glow animation (insert-code button overlay) ===
 
+// === Smalruby: Start of tutorial glow animation (next button) ===
 const NextPrevButtons = ({isRtl, onNextStep, onPrevStep, expanded, animateNext}) => (
     <Fragment>
         {onNextStep ? (
@@ -229,12 +232,13 @@ const NextPrevButtons = ({isRtl, onNextStep, onPrevStep, expanded, animateNext})
 );
 
 NextPrevButtons.propTypes = {
-    animateNext: PropTypes.bool,
+    animateNext: PropTypes.bool, // Smalruby: tutorial glow animation
     expanded: PropTypes.bool.isRequired,
     isRtl: PropTypes.bool,
     onNextStep: PropTypes.func,
     onPrevStep: PropTypes.func
 };
+// === Smalruby: End of tutorial glow animation (next button) ===
 CardHeader.propTypes = {
     expanded: PropTypes.bool.isRequired,
     onCloseCards: PropTypes.func.isRequired,
@@ -376,8 +380,10 @@ const Cards = props => {
         step,
         expanded,
         showVideos,
+        // === Smalruby: Start of tutorial glow animation ===
         animateNext,
         animateInsertCode,
+        // === Smalruby: End of tutorial glow animation ===
         ...posProps
     } = props;
     let {x, y} = posProps;
@@ -491,8 +497,10 @@ const Cards = props => {
 
 Cards.propTypes = {
     activeDeckId: PropTypes.string,
+    // === Smalruby: Start of tutorial glow animation ===
     animateInsertCode: PropTypes.bool,
     animateNext: PropTypes.bool,
+    // === Smalruby: End of tutorial glow animation ===
     content: PropTypes.shape({
         id: PropTypes.shape({
             name: PropTypes.node.isRequired,

@@ -30,9 +30,12 @@ import CardsComponent from '../components/cards/cards.jsx';
 import {loadImageData} from '../lib/libraries/decks/translate-image.js';
 import {PLATFORM} from '../lib/platform.js';
 
+// === Smalruby: Start of tutorial glow animation ===
 const ANIMATION_DELAY_MS = 3000;
+// === Smalruby: End of tutorial glow animation ===
 
 class Cards extends React.Component {
+    // === Smalruby: Start of tutorial glow animation ===
     constructor (props) {
         super(props);
         this.state = {
@@ -45,19 +48,22 @@ class Cards extends React.Component {
         this._handlePrevStep = this._handlePrevStep.bind(this);
         this._handleInsertCodeFactory = this._handleInsertCodeFactory.bind(this);
     }
+    // === Smalruby: End of tutorial glow animation ===
 
     componentDidMount () {
         if (this.props.locale !== 'en') {
             loadImageData(this.props.locale, this.props.platform);
         }
+        // === Smalruby: Start of tutorial glow animation ===
         this._scheduleAnimation();
+        // === Smalruby: End of tutorial glow animation ===
     }
 
     componentDidUpdate (prevProps) {
         if (this.props.locale !== prevProps.locale) {
             loadImageData(this.props.locale, this.props.platform);
         }
-
+        // === Smalruby: Start of tutorial glow animation ===
         const stepChanged = this.props.step !== prevProps.step;
         const deckActivated = this.props.activeDeckId !== null &&
             this.props.activeDeckId !== prevProps.activeDeckId;
@@ -70,8 +76,10 @@ class Cards extends React.Component {
             });
             this._scheduleAnimation();
         }
+        // === Smalruby: End of tutorial glow animation ===
     }
 
+    // === Smalruby: Start of tutorial glow animation ===
     componentWillUnmount () {
         this._clearAnimationTimers();
     }
@@ -134,6 +142,7 @@ class Cards extends React.Component {
             this.props.onInsertCodeDispatch(code);
         };
     }
+    // === Smalruby: End of tutorial glow animation ===
 
     render () {
         const props = {
@@ -142,11 +151,13 @@ class Cards extends React.Component {
             // download and show videos
             showVideos: this.props.platform !== PLATFORM.DESKTOP &&
                 this.props.platform !== PLATFORM.ANDROID,
+            // === Smalruby: Start of tutorial glow animation ===
             animateNext: this.state.animateNext,
             animateInsertCode: this.state.animateInsertCode,
             onNextStep: this._handleNextStep,
             onPrevStep: this._handlePrevStep,
             onInsertCodeFactory: this._handleInsertCodeFactory
+            // === Smalruby: End of tutorial glow animation ===
         };
         return (
             <CardsComponent {...props} />
@@ -155,14 +166,20 @@ class Cards extends React.Component {
 }
 
 Cards.propTypes = {
+    // === Smalruby: Start of tutorial glow animation ===
     activeDeckId: PropTypes.string,
     content: PropTypes.object.isRequired,
+    // === Smalruby: End of tutorial glow animation ===
     locale: PropTypes.string.isRequired,
+    // === Smalruby: Start of tutorial glow animation ===
     onInsertCodeDispatch: PropTypes.func.isRequired,
     onNextStepDispatch: PropTypes.func.isRequired,
     onPrevStepDispatch: PropTypes.func.isRequired,
+    // === Smalruby: End of tutorial glow animation ===
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
+    // === Smalruby: Start of tutorial glow animation ===
     step: PropTypes.number.isRequired
+    // === Smalruby: End of tutorial glow animation ===
 };
 
 const mapStateToProps = state => ({
@@ -187,15 +204,21 @@ const mapDispatchToProps = dispatch => ({
     },
     onCloseCards: () => dispatch(closeCards()),
     onShrinkExpandCards: () => dispatch(shrinkExpandCards()),
+    // === Smalruby: Start of tutorial glow animation ===
+    // Renamed from onNextStep/onPrevStep to allow interception in render()
     onNextStepDispatch: () => dispatch(nextStep()),
     onPrevStepDispatch: () => dispatch(prevStep()),
+    // === Smalruby: End of tutorial glow animation ===
     onDrag: (e_, data) => dispatch(dragCard(data.x, data.y)),
     onStartDrag: () => dispatch(startDrag()),
     onEndDrag: () => dispatch(endDrag()),
+    // === Smalruby: Start of tutorial glow animation ===
+    // Renamed from onInsertCodeFactory to allow interception in render()
     onInsertCodeDispatch: code => {
         dispatch(activateTab(RUBY_TAB_INDEX));
         dispatch(updateRubyCode(code));
     }
+    // === Smalruby: End of tutorial glow animation ===
 });
 
 export default connect(

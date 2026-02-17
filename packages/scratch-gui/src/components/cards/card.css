@@ -179,6 +179,7 @@ body .card-container {
     height: 256px;
 }
 
+/* === Smalruby: Start of insert-code button overlay === */
 .step-image-container {
     position: relative;
     display: flex;
@@ -202,6 +203,7 @@ body .card-container {
     left: 50%;
     transform: translateX(-50%);
 }
+/* === Smalruby: End of insert-code button overlay === */
 
 .decks, .resources {
     display: flex;
@@ -346,6 +348,7 @@ body .card-container {
     filter: brightness(0) invert(1);
 }
 
+/* === Smalruby: Start of tutorial glow animation === */
 /* Glow animation for tutorial hints */
 @keyframes glow-pulse-next {
     0%, 100% {
@@ -377,4 +380,5 @@ body .card-container {
 .insert-code-button-glow {
     animation: glow-pulse-button 1s ease-in-out infinite;
 }
+/* === Smalruby: End of tutorial glow animation === */
 
