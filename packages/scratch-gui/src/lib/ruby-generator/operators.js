@@ -6,7 +6,7 @@
 export default function (Generator) {
     Generator.operator_add = function (block) {
         const comment = Generator.getCommentText(block);
-        if (comment === '@ruby:to_i') {
+        if (comment === '@ruby:method:to_i') {
             const value = Generator.valueToCode(block, 'NUM1', Generator.ORDER_FUNCTION_CALL) || 0;
             return [`${value}.to_i`, Generator.ORDER_FUNCTION_CALL];
         }
@@ -91,7 +91,7 @@ export default function (Generator) {
 
     Generator.operator_join = function (block) {
         const comment = Generator.getCommentText(block);
-        if (comment === '@ruby:to_s') {
+        if (comment === '@ruby:method:to_s') {
             const value = Generator.valueToCode(block, 'STRING1', Generator.ORDER_FUNCTION_CALL) ||
                 Generator.quote_('');
             return [`${value}.to_s`, Generator.ORDER_FUNCTION_CALL];

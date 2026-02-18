@@ -155,7 +155,7 @@ const OperatorsConverter = {
                 converter._addTextInput(block, 'STRING1', receiver, '');
             }
             converter._addTextInput(block, 'STRING2', '', '');
-            block.comment = converter._createComment('@ruby:to_s', block.id);
+            block.comment = converter._createComment('@ruby:method:to_s', block.id);
             return block;
         });
 
@@ -169,7 +169,7 @@ const OperatorsConverter = {
                 converter._addNumberInput(block, 'NUM1', 'math_number', receiver, '');
             }
             converter._addNumberInput(block, 'NUM2', 'math_number', 0, '');
-            block.comment = converter._createComment('@ruby:to_i', block.id);
+            block.comment = converter._createComment('@ruby:method:to_i', block.id);
             return block;
         });
 

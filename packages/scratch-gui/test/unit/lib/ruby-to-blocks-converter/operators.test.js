@@ -1068,7 +1068,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                     }
                 ],
                 comment: {
-                    text: '@ruby:to_s',
+                    text: '@ruby:method:to_s',
                     minimized: true
                 }
             }
@@ -1091,7 +1091,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                     }
                 ],
                 comment: {
-                    text: '@ruby:to_s',
+                    text: '@ruby:method:to_s',
                     minimized: true
                 }
             }
@@ -1117,7 +1117,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                     }
                 ],
                 comment: {
-                    text: '@ruby:to_i',
+                    text: '@ruby:method:to_i',
                     minimized: true
                 }
             }
@@ -1140,7 +1140,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                     }
                 ],
                 comment: {
-                    text: '@ruby:to_i',
+                    text: '@ruby:method:to_i',
                     minimized: true
                 }
             }
