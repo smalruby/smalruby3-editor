@@ -120,6 +120,34 @@ const OperatorsConverter = {
             return block;
         });
 
+        converter.registerOnSend('any', '!=', 1, params => {
+            const {receiver, args, name} = params;
+            let rh = args[0];
+            if (_.isArray(rh)) {
+                if (rh.length !== 1) return null;
+                rh = rh[0];
+            }
+
+            const index = (converter._context.methodCallIndices[name] || 0) + 1;
+            converter._context.methodCallIndices[name] = index;
+
+            const commentText = `@ruby:operator:${name}:${index}`;
+
+            const equalsBlock = converter._createBlock('operator_equals', 'value_boolean');
+            converter._addTextInput(
+                equalsBlock, 'OPERAND1', converter._isNumber(receiver) ? receiver.toString() : receiver, ''
+            );
+            converter._addTextInput(
+                equalsBlock, 'OPERAND2', converter._isNumber(rh) ? rh.toString() : rh, '50'
+            );
+            equalsBlock.comment = converter._createComment(commentText, equalsBlock.id);
+
+            const block = converter._createBlock('operator_not', 'value_boolean');
+            converter._addInput(block, 'OPERAND', equalsBlock);
+            block.comment = converter._createComment(commentText, block.id);
+            return block;
+        });
+
         ['>', '<', '=='].forEach(operator => {
             converter.registerOnSend('any', operator, 1, params => {
                 const {receiver, args} = params;
