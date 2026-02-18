@@ -68,6 +68,8 @@ class RubyTab extends React.Component {
         this.downloadCallbackRef = null;
         this.executingLineDecoration = null;
         this.contentChangeListener = null;
+        this.pasteMutationObserver = null;
+        this.bodyMutationObserver = null;
         this.bubbleRef = null;
         this.state = {
             runningBlockId: null,
@@ -193,6 +195,14 @@ class RubyTab extends React.Component {
             this.contentChangeListener.dispose();
             this.contentChangeListener = null;
         }
+        if (this.pasteMutationObserver) {
+            this.pasteMutationObserver.disconnect();
+            this.pasteMutationObserver = null;
+        }
+        if (this.bodyMutationObserver) {
+            this.bodyMutationObserver.disconnect();
+            this.bodyMutationObserver = null;
+        }
     }
 
     clearErrors () {
@@ -259,6 +269,65 @@ class RubyTab extends React.Component {
 
         window.monacoEditor = editor;
         window.monaco = monaco;
+
+        // Custom paste action for Monaco Editor v0.55.1 standalone environment
+        editor.addAction({
+            id: 'smalruby.paste',
+            label: this.props.intl.formatMessage({
+                id: 'gui.rubyTab.paste',
+                defaultMessage: 'Paste'
+            }),
+            contextMenuGroupId: '9_cutcopypaste',
+            contextMenuOrder: 4,
+            precondition: '!editorReadonly',
+            run: async ed => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        ed.trigger('keyboard', 'type', {text});
+                    }
+                } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.error('Smalruby custom paste error:', err);
+                }
+            }
+        });
+
+        // Hide original Paste action in Monaco Editor v0.55.1 context menu
+        // Shadow Root is used for context views in some environments
+        const setupPasteMutationObserver = host => {
+            if (this.pasteMutationObserver) return;
+            this.pasteMutationObserver = new MutationObserver(() => {
+                const menuItems = host.shadowRoot.querySelectorAll(
+                    '.action-item[aria-label="Paste"], .action-item[aria-label="貼り付け"]'
+                );
+                if (menuItems.length >= 2) {
+                    menuItems[0].style.display = 'none';
+                }
+            });
+            this.pasteMutationObserver.observe(host.shadowRoot, {
+                childList: true,
+                subtree: true
+            });
+        };
+
+        const shadowRootHost = document.querySelector('.shadow-root-host');
+        if (shadowRootHost && shadowRootHost.shadowRoot) {
+            setupPasteMutationObserver(shadowRootHost);
+        } else {
+            this.bodyMutationObserver = new MutationObserver(() => {
+                const host = document.querySelector('.shadow-root-host');
+                if (host && host.shadowRoot) {
+                    setupPasteMutationObserver(host);
+                    this.bodyMutationObserver.disconnect();
+                    this.bodyMutationObserver = null;
+                }
+            });
+            this.bodyMutationObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
 
         // Register Smalruby language
         monaco.languages.register({id: 'smalruby'});
