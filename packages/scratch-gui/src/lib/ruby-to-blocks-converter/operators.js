@@ -45,8 +45,13 @@ const OperatorsConverter = {
 
             const commentText = `@ruby:method:${name}:${index}`;
 
-            const lengthBlock = converter._createBlock('operator_length', 'value');
-            converter._addTextInput(lengthBlock, 'STRING', receiver, 'apple');
+            let lengthBlock;
+            if (converter._isBlock(receiver) && converter.isListBlock(receiver)) {
+                lengthBlock = converter._changeBlock(receiver, 'data_lengthoflist', 'value');
+            } else {
+                lengthBlock = converter._createBlock('operator_length', 'value');
+                converter._addTextInput(lengthBlock, 'STRING', receiver, 'apple');
+            }
             lengthBlock.comment = converter._createComment(commentText, lengthBlock.id);
 
             const block = converter._createBlock('operator_equals', 'value_boolean');

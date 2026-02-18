@@ -100,4 +100,40 @@ describe('empty? conversion integration', () => {
         ].join('\n');
         expect(await currentRubyProgram()).toEqual(expectedRubyCode);
     });
+
+    test('list empty? round-trip conversion', async () => {
+        await loadUri(uri);
+
+        await clickText('Ruby', '*[@role="tab"]');
+        const rubyCode = [
+            'list("@list").clear',
+            'if list("@list").empty?',
+            '  say("empty")',
+            'else',
+            '  say("not empty")',
+            'end',
+            ''
+        ].join('\n');
+        await fillInRubyProgram(rubyCode);
+
+        // Convert to Code tab (Ruby to Blocks)
+        await clickText('Code', '*[@role="tab"]');
+
+        // Convert back to Ruby (Blocks to Ruby)
+        await clickXpath(EDIT_MENU_XPATH);
+        await clickText('Generate Ruby from Code');
+
+        await clickText('Ruby', '*[@role="tab"]');
+
+        const expectedRubyCode = [
+            'list("@list").clear',
+            'if list("@list").empty?',
+            '  say("empty")',
+            'else',
+            '  say("not empty")',
+            'end',
+            ''
+        ].join('\n');
+        expect(await currentRubyProgram()).toEqual(expectedRubyCode);
+    });
 });

@@ -142,5 +142,28 @@ describe('RubyGenerator/Operators', () => {
             expect(RubyGenerator.operator_equals(block)).toEqual(['x.empty?', RubyGenerator.ORDER_FUNCTION_CALL]);
             expect(RubyGenerator.emptyCallCache_['1']).toBeUndefined();
         });
+
+        test('with @ruby:method:empty? for list', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_equals',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:method:empty?:1' };
+            RubyGenerator.emptyCallCache_['1'] = 'list("my list")';
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('@ruby:method:empty?:1')
+                .mockReturnValueOnce('0');
+            RubyGenerator.nosToCode = jest.fn(v => {
+                if (v === '0') return 0;
+                return v;
+            });
+
+            expect(RubyGenerator.operator_equals(block)).toEqual(['list("my list").empty?', RubyGenerator.ORDER_FUNCTION_CALL]);
+            expect(RubyGenerator.emptyCallCache_['1']).toBeUndefined();
+        });
     });
 });
