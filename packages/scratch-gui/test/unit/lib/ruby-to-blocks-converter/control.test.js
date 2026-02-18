@@ -187,6 +187,113 @@ describe('RubyToBlocksConverter/Control', () => {
         });
     });
 
+    describe('case...when...end', () => {
+        test('case only', () => {
+            code = `
+                case @a
+                when 1
+                  move(10)
+                end
+            `;
+            const expected = rubyToExpected(converter, target, 'if @a == 1; move(10); end');
+            expected[0].comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+            expected[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+            convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('case + else', () => {
+            code = `
+                case @a
+                when 1
+                  move(10)
+                else
+                  move(20)
+                end
+            `;
+            const expected = rubyToExpected(converter, target, 'if @a == 1; move(10); else; move(20); end');
+            expected[0].comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+            expected[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+            convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('case + multiple when + else', () => {
+            code = `
+                case @a
+                when 1
+                  move(10)
+                when 2
+                  move(20)
+                else
+                  move(30)
+                end
+            `;
+            const expected = rubyToExpected(converter, target, 'if @a == 1; move(10); else; if @a == 2; move(20); else; move(30); end; end');
+            expected[0].comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+            expected[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+            expected[0].branches[1].comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+            expected[0].branches[1].inputs.find(i => i.name === 'CONDITION').block.comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+            convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('multiple case', () => {
+            code = `
+                case @a
+                when 1
+                  move(10)
+                end
+                case @b
+                when 2
+                  move(20)
+                end
+            `;
+            const expected1 = rubyToExpected(converter, target, 'if @a == 1; move(10); end');
+            expected1[0].comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+            expected1[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+                text: '@ruby:syntax:case:@a:1',
+                minimized: true
+            };
+
+            const expected2 = rubyToExpected(converter, target, 'if @b == 2; move(20); end');
+            expected2[0].comment = {
+                text: '@ruby:syntax:case:@b:2',
+                minimized: true
+            };
+            expected2[0].inputs.find(i => i.name === 'CONDITION').block.comment = {
+                text: '@ruby:syntax:case:@b:2',
+                minimized: true
+            };
+            expected1[0].next = expected2[0];
+            convertAndExpectToEqualBlocks(converter, target, code, [expected1[0]]);
+        });
+    });
+
     describe('control_wait_until', () => {
         test('error', () => {
             code = 'wait until move(10)';

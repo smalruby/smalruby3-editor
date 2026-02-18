@@ -347,4 +347,45 @@ describe('Ruby Tab: Control category blocks', () => {
         await clickText('Ruby', '*[@role="tab"]');
         expect(await currentRubyProgram()).toEqual(`${ruby}\n`);
     });
+
+    test('Ruby -> Code -> Ruby (case...when...end) ', async () => {
+        await loadUri(urlFor('/'));
+
+        const ruby = dedent`
+            case x
+            when 1
+              move(10)
+            end
+            case x
+            when 1
+              move(10)
+            else
+              move(20)
+            end
+            case x
+            when 1
+              move(10)
+            when 2
+              move(20)
+            else
+              move(30)
+            end
+            case @a
+            when 1
+              move(10)
+            end
+            case @b
+            when 2
+              move(20)
+            end
+        `;
+
+        await clickText('Ruby', '*[@role="tab"]');
+        await fillInRubyProgram(ruby);
+        await clickText('Code', '*[@role="tab"]');
+        await clickXpath(EDIT_MENU_XPATH);
+        await clickText('Generate Ruby from Code');
+        await clickText('Ruby', '*[@role="tab"]');
+        expect(await currentRubyProgram()).toEqual(`${ruby}\n`);
+    });
 });
