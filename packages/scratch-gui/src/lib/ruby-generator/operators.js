@@ -166,7 +166,7 @@ export default function (Generator) {
                 if (part.startsWith('@ruby:operator:>=:')) {
                     const index = part.substring(18);
                     const order = Generator.ORDER_RELATIONAL;
-                    const operand1 = Generator.valueToCode(block, 'OPERAND1', order);
+                    const operand1 = Generator.valueToCode(block, 'OPERAND1', Generator.ORDER_NONE);
                     if (operand1 === `@ruby:operator:>=:${index}`) {
                         const {lhs, rhs} = Generator.greaterThanOrEqualCallCache_[index];
                         delete Generator.greaterThanOrEqualCallCache_[index];
@@ -175,7 +175,7 @@ export default function (Generator) {
                 } else if (part.startsWith('@ruby:operator:<=:')) {
                     const index = part.substring(18);
                     const order = Generator.ORDER_RELATIONAL;
-                    const operand1 = Generator.valueToCode(block, 'OPERAND1', order);
+                    const operand1 = Generator.valueToCode(block, 'OPERAND1', Generator.ORDER_NONE);
                     if (operand1 === `@ruby:operator:<=:${index}`) {
                         const {lhs, rhs} = Generator.lessThanOrEqualCallCache_[index];
                         delete Generator.lessThanOrEqualCallCache_[index];
