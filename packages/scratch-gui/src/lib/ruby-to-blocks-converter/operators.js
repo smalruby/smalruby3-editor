@@ -29,11 +29,30 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnSend(['string', 'block'], 'length', 0, params => {
+        converter.registerOnSend(['string', 'block', 'variable'], 'length', 0, params => {
             const {receiver} = params;
 
             const block = converter._createBlock('operator_length', 'value');
             converter._addTextInput(block, 'STRING', receiver, 'apple');
+            return block;
+        });
+
+        converter.registerOnSend(['string', 'block', 'variable'], 'empty?', 0, params => {
+            const {receiver, name} = params;
+
+            const index = (converter._context.methodCallIndices[name] || 0) + 1;
+            converter._context.methodCallIndices[name] = index;
+
+            const commentText = `@ruby:method:${name}:${index}`;
+
+            const lengthBlock = converter._createBlock('operator_length', 'value');
+            converter._addTextInput(lengthBlock, 'STRING', receiver, 'apple');
+            lengthBlock.comment = converter._createComment(commentText, lengthBlock.id);
+
+            const block = converter._createBlock('operator_equals', 'value_boolean');
+            converter._addInput(block, 'OPERAND1', lengthBlock, converter._createTextBlock(''));
+            converter._addTextInput(block, 'OPERAND2', '0', '50');
+            block.comment = converter._createComment(commentText, block.id);
             return block;
         });
 
@@ -155,7 +174,7 @@ const OperatorsConverter = {
                 converter._addTextInput(block, 'STRING1', receiver, '');
             }
             converter._addTextInput(block, 'STRING2', '', '');
-            block.comment = converter._createComment('@ruby:to_s', block.id);
+            block.comment = converter._createComment('@ruby:method:to_s', block.id);
             return block;
         });
 
@@ -169,7 +188,7 @@ const OperatorsConverter = {
                 converter._addNumberInput(block, 'NUM1', 'math_number', receiver, '');
             }
             converter._addNumberInput(block, 'NUM2', 'math_number', 0, '');
-            block.comment = converter._createComment('@ruby:to_i', block.id);
+            block.comment = converter._createComment('@ruby:method:to_i', block.id);
             return block;
         });
 

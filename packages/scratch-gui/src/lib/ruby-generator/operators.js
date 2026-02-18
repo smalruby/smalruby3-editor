@@ -6,7 +6,7 @@
 export default function (Generator) {
     Generator.operator_add = function (block) {
         const comment = Generator.getCommentText(block);
-        if (comment === '@ruby:to_i') {
+        if (comment === '@ruby:method:to_i') {
             const value = Generator.valueToCode(block, 'NUM1', Generator.ORDER_FUNCTION_CALL) || 0;
             return [`${value}.to_i`, Generator.ORDER_FUNCTION_CALL];
         }
@@ -63,6 +63,30 @@ export default function (Generator) {
     };
 
     Generator.operator_equals = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment) {
+            const commentParts = comment.split(/,(?=@ruby:)/);
+            let methodName = null;
+            let index = null;
+            for (const part of commentParts) {
+                if (part.startsWith('@ruby:method:empty?:')) {
+                    methodName = 'empty?';
+                    index = part.substring(20);
+                }
+            }
+            if (methodName === 'empty?') {
+                const operand1 = Generator.valueToCode(block, 'OPERAND1', Generator.ORDER_EQUALS);
+                if (operand1 === `@ruby:method:empty?:${index}`) {
+                    const operand2 = Generator.valueToCode(block, 'OPERAND2', Generator.ORDER_EQUALS);
+                    if (Generator.nosToCode(operand2) === 0) {
+                        const receiver = Generator.emptyCallCache_[index];
+                        delete Generator.emptyCallCache_[index];
+                        return [`${receiver}.empty?`, Generator.ORDER_FUNCTION_CALL];
+                    }
+                }
+            }
+        }
+
         const order = Generator.ORDER_EQUALS;
         const operand1 = Generator.valueToCode(block, 'OPERAND1', order) || 0;
         const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 0;
@@ -91,7 +115,7 @@ export default function (Generator) {
 
     Generator.operator_join = function (block) {
         const comment = Generator.getCommentText(block);
-        if (comment === '@ruby:to_s') {
+        if (comment === '@ruby:method:to_s') {
             const value = Generator.valueToCode(block, 'STRING1', Generator.ORDER_FUNCTION_CALL) ||
                 Generator.quote_('');
             return [`${value}.to_s`, Generator.ORDER_FUNCTION_CALL];
@@ -111,6 +135,25 @@ export default function (Generator) {
     };
 
     Generator.operator_length = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment) {
+            const commentParts = comment.split(/,(?=@ruby:)/);
+            let methodName = null;
+            let index = null;
+            for (const part of commentParts) {
+                if (part.startsWith('@ruby:method:empty?:')) {
+                    methodName = 'empty?';
+                    index = part.substring(20);
+                }
+            }
+            if (methodName === 'empty?') {
+                const str = Generator.valueToCode(block, 'STRING', Generator.ORDER_FUNCTION_CALL) ||
+                    Generator.quote_('');
+                Generator.emptyCallCache_[index] = str;
+                return [`@ruby:method:empty?:${index}`, Generator.ORDER_FUNCTION_CALL];
+            }
+        }
+
         const order = Generator.ORDER_FUNCTION_CALL;
         const str = Generator.valueToCode(block, 'STRING', order) || Generator.quote_('');
         return [`${str}.length`, order];
