@@ -148,6 +148,46 @@ const OperatorsConverter = {
             return block;
         });
 
+        ['>=', '<='].forEach(operator => {
+            converter.registerOnSend('any', operator, 1, params => {
+                const {receiver, args, name} = params;
+                let rh = args[0];
+                if (_.isArray(rh)) {
+                    if (rh.length !== 1) return null;
+                    rh = rh[0];
+                }
+
+                const index = (converter._context.methodCallIndices[name] || 0) + 1;
+                converter._context.methodCallIndices[name] = index;
+
+                const commentText = `@ruby:operator:${name}:${index}`;
+
+                const receiverValue = converter._isNumber(receiver) ? receiver.toString() : receiver;
+                const rhValue = converter._isNumber(rh) ? rh.toString() : rh;
+
+                const subOpcode = operator === '>=' ? 'operator_gt' : 'operator_lt';
+                const subBlock = converter._createBlock(subOpcode, 'value_boolean');
+                converter._addTextInput(subBlock, 'OPERAND1', receiverValue, '');
+                converter._addTextInput(subBlock, 'OPERAND2', rhValue, '50');
+                subBlock.comment = converter._createComment(commentText, subBlock.id);
+
+                const equalsBlock = converter._createBlock('operator_equals', 'value_boolean');
+                converter._addTextInput(
+                    equalsBlock, 'OPERAND1', converter._cloneBlock(receiverValue), ''
+                );
+                converter._addTextInput(
+                    equalsBlock, 'OPERAND2', converter._cloneBlock(rhValue), '50'
+                );
+                equalsBlock.comment = converter._createComment(commentText, equalsBlock.id);
+
+                const block = converter._createBlock('operator_or', 'value_boolean');
+                converter._addInput(block, 'OPERAND1', subBlock);
+                converter._addInput(block, 'OPERAND2', equalsBlock);
+                block.comment = converter._createComment(commentText, block.id);
+                return block;
+            });
+        });
+
         ['>', '<', '=='].forEach(operator => {
             converter.registerOnSend('any', operator, 1, params => {
                 const {receiver, args} = params;
