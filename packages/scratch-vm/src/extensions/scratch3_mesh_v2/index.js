@@ -1,7 +1,10 @@
+/* global process */
 const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const formatMessage = require('format-message');
 const log = require('../../util/log');
+const debugLogger = require('../../util/debug-logger');
+const debug = debugLogger(process.env.DEBUG);
 const {v4: uuidv4} = require('uuid');
 const Variable = require('../../engine/variable');
 const {getDomain, saveDomainToLocalStorage} = require('./utils');
@@ -50,7 +53,7 @@ class Scratch3MeshV2Blocks {
 
     /* istanbul ignore next */
     constructor (runtime) {
-        log.info('Loading NEW Mesh V2 extension (GraphQL)');
+        debug(() => 'Loading NEW Mesh V2 extension (GraphQL)');
         this.runtime = runtime;
         try {
             this.domain = getDomain();
@@ -111,7 +114,7 @@ class Scratch3MeshV2Blocks {
         if (this.meshService) {
             this.meshService.domain = domain;
         }
-        log.info(`Mesh V2: Domain set to ${domain || 'null (auto)'}`);
+        debug(() => `Mesh V2: Domain set to ${domain || 'null (auto)'}`);
         return null;
     }
 
@@ -200,6 +203,7 @@ class Scratch3MeshV2Blocks {
         if (!this.meshService) return;
         this.meshService.listGroups().then(groups => {
             this.discoveredGroups = groups;
+            log.info(`Mesh V2: Listed ${groups.length} groups`);
 
             // Filter out expired groups
             const now = Date.now();
@@ -241,7 +245,7 @@ class Scratch3MeshV2Blocks {
                     this.meshService.isNetworkFilterError(this.meshService.lastError) ?
                     'networkFilter' :
                     null;
-                log.info(`Mesh V2: Setting error state with errorType: ${errorType}`);
+                debug(() => `Mesh V2: Setting error state with errorType: ${errorType}`);
                 // Set error state to trigger error UI
                 this.setConnectionState('error', errorType);
             });
