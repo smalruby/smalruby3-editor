@@ -147,7 +147,8 @@ export default function (Generator) {
                 }
             }
             if (methodName === 'empty?') {
-                const str = Generator.valueToCode(block, 'STRING', Generator.ORDER_FUNCTION_CALL) || Generator.quote_('');
+                const str = Generator.valueToCode(block, 'STRING', Generator.ORDER_FUNCTION_CALL) ||
+                    Generator.quote_('');
                 Generator.emptyCallCache_[index] = str;
                 return [`@ruby:method:empty?:${index}`, Generator.ORDER_FUNCTION_CALL];
             }
