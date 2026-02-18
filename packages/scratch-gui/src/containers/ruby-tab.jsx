@@ -293,16 +293,37 @@ class RubyTab extends React.Component {
             }
         });
 
-        // Hide original Paste action in Monaco Editor v0.55.1 context menu
-        // Shadow Root is used for context views in some environments
+        // Hide original (broken) Paste action in Monaco Editor v0.55.1 context menu.
+        // Monaco renders context menus in a Shadow DOM (.shadow-root-host).
+        // The aria-label is on .action-label (child), NOT on .action-item itself.
+        // We inject a persistent <style> to hide duplicate paste items, and use a
+        // MutationObserver to re-apply hiding after each menu open/close cycle.
         const setupPasteMutationObserver = host => {
             if (this.pasteMutationObserver) return;
+
+            // Inject a persistent <style> into the shadow root to hide original paste item.
+            // CSS :has() selector targets .action-item that contains the broken paste label.
+            // We hide the first one (original Monaco) and keep the second (our custom action).
+            const style = document.createElement('style');
+            style.textContent = `
+                .action-item:has(.action-label[aria-label="Paste"]):first-of-type,
+                .action-item:has(.action-label[aria-label="貼り付け"]):first-of-type {
+                    display: none !important;
+                }
+            `;
+            host.shadowRoot.appendChild(style);
+
             this.pasteMutationObserver = new MutationObserver(() => {
-                const menuItems = host.shadowRoot.querySelectorAll(
-                    '.action-item[aria-label="Paste"], .action-item[aria-label="貼り付け"]'
-                );
-                if (menuItems.length >= 2) {
-                    menuItems[0].style.display = 'none';
+                // Find all paste-labeled items via the correct selector (aria-label on .action-label)
+                const pasteLabels = Array.from(host.shadowRoot.querySelectorAll(
+                    '.action-label[aria-label="Paste"], .action-label[aria-label="貼り付け"]'
+                ));
+                if (pasteLabels.length >= 2) {
+                    // Hide the first item (original broken Monaco paste action)
+                    const firstPasteItem = pasteLabels[0].closest('.action-item');
+                    if (firstPasteItem) {
+                        firstPasteItem.style.display = 'none';
+                    }
                 }
             });
             this.pasteMutationObserver.observe(host.shadowRoot, {
