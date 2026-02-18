@@ -909,6 +909,41 @@ describe('RubyToBlocksConverter/Operators', () => {
             }
         ];
         convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        code = 'list("@list").empty?';
+        expected = [
+            {
+                opcode: 'operator_equals',
+                inputs: [
+                    {
+                        name: 'OPERAND1',
+                        block: {
+                            opcode: 'data_lengthoflist',
+                            fields: [
+                                {
+                                    name: 'LIST',
+                                    list: '@list'
+                                }
+                            ],
+                            comment: {
+                                text: '@ruby:method:empty?:1',
+                                minimized: true
+                            }
+                        },
+                        shadow: expectedInfo.makeText('')
+                    },
+                    {
+                        name: 'OPERAND2',
+                        block: expectedInfo.makeText('0')
+                    }
+                ],
+                comment: {
+                    text: '@ruby:method:empty?:1',
+                    minimized: true
+                }
+            }
+        ];
+        convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
     test('operator_contains', () => {

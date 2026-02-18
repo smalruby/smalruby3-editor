@@ -160,18 +160,24 @@ export default function (Generator) {
     Generator.data_itemoflist = function (block) {
         const index = getListIndex(block);
         const list = getListName(block);
-        return [`${list}[${index}]`, Generator.ORDER_FUNCTION_CAL];
+        return [`${list}[${index}]`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.data_itemnumoflist = function (block) {
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
-        return [`${list}.index(${Generator.nosToCode(item)})`, Generator.ORDER_FUNCTION_CAL];
+        return [`${list}.index(${Generator.nosToCode(item)})`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.data_lengthoflist = function (block) {
         const list = getListName(block);
-        return [`${list}.length`, Generator.ORDER_FUNCTION_CAL];
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:method:empty?:')) {
+            const index = comment.substring(20);
+            Generator.emptyCallCache_[index] = list;
+            return [`@ruby:method:empty?:${index}`, Generator.ORDER_FUNCTION_CALL];
+        }
+        return [`${list}.length`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.data_listcontainsitem = function (block) {
