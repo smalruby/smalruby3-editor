@@ -311,4 +311,40 @@ describe('Ruby Tab: Control category blocks', () => {
         await clickText('Ruby', '*[@role="tab"]');
         expect(await currentRubyProgram()).toEqual(`${afterRuby}\n`);
     });
+
+    test('Ruby -> Code -> Ruby (if...elsif...end) ', async () => {
+        await loadUri(urlFor('/'));
+
+        const ruby = dedent`
+            if x == 1
+              move(10)
+            elsif x == 2
+              move(20)
+            end
+            if x == 1
+              move(10)
+            elsif x == 2
+              move(20)
+            else
+              move(30)
+            end
+            if x == 1
+              move(10)
+            elsif x == 2
+              move(20)
+            elsif x == 3
+              move(30)
+            else
+              move(40)
+            end
+        `;
+
+        await clickText('Ruby', '*[@role="tab"]');
+        await fillInRubyProgram(ruby);
+        await clickText('Code', '*[@role="tab"]');
+        await clickXpath(EDIT_MENU_XPATH);
+        await clickText('Generate Ruby from Code');
+        await clickText('Ruby', '*[@role="tab"]');
+        expect(await currentRubyProgram()).toEqual(`${ruby}\n`);
+    });
 });

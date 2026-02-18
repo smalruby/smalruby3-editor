@@ -25,6 +25,7 @@ const ContextUtils = {
             procedures: {},
             methodCallCounts: {},
             methodCallIndices: {},
+            elsifCounter: 0,
             isValue: false,
             inMyBlockDefinition: false,
             scopeStack: [],

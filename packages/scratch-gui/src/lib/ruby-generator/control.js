@@ -26,11 +26,46 @@ export default function (Generator) {
         return `if ${operator}\n${branch}end\n`;
     };
 
+    const controlIfElseInternal = function (block, isTopLevel) {
+        const comment = Generator.getCommentText(block);
+        const match = comment ? comment.match(/^@ruby:syntax:elsif:(\d+)$/) : null;
+        const elsifGroup = match ? match[1] : null;
+
+        if (elsifGroup) {
+            const substack2 = block.inputs.SUBSTACK2;
+            if (substack2 && substack2.block) {
+                const nextBlock = Generator.getBlock(substack2.block);
+                if (nextBlock && (nextBlock.opcode === 'control_if' || nextBlock.opcode === 'control_if_else')) {
+                    const nextComment = Generator.getCommentText(nextBlock);
+                    const nextMatch = nextComment ? nextComment.match(/^@ruby:syntax:elsif:(\d+)$/) : null;
+                    if (nextMatch && nextMatch[1] === elsifGroup) {
+                        const nextOperator = Generator.valueToCode(nextBlock, 'CONDITION', Generator.ORDER_NONE) || false;
+                        const nextBranch = Generator.statementToCode(nextBlock, 'SUBSTACK') || '';
+                        let nextBranch2 = '';
+                        if (nextBlock.opcode === 'control_if_else') {
+                            nextBranch2 = controlIfElseInternal(nextBlock, false);
+                        }
+                        if (nextBranch2) {
+                            return `elsif ${nextOperator}\n${nextBranch}${nextBranch2}`;
+                        }
+                        return `elsif ${nextOperator}\n${nextBranch}`;
+                    }
+                }
+            }
+        }
+
+        const branch2 = Generator.statementToCode(block, 'SUBSTACK2') || '';
+        if (branch2 || isTopLevel) {
+            return `else\n${branch2}`;
+        }
+        return '';
+    };
+
     Generator.control_if_else = function (block) {
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-        const branch2 = Generator.statementToCode(block, 'SUBSTACK2') || '';
-        return `if ${operator}\n${branch}else\n${branch2}end\n`;
+        const branch2 = controlIfElseInternal(block, true);
+        return `if ${operator}\n${branch}${branch2}end\n`;
     };
 
     Generator.control_wait_until = function (block) {

@@ -32,6 +32,39 @@ const ControlFlowHandlers = {
             block = this._createRubyStatementBlock(this._getSource(node), node);
         }
 
+        if (node.children[2] && node.children[2].type === 'if') {
+            const elseBlock = _.isArray(elseStatement) ? elseStatement[0] : elseStatement;
+            if (this.isBlock(block) && this.isBlock(elseBlock)) {
+                let n;
+                if (elseBlock.comment) {
+                    const comment = this._context.comments[elseBlock.comment];
+                    if (comment) {
+                        const match = comment.text.match(/^@ruby:syntax:elsif:(\d+)$/);
+                        if (match) {
+                            n = parseInt(match[1], 10);
+                        }
+                    }
+                }
+                if (!n) {
+                    this._context.elsifCounter++;
+                    n = this._context.elsifCounter;
+                }
+                const commentText = `@ruby:syntax:elsif:${n}`;
+                [block, elseBlock].forEach(b => {
+                    if (!b.comment) {
+                        const commentId = this._createComment(commentText, b.id, 0, 0, false);
+                        b.comment = commentId;
+                    } else {
+                        const comment = this._context.comments[b.comment];
+                        if (comment) {
+                            comment.text = commentText;
+                            comment.minimized = false;
+                        }
+                    }
+                });
+            }
+        }
+
         if (preBlocks.length > 0 && block) {
             if (_.isArray(block)) {
                 return [...preBlocks, ...block];
