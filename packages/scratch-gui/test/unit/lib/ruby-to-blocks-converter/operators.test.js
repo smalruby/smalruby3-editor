@@ -838,6 +838,79 @@ describe('RubyToBlocksConverter/Operators', () => {
         convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
+    test('empty?', () => {
+        code = '"apple".empty?';
+        expected = [
+            {
+                opcode: 'operator_equals',
+                inputs: [
+                    {
+                        name: 'OPERAND1',
+                        block: {
+                            opcode: 'operator_length',
+                            inputs: [
+                                {
+                                    name: 'STRING',
+                                    block: expectedInfo.makeText('apple')
+                                }
+                            ],
+                            comment: {
+                                text: '@ruby:method:empty?',
+                                minimized: true
+                            }
+                        },
+                        shadow: expectedInfo.makeText('')
+                    },
+                    {
+                        name: 'OPERAND2',
+                        block: expectedInfo.makeText('0')
+                    }
+                ],
+                comment: {
+                    text: '@ruby:method:empty?',
+                    minimized: true
+                }
+            }
+        ];
+        convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        code = 'x.empty?';
+        expected = [
+            {
+                opcode: 'operator_equals',
+                inputs: [
+                    {
+                        name: 'OPERAND1',
+                        block: {
+                            opcode: 'operator_length',
+                            inputs: [
+                                {
+                                    name: 'STRING',
+                                    block: rubyToExpected(converter, target, 'x')[0],
+                                    shadow: expectedInfo.makeText('apple')
+                                }
+                            ],
+                            comment: {
+                                text: '@ruby:method:empty?',
+                                minimized: true
+                            }
+                        },
+                        shadow: expectedInfo.makeText('')
+                    },
+                    {
+                        name: 'OPERAND2',
+                        block: expectedInfo.makeText('0')
+                    }
+                ],
+                comment: {
+                    text: '@ruby:method:empty?',
+                    minimized: true
+                }
+            }
+        ];
+        convertAndExpectToEqualBlocks(converter, target, code, expected);
+    });
+
     test('operator_contains', () => {
         code = '"apple".include?("a")';
         expected = [

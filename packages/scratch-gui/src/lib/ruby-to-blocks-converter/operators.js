@@ -37,6 +37,20 @@ const OperatorsConverter = {
             return block;
         });
 
+        converter.registerOnSend(['string', 'block', 'variable'], 'empty?', 0, params => {
+            const {receiver} = params;
+
+            const lengthBlock = converter._createBlock('operator_length', 'value');
+            converter._addTextInput(lengthBlock, 'STRING', receiver, 'apple');
+            lengthBlock.comment = converter._createComment('@ruby:method:empty?', lengthBlock.id);
+
+            const block = converter._createBlock('operator_equals', 'value_boolean');
+            converter._addInput(block, 'OPERAND1', lengthBlock, converter._createTextBlock(''));
+            converter._addTextInput(block, 'OPERAND2', '0', '50');
+            block.comment = converter._createComment('@ruby:method:empty?', block.id);
+            return block;
+        });
+
         converter.registerOnSend(['string', 'block'], 'include?', 1, params => {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0])) return null;
