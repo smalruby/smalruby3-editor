@@ -51,15 +51,15 @@ const ControlFlowHandlers = {
                 }
                 const commentText = `@ruby:syntax:elsif:${n}`;
                 [block, elseBlock].forEach(b => {
-                    if (!b.comment) {
-                        const commentId = this._createComment(commentText, b.id, 0, 0, true);
-                        b.comment = commentId;
-                    } else {
+                    if (b.comment) {
                         const comment = this._context.comments[b.comment];
                         if (comment) {
                             comment.text = commentText;
                             comment.minimized = true;
                         }
+                    } else {
+                        const commentId = this._createComment(commentText, b.id, 0, 0, true);
+                        b.comment = commentId;
                     }
                 });
             }

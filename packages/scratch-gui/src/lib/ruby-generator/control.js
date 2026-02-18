@@ -35,11 +35,13 @@ export default function (Generator) {
             const substack2 = block.inputs.SUBSTACK2;
             if (substack2 && substack2.block) {
                 const nextBlock = Generator.getBlock(substack2.block);
-                if (nextBlock && (nextBlock.opcode === 'control_if' || nextBlock.opcode === 'control_if_else')) {
+                if (nextBlock &&
+                    (nextBlock.opcode === 'control_if' || nextBlock.opcode === 'control_if_else')) {
                     const nextComment = Generator.getCommentText(nextBlock);
                     const nextMatch = nextComment ? nextComment.match(/^@ruby:syntax:elsif:(\d+)$/) : null;
                     if (nextMatch && nextMatch[1] === elsifGroup) {
-                        const nextOperator = Generator.valueToCode(nextBlock, 'CONDITION', Generator.ORDER_NONE) || false;
+                        const nextOperator =
+                            Generator.valueToCode(nextBlock, 'CONDITION', Generator.ORDER_NONE) || false;
                         const nextBranch = Generator.statementToCode(nextBlock, 'SUBSTACK') || '';
                         let nextBranch2 = '';
                         if (nextBlock.opcode === 'control_if_else') {
