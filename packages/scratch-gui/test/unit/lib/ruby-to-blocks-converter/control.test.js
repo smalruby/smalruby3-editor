@@ -127,11 +127,11 @@ describe('RubyToBlocksConverter/Control', () => {
             const expected = rubyToExpected(converter, target, 'if x == 1; move(10); else; if x == 2; move(20); end; end');
             expected[0].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: false
+                minimized: true
             };
             expected[0].branches[1].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: false
+                minimized: true
             };
             convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -149,11 +149,11 @@ describe('RubyToBlocksConverter/Control', () => {
             const expected = rubyToExpected(converter, target, 'if x == 1; move(10); else; if x == 2; move(20); else; move(30); end; end');
             expected[0].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: false
+                minimized: true
             };
             expected[0].branches[1].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: false
+                minimized: true
             };
             convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
@@ -173,15 +173,15 @@ describe('RubyToBlocksConverter/Control', () => {
             const expected = rubyToExpected(converter, target, 'if x == 1; move(10); else; if x == 2; move(20); else; if x == 3; move(30); else; move(40); end; end; end');
             expected[0].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: false
+                minimized: true
             };
             expected[0].branches[1].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: false
+                minimized: true
             };
             expected[0].branches[1].branches[1].comment = {
                 text: '@ruby:syntax:elsif:1',
-                minimized: false
+                minimized: true
             };
             convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
