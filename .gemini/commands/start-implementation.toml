@@ -16,4 +16,5 @@ After implementation: lint, commit, push, and create a PR.
 Unless specified otherwise, the default PR target branch is `develop`.
 The PR repository must be `smalruby/smalruby3-editor`; never create PRs against the `upstream` repository.
 When creating a PR, to avoid issues with escaping the body string, write the body content to a temporary file first and specify that file using the `-F` or `--body-file` flag with the `gh` command.
+The PR body includes `closes <Issue ID>` to close the issue when the PR is merged.
 """

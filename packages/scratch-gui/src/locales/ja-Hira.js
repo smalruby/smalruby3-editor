@@ -4,6 +4,7 @@ export default {
     'gui.menuBar.loadFromUrl': 'Scratchからよみこむ',
     'gui.menuBar.colorMode': 'カラーモード',
     'gui.menuBar.rubyVersion': 'ルビー',
+    'gui.rubyTab.paste': 'はりつけ',
     'gui.rubyVersion.v1': 'バージョン1 (しょきせってい)',
     'gui.rubyVersion.v2': 'バージョン2',
     'gui.menuBar.meshV2': 'メッシュ',

@@ -6,6 +6,7 @@ export default {
     'gui.smalruby3.crashMessage.description': 'We are so sorry, but it looks like Smalruby has crashed. This bug has been automatically reported to the Smalruby Team. Please refresh your page to try again.',
     'gui.smalruby3.gui.defaultProjectTitle': 'Smalruby Project',
     'gui.smalruby3.gui.rubyTab': 'Ruby',
+    'gui.rubyTab.paste': 'Paste',
     'gui.smalruby3.previewInfo.betawelcome': 'Welcome to the Smalruby 3.0 Beta',
     'gui.smalruby3.previewInfo.label': 'Try Smalruby 3.0',
     'gui.smalruby3.previewInfo.invitation': "We're working on the next generation of Smalruby. We're excited for you to try it!",

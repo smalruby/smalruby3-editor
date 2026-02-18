@@ -68,6 +68,8 @@ class RubyTab extends React.Component {
         this.downloadCallbackRef = null;
         this.executingLineDecoration = null;
         this.contentChangeListener = null;
+        this.pasteMutationObserver = null;
+        this.bodyMutationObserver = null;
         this.bubbleRef = null;
         this.state = {
             runningBlockId: null,
@@ -193,6 +195,14 @@ class RubyTab extends React.Component {
             this.contentChangeListener.dispose();
             this.contentChangeListener = null;
         }
+        if (this.pasteMutationObserver) {
+            this.pasteMutationObserver.disconnect();
+            this.pasteMutationObserver = null;
+        }
+        if (this.bodyMutationObserver) {
+            this.bodyMutationObserver.disconnect();
+            this.bodyMutationObserver = null;
+        }
     }
 
     clearErrors () {
@@ -259,6 +269,84 @@ class RubyTab extends React.Component {
 
         window.monacoEditor = editor;
         window.monaco = monaco;
+
+        // Custom paste action for Monaco Editor v0.55.1 standalone environment
+        editor.addAction({
+            id: 'smalruby.paste',
+            label: this.props.intl.formatMessage({
+                id: 'gui.rubyTab.paste',
+                defaultMessage: 'Paste'
+            }),
+            contextMenuGroupId: '9_cutcopypaste',
+            contextMenuOrder: 4,
+            precondition: '!editorReadonly',
+            run: async ed => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        ed.trigger('keyboard', 'type', {text});
+                    }
+                } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.error('Smalruby custom paste error:', err);
+                }
+            }
+        });
+
+        // Hide original (broken) Paste action in Monaco Editor v0.55.1 context menu.
+        // Monaco renders context menus in a Shadow DOM (.shadow-root-host).
+        // The aria-label is on .action-label (child), NOT on .action-item itself.
+        // We use a MutationObserver to hide the broken original paste item each time
+        // the menu opens. We also call hideDuplicatePaste() immediately on setup because
+        // the shadow host may be created lazily (on first right-click), at which point
+        // menu items are already in the DOM before the observer starts watching.
+        const hideDuplicatePaste = shadowRoot => {
+            const pasteLabels = Array.from(shadowRoot.querySelectorAll(
+                '.action-label[aria-label="Paste"], .action-label[aria-label="貼り付け"]'
+            ));
+            if (pasteLabels.length >= 2) {
+                // Hide the first item (original broken Monaco paste action)
+                const firstPasteItem = pasteLabels[0].closest('.action-item');
+                if (firstPasteItem) {
+                    firstPasteItem.style.display = 'none';
+                }
+            }
+        };
+
+        const setupPasteMutationObserver = host => {
+            if (this.pasteMutationObserver) return;
+
+            this.pasteMutationObserver = new MutationObserver(() => {
+                hideDuplicatePaste(host.shadowRoot);
+            });
+            this.pasteMutationObserver.observe(host.shadowRoot, {
+                childList: true,
+                subtree: true
+            });
+
+            // Run immediately in case menu items are already in the DOM
+            // (this happens when the shadow host is created on first right-click,
+            // at which point all items are added before our observer starts watching)
+            hideDuplicatePaste(host.shadowRoot);
+        };
+
+        const shadowRootHost = document.querySelector('.shadow-root-host');
+        if (shadowRootHost && shadowRootHost.shadowRoot) {
+            setupPasteMutationObserver(shadowRootHost);
+        } else {
+            this.bodyMutationObserver = new MutationObserver(() => {
+                const host = document.querySelector('.shadow-root-host');
+                if (host && host.shadowRoot) {
+                    setupPasteMutationObserver(host);
+                    this.bodyMutationObserver.disconnect();
+                    this.bodyMutationObserver = null;
+                }
+            });
+            this.bodyMutationObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
 
         // Register Smalruby language
         monaco.languages.register({id: 'smalruby'});

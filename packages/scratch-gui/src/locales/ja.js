@@ -4,6 +4,7 @@ export default {
     'gui.menuBar.loadFromUrl': 'Scratchから読み込む',
     'gui.menuBar.colorMode': 'カラーモード',
     'gui.menuBar.rubyVersion': 'ルビー',
+    'gui.rubyTab.paste': '貼り付け',
     'gui.rubyVersion.v1': 'バージョン1 (初期設定)',
     'gui.rubyVersion.v2': 'バージョン2',
     'gui.menuBar.meshV2': 'メッシュ',
