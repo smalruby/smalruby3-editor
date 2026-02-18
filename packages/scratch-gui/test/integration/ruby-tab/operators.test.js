@@ -45,6 +45,8 @@ describe('Ruby Tab: Operators category blocks', () => {
 
             "" == 50
 
+            "" != 50
+
             false && false
 
             false || false
@@ -56,6 +58,8 @@ describe('Ruby Tab: Operators category blocks', () => {
             "apple"[0]
 
             "apple".length
+
+            "".empty?
 
             "apple".include?("a")
 
