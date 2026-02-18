@@ -44,6 +44,31 @@ describe('RubyToBlocksConverter/Variables', () => {
                 convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
+            test('operator_length', () => {
+                const code = `${varName}.length`;
+                const expected = [
+                    {
+                        opcode: 'operator_length',
+                        inputs: [
+                            {
+                                name: 'STRING',
+                                block: {
+                                    opcode: 'data_variable',
+                                    fields: [
+                                        {
+                                            name: 'VARIABLE',
+                                            variable: varName
+                                        }
+                                    ]
+                                },
+                                shadow: expectedInfo.makeText('apple')
+                            }
+                        ]
+                    }
+                ];
+                convertAndExpectToEqualBlocks(converter, target, code, expected);
+            });
+
             test('operator_letter_of', () => {
                 const code = `${varName}[0]`;
                 const expected = [

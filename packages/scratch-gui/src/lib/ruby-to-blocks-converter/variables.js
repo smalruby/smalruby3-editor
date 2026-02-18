@@ -182,7 +182,10 @@ const VariablesConverter = {
 
         converter.registerOnSend('variable', 'length', 0, params => {
             const {receiver} = params;
-            return converter._changeBlock(receiver, 'data_lengthoflist', 'value');
+            if (converter._isBlock(receiver) && converter.isListBlock(receiver)) {
+                return converter._changeBlock(receiver, 'data_lengthoflist', 'value');
+            }
+            return null;
         });
 
         converter.registerOnSend('variable', 'include?', 1, params => {

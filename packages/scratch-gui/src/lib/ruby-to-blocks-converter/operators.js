@@ -29,7 +29,7 @@ const OperatorsConverter = {
             return block;
         });
 
-        converter.registerOnSend(['string', 'block'], 'length', 0, params => {
+        converter.registerOnSend(['string', 'block', 'variable'], 'length', 0, params => {
             const {receiver} = params;
 
             const block = converter._createBlock('operator_length', 'value');
