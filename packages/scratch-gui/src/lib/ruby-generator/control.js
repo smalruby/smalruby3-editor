@@ -20,7 +20,55 @@ export default function (Generator) {
         return `loop do\n${branch}end\n`;
     };
 
+    const getCaseInfo = function (block) {
+        const comment = Generator.getCommentText(block);
+        const match = comment ? comment.match(/^@ruby:syntax:case:(.+):(\d+)$/) : null;
+        if (match) {
+            return {
+                subject: match[1],
+                id: match[2]
+            };
+        }
+        return null;
+    };
+
+    const controlCaseInternal = function (block, caseInfo) {
+        const condBlockId = block.inputs.CONDITION ? block.inputs.CONDITION.block : null;
+        const condBlock = condBlockId ? Generator.getBlock(condBlockId) : null;
+        if (!condBlock || condBlock.opcode !== 'operator_equals') {
+            return '';
+        }
+        const rh = Generator.valueToCode(condBlock, 'OPERAND2', Generator.ORDER_NONE);
+        const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+
+        let result = `when ${Generator.nosToCode(rh)}\n${branch}`;
+
+        if (block.opcode === 'control_if_else') {
+            const substack2 = block.inputs.SUBSTACK2;
+            if (substack2 && substack2.block) {
+                const nextBlock = Generator.getBlock(substack2.block);
+                const nextCaseInfo = nextBlock ? getCaseInfo(nextBlock) : null;
+                if (nextCaseInfo && nextCaseInfo.subject === caseInfo.subject && nextCaseInfo.id === caseInfo.id) {
+                    result += controlCaseInternal(nextBlock, caseInfo);
+                } else {
+                    const elseBranch = Generator.statementToCode(block, 'SUBSTACK2') || '';
+                    if (elseBranch) {
+                        result += `else\n${elseBranch}`;
+                    }
+                }
+            }
+        }
+        return result;
+    };
+
     Generator.control_if = function (block) {
+        const caseInfo = getCaseInfo(block);
+        if (caseInfo) {
+            const content = controlCaseInternal(block, caseInfo);
+            if (content) {
+                return `case ${caseInfo.subject}\n${content}end\n`;
+            }
+        }
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         return `if ${operator}\n${branch}end\n`;
@@ -64,6 +112,13 @@ export default function (Generator) {
     };
 
     Generator.control_if_else = function (block) {
+        const caseInfo = getCaseInfo(block);
+        if (caseInfo) {
+            const content = controlCaseInternal(block, caseInfo);
+            if (content) {
+                return `case ${caseInfo.subject}\n${content}end\n`;
+            }
+        }
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const branch2 = controlIfElseInternal(block, true);
