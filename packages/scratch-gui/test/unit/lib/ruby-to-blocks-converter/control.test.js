@@ -1,6 +1,8 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 import {
-    convertAndExpectRubyBlockError
+    convertAndExpectRubyBlockError,
+    convertAndExpectToEqualBlocks,
+    rubyToExpected
 } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Control', () => {
@@ -110,6 +112,78 @@ describe('RubyToBlocksConverter/Control', () => {
             expect(converter.errors).toHaveLength(1);
             expect(converter.errors[0].text).toMatch(/condition is not boolean: move\(10\)/);
             expect(res).toBeFalsy();
+        });
+    });
+
+    describe('if...elsif...end', () => {
+        test('elsif only', () => {
+            code = `
+                if x == 1
+                  move(10)
+                elsif x == 2
+                  move(20)
+                end
+            `;
+            const expected = rubyToExpected(converter, target, 'if x == 1; move(10); else; if x == 2; move(20); end; end');
+            expected[0].comment = {
+                text: '@ruby:syntax:elsif:1',
+                minimized: true
+            };
+            expected[0].branches[1].comment = {
+                text: '@ruby:syntax:elsif:1',
+                minimized: true
+            };
+            convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('elsif + else', () => {
+            code = `
+                if x == 1
+                  move(10)
+                elsif x == 2
+                  move(20)
+                else
+                  move(30)
+                end
+            `;
+            const expected = rubyToExpected(converter, target, 'if x == 1; move(10); else; if x == 2; move(20); else; move(30); end; end');
+            expected[0].comment = {
+                text: '@ruby:syntax:elsif:1',
+                minimized: true
+            };
+            expected[0].branches[1].comment = {
+                text: '@ruby:syntax:elsif:1',
+                minimized: true
+            };
+            convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('multiple elsif', () => {
+            code = `
+                if x == 1
+                  move(10)
+                elsif x == 2
+                  move(20)
+                elsif x == 3
+                  move(30)
+                else
+                  move(40)
+                end
+            `;
+            const expected = rubyToExpected(converter, target, 'if x == 1; move(10); else; if x == 2; move(20); else; if x == 3; move(30); else; move(40); end; end; end');
+            expected[0].comment = {
+                text: '@ruby:syntax:elsif:1',
+                minimized: true
+            };
+            expected[0].branches[1].comment = {
+                text: '@ruby:syntax:elsif:1',
+                minimized: true
+            };
+            expected[0].branches[1].branches[1].comment = {
+                text: '@ruby:syntax:elsif:1',
+                minimized: true
+            };
+            convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
     });
 
