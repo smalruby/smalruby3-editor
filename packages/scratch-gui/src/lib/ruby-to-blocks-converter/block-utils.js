@@ -323,6 +323,48 @@ const BlockUtils = {
         return block;
     },
 
+    _cloneBlock (block) {
+        if (!this._isBlock(block)) {
+            return block;
+        }
+
+        const newBlock = Object.assign({}, block, {
+            id: Blockly.utils.genUid(),
+            parent: null,
+            next: null,
+            inputs: {},
+            fields: _.cloneDeep(block.fields)
+        });
+        this._context.blocks[newBlock.id] = newBlock;
+        this._context.blockTypes[newBlock.id] = this._context.blockTypes[block.id];
+
+        for (const inputName in block.inputs) {
+            const input = block.inputs[inputName];
+            const childBlock = this._context.blocks[input.block];
+            const shadowBlock = input.shadow ? this._context.blocks[input.shadow] : null;
+
+            const newChildBlock = this._cloneBlock(childBlock);
+            let newShadowBlock = null;
+            if (shadowBlock) {
+                if (shadowBlock === childBlock) {
+                    newShadowBlock = newChildBlock;
+                } else {
+                    newShadowBlock = this._cloneBlock(shadowBlock);
+                }
+            }
+            this._addInput(newBlock, inputName, newChildBlock, newShadowBlock);
+        }
+
+        if (block.next) {
+            const nextBlock = this._context.blocks[block.next];
+            const newNextBlock = this._cloneBlock(nextBlock);
+            newBlock.next = newNextBlock.id;
+            newNextBlock.parent = newBlock.id;
+        }
+
+        return newBlock;
+    },
+
     changeRubyExpression (block, node, source = null) {
         block.node = node;
         const expressionBlock = this._context.blocks[block.inputs.EXPRESSION.block];

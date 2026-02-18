@@ -49,6 +49,24 @@ export default function (Generator) {
     };
 
     Generator.operator_gt = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment) {
+            const commentParts = comment.split(/,(?=@ruby:)/);
+            for (const part of commentParts) {
+                if (part.startsWith('@ruby:operator:>=:')) {
+                    const index = part.substring(18);
+                    const order = Generator.ORDER_RELATIONAL;
+                    const operand1 = Generator.valueToCode(block, 'OPERAND1', order) || 0;
+                    const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 0;
+                    Generator.greaterThanOrEqualCallCache_[index] = {
+                        lhs: Generator.nosToCode(operand1),
+                        rhs: Generator.nosToCode(operand2)
+                    };
+                    return [`@ruby:operator:>=:${index}`, order];
+                }
+            }
+        }
+
         const order = Generator.ORDER_RELATIONAL;
         const operand1 = Generator.valueToCode(block, 'OPERAND1', order) || 0;
         const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 0;
@@ -56,6 +74,24 @@ export default function (Generator) {
     };
 
     Generator.operator_lt = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment) {
+            const commentParts = comment.split(/,(?=@ruby:)/);
+            for (const part of commentParts) {
+                if (part.startsWith('@ruby:operator:<=:')) {
+                    const index = part.substring(18);
+                    const order = Generator.ORDER_RELATIONAL;
+                    const operand1 = Generator.valueToCode(block, 'OPERAND1', order) || 0;
+                    const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 0;
+                    Generator.lessThanOrEqualCallCache_[index] = {
+                        lhs: Generator.nosToCode(operand1),
+                        rhs: Generator.nosToCode(operand2)
+                    };
+                    return [`@ruby:operator:<=:${index}`, order];
+                }
+            }
+        }
+
         const order = Generator.ORDER_RELATIONAL;
         const operand1 = Generator.valueToCode(block, 'OPERAND1', order) || 0;
         const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 0;
@@ -74,6 +110,12 @@ export default function (Generator) {
                     index = part.substring(20);
                 } else if (part.startsWith('@ruby:operator:!=:')) {
                     methodName = '!=';
+                    index = part.substring(18);
+                } else if (part.startsWith('@ruby:operator:>=:')) {
+                    methodName = '>=';
+                    index = part.substring(18);
+                } else if (part.startsWith('@ruby:operator:<=:')) {
+                    methodName = '<=';
                     index = part.substring(18);
                 }
             }
@@ -96,6 +138,10 @@ export default function (Generator) {
                     rhs: Generator.nosToCode(operand2)
                 };
                 return [`@ruby:operator:!=:${index}`, order];
+            } else if (methodName === '>=') {
+                return [`@ruby:operator:>=:${index}`, Generator.ORDER_EQUALS];
+            } else if (methodName === '<=') {
+                return [`@ruby:operator:<=:${index}`, Generator.ORDER_EQUALS];
             }
         }
 
@@ -113,6 +159,32 @@ export default function (Generator) {
     };
 
     Generator.operator_or = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment) {
+            const commentParts = comment.split(/,(?=@ruby:)/);
+            for (const part of commentParts) {
+                if (part.startsWith('@ruby:operator:>=:')) {
+                    const index = part.substring(18);
+                    const order = Generator.ORDER_RELATIONAL;
+                    const operand1 = Generator.valueToCode(block, 'OPERAND1', Generator.ORDER_NONE);
+                    if (operand1 === `@ruby:operator:>=:${index}`) {
+                        const {lhs, rhs} = Generator.greaterThanOrEqualCallCache_[index];
+                        delete Generator.greaterThanOrEqualCallCache_[index];
+                        return [`${lhs} >= ${rhs}`, order];
+                    }
+                } else if (part.startsWith('@ruby:operator:<=:')) {
+                    const index = part.substring(18);
+                    const order = Generator.ORDER_RELATIONAL;
+                    const operand1 = Generator.valueToCode(block, 'OPERAND1', Generator.ORDER_NONE);
+                    if (operand1 === `@ruby:operator:<=:${index}`) {
+                        const {lhs, rhs} = Generator.lessThanOrEqualCallCache_[index];
+                        delete Generator.lessThanOrEqualCallCache_[index];
+                        return [`${lhs} <= ${rhs}`, order];
+                    }
+                }
+            }
+        }
+
         const order = Generator.ORDER_LOGICAL_OR;
         const operand1 = Generator.valueToCode(block, 'OPERAND1', order) || 'false';
         const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 'false';

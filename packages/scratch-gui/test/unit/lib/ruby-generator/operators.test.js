@@ -10,6 +10,8 @@ describe('RubyGenerator/Operators', () => {
         RubyGenerator.functionNames_ = {};
         RubyGenerator.emptyCallCache_ = {};
         RubyGenerator.notEqualsCallCache_ = {};
+        RubyGenerator.greaterThanOrEqualCallCache_ = {};
+        RubyGenerator.lessThanOrEqualCallCache_ = {};
         RubyGenerator.currentTarget = null;
         OperatorsBlocks(RubyGenerator);
     });
@@ -134,6 +136,80 @@ describe('RubyGenerator/Operators', () => {
         });
     });
 
+    describe('operator_gt', () => {
+        test('normal', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_gt',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('1')
+                .mockReturnValueOnce('2');
+            RubyGenerator.nosToCode = jest.fn(v => v);
+            expect(RubyGenerator.operator_gt(block)).toEqual(['1 > 2', RubyGenerator.ORDER_RELATIONAL]);
+        });
+
+        test('with @ruby:operator:>=:1', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_gt',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:>=:1' };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('1')
+                .mockReturnValueOnce('2');
+            RubyGenerator.nosToCode = jest.fn(v => v);
+
+            expect(RubyGenerator.operator_gt(block)).toEqual(['@ruby:operator:>=:1', RubyGenerator.ORDER_RELATIONAL]);
+            expect(RubyGenerator.greaterThanOrEqualCallCache_['1']).toEqual({ lhs: '1', rhs: '2' });
+        });
+    });
+
+    describe('operator_lt', () => {
+        test('normal', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_lt',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('1')
+                .mockReturnValueOnce('2');
+            RubyGenerator.nosToCode = jest.fn(v => v);
+            expect(RubyGenerator.operator_lt(block)).toEqual(['1 < 2', RubyGenerator.ORDER_RELATIONAL]);
+        });
+
+        test('with @ruby:operator:<=:1', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_lt',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:<=:1' };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('1')
+                .mockReturnValueOnce('2');
+            RubyGenerator.nosToCode = jest.fn(v => v);
+
+            expect(RubyGenerator.operator_lt(block)).toEqual(['@ruby:operator:<=:1', RubyGenerator.ORDER_RELATIONAL]);
+            expect(RubyGenerator.lessThanOrEqualCallCache_['1']).toEqual({ lhs: '1', rhs: '2' });
+        });
+    });
+
     describe('operator_equals', () => {
         test('normal', () => {
             const block = {
@@ -168,6 +244,42 @@ describe('RubyGenerator/Operators', () => {
 
             expect(RubyGenerator.operator_equals(block)).toEqual(['@ruby:operator:!=:1', RubyGenerator.ORDER_EQUALS]);
             expect(RubyGenerator.notEqualsCallCache_['1']).toEqual({ lhs: '1', rhs: '2' });
+        });
+
+        test('with @ruby:operator:>=:1', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_equals',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:>=:1' };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('1')
+                .mockReturnValueOnce('2');
+            RubyGenerator.nosToCode = jest.fn(v => v);
+
+            expect(RubyGenerator.operator_equals(block)).toEqual(['@ruby:operator:>=:1', RubyGenerator.ORDER_EQUALS]);
+        });
+
+        test('with @ruby:operator:<=:1', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_equals',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:<=:1' };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('1')
+                .mockReturnValueOnce('2');
+            RubyGenerator.nosToCode = jest.fn(v => v);
+
+            expect(RubyGenerator.operator_equals(block)).toEqual(['@ruby:operator:<=:1', RubyGenerator.ORDER_EQUALS]);
         });
 
         test('with @ruby:method:empty?', () => {
@@ -214,6 +326,57 @@ describe('RubyGenerator/Operators', () => {
 
             expect(RubyGenerator.operator_equals(block)).toEqual(['list("my list").empty?', RubyGenerator.ORDER_FUNCTION_CALL]);
             expect(RubyGenerator.emptyCallCache_['1']).toBeUndefined();
+        });
+    });
+
+    describe('operator_or', () => {
+        test('normal', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_or',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('true')
+                .mockReturnValueOnce('false');
+            expect(RubyGenerator.operator_or(block)).toEqual(['true || false', RubyGenerator.ORDER_LOGICAL_OR]);
+        });
+
+        test('with @ruby:operator:>=:1', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_or',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:>=:1' };
+            RubyGenerator.greaterThanOrEqualCallCache_['1'] = { lhs: '1', rhs: '2' };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('@ruby:operator:>=:1');
+
+            expect(RubyGenerator.operator_or(block)).toEqual(['1 >= 2', RubyGenerator.ORDER_RELATIONAL]);
+            expect(RubyGenerator.greaterThanOrEqualCallCache_['1']).toBeUndefined();
+        });
+
+        test('with @ruby:operator:<=:1', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_or',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:operator:<=:1' };
+            RubyGenerator.lessThanOrEqualCallCache_['1'] = { lhs: '1', rhs: '2' };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValueOnce('@ruby:operator:<=:1');
+
+            expect(RubyGenerator.operator_or(block)).toEqual(['1 <= 2', RubyGenerator.ORDER_RELATIONAL]);
+            expect(RubyGenerator.lessThanOrEqualCallCache_['1']).toBeUndefined();
         });
     });
 });
