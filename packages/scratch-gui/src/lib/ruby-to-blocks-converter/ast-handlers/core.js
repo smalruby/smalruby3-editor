@@ -16,7 +16,6 @@ const CoreHandlers = {
             return Opal.nil;
         }
         node = node.$to_ast();
-        this._context.currentNode = node;
 
         // Track depth for lineToNodeMap
         const depth = this._context.processDepth || 0;
@@ -90,6 +89,9 @@ const CoreHandlers = {
             this._context.methodCallIndices = {};
         }
 
+        const previousNode = this._context.currentNode;
+        this._context.currentNode = node;
+
         const handlerName = '_' + _.camelCase(`on_${node.type}`); // eslint-disable-line prefer-template
         let result;
         if (_.isFunction(this[handlerName])) {
@@ -98,7 +100,15 @@ const CoreHandlers = {
             throw new RubyToBlocksConverterError(node, `not supported node type: ${node.type}`);
         }
 
+        if (result && !this._context.nodeToBlockMap.has(node)) {
+            const blockId = this._getBlockIdFromResult(result);
+            if (blockId) {
+                this._context.nodeToBlockMap.set(node, blockId);
+            }
+        }
+
         this._context.isValue = savedIsValue;
+        this._context.currentNode = previousNode;
         this._context.processDepth = depth; // Restore depth after processing
         return result;
     },
@@ -152,6 +162,16 @@ const CoreHandlers = {
             );
         }
         return cond;
+    },
+
+    _getBlockIdFromResult (result) {
+        if (this._isBlock(result)) {
+            return result.id;
+        }
+        if (_.isArray(result) && result.length > 0 && this._isBlock(result[result.length - 1])) {
+            return result[result.length - 1].id;
+        }
+        return null;
     },
 
     _onBegin (node) {
