@@ -113,6 +113,7 @@ RubyGenerator.init = function (options) {
     this.definitions_ = {};
     this.returnCallCache_ = {}; // Clear return value call cache
     this.emptyCallCache_ = {};
+    this.notEqualsCallCache_ = {};
     this.version = options && options.version ? options.version : '1';
     if (this.variableDB_) {
         this.variableDB_.reset();

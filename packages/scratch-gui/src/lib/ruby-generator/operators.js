@@ -72,6 +72,9 @@ export default function (Generator) {
                 if (part.startsWith('@ruby:method:empty?:')) {
                     methodName = 'empty?';
                     index = part.substring(20);
+                } else if (part.startsWith('@ruby:operator:!=:')) {
+                    methodName = '!=';
+                    index = part.substring(18);
                 }
             }
             if (methodName === 'empty?') {
@@ -84,6 +87,15 @@ export default function (Generator) {
                         return [`${receiver}.empty?`, Generator.ORDER_FUNCTION_CALL];
                     }
                 }
+            } else if (methodName === '!=') {
+                const order = Generator.ORDER_EQUALS;
+                const operand1 = Generator.valueToCode(block, 'OPERAND1', order) || 0;
+                const operand2 = Generator.valueToCode(block, 'OPERAND2', order) || 0;
+                Generator.notEqualsCallCache_[index] = {
+                    lhs: Generator.nosToCode(operand1),
+                    rhs: Generator.nosToCode(operand2)
+                };
+                return [`@ruby:operator:!=:${index}`, order];
             }
         }
 
@@ -108,6 +120,23 @@ export default function (Generator) {
     };
 
     Generator.operator_not = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment) {
+            const commentParts = comment.split(/,(?=@ruby:)/);
+            for (const part of commentParts) {
+                if (part.startsWith('@ruby:operator:!=:')) {
+                    const index = part.substring(18);
+                    const order = Generator.ORDER_NONE;
+                    const operand = Generator.valueToCode(block, 'OPERAND', order);
+                    if (operand === `@ruby:operator:!=:${index}`) {
+                        const {lhs, rhs} = Generator.notEqualsCallCache_[index];
+                        delete Generator.notEqualsCallCache_[index];
+                        return [`${lhs} != ${rhs}`, Generator.ORDER_EQUALS];
+                    }
+                }
+            }
+        }
+
         const order = Generator.ORDER_UNARY_SIGN;
         const operand = Generator.valueToCode(block, 'OPERAND', order) || 'false';
         return [`!${operand}`, order];
