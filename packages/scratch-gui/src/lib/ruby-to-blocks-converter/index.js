@@ -671,6 +671,12 @@ class RubyToBlocksConverter {
                     return line;
                 }
             }
+
+            // Fallback: Check if this line is contained in some node that has a block
+            const fallbackEntry = this._findContainingNode(line);
+            if (fallbackEntry) {
+                return line;
+            }
         }
         return null;
     }
