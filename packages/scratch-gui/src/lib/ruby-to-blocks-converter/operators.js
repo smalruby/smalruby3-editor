@@ -38,16 +38,21 @@ const OperatorsConverter = {
         });
 
         converter.registerOnSend(['string', 'block', 'variable'], 'empty?', 0, params => {
-            const {receiver} = params;
+            const {receiver, name} = params;
+
+            const index = (converter._context.methodCallIndices[name] || 0) + 1;
+            converter._context.methodCallIndices[name] = index;
+
+            const commentText = `@ruby:method:${name}:${index}`;
 
             const lengthBlock = converter._createBlock('operator_length', 'value');
             converter._addTextInput(lengthBlock, 'STRING', receiver, 'apple');
-            lengthBlock.comment = converter._createComment('@ruby:method:empty?', lengthBlock.id);
+            lengthBlock.comment = converter._createComment(commentText, lengthBlock.id);
 
             const block = converter._createBlock('operator_equals', 'value_boolean');
             converter._addInput(block, 'OPERAND1', lengthBlock, converter._createTextBlock(''));
             converter._addTextInput(block, 'OPERAND2', '0', '50');
-            block.comment = converter._createComment('@ruby:method:empty?', block.id);
+            block.comment = converter._createComment(commentText, block.id);
             return block;
         });
 

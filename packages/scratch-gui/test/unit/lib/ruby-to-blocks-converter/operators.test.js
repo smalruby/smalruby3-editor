@@ -855,7 +855,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                                 }
                             ],
                             comment: {
-                                text: '@ruby:method:empty?',
+                                text: '@ruby:method:empty?:1',
                                 minimized: true
                             }
                         },
@@ -867,7 +867,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                     }
                 ],
                 comment: {
-                    text: '@ruby:method:empty?',
+                    text: '@ruby:method:empty?:1',
                     minimized: true
                 }
             }
@@ -891,7 +891,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                                 }
                             ],
                             comment: {
-                                text: '@ruby:method:empty?',
+                                text: '@ruby:method:empty?:1',
                                 minimized: true
                             }
                         },
@@ -903,7 +903,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                     }
                 ],
                 comment: {
-                    text: '@ruby:method:empty?',
+                    text: '@ruby:method:empty?:1',
                     minimized: true
                 }
             }
