@@ -98,6 +98,9 @@ export default {
     'gui.menuBar.koshienEntryForm': 'Entry Form',
     'gui.menuBar.koshienCannotChangeRubyVersion': 'The Ruby version cannot be changed when the Koshien extension is loaded.',
 
+    'gui.smalruby3.gui.feedback': 'Send feedback',
+    'gui.smalruby3.feedbackConfirm': 'Opens an external site to send feedback to Smalruby.',
+
     // Block Display Modal - Block Messages
     // Motion blocks
     'gui.smalruby3.blockDisplayModal.motion_movesteps': 'move (10) steps',

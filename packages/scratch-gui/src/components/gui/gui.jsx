@@ -265,6 +265,23 @@ const GUIComponent = props => {
         onRequestCloseDebugModal();
     }, [onDebugModalClose, onRequestCloseDebugModal]);
 
+    const handleFeedbackClick = useCallback(e => {
+        e.preventDefault();
+        const confirmed = window.confirm( // eslint-disable-line no-alert
+            intl.formatMessage({
+                id: 'gui.smalruby3.feedbackConfirm',
+                defaultMessage: 'スモウルビーへのフィードバックを送信するための外部サイトを開きます'
+            })
+        );
+        if (confirmed) {
+            window.open(
+                'https://docs.google.com/forms/d/e/1FAIpQLSemSOgv8TlJXF6vmFzVm5yUdcNZVMEKBcBcsKHnbW0RFmU3sg/viewform?usp=dialog',
+                '_blank',
+                'noopener,noreferrer'
+            );
+        }
+    }, [intl]);
+
     if (isRendererSupported === null) {
         isRendererSupported = Renderer.isSupported();
     }
@@ -449,6 +466,7 @@ const GUIComponent = props => {
                                 focusTabOnClick={false}
                             >
                                 <Box
+                                    className={styles.tabListContainer}
                                     role="region"
                                     aria-label={intl.formatMessage(ariaMessages.tabList)}
                                 >
@@ -528,6 +546,19 @@ const GUIComponent = props => {
                                             />
                                         </Tab>
                                     </TabList>
+                                    <a
+                                        className={styles.feedbackLink}
+                                        href="https://docs.google.com/forms/d/e/1FAIpQLSemSOgv8TlJXF6vmFzVm5yUdcNZVMEKBcBcsKHnbW0RFmU3sg/viewform?usp=dialog"
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                        onClick={handleFeedbackClick}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Send feedback"
+                                            description="Link to send feedback"
+                                            id="gui.smalruby3.gui.feedback"
+                                        />
+                                    </a>
                                 </Box>
                                 <TabPanel
                                     className={tabClassNames.tabPanel}

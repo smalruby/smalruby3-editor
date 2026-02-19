@@ -72,6 +72,27 @@
     border-bottom: 0 !important;
 }
 
+.tab-list-container {
+    display: flex;
+    align-items: flex-end;
+    height: $stage-menu-height;
+}
+
+.feedback-link {
+    margin-left: auto;
+    padding: 0 0.75rem 0.25rem;
+    font-size: 0.65rem;
+    color: $text-primary-transparent;
+    text-decoration: none;
+    white-space: nowrap;
+    align-self: flex-end;
+}
+
+.feedback-link:hover {
+    color: $text-primary;
+    text-decoration: underline;
+}
+
 .tab {
     flex-grow: 1;
     height: 80%;
