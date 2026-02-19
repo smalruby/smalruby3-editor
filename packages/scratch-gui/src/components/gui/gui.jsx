@@ -267,6 +267,10 @@ const GUIComponent = props => {
 
     const handleFeedbackClick = useCallback(e => {
         e.preventDefault();
+        // Open a blank window first to avoid popup blockers
+        const popup = window.open('', '_blank');
+        if (!popup) return;
+
         const confirmed = window.confirm( // eslint-disable-line no-alert
             intl.formatMessage({
                 id: 'gui.smalruby3.feedbackConfirm',
@@ -274,11 +278,10 @@ const GUIComponent = props => {
             })
         );
         if (confirmed) {
-            window.open(
-                'https://docs.google.com/forms/d/e/1FAIpQLSemSOgv8TlJXF6vmFzVm5yUdcNZVMEKBcBcsKHnbW0RFmU3sg/viewform?usp=dialog',
-                '_blank',
-                'noopener,noreferrer'
-            );
+            popup.location.href = 'https://docs.google.com/forms/d/e/1FAIpQLSemSOgv8TlJXF6vmFzVm5yUdcNZVMEKBcBcsKHnbW0RFmU3sg/viewform?usp=dialog';
+            popup.opener = null;
+        } else {
+            popup.close();
         }
     }, [intl]);
 
