@@ -239,7 +239,7 @@ class Scratch3MeshV2Blocks {
             .catch(err => {
                 log.error(`Mesh V2: Scan failed: ${err}`);
                 // Check if error is caused by network filter (HTTP 503)
-                log.debug('Mesh V2: Checking lastError:', this.meshService?.lastError);
+                debug(() => `Mesh V2: Checking lastError: ${this.meshService?.lastError}`);
                 const errorType = this.meshService &&
                     this.meshService.lastError &&
                     this.meshService.isNetworkFilterError(this.meshService.lastError) ?

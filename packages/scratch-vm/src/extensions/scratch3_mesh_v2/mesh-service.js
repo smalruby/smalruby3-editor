@@ -225,15 +225,14 @@ class MeshV2Service {
      */
     isNetworkFilterError (error) {
         if (!error) {
-            log.debug('Mesh V2: isNetworkFilterError called with null/undefined error');
+            debug(() => 'Mesh V2: isNetworkFilterError called with null/undefined error');
             return false;
         }
 
-        log.debug('Mesh V2: Checking if error is network filter error:', {
-            hasNetworkError: !!error.networkError,
-            statusCode: error.networkError?.statusCode,
-            message: error.message
-        });
+        debug(() => `Mesh V2: Checking if error is network filter error: ` +
+            `hasNetworkError=${!!error.networkError}, ` +
+            `statusCode=${error.networkError?.statusCode}, ` +
+            `message=${error.message}`);
 
         // Primary check: HTTP status code 503 from network error
         // This is the ONLY reliable indicator when blocked by proxy (e.g., i-Filter)
@@ -249,7 +248,7 @@ class MeshV2Service {
             return true;
         }
 
-        log.debug('Mesh V2: Error is NOT a network filter error');
+        debug(() => 'Mesh V2: Error is NOT a network filter error');
         return false;
     }
 
@@ -708,7 +707,7 @@ class MeshV2Service {
             this.lastFetchTime = new Date().toISOString();
         }
 
-        log.debug(`Mesh V2: pollEvents for group ${this.groupId}. since=${this.lastFetchTime}`);
+        debug(() => `Mesh V2: pollEvents for group ${this.groupId}. since=${this.lastFetchTime}`);
 
         try {
             this.costTracking.queryCount++;
@@ -853,7 +852,7 @@ class MeshV2Service {
 
             // まだタイミングが来ていない場合は待機
             if (offsetMs > elapsedMs) {
-                log.debug(`Mesh V2: Waiting for event ${event.name} ` +
+                debug(() => `Mesh V2: Waiting for event ${event.name} ` +
                     `(needs ${offsetMs}ms, elapsed ${elapsedMs}ms)`);
                 break;
             }
@@ -863,7 +862,7 @@ class MeshV2Service {
             if (windowBase === null) {
                 windowBase = offsetMs;
             } else if (offsetMs >= windowBase + 33) {
-                log.debug(`Mesh V2: Window limit reached (33ms). ` +
+                debug(() => `Mesh V2: Window limit reached (33ms). ` +
                     `Remaining events will be processed in next frames.`);
                 break;
             }
@@ -914,7 +913,7 @@ class MeshV2Service {
 
     startEventBatchTimer () {
         this.stopEventBatchTimer();
-        log.debug(`Mesh V2: Starting event batch timer (Interval: ${this.eventBatchInterval}ms)`);
+        debug(() => `Mesh V2: Starting event batch timer (Interval: ${this.eventBatchInterval}ms)`);
         this.eventBatchTimer = setInterval(() => {
             this.processBatchEvents();
         }, this.eventBatchInterval);
@@ -1114,7 +1113,7 @@ class MeshV2Service {
         // This avoids redundant mutations if values change back within the rate-limit interval.
         const filteredData = dataArray.filter(item => this.latestQueuedData[item.key] !== item.value);
 
-        log.debug(`Mesh V2: sendData called with ${dataArray.length} items, ` +
+        debug(() => `Mesh V2: sendData called with ${dataArray.length} items, ` +
             `${filteredData.length} items changed: ${JSON.stringify(filteredData)}`);
 
         if (filteredData.length === 0) {
@@ -1154,7 +1153,7 @@ class MeshV2Service {
         const finalPayload = payload.filter(item => this.lastSentData[item.key] !== item.value);
 
         if (finalPayload.length === 0) {
-            log.debug('Mesh V2: Skipping mutation as all data is already up-to-date on server');
+            debug(() => 'Mesh V2: Skipping mutation as all data is already up-to-date on server');
             return {
                 data: {
                     reportDataByNode: {
@@ -1218,7 +1217,7 @@ class MeshV2Service {
             this.eventQueueStats.duplicatesSkipped++;
             this.reportEventStatsIfNeeded();
 
-            log.debug(`Mesh V2: Event already in queue, skipping: ${eventName}`);
+            debug(() => `Mesh V2: Event already in queue, skipping: ${eventName}`);
             return;
         }
 
@@ -1234,7 +1233,7 @@ class MeshV2Service {
             }
         }
 
-        log.debug(`Mesh V2: Queuing event for sending: ${eventName} ` +
+        debug(() => `Mesh V2: Queuing event for sending: ${eventName} ` +
             `(queue size: ${this.eventQueue.length})`);
 
         // キューに追加（発火日時を記録）
