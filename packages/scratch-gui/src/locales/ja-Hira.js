@@ -155,12 +155,12 @@ export default {
     'gui.smalruby3.blockDisplayModal.copyUrl': 'URLのこぴー',
     'gui.smalruby3.blockDisplayModal.saveToFile': 'ふぁいるにせってい',
     'gui.menuBar.blockDisplay': 'ブロックひょうじ...',
-        'gui.menuBar.learn': 'まなぶ',
+    'gui.menuBar.learn': 'まなぶ',
     
-        'gui.smalruby3.gui.feedback': 'フィードバックをそうしん',
-        'gui.smalruby3.feedbackConfirm': 'スモウルビーへのフィードバックをそうしんするためのがいぶサイトをひらきます',
+    'gui.smalruby3.gui.feedback': 'フィードバックをそうしん',
+    'gui.smalruby3.feedbackConfirm': 'スモウルビーへのフィードバックをそうしんするためのがいぶサイトをひらきます',
     
-        // Block Display Modal - Block Messages (Hiragana)
+    // Block Display Modal - Block Messages (Hiragana)
     // Motion blocks
     'gui.smalruby3.blockDisplayModal.motion_movesteps': '(10) ほうごかす',
     'gui.smalruby3.blockDisplayModal.motion_turnright': '↻ (15) どまわす',
