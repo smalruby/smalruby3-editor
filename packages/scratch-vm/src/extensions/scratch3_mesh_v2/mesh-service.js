@@ -596,6 +596,7 @@ class MeshV2Service {
             log.info(`  TOTAL ESTIMATED COST: $${totalCost.toFixed(8)} ` +
                 `(${(totalCost * 1000000).toFixed(2)} per million operations equivalent)`);
             log.info(`  Average cost per second: $${(totalCost / connectionDurationSeconds).toFixed(10)}`);
+            this.costTracking.connectionStartTime = null;
         }
 
         // 統計情報を出力
@@ -1195,6 +1196,9 @@ class MeshV2Service {
             const reason = this.shouldDisconnectOnError(error);
             if (reason) {
                 this.cleanupAndDisconnect(reason);
+                // Do not re-throw: sendData will catch this and would call
+                // cleanupAndDisconnect again, causing duplicate cost summaries.
+                return;
             }
             throw error;
         }
