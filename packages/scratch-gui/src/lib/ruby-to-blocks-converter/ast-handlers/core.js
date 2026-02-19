@@ -142,6 +142,49 @@ const CoreHandlers = {
         return block;
     },
 
+    _onReturn (node) {
+        if (!this._context.currentProcedureName) {
+            throw new RubyToBlocksConverterError(node, 'return can only be used in method definition');
+        }
+
+        const procedureName = this._context.currentProcedureName;
+        const returnValue = this._process(node.children[0], true);
+        const variable = this._lookupOrCreateVariable(`@_return_${procedureName}_`);
+        const assignBlock = this._createBlock('data_setvariableto', 'statement', {
+            fields: {
+                VARIABLE: {
+                    name: 'VARIABLE',
+                    id: variable.id,
+                    value: variable.name,
+                    variableType: variable.type
+                }
+            }
+        });
+        const commentText = `@ruby:syntax:return, @ruby:return:${procedureName}`;
+        assignBlock.comment = this._createComment(commentText, assignBlock.id);
+        this._addTextInput(
+            assignBlock, 'VALUE', this._isNumber(returnValue) ? returnValue.toString() : returnValue, '0'
+        );
+
+        // Check if this is an early return (not at the end of the method)
+        // Note: In registerOnDefs, we check if the last block has @ruby:syntax:return.
+        // If we're not the last block, we need to stop the script.
+        const stopBlock = this._createBlock('control_stop', 'terminate', {
+            fields: {
+                STOP_OPTION: {
+                    name: 'STOP_OPTION',
+                    value: 'this script'
+                }
+            }
+        });
+        stopBlock.comment = this._createComment('@ruby:syntax:return', stopBlock.id);
+
+        assignBlock.next = stopBlock.id;
+        stopBlock.parent = assignBlock.id;
+
+        return [assignBlock, stopBlock];
+    },
+
     _processCondition (node) {
         let cond = this._process(node, true);
         const split = this._splitPreBlocksAndValue(cond);
