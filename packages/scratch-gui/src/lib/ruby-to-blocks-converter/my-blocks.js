@@ -219,20 +219,28 @@ const MyBlocksConverter = {
             // Process method body - use _process instead of _processStatement
             // because the last expression can be a value (which will be wrapped in return assignment)
             const savedInMyBlockDefinition = converter._context.inMyBlockDefinition;
+            const savedCurrentProcedureName = converter._context.currentProcedureName;
             converter._context.inMyBlockDefinition = true;
+            converter._context.currentProcedureName = procedureName;
             let body = converter._process(node.children[3], false);
             if (!_.isArray(body)) {
                 body = [body];
             }
             converter._context.inMyBlockDefinition = savedInMyBlockDefinition;
+            converter._context.currentProcedureName = savedCurrentProcedureName;
 
             converter._exitScope();
 
             if (body.length > 0) {
                 const lastIdx = body.length - 1;
-                const last = body[lastIdx];
+                let last = body[lastIdx];
+                if (_.isArray(last)) {
+                    last = last[last.length - 1];
+                }
+                const lastCommentText = last.comment ? converter._context.comments[last.comment].text : '';
                 if (converter._isValueBlock(last) &&
-                    !(last instanceof Primitive && (last.type === 'self' || last.type === 'nil'))) {
+                    !(last instanceof Primitive && (last.type === 'self' || last.type === 'nil')) &&
+                    !lastCommentText.includes('@ruby:syntax:return')) {
                     const variable = converter._lookupOrCreateVariable(`@_return_${procedureName}_`);
                     const returnBlock = converter._createBlock('data_setvariableto', 'statement', {
                         fields: {

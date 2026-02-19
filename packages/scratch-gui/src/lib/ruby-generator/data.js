@@ -54,9 +54,9 @@ export default function (Generator) {
         }
 
         // Check if this is a return value assignment
-        if (comment && comment.startsWith('@ruby:return:')) {
+        if (comment && comment.includes('@ruby:return:')) {
             // Check if it is an evacuation block (has a number at the end)
-            if (/^@ruby:return:\w+:\d+$/.test(comment)) {
+            if (/@ruby:return:\w+:\d+/.test(comment)) {
                 return '';
             }
 
@@ -64,10 +64,15 @@ export default function (Generator) {
                 // Marker block with no value, suppress output
                 return '';
             }
+
+            const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
+            if (comment.includes('@ruby:syntax:return')) {
+                return `return ${Generator.nosToCode(value)}\n`;
+            }
+
             // Check if this is the last block in procedure definition
             if (block._isLastReturnInProcedure) {
                 // Output just the value (implicit return)
-                const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
                 return `${Generator.nosToCode(value)}\n`;
             }
             // Not the last block, output normal variable assignment

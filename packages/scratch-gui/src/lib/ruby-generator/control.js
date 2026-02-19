@@ -137,6 +137,10 @@ export default function (Generator) {
     };
 
     Generator.control_stop = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.includes('@ruby:syntax:return')) {
+            return '';
+        }
         const target = Generator.quote_(Generator.getFieldValue(block, 'STOP_OPTION') || 'all');
         return `stop(${target})\n`;
     };

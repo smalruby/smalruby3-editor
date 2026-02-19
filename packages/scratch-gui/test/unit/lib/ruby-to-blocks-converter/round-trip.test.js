@@ -91,4 +91,33 @@ describe('Ruby Round Trip', () => {
         expectRoundTrip('!touching?("_edge_")');
         expectRoundTrip('if touching?("_edge_")\n  move(10)\nend');
     });
+
+    test('return statement in method', () => {
+        expectRoundTrip(`
+def self.add(a, b)
+  return a + b
+end
+`.trim());
+
+        expectRoundTrip(`
+def self.div(a, b)
+  if b == 0
+    return 0
+  end
+  return a / b
+end
+`.trim());
+
+        expectRoundTrip(`
+def self.check(x)
+  if x < 0
+    return "negative"
+  end
+  if x == 0
+    return "zero"
+  end
+  return "positive"
+end
+`.trim());
+    });
 });
