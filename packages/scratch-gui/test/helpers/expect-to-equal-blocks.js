@@ -245,7 +245,7 @@ const convertAndExpectToEqualBlocks = function (converter, target, code, expecte
 const convertAndExpectRubyBlockError = function (converter, target, code) {
     converter.targetCodeToBlocks(target, code);
     expect(converter.errors).toHaveLength(1);
-    expect(converter.errors[0].text).toMatch(/ is the wrong instruction./);
+    expect(converter.errors[0].text).toMatch(/ is the wrong instruction\.|condition is not boolean: /);
 };
 
 const expectToEqualRubyStatement = function (converter, expectedStatement) {

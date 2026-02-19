@@ -85,4 +85,10 @@ describe('Ruby Round Trip', () => {
         expectRoundTrip('!true');
         expectRoundTrip('!false');
     });
+
+    test('sensing and boolean operators', () => {
+        expectRoundTrip('touching?("_edge_")');
+        expectRoundTrip('!touching?("_edge_")');
+        expectRoundTrip('if touching?("_edge_")\n  move(10)\nend');
+    });
 });

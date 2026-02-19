@@ -217,15 +217,14 @@ const OperatorsConverter = {
 
         converter.registerOnSend(['variable', 'boolean', 'block'], '!', 0, params => {
             const {receiver} = params;
+            if (!converter._isFalseOrBooleanBlock(receiver)) return null;
 
             const block = converter._createBlock('operator_not', 'value_boolean');
-            if (!converter._isFalse(receiver) || converter._isBlock(receiver)) {
-                converter._addInput(
-                    block,
-                    'OPERAND',
-                    converter._createTextBlock(converter._isNumber(receiver) ? receiver.toString() : receiver)
-                );
-            }
+            converter._addInput(
+                block,
+                'OPERAND',
+                converter._createTextBlock(converter._isNumber(receiver) ? receiver.toString() : receiver)
+            );
             return block;
         });
 
@@ -350,10 +349,10 @@ const OperatorsConverter = {
                     o.parent = block.id;
                 }
             });
-            if (!converter._isFalse(operands[0]) || converter._isBlock(operands[0])) {
+            if (converter._isFalseOrBooleanBlock(operands[0])) {
                 converter._addInput(block, 'OPERAND1', converter._createTextBlock(operands[0]));
             }
-            if (!converter._isFalse(operands[1]) || converter._isBlock(operands[1])) {
+            if (converter._isFalseOrBooleanBlock(operands[1])) {
                 converter._addInput(block, 'OPERAND2', converter._createTextBlock(operands[1]));
             }
             return block;
@@ -366,10 +365,10 @@ const OperatorsConverter = {
                     o.parent = block.id;
                 }
             });
-            if (!converter._isFalse(operands[0]) || converter._isBlock(operands[0])) {
+            if (converter._isFalseOrBooleanBlock(operands[0])) {
                 converter._addInput(block, 'OPERAND1', converter._createTextBlock(operands[0]));
             }
-            if (!converter._isFalse(operands[1]) || converter._isBlock(operands[1])) {
+            if (converter._isFalseOrBooleanBlock(operands[1])) {
                 converter._addInput(block, 'OPERAND2', converter._createTextBlock(operands[1]));
             }
             return block;
