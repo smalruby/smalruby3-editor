@@ -769,4 +769,94 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(generatedRuby).toMatch(/say\(add\(add\(add\(1, 2\), 3\), 4\)\)/);
         });
     });
+
+    describe('Phase 2: explicit return statement support', () => {
+        test('return at end of method produces assign + stop blocks', () => {
+            const code = `
+                def div(a, b)
+                  return a / b
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            // Chain: procedures_definition -> data_setvariableto -> control_stop
+            const defBlock = Object.values(converter.blocks).find(b => b.opcode === 'procedures_definition');
+            expect(defBlock).toBeDefined();
+
+            const assignBlock = converter.blocks[defBlock.next];
+            expect(assignBlock).toBeDefined();
+            expect(assignBlock.opcode).toBe('data_setvariableto');
+            const assignComment = converter._context.comments[assignBlock.comment];
+            expect(assignComment.text).toContain('@ruby:syntax:return');
+            expect(assignComment.text).toContain('@ruby:return:div');
+
+            const stopBlock = converter.blocks[assignBlock.next];
+            expect(stopBlock).toBeDefined();
+            expect(stopBlock.opcode).toBe('control_stop');
+            const stopComment = converter._context.comments[stopBlock.comment];
+            expect(stopComment.text).toBe('@ruby:syntax:return');
+        });
+
+        test('return marks procedure as hasReturnValue', () => {
+            const code = `
+                def add(a, b)
+                  return a + b
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            const procedure = converter._context.procedures['add'];
+            expect(procedure).toBeDefined();
+            expect(procedure.hasReturnValue).toBe(true);
+        });
+
+        test('early return inside if + return at end: say(div(10, 0), 1) should succeed', () => {
+            // Bug report: this was causing a conversion error
+            const code = `
+                def div(a, b)
+                  if b == 0
+                    return 0
+                  end
+                  return a / b
+                end
+
+                say(div(10, 0), 1)
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            expect(converter.errors).toHaveLength(0);
+
+            // div should be marked as hasReturnValue
+            const procedure = converter._context.procedures['div'];
+            expect(procedure.hasReturnValue).toBe(true);
+
+            // say block should reference @_return_div_ variable
+            const sayBlock = Object.values(converter.blocks).find(b => b.opcode === 'looks_sayforsecs');
+            expect(sayBlock).toBeDefined();
+        });
+
+        test('if/else with return in both branches: say(div(10, 0), 1) should succeed', () => {
+            // Additional spec: all branches return
+            const code = `
+                def div(a, b)
+                  if b == 0
+                    return 0
+                  else
+                    return a / b
+                  end
+                end
+
+                say(div(10, 0), 1)
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            expect(converter.errors).toHaveLength(0);
+
+            // div should be marked as hasReturnValue
+            const procedure = converter._context.procedures['div'];
+            expect(procedure.hasReturnValue).toBe(true);
+        });
+    });
 });

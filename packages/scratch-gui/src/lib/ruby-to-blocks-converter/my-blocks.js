@@ -268,6 +268,21 @@ const MyBlocksConverter = {
                         returnBlock.parent = prev.id;
                     }
                 }
+
+                // If any block in the body has @ruby:syntax:return comment (from explicit return),
+                // mark procedure as having a return value so callers can use it as a value.
+                if (!procedure.hasReturnValue) {
+                    const hasExplicitReturn = Object.values(converter._context.blocks).some(b =>
+                        b.opcode === 'data_setvariableto' &&
+                        b.comment &&
+                        converter._context.comments[b.comment] &&
+                        converter._context.comments[b.comment].text.includes('@ruby:syntax:return') &&
+                        converter._context.comments[b.comment].text.includes(`@ruby:return:${procedureName}`)
+                    );
+                    if (hasExplicitReturn) {
+                        procedure.hasReturnValue = true;
+                    }
+                }
             }
             if (converter._isBlock(body[0])) {
                 block.next = body[0].id;
