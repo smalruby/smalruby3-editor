@@ -219,7 +219,7 @@ const OperatorsConverter = {
             const {receiver} = params;
 
             const block = converter._createBlock('operator_not', 'value_boolean');
-            if (!converter._isFalse(receiver)) {
+            if (!converter._isFalse(receiver) || converter._isBlock(receiver)) {
                 converter._addInput(
                     block,
                     'OPERAND',
@@ -350,10 +350,10 @@ const OperatorsConverter = {
                     o.parent = block.id;
                 }
             });
-            if (!converter._isFalse(operands[0])) {
+            if (!converter._isFalse(operands[0]) || converter._isBlock(operands[0])) {
                 converter._addInput(block, 'OPERAND1', converter._createTextBlock(operands[0]));
             }
-            if (!converter._isFalse(operands[1])) {
+            if (!converter._isFalse(operands[1]) || converter._isBlock(operands[1])) {
                 converter._addInput(block, 'OPERAND2', converter._createTextBlock(operands[1]));
             }
             return block;
@@ -366,10 +366,10 @@ const OperatorsConverter = {
                     o.parent = block.id;
                 }
             });
-            if (!converter._isFalse(operands[0])) {
+            if (!converter._isFalse(operands[0]) || converter._isBlock(operands[0])) {
                 converter._addInput(block, 'OPERAND1', converter._createTextBlock(operands[0]));
             }
-            if (!converter._isFalse(operands[1])) {
+            if (!converter._isFalse(operands[1]) || converter._isBlock(operands[1])) {
                 converter._addInput(block, 'OPERAND2', converter._createTextBlock(operands[1]));
             }
             return block;

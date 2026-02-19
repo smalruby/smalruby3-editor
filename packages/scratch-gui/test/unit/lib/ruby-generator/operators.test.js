@@ -208,6 +208,19 @@ describe('RubyGenerator/Operators', () => {
             expect(RubyGenerator.operator_lt(block)).toEqual(['@ruby:operator:<=:1', RubyGenerator.ORDER_RELATIONAL]);
             expect(RubyGenerator.lessThanOrEqualCallCache_['1']).toEqual({ lhs: '1', rhs: '2' });
         });
+
+        test('with @ruby:literal:false:1', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_lt',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:literal:false:1' };
+            expect(RubyGenerator.operator_lt(block)).toEqual(['false', RubyGenerator.ORDER_ATOMIC]);
+        });
     });
 
     describe('operator_equals', () => {
@@ -326,6 +339,19 @@ describe('RubyGenerator/Operators', () => {
 
             expect(RubyGenerator.operator_equals(block)).toEqual(['list("my list").empty?', RubyGenerator.ORDER_FUNCTION_CALL]);
             expect(RubyGenerator.emptyCallCache_['1']).toBeUndefined();
+        });
+
+        test('with @ruby:literal:true:1', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_equals',
+                inputs: {
+                    OPERAND1: {},
+                    OPERAND2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = { text: '@ruby:literal:true:1' };
+            expect(RubyGenerator.operator_equals(block)).toEqual(['true', RubyGenerator.ORDER_ATOMIC]);
         });
     });
 

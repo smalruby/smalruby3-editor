@@ -103,11 +103,27 @@ const ExpressionHandlers = {
     },
 
     _onTrue (node) {
-        return new Primitive('true', true, node);
+        const index = (this._context.literalCallIndices.true || 0) + 1;
+        this._context.literalCallIndices.true = index;
+
+        const block = this._createBlock('operator_equals', 'value_boolean');
+        block.node = node;
+        this._addTextInput(block, 'OPERAND1', '1', '1');
+        this._addTextInput(block, 'OPERAND2', '1', '1');
+        block.comment = this._createComment(`@ruby:literal:true:${index}`, block.id);
+        return block;
     },
 
     _onFalse (node) {
-        return new Primitive('false', true, node);
+        const index = (this._context.literalCallIndices.false || 0) + 1;
+        this._context.literalCallIndices.false = index;
+
+        const block = this._createBlock('operator_lt', 'value_boolean');
+        block.node = node;
+        this._addTextInput(block, 'OPERAND1', '0', '0');
+        this._addTextInput(block, 'OPERAND2', '0', '0');
+        block.comment = this._createComment(`@ruby:literal:false:${index}`, block.id);
+        return block;
     },
 
     _onArray (node) {

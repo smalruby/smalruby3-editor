@@ -119,7 +119,7 @@ const ControlConverter = {
         // Register onXxx handlers
         converter.registerOnIf((cond, statement, elseStatement) => {
             const block = converter._createBlock('control_if', 'statement');
-            if (!converter._isFalse(cond)) {
+            if (!converter._isFalse(cond) || converter._isBlock(cond)) {
                 converter._addInput(block, 'CONDITION', cond);
             }
             converter._addSubstack(block, statement);
@@ -140,7 +140,7 @@ const ControlConverter = {
                 opcode = 'control_repeat_until';
             }
             const block = converter._createBlock(opcode, 'statement');
-            if (!converter._isFalse(cond)) {
+            if (!converter._isFalse(cond) || converter._isBlock(cond)) {
                 converter._addInput(block, 'CONDITION', cond);
             }
             converter._addSubstack(block, statement);

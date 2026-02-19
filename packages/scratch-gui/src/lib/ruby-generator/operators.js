@@ -89,6 +89,9 @@ export default function (Generator) {
                     };
                     return [`@ruby:operator:<=:${index}`, order];
                 }
+                if (part.startsWith('@ruby:literal:false:')) {
+                    return ['false', Generator.ORDER_ATOMIC];
+                }
             }
         }
 
@@ -117,6 +120,8 @@ export default function (Generator) {
                 } else if (part.startsWith('@ruby:operator:<=:')) {
                     methodName = '<=';
                     index = part.substring(18);
+                } else if (part.startsWith('@ruby:literal:true:')) {
+                    return ['true', Generator.ORDER_ATOMIC];
                 }
             }
             if (methodName === 'empty?') {

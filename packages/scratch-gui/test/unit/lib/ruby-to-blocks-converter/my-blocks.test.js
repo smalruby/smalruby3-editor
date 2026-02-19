@@ -624,7 +624,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                 def self.made_block(arg1, arg2)
                 end
 
-                made_block(false, 1)
+                made_block(:symbol, 1)
             `;
             const res = converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);

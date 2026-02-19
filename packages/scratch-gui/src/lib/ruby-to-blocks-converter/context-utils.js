@@ -25,6 +25,7 @@ const ContextUtils = {
             procedures: {},
             methodCallCounts: {},
             methodCallIndices: {},
+            literalCallIndices: {},
             elsifCounter: 0,
             caseCounter: 0,
             isValue: false,

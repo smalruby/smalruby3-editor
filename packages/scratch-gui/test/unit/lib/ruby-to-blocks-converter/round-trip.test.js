@@ -72,4 +72,17 @@ describe('Ruby Round Trip', () => {
         expectRoundTrip('@x >= @y || @a <= @b');
         expectRoundTrip('!(@x >= @y)');
     });
+
+    test('true / false', () => {
+        expectRoundTrip('true');
+        expectRoundTrip('false');
+        expectRoundTrip('if true\n  move(10)\nend');
+        expectRoundTrip('if false\n  move(10)\nend');
+        expectRoundTrip('x = true');
+        expectRoundTrip('x = false');
+        expectRoundTrip('true && false');
+        expectRoundTrip('true || false');
+        expectRoundTrip('!true');
+        expectRoundTrip('!false');
+    });
 });

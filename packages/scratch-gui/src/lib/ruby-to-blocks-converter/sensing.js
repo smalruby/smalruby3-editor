@@ -170,15 +170,15 @@ const SensingConverter = {
             const {args} = params;
 
             const validDragMode = converter.isString(args[0]) && DragMode.indexOf(args[0].toString()) >= 0;
-            const validBoolean = args[0] && (args[0].type === 'true' || args[0].type === 'false');
+            const validBoolean = converter._isTrue(args[0]) || converter._isFalse(args[0]);
 
             if (!validDragMode && !validBoolean) return null;
 
             const block = converter.createBlock('sensing_setdragmode', 'statement');
             let dragMode = args[0];
-            if (dragMode.type === 'true') {
+            if (converter._isTrue(dragMode)) {
                 dragMode = 'draggable';
-            } else if (dragMode.type === 'false') {
+            } else if (converter._isFalse(dragMode)) {
                 dragMode = 'not draggable';
             }
             converter.addField(block, 'DRAG_MODE', dragMode);
