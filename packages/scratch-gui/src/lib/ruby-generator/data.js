@@ -55,8 +55,8 @@ export default function (Generator) {
 
         // Check if this is a return value assignment
         if (comment && comment.includes('@ruby:return:')) {
-            // Check if it is an evacuation block (has a number at the end)
-            if (/@ruby:return:\w+:\d+/.test(comment)) {
+            // Check if it is an evacuation block (has a number at the end) or initialize block
+            if (/@ruby:return:\w+:\d+/.test(comment) || /@ruby:return:\w+:initialize/.test(comment)) {
                 return '';
             }
 

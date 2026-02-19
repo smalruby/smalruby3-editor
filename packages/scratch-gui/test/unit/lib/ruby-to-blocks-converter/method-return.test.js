@@ -780,11 +780,19 @@ describe('RubyToBlocksConverter/Method Return', () => {
             const result = converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
-            // Chain: procedures_definition -> data_setvariableto -> control_stop
+            // Chain: procedures_definition -> initialize block -> data_setvariableto -> control_stop
             const defBlock = Object.values(converter.blocks).find(b => b.opcode === 'procedures_definition');
             expect(defBlock).toBeDefined();
 
-            const assignBlock = converter.blocks[defBlock.next];
+            // First block after def is the initialize block
+            const initBlock = converter.blocks[defBlock.next];
+            expect(initBlock).toBeDefined();
+            expect(initBlock.opcode).toBe('data_setvariableto');
+            const initComment = converter._context.comments[initBlock.comment];
+            expect(initComment.text).toContain('@ruby:return:div:initialize');
+
+            // Second block is the actual return assignment
+            const assignBlock = converter.blocks[initBlock.next];
             expect(assignBlock).toBeDefined();
             expect(assignBlock.opcode).toBe('data_setvariableto');
             const assignComment = converter._context.comments[assignBlock.comment];
@@ -857,6 +865,85 @@ describe('RubyToBlocksConverter/Method Return', () => {
             // div should be marked as hasReturnValue
             const procedure = converter._context.procedures['div'];
             expect(procedure.hasReturnValue).toBe(true);
+        });
+    });
+
+    describe('Phase 3: return value initialization block', () => {
+        test('method with return inserts initialize block after procedures_definition', () => {
+            const code = `
+                def foo(a)
+                  if a == 0
+                    return 0
+                  else
+                    move(10)
+                  end
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            const defBlock = Object.values(converter.blocks).find(b => b.opcode === 'procedures_definition');
+            expect(defBlock).toBeDefined();
+
+            // First block after def should be initialize block
+            const initBlock = converter.blocks[defBlock.next];
+            expect(initBlock).toBeDefined();
+            expect(initBlock.opcode).toBe('data_setvariableto');
+            const initComment = converter._context.comments[initBlock.comment];
+            expect(initComment).toBeDefined();
+            expect(initComment.text).toBe('@ruby:return:foo:initialize');
+
+            // Initialize block value should be empty string ""
+            const valueInput = initBlock.inputs && initBlock.inputs.VALUE;
+            expect(valueInput).toBeDefined();
+        });
+
+        test('method without return does NOT insert initialize block', () => {
+            const code = `
+                def bar(a)
+                  move(a)
+                end
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+
+            const defBlock = Object.values(converter.blocks).find(b => b.opcode === 'procedures_definition');
+            expect(defBlock).toBeDefined();
+
+            // First block after def should be move (not an initialize block)
+            const nextBlock = converter.blocks[defBlock.next];
+            if (nextBlock) {
+                const nextComment = nextBlock.comment && converter._context.comments[nextBlock.comment];
+                if (nextComment) {
+                    expect(nextComment.text).not.toContain('@ruby:return:bar:initialize');
+                }
+            }
+        });
+
+        test('say(foo(0), 1) then say(foo(1), 1): second call gets fresh return value', () => {
+            // This test verifies that the initialize block causes the second call
+            // to not carry over the first call's return value.
+            // In blocks: foo(0) sets @_return_foo_=0, then foo(1) sets @_return_foo_=""
+            // The say after foo(1) should see "" (empty string), not 0.
+            const code = `
+                def foo(a)
+                  if a == 0
+                    return 0
+                  else
+                    move(10)
+                  end
+                end
+
+                say(foo(0), 1)
+                say(foo(1), 1)
+            `;
+            const result = converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            expect(converter.errors).toHaveLength(0);
+
+            // Both say blocks should exist
+            const sayBlocks = Object.values(converter.blocks).filter(b => b.opcode === 'looks_sayforsecs');
+            expect(sayBlocks).toHaveLength(2);
         });
     });
 });
