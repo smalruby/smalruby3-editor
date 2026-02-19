@@ -1169,6 +1169,8 @@ class MeshV2Service {
             this.costTracking.mutationCount++;
             this.costTracking.reportDataCount++;
 
+            log.info(`Mesh V2: Sending ${finalPayload.length} data items to group ${this.groupId}`);
+
             // Save Promise to track completion
             this.lastDataSendPromise = this.client.mutate({
                 mutation: REPORT_DATA,
