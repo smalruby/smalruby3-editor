@@ -1995,4 +1995,16 @@ describe('RubyToBlocksConverter/Operators', () => {
         ];
         convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
+
+    test('reject non-boolean blocks in boolean inputs', () => {
+        [
+            '!move(10)',
+            'move(10) && touching?("_edge_")',
+            'touching?("_edge_") && move(10)',
+            'move(10) || touching?("_edge_")',
+            'touching?("_edge_") || move(10)'
+        ].forEach(s => {
+            convertAndExpectRubyBlockError(converter, target, s);
+        });
+    });
 });
