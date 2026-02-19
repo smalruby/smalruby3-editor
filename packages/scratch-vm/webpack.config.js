@@ -67,6 +67,7 @@ const webBuilder = new ScratchWebpackConfigBuilder(common)
         }
     })
     .addPlugin(new webpack.DefinePlugin({
+        'process.env.DEBUG': JSON.stringify(process.env.DEBUG),
         'process.env.MESH_GRAPHQL_ENDPOINT': JSON.stringify(process.env.MESH_GRAPHQL_ENDPOINT),
         'process.env.MESH_API_KEY': JSON.stringify(process.env.MESH_API_KEY),
         'process.env.MESH_AWS_REGION': JSON.stringify(process.env.MESH_AWS_REGION),

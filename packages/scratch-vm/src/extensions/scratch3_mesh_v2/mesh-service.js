@@ -1,5 +1,7 @@
 /* global process */
 const log = require('../../util/log');
+const debugLogger = require('../../util/debug-logger');
+const debug = debugLogger(process.env.DEBUG);
 const {getClient} = require('./mesh-client');
 const RateLimiter = require('./rate-limiter');
 const BlockUtility = require('../../engine/block-utility');
@@ -55,7 +57,7 @@ const DISCONNECT_ERROR_TYPES = new Set([
 /* istanbul ignore next */
 class MeshV2Service {
     constructor (blocks, meshId, domain) {
-        log.info('Initializing MeshV2Service (GraphQL)');
+        debug(() => 'Initializing MeshV2Service (GraphQL)');
         this.blocks = blocks;
         this.runtime = blocks.runtime;
         this.meshId = meshId;
@@ -173,6 +175,7 @@ class MeshV2Service {
             heartbeatCount: 0, // RENEW_HEARTBEAT, SEND_MEMBER_HEARTBEAT
             reportDataCount: 0, // REPORT_DATA
             fireEventsCount: 0, // FIRE_EVENTS
+            leaveCount: 0, // LEAVE_GROUP or DISSOLVE_GROUP
             dataUpdateReceived: 0, // ON_DATA_UPDATE
             batchEventReceived: 0, // ON_BATCH_EVENT
             dissolveReceived: 0 // ON_GROUP_DISSOLVE
@@ -192,7 +195,7 @@ class MeshV2Service {
         if (error.graphQLErrors && error.graphQLErrors.length > 0) {
             const errorType = error.graphQLErrors[0].errorType;
             if (DISCONNECT_ERROR_TYPES.has(errorType)) {
-                log.info(`Mesh V2: Disconnecting due to errorType: ${errorType}`);
+                debug(() => `Mesh V2: Disconnecting due to errorType: ${errorType}`);
                 return errorType;
             }
         }
@@ -222,31 +225,30 @@ class MeshV2Service {
      */
     isNetworkFilterError (error) {
         if (!error) {
-            log.debug('Mesh V2: isNetworkFilterError called with null/undefined error');
+            debug(() => 'Mesh V2: isNetworkFilterError called with null/undefined error');
             return false;
         }
 
-        log.debug('Mesh V2: Checking if error is network filter error:', {
-            hasNetworkError: !!error.networkError,
-            statusCode: error.networkError?.statusCode,
-            message: error.message
-        });
+        debug(() => `Mesh V2: Checking if error is network filter error: ` +
+            `hasNetworkError=${!!error.networkError}, ` +
+            `statusCode=${error.networkError?.statusCode}, ` +
+            `message=${error.message}`);
 
         // Primary check: HTTP status code 503 from network error
         // This is the ONLY reliable indicator when blocked by proxy (e.g., i-Filter)
         if (error.networkError && error.networkError.statusCode === 503) {
-            log.info('Mesh V2: Detected network filter error (HTTP 503)');
+            debug(() => 'Mesh V2: Detected network filter error (HTTP 503)');
             return true;
         }
 
         // Fallback: Check for 503 in error message (less reliable)
         // Some GraphQL clients may include status code in message
         if (error.message && error.message.includes('503')) {
-            log.info('Mesh V2: Detected network filter error (503 in message)');
+            debug(() => 'Mesh V2: Detected network filter error (503 in message)');
             return true;
         }
 
-        log.debug('Mesh V2: Error is NOT a network filter error');
+        debug(() => 'Mesh V2: Error is NOT a network filter error');
         return false;
     }
 
@@ -309,25 +311,25 @@ class MeshV2Service {
 
                 const socket = new WebSocket(wsUrl, 'graphql-ws');
                 const timeout = setTimeout(() => {
-                    log.warn('Mesh V2: WebSocket test timed out');
+                    debug(() => 'Mesh V2: WebSocket test timed out');
                     socket.close();
                     resolve(false);
                 }, 3000); // 3 seconds timeout for test
 
                 socket.onopen = () => {
-                    log.info('Mesh V2: WebSocket test successful');
+                    debug(() => 'Mesh V2: WebSocket test successful');
                     clearTimeout(timeout);
                     socket.close();
                     resolve(true);
                 };
 
                 socket.onerror = err => {
-                    log.warn(`Mesh V2: WebSocket test failed: ${err}`);
+                    debug(() => `Mesh V2: WebSocket test failed: ${err}`);
                     clearTimeout(timeout);
                     resolve(false);
                 };
             } catch (error) {
-                log.warn(`Mesh V2: WebSocket not supported or failed to initialize: ${error}`);
+                debug(() => `Mesh V2: WebSocket not supported or failed to initialize: ${error}`);
                 resolve(false);
             }
         });
@@ -343,7 +345,7 @@ class MeshV2Service {
             });
 
             this.domain = result.data.createDomain;
-            log.info(`Mesh V2: Created domain ${this.domain} from source IP`);
+            debug(() => `Mesh V2: Created domain ${this.domain} from source IP`);
             return this.domain;
         } catch (error) {
             log.error(`Mesh V2: Failed to create domain: ${error}`);
@@ -372,7 +374,7 @@ class MeshV2Service {
 
             this.costTracking.mutationCount++;
             this.lastFetchTime = new Date().toISOString();
-            log.info(`Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before createGroup)`);
+            debug(() => `Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before createGroup)`);
             const result = await this.client.mutate({
                 mutation: CREATE_GROUP,
                 variables: {
@@ -460,7 +462,7 @@ class MeshV2Service {
 
             this.costTracking.mutationCount++;
             this.lastFetchTime = new Date().toISOString();
-            log.info(`Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before joinGroup)`);
+            debug(() => `Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before joinGroup)`);
             const result = await this.client.mutate({
                 mutation: JOIN_GROUP,
                 variables: {
@@ -518,13 +520,16 @@ class MeshV2Service {
         const hostId = this.meshId;
         const nodeId = this.meshId;
 
+        // Count the leave/dissolve mutation before cleanup() outputs the cost summary
+        this.costTracking.mutationCount++;
+        this.costTracking.leaveCount++;
+
         this.cleanupAndDisconnect();
 
         if (!this.client) return;
 
         try {
             if (isHost) {
-                this.costTracking.mutationCount++;
                 await this.client.mutate({
                     mutation: DISSOLVE_GROUP,
                     variables: {
@@ -533,9 +538,8 @@ class MeshV2Service {
                         hostId: hostId
                     }
                 });
-                log.info(`Mesh V2: Dissolved group ${groupId}`);
+                debug(() => `Mesh V2: Dissolved group ${groupId}`);
             } else {
-                this.costTracking.mutationCount++;
                 await this.client.mutate({
                     mutation: LEAVE_GROUP,
                     variables: {
@@ -544,7 +548,7 @@ class MeshV2Service {
                         nodeId: nodeId
                     }
                 });
-                log.info(`Mesh V2: Left group ${groupId}`);
+                debug(() => `Mesh V2: Left group ${groupId}`);
             }
         } catch (error) {
             log.error(`Mesh V2: Error during leave/dissolve (background): ${error}`);
@@ -566,8 +570,8 @@ class MeshV2Service {
             const batchEventCost = this.costTracking.batchEventReceived * 0.000002;
             const dissolveCost = this.costTracking.dissolveReceived * 0.000002;
 
-            // Subscription connection cost (1 subscription)
-            const connectionCost = (connectionDurationMinutes / 1000000) * 1 * 0.08;
+            // Subscription connection cost: $0.00000008 per connection-minute (1 subscription)
+            const connectionCost = connectionDurationMinutes * 0.00000008;
 
             const totalCost = queryCost + mutationCost + dataUpdateCost + batchEventCost +
                 dissolveCost + connectionCost;
@@ -579,6 +583,7 @@ class MeshV2Service {
             log.info(`    - Heartbeats: ${this.costTracking.heartbeatCount}`);
             log.info(`    - REPORT_DATA: ${this.costTracking.reportDataCount}`);
             log.info(`    - FIRE_EVENTS: ${this.costTracking.fireEventsCount}`);
+            log.info(`    - LEAVE/DISSOLVE: ${this.costTracking.leaveCount}`);
             log.info(`  Subscription Messages:`);
             log.info(`    - Data Updates: ${this.costTracking.dataUpdateReceived} msgs = ` +
                 `$${dataUpdateCost.toFixed(8)}`);
@@ -591,12 +596,13 @@ class MeshV2Service {
             log.info(`  TOTAL ESTIMATED COST: $${totalCost.toFixed(8)} ` +
                 `(${(totalCost * 1000000).toFixed(2)} per million operations equivalent)`);
             log.info(`  Average cost per second: $${(totalCost / connectionDurationSeconds).toFixed(10)}`);
+            this.costTracking.connectionStartTime = null;
         }
 
         // 統計情報を出力
         if (this.eventQueueStats &&
             (this.eventQueueStats.duplicatesSkipped > 0 || this.eventQueueStats.dropped > 0)) {
-            log.info(`Mesh V2: Final Event Queue Stats: ` +
+            debug(() => `Mesh V2: Final Event Queue Stats: ` +
                 `duplicates skipped=${this.eventQueueStats.duplicatesSkipped}, ` +
                 `dropped=${this.eventQueueStats.dropped}`);
         }
@@ -648,7 +654,7 @@ class MeshV2Service {
                     this.handleBatchEvent(message.batchEvent);
                 } else if (message.groupDissolve) {
                     this.costTracking.dissolveReceived++;
-                    log.info('Mesh V2: Group dissolved by host');
+                    debug(() => 'Mesh V2: Group dissolved by host');
                     this.cleanupAndDisconnect();
                 } else {
                     log.warn('Mesh V2: Received message with all fields null');
@@ -672,7 +678,7 @@ class MeshV2Service {
         this.stopPolling();
         if (!this.groupId) return;
 
-        log.info(`Mesh V2: Starting event polling (Interval: ${this.pollingIntervalSeconds}s)`);
+        debug(() => `Mesh V2: Starting event polling (Interval: ${this.pollingIntervalSeconds}s)`);
 
         this.pollingTimer = setInterval(() => {
             this.pollEvents();
@@ -684,7 +690,7 @@ class MeshV2Service {
      */
     stopPolling () {
         if (this.pollingTimer) {
-            log.info('Mesh V2: Stopping event polling');
+            debug(() => 'Mesh V2: Stopping event polling');
             clearInterval(this.pollingTimer);
             this.pollingTimer = null;
         }
@@ -702,7 +708,7 @@ class MeshV2Service {
             this.lastFetchTime = new Date().toISOString();
         }
 
-        log.debug(`Mesh V2: pollEvents for group ${this.groupId}. since=${this.lastFetchTime}`);
+        debug(() => `Mesh V2: pollEvents for group ${this.groupId}. since=${this.lastFetchTime}`);
 
         try {
             this.costTracking.queryCount++;
@@ -719,7 +725,7 @@ class MeshV2Service {
             if (result.data && result.data.getEventsSince) {
                 const events = result.data.getEventsSince;
                 if (events.length > 0) {
-                    log.info(`Mesh V2: Polled ${events.length} events`);
+                    debug(() => `Mesh V2: Polled ${events.length} events`);
 
                     // Filter out events from self and sort by timestamp to preserve order
                     const otherEvents = events
@@ -771,7 +777,7 @@ class MeshV2Service {
             [];
         if (events.length === 0) return;
 
-        log.info(`Mesh V2: Received ${events.length} events from ${batchEvent.firedByNodeId}`);
+        debug(() => `Mesh V2: Received ${events.length} events from ${batchEvent.firedByNodeId}`);
 
         this._queueEventsForPlayback(events);
     }
@@ -799,7 +805,7 @@ class MeshV2Service {
                 event: event,
                 offsetMs: offsetMs
             });
-            log.info(`Mesh V2: Queued event: ${event.name} ` +
+            debug(() => `Mesh V2: Queued event: ${event.name} ` +
                 `(offset: ${offsetMs}ms, original timestamp: ${event.timestamp})`);
         });
 
@@ -809,7 +815,7 @@ class MeshV2Service {
             this.lastBroadcastOffset = 0;
         }
 
-        log.info(`Mesh V2: Total pending broadcasts: ${this.pendingBroadcasts.length}`);
+        debug(() => `Mesh V2: Total pending broadcasts: ${this.pendingBroadcasts.length}`);
     }
 
     /**
@@ -847,7 +853,7 @@ class MeshV2Service {
 
             // まだタイミングが来ていない場合は待機
             if (offsetMs > elapsedMs) {
-                log.debug(`Mesh V2: Waiting for event ${event.name} ` +
+                debug(() => `Mesh V2: Waiting for event ${event.name} ` +
                     `(needs ${offsetMs}ms, elapsed ${elapsedMs}ms)`);
                 break;
             }
@@ -857,7 +863,7 @@ class MeshV2Service {
             if (windowBase === null) {
                 windowBase = offsetMs;
             } else if (offsetMs >= windowBase + 33) {
-                log.debug(`Mesh V2: Window limit reached (33ms). ` +
+                debug(() => `Mesh V2: Window limit reached (33ms). ` +
                     `Remaining events will be processed in next frames.`);
                 break;
             }
@@ -869,11 +875,11 @@ class MeshV2Service {
 
         // 収集したイベントを処理
         if (eventsToProcess.length > 0) {
-            log.info(`Mesh V2: Broadcasting ${eventsToProcess.length} events ` +
+            debug(() => `Mesh V2: Broadcasting ${eventsToProcess.length} events ` +
                 `(${this.pendingBroadcasts.length} remaining in queue)`);
 
             eventsToProcess.forEach(({event, offsetMs}) => {
-                log.info(`Mesh V2: Broadcasting event: ${event.name} ` +
+                debug(() => `Mesh V2: Broadcasting event: ${event.name} ` +
                     `(offset: ${offsetMs}ms, elapsed: ${elapsedMs}ms)`);
 
                 this.broadcastEvent(event);
@@ -883,7 +889,7 @@ class MeshV2Service {
     }
 
     broadcastEvent (event) {
-        log.info(`Mesh V2: Executing broadcastEvent for: ${event.name}`);
+        debug(() => `Mesh V2: Executing broadcastEvent for: ${event.name}`);
         try {
             const args = {
                 BROADCAST_OPTION: {
@@ -896,7 +902,7 @@ class MeshV2Service {
                 if (!util.sequencer) {
                     util.sequencer = this.runtime.sequencer;
                 }
-                log.info(`Mesh V2: Triggering event_broadcast: ${event.name}`);
+                debug(() => `Mesh V2: Triggering event_broadcast: ${event.name}`);
                 this.blocks.opcodeFunctions.event_broadcast(args, util);
             } else {
                 log.warn(`Mesh V2: No BlockUtility instance available for broadcast: ${event.name}`);
@@ -908,7 +914,7 @@ class MeshV2Service {
 
     startEventBatchTimer () {
         this.stopEventBatchTimer();
-        log.debug(`Mesh V2: Starting event batch timer (Interval: ${this.eventBatchInterval}ms)`);
+        debug(() => `Mesh V2: Starting event batch timer (Interval: ${this.eventBatchInterval}ms)`);
         this.eventBatchTimer = setInterval(() => {
             this.processBatchEvents();
         }, this.eventBatchInterval);
@@ -926,7 +932,7 @@ class MeshV2Service {
 
         // キューから全イベントを取り出す
         const events = this.eventQueue.splice(0);
-        log.info(`Mesh V2: Processing ${events.length} queued events for sending`);
+        debug(() => `Mesh V2: Processing ${events.length} queued events for sending`);
 
         try {
             // ペイロードサイズ制限を考慮して分割送信（約1,000イベントごと）
@@ -989,7 +995,7 @@ class MeshV2Service {
         this.stopHeartbeat();
         if (!this.groupId) return;
 
-        log.info(`Mesh V2: Starting heartbeat timer (Role: ${this.isHost ? 'Host' : 'Member'}, ` +
+        debug(() => `Mesh V2: Starting heartbeat timer (Role: ${this.isHost ? 'Host' : 'Member'}, ` +
             `Interval: ${this.isHost ? this.hostHeartbeatInterval : this.memberHeartbeatInterval}s)`);
         const interval = (this.isHost ? this.hostHeartbeatInterval : this.memberHeartbeatInterval) * 1000;
 
@@ -1004,7 +1010,7 @@ class MeshV2Service {
 
     stopHeartbeat () {
         if (this.heartbeatTimer) {
-            log.info('Mesh V2: Stopping heartbeat timer');
+            debug(() => 'Mesh V2: Stopping heartbeat timer');
             clearInterval(this.heartbeatTimer);
             this.heartbeatTimer = null;
         }
@@ -1026,7 +1032,7 @@ class MeshV2Service {
             });
 
             this.expiresAt = result.data.renewHeartbeat.expiresAt;
-            log.info(`Mesh V2: Heartbeat renewed. Expires at: ${this.expiresAt}`);
+            debug(() => `Mesh V2: Heartbeat renewed. Expires at: ${this.expiresAt}`);
 
             if (result.data.renewHeartbeat.heartbeatIntervalSeconds) {
                 const newInterval = result.data.renewHeartbeat.heartbeatIntervalSeconds;
@@ -1061,7 +1067,7 @@ class MeshV2Service {
                 }
             });
 
-            log.info('Mesh V2: Member heartbeat sent');
+            debug(() => 'Mesh V2: Member heartbeat sent');
             if (result.data.sendMemberHeartbeat.expiresAt) {
                 this.expiresAt = result.data.sendMemberHeartbeat.expiresAt;
             }
@@ -1108,7 +1114,7 @@ class MeshV2Service {
         // This avoids redundant mutations if values change back within the rate-limit interval.
         const filteredData = dataArray.filter(item => this.latestQueuedData[item.key] !== item.value);
 
-        log.debug(`Mesh V2: sendData called with ${dataArray.length} items, ` +
+        debug(() => `Mesh V2: sendData called with ${dataArray.length} items, ` +
             `${filteredData.length} items changed: ${JSON.stringify(filteredData)}`);
 
         if (filteredData.length === 0) {
@@ -1148,7 +1154,7 @@ class MeshV2Service {
         const finalPayload = payload.filter(item => this.lastSentData[item.key] !== item.value);
 
         if (finalPayload.length === 0) {
-            log.debug('Mesh V2: Skipping mutation as all data is already up-to-date on server');
+            debug(() => 'Mesh V2: Skipping mutation as all data is already up-to-date on server');
             return {
                 data: {
                     reportDataByNode: {
@@ -1163,6 +1169,8 @@ class MeshV2Service {
         try {
             this.costTracking.mutationCount++;
             this.costTracking.reportDataCount++;
+
+            log.info(`Mesh V2: Sending ${finalPayload.length} data items to group ${this.groupId}`);
 
             // Save Promise to track completion
             this.lastDataSendPromise = this.client.mutate({
@@ -1188,6 +1196,9 @@ class MeshV2Service {
             const reason = this.shouldDisconnectOnError(error);
             if (reason) {
                 this.cleanupAndDisconnect(reason);
+                // Do not re-throw: sendData will catch this and would call
+                // cleanupAndDisconnect again, causing duplicate cost summaries.
+                return;
             }
             throw error;
         }
@@ -1195,7 +1206,11 @@ class MeshV2Service {
 
     fireEvent (eventName, payload = '') {
         if (!this.groupId || !this.client) {
-            log.warn(`Mesh V2: Cannot fire event ${eventName} - groupId: ${this.groupId}, client: ${!!this.client}`);
+            if (this.groupId) {
+                log.warn(`Mesh V2: Cannot fire event ${eventName} - client not available`);
+            } else {
+                debug(() => `Mesh V2: Cannot fire event ${eventName} - not connected`);
+            }
             return;
         }
 
@@ -1208,7 +1223,7 @@ class MeshV2Service {
             this.eventQueueStats.duplicatesSkipped++;
             this.reportEventStatsIfNeeded();
 
-            log.debug(`Mesh V2: Event already in queue, skipping: ${eventName}`);
+            debug(() => `Mesh V2: Event already in queue, skipping: ${eventName}`);
             return;
         }
 
@@ -1224,7 +1239,7 @@ class MeshV2Service {
             }
         }
 
-        log.debug(`Mesh V2: Queuing event for sending: ${eventName} ` +
+        debug(() => `Mesh V2: Queuing event for sending: ${eventName} ` +
             `(queue size: ${this.eventQueue.length})`);
 
         // キューに追加（発火日時を記録）
@@ -1244,7 +1259,7 @@ class MeshV2Service {
 
         if (elapsed >= 10000 &&
             (this.eventQueueStats.duplicatesSkipped > 0 || this.eventQueueStats.dropped > 0)) {
-            log.info(`Mesh V2: Event Queue Stats (last ${(elapsed / 1000).toFixed(1)}s): ` +
+            debug(() => `Mesh V2: Event Queue Stats (last ${(elapsed / 1000).toFixed(1)}s): ` +
                 `duplicates skipped=${this.eventQueueStats.duplicatesSkipped}, ` +
                 `dropped=${this.eventQueueStats.dropped}, ` +
                 `current queue size=${this.eventQueue.length}`);
@@ -1293,7 +1308,7 @@ class MeshV2Service {
                 });
             });
 
-            log.info(`Mesh V2: Fetched data from ${nodeStatuses.length} nodes`);
+            debug(() => `Mesh V2: Fetched data from ${nodeStatuses.length} nodes`);
         } catch (error) {
             log.error(`Mesh V2: Failed to fetch group data: ${error}`);
         }
@@ -1306,9 +1321,9 @@ class MeshV2Service {
         this.stopPeriodicDataSync();
 
         const interval = this.periodicDataSyncInterval;
-        log.info(`Mesh V2: Starting periodic data sync timer (Interval: ${interval / 1000}s)`);
+        debug(() => `Mesh V2: Starting periodic data sync timer (Interval: ${interval / 1000}s)`);
         this.dataSyncTimer = setInterval(() => {
-            log.info('Mesh V2: Periodic data sync');
+            debug(() => 'Mesh V2: Periodic data sync');
             this.fetchAllNodesData();
         }, interval);
     }
@@ -1318,7 +1333,7 @@ class MeshV2Service {
      */
     stopPeriodicDataSync () {
         if (this.dataSyncTimer) {
-            log.info('Mesh V2: Stopping periodic data sync timer');
+            debug(() => 'Mesh V2: Stopping periodic data sync timer');
             clearInterval(this.dataSyncTimer);
             this.dataSyncTimer = null;
         }
@@ -1354,12 +1369,12 @@ class MeshV2Service {
 
         const allVariables = this.getGlobalVariables();
         if (allVariables.length === 0) {
-            log.info('Mesh V2: No global variables to send');
+            debug(() => 'Mesh V2: No global variables to send');
             return;
         }
 
         await this.sendData(allVariables);
-        log.info(`Mesh V2: Sent ${allVariables.length} global variables`);
+        debug(() => `Mesh V2: Sent ${allVariables.length} global variables`);
     }
 
     getRemoteVariable (name) {
