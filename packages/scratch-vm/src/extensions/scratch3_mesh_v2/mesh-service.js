@@ -237,14 +237,14 @@ class MeshV2Service {
         // Primary check: HTTP status code 503 from network error
         // This is the ONLY reliable indicator when blocked by proxy (e.g., i-Filter)
         if (error.networkError && error.networkError.statusCode === 503) {
-            log.info('Mesh V2: Detected network filter error (HTTP 503)');
+            debug(() => 'Mesh V2: Detected network filter error (HTTP 503)');
             return true;
         }
 
         // Fallback: Check for 503 in error message (less reliable)
         // Some GraphQL clients may include status code in message
         if (error.message && error.message.includes('503')) {
-            log.info('Mesh V2: Detected network filter error (503 in message)');
+            debug(() => 'Mesh V2: Detected network filter error (503 in message)');
             return true;
         }
 

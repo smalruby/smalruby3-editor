@@ -203,7 +203,7 @@ class Scratch3MeshV2Blocks {
         if (!this.meshService) return;
         this.meshService.listGroups().then(groups => {
             this.discoveredGroups = groups;
-            log.info(`Mesh V2: Listed ${groups.length} groups`);
+            debug(() => `Mesh V2: Listed ${groups.length} groups`);
 
             // Filter out expired groups
             const now = Date.now();
