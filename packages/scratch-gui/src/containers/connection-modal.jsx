@@ -47,7 +47,10 @@ class ConnectionModal extends React.Component {
         // === Smalruby: End of meshV2 initial step feature ===
         this.state = {
             extension: extensionData.find(ext => ext.extensionId === props.extensionId),
-            phase: initialPhase
+            phase: initialPhase,
+            // === Smalruby: Start of meshV2 connected message feature ===
+            connectedMessage: props.vm.getPeripheralConnectedMessage(props.extensionId)
+            // === Smalruby: End of meshV2 connected message feature ===
         };
     }
     componentDidMount () {
@@ -126,7 +129,10 @@ class ConnectionModal extends React.Component {
     }
     handleConnected () {
         this.setState({
-            phase: PHASES.connected
+            phase: PHASES.connected,
+            // === Smalruby: Start of meshV2 connected message feature ===
+            connectedMessage: this.props.vm.getPeripheralConnectedMessage(this.props.extensionId)
+            // === Smalruby: End of meshV2 connected message feature ===
         });
         analytics.event({
             category: 'extensions',
@@ -249,6 +255,9 @@ class ConnectionModal extends React.Component {
             <ConnectionModalComponent
                 connectingMessage={this.state.extension && this.state.extension.connectingMessage}
                 connectionIconURL={this.state.extension && this.state.extension.connectionIconURL}
+                // === Smalruby: Start of meshV2 connected message feature ===
+                connectedMessage={this.state.connectedMessage}
+                // === Smalruby: End of meshV2 connected message feature ===
                 connectionSmallIconURL={this.state.extension && this.state.extension.connectionSmallIconURL}
                 connectionTipIconURL={this.state.extension && this.state.extension.connectionTipIconURL}
                 // === Smalruby: Start of meshV2 initial step feature ===

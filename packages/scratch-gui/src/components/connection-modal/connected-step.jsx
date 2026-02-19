@@ -26,11 +26,15 @@ const ConnectedStep = props => (
         </Box>
         <Box className={styles.bottomArea}>
             <Box className={classNames(styles.bottomAreaItem, styles.instructions)}>
-                <FormattedMessage
-                    defaultMessage="Connected"
-                    description="Message indicating that a device was connected"
-                    id="gui.connection.connected"
-                />
+                {/* === Smalruby: Start of meshV2 connected message feature === */}
+                {props.connectedMessage || (
+                    <FormattedMessage
+                        defaultMessage="Connected"
+                        description="Message indicating that a device was connected"
+                        id="gui.connection.connected"
+                    />
+                )}
+                {/* === Smalruby: End of meshV2 connected message feature === */}
             </Box>
             <Dots
                 success
@@ -64,6 +68,9 @@ const ConnectedStep = props => (
 );
 
 ConnectedStep.propTypes = {
+    // === Smalruby: Start of meshV2 connected message feature ===
+    connectedMessage: PropTypes.string,
+    // === Smalruby: End of meshV2 connected message feature ===
     connectionIconURL: PropTypes.string.isRequired,
     onCancel: PropTypes.func,
     onDisconnect: PropTypes.func
