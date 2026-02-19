@@ -160,8 +160,7 @@ export default {
         'gui.smalruby3.gui.feedback': 'フィードバックをそうしん',
         'gui.smalruby3.feedbackConfirm': 'スモウルビーへのフィードバックをそうしんするためのがいぶサイトをひらきます',
     
-        // Block Display Modal - Block Messages
-     (Hiragana)
+        // Block Display Modal - Block Messages (Hiragana)
     // Motion blocks
     'gui.smalruby3.blockDisplayModal.motion_movesteps': '(10) ほうごかす',
     'gui.smalruby3.blockDisplayModal.motion_turnright': '↻ (15) どまわす',
