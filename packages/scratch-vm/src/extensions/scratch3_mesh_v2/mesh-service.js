@@ -175,6 +175,7 @@ class MeshV2Service {
             heartbeatCount: 0, // RENEW_HEARTBEAT, SEND_MEMBER_HEARTBEAT
             reportDataCount: 0, // REPORT_DATA
             fireEventsCount: 0, // FIRE_EVENTS
+            leaveCount: 0, // LEAVE_GROUP or DISSOLVE_GROUP
             dataUpdateReceived: 0, // ON_DATA_UPDATE
             batchEventReceived: 0, // ON_BATCH_EVENT
             dissolveReceived: 0 // ON_GROUP_DISSOLVE
@@ -520,13 +521,16 @@ class MeshV2Service {
         const hostId = this.meshId;
         const nodeId = this.meshId;
 
+        // Count the leave/dissolve mutation before cleanup() outputs the cost summary
+        this.costTracking.mutationCount++;
+        this.costTracking.leaveCount++;
+
         this.cleanupAndDisconnect();
 
         if (!this.client) return;
 
         try {
             if (isHost) {
-                this.costTracking.mutationCount++;
                 await this.client.mutate({
                     mutation: DISSOLVE_GROUP,
                     variables: {
@@ -537,7 +541,6 @@ class MeshV2Service {
                 });
                 debug(() => `Mesh V2: Dissolved group ${groupId}`);
             } else {
-                this.costTracking.mutationCount++;
                 await this.client.mutate({
                     mutation: LEAVE_GROUP,
                     variables: {
@@ -568,8 +571,8 @@ class MeshV2Service {
             const batchEventCost = this.costTracking.batchEventReceived * 0.000002;
             const dissolveCost = this.costTracking.dissolveReceived * 0.000002;
 
-            // Subscription connection cost (1 subscription)
-            const connectionCost = (connectionDurationMinutes / 1000000) * 1 * 0.08;
+            // Subscription connection cost: $0.00000008 per connection-minute (1 subscription)
+            const connectionCost = connectionDurationMinutes * 0.00000008;
 
             const totalCost = queryCost + mutationCost + dataUpdateCost + batchEventCost +
                 dissolveCost + connectionCost;
@@ -581,6 +584,7 @@ class MeshV2Service {
             log.info(`    - Heartbeats: ${this.costTracking.heartbeatCount}`);
             log.info(`    - REPORT_DATA: ${this.costTracking.reportDataCount}`);
             log.info(`    - FIRE_EVENTS: ${this.costTracking.fireEventsCount}`);
+            log.info(`    - LEAVE/DISSOLVE: ${this.costTracking.leaveCount}`);
             log.info(`  Subscription Messages:`);
             log.info(`    - Data Updates: ${this.costTracking.dataUpdateReceived} msgs = ` +
                 `$${dataUpdateCost.toFixed(8)}`);
