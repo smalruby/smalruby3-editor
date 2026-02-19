@@ -268,6 +268,56 @@ const MyBlocksConverter = {
                         returnBlock.parent = prev.id;
                     }
                 }
+
+                // If any block in the body has @ruby:syntax:return comment (from explicit return),
+                // mark procedure as having a return value so callers can use it as a value.
+                if (!procedure.hasReturnValue) {
+                    const hasExplicitReturn = Object.values(converter._context.blocks).some(b =>
+                        b.opcode === 'data_setvariableto' &&
+                        b.comment &&
+                        converter._context.comments[b.comment] &&
+                        converter._context.comments[b.comment].text.includes('@ruby:syntax:return') &&
+                        converter._context.comments[b.comment].text.includes(`@ruby:return:${procedureName}`)
+                    );
+                    if (hasExplicitReturn) {
+                        procedure.hasReturnValue = true;
+                    }
+                }
+
+                // If procedure has explicit return statements, insert an initialize block at the top
+                // of the body to reset @_return_name_ to "" before each call, preventing stale values.
+                // This is only needed for explicit return (not for implicit return from last value).
+                const hasExplicitReturnForInit = Object.values(converter._context.blocks).some(b =>
+                    b.opcode === 'data_setvariableto' &&
+                    b.comment &&
+                    converter._context.comments[b.comment] &&
+                    converter._context.comments[b.comment].text.includes('@ruby:syntax:return') &&
+                    converter._context.comments[b.comment].text.includes(`@ruby:return:${procedureName}`)
+                );
+                if (hasExplicitReturnForInit) {
+                    const variable = converter._lookupOrCreateVariable(`@_return_${procedureName}_`);
+                    const initBlock = converter._createBlock('data_setvariableto', 'statement', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: variable.id,
+                                value: variable.name,
+                                variableType: variable.type
+                            }
+                        }
+                    });
+                    initBlock.comment = converter._createComment(
+                        `@ruby:return:${procedureName}:initialize`, initBlock.id
+                    );
+                    converter._addTextInput(initBlock, 'VALUE', '', '');
+
+                    // Link init block → first body block
+                    if (body.length > 0 && converter._isBlock(body[0])) {
+                        initBlock.next = body[0].id;
+                        body[0].parent = initBlock.id;
+                    }
+                    body.unshift(initBlock);
+                }
             }
             if (converter._isBlock(body[0])) {
                 block.next = body[0].id;
