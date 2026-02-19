@@ -103,8 +103,8 @@ describe('RubyToBlocksConverter/Looks', () => {
             [
                 'say("Hello!", "2")',
                 'say("Hello!", 2, 3)',
-                'say(false, 2)',
-                'say("Hello!", false)'
+                'say(:symbol, 2)',
+                'say("Hello!", :symbol)'
             ].forEach(c => {
                 convertAndExpectRubyBlockError(converter, target, c);
             });
@@ -160,8 +160,7 @@ describe('RubyToBlocksConverter/Looks', () => {
         test('invalid', () => {
             [
                 'say',
-                'say(false)',
-                'say(true)',
+                'say(:symbol)',
                 'say(1, 2, 1)'
             ].forEach(c => {
                 convertAndExpectRubyBlockError(converter, target, c);
@@ -251,8 +250,8 @@ describe('RubyToBlocksConverter/Looks', () => {
             [
                 'think("Hello!", "2")',
                 'think("Hello!", 2, 3)',
-                'think(false, 2)',
-                'think("Hello!", false)'
+                'think(:symbol, 2)',
+                'think("Hello!", :symbol)'
             ].forEach(c => {
                 convertAndExpectRubyBlockError(converter, target, c);
             });
@@ -308,8 +307,7 @@ describe('RubyToBlocksConverter/Looks', () => {
         test('invalid', () => {
             [
                 'think',
-                'think(false)',
-                'think(true)',
+                'think(:symbol)',
                 'think(1, 2, 1)'
             ].forEach(c => {
                 convertAndExpectRubyBlockError(converter, target, c);
@@ -346,8 +344,7 @@ describe('RubyToBlocksConverter/Looks', () => {
         test('invalid', () => {
             [
                 'switch_costume',
-                'switch_costume(false)',
-                'switch_costume(true)',
+                'switch_costume(:symbol)',
                 'switch_costume(1)',
                 'switch_costume(x)',
                 'switch_costume("costume2", 1)'
@@ -388,8 +385,7 @@ describe('RubyToBlocksConverter/Looks', () => {
         test('invalid', () => {
             [
                 'switch_backdrop',
-                'switch_backdrop(false)',
-                'switch_backdrop(true)',
+                'switch_backdrop(:symbol)',
                 'switch_backdrop(1)',
                 'switch_backdrop(x)',
                 'switch_backdrop("backdrop2", 1)'
@@ -771,8 +767,7 @@ describe('RubyToBlocksConverter/Looks', () => {
                 'go_layers(x)',
                 'go_layers(1, "invalid")',
                 'go_layers("1", "forward")',
-                'go_layers(false, "forward")',
-                'go_layers(true, "forward")'
+                'go_layers(:symbol, "forward")'
             ].forEach(c => {
                 convertAndExpectRubyBlockError(converter, target, c);
             });
@@ -890,8 +885,7 @@ describe('RubyToBlocksConverter/Looks', () => {
         test('invalid', () => {
             [
                 'switch_backdrop_and_wait',
-                'switch_backdrop_and_wait(false)',
-                'switch_backdrop_and_wait(true)',
+                'switch_backdrop_and_wait(:symbol)',
                 'switch_backdrop_and_wait(1)',
                 'switch_backdrop_and_wait(x)',
                 'switch_backdrop_and_wait("backdrop2", 1)'

@@ -50,7 +50,14 @@ const NodeUtils = {
     },
 
     _isTrue (value) {
-        return value === true || (value && value.type === 'true');
+        if (value === true || (value && value.type === 'true')) {
+            return true;
+        }
+        if (this._isBlock(value) && value.opcode === 'operator_equals' && value.comment) {
+            const comment = this._context.comments[value.comment];
+            return comment && comment.text.startsWith('@ruby:literal:true:');
+        }
+        return false;
     },
 
     isFalse (value) {
@@ -58,7 +65,14 @@ const NodeUtils = {
     },
 
     _isFalse (value) {
-        return value === false || (value && value.type === 'false');
+        if (value === false || (value && value.type === 'false')) {
+            return true;
+        }
+        if (this._isBlock(value) && value.opcode === 'operator_lt' && value.comment) {
+            const comment = this._context.comments[value.comment];
+            return comment && comment.text.startsWith('@ruby:literal:false:');
+        }
+        return false;
     },
 
     isNil (value) {

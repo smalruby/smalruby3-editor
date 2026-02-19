@@ -169,8 +169,6 @@ describe('RubyToBlocksConverter', () => {
             test('error', () => {
                 [
                     '1',
-                    'false',
-                    'true',
                     '"Hello!"',
                     ':symbol',
                     'move(10); 1',
