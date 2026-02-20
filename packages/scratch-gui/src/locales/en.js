@@ -99,7 +99,7 @@ export default {
     'gui.menuBar.koshienCannotChangeRubyVersion': 'The Ruby version cannot be changed when the Koshien extension is loaded.',
 
     'gui.smalruby3.gui.feedback': 'Send feedback',
-    'gui.smalruby3.feedbackConfirm': 'Opens an external site to send feedback to Smalruby.',
+    'gui.smalruby3.feedbackConfirm': 'You are about to open an external site to send feedback to help us improve Smalruby. Is it okay?',
 
     // Block Display Modal - Block Messages
     // Motion blocks

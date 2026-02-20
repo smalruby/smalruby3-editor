@@ -269,7 +269,7 @@ const GUIComponent = props => {
         const confirmed = window.confirm( // eslint-disable-line no-alert
             intl.formatMessage({
                 id: 'gui.smalruby3.feedbackConfirm',
-                defaultMessage: 'スモウルビーへのフィードバックを送信するための外部サイトを開きます'
+                defaultMessage: 'スモウルビーをよりよくするためのフィードバック（ご意見）を送信する外部サイトを開きます。よろしいですか？'
             })
         );
         if (!confirmed) {
