@@ -86,6 +86,7 @@
       "^@smalruby/scratch-render/(.*)$": "<rootDir>/../scratch-render/$1",
       "^@smalruby/scratch-svg-renderer/(.*)$": "<rootDir>/../scratch-svg-renderer/$1",
       "^@smalruby/scratch-vm/(.*)$": "<rootDir>/../scratch-vm/$1",
+      "@bjorn3/browser_wasi_shim": "<rootDir>/test/__mocks__/browserWasiShimMock.js",
       "opal": "<rootDir>/opal/opal.min.js",
       "opal-parser": "<rootDir>/opal/opal-parser.min.js"
     },
@@ -100,7 +101,8 @@
     ],
     "setupFiles": [
       "raf/polyfill",
-      "<rootDir>/test/setup-opal.js"
+      "<rootDir>/test/setup-opal.js",
+      "<rootDir>/test/unit/lib/setup-prism.js"
     ],
     "testEnvironment": "jsdom",
     "testPathIgnorePatterns": [
@@ -114,20 +116,23 @@
           "tsconfig": "<rootDir>/tsconfig.test.json"
         }
       ],
-      "^.+\\.jsx?$": "babel-jest"
+      "^.+\\.jsx?$": "babel-jest",
+      "node_modules/(@bjorn3/browser_wasi_shim|@ruby/prism)/.*\\.js$": "babel-jest"
     },
     "transformIgnorePatterns": [
-      "/node_modules/(?!intl-messageformat|intl-messageformat-parser).+\\.js$"
+      "node_modules/(?!(intl-messageformat|intl-messageformat-parser|@bjorn3/browser_wasi_shim|@ruby/prism)/)"
     ]
   },
   "dependencies": {
-    "@smalruby/scratch-render": "12.6.2",
-    "@smalruby/scratch-svg-renderer": "12.6.2",
-    "@smalruby/scratch-vm": "12.6.2",
+    "@bjorn3/browser_wasi_shim": "^0.4.2",
     "@mediapipe/face_detection": "0.4.1646425229",
     "@microbit/microbit-universal-hex": "0.2.2",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-context-menu": "2.2.16",
+    "@ruby/prism": "^1.9.0",
+    "@smalruby/scratch-render": "12.6.2",
+    "@smalruby/scratch-svg-renderer": "12.6.2",
+    "@smalruby/scratch-vm": "12.6.2",
     "@tensorflow-models/face-detection": "1.0.3",
     "@tensorflow/tfjs": "4.22.0",
     "@testing-library/user-event": "14.6.1",
