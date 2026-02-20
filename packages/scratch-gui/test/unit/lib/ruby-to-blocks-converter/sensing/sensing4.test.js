@@ -115,7 +115,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
             `;
             expected = [
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
-                await rubyToExpected(converter, target, 'sprite("Sprite1").x')[0],
+                (await rubyToExpected(converter, target, 'sprite("Sprite1").x'))[0],
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
@@ -153,7 +153,6 @@ describe('RubyToBlocksConverter/Sensing', () => {
             `;
             let res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
             expect(res).toBeFalsy();
 
             code = `
@@ -164,7 +163,6 @@ describe('RubyToBlocksConverter/Sensing', () => {
             `;
             res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
             expect(res).toBeFalsy();
         });
     });

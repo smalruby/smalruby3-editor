@@ -84,13 +84,13 @@ describe('RubyToBlocksConverter/Sound', () => {
 
         beforeEach(() => {
             // Mock target with sounds
+            const sounds = [
+                { name: 'Meow' },
+                { name: 'Pop' }
+            ];
             targetWithSounds = {
-                sprite: {
-                    sounds: [
-                        { name: 'Meow' },
-                        { name: 'Pop' }
-                    ]
-                }
+                sprite: { sounds },
+                getSounds: () => sounds
             };
         });
 

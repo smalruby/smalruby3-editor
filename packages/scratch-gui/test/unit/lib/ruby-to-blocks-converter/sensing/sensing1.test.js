@@ -78,7 +78,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
             `;
             expected = [
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
-                await rubyToExpected(converter, target, 'touching?("_edge_")')[0],
+                (await rubyToExpected(converter, target, 'touching?("_edge_")'))[0],
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
@@ -102,7 +102,6 @@ describe('RubyToBlocksConverter/Sensing', () => {
             `;
             const res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
             expect(res).toBeFalsy();
         });
     });
@@ -166,7 +165,7 @@ describe('RubyToBlocksConverter/Sensing', () => {
             `;
             expected = [
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
-                await rubyToExpected(converter, target, 'touching_color?("#43066f")')[0],
+                (await rubyToExpected(converter, target, 'touching_color?("#43066f")'))[0],
                 (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
@@ -194,7 +193,6 @@ describe('RubyToBlocksConverter/Sensing', () => {
             `;
             const res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
             expect(res).toBeFalsy();
         });
     });

@@ -114,7 +114,7 @@ class RubyToBlocksConverter extends Visitor {
         this._loadVariables(target);
         this._context.sourceCode = code;
         try {
-            const prism = await RubyParser.loadPrism();
+            const prism = RubyParser.getPrism() || await RubyParser.loadPrism();
             const parseResult = prism.parse(code);
             if (parseResult.errors.length > 0) {
                 parseResult.errors.forEach(e => {
@@ -126,6 +126,8 @@ class RubyToBlocksConverter extends Visitor {
             }
             const root = parseResult.value;
             this._context.rootNode = root; // Save root node for line mapping
+            // Pre-pass: count procedure calls to support evacuation block generation
+            this._countProcedureCallsInNode(root);
             let blocks = this.visit(root);
             if (blocks === null || typeof blocks === 'undefined') {
                 return true;

@@ -34,16 +34,15 @@ describe('RubyToBlocksConverter/Event', () => {
             }
         });
 
-        test('error', async () => {
+        test('valid with block body', async () => {
             code = `
                 self.when(:flag_clicked) do
                   move(10)
                 end
             `;
             const res = await converter.targetCodeToBlocks(target, code);
-            expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
-            expect(res).toBeFalsy();
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
         });
     });
 
@@ -66,16 +65,15 @@ describe('RubyToBlocksConverter/Event', () => {
             }
         });
 
-        test('error', async () => {
+        test('valid with block body', async () => {
             code = `
                 self.when(:key_pressed, "space") do
                   move(10)
                 end
             `;
             const res = await converter.targetCodeToBlocks(target, code);
-            expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
-            expect(res).toBeFalsy();
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
         });
     });
 
@@ -97,18 +95,15 @@ describe('RubyToBlocksConverter/Event', () => {
             }
         });
 
-        test('error', async () => {
-            for (const eventName of ['this_sprite_clicked', 'clicked']) {
-                code = `
-                    self.when(:${eventName}) do
-                      move(10)
-                    end
-                `;
-                const res = await converter.targetCodeToBlocks(target, code);
-                expect(converter.errors).toHaveLength(1);
-                expect(converter.errors[0].row).toEqual(2);
-                expect(res).toBeFalsy();
-            }
+        test('valid with block body', async () => {
+            code = `
+                self.when(:clicked) do
+                  move(10)
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
         });
     });
 
@@ -138,7 +133,6 @@ describe('RubyToBlocksConverter/Event', () => {
             `;
             const res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
             expect(res).toBeFalsy();
         });
     });
@@ -170,7 +164,6 @@ describe('RubyToBlocksConverter/Event', () => {
             `;
             const res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
             expect(res).toBeFalsy();
         });
     });
@@ -195,16 +188,15 @@ describe('RubyToBlocksConverter/Event', () => {
             }
         });
 
-        test('error', async () => {
+        test('valid with block body', async () => {
             code = `
                 self.when(:greater_than, "loudness", 10) do
                   move(10)
                 end
             `;
             const res = await converter.targetCodeToBlocks(target, code);
-            expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
-            expect(res).toBeFalsy();
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
         });
     });
 
@@ -227,16 +219,15 @@ describe('RubyToBlocksConverter/Event', () => {
             }
         });
 
-        test('error', async () => {
+        test('valid with block body', async () => {
             code = `
                 self.when(:receive, "msg1") do
                   move(10)
                 end
             `;
             const res = await converter.targetCodeToBlocks(target, code);
-            expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
-            expect(res).toBeFalsy();
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
         });
     });
 

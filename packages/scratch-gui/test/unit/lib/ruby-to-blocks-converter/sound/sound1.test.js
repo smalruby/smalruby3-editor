@@ -89,7 +89,7 @@ describe('RubyToBlocksConverter/Sound', () => {
                 expected = [
                     (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
                 ];
-                expected[0].next = await rubyToExpected(converter, target, `${info.methodName}("Meow")`)[0];
+                expected[0].next = (await rubyToExpected(converter, target, `${info.methodName}("Meow")`))[0];
                 expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
@@ -174,7 +174,7 @@ describe('RubyToBlocksConverter/Sound', () => {
                 expected = [
                     (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
                 ];
-                expected[0].next = await rubyToExpected(converter, target, `${info.methodName}("PITCH", ${info.value})`)[0];
+                expected[0].next = (await rubyToExpected(converter, target, `${info.methodName}("PITCH", ${info.value})`))[0];
                 expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });

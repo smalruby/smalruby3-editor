@@ -16,12 +16,15 @@ const ExpressionHandlers = {
         preBlocks.push(...split.preBlocks);
 
         const name = node.name;
+        const savedIsValue = this._context.isValue;
+        this._context.isValue = true;
         const args = (node.arguments_ ? node.arguments_.arguments_ : []).map(childNode => {
             const result = this.visit(childNode);
             const s = this._splitPreBlocksAndValue(result);
             preBlocks.push(...s.preBlocks);
             return s.value;
         });
+        this._context.isValue = savedIsValue;
 
         let rubyBlockArgs;
         if (node.block && node.block.parameters) {
@@ -150,6 +153,16 @@ const ExpressionHandlers = {
         return new Primitive('nil', null, node);
     },
 
+    visitParenthesesNode (node) {
+        // Parenthesized expression e.g. (1), (x + 1)
+        // Visit the inner statements and return the last value
+        if (node.body && node.body.body && node.body.body.length > 0) {
+            const results = node.body.body.map(child => this.visit(child));
+            return results[results.length - 1];
+        }
+        return new Primitive('nil', null, node);
+    },
+
     visitAssocNode (node) {
         return [this.visit(node.key), this.visit(node.value)];
     },
@@ -176,9 +189,69 @@ const ExpressionHandlers = {
     visitConstantPathNode (node) {
         const value = {
             scope: this.visit(node.parent),
-            name: node.child.name
+            name: node.name
         };
         return new Primitive('const', value, node);
+    },
+
+    visitReturnNode (node) {
+        const procedureName = this._context.currentProcedureName;
+        if (!procedureName) {
+            return this._createRubyStatementBlock(this._getSource(node), node);
+        }
+
+        // Get return value (first argument of the return node, or nil)
+        const args = node.arguments_ && node.arguments_.arguments_;
+        let returnValue;
+        if (args && args.length > 0) {
+            returnValue = this.visit(args[0]);
+        }
+
+        // Create assign block: @_return_procedureName_ = returnValue
+        const variable = this._lookupOrCreateVariable(`@_return_${procedureName}_`);
+        const assignBlock = this._createBlock('data_setvariableto', 'statement', {
+            fields: {
+                VARIABLE: {
+                    name: 'VARIABLE',
+                    id: variable.id,
+                    value: variable.name,
+                    variableType: variable.type
+                }
+            }
+        });
+        assignBlock.comment = this._createComment(
+            `@ruby:syntax:return @ruby:return:${procedureName}`, assignBlock.id
+        );
+        if (returnValue) {
+            this._addTextInput(
+                assignBlock, 'VALUE', this._isNumber(returnValue) ? returnValue.toString() : returnValue, '0'
+            );
+        } else {
+            this._addTextInput(assignBlock, 'VALUE', '', '0');
+        }
+
+        // Create stop block: control_stop "this script"
+        const stopBlock = this._createBlock('control_stop', 'terminate', {
+            fields: {
+                STOP_OPTION: {
+                    name: 'STOP_OPTION',
+                    value: 'this script'
+                }
+            },
+            mutation: {
+                hasnext: 'false',
+                tagName: 'mutation',
+                children: []
+            }
+        });
+        stopBlock.comment = this._createComment('@ruby:syntax:return', stopBlock.id);
+
+        return [assignBlock, stopBlock];
+    },
+
+    visitParametersNode (node) {
+        // Used for method definition parameters: def foo(arg1, arg2)
+        return (node.requireds || []).map(childNode => this.visit(childNode));
     },
 
     visitBlockParametersNode (node) {

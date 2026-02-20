@@ -1,9 +1,11 @@
-import {loadPrism} from './prism-parser';
+import {loadPrism, getPrism} from './prism-parser';
 
 export {
-    loadPrism
+    loadPrism,
+    getPrism
 };
 
 export default {
-    loadPrism
+    loadPrism,
+    getPrism
 };

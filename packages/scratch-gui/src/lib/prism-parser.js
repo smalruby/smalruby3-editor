@@ -1,14 +1,13 @@
 let prismInstance = null;
+let prismLoadingPromise = null;
 
 /**
- * Load the prism wasm module and return a parse function.
- * @returns {Promise<object>} An object with a parse function.
+ * Get the cached prism instance synchronously (returns null if not yet loaded).
+ * @returns {object|null}
  */
-export const loadPrism = async () => {
-    if (prismInstance) {
-        return prismInstance;
-    }
+export const getPrism = () => prismInstance;
 
+const _doLoadPrism = async () => {
     if (typeof process !== 'undefined' && process.versions && process.versions.node) {
         // Node.js environment (for tests)
         const {WASI: NodeWASI} = require('wasi');
@@ -31,10 +30,9 @@ export const loadPrism = async () => {
         const wasi = new NodeWASI({version: 'preview1'});
         const instance = await WebAssembly.instantiate(wasm, wasi.getImportObject());
         wasi.initialize(instance);
-        prismInstance = {
+        return {
             parse: (source, options = {}) => parsePrismFn(instance.exports, source, options)
         };
-        return prismInstance;
     }
 
     // Browser environment
@@ -47,9 +45,25 @@ export const loadPrism = async () => {
     const instance = await WebAssembly.instantiate(wasm, {wasi_snapshot_preview1: wasi.wasiImport});
     wasi.initialize(instance);
 
-    prismInstance = {
+    return {
         parse: (source, options = {}) => parsePrism(instance.exports, source, options)
     };
+};
 
-    return prismInstance;
+/**
+ * Load the prism wasm module and return a parse function.
+ * Multiple concurrent calls share the same loading promise (singleton pattern).
+ * @returns {Promise<object>} An object with a parse function.
+ */
+export const loadPrism = () => {
+    if (prismInstance) {
+        return Promise.resolve(prismInstance);
+    }
+    if (!prismLoadingPromise) {
+        prismLoadingPromise = _doLoadPrism().then(instance => {
+            prismInstance = instance;
+            return instance;
+        });
+    }
+    return prismLoadingPromise;
 };

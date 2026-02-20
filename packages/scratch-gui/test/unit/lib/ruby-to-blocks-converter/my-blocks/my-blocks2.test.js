@@ -278,7 +278,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                     proccode: 'made_block %s %b',
                     argument_blocks: [
                         expectedInfo.makeText('12'),
-                        await rubyToExpected(converter, target, 'touching?("_edge_")')[0]
+                        (await rubyToExpected(converter, target, 'touching?("_edge_")'))[0]
                     ]
                 }
             }

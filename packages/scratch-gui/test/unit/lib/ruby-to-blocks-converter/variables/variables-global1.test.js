@@ -41,7 +41,8 @@ describe('RubyToBlocksConverter/Variables', () => {
                     inputs: [
                         {
                             name: 'STRING',
-                            block: (await rubyToExpected(converter, target, varName))[0]
+                            block: (await rubyToExpected(converter, target, varName))[0],
+                            shadow: expectedInfo.makeText('apple')
                         }
                     ]
                 }
@@ -57,7 +58,8 @@ describe('RubyToBlocksConverter/Variables', () => {
                     inputs: [
                         {
                             name: 'STRING',
-                            block: (await rubyToExpected(converter, target, varName))[0]
+                            block: (await rubyToExpected(converter, target, varName))[0],
+                            shadow: expectedInfo.makeText('apple')
                         },
                         {
                             name: 'LETTER',

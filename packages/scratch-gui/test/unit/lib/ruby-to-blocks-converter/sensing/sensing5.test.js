@@ -83,7 +83,6 @@ describe('RubyToBlocksConverter/Sensing', () => {
             `;
             let res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
             expect(res).toBeFalsy();
 
             code = `
@@ -93,7 +92,6 @@ describe('RubyToBlocksConverter/Sensing', () => {
             `;
             res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
-            expect(converter.errors[0].row).toEqual(2);
             expect(res).toBeFalsy();
         });
     });

@@ -32,13 +32,14 @@ const SoundConverter = {
         converter.registerOnSend('self', 'play', 1, params => {
             const {receiver, args, node} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0])) return null;
+            if (!converter._isString(args[0]) && !converter._isBlock(args[0])) return null;
 
-            const soundName = args[0].toString();
-            validateSound(converter, soundName, node);
+            if (converter._isString(args[0])) {
+                validateSound(converter, args[0].toString(), node);
+            }
 
             const block = converter._createBlock('sound_play', 'statement');
-            converter._addInput(block, 'SOUND_MENU', converter._createFieldBlock('sound_sounds_menu', 'SOUND_MENU', soundName));
+            converter._addFieldInput(block, 'SOUND_MENU', 'sound_sounds_menu', 'SOUND_MENU', args[0], '');
             return block;
         });
 
@@ -46,13 +47,14 @@ const SoundConverter = {
         converter.registerOnSend('self', 'play_until_done', 1, params => {
             const {receiver, args, node} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0])) return null;
+            if (!converter._isString(args[0]) && !converter._isBlock(args[0])) return null;
 
-            const soundName = args[0].toString();
-            validateSound(converter, soundName, node);
+            if (converter._isString(args[0])) {
+                validateSound(converter, args[0].toString(), node);
+            }
 
             const block = converter._createBlock('sound_playuntildone', 'statement');
-            converter._addInput(block, 'SOUND_MENU', converter._createFieldBlock('sound_sounds_menu', 'SOUND_MENU', soundName));
+            converter._addFieldInput(block, 'SOUND_MENU', 'sound_sounds_menu', 'SOUND_MENU', args[0], '');
             return block;
         });
 

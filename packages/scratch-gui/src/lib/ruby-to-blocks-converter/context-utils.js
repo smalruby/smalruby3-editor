@@ -245,6 +245,82 @@ const ContextUtils = {
 
     isValueContext () {
         return this._context.isValue;
+    },
+
+    /**
+     * Pre-pass to count how many times each procedure/method is called
+     * in value (argument) contexts. Used by my-blocks to generate evacuation blocks.
+     */
+    _countProcedureCallsInNode (node) {
+        if (!node || typeof node !== 'object') return;
+        const nodeType = node.constructor && node.constructor.name;
+        if (!nodeType) return;
+
+        if (nodeType === 'CallNode') {
+            // Count calls in argument positions (value context)
+            // Use _countCallsInValueNode which fully recurses into nested calls;
+            // do NOT also call _countProcedureCallsInNode on args to avoid double-counting.
+            if (node.arguments_ && node.arguments_.arguments_) {
+                node.arguments_.arguments_.forEach(argNode => {
+                    this._countCallsInValueNode(argNode);
+                });
+            }
+            // Also traverse block body if present
+            if (node.block && node.block.body) {
+                this._countProcedureCallsInNode(node.block.body);
+            }
+            // Traverse receiver
+            this._countProcedureCallsInNode(node.receiver);
+        } else {
+            // For other node types, traverse children generically
+            const childKeys = ['statements', 'body', 'then', 'else', 'value', 'left', 'right',
+                'condition', 'consequent', 'alternative', 'elements', 'requireds',
+                'parameters', 'arguments_'];
+            childKeys.forEach(key => {
+                const child = node[key];
+                if (!child) return;
+                if (typeof child === 'object' && child.constructor) {
+                    if (child.constructor.name.endsWith('Node')) {
+                        this._countProcedureCallsInNode(child);
+                    } else if (Array.isArray(child) || (child.length !== undefined && typeof child.forEach === 'function')) {
+                        child.forEach && child.forEach(c => this._countProcedureCallsInNode(c));
+                    }
+                }
+            });
+        }
+    },
+
+    /**
+     * Count CallNode calls within a value (argument) context node.
+     * This increments methodCallCounts for procedure calls found as arguments.
+     */
+    _countCallsInValueNode (node) {
+        if (!node || typeof node !== 'object') return;
+        const nodeType = node.constructor && node.constructor.name;
+        if (!nodeType) return;
+
+        if (nodeType === 'CallNode') {
+            const name = node.name && node.name.toString();
+            if (name) {
+                this._context.methodCallCounts[name] = (this._context.methodCallCounts[name] || 0) + 1;
+            }
+            // Recurse into arguments
+            if (node.arguments_ && node.arguments_.arguments_) {
+                node.arguments_.arguments_.forEach(argNode => {
+                    this._countCallsInValueNode(argNode);
+                });
+            }
+        } else {
+            // Traverse relevant children
+            const childKeys = ['value', 'left', 'right', 'condition', 'body'];
+            childKeys.forEach(key => {
+                const child = node[key];
+                if (child && typeof child === 'object' && child.constructor &&
+                    child.constructor.name.endsWith('Node')) {
+                    this._countCallsInValueNode(child);
+                }
+            });
+        }
     }
 };
 

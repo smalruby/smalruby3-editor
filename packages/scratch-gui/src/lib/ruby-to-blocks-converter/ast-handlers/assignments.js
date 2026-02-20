@@ -18,13 +18,26 @@ const AssignmentHandlers = {
         receiver = split.value;
         preBlocks.push(...split.preBlocks);
 
-        // Build a synthetic call to get the read value (e.g. self.size)
+        // Build a synthetic call to get the read value (e.g. self.size, pen.color)
         // This allows the onOpAsgn handlers to recognize the lh as a looks_size block etc.
         // Note: Prism uses camelCase property names (readName, not read_name)
+        // Save receiver name BEFORE callMethod, since callMethod may modify the ruby_expression text
+        const receiverNameForLh = this._getReceiverName(receiver);
         let lh = this.callMethod(receiver, node.readName, [], undefined, undefined, node);
         if (!lh) {
             // Fallback: use receiver directly
             lh = receiver;
+        }
+        // If lh is a ruby_expression block, fix the source text to be "receiver.readName"
+        // The callMethod handler used _getSource(node) which gives the whole assignment expression.
+        // We need just the read part (e.g. "pen.color" not "pen.color += 10").
+        if (this._isRubyExpression(lh) &&
+            receiverNameForLh &&
+            receiverNameForLh !== 'sprite' && receiverNameForLh !== 'stage') {
+            const textBlock = this._context.blocks[lh.inputs.EXPRESSION.block];
+            if (textBlock) {
+                textBlock.fields.TEXT.value = `${receiverNameForLh}.${node.readName}`;
+            }
         }
         split = this._splitPreBlocksAndValue(lh);
         lh = split.value;

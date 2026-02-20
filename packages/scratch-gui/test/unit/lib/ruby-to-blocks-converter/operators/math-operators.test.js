@@ -111,7 +111,7 @@ describe('RubyToBlocksConverter/Operators', () => {
     test('operator_mathop', async () => {
         let operatorCodes;
 
-        ['3', '(3)'].forEach(three => {
+        for (const three of ['3', '(3)']) {
             operatorCodes = {
                 'abs': `${three}.abs`,
                 'floor': `${three}.floor`,
@@ -128,7 +128,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                 'e ^': `Math::E ** ${three}`,
                 '10 ^': `10 ** ${three}`
             };
-            Object.keys(operatorCodes).forEach(async operator => {
+            for (const operator of Object.keys(operatorCodes)) {
                 code = operatorCodes[operator];
                 expected = [
                     {
@@ -148,8 +148,8 @@ describe('RubyToBlocksConverter/Operators', () => {
                     }
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
-            });
-        });
+            }
+        }
 
         operatorCodes = {
             'abs': 'x.abs',
@@ -167,7 +167,7 @@ describe('RubyToBlocksConverter/Operators', () => {
             'e ^': 'Math::E ** x',
             '10 ^': '10 ** x'
         };
-        Object.keys(operatorCodes).forEach(async operator => {
+        for (const operator of Object.keys(operatorCodes)) {
             code = operatorCodes[operator];
             expected = [
                 {
@@ -188,6 +188,6 @@ describe('RubyToBlocksConverter/Operators', () => {
                 }
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
+        }
     });
 });

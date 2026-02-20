@@ -15,6 +15,11 @@ const CoreHandlers = {
         this._context.inMyBlockDefinition = false;
         const blocks = [];
         node.body.forEach(childNode => {
+            // Reset per-statement operator indices so each statement's operators are independently indexed.
+            // This ensures `1 != 50\n2 != 60` produces two blocks both with index :1, while
+            // `1 != 50 && 2 != 60` (a single expression) produces indices :1 and :2.
+            // Note: literalCallIndices are NOT reset per-statement - they accumulate across statements.
+            this._context.methodCallIndices = {};
             const block = this.visit(childNode);
             if (_.isArray(block)) {
                 block.forEach(b => {

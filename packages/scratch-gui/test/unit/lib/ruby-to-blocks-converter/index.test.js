@@ -39,10 +39,10 @@ describe('RubyToBlocksConverter', () => {
         describe('top level blocks', () => {
             test('statements', async () => {
                 expected = [
-                    await rubyToExpected(converter, target, 'move(10)')[0]
+                    (await rubyToExpected(converter, target, 'move(10)'))[0]
                 ];
                 expected[0].next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
-                expected[0].next.next = await rubyToExpected(converter, target, 'turn_right(180)')[0];
+                expected[0].next.next = (await rubyToExpected(converter, target, 'turn_right(180)'))[0];
 
                 code = `
                     move(10)
@@ -98,9 +98,9 @@ describe('RubyToBlocksConverter', () => {
                     self.when(:flag_clicked) {}
                 `;
                 expected = [
-                    await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0],
-                    await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0],
-                    await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0]
+                    (await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}'))[0],
+                    (await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}'))[0],
+                    (await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}'))[0]
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
@@ -135,15 +135,15 @@ describe('RubyToBlocksConverter', () => {
                     x
                 `;
                 expected = [
-                    await rubyToExpected(converter, target, 'move(10)')[0],
+                    (await rubyToExpected(converter, target, 'move(10)'))[0],
                     (await rubyToExpected(converter, target, 'x'))[0],
-                    await rubyToExpected(converter, target, 'bounce_if_on_edge; turn_right(180)')[0],
+                    (await rubyToExpected(converter, target, 'bounce_if_on_edge; turn_right(180)'))[0],
                     (await rubyToExpected(converter, target, 'y'))[0],
                     (await rubyToExpected(converter, target, 'size'))[0],
-                    await rubyToExpected(converter, target, 'move(10)')[0],
-                    await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0],
+                    (await rubyToExpected(converter, target, 'move(10)'))[0],
+                    (await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}'))[0],
                     (await rubyToExpected(converter, target, 'bounce_if_on_edge; forever {}'))[0],
-                    await rubyToExpected(converter, target, 'move(10)')[0],
+                    (await rubyToExpected(converter, target, 'move(10)'))[0],
                     (await rubyToExpected(converter, target, 'x'))[0]
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
@@ -158,10 +158,10 @@ describe('RubyToBlocksConverter', () => {
                     move(10)
                 `;
                 expected = [
-                    await rubyToExpected(converter, target, 'move(10); forever {}')[0],
-                    await rubyToExpected(converter, target, 'turn_right(180); forever {}')[0],
-                    await rubyToExpected(converter, target, 'move(10); turn_right(180); forever {}')[0],
-                    await rubyToExpected(converter, target, 'move(10)')[0]
+                    (await rubyToExpected(converter, target, 'move(10); forever {}'))[0],
+                    (await rubyToExpected(converter, target, 'turn_right(180); forever {}'))[0],
+                    (await rubyToExpected(converter, target, 'move(10); turn_right(180); forever {}'))[0],
+                    (await rubyToExpected(converter, target, 'move(10)'))[0]
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });

@@ -209,7 +209,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                 inputs: [
                     {
                         name: 'OPERAND',
-                        block: await rubyToExpected(converter, target, 'touching?("_edge_")')[0]
+                        block: (await rubyToExpected(converter, target, 'touching?("_edge_")'))[0]
                     }
                 ]
             }

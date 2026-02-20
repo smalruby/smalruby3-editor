@@ -72,8 +72,56 @@ const validateBackdrop = function (converter, backdropName, args) {
  */
 const LooksConverter = {
     register: function (converter) {
-        // say(message, secs)
-        converter.registerOnSend('self', 'say', [1, 2], params => {
+        // print/puts/p - sprite-only, mapped to looks_sayforsecs
+        ['print', 'puts', 'p'].forEach(methodName => {
+            converter.registerOnSend('sprite', methodName, -1, params => {
+                const {args} = params;
+                if (args.length === 0) return null;
+                if (!args.every(arg => converter._isNumberOrStringOrBlock(arg))) return null;
+
+                let firstBlock = null;
+                let lastBlock = null;
+
+                args.forEach(arg => {
+                    const block = converter._createBlock('looks_sayforsecs', 'statement');
+                    converter._addTextInput(
+                        block, 'MESSAGE', converter._isNumber(arg) ? arg.toString() : arg, 'Hello!'
+                    );
+                    converter._addNumberInput(block, 'SECS', 'math_number', 1, 1);
+
+                    let commentText = `@ruby:method:${methodName}`;
+                    if (converter._isNumber(arg)) {
+                        let typeName;
+                        if (arg.type === 'int') {
+                            typeName = 'Integer';
+                        } else if (arg.type === 'float') {
+                            typeName = 'Float';
+                        } else if (_.isNumber(arg)) {
+                            typeName = Number.isInteger(arg) ? 'Integer' : 'Float';
+                        }
+                        if (typeName) {
+                            commentText += `,@ruby:argument:1:type:${typeName}`;
+                        }
+                    }
+
+                    block.comment = converter.createComment(commentText, block.id, 200, 0);
+
+                    if (!firstBlock) {
+                        firstBlock = block;
+                    }
+                    if (lastBlock) {
+                        lastBlock.next = block.id;
+                        block.parent = lastBlock.id;
+                    }
+                    lastBlock = block;
+                });
+
+                return firstBlock;
+            });
+        });
+
+        // say(message, secs) - sprite-only
+        converter.registerOnSend('sprite', 'say', [1, 2], params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isNumberOrStringOrBlock(args[0])) return null;
@@ -97,8 +145,8 @@ const LooksConverter = {
             return null;
         });
 
-        // think(message, secs)
-        converter.registerOnSend('self', 'think', [1, 2], params => {
+        // think(message, secs) - sprite-only
+        converter.registerOnSend('sprite', 'think', [1, 2], params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isNumberOrStringOrBlock(args[0])) return null;
@@ -122,8 +170,8 @@ const LooksConverter = {
             return null;
         });
 
-        // switch_costume(name)
-        converter.registerOnSend('self', 'switch_costume', 1, params => {
+        // switch_costume(name) - sprite-only
+        converter.registerOnSend('sprite', 'switch_costume', 1, params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isString(args[0])) return null;
@@ -136,8 +184,8 @@ const LooksConverter = {
             return block;
         });
 
-        // costume = name (self.costume = "name" form)
-        converter.registerOnSend('self', 'costume=', 1, params => {
+        // costume = name (self.costume = "name" form) - sprite-only
+        converter.registerOnSend('sprite', 'costume=', 1, params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isString(args[0])) return null;
@@ -150,8 +198,8 @@ const LooksConverter = {
             return block;
         });
 
-        // next_costume
-        converter.registerOnSend('self', 'next_costume', 0, params => {
+        // next_costume - sprite-only
+        converter.registerOnSend('sprite', 'next_costume', 0, params => {
             const {receiver} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
 
@@ -230,8 +278,8 @@ const LooksConverter = {
             return block;
         });
 
-        // size = value
-        converter.registerOnSend('self', 'size=', 1, params => {
+        // size = value - sprite-only
+        converter.registerOnSend('sprite', 'size=', 1, params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isNumberOrBlock(args[0])) return null;
@@ -275,24 +323,24 @@ const LooksConverter = {
             return converter._createBlock('looks_cleargraphiceffects', 'statement');
         });
 
-        // show
-        converter.registerOnSend('self', 'show', 0, params => {
+        // show - sprite-only
+        converter.registerOnSend('sprite', 'show', 0, params => {
             const {receiver} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
 
             return converter._createBlock('looks_show', 'statement');
         });
 
-        // hide
-        converter.registerOnSend('self', 'hide', 0, params => {
+        // hide - sprite-only
+        converter.registerOnSend('sprite', 'hide', 0, params => {
             const {receiver} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
 
             return converter._createBlock('looks_hide', 'statement');
         });
 
-        // go_to_layer("front") and go_to_layer("back")
-        converter.registerOnSend('self', 'go_to_layer', 1, params => {
+        // go_to_layer("front") and go_to_layer("back") - sprite-only
+        converter.registerOnSend('sprite', 'go_to_layer', 1, params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isString(args[0]) || FrontBack.indexOf(args[0].toString()) < 0) return null;
@@ -302,9 +350,9 @@ const LooksConverter = {
             return block;
         });
 
-        // go_to_front and go_to_back (alternate form)
+        // go_to_front and go_to_back (alternate form) - sprite-only
         ['front', 'back'].forEach(option => {
-            converter.registerOnSend('self', `go_to_${option}`, 0, params => {
+            converter.registerOnSend('sprite', `go_to_${option}`, 0, params => {
                 const {receiver} = params;
                 if (!converter._isSelf(receiver) && receiver !== null) return null;
 
@@ -314,8 +362,8 @@ const LooksConverter = {
             });
         });
 
-        // go_layers(layers, direction) - go_layers(1, "forward")
-        converter.registerOnSend('self', 'go_layers', 2, params => {
+        // go_layers(layers, direction) - go_layers(1, "forward") - sprite-only
+        converter.registerOnSend('sprite', 'go_layers', 2, params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
             if (!converter._isNumberOrBlock(args[0])) return null;
@@ -327,9 +375,9 @@ const LooksConverter = {
             return block;
         });
 
-        // go_forward(layers) and go_backward(layers)
+        // go_forward(layers) and go_backward(layers) - sprite-only
         ['forward', 'backward'].forEach(option => {
-            converter.registerOnSend('self', `go_${option}`, 1, params => {
+            converter.registerOnSend('sprite', `go_${option}`, 1, params => {
                 const {receiver, args} = params;
                 if (!converter._isSelf(receiver) && receiver !== null) return null;
                 if (!converter._isNumberOrBlock(args[0])) return null;
@@ -341,16 +389,33 @@ const LooksConverter = {
             });
         });
 
-        // Getters
-        const getters = [
+        // Sprite-only getters
+        const spriteGetters = [
             {method: 'costume_number', opcode: 'looks_costumenumbername', field: 'NUMBER_NAME', value: 'number'},
             {method: 'costume_name', opcode: 'looks_costumenumbername', field: 'NUMBER_NAME', value: 'name'},
-            {method: 'backdrop_number', opcode: 'looks_backdropnumbername', field: 'NUMBER_NAME', value: 'number'},
-            {method: 'backdrop_name', opcode: 'looks_backdropnumbername', field: 'NUMBER_NAME', value: 'name'},
             {method: 'size', opcode: 'looks_size'}
         ];
 
-        getters.forEach(({method, opcode, field, value}) => {
+        spriteGetters.forEach(({method, opcode, field, value}) => {
+            converter.registerOnSend('sprite', method, 0, params => {
+                const {receiver} = params;
+                if (!converter._isSelf(receiver) && receiver !== null) return null;
+
+                const block = converter._createBlock(opcode, 'value');
+                if (field) {
+                    converter._addField(block, field, value);
+                }
+                return block;
+            });
+        });
+
+        // Stage-compatible getters
+        const stageGetters = [
+            {method: 'backdrop_number', opcode: 'looks_backdropnumbername', field: 'NUMBER_NAME', value: 'number'},
+            {method: 'backdrop_name', opcode: 'looks_backdropnumbername', field: 'NUMBER_NAME', value: 'name'}
+        ];
+
+        stageGetters.forEach(({method, opcode, field, value}) => {
             converter.registerOnSend('self', method, 0, params => {
                 const {receiver} = params;
                 if (!converter._isSelf(receiver) && receiver !== null) return null;
