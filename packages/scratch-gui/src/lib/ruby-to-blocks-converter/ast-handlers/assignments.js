@@ -23,6 +23,7 @@ const AssignmentHandlers = {
         // Note: Prism uses camelCase property names (readName, not read_name)
         // Save receiver name BEFORE callMethod, since callMethod may modify the ruby_expression text
         const receiverNameForLh = this._getReceiverName(receiver);
+        // eslint-disable-next-line no-undefined
         let lh = this.callMethod(receiver, node.readName, [], undefined, undefined, node);
         if (!lh) {
             // Fallback: use receiver directly

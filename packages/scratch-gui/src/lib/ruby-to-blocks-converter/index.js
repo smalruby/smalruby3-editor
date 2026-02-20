@@ -292,8 +292,9 @@ const targetCodeToBlocks = async function (vm, target, code, intl, options) {
     if (intl) {
         converter.setTranslatorFunction(intl.formatMessage);
     }
-    converter.result = await converter.targetCodeToBlocks(target, code);
-    if (converter.result) {
+    const result = await converter.targetCodeToBlocks(target, code);
+    converter.result = result; // eslint-disable-line require-atomic-updates
+    if (result) {
         converter.apply = () => converter.applyTargetBlocks(target);
     }
     return converter;

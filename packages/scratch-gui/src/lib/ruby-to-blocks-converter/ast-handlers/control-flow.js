@@ -197,7 +197,7 @@ const ControlFlowHandlers = {
 
     visitWhileNode (node) {
         // Prism WhileNode is similar to UntilNode but opcode is different in converters
-        // Actually, Smalruby's onUntil handles 'until'. 
+        // Actually, Smalruby's onUntil handles 'until'.
         // For 'while', we usually use ruby_statement or specific converter.
         return this._createRubyStatementBlock(this._getSource(node), node);
     },

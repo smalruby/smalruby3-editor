@@ -3,7 +3,7 @@ let prismLoadingPromise = null;
 
 /**
  * Get the cached prism instance synchronously (returns null if not yet loaded).
- * @returns {object|null}
+ * @returns {object|null} The cached prism instance, or null if not loaded yet.
  */
 export const getPrism = () => prismInstance;
 

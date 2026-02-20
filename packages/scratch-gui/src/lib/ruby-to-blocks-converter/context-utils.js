@@ -250,6 +250,7 @@ const ContextUtils = {
     /**
      * Pre-pass to count how many times each procedure/method is called
      * in value (argument) contexts. Used by my-blocks to generate evacuation blocks.
+     * @param {object} node - AST node to traverse
      */
     _countProcedureCallsInNode (node) {
         if (!node || typeof node !== 'object') return;
@@ -282,8 +283,8 @@ const ContextUtils = {
                 if (typeof child === 'object' && child.constructor) {
                     if (child.constructor.name.endsWith('Node')) {
                         this._countProcedureCallsInNode(child);
-                    } else if (Array.isArray(child) || (child.length !== undefined && typeof child.forEach === 'function')) {
-                        child.forEach && child.forEach(c => this._countProcedureCallsInNode(c));
+                    } else if (Array.isArray(child) || typeof child.forEach === 'function') {
+                        child.forEach(c => this._countProcedureCallsInNode(c));
                     }
                 }
             });
@@ -293,6 +294,7 @@ const ContextUtils = {
     /**
      * Count CallNode calls within a value (argument) context node.
      * This increments methodCallCounts for procedure calls found as arguments.
+     * @param {object} node - AST node to traverse
      */
     _countCallsInValueNode (node) {
         if (!node || typeof node !== 'object') return;
