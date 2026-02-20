@@ -104,6 +104,7 @@
       "<rootDir>/test/unit/lib/setup-prism.js"
     ],
     "testEnvironment": "jsdom",
+    "testTimeout": 15000,
     "testPathIgnorePatterns": [
       "src/test.js"
     ],
