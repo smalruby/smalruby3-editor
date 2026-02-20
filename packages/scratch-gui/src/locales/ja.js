@@ -157,6 +157,9 @@ export default {
     'gui.menuBar.blockDisplay': 'ブロック表示...',
     'gui.menuBar.tutorials': 'チュートリアル',
 
+    'gui.smalruby3.gui.feedback': 'フィードバックを送信',
+    'gui.smalruby3.feedbackConfirm': 'スモウルビーをよりよくするためのフィードバック（ご意見）を送信する外部サイトを開きます。よろしいですか？',
+
     // Block Display Modal - Block Messages
     // Motion blocks
     'gui.smalruby3.blockDisplayModal.motion_movesteps': '(10) 歩動かす',
