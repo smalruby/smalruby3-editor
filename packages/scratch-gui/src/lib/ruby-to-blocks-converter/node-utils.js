@@ -266,11 +266,30 @@ const NodeUtils = {
         if (!node || !node.location) {
             return {line: 1, column: 0};
         }
-        // Prism's location in JS binding has startLine/startColumn
-        return {
-            line: node.location.startLine || 1,
-            column: node.location.startColumn || 0
-        };
+        // Prism's JS binding location has startOffset/length (byte offsets), not startLine/startColumn.
+        // Compute line/column from startOffset and the stored source code.
+        if (typeof node.location.startLine !== 'undefined') {
+            return {
+                line: node.location.startLine || 1,
+                column: node.location.startColumn || 0
+            };
+        }
+        const offset = node.location.startOffset;
+        if (typeof offset !== 'number' || !this._context.sourceCode) {
+            return {line: 1, column: 0};
+        }
+        const source = this._context.sourceCode;
+        let line = 1;
+        let column = 0;
+        for (let i = 0; i < offset && i < source.length; i++) {
+            if (source[i] === '\n') {
+                line++;
+                column = 0;
+            } else {
+                column++;
+            }
+        }
+        return {line, column};
     },
 
     _toErrorAnnotation (row, column, message, source) {

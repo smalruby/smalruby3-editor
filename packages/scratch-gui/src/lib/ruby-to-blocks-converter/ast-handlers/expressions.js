@@ -154,11 +154,10 @@ const ExpressionHandlers = {
     },
 
     visitParenthesesNode (node) {
-        // Parenthesized expression e.g. (1), (x + 1)
-        // Visit the inner statements and return the last value
-        if (node.body && node.body.body && node.body.body.length > 0) {
-            const results = node.body.body.map(child => this.visit(child));
-            return results[results.length - 1];
+        // Parenthesized expression e.g. (1), (x + 1), (a; b; c)
+        // Delegate to the inner StatementsNode so chaining/sequencing is handled correctly
+        if (node.body) {
+            return this.visit(node.body);
         }
         return new Primitive('nil', null, node);
     },
