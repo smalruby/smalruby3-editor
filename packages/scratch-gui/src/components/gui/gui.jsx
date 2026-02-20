@@ -266,22 +266,14 @@ const GUIComponent = props => {
     }, [onDebugModalClose, onRequestCloseDebugModal]);
 
     const handleFeedbackClick = useCallback(e => {
-        e.preventDefault();
-        // Open a blank window first to avoid popup blockers
-        const popup = window.open('', '_blank');
-        if (!popup) return;
-
         const confirmed = window.confirm( // eslint-disable-line no-alert
             intl.formatMessage({
                 id: 'gui.smalruby3.feedbackConfirm',
                 defaultMessage: 'スモウルビーへのフィードバックを送信するための外部サイトを開きます'
             })
         );
-        if (confirmed) {
-            popup.location.href = 'https://docs.google.com/forms/d/e/1FAIpQLSemSOgv8TlJXF6vmFzVm5yUdcNZVMEKBcBcsKHnbW0RFmU3sg/viewform?usp=dialog';
-            popup.opener = null;
-        } else {
-            popup.close();
+        if (!confirmed) {
+            e.preventDefault();
         }
     }, [intl]);
 
