@@ -1,228 +1,20 @@
 import _ from 'lodash';
-import {RubyToBlocksConverterError} from '../errors';
-
-const Opal = global.Opal || window.Opal;
 
 /**
  * Core AST handlers for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
  */
 const CoreHandlers = {
-    _process (node, isValue = true) {
-        if (!node) {
-            return null;
-        }
-        if (node === Opal.nil) {
-            return Opal.nil;
-        }
-        node = node.$to_ast();
-
-        // Track depth for lineToNodeMap
-        const depth = this._context.processDepth || 0;
-        this._context.processDepth = depth + 1;
-
-        // Populate lineToNodeMap with shallowest-first strategy
-        // Try to extract line information from the node
-        let startLine = null;
-        let endLine = null;
-
-        try {
-            // Check if node has location information via Opal methods
-            const loc = node.$loc ? node.$loc() : null;
-            if (loc && loc !== Opal.nil) {
-                startLine = loc.$line ? loc.$line() : null;
-                endLine = loc.$last_line ? loc.$last_line() : startLine;
-            }
-        } catch (e) {
-            // Ignore errors when accessing location
-        }
-
-        // Also check JavaScript object structure (for direct AST access)
-        if (!startLine && node.loc && node.loc.expression) {
-            if (node.loc.expression.begin_pos && node.loc.expression.end_pos) {
-                startLine = node.loc.expression.begin_pos.line;
-                endLine = node.loc.expression.end_pos.line;
-            }
-        }
-
-        if (startLine !== null && endLine !== null) {
-            // Container nodes are wrapper/grouping nodes that contain executable statements:
-            // - 'begin': Multiple statement grouping (e.g., implicit begin in def/class)
-            // - 'kwbegin': Explicit begin...end block
-            // - 'block': Ruby blocks with do...end or {...}
-            const containerNodeTypes = ['begin', 'kwbegin', 'block'];
-            const isContainerNode = containerNodeTypes.includes(node.type);
-
-            if (isContainerNode) {
-                // Store container node ranges to include closing 'end' lines in highlight ranges
-                this._context.containerNodeRanges.push({
-                    type: node.type,
-                    startLine,
-                    endLine,
-                    depth
-                });
-            } else {
-                // Map lines to nodes with shallowest-first strategy
-                for (let line = startLine; line <= endLine; line++) {
-                    const existingEntry = this._context.lineToNodeMap.get(line);
-                    if (!existingEntry || depth < existingEntry.depth) {
-                        this._context.lineToNodeMap.set(line, {node, depth});
-                    }
-                }
-            }
-        } else if (depth === 0) {
-            // Only log for root node to avoid spam
-            // eslint-disable-next-line no-console
-            console.warn('[_process] No location info for root node:', {
-                type: node.type,
-                hasLoc: !!node.loc,
-                hasOpalLoc: !!(node.$loc && node.$loc()),
-                nodeKeys: Object.keys(node)
-            });
-        }
-
-        const savedIsValue = this._context.isValue;
-        this._context.isValue = isValue;
-
-        if (!isValue) {
-            this._context.methodCallCounts = this._countMethodCalls(node);
-            this._context.methodCallIndices = {};
-        }
-
-        const previousNode = this._context.currentNode;
-        this._context.currentNode = node;
-
-        const handlerName = '_' + _.camelCase(`on_${node.type}`); // eslint-disable-line prefer-template
-        let result;
-        if (_.isFunction(this[handlerName])) {
-            result = this[handlerName](node);
-        } else {
-            throw new RubyToBlocksConverterError(node, `not supported node type: ${node.type}`);
-        }
-
-        if (result && !this._context.nodeToBlockMap.has(node)) {
-            const blockId = this._getBlockIdFromResult(result);
-            if (blockId) {
-                this._context.nodeToBlockMap.set(node, blockId);
-            }
-        }
-
-        this._context.isValue = savedIsValue;
-        this._context.currentNode = previousNode;
-        this._context.processDepth = depth; // Restore depth after processing
-        return result;
+    visitProgramNode (node) {
+        return this.visit(node.statements);
     },
 
-    _processStatement (node, inMyBlockDefinition = null) {
-        const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
-        if (inMyBlockDefinition !== null) {
-            this._context.inMyBlockDefinition = inMyBlockDefinition;
-        }
-        let blocks = this._process(node, false);
-        if (!_.isArray(blocks)) {
-            blocks = [blocks];
-        }
-        if (blocks.length >= 2 && this._isBlock(blocks[0])) {
-            // It's a multi-block result, link them
-            for (let i = 0; i < blocks.length - 1; i++) {
-                if (this._isBlock(blocks[i]) && this._isBlock(blocks[i + 1])) {
-                    blocks[i].next = blocks[i + 1].id;
-                    blocks[i + 1].parent = blocks[i].id;
-                }
-            }
-        }
-        const block = blocks[0];
-        if (block !== Opal.nil && !this._isStatementBlock(block)) {
-            if (!(this._context.inMyBlockDefinition && block.opcode === 'data_setvariableto')) {
-                this._context.inMyBlockDefinition = savedInMyBlockDefinition;
-                throw new RubyToBlocksConverterError(node, 'include not statement blocks');
-            }
-        }
-        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
-        return block;
-    },
-
-    _onReturn (node) {
-        if (!this._context.currentProcedureName) {
-            throw new RubyToBlocksConverterError(node, 'return can only be used in method definition');
-        }
-
-        const procedureName = this._context.currentProcedureName;
-        const returnValue = this._process(node.children[0], true);
-        const variable = this._lookupOrCreateVariable(`@_return_${procedureName}_`);
-        const assignBlock = this._createBlock('data_setvariableto', 'statement', {
-            fields: {
-                VARIABLE: {
-                    name: 'VARIABLE',
-                    id: variable.id,
-                    value: variable.name,
-                    variableType: variable.type
-                }
-            }
-        });
-        const commentText = `@ruby:syntax:return, @ruby:return:${procedureName}`;
-        assignBlock.comment = this._createComment(commentText, assignBlock.id);
-        this._addTextInput(
-            assignBlock, 'VALUE', this._isNumber(returnValue) ? returnValue.toString() : returnValue, '0'
-        );
-
-        // Check if this is an early return (not at the end of the method)
-        // Note: In registerOnDefs, we check if the last block has @ruby:syntax:return.
-        // If we're not the last block, we need to stop the script.
-        const stopBlock = this._createBlock('control_stop', 'terminate', {
-            fields: {
-                STOP_OPTION: {
-                    name: 'STOP_OPTION',
-                    value: 'this script'
-                }
-            }
-        });
-        stopBlock.comment = this._createComment('@ruby:syntax:return', stopBlock.id);
-
-        assignBlock.next = stopBlock.id;
-        stopBlock.parent = assignBlock.id;
-
-        return [assignBlock, stopBlock];
-    },
-
-    _processCondition (node) {
-        let cond = this._process(node, true);
-        const split = this._splitPreBlocksAndValue(cond);
-        if (split.preBlocks.length > 0) {
-            if (!this._isFalseOrBooleanBlock(split.value)) {
-                throw new RubyToBlocksConverterError(
-                    node,
-                    `condition is not boolean: ${this._getSource(node)}`
-                );
-            }
-            return [...split.preBlocks, split.value];
-        }
-        cond = split.value;
-        if (!this._isFalseOrBooleanBlock(cond)) {
-            throw new RubyToBlocksConverterError(
-                node,
-                `condition is not boolean: ${this._getSource(node)}`
-            );
-        }
-        return cond;
-    },
-
-    _getBlockIdFromResult (result) {
-        if (this._isBlock(result)) {
-            return result.id;
-        }
-        if (_.isArray(result) && result.length > 0 && this._isBlock(result[result.length - 1])) {
-            return result[result.length - 1].id;
-        }
-        return null;
-    },
-
-    _onBegin (node) {
+    visitStatementsNode (node) {
         const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
         this._context.inMyBlockDefinition = false;
         const blocks = [];
-        node.children.forEach(childNode => {
-            const block = this._process(childNode, false);
+        node.body.forEach(childNode => {
+            const block = this.visit(childNode);
             if (_.isArray(block)) {
                 block.forEach(b => {
                     blocks.push(b);
@@ -278,10 +70,18 @@ const CoreHandlers = {
         return result;
     },
 
-    _onBlock (node) {
-        this._checkNumChildren(node, 3);
+    visitBeginNode (node) {
+        return this.visit(node.statements);
+    },
 
-        return this._onSend(node.children[0], node.children[1], node.children[2]);
+    _getBlockIdFromResult (result) {
+        if (this._isBlock(result)) {
+            return result.id;
+        }
+        if (_.isArray(result) && result.length > 0 && this._isBlock(result[result.length - 1])) {
+            return result[result.length - 1].id;
+        }
+        return null;
     },
 
     _splitPreBlocksAndValue (result) {

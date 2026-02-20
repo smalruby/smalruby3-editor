@@ -1,7 +1,5 @@
 import {Variable, LOCAL_VARIABLE_PATTERN} from './constants';
 
-const Opal = global.Opal || window.Opal;
-
 /**
  * Context and state management utilities for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
@@ -81,25 +79,25 @@ const ContextUtils = {
 
     _countMethodCalls (node) {
         const counts = {};
-        if (!node || node === Opal.nil) return counts;
+        if (!node) return counts;
 
-        const queue = [node.$to_ast ? node.$to_ast() : node];
+        const queue = [node];
         while (queue.length > 0) {
             const ast = queue.shift();
-            if (!ast || typeof ast.type !== 'string' || !ast.children) continue;
+            if (!ast) continue;
 
-            if (ast.type === 'send') {
-                const name = ast.children[1].toString();
+            if (ast.constructor.name === 'CallNode') {
+                const name = ast.name;
                 const procedure = this._lookupProcedure(name);
                 if (procedure && procedure.hasReturnValue) {
                     counts[name] = (counts[name] || 0) + 1;
                 }
             }
-            ast.children.forEach(child => {
-                if (child && typeof child.type === 'string' && child.children) {
+            if (ast.compactChildNodes) {
+                ast.compactChildNodes().forEach(child => {
                     queue.push(child);
-                }
-            });
+                });
+            }
         }
         return counts;
     },
@@ -150,7 +148,7 @@ const ContextUtils = {
     },
 
     _getReceiverName (receiver) {
-        if (this._isSelf(receiver) || receiver === Opal.nil) {
+        if (this._isSelf(receiver) || receiver === null) {
             if (this._context.target && this._context.target.isStage) {
                 return 'stage';
             }

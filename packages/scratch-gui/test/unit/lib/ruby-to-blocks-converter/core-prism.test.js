@@ -1,0 +1,53 @@
+import {targetCodeToBlocks} from '../../../../src/lib/ruby-to-blocks-converter';
+import {loadPrism} from '../../../../src/lib/prism-parser';
+
+describe('RubyToBlocksConverter Core (Prism)', () => {
+    let vm;
+    let target;
+
+    beforeAll(async () => {
+        await loadPrism();
+    });
+
+    beforeEach(() => {
+        vm = {
+            runtime: {
+                getEditingTarget: () => target,
+                getTargetForStage: () => ({id: 'stage'})
+            }
+        };
+        target = {
+            id: 'sprite1',
+            isStage: false,
+            variables: {},
+            lists: {}
+        };
+    });
+
+    test('it should convert move(10) to motion_movesteps block', async () => {
+        const code = 'move(10)';
+        const converter = await targetCodeToBlocks(vm, target, code);
+        expect(converter.result).toBeTruthy();
+        const blocks = Object.values(converter.blocks);
+        const moveBlock = blocks.find(b => b.opcode === 'motion_movesteps');
+        expect(moveBlock).toBeDefined();
+        const stepsBlock = converter.blocks[moveBlock.inputs.STEPS.block];
+        expect(stepsBlock.fields.NUM.value).toBe('10');
+    });
+
+    test('it should return false for a simple integer', async () => {
+        const code = '10';
+        const converter = await targetCodeToBlocks(vm, target, code);
+        expect(converter.result).toBeFalsy();
+        expect(converter.errors).toHaveLength(1);
+        expect(converter.errors[0].text).toContain('could not be converted');
+    });
+
+    test('it should return false for a simple string', async () => {
+        const code = '"hello"';
+        const converter = await targetCodeToBlocks(vm, target, code);
+        expect(converter.result).toBeFalsy();
+        expect(converter.errors).toHaveLength(1);
+        expect(converter.errors[0].text).toContain('could not be converted');
+    });
+});
