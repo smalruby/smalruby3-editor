@@ -60,7 +60,12 @@ const baseConfig = new ScratchWebpackConfigBuilder(
             fallback: {
                 Buffer: require.resolve('buffer/'),
                 stream: require.resolve('stream-browserify'),
-                process: require.resolve('process/browser')
+                process: require.resolve('process/browser'),
+                // Node.js built-ins used by prism-parser.js in Node.js environment only
+                // Provide false fallback so webpack doesn't try to polyfill them for browser
+                wasi: false,
+                fs: false,
+                path: false
             },
             alias: {
                 'opal': path.resolve(__dirname, 'opal/opal.min.js'),
@@ -78,6 +83,10 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         resolve: {
             fullySpecified: false
         }
+    })
+    .addModuleRule({
+        test: /\.wasm$/,
+        type: 'asset/resource'
     })
     .addModuleRule({
         test: /\.rb$/,
