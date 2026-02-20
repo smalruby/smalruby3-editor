@@ -134,6 +134,18 @@ const ExpressionHandlers = {
         return new Primitive('hash', elements, node);
     },
 
+    visitKeywordHashNode (node) {
+        // Prism KeywordHashNode is used for keyword arguments without braces, e.g. foo(secs: 5)
+        // Elements are AssocNode with SymbolNode keys
+        const elements = new Map();
+        node.elements.forEach(element => {
+            if (element.constructor.name === 'AssocNode') {
+                elements.set(this.visit(element.key), this.visit(element.value));
+            }
+        });
+        return new Primitive('hash', elements, node);
+    },
+
     visitNilNode (node) {
         return new Primitive('nil', null, node);
     },

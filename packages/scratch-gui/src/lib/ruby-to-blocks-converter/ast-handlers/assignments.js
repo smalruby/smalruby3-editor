@@ -6,12 +6,27 @@ import _ from 'lodash';
  */
 const AssignmentHandlers = {
     visitCallOperatorWriteNode (node) {
-        // e.g. a.b += c
+        // e.g. self.size += 10 (CallOperatorWriteNode in Prism)
+        // node.receiver = self, node.read_name = 'size', node.binaryOperator = '+', node.value = 10
         const saved = this._saveContext();
 
         const preBlocks = [];
-        let lh = this.visit(node.receiver);
-        let split = this._splitPreBlocksAndValue(lh);
+
+        // Visit the receiver to get the base object (e.g. self)
+        let receiver = this.visit(node.receiver);
+        let split = this._splitPreBlocksAndValue(receiver);
+        receiver = split.value;
+        preBlocks.push(...split.preBlocks);
+
+        // Build a synthetic call to get the read value (e.g. self.size)
+        // This allows the onOpAsgn handlers to recognize the lh as a looks_size block etc.
+        // Note: Prism uses camelCase property names (readName, not read_name)
+        let lh = this.callMethod(receiver, node.readName, [], undefined, undefined, node);
+        if (!lh) {
+            // Fallback: use receiver directly
+            lh = receiver;
+        }
+        split = this._splitPreBlocksAndValue(lh);
         lh = split.value;
         preBlocks.push(...split.preBlocks);
 

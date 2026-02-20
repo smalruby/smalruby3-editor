@@ -48,7 +48,10 @@ const validateCostume = function (converter, costumeName, args) {
 };
 
 const validateBackdrop = function (converter, backdropName, args) {
-    // Skip validation if no stage target (e.g., in tests)
+    // Skip validation if no vm/stage target (e.g., in tests)
+    if (!converter.vm || !converter.vm.runtime) {
+        return;
+    }
     const stage = converter.vm.runtime.getTargetForStage();
     if (!stage || !stage.getCostumes) {
         return;
@@ -69,17 +72,22 @@ const validateBackdrop = function (converter, backdropName, args) {
  */
 const LooksConverter = {
     register: function (converter) {
-        // say(message, secs: duration)
+        // say(message, secs)
         converter.registerOnSend('self', 'say', [1, 2], params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
+            if (!converter._isNumberOrStringOrBlock(args[0])) return null;
 
             if (args.length === 1) {
                 return createBlockWithMessage(converter, 'looks_say', args[0], 'Hello!');
             }
 
-            if (args.length === 2 && converter._isHash(args[1]) && args[1].size === 1) {
-                const secs = args[1].get('sym:secs');
+            if (args.length === 2) {
+                let secs = args[1];
+                // Support both say(message, secs) and say(message, secs: value) forms
+                if (converter._isHash(secs) && secs.size === 1) {
+                    secs = secs.get('sym:secs');
+                }
                 if (converter._isNumberOrBlock(secs)) {
                     const block = createBlockWithMessage(converter, 'looks_sayforsecs', args[0], 'Hello!');
                     converter._addNumberInput(block, 'SECS', 'math_number', secs, 2);
@@ -89,17 +97,22 @@ const LooksConverter = {
             return null;
         });
 
-        // think(message, secs: duration)
+        // think(message, secs)
         converter.registerOnSend('self', 'think', [1, 2], params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
+            if (!converter._isNumberOrStringOrBlock(args[0])) return null;
 
             if (args.length === 1) {
                 return createBlockWithMessage(converter, 'looks_think', args[0], 'Hmm...');
             }
 
-            if (args.length === 2 && converter._isHash(args[1]) && args[1].size === 1) {
-                const secs = args[1].get('sym:secs');
+            if (args.length === 2) {
+                let secs = args[1];
+                // Support both think(message, secs) and think(message, secs: value) forms
+                if (converter._isHash(secs) && secs.size === 1) {
+                    secs = secs.get('sym:secs');
+                }
                 if (converter._isNumberOrBlock(secs)) {
                     const block = createBlockWithMessage(converter, 'looks_thinkforsecs', args[0], 'Hmm...');
                     converter._addNumberInput(block, 'SECS', 'math_number', secs, 2);
@@ -109,7 +122,21 @@ const LooksConverter = {
             return null;
         });
 
-        // costume = name
+        // switch_costume(name)
+        converter.registerOnSend('self', 'switch_costume', 1, params => {
+            const {receiver, args} = params;
+            if (!converter._isSelf(receiver) && receiver !== null) return null;
+            if (!converter._isString(args[0])) return null;
+
+            const costumeName = args[0].toString();
+            validateCostume(converter, costumeName, args);
+
+            const block = converter._createBlock('looks_switchcostumeto', 'statement');
+            converter._addInput(block, 'COSTUME', converter._createFieldBlock('looks_costume', 'COSTUME', costumeName));
+            return block;
+        });
+
+        // costume = name (self.costume = "name" form)
         converter.registerOnSend('self', 'costume=', 1, params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
@@ -131,7 +158,23 @@ const LooksConverter = {
             return converter._createBlock('looks_nextcostume', 'statement');
         });
 
-        // backdrop = name
+        // switch_backdrop(name)
+        converter.registerOnSend('self', 'switch_backdrop', 1, params => {
+            const {receiver, args} = params;
+            if (!converter._isSelf(receiver) && receiver !== null) return null;
+            if (!converter._isString(args[0])) return null;
+
+            const backdropName = args[0].toString();
+            validateBackdrop(converter, backdropName, args);
+
+            const block = converter._createBlock('looks_switchbackdropto', 'statement');
+            converter._addInput(
+                block, 'BACKDROP', converter._createFieldBlock('looks_backdrops', 'BACKDROP', backdropName)
+            );
+            return block;
+        });
+
+        // backdrop = name (self.backdrop = "name" form)
         converter.registerOnSend('self', 'backdrop=', 1, params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
@@ -155,7 +198,23 @@ const LooksConverter = {
             return converter._createBlock('looks_nextbackdrop', 'statement');
         });
 
-        // switch_backdrop_to_and_wait(name)
+        // switch_backdrop_and_wait(name)
+        converter.registerOnSend('self', 'switch_backdrop_and_wait', 1, params => {
+            const {receiver, args} = params;
+            if (!converter._isSelf(receiver) && receiver !== null) return null;
+            if (!converter._isString(args[0])) return null;
+
+            const backdropName = args[0].toString();
+            validateBackdrop(converter, backdropName, args);
+
+            const block = converter._createBlock('looks_switchbackdroptoandwait', 'statement');
+            converter._addInput(
+                block, 'BACKDROP', converter._createFieldBlock('looks_backdrops', 'BACKDROP', backdropName)
+            );
+            return block;
+        });
+
+        // switch_backdrop_to_and_wait(name) (alternate form)
         converter.registerOnSend('self', 'switch_backdrop_to_and_wait', 1, params => {
             const {receiver, args} = params;
             if (!converter._isSelf(receiver) && receiver !== null) return null;
@@ -204,7 +263,7 @@ const LooksConverter = {
 
             const block = converter._createBlock('looks_seteffectto', 'statement');
             converter._addField(block, 'EFFECT', args[0].toString().toUpperCase());
-            converter._addNumberInput(block, 'VALUE', 'math_number', args[1], 0);
+            converter._addNumberInput(block, 'VALUE', 'math_number', args[1], 25);
             return block;
         });
 
@@ -232,7 +291,18 @@ const LooksConverter = {
             return converter._createBlock('looks_hide', 'statement');
         });
 
-        // go_to_front and go_to_back
+        // go_to_layer("front") and go_to_layer("back")
+        converter.registerOnSend('self', 'go_to_layer', 1, params => {
+            const {receiver, args} = params;
+            if (!converter._isSelf(receiver) && receiver !== null) return null;
+            if (!converter._isString(args[0]) || FrontBack.indexOf(args[0].toString()) < 0) return null;
+
+            const block = converter._createBlock('looks_gotofrontback', 'statement');
+            converter._addField(block, 'FRONT_BACK', args[0].toString());
+            return block;
+        });
+
+        // go_to_front and go_to_back (alternate form)
         ['front', 'back'].forEach(option => {
             converter.registerOnSend('self', `go_to_${option}`, 0, params => {
                 const {receiver} = params;
@@ -242,6 +312,19 @@ const LooksConverter = {
                 converter._addField(block, 'FRONT_BACK', option);
                 return block;
             });
+        });
+
+        // go_layers(layers, direction) - go_layers(1, "forward")
+        converter.registerOnSend('self', 'go_layers', 2, params => {
+            const {receiver, args} = params;
+            if (!converter._isSelf(receiver) && receiver !== null) return null;
+            if (!converter._isNumberOrBlock(args[0])) return null;
+            if (!converter._isString(args[1]) || ForwardBackward.indexOf(args[1].toString()) < 0) return null;
+
+            const block = converter._createBlock('looks_goforwardbackwardlayers', 'statement');
+            converter._addField(block, 'FORWARD_BACKWARD', args[1].toString());
+            converter._addNumberInput(block, 'NUM', 'math_integer', args[0], 1);
+            return block;
         });
 
         // go_forward(layers) and go_backward(layers)
@@ -256,19 +339,6 @@ const LooksConverter = {
                 converter._addNumberInput(block, 'NUM', 'math_integer', args[0], 1);
                 return block;
             });
-        });
-
-        // backward compatibility
-        converter.registerOnSend('self', 'go_layers', 2, params => {
-            const {receiver, args} = params;
-            if (!converter._isSelf(receiver) && receiver !== null) return null;
-            if (!converter._isString(args[0]) || ForwardBackward.indexOf(args[0].toString()) < 0) return null;
-            if (!converter._isNumberOrBlock(args[1])) return null;
-
-            const block = converter._createBlock('looks_goforwardbackwardlayers', 'statement');
-            converter._addField(block, 'FORWARD_BACKWARD', args[0].toString());
-            converter._addNumberInput(block, 'NUM', 'math_integer', args[1], 1);
-            return block;
         });
 
         // Getters

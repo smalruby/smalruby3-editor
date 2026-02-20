@@ -18,7 +18,7 @@ describe('RubyToBlocksConverter/Variables', () => {
         const varName = '@a';
 
         test('data_deletealloflist', async () => {
-            const code = `list("${varName.slice(1)}").clear`;
+            const code = `list("${varName}").clear`;
             const expected = [
                 {
                     opcode: 'data_deletealloflist',
@@ -34,7 +34,7 @@ describe('RubyToBlocksConverter/Variables', () => {
         });
 
         test('data_insertatlist', async () => {
-            const code = `list("${varName.slice(1)}").insert(1, "thing")`;
+            const code = `list("${varName}").insert(1, "thing")`;
             const expected = [
                 {
                     opcode: 'data_insertatlist',
@@ -60,7 +60,7 @@ describe('RubyToBlocksConverter/Variables', () => {
         });
 
         test('data_replaceitemoflist', async () => {
-            const code = `list("${varName.slice(1)}")[1] = "thing"`;
+            const code = `list("${varName}")[1] = "thing"`;
             const expected = [
                 {
                     opcode: 'data_replaceitemoflist',
@@ -86,7 +86,7 @@ describe('RubyToBlocksConverter/Variables', () => {
         });
 
         test('data_itemoflist', async () => {
-            const code = `list("${varName.slice(1)}")[1]`;
+            const code = `list("${varName}")[1]`;
             const expected = [
                 {
                     opcode: 'data_itemoflist',
@@ -108,7 +108,7 @@ describe('RubyToBlocksConverter/Variables', () => {
         });
 
         test('data_itemnumoflist', async () => {
-            const code = `list("${varName.slice(1)}").index("thing")`;
+            const code = `list("${varName}").index("thing")`;
             const expected = [
                 {
                     opcode: 'data_itemnumoflist',
@@ -130,7 +130,7 @@ describe('RubyToBlocksConverter/Variables', () => {
         });
 
         test('data_lengthoflist', async () => {
-            const code = `list("${varName.slice(1)}").length`;
+            const code = `list("${varName}").length`;
             const expected = [
                 {
                     opcode: 'data_lengthoflist',
@@ -146,7 +146,7 @@ describe('RubyToBlocksConverter/Variables', () => {
         });
 
         test('data_listcontainsitem', async () => {
-            const code = `list("${varName.slice(1)}").include?("thing")`;
+            const code = `list("${varName}").include?("thing")`;
             const expected = [
                 {
                     opcode: 'data_listcontainsitem',
@@ -168,7 +168,7 @@ describe('RubyToBlocksConverter/Variables', () => {
         });
 
         test('data_showlist', async () => {
-            const code = `show_list("${varName.slice(1)}")`;
+            const code = `show_list("${varName}")`;
             const expected = [
                 {
                     opcode: 'data_showlist',
@@ -184,7 +184,7 @@ describe('RubyToBlocksConverter/Variables', () => {
         });
 
         test('data_hidelist', async () => {
-            const code = `hide_list("${varName.slice(1)}")`;
+            const code = `hide_list("${varName}")`;
             const expected = [
                 {
                     opcode: 'data_hidelist',

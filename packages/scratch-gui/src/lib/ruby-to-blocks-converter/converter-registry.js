@@ -38,6 +38,14 @@ const ConverterRegistry = {
             return;
         }
 
+        // If numArgs is an array, register for each value
+        if (_.isArray(numArgs)) {
+            numArgs.forEach(n => {
+                this.registerOnSendWithBlock(receiverName, name, n, numRubyBlockArgs, createBlockFunc);
+            });
+            return;
+        }
+
         let methodToNumArgs = this._receiverToMethods[receiverName];
         if (!methodToNumArgs) methodToNumArgs = this._receiverToMethods[receiverName] = {};
 
