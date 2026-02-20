@@ -262,6 +262,58 @@ const NodeUtils = {
         return this._context.sourceCode.slice(startOffset, startOffset + length);
     },
 
+    _getLineForOffset (byteOffset) {
+        if (typeof byteOffset !== 'number' || !this._context.sourceCode) {
+            return 1;
+        }
+        // Prism uses UTF-8 byte offsets. Walk the JS string counting UTF-8 bytes
+        // so we handle multibyte characters (e.g. Japanese) correctly.
+        const source = this._context.sourceCode;
+        let line = 1;
+        let bytesConsumed = 0;
+        for (let i = 0; i < source.length && bytesConsumed < byteOffset; i++) {
+            const cp = source.codePointAt(i);
+            let byteLen;
+            if (cp < 0x80) {
+                byteLen = 1;
+            } else if (cp < 0x800) {
+                byteLen = 2;
+            } else if (cp < 0x10000) {
+                byteLen = 3;
+            } else {
+                byteLen = 4;
+                i++; // surrogate pair: skip extra char in JS
+            }
+            bytesConsumed += byteLen;
+            if (bytesConsumed <= byteOffset && source[i] === '\n') {
+                line++;
+            }
+        }
+        return line;
+    },
+
+    _getNodeStartLine (node) {
+        if (!node || !node.location) return null;
+        if (typeof node.location.startLine !== 'undefined') {
+            return node.location.startLine || null;
+        }
+        if (typeof node.location.startOffset === 'number') {
+            return this._getLineForOffset(node.location.startOffset);
+        }
+        return null;
+    },
+
+    _getNodeEndLine (node) {
+        if (!node || !node.location) return null;
+        if (typeof node.location.endLine !== 'undefined') {
+            return node.location.endLine || null;
+        }
+        if (typeof node.location.startOffset === 'number' && typeof node.location.length === 'number') {
+            return this._getLineForOffset(node.location.startOffset + node.location.length);
+        }
+        return null;
+    },
+
     _getLoc (node) {
         if (!node || !node.location) {
             return {line: 1, column: 0};

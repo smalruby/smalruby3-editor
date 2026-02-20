@@ -70,8 +70,8 @@ const LineMappingUtils = {
         for (const [node] of this._context.nodeToBlockMap.entries()) {
             // Get line range for this node
             if (node.location) {
-                const startLine = node.location.startLine;
-                const endLine = node.location.endLine || startLine;
+                const startLine = this._getNodeStartLine(node);
+                const endLine = this._getNodeEndLine(node) || startLine;
 
                 // Check if this node's range contains the target line
                 if (startLine !== null && typeof startLine !== 'undefined' &&
@@ -150,8 +150,8 @@ const LineMappingUtils = {
             for (const [node, id] of this._context.nodeToBlockMap.entries()) {
                 if (id === blockId) {
                     if (node.location) {
-                        const startLine = node.location.startLine;
-                        const endLine = node.location.endLine || startLine;
+                        const startLine = this._getNodeStartLine(node);
+                        const endLine = this._getNodeEndLine(node) || startLine;
 
                         if (startLine !== null && typeof startLine !== 'undefined' &&
                             endLine !== null && typeof endLine !== 'undefined') {

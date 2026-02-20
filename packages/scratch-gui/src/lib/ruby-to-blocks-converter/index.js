@@ -217,8 +217,8 @@ class RubyToBlocksConverter extends Visitor {
         const depth = this._context.processDepth || 0;
         this._context.processDepth = depth + 1;
 
-        const startLine = node.location ? node.location.startLine : null;
-        const endLine = node.location ? node.location.endLine : startLine;
+        const startLine = this._getNodeStartLine(node);
+        const endLine = this._getNodeEndLine(node) || startLine;
 
         if (startLine !== null && endLine !== null) {
             const containerNodeTypes = [
