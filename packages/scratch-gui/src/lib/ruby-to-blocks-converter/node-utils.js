@@ -8,14 +8,14 @@ import {RubyToBlocksConverterError} from './errors';
 const NodeUtils = {
     _checkNumChildren (node, length) {
         // Prism node children are named properties, not an array.
-        // This method was used for Opal's children array.
-        // We'll need to adapt each caller to check specific Prism properties.
-        // For now, we'll keep it but it might not be useful for Prism.
+    },
+
+    _isPrimitive (value) {
+        return value && (value._isPrimitive || value.constructor.name === 'Primitive' || value._type);
     },
 
     _isSelf (block) {
-        const Primitive = require('./primitive').default;
-        return block instanceof Primitive && block.type === 'self';
+        return this._isPrimitive(block) && block.type === 'self';
     },
 
     _isStage () {
@@ -28,8 +28,7 @@ const NodeUtils = {
 
     _isString (value) {
         if (_.isString(value)) return true;
-        const Primitive = require('./primitive').default;
-        if (value instanceof Primitive) {
+        if (this._isPrimitive(value)) {
             return value.type === 'str';
         }
         return value && value.constructor.name === 'StringNode';
@@ -41,8 +40,7 @@ const NodeUtils = {
 
     _isNumber (value) {
         if (_.isNumber(value)) return true;
-        const Primitive = require('./primitive').default;
-        if (value instanceof Primitive) {
+        if (this._isPrimitive(value)) {
             return value.type === 'int' || value.type === 'float';
         }
         return value &&
@@ -55,8 +53,7 @@ const NodeUtils = {
 
     _isTrue (value) {
         if (value === true) return true;
-        const Primitive = require('./primitive').default;
-        if (value instanceof Primitive) {
+        if (this._isPrimitive(value)) {
             return value.type === 'true';
         }
         if (value && value.constructor.name === 'TrueNode') {
@@ -75,8 +72,7 @@ const NodeUtils = {
 
     _isFalse (value) {
         if (value === false) return true;
-        const Primitive = require('./primitive').default;
-        if (value instanceof Primitive) {
+        if (this._isPrimitive(value)) {
             return value.type === 'false';
         }
         if (value && value.constructor.name === 'FalseNode') {
@@ -91,8 +87,7 @@ const NodeUtils = {
 
     isNil (value) {
         if (value === null) return true;
-        const Primitive = require('./primitive').default;
-        if (value instanceof Primitive) {
+        if (this._isPrimitive(value)) {
             return value.type === 'nil';
         }
         return value && value.constructor.name === 'NilNode';
@@ -100,24 +95,21 @@ const NodeUtils = {
 
     _isArray (value) {
         if (_.isArray(value)) return true;
-        const Primitive = require('./primitive').default;
-        if (value instanceof Primitive) {
+        if (this._isPrimitive(value)) {
             return value.type === 'array';
         }
         return value && value.constructor.name === 'ArrayNode';
     },
 
     _isHash (value) {
-        const Primitive = require('./primitive').default;
-        if (value instanceof Primitive) {
+        if (this._isPrimitive(value)) {
             return value.type === 'hash';
         }
         return value && value.constructor.name === 'HashNode';
     },
 
     _isConst (value) {
-        const Primitive = require('./primitive').default;
-        if (value instanceof Primitive) {
+        if (this._isPrimitive(value)) {
             return value.type === 'const';
         }
         return value &&
@@ -274,9 +266,7 @@ const NodeUtils = {
         if (!node || !node.location) {
             return {line: 1, column: 0};
         }
-        // Prism's location should have line/column information or we need to convert it.
-        // Actually, Prism's location in the JS binding might have startLine/startColumn.
-        // If not, we'll need a utility to convert offsets to line/column.
+        // Prism's location in JS binding has startLine/startColumn
         return {
             line: node.location.startLine || 1,
             column: node.location.startColumn || 0

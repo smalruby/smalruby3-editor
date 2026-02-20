@@ -29,8 +29,11 @@ const ExpressionHandlers = {
         }
 
         let rubyBlock;
-        if (node.block && node.block.body) {
+        if (node.block) {
             rubyBlock = this._processStatement(node.block.body);
+            if (typeof rubyBlock === 'undefined') {
+                rubyBlock = null;
+            }
         }
 
         let block = this.callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node);

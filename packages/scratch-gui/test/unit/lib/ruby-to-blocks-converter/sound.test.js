@@ -31,7 +31,7 @@ describe('RubyToBlocksConverter/Sound', () => {
         }
     ].forEach(info => {
         describe(`${info.opcode}`, () => {
-            test('normal', () => {
+            test('normal', async () => {
                 code = `${info.methodName}("Meow")`;
                 expected = [
                     {
@@ -53,7 +53,7 @@ describe('RubyToBlocksConverter/Sound', () => {
                         ]
                     }
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 code = `${info.methodName}(x)`;
                 expected = [
@@ -62,7 +62,7 @@ describe('RubyToBlocksConverter/Sound', () => {
                         inputs: [
                             {
                                 name: 'SOUND_MENU',
-                                block: rubyToExpected(converter, target, 'x')[0],
+                                block: (await rubyToExpected(converter, target, 'x'))[0],
                                 shadow: {
                                     opcode: 'sound_sounds_menu',
                                     fields: [
@@ -77,32 +77,32 @@ describe('RubyToBlocksConverter/Sound', () => {
                         ]
                     }
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('statement', () => {
+            test('statement', async () => {
                 code = `
                   bounce_if_on_edge
                   ${info.methodName}("Meow")
                   bounce_if_on_edge
                 `;
                 expected = [
-                    rubyToExpected(converter, target, 'bounce_if_on_edge')[0]
+                    (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
                 ];
-                expected[0].next = rubyToExpected(converter, target, `${info.methodName}("Meow")`)[0];
-                expected[0].next.next = rubyToExpected(converter, target, 'bounce_if_on_edge')[0];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                expected[0].next = await rubyToExpected(converter, target, `${info.methodName}("Meow")`)[0];
+                expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('invalid', () => {
-                [
+            test('invalid', async () => {
+                { for (const c of [
                     `${info.methodName}`,
                     `${info.methodName}()`,
                     `${info.methodName}(1)`,
                     `${info.methodName}("Meow", 1)`
-                ].forEach(c => {
-                    convertAndExpectRubyBlockError(converter, target, c);
-                });
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                } }
             });
         });
     });
@@ -122,7 +122,7 @@ describe('RubyToBlocksConverter/Sound', () => {
         }
     ].forEach(info => {
         describe(`${info.opcode}`, () => {
-            test('normal', () => {
+            test('normal', async () => {
                 code = `${info.methodName}("PITCH", ${info.value})`;
                 expected = [
                     {
@@ -141,7 +141,7 @@ describe('RubyToBlocksConverter/Sound', () => {
                         ]
                     }
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 code = `${info.methodName}("PITCH", x)`;
                 expected = [
@@ -156,40 +156,40 @@ describe('RubyToBlocksConverter/Sound', () => {
                         inputs: [
                             {
                                 name: 'VALUE',
-                                block: rubyToExpected(converter, target, 'x')[0],
+                                block: (await rubyToExpected(converter, target, 'x'))[0],
                                 shadow: expectedInfo.makeNumber(info.value)
                             }
                         ]
                     }
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('statement', () => {
+            test('statement', async () => {
                 code = `
                   bounce_if_on_edge
                   ${info.methodName}("PITCH", ${info.value})
                   bounce_if_on_edge
                 `;
                 expected = [
-                    rubyToExpected(converter, target, 'bounce_if_on_edge')[0]
+                    (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
                 ];
-                expected[0].next = rubyToExpected(converter, target, `${info.methodName}("PITCH", ${info.value})`)[0];
-                expected[0].next.next = rubyToExpected(converter, target, 'bounce_if_on_edge')[0];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                expected[0].next = await rubyToExpected(converter, target, `${info.methodName}("PITCH", ${info.value})`)[0];
+                expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('invalid', () => {
-                [
+            test('invalid', async () => {
+                { for (const c of [
                     `${info.methodName}`,
                     `${info.methodName}()`,
                     `${info.methodName}("PITCH")`,
                     `${info.methodName}(${info.value}, "PITCH")`,
                     `${info.methodName}("invalid", ${info.value})`,
                     `${info.methodName}("PITCH", ${info.value}, 1)`
-                ].forEach(c => {
-                    convertAndExpectRubyBlockError(converter, target, c);
-                });
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, c);
+                } }
             });
         });
     });
@@ -197,7 +197,7 @@ describe('RubyToBlocksConverter/Sound', () => {
     expectNoArgsMethod('sound_cleareffects', 'clear_sound_effects');
 
     describe('sound_changevolumeby', () => {
-        test('normal', () => {
+        test('normal', async () => {
             code = 'self.volume += -10';
             expected = [
                 {
@@ -210,7 +210,7 @@ describe('RubyToBlocksConverter/Sound', () => {
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             code = 'self.volume += x';
             expected = [
@@ -219,42 +219,42 @@ describe('RubyToBlocksConverter/Sound', () => {
                     inputs: [
                         {
                             name: 'VOLUME',
-                            block: rubyToExpected(converter, target, 'x')[0],
+                            block: (await rubyToExpected(converter, target, 'x'))[0],
                             shadow: expectedInfo.makeNumber(-10)
                         }
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('statement', () => {
+        test('statement', async () => {
             code = `
                 bounce_if_on_edge
                 self.volume += -10
                 bounce_if_on_edge
             `;
             expected = [
-                rubyToExpected(converter, target, 'bounce_if_on_edge')[0]
+                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
             ];
-            expected[0].next = rubyToExpected(converter, target, 'self.volume += -10')[0];
-            expected[0].next.next = rubyToExpected(converter, target, 'bounce_if_on_edge')[0];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            expected[0].next = (await rubyToExpected(converter, target, 'self.volume += -10'))[0];
+            expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('invalid', () => {
-            [
+        test('invalid', async () => {
+            { for (const c of [
                 'self.volume += "10"',
                 'self.volume += :symbol',
                 'self.volume += abc'
-            ].forEach(c => {
-                convertAndExpectRubyBlockError(converter, target, c);
-            });
+            ]) {
+                await convertAndExpectRubyBlockError(converter, target, c);
+            } }
         });
     });
 
     describe('sound_setvolumeto', () => {
-        test('normal', () => {
+        test('normal', async () => {
             code = 'self.volume = 100';
             expected = [
                 {
@@ -267,7 +267,7 @@ describe('RubyToBlocksConverter/Sound', () => {
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             code = 'self.volume = x';
             expected = [
@@ -276,37 +276,37 @@ describe('RubyToBlocksConverter/Sound', () => {
                     inputs: [
                         {
                             name: 'VOLUME',
-                            block: rubyToExpected(converter, target, 'x')[0],
+                            block: (await rubyToExpected(converter, target, 'x'))[0],
                             shadow: expectedInfo.makeNumber(100)
                         }
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('statement', () => {
+        test('statement', async () => {
             code = `
                 bounce_if_on_edge
                 self.volume = 100
                 bounce_if_on_edge
             `;
             expected = [
-                rubyToExpected(converter, target, 'bounce_if_on_edge')[0]
+                (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
             ];
-            expected[0].next = rubyToExpected(converter, target, 'self.volume = 100')[0];
-            expected[0].next.next = rubyToExpected(converter, target, 'bounce_if_on_edge')[0];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            expected[0].next = (await rubyToExpected(converter, target, 'self.volume = 100'))[0];
+            expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('invalid', () => {
-            [
+        test('invalid', async () => {
+            { for (const c of [
                 'self.volume = "100"',
                 'self.volume = :symbol',
                 'self.volume = abc'
-            ].forEach(c => {
-                convertAndExpectRubyBlockError(converter, target, c);
-            });
+            ]) {
+                await convertAndExpectRubyBlockError(converter, target, c);
+            } }
         });
     });
 
@@ -338,7 +338,7 @@ describe('RubyToBlocksConverter/Sound', () => {
             }
         ].forEach(info => {
             describe(`${info.opcode} with sound existence check`, () => {
-                test('existing sound should work', () => {
+                test('existing sound should work', async () => {
                     code = `${info.methodName}("Meow")`;
                     expected = [
                         {
@@ -360,12 +360,12 @@ describe('RubyToBlocksConverter/Sound', () => {
                             ]
                         }
                     ];
-                    convertAndExpectToEqualBlocks(converter, targetWithSounds, code, expected);
+                    await convertAndExpectToEqualBlocks(converter, targetWithSounds, code, expected);
                 });
 
-                test('non-existing sound should throw error', () => {
+                test('non-existing sound should throw error', async () => {
                     code = `${info.methodName}("NonExistentSound")`;
-                    const result = converter.targetCodeToBlocks(targetWithSounds, code);
+                    const result = await converter.targetCodeToBlocks(targetWithSounds, code);
                     expect(result).toBeFalsy();
                     expect(converter.errors).toHaveLength(1);
                     expect(converter.errors[0].text).toContain('sound "NonExistentSound" does not exist');

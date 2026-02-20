@@ -61,7 +61,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
     });
 
     describe('Phase 0: def foo support', () => {
-        test('procedures_definition with def foo (no receiver)', () => {
+        test('procedures_definition with def foo (no receiver)', async () => {
             const code = `
                 def made_block(arg1)
                   move(arg1)
@@ -108,12 +108,12 @@ describe('RubyToBlocksConverter/Method Return', () => {
                     }
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
     });
 
     describe('Phase 1: Ruby -> Block return value', () => {
-        test('automatically add return variable assignment', () => {
+        test('automatically add return variable assignment', async () => {
             const code = `
                 def add(a, b)
                   a + b
@@ -196,10 +196,10 @@ describe('RubyToBlocksConverter/Method Return', () => {
                     }
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('should NOT add return variable if last block is NOT a value block', () => {
+        test('should NOT add return variable if last block is NOT a value block', async () => {
             const code = `
                 def greet(name)
                   say("Hello ")
@@ -247,10 +247,10 @@ describe('RubyToBlocksConverter/Method Return', () => {
                     }
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('multiple statements with return value', () => {
+        test('multiple statements with return value', async () => {
             const code = `
                 def calculate(x)
                   say("Calculating...")
@@ -348,10 +348,10 @@ describe('RubyToBlocksConverter/Method Return', () => {
                     }
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('explicit return variable assignment should NOT add @ruby:return comment', () => {
+        test('explicit return variable assignment should NOT add @ruby:return comment', async () => {
             const code = `
                 def self.add(a, b)
                   @_return_add_ = a + b
@@ -431,10 +431,10 @@ describe('RubyToBlocksConverter/Method Return', () => {
                     }
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('should NOT add @ruby:return comment to procedures_call when NOT used as a value', () => {
+        test('should NOT add @ruby:return comment to procedures_call when NOT used as a value', async () => {
             const code = `
                 def add(a, b)
                   a + b
@@ -444,7 +444,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   add(1, 5)
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
             
             // Find the procedures_call block
@@ -453,7 +453,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(proceduresCall.comment).toBeUndefined();
         });
 
-        test('should add @ruby:return comment to procedures_call when used as a value', () => {
+        test('should add @ruby:return comment to procedures_call when used as a value', async () => {
             const code = `
                 def add(a, b)
                   a + b
@@ -463,7 +463,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   say(add(1, 5))
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
             
             // Find the procedures_call block
@@ -474,7 +474,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(comment.text).toBe('@ruby:return:add');
         });
 
-        test('top-level method call with return value should create procedures_call + data_variable', () => {
+        test('top-level method call with return value should create procedures_call + data_variable', async () => {
             const code = `
                 def add(a, b)
                   a + b
@@ -482,7 +482,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
                 say(add(1, 5))
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             // Should have a procedures_call block with @ruby:return comment
@@ -517,7 +517,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   say(add(add(1, 5), 3))
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             const blocks = converter.blocks;
@@ -566,7 +566,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   say(add(add(add(1, 2), 3), 4))
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             // Verify Blocks -> Ruby
@@ -586,7 +586,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   say(add(add(1, 5), add(2, 3)))
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             // Verify Blocks -> Ruby
@@ -607,7 +607,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   say(add(add(add(1, 2), 3), add(4, 5)))
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             // Verify Blocks -> Ruby
@@ -628,7 +628,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   say(add(add(add(1, 2), add(3, 4)), add(5, 6)))
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             // Verify Blocks -> Ruby
@@ -652,7 +652,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   say(add(calculate(1), 2))
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             // Verify Blocks -> Ruby
@@ -673,7 +673,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   say(add(add(2, 5), add(4, 6)))
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             const blocks = converter.blocks;
@@ -727,7 +727,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   say(add(add(add(1, 2), 3), 4))
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             const blocks = converter.blocks;
@@ -771,13 +771,13 @@ describe('RubyToBlocksConverter/Method Return', () => {
     });
 
     describe('Phase 2: explicit return statement support', () => {
-        test('return at end of method produces assign + stop blocks', () => {
+        test('return at end of method produces assign + stop blocks', async () => {
             const code = `
                 def div(a, b)
                   return a / b
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             // Chain: procedures_definition -> initialize block -> data_setvariableto -> control_stop
@@ -806,13 +806,13 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(stopComment.text).toBe('@ruby:syntax:return');
         });
 
-        test('return marks procedure as hasReturnValue', () => {
+        test('return marks procedure as hasReturnValue', async () => {
             const code = `
                 def add(a, b)
                   return a + b
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             const procedure = converter._context.procedures['add'];
@@ -820,7 +820,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(procedure.hasReturnValue).toBe(true);
         });
 
-        test('early return inside if + return at end: say(div(10, 0), 1) should succeed', () => {
+        test('early return inside if + return at end: say(div(10, 0), 1) should succeed', async () => {
             // Bug report: this was causing a conversion error
             const code = `
                 def div(a, b)
@@ -832,7 +832,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
                 say(div(10, 0), 1)
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
             expect(converter.errors).toHaveLength(0);
 
@@ -845,7 +845,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(sayBlock).toBeDefined();
         });
 
-        test('if/else with return in both branches: say(div(10, 0), 1) should succeed', () => {
+        test('if/else with return in both branches: say(div(10, 0), 1) should succeed', async () => {
             // Additional spec: all branches return
             const code = `
                 def div(a, b)
@@ -858,7 +858,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
                 say(div(10, 0), 1)
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
             expect(converter.errors).toHaveLength(0);
 
@@ -869,7 +869,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
     });
 
     describe('Phase 3: return value initialization block', () => {
-        test('method with return inserts initialize block after procedures_definition', () => {
+        test('method with return inserts initialize block after procedures_definition', async () => {
             const code = `
                 def foo(a)
                   if a == 0
@@ -879,7 +879,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                   end
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             const defBlock = Object.values(converter.blocks).find(b => b.opcode === 'procedures_definition');
@@ -898,13 +898,13 @@ describe('RubyToBlocksConverter/Method Return', () => {
             expect(valueInput).toBeDefined();
         });
 
-        test('method without return does NOT insert initialize block', () => {
+        test('method without return does NOT insert initialize block', async () => {
             const code = `
                 def bar(a)
                   move(a)
                 end
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
 
             const defBlock = Object.values(converter.blocks).find(b => b.opcode === 'procedures_definition');
@@ -920,7 +920,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
             }
         });
 
-        test('say(foo(0), 1) then say(foo(1), 1): second call gets fresh return value', () => {
+        test('say(foo(0), 1) then say(foo(1), 1): second call gets fresh return value', async () => {
             // This test verifies that the initialize block causes the second call
             // to not carry over the first call's return value.
             // In blocks: foo(0) sets @_return_foo_=0, then foo(1) sets @_return_foo_=""
@@ -937,7 +937,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
                 say(foo(0), 1)
                 say(foo(1), 1)
             `;
-            const result = converter.targetCodeToBlocks(target, code);
+            const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
             expect(converter.errors).toHaveLength(0);
 

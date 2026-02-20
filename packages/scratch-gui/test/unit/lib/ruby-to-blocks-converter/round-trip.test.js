@@ -9,8 +9,8 @@ describe('Ruby Round Trip', () => {
         converter = new RubyToBlocksConverter(null);
     });
 
-    const expectRoundTrip = (code, expectedRuby = null) => {
-        const result = converter.targetCodeToBlocks(null, code);
+    const expectRoundTrip = async (code, expectedRuby = null) => {
+        const result = await converter.targetCodeToBlocks(null, code);
         expect(converter.errors).toHaveLength(0);
         expect(result).toBeTruthy();
 
@@ -53,27 +53,27 @@ describe('Ruby Round Trip', () => {
         expect(generatedRuby.trim()).toEqual((expectedRuby || code).trim());
     };
 
-    test('operator >=', () => {
+    test('operator >=', async () => {
         expectRoundTrip('1 >= 50');
         expectRoundTrip('@x >= @y');
         expectRoundTrip('1.2 >= 3.4');
         expectRoundTrip('1 + 2 >= 3 * 4');
     });
 
-    test('operator <=', () => {
+    test('operator <=', async () => {
         expectRoundTrip('1 <= 50');
         expectRoundTrip('@x <= @y');
         expectRoundTrip('1.2 <= 3.4');
         expectRoundTrip('1 + 2 <= 3 * 4');
     });
 
-    test('mixed operators', () => {
+    test('mixed operators', async () => {
         expectRoundTrip('@x >= @y && @a <= @b');
         expectRoundTrip('@x >= @y || @a <= @b');
         expectRoundTrip('!(@x >= @y)');
     });
 
-    test('true / false', () => {
+    test('true / false', async () => {
         expectRoundTrip('true');
         expectRoundTrip('false');
         expectRoundTrip('if true\n  move(10)\nend');
@@ -86,13 +86,13 @@ describe('Ruby Round Trip', () => {
         expectRoundTrip('!false');
     });
 
-    test('sensing and boolean operators', () => {
+    test('sensing and boolean operators', async () => {
         expectRoundTrip('touching?("_edge_")');
         expectRoundTrip('!touching?("_edge_")');
         expectRoundTrip('if touching?("_edge_")\n  move(10)\nend');
     });
 
-    test('return statement in method', () => {
+    test('return statement in method', async () => {
         expectRoundTrip(`
 def self.add(a, b)
   return a + b

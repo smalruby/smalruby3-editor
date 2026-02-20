@@ -23,10 +23,10 @@ describe('RubyToBlocksConverter Versioning', () => {
         };
     });
 
-    test('converts v1 (def self.method_name) to blocks', () => {
+    test('converts v1 (def self.method_name) to blocks', async () => {
         const code = `def self.my_method
 end`;
-        const converter = targetCodeToBlocks(vm, target, code);
+        const converter = await targetCodeToBlocks(vm, target, code);
         expect(converter.result).toBe(true);
         expect(converter.errors).toHaveLength(0);
         
@@ -34,10 +34,10 @@ end`;
         expect(blocks.some(b => b.opcode === 'procedures_definition')).toBe(true);
     });
 
-    test('converts v2 (def method_name) to blocks', () => {
+    test('converts v2 (def method_name) to blocks', async () => {
         const code = `def my_method
 end`;
-        const converter = targetCodeToBlocks(vm, target, code);
+        const converter = await targetCodeToBlocks(vm, target, code);
         expect(converter.result).toBe(true);
         expect(converter.errors).toHaveLength(0);
 

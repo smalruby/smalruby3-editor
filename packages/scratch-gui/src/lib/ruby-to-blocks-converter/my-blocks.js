@@ -3,8 +3,6 @@ import Blockly from 'scratch-blocks';
 import Primitive from './primitive';
 import {RubyToBlocksConverterError} from './errors';
 
-const Opal = global.Opal || window.Opal;
-
 /**
  * My Blocks converter
  */
@@ -166,14 +164,14 @@ const MyBlocksConverter = {
         });
 
         converter.registerOnDefs((node, saved) => {
-            const receiver = converter._process(node.children[0]);
-            if (!converter._isSelf(receiver) && receiver !== Opal.nil) {
+            const receiver = converter.visit(node.receiver);
+            if (!converter._isSelf(receiver) && receiver !== null) {
                 return null;
             }
 
             converter._enterScope('method');
 
-            const procedureName = node.children[1].toString();
+            const procedureName = node.name;
             const block = converter._createBlock('procedures_definition', 'hat', {
                 topLevel: true
             });
@@ -191,7 +189,7 @@ const MyBlocksConverter = {
                 }
             });
 
-            converter._process(node.children[2]).forEach(n => {
+            (converter.visit(node.parameters) || []).forEach(n => {
                 const originalName = n.toString();
                 // Convert argument name to snake_case lowercase
                 const normalizedName = converter._toSnakeCaseLowercase(originalName);
@@ -216,14 +214,16 @@ const MyBlocksConverter = {
                 procedure.argumentBlocks.push(inputBlock);
             });
 
-            // Process method body - use _process instead of _processStatement
+            // Process method body - use visit instead of _processStatement
             // because the last expression can be a value (which will be wrapped in return assignment)
             const savedInMyBlockDefinition = converter._context.inMyBlockDefinition;
             const savedCurrentProcedureName = converter._context.currentProcedureName;
             converter._context.inMyBlockDefinition = true;
             converter._context.currentProcedureName = procedureName;
-            let body = converter._process(node.children[3], false);
-            if (!_.isArray(body)) {
+            let body = converter.visit(node.body);
+            if (typeof body === 'undefined') {
+                body = [];
+            } else if (!_.isArray(body)) {
                 body = [body];
             }
             converter._context.inMyBlockDefinition = savedInMyBlockDefinition;
@@ -237,7 +237,7 @@ const MyBlocksConverter = {
                 if (_.isArray(last)) {
                     last = last[last.length - 1];
                 }
-                const lastCommentText = last.comment ? converter._context.comments[last.comment].text : '';
+                const lastCommentText = (last && last.comment) ? converter._context.comments[last.comment].text : '';
                 if (converter._isValueBlock(last) &&
                     !(last instanceof Primitive && (last.type === 'self' || last.type === 'nil')) &&
                     !lastCommentText.includes('@ruby:syntax:return')) {
@@ -309,6 +309,7 @@ const MyBlocksConverter = {
                     initBlock.comment = converter._createComment(
                         `@ruby:return:${procedureName}:initialize`, initBlock.id
                     );
+                    initBlock.node = node; // Use the def node for initialization block
                     converter._addTextInput(initBlock, 'VALUE', '', '');
 
                     // Link init block → first body block
@@ -319,7 +320,7 @@ const MyBlocksConverter = {
                     body.unshift(initBlock);
                 }
             }
-            if (converter._isBlock(body[0])) {
+            if (body.length > 0 && converter._isBlock(body[0])) {
                 block.next = body[0].id;
                 body[0].parent = block.id;
             }

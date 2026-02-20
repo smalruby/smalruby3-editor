@@ -19,7 +19,7 @@ describe('RubyToBlocksConverter/Pen', () => {
         expected = null;
     });
 
-    test('pen_setPenColorToColor', () => {
+    test('pen_setPenColorToColor', async () => {
         code = 'pen.color = "#e36e1a"';
         expected = [
             {
@@ -41,15 +41,15 @@ describe('RubyToBlocksConverter/Pen', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        [
+        { for (const s of [
             'pen.color = "10"',
             'pen.color = :symbol',
             'pen.color = abc'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 
     const colorParamNames = [
@@ -75,7 +75,7 @@ describe('RubyToBlocksConverter/Pen', () => {
         };
 
         describe(colorParamName, () => {
-            test('pen_changePenColorParamBy', () => {
+            test('pen_changePenColorParamBy', async () => {
                 code = `pen.${colorParamName} += 10`;
                 expected = [
                     {
@@ -89,7 +89,7 @@ describe('RubyToBlocksConverter/Pen', () => {
                         ]
                     }
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 code = `pen.${colorParamName} += y`;
                 expected = [
@@ -99,24 +99,24 @@ describe('RubyToBlocksConverter/Pen', () => {
                             colorParam,
                             {
                                 name: 'VALUE',
-                                block: rubyToExpected(converter, target, 'y')[0],
+                                block: (await rubyToExpected(converter, target, 'y'))[0],
                                 shadow: expectedInfo.makeNumber(10)
                             }
                         ]
                     }
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-                [
+                { for (const s of [
                     `pen.${colorParamName} += "10"`,
                     `pen.${colorParamName} += :symbol`,
                     `pen.${colorParamName} += abc`
-                ].forEach(s => {
-                    convertAndExpectRubyBlockError(converter, target, s);
-                });
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, s);
+                } }
             });
 
-            test('pen_setPenColorParamTo', () => {
+            test('pen_setPenColorParamTo', async () => {
                 code = `pen.${colorParamName} = 50`;
                 expected = [
                     {
@@ -130,7 +130,7 @@ describe('RubyToBlocksConverter/Pen', () => {
                         ]
                     }
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 code = `pen.${colorParamName} = y`;
                 expected = [
@@ -140,21 +140,21 @@ describe('RubyToBlocksConverter/Pen', () => {
                             colorParam,
                             {
                                 name: 'VALUE',
-                                block: rubyToExpected(converter, target, 'y')[0],
+                                block: (await rubyToExpected(converter, target, 'y'))[0],
                                 shadow: expectedInfo.makeNumber(50)
                             }
                         ]
                     }
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-                [
+                { for (const s of [
                     `pen.${colorParamName} = "10"`,
                     `pen.${colorParamName} = :symbol`,
                     `pen.${colorParamName} = abc`
-                ].forEach(s => {
-                    convertAndExpectRubyBlockError(converter, target, s);
-                });
+                ]) {
+                    await convertAndExpectRubyBlockError(converter, target, s);
+                } }
             });
         });
     });

@@ -44,7 +44,7 @@ const ControlConverter = {
         ['loop', 'forever'].forEach(methodName => {
             converter.registerOnSendWithBlock('self', methodName, 0, 0, params => {
                 const {rubyBlock} = params;
-                if (!rubyBlock) return null;
+                if (typeof rubyBlock === 'undefined') return null;
 
                 const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
                 const block = converter._createBlock('control_forever', 'terminate');

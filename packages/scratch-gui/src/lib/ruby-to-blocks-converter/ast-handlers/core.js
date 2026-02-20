@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import {RubyToBlocksConverterError} from '../errors';
 
 /**
  * Core AST handlers for RubyToBlocksConverter.
@@ -72,6 +73,57 @@ const CoreHandlers = {
 
     visitBeginNode (node) {
         return this.visit(node.statements);
+    },
+
+    _processCondition (node) {
+        let cond = this.visit(node);
+        const split = this._splitPreBlocksAndValue(cond);
+        if (split.preBlocks.length > 0) {
+            if (!this._isFalseOrBooleanBlock(split.value)) {
+                throw new RubyToBlocksConverterError(
+                    node,
+                    `condition is not boolean: ${this._getSource(node)}`
+                );
+            }
+            return [...split.preBlocks, split.value];
+        }
+        cond = split.value;
+        if (!this._isFalseOrBooleanBlock(cond)) {
+            throw new RubyToBlocksConverterError(
+                node,
+                `condition is not boolean: ${this._getSource(node)}`
+            );
+        }
+        return cond;
+    },
+
+    _processStatement (node, inMyBlockDefinition = null) {
+        const savedInMyBlockDefinition = this._context.inMyBlockDefinition;
+        if (inMyBlockDefinition !== null) {
+            this._context.inMyBlockDefinition = inMyBlockDefinition;
+        }
+        let blocks = this.visit(node);
+        if (!_.isArray(blocks)) {
+            blocks = [blocks];
+        }
+        if (blocks.length >= 2 && this._isBlock(blocks[0])) {
+            // It's a multi-block result, link them
+            for (let i = 0; i < blocks.length - 1; i++) {
+                if (this._isBlock(blocks[i]) && this._isBlock(blocks[i + 1])) {
+                    blocks[i].next = blocks[i + 1].id;
+                    blocks[i + 1].parent = blocks[i].id;
+                }
+            }
+        }
+        const block = blocks[0];
+        if (block !== null && typeof block !== 'undefined' && !this._isStatementBlock(block)) {
+            if (!(this._context.inMyBlockDefinition && block.opcode === 'data_setvariableto')) {
+                this._context.inMyBlockDefinition = savedInMyBlockDefinition;
+                throw new RubyToBlocksConverterError(node, 'include not statement blocks');
+            }
+        }
+        this._context.inMyBlockDefinition = savedInMyBlockDefinition;
+        return block;
     },
 
     _getBlockIdFromResult (result) {

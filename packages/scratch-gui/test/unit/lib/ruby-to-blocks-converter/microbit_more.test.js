@@ -18,7 +18,7 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
         expected = null;
     });
 
-    test('microbit_more.when_pin_connected', () => {
+    test('microbit_more.when_pin_connected', async () => {
         code = 'microbit_more.when_pin_connected(0) do; end';
         expected = [
             {
@@ -34,10 +34,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 topLevel: true
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('microbit_more.tilted?', () => {
+    test('microbit_more.tilted?', async () => {
         code = 'microbit_more.tilted?("any")';
         expected = [
             {
@@ -50,10 +50,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('microbit_more.tilt_angle', () => {
+    test('microbit_more.tilt_angle', async () => {
         code = 'microbit_more.tilt_angle("front")';
         expected = [
             {
@@ -66,10 +66,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('microbit_more.when(moved)', () => {
+    test('microbit_more.when(moved)', async () => {
         code = 'microbit_more.when("moved") do; end';
         expected = [
             {
@@ -82,10 +82,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('microbit_more.when_tilted', () => {
+    test('microbit_more.when_tilted', async () => {
         code = 'microbit_more.when_tilted("any") do; end';
         expected = [
             {
@@ -98,10 +98,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('microbit_more.when(tilted_any)', () => {
+    test('microbit_more.when(tilted_any)', async () => {
         code = 'microbit_more.when("tilted_any") do; end';
         expected = [
             {
@@ -114,10 +114,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('microbit_more.when(tilted_front)', () => {
+    test('microbit_more.when(tilted_front)', async () => {
         code = 'microbit_more.when("tilted_front") do; end';
         expected = [
             {
@@ -130,10 +130,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('microbit_more.display_text', () => {
+    test('microbit_more.display_text', async () => {
         code = 'microbit_more.display_text("Hello!")';
         expected = [
             {
@@ -146,10 +146,10 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('microbit_more.display_text_delay', () => {
+    test('microbit_more.display_text_delay', async () => {
         code = 'microbit_more.display_text_delay("Hello!", 120)';
         expected = [
             {
@@ -166,6 +166,6 @@ describe('RubyToBlocksConverter/MicrobitMore', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 });

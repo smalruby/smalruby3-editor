@@ -19,16 +19,16 @@ describe('RubyToBlocksConverter', () => {
     });
 
     describe('targetCodeToBlocks', () => {
-        test('can call', () => {
-            expect(converter.targetCodeToBlocks(target, 'move(10)')).toBeTruthy();
+        test('can call', async () => {
+            expect(await converter.targetCodeToBlocks(target, 'move(10)')).toBeTruthy();
             expect(Object.keys(converter.blocks)).toHaveLength(2);
             expect(converter.errors).toHaveLength(0);
             expect(Object.keys(converter.variables)).toHaveLength(0);
             expect(Object.keys(converter.lists)).toHaveLength(0);
         });
 
-        test('empty', () => {
-            expect(converter.targetCodeToBlocks(target, '')).toBeTruthy();
+        test('empty', async () => {
+            expect(await converter.targetCodeToBlocks(target, '')).toBeTruthy();
             expect(Object.keys(converter.blocks)).toHaveLength(0);
             expect(converter.errors).toHaveLength(0);
             expect(Object.keys(converter.variables)).toHaveLength(0);
@@ -37,89 +37,89 @@ describe('RubyToBlocksConverter', () => {
 
 
         describe('top level blocks', () => {
-            test('statements', () => {
+            test('statements', async () => {
                 expected = [
-                    rubyToExpected(converter, target, 'move(10)')[0]
+                    await rubyToExpected(converter, target, 'move(10)')[0]
                 ];
-                expected[0].next = rubyToExpected(converter, target, 'bounce_if_on_edge')[0];
-                expected[0].next.next = rubyToExpected(converter, target, 'turn_right(180)')[0];
+                expected[0].next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
+                expected[0].next.next = await rubyToExpected(converter, target, 'turn_right(180)')[0];
 
                 code = `
                     move(10)
                     bounce_if_on_edge
                     turn_right(180)
                 `;
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 code = `
                     move(10)
                     (bounce_if_on_edge)
                     turn_right(180)
                 `;
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 code = `
                     move(10)
                     (bounce_if_on_edge; turn_right(180))
                 `;
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 code = `
                     (move(10); bounce_if_on_edge; turn_right(180))
                 `;
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
                 code = `
                     (move(10); bounce_if_on_edge)
                     turn_right(180)
                 `;
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('values', () => {
+            test('values', async () => {
                 code = `
                     x
                     y
                     size
                 `;
                 expected = [
-                    rubyToExpected(converter, target, 'x')[0],
-                    rubyToExpected(converter, target, 'y')[0],
-                    rubyToExpected(converter, target, 'size')[0]
+                    (await rubyToExpected(converter, target, 'x'))[0],
+                    (await rubyToExpected(converter, target, 'y'))[0],
+                    (await rubyToExpected(converter, target, 'size'))[0]
 
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('hats', () => {
+            test('hats', async () => {
                 code = `
                     self.when(:flag_clicked) {}
                     self.when(:flag_clicked) {}
                     self.when(:flag_clicked) {}
                 `;
                 expected = [
-                    rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0],
-                    rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0],
-                    rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0]
+                    await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0],
+                    await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0],
+                    await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0]
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('terminates', () => {
+            test('terminates', async () => {
                 code = `
                     forever {}
                     forever {}
                     forever {}
                 `;
                 expected = [
-                    rubyToExpected(converter, target, 'forever {}')[0],
-                    rubyToExpected(converter, target, 'forever {}')[0],
-                    rubyToExpected(converter, target, 'forever {}')[0]
+                    (await rubyToExpected(converter, target, 'forever {}'))[0],
+                    (await rubyToExpected(converter, target, 'forever {}'))[0],
+                    (await rubyToExpected(converter, target, 'forever {}'))[0]
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('mix', () => {
+            test('mix', async () => {
                 code = `
                     move(10)
                     x
@@ -135,21 +135,21 @@ describe('RubyToBlocksConverter', () => {
                     x
                 `;
                 expected = [
-                    rubyToExpected(converter, target, 'move(10)')[0],
-                    rubyToExpected(converter, target, 'x')[0],
-                    rubyToExpected(converter, target, 'bounce_if_on_edge; turn_right(180)')[0],
-                    rubyToExpected(converter, target, 'y')[0],
-                    rubyToExpected(converter, target, 'size')[0],
-                    rubyToExpected(converter, target, 'move(10)')[0],
-                    rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0],
-                    rubyToExpected(converter, target, 'bounce_if_on_edge; forever {}')[0],
-                    rubyToExpected(converter, target, 'move(10)')[0],
-                    rubyToExpected(converter, target, 'x')[0]
+                    await rubyToExpected(converter, target, 'move(10)')[0],
+                    (await rubyToExpected(converter, target, 'x'))[0],
+                    await rubyToExpected(converter, target, 'bounce_if_on_edge; turn_right(180)')[0],
+                    (await rubyToExpected(converter, target, 'y'))[0],
+                    (await rubyToExpected(converter, target, 'size'))[0],
+                    await rubyToExpected(converter, target, 'move(10)')[0],
+                    await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}')[0],
+                    (await rubyToExpected(converter, target, 'bounce_if_on_edge; forever {}'))[0],
+                    await rubyToExpected(converter, target, 'move(10)')[0],
+                    (await rubyToExpected(converter, target, 'x'))[0]
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('mix 2', () => {
+            test('mix 2', async () => {
                 code = `
                     move(10)
                     (forever {}; turn_right(180))
@@ -158,44 +158,44 @@ describe('RubyToBlocksConverter', () => {
                     move(10)
                 `;
                 expected = [
-                    rubyToExpected(converter, target, 'move(10); forever {}')[0],
-                    rubyToExpected(converter, target, 'turn_right(180); forever {}')[0],
-                    rubyToExpected(converter, target, 'move(10); turn_right(180); forever {}')[0],
-                    rubyToExpected(converter, target, 'move(10)')[0]
+                    await rubyToExpected(converter, target, 'move(10); forever {}')[0],
+                    await rubyToExpected(converter, target, 'turn_right(180); forever {}')[0],
+                    await rubyToExpected(converter, target, 'move(10); turn_right(180); forever {}')[0],
+                    await rubyToExpected(converter, target, 'move(10)')[0]
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
 
-            test('error', () => {
-                [
+            test('error', async () => {
+                { for (const c of [
                     '1',
                     '"Hello!"',
                     ':symbol',
                     'move(10); 1',
                     'move(10); 1; bounce_if_on_edge'
-                ].forEach(c => {
-                    const res = converter.targetCodeToBlocks(target, c);
+                ]) {
+                    const res = await converter.targetCodeToBlocks(target, c);
                     expect(converter.errors).toHaveLength(1);
                     expect(converter.errors[0].row).toEqual(0);
                     expect(res).toBeFalsy();
-                });
+                } }
             });
         });
 
         describe('bugged codes', () => {
-            test('value in if', () => {
+            test('value in if', async () => {
                 code = `
                     if false
                       x
                     end
                 `;
-                const res = converter.targetCodeToBlocks(target, code);
+                const res = await converter.targetCodeToBlocks(target, code);
                 expect(converter.errors).toHaveLength(1);
                 expect(converter.errors[0].row).toEqual(2);
                 expect(res).toBeFalsy();
             });
 
-            test('==, <, > and variable', () => {
+            test('==, <, > and variable', async () => {
                 code = `
                     if !($global == 21)
                       bounce_if_on_edge
@@ -240,11 +240,11 @@ describe('RubyToBlocksConverter', () => {
                             }
                         ],
                         branches: [
-                            rubyToExpected(converter, target, 'bounce_if_on_edge')[0]
+                            (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
                         ]
                     }
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
         });
     });

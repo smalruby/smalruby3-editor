@@ -14,7 +14,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
         target = null;
     });
 
-    test('procedures_definition,procedures_prototype no arguments', () => {
+    test('procedures_definition,procedures_prototype no arguments', async () => {
         const code = `
             def self.made_block
             end
@@ -37,10 +37,10 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('procedures_definition,procedures_prototype', () => {
+    test('procedures_definition,procedures_prototype', async () => {
         const code = `
             def self.made_block(arg1, arg2)
               move(10)
@@ -82,10 +82,10 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                 }
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('argument_reporter_string_number', () => {
+    test('argument_reporter_string_number', async () => {
         const code = `
             def self.made_block(arg1, arg2)
               move(arg1)
@@ -136,10 +136,10 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                 }
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('argument_reporter_boolean,argument_reporter_string_number', () => {
+    test('argument_reporter_boolean,argument_reporter_string_number', async () => {
         const code = `
             def self.made_block(arg1, arg2)
               move(arg1)
@@ -207,16 +207,16 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                             }
                         ],
                         branches: [
-                            rubyToExpected(converter, target, 'bounce_if_on_edge')[0]
+                            (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
                         ]
                     }
                 }
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('argument_reporter_boolean,argument_reporter_string_number 2', () => {
+    test('argument_reporter_boolean,argument_reporter_string_number 2', async () => {
         const code = `
             def self.made_block(arg1)
               move(arg1)
@@ -283,10 +283,10 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                 }
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('argument_reporter_boolean,argument_reporter_string_number 3', () => {
+    test('argument_reporter_boolean,argument_reporter_string_number 3', async () => {
         const code = `
             def self.made_block(arg1)
               move(arg1)
@@ -396,10 +396,10 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                 }
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('procedures_call', () => {
+    test('procedures_call', async () => {
         const code = `
             def self.made_block(arg1, arg2)
               move(arg1)
@@ -469,7 +469,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                             }
                         ],
                         branches: [
-                            rubyToExpected(converter, target, 'bounce_if_on_edge')[0]
+                            (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
                         ]
                     }
                 }
@@ -480,15 +480,15 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                     proccode: 'made_block %s %b',
                     argument_blocks: [
                         expectedInfo.makeText('12'),
-                        rubyToExpected(converter, target, 'touching?("_edge_")')[0]
+                        await rubyToExpected(converter, target, 'touching?("_edge_")')[0]
                     ]
                 }
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('procedures_call 2', () => {
+    test('procedures_call 2', async () => {
         const code = `
             def self.made_block(arg1)
             end
@@ -527,10 +527,10 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                 }
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
-    test('procedures_call recursive', () => {
+    test('procedures_call recursive', async () => {
         const code = `
             def self.made_block(arg1)
               made_block(arg1 - 1)
@@ -600,11 +600,11 @@ describe('RubyToBlocksConverter/My Blocks', () => {
                 }
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
     describe('error if argument type miss match', () => {
-        test('defined string_number, call boolean', () => {
+        test('defined string_number, call boolean', async () => {
             const code = `
                 def self.made_block(arg1, arg2)
                   if arg2
@@ -613,20 +613,20 @@ describe('RubyToBlocksConverter/My Blocks', () => {
 
                 made_block(12, 34)
             `;
-            const res = converter.targetCodeToBlocks(target, code);
+            const res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
             expect(converter.errors[0].text).toMatch(/invalid type of My Block "made_block" argument #2/);
             expect(res).toBeFalsy();
         });
 
-        test('defined boolean, call string_number', () => {
+        test('defined boolean, call string_number', async () => {
             const code = `
                 def self.made_block(arg1, arg2)
                 end
 
                 made_block(:symbol, 1)
             `;
-            const res = converter.targetCodeToBlocks(target, code);
+            const res = await converter.targetCodeToBlocks(target, code);
             expect(converter.errors).toHaveLength(1);
             expect(converter.errors[0].text).toMatch(/invalid type of My Block "made_block" argument #1/);
             expect(res).toBeFalsy();

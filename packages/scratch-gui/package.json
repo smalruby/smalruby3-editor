@@ -101,7 +101,6 @@
     ],
     "setupFiles": [
       "raf/polyfill",
-      "<rootDir>/test/setup-opal.js",
       "<rootDir>/test/unit/lib/setup-prism.js"
     ],
     "testEnvironment": "jsdom",

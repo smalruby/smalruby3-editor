@@ -62,7 +62,7 @@ describe('Ruby Roundtrip Gets', () => {
 
     const roundtrip = (code) => {
         converter.reset();
-        const res = converter.targetCodeToBlocks(target, code);
+        const res = await converter.targetCodeToBlocks(target, code);
         if (!res) {
             throw new Error(`Conversion failed: ${JSON.stringify(converter.errors)}`);
         }
@@ -92,17 +92,17 @@ describe('Ruby Roundtrip Gets', () => {
         return generatedCode.trim();
     };
 
-    test('text = gets', () => {
+    test('text = gets', async () => {
         const code = 'text = gets';
         expect(roundtrip(code)).toBe('text = gets');
     });
 
-    test('puts(gets)', () => {
+    test('puts(gets)', async () => {
         const code = 'puts(gets)';
         expect(roundtrip(code)).toBe('puts(gets)');
     });
 
-    test('multiple gets', () => {
+    test('multiple gets', async () => {
         const code = 'a = gets\nb = gets';
         expect(roundtrip(code)).toBe('a = gets\nb = gets');
     });

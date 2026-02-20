@@ -13,7 +13,7 @@ describe('RubyGenerator', () => {
     });
 
     describe('quote_', () => {
-        test('escape only " to \\"', () => {
+        test('escape only " to \\"', async () => {
             const arg = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'; // eslint-disable-line
             const expected = '"!\\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"'; // eslint-disable-line
             expect(RubyGenerator.quote_(arg)).toEqual(expected);
@@ -21,7 +21,7 @@ describe('RubyGenerator', () => {
     });
 
     describe('spriteName', () => {
-        test('return self', () => {
+        test('return self', async () => {
             RubyGenerator.currentTarget = {
                 sprite: {
                     name: 'Sprite1'
@@ -99,29 +99,29 @@ describe('RubyGenerator', () => {
             RubyGenerator.currentTarget = renderedTarget;
         });
 
-        test('return @name if local variable', () => {
+        test('return @name if local variable', async () => {
             expect(RubyGenerator.variableName('id1')).toEqual('@Variable1');
             expect(RubyGenerator.listName('id2')).toEqual('@List1');
             expect(RubyGenerator.variableName('id3')).toEqual('@Variable2');
             expect(RubyGenerator.listName('id4')).toEqual('@List2');
         });
 
-        test('return $name if global variable', () => {
+        test('return $name if global variable', async () => {
             expect(RubyGenerator.variableName('id5')).toEqual('$Variable3');
             expect(RubyGenerator.listName('id6')).toEqual('$List3');
         });
 
-        test('return null if missmatch type', () => {
+        test('return null if missmatch type', async () => {
             expect(RubyGenerator.listName('id1')).toEqual(null);
             expect(RubyGenerator.variableName('id2')).toEqual(null);
         });
 
-        test('return null if not found', () => {
+        test('return null if not found', async () => {
             expect(RubyGenerator.variableName('unknown_id1')).toEqual(null);
             expect(RubyGenerator.listName('unknown_id2')).toEqual(null);
         });
 
-        test('return $name if stage\'s local variable', () => {
+        test('return $name if stage\'s local variable', async () => {
             renderedTarget.isStage = true;
             expect(RubyGenerator.variableName('id1')).toEqual('$Variable1');
             expect(RubyGenerator.listName('id2')).toEqual('$List1');
@@ -129,7 +129,7 @@ describe('RubyGenerator', () => {
             expect(RubyGenerator.listName('id4')).toEqual('$List2');
         });
 
-        test('return null if stage and not exist local variable', () => {
+        test('return null if stage and not exist local variable', async () => {
             renderedTarget.isStage = true;
             expect(RubyGenerator.variableName('id5')).toEqual(null);
             expect(RubyGenerator.listName('id6')).toEqual(null);
@@ -146,7 +146,7 @@ describe('RubyGenerator', () => {
             expect(RubyGenerator.variableName('id2_3')).toEqual('$_________________________________');
         });
 
-        test('do not escape multibyte character like Japanese', () => {
+        test('do not escape multibyte character like Japanese', async () => {
             expect(RubyGenerator.variableName('id2_4')).toEqual('@平均_合計___件数_');
             expect(RubyGenerator.listName('id2_5')).toEqual('@シンボル　配列。');
 
@@ -225,7 +225,7 @@ describe('RubyGenerator', () => {
             };
         });
 
-        test('return the Sprite.new code', () => {
+        test('return the Sprite.new code', async () => {
             const expected = `Sprite.new(${RubyGenerator.quote_(spriteName)},
            x: ${renderedTarget.x},
            y: ${renderedTarget.y},
@@ -281,7 +281,7 @@ describe('RubyGenerator', () => {
             expect(RubyGenerator.spriteNew(renderedTarget)).toEqual(expected);
         });
 
-        test('suppress default attributes', () => {
+        test('suppress default attributes', async () => {
             Object.assign(renderedTarget, {
                 x: 0,
                 y: 0,
@@ -297,7 +297,7 @@ describe('RubyGenerator', () => {
             expect(RubyGenerator.spriteNew(renderedTarget)).toEqual(expected);
         });
 
-        test('the Stage.new instead of the Sprite.new if stage', () => {
+        test('the Stage.new instead of the Sprite.new if stage', async () => {
             Object.assign(renderedTarget, {
                 isStage: true
             });
@@ -356,7 +356,7 @@ describe('RubyGenerator', () => {
             expect(RubyGenerator.spriteNew(renderedTarget)).toEqual(expected);
         });
 
-        test('escape variable and list names with spaces', () => {
+        test('escape variable and list names with spaces', async () => {
             Object.assign(renderedTarget, {
                 variables: {
                     id1: {

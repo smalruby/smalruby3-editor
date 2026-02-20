@@ -17,7 +17,7 @@ describe('RubyToBlocksConverter/Mesh', () => {
         expected = null;
     });
 
-    test('mesh_getSensorValue', () => {
+    test('mesh_getSensorValue', async () => {
         code = 'mesh_v1.sensor_value(" ")';
         expected = [
             {
@@ -39,14 +39,14 @@ describe('RubyToBlocksConverter/Mesh', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        [
+        { for (const s of [
             'mesh_v1.sensor_value()',
             'mesh_v1.sensor_value(1)',
             'mesh_v1.sensor_value("arg1", "arg2")'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 });
