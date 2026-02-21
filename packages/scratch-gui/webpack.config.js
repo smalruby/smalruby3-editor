@@ -86,7 +86,15 @@ const baseConfig = new ScratchWebpackConfigBuilder(
     })
     .addModuleRule({
         test: /\.wasm$/,
+        exclude: /prism\.wasm$/,
         type: 'asset/resource'
+    })
+    .addModuleRule({
+        // Embed prism.wasm as Base64 data URL so it works with file:// protocol
+        // (used in integration tests). fetch() and XHR are blocked by CORS when
+        // the page is loaded via file://.
+        test: /prism\.wasm$/,
+        type: 'asset/inline'
     })
     .addModuleRule({
         test: /\.rb$/,

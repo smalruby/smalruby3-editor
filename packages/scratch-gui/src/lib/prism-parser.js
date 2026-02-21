@@ -38,8 +38,25 @@ const _doLoadPrism = async () => {
     // Browser environment
     const {WASI} = await import('@bjorn3/browser_wasi_shim');
     const {parsePrism} = await import('@ruby/prism/src/parsePrism.js');
+    // prism.wasm is bundled as asset/inline (Base64 data URL) so it works without
+    // a network request (required for file:// protocol used in integration tests).
+    // The prismWasmUrl may be a data: URL (static build) or a regular URL (dev server).
     const prismWasmUrl = (await import('@ruby/prism/src/prism.wasm')).default;
-    const wasm = await WebAssembly.compileStreaming(fetch(prismWasmUrl));
+    let wasmBuffer;
+    if (typeof prismWasmUrl === 'string' && prismWasmUrl.startsWith('data:')) {
+        // data: URL from asset/inline: decode Base64 (fetch() doesn't support data: in Chrome)
+        const base64 = prismWasmUrl.split(',')[1];
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        wasmBuffer = bytes.buffer;
+    } else {
+        // Regular URL (dev server): use fetch()
+        wasmBuffer = await fetch(prismWasmUrl).then(r => r.arrayBuffer());
+    }
+    const wasm = await WebAssembly.compile(wasmBuffer);
     const wasi = new WASI([], [], []);
 
     const instance = await WebAssembly.instantiate(wasm, {wasi_snapshot_preview1: wasi.wasiImport});

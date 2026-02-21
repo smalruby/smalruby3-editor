@@ -85,6 +85,10 @@ class RubyHelper {
         await this.fillInRubyProgram(inputCode);
         await this.clickText('Code', '*[@role="tab"]');
 
+        // Wait for Prism wasm to load and Ruby→blocks conversion to complete.
+        // On the first call, loading the wasm file is async and can take a few seconds.
+        await this.driver.sleep(3000);
+
         // Dismiss any alerts that might be blocking subsequent clicks
         await this.dismissAlertsIfPresent();
 

@@ -123,9 +123,9 @@ const EventConverter = {
         converter.registerOnSendWithBlock('self', 'when', 1, 0, params => {
             const {args} = params;
 
-            if (args[0].type !== 'sym') return null;
+            if (!converter._isSymbol(args[0])) return null;
 
-            switch (args[0].value) {
+            switch (converter._getSymbolValue(args[0])) {
             case 'flag_clicked':
                 return converter.callMethod(
                     params.receiver, 'when_flag_clicked', params.args.slice(1),
@@ -145,9 +145,9 @@ const EventConverter = {
         converter.registerOnSendWithBlock('self', 'when', 2, 0, params => {
             const {args} = params;
 
-            if (args[0].type !== 'sym') return null;
+            if (!converter._isSymbol(args[0])) return null;
 
-            switch (args[0].value) {
+            switch (converter._getSymbolValue(args[0])) {
             case 'key_pressed':
                 return converter.callMethod(
                     params.receiver, 'when_key_pressed', params.args.slice(1),
@@ -172,9 +172,9 @@ const EventConverter = {
         converter.registerOnSendWithBlock('self', 'when', 3, 0, params => {
             const {args} = params;
 
-            if (args[0].type !== 'sym') return null;
+            if (!converter._isSymbol(args[0])) return null;
 
-            switch (args[0].value) {
+            switch (converter._getSymbolValue(args[0])) {
             case 'greater_than':
                 return converter.callMethod(
                     params.receiver, 'when_greater_than', params.args.slice(1),

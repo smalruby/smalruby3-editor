@@ -46,8 +46,8 @@ const MakeyMakeyConverter = {
         // backward compatibility
         converter.registerOnSendWithBlock('self', 'when', 2, 0, params => {
             const {args, rubyBlock} = params;
-            if (args.length === 2 && args[0].type === 'sym' && rubyBlock) {
-                switch (args[0].value) {
+            if (args.length === 2 && converter._isSymbol(args[0]) && rubyBlock) {
+                switch (converter._getSymbolValue(args[0])) {
                 case 'makey_key_pressed':
                     if (converter.isStringOrBlock(args[1])) {
                         const block = converter.createBlock('makeymakey_whenMakeyKeyPressed', 'hat');

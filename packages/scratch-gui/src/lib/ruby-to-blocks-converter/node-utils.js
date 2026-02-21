@@ -116,6 +116,31 @@ const NodeUtils = {
             (value.constructor.name === 'ConstantReadNode' || value.constructor.name === 'ConstantPathNode');
     },
 
+    _isSymbol (value) {
+        if (this._isPrimitive(value)) {
+            return value.type === 'sym';
+        }
+        return value && value.constructor.name === 'SymbolNode';
+    },
+
+    /**
+     * Get the string value of a symbol node.
+     * Works for both Opal-style Primitive nodes ({type: 'sym', value: '...'})
+     * and Prism SymbolNode instances ({unescaped: {value: '...'}}).
+     * @param {object} node - A symbol node.
+     * @returns {string|null} The symbol value, or null if not a symbol.
+     */
+    _getSymbolValue (node) {
+        if (!node) return null;
+        if (this._isPrimitive(node) && node.type === 'sym') {
+            return node.value;
+        }
+        if (node.constructor.name === 'SymbolNode') {
+            return node.unescaped ? node.unescaped.value : null;
+        }
+        return null;
+    },
+
     isBlock (block) {
         try {
             return Object.prototype.hasOwnProperty.call(block, 'opcode');

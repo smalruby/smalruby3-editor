@@ -24,6 +24,16 @@ const ControlFlowHandlers = {
             block = this._createRubyStatementBlock(this._getSource(node), node);
         }
 
+        // When there's an explicit else clause (ElseNode, not IfNode/elsif), ensure control_if_else
+        // even if the else body is empty — preserves round-trip fidelity for "if cond; else; end"
+        if (node.subsequent && node.subsequent.constructor.name === 'ElseNode' &&
+            this._isBlock(block) && block.opcode !== 'control_if_else') {
+            block.opcode = 'control_if_else';
+            if (!block.inputs.SUBSTACK2) {
+                block.inputs.SUBSTACK2 = {name: 'SUBSTACK2', block: null, shadow: null};
+            }
+        }
+
         if (node.subsequent && node.subsequent.constructor.name === 'IfNode') {
             const elseBlock = _.isArray(elseStatement) ? elseStatement[0] : elseStatement;
             if (this.isBlock(block) && this.isBlock(elseBlock)) {
@@ -180,6 +190,47 @@ const ControlFlowHandlers = {
             this._restoreContext(saved);
 
             block = this._createRubyStatementBlock(this._getSource(node), node);
+        }
+
+        if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
+            return [...preBlocks, block];
+        }
+        return block;
+    },
+
+    visitUnlessNode (node) {
+        const saved = this._saveContext();
+
+        const preBlocks = [];
+        let cond = this._processCondition(node.predicate);
+        const split = this._splitPreBlocksAndValue(cond);
+        cond = split.value;
+        preBlocks.push(...split.preBlocks);
+
+        // unless cond; thenBody; else; elseBody; end
+        // is equivalent to: if cond; elseBody; else; thenBody; end
+        // (branches are swapped relative to if)
+        const unlessThen = this._processStatement(node.statements);
+        const unlessElse = node.elseClause ? this._processStatement(node.elseClause) : null;
+        const hasElseClause = !!node.elseClause;
+
+        // Swap: unless-then becomes if-else, unless-else becomes if-then
+        const ifThen = unlessElse;
+        const ifElse = unlessThen;
+
+        let block = this._callConvertersHandler('onIf', cond, ifThen, ifElse);
+        if (!block) {
+            this._restoreContext(saved);
+            block = this._createRubyStatementBlock(this._getSource(node), node);
+        } else if (hasElseClause && this._isBlock(block)) {
+            // Ensure control_if_else and SUBSTACK2 exist even when ifElse is null
+            block.opcode = 'control_if_else';
+            if (!block.inputs.SUBSTACK2) {
+                block.inputs.SUBSTACK2 = {name: 'SUBSTACK2', block: null, shadow: null};
+            }
         }
 
         if (preBlocks.length > 0 && block) {
