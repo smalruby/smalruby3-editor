@@ -50,4 +50,26 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
         expect(converter.errors).toHaveLength(1);
         expect(converter.errors[0].text).toContain('could not be converted');
     });
+
+    test('float literal 1.0 should be stored as "1.0" in NUM field', async () => {
+        const code = 'move(1.0)';
+        const converter = await targetCodeToBlocks(vm, target, code);
+        expect(converter.result).toBeTruthy();
+        const blocks = Object.values(converter.blocks);
+        const moveBlock = blocks.find(b => b.opcode === 'motion_movesteps');
+        expect(moveBlock).toBeDefined();
+        const stepsBlock = converter.blocks[moveBlock.inputs.STEPS.block];
+        expect(stepsBlock.fields.NUM.value).toBe('1.0');
+    });
+
+    test('float literal 3435.0 should be stored as "3435.0" in NUM field', async () => {
+        const code = 'move(3435.0)';
+        const converter = await targetCodeToBlocks(vm, target, code);
+        expect(converter.result).toBeTruthy();
+        const blocks = Object.values(converter.blocks);
+        const moveBlock = blocks.find(b => b.opcode === 'motion_movesteps');
+        expect(moveBlock).toBeDefined();
+        const stepsBlock = converter.blocks[moveBlock.inputs.STEPS.block];
+        expect(stepsBlock.fields.NUM.value).toBe('3435.0');
+    });
 });
