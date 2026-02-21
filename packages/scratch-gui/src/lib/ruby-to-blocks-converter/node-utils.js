@@ -93,6 +93,14 @@ const NodeUtils = {
         return value && value.constructor.name === 'NilNode';
     },
 
+    _isString (value) {
+        if (_.isString(value)) return true;
+        if (this._isPrimitive(value)) {
+            return value.type === 'str' || value.type === 'string';
+        }
+        return value && (value.constructor.name === 'StringNode' || value.constructor.name === 'InterpolatedStringNode');
+    },
+
     _isArray (value) {
         if (_.isArray(value)) return true;
         if (this._isPrimitive(value)) {

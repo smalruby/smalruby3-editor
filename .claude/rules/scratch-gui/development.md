@@ -56,10 +56,13 @@ docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run tes
 # Unit tests only
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:unit"
 
+# Run specific unit test (does not use tap)
+docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/unit/your-test.test.js"
+
 # Integration tests only (requires build first)
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:integration"
 
-# Run specific test
+# Run specific test (does not use tap)
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/integration/your-test.test.js"
 
 # Smoke tests
