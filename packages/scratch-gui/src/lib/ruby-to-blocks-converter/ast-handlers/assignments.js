@@ -87,18 +87,26 @@ const AssignmentHandlers = {
         let lh = name;
         if (scope === 'local') {
             const varName = this._toSnakeCaseLowercase(name);
-            // eslint-disable-next-line no-undefined
-            const block = this.callMethod(null, varName, [], undefined, undefined, node);
+            let rubyBlockArgs;
+            if (node.block && node.block.parameters) {
+                rubyBlockArgs = this.visit(node.block.parameters);
+            }
+            let rubyBlock;
+            if (node.block) {
+                rubyBlock = this._processStatement(node.block.body);
+                if (typeof rubyBlock === 'undefined') {
+                    rubyBlock = null;
+                }
+            }
+            const block = this.callMethod(null, varName, [], rubyBlockArgs, rubyBlock, node);
             if (block) {
-                lh = block;
+                const splitLh = this._splitPreBlocksAndValue(block);
+                lh = splitLh.value;
+                preBlocks.push(...splitLh.preBlocks);
             } else {
                 lh = varName;
             }
         }
-
-        const splitLh = this._splitPreBlocksAndValue(lh);
-        lh = splitLh.value;
-        preBlocks.push(...splitLh.preBlocks);
 
         let rh = this.visit(valueNode);
         const split = this._splitPreBlocksAndValue(rh);
@@ -145,8 +153,18 @@ const AssignmentHandlers = {
             // Backward compatibility: if varName is a registered method on 'sprite' with 1 argument,
             // treat it as a method call (e.g. pen_color = "#ff0000")
             const writeName = `${varName}=`;
-            // eslint-disable-next-line no-undefined
-            const block = this.callMethod(null, writeName, [this.visit(valueNode)], undefined, undefined, node);
+            let rubyBlockArgs;
+            if (node.block && node.block.parameters) {
+                rubyBlockArgs = this.visit(node.block.parameters);
+            }
+            let rubyBlock;
+            if (node.block) {
+                rubyBlock = this._processStatement(node.block.body);
+                if (typeof rubyBlock === 'undefined') {
+                    rubyBlock = null;
+                }
+            }
+            const block = this.callMethod(null, writeName, [this.visit(valueNode)], rubyBlockArgs, rubyBlock, node);
             if (block) {
                 return block;
             }
