@@ -45,12 +45,12 @@
     "lint": "eslint && format-message lint -e customrules -c .format-message-lint.json src/**/*.js",
     "prepublish": "in-publish && npm run build || not-in-publish",
     "start": "webpack serve",
-    "tap": "tap ./test/{unit,integration}/*.js",
-    "tap:integration": "tap ./test/integration/*.js",
+    "tap": "tap './test/unit/*.js' './test/integration/*.js' './test/integration/**/*.js'",
+    "tap:integration": "tap './test/integration/*.js' './test/integration/**/*.js'",
     "tap:unit": "tap ./test/unit/*.js",
     "test": "npm run lint && npm run tap",
     "test:unit": "tap ./test/unit/*.js",
-    "test:integration": "tap ./test/integration/*.js",
+    "test:integration": "tap './test/integration/*.js' './test/integration/**/*.js'",
     "watch": "webpack --progress --watch"
   },
   "browserslist": [
