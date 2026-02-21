@@ -168,9 +168,12 @@ const ConverterRegistry = {
 
         let numRubyBlockArgs = 'none';
         if (typeof rubyBlock !== 'undefined') {
-            numRubyBlockArgs = rubyBlockArgs ? rubyBlockArgs.length : 0;
+            numRubyBlockArgs = (rubyBlockArgs && rubyBlockArgs.length) || 0;
         }
         let createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs[numRubyBlockArgs];
+        if (!createBlockFuncs) {
+            createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs.any;
+        }
         if (!createBlockFuncs) {
             createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs[-1];
         }
