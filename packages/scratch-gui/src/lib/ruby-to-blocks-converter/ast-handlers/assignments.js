@@ -84,7 +84,21 @@ const AssignmentHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
-        const lh = name;
+        let lh = name;
+        if (scope === 'local') {
+            const varName = this._toSnakeCaseLowercase(name);
+            // eslint-disable-next-line no-undefined
+            const block = this.callMethod(null, varName, [], undefined, undefined, node);
+            if (block) {
+                lh = block;
+            } else {
+                lh = varName;
+            }
+        }
+
+        const splitLh = this._splitPreBlocksAndValue(lh);
+        lh = splitLh.value;
+        preBlocks.push(...splitLh.preBlocks);
 
         let rh = this.visit(valueNode);
         const split = this._splitPreBlocksAndValue(rh);
@@ -127,6 +141,15 @@ const AssignmentHandlers = {
         let varName = name;
         if (scope === 'local') {
             varName = this._toSnakeCaseLowercase(varName);
+
+            // Backward compatibility: if varName is a registered method on 'sprite' with 1 argument,
+            // treat it as a method call (e.g. pen_color = "#ff0000")
+            const writeName = `${varName}=`;
+            // eslint-disable-next-line no-undefined
+            const block = this.callMethod(null, writeName, [this.visit(valueNode)], undefined, undefined, node);
+            if (block) {
+                return block;
+            }
         }
         const variable = this._lookupOrCreateVariable(varName);
         let rh = this.visit(valueNode);

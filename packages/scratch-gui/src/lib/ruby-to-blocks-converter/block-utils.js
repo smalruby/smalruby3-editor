@@ -116,6 +116,10 @@ const BlockUtils = {
         return block;
     },
 
+    createRubyStatementBlock (statement, node) {
+        return this._createRubyStatementBlock(statement, node);
+    },
+
     _createRubyStatementBlock (statement, node) {
         const block = this._createBlock('ruby_statement', 'statement');
         block.node = node;
