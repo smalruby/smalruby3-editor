@@ -294,41 +294,61 @@ class RubyToBlocksConverter extends Visitor {
         const className = node.name;
         const isSpriteIndexName = /^Sprite\d+$/.test(className);
 
-        // Pre-scan class body for set_name calls
-        let setNameValue = null;
+        // Set of recognized set_xxx class methods
+        const SET_METHODS = {
+            set_name: 'name',
+            set_x: 'x',
+            set_y: 'y',
+            set_direction: 'direction',
+            set_visible: 'visible',
+            set_size: 'size',
+            set_current_costume: 'current_costume',
+            set_rotation_style: 'rotation_style',
+            set_costumes: 'costumes',
+            set_variables: 'variables',
+            set_lists: 'lists'
+        };
+
+        // Pre-scan class body for set_xxx calls
+        const classInfo = {};
+        const setMethodNames = new Set();
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
                 if (stmt.constructor.name === 'CallNode' &&
-                    stmt.name === 'set_name' &&
+                    SET_METHODS[stmt.name] &&
                     !stmt.receiver &&
                     stmt.arguments_ &&
                     stmt.arguments_.arguments_.length === 1) {
+                    const attrName = SET_METHODS[stmt.name];
                     const arg = stmt.arguments_.arguments_[0];
-                    if (arg.constructor.name === 'StringNode') {
-                        const unescaped = arg.unescaped;
-                        setNameValue = typeof unescaped === 'object' ? unescaped.value : unescaped;
+                    const value = this._extractClassMethodArg(arg);
+                    if (value !== null) {
+                        classInfo[attrName] = value;
+                        setMethodNames.add(stmt.name);
                     }
                 }
             }
         }
 
-        // Determine comment type and classInfo
-        const hasNameChange = !isSpriteIndexName || setNameValue !== null;
+        // Determine comment type
+        const hasNameChange = !isSpriteIndexName || Object.prototype.hasOwnProperty.call(classInfo, 'name');
+        const hasAnySetMethod = Object.keys(classInfo).length > 0;
         const commentText = hasNameChange ? '@ruby:class:name' : '@ruby:class';
         this._createComment(commentText, null);
 
-        // Store class info in context for later application
-        if (hasNameChange) {
-            this._context.classInfo = {
-                name: setNameValue || className
-            };
+        // Store class info in context
+        if (hasNameChange || hasAnySetMethod) {
+            if (!classInfo.name && !isSpriteIndexName) {
+                classInfo.name = className;
+            }
+            this._context.classInfo = classInfo;
         }
 
-        // Visit class body, filtering out set_name calls
+        // Visit class body, filtering out set_xxx calls
         if (node.body && node.body.body) {
             const filteredStatements = node.body.body.filter(stmt => {
                 if (stmt.constructor.name === 'CallNode' &&
-                    stmt.name === 'set_name' &&
+                    setMethodNames.has(stmt.name) &&
                     !stmt.receiver) {
                     return false;
                 }
@@ -353,6 +373,35 @@ class RubyToBlocksConverter extends Visitor {
             return blocks;
         }
         return [];
+    }
+
+    _extractClassMethodArg (argNode) {
+        const type = argNode.constructor.name;
+        switch (type) {
+        case 'StringNode': {
+            const unescaped = argNode.unescaped;
+            return typeof unescaped === 'object' ? unescaped.value : unescaped;
+        }
+        case 'IntegerNode':
+            return argNode.value;
+        case 'FloatNode':
+            return argNode.value;
+        case 'TrueNode':
+            return true;
+        case 'FalseNode':
+            return false;
+        case 'CallNode':
+            // Handle unary minus: e.g., -50
+            if (argNode.name === '-@' && argNode.receiver) {
+                const innerValue = this._extractClassMethodArg(argNode.receiver);
+                if (typeof innerValue === 'number') {
+                    return -innerValue;
+                }
+            }
+            return null;
+        default:
+            return null;
+        }
     }
 }
 

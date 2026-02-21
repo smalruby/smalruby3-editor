@@ -204,4 +204,122 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(targetComments[0].text).toEqual('@ruby:class');
         });
     });
+
+    describe('set_xxx class methods', () => {
+        test('set_x, set_y, set_direction are stored in classInfo', async () => {
+            code = `
+                class Sprite1
+                  set_x 100
+                  set_y -50
+                  set_direction 180
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.x).toEqual(100);
+            expect(converter._context.classInfo.y).toEqual(-50);
+            expect(converter._context.classInfo.direction).toEqual(180);
+        });
+
+        test('set_visible false is stored in classInfo', async () => {
+            code = `
+                class Sprite1
+                  set_visible false
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.visible).toEqual(false);
+        });
+
+        test('set_size and set_current_costume are stored in classInfo', async () => {
+            code = `
+                class Sprite1
+                  set_size 50
+                  set_current_costume 2
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.size).toEqual(50);
+            expect(converter._context.classInfo.current_costume).toEqual(2);
+        });
+
+        test('set_rotation_style is stored in classInfo', async () => {
+            code = `
+                class Sprite1
+                  set_rotation_style "left-right"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.rotation_style).toEqual('left-right');
+        });
+
+        test('set_xxx methods are not converted to blocks', async () => {
+            code = `
+                class Sprite1
+                  set_x 100
+                  set_y -50
+                  set_direction 180
+                  set_visible false
+                  set_size 50
+                  set_current_costume 2
+                  set_rotation_style "left-right"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            // set_xxx should not create ruby_statement blocks
+            const blocks = converter.blocks;
+            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            expect(blockOpcodes).not.toContain('ruby_statement');
+        });
+
+        test('set_xxx without class generates error', async () => {
+            code = `
+                set_x 100
+                self.when(:flag_clicked) do
+                  move(10)
+                end
+            `;
+            // set_x outside class should be treated as unknown call
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+    });
 });

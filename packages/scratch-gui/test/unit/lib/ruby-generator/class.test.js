@@ -126,4 +126,141 @@ describe('RubyGenerator/Class', () => {
             expect(result).not.toContain('# @ruby:class');
         });
     });
+
+    describe('set_xxx method generation', () => {
+        test('non-default x,y generates set_x and set_y', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 100;
+            target.y = -50;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_x 100');
+            expect(result).toContain('set_y -50');
+            expect(result).not.toContain('set_direction');
+            expect(result).not.toContain('set_visible');
+            expect(result).not.toContain('set_size');
+        });
+
+        test('non-default direction generates set_direction', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 180;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'move(10)\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_direction 180');
+        });
+
+        test('visible false generates set_visible', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = false;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'move(10)\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_visible false');
+        });
+
+        test('non-default size generates set_size', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 50;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'move(10)\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_size 50');
+        });
+
+        test('non-default rotation_style generates set_rotation_style', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'left-right';
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'move(10)\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_rotation_style "left-right"');
+        });
+
+        test('all default values produce no set_xxx', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'move(10)\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).not.toContain('set_x');
+            expect(result).not.toContain('set_y');
+            expect(result).not.toContain('set_direction');
+            expect(result).not.toContain('set_visible');
+            expect(result).not.toContain('set_size');
+            expect(result).not.toContain('set_rotation_style');
+        });
+    });
 });

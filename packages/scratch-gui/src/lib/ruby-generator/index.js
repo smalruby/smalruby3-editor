@@ -183,7 +183,7 @@ RubyGenerator.finish = function (code, options) {
 RubyGenerator._wrapWithClass = function (code, classComment) {
     const target = this.currentTarget;
     let className;
-    let setNameCode = '';
+    const setLines = [];
 
     if (classComment === '@ruby:class:name') {
         const spriteName = target.sprite.name;
@@ -194,7 +194,7 @@ RubyGenerator._wrapWithClass = function (code, classComment) {
             const sprites = target.runtime.targets.filter(t => !t.isStage);
             const index = sprites.indexOf(target) + 1;
             className = `Sprite${index}`;
-            setNameCode = `${this.INDENT}set_name ${this.quote_(spriteName)}\n\n`;
+            setLines.push(`set_name ${this.quote_(spriteName)}`);
         }
     } else {
         // @ruby:class - use Sprite%index%
@@ -203,12 +203,45 @@ RubyGenerator._wrapWithClass = function (code, classComment) {
         className = `Sprite${index}`;
     }
 
+    // Generate set_xxx for non-default sprite attributes
+    this._generateSetXxx(target, setLines);
+
+    let setCode = '';
+    if (setLines.length > 0) {
+        setCode = setLines.map(line => `${this.INDENT}${line}\n`).join('');
+        setCode += '\n';
+    }
+
     if (code.length > 0) {
         code = this.prefixLines(code, this.INDENT);
     }
-    code = `class ${className}\n${setNameCode}${code}end\n`;
+    code = `class ${className}\n${setCode}${code}end\n`;
 
     return code;
+};
+
+RubyGenerator._generateSetXxx = function (target, setLines) {
+    if (target.x !== 0) {
+        setLines.push(`set_x ${target.x}`);
+    }
+    if (target.y !== 0) {
+        setLines.push(`set_y ${target.y}`);
+    }
+    if (target.direction !== 90) {
+        setLines.push(`set_direction ${target.direction}`);
+    }
+    if (!target.visible) {
+        setLines.push(`set_visible ${!!target.visible}`);
+    }
+    if (target.size !== 100) {
+        setLines.push(`set_size ${target.size}`);
+    }
+    if (target.currentCostume > 0) {
+        setLines.push(`set_current_costume ${target.currentCostume}`);
+    }
+    if (target.rotationStyle !== 'all around') {
+        setLines.push(`set_rotation_style ${this.quote_(target.rotationStyle)}`);
+    }
 };
 
 RubyGenerator.initTargets = function (options) {
