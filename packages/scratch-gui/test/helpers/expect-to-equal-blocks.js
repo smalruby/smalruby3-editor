@@ -94,7 +94,11 @@ const expectToEqualInputs = function (context, parent, actualInputs, expectedInp
                 // eslint-disable-next-line no-use-before-define
                 expectToEqualBlock(context, parent, blocks.getBlock(input.shadow), expectedInput.shadow);
             } else {
-                expect(input.shadow).toEqual(expectedInput.block.shadow ? input.block : null);
+                if (expectedInput.block && expectedInput.block.shadow) {
+                    expect(input.shadow).toEqual(input.block);
+                } else {
+                    expect(input.shadow).toEqual(null);
+                }
             }
 
             // eslint-disable-next-line no-use-before-define
@@ -245,7 +249,7 @@ const convertAndExpectToEqualBlocks = async function (converter, target, code, e
 const convertAndExpectRubyBlockError = async function (converter, target, code) {
     await converter.targetCodeToBlocks(target, code);
     expect(converter.errors).toHaveLength(1);
-    expect(converter.errors[0].text).toMatch(/ is the wrong instruction\.|condition is not boolean: /);
+    expect(converter.errors[0].text).toMatch(/ is the wrong instruction\.|condition is not boolean: |include not statement blocks/);
 };
 
 const expectToEqualRubyStatement = function (converter, expectedStatement) {

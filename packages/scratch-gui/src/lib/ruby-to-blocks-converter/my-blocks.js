@@ -226,6 +226,24 @@ const MyBlocksConverter = {
             } else if (!_.isArray(body)) {
                 body = [body];
             }
+            body = body.filter(b => b !== null && typeof b !== 'undefined').map(b => {
+                if (converter._isNumber(b)) {
+                    const value = (b instanceof Primitive) ? b.value : b;
+                    return converter._createNumberBlock('math_number', value);
+                }
+                if (converter._isTrue(b)) {
+                    return converter._createTextBlock('true');
+                }
+                if (converter._isFalse(b)) {
+                    return converter._createTextBlock('false');
+                }
+                if (converter._isString(b) || converter.isNil(b) || converter._isSymbol(b)) {
+                    const value = (b instanceof Primitive) ? b.value : b;
+                    return converter._createTextBlock(value === null ? '' : value.toString());
+                }
+                if (converter._isBlock(b)) return b;
+                return b;
+            });
             converter._context.inMyBlockDefinition = savedInMyBlockDefinition;
             converter._context.currentProcedureName = savedCurrentProcedureName;
 
@@ -253,9 +271,13 @@ const MyBlocksConverter = {
                         }
                     });
                     returnBlock.comment = converter._createComment(`@ruby:return:${procedureName}`, returnBlock.id);
-                    converter._addTextInput(
-                        returnBlock, 'VALUE', converter._isNumber(last) ? last.toString() : last, '0'
-                    );
+
+                    if (last.shadow) {
+                        // Shadow blocks (e.g. math_number, text) are used directly as both block and shadow
+                        converter._addInput(returnBlock, 'VALUE', last);
+                    } else {
+                        converter._addTextInput(returnBlock, 'VALUE', last, '0');
+                    }
                     body[lastIdx] = returnBlock;
 
                     // Mark procedure as having a return value
@@ -264,8 +286,10 @@ const MyBlocksConverter = {
                     // Re-link the body if it's a sequence
                     if (lastIdx > 0) {
                         const prev = converter._lastBlock(body[lastIdx - 1]);
-                        prev.next = returnBlock.id;
-                        returnBlock.parent = prev.id;
+                        if (converter._isBlock(prev)) {
+                            prev.next = returnBlock.id;
+                            returnBlock.parent = prev.id;
+                        }
                     }
                 }
 
@@ -320,6 +344,26 @@ const MyBlocksConverter = {
                     body.unshift(initBlock);
                 }
             }
+
+            _.flatten(body).forEach(b => {
+                if (converter._isValueBlock(b) ||
+                    converter._isNumber(b) ||
+                    converter._isString(b) ||
+                    converter._isTrue(b) ||
+                    converter._isFalse(b)) {
+                    let bNode = b.node;
+                    if (!bNode && b.id) {
+                        for (const [n, id] of converter._context.nodeToBlockMap.entries()) {
+                            if (id === b.id) {
+                                bNode = n;
+                                break;
+                            }
+                        }
+                    }
+                    const msg = `${bNode ? bNode.source : ''} is the wrong instruction.`;
+                    throw new RubyToBlocksConverterError(bNode, msg);
+                }
+            });
             if (body.length > 0 && converter._isBlock(body[0])) {
                 block.next = body[0].id;
                 body[0].parent = block.id;
