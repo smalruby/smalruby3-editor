@@ -201,9 +201,9 @@ const MicroBitConverter = {
         converter.registerOnSendWithBlock('self', 'when', 2, 0, params => {
             const {args} = params;
 
-            if (args[0].type !== 'sym') return null;
+            if (!converter._isSymbol(args[0])) return null;
 
-            switch (args[0].value) {
+            switch (converter._getSymbolValue(args[0])) {
             case 'microbit_button_pressed':
                 return converter.callMethod(
                     createMicrobitBlock(params.node), 'when_button_pressed', params.args.slice(1),

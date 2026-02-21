@@ -7,7 +7,7 @@ describe('Ruby Generator Procedure Arguments', () => {
         converter = new RubyToBlocksConverter(null);
     });
 
-    test('toSnakeCaseLowercase helper function', () => {
+    test('toSnakeCaseLowercase helper function', async () => {
         // Test the helper function directly
         expect(converter._toSnakeCaseLowercase('ARG1')).toBe('arg1');
         expect(converter._toSnakeCaseLowercase('aRG1')).toBe('a_rg1');

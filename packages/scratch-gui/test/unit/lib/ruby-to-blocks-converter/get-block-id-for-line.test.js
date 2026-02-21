@@ -34,7 +34,7 @@ describe('RubyToBlocksConverter.getBlockIdForLine', () => {
         };
     });
 
-    test('should return block ID for end line of if statement', () => {
+    test('should return block ID for end line of if statement', async () => {
         const code = [
             'text = "ハロー！"',
             'if text.empty?',
@@ -42,7 +42,7 @@ describe('RubyToBlocksConverter.getBlockIdForLine', () => {
             'end'
         ].join('\n');
         
-        const result = converter.targetCodeToBlocks(target, code);
+        const result = await converter.targetCodeToBlocks(target, code);
         if (!result) {
             console.error(converter.errors);
         }
@@ -57,7 +57,7 @@ describe('RubyToBlocksConverter.getBlockIdForLine', () => {
         expect(line2BlockId).toBe(line4BlockId);
     });
 
-    test('should return block ID for trailing empty lines after if statement', () => {
+    test('should return block ID for trailing empty lines after if statement', async () => {
         const code = [
             'text = "ハロー！"',
             'if text.empty?',
@@ -67,7 +67,7 @@ describe('RubyToBlocksConverter.getBlockIdForLine', () => {
             ''
         ].join('\n');
         
-        const result = converter.targetCodeToBlocks(target, code);
+        const result = await converter.targetCodeToBlocks(target, code);
         if (!result) {
             console.error(converter.errors);
         }

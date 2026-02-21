@@ -95,7 +95,7 @@ describe('Ruby Roundtrip/Method Return', () => {
 
     const rubyToBlocksToRuby = async (code) => {
         // Ruby -> Blocks
-        const result = converter.targetCodeToBlocks(target, code);
+        const result = await converter.targetCodeToBlocks(target, code);
 
         if (!result) {
             throw new Error(`Failed to convert Ruby to blocks. Errors: ${JSON.stringify(converter.errors)}`);

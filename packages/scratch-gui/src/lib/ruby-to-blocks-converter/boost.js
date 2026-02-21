@@ -142,10 +142,10 @@ const BoostConverter = {
         converter.registerOnSendWithBlock('self', 'when', 2, 0, params => {
             const {args, rubyBlock} = params;
 
-            if (args[0].type !== 'sym' || !converter.isStringOrBlock(args[1])) return null;
+            if (!converter._isSymbol(args[0]) || !converter.isStringOrBlock(args[1])) return null;
 
             let block;
-            switch (args[0].value) {
+            switch (converter._getSymbolValue(args[0])) {
             case 'boost_color':
                 block = converter.createBlock('boost_whenColor', 'hat');
                 converter.addInput(

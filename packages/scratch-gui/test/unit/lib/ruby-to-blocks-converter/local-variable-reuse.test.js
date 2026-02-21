@@ -97,7 +97,7 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
         const code = 'text_1 = 1';
 
         // First execution - create variable
-        const result1 = converter.targetCodeToBlocks(target, code);
+        const result1 = await converter.targetCodeToBlocks(target, code);
         expect(result1).toBe(true);
 
         await converter.applyTargetBlocks(target);
@@ -110,7 +110,7 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
 
         // Second execution - should delete old local variable and create new one
         const converter2 = new RubyToBlocksConverter(vm);
-        const result2 = converter2.targetCodeToBlocks(target, code);
+        const result2 = await converter2.targetCodeToBlocks(target, code);
         expect(result2).toBe(true);
 
         // Before applying, verify the old variable still exists and log its name
@@ -139,7 +139,7 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
         const code = '@text = 1';
 
         // First execution - create variable
-        const result1 = converter.targetCodeToBlocks(target, code);
+        const result1 = await converter.targetCodeToBlocks(target, code);
         expect(result1).toBe(true);
 
         await converter.applyTargetBlocks(target);
@@ -151,7 +151,7 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
 
         // Second execution - should reuse existing variable
         const converter2 = new RubyToBlocksConverter(vm);
-        const result2 = converter2.targetCodeToBlocks(target, code);
+        const result2 = await converter2.targetCodeToBlocks(target, code);
         expect(result2).toBe(true);
 
         // This should NOT throw an error about variable ID conflict
@@ -167,7 +167,7 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
         const code = '$text = 1';
 
         // First execution - create variable
-        const result1 = converter.targetCodeToBlocks(target, code);
+        const result1 = await converter.targetCodeToBlocks(target, code);
         expect(result1).toBe(true);
 
         await converter.applyTargetBlocks(target);
@@ -179,7 +179,7 @@ describe('RubyToBlocksConverter/Local Variable Reuse', () => {
 
         // Second execution - should reuse existing variable
         const converter2 = new RubyToBlocksConverter(vm);
-        const result2 = converter2.targetCodeToBlocks(target, code);
+        const result2 = await converter2.targetCodeToBlocks(target, code);
         expect(result2).toBe(true);
 
         // This should NOT throw an error about variable ID conflict

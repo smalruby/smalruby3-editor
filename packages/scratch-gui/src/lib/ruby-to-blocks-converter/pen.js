@@ -190,6 +190,14 @@ const PenConverter = {
             return block;
         });
 
+        // backward compatibility getters for +=
+        ['color', 'saturation', 'brightness', 'transparency', 'size'].forEach(methodName => {
+            converter.registerOnSend('sprite', `pen_${methodName}`, 0, params => {
+                const {node} = params;
+                return converter.createRubyStatementBlock(`self.pen_${methodName}`, node);
+            });
+        });
+
         // for +=
         ['color', 'saturation', 'brightness', 'transparency', 'size'].forEach(methodName => {
             converter.registerOnSend(Pen, methodName, 0, params => {
@@ -207,18 +215,23 @@ const PenConverter = {
             const code = this.getRubyExpression(lh);
             switch (code) {
             case 'pen.size':
+            case 'pen_size':
                 block = this.changeRubyExpressionBlock(lh, 'pen_changePenSizeBy', 'statement');
                 this.addNumberInput(block, 'SIZE', 'math_number', rh, 1);
                 break;
             case 'pen.color':
+            case 'pen_color':
             case 'pen.saturation':
+            case 'pen_saturation':
             case 'pen.brightness':
+            case 'pen_brightness':
             case 'pen.transparency':
+            case 'pen_transparency':
                 block = this.changeRubyExpressionBlock(lh, 'pen_changePenColorParamBy', 'statement');
 
                 this.addFieldInput(
                     block, 'COLOR_PARAM', 'pen_menu_colorParam', 'colorParam',
-                    code.replace('pen.', ''), 'color'
+                    code.replace('pen.', '').replace('pen_', ''), 'color'
                 );
                 this.addNumberInput(block, 'VALUE', 'math_number', rh, 10);
                 break;

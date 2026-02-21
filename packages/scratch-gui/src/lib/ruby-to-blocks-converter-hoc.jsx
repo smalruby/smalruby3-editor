@@ -39,9 +39,9 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
             ]);
         }
 
-        targetCodeToBlocks (intl) {
+        async targetCodeToBlocks (intl) {
             if (this.props.rubyCode.modified) {
-                const converter = targetCodeToBlocks(
+                const converter = await targetCodeToBlocks(
                     this.props.vm,
                     this.props.rubyCode.target,
                     this.props.rubyCode.code,

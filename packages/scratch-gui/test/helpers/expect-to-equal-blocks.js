@@ -235,15 +235,15 @@ const expectToEqualBlocks = function (converter, expectedBlocksInfo) {
     });
 };
 
-const convertAndExpectToEqualBlocks = function (converter, target, code, expectedBlocksInfo) {
-    const res = converter.targetCodeToBlocks(target, code);
+const convertAndExpectToEqualBlocks = async function (converter, target, code, expectedBlocksInfo) {
+    const res = await converter.targetCodeToBlocks(target, code);
     expect(converter.errors).toHaveLength(0);
     expectToEqualBlocks(converter, expectedBlocksInfo);
     expect(res).toBeTruthy();
 };
 
-const convertAndExpectRubyBlockError = function (converter, target, code) {
-    converter.targetCodeToBlocks(target, code);
+const convertAndExpectRubyBlockError = async function (converter, target, code) {
+    await converter.targetCodeToBlocks(target, code);
     expect(converter.errors).toHaveLength(1);
     expect(converter.errors[0].text).toMatch(/ is the wrong instruction\.|condition is not boolean: /);
 };
@@ -272,8 +272,8 @@ const expectToEqualRubyStatement = function (converter, expectedStatement) {
     expectToEqualBlocks(converter, expected);
 };
 
-const convertAndExpectToEqualRubyStatement = function (converter, target, code, expectedStatement) {
-    const res = converter.targetCodeToBlocks(target, code);
+const convertAndExpectToEqualRubyStatement = async function (converter, target, code, expectedStatement) {
+    const res = await converter.targetCodeToBlocks(target, code);
     expect(converter.errors).toHaveLength(0);
     expectToEqualRubyStatement(converter, expectedStatement);
     expect(res).toBeTruthy();
@@ -397,8 +397,8 @@ const blockToExpected = function (context, blockId) {
     return expected;
 };
 
-const rubyToExpected = function (converter, target, code) {
-    converter.targetCodeToBlocks(target, code);
+const rubyToExpected = async function (converter, target, code) {
+    await converter.targetCodeToBlocks(target, code);
     expect(converter.errors).toHaveLength(0);
 
     const blocks = new Blocks();
@@ -456,14 +456,14 @@ const expectNoArgsMethod = function (opcode, methodName, blockType = 'statement'
     });
 
     describe(`${opcode}`, () => {
-        test('normal', () => {
+        test('normal', async () => {
             code = methodName;
             expected = [
                 {
                     opcode: opcode
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
             code = `${methodName}()`;
             expected = [
@@ -471,49 +471,50 @@ const expectNoArgsMethod = function (opcode, methodName, blockType = 'statement'
                     opcode: opcode
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
         if (blockType === 'statement') {
-            test(blockType, () => {
+            test(blockType, async () => {
                 code = `
                     bounce_if_on_edge
                     ${methodName}
                     bounce_if_on_edge
                 `;
                 expected = [
-                    rubyToExpected(converter, target, 'bounce_if_on_edge')[0]
+                    (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
                 ];
-                expected[0].next = rubyToExpected(converter, target, `${methodName}`)[0];
-                expected[0].next.next = rubyToExpected(converter, target, 'bounce_if_on_edge')[0];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                expected[0].next = (await rubyToExpected(converter, target, `${methodName}`))[0];
+                expected[0].next.next = (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0];
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
         } else if (blockType === 'value' || blockType === 'value_boolean') {
-            test(blockType, () => {
+            test(blockType, async () => {
                 code = `
                     bounce_if_on_edge
                     ${methodName}
                     bounce_if_on_edge
                 `;
                 expected = [
-                    rubyToExpected(converter, target, 'bounce_if_on_edge')[0],
-                    rubyToExpected(converter, target, `${methodName}`)[0],
-                    rubyToExpected(converter, target, 'bounce_if_on_edge')[0]
+                    (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0],
+                    (await rubyToExpected(converter, target, `${methodName}`))[0],
+                    (await rubyToExpected(converter, target, 'bounce_if_on_edge'))[0]
                 ];
-                convertAndExpectToEqualBlocks(converter, target, code, expected);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
         }
 
-        test('invalid', () => {
-            [
+        test('invalid', async () => {
+            const cases = [
                 `${methodName}(false)`,
                 `${methodName}(true)`,
                 `${methodName}(1)`,
                 `${methodName}("backdrop2")`,
                 `${methodName}(x)`
-            ].forEach(c => {
-                convertAndExpectRubyBlockError(converter, target, c);
-            });
+            ];
+            for (const c of cases) {
+                await convertAndExpectRubyBlockError(converter, target, c);
+            }
         });
     });
 };

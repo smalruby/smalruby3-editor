@@ -304,10 +304,10 @@ const EV3Converter = {
         converter.registerOnSendWithBlock('self', 'when', 2, 0, params => {
             const {args, rubyBlock} = params;
 
-            if (args[0].type !== 'sym') return null;
+            if (!converter._isSymbol(args[0])) return null;
 
             let block;
-            switch (args[0].value) {
+            switch (converter._getSymbolValue(args[0])) {
             case 'ev3_button_pressed': {
                 if (!converter.isStringOrBlock(args[1])) return null;
 

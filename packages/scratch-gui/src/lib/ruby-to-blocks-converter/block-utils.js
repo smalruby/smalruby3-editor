@@ -1,8 +1,6 @@
 import Blockly from 'scratch-blocks';
 import _ from 'lodash';
 
-const Opal = global.Opal || window.Opal;
-
 /**
  * Block operation utilities for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
@@ -62,7 +60,7 @@ const BlockUtils = {
         this._context.blockTypes[block.id] = type;
 
         // Map current node to block ID for line execution feature
-        if (!block.shadow && this._context.currentNode && this._context.currentNode !== Opal.nil) {
+        if (!block.shadow && this._context.currentNode) {
             this._context.nodeToBlockMap.set(this._context.currentNode, block.id);
         }
 
@@ -116,6 +114,10 @@ const BlockUtils = {
         block.node = node;
         this._addInput(block, 'EXPRESSION', this._createTextBlock(expression));
         return block;
+    },
+
+    createRubyStatementBlock (statement, node) {
+        return this._createRubyStatementBlock(statement, node);
     },
 
     _createRubyStatementBlock (statement, node) {
@@ -278,7 +280,7 @@ const BlockUtils = {
     },
 
     _removeWaitBlocks (block) {
-        if (!block || block === Opal.nil) {
+        if (!block) {
             return null;
         }
 

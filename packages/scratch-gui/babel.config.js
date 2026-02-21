@@ -1,0 +1,10 @@
+module.exports = {
+    plugins: [
+        ['react-intl', {
+            messagesDir: './translations/messages/'
+        }]],
+    presets: [
+        '@babel/preset-env',
+        '@babel/preset-react'
+    ]
+};

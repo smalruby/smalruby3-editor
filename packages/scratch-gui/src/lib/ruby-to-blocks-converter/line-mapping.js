@@ -1,5 +1,3 @@
-const Opal = global.Opal || window.Opal;
-
 /**
  * Mixin for line mapping utility methods.
  */
@@ -70,32 +68,28 @@ const LineMappingUtils = {
 
         // Search through all nodes that have blocks (nodeToBlockMap)
         for (const [node] of this._context.nodeToBlockMap.entries()) {
-            try {
-                // Get line range for this node
-                const loc = node.$loc ? node.$loc() : null;
-                if (loc && loc !== Opal.nil) {
-                    const startLine = loc.$line ? loc.$line() : null;
-                    const endLine = loc.$last_line ? loc.$last_line() : startLine;
+            // Get line range for this node
+            if (node.location) {
+                const startLine = this._getNodeStartLine(node);
+                const endLine = this._getNodeEndLine(node) || startLine;
 
-                    // Check if this node's range contains the target line
-                    if (startLine !== null && endLine !== null &&
-                        startLine <= lineNumber && lineNumber <= endLine) {
-                        // Keep the shallowest (smallest range) matching node
-                        // If multiple nodes have same range, keep first found
-                        const range = endLine - startLine;
-                        const currentBestRange = bestMatchEndLine === null ? Infinity :
-                            bestMatchEndLine - bestMatchStartLine;
+                // Check if this node's range contains the target line
+                if (startLine !== null && typeof startLine !== 'undefined' &&
+                    endLine !== null && typeof endLine !== 'undefined' &&
+                    startLine <= lineNumber && lineNumber <= endLine) {
+                    // Keep the shallowest (smallest range) matching node
+                    // If multiple nodes have same range, keep first found
+                    const range = endLine - startLine;
+                    const currentBestRange = bestMatchEndLine === null ? Infinity :
+                        bestMatchEndLine - bestMatchStartLine;
 
-                        if (range < currentBestRange ||
-                            (range === currentBestRange && startLine < bestMatchStartLine)) {
-                            bestMatchNode = node;
-                            bestMatchStartLine = startLine;
-                            bestMatchEndLine = endLine;
-                        }
+                    if (range < currentBestRange ||
+                        (range === currentBestRange && startLine < bestMatchStartLine)) {
+                        bestMatchNode = node;
+                        bestMatchStartLine = startLine;
+                        bestMatchEndLine = endLine;
                     }
                 }
-            } catch (e) {
-                // Ignore errors when accessing location
             }
         }
 
@@ -155,20 +149,16 @@ const LineMappingUtils = {
             // Find the node for this block
             for (const [node, id] of this._context.nodeToBlockMap.entries()) {
                 if (id === blockId) {
-                    try {
-                        const loc = node.$loc ? node.$loc() : null;
-                        if (loc && loc !== Opal.nil) {
-                            const startLine = loc.$line ? loc.$line() : null;
-                            const endLine = loc.$last_line ? loc.$last_line() : startLine;
+                    if (node.location) {
+                        const startLine = this._getNodeStartLine(node);
+                        const endLine = this._getNodeEndLine(node) || startLine;
 
-                            if (startLine !== null && endLine !== null) {
-                                minLine = Math.min(minLine, startLine);
-                                maxLine = Math.max(maxLine, endLine);
-                                foundAny = true;
-                            }
+                        if (startLine !== null && typeof startLine !== 'undefined' &&
+                            endLine !== null && typeof endLine !== 'undefined') {
+                            minLine = Math.min(minLine, startLine);
+                            maxLine = Math.max(maxLine, endLine);
+                            foundAny = true;
                         }
-                    } catch (e) {
-                        // Ignore errors
                     }
                     break;
                 }
@@ -198,9 +188,9 @@ const LineMappingUtils = {
 
             if (this._context.containerNodeRanges) {
                 this._context.containerNodeRanges.forEach(container => {
-                    // Only consider 'block' type containers (do...end blocks)
-                    // Skip 'begin' and 'kwbegin' as they are often too broad
-                    if (container.type !== 'block') {
+                    // Only consider 'BlockNode' type containers (do...end blocks)
+                    // Skip others as they are often too broad
+                    if (container.type !== 'BlockNode') {
                         return;
                     }
 

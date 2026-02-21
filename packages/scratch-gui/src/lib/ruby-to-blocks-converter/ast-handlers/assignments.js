@@ -5,21 +5,111 @@ import _ from 'lodash';
  * @mixes RubyToBlocksConverter
  */
 const AssignmentHandlers = {
-    _onOpAsgn (node) {
-        this._checkNumChildren(node, 3);
-
+    visitCallOperatorWriteNode (node) {
+        // e.g. self.size += 10 (CallOperatorWriteNode in Prism)
+        // node.receiver = self, node.read_name = 'size', node.binaryOperator = '+', node.value = 10
         const saved = this._saveContext();
 
         const preBlocks = [];
-        let lh = this._process(node.children[0]);
-        let split = this._splitPreBlocksAndValue(lh);
+
+        // Visit the receiver to get the base object (e.g. self)
+        let receiver = this.visit(node.receiver);
+        let split = this._splitPreBlocksAndValue(receiver);
+        receiver = split.value;
+        preBlocks.push(...split.preBlocks);
+
+        // Build a synthetic call to get the read value (e.g. self.size, pen.color)
+        // This allows the onOpAsgn handlers to recognize the lh as a looks_size block etc.
+        // Note: Prism uses camelCase property names (readName, not read_name)
+        // Save receiver name BEFORE callMethod, since callMethod may modify the ruby_expression text
+        const receiverNameForLh = this._getReceiverName(receiver);
+        // eslint-disable-next-line no-undefined
+        let lh = this.callMethod(receiver, node.readName, [], undefined, undefined, node);
+        if (!lh) {
+            // Fallback: use receiver directly
+            lh = receiver;
+        }
+        // If lh is a ruby_expression block, fix the source text to be "receiver.readName"
+        // The callMethod handler used _getSource(node) which gives the whole assignment expression.
+        // We need just the read part (e.g. "pen.color" not "pen.color += 10").
+        if (this._isRubyExpression(lh) &&
+            receiverNameForLh &&
+            receiverNameForLh !== 'sprite' && receiverNameForLh !== 'stage') {
+            const textBlock = this._context.blocks[lh.inputs.EXPRESSION.block];
+            if (textBlock) {
+                textBlock.fields.TEXT.value = `${receiverNameForLh}.${node.readName}`;
+            }
+        }
+        split = this._splitPreBlocksAndValue(lh);
         lh = split.value;
         preBlocks.push(...split.preBlocks);
 
-        const operator = node.children[1].toString();
+        const operator = node.binaryOperator;
 
-        let rh = this._process(node.children[2]);
+        let rh = this.visit(node.value);
         split = this._splitPreBlocksAndValue(rh);
+        rh = split.value;
+        preBlocks.push(...split.preBlocks);
+
+        // For now, we use a generic onOpAsgn handler
+        let block = this._callConvertersHandler('onOpAsgn', lh, operator, rh);
+        if (!block) {
+            this._restoreContext(saved);
+
+            block = this._createRubyStatementBlock(this._getSource(node), node);
+        }
+
+        if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
+            return [...preBlocks, block];
+        }
+        return block;
+    },
+
+    visitLocalVariableOperatorWriteNode (node) {
+        return this._onVarOpAsgn(node.name, 'local', node.binaryOperator, node.value, node);
+    },
+
+    visitGlobalVariableOperatorWriteNode (node) {
+        return this._onVarOpAsgn(node.name, 'global', node.binaryOperator, node.value, node);
+    },
+
+    visitInstanceVariableOperatorWriteNode (node) {
+        return this._onVarOpAsgn(node.name, 'instance', node.binaryOperator, node.value, node);
+    },
+
+    _onVarOpAsgn (name, scope, operator, valueNode, node) {
+        const saved = this._saveContext();
+
+        const preBlocks = [];
+        let lh = name;
+        if (scope === 'local') {
+            const varName = this._toSnakeCaseLowercase(name);
+            let rubyBlockArgs;
+            if (node.block && node.block.parameters) {
+                rubyBlockArgs = this.visit(node.block.parameters);
+            }
+            let rubyBlock;
+            if (node.block) {
+                rubyBlock = this._processStatement(node.block.body);
+                if (typeof rubyBlock === 'undefined') {
+                    rubyBlock = null;
+                }
+            }
+            const block = this.callMethod(null, varName, [], rubyBlockArgs, rubyBlock, node);
+            if (block) {
+                const splitLh = this._splitPreBlocksAndValue(block);
+                lh = splitLh.value;
+                preBlocks.push(...splitLh.preBlocks);
+            } else {
+                lh = varName;
+            }
+        }
+
+        let rh = this.visit(valueNode);
+        const split = this._splitPreBlocksAndValue(rh);
         rh = split.value;
         preBlocks.push(...split.preBlocks);
 
@@ -39,23 +129,48 @@ const AssignmentHandlers = {
         return block;
     },
 
-    _onVasgn (node, scope) {
-        this._checkNumChildren(node, [1, 2]);
+    visitLocalVariableWriteNode (node) {
+        return this._onVasgn(node.name, 'local', node.value, node);
+    },
 
-        if (node.children.length === 1) {
-            return node.children[0].toString();
-        }
+    visitGlobalVariableWriteNode (node) {
+        return this._onVasgn(node.name, 'global', node.value, node);
+    },
 
+    visitInstanceVariableWriteNode (node) {
+        return this._onVasgn(node.name, 'instance', node.value, node);
+    },
+
+    _onVasgn (name, scope, valueNode, node) {
         const saved = this._saveContext();
 
         const preBlocks = [];
-        // Normalize variable name for local variables to match how arguments are stored
-        let varName = node.children[0].toString();
+        // Normalize variable name for local variables to match how arguments and other locals are stored
+        let varName = name;
         if (scope === 'local') {
             varName = this._toSnakeCaseLowercase(varName);
+
+            // Backward compatibility: if varName is a registered method on 'sprite' with 1 argument,
+            // treat it as a method call (e.g. pen_color = "#ff0000")
+            const writeName = `${varName}=`;
+            let rubyBlockArgs;
+            if (node.block && node.block.parameters) {
+                rubyBlockArgs = this.visit(node.block.parameters);
+            }
+            let rubyBlock;
+            if (node.block) {
+                rubyBlock = this._processStatement(node.block.body);
+                if (typeof rubyBlock === 'undefined') {
+                    rubyBlock = null;
+                }
+            }
+            const block = this.callMethod(null, writeName, [this.visit(valueNode)], rubyBlockArgs, rubyBlock, node);
+            if (block) {
+                return block;
+            }
         }
         const variable = this._lookupOrCreateVariable(varName);
-        let rh = this._process(node.children[1]);
+        let rh = this.visit(valueNode);
         const split = this._splitPreBlocksAndValue(rh);
         rh = split.value;
         preBlocks.push(...split.preBlocks);
@@ -74,18 +189,6 @@ const AssignmentHandlers = {
             return [...preBlocks, block];
         }
         return block;
-    },
-
-    _onGvasgn (node) {
-        return this._onVasgn(node, 'global');
-    },
-
-    _onIvasgn (node) {
-        return this._onVasgn(node, 'instance');
-    },
-
-    _onLvasgn (node) {
-        return this._onVasgn(node, 'local');
     }
 };
 

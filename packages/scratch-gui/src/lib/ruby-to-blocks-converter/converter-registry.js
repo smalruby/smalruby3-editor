@@ -38,6 +38,14 @@ const ConverterRegistry = {
             return;
         }
 
+        // If numArgs is an array, register for each value
+        if (_.isArray(numArgs)) {
+            numArgs.forEach(n => {
+                this.registerOnSendWithBlock(receiverName, name, n, numRubyBlockArgs, createBlockFunc);
+            });
+            return;
+        }
+
         let methodToNumArgs = this._receiverToMethods[receiverName];
         if (!methodToNumArgs) methodToNumArgs = this._receiverToMethods[receiverName] = {};
 
@@ -159,8 +167,13 @@ const ConverterRegistry = {
         if (!numRubyBlockArgsToCreateBlockFuncs) return null;
 
         let numRubyBlockArgs = 'none';
-        if (rubyBlock) numRubyBlockArgs = rubyBlockArgs.length;
+        if (typeof rubyBlock !== 'undefined') {
+            numRubyBlockArgs = (rubyBlockArgs && rubyBlockArgs.length) || 0;
+        }
         let createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs[numRubyBlockArgs];
+        if (!createBlockFuncs) {
+            createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs.any;
+        }
         if (!createBlockFuncs) {
             createBlockFuncs = numRubyBlockArgsToCreateBlockFuncs[-1];
         }

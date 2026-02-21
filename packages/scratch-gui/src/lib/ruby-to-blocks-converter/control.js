@@ -44,7 +44,7 @@ const ControlConverter = {
         ['loop', 'forever'].forEach(methodName => {
             converter.registerOnSendWithBlock('self', methodName, 0, 0, params => {
                 const {rubyBlock} = params;
-                if (!rubyBlock) return null;
+                if (typeof rubyBlock === 'undefined') return null;
 
                 const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
                 const block = converter._createBlock('control_forever', 'terminate');
@@ -103,9 +103,9 @@ const ControlConverter = {
         converter.registerOnSendWithBlock('self', 'when', 1, 0, params => {
             const {args} = params;
 
-            if (args[0].type !== 'sym') return null;
+            if (!converter._isSymbol(args[0])) return null;
 
-            switch (args[0].value) {
+            switch (converter._getSymbolValue(args[0])) {
             case 'start_as_a_clone':
                 return converter.callMethod(
                     params.receiver, 'when_start_as_a_clone', params.args.slice(1),
