@@ -309,6 +309,12 @@ class RubyToBlocksConverter extends Visitor {
             set_lists: 'lists'
         };
 
+        // Canonical attribute order for comment text
+        const ATTR_ORDER = [
+            'name', 'x', 'y', 'direction', 'visible', 'size',
+            'current_costume', 'rotation_style', 'costumes', 'variables', 'lists'
+        ];
+
         // Pre-scan class body for set_xxx calls
         const classInfo = {};
         const setMethodNames = new Set();
@@ -330,15 +336,26 @@ class RubyToBlocksConverter extends Visitor {
             }
         }
 
-        // Determine comment type
-        const hasNameChange = !isSpriteIndexName || Object.prototype.hasOwnProperty.call(classInfo, 'name');
-        const hasAnySetMethod = Object.keys(classInfo).length > 0;
-        const commentText = hasNameChange ? '@ruby:class:name' : '@ruby:class';
+        // Collect attribute names for comment
+        const attributeNames = Object.keys(classInfo);
+        if (!isSpriteIndexName && !Object.prototype.hasOwnProperty.call(classInfo, 'name')) {
+            attributeNames.push('name');
+        }
+        // Sort by canonical order
+        attributeNames.sort((a, b) => ATTR_ORDER.indexOf(a) - ATTR_ORDER.indexOf(b));
+
+        // Generate comment text
+        let commentText;
+        if (attributeNames.length > 0) {
+            commentText = `@ruby:class:${attributeNames.join(',')}`;
+        } else {
+            commentText = '@ruby:class';
+        }
         this._createComment(commentText, null);
 
         // Store class info in context
-        if (hasNameChange || hasAnySetMethod) {
-            if (!classInfo.name && !isSpriteIndexName) {
+        if (attributeNames.length > 0) {
+            if (!Object.prototype.hasOwnProperty.call(classInfo, 'name') && !isSpriteIndexName) {
                 classInfo.name = className;
             }
             this._context.classInfo = classInfo;

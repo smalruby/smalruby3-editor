@@ -226,6 +226,12 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter._context.classInfo.x).toEqual(100);
             expect(converter._context.classInfo.y).toEqual(-50);
             expect(converter._context.classInfo.direction).toEqual(180);
+
+            // Comment should list the attributes
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:x,y,direction');
         });
 
         test('set_visible false is stored in classInfo', async () => {
@@ -244,6 +250,11 @@ describe('RubyToBlocksConverter/Class', () => {
 
             expect(converter._context.classInfo).toBeDefined();
             expect(converter._context.classInfo.visible).toEqual(false);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:visible');
         });
 
         test('set_size and set_current_costume are stored in classInfo', async () => {
@@ -264,6 +275,11 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter._context.classInfo).toBeDefined();
             expect(converter._context.classInfo.size).toEqual(50);
             expect(converter._context.classInfo.current_costume).toEqual(2);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:size,current_costume');
         });
 
         test('set_rotation_style is stored in classInfo', async () => {
@@ -282,6 +298,11 @@ describe('RubyToBlocksConverter/Class', () => {
 
             expect(converter._context.classInfo).toBeDefined();
             expect(converter._context.classInfo.rotation_style).toEqual('left-right');
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:rotation_style');
         });
 
         test('set_xxx methods are not converted to blocks', async () => {
@@ -308,6 +329,55 @@ describe('RubyToBlocksConverter/Class', () => {
             const blocks = converter.blocks;
             const blockOpcodes = Object.values(blocks).map(b => b.opcode);
             expect(blockOpcodes).not.toContain('ruby_statement');
+        });
+
+        test('class Cat with set_x generates @ruby:class:name,x', async () => {
+            code = `
+                class Cat
+                  set_x 100
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:name,x');
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.name).toEqual('Cat');
+            expect(converter._context.classInfo.x).toEqual(100);
+        });
+
+        test('class Sprite1 with set_name and set_x generates @ruby:class:name,x', async () => {
+            code = `
+                class Sprite1
+                  set_name "ネコ"
+                  set_x 100
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:name,x');
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.name).toEqual('ネコ');
+            expect(converter._context.classInfo.x).toEqual(100);
         });
 
         test('set_xxx without class generates error', async () => {
