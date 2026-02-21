@@ -120,4 +120,16 @@ def self.check(x)
 end
 `.trim());
     });
+
+    test('float literals with integer appearance (x.0) are preserved', async () => {
+        await expectRoundTrip('1.0 + 1.0');
+        await expectRoundTrip('move(1.0)');
+        await expectRoundTrip('move(3435.0)');
+        await expectRoundTrip('1.0 + 2.0');
+        await expectRoundTrip('273.0 - 1.0');
+    });
+
+    test('complex expression with float literals is preserved', async () => {
+        await expectRoundTrip('1.0 / ((1.0 / 3435.0) * Math.log(20.0) + 1.0 / 298.0) - 273.0');
+    });
 });

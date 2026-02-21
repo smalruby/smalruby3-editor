@@ -1,6 +1,46 @@
 import RubyGenerator from '../../../../src/lib/ruby-generator';
+import MathBlocks from '../../../../src/lib/ruby-generator/math';
 
 describe('RubyGenerator', () => {
+    describe('math_number', () => {
+        beforeEach(() => {
+            MathBlocks(RubyGenerator);
+        });
+
+        const makeBlock = numFieldValue => ({
+            id: 'block-id',
+            opcode: 'math_number',
+            fields: {
+                NUM: {name: 'NUM', value: numFieldValue}
+            }
+        });
+
+        test('integer field value returns number', () => {
+            const [result] = RubyGenerator.math_number(makeBlock('1'));
+            expect(result).toBe(1);
+        });
+
+        test('float field value with integer appearance (1.0) preserves decimal notation', () => {
+            const [result] = RubyGenerator.math_number(makeBlock('1.0'));
+            expect(result).toBe('1.0');
+        });
+
+        test('non-integer float field value (3.14) returns number', () => {
+            const [result] = RubyGenerator.math_number(makeBlock('3.14'));
+            expect(result).toBe(3.14);
+        });
+
+        test('negative float with integer appearance (-1.0) preserves decimal notation', () => {
+            const [result] = RubyGenerator.math_number(makeBlock('-1.0'));
+            expect(result).toBe('-1.0');
+        });
+
+        test('zero float (0.0) preserves decimal notation', () => {
+            const [result] = RubyGenerator.math_number(makeBlock('0.0'));
+            expect(result).toBe('0.0');
+        });
+    });
+
     describe('quote_', () => {
         test('should escape double quotes', () => {
             const result = RubyGenerator.quote_('"');

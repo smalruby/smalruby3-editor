@@ -100,7 +100,13 @@ const BlockUtils = {
 
     _createNumberBlock (opcode, value) {
         if (this._isNumber(value) || value === '') {
-            return this._createFieldBlock(opcode, 'NUM', value.toString());
+            let numStr;
+            if (this._isPrimitive(value) && value.type === 'float' && Number.isInteger(value.value)) {
+                numStr = value.value.toFixed(1);
+            } else {
+                numStr = value.toString();
+            }
+            return this._createFieldBlock(opcode, 'NUM', numStr);
         }
         return value;
     },
