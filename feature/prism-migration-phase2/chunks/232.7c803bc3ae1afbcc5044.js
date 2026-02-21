@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkGUI=self.webpackChunkGUI||[]).push([[232],{89232(s,a,e){s.exports=e.p+"static/assets/prism.38cb6d668a7abfa1f4d2.wasm"}}]);
