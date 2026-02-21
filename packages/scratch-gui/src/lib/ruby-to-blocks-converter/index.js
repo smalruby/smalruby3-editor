@@ -291,12 +291,66 @@ class RubyToBlocksConverter extends Visitor {
     }
 
     visitClassNode (node) {
-        // Create @ruby:class target comment (blockId=null for sprite-level comment)
-        this._createComment('@ruby:class', null);
+        const className = node.name;
+        const isSpriteIndexName = /^Sprite\d+$/.test(className);
 
-        // Visit class body statements
-        if (node.body) {
-            return this.visit(node.body);
+        // Pre-scan class body for set_name calls
+        let setNameValue = null;
+        if (node.body && node.body.body) {
+            for (const stmt of node.body.body) {
+                if (stmt.constructor.name === 'CallNode' &&
+                    stmt.name === 'set_name' &&
+                    !stmt.receiver &&
+                    stmt.arguments_ &&
+                    stmt.arguments_.arguments_.length === 1) {
+                    const arg = stmt.arguments_.arguments_[0];
+                    if (arg.constructor.name === 'StringNode') {
+                        const unescaped = arg.unescaped;
+                        setNameValue = typeof unescaped === 'object' ? unescaped.value : unescaped;
+                    }
+                }
+            }
+        }
+
+        // Determine comment type and classInfo
+        const hasNameChange = !isSpriteIndexName || setNameValue !== null;
+        const commentText = hasNameChange ? '@ruby:class:name' : '@ruby:class';
+        this._createComment(commentText, null);
+
+        // Store class info in context for later application
+        if (hasNameChange) {
+            this._context.classInfo = {
+                name: setNameValue || className
+            };
+        }
+
+        // Visit class body, filtering out set_name calls
+        if (node.body && node.body.body) {
+            const filteredStatements = node.body.body.filter(stmt => {
+                if (stmt.constructor.name === 'CallNode' &&
+                    stmt.name === 'set_name' &&
+                    !stmt.receiver) {
+                    return false;
+                }
+                return true;
+            });
+
+            if (filteredStatements.length === 0) {
+                return [];
+            }
+
+            // Visit filtered statements manually
+            const blocks = [];
+            for (const stmt of filteredStatements) {
+                this._context.methodCallIndices = {};
+                const block = this.visit(stmt);
+                if (Array.isArray(block)) {
+                    block.forEach(b => blocks.push(b));
+                } else if (block !== null && typeof block !== 'undefined') {
+                    blocks.push(block);
+                }
+            }
+            return blocks;
         }
         return [];
     }
