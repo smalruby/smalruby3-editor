@@ -123,6 +123,8 @@ jobs:
       - name: Run scratch-vm Integration Tests
         env:
           MESH_DATA_UPDATE_INTERVAL_MS: 100
+          MESH_EVENT_BATCH_INTERVAL_MS: 100
+          MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: 1000
         run: npm run test:integration --workspace=packages/scratch-vm
       - name: Store Test Results
         if: always() # Even if tests fail
