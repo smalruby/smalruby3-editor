@@ -487,6 +487,7 @@ class Blocks extends React.Component {
                     this.workspace.cleanUp();
 
                     // Re-calculate the position of the comments.
+                    const firstTopBlock = this.workspace.getTopBlocks(true)[0];
                     this.workspace.getTopComments(false).forEach(comment => {
                         if (comment.blockId) {
                             const block = this.workspace.getBlockById(comment.blockId);
@@ -508,6 +509,21 @@ class Blocks extends React.Component {
                                     targetComments[comment.id].x = x;
                                     targetComments[comment.id].y = y;
                                 }
+                            }
+                        } else if (firstTopBlock) {
+                            // Workspace-level comments (e.g. @ruby:class) have no blockId.
+                            // Place them to the left of the first top block, at the same y.
+                            const blockXY = firstTopBlock.getRelativeToSurfaceXY();
+                            const commentHW = comment.getHeightWidth();
+                            const rtl = this.workspace.RTL;
+                            const x = rtl ? 20 : -commentHW.width - 20;
+                            const y = blockXY.y;
+                            comment.moveTo(x, y);
+
+                            const targetComments = this.props.vm.editingTarget.comments;
+                            if (targetComments && targetComments[comment.id]) {
+                                targetComments[comment.id].x = x;
+                                targetComments[comment.id].y = y;
                             }
                         }
                     });
