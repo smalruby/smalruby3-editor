@@ -1,34 +1,25 @@
+/**
+ * Unit test replacing test/integration/ruby-tab/operators.test.js
+ */
 import dedent from 'dedent';
-import SeleniumHelper from '../../helpers/selenium-helper';
-import RubyHelper from '../../helpers/ruby-helper';
+import {
+    makeSpriteTarget,
+    makeConverter,
+    setupRubyGenerator,
+    expectRoundTrip
+} from '../../helpers/ruby-roundtrip-helper';
 
-const seleniumHelper = new SeleniumHelper();
-const {
-    getDriver,
-    loadUri,
-    urlFor
-} = seleniumHelper;
+describe('Ruby Roundtrip: Operators category blocks', () => {
+    let target, runtime, converter;
 
-const rubyHelper = new RubyHelper(seleniumHelper);
-const {
-    expectInterconvertBetweenCodeAndRuby
-} = rubyHelper;
-
-let driver;
-
-describe('Ruby Tab: Operators category blocks', () => {
-    beforeAll(() => {
-        driver = getDriver();
-    });
-
-    afterAll(async () => {
-        await driver.quit();
+    beforeEach(() => {
+        ({target, runtime} = makeSpriteTarget());
+        setupRubyGenerator();
+        converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await loadUri(urlFor('/'));
-
-        const code = dedent`
+        await expectRoundTrip(converter, target, dedent`
             0 + 0
 
             0 - 0
@@ -98,7 +89,6 @@ describe('Ruby Tab: Operators category blocks', () => {
             Math::E ** 0
 
             10 ** 0
-        `;
-        await expectInterconvertBetweenCodeAndRuby(code);
+        `);
     });
 });

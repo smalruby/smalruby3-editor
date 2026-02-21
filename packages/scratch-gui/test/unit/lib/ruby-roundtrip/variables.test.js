@@ -1,34 +1,25 @@
+/**
+ * Unit test replacing test/integration/ruby-tab/variables.test.js
+ */
 import dedent from 'dedent';
-import SeleniumHelper from '../../helpers/selenium-helper';
-import RubyHelper from '../../helpers/ruby-helper';
+import {
+    makeSpriteTarget,
+    makeConverter,
+    setupRubyGenerator,
+    expectRoundTrip
+} from '../../helpers/ruby-roundtrip-helper';
 
-const seleniumHelper = new SeleniumHelper();
-const {
-    getDriver,
-    loadUri,
-    urlFor
-} = seleniumHelper;
+describe('Ruby Roundtrip: Variables category blocks', () => {
+    let target, runtime, converter;
 
-const rubyHelper = new RubyHelper(seleniumHelper);
-const {
-    expectInterconvertBetweenCodeAndRuby
-} = rubyHelper;
-
-let driver;
-
-describe('Ruby Tab: Variables category blocks', () => {
-    beforeAll(() => {
-        driver = getDriver();
-    });
-
-    afterAll(async () => {
-        await driver.quit();
+    beforeEach(() => {
+        ({target, runtime} = makeSpriteTarget());
+        setupRubyGenerator();
+        converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await loadUri(urlFor('/'));
-
-        const code = dedent`
+        await expectRoundTrip(converter, target, dedent`
             $my_variable = 0
             @sprite_only_variable = 0
             $my_variable += 1
@@ -76,7 +67,6 @@ describe('Ruby Tab: Variables category blocks', () => {
             list("$my_list")
 
             list("$sprite_only_list")
-        `;
-        await expectInterconvertBetweenCodeAndRuby(code);
+        `);
     });
 });
