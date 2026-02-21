@@ -29,9 +29,11 @@ const NodeUtils = {
     _isString (value) {
         if (_.isString(value)) return true;
         if (this._isPrimitive(value)) {
-            return value.type === 'str';
+            return value.type === 'str' || value.type === 'string';
         }
-        return value && value.constructor.name === 'StringNode';
+        return value &&
+            (value.constructor.name === 'StringNode' ||
+                value.constructor.name === 'InterpolatedStringNode');
     },
 
     isNumber (value) {
@@ -91,14 +93,6 @@ const NodeUtils = {
             return value.type === 'nil';
         }
         return value && value.constructor.name === 'NilNode';
-    },
-
-    _isString (value) {
-        if (_.isString(value)) return true;
-        if (this._isPrimitive(value)) {
-            return value.type === 'str' || value.type === 'string';
-        }
-        return value && (value.constructor.name === 'StringNode' || value.constructor.name === 'InterpolatedStringNode');
     },
 
     _isArray (value) {

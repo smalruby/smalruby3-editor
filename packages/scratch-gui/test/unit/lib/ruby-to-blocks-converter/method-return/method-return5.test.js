@@ -338,4 +338,21 @@ describe('RubyToBlocksConverter/Method Return Bug Fixes', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
     });
+
+    describe('Phase 3: Additional error cases', () => {
+        test('should throw error when method body ends with if-expression containing literals', async () => {
+            const code = `
+                def foo
+                  if true
+                    1
+                  else
+                    2
+                  end
+                end
+
+                say(foo, 1)
+            `;
+            await convertAndExpectRubyBlockError(converter, target, code);
+        });
+    });
 });
