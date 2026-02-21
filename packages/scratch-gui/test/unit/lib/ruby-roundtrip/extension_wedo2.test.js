@@ -1,43 +1,25 @@
+/**
+ * Unit test replacing test/integration/ruby-tab/extension_wedo2.test.js
+ */
 import dedent from 'dedent';
-import SeleniumHelper from '../../helpers/selenium-helper';
-import RubyHelper from '../../helpers/ruby-helper';
 import {
-    SETTINGS_MENU_XPATH,
-    FILE_MENU_XPATH,
-    EDIT_MENU_XPATH
-} from '../../helpers/menu-xpaths';
+    makeSpriteTarget,
+    makeConverter,
+    setupRubyGenerator,
+    expectRoundTrip
+} from '../../helpers/ruby-roundtrip-helper';
 
-const seleniumHelper = new SeleniumHelper();
-const {
-    clickText,
-    clickXpath,
-    getDriver,
-    loadUri,
-    urlFor
-} = seleniumHelper;
+describe('Ruby Roundtrip: LEGO Education WeDo 2.0 extension blocks', () => {
+    let target, runtime, converter;
 
-const rubyHelper = new RubyHelper(seleniumHelper);
-const {
-    fillInRubyProgram,
-    currentRubyProgram,
-    expectInterconvertBetweenCodeAndRuby
-} = rubyHelper;
-
-let driver;
-
-describe('Ruby Tab: LEGO Education WeDo 2.0 extension blocks', () => {
-    beforeAll(() => {
-        driver = getDriver();
-    });
-
-    afterAll(async () => {
-        await driver.quit();
+    beforeEach(() => {
+        ({target, runtime} = makeSpriteTarget());
+        setupRubyGenerator();
+        converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await loadUri(urlFor('/'));
-
-        const ruby = dedent`
+        await expectRoundTrip(converter, target, dedent`
             wedo2.turn_on_for("motor", 1)
             wedo2.turn_on_for("motor A", 1)
             wedo2.turn_on_for("motor B", 1)
@@ -76,13 +58,10 @@ describe('Ruby Tab: LEGO Education WeDo 2.0 extension blocks', () => {
             wedo2.tilted?("any")
 
             wedo2.tilt_angle("up")
-        `;
-        await expectInterconvertBetweenCodeAndRuby(ruby);
+        `);
     });
 
-    test('Ruby -> Code -> Ruby (etc) ', async () => {
-        await loadUri(urlFor('/'));
-
+    test('Ruby -> Code -> Ruby (case normalization)', async () => {
         const beforeRuby = dedent`
             wedo2.turn_on_for("MOTOR", 1)
             wedo2.turn_on_for("motor a", 1)
@@ -98,7 +77,6 @@ describe('Ruby Tab: LEGO Education WeDo 2.0 extension blocks', () => {
 
             wedo2.tilt_angle("UP")
         `;
-
         const afterRuby = dedent`
             wedo2.turn_on_for("motor", 1)
             wedo2.turn_on_for("motor A", 1)
@@ -114,13 +92,6 @@ describe('Ruby Tab: LEGO Education WeDo 2.0 extension blocks', () => {
 
             wedo2.tilt_angle("up")
         `;
-
-        await clickText('Ruby', '*[@role="tab"]');
-        await fillInRubyProgram(beforeRuby);
-        await clickText('Code', '*[@role="tab"]');
-        await clickXpath(EDIT_MENU_XPATH);
-        await clickText('Generate Ruby from Code');
-        await clickText('Ruby', '*[@role="tab"]');
-        expect(await currentRubyProgram()).toEqual(`${afterRuby}\n`);
+        await expectRoundTrip(converter, target, beforeRuby, afterRuby);
     });
 });
