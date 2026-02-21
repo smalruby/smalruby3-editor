@@ -34,8 +34,6 @@ const cssModuleExceptions = [
     /[\\/]driver\.js[\\/].*\.css$/ // driver.js CSS
 ];
 
-const opalConfig = require('./opal/config-opal');
-
 const baseConfig = new ScratchWebpackConfigBuilder(
     {
         rootPath: path.resolve(__dirname),
@@ -67,10 +65,7 @@ const baseConfig = new ScratchWebpackConfigBuilder(
                 fs: false,
                 path: false
             },
-            alias: {
-                'opal': path.resolve(__dirname, 'opal/opal.min.js'),
-                'opal-parser': path.resolve(__dirname, 'opal/opal-parser.min.js')
-            }
+            alias: {}
         }
     })
     .addPlugin(new webpack.ProvidePlugin({
@@ -95,15 +90,6 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         // the page is loaded via file://.
         test: /prism\.wasm$/,
         type: 'asset/inline'
-    })
-    .addModuleRule({
-        test: /\.rb$/,
-        use: [
-            {
-                loader: 'opal-loader',
-                options: opalConfig
-            }
-        ]
     })
     .addModuleRule({
         test: /\.(svg|png|wav|mp3|gif|jpg)$/,

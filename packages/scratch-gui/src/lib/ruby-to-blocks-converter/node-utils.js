@@ -125,8 +125,7 @@ const NodeUtils = {
 
     /**
      * Get the string value of a symbol node.
-     * Works for both Opal-style Primitive nodes ({type: 'sym', value: '...'})
-     * and Prism SymbolNode instances ({unescaped: {value: '...'}}).
+     * Works for Prism SymbolNode instances ({unescaped: {value: '...'}}).
      * @param {object} node - A symbol node.
      * @returns {string|null} The symbol value, or null if not a symbol.
      */
