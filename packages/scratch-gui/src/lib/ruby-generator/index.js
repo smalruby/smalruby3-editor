@@ -145,7 +145,7 @@ RubyGenerator.finish = function (code, options) {
     let classComment = null;
     const otherComments = [];
     for (const comment of comments) {
-        if (comment === '@ruby:class' || comment === '@ruby:class:name') {
+        if (comment === '@ruby:class' || comment.startsWith('@ruby:class:')) {
             classComment = comment;
         } else {
             otherComments.push(comment);
@@ -185,7 +185,14 @@ RubyGenerator._wrapWithClass = function (code, classComment) {
     let className;
     const setLines = [];
 
-    if (classComment === '@ruby:class:name') {
+    // Parse attribute list from @ruby:class:attr1,attr2,...
+    let allowedAttributes = [];
+    if (classComment.startsWith('@ruby:class:')) {
+        const attrPart = classComment.slice('@ruby:class:'.length);
+        allowedAttributes = attrPart.split(',');
+    }
+
+    if (allowedAttributes.indexOf('name') >= 0) {
         const spriteName = target.sprite.name;
         if (/^[A-Z]/.test(spriteName)) {
             className = spriteName;
@@ -197,14 +204,14 @@ RubyGenerator._wrapWithClass = function (code, classComment) {
             setLines.push(`set_name ${this.quote_(spriteName)}`);
         }
     } else {
-        // @ruby:class - use Sprite%index%
+        // No name attribute - use Sprite%index%
         const sprites = target.runtime.targets.filter(t => !t.isStage);
         const index = sprites.indexOf(target) + 1;
         className = `Sprite${index}`;
     }
 
-    // Generate set_xxx for non-default sprite attributes
-    this._generateSetXxx(target, setLines);
+    // Generate set_xxx only for listed attributes
+    this._generateSetXxx(target, setLines, allowedAttributes);
 
     let setCode = '';
     if (setLines.length > 0) {
@@ -220,26 +227,26 @@ RubyGenerator._wrapWithClass = function (code, classComment) {
     return code;
 };
 
-RubyGenerator._generateSetXxx = function (target, setLines) {
-    if (target.x !== 0) {
+RubyGenerator._generateSetXxx = function (target, setLines, allowedAttributes) {
+    if (allowedAttributes.indexOf('x') >= 0 && target.x !== 0) {
         setLines.push(`set_x ${target.x}`);
     }
-    if (target.y !== 0) {
+    if (allowedAttributes.indexOf('y') >= 0 && target.y !== 0) {
         setLines.push(`set_y ${target.y}`);
     }
-    if (target.direction !== 90) {
+    if (allowedAttributes.indexOf('direction') >= 0 && target.direction !== 90) {
         setLines.push(`set_direction ${target.direction}`);
     }
-    if (!target.visible) {
+    if (allowedAttributes.indexOf('visible') >= 0 && !target.visible) {
         setLines.push(`set_visible ${!!target.visible}`);
     }
-    if (target.size !== 100) {
+    if (allowedAttributes.indexOf('size') >= 0 && target.size !== 100) {
         setLines.push(`set_size ${target.size}`);
     }
-    if (target.currentCostume > 0) {
+    if (allowedAttributes.indexOf('current_costume') >= 0 && target.currentCostume > 0) {
         setLines.push(`set_current_costume ${target.currentCostume}`);
     }
-    if (target.rotationStyle !== 'all around') {
+    if (allowedAttributes.indexOf('rotation_style') >= 0 && target.rotationStyle !== 'all around') {
         setLines.push(`set_rotation_style ${this.quote_(target.rotationStyle)}`);
     }
 };
