@@ -289,6 +289,17 @@ class RubyToBlocksConverter extends Visitor {
     visitProgramNode (node) {
         return this.visit(node.statements);
     }
+
+    visitClassNode (node) {
+        // Create @ruby:class target comment (blockId=null for sprite-level comment)
+        this._createComment('@ruby:class', null);
+
+        // Visit class body statements
+        if (node.body) {
+            return this.visit(node.body);
+        }
+        return [];
+    }
 }
 
 // Mixin methods
