@@ -325,7 +325,13 @@ const distWithHtmlConfig = buildConfig.clone()
             minimize: true,
             minimizer: [
                 new TerserPlugin({
-                    minify: TerserPlugin.esbuildMinify
+                    minify: TerserPlugin.esbuildMinify,
+                    terserOptions: {
+                        // Preserve class/function names so that node.constructor.name
+                        // keeps returning e.g. "CallNode" after minification.
+                        // ruby-to-blocks-converter uses constructor.name for dispatch.
+                        keepNames: true
+                    }
                 })
             ]
         }

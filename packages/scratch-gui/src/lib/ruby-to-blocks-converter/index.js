@@ -2,6 +2,9 @@ import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 import RubyParser from '../ruby-parser';
 import {Visitor} from '@ruby/prism/src/visitor.js';
+import {
+    ProgramNode, StatementsNode, BlockNode, BeginNode, DefNode, ClassNode, ModuleNode
+} from '@ruby/prism/src/nodes.js';
 
 import {RubyToBlocksConverterError} from './errors';
 import registerConverters from './register-converters';
@@ -221,10 +224,13 @@ class RubyToBlocksConverter extends Visitor {
         const endLine = this._getNodeEndLine(node) || startLine;
 
         if (startLine !== null && endLine !== null) {
-            const containerNodeTypes = [
-                'ProgramNode', 'StatementsNode', 'BlockNode', 'BeginNode', 'DefNode', 'ClassNode', 'ModuleNode'
-            ];
-            const isContainerNode = containerNodeTypes.includes(node.constructor.name);
+            const isContainerNode = node instanceof ProgramNode ||
+                node instanceof StatementsNode ||
+                node instanceof BlockNode ||
+                node instanceof BeginNode ||
+                node instanceof DefNode ||
+                node instanceof ClassNode ||
+                node instanceof ModuleNode;
 
             if (isContainerNode) {
                 this._context.containerNodeRanges.push({
@@ -246,9 +252,23 @@ class RubyToBlocksConverter extends Visitor {
         const previousNode = this._context.currentNode;
         this._context.currentNode = node;
 
-        const handlerName = `visit${node.constructor.name}`;
+        // Resolve the handler name via node.accept() rather than constructor.name.
+        // constructor.name is mangled by esbuild/terser in production builds, but
+        // each node class has a hardcoded accept() that calls the correct visitXxxNode
+        // method name on the visitor, so we can use a sniffing proxy to get it.
+        let handlerName = null;
+        const sniffer = new Proxy({}, {
+            get (_target, prop) {
+                if (typeof prop === 'string' && prop.startsWith('visit')) {
+                    handlerName = prop;
+                }
+                return () => {};
+            }
+        });
+        node.accept(sniffer);
+
         let result;
-        if (typeof this[handlerName] === 'function') {
+        if (handlerName && typeof this[handlerName] === 'function') {
             result = this[handlerName](node);
         } else {
             throw new Error(`not supported node type: ${node.constructor.name}`);
