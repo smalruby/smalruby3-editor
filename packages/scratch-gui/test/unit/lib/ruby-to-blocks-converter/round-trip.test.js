@@ -9,8 +9,8 @@ describe('Ruby Round Trip', () => {
         converter = new RubyToBlocksConverter(null);
     });
 
-    const expectRoundTrip = (code, expectedRuby = null) => {
-        const result = converter.targetCodeToBlocks(null, code);
+    const expectRoundTrip = async (code, expectedRuby = null) => {
+        const result = await converter.targetCodeToBlocks(null, code);
         expect(converter.errors).toHaveLength(0);
         expect(result).toBeTruthy();
 
@@ -53,53 +53,53 @@ describe('Ruby Round Trip', () => {
         expect(generatedRuby.trim()).toEqual((expectedRuby || code).trim());
     };
 
-    test('operator >=', () => {
-        expectRoundTrip('1 >= 50');
-        expectRoundTrip('@x >= @y');
-        expectRoundTrip('1.2 >= 3.4');
-        expectRoundTrip('1 + 2 >= 3 * 4');
+    test('operator >=', async () => {
+        await expectRoundTrip('1 >= 50');
+        await expectRoundTrip('@x >= @y');
+        await expectRoundTrip('1.2 >= 3.4');
+        await expectRoundTrip('1 + 2 >= 3 * 4');
     });
 
-    test('operator <=', () => {
-        expectRoundTrip('1 <= 50');
-        expectRoundTrip('@x <= @y');
-        expectRoundTrip('1.2 <= 3.4');
-        expectRoundTrip('1 + 2 <= 3 * 4');
+    test('operator <=', async () => {
+        await expectRoundTrip('1 <= 50');
+        await expectRoundTrip('@x <= @y');
+        await expectRoundTrip('1.2 <= 3.4');
+        await expectRoundTrip('1 + 2 <= 3 * 4');
     });
 
-    test('mixed operators', () => {
-        expectRoundTrip('@x >= @y && @a <= @b');
-        expectRoundTrip('@x >= @y || @a <= @b');
-        expectRoundTrip('!(@x >= @y)');
+    test('mixed operators', async () => {
+        await expectRoundTrip('@x >= @y && @a <= @b');
+        await expectRoundTrip('@x >= @y || @a <= @b');
+        await expectRoundTrip('!(@x >= @y)');
     });
 
-    test('true / false', () => {
-        expectRoundTrip('true');
-        expectRoundTrip('false');
-        expectRoundTrip('if true\n  move(10)\nend');
-        expectRoundTrip('if false\n  move(10)\nend');
-        expectRoundTrip('x = true');
-        expectRoundTrip('x = false');
-        expectRoundTrip('true && false');
-        expectRoundTrip('true || false');
-        expectRoundTrip('!true');
-        expectRoundTrip('!false');
+    test('true / false', async () => {
+        await expectRoundTrip('true');
+        await expectRoundTrip('false');
+        await expectRoundTrip('if true\n  move(10)\nend');
+        await expectRoundTrip('if false\n  move(10)\nend');
+        await expectRoundTrip('var_x = true');
+        await expectRoundTrip('var_x = false');
+        await expectRoundTrip('true && false');
+        await expectRoundTrip('true || false');
+        await expectRoundTrip('!true');
+        await expectRoundTrip('!false');
     });
 
-    test('sensing and boolean operators', () => {
-        expectRoundTrip('touching?("_edge_")');
-        expectRoundTrip('!touching?("_edge_")');
-        expectRoundTrip('if touching?("_edge_")\n  move(10)\nend');
+    test('sensing and boolean operators', async () => {
+        await expectRoundTrip('touching?("_edge_")');
+        await expectRoundTrip('!touching?("_edge_")');
+        await expectRoundTrip('if touching?("_edge_")\n  move(10)\nend');
     });
 
-    test('return statement in method', () => {
-        expectRoundTrip(`
+    test('return statement in method', async () => {
+        await expectRoundTrip(`
 def self.add(a, b)
   return a + b
 end
 `.trim());
 
-        expectRoundTrip(`
+        await expectRoundTrip(`
 def self.div(a, b)
   if b == 0
     return 0
@@ -108,7 +108,7 @@ def self.div(a, b)
 end
 `.trim());
 
-        expectRoundTrip(`
+        await expectRoundTrip(`
 def self.check(x)
   if x < 0
     return "negative"

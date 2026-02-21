@@ -34,8 +34,6 @@ const cssModuleExceptions = [
     /[\\/]driver\.js[\\/].*\.css$/ // driver.js CSS
 ];
 
-const opalConfig = require('./opal/config-opal');
-
 const baseConfig = new ScratchWebpackConfigBuilder(
     {
         rootPath: path.resolve(__dirname),
@@ -60,12 +58,14 @@ const baseConfig = new ScratchWebpackConfigBuilder(
             fallback: {
                 Buffer: require.resolve('buffer/'),
                 stream: require.resolve('stream-browserify'),
-                process: require.resolve('process/browser')
+                process: require.resolve('process/browser'),
+                // Node.js built-ins used by prism-parser.js in Node.js environment only
+                // Provide false fallback so webpack doesn't try to polyfill them for browser
+                wasi: false,
+                fs: false,
+                path: false
             },
-            alias: {
-                'opal': path.resolve(__dirname, 'opal/opal.min.js'),
-                'opal-parser': path.resolve(__dirname, 'opal/opal-parser.min.js')
-            }
+            alias: {}
         }
     })
     .addPlugin(new webpack.ProvidePlugin({
@@ -80,13 +80,16 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         }
     })
     .addModuleRule({
-        test: /\.rb$/,
-        use: [
-            {
-                loader: 'opal-loader',
-                options: opalConfig
-            }
-        ]
+        test: /\.wasm$/,
+        exclude: /prism\.wasm$/,
+        type: 'asset/resource'
+    })
+    .addModuleRule({
+        // Embed prism.wasm as Base64 data URL so it works with file:// protocol
+        // (used in integration tests). fetch() and XHR are blocked by CORS when
+        // the page is loaded via file://.
+        test: /prism\.wasm$/,
+        type: 'asset/inline'
     })
     .addModuleRule({
         test: /\.(svg|png|wav|mp3|gif|jpg)$/,
@@ -374,7 +377,17 @@ let config;
 switch (process.env.BUILD_TYPE) {
 case 'dist': config = distConfig.get(); break;
 case 'dist-standalone': config = distStandaloneConfig.get(); break;
-case 'dist-html': config = distWithHtmlConfig.get(); break;
+case 'dist-html': {
+    config = distWithHtmlConfig.get();
+    // In production (dist-html), prism.wasm is served over HTTPS so fetch() is available.
+    // Use asset/resource to emit a separate file (better caching, smaller bundle, streaming compile).
+    // The file:// fallback (asset/inline + atob) is only needed for integration tests.
+    const wasmRule = config.module.rules.find(r => r.test && r.test.toString() === '/prism\\.wasm$/');
+    if (wasmRule) {
+        wasmRule.type = 'asset/resource';
+    }
+    break;
+}
 default: config = buildWithPwaConfig.get(); break;
 }
 

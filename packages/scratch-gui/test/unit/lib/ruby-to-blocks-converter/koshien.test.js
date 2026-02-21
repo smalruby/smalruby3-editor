@@ -15,7 +15,7 @@ describe('RubyToBlocksConverter/Koshien', () => {
         target = null;
     });
 
-    test('koshien_setMessage', () => {
+    test('koshien_setMessage', async () => {
         let code;
         let expected;
 
@@ -31,7 +31,7 @@ describe('RubyToBlocksConverter/Koshien', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
         code = 'koshien.set_message(x)';
         expected = [
@@ -40,19 +40,19 @@ describe('RubyToBlocksConverter/Koshien', () => {
                 inputs: [
                     {
                         name: 'MESSAGE',
-                        block: rubyToExpected(converter, target, 'x')[0],
+                        block: (await rubyToExpected(converter, target, 'x'))[0],
                         shadow: expectedInfo.makeText('hello')
                     }
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        [
+        { for (const s of [
             'koshien.set_message()',
             'koshien.set_message("hello", "world")'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 });

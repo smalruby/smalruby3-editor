@@ -52,19 +52,19 @@ describe('RubyGenerator Versioning', () => {
         RubyGenerator.currentTarget = renderedTarget;
     });
 
-    test('v1 generates def self.method_name', () => {
+    test('v1 generates def self.method_name', async () => {
         const code = RubyGenerator.targetToCode(renderedTarget, {version: '1'});
         expect(code).toContain('def self.my_method');
         expect(code).not.toContain('def my_method');
     });
 
-    test('v2 generates def method_name', () => {
+    test('v2 generates def method_name', async () => {
         const code = RubyGenerator.targetToCode(renderedTarget, {version: '2'});
         expect(code).toContain('def my_method');
         expect(code).not.toContain('def self.my_method');
     });
 
-    test('default (no version) generates def self.method_name', () => {
+    test('default (no version) generates def self.method_name', async () => {
         const code = RubyGenerator.targetToCode(renderedTarget);
         expect(code).toContain('def self.my_method');
     });

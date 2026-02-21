@@ -220,7 +220,7 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
                 }
 
                 // Convert Ruby code to blocks
-                const converter = this.props.targetCodeToBlocks(this.props.intl);
+                const converter = await this.props.targetCodeToBlocks(this.props.intl);
                 if (!converter.result) {
                     this.setState({saveDirectStatus: 'idle'});
                     return;
@@ -292,7 +292,7 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
 
             try {
                 // Convert Ruby code to blocks
-                const converter = this.props.targetCodeToBlocks(this.props.intl);
+                const converter = await this.props.targetCodeToBlocks(this.props.intl);
                 if (!converter.result) {
                     this.setState({saveStatus: 'idle'});
                     return;

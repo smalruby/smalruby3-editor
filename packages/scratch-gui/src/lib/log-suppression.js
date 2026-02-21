@@ -3,7 +3,6 @@
  */
 
 const ignoredWarnings = [
-    'Object freezing is not supported by Opal',
     'Canvas2D: Multiple readback operations using getImageData are faster ' +
         'with the willReadFrequently attribute set to true',
     'Support for defaultProps will be removed from function components',

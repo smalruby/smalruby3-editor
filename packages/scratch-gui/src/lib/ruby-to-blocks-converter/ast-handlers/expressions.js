@@ -1,38 +1,42 @@
 import _ from 'lodash';
 import Primitive from '../primitive';
 
-const Opal = global.Opal || window.Opal;
-
 /**
  * Expression AST handlers for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
  */
 const ExpressionHandlers = {
-    _onSend (node, rubyBlockArgsNode, rubyBlockNode) {
+    visitCallNode (node) {
         const saved = this._saveContext();
 
         const preBlocks = [];
-        let receiver = this._process(node.children[0]);
+        let receiver = this.visit(node.receiver);
         const split = this._splitPreBlocksAndValue(receiver);
         receiver = split.value;
         preBlocks.push(...split.preBlocks);
 
-        const name = node.children[1].toString();
-        const args = node.children.slice(2).map(childNode => {
-            const result = this._process(childNode);
+        const name = node.name;
+        const savedIsValue = this._context.isValue;
+        this._context.isValue = true;
+        const args = (node.arguments_ ? node.arguments_.arguments_ : []).map(childNode => {
+            const result = this.visit(childNode);
             const s = this._splitPreBlocksAndValue(result);
             preBlocks.push(...s.preBlocks);
             return s.value;
         });
+        this._context.isValue = savedIsValue;
 
         let rubyBlockArgs;
-        if (rubyBlockArgsNode) {
-            rubyBlockArgs = this._process(rubyBlockArgsNode);
+        if (node.block && node.block.parameters) {
+            rubyBlockArgs = this.visit(node.block.parameters);
         }
 
         let rubyBlock;
-        if (rubyBlockNode) {
-            rubyBlock = this._processStatement(rubyBlockNode);
+        if (node.block) {
+            rubyBlock = this._processStatement(node.block.body);
+            if (typeof rubyBlock === 'undefined') {
+                rubyBlock = null;
+            }
         }
 
         let block = this.callMethod(receiver, name, args, rubyBlockArgs, rubyBlock, node);
@@ -40,7 +44,7 @@ const ExpressionHandlers = {
             block = this._callConvertersHandler('onSend', receiver, name, args, rubyBlockArgs, rubyBlock, node);
         }
         if (!block) {
-            if ((this._isSelf(receiver) || receiver === Opal.nil) && !rubyBlock) {
+            if ((this._isSelf(receiver) || receiver === null) && !rubyBlock) {
                 switch (name) {
                 case 'wait':
                     if (args.length === 0) {
@@ -54,12 +58,12 @@ const ExpressionHandlers = {
         if (!block) {
             this._restoreContext(saved);
 
-            if (rubyBlockNode) {
+            if (node.block) {
                 block = this._createBlock('ruby_statement_with_block', 'statement');
                 block.node = node;
                 this._addTextInput(block, 'STATEMENT', this._getSource(node));
-                this._addTextInput(block, 'ARGS', this._getSource(rubyBlockArgsNode));
-                this._addSubstack(block, this._processStatement(rubyBlockNode));
+                this._addTextInput(block, 'ARGS', node.block.parameters ? this._getSource(node.block.parameters) : '');
+                this._addSubstack(block, this._processStatement(node.block.body));
             } else {
                 block = this._createRubyStatementBlock(this._getSource(node), node);
             }
@@ -74,35 +78,27 @@ const ExpressionHandlers = {
         return block;
     },
 
-    _onSelf (node) {
+    visitSelfNode (node) {
         return new Primitive('self', 'self', node);
     },
 
-    _onSym (node) {
-        this._checkNumChildren(node, 1);
-
-        return new Primitive('sym', node.children[0].toString(), node);
+    visitSymbolNode (node) {
+        return new Primitive('sym', node.unescaped.value, node);
     },
 
-    _onStr (node) {
-        this._checkNumChildren(node, 1);
-
-        return new Primitive('str', node.children[0].toString(), node);
+    visitStringNode (node) {
+        return new Primitive('str', node.unescaped.value, node);
     },
 
-    _onInt (node) {
-        this._checkNumChildren(node, 1);
-
-        return new Primitive('int', node.children[0], node);
+    visitIntegerNode (node) {
+        return new Primitive('int', node.value, node);
     },
 
-    _onFloat (node) {
-        this._checkNumChildren(node, 1);
-
-        return new Primitive('float', node.children[0], node);
+    visitFloatNode (node) {
+        return new Primitive('float', node.value, node);
     },
 
-    _onTrue (node) {
+    visitTrueNode (node) {
         const index = (this._context.literalCallIndices.true || 0) + 1;
         this._context.literalCallIndices.true = index;
 
@@ -114,7 +110,7 @@ const ExpressionHandlers = {
         return block;
     },
 
-    _onFalse (node) {
+    visitFalseNode (node) {
         const index = (this._context.literalCallIndices.false || 0) + 1;
         this._context.literalCallIndices.false = index;
 
@@ -126,90 +122,155 @@ const ExpressionHandlers = {
         return block;
     },
 
-    _onArray (node) {
-        return new Primitive('array', node.children.map(childNode => this._process(childNode)), node);
+    visitArrayNode (node) {
+        return new Primitive('array', node.elements.map(childNode => this.visit(childNode)), node);
     },
 
-    _onHash (node) {
-        return new Primitive('hash', new Map(node.children.map(childNode => this._process(childNode))), node);
+    visitHashNode (node) {
+        // Prism HashNode has elements which are AssocNode or AssocSplatNode
+        const elements = new Map();
+        node.elements.forEach(element => {
+            if (element.constructor.name === 'AssocNode') {
+                elements.set(this.visit(element.key), this.visit(element.value));
+            }
+        });
+        return new Primitive('hash', elements, node);
     },
 
-    _onNil (node) {
-        return new Primitive('nil', Opal.nil, node);
+    visitKeywordHashNode (node) {
+        // Prism KeywordHashNode is used for keyword arguments without braces, e.g. foo(secs: 5)
+        // Elements are AssocNode with SymbolNode keys
+        const elements = new Map();
+        node.elements.forEach(element => {
+            if (element.constructor.name === 'AssocNode') {
+                elements.set(this.visit(element.key), this.visit(element.value));
+            }
+        });
+        return new Primitive('hash', elements, node);
     },
 
-    _onPair (node) {
-        this._checkNumChildren(node, 2);
-
-        return node.children.map(childNode => this._process(childNode));
+    visitNilNode (node) {
+        return new Primitive('nil', null, node);
     },
 
-    _onIrange (node) {
-        this._checkNumChildren(node, 2);
+    visitParenthesesNode (node) {
+        // Parenthesized expression e.g. (1), (x + 1), (a; b; c)
+        // Delegate to the inner StatementsNode so chaining/sequencing is handled correctly
+        if (node.body) {
+            return this.visit(node.body);
+        }
+        return new Primitive('nil', null, node);
+    },
 
-        const args = node.children.map(childNode => this._process(childNode));
-        const block = this._createBlock('ruby_range', 'value_boolean');
+    visitAssocNode (node) {
+        return [this.visit(node.key), this.visit(node.value)];
+    },
+
+    visitRangeNode (node) {
+        const left = this.visit(node.left);
+        const right = this.visit(node.right);
+        const opcode = node.isExcludeEnd() ? 'ruby_exclude_range' : 'ruby_range';
+        const block = this._createBlock(opcode, 'value_boolean');
         block.node = node;
-        this._addNumberInput(block, 'FROM', 'math_number', args[0], 1);
-        this._addNumberInput(block, 'TO', 'math_number', args[1], 10);
+        this._addNumberInput(block, 'FROM', 'math_number', left, 1);
+        this._addNumberInput(block, 'TO', 'math_number', right, 10);
         return block;
     },
 
-    _onErange (node) {
-        this._checkNumChildren(node, 2);
-
-        const args = node.children.map(childNode => this._process(childNode));
-        const block = this._createBlock('ruby_exclude_range', 'value_boolean');
-        block.node = node;
-        this._addNumberInput(block, 'FROM', 'math_number', args[0], 1);
-        this._addNumberInput(block, 'TO', 'math_number', args[1], 10);
-        return block;
-    },
-
-    _onConst (node) {
-        this._checkNumChildren(node, 2);
-
+    visitConstantReadNode (node) {
         const value = {
-            scope: this._process(node.children[0]),
-            name: node.children[1].toString()
+            scope: null,
+            name: node.name
         };
         return new Primitive('const', value, node);
     },
 
-    _onArgs (node) {
-        return node.children.map(childNode => this._process(childNode));
+    visitConstantPathNode (node) {
+        const value = {
+            scope: this.visit(node.parent),
+            name: node.name
+        };
+        return new Primitive('const', value, node);
     },
 
-    _onArg (node) {
-        this._checkNumChildren(node, 1);
-
-        return node.children[0];
-    },
-
-    _onVar (node, scope) {
-        this._checkNumChildren(node, 1);
-
-        const variable = this._lookupOrCreateVariable(node.children[0]);
-        const block = this._callConvertersHandler('onVar', scope, variable);
-        if (block) {
-            return block;
+    visitReturnNode (node) {
+        const procedureName = this._context.currentProcedureName;
+        if (!procedureName) {
+            return this._createRubyStatementBlock(this._getSource(node), node);
         }
 
-        return node.children[0].toString();
+        // Get return value (first argument of the return node, or nil)
+        const args = node.arguments_ && node.arguments_.arguments_;
+        let returnValue;
+        if (args && args.length > 0) {
+            returnValue = this.visit(args[0]);
+        }
+
+        // Create assign block: @_return_procedureName_ = returnValue
+        const variable = this._lookupOrCreateVariable(`@_return_${procedureName}_`);
+        const assignBlock = this._createBlock('data_setvariableto', 'statement', {
+            fields: {
+                VARIABLE: {
+                    name: 'VARIABLE',
+                    id: variable.id,
+                    value: variable.name,
+                    variableType: variable.type
+                }
+            }
+        });
+        assignBlock.comment = this._createComment(
+            `@ruby:syntax:return @ruby:return:${procedureName}`, assignBlock.id
+        );
+        if (returnValue) {
+            this._addTextInput(
+                assignBlock, 'VALUE', this._isNumber(returnValue) ? returnValue.toString() : returnValue, '0'
+            );
+        } else {
+            this._addTextInput(assignBlock, 'VALUE', '', '0');
+        }
+
+        // Create stop block: control_stop "this script"
+        const stopBlock = this._createBlock('control_stop', 'terminate', {
+            fields: {
+                STOP_OPTION: {
+                    name: 'STOP_OPTION',
+                    value: 'this script'
+                }
+            },
+            mutation: {
+                hasnext: 'false',
+                tagName: 'mutation',
+                children: []
+            }
+        });
+        stopBlock.comment = this._createComment('@ruby:syntax:return', stopBlock.id);
+
+        return [assignBlock, stopBlock];
     },
 
-    _onGvar (node) {
-        return this._onVar(node, 'global');
+    visitParametersNode (node) {
+        // Used for method definition parameters: def foo(arg1, arg2)
+        return (node.requireds || []).map(childNode => this.visit(childNode));
     },
 
-    _onIvar (node) {
-        return this._onVar(node, 'instance');
+    visitBlockParametersNode (node) {
+        return (node.parameters ? node.parameters.requireds : []).map(childNode => this.visit(childNode));
     },
 
-    _onLvar (node) {
-        this._checkNumChildren(node, 1);
+    visitRequiredParameterNode (node) {
+        return node.name;
+    },
 
-        const originalVarName = node.children[0].toString();
+    visitGlobalVariableReadNode (node) {
+        return this._onVar(node.name, 'global', node);
+    },
+
+    visitInstanceVariableReadNode (node) {
+        return this._onVar(node.name, 'instance', node);
+    },
+
+    visitLocalVariableReadNode (node) {
+        const originalVarName = node.name;
         // Normalize variable name to match how arguments and other locals are stored
         const normalizedVarName = this._toSnakeCaseLowercase(originalVarName);
 
@@ -224,6 +285,16 @@ const ExpressionHandlers = {
         }
 
         return normalizedVarName;
+    },
+
+    _onVar (name, scope, node) {
+        const variable = this._lookupOrCreateVariable(name);
+        const block = this._callConvertersHandler('onVar', scope, variable);
+        if (block) {
+            return block;
+        }
+
+        return name;
     }
 };
 

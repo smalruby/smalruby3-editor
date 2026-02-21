@@ -30,8 +30,8 @@ class SB3Downloader extends React.Component {
             'downloadProject'
         ]);
     }
-    downloadProject () {
-        const converter = this.props.targetCodeToBlocks(this.props.intl);
+    async downloadProject () {
+        const converter = await this.props.targetCodeToBlocks(this.props.intl);
         if (!converter.result) {
             return;
         }

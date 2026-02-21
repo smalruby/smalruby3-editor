@@ -19,7 +19,7 @@ describe('RubyToBlocksConverter/Gets', () => {
     });
 
     describe('gets', () => {
-        test('variable assignment', () => {
+        test('variable assignment', async () => {
             code = 'text = gets';
             expected = [
                 {
@@ -62,10 +62,10 @@ describe('RubyToBlocksConverter/Gets', () => {
                     minimized: true
                 }
             };
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('direct usage (e.g., puts gets)', () => {
+        test('direct usage (e.g., puts gets)', async () => {
             code = 'puts gets';
             expected = [
                 {
@@ -106,10 +106,10 @@ describe('RubyToBlocksConverter/Gets', () => {
                     minimized: true
                 }
             };
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('multiple gets', () => {
+        test('multiple gets', async () => {
             code = `
                 a = gets
                 b = gets
@@ -159,10 +159,10 @@ describe('RubyToBlocksConverter/Gets', () => {
             e.next.next = askBlock();
             e.next.next.next = setB;
             expected = [e];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('standalone gets (value block handling)', () => {
+        test('standalone gets (value block handling)', async () => {
             code = 'gets';
             const askBlock = {
                 opcode: 'sensing_askandwait',
@@ -185,7 +185,7 @@ describe('RubyToBlocksConverter/Gets', () => {
                 }
             };
             expected = [askBlock, answerBlock];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
     });
 });

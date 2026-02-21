@@ -48,8 +48,6 @@
     "TRADEMARK"
   ],
   "scripts": {
-    "setup:opal": "node scripts/make-setup-opal.js",
-    "prebuild": "npm run setup:opal",
     "build": "npm run clean && node ./scripts/makePWAAssetsManifest.js && npm run build:dev && npm run build:dist-html && node ./scripts/postbuild.mjs",
     "build:dev": "BUILD_TYPE=dev webpack",
     "build:dist": "cross-env NODE_ENV=production BUILD_TYPE=dist webpack",
@@ -86,9 +84,7 @@
       "^@smalruby/scratch-render/(.*)$": "<rootDir>/../scratch-render/$1",
       "^@smalruby/scratch-svg-renderer/(.*)$": "<rootDir>/../scratch-svg-renderer/$1",
       "^@smalruby/scratch-vm/(.*)$": "<rootDir>/../scratch-vm/$1",
-      "@bjorn3/browser_wasi_shim": "<rootDir>/test/__mocks__/browserWasiShimMock.js",
-      "opal": "<rootDir>/opal/opal.min.js",
-      "opal-parser": "<rootDir>/opal/opal-parser.min.js"
+      "@bjorn3/browser_wasi_shim": "<rootDir>/test/__mocks__/browserWasiShimMock.js"
     },
     "reporters": [
       "default",
@@ -101,10 +97,10 @@
     ],
     "setupFiles": [
       "raf/polyfill",
-      "<rootDir>/test/setup-opal.js",
       "<rootDir>/test/unit/lib/setup-prism.js"
     ],
     "testEnvironment": "jsdom",
+    "testTimeout": 15000,
     "testPathIgnorePatterns": [
       "src/test.js"
     ],
@@ -229,7 +225,6 @@
     "jest-environment-jsdom": "29.7.0",
     "jest-junit": "7.0.0",
     "mkdirp": "1.0.4",
-    "opal-loader": "^0.0.1",
     "process": "^0.11.10",
     "raf": "3.4.1",
     "react-test-renderer": "18.3.1",

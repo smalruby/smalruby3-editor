@@ -9,6 +9,7 @@ npm-*
 /.nyc_output
 /coverage
 /test-results
+/.tap
 
 # Build
 /build

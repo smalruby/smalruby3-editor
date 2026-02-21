@@ -18,7 +18,7 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
         expected = null;
     });
 
-    test('smalrubotS1_action', () => {
+    test('smalrubotS1_action', async () => {
         const actions = [
             'forward',
             'backward',
@@ -26,7 +26,7 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
             'right',
             'stop'
         ];
-        actions.forEach(action => {
+        for (const action of actions) {
             code = `smalrubot_s1.action("${action}")`;
             expected = [
                 {
@@ -39,20 +39,20 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        }
 
-        [
+        { for (const s of [
             'smalrubot_s1.action',
             'smalrubot_s1.action()',
             'smalrubot_s1.action(1)',
             'smalrubot_s1.action("invalid action")'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 
-    test('smalrubotS1_actionAndStopAfter', () => {
+    test('smalrubotS1_actionAndStopAfter', async () => {
         const actions = [
             'forward',
             'backward',
@@ -60,7 +60,7 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
             'right',
             'stop'
         ];
-        actions.forEach(action => {
+        for (const action of actions) {
             code = `smalrubot_s1.action("${action}", 0.5)`;
             expected = [
                 {
@@ -79,18 +79,18 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        }
 
-        [
+        { for (const s of [
             'smalrubot_s1.action("left", "invalid sec")',
             'smalrubot_s1.action("left", 0.5, "invalid argument")'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 
-    test('smalrubotS1_bendArm', () => {
+    test('smalrubotS1_bendArm', async () => {
         code = 'smalrubot_s1.bend_arm(90, 1)';
         expected = [
             {
@@ -107,9 +107,9 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
                 ]
             }
         ];
-        convertAndExpectToEqualBlocks(converter, target, code, expected);
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        [
+        { for (const s of [
             'smalrubot_s1.bend_arm',
             'smalrubot_s1.bend_arm()',
             'smalrubot_s1.bend_arm(90)',
@@ -117,18 +117,18 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
             'smalrubot_s1.bend_arm("90", 1)',
             'smalrubot_s1.bend_arm(90, "1")',
             'smalrubot_s1.bend_arm("90", "1")'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 
-    test('smalrubotS1_getSensorValue', () => {
+    test('smalrubotS1_getSensorValue', async () => {
         const positions = [
             'left',
             'right',
             'touch'
         ];
-        positions.forEach(position => {
+        for (const position of positions) {
             code = `smalrubot_s1.sensor_value("${position}")`;
             expected = [
                 {
@@ -141,26 +141,26 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        }
 
-        [
+        { for (const s of [
             'smalrubot_s1.sensor_value',
             'smalrubot_s1.sensor_value()',
             'smalrubot_s1.sensor_value("invalid position")',
             'smalrubot_s1.sensor_value("left", "invalid argument")',
             'smalrubot_s1.sensor_value(1)'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 
-    test('smalrubotS1_turnLedOn', () => {
+    test('smalrubotS1_turnLedOn', async () => {
         const positions = [
             'left',
             'right'
         ];
-        positions.forEach(position => {
+        for (const position of positions) {
             code = `smalrubot_s1.led("${position}", true)`;
             expected = [
                 {
@@ -173,26 +173,26 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        }
 
-        [
+        { for (const s of [
             'smalrubot_s1.led',
             'smalrubot_s1.led(1)',
             'smalrubot_s1.led("invalid position", true)',
             'smalrubot_s1.led("left", "invalid state")',
             'smalrubot_s1.led("left", true, "invalid argument")'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 
-    test('smalrubotS1_turnLedOff', () => {
+    test('smalrubotS1_turnLedOff', async () => {
         const positions = [
             'left',
             'right'
         ];
-        positions.forEach(position => {
+        for (const position of positions) {
             code = `smalrubot_s1.led("${position}", false)`;
             expected = [
                 {
@@ -205,23 +205,23 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        }
 
-        [
+        { for (const s of [
             'smalrubot_s1.led("invalid position", false)',
             'smalrubot_s1.led("left", false, "invalid argument")'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 
-    test('smalrubotS1_getMotorSpeed', () => {
+    test('smalrubotS1_getMotorSpeed', async () => {
         const positions = [
             'left',
             'right'
         ];
-        positions.forEach(position => {
+        for (const position of positions) {
             code = `smalrubot_s1.get_motor_speed("${position}")`;
             expected = [
                 {
@@ -234,25 +234,25 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        }
 
-        [
+        { for (const s of [
             'smalrubot_s1.get_motor_speed',
             'smalrubot_s1.get_motor_speed()',
             'smalrubot_s1.get_motor_speed("left", "invalid speed")',
             'smalrubot_s1.get_motor_speed(1)'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 
-    test('smalrubotS1_setMotorSpeed', () => {
+    test('smalrubotS1_setMotorSpeed', async () => {
         const positions = [
             'left',
             'right'
         ];
-        positions.forEach(position => {
+        for (const position of positions) {
             code = `smalrubot_s1.set_motor_speed("${position}", 100)`;
             expected = [
                 {
@@ -271,18 +271,18 @@ describe('RubyToBlocksConverter/SmalrubotS1', () => {
                     ]
                 }
             ];
-            convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        }
 
-        [
+        { for (const s of [
             'smalrubot_s1.set_motor_speed',
             'smalrubot_s1.set_motor_speed()',
             'smalrubot_s1.set_motor_speed("left")',
             'smalrubot_s1.set_motor_speed("left", "invalid speed")',
             'smalrubot_s1.set_motor_speed(1, 100)',
             'smalrubot_s1.set_motor_speed("left", 100, "invalid argument")'
-        ].forEach(s => {
-            convertAndExpectRubyBlockError(converter, target, s);
-        });
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
     });
 });

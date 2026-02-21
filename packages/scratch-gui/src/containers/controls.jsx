@@ -18,10 +18,10 @@ class Controls extends React.Component {
             'handleStopAllClick'
         ]);
     }
-    handleGreenFlagClick (e) {
+    async handleGreenFlagClick (e) {
         e.preventDefault();
 
-        const converter = this.props.targetCodeToBlocks(this.props.intl);
+        const converter = await this.props.targetCodeToBlocks(this.props.intl);
         if (!converter.result) {
             return;
         }

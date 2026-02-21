@@ -125,34 +125,35 @@ class RubyTab extends React.Component {
                 this.props.vm.editingTarget && this.props.rubyCode.target &&
                   this.props.vm.editingTarget.id !== targetId;
             if (changedTarget || this.props.blocksTabVisible) {
-                const converter = this.props.targetCodeToBlocks(this.props.intl);
-                if (converter.result) {
-                    converter.apply().then(() => {
-                        modified = false;
+                this.props.targetCodeToBlocks(this.props.intl).then(converter => {
+                    if (converter.result) {
+                        converter.apply().then(() => {
+                            modified = false;
 
-                        this.clearErrors();
+                            this.clearErrors();
 
-                        if (!modified) {
-                            const editingTargetChanged = this.props.editingTarget &&
-                                this.props.editingTarget !== prevProps.editingTarget;
-                            if ((this.props.isVisible && !prevProps.isVisible) || editingTargetChanged) {
-                                this.props.updateRubyCodeTargetState(
-                                    this.props.vm.editingTarget,
-                                    this.props.rubyVersion
-                                );
+                            if (!modified) {
+                                const editingTargetChanged = this.props.editingTarget &&
+                                    this.props.editingTarget !== prevProps.editingTarget;
+                                if ((this.props.isVisible && !prevProps.isVisible) || editingTargetChanged) {
+                                    this.props.updateRubyCodeTargetState(
+                                        this.props.vm.editingTarget,
+                                        this.props.rubyVersion
+                                    );
+                                }
                             }
-                        }
 
-                        if (this.props.isVisible && !prevProps.isVisible) {
-                            if (this.editorRef) {
-                                this.editorRef.focus();
-                                this.editorRef.layout();
+                            if (this.props.isVisible && !prevProps.isVisible) {
+                                if (this.editorRef) {
+                                    this.editorRef.focus();
+                                    this.editorRef.layout();
+                                }
                             }
-                        }
-                    });
-                    return;
-                }
-                this.showErrors(converter.errors);
+                        });
+                        return;
+                    }
+                    this.showErrors(converter.errors);
+                });
             }
         }
 
@@ -238,10 +239,10 @@ class RubyTab extends React.Component {
         }
     }
 
-    handleRubyVersionChange (oldVersion, newVersion) {
+    async handleRubyVersionChange (oldVersion, newVersion) {
         this.lastProcessedVersion = newVersion;
         if (this.props.rubyCode.modified) {
-            const converter = this.props.targetCodeToBlocks(this.props.intl);
+            const converter = await this.props.targetCodeToBlocks(this.props.intl);
             if (converter.result) {
                 converter.apply().then(() => {
                     this.clearErrors();
@@ -580,7 +581,7 @@ class RubyTab extends React.Component {
         this.editorRef.revealLineInCenter(middleLine);
     }
 
-    handleExecuteLine (lineNumber) {
+    async handleExecuteLine (lineNumber) {
         // If already running, stop it
         if (this.state.runningBlockId) {
             this.props.vm.runtime.toggleScript(this.state.runningBlockId, {
@@ -612,7 +613,7 @@ class RubyTab extends React.Component {
             return;
         }
 
-        const converter = targetCodeToBlocks(
+        const converter = await targetCodeToBlocks(
             this.props.vm,
             this.props.rubyCode.target,
             rubyCode,

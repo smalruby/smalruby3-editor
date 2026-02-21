@@ -36,7 +36,7 @@ describe('make-toolbox-xml', () => {
         <category-separator/>
     </category>`;
 
-        test('should preserve blockSeparator when filtering blocks', () => {
+        test('should preserve blockSeparator when filtering blocks', async () => {
             const allowedPatterns = ['motion_movesteps', 'motion_turnright'];
             const result = filterBlocks(sampleCategoryXML, allowedPatterns);
 
@@ -52,7 +52,7 @@ describe('make-toolbox-xml', () => {
             expect(result).not.toContain('motion_goto');
         });
 
-        test('should consolidate consecutive blockSeparators', () => {
+        test('should consolidate consecutive blockSeparators', async () => {
             // Test case where filtering creates consecutive separators
             const allowedPatterns = ['motion_movesteps', 'motion_goto']; // Skip middle blocks
             const result = filterBlocks(sampleCategoryXML, allowedPatterns);
@@ -68,7 +68,7 @@ describe('make-toolbox-xml', () => {
             expect(result).not.toContain('motion_turnleft');
         });
 
-        test('should remove separators at beginning and end', () => {
+        test('should remove separators at beginning and end', async () => {
             const xmlWithLeadingSeparator = `<category name="Motion">
         <sep gap="36"/>
         <block type="motion_movesteps"></block>
@@ -89,19 +89,19 @@ describe('make-toolbox-xml', () => {
             expect(result).not.toContain('motion_turnright');
         });
 
-        test('should return empty string when no blocks match', () => {
+        test('should return empty string when no blocks match', async () => {
             const allowedPatterns = ['nonexistent_block'];
             const result = filterBlocks(sampleCategoryXML, allowedPatterns);
 
             expect(result).toBe('');
         });
 
-        test('should return original XML when no patterns provided', () => {
+        test('should return original XML when no patterns provided', async () => {
             const result = filterBlocks(sampleCategoryXML, []);
             expect(result).toBe(sampleCategoryXML);
         });
 
-        test('should handle XML without separators', () => {
+        test('should handle XML without separators', async () => {
             const xmlWithoutSeparators = `<category name="Motion">
         <block type="motion_movesteps"></block>
         <block type="motion_turnright"></block>

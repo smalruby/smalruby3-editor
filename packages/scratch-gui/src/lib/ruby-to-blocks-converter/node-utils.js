@@ -1,28 +1,21 @@
 import _ from 'lodash';
 import {RubyToBlocksConverterError} from './errors';
 
-const Opal = global.Opal || window.Opal;
-
 /**
  * Node and block judgment utilities for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
  */
 const NodeUtils = {
     _checkNumChildren (node, length) {
-        if (_.isArray(length)) {
-            if (length.indexOf(node.children.length) < 0) {
-                // eslint-disable-next-line no-console
-                console.error(`'${node.type}' node.children.length !== ${length.join(' or ')}: `, node.children);
-            }
-        } else if (node.children.length !== length) {
-            // eslint-disable-next-line no-console
-            console.error(`'${node.type}' node.children.length !== ${length}: `, node.children);
-        }
+        // Prism node children are named properties, not an array.
+    },
+
+    _isPrimitive (value) {
+        return value && (value._isPrimitive || value.constructor.name === 'Primitive' || value._type);
     },
 
     _isSelf (block) {
-        const Primitive = require('./primitive').default;
-        return block instanceof Primitive && block.type === 'self';
+        return this._isPrimitive(block) && block.type === 'self';
     },
 
     _isStage () {
@@ -34,7 +27,11 @@ const NodeUtils = {
     },
 
     _isString (value) {
-        return _.isString(value) || (value && value.type === 'str');
+        if (_.isString(value)) return true;
+        if (this._isPrimitive(value)) {
+            return value.type === 'str';
+        }
+        return value && value.constructor.name === 'StringNode';
     },
 
     isNumber (value) {
@@ -42,7 +39,12 @@ const NodeUtils = {
     },
 
     _isNumber (value) {
-        return _.isNumber(value) || (value && (value.type === 'int' || value.type === 'float'));
+        if (_.isNumber(value)) return true;
+        if (this._isPrimitive(value)) {
+            return value.type === 'int' || value.type === 'float';
+        }
+        return value &&
+            (value.constructor.name === 'IntegerNode' || value.constructor.name === 'FloatNode');
     },
 
     isTrue (value) {
@@ -50,7 +52,11 @@ const NodeUtils = {
     },
 
     _isTrue (value) {
-        if (value === true || (value && value.type === 'true')) {
+        if (value === true) return true;
+        if (this._isPrimitive(value)) {
+            return value.type === 'true';
+        }
+        if (value && value.constructor.name === 'TrueNode') {
             return true;
         }
         if (this._isBlock(value) && value.opcode === 'operator_equals' && value.comment) {
@@ -65,7 +71,11 @@ const NodeUtils = {
     },
 
     _isFalse (value) {
-        if (value === false || (value && value.type === 'false')) {
+        if (value === false) return true;
+        if (this._isPrimitive(value)) {
+            return value.type === 'false';
+        }
+        if (value && value.constructor.name === 'FalseNode') {
             return true;
         }
         if (this._isBlock(value) && value.opcode === 'operator_lt' && value.comment) {
@@ -76,19 +86,58 @@ const NodeUtils = {
     },
 
     isNil (value) {
-        return value === Opal.nil || (value && value.type === 'nil');
+        if (value === null) return true;
+        if (this._isPrimitive(value)) {
+            return value.type === 'nil';
+        }
+        return value && value.constructor.name === 'NilNode';
     },
 
     _isArray (value) {
-        return _.isArray(value) || (value && value.type === 'array');
+        if (_.isArray(value)) return true;
+        if (this._isPrimitive(value)) {
+            return value.type === 'array';
+        }
+        return value && value.constructor.name === 'ArrayNode';
     },
 
     _isHash (value) {
-        return value && value.type === 'hash';
+        if (this._isPrimitive(value)) {
+            return value.type === 'hash';
+        }
+        return value && value.constructor.name === 'HashNode';
     },
 
     _isConst (value) {
-        return value && value.type === 'const';
+        if (this._isPrimitive(value)) {
+            return value.type === 'const';
+        }
+        return value &&
+            (value.constructor.name === 'ConstantReadNode' || value.constructor.name === 'ConstantPathNode');
+    },
+
+    _isSymbol (value) {
+        if (this._isPrimitive(value)) {
+            return value.type === 'sym';
+        }
+        return value && value.constructor.name === 'SymbolNode';
+    },
+
+    /**
+     * Get the string value of a symbol node.
+     * Works for Prism SymbolNode instances ({unescaped: {value: '...'}}).
+     * @param {object} node - A symbol node.
+     * @returns {string|null} The symbol value, or null if not a symbol.
+     */
+    _getSymbolValue (node) {
+        if (!node) return null;
+        if (this._isPrimitive(node) && node.type === 'sym') {
+            return node.value;
+        }
+        if (node.constructor.name === 'SymbolNode') {
+            return node.unescaped ? node.unescaped.value : null;
+        }
+        return null;
     },
 
     isBlock (block) {
@@ -230,20 +279,102 @@ const NodeUtils = {
     },
 
     _getSource (node) {
-        const expression = node.$loc().$expression();
-        if (expression === Opal.nil) {
+        if (!node || !node.location) {
             return '';
         }
-        return expression.$source().toString();
+        const {startOffset, length} = node.location;
+        return this._context.sourceCode.slice(startOffset, startOffset + length);
+    },
+
+    _getLineForOffset (byteOffset) {
+        if (typeof byteOffset !== 'number' || !this._context.sourceCode) {
+            return 1;
+        }
+        // Prism uses UTF-8 byte offsets. Walk the JS string counting UTF-8 bytes
+        // so we handle multibyte characters (e.g. Japanese) correctly.
+        const source = this._context.sourceCode;
+        let line = 1;
+        let bytesConsumed = 0;
+        for (let i = 0; i < source.length && bytesConsumed < byteOffset; i++) {
+            const cp = source.codePointAt(i);
+            let byteLen;
+            if (cp < 0x80) {
+                byteLen = 1;
+            } else if (cp < 0x800) {
+                byteLen = 2;
+            } else if (cp < 0x10000) {
+                byteLen = 3;
+            } else {
+                byteLen = 4;
+                i++; // surrogate pair: skip extra char in JS
+            }
+            bytesConsumed += byteLen;
+            if (bytesConsumed <= byteOffset && source[i] === '\n') {
+                line++;
+            }
+        }
+        return line;
+    },
+
+    _getNodeStartLine (node) {
+        if (!node || !node.location) return null;
+        if (typeof node.location.startLine !== 'undefined') {
+            return node.location.startLine || null;
+        }
+        if (typeof node.location.startOffset === 'number') {
+            return this._getLineForOffset(node.location.startOffset);
+        }
+        return null;
+    },
+
+    _getNodeEndLine (node) {
+        if (!node || !node.location) return null;
+        if (typeof node.location.endLine !== 'undefined') {
+            return node.location.endLine || null;
+        }
+        if (typeof node.location.startOffset === 'number' && typeof node.location.length === 'number') {
+            return this._getLineForOffset(node.location.startOffset + node.location.length);
+        }
+        return null;
+    },
+
+    _getLoc (node) {
+        if (!node || !node.location) {
+            return {line: 1, column: 0};
+        }
+        // Prism's JS binding location has startOffset/length (byte offsets), not startLine/startColumn.
+        // Compute line/column from startOffset and the stored source code.
+        if (typeof node.location.startLine !== 'undefined') {
+            return {
+                line: node.location.startLine || 1,
+                column: node.location.startColumn || 0
+            };
+        }
+        const offset = node.location.startOffset;
+        if (typeof offset !== 'number' || !this._context.sourceCode) {
+            return {line: 1, column: 0};
+        }
+        const source = this._context.sourceCode;
+        let line = 1;
+        let column = 0;
+        for (let i = 0; i < offset && i < source.length; i++) {
+            if (source[i] === '\n') {
+                line++;
+                column = 0;
+            } else {
+                column++;
+            }
+        }
+        return {line, column};
     },
 
     _toErrorAnnotation (row, column, message, source) {
-        if (row === Opal.nil) {
+        if (typeof row === 'undefined' || row === null) {
             row = 0;
         } else {
             row -= 1;
         }
-        if (column === Opal.nil) {
+        if (typeof column === 'undefined' || column === null) {
             column = 0;
         }
         return {
