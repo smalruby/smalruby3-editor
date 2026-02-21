@@ -377,7 +377,17 @@ let config;
 switch (process.env.BUILD_TYPE) {
 case 'dist': config = distConfig.get(); break;
 case 'dist-standalone': config = distStandaloneConfig.get(); break;
-case 'dist-html': config = distWithHtmlConfig.get(); break;
+case 'dist-html': {
+    config = distWithHtmlConfig.get();
+    // In production (dist-html), prism.wasm is served over HTTPS so fetch() is available.
+    // Use asset/resource to emit a separate file (better caching, smaller bundle, streaming compile).
+    // The file:// fallback (asset/inline + atob) is only needed for integration tests.
+    const wasmRule = config.module.rules.find(r => r.test && r.test.toString() === '/prism\\.wasm$/');
+    if (wasmRule) {
+        wasmRule.type = 'asset/resource';
+    }
+    break;
+}
 default: config = buildWithPwaConfig.get(); break;
 }
 

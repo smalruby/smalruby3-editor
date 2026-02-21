@@ -38,11 +38,16 @@ const _doLoadPrism = async () => {
     // Browser environment
     const {WASI} = await import('@bjorn3/browser_wasi_shim');
     const {parsePrism} = await import('@ruby/prism/src/parsePrism.js');
-    // prism.wasm is bundled as asset/inline (Base64 data URL) so it works without
-    // a network request (required for file:// protocol used in integration tests).
-    // The prismWasmUrl may be a data: URL (static build) or a regular URL (dev server).
+    // prism.wasm loading strategy depends on the build:
+    //   - asset/inline (data: URL): used for file:// protocol (integration tests).
+    //     fetch() and XHR are blocked by CORS on file://, so we decode Base64 via atob().
+    //   - asset/resource (https: URL): used for production (smalruby.app) and dev server.
+    //     Use instantiateStreaming() for streaming compile — faster and no buffer copy.
     const prismWasmUrl = (await import('@ruby/prism/src/prism.wasm')).default;
-    let wasmBuffer;
+    const wasi = new WASI([], [], []);
+    const importObject = {wasi_snapshot_preview1: wasi.wasiImport};
+
+    let instance;
     if (typeof prismWasmUrl === 'string' && prismWasmUrl.startsWith('data:')) {
         // data: URL from asset/inline: decode Base64 (fetch() doesn't support data: in Chrome)
         const base64 = prismWasmUrl.split(',')[1];
@@ -51,15 +56,12 @@ const _doLoadPrism = async () => {
         for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
         }
-        wasmBuffer = bytes.buffer;
+        const wasm = await WebAssembly.compile(bytes.buffer);
+        instance = await WebAssembly.instantiate(wasm, importObject);
     } else {
-        // Regular URL (dev server): use fetch()
-        wasmBuffer = await fetch(prismWasmUrl).then(r => r.arrayBuffer());
+        // Regular URL (production HTTPS or dev server): use instantiateStreaming()
+        ({instance} = await WebAssembly.instantiateStreaming(fetch(prismWasmUrl), importObject));
     }
-    const wasm = await WebAssembly.compile(wasmBuffer);
-    const wasi = new WASI([], [], []);
-
-    const instance = await WebAssembly.instantiate(wasm, {wasi_snapshot_preview1: wasi.wasiImport});
     wasi.initialize(instance);
 
     return {
