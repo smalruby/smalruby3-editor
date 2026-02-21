@@ -122,36 +122,67 @@ const TargetApplier = {
                 );
             });
 
-            // Apply classInfo attributes to the target
+            // Apply classInfo attributes to the target using VM setter methods
+            // to trigger renderer updates and Redux state changes.
             const classInfo = this._context.classInfo;
             if (classInfo) {
-                if (Object.prototype.hasOwnProperty.call(classInfo, 'name')) {
+                const has = prop => Object.prototype.hasOwnProperty.call(classInfo, prop);
+
+                if (has('name')) {
                     target.sprite.name = classInfo.name;
                 }
-                if (Object.prototype.hasOwnProperty.call(classInfo, 'x')) {
-                    target.x = classInfo.x;
+
+                if (has('x') || has('y')) {
+                    const newX = has('x') ? classInfo.x : target.x;
+                    const newY = has('y') ? classInfo.y : target.y;
+                    if (typeof target.setXY === 'function') {
+                        target.setXY(newX, newY, true);
+                    } else {
+                        target.x = newX;
+                        target.y = newY;
+                    }
                 }
-                if (Object.prototype.hasOwnProperty.call(classInfo, 'y')) {
-                    target.y = classInfo.y;
+                if (has('direction')) {
+                    if (typeof target.setDirection === 'function') {
+                        target.setDirection(classInfo.direction);
+                    } else {
+                        target.direction = classInfo.direction;
+                    }
                 }
-                if (Object.prototype.hasOwnProperty.call(classInfo, 'direction')) {
-                    target.direction = classInfo.direction;
+                if (has('visible')) {
+                    if (typeof target.setVisible === 'function') {
+                        target.setVisible(classInfo.visible);
+                    } else {
+                        target.visible = classInfo.visible;
+                    }
                 }
-                if (Object.prototype.hasOwnProperty.call(classInfo, 'visible')) {
-                    target.visible = classInfo.visible;
+                if (has('size')) {
+                    if (typeof target.setSize === 'function') {
+                        target.setSize(classInfo.size);
+                    } else {
+                        target.size = classInfo.size;
+                    }
                 }
-                if (Object.prototype.hasOwnProperty.call(classInfo, 'size')) {
-                    target.size = classInfo.size;
+                if (has('current_costume')) {
+                    if (typeof target.setCostume === 'function') {
+                        target.setCostume(classInfo.current_costume);
+                    } else {
+                        target.currentCostume = classInfo.current_costume;
+                    }
                 }
-                if (Object.prototype.hasOwnProperty.call(classInfo, 'current_costume')) {
-                    target.currentCostume = classInfo.current_costume;
-                }
-                if (Object.prototype.hasOwnProperty.call(classInfo, 'rotation_style')) {
-                    target.rotationStyle = classInfo.rotation_style;
+                if (has('rotation_style')) {
+                    if (typeof target.setRotationStyle === 'function') {
+                        target.setRotationStyle(classInfo.rotation_style);
+                    } else {
+                        target.rotationStyle = classInfo.rotation_style;
+                    }
                 }
             }
 
             this.vm.emitWorkspaceUpdate();
+            if (classInfo && typeof this.vm.emitTargetsUpdate === 'function') {
+                this.vm.emitTargetsUpdate();
+            }
         });
     }
 };
