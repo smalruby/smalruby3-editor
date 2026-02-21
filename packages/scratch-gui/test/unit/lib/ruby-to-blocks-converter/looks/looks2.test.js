@@ -104,6 +104,34 @@ describe('RubyToBlocksConverter/Looks', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
+        test('special costumes', async () => {
+            const specialNames = ['next costume', 'previous costume', 'random costume'];
+            for (const name of specialNames) {
+                code = `switch_costume("${name}")`;
+                expected = [
+                    {
+                        opcode: 'looks_switchcostumeto',
+                        inputs: [
+                            {
+                                name: 'COSTUME',
+                                block: {
+                                    opcode: 'looks_costume',
+                                    fields: [
+                                        {
+                                            name: 'COSTUME',
+                                            value: name
+                                        }
+                                    ],
+                                    shadow: true
+                                }
+                            }
+                        ]
+                    }
+                ];
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
+            }
+        });
+
         test('invalid', async () => {
             { for (const c of [
                 'switch_costume',
@@ -143,6 +171,34 @@ describe('RubyToBlocksConverter/Looks', () => {
                 }
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('special backdrops', async () => {
+            const specialNames = ['next backdrop', 'previous backdrop', 'random backdrop'];
+            for (const name of specialNames) {
+                code = `switch_backdrop("${name}")`;
+                expected = [
+                    {
+                        opcode: 'looks_switchbackdropto',
+                        inputs: [
+                            {
+                                name: 'BACKDROP',
+                                block: {
+                                    opcode: 'looks_backdrops',
+                                    fields: [
+                                        {
+                                            name: 'BACKDROP',
+                                            value: name
+                                        }
+                                    ],
+                                    shadow: true
+                                }
+                            }
+                        ]
+                    }
+                ];
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
+            }
         });
 
         test('invalid', async () => {

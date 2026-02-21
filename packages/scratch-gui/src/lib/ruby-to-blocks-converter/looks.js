@@ -37,6 +37,11 @@ const validateCostume = function (converter, costumeName, args) {
         return;
     }
 
+    const specialCostumes = ['next costume', 'previous costume', 'random costume'];
+    if (specialCostumes.indexOf(costumeName) >= 0) {
+        return;
+    }
+
     const costumes = converter._context.target.getCostumes();
     const costumeExists = costumes.some(costume => costume.name === costumeName);
     if (!costumeExists) {
@@ -52,6 +57,12 @@ const validateBackdrop = function (converter, backdropName, args) {
     if (!converter.vm || !converter.vm.runtime) {
         return;
     }
+
+    const specialBackdrops = ['next backdrop', 'previous backdrop', 'random backdrop'];
+    if (specialBackdrops.indexOf(backdropName) >= 0) {
+        return;
+    }
+
     const stage = converter.vm.runtime.getTargetForStage();
     if (!stage || !stage.getCostumes) {
         return;
