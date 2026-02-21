@@ -121,6 +121,8 @@ jobs:
       - name: Create test-results directories
         run: mkdir -p packages/scratch-vm/test-results
       - name: Run scratch-vm Integration Tests
+        env:
+          MESH_DATA_UPDATE_INTERVAL_MS: 100
         run: npm run test:integration --workspace=packages/scratch-vm
       - name: Store Test Results
         if: always() # Even if tests fail

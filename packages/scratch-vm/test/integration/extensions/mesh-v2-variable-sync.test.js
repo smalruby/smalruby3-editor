@@ -40,9 +40,11 @@ const createMockBlocks = () => ({
     }
 });
 
+const FAR_FUTURE = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
+
 test('MeshV2Service Variable Sync Integration', async t => {
     let reportDataPayload = null;
-    
+
     mockClient.mutate = ({mutation, variables}) => {
         if (mutation === CREATE_GROUP) {
             return Promise.resolve({
@@ -51,7 +53,7 @@ test('MeshV2Service Variable Sync Integration', async t => {
                         id: 'group1',
                         name: variables.name,
                         domain: variables.domain,
-                        expiresAt: '2025-12-30T12:00:00Z'
+                        expiresAt: FAR_FUTURE
                     }
                 }
             });
@@ -67,17 +69,18 @@ test('MeshV2Service Variable Sync Integration', async t => {
     const blocks = createMockBlocks();
     const service = new MeshV2Service(blocks, 'node1', 'domain1');
     service.client = mockClient;
+    service.forcePolling = true; // Skip WebSocket test in unit test environment
 
     // Test createGroup
     await service.createGroup('my-group');
-    
+
     // Need to wait for RateLimiter to process the queue
     await service.dataRateLimiter.waitForCompletion();
 
     t.ok(reportDataPayload, 'REPORT_DATA should be called');
     t.equal(reportDataPayload.length, 2);
-    t.deepEqual(reportDataPayload.find(v => v.key === 'var1'), {key: 'var1', value: '10'});
-    t.deepEqual(reportDataPayload.find(v => v.key === 'var2'), {key: 'var2', value: 'hello'});
+    t.same(reportDataPayload.find(v => v.key === 'var1'), {key: 'var1', value: '10'});
+    t.same(reportDataPayload.find(v => v.key === 'var2'), {key: 'var2', value: 'hello'});
 
     // Cleanup for next test
     reportDataPayload = null;
@@ -86,6 +89,7 @@ test('MeshV2Service Variable Sync Integration', async t => {
     // Test joinGroup with a NEW service instance
     const service2 = new MeshV2Service(blocks, 'node2', 'domain1');
     service2.client = mockClient;
+    service2.forcePolling = true; // Skip WebSocket test in unit test environment
 
     mockClient.mutate = ({mutation, variables}) => {
         if (mutation === JOIN_GROUP) {
@@ -93,7 +97,8 @@ test('MeshV2Service Variable Sync Integration', async t => {
                 data: {
                     joinGroup: {
                         domain: variables.domain,
-                        heartbeatIntervalSeconds: 60
+                        heartbeatIntervalSeconds: 60,
+                        expiresAt: FAR_FUTURE
                     }
                 }
             });
@@ -109,7 +114,7 @@ test('MeshV2Service Variable Sync Integration', async t => {
 
     t.ok(reportDataPayload, 'REPORT_DATA should be called on joinGroup');
     t.equal(reportDataPayload.length, 2);
-    
+
     service2.cleanup();
 
     t.end();
@@ -130,7 +135,8 @@ test('MeshV2Service fetch existing nodes data on joinGroup', async t => {
                 data: {
                     joinGroup: {
                         domain: 'domain1',
-                        heartbeatIntervalSeconds: 60
+                        heartbeatIntervalSeconds: 60,
+                        expiresAt: FAR_FUTURE
                     }
                 }
             });
@@ -161,6 +167,7 @@ test('MeshV2Service fetch existing nodes data on joinGroup', async t => {
 
     const service = new MeshV2Service(blocks, 'member-node', 'domain1');
     service.client = mockClient;
+    service.forcePolling = true; // Skip WebSocket test in unit test environment
 
     await service.joinGroup('group1', 'domain1', 'groupName');
 
