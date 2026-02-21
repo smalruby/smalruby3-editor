@@ -1,34 +1,25 @@
+/**
+ * Unit test replacing test/integration/ruby-tab/extension_smalrubot_s1.test.js
+ */
 import dedent from 'dedent';
-import SeleniumHelper from '../../helpers/selenium-helper';
-import RubyHelper from '../../helpers/ruby-helper';
+import {
+    makeSpriteTarget,
+    makeConverter,
+    setupRubyGenerator,
+    expectRoundTrip
+} from '../../helpers/ruby-roundtrip-helper';
 
-const seleniumHelper = new SeleniumHelper();
-const {
-    getDriver,
-    loadUri,
-    urlFor
-} = seleniumHelper;
+describe('Ruby Roundtrip: Smalrubot S1 extension blocks', () => {
+    let target, runtime, converter;
 
-const rubyHelper = new RubyHelper(seleniumHelper);
-const {
-    expectInterconvertBetweenCodeAndRuby
-} = rubyHelper;
-
-let driver;
-
-describe('Ruby Tab: Smalrubot S1 extension blocks', () => {
-    beforeAll(() => {
-        driver = getDriver();
-    });
-
-    afterAll(async () => {
-        await driver.quit();
+    beforeEach(() => {
+        ({target, runtime} = makeSpriteTarget());
+        setupRubyGenerator();
+        converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await loadUri(urlFor('/'));
-
-        const code = dedent`
+        await expectRoundTrip(converter, target, dedent`
             smalrubot_s1.action("forward")
             smalrubot_s1.action("backward")
             smalrubot_s1.action("left")
@@ -57,7 +48,6 @@ describe('Ruby Tab: Smalrubot S1 extension blocks', () => {
 
             smalrubot_s1.set_motor_speed("left", 50)
             smalrubot_s1.arm_calibration = 0
-        `;
-        await expectInterconvertBetweenCodeAndRuby(code);
+        `);
     });
 });

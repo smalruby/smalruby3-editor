@@ -1,34 +1,25 @@
+/**
+ * Unit test replacing test/integration/ruby-tab/extension_microbit_more.test.js
+ */
 import dedent from 'dedent';
-import SeleniumHelper from '../../helpers/selenium-helper';
-import RubyHelper from '../../helpers/ruby-helper';
+import {
+    makeSpriteTarget,
+    makeConverter,
+    setupRubyGenerator,
+    expectRoundTrip
+} from '../../helpers/ruby-roundtrip-helper';
 
-const seleniumHelper = new SeleniumHelper();
-const {
-    getDriver,
-    loadUri,
-    urlFor
-} = seleniumHelper;
+describe('Ruby Roundtrip: Microbit More v2 extension blocks', () => {
+    let target, runtime, converter;
 
-const rubyHelper = new RubyHelper(seleniumHelper);
-const {
-    expectInterconvertBetweenCodeAndRuby
-} = rubyHelper;
-
-let driver;
-
-describe('Ruby Tab: Microbit More v2 extension blocks', () => {
-    beforeAll(() => {
-        driver = getDriver();
-    });
-
-    afterAll(async () => {
-        await driver.quit();
+    beforeEach(() => {
+        ({target, runtime} = makeSpriteTarget());
+        setupRubyGenerator();
+        converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await loadUri(urlFor('/'));
-
-        const code = dedent`
+        await expectRoundTrip(converter, target, dedent`
             microbit.when_microbit("connected") do
             end
 
@@ -207,8 +198,6 @@ describe('Ruby Tab: Microbit More v2 extension blocks', () => {
 
             microbit.send_data_to_microbit("data", "label-01")
             microbit.send_data_to_microbit("123456", "label-02")
-        `;
-
-        await expectInterconvertBetweenCodeAndRuby(code);
+        `);
     });
 });

@@ -1,34 +1,25 @@
+/**
+ * Unit test replacing test/integration/ruby-tab/extension_lego_boost.test.js
+ */
 import dedent from 'dedent';
-import SeleniumHelper from '../../helpers/selenium-helper';
-import RubyHelper from '../../helpers/ruby-helper';
+import {
+    makeSpriteTarget,
+    makeConverter,
+    setupRubyGenerator,
+    expectRoundTrip
+} from '../../helpers/ruby-roundtrip-helper';
 
-const seleniumHelper = new SeleniumHelper();
-const {
-    getDriver,
-    loadUri,
-    urlFor
-} = seleniumHelper;
+describe('Ruby Roundtrip: LEGO BOOST extension blocks', () => {
+    let target, runtime, converter;
 
-const rubyHelper = new RubyHelper(seleniumHelper);
-const {
-    expectInterconvertBetweenCodeAndRuby
-} = rubyHelper;
-
-let driver;
-
-describe('Ruby Tab: LEGO BOOST extension blocks', () => {
-    beforeAll(() => {
-        driver = getDriver();
-    });
-
-    afterAll(async () => {
-        await driver.quit();
+    beforeEach(() => {
+        ({target, runtime} = makeSpriteTarget());
+        setupRubyGenerator();
+        converter = makeConverter(target, runtime);
     });
 
     test('Ruby -> Code -> Ruby', async () => {
-        await loadUri(urlFor('/'));
-
-        const code = dedent`
+        await expectRoundTrip(converter, target, dedent`
             boost_motor_turn_on_for("A", 1)
             boost_motor_turn_on_for("B", 1)
             boost_motor_turn_on_for("C", 1)
@@ -86,7 +77,6 @@ describe('Ruby Tab: LEGO BOOST extension blocks', () => {
             boost_get_tilt_angle("up")
 
             boost_set_light_color(50)
-        `;
-        await expectInterconvertBetweenCodeAndRuby(code);
+        `);
     });
 });
