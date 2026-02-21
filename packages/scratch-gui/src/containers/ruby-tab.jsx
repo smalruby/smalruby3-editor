@@ -85,6 +85,11 @@ class RubyTab extends React.Component {
         this.props.vm.addListener('SCRIPT_GLOW_ON', this.handleScriptGlowOn);
         this.props.vm.addListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
         this.props.vm.addListener('VISUAL_REPORT', this.handleVisualReport);
+
+        // Expose debug globals for Playwright MCP and browser console
+        window.smalruby = window.smalruby || {};
+        window.smalruby.vm = this.props.vm;
+        this._updateDebugGlobals();
     }
 
     componentDidUpdate (prevProps) {
@@ -173,6 +178,8 @@ class RubyTab extends React.Component {
             // Mark Ruby tab as used for tutorial onboarding
             this.props.onMarkRubyTabUsed();
         }
+
+        this._updateDebugGlobals();
     }
 
     componentWillUnmount () {
@@ -204,6 +211,19 @@ class RubyTab extends React.Component {
             this.bodyMutationObserver.disconnect();
             this.bodyMutationObserver = null;
         }
+    }
+
+    _updateDebugGlobals () {
+        if (!window.smalruby) window.smalruby = {};
+        const vm = this.props.vm;
+        window.smalruby.vm = vm;
+        if (vm.editingTarget) {
+            window.smalruby.sprite = vm.editingTarget;
+            window.smalruby.blocks = vm.editingTarget.blocks;
+            window.smalruby.comments = vm.editingTarget.comments;
+        }
+        window.smalruby.stage = vm.runtime ? vm.runtime.getTargetForStage() : null;
+        window.smalruby.runtime = vm.runtime;
     }
 
     clearErrors () {

@@ -3,6 +3,10 @@ import {
     convertAndExpectToEqualBlocks,
     rubyToExpected
 } from '../../../helpers/expect-to-equal-blocks';
+import {
+    makeSpriteTarget,
+    makeConverter
+} from '../../helpers/ruby-roundtrip-helper';
 
 describe('RubyToBlocksConverter/Class', () => {
     let converter;
@@ -390,6 +394,200 @@ describe('RubyToBlocksConverter/Class', () => {
             // set_x outside class should be treated as unknown call
             await converter.targetCodeToBlocks(target, code);
             expect(converter.errors.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe('applyTargetBlocks applies classInfo to target', () => {
+        let spriteTarget, runtime, vmConverter;
+
+        beforeEach(() => {
+            ({target: spriteTarget, runtime} = makeSpriteTarget());
+            spriteTarget.sprite = {name: 'スプライト1', costumes: []};
+            vmConverter = makeConverter(spriteTarget, runtime);
+        });
+
+        test('class Sprite1 applies sprite name Sprite1', async () => {
+            code = `
+                class Sprite1
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            // Sprite name should remain 'スプライト1' because class Sprite1 has no name attribute
+            // (Sprite1 matches Sprite%d% pattern, so no name change)
+            expect(spriteTarget.sprite.name).toEqual('スプライト1');
+        });
+
+        test('class Cat applies sprite name Cat', async () => {
+            code = `
+                class Cat
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.sprite.name).toEqual('Cat');
+        });
+
+        test('set_name applies sprite name', async () => {
+            code = `
+                class Sprite1
+                  set_name "ネコ"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.sprite.name).toEqual('ネコ');
+        });
+
+        test('set_x and set_y apply to target', async () => {
+            code = `
+                class Sprite1
+                  set_x 100
+                  set_y -50
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.x).toEqual(100);
+            expect(spriteTarget.y).toEqual(-50);
+        });
+
+        test('set_direction applies to target', async () => {
+            code = `
+                class Sprite1
+                  set_direction 180
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.direction).toEqual(180);
+        });
+
+        test('set_visible false applies to target', async () => {
+            spriteTarget.visible = true;
+            code = `
+                class Sprite1
+                  set_visible false
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.visible).toEqual(false);
+        });
+
+        test('set_size applies to target', async () => {
+            code = `
+                class Sprite1
+                  set_size 50
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.size).toEqual(50);
+        });
+
+        test('set_rotation_style applies to target', async () => {
+            code = `
+                class Sprite1
+                  set_rotation_style "left-right"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.rotationStyle).toEqual('left-right');
+        });
+
+        test('set_current_costume applies to target', async () => {
+            code = `
+                class Sprite1
+                  set_current_costume 2
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.currentCostume).toEqual(2);
+        });
+
+        test('class without classInfo does not change target attributes', async () => {
+            spriteTarget.x = 10;
+            spriteTarget.y = 20;
+            code = `
+                class Sprite1
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            // x and y should remain unchanged
+            expect(spriteTarget.x).toEqual(10);
+            expect(spriteTarget.y).toEqual(20);
+            expect(spriteTarget.sprite.name).toEqual('スプライト1');
         });
     });
 });

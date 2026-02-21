@@ -122,6 +122,35 @@ const TargetApplier = {
                 );
             });
 
+            // Apply classInfo attributes to the target
+            const classInfo = this._context.classInfo;
+            if (classInfo) {
+                if (Object.prototype.hasOwnProperty.call(classInfo, 'name')) {
+                    target.sprite.name = classInfo.name;
+                }
+                if (Object.prototype.hasOwnProperty.call(classInfo, 'x')) {
+                    target.x = classInfo.x;
+                }
+                if (Object.prototype.hasOwnProperty.call(classInfo, 'y')) {
+                    target.y = classInfo.y;
+                }
+                if (Object.prototype.hasOwnProperty.call(classInfo, 'direction')) {
+                    target.direction = classInfo.direction;
+                }
+                if (Object.prototype.hasOwnProperty.call(classInfo, 'visible')) {
+                    target.visible = classInfo.visible;
+                }
+                if (Object.prototype.hasOwnProperty.call(classInfo, 'size')) {
+                    target.size = classInfo.size;
+                }
+                if (Object.prototype.hasOwnProperty.call(classInfo, 'current_costume')) {
+                    target.currentCostume = classInfo.current_costume;
+                }
+                if (Object.prototype.hasOwnProperty.call(classInfo, 'rotation_style')) {
+                    target.rotationStyle = classInfo.rotation_style;
+                }
+            }
+
             this.vm.emitWorkspaceUpdate();
         });
     }
