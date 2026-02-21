@@ -140,12 +140,27 @@ RubyGenerator.finish = function (code, options) {
     }
 
     const comments = RubyGenerator.getTargetCommentTexts();
-    if (comments.length > 0) {
-        const commentCodes = comments.map(comment => `${this.prefixLines(comment, '# ')}\n`);
+
+    // Detect @ruby:class comments
+    let classComment = null;
+    const otherComments = [];
+    for (const comment of comments) {
+        if (comment === '@ruby:class' || comment === '@ruby:class:name') {
+            classComment = comment;
+        } else {
+            otherComments.push(comment);
+        }
+    }
+
+    // Add non-class target comments
+    if (otherComments.length > 0) {
+        const commentCodes = otherComments.map(comment => `${this.prefixLines(comment, '# ')}\n`);
         code = `${commentCodes.join('\n')}\n${code}`;
     }
 
-    if (options && options.withSpriteNew) {
+    if (classComment) {
+        code = this._wrapWithClass(code, classComment);
+    } else if (options && options.withSpriteNew) {
         const spriteNewCode = this.spriteNew(this.currentTarget);
         if (code.length > 0) {
             code = this.prefixLines(code, this.INDENT);
@@ -163,6 +178,37 @@ RubyGenerator.finish = function (code, options) {
     }
 
     return s + code;
+};
+
+RubyGenerator._wrapWithClass = function (code, classComment) {
+    const target = this.currentTarget;
+    let className;
+    let setNameCode = '';
+
+    if (classComment === '@ruby:class:name') {
+        const spriteName = target.sprite.name;
+        if (/^[A-Z]/.test(spriteName)) {
+            className = spriteName;
+        } else {
+            // Calculate sprite index
+            const sprites = target.runtime.targets.filter(t => !t.isStage);
+            const index = sprites.indexOf(target) + 1;
+            className = `Sprite${index}`;
+            setNameCode = `${this.INDENT}set_name ${this.quote_(spriteName)}\n\n`;
+        }
+    } else {
+        // @ruby:class - use Sprite%index%
+        const sprites = target.runtime.targets.filter(t => !t.isStage);
+        const index = sprites.indexOf(target) + 1;
+        className = `Sprite${index}`;
+    }
+
+    if (code.length > 0) {
+        code = this.prefixLines(code, this.INDENT);
+    }
+    code = `class ${className}\n${setNameCode}${code}end\n`;
+
+    return code;
 };
 
 RubyGenerator.initTargets = function (options) {
