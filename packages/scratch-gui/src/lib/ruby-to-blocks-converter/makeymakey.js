@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import _ from 'lodash';
 
 const Makey = 'makey';

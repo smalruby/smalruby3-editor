@@ -265,6 +265,10 @@ class RubyToBlocksConverter extends Visitor {
         this._context.processDepth = depth;
         return result;
     }
+
+    visitProgramNode (node) {
+        return this.visit(node.statements);
+    }
 }
 
 // Mixin methods

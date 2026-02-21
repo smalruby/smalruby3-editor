@@ -93,21 +93,21 @@ describe('RubyToBlocksConverter/Variables', () => {
 
     describe('Pseudo-Local Variable Naming', () => {
         test('local variable should have leading and trailing underscores and scope index', async () => {
-            const code = 'x = 10';
+            const code = 'var_x = 10';
             const res = await converter.targetCodeToBlocks(target, code);
             expect(res).toBeTruthy();
             const setVarBlock = Object.values(converter.blocks).find(b => b.opcode === 'data_setvariableto');
             expect(setVarBlock).toBeDefined();
-            expect(setVarBlock.fields.VARIABLE.value).toBe('_x_1_');
+            expect(setVarBlock.fields.VARIABLE.value).toBe('_var_x_1_');
         });
 
         test('local variable in method should have scope index 2', async () => {
-            const code = 'def test; y = 20; end';
+            const code = 'def test; var_y = 20; end';
             const res = await converter.targetCodeToBlocks(target, code);
             expect(res).toBeTruthy();
             const setVarBlock = Object.values(converter.blocks).find(b => b.opcode === 'data_setvariableto');
             expect(setVarBlock).toBeDefined();
-            expect(setVarBlock.fields.VARIABLE.value).toBe('_y_2_');
+            expect(setVarBlock.fields.VARIABLE.value).toBe('_var_y_2_');
         });
     });
 });

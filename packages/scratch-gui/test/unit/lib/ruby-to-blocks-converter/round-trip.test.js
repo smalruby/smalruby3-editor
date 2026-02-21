@@ -78,8 +78,8 @@ describe('Ruby Round Trip', () => {
         await expectRoundTrip('false');
         await expectRoundTrip('if true\n  move(10)\nend');
         await expectRoundTrip('if false\n  move(10)\nend');
-        await expectRoundTrip('x = true');
-        await expectRoundTrip('x = false');
+        await expectRoundTrip('var_x = true');
+        await expectRoundTrip('var_x = false');
         await expectRoundTrip('true && false');
         await expectRoundTrip('true || false');
         await expectRoundTrip('!true');

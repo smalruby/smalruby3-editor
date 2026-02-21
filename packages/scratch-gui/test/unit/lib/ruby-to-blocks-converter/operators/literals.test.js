@@ -148,7 +148,7 @@ describe('RubyToBlocksConverter/Operators', () => {
     test('ruby_literal_true_false_assignment', async () => {
         code = 'x = true';
         expected = await rubyToExpected(converter, target, 'x = 0');
-        const valueInput1 = expected[0].inputs.find(i => i.name === 'VALUE');
+        const valueInput1 = expected[0].inputs.find(i => i.name === 'X');
         valueInput1.block = {
             opcode: 'operator_equals',
             inputs: [
@@ -166,12 +166,12 @@ describe('RubyToBlocksConverter/Operators', () => {
                 minimized: true
             }
         };
-        valueInput1.shadow = expectedInfo.makeText('0');
+        valueInput1.shadow = expectedInfo.makeNumber('0');
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
         code = 'x = false';
         expected = await rubyToExpected(converter, target, 'x = 0');
-        const valueInput2 = expected[0].inputs.find(i => i.name === 'VALUE');
+        const valueInput2 = expected[0].inputs.find(i => i.name === 'X');
         valueInput2.block = {
             opcode: 'operator_lt',
             inputs: [
@@ -189,7 +189,7 @@ describe('RubyToBlocksConverter/Operators', () => {
                 minimized: true
             }
         };
-        valueInput2.shadow = expectedInfo.makeText('0');
+        valueInput2.shadow = expectedInfo.makeNumber('0');
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
