@@ -12,6 +12,7 @@ class RubyHelper {
             'getErrors',
             'getErrorOnLine',
             'waitForErrorOnLine',
+            'waitForNoErrors',
             'dismissAlertsIfPresent',
             'expectInterconvertBetweenCodeAndRuby'
         ]);
@@ -60,6 +61,13 @@ class RubyHelper {
         return this.driver.wait(async () => {
             const error = await this.getErrorOnLine(line);
             return !!error;
+        }, 5000);
+    }
+
+    async waitForNoErrors () {
+        return this.driver.wait(async () => {
+            const errors = await this.getErrors();
+            return errors.length === 0;
         }, 5000);
     }
 
