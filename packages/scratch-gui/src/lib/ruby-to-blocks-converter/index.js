@@ -400,7 +400,14 @@ class RubyToBlocksConverter extends Visitor {
                 if (!block || !block.opcode) continue;
                 const blockType = this._getBlockType(block);
                 if (blockType !== 'hat' && block.opcode !== 'procedures_definition') {
-                    const src = this._getSource(node);
+                    let src = this._getSource(node);
+                    const newlineIndex = src.indexOf('\n');
+                    if (newlineIndex >= 0) {
+                        src = `${src.slice(0, newlineIndex)}...`;
+                    }
+                    if (src.length > 40) {
+                        src = `${src.slice(0, 40)}...`;
+                    }
                     throw new RubyToBlocksConverterError(
                         node,
                         `"${src}" is the wrong instruction.`

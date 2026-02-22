@@ -508,6 +508,22 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(converter.errors.length).toBeGreaterThan(0);
         });
 
+        test('error message truncates at newline', async () => {
+            code = `
+                class Sprite1
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                  move(10)
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+            const errorText = converter.errors[0].text;
+            expect(errorText).not.toMatch(/\n/);
+            expect(errorText).toMatch(/\.\.\."/);
+        });
+
         test('hat block inside class is allowed', async () => {
             code = `
                 class Sprite1
