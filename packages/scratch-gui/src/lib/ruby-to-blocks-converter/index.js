@@ -71,7 +71,15 @@ class RubyToBlocksConverter extends Visitor {
         super();
         this.vm = vm;
         this.version = options && options.version ? options.version : 1;
-        this._translator = message => message.defaultMessage;
+        this._translator = (message, values) => {
+            let text = message.defaultMessage;
+            if (values) {
+                Object.keys(values).forEach(key => {
+                    text = text.replace(new RegExp(`\\{\\s*${key}\\s*\\}`, 'g'), values[key]);
+                });
+            }
+            return text;
+        };
         this._receiverToMethods = {};
         this._receiverToMyBlocks = {};
         this._onIfHandlers = [];
@@ -157,7 +165,7 @@ class RubyToBlocksConverter extends Visitor {
                             block.node,
                             this._translator(
                                 messages.couldNotConvertPrimitive,
-                                {SOURCE: this._getSource(block.node)}
+                                {SOURCE: this._truncateSource(this._getSource(block.node))}
                             )
                         );
                     } else {
@@ -179,7 +187,7 @@ class RubyToBlocksConverter extends Visitor {
                             block.node,
                             this._translator(
                                 messages.wrongInstruction,
-                                {SOURCE: this._getSource(block.node)}
+                                {SOURCE: this._truncateSource(this._getSource(block.node))}
                             )
                         );
                     }
@@ -400,17 +408,14 @@ class RubyToBlocksConverter extends Visitor {
                 if (!block || !block.opcode) continue;
                 const blockType = this._getBlockType(block);
                 if (blockType !== 'hat' && block.opcode !== 'procedures_definition') {
-                    let src = this._getSource(node);
-                    const newlineIndex = src.indexOf('\n');
-                    if (newlineIndex >= 0) {
-                        src = `${src.slice(0, newlineIndex)}...`;
-                    }
-                    if (src.length > 40) {
-                        src = `${src.slice(0, 40)}...`;
-                    }
+                    const errorNode = block.node || node;
+                    const src = this._truncateSource(this._getSource(errorNode));
                     throw new RubyToBlocksConverterError(
-                        node,
-                        `"${src}" is the wrong instruction.`
+                        errorNode,
+                        this._translator(
+                            messages.wrongInstruction,
+                            {SOURCE: src}
+                        )
                     );
                 }
             }

@@ -120,7 +120,7 @@ describe('RubyToBlocksConverter/Control', () => {
                 const result = await converter.targetCodeToBlocks(stageTarget, command);
                 expect(result).toBeFalsy();
                 expect(converter.errors).toHaveLength(1);
-                expect(converter.errors[0].text).toMatch(/"\{SOURCE\}" is the wrong instruction\./);
+                expect(converter.errors[0].text).toMatch(/is the wrong instruction\./);
                 converter.reset();
             }
         });

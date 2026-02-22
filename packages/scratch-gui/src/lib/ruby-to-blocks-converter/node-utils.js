@@ -288,6 +288,18 @@ const NodeUtils = {
         return this._context.sourceCode.slice(startOffset, startOffset + length);
     },
 
+    _truncateSource (src, maxLength = 40) {
+        if (!src) return src;
+        const newlineIndex = src.indexOf('\n');
+        if (newlineIndex >= 0) {
+            src = `${src.slice(0, newlineIndex)}...`;
+        }
+        if (src.length > maxLength) {
+            src = `${src.slice(0, maxLength)}...`;
+        }
+        return src;
+    },
+
     _getLineForOffset (byteOffset) {
         if (typeof byteOffset !== 'number' || !this._context.sourceCode) {
             return 1;
@@ -384,7 +396,7 @@ const NodeUtils = {
             column: column,
             type: 'error',
             text: message,
-            source: source
+            source: this._truncateSource(source)
         };
     }
 };
