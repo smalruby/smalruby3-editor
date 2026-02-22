@@ -1,3 +1,55 @@
+// Keywords that increase indentation on the next line
+const INCREASE_INDENT_KEYWORDS = [
+    'def', 'class', 'module', 'if', 'unless', 'elsif', 'else',
+    'case', 'when', 'while', 'until', 'for', 'begin', 'do',
+    'rescue', 'ensure'
+].join('|');
+
+// Keywords that decrease the current line's indentation
+const DECREASE_INDENT_KEYWORDS = [
+    'end', 'else', 'elsif', 'rescue', 'ensure', 'when'
+].join('|');
+
+// Language configuration for Monaco setLanguageConfiguration
+export const smalrubyLanguageConfiguration = {
+    indentationRules: {
+        // Match lines starting with block-opening keywords
+        // (with negative lookahead for one-liners like
+        // "if x then y end"), or lines ending with "do".
+        increaseIndentPattern: new RegExp(
+            `^\\s*(?:(?:${INCREASE_INDENT_KEYWORDS})` +
+            `\\b(?!.*\\bend\\b).*|.*\\bdo\\b\\s*)$`
+        ),
+        // Word boundary \b prevents matching "send", "blend", etc.
+        decreaseIndentPattern: new RegExp(
+            `^\\s*(?:${DECREASE_INDENT_KEYWORDS})\\b.*$`
+        )
+    },
+    brackets: [
+        ['{', '}'],
+        ['[', ']'],
+        ['(', ')']
+    ],
+    autoClosingPairs: [
+        {open: '{', close: '}'},
+        {open: '[', close: ']'},
+        {open: '(', close: ')'},
+        {open: '"', close: '"'},
+        {open: "'", close: "'"}
+    ],
+    surroundingPairs: [
+        {open: '{', close: '}'},
+        {open: '[', close: ']'},
+        {open: '(', close: ')'},
+        {open: '"', close: '"'},
+        {open: "'", close: "'"}
+    ],
+    comments: {
+        lineComment: '#'
+    }
+};
+
+// Monarch tokenizer definition for syntax highlighting
 export const smalrubyLanguage = {
     defaultToken: '',
     tokenPostfix: '.smalruby',
