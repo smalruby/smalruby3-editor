@@ -487,6 +487,72 @@ describe('RubyToBlocksConverter/Class', () => {
         });
     });
 
+    describe('class body validation', () => {
+        test('value block inside class generates error', async () => {
+            code = `
+                class Sprite1
+                  1 + 2
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('non-hat statement block inside class generates error', async () => {
+            code = `
+                class Sprite1
+                  move(10)
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('hat block inside class is allowed', async () => {
+            code = `
+                class Sprite1
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+        });
+
+        test('def (procedures_definition) inside class is allowed', async () => {
+            code = `
+                class Sprite1
+                  def func
+                    move(10)
+                  end
+
+                  self.when(:flag_clicked) do
+                    func
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+        });
+
+        test('hat block with non-hat statement after it inside class is allowed', async () => {
+            code = `
+                class Sprite1
+                  self.when(:flag_clicked) do
+                    move(10)
+                    bounce_if_on_edge
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+        });
+    });
+
     describe('applyTargetBlocks applies classInfo to target', () => {
         let spriteTarget, runtime, vmConverter;
 

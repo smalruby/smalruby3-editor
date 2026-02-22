@@ -394,6 +394,20 @@ class RubyToBlocksConverter extends Visitor {
                     blocks.push(block);
                 }
             }
+
+            // Validate: only hat blocks and procedures_definition are allowed at class top-level
+            for (const block of blocks) {
+                if (!block || !block.opcode) continue;
+                const blockType = this._getBlockType(block);
+                if (blockType !== 'hat' && block.opcode !== 'procedures_definition') {
+                    const src = this._getSource(node);
+                    throw new RubyToBlocksConverterError(
+                        node,
+                        `"${src}" is the wrong instruction.`
+                    );
+                }
+            }
+
             return blocks;
         }
         return [];
