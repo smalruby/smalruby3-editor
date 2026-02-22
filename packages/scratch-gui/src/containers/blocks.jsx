@@ -96,6 +96,7 @@ class Blocks extends React.Component {
         };
         this.onTargetsUpdate = debounce(this.onTargetsUpdate, 100);
         this.toolboxUpdateQueue = [];
+        this._pendingScrollCenter = false;
     }
     componentDidMount () {
         this.ScratchBlocks = VMScratchBlocks(this.props.vm, this.props.useCatBlocks);
@@ -215,6 +216,15 @@ class Blocks extends React.Component {
             }
 
             window.dispatchEvent(new Event('resize'));
+
+            if (this._pendingScrollCenter) {
+                this._pendingScrollCenter = false;
+                if (this.workspace.options && this.workspace.options.zoomOptions) {
+                    this.workspace.markFocused();
+                    this.workspace.setScale(this.workspace.options.zoomOptions.startScale);
+                    this.workspace.scrollCenter();
+                }
+            }
         } else {
             this.workspace.setVisible(false);
         }
@@ -538,9 +548,13 @@ class Blocks extends React.Component {
                     });
 
                     if (this.workspace.options && this.workspace.options.zoomOptions) {
-                        this.workspace.markFocused();
-                        this.workspace.setScale(this.workspace.options.zoomOptions.startScale);
-                        this.workspace.scrollCenter();
+                        if (this.props.isVisible) {
+                            this.workspace.markFocused();
+                            this.workspace.setScale(this.workspace.options.zoomOptions.startScale);
+                            this.workspace.scrollCenter();
+                        } else {
+                            this._pendingScrollCenter = true;
+                        }
                     }
 
                     this.updateToolbox();
