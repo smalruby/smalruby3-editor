@@ -115,7 +115,7 @@ describe('RubyToBlocksConverter/Class', () => {
     });
 
     describe('class name and set_name', () => {
-        test('class Cat changes sprite name and generates @ruby:class:name', async () => {
+        test('class Cat changes sprite name and generates @ruby:class:name=Cat', async () => {
             code = `
                 class Cat
                   self.when(:flag_clicked) do
@@ -130,11 +130,11 @@ describe('RubyToBlocksConverter/Class', () => {
             `);
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-            // @ruby:class:name comment should be created
+            // @ruby:class:name=Cat comment should be created
             const comments = converter._context.comments;
             const targetComments = Object.values(comments).filter(c => c.blockId === null);
             expect(targetComments).toHaveLength(1);
-            expect(targetComments[0].text).toEqual('@ruby:class:name');
+            expect(targetComments[0].text).toEqual('@ruby:class:name=Cat');
 
             // classInfo should record the new name
             expect(converter._context.classInfo).toBeDefined();
@@ -335,7 +335,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(blockOpcodes).not.toContain('ruby_statement');
         });
 
-        test('class Cat with set_x generates @ruby:class:name,x', async () => {
+        test('class Cat with set_x generates @ruby:class:name=Cat,x', async () => {
             code = `
                 class Cat
                   set_x 100
@@ -352,7 +352,7 @@ describe('RubyToBlocksConverter/Class', () => {
             const comments = converter._context.comments;
             const targetComments = Object.values(comments).filter(c => c.blockId === null);
             expect(targetComments).toHaveLength(1);
-            expect(targetComments[0].text).toEqual('@ruby:class:name,x');
+            expect(targetComments[0].text).toEqual('@ruby:class:name=Cat,x');
 
             expect(converter._context.classInfo).toBeDefined();
             expect(converter._context.classInfo.name).toEqual('Cat');
@@ -381,6 +381,96 @@ describe('RubyToBlocksConverter/Class', () => {
 
             expect(converter._context.classInfo).toBeDefined();
             expect(converter._context.classInfo.name).toEqual('ネコ');
+            expect(converter._context.classInfo.x).toEqual(100);
+        });
+
+        test('class Cat with set_name generates @ruby:class:name=Cat', async () => {
+            code = `
+                class Cat
+                  set_name "ネコ"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            // name=Cat preserves class name; set_name value is in classInfo.name
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:name=Cat');
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.name).toEqual('ネコ');
+        });
+
+        test('class Cat without set_name generates @ruby:class:name=Cat', async () => {
+            code = `
+                class Cat
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:name=Cat');
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.name).toEqual('Cat');
+        });
+
+        test('class Sprite1 with set_name still generates @ruby:class:name (no name=)', async () => {
+            code = `
+                class Sprite1
+                  set_name "ネコ"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            // Sprite\d+ pattern should NOT have name= prefix
+            expect(targetComments[0].text).toEqual('@ruby:class:name');
+        });
+
+        test('class Cat with set_x generates @ruby:class:name=Cat,x', async () => {
+            code = `
+                class Cat
+                  set_x 100
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:name=Cat,x');
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.name).toEqual('Cat');
             expect(converter._context.classInfo.x).toEqual(100);
         });
 

@@ -345,9 +345,16 @@ class RubyToBlocksConverter extends Visitor {
         attributeNames.sort((a, b) => ATTR_ORDER.indexOf(a) - ATTR_ORDER.indexOf(b));
 
         // Generate comment text
+        // For non-Sprite\d+ class names, use name=ClassName format to preserve the class name
         let commentText;
         if (attributeNames.length > 0) {
-            commentText = `@ruby:class:${attributeNames.join(',')}`;
+            const commentParts = attributeNames.map(attr => {
+                if (attr === 'name' && !isSpriteIndexName) {
+                    return `name=${className}`;
+                }
+                return attr;
+            });
+            commentText = `@ruby:class:${commentParts.join(',')}`;
         } else {
             commentText = '@ruby:class';
         }
