@@ -29,6 +29,13 @@ const createModel = wordText => ({
     })
 });
 
+// Helper to create a mock VM with extensionManager
+const createVmMock = (loadedExtensions = []) => ({
+    extensionManager: {
+        isExtensionLoaded: jest.fn(id => loadedExtensions.includes(id))
+    }
+});
+
 const position = {lineNumber: 1, column: 1};
 const context = {};
 const token = {};
@@ -141,6 +148,103 @@ describe('SnippetsCompleter', () => {
             result.suggestions.forEach(s => {
                 expect(s.sortText).toBeDefined();
             });
+        });
+    });
+
+    describe('extension filtering', () => {
+        test('should exclude extension snippets when no extensions are loaded', () => {
+            const vm = createVmMock([]);
+            const extCompleter = new SnippetsCompleter(vm);
+            const model = createModel('pla');
+            const result = extCompleter.provideCompletionItems(model, position, context, token, monaco);
+            // Music snippet "play_drum" should not appear
+            const musicSuggestion = result.suggestions.find(s =>
+                s.sortText && s.sortText.startsWith('10_')
+            );
+            expect(musicSuggestion).toBeUndefined();
+        });
+
+        test('should include extension snippets when the extension is loaded', () => {
+            const vm = createVmMock(['music']);
+            const extCompleter = new SnippetsCompleter(vm);
+            const model = createModel('pla');
+            const result = extCompleter.provideCompletionItems(model, position, context, token, monaco);
+            // Music snippet should appear
+            const musicSuggestion = result.suggestions.find(s =>
+                s.sortText && s.sortText.startsWith('10_')
+            );
+            expect(musicSuggestion).toBeDefined();
+        });
+
+        test('should always include core snippets regardless of loaded extensions', () => {
+            const vm = createVmMock([]);
+            const extCompleter = new SnippetsCompleter(vm);
+            const model = createModel('mov');
+            const result = extCompleter.provideCompletionItems(model, position, context, token, monaco);
+            // Core motion snippet should still appear
+            const moveSuggestion = result.suggestions.find(s =>
+                s.filterText && s.filterText.includes('move')
+            );
+            expect(moveSuggestion).toBeDefined();
+        });
+
+        test('should show all snippets when vm is not provided (backward compatibility)', () => {
+            const noVmCompleter = new SnippetsCompleter();
+            const model = createModel('pla');
+            const result = noVmCompleter.provideCompletionItems(model, position, context, token, monaco);
+            // Extension snippets should still appear without VM
+            const musicSuggestion = result.suggestions.find(s =>
+                s.sortText && s.sortText.startsWith('10_')
+            );
+            expect(musicSuggestion).toBeDefined();
+        });
+
+        test('should show mesh snippets when mesh extension is loaded', () => {
+            const vm = createVmMock(['mesh']);
+            const extCompleter = new SnippetsCompleter(vm);
+            const model = createModel('mes');
+            const result = extCompleter.provideCompletionItems(model, position, context, token, monaco);
+            const meshSuggestion = result.suggestions.find(s =>
+                s.sortText && s.sortText.startsWith('16_')
+            );
+            expect(meshSuggestion).toBeDefined();
+        });
+
+        test('should show mesh snippets when meshV2 extension is loaded', () => {
+            const vm = createVmMock(['meshV2']);
+            const extCompleter = new SnippetsCompleter(vm);
+            const model = createModel('mes');
+            const result = extCompleter.provideCompletionItems(model, position, context, token, monaco);
+            const meshSuggestion = result.suggestions.find(s =>
+                s.sortText && s.sortText.startsWith('16_')
+            );
+            expect(meshSuggestion).toBeDefined();
+        });
+
+        test('should dynamically reflect extension loading changes', () => {
+            const loadedExtensions = [];
+            const vm = {
+                extensionManager: {
+                    isExtensionLoaded: jest.fn(id => loadedExtensions.includes(id))
+                }
+            };
+            const extCompleter = new SnippetsCompleter(vm);
+            const model = createModel('pla');
+
+            // Initially no music extension
+            let result = extCompleter.provideCompletionItems(model, position, context, token, monaco);
+            let musicSuggestion = result.suggestions.find(s =>
+                s.sortText && s.sortText.startsWith('10_')
+            );
+            expect(musicSuggestion).toBeUndefined();
+
+            // Load music extension
+            loadedExtensions.push('music');
+            result = extCompleter.provideCompletionItems(model, position, context, token, monaco);
+            musicSuggestion = result.suggestions.find(s =>
+                s.sortText && s.sortText.startsWith('10_')
+            );
+            expect(musicSuggestion).toBeDefined();
         });
     });
 });

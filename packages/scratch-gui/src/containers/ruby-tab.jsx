@@ -375,7 +375,7 @@ class RubyTab extends React.Component {
         monaco.languages.setLanguageConfiguration('smalruby', smalrubyLanguageConfiguration);
 
         if (!this.completionProvider) {
-            const completer = new SnippetsCompleter();
+            const completer = new SnippetsCompleter(this.props.vm);
             this.completionProvider = monaco.languages.registerCompletionItemProvider('smalruby', {
                 provideCompletionItems: (model, position, context, token) => (
                     completer.provideCompletionItems(model, position, context, token, monaco)

@@ -27,12 +27,15 @@ import GdxForSnippets from './gdx_for-snippets.json';
 const JAPANESE_CHAR_PATTERN = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
 
 class SnippetsCompleter extends BaseCompleter {
-    #completions = [];
+    #coreCompletions = [];
+    #extensionCompletions = [];
+    #vm;
 
-    constructor () {
+    constructor (vm) {
         super();
+        this.#vm = vm;
 
-        const snippetsList = [
+        const coreSnippetsList = [
             {snippets: MotionSnippets, category: '01'},
             {snippets: LooksSnippets, category: '02'},
             {snippets: SoundSnippets, category: '03'},
@@ -41,31 +44,42 @@ class SnippetsCompleter extends BaseCompleter {
             {snippets: SensingSnippets, category: '06'},
             {snippets: OperatorsSnippets, category: '07'},
             {snippets: VariablesSnippets, category: '08'},
-            {snippets: ProcedureSnippets, category: '09'},
-
-            {snippets: MusicSnippets, category: '10'},
-            {snippets: PenSnippets, category: '11'},
-            {snippets: VideoSensingSnippets, category: '12'},
-            {snippets: TextToSpeechSnippets, category: '13'},
-            {snippets: TranslateSnippets, category: '14'},
-            {snippets: MicrobitSnippets, category: '15'},
-            {snippets: MeshSnippets, category: '16'},
-            {snippets: SmalrubotS1Snippets, category: '17'},
-            {snippets: MicrobitMoreSnippets, category: '18'},
-            {snippets: KoshienSnippets, category: '19'},
-            {snippets: MakeySnippets, category: '20'},
-            {snippets: GdxForSnippets, category: '21'}
+            {snippets: ProcedureSnippets, category: '09'}
         ];
-        snippetsList.forEach(({snippets, category}) => {
-            for (const [caption, item] of Object.entries(snippets)) {
-                item.caption = caption;
-                item.type = item.type || 'snippet';
-                if (!item.sortText) {
-                    item.sortText = `${category}_${caption}`;
+
+        const extensionSnippetsList = [
+            {snippets: MusicSnippets, category: '10', extensionId: 'music'},
+            {snippets: PenSnippets, category: '11', extensionId: 'pen'},
+            {snippets: VideoSensingSnippets, category: '12', extensionId: 'videoSensing'},
+            {snippets: TextToSpeechSnippets, category: '13', extensionId: 'text2speech'},
+            {snippets: TranslateSnippets, category: '14', extensionId: 'translate'},
+            {snippets: MicrobitSnippets, category: '15', extensionId: 'microbit'},
+            {snippets: MeshSnippets, category: '16', extensionId: ['mesh', 'meshV2']},
+            {snippets: SmalrubotS1Snippets, category: '17', extensionId: 'smalrubotS1'},
+            {snippets: MicrobitMoreSnippets, category: '18', extensionId: 'microbitMore'},
+            {snippets: KoshienSnippets, category: '19', extensionId: 'koshien'},
+            {snippets: MakeySnippets, category: '20', extensionId: 'makeymakey'},
+            {snippets: GdxForSnippets, category: '21', extensionId: 'gdxfor'}
+        ];
+
+        const processSnippets = (list, target) => {
+            list.forEach(({snippets, category, extensionId}) => {
+                for (const [caption, item] of Object.entries(snippets)) {
+                    item.caption = caption;
+                    item.type = item.type || 'snippet';
+                    if (!item.sortText) {
+                        item.sortText = `${category}_${caption}`;
+                    }
+                    if (extensionId) {
+                        item.extensionId = extensionId;
+                    }
+                    target.push(item);
                 }
-                this.#completions.push(item);
-            }
-        });
+            });
+        };
+
+        processSnippets(coreSnippetsList, this.#coreCompletions);
+        processSnippets(extensionSnippetsList, this.#extensionCompletions);
     }
 
     /**
@@ -95,11 +109,25 @@ class SnippetsCompleter extends BaseCompleter {
             endColumn: word.endColumn
         };
 
-        const suggestions = this.#completions.map(item => this.toCompletionItem(item, range, monaco));
+        const activeCompletions = this.#coreCompletions.concat(
+            this.#extensionCompletions.filter(item => this.#isExtensionActive(item.extensionId))
+        );
+
+        const suggestions = activeCompletions.map(item => this.toCompletionItem(item, range, monaco));
 
         return {
             suggestions: suggestions
         };
+    }
+
+    #isExtensionActive (extensionId) {
+        if (!this.#vm || !this.#vm.extensionManager) {
+            return true;
+        }
+        if (Array.isArray(extensionId)) {
+            return extensionId.some(id => this.#vm.extensionManager.isExtensionLoaded(id));
+        }
+        return this.#vm.extensionManager.isExtensionLoaded(extensionId);
     }
 }
 
