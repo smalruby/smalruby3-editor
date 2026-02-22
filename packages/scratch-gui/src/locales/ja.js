@@ -87,6 +87,7 @@ export default {
     'gui.telemetryOptIn.buttonTextNo': 'いいえ、結構です。',
     'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '「{ SOURCE }」はブロックに変換できません。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '「{ SOURCE }」は命令がまちがっています。',
+    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass': '「{ SOURCE }」はclass定義の中に直接置くことはできません。イベントブロック（例: when_flag_clicked）やメソッド定義（def）の中で使ってください。',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': 'はい、スモウルビーの改善に協力します。',
     'gui.smalruby3.extension.mesh.name': '従来のメッシュ',
     'gui.smalruby3.extension.mesh.description': 'ネットワーク上でユーザー間のやりとりを行う。',

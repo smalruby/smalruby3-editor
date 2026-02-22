@@ -29,6 +29,7 @@ export default {
     'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'The Koshien extension is only available for Ruby v1',
     'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '"{ SOURCE }" could not be converted the block.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
+    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass': '"{ SOURCE }" cannot be placed directly inside a class definition. Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': "Yes, I'd like to help improve Smalruby",
     'gui.smalruby3.extension.mesh.name': 'Old Mesh',
     'gui.smalruby3.extension.mesh.description': 'Allowing users to interact over a computer network.',
