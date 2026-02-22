@@ -61,6 +61,17 @@ export default function (Generator) {
         return result;
     };
 
+    const getUnlessInfo = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment === '@ruby:syntax:unless') {
+            return {hasElse: false};
+        }
+        if (comment === '@ruby:syntax:unless_else') {
+            return {hasElse: true};
+        }
+        return null;
+    };
+
     Generator.control_if = function (block) {
         const caseInfo = getCaseInfo(block);
         if (caseInfo) {
@@ -118,6 +129,17 @@ export default function (Generator) {
             if (content) {
                 return `case ${caseInfo.subject}\n${content}end\n`;
             }
+        }
+        const unlessInfo = getUnlessInfo(block);
+        if (unlessInfo) {
+            const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
+            // Swap branches back: SUBSTACK2 was the original unless-then, SUBSTACK was unless-else
+            const unlessThen = Generator.statementToCode(block, 'SUBSTACK2') || '';
+            const unlessElse = Generator.statementToCode(block, 'SUBSTACK') || '';
+            if (unlessInfo.hasElse) {
+                return `unless ${operator}\n${unlessThen}else\n${unlessElse}end\n`;
+            }
+            return `unless ${operator}\n${unlessThen}end\n`;
         }
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';

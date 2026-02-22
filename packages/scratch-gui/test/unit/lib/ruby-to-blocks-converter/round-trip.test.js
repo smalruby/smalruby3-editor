@@ -121,6 +121,27 @@ end
 `.trim());
     });
 
+    test('unless...end round-trip', async () => {
+        await expectRoundTrip(
+            'unless touching?("_edge_")\n  move(10)\nend'
+        );
+    });
+
+    test('unless...else...end round-trip', async () => {
+        await expectRoundTrip(
+            'unless touching?("_edge_")\n  move(10)\nelse\n  turn_right(180)\nend'
+        );
+        await expectRoundTrip(
+            'unless touching?("_edge_")\n  move(10)\nelse\nend'
+        );
+        await expectRoundTrip(
+            'unless touching?("_edge_")\nelse\n  move(10)\nend'
+        );
+        await expectRoundTrip(
+            'unless touching?("_edge_")\nelse\nend'
+        );
+    });
+
     test('float literals with integer appearance (x.0) are preserved', async () => {
         await expectRoundTrip('1.0 + 1.0');
         await expectRoundTrip('move(1.0)');

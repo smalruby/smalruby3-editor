@@ -143,20 +143,20 @@ describe('Ruby Roundtrip: Control category blocks', () => {
             if touching?("_edge_")
               turn_right(180)
             end
-            if touching?("_edge_")
-              move(10)
-            else
+            unless touching?("_edge_")
               turn_right(180)
-            end
-            if touching?("_edge_")
+            else
               move(10)
-            else
             end
-            if touching?("_edge_")
+            unless touching?("_edge_")
             else
+              move(10)
+            end
+            unless touching?("_edge_")
               turn_right(180)
+            else
             end
-            if touching?("_edge_")
+            unless touching?("_edge_")
             else
             end
             wait until touching?("_edge_")

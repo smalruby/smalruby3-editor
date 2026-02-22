@@ -233,6 +233,22 @@ const ControlFlowHandlers = {
             }
         }
 
+        // Attach @ruby:syntax:unless comment to preserve round-trip fidelity
+        // Use @ruby:syntax:unless_else when an else clause is present
+        if (this._isBlock(block)) {
+            const commentText = hasElseClause ? '@ruby:syntax:unless_else' : '@ruby:syntax:unless';
+            if (block.comment) {
+                const comment = this._context.comments[block.comment];
+                if (comment) {
+                    comment.text = commentText;
+                    comment.minimized = true;
+                }
+            } else {
+                const commentId = this._createComment(commentText, block.id, 0, 0, true);
+                block.comment = commentId;
+            }
+        }
+
         if (preBlocks.length > 0 && block) {
             if (_.isArray(block)) {
                 return [...preBlocks, ...block];
