@@ -2,6 +2,9 @@
     "def": {
         "snippet": "def self.${1:ブロック名}(${2:number_or_text})\n\t${3}\nend",
         "description": "定義 ブロック名 (number_or_text)",
-        "type": "snippet"
+        "type": "snippet",
+        "labelJa": "関数を定義する",
+        "filterText": "kansuuwo teigisuru 関数を定義する def を定義する ブロック定義",
+        "sortText": "09_kansuuwo_teigi"
     }
 }

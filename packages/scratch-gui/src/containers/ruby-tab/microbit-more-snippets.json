@@ -2,176 +2,281 @@
     "microbit.when_microbit": {
         "snippet": "microbit.when_microbit(\"${1:connected}\") do\n\t${2}\nend",
         "description": "micro:bit と [つながった▼] とき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "micro:bitとつながったとき",
+        "filterText": "microbito tsunagatta toki micro:bitとつながったとき microbit connected when",
+        "sortText": "18_microbito_tsunagatta_toki"
     },
     "microbit.when_button_is": {
         "snippet": "microbit.when_button_is(\"${1:A}\", \"${2:down}\") do\n\t${3}\nend",
         "description": "ボタン [A▼] が [押された▼] とき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "ボタンが押されたとき",
+        "filterText": "botanga osareta toki ボタンが押されたとき microbit button when",
+        "sortText": "18_botanga_osareta_toki"
     },
     "microbit.button_pressed?": {
         "snippet": "microbit.button_pressed?(\"${1:A}\")",
         "description": "ボタン [A▼] が押された",
-        "type": "value"
+        "type": "value",
+        "labelJa": "ボタンが押された",
+        "filterText": "botanga osareta ボタンが押された microbit button pressed",
+        "sortText": "18_botanga_osareta"
     },
     "microbit.when_pin_is": {
         "snippet": "microbit.when_pin_is(\"${1:LOGO}\", \"${2:touched}\") do\n\t${3}\nend",
         "description": "ピン [ロゴ▼] が [タッチされた▼] とき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "ピンがタッチされたとき",
+        "filterText": "pinga tatchisareta toki ピンがタッチされたとき microbit pin touched when",
+        "sortText": "18_pinga_tatchisareta_toki"
     },
     "microbit.pin_is_touched?": {
         "snippet": "microbit.pin_is_touched?(\"${1:LOGO}\")",
         "description": "ピン [ログ▼] がタッチされている",
-        "type": "value"
+        "type": "value",
+        "labelJa": "ピンがタッチされている",
+        "filterText": "pinga tatchisareteiru ピンがタッチされている microbit pin touched",
+        "sortText": "18_pinga_tatchisareteiru"
     },
     "microbit.when_pin_connected": {
         "snippet": "microbit.when_pin_connected(${1:0}) do\n\t${2}\nend",
         "description": "ピン [0▼] がつながったとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "ピンがつながったとき",
+        "filterText": "pinga tsunagatta toki ピンがつながったとき microbit pin connected when",
+        "sortText": "18_pinga_tsunagatta_toki"
     },
     "microbit.when": {
         "snippet": "microbit.when(\"${1:moved}\") do\n\t${2}\nend",
         "description": "[動いた▼] とき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "動いたとき",
+        "filterText": "ugoita toki 動いたとき microbit when",
+        "sortText": "18_ugoita_toki"
     },
     "microbit.when_tilted": {
         "snippet": "microbit.when_tilted(\"${1:any}\") do\n\t${2}\nend",
         "description": "[どこか▼] に傾いたとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "傾いたとき",
+        "filterText": "katamuita toki 傾いたとき microbit when tilted",
+        "sortText": "18_katamuita_toki"
     },
     "microbit.tilted?": {
         "snippet": "microbit.tilted?(\"${1:any}\")",
         "description": "[どれかの向き▼] に傾いた",
-        "type": "value"
+        "type": "value",
+        "labelJa": "傾いた",
+        "filterText": "katamuita 傾いた microbit tilted",
+        "sortText": "18_katamuita"
     },
     "microbit.tilt_angle": {
         "snippet": "microbit.tilt_angle(\"${1:front}\")",
         "description": "[前▼] 方向の傾き",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "方向の傾き",
+        "filterText": "hookono katamuki 方向の傾き microbit tilt angle",
+        "sortText": "18_hookono_katamuki"
     },
     "microbit.display_pattern": {
         "snippet": "microbit.display_pattern(\n\t\"${1:.1.1.}\",\n\t\"${2:1.1.1}\",\n\t\"${3:1...1}\",\n\t\"${4:.1.1.}\",\n\t\"${5:..1..}\"\n)",
         "description": "パターン (♡▼) を表示する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "パターンを表示する",
+        "filterText": "pataanwo hyojisuru パターンを表示する microbit display pattern",
+        "sortText": "18_pataanwo_hyojisuru"
     },
     "microbit.display_text_delay": {
         "snippet": "microbit.display_text_delay(\"${1:Hello!}\", ${2:120})",
         "description": "文字 (Hello!) を (120) ミリ秒間隔で流す",
-        "type": "function"
+        "type": "function",
+        "labelJa": "文字を流す",
+        "filterText": "mojio nagasu 文字を流す microbit display text delay",
+        "sortText": "18_mojio_nagasu"
     },
     "microbit.clear_display": {
         "snippet": "microbit.clear_display",
         "description": "画面を消す",
-        "type": "function"
+        "type": "function",
+        "labelJa": "画面を消す",
+        "filterText": "gamenwo kesu 画面を消す microbit clear display",
+        "sortText": "18_gamenwo_kesu"
     },
     "microbit.light_intensity": {
         "snippet": "microbit.light_intensity",
         "description": "明るさ",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "明るさ",
+        "filterText": "akarusa 明るさ microbit light intensity",
+        "sortText": "18_akarusa"
     },
     "microbit.temperature": {
         "snippet": "microbit.temperature",
         "description": "温度",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "温度",
+        "filterText": "ondo 温度 microbit temperature",
+        "sortText": "18_ondo"
     },
     "microbit.angle_with_north": {
         "snippet": "microbit.angle_with_north",
         "description": "北からの角度",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "北からの角度",
+        "filterText": "kitagarano kakudo 北からの角度 microbit angle north",
+        "sortText": "18_kitagarano_kakudo"
     },
     "microbit.pitch": {
         "snippet": "microbit.pitch",
         "description": "ピッチ",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ピッチ",
+        "filterText": "picchi ピッチ microbit pitch",
+        "sortText": "18_picchi"
     },
     "microbit.roll": {
         "snippet": "microbit.roll",
         "description": "ロール",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ロール",
+        "filterText": "roru ロール microbit roll",
+        "sortText": "18_roru"
     },
     "microbit.sound_level": {
         "snippet": "microbit.sound_level",
         "description": "音の大きさ",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "音の大きさ",
+        "filterText": "otono okisa 音の大きさ microbit sound level",
+        "sortText": "18_otono_okisa"
     },
     "microbit.magnetic_force": {
         "snippet": "microbit.magnetic_force(\"${1:absolute}\")",
         "description": "磁力 [大きさ▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "磁力",
+        "filterText": "jiryoku 磁力 microbit magnetic force",
+        "sortText": "18_jiryoku"
     },
     "microbit.acceleration": {
         "snippet": "microbit.acceleration(\"${1:x}\")",
         "description": "加速度 [x▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "加速度",
+        "filterText": "kasokudo 加速度 microbit acceleration",
+        "sortText": "18_kasokudo"
     },
     "microbit.analog_value": {
         "snippet": "microbit.analog_value(\"${1:P0}\")",
         "description": "ピン [P0▼] のアナログレベル",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ピンのアナログレベル",
+        "filterText": "pinnno anarogu reberu ピンのアナログレベル microbit analog value",
+        "sortText": "18_pinnno_anarogu_reberu"
     },
     "microbit.set_pin_to_input_pull": {
         "snippet": "microbit.set_pin_to_input_pull(\"P0\", \"up\")",
         "description": "ピン [P0▼] を [プルアップ▼] 入力にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ピンをプルアップ入力にする",
+        "filterText": "pinnwo puruappu nyuryokuni suru ピンをプルアップ入力にする microbit set pin input pull",
+        "sortText": "18_pinnwo_puruappu_nyuryokuni_suru"
     },
     "microbit.is_pin_high?": {
         "snippet": "microbit.is_pin_high?(\"${1:P0}\")",
         "description": "ピン [P0▼] がハイである",
-        "type": "value"
+        "type": "value",
+        "labelJa": "ピンがハイである",
+        "filterText": "pinga hai dearu ピンがハイである microbit pin high",
+        "sortText": "18_pinga_hai_dearu"
     },
     "microbit.set_digital": {
         "snippet": "microbit.set_digital(\"${1:P0}\", \"${2:Low}\")",
         "description": "ピン [P0▼] をデジタル出力 [ロー▼] にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ピンをデジタル出力にする",
+        "filterText": "pinnwo dejitaru shutsuryokuni suru ピンをデジタル出力にする microbit set digital",
+        "sortText": "18_pinnwo_dejitaru_shutsuryokuni_suru"
     },
     "microbit.set_analog": {
         "snippet": "microbit.set_analog(\"${1:P0}\", ${2:0})",
         "description": "ピン [P0▼] をアナログ出力 [LEVEL] %にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ピンをアナログ出力にする",
+        "filterText": "pinnwo anarogu shutsuryokuni suru ピンをアナログ出力にする microbit set analog",
+        "sortText": "18_pinnwo_anarogu_shutsuryokuni_suru"
     },
     "microbit.set_servo": {
         "snippet": "microbit.set_servo(\"${1:P0}\", ${2:0})",
         "description": "ピン [P0▼] をサーボ (0) 度にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ピンをサーボにする",
+        "filterText": "pinnwo saaboni suru ピンをサーボにする microbit set servo",
+        "sortText": "18_pinnwo_saaboni_suru"
     },
     "microbit.play_tone": {
         "snippet": "microbit.play_tone(${1:440}, ${2:100})",
         "description": "(440) Hzの音を (100) %の大きさで鳴らす",
-        "type": "function"
+        "type": "function",
+        "labelJa": "音を鳴らす",
+        "filterText": "otowo narasu 音を鳴らす microbit play tone",
+        "sortText": "18_otowo_narasu"
     },
     "microbit.stop_tone": {
         "snippet": "microbit.stop_tone",
         "description": "音を止める",
-        "type": "function"
+        "type": "function",
+        "labelJa": "音を止める",
+        "filterText": "otowo tomeru 音を止める microbit stop tone",
+        "sortText": "18_otowo_tomeru"
     },
     "microbit.listen_event_on": {
         "snippet": "microbit.listen_event_on(\"${1:none}\", \"${2:P0}\")",
         "description": "ピン [P0▼] の [イベントを受けない▼]",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ピンのイベントを受ける",
+        "filterText": "pinnno ibentowo ukeru ピンのイベントを受ける microbit listen event",
+        "sortText": "18_pinnno_ibentowo_ukeru"
     },
     "microbit.when_catch_at_pin": {
         "snippet": "microbit.when_catch_at_pin(\"${1:low pulse}\", \"${2:P0}\") do\n\t${3}\nend",
         "description": "ピン [P0▼] で [ローパルス▼] イベントが起きたとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "ピンでイベントが起きたとき",
+        "filterText": "pinnde ibentoga okita toki ピンでイベントが起きたとき microbit catch event pin",
+        "sortText": "18_pinnde_ibentoga_okita_toki"
     },
     "microbit.value_of": {
         "snippet": "microbit.value_of(\"${1:low pulse}\", \"${2:P0}\")",
         "description": "ピン [P0▼] の [ローパルスの期間▼]",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ピンのイベント値",
+        "filterText": "pinnno ibentoatai ピンのイベント値 microbit value of",
+        "sortText": "18_pinnno_ibentoatai"
     },
     "microbit.when_data_received_from_microbit": {
         "snippet": "microbit.when_data_received_from_microbit(\"${1:label-01}\") do\n\t${2}\nend",
         "description": "micro:bit からラベル (label-01) のデータを受け取ったとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "micro:bitからデータを受け取ったとき",
+        "filterText": "microbito kara deeta ukettotta toki micro:bitからデータを受け取ったとき microbit data received",
+        "sortText": "18_microbito_kara_deeta_ukettotta_toki"
     },
     "microbit.data": {
         "snippet": "microbit.data[\"${1:label-01}\"]",
         "description": "ラベル (label-01) のデータ",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ラベルのデータ",
+        "filterText": "raberuno deeta ラベルのデータ microbit data",
+        "sortText": "18_raberuno_deeta"
     },
     "microbit.send_data_to_microbit": {
         "snippet": "microbit.send_data_to_microbit(\"${1:data}\", \"${2:label-01}\")",
         "description": "micro:bit へデータ (data) にラベル (label-01) を付けて送る",
-        "type": "function"
+        "type": "function",
+        "labelJa": "micro:bitへデータを送る",
+        "filterText": "microbito e deeta okuru micro:bitへデータを送る microbit send data",
+        "sortText": "18_microbito_e_deeta_okuru"
     }
 }

@@ -23,6 +23,9 @@ import KoshienSnippets from './koshien-snippets.json';
 import MakeySnippets from './makey-snippets.json';
 import GdxForSnippets from './gdx_for-snippets.json';
 
+// Regex to detect Japanese characters (hiragana, katakana, kanji)
+const JAPANESE_CHAR_PATTERN = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
+
 class SnippetsCompleter extends BaseCompleter {
     #completions = [];
 
@@ -30,33 +33,36 @@ class SnippetsCompleter extends BaseCompleter {
         super();
 
         const snippetsList = [
-            MotionSnippets,
-            LooksSnippets,
-            SoundSnippets,
-            EventsSnippets,
-            ControlSnippets,
-            SensingSnippets,
-            OperatorsSnippets,
-            VariablesSnippets,
-            ProcedureSnippets,
+            {snippets: MotionSnippets, category: '01'},
+            {snippets: LooksSnippets, category: '02'},
+            {snippets: SoundSnippets, category: '03'},
+            {snippets: EventsSnippets, category: '04'},
+            {snippets: ControlSnippets, category: '05'},
+            {snippets: SensingSnippets, category: '06'},
+            {snippets: OperatorsSnippets, category: '07'},
+            {snippets: VariablesSnippets, category: '08'},
+            {snippets: ProcedureSnippets, category: '09'},
 
-            MusicSnippets,
-            PenSnippets,
-            VideoSensingSnippets,
-            TextToSpeechSnippets,
-            TranslateSnippets,
-            MicrobitSnippets,
-            MeshSnippets,
-            SmalrubotS1Snippets,
-            MicrobitMoreSnippets,
-            KoshienSnippets,
-            MakeySnippets,
-            GdxForSnippets
+            {snippets: MusicSnippets, category: '10'},
+            {snippets: PenSnippets, category: '11'},
+            {snippets: VideoSensingSnippets, category: '12'},
+            {snippets: TextToSpeechSnippets, category: '13'},
+            {snippets: TranslateSnippets, category: '14'},
+            {snippets: MicrobitSnippets, category: '15'},
+            {snippets: MeshSnippets, category: '16'},
+            {snippets: SmalrubotS1Snippets, category: '17'},
+            {snippets: MicrobitMoreSnippets, category: '18'},
+            {snippets: KoshienSnippets, category: '19'},
+            {snippets: MakeySnippets, category: '20'},
+            {snippets: GdxForSnippets, category: '21'}
         ];
-        snippetsList.forEach(snippets => {
+        snippetsList.forEach(({snippets, category}) => {
             for (const [caption, item] of Object.entries(snippets)) {
                 item.caption = caption;
                 item.type = item.type || 'snippet';
+                if (!item.sortText) {
+                    item.sortText = `${category}_${caption}`;
+                }
                 this.#completions.push(item);
             }
         });
@@ -74,10 +80,11 @@ class SnippetsCompleter extends BaseCompleter {
     provideCompletionItems (model, position, context, token, monaco) {
         const word = model.getWordUntilPosition(position);
 
-        // Require at least 3 characters to show suggestions automatically.
-        // This prevents unwanted completions when typing short expressions
-        // like "a + b" followed by Enter.
-        if (word.word.length < 3) {
+        // Allow single Japanese character to trigger completions (e.g. "動"),
+        // but require at least 3 characters for ASCII input to avoid noise.
+        const isJapanese = JAPANESE_CHAR_PATTERN.test(word.word);
+        const minLength = isJapanese ? 1 : 3;
+        if (word.word.length < minLength) {
             return {suggestions: []};
         }
 

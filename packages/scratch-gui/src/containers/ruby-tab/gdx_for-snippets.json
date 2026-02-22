@@ -2,46 +2,73 @@
     "gdx_for.when_gesture": {
         "snippet": "gdx_for.when_gesture(\"${1:shaken}\") do\n\t${2}\nend",
         "description": "(振られた▼) とき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "振られたとき",
+        "filterText": "furareta toki 振られたとき gdx_for gesture when",
+        "sortText": "21_furareta_toki"
     },
     "gdx_for.when_sensor": {
         "snippet": "gdx_for.when_sensor(\"${1:pushed}\") do\n\t${2}\nend",
         "description": "force sensorが(押された▼)とき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "センサーが押されたとき",
+        "filterText": "sensaaga osareta toki センサーが押されたとき gdx_for sensor when",
+        "sortText": "21_sensaaga_osareta_toki"
     },
     "gdx_for.when_tilted": {
         "snippet": "gdx_for.when_tilted(\"${1:any}\") do\n\t${2}\nend",
         "description": "(どれかの向き▼)に傾いたとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "傾いたとき",
+        "filterText": "katamuita toki 傾いたとき gdx_for tilted when",
+        "sortText": "21_katamuita_toki"
     },
     "gdx_for.force": {
         "snippet": "gdx_for.force",
         "description": "force",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "力",
+        "filterText": "chikara 力 gdx_for force",
+        "sortText": "21_chikara"
     },
     "gdx_for.acceleration": {
         "snippet": "gdx_for.acceleration(\"${1:x}\")",
         "description": "(x▼) 方向への加速度",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "方向への加速度",
+        "filterText": "hookono kasokudo 方向への加速度 gdx_for acceleration",
+        "sortText": "21_hookono_kasokudo"
     },
     "gdx_for.tilted?": {
         "snippet": "gdx_for.tilted?(\"${1:any}\")",
         "description": "(どれかの向き▼) に傾いた",
-        "type": "value"
+        "type": "value",
+        "labelJa": "傾いた",
+        "filterText": "katamuita 傾いた gdx_for tilted",
+        "sortText": "21_katamuita"
     },
     "gdx_for.tilt_angle": {
         "snippet": "gdx_for.tilt_angle(\"${1:front}\")",
         "description": "(前▼) 方向の傾き",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "方向の傾き",
+        "filterText": "hookono katamuki 方向の傾き gdx_for tilt angle",
+        "sortText": "21_hookono_katamuki"
     },
     "gdx_for.falling?": {
         "snippet": "gdx_for.falling?",
         "description": "落下中",
-        "type": "value"
+        "type": "value",
+        "labelJa": "落下中",
+        "filterText": "rakkachu 落下中 gdx_for falling",
+        "sortText": "21_rakkachu"
     },
     "gdx_for.spin_speed": {
         "snippet": "gdx_for.spin_speed(\"${1:z}\")",
         "description": "(z▼) 回転のはやさ",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "回転のはやさ",
+        "filterText": "kaiten no hayasa 回転のはやさ gdx_for spin speed",
+        "sortText": "21_kaiten_no_hayasa"
     }
 }

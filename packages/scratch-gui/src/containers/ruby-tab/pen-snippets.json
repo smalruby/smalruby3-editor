@@ -2,76 +2,121 @@
     "pen.clear": {
         "snippet": "Pen.clear",
         "description": "全部消す",
-        "type": "function"
+        "type": "function",
+        "labelJa": "全部消す",
+        "filterText": "zenbu kesu 全部消す pen clear",
+        "sortText": "11_zenbu_kesu"
     },
     "pen.stamp": {
         "snippet": "pen.stamp",
         "description": "スタンプ",
-        "type": "function"
+        "type": "function",
+        "labelJa": "スタンプ",
+        "filterText": "sutanpu スタンプ stamp",
+        "sortText": "11_sutanpu"
     },
     "pen.down": {
         "snippet": "pen.down",
         "description": "ペンを下ろす",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンを下ろす",
+        "filterText": "penwo orosu ペンを下ろす pen down",
+        "sortText": "11_penwo_orosu"
     },
     "pen.up": {
         "snippet": "pen.up",
         "description": "ペンを上げる",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンを上げる",
+        "filterText": "penwo ageru ペンを上げる pen up",
+        "sortText": "11_penwo_ageru"
     },
     "pen.color=#": {
         "snippet": "pen.color = \"#${1:7a2d74}\"",
         "description": "ペンの色を (#7a2d74) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの色を指定する",
+        "filterText": "pennno irowo shiteisuru ペンの色を指定する pen color set",
+        "sortText": "11_pennno_irowo_shiteisuru"
     },
     "pen.color+=": {
         "snippet": "pen.color += ${1:10}",
         "description": "ペンの [色▼] を (10) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの色を変える",
+        "filterText": "pennno irowo kaeru ペンの色を変える pen color change",
+        "sortText": "11_pennno_irowo_kaeru"
     },
     "pen.saturation+=": {
         "snippet": "pen.saturation += ${1:10}",
         "description": "ペンの [鮮やかさ▼] を (10) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの鮮やかさを変える",
+        "filterText": "pennno azayakasawo kaeru ペンの鮮やかさを変える pen saturation change",
+        "sortText": "11_pennno_azayakasawo_kaeru"
     },
     "pen.brightness+=": {
         "snippet": "pen.brightness += ${1:10}",
         "description": "ペンの [明るさ▼] を (10) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの明るさを変える",
+        "filterText": "pennno akarusawo kaeru ペンの明るさを変える pen brightness change",
+        "sortText": "11_pennno_akarusawo_kaeru"
     },
     "pen.transparency+=": {
         "snippet": "pen.transparency += ${1:10}",
         "description": "ペンの [透明度▼] を (10) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの透明度を変える",
+        "filterText": "pennno tomeido wo kaeru ペンの透明度を変える pen transparency change",
+        "sortText": "11_pennno_tomeidowo_kaeru"
     },
     "pen.color=": {
         "snippet": "pen.color = ${1:50}",
         "description": "ペンの [色▼] を (50) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの色にする",
+        "filterText": "pennno ironi suru ペンの色にする pen color",
+        "sortText": "11_pennno_ironi_suru"
     },
     "pen.saturation=": {
         "snippet": "pen.saturation = ${1:50}",
         "description": "ペンの [鮮やかさ▼] を (50) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの鮮やかさにする",
+        "filterText": "pennno azayakasani suru ペンの鮮やかさにする pen saturation",
+        "sortText": "11_pennno_azayakasani_suru"
     },
     "pen.brightness=": {
         "snippet": "pen.brightness = ${1:50}",
         "description": "ペンの [明るさ▼] を (50) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの明るさにする",
+        "filterText": "pennno akarusani suru ペンの明るさにする pen brightness",
+        "sortText": "11_pennno_akarusani_suru"
     },
     "pen.transparency=": {
         "snippet": "pen.transparency = ${1:50}",
         "description": "ペンの [透明度▼] を (50) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの透明度にする",
+        "filterText": "pennno tomeidoni suru ペンの透明度にする pen transparency",
+        "sortText": "11_pennno_tomeidoni_suru"
     },
     "pen.size+=": {
         "snippet": "pen.size += ${1:1}",
         "description": "ペンの太さを (1) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの太さを変える",
+        "filterText": "pennno futosaw kaeru ペンの太さを変える pen size change",
+        "sortText": "11_pennno_futosawo_kaeru"
     },
     "pen.size=": {
         "snippet": "pen.size = ${1:1}",
         "description": "ペンの太さを (1) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ペンの太さにする",
+        "filterText": "pennno futosani suru ペンの太さにする pen size",
+        "sortText": "11_pennno_futosani_suru"
     }
 }

@@ -2,46 +2,73 @@
     "play_until_done": {
         "snippet": "play_until_done(\"${1:ニャー}\")",
         "description": "終わるまで (ニャー▼) の音を鳴らす",
-        "type": "method"
+        "type": "method",
+        "labelJa": "終わるまで音を鳴らす",
+        "filterText": "owarumade oto narasu 終わるまで音を鳴らす play_until_done",
+        "sortText": "03_owarumade"
     },
     "play": {
-        "snippet":"play(\"${1:ニャー}\")",
+        "snippet": "play(\"${1:ニャー}\")",
         "description": "(ニャー▼) の音を鳴らす",
-        "type": "method"
+        "type": "method",
+        "labelJa": "音を鳴らす",
+        "filterText": "otowonarasu 音を鳴らす play",
+        "sortText": "03_otowonarasu"
     },
     "stop_all_sounds": {
         "snippet": "stop_all_sounds",
         "description": "すべての音を止める",
-        "type": "method"
+        "type": "method",
+        "labelJa": "すべての音を止める",
+        "filterText": "subeteno oto tomeru すべての音を止める stop_all_sounds",
+        "sortText": "03_subeteno_oto"
     },
     "change_sound_effect_by": {
         "snippet": "change_sound_effect_by(\"${1:pitch}\", ${2:10})",
         "description": "[ピッチ▼] の効果を (10) ずつ変える",
-        "type": "method"
+        "type": "method",
+        "labelJa": "音の効果を変える",
+        "filterText": "oto kouka kaeru 音の効果を変える change_sound_effect_by ピッチ",
+        "sortText": "03_oto_kouka_kaeru"
     },
     "set_sound_effect": {
         "snippet": "set_sound_effect(\"${1:pitch}\", ${2:100})",
         "description": "[ピッチ▼] の効果を (100) にする",
-        "type": "method"
+        "type": "method",
+        "labelJa": "音の効果にする",
+        "filterText": "oto kouka nisuru 音の効果にする set_sound_effect ピッチ",
+        "sortText": "03_oto_kouka_nisuru"
     },
     "clear_sound_effects": {
         "snippet": "clear_sound_effects",
         "description": "音の効果をなくす",
-        "type": "method"
+        "type": "method",
+        "labelJa": "音の効果をなくす",
+        "filterText": "oto kouka nakusu 音の効果をなくす clear_sound_effects",
+        "sortText": "03_oto_kouka_nakusu"
     },
     "volume+=": {
         "snippet": "self.volume += ${1:-10}",
         "description": "音量を (-10) ずつ変える",
-        "type": "method"
+        "type": "method",
+        "labelJa": "音量を変える",
+        "filterText": "onryouwo kaeru 音量を変える volume ずつ変える",
+        "sortText": "03_onryouwo_kaeru"
     },
     "volume=": {
         "snippet": "self.volume = ${1:100}",
         "description": "音量を (100) %にする",
-        "type": "method"
+        "type": "method",
+        "labelJa": "音量にする",
+        "filterText": "onryouni suru 音量にする volume にする",
+        "sortText": "03_onryouni_suru"
     },
     "volume": {
         "snippet": "volume",
         "description": "音量",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "音量",
+        "filterText": "onryou 音量 volume",
+        "sortText": "03_onryou"
     }
 }
