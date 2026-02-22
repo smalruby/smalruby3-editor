@@ -2,66 +2,105 @@
     "sleep": {
         "snippet": "sleep(${1:1})",
         "description": "(1) 秒待つ",
-        "type": "function"
+        "type": "function",
+        "labelJa": "秒待つ",
+        "filterText": "byoumatsu 秒待つ sleep 待つ",
+        "sortText": "05_byoumatsu"
     },
     "times": {
         "snippet": "${1:10}.times do\n\t${2}\nend",
         "description": "(10) 回繰り返す",
-        "type": "snippet"
+        "type": "snippet",
+        "labelJa": "回繰り返す",
+        "filterText": "kai kurikaesu 回繰り返す times 繰り返す ずつ増やしながら繰り返す ずつ減らしながら繰り返す",
+        "sortText": "05_kai_kurikaesu"
     },
     "loop": {
         "snippet": "loop do\n\t${1}\nend",
         "description": "ずっと",
-        "type": "snippet"
+        "type": "snippet",
+        "labelJa": "ずっと繰り返す",
+        "filterText": "zutto kurikaesu ずっと繰り返す loop の間繰り返す aida",
+        "sortText": "05_zutto"
     },
     "if": {
         "snippet": "if ${1:false}\n\t${2}\nend",
         "description": "もし < > なら",
-        "type": "snippet"
+        "type": "snippet",
+        "labelJa": "もし〜なら",
+        "filterText": "moshi nara もし なら ならば if",
+        "sortText": "05_moshi"
     },
     "if-else": {
         "snippet": "if ${1:false}\n\t${2}\nelse\n\t${3}\nend",
         "description": "もし < > なら、でなければ",
-        "type": "snippet"
+        "type": "snippet",
+        "labelJa": "もし〜なら、でなければ",
+        "filterText": "moshi nara denakereba もし なら でなければ ならば if else そうでない soudenai",
+        "sortText": "05_moshi_denakereba"
     },
     "wait-until": {
         "snippet": "wait until ${1:false}",
         "description": "< > まで待つ",
-        "type": "function"
+        "type": "function",
+        "labelJa": "まで待つ",
+        "filterText": "made matsu まで待つ wait until",
+        "sortText": "05_made_matsu"
     },
     "until": {
         "snippet": "until ${1:false}\n\t${2}\nend",
         "description": "< > まで繰り返す",
-        "type": "snippet"
+        "type": "snippet",
+        "labelJa": "まで繰り返す",
+        "filterText": "made kurikaesu まで繰り返す until の間繰り返す aida while",
+        "sortText": "05_made_kurikaesu"
     },
     "stop-all": {
         "snippet": "stop(\"${1:all}\")",
         "description": "[すべてを止める▼]",
-        "type": "function"
+        "type": "function",
+        "labelJa": "すべてを止める",
+        "filterText": "subetewo tomeru すべてを止める stop all",
+        "sortText": "05_subetewo_tomeru"
     },
     "stop-this": {
         "snippet": "stop(\"${1:this script}\")",
         "description": "[このスクリプトを止める▼]",
-        "type": "function"
+        "type": "function",
+        "labelJa": "このスクリプトを止める",
+        "filterText": "kono sukuriputo tomeru このスクリプトを止める stop this",
+        "sortText": "05_kono_sukuriputo"
     },
     "stop-other": {
         "snippet": "stop(\"${1:other scripts in sprite}\")",
         "description": "[スプライトの他のスクリプトを止める▼]",
-        "type": "function"
+        "type": "function",
+        "labelJa": "他のスクリプトを止める",
+        "filterText": "hokano sukuriputo tomeru 他のスクリプトを止める stop other",
+        "sortText": "05_hokano_sukuriputo"
     },
     "when_start_as_a_clone": {
         "snippet": "when_start_as_a_clone do\n\t${1}\nend",
         "description": "クローンされたとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "クローンされたとき",
+        "filterText": "kuroon sareta クローンされたとき when_start_as_a_clone",
+        "sortText": "05_kuroon_sareta"
     },
     "create_clone": {
         "snippet": "create_clone(\"${1:_myself_}\")",
         "description": "(自分自身▼) のクローンを作る",
-        "type": "function"
+        "type": "function",
+        "labelJa": "クローンを作る",
+        "filterText": "kuroonwo tsukuru クローンを作る create_clone 自分自身",
+        "sortText": "05_kuroonwo_tsukuru"
     },
     "delete_this_clone": {
         "snippet": "delete_this_clone",
         "description": "このクローンを削除する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "クローンを削除する",
+        "filterText": "kuroonwo sakujosuru クローンを削除する delete_this_clone",
+        "sortText": "05_kuroonwo_sakujo"
     }
 }

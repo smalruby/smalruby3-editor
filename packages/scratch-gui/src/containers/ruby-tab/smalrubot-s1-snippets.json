@@ -2,81 +2,129 @@
     "smalrubot_s1.action": {
         "snippet": "smalrubot_s1.action(\"${1:forward}\")",
         "description": "[進める▼]",
-        "type": "function"
+        "type": "function",
+        "labelJa": "進める",
+        "filterText": "susumeru 進める smalrubot action forward",
+        "sortText": "17_susumeru"
     },
     "smalrubot_s1.a-forward": {
         "snippet": "forward",
         "description": "進める",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "進める",
+        "filterText": "susumeru 進める forward",
+        "sortText": "17z_susumeru"
     },
     "smalrubot_s1.a-backward": {
         "snippet": "backward",
         "description": "バックさせる",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "バックさせる",
+        "filterText": "bakkusaseru バックさせる backward",
+        "sortText": "17z_bakkusaseru"
     },
     "smalrubot_s1.a-turn-left": {
         "snippet": "left",
         "description": "左に曲げる",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "左に曲げる",
+        "filterText": "hidarini mageru 左に曲げる turn left",
+        "sortText": "17z_hidarini_mageru"
     },
     "smalrubot_s1.a-turn-right": {
         "snippet": "right",
         "description": "右に曲げる",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "右に曲げる",
+        "filterText": "migini mageru 右に曲げる turn right",
+        "sortText": "17z_migini_mageru"
     },
     "smalrubot_s1.a-stop": {
         "snippet": "stop",
         "description": "止める",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "止める",
+        "filterText": "tomeru 止める stop",
+        "sortText": "17z_tomeru"
     },
     "smalrubot_s1.action-in": {
         "snippet": "smalrubot_s1.action(\"${1:forward}\", ${2:0.5})",
         "description": "(0.5) 秒 [進める▼]",
-        "type": "function"
+        "type": "function",
+        "labelJa": "秒進める",
+        "filterText": "byou susumeru 秒進める smalrubot action seconds",
+        "sortText": "17_byou_susumeru"
     },
     "smalrubot_s1.bend_arm": {
         "snippet": "smalrubot_s1.bend_arm(${1:90}, ${2:1})",
         "description": "(1) 秒でアームを (90) 度に曲げる",
-        "type": "function"
+        "type": "function",
+        "labelJa": "アームを曲げる",
+        "filterText": "aamuwo mageru アームを曲げる smalrubot bend arm",
+        "sortText": "17_aamuwo_mageru"
     },
     "smalrubot_s1.sensor_value": {
         "snippet": "smalrubot_s1.sensor_value(\"${1:left}\")",
         "description": "[左▼] のセンサー",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "センサーの値",
+        "filterText": "sensaano atai センサーの値 smalrubot sensor value",
+        "sortText": "17_sensaano_atai"
     },
     "smalrubot_s1.d-left": {
         "snippet": "left",
         "description": "左",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "左",
+        "filterText": "hidari 左 left",
+        "sortText": "17z_hidari"
     },
     "smalrubot_s1.d-right": {
         "snippet": "right",
         "description": "右",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "右",
+        "filterText": "migi 右 right",
+        "sortText": "17z_migi"
     },
     "smalrubot_s1.led_on": {
         "snippet": "smalrubot_s1.led(\"${1:left}\", true)",
         "description": "[左▼] のLEDをオンにする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "LEDをオンにする",
+        "filterText": "ledwo on ni suru LEDをオンにする smalrubot led on",
+        "sortText": "17_ledwo_on_ni_suru"
     },
     "smalrubot_s1.led_off": {
         "snippet": "smalrubot_s1.led(\"${1:left}\", false)",
         "description": "[左▼] のLEDをオフにする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "LEDをオフにする",
+        "filterText": "ledwo off ni suru LEDをオフにする smalrubot led off",
+        "sortText": "17_ledwo_off_ni_suru"
     },
     "smalrubot_s1.get_motor_speed": {
         "snippet": "smalrubot_s1.get_motor_speed(\"${1:left}\")",
         "description": "[左▼] DCモーターの速度 (%)",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "DCモーターの速度",
+        "filterText": "diiishii motaano sokudo DCモーターの速度 smalrubot motor speed",
+        "sortText": "17_moatano_sokudo"
     },
     "smalrubot_s1.set_motor_speed": {
         "snippet": "smalrubot_s1.set_motor_speed(\"${1:left}\", ${1:50})",
         "description": "[左▼] DCモーターの速度を (50) (%) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "DCモーターの速度にする",
+        "filterText": "diishii motaano sokudoni suru DCモーターの速度にする smalrubot set motor speed",
+        "sortText": "17_motaano_sokudoni_suru"
     },
     "smalrubot_s1.arm_calibration=": {
         "snippet": "smalrubot_s1.arm_calibration = ${1:0}",
         "description": "アームを (0) 度調整する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "アームを調整する",
+        "filterText": "aamuwo chouseisuru アームを調整する smalrubot arm calibration",
+        "sortText": "17_aamuwo_chouseisuru"
     }
 }

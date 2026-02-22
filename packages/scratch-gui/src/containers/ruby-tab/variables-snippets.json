@@ -2,86 +2,137 @@
     "$": {
         "snippet": "$${1:変数}",
         "description": "変数",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "変数",
+        "filterText": "hensuu 変数 $",
+        "sortText": "08_hensuu"
     },
     "$=": {
         "snippet": "$${1:変数} = ${2:0}",
         "description": "[変数▼] を (0) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "変数に代入",
+        "filterText": "hensuuni dainyuu 変数に代入 $= にする に入れる を入れる ireru",
+        "sortText": "08_hensuuni_dainyuu"
     },
     "$+=": {
         "snippet": "$${1:変数} += ${2:1}",
         "description": "[変数▼] を (1) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "変数を変える",
+        "filterText": "hensuuwo kaeru 変数を変える $+= ずつ変える",
+        "sortText": "08_hensuuwo_kaeru"
     },
     "show_variable": {
         "snippet": "show_variable(\"$${1:変数}\")",
         "description": "変数 [変数▼] を表示する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "変数を表示する",
+        "filterText": "hensuuwo hyoujisuru 変数を表示する show_variable",
+        "sortText": "08_hensuuwo_hyouji"
     },
     "hide_variable": {
         "snippet": "hide_variable(\"$${1:変数}\")",
         "description": "変数 [変数▼] を隠す",
-        "type": "function"
+        "type": "function",
+        "labelJa": "変数を隠す",
+        "filterText": "hensuuwo kakusu 変数を隠す hide_variable",
+        "sortText": "08_hensuuwo_kakusu"
     },
     "list.push": {
         "snippet": "list(\"$${1:リスト}\").push(\"${2:なにか}\")",
         "description": "(なにか) を [リスト▼] に追加する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "リストに追加",
+        "filterText": "risutoni tsuika リストに追加する list push 配列 hairetsu",
+        "sortText": "08_risutoni_tsuika"
     },
     "list.delete_at": {
         "snippet": "list(\"$${1:リスト}\").delete_at(${2:1})",
         "description": "[リスト▼] の (1) 番目を削除する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "リストから削除",
+        "filterText": "risutokara sakujo リストから削除する list delete_at",
+        "sortText": "08_risutokara_sakujo"
     },
     "list.clear": {
         "snippet": "list(\"$${1:リスト}\").clear",
         "description": "[リスト▼] のすべてを削除する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "リストをクリア",
+        "filterText": "risutowoクリア kuriaa リストをクリア list clear すべて削除",
+        "sortText": "08_risutowo_kuriaa"
     },
     "list.insert": {
         "snippet": "list(\"$${1:リスト}\").insert(${2:1}, \"${3:なにか}\")",
         "description": "[リスト▼] の (1) 番目に (なにか) を挿入する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "リストに挿入",
+        "filterText": "risutoni sounyuu リストに挿入する list insert",
+        "sortText": "08_risutoni_sounyuu"
     },
     "list[]=": {
         "snippet": "list(\"$${1:リスト}\")[${2:1}] = \"${3:なにか}\"",
         "description": "[リスト▼] の (1) 番目を (なにか) で置き換える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "リストを置き換える",
+        "filterText": "risutowo okikaeru リストを置き換える list 番目",
+        "sortText": "08_risutowo_okikaeru"
     },
     "list": {
         "snippet": "list(\"$${1:リスト}\")",
         "description": "リスト",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "リスト",
+        "filterText": "risuto リスト list 配列 hairetsu",
+        "sortText": "08_risuto"
     },
     "list[]": {
         "snippet": "list(\"$${1:リスト}\")[${2:1}]",
         "description": "[リスト▼] の (1) 番目",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "リストの番目",
+        "filterText": "risutono banme リストの番目 list 要素 youso",
+        "sortText": "08_risutono_banme"
     },
     "list.index": {
         "snippet": "list(\"$${1:リスト}\").index(\"${2:なにか}\")",
         "description": "[リスト▼] 中の (なにか) の場所",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "リスト中の場所",
+        "filterText": "risutochuuno basho リスト中の場所 list index",
+        "sortText": "08_risutochuuno_basho"
     },
     "list.length": {
         "snippet": "list(\"$${1:リスト}\").length",
         "description": "[リスト▼] の長さ",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "リストの長さ",
+        "filterText": "risutono nagasa リストの長さ list length yousosuu 要素数",
+        "sortText": "08_risutono_nagasa"
     },
     "list.include?": {
         "snippet": "list(\"$${1:リスト}\").include?(\"${2:なにか}\")",
         "description": "[リスト▼] に (なにか) が含まれる",
-        "type": "value"
+        "type": "value",
+        "labelJa": "リストに含まれる",
+        "filterText": "risutoni fukumareru リストに含まれる list include",
+        "sortText": "08_risutoni_fukumareru"
     },
     "show_list": {
         "snippet": "show_list(\"$${1:リスト}\")",
         "description": "リスト [リスト▼] を表示する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "リストを表示する",
+        "filterText": "risutowo hyoujisuru リストを表示する show_list",
+        "sortText": "08_risutowo_hyouji"
     },
     "hide_list": {
         "snippet": "hide_list(\"$${1:リスト}\")",
         "description": "リスト [リスト▼] を隠す",
-        "type": "function"
+        "type": "function",
+        "labelJa": "リストを隠す",
+        "filterText": "risutowo kakusu リストを隠す hide_list",
+        "sortText": "08_risutowo_kakusu"
     }
 }

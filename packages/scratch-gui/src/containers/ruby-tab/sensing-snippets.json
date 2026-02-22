@@ -2,171 +2,273 @@
     "touching?": {
         "snippet": "touching?(\"${1:_mouse_}\")",
         "description": "(マウスのポインター▼) に触れた",
-        "type": "method"
+        "type": "method",
+        "labelJa": "に触れた",
+        "filterText": "ni fureta 触れた touching マウス ポインター",
+        "sortText": "06_ni_fureta"
     },
     "touching_color?": {
         "snippet": "touching_color?(\"${1:#571332}\")",
         "description": "(#571332▼) 色に触れた",
-        "type": "method"
+        "type": "method",
+        "labelJa": "色に触れた",
+        "filterText": "ironi fureta 色に触れた touching_color",
+        "sortText": "06_ironi_fureta"
     },
     "color_is_touching_color?": {
         "snippet": "color_is_touching_color?(\"#${1:ce2ef7}\", \"#${2:6a7a0e}\")",
         "description": "(#ce2ef7▼) 色が (#6a7a0e▼) 色に触れた",
-        "type": "method"
+        "type": "method",
+        "labelJa": "色が色に触れた",
+        "filterText": "iroga ironi fureta 色が色に触れた color_is_touching_color",
+        "sortText": "06_iroga_ironi"
     },
     "distance": {
         "snippet": "distance(\"${1:_mouse_}\")",
-        "description": "(マウス의ポインター▼) までの距離",
-        "type": "method"
+        "description": "(マウスのポインター▼) までの距離",
+        "type": "method",
+        "labelJa": "までの距離",
+        "filterText": "madeno kyori までの距離 distance マウス ポインター",
+        "sortText": "06_madeno_kyori"
     },
     "ask": {
         "snippet": "ask(\"${1:あなたの名前は何ですか?}\")",
         "description": "(あなたの名前は何ですか？) と聞いて待つ",
-        "type": "method"
+        "type": "method",
+        "labelJa": "聞いて待つ",
+        "filterText": "kiite matsu 聞いて待つ ask 入力 nyuuryoku 外部からの入力",
+        "sortText": "06_kiite_matsu"
     },
     "answer": {
         "snippet": "answer",
         "description": "答え",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "答え",
+        "filterText": "kotae 答え answer",
+        "sortText": "06_kotae"
     },
     "Keyboard.pressed?": {
         "snippet": "Keyboard.pressed?(\"${1:space}\")",
         "description": "[スペースキー▼] が押された",
-        "type": "method"
+        "type": "method",
+        "labelJa": "キーが押された",
+        "filterText": "kiiga osareta キーが押された Keyboard pressed スペース",
+        "sortText": "06_kiiga_osareta"
     },
     "Mouse.down?": {
         "snippet": "Mouse.down?",
         "description": "マウスが押された",
-        "type": "method"
+        "type": "method",
+        "labelJa": "マウスが押された",
+        "filterText": "mausuga osareta マウスが押された Mouse down",
+        "sortText": "06_mausuga_osareta"
     },
     "Mouse.x": {
         "snippet": "Mouse.x",
         "description": "マウスのx座標",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "マウスのx座標",
+        "filterText": "mausuno xzahyou マウスのx座標 Mouse",
+        "sortText": "06_mausuno_xzahyou"
     },
     "Mouse.y": {
         "snippet": "Mouse.y",
         "description": "マウスのy座標",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "マウスのy座標",
+        "filterText": "mausuno yzahyou マウスのy座標 Mouse",
+        "sortText": "06_mausuno_yzahyou"
     },
     "drag_mode=": {
         "snippet": "self.drag_mode = \"${1:draggable}\"",
         "description": "ドラッグ [できる▼] ようにする",
-        "type": "method"
+        "type": "method",
+        "labelJa": "ドラッグモード",
+        "filterText": "doraggu moodo ドラッグモード drag_mode できる",
+        "sortText": "06_doraggu"
     },
     "loudness": {
         "snippet": "loudness",
         "description": "音量",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "音量",
+        "filterText": "onryou 音量 loudness",
+        "sortText": "06_onryou"
     },
     "Timer.value": {
         "snippet": "Timer.value",
         "description": "タイマー",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "タイマー",
+        "filterText": "taimaa タイマー Timer value",
+        "sortText": "06_taimaa"
     },
     "Timer.reset": {
         "snippet": "Timer.reset",
         "description": "タイマーをリセット",
-        "type": "method"
+        "type": "method",
+        "labelJa": "タイマーをリセット",
+        "filterText": "taimaawo risetto タイマーをリセット Timer reset",
+        "sortText": "06_taimaawo_risetto"
     },
     "stage.backdrop_number": {
         "snippet": "stage.backdrop_number",
         "description": "(ステージ▼) の [背景#▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ステージの背景番号",
+        "filterText": "suteejino haikei bangou ステージの背景番号 stage backdrop_number",
+        "sortText": "06_suteejino_haikei_bangou"
     },
     "stage.backdrop_name": {
         "snippet": "stage.backdrop_name",
         "description": "(ステージ▼) の [背景の名前▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ステージの背景名",
+        "filterText": "suteejino haikei mei ステージの背景名 stage backdrop_name",
+        "sortText": "06_suteejino_haikei_mei"
     },
     "stage.volume": {
         "snippet": "stage.volume",
         "description": "(ステージ▼) の [音量▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ステージの音量",
+        "filterText": "suteejino onryou ステージの音量 stage volume",
+        "sortText": "06_suteejino_onryou"
     },
     "stage.variable": {
         "snippet": "stage.variable(\"${1:変数}\")",
         "description": "(ステージ▼) の [変数▼]",
-        "type": "method"
+        "type": "method",
+        "labelJa": "ステージの変数",
+        "filterText": "suteejino hensuu ステージの変数 stage variable",
+        "sortText": "06_suteejino_hensuu"
     },
     "sprite.x": {
         "snippet": "sprite(\"${1:スプライト1}\").x",
         "description": "(スプライト1▼) の [x座標▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "スプライトのx座標",
+        "filterText": "supuraitono xzahyou スプライトのx座標 sprite",
+        "sortText": "06_supuraitono_xzahyou"
     },
     "sprite.y": {
         "snippet": "sprite(\"${1:スプライト1}\").y",
         "description": "(スプライト1▼) の [y座標▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "スプライトのy座標",
+        "filterText": "supuraitono yzahyou スプライトのy座標 sprite",
+        "sortText": "06_supuraitono_yzahyou"
     },
     "sprite.direction": {
         "snippet": "sprite(\"${1:スプライト1}\").direction",
         "description": "(スプライト1▼) の [向き▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "スプライトの向き",
+        "filterText": "supuraitono muki スプライトの向き sprite direction",
+        "sortText": "06_supuraitono_muki"
     },
     "sprite.costume_number": {
         "snippet": "sprite(\"${1:スプライト1}\").costume_number",
         "description": "(スプライト1▼) の [コスチューム#▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "スプライトのコスチューム番号",
+        "filterText": "supuraitono kosuchuumu bangou スプライトのコスチューム番号 sprite costume_number",
+        "sortText": "06_supuraitono_kosuchuumu_bangou"
     },
     "sprite.costume_name": {
         "snippet": "sprite(\"${1:スプライト1}\").costume_name",
         "description": "(スプライト1▼) の [コスチューム名▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "スプライトのコスチューム名",
+        "filterText": "supuraitono kosuchuumu mei スプライトのコスチューム名 sprite costume_name",
+        "sortText": "06_supuraitono_kosuchuumu_mei"
     },
     "sprite.size": {
         "snippet": "sprite(\"${1:スプライト1}\").size",
         "description": "(スプライト1▼) の [大きさ▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "スプライトの大きさ",
+        "filterText": "supuraitono ookisa スプライトの大きさ sprite size",
+        "sortText": "06_supuraitono_ookisa"
     },
     "sprite.volume": {
         "snippet": "sprite(\"${1:スプライト1}\").volume",
         "description": "(スプライト1▼) の [音量▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "スプライトの音量",
+        "filterText": "supuraitono onryou スプライトの音量 sprite volume",
+        "sortText": "06_supuraitono_onryou"
     },
     "current_year": {
         "snippet": "Time.now.year",
         "description": "現在の [年▼]",
-        "type": "constant"
+        "type": "constant",
+        "labelJa": "現在の年",
+        "filterText": "genzaino nen 現在の年 Time year current",
+        "sortText": "06_genzaino_nen"
     },
     "current_month": {
         "snippet": "Time.now.month",
         "description": "現在の [月▼]",
-        "type": "constant"
+        "type": "constant",
+        "labelJa": "現在の月",
+        "filterText": "genzaino tsuki 現在の月 Time month current",
+        "sortText": "06_genzaino_tsuki"
     },
     "current_day": {
         "snippet": "Time.now.day",
         "description": "現在の [日▼]",
-        "type": "constant"
+        "type": "constant",
+        "labelJa": "現在の日",
+        "filterText": "genzaino hi 現在の日 Time day current",
+        "sortText": "06_genzaino_hi"
     },
     "current_day_of_week": {
         "snippet": "Time.now.date",
         "description": "現在の [曜日▼]",
-        "type": "constant"
+        "type": "constant",
+        "labelJa": "現在の曜日",
+        "filterText": "genzaino youbi 現在の曜日 Time date current",
+        "sortText": "06_genzaino_youbi"
     },
     "current_hour": {
         "snippet": "Time.now.hour",
         "description": "現在の [時▼]",
-        "type": "constant"
+        "type": "constant",
+        "labelJa": "現在の時",
+        "filterText": "genzaino ji 現在の時 Time hour current",
+        "sortText": "06_genzaino_ji"
     },
     "current_minute": {
         "snippet": "Time.now.min",
         "description": "現在の [分▼]",
-        "type": "constant"
+        "type": "constant",
+        "labelJa": "現在の分",
+        "filterText": "genzaino fun 現在の分 Time min current",
+        "sortText": "06_genzaino_fun"
     },
     "current_second": {
         "snippet": "Time.now.sec",
         "description": "現在の [秒▼]",
-        "type": "constant"
+        "type": "constant",
+        "labelJa": "現在の秒",
+        "filterText": "genzaino byou 現在の秒 Time sec current",
+        "sortText": "06_genzaino_byou"
     },
     "days_since_2000": {
         "snippet": "days_since_2000",
         "description": "2000年からの日数",
-        "type": "constant"
+        "type": "constant",
+        "labelJa": "2000年からの日数",
+        "filterText": "2000nen nissuu 2000年からの日数 days_since_2000",
+        "sortText": "06_2000nen"
     },
     "user_name": {
         "snippet": "user_name",
         "description": "ユーザー名",
-        "type": "constant"
+        "type": "constant",
+        "labelJa": "ユーザー名",
+        "filterText": "yuuzaa mei ユーザー名 user_name",
+        "sortText": "06_yuuzaa_mei"
     }
 }

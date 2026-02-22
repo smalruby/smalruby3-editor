@@ -2,11 +2,17 @@
     "makey.when_key_pressed": {
         "snippet": "makey.when_key_pressed(\"${1:SPACE}\") do\n\t${2}\nend",
         "description": "( ▼) キーが押されたとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "キーが押されたとき",
+        "filterText": "kiiga osareta toki キーが押されたとき makey key pressed when",
+        "sortText": "20_kiiga_osareta_toki"
     },
     "makey.when_pressed_in_oder": {
         "snippet": "makey.when_pressed_in_oder(\"${1:LEFT UP RIGHT}\") do\n\t${2}\nend",
         "description": "( ▼) キーが順番に押されたとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "キーが順番に押されたとき",
+        "filterText": "kiiga junban ni osareta toki キーが順番に押されたとき makey key pressed order",
+        "sortText": "20_kiiga_junban_osareta_toki"
     }
 }

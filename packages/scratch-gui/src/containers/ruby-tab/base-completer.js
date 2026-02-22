@@ -9,18 +9,37 @@ class BaseCompleter {
     toCompletionItem (item, range, monaco) {
         const snippet = item.snippet || item.value;
         const description = item.description || item.caption;
+        const cleanSnippet = this.#removeSnippetVarAroundCode(snippet);
 
-        return {
-            label: item.caption,
+        // Use structured label when Japanese label is available
+        const label = item.labelJa ?
+            {label: item.labelJa, detail: ` ${cleanSnippet}`, description: description} :
+            item.caption;
+
+        const completionItem = {
+            label: label,
             kind: this.#getCompletionItemKind(item.type, monaco),
             documentation: {
                 value: this.#toMarkdown(description, snippet)
             },
             insertText: snippet,
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            detail: 'Smalruby Snippet',
             range: range
         };
+
+        if (!item.labelJa) {
+            completionItem.detail = 'Smalruby Snippet';
+        }
+
+        if (item.filterText) {
+            completionItem.filterText = item.filterText;
+        }
+
+        if (item.sortText) {
+            completionItem.sortText = item.sortText;
+        }
+
+        return completionItem;
     }
 
     #getCompletionItemKind (type, monaco) {

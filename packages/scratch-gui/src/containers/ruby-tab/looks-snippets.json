@@ -2,106 +2,169 @@
     "say-for": {
         "snippet": "say(\"${1:こんにちは!}\", ${2:2})",
         "description": "(こんにちは!) と (2) 秒言う",
-        "type": "function"
+        "type": "function",
+        "labelJa": "秒言う",
+        "filterText": "byouiu 秒言う say 言う こんにちは hyoujisuru 表示する",
+        "sortText": "02_byouiu"
     },
     "say": {
         "snippet": "say(\"${1:こんにちは!}\")",
         "description": "(こんにちは!) と言う",
-        "type": "function"
+        "type": "function",
+        "labelJa": "言う",
+        "filterText": "iu 言う say こんにちは hyoujisuru 表示する",
+        "sortText": "02_iu"
     },
     "think-for": {
         "snippet": "think(\"${1:うーん...}\", ${2:2})",
         "description": "(うーん...) と (2) 秒考える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "秒考える",
+        "filterText": "byoukangaeru 秒考える think 考える",
+        "sortText": "02_byoukangaeru"
     },
     "think": {
         "snippet": "think(\"${1:うーん...}\")",
         "description": "(うーん...) と考える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "考える",
+        "filterText": "kangaeru 考える think",
+        "sortText": "02_kangaeru"
     },
     "switch_costume": {
         "snippet": "switch_costume(\"${1:コスチューム1}\")",
         "description": "コスチュームを (コスチューム1▼) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "コスチュームにする",
+        "filterText": "kosuchuumu コスチュームにする switch_costume",
+        "sortText": "02_kosuchuumu"
     },
     "next_costume": {
         "snippet": "next_costume",
         "description": "次のコスチュームにする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "次のコスチューム",
+        "filterText": "tsugino kosuchuumu 次のコスチューム next_costume",
+        "sortText": "02_tsugino_kosuchuumu"
     },
     "switch_backdrop": {
         "snippet": "switch_backdrop(\"${1:背景1}\")",
         "description": "背景を (背景1▼) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "背景にする",
+        "filterText": "haikeini suru 背景にする switch_backdrop",
+        "sortText": "02_haikeini"
     },
     "next_backdrop": {
         "snippet": "next_backdrop",
         "description": "次の背景にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "次の背景",
+        "filterText": "tsugino haikei 次の背景 next_backdrop",
+        "sortText": "02_tsugino_haikei"
     },
     "size+=": {
         "snippet": "self.size += ${1:10}",
         "description": "大きさを (10) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "大きさを変える",
+        "filterText": "ookisawo kaeru 大きさを変える size ずつ変える",
+        "sortText": "02_ookisawo_kaeru"
     },
     "size=": {
         "snippet": "self.size = ${1:100}",
         "description": "大きさを (100) %にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "大きさにする",
+        "filterText": "ookisani suru 大きさにする size にする",
+        "sortText": "02_ookisani_suru"
     },
     "change_effect_by": {
         "snippet": "change_effect_by(\"${1:color}\", ${2:25})",
         "description": "[色▼] の効果を (25) ずつかえる",
-        "type": "function"
+        "type": "function",
+        "labelJa": "効果を変える",
+        "filterText": "koukawo kaeru 効果を変える change_effect_by 色 ずつ",
+        "sortText": "02_koukawo_kaeru"
     },
     "set_effect": {
         "snippet": "set_effect(\"${1:color}\", ${2:0})",
         "description": "[色▼] の効果を (0) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "効果にする",
+        "filterText": "koukani suru 効果にする set_effect 色",
+        "sortText": "02_koukani_suru"
     },
     "clear_graphic_effects": {
         "snippet": "clear_graphic_effects",
         "description": "画像効果をなくす",
-        "type": "function"
+        "type": "function",
+        "labelJa": "画像効果をなくす",
+        "filterText": "gazoukoukawo nakusu 画像効果をなくす clear_graphic_effects",
+        "sortText": "02_gazoukoukawo"
     },
     "show": {
         "snippet": "show",
         "description": "表示する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "表示する",
+        "filterText": "hyoujisuru 表示する show",
+        "sortText": "02_hyoujisuru"
     },
     "hide": {
         "snippet": "hide",
         "description": "隠す",
-        "type": "function"
+        "type": "function",
+        "labelJa": "隠す",
+        "filterText": "kakusu 隠す hide",
+        "sortText": "02_kakusu"
     },
     "go_layers": {
         "snippet": "go_layers(${1:1}, \"${2:forward}\")",
         "description": "(1) 層 [手前に出す▼]",
-        "type": "function"
+        "type": "function",
+        "labelJa": "層を変える",
+        "filterText": "souwo kaeru 層を変える go_layers 手前に出す",
+        "sortText": "02_souwo_kaeru"
     },
     "costume_number": {
         "snippet": "costume_number",
         "description": "コスチュームの [番号▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "コスチューム番号",
+        "filterText": "kosuchuumu bangou コスチューム番号 costume_number",
+        "sortText": "02_kosuchuumu_bangou"
     },
     "costume_name": {
         "snippet": "costume_name",
         "description": "コスチュームの [名前▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "コスチューム名",
+        "filterText": "kosuchuumu mei コスチューム名 costume_name",
+        "sortText": "02_kosuchuumu_mei"
     },
     "backdrop_number": {
         "snippet": "backdrop_number",
         "description": "背景の [番号▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "背景番号",
+        "filterText": "haikei bangou 背景番号 backdrop_number",
+        "sortText": "02_haikei_bangou"
     },
     "backdrop_name": {
         "snippet": "backdrop_name",
         "description": "背景の [名前▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "背景名",
+        "filterText": "haikei mei 背景名 backdrop_name",
+        "sortText": "02_haikei_mei"
     },
     "size": {
         "snippet": "size",
         "description": "大きさ",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "大きさ",
+        "filterText": "ookisa 大きさ size",
+        "sortText": "02_ookisa"
     }
 }

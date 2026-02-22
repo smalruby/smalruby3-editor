@@ -2,106 +2,169 @@
     "rand": {
         "snippet": "rand(${1:1}..${2:10})",
         "description": "(1) から (10) までの乱数",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "乱数",
+        "filterText": "ransuu 乱数 rand ランダム random",
+        "sortText": "07_ransuu"
     },
     "and": {
         "snippet": "${1:false} && ${2:false}",
         "description": "< > かつ < >",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "かつ",
+        "filterText": "katsu かつ and && 論理積",
+        "sortText": "07_katsu"
     },
     "or": {
         "snippet": "${1:false} || ${2:false}",
         "description": "< > または < >",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "または",
+        "filterText": "matawa または or || 論理和",
+        "sortText": "07_matawa"
     },
     "not": {
         "snippet": "!${1:false}",
         "description": "< > ではない",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ではない",
+        "filterText": "denai dewanai ではない not ! でない 否定",
+        "sortText": "07_denai"
     },
     "string+": {
         "snippet": "\"${1:りんご}\" + \"${2:バナナ}\"",
         "description": "(りんご) と (バナナ)",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "文字列の結合",
+        "filterText": "mojiretsu ketsugou 文字列の結合 string 結合 連結",
+        "sortText": "07_mojiretsu_ketsugou"
     },
     "string[]": {
         "snippet": "\"${1:りんご}\"[${2:1}]",
         "description": "(りんご) の (1) 番目の文字",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "番目の文字",
+        "filterText": "banmeno moji 番目の文字 string 文字",
+        "sortText": "07_banmeno_moji"
     },
     "string.length": {
         "snippet": "\"${1:りんご}\".length",
         "description": "(りんご) の長さ",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "文字列の長さ",
+        "filterText": "mojiretsu nagasa 文字列の長さ string length yousosuu 要素数",
+        "sortText": "07_mojiretsu_nagasa"
     },
     "string.include?": {
         "snippet": "\"${1:りんご}\".include?(\"${2:り}\")",
         "description": "(りんご) に (り) が含まれる",
-        "type": "value"
+        "type": "value",
+        "labelJa": "が含まれる",
+        "filterText": "ga fukumareru 含まれる string include 含む",
+        "sortText": "07_ga_fukumareru"
     },
     "round": {
         "snippet": "${1:0}.round",
         "description": "(0) を四捨五入",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "四捨五入",
+        "filterText": "shishagonyu 四捨五入 round",
+        "sortText": "07_shishagonyu"
     },
     "abs": {
         "snippet": "${1:0}.abs",
         "description": "(0) の [絶対値▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "絶対値",
+        "filterText": "zettaichi 絶対値 abs",
+        "sortText": "07_zettaichi"
     },
     "floor": {
         "snippet": "${1:0}.floor",
         "description": "(0) の [切り下げ▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "切り下げ",
+        "filterText": "kirisage kirisute 切り下げ 切り捨て floor seisuu 整数",
+        "sortText": "07_kirisage"
     },
     "ceil": {
         "snippet": "${1:0}.ceil",
         "description": "(0) の [切り上げ▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "切り上げ",
+        "filterText": "kiriake kiriage 切り上げ ceil",
+        "sortText": "07_kiriake"
     },
     "sqrt": {
         "snippet": "Math.sqrt(${1:0})",
         "description": "(0) の [平方根▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "平方根",
+        "filterText": "heihoukon 平方根 sqrt Math",
+        "sortText": "07_heihoukon"
     },
     "sin": {
         "snippet": "Math.sin(${1:0})",
         "description": "(0) の [sin▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "sin",
+        "filterText": "sin Math サイン",
+        "sortText": "07_sin"
     },
     "cos": {
         "snippet": "Math.cos(${1:0})",
-        "description": "(0) の [cons▼]",
-        "type": "variable"
+        "description": "(0) の [cos▼]",
+        "type": "variable",
+        "labelJa": "cos",
+        "filterText": "cos Math コサイン",
+        "sortText": "07_cos"
     },
     "tan": {
         "snippet": "Math.tan(${1:0})",
         "description": "(0) の [tan▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "tan",
+        "filterText": "tan Math タンジェント",
+        "sortText": "07_tan"
     },
     "asin": {
         "snippet": "Math.asin(${1:0})",
         "description": "(0) の [asin▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "asin",
+        "filterText": "asin Math アークサイン",
+        "sortText": "07_asin"
     },
     "acos": {
         "snippet": "Math.acos(${1:0})",
         "description": "(0) の [acos▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "acos",
+        "filterText": "acos Math アークコサイン",
+        "sortText": "07_acos"
     },
     "atan": {
         "snippet": "Math.atan(${1:0})",
         "description": "(0) の [atan▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "atan",
+        "filterText": "atan Math アークタンジェント",
+        "sortText": "07_atan"
     },
     "log": {
         "snippet": "Math.log(${1:0})",
-        "description": "(0) の [In▼]",
-        "type": "variable"
+        "description": "(0) の [ln▼]",
+        "type": "variable",
+        "labelJa": "自然対数",
+        "filterText": "shizentaisuu 自然対数 log Math ln",
+        "sortText": "07_shizentaisuu"
     },
     "log10": {
         "snippet": "Math.log10(${1:0})",
         "description": "(0) の [log▼]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "常用対数",
+        "filterText": "jouyoutaisuu 常用対数 log10 Math",
+        "sortText": "07_jouyoutaisuu"
     }
 }

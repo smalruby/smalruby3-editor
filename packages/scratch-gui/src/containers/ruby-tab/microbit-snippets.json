@@ -2,46 +2,73 @@
     "microbit_v1.when_button_pressed": {
         "snippet": "microbit_v1.when_button_pressed(\"${1:A}\") do\n\t${2}\nend",
         "description": "ボタン (A▼) が押されたとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "ボタンが押されたとき",
+        "filterText": "botanga osareta toki ボタンが押されたとき microbit button pressed when",
+        "sortText": "15_botanga_osareta_toki"
     },
     "microbit_v1.button_pressed?": {
         "snippet": "microbit_v1.button_pressed?(\"${1:A}\")",
         "description": "ボタン (A▼) が押された",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ボタンが押された",
+        "filterText": "botanga osareta ボタンが押された microbit button pressed",
+        "sortText": "15_botanga_osareta"
     },
     "microbit_v1.when": {
         "snippet": "microbit_v1.when(\"${1:moved}\") do\n\t${2}\nend",
         "description": "(動いた▼) とき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "動いたとき",
+        "filterText": "ugoita toki 動いたとき microbit when moved",
+        "sortText": "15_ugoita_toki"
     },
     "microbit_v1.display_text": {
         "snippet": "microbit_v1.display_text(\"${1:こんにちは!}\")",
         "description": "(こんにちは!) を表示する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "テキストを表示する",
+        "filterText": "tekisutowo hyojisuru テキストを表示する microbit display text",
+        "sortText": "15_tekisutowo_hyojisuru"
     },
     "microbit_v1.display": {
         "snippet": "microbit_v1.display(\n  \"${1:.1.1.}\",\n  \"${2:1.1.1}\",\n  \"${3:1...1}\",\n  \"${4:.1.1.}\",\n  \"${5:..1..}\"\n)",
         "description": "(♡▼) を表示する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "パターンを表示する",
+        "filterText": "pataanwo hyojisuru パターンを表示する microbit display",
+        "sortText": "15_pataanwo_hyojisuru"
     },
     "microbit_v1.when_tilted": {
         "snippet": "microbit_v1.when_tilted(\"${1:any}\") do\n\t${2}\nend",
         "description": "(どれかの向き▼) に傾いたとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "傾いたとき",
+        "filterText": "katamuita toki 傾いたとき microbit when tilted",
+        "sortText": "15_katamuita_toki"
     },
     "microbit_v1.tilted?": {
         "snippet": "microbit_v1.tilted?(\"${1:any}\")",
         "description": "(どれかの向き▼) に傾いた",
-        "type": "value"
+        "type": "value",
+        "labelJa": "傾いた",
+        "filterText": "katamuita 傾いた microbit tilted",
+        "sortText": "15_katamuita"
     },
     "microbit_v1.tilt_angle": {
         "snippet": "microbit_v1.tilt_angle(\"${1:front}\")",
         "description": "(前▼) 方向の傾き",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "方向の傾き",
+        "filterText": "hookono katamuki 方向の傾き microbit tilt angle",
+        "sortText": "15_hookono_katamuki"
     },
     "microbit_v1.when_pin_connected": {
         "snippet": "microbit_v1.when_pin_connected(${1:0}) do\n\t${2}\nend",
         "description": "ピン (0▼) がつながったとき",
-        "type": "event"
+        "type": "event",
+        "labelJa": "ピンがつながったとき",
+        "filterText": "pinga tsunagatta toki ピンがつながったとき microbit pin connected when",
+        "sortText": "15_pinga_tsunagatta_toki"
     }
 }

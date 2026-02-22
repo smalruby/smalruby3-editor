@@ -2,116 +2,185 @@
     "move": {
         "snippet": "move(${1:10})",
         "description": "(10) 歩動かす",
-        "type": "function"
+        "type": "function",
+        "labelJa": "動かす",
+        "filterText": "ugokasu 動かす move 歩動かす",
+        "sortText": "01_ugokasu"
     },
     "turn_right": {
         "snippet": "turn_right(${1:15})",
         "description": "時計回りに (15) 度回す",
-        "type": "function"
+        "type": "function",
+        "labelJa": "右に回す",
+        "filterText": "migini mawasu 右に回す turn_right 時計回り 度回す",
+        "sortText": "01_migini_mawasu"
     },
     "turn_left": {
         "snippet": "turn_left(${1:15})",
         "description": "反時計回りに (15) 度回す",
-        "type": "function"
+        "type": "function",
+        "labelJa": "左に回す",
+        "filterText": "hidarini mawasu 左に回す turn_left 反時計回り 度回す",
+        "sortText": "01_hidarini_mawasu"
     },
     "go_to": {
         "snippet": "go_to(\"${1:_random_}\")",
         "description": "(どこかの場所▼) へ行く",
-        "type": "function"
+        "type": "function",
+        "labelJa": "へ行く",
+        "filterText": "heiku へ行く go_to 場所",
+        "sortText": "01_heiku"
     },
     "_random_": {
         "snippet": "_random_",
         "description": "どこかの場所",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "どこかの場所",
+        "filterText": "dokokano basho どこかの場所 _random_ ransuu 乱数",
+        "sortText": "01z_random"
     },
     "_mouse_": {
         "snippet": "_mouse_",
         "description": "マウスのポインター",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "マウスのポインター",
+        "filterText": "mausu pointa マウスのポインター _mouse_",
+        "sortText": "01z_mouse"
     },
     "go_to-xy": {
         "snippet": "go_to([${1:0}, ${2:0}])",
         "description": "x座標を (0) 、y座標を (0) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "座標へ行く",
+        "filterText": "zahyou heiku 座標へ行く go_to xy x座標 y座標",
+        "sortText": "01_zahyou_heiku"
     },
     "glide": {
         "snippet": "glide(\"${1:_random_}\", secs: ${2:1})",
         "description": "(1) 秒で (どこかの場所▼) へ行く",
-        "type": "function"
+        "type": "function",
+        "labelJa": "滑るように動く",
+        "filterText": "suberuyouni ugoku 滑るように動く glide 秒で 場所 へ行く",
+        "sortText": "01_suberuyouni"
     },
     "glide-xy": {
         "snippet": "glide([${1:0}, ${2:0}], secs: ${3:1})",
         "description": "(1) 秒でx座標を (0) に、y座標を (0) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "座標へ滑る",
+        "filterText": "zahyou suberu 座標へ滑る glide xy 秒で x座標 y座標",
+        "sortText": "01_zahyou_suberu"
     },
     "direction=": {
         "snippet": "self.direction = ${1:90}",
         "description": "(90) 度に向ける",
-        "type": "function"
+        "type": "function",
+        "labelJa": "向きを決める",
+        "filterText": "mukiwo kimeru 向きを決める direction 度に向ける",
+        "sortText": "01_mukiwo_kimeru"
     },
     "point_towards": {
         "snippet": "point_towards(\"${1:_mouse_}\")",
         "description": "(マウスのポインター▼) へ向ける",
-        "type": "function"
+        "type": "function",
+        "labelJa": "へ向ける",
+        "filterText": "hemukeru へ向ける point_towards マウス ポインター",
+        "sortText": "01_hemukeru"
     },
     "x+=": {
         "snippet": "self.x += ${1:10}",
         "description": "x座標を (10) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "x座標を変える",
+        "filterText": "xzahyouwo kaeru x座標を変える x+= ずつ変える",
+        "sortText": "01_xzahyouwo_kaeru"
     },
     "x=": {
         "snippet": "self.x = ${1:0}",
         "description": "x座標を (0) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "x座標にする",
+        "filterText": "xzahyouni suru x座標にする x= にする",
+        "sortText": "01_xzahyouni_suru"
     },
     "y+=": {
         "snippet": "self.y += ${1:10}",
         "description": "y座標を (10) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "y座標を変える",
+        "filterText": "yzahyouwo kaeru y座標を変える y+= ずつ変える",
+        "sortText": "01_yzahyouwo_kaeru"
     },
     "y=": {
         "snippet": "self.y = ${1:0}",
         "description": "y座標を (0) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "y座標にする",
+        "filterText": "yzahyouni suru y座標にする y= にする",
+        "sortText": "01_yzahyouni_suru"
     },
     "bounce_if_on_edge": {
         "snippet": "bounce_if_on_edge",
         "description": "もし端についたら、跳ね返る",
-        "type": "function"
+        "type": "function",
+        "labelJa": "端で跳ね返る",
+        "filterText": "hashide hanekaeru 端で跳ね返る bounce_if_on_edge もし端についたら",
+        "sortText": "01_hashide_hanekaeru"
     },
     "rotation_style=": {
         "snippet": "self.rotation_style = \"${1:left-right}\"",
         "description": "回転方法を [左右のみ▼] にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "回転方法",
+        "filterText": "kaitenhouhou 回転方法 rotation_style 左右のみ",
+        "sortText": "01_kaitenhouhou"
     },
     "left-right": {
         "snippet": "left-right",
         "description": "左右のみ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "左右のみ",
+        "filterText": "sayuunomi 左右のみ left-right",
+        "sortText": "01z_left_right"
     },
     "don't_rotate": {
         "snippet": "don't rotate",
         "description": "回転しない",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "回転しない",
+        "filterText": "kaitenshinai 回転しない don't_rotate",
+        "sortText": "01z_dont_rotate"
     },
     "all_around": {
         "snippet": "all around",
         "description": "自由に回転",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "自由に回転",
+        "filterText": "jiyuuni kaiten 自由に回転 all_around",
+        "sortText": "01z_all_around"
     },
     "x": {
         "snippet": "x",
         "description": "x座標",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "x座標",
+        "filterText": "xzahyou x座標 x",
+        "sortText": "01_xzahyou"
     },
     "y": {
         "snippet": "y",
         "description": "y座標",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "y座標",
+        "filterText": "yzahyou y座標 y",
+        "sortText": "01_yzahyou"
     },
     "direction": {
         "snippet": "direction",
         "description": "向き",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "向き",
+        "filterText": "muki 向き direction",
+        "sortText": "01_muki"
     }
 }

@@ -2,11 +2,17 @@
     "translate.translate": {
         "snippet": "translate(\"${1:こんにちは}\", \"${2:en}\")",
         "description": "(こんにちは) を (英語▼) に翻訳する",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "翻訳する",
+        "filterText": "honyakusuru 翻訳する translate",
+        "sortText": "14_honyakusuru"
     },
     "translate.language": {
         "snippet": "language",
         "description": "言語",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "言語",
+        "filterText": "gengo 言語 language",
+        "sortText": "14_gengo"
     }
 }

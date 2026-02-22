@@ -2,141 +2,225 @@
     "koshien.connect_game": {
         "snippet": "koshien.connect_game(name: ${1:\"player1\"})",
         "description": "プレイヤー名を (player1) にして、ゲームサーバへ接続する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ゲームサーバへ接続する",
+        "filterText": "geemu saaba he setsuzokusuru ゲームサーバへ接続する koshien connect game",
+        "sortText": "19_geemu_saaba_setsuzokusuru"
     },
     "koshien.set_message": {
         "snippet": "koshien.set_message(${1:\"hello\"})",
         "description": "メッセージを (hello) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "メッセージにする",
+        "filterText": "messeeji ni suru メッセージにする koshien set message",
+        "sortText": "19_messeeji_ni_suru"
     },
     "koshien.move_to": {
         "snippet": "koshien.move_to(${1:\"0:0\"})",
         "description": "座標 (0:0) に移動する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "座標に移動する",
+        "filterText": "zahyou ni idousuru 座標に移動する koshien move to",
+        "sortText": "19_zahyou_ni_idousuru"
     },
     "koshien.get_map_area": {
         "snippet": "koshien.get_map_area(${1:\"0:0\"})",
         "description": "座標 (0:0) 付近のマップ情報を取得する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "マップ情報を取得する",
+        "filterText": "mappu jyouhow shutokusuru マップ情報を取得する koshien get map area",
+        "sortText": "19_mappu_jyouhou_shutokusuru"
     },
     "koshien.map": {
         "snippet": "koshien.map(${1:\"0:0\"})",
         "description": "座標 (0:0) のマップ情報",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "マップ情報",
+        "filterText": "mappu jyouhou マップ情報 koshien map",
+        "sortText": "19_mappu_jyouhou"
     },
     "koshien.calc_goal_route": {
         "snippet": "koshien.calc_route(result: list(${4:\"$最短経路\"}))",
         "description": "ゴールまでの最短経路をリスト [最短経路] に保存する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ゴールまでの最短経路を保存する",
+        "filterText": "gooru made no saitan keiro wo hozon suru ゴールまでの最短経路を保存する koshien calc goal route",
+        "sortText": "19_gooru_made_saitan_keiro_hozon"
     },
     "koshien.calc_route": {
         "snippet": "koshien.calc_route(result: list(${1:\"$最短経路\"}), src: ${2:\"0:0\"}, dst: ${3:\"0:0\"}, except_cells: list(${4:\"$通らない座標\"}))",
         "description": "最短経路 (始点 座標 (0:0) 終点 座標 (0:0) 通らない座標 リスト [通らない座標]) をリスト [最短経路] に保存する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "最短経路を計算する",
+        "filterText": "saitan keiro wo keisansuru 最短経路を計算する koshien calc route",
+        "sortText": "19_saitan_keiro_wo_keisansuru"
     },
     "koshien.set_dynamite": {
         "snippet": "koshien.set_dynamite(${1:\"0:0\"})",
         "description": "ダイナマイトを座標 (0:0) に置く",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ダイナマイトを置く",
+        "filterText": "dainamaito wo oku ダイナマイトを置く koshien set dynamite",
+        "sortText": "19_dainamaito_wo_oku"
     },
     "koshien.set_bomb": {
         "snippet": "koshien.set_bomb(${1:\"0:0\"})",
         "description": "爆弾を座標 (0:0) に置く",
-        "type": "function"
+        "type": "function",
+        "labelJa": "爆弾を置く",
+        "filterText": "bakudan wo oku 爆弾を置く koshien set bomb",
+        "sortText": "19_bakudan_wo_oku"
     },
     "koshien.map_all": {
         "snippet": "$すべてのマップ情報 = koshien.map_all",
         "description": "すべてのマップ情報",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "すべてのマップ情報",
+        "filterText": "subete no mappu jyouhou すべてのマップ情報 koshien map all",
+        "sortText": "19_subete_no_mappu_jyouhou"
     },
     "koshien.map_from": {
         "snippet": "$マップ情報 = koshien.map_from(${1:\"0:0\"}, ${2:$すべてのマップ情報})",
         "description": "座標 (0:0) のマップ情報を [すべてのマップ情報] から読み込む",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "マップ情報を読み込む",
+        "filterText": "mappu jyouhou wo yomikomi マップ情報を読み込む koshien map from",
+        "sortText": "19_mappu_jyouhou_yomikomi"
     },
     "koshien.locate_objects": {
         "snippet": "koshien.locate_objects(result: list(${1:\"$地形・アイテムの座標\"}), cent: ${2:\"0:0\"}, sq_size: ${3:5}, objects: ${4:\"ABCD\"})",
         "description": "範囲内の地形・アイテム (中心 座標 (0:0) 、範囲 (5) 、地形・アイテム (ABCD) )をリスト [地形・アイテムの座標] に保存する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "地形アイテムの座標を保存する",
+        "filterText": "chikei aitemu no zahyou wo hozon 地形アイテムの座標を保存する koshien locate objects",
+        "sortText": "19_chikei_aitemu_zahyou_hozon"
     },
     "koshien.other_player": {
         "snippet": "koshien.other_player",
         "description": "[対戦キャラクタ] の [座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "対戦キャラクタの座標",
+        "filterText": "taisen kyarakuta no zahyou 対戦キャラクタの座標 koshien other player",
+        "sortText": "19_taisen_kyarakuta_zahyou"
     },
     "koshien.other_player_x": {
         "snippet": "koshien.other_player_x",
         "description": "[対戦キャラクタ] の [x座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "対戦キャラクタのx座標",
+        "filterText": "taisen kyarakuta no x zahyou 対戦キャラクタのx座標 koshien other player x",
+        "sortText": "19_taisen_kyarakuta_x_zahyou"
     },
     "koshien.other_player_y": {
         "snippet": "koshien.other_player_y",
         "description": "[対戦キャラクタ] の [y座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "対戦キャラクタのy座標",
+        "filterText": "taisen kyarakuta no y zahyou 対戦キャラクタのy座標 koshien other player y",
+        "sortText": "19_taisen_kyarakuta_y_zahyou"
     },
     "koshien.player": {
         "snippet": "koshien.player",
         "description": "[プレイヤー] の [座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "プレイヤーの座標",
+        "filterText": "pureiyaa no zahyou プレイヤーの座標 koshien player",
+        "sortText": "19_pureiyaa_zahyou"
     },
     "koshien.player_x": {
         "snippet": "koshien.player_x",
         "description": "[プレイヤー] の [x座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "プレイヤーのx座標",
+        "filterText": "pureiyaa no x zahyou プレイヤーのx座標 koshien player x",
+        "sortText": "19_pureiyaa_x_zahyou"
     },
     "koshien.player_y": {
         "snippet": "koshien.player_y",
         "description": "[プレイヤー] の [y座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "プレイヤーのy座標",
+        "filterText": "pureiyaa no y zahyou プレイヤーのy座標 koshien player y",
+        "sortText": "19_pureiyaa_y_zahyou"
     },
     "koshien.enemy": {
         "snippet": "koshien.enemy",
         "description": "[妨害キャラクター] の [座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "妨害キャラクターの座標",
+        "filterText": "bogai kyarakutaa no zahyou 妨害キャラクターの座標 koshien enemy",
+        "sortText": "19_bogai_kyarakutaa_zahyou"
     },
     "koshien.enemy_x": {
         "snippet": "koshien.enemy_x",
         "description": "[妨害キャラクター] の [x座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "妨害キャラクターのx座標",
+        "filterText": "bogai kyarakutaa no x zahyou 妨害キャラクターのx座標 koshien enemy x",
+        "sortText": "19_bogai_kyarakutaa_x_zahyou"
     },
     "koshien.enemy_y": {
         "snippet": "koshien.enemy_y",
         "description": "[妨害キャラクター] の [y座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "妨害キャラクターのy座標",
+        "filterText": "bogai kyarakutaa no y zahyou 妨害キャラクターのy座標 koshien enemy y",
+        "sortText": "19_bogai_kyarakutaa_y_zahyou"
     },
     "koshien.goal": {
         "snippet": "koshien.goal",
         "description": "[ゴール] の [x座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ゴールの座標",
+        "filterText": "gooru no zahyou ゴールの座標 koshien goal",
+        "sortText": "19_gooru_zahyou"
     },
     "koshien.goal_x": {
         "snippet": "koshien.goal_x",
         "description": "[ゴール] の [x座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ゴールのx座標",
+        "filterText": "gooru no x zahyou ゴールのx座標 koshien goal x",
+        "sortText": "19_gooru_x_zahyou"
     },
     "koshien.goal_y": {
         "snippet": "koshien.goal_y",
         "description": "[ゴール] の [y座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "ゴールのy座標",
+        "filterText": "gooru no y zahyou ゴールのy座標 koshien goal y",
+        "sortText": "19_gooru_y_zahyou"
     },
     "koshien.turn_over": {
         "snippet": "koshien.turn_over",
         "description": "ターンを終了する",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ターンを終了する",
+        "filterText": "taan wo shuuryou suru ターンを終了する koshien turn over",
+        "sortText": "19_taan_shuuryou"
     },
     "koshien.position_of_x": {
         "snippet": "koshien.position_of_x(${1:\"0:0\"})",
         "description": "(0:0) の [x座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "x座標",
+        "filterText": "x zahyou x座標 koshien position x",
+        "sortText": "19_x_zahyou"
     },
     "koshien.position_of_y": {
         "snippet": "koshien.position_of_y(${1:\"0:0\"})",
         "description": "(0:0) の [y座標]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "y座標",
+        "filterText": "y zahyou y座標 koshien position y",
+        "sortText": "19_y_zahyou"
     },
     "koshien.object": {
         "snippet": "koshien.object(${1:\"unknown\"})",
         "description": "[未探索のマス]",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "未探索のマス",
+        "filterText": "mitansaku no masu 未探索のマス koshien object",
+        "sortText": "19_mitansaku_no_masu"
     }
 }

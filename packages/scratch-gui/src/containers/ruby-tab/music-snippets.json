@@ -2,231 +2,369 @@
     "music.play_drum": {
         "snippet": "play_drum(drum: ${1:1}, beats: ${2:0.25})",
         "description": "((1)スネアドラム▼) のドラムを (0.25) 拍鳴らす",
-        "type": "function"
+        "type": "function",
+        "labelJa": "ドラムを鳴らす",
+        "filterText": "doramuwo narasu ドラムを鳴らす play_drum 拍鳴らす",
+        "sortText": "10_doramuwo_narasu"
     },
     "music.d-snare": {
         "snippet": "1",
         "description": "(1) スネアドラム",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "スネアドラム",
+        "filterText": "suneadoramu スネアドラム snare drum",
+        "sortText": "10z_suneadoramu"
     },
     "music.d-bass": {
         "snippet": "2",
         "description": "(2) バスドラム",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "バスドラム",
+        "filterText": "basudoramu バスドラム bass drum",
+        "sortText": "10z_basudoramu"
     },
     "music.d-side-stick": {
         "snippet": "3",
         "description": "(3) サイドスティック",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "サイドスティック",
+        "filterText": "saidosutikku サイドスティック side stick",
+        "sortText": "10z_saidosutikku"
     },
     "music.d-crash-cymbal": {
         "snippet": "4",
         "description": "(4) クラッシュシンバル",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "クラッシュシンバル",
+        "filterText": "kurashushimbaru クラッシュシンバル crash cymbal",
+        "sortText": "10z_kurashushimbaru"
     },
     "music.d-open-hihat": {
         "snippet": "5",
         "description": "(5) オープンハイハット",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "オープンハイハット",
+        "filterText": "opunhaihatto オープンハイハット open hihat",
+        "sortText": "10z_opunhaihat"
     },
     "music.d-closed-hihat": {
         "snippet": "6",
         "description": "(6) クローズハイハット",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "クローズハイハット",
+        "filterText": "kurozuhaihat クローズハイハット closed hihat",
+        "sortText": "10z_kurozuhaihat"
     },
     "music.d-tambourine": {
         "snippet": "7",
         "description": "(7) タンバリン",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "タンバリン",
+        "filterText": "tanbarin タンバリン tambourine",
+        "sortText": "10z_tanbarin"
     },
     "music.d-hand-clap": {
         "snippet": "8",
         "description": "(8) 手拍子",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "手拍子",
+        "filterText": "tehyoshi 手拍子 hand clap",
+        "sortText": "10z_tehyoshi"
     },
     "music.d-claves": {
         "snippet": "9",
         "description": "(9) クラーベ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "クラーベ",
+        "filterText": "kurabe クラーベ claves",
+        "sortText": "10z_kurabe"
     },
     "music.d-wood-block": {
         "snippet": "10",
         "description": "(10) ウッドブロック",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ウッドブロック",
+        "filterText": "uddoburokku ウッドブロック wood block",
+        "sortText": "10z_uddoburokku"
     },
     "music.d-cowbell": {
         "snippet": "11",
         "description": "(11) カウベル",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "カウベル",
+        "filterText": "kauberu カウベル cowbell",
+        "sortText": "10z_kauberu"
     },
     "music.d-triangle": {
         "snippet": "12",
         "description": "(12) トライアングル",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "トライアングル",
+        "filterText": "toraianguru トライアングル triangle",
+        "sortText": "10z_toraianguru"
     },
     "music.d-bongo": {
         "snippet": "13",
         "description": "(13) ボンゴ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ボンゴ",
+        "filterText": "bongo ボンゴ bongo",
+        "sortText": "10z_bongo"
     },
     "music.d-conga": {
         "snippet": "14",
         "description": "(14) コンガ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "コンガ",
+        "filterText": "konga コンガ conga",
+        "sortText": "10z_konga"
     },
     "music.d-cabasa": {
         "snippet": "15",
         "description": "(15) カバサ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "カバサ",
+        "filterText": "kabasa カバサ cabasa",
+        "sortText": "10z_kabasa"
     },
     "music.d-guiro": {
         "snippet": "16",
         "description": "(16) ギロ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ギロ",
+        "filterText": "giro ギロ guiro",
+        "sortText": "10z_giro"
     },
     "music.d-vibraslap": {
         "snippet": "17",
         "description": "(17) ビブラスラップ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ビブラスラップ",
+        "filterText": "biburasarappu ビブラスラップ vibraslap",
+        "sortText": "10z_biburasarappu"
     },
     "music.d-cuica": {
         "snippet": "18",
         "description": "(18) クイーカ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "クイーカ",
+        "filterText": "kuiika クイーカ cuica",
+        "sortText": "10z_kuiika"
     },
     "music.rest": {
         "snippet": "rest(${1:0.25})",
         "description": "(0.25) 拍休む",
-        "type": "function"
+        "type": "function",
+        "labelJa": "拍休む",
+        "filterText": "hyakuyasumu 拍休む rest",
+        "sortText": "10_hyakuyasumu"
     },
     "music.play_note": {
         "snippet": "play_note(note: ${1:60}, beats: ${2:0.25})",
         "description": "(60) の音符を (0.25) 拍鳴らす",
-        "type": "function"
+        "type": "function",
+        "labelJa": "音符を鳴らす",
+        "filterText": "onfuwo narasu 音符を鳴らす play_note 拍鳴らす",
+        "sortText": "10_onfuwo_narasu"
     },
     "music.instrument=": {
         "snippet": "self.instrument = ${1:1}",
         "description": "楽器を ((1)ピアノ▼) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "楽器にする",
+        "filterText": "gakkini suru 楽器にする instrument",
+        "sortText": "10_gakkini_suru"
     },
     "music.i-piano": {
         "snippet": "1",
         "description": "(1) ピアノ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ピアノ",
+        "filterText": "piano ピアノ piano",
+        "sortText": "10z_piano"
     },
     "music.i-electric-piano": {
         "snippet": "2",
         "description": "(2) 電子ピアノ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "電子ピアノ",
+        "filterText": "denshipiano 電子ピアノ electric piano",
+        "sortText": "10z_denshipiano"
     },
     "music.i-organ": {
         "snippet": "3",
         "description": "(3) オルガン",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "オルガン",
+        "filterText": "orugan オルガン organ",
+        "sortText": "10z_orugan"
     },
     "music.i-guitar": {
         "snippet": "4",
         "description": "(4) ギター",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ギター",
+        "filterText": "gitaa ギター guitar",
+        "sortText": "10z_gitaa"
     },
     "music.i-electric-guitar": {
         "snippet": "5",
         "description": "(5) エレキギター",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "エレキギター",
+        "filterText": "erekigitaa エレキギター electric guitar",
+        "sortText": "10z_erekigitaa"
     },
     "music.i-bass": {
         "snippet": "6",
         "description": "(6) ベース",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ベース",
+        "filterText": "beesu ベース bass",
+        "sortText": "10z_beesu"
     },
     "music.i-pizzicato": {
         "snippet": "7",
         "description": "(7) ピチカート",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ピチカート",
+        "filterText": "pichikato ピチカート pizzicato",
+        "sortText": "10z_pichikato"
     },
     "music.i-cello": {
         "snippet": "8",
         "description": "(8) チェロ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "チェロ",
+        "filterText": "chero チェロ cello",
+        "sortText": "10z_chero"
     },
     "music.i-trombone": {
         "snippet": "9",
         "description": "(9) トロンボーン",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "トロンボーン",
+        "filterText": "toronbon トロンボーン trombone",
+        "sortText": "10z_toronbon"
     },
     "music.i-clarinet": {
         "snippet": "10",
         "description": "(10) クラリネット",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "クラリネット",
+        "filterText": "kurinetto クラリネット clarinet",
+        "sortText": "10z_kurinetto"
     },
     "music.i-saxophone": {
         "snippet": "11",
         "description": "(11) サクソフォン",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "サクソフォン",
+        "filterText": "sakusofon サクソフォン saxophone",
+        "sortText": "10z_sakusofon"
     },
     "music.i-flute": {
         "snippet": "12",
         "description": "(12) フルート",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "フルート",
+        "filterText": "furuto フルート flute",
+        "sortText": "10z_furuto"
     },
     "music.i-wooden-flute": {
         "snippet": "13",
         "description": "(13) 木管フルート",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "木管フルート",
+        "filterText": "mokkansofuruto 木管フルート wooden flute",
+        "sortText": "10z_mokkansofuruto"
     },
     "music.i-bassoon": {
         "snippet": "14",
         "description": "(14) バスーン",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "バスーン",
+        "filterText": "basun バスーン bassoon",
+        "sortText": "10z_basun"
     },
     "music.i-choir": {
         "snippet": "15",
         "description": "(15) 合唱団",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "合唱団",
+        "filterText": "gashodan 合唱団 choir",
+        "sortText": "10z_gashodan"
     },
     "music.i-vibraphone": {
         "snippet": "16",
         "description": "(16) ビブラフォン",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ビブラフォン",
+        "filterText": "biburafon ビブラフォン vibraphone",
+        "sortText": "10z_biburafon"
     },
     "music.i-music-box": {
         "snippet": "17",
         "description": "(17) ミュージックボックス",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "ミュージックボックス",
+        "filterText": "myujikkubokusu ミュージックボックス music box",
+        "sortText": "10z_myujikkubokusu"
     },
     "music.i-steel-drum": {
         "snippet": "18",
         "description": "(18) スチールドラム",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "スチールドラム",
+        "filterText": "suchiirudoramu スチールドラム steel drum",
+        "sortText": "10z_suchiirudoramu"
     },
     "music.i-marimba": {
         "snippet": "19",
         "description": "(19) マリンバ",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "マリンバ",
+        "filterText": "marinba マリンバ marimba",
+        "sortText": "10z_marinba"
     },
     "music.i-synth-lead": {
         "snippet": "20",
         "description": "(20) シンセリード",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "シンセリード",
+        "filterText": "shinserito シンセリード synth lead",
+        "sortText": "10z_shinserito"
     },
     "music.i-synth-pad": {
         "snippet": "21",
         "description": "(21) シンセパッド",
-        "type": "enum_member"
+        "type": "enum_member",
+        "labelJa": "シンセパッド",
+        "filterText": "shinsepatto シンセパッド synth pad",
+        "sortText": "10z_shinsepatto"
     },
     "music.tempo=": {
         "snippet": "self.tempo = ${1:60}",
         "description": "テンポを (60) にする",
-        "type": "function"
+        "type": "function",
+        "labelJa": "テンポにする",
+        "filterText": "temponi suru テンポにする tempo",
+        "sortText": "10_temponi_suru"
     },
     "music.tempo+=": {
         "snippet": "self.tempo += ${1:20}",
         "description": "テンポを (20) ずつ変える",
-        "type": "function"
+        "type": "function",
+        "labelJa": "テンポを変える",
+        "filterText": "tempowo kaeru テンポを変える tempo change",
+        "sortText": "10_tempowo_kaeru"
     },
     "music.tempo": {
         "snippet": "tempo",
         "description": "テンポ",
-        "type": "variable"
+        "type": "variable",
+        "labelJa": "テンポ",
+        "filterText": "tempo テンポ tempo",
+        "sortText": "10_tempo"
     }
 }

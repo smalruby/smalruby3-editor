@@ -13,8 +13,17 @@ const DECREASE_INDENT_KEYWORDS = [
     'end', 'else', 'elsif', 'rescue', 'ensure'
 ].join('|');
 
+// Japanese Unicode ranges for word pattern:
+// \u3040-\u309F hiragana, \u30A0-\u30FF katakana, \u4E00-\u9FFF kanji
+const JA = '\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF';
+
 // Language configuration for Monaco setLanguageConfiguration
 export const smalrubyLanguageConfiguration = {
+    // Include Japanese characters so that model.getWordUntilPosition()
+    // recognizes them as word constituents for completion triggering.
+    wordPattern: new RegExp(
+        `(-?\\d*\\.\\d\\w*)|([a-zA-Z_${JA}][\\w${JA}]*)`
+    ),
     indentationRules: {
         // Match lines starting with block-opening keywords
         // (with negative lookahead for one-liners like
