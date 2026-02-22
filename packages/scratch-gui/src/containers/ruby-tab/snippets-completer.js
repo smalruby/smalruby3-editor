@@ -16,7 +16,6 @@ import VideoSensingSnippets from './video-sensing-snippets.json';
 import TextToSpeechSnippets from './text-to-speech-snippets.json';
 import TranslateSnippets from './translate-snippets.json';
 import MicrobitSnippets from './microbit-snippets.json';
-import MeshSnippets from './mesh-snippets.json';
 import SmalrubotS1Snippets from './smalrubot-s1-snippets.json';
 import MicrobitMoreSnippets from './microbit-more-snippets.json';
 import KoshienSnippets from './koshien-snippets.json';
@@ -54,7 +53,6 @@ class SnippetsCompleter extends BaseCompleter {
             {snippets: TextToSpeechSnippets, category: '13', extensionId: 'text2speech'},
             {snippets: TranslateSnippets, category: '14', extensionId: 'translate'},
             {snippets: MicrobitSnippets, category: '15', extensionId: 'microbit'},
-            {snippets: MeshSnippets, category: '16', extensionId: ['mesh', 'meshV2']},
             {snippets: SmalrubotS1Snippets, category: '17', extensionId: 'smalrubotS1'},
             {snippets: MicrobitMoreSnippets, category: '18', extensionId: 'microbitMore'},
             {snippets: KoshienSnippets, category: '19', extensionId: 'koshien'},

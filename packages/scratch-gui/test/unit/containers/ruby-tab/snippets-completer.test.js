@@ -199,28 +199,6 @@ describe('SnippetsCompleter', () => {
             expect(musicSuggestion).toBeDefined();
         });
 
-        test('should show mesh snippets when mesh extension is loaded', () => {
-            const vm = createVmMock(['mesh']);
-            const extCompleter = new SnippetsCompleter(vm);
-            const model = createModel('mes');
-            const result = extCompleter.provideCompletionItems(model, position, context, token, monaco);
-            const meshSuggestion = result.suggestions.find(s =>
-                s.sortText && s.sortText.startsWith('16_')
-            );
-            expect(meshSuggestion).toBeDefined();
-        });
-
-        test('should show mesh snippets when meshV2 extension is loaded', () => {
-            const vm = createVmMock(['meshV2']);
-            const extCompleter = new SnippetsCompleter(vm);
-            const model = createModel('mes');
-            const result = extCompleter.provideCompletionItems(model, position, context, token, monaco);
-            const meshSuggestion = result.suggestions.find(s =>
-                s.sortText && s.sortText.startsWith('16_')
-            );
-            expect(meshSuggestion).toBeDefined();
-        });
-
         test('should dynamically reflect extension loading changes', () => {
             const loadedExtensions = [];
             const vm = {
