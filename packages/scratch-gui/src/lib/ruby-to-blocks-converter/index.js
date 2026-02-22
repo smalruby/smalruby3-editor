@@ -300,6 +300,24 @@ class RubyToBlocksConverter extends Visitor {
         return result;
     }
 
+    // Get the node type name using accept()-based sniffing, which is safe
+    // against minification (constructor.name is mangled by esbuild/terser).
+    // Returns e.g. 'CallNode', 'StringNode', 'IntegerNode', etc.
+    _getNodeTypeName (node) {
+        let handlerName = null;
+        const sniffer = new Proxy({}, {
+            get (_target, prop) {
+                if (typeof prop === 'string' && prop.startsWith('visit')) {
+                    handlerName = prop;
+                }
+                return () => {};
+            }
+        });
+        node.accept(sniffer);
+        // handlerName is e.g. 'visitCallNode' -> extract 'CallNode'
+        return handlerName ? handlerName.slice('visit'.length) : null;
+    }
+
     visitProgramNode (node) {
         return this.visit(node.statements);
     }
@@ -334,7 +352,7 @@ class RubyToBlocksConverter extends Visitor {
         const setMethodNames = new Set();
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
-                if (stmt.constructor.name === 'CallNode' &&
+                if (this._getNodeTypeName(stmt) === 'CallNode' &&
                     SET_METHODS[stmt.name] &&
                     !stmt.receiver &&
                     stmt.arguments_ &&
@@ -385,7 +403,7 @@ class RubyToBlocksConverter extends Visitor {
         // Visit class body, filtering out set_xxx calls
         if (node.body && node.body.body) {
             const filteredStatements = node.body.body.filter(stmt => {
-                if (stmt.constructor.name === 'CallNode' &&
+                if (this._getNodeTypeName(stmt) === 'CallNode' &&
                     setMethodNames.has(stmt.name) &&
                     !stmt.receiver) {
                     return false;
@@ -437,7 +455,7 @@ class RubyToBlocksConverter extends Visitor {
     }
 
     _extractClassMethodArg (argNode) {
-        const type = argNode.constructor.name;
+        const type = this._getNodeTypeName(argNode);
         switch (type) {
         case 'StringNode': {
             const unescaped = argNode.unescaped;

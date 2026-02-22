@@ -485,6 +485,64 @@ describe('RubyToBlocksConverter/Class', () => {
             await converter.targetCodeToBlocks(target, code);
             expect(converter.errors.length).toBeGreaterThan(0);
         });
+
+        test('class with only set_name converts without error', async () => {
+            code = `
+                class Sprite1
+                  set_name "ネコ"
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.name).toEqual('ネコ');
+        });
+
+        test('class with only set_x and set_y converts without error', async () => {
+            code = `
+                class Sprite1
+                  set_x 100
+                  set_y -50
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.x).toEqual(100);
+            expect(converter._context.classInfo.y).toEqual(-50);
+        });
+
+        test('class with all set_xxx only converts without error', async () => {
+            code = `
+                class Sprite1
+                  set_name "ネコ"
+                  set_x 100
+                  set_y -50
+                  set_direction 180
+                  set_visible false
+                  set_size 50
+                  set_current_costume 2
+                  set_rotation_style "left-right"
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.name).toEqual('ネコ');
+            expect(converter._context.classInfo.x).toEqual(100);
+            expect(converter._context.classInfo.y).toEqual(-50);
+            expect(converter._context.classInfo.direction).toEqual(180);
+            expect(converter._context.classInfo.visible).toEqual(false);
+            expect(converter._context.classInfo.size).toEqual(50);
+            expect(converter._context.classInfo.current_costume).toEqual(2);
+            expect(converter._context.classInfo.rotation_style).toEqual('left-right');
+        });
     });
 
     describe('class body validation', () => {
