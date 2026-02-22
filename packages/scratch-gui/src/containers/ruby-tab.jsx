@@ -22,7 +22,7 @@ import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
 
 import SnippetsCompleter from './ruby-tab/snippets-completer';
-import {smalrubyLanguage} from './ruby-tab/smalruby-mode';
+import {smalrubyLanguage, smalrubyLanguageConfiguration} from './ruby-tab/smalruby-mode';
 
 import RubyDownloader from './ruby-downloader.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
@@ -372,6 +372,7 @@ class RubyTab extends React.Component {
         // Register Smalruby language
         monaco.languages.register({id: 'smalruby'});
         monaco.languages.setMonarchTokensProvider('smalruby', smalrubyLanguage);
+        monaco.languages.setLanguageConfiguration('smalruby', smalrubyLanguageConfiguration);
 
         if (!this.completionProvider) {
             const completer = new SnippetsCompleter();
@@ -738,7 +739,9 @@ class RubyTab extends React.Component {
                                 renderWhitespace: 'all',
                                 scrollBeyondLastLine: true,
                                 tabSize: 2,
-                                fixedOverflowWidgets: true
+                                fixedOverflowWidgets: true,
+                                wordBasedSuggestions: 'off',
+                                autoIndent: 'full'
                             }}
                             theme="vs"
                             value={code}

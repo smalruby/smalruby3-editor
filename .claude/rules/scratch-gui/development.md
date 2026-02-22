@@ -1,8 +1,8 @@
 ---
 paths:
-  - "packages/scratch-gui/**/*.{js,jsx,ts,tsx}"
-  - "packages/scratch-gui/package.json"
-  - "packages/scratch-gui/webpack.config.js"
+  - "packages/scratch-gui/"
+  - "packages/scratch-gui/*"
+  - "packages/scratch-gui/**/*"
 ---
 
 # scratch-gui Development
@@ -60,9 +60,11 @@ docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run tes
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/unit/your-test.test.js"
 
 # Integration tests only (requires build first)
+docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run build:dev"
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:integration"
 
 # Run specific test (does not use tap)
+docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run build:dev"
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/integration/your-test.test.js"
 
 # Smoke tests
@@ -70,16 +72,6 @@ docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run tes
 ```
 
 **IMPORTANT**: Integration tests require `npm run build:dev` to be run first.
-
-### Opal Setup
-
-Setup Opal (Ruby-to-JavaScript transpiler):
-
-```bash
-docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run setup:opal"
-```
-
-This concatenates Opal files from `opal/` directory into `static/javascripts/setup-opal.js`. The `prebuild` script runs this automatically before builds.
 
 ## Key Directories
 
@@ -91,19 +83,11 @@ This concatenates Opal files from `opal/` directory into `static/javascripts/set
   - `test/unit/`: Unit tests
   - `test/integration/`: Integration tests (Selenium-based)
   - `test/smoke/`: Smoke tests
-- `opal/`: Opal transpiler files (opal.min.js, opal-parser.min.js, config files)
-- `static/`: Static assets
-  - `static/javascripts/setup-opal.js`: Generated Opal setup file
 - `scripts/`: Build and setup scripts
-  - `scripts/make-setup-opal.js`: Generates setup-opal.js
   - `scripts/makePWAAssetsManifest.js`: PWA manifest generation
   - `scripts/postbuild.mjs`: Post-build processing
 
 ## Ruby Mode Integration
-
-### Opal Configuration
-
-Opal configuration is in `opal/config-opal.js` and `opal/config-opal-parser.js`. These files configure how Ruby code is transpiled to JavaScript.
 
 ### Monaco Editor
 

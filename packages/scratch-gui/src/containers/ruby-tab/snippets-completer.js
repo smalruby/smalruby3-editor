@@ -73,6 +73,14 @@ class SnippetsCompleter extends BaseCompleter {
      */
     provideCompletionItems (model, position, context, token, monaco) {
         const word = model.getWordUntilPosition(position);
+
+        // Require at least 3 characters to show suggestions automatically.
+        // This prevents unwanted completions when typing short expressions
+        // like "a + b" followed by Enter.
+        if (word.word.length < 3) {
+            return {suggestions: []};
+        }
+
         const range = {
             startLineNumber: position.lineNumber,
             endLineNumber: position.lineNumber,

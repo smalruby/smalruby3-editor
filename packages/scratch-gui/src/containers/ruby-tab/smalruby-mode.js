@@ -1,3 +1,60 @@
+// Keywords that increase indentation on the next line
+const INCREASE_INDENT_KEYWORDS = [
+    'def', 'class', 'module', 'if', 'unless', 'elsif', 'else',
+    'case', 'when', 'while', 'until', 'for', 'begin', 'do',
+    'rescue', 'ensure'
+].join('|');
+
+// Keywords that decrease the current line's indentation.
+// "when" is excluded here because Smalruby uses when_xxx methods
+// (e.g. when_flag_clicked, when_key_pressed). It is handled
+// separately with a trailing space requirement below.
+const DECREASE_INDENT_KEYWORDS = [
+    'end', 'else', 'elsif', 'rescue', 'ensure'
+].join('|');
+
+// Language configuration for Monaco setLanguageConfiguration
+export const smalrubyLanguageConfiguration = {
+    indentationRules: {
+        // Match lines starting with block-opening keywords
+        // (with negative lookahead for one-liners like
+        // "if x then y end"), or lines ending with "do".
+        increaseIndentPattern: new RegExp(
+            `^\\s*(?:(?:${INCREASE_INDENT_KEYWORDS})` +
+            `\\b(?!.*\\bend\\b).*|.*\\bdo\\b\\s*)$`
+        ),
+        // Word boundary \b prevents matching "send", "blend", etc.
+        // "when" requires a trailing space (e.g. "when 1") to avoid
+        // false positives with when_xxx method names.
+        decreaseIndentPattern: new RegExp(
+            `^\\s*(?:(?:${DECREASE_INDENT_KEYWORDS})\\b|when\\s).*$`
+        )
+    },
+    brackets: [
+        ['{', '}'],
+        ['[', ']'],
+        ['(', ')']
+    ],
+    autoClosingPairs: [
+        {open: '{', close: '}'},
+        {open: '[', close: ']'},
+        {open: '(', close: ')'},
+        {open: '"', close: '"'},
+        {open: "'", close: "'"}
+    ],
+    surroundingPairs: [
+        {open: '{', close: '}'},
+        {open: '[', close: ']'},
+        {open: '(', close: ')'},
+        {open: '"', close: '"'},
+        {open: "'", close: "'"}
+    ],
+    comments: {
+        lineComment: '#'
+    }
+};
+
+// Monarch tokenizer definition for syntax highlighting
 export const smalrubyLanguage = {
     defaultToken: '',
     tokenPostfix: '.smalruby',
