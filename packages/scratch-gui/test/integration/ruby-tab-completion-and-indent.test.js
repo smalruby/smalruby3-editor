@@ -49,8 +49,10 @@ describe('Ruby tab completion and indentation', () => {
         });
 
         test('should show suggestions for 3+ character input', async () => {
+            // Place cursor inside a block so that function-type snippets are available
             await driver.executeScript(`
-                window.monacoEditor.setValue('');
+                window.monacoEditor.setValue('when_flag_clicked do\\n  \\nend');
+                window.monacoEditor.setPosition({lineNumber: 2, column: 3});
                 window.monacoEditor.focus();
                 window.monacoEditor.trigger('keyboard', 'type', {text: 'mov'});
             `);

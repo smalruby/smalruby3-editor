@@ -25,6 +25,21 @@ import GdxForSnippets from './gdx_for-snippets.json';
 // Regex to detect Japanese characters (hiragana, katakana, kanji)
 const JAPANESE_CHAR_PATTERN = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/;
 
+// Regex to detect expression-expected keywords at end of line before cursor
+const EXPRESSION_KEYWORD_PATTERN = /\b(if|unless|until|while|elsif)\s+$/;
+
+// Context types for completion filtering
+const CONTEXT_TOP_LEVEL = 'top_level';
+const CONTEXT_INSIDE_BLOCK = 'inside_block';
+const CONTEXT_EXPRESSION_EXPECTED = 'expression_expected';
+
+// Allowed snippet types per context
+const CONTEXT_ALLOWED_TYPES = {
+    [CONTEXT_TOP_LEVEL]: new Set(['event', 'enum_member']),
+    [CONTEXT_INSIDE_BLOCK]: new Set(['function', 'method', 'snippet', 'variable', 'value', 'constant', 'enum_member']),
+    [CONTEXT_EXPRESSION_EXPECTED]: new Set(['variable', 'value', 'constant', 'method', 'enum_member'])
+};
+
 class SnippetsCompleter extends BaseCompleter {
     #coreCompletions = [];
     #extensionCompletions = [];
@@ -111,11 +126,94 @@ class SnippetsCompleter extends BaseCompleter {
             this.#extensionCompletions.filter(item => this.#isExtensionActive(item.extensionId))
         );
 
-        const suggestions = activeCompletions.map(item => this.toCompletionItem(item, range, monaco));
+        const detectedContext = this.#detectContext(model, position);
+        const filteredCompletions = this.#filterByContext(activeCompletions, detectedContext);
+
+        const suggestions = filteredCompletions.map(item => this.toCompletionItem(item, range, monaco));
 
         return {
             suggestions: suggestions
         };
+    }
+
+    /**
+     * Detect the code context at the cursor position.
+     * @param {object} model - Monaco text model.
+     * @param {object} position - Current cursor position.
+     * @returns {string} One of 'top_level', 'inside_block', or 'expression_expected'.
+     */
+    #detectContext (model, position) {
+        const textBeforeCursor = model.getValueInRange({
+            startLineNumber: 1,
+            startColumn: 1,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column
+        });
+
+        // Count nesting level by tracking do/def vs end keywords
+        let nestingLevel = 0;
+        const lines = textBeforeCursor.split('\n');
+        for (const line of lines) {
+            // Strip comments
+            const codePart = line.replace(/#.*$/, '');
+            const opens = (codePart.match(/\bdo\b/g) || []).length +
+                          (codePart.match(/\bdef\s/g) || []).length;
+            const closes = (codePart.match(/\bend\b/g) || []).length;
+            nestingLevel += opens - closes;
+        }
+
+        if (nestingLevel <= 0) {
+            return CONTEXT_TOP_LEVEL;
+        }
+
+        // Check current line for expression-expected patterns
+        const textUntilPosition = model.getValueInRange({
+            startLineNumber: position.lineNumber,
+            startColumn: 1,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column
+        });
+
+        // Remove the current word being typed to check the preceding context
+        const wordBeforeCursor = textUntilPosition.replace(/\S+$/, '');
+        if (EXPRESSION_KEYWORD_PATTERN.test(wordBeforeCursor)) {
+            return CONTEXT_EXPRESSION_EXPECTED;
+        }
+
+        return CONTEXT_INSIDE_BLOCK;
+    }
+
+    /**
+     * Filter completions based on the detected context.
+     * @param {Array} completions - Array of snippet items.
+     * @param {string} detectedContext - The detected context type.
+     * @returns {Array} Filtered completions.
+     */
+    #filterByContext (completions, detectedContext) {
+        const allowedTypes = CONTEXT_ALLOWED_TYPES[detectedContext];
+        if (!allowedTypes) {
+            return completions;
+        }
+
+        return completions.filter(item => {
+            const type = item.type || 'snippet';
+
+            // Special handling for 'snippet' type based on context
+            if (type === 'snippet') {
+                if (detectedContext === CONTEXT_TOP_LEVEL) {
+                    // At top level, only 'def' snippet is allowed
+                    return item.caption === 'def';
+                }
+                if (detectedContext === CONTEXT_INSIDE_BLOCK) {
+                    // Inside block, all snippets except 'def' are allowed
+                    return item.caption !== 'def';
+                }
+                // For expression_expected, snippets are not allowed
+                return false;
+            }
+
+            return allowedTypes.has(type);
+        });
     }
 
     #isExtensionActive (extensionId) {
