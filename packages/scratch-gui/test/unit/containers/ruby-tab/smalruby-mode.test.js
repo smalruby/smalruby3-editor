@@ -65,9 +65,11 @@ describe('smalrubyLanguageConfiguration', () => {
                 'rescue => e',
                 'ensure',
                 'when 1',
+                'when "hello"',
                 '  end',
                 '  else',
-                '  elsif x > 0'
+                '  elsif x > 0',
+                '  when 1'
             ];
 
             shouldDecrease.forEach(line => {
@@ -84,7 +86,15 @@ describe('smalrubyLanguageConfiguration', () => {
                 'puts "hello"',
                 'send',
                 'blend',
-                'render'
+                'render',
+                // Smalruby API uses when as part of method names
+                'when_key_pressed',
+                'when_flag_clicked',
+                'self.when(:flag_clicked)',
+                'when_receive("message")',
+                // "when" alone (without trailing space) should not
+                // trigger dedent to avoid false positives while typing
+                'when'
             ];
 
             shouldNotDecrease.forEach(line => {

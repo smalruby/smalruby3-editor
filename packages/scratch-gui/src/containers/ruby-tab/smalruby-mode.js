@@ -5,9 +5,12 @@ const INCREASE_INDENT_KEYWORDS = [
     'rescue', 'ensure'
 ].join('|');
 
-// Keywords that decrease the current line's indentation
+// Keywords that decrease the current line's indentation.
+// "when" is excluded here because Smalruby uses when_xxx methods
+// (e.g. when_flag_clicked, when_key_pressed). It is handled
+// separately with a trailing space requirement below.
 const DECREASE_INDENT_KEYWORDS = [
-    'end', 'else', 'elsif', 'rescue', 'ensure', 'when'
+    'end', 'else', 'elsif', 'rescue', 'ensure'
 ].join('|');
 
 // Language configuration for Monaco setLanguageConfiguration
@@ -21,8 +24,10 @@ export const smalrubyLanguageConfiguration = {
             `\\b(?!.*\\bend\\b).*|.*\\bdo\\b\\s*)$`
         ),
         // Word boundary \b prevents matching "send", "blend", etc.
+        // "when" requires a trailing space (e.g. "when 1") to avoid
+        // false positives with when_xxx method names.
         decreaseIndentPattern: new RegExp(
-            `^\\s*(?:${DECREASE_INDENT_KEYWORDS})\\b.*$`
+            `^\\s*(?:(?:${DECREASE_INDENT_KEYWORDS})\\b|when\\s).*$`
         )
     },
     brackets: [
