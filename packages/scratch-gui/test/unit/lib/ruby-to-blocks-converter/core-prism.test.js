@@ -85,7 +85,7 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
             const converter = await targetCodeToBlocks(vm, target, code);
             expect(converter.result).toBeTruthy();
             const blocks = Object.values(converter.blocks);
-            const ifBlock = blocks.find(b => b.opcode === 'control_if_else');
+            const ifBlock = blocks.find(b => b.opcode === 'control_if');
             expect(ifBlock).toBeDefined();
             expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:unless');
         });
@@ -115,7 +115,7 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
             const converter = await targetCodeToBlocks(vm, target, code);
             expect(converter.result).toBeTruthy();
             const blocks = Object.values(converter.blocks);
-            const ifBlock = blocks.find(b => b.opcode === 'control_if_else');
+            const ifBlock = blocks.find(b => b.opcode === 'control_if');
             expect(ifBlock).toBeDefined();
             expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:unless_modifier');
         });

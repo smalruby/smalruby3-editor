@@ -225,23 +225,23 @@ const ControlFlowHandlers = {
         cond = split.value;
         preBlocks.push(...split.preBlocks);
 
-        // unless cond; thenBody; else; elseBody; end
-        // is equivalent to: if cond; elseBody; else; thenBody; end
-        // (branches are swapped relative to if)
+        // Negate condition: unless cond => if !(cond)
+        const notBlock = this._createBlock('operator_not', 'value_boolean');
+        if (this._isFalseOrBooleanBlock(cond)) {
+            this._addInput(notBlock, 'OPERAND', cond);
+        }
+
         const unlessThen = this._processStatement(node.statements);
         const unlessElse = node.elseClause ? this._processStatement(node.elseClause) : null;
         const hasElseClause = !!node.elseClause;
 
-        // Swap: unless-then becomes if-else, unless-else becomes if-then
-        const ifThen = unlessElse;
-        const ifElse = unlessThen;
-
-        let block = this._callConvertersHandler('onIf', cond, ifThen, ifElse);
+        // Pass branches in natural order (no swap): unless-then → statement, unless-else → elseStatement
+        let block = this._callConvertersHandler('onIf', notBlock, unlessThen, unlessElse);
         if (!block) {
             this._restoreContext(saved);
             block = this._createRubyStatementBlock(this._getSource(node), node);
         } else if (hasElseClause && this._isBlock(block)) {
-            // Ensure control_if_else and SUBSTACK2 exist even when ifElse is null
+            // Ensure control_if_else and SUBSTACK2 exist even when unlessElse is null
             block.opcode = 'control_if_else';
             if (!block.inputs.SUBSTACK2) {
                 block.inputs.SUBSTACK2 = {name: 'SUBSTACK2', block: null, shadow: null};

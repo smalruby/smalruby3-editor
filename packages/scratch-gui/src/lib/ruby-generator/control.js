@@ -69,16 +69,29 @@ export default function (Generator) {
         if (comment === '@ruby:syntax:unless_else') {
             return {hasElse: true};
         }
+        if (comment === '@ruby:syntax:unless_modifier') {
+            return {isModifier: true};
+        }
         return null;
+    };
+
+    // Extract condition from inside operator_not wrapper.
+    // unless blocks store condition as operator_not(original_cond),
+    // so we need to unwrap it to get the original condition for "unless" keyword output.
+    const getUnlessCondition = function (block) {
+        const condBlockId = block.inputs.CONDITION ? block.inputs.CONDITION.block : null;
+        const condBlock = condBlockId ? Generator.getBlock(condBlockId) : null;
+        if (condBlock && condBlock.opcode === 'operator_not') {
+            return Generator.valueToCode(condBlock, 'OPERAND', Generator.ORDER_NONE) || false;
+        }
+        // Fallback: use the full condition as-is
+        return Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
     };
 
     const getModifierInfo = function (block) {
         const comment = Generator.getCommentText(block);
         if (comment === '@ruby:syntax:if_modifier') {
             return 'if';
-        }
-        if (comment === '@ruby:syntax:unless_modifier') {
-            return 'unless';
         }
         return null;
     };
@@ -90,6 +103,15 @@ export default function (Generator) {
             if (content) {
                 return `case ${caseInfo.subject}\n${content}end\n`;
             }
+        }
+        const unlessInfo = getUnlessInfo(block);
+        if (unlessInfo) {
+            const operator = getUnlessCondition(block);
+            const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+            if (unlessInfo.isModifier) {
+                return `${branch.trim()} unless ${operator}\n`;
+            }
+            return `unless ${operator}\n${branch}end\n`;
         }
         const modifierKeyword = getModifierInfo(block);
         if (modifierKeyword) {
@@ -147,25 +169,13 @@ export default function (Generator) {
                 return `case ${caseInfo.subject}\n${content}end\n`;
             }
         }
-        const modifierKeyword = getModifierInfo(block);
-        if (modifierKeyword) {
-            const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
-            // For unless modifier, body is in SUBSTACK2 (swapped by visitUnlessNode)
-            const body = modifierKeyword === 'unless' ?
-                Generator.statementToCode(block, 'SUBSTACK2') || '' :
-                Generator.statementToCode(block, 'SUBSTACK') || '';
-            return `${body.trim()} ${modifierKeyword} ${operator}\n`;
-        }
         const unlessInfo = getUnlessInfo(block);
-        if (unlessInfo) {
-            const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
-            // Swap branches back: SUBSTACK2 was the original unless-then, SUBSTACK was unless-else
-            const unlessThen = Generator.statementToCode(block, 'SUBSTACK2') || '';
-            const unlessElse = Generator.statementToCode(block, 'SUBSTACK') || '';
-            if (unlessInfo.hasElse) {
-                return `unless ${operator}\n${unlessThen}else\n${unlessElse}end\n`;
-            }
-            return `unless ${operator}\n${unlessThen}end\n`;
+        if (unlessInfo && unlessInfo.hasElse) {
+            const operator = getUnlessCondition(block);
+            // Branches are in natural order: SUBSTACK = unless-then, SUBSTACK2 = unless-else
+            const unlessThen = Generator.statementToCode(block, 'SUBSTACK') || '';
+            const unlessElse = Generator.statementToCode(block, 'SUBSTACK2') || '';
+            return `unless ${operator}\n${unlessThen}else\n${unlessElse}end\n`;
         }
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
