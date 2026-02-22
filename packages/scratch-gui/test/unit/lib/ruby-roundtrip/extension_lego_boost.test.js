@@ -18,7 +18,7 @@ describe('Ruby Roundtrip: LEGO BOOST extension blocks', () => {
         converter = makeConverter(target, runtime);
     });
 
-    test('Ruby -> Code -> Ruby', async () => {
+    test('motor control blocks', async () => {
         await expectRoundTrip(converter, target, dedent`
             boost_motor_turn_on_for("A", 1)
             boost_motor_turn_on_for("B", 1)
@@ -35,7 +35,11 @@ describe('Ruby Roundtrip: LEGO BOOST extension blocks', () => {
             boost_motor_set_direction_for("A", "reverse")
 
             boost_motor_get_position("A")
+        `);
+    });
 
+    test('color sensing blocks', async () => {
+        await expectRoundTrip(converter, target, dedent`
             self.when(:boost_color, "any") do
             end
 
@@ -58,7 +62,11 @@ describe('Ruby Roundtrip: LEGO BOOST extension blocks', () => {
             end
 
             boost_seeing_color?("any")
+        `);
+    });
 
+    test('tilt sensing and light blocks', async () => {
+        await expectRoundTrip(converter, target, dedent`
             self.when(:boost_tilted, "any") do
             end
 

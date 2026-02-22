@@ -289,6 +289,137 @@ class RubyToBlocksConverter extends Visitor {
     visitProgramNode (node) {
         return this.visit(node.statements);
     }
+
+    visitClassNode (node) {
+        const className = node.name;
+        const isSpriteIndexName = /^Sprite\d+$/.test(className);
+
+        // Set of recognized set_xxx class methods
+        const SET_METHODS = {
+            set_name: 'name',
+            set_x: 'x',
+            set_y: 'y',
+            set_direction: 'direction',
+            set_visible: 'visible',
+            set_size: 'size',
+            set_current_costume: 'current_costume',
+            set_rotation_style: 'rotation_style',
+            set_costumes: 'costumes',
+            set_variables: 'variables',
+            set_lists: 'lists'
+        };
+
+        // Canonical attribute order for comment text
+        const ATTR_ORDER = [
+            'name', 'x', 'y', 'direction', 'visible', 'size',
+            'current_costume', 'rotation_style', 'costumes', 'variables', 'lists'
+        ];
+
+        // Pre-scan class body for set_xxx calls
+        const classInfo = {};
+        const setMethodNames = new Set();
+        if (node.body && node.body.body) {
+            for (const stmt of node.body.body) {
+                if (stmt.constructor.name === 'CallNode' &&
+                    SET_METHODS[stmt.name] &&
+                    !stmt.receiver &&
+                    stmt.arguments_ &&
+                    stmt.arguments_.arguments_.length === 1) {
+                    const attrName = SET_METHODS[stmt.name];
+                    const arg = stmt.arguments_.arguments_[0];
+                    const value = this._extractClassMethodArg(arg);
+                    if (value !== null) {
+                        classInfo[attrName] = value;
+                        setMethodNames.add(stmt.name);
+                    }
+                }
+            }
+        }
+
+        // Collect attribute names for comment
+        const attributeNames = Object.keys(classInfo);
+        if (!isSpriteIndexName && !Object.prototype.hasOwnProperty.call(classInfo, 'name')) {
+            attributeNames.push('name');
+        }
+        // Sort by canonical order
+        attributeNames.sort((a, b) => ATTR_ORDER.indexOf(a) - ATTR_ORDER.indexOf(b));
+
+        // Generate comment text
+        let commentText;
+        if (attributeNames.length > 0) {
+            commentText = `@ruby:class:${attributeNames.join(',')}`;
+        } else {
+            commentText = '@ruby:class';
+        }
+        this._createComment(commentText, null);
+
+        // Store class info in context
+        if (attributeNames.length > 0) {
+            if (!Object.prototype.hasOwnProperty.call(classInfo, 'name') && !isSpriteIndexName) {
+                classInfo.name = className;
+            }
+            this._context.classInfo = classInfo;
+        }
+
+        // Visit class body, filtering out set_xxx calls
+        if (node.body && node.body.body) {
+            const filteredStatements = node.body.body.filter(stmt => {
+                if (stmt.constructor.name === 'CallNode' &&
+                    setMethodNames.has(stmt.name) &&
+                    !stmt.receiver) {
+                    return false;
+                }
+                return true;
+            });
+
+            if (filteredStatements.length === 0) {
+                return [];
+            }
+
+            // Visit filtered statements manually
+            const blocks = [];
+            for (const stmt of filteredStatements) {
+                this._context.methodCallIndices = {};
+                const block = this.visit(stmt);
+                if (Array.isArray(block)) {
+                    block.forEach(b => blocks.push(b));
+                } else if (block !== null && typeof block !== 'undefined') {
+                    blocks.push(block);
+                }
+            }
+            return blocks;
+        }
+        return [];
+    }
+
+    _extractClassMethodArg (argNode) {
+        const type = argNode.constructor.name;
+        switch (type) {
+        case 'StringNode': {
+            const unescaped = argNode.unescaped;
+            return typeof unescaped === 'object' ? unescaped.value : unescaped;
+        }
+        case 'IntegerNode':
+            return argNode.value;
+        case 'FloatNode':
+            return argNode.value;
+        case 'TrueNode':
+            return true;
+        case 'FalseNode':
+            return false;
+        case 'CallNode':
+            // Handle unary minus: e.g., -50
+            if (argNode.name === '-@' && argNode.receiver) {
+                const innerValue = this._extractClassMethodArg(argNode.receiver);
+                if (typeof innerValue === 'number') {
+                    return -innerValue;
+                }
+            }
+            return null;
+        default:
+            return null;
+        }
+    }
 }
 
 // Mixin methods
