@@ -253,5 +253,29 @@ end
                 {x: 100, y: -50}
             );
         });
+
+        test('class with only set_name round trip', async () => {
+            await expectClassRoundTrip(
+                `class Sprite1\n  set_name "ネコ"\nend`,
+                `class Sprite1\n  set_name "ネコ"\nend`,
+                {name: 'ネコ'}
+            );
+        });
+
+        test('class with only set_x and set_y round trip', async () => {
+            await expectClassRoundTrip(
+                `class Sprite1\n  set_x 100\n  set_y -50\nend`,
+                `class Sprite1\n  set_x 100\n  set_y -50\nend`,
+                {x: 100, y: -50}
+            );
+        });
+
+        test('class with all set_xxx only round trip', async () => {
+            await expectClassRoundTrip(
+                `class Sprite1\n  set_name "ネコ"\n  set_x 100\n  set_y -50\n  set_direction 180\n  set_visible false\n  set_size 50\n  set_current_costume 2\n  set_rotation_style "left-right"\nend`,
+                `class Sprite1\n  set_name "ネコ"\n  set_x 100\n  set_y -50\n  set_direction 180\n  set_visible false\n  set_size 50\n  set_current_costume 2\n  set_rotation_style "left-right"\nend`,
+                {name: 'ネコ', x: 100, y: -50, direction: 180, visible: false, size: 50, currentCostume: 2, rotationStyle: 'left-right'}
+            );
+        });
     });
 });

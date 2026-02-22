@@ -238,7 +238,6 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     let setCode = '';
     if (setLines.length > 0) {
         setCode = setLines.map(line => `${this.INDENT}${line}\n`).join('');
-        setCode += '\n';
     }
 
     let outsideCode = '';
@@ -275,7 +274,8 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     if (code.length > 0) {
         code = this.prefixLines(code, this.INDENT);
     }
-    code = `class ${className}\n${setCode}${code}end\n`;
+    const separator = setCode.length > 0 && code.length > 0 ? '\n' : '';
+    code = `class ${className}\n${setCode}${separator}${code}end\n`;
 
     if (outsideCode.length > 0) {
         code += outsideCode;
