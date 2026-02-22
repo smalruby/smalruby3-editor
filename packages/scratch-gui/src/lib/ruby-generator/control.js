@@ -72,6 +72,17 @@ export default function (Generator) {
         return null;
     };
 
+    const getModifierInfo = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment === '@ruby:syntax:if_modifier') {
+            return 'if';
+        }
+        if (comment === '@ruby:syntax:unless_modifier') {
+            return 'unless';
+        }
+        return null;
+    };
+
     Generator.control_if = function (block) {
         const caseInfo = getCaseInfo(block);
         if (caseInfo) {
@@ -79,6 +90,12 @@ export default function (Generator) {
             if (content) {
                 return `case ${caseInfo.subject}\n${content}end\n`;
             }
+        }
+        const modifierKeyword = getModifierInfo(block);
+        if (modifierKeyword) {
+            const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
+            const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+            return `${branch.trim()} ${modifierKeyword} ${operator}\n`;
         }
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
@@ -129,6 +146,15 @@ export default function (Generator) {
             if (content) {
                 return `case ${caseInfo.subject}\n${content}end\n`;
             }
+        }
+        const modifierKeyword = getModifierInfo(block);
+        if (modifierKeyword) {
+            const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
+            // For unless modifier, body is in SUBSTACK2 (swapped by visitUnlessNode)
+            const body = modifierKeyword === 'unless' ?
+                Generator.statementToCode(block, 'SUBSTACK2') || '' :
+                Generator.statementToCode(block, 'SUBSTACK') || '';
+            return `${body.trim()} ${modifierKeyword} ${operator}\n`;
         }
         const unlessInfo = getUnlessInfo(block);
         if (unlessInfo) {

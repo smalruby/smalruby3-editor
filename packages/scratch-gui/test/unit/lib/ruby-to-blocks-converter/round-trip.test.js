@@ -142,6 +142,16 @@ end
         );
     });
 
+    test('if modifier round-trip', async () => {
+        await expectRoundTrip('move(10) if true');
+        await expectRoundTrip('move(10) if touching?("_edge_")');
+    });
+
+    test('unless modifier round-trip', async () => {
+        await expectRoundTrip('move(10) unless true');
+        await expectRoundTrip('move(10) unless touching?("_edge_")');
+    });
+
     test('float literals with integer appearance (x.0) are preserved', async () => {
         await expectRoundTrip('1.0 + 1.0');
         await expectRoundTrip('move(1.0)');

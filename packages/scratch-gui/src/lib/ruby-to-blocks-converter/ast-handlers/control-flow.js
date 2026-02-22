@@ -67,6 +67,21 @@ const ControlFlowHandlers = {
             }
         }
 
+        // Detect if modifier form: endKeywordLoc is null for modifier syntax
+        if (node.endKeywordLoc === null && this._isBlock(block)) {
+            const commentText = '@ruby:syntax:if_modifier';
+            if (block.comment) {
+                const comment = this._context.comments[block.comment];
+                if (comment) {
+                    comment.text = commentText;
+                    comment.minimized = true;
+                }
+            } else {
+                const commentId = this._createComment(commentText, block.id, 0, 0, true);
+                block.comment = commentId;
+            }
+        }
+
         if (preBlocks.length > 0 && block) {
             if (_.isArray(block)) {
                 return [...preBlocks, ...block];
@@ -233,10 +248,17 @@ const ControlFlowHandlers = {
             }
         }
 
-        // Attach @ruby:syntax:unless comment to preserve round-trip fidelity
-        // Use @ruby:syntax:unless_else when an else clause is present
+        // Attach @ruby:syntax:unless* comment to preserve round-trip fidelity
         if (this._isBlock(block)) {
-            const commentText = hasElseClause ? '@ruby:syntax:unless_else' : '@ruby:syntax:unless';
+            const isModifier = node.endKeywordLoc === null;
+            let commentText;
+            if (isModifier) {
+                commentText = '@ruby:syntax:unless_modifier';
+            } else if (hasElseClause) {
+                commentText = '@ruby:syntax:unless_else';
+            } else {
+                commentText = '@ruby:syntax:unless';
+            }
             if (block.comment) {
                 const comment = this._context.comments[block.comment];
                 if (comment) {
