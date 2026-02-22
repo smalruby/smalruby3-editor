@@ -106,33 +106,38 @@ class GUI extends React.Component {
         if (this.props.shouldStopProject && !prevProps.shouldStopProject) {
             this.props.vm.stopAll();
         }
-    }
-    handleActivateTab (tab) {
-        if (this.props.activeTabIndex === RUBY_TAB_INDEX && this.props.rubyCode.modified) {
+        // When leaving Ruby tab with modified code, convert Ruby to blocks
+        if (prevProps.activeTabIndex === RUBY_TAB_INDEX &&
+            this.props.activeTabIndex !== RUBY_TAB_INDEX &&
+            prevProps.rubyCode.modified) {
+            const destinationTab = this.props.activeTabIndex;
+            // Immediately switch back to Ruby tab while conversion runs
+            this.props.onActivateTab(RUBY_TAB_INDEX);
             targetCodeToBlocks(
                 this.props.vm,
-                this.props.rubyCode.target,
-                this.props.rubyCode.code,
+                prevProps.rubyCode.target,
+                prevProps.rubyCode.code,
                 this.props.intl,
-                {version: this.props.rubyVersion}
+                {version: prevProps.rubyVersion}
             ).then(converter => {
                 if (converter.result) {
                     this.props.updateRubyCodeErrorsState(converter.errors);
                     this.props.convertedRubyCodeState();
                     converter.apply().then(() => {
-                        this.props.onActivateTab(tab);
+                        this.props.onActivateTab(destinationTab);
                     });
                     return;
                 }
-                this.props.vm.setEditingTarget(this.props.rubyCode.target.id);
-                if (!this.props.rubyCode.target.isStage) {
-                    this.props.onHighlightTarget(this.props.rubyCode.target.id);
+                this.props.vm.setEditingTarget(prevProps.rubyCode.target.id);
+                if (!prevProps.rubyCode.target.isStage) {
+                    this.props.onHighlightTarget(prevProps.rubyCode.target.id);
                 }
                 this.props.onShowConvertRubyToBlocksErrorAlert();
                 this.props.updateRubyCodeErrorsState(converter.errors);
             });
-            return false;
         }
+    }
+    handleActivateTab (tab) {
         this.props.onActivateTab(tab);
     }
     render () {
