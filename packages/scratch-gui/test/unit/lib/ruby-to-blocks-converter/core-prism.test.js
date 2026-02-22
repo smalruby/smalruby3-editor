@@ -72,4 +72,52 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
         const stepsBlock = converter.blocks[moveBlock.inputs.STEPS.block];
         expect(stepsBlock.fields.NUM.value).toBe('3435.0');
     });
+
+    describe('unless and modifier comment annotations', () => {
+        const getCommentText = (converter, block) => {
+            if (!block.comment) return null;
+            const comment = converter._context.comments[block.comment];
+            return comment ? comment.text : null;
+        };
+
+        test('unless...end attaches @ruby:syntax:unless comment', async () => {
+            const code = 'unless touching?("_edge_")\n  move(10)\nend';
+            const converter = await targetCodeToBlocks(vm, target, code);
+            expect(converter.result).toBeTruthy();
+            const blocks = Object.values(converter.blocks);
+            const ifBlock = blocks.find(b => b.opcode === 'control_if');
+            expect(ifBlock).toBeDefined();
+            expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:unless');
+        });
+
+        test('unless...else...end attaches @ruby:syntax:unless_else comment', async () => {
+            const code = 'unless touching?("_edge_")\n  move(10)\nelse\n  turn_right(180)\nend';
+            const converter = await targetCodeToBlocks(vm, target, code);
+            expect(converter.result).toBeTruthy();
+            const blocks = Object.values(converter.blocks);
+            const ifBlock = blocks.find(b => b.opcode === 'control_if_else');
+            expect(ifBlock).toBeDefined();
+            expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:unless_else');
+        });
+
+        test('if modifier attaches @ruby:syntax:if_modifier comment', async () => {
+            const code = 'move(10) if true';
+            const converter = await targetCodeToBlocks(vm, target, code);
+            expect(converter.result).toBeTruthy();
+            const blocks = Object.values(converter.blocks);
+            const ifBlock = blocks.find(b => b.opcode === 'control_if');
+            expect(ifBlock).toBeDefined();
+            expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:if_modifier');
+        });
+
+        test('unless modifier attaches @ruby:syntax:unless_modifier comment', async () => {
+            const code = 'move(10) unless true';
+            const converter = await targetCodeToBlocks(vm, target, code);
+            expect(converter.result).toBeTruthy();
+            const blocks = Object.values(converter.blocks);
+            const ifBlock = blocks.find(b => b.opcode === 'control_if');
+            expect(ifBlock).toBeDefined();
+            expect(getCommentText(converter, ifBlock)).toBe('@ruby:syntax:unless_modifier');
+        });
+    });
 });
