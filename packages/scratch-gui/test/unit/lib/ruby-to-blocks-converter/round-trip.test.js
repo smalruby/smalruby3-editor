@@ -228,6 +228,22 @@ end
             );
         });
 
+        test('class Cat with set_name round trip preserves class name', async () => {
+            await expectClassRoundTrip(
+                `class Cat\n  set_name "ネコ"\n\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
+                `class Cat\n  set_name "ネコ"\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
+                {name: 'ネコ'}
+            );
+        });
+
+        test('class Cat with set_name and set_x round trip', async () => {
+            await expectClassRoundTrip(
+                `class Cat\n  set_name "ネコ"\n  set_x 100\n\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
+                `class Cat\n  set_name "ネコ"\n  set_x 100\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
+                {name: 'ネコ', x: 100}
+            );
+        });
+
         test('class without set_xxx does not output attributes', async () => {
             // Even though sprite has non-default x,y, they should NOT appear
             // because the class had no set_xxx calls (comment is @ruby:class)
