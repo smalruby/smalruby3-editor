@@ -16,6 +16,15 @@ describe('Class error message', () => {
         expect(converter.errors[0].text).toMatch(/when_key_pressed/);
     });
 
+    test('non-hat block inside class mentions class definition in error', async () => {
+        const code = 'class Sprite1\n  move(10)\nend';
+        await converter.targetCodeToBlocks(target, code);
+        expect(converter.errors.length).toBeGreaterThan(0);
+        expect(converter.errors[0].text).toMatch(/move\(10\)/);
+        expect(converter.errors[0].text).toMatch(/class definition/);
+        expect(converter.errors[0].text).toMatch(/event block|when_flag_clicked|def/);
+    });
+
     test('error message does not contain newlines', async () => {
         const code = 'class Sprite1\n  self.when(:flag_clicked) do\n    move(10)\n  end\n  move(10)\nend';
         await converter.targetCodeToBlocks(target, code);

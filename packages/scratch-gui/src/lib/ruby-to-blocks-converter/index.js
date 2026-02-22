@@ -33,6 +33,12 @@ const messages = defineMessages({
         defaultMessage: '"{ VARIABLE }", can\'t change variable scope',
         description: 'Error message when trying to change variable scope from global to instance or vice versa',
         id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope'
+    },
+    wrongInstructionInClass: {
+        defaultMessage: '"{ SOURCE }" cannot be placed directly inside a class definition.' +
+            ' Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
+        description: 'Error message when a non-hat/non-def block is placed directly in a class body',
+        id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass'
     }
 });
 
@@ -393,13 +399,18 @@ class RubyToBlocksConverter extends Visitor {
 
             // Visit filtered statements manually
             const blocks = [];
+            const blockToStmt = new Map();
             for (const stmt of filteredStatements) {
                 this._context.methodCallIndices = {};
                 const block = this.visit(stmt);
                 if (Array.isArray(block)) {
-                    block.forEach(b => blocks.push(b));
+                    block.forEach(b => {
+                        blocks.push(b);
+                        blockToStmt.set(b, stmt);
+                    });
                 } else if (block !== null && typeof block !== 'undefined') {
                     blocks.push(block);
+                    blockToStmt.set(block, stmt);
                 }
             }
 
@@ -408,12 +419,12 @@ class RubyToBlocksConverter extends Visitor {
                 if (!block || !block.opcode) continue;
                 const blockType = this._getBlockType(block);
                 if (blockType !== 'hat' && block.opcode !== 'procedures_definition') {
-                    const errorNode = block.node || node;
+                    const errorNode = block.node || blockToStmt.get(block) || node;
                     const src = this._truncateSource(this._getSource(errorNode));
                     throw new RubyToBlocksConverterError(
                         errorNode,
                         this._translator(
-                            messages.wrongInstruction,
+                            messages.wrongInstructionInClass,
                             {SOURCE: src}
                         )
                     );
