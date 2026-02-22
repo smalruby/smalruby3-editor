@@ -27,7 +27,8 @@ const rubyHelper = new RubyHelper(seleniumHelper);
 const {
     fillInRubyProgram,
     currentRubyProgram,
-    waitForErrorOnLine
+    waitForErrorOnLine,
+    waitForNoErrors
 } = rubyHelper;
 
 const uri = path.resolve(__dirname, '../../build/index.html');
@@ -121,6 +122,21 @@ describe('convert Code from Ruby', () => {
                     'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]'
             );
             await waitForErrorOnLine(1);
+        });
+
+        test('errors cleared when executing fixed code with Go button', async () => {
+            // First, trigger errors by clicking Go with invalid code
+            await clickXpath('//img[@title="Go"]');
+            await waitForErrorOnLine(1);
+
+            // Fix the code
+            await fillInRubyProgram('move(10)');
+
+            // Execute the fixed code
+            await clickXpath('//img[@title="Go"]');
+
+            // Verify that errors are cleared
+            await waitForNoErrors();
         });
 
         test('recover with "Generate Ruby from Code" menu', async () => {
