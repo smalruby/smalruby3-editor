@@ -738,7 +738,8 @@ class RubyTab extends React.Component {
                                 renderWhitespace: 'all',
                                 scrollBeyondLastLine: true,
                                 tabSize: 2,
-                                fixedOverflowWidgets: true
+                                fixedOverflowWidgets: true,
+                                wordBasedSuggestions: 'off'
                             }}
                             theme="vs"
                             value={code}
