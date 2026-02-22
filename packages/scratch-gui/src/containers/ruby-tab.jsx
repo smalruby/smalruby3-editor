@@ -611,6 +611,9 @@ class RubyTab extends React.Component {
             return;
         }
 
+        // Clear any previous errors before starting a new execution
+        this.clearErrors();
+
         // Find the actual line to execute (skip empty lines)
         const rubyCode = this.props.rubyCode.code;
         const lines = rubyCode.split('\n');
