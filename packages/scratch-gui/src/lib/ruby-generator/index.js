@@ -189,13 +189,30 @@ RubyGenerator._wrapWithClass = function (code, classComment) {
     const setLines = [];
 
     // Parse attribute list from @ruby:class:attr1,attr2,...
+    // Support name=ClassName format for preserving class names
     let allowedAttributes = [];
+    let explicitClassName = null;
     if (classComment.startsWith('@ruby:class:')) {
         const attrPart = classComment.slice('@ruby:class:'.length);
         allowedAttributes = attrPart.split(',');
+
+        // Check for name=ClassName in the first attribute
+        const nameAttrIndex = allowedAttributes.findIndex(a => a.startsWith('name='));
+        if (nameAttrIndex >= 0) {
+            explicitClassName = allowedAttributes[nameAttrIndex].slice('name='.length);
+            // Replace name=ClassName with plain 'name' for attribute processing
+            allowedAttributes[nameAttrIndex] = 'name';
+        }
     }
 
-    if (allowedAttributes.indexOf('name') >= 0) {
+    if (explicitClassName) {
+        // Use the explicit class name from name=ClassName
+        className = explicitClassName;
+        const spriteName = target.sprite.name;
+        if (spriteName !== className) {
+            setLines.push(`set_name ${this.quote_(spriteName)}`);
+        }
+    } else if (allowedAttributes.indexOf('name') >= 0) {
         const spriteName = target.sprite.name;
         if (/^[A-Z]/.test(spriteName)) {
             className = spriteName;
