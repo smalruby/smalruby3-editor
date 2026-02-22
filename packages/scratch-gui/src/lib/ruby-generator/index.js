@@ -162,7 +162,9 @@ RubyGenerator.finish = function (code, options) {
     // even when @ruby:class comment is present.
     // For version 2, @ruby:class takes priority over withSpriteNew.
     if (classComment && this.version !== '1') {
-        code = this._wrapWithClass(code, classComment);
+        code = this._wrapWithClass(
+            code, classComment, options && options.withSpriteNew
+        );
     } else if (options && options.withSpriteNew) {
         const spriteNewCode = this.spriteNew(this.currentTarget);
         if (code.length > 0) {
@@ -183,7 +185,7 @@ RubyGenerator.finish = function (code, options) {
     return s + code;
 };
 
-RubyGenerator._wrapWithClass = function (code, classComment) {
+RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     const target = this.currentTarget;
     let className;
     const setLines = [];
@@ -239,10 +241,45 @@ RubyGenerator._wrapWithClass = function (code, classComment) {
         setCode += '\n';
     }
 
+    let outsideCode = '';
+    if (forFileOutput && code.length > 0) {
+        // Split code into top-level sections (separated by blank lines)
+        // and separate hat/def blocks from non-hat code
+        const sections = code.split(/\n\n/);
+        const insideSections = [];
+        const outsideSections = [];
+        for (const section of sections) {
+            const trimmed = section.trim();
+            if (trimmed.length === 0) continue;
+            if (/^self\.when\(/.test(trimmed) ||
+                /^def /.test(trimmed)) {
+                insideSections.push(section);
+            } else {
+                outsideSections.push(section);
+            }
+        }
+        code = insideSections.join('\n\n');
+        if (code.length > 0 && !code.endsWith('\n')) {
+            code += '\n';
+        }
+        if (outsideSections.length > 0) {
+            const commented = outsideSections
+                .join('\n\n')
+                .split('\n')
+                .map(line => (line.trim().length > 0 ? `# ${line}` : ''))
+                .join('\n');
+            outsideCode = `\n${commented}\n`;
+        }
+    }
+
     if (code.length > 0) {
         code = this.prefixLines(code, this.INDENT);
     }
     code = `class ${className}\n${setCode}${code}end\n`;
+
+    if (outsideCode.length > 0) {
+        code += outsideCode;
+    }
 
     return code;
 };

@@ -374,6 +374,40 @@ describe('RubyGenerator/Class', () => {
         });
     });
 
+    describe('top-level code outside class (version 2 file output)', () => {
+        test('non-hat code after class end is commented out in version 2 file output', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            // hat code + non-hat code (separated by blank line as in real output)
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n\nmove(10)\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).toContain('class Sprite1');
+            // hat code should be inside class
+            expect(result).toContain('  self.when(:flag_clicked) do');
+            // non-hat code should be outside class and commented out
+            expect(result).toMatch(/^# move\(10\)$/m);
+        });
+
+        test('non-hat code is not commented out in Ruby tab (no withSpriteNew)', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n\nmove(10)\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Sprite1');
+            // In Ruby tab (no withSpriteNew), non-hat code should be inside class, not commented
+            expect(result).toContain('  move(10)');
+            expect(result).not.toMatch(/^# move\(10\)$/m);
+        });
+    });
+
     describe('withSpriteNew (version 1 file output)', () => {
         test('@ruby:class with withSpriteNew uses Sprite.new instead of class', () => {
             RubyGenerator.init({version: '1'});
