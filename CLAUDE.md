@@ -188,6 +188,36 @@ After changing environment variables, restart the service:
 docker compose restart app
 ```
 
+## Browser Debugging with Playwright MCP
+
+When verifying behavior in the browser using Playwright MCP, use the `window.smalruby` debug global object exposed by `packages/scratch-gui/src/containers/ruby-tab.jsx`:
+
+```javascript
+// Available after visiting the Ruby tab at least once
+window.smalruby.vm        // Scratch VM instance
+window.smalruby.sprite    // Current editing target (RenderedTarget)
+window.smalruby.blocks    // Current target's blocks
+window.smalruby.comments  // Current target's comments
+window.smalruby.stage     // Stage target
+window.smalruby.runtime   // VM runtime
+
+// Monaco editor instance
+monaco.editor.getEditors()[0]  // Get the first Monaco editor
+```
+
+To access the RubyGenerator (webpack bundled module):
+
+```javascript
+// Obtain webpack require via webpackChunkGUI
+let req;
+window.webpackChunkGUI.push([['__probe__'], {}, r => { req = r; }]);
+// Find RubyGenerator
+for (const id in req.c) {
+    const m = req.c[id]?.exports;
+    if (m?.default?.targetsToCode) { /* found RubyGenerator = m.default */ break; }
+}
+```
+
 ## Testing Philosophy
 
 Follow TDD (Test-Driven Development) approach:

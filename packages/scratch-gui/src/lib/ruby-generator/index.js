@@ -158,7 +158,10 @@ RubyGenerator.finish = function (code, options) {
         code = `${commentCodes.join('\n')}\n${code}`;
     }
 
-    if (classComment) {
+    // For version 1 file output (withSpriteNew), use Sprite.new format
+    // even when @ruby:class comment is present.
+    // For version 2, @ruby:class takes priority over withSpriteNew.
+    if (classComment && this.version !== '1') {
         code = this._wrapWithClass(code, classComment);
     } else if (options && options.withSpriteNew) {
         const spriteNewCode = this.spriteNew(this.currentTarget);

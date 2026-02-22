@@ -319,4 +319,83 @@ describe('RubyGenerator/Class', () => {
             expect(result).not.toContain('set_direction');
         });
     });
+
+    describe('withSpriteNew (version 1 file output)', () => {
+        test('@ruby:class with withSpriteNew uses Sprite.new instead of class', () => {
+            RubyGenerator.init({version: '1'});
+            const {target, runtime} = makeMockTarget('ネコ', 1);
+            target.runtime = runtime;
+            target.x = 90;
+            target.y = -50;
+            target.direction = 45;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.isStage = false;
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name,x,y,direction'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '1'});
+
+            expect(result).toContain('Sprite.new("ネコ"');
+            expect(result).toContain('x: 90');
+            expect(result).toContain('y: -50');
+            expect(result).toContain('direction: 45');
+            expect(result).not.toContain('class ');
+            expect(result).not.toContain('set_name');
+            expect(result).not.toContain('set_x');
+        });
+
+        test('@ruby:class without attributes and withSpriteNew uses Sprite.new with defaults', () => {
+            RubyGenerator.init({version: '1'});
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.isStage = false;
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '1'});
+
+            expect(result).toContain('Sprite.new("Sprite1")');
+            expect(result).not.toContain('class ');
+        });
+
+        test('@ruby:class with version 2 still uses class format even with withSpriteNew', () => {
+            RubyGenerator.init({version: '2'});
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.isStage = false;
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
+
+            expect(result).toContain('class Sprite1');
+            expect(result).not.toContain('Sprite.new');
+        });
+    });
 });

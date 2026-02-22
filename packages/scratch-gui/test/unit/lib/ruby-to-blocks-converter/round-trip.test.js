@@ -183,10 +183,9 @@ end
             const stage = {isStage: true};
             target.runtime = {targets: [stage, target]};
 
-            RubyGenerator.init();
             RubyGenerator.currentTarget = target;
 
-            const generatedRuby = RubyGenerator.targetToCode(target);
+            const generatedRuby = RubyGenerator.targetToCode(target, {version: '2'});
             expect(generatedRuby.trim()).toEqual((expectedRuby || code).trim());
         };
 
