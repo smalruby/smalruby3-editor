@@ -16,7 +16,7 @@ import {setRubyVersion} from '../reducers/settings';
 import {showAlertWithTimeout, closeAlertWithId} from '../reducers/alerts';
 import {markRubyTabUsed} from '../reducers/tutorial-onboarding';
 import VM from '@smalruby/scratch-vm';
-import {RUBY_TAB_INDEX} from '../reducers/editor-tab';
+import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
@@ -129,7 +129,7 @@ class RubyTab extends React.Component {
             const changedTarget =
                 this.props.vm.editingTarget && this.props.rubyCode.target &&
                   this.props.vm.editingTarget.id !== targetId;
-            if (changedTarget) {
+            if (changedTarget || this.props.blocksTabVisible) {
                 this.props.targetCodeToBlocks(this.props.intl).then(converter => {
                     if (converter.result) {
                         converter.apply().then(() => {
@@ -788,6 +788,7 @@ class RubyTab extends React.Component {
 }
 
 RubyTab.propTypes = {
+    blocksTabVisible: PropTypes.bool,
     editingTarget: PropTypes.string,
     intl: intlShape.isRequired,
     isVisible: PropTypes.bool,
@@ -813,6 +814,7 @@ RubyTab.propTypes = {
 };
 
 const mapStateToProps = state => ({
+    blocksTabVisible: state.scratchGui.editorTab.activeTabIndex === BLOCKS_TAB_INDEX,
     editingTarget: state.scratchGui.targets.editingTarget,
     rubyCode: state.scratchGui.rubyCode,
     rubyVersion: state.scratchGui.settings.rubyVersion,
