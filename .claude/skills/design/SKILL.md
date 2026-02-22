@@ -47,9 +47,10 @@ Produce a structured design and **present it to the user for approval** before c
 ### Commit & PR Strategy
 
 - After each phase completes: run lint → commit → push
-- After the **first push**: create a PR
+- After the **first push**: create a PR with Implementation Steps as a checkbox list
 - Subsequent phases push to the same PR
-- This allows fine-grained progress tracking
+- After each push (except the first): update the PR body to check off the completed phase's checkbox
+- This allows fine-grained progress tracking via PR checkboxes
 
 ### Design Template
 
@@ -71,6 +72,7 @@ One-paragraph description of what the feature does and why.
 3. **[PASS]** lint + unit test confirmation
 4. **[COMMIT & PUSH]** `<type>: <description>`
 5. **[MAKE PR]** (first push only)
+6. **[UPDATE PR]** Check off this phase's checkbox in PR body (after second push onward)
 
 (Repeat for each phase)
 
@@ -106,7 +108,7 @@ cat > /tmp/design-issue-body.md <<'EOF'
 <list>
 
 ## Implementation Steps
-<numbered list>
+<checkbox list using `- [ ]` markdown syntax>
 
 ## Test Plan
 <list>

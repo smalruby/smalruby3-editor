@@ -87,6 +87,7 @@ export default {
     'gui.telemetryOptIn.buttonTextNo': 'いいえ、けっこうです。',
     'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '「{ SOURCE }」はブロックにへんかんできません。',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '「{ SOURCE }」はめいれいがまちがっています。',
+    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass': '「{ SOURCE }」はclassていぎのなかにちょくせつおくことはできません。イベントブロック（れい: when_flag_clicked）やメソッドていぎ（def）のなかでつかってください。',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': 'はい、スモウルビーのかいぜんにきょうりょくします。',
     'gui.smalruby3.extension.mesh.name': 'じゅうらいのメッシュ',
     'gui.smalruby3.extension.mesh.description': 'ネットワークじょうでユーザーかんのやりとりを おこなう。',

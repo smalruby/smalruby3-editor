@@ -33,6 +33,12 @@ const messages = defineMessages({
         defaultMessage: '"{ VARIABLE }", can\'t change variable scope',
         description: 'Error message when trying to change variable scope from global to instance or vice versa',
         id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope'
+    },
+    wrongInstructionInClass: {
+        defaultMessage: '"{ SOURCE }" cannot be placed directly inside a class definition.' +
+            ' Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
+        description: 'Error message when a non-hat/non-def block is placed directly in a class body',
+        id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass'
     }
 });
 
@@ -71,7 +77,15 @@ class RubyToBlocksConverter extends Visitor {
         super();
         this.vm = vm;
         this.version = options && options.version ? options.version : 1;
-        this._translator = message => message.defaultMessage;
+        this._translator = (message, values) => {
+            let text = message.defaultMessage;
+            if (values) {
+                Object.keys(values).forEach(key => {
+                    text = text.replace(new RegExp(`\\{\\s*${key}\\s*\\}`, 'g'), values[key]);
+                });
+            }
+            return text;
+        };
         this._receiverToMethods = {};
         this._receiverToMyBlocks = {};
         this._onIfHandlers = [];
@@ -157,7 +171,7 @@ class RubyToBlocksConverter extends Visitor {
                             block.node,
                             this._translator(
                                 messages.couldNotConvertPrimitive,
-                                {SOURCE: this._getSource(block.node)}
+                                {SOURCE: this._truncateSource(this._getSource(block.node))}
                             )
                         );
                     } else {
@@ -179,7 +193,7 @@ class RubyToBlocksConverter extends Visitor {
                             block.node,
                             this._translator(
                                 messages.wrongInstruction,
-                                {SOURCE: this._getSource(block.node)}
+                                {SOURCE: this._truncateSource(this._getSource(block.node))}
                             )
                         );
                     }
@@ -345,9 +359,16 @@ class RubyToBlocksConverter extends Visitor {
         attributeNames.sort((a, b) => ATTR_ORDER.indexOf(a) - ATTR_ORDER.indexOf(b));
 
         // Generate comment text
+        // For non-Sprite\d+ class names, use name=ClassName format to preserve the class name
         let commentText;
         if (attributeNames.length > 0) {
-            commentText = `@ruby:class:${attributeNames.join(',')}`;
+            const commentParts = attributeNames.map(attr => {
+                if (attr === 'name' && !isSpriteIndexName) {
+                    return `name=${className}`;
+                }
+                return attr;
+            });
+            commentText = `@ruby:class:${commentParts.join(',')}`;
         } else {
             commentText = '@ruby:class';
         }
@@ -378,15 +399,38 @@ class RubyToBlocksConverter extends Visitor {
 
             // Visit filtered statements manually
             const blocks = [];
+            const blockToStmt = new Map();
             for (const stmt of filteredStatements) {
                 this._context.methodCallIndices = {};
                 const block = this.visit(stmt);
                 if (Array.isArray(block)) {
-                    block.forEach(b => blocks.push(b));
+                    block.forEach(b => {
+                        blocks.push(b);
+                        blockToStmt.set(b, stmt);
+                    });
                 } else if (block !== null && typeof block !== 'undefined') {
                     blocks.push(block);
+                    blockToStmt.set(block, stmt);
                 }
             }
+
+            // Validate: only hat blocks and procedures_definition are allowed at class top-level
+            for (const block of blocks) {
+                if (!block || !block.opcode) continue;
+                const blockType = this._getBlockType(block);
+                if (blockType !== 'hat' && block.opcode !== 'procedures_definition') {
+                    const errorNode = block.node || blockToStmt.get(block) || node;
+                    const src = this._truncateSource(this._getSource(errorNode));
+                    throw new RubyToBlocksConverterError(
+                        errorNode,
+                        this._translator(
+                            messages.wrongInstructionInClass,
+                            {SOURCE: src}
+                        )
+                    );
+                }
+            }
+
             return blocks;
         }
         return [];

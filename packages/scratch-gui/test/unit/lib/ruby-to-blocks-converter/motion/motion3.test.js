@@ -245,7 +245,7 @@ describe('RubyToBlocksConverter/Motion', () => {
                 const res = await converter.targetCodeToBlocks(stageTarget, code);
                 expect(res).toBeFalsy();
                 expect(converter.errors).toHaveLength(1);
-                expect(converter.errors[0].text).toMatch(/"\{SOURCE\}" is the wrong instruction\./);
+                expect(converter.errors[0].text).toMatch(/is the wrong instruction\./);
                 
                 // Reset for next test
                 converter.reset();

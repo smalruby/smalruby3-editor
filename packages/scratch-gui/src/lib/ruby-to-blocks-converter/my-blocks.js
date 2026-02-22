@@ -360,7 +360,8 @@ const MyBlocksConverter = {
                             }
                         }
                     }
-                    const msg = `${bNode ? bNode.source : ''} is the wrong instruction.`;
+                    const src = converter._truncateSource(bNode ? bNode.source : '');
+                    const msg = `"${src}" is the wrong instruction.`;
                     throw new RubyToBlocksConverterError(bNode, msg);
                 }
             });

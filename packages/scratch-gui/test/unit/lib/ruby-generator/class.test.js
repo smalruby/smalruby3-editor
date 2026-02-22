@@ -90,6 +90,60 @@ describe('RubyGenerator/Class', () => {
             expect(result).toContain('set_name "ネコ"');
         });
 
+        test('@ruby:class:name=Cat with different sprite name generates set_name', () => {
+            const {target, runtime} = makeMockTarget('ネコ', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name=Cat'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Cat');
+            expect(result).not.toContain('class Sprite1');
+            // When class name (Cat) differs from sprite name (ネコ), set_name should be generated
+            expect(result).toContain('set_name "ネコ"');
+            expect(result).not.toContain('# @ruby:class');
+        });
+
+        test('@ruby:class:name=Cat with same sprite name does not generate set_name', () => {
+            const {target, runtime} = makeMockTarget('Cat', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name=Cat'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Cat');
+            expect(result).not.toContain('set_name');
+        });
+
+        test('@ruby:class:name=Cat,x,y uses Cat and generates set_xxx', () => {
+            const {target, runtime} = makeMockTarget('ネコ', 1);
+            target.runtime = runtime;
+            target.x = 100;
+            target.y = -50;
+            target.direction = 180;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name=Cat,x,y'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Cat');
+            expect(result).toContain('set_name "ネコ"');
+            expect(result).toContain('set_x 100');
+            expect(result).toContain('set_y -50');
+            expect(result).not.toContain('set_direction');
+        });
+
         test('no @ruby:class comment does not wrap with class', () => {
             RubyGenerator.cache_.targetCommentTexts = [];
 
@@ -317,6 +371,40 @@ describe('RubyGenerator/Class', () => {
             expect(result).toContain('set_x 100');
             expect(result).toContain('set_y -50');
             expect(result).not.toContain('set_direction');
+        });
+    });
+
+    describe('top-level code outside class (version 2 file output)', () => {
+        test('non-hat code after class end is commented out in version 2 file output', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            // hat code + non-hat code (separated by blank line as in real output)
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n\nmove(10)\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).toContain('class Sprite1');
+            // hat code should be inside class
+            expect(result).toContain('  self.when(:flag_clicked) do');
+            // non-hat code should be outside class and commented out
+            expect(result).toMatch(/^# move\(10\)$/m);
+        });
+
+        test('non-hat code is not commented out in Ruby tab (no withSpriteNew)', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n\nmove(10)\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Sprite1');
+            // In Ruby tab (no withSpriteNew), non-hat code should be inside class, not commented
+            expect(result).toContain('  move(10)');
+            expect(result).not.toMatch(/^# move\(10\)$/m);
         });
     });
 
