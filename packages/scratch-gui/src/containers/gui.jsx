@@ -1,3 +1,4 @@
+import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {compose} from 'redux';
@@ -34,6 +35,16 @@ import {
 import {setPlatform} from '../reducers/platform';
 import {setTheme} from '../reducers/settings';
 import {setDynamicAssets} from '../reducers/dynamic-assets';
+import {showAlertWithTimeout} from '../reducers/alerts';
+import {highlightTarget} from '../reducers/targets';
+import {
+    rubyCodeShape,
+    updateRubyCodeErrors,
+    convertedRubyCode
+} from '../reducers/ruby-code';
+import {
+    targetCodeToBlocks
+} from '../lib/ruby-to-blocks-converter';
 
 import FontLoaderHOC from '../lib/font-loader-hoc.jsx';
 import LocalizationHOC from '../lib/localization-hoc.jsx';
@@ -59,6 +70,12 @@ import {
 } from '../lib/assets-prop-types.js';
 
 class GUI extends React.Component {
+    constructor (props) {
+        super(props);
+        bindAll(this, [
+            'handleActivateTab'
+        ]);
+    }
     componentDidMount () {
         this.props.onStorageInit(this.props.storage.scratchStorage);
         this.props.onVmInit(this.props.vm);
@@ -90,13 +107,41 @@ class GUI extends React.Component {
             this.props.vm.stopAll();
         }
     }
+    handleActivateTab (tab) {
+        if (this.props.activeTabIndex === RUBY_TAB_INDEX && this.props.rubyCode.modified) {
+            targetCodeToBlocks(
+                this.props.vm,
+                this.props.rubyCode.target,
+                this.props.rubyCode.code,
+                this.props.intl,
+                {version: this.props.rubyVersion}
+            ).then(converter => {
+                if (converter.result) {
+                    this.props.updateRubyCodeErrorsState(converter.errors);
+                    this.props.convertedRubyCodeState();
+                    converter.apply().then(() => {
+                        this.props.onActivateTab(tab);
+                    });
+                    return;
+                }
+                this.props.vm.setEditingTarget(this.props.rubyCode.target.id);
+                if (!this.props.rubyCode.target.isStage) {
+                    this.props.onHighlightTarget(this.props.rubyCode.target.id);
+                }
+                this.props.onShowConvertRubyToBlocksErrorAlert();
+                this.props.updateRubyCodeErrorsState(converter.errors);
+            });
+            return false;
+        }
+        this.props.onActivateTab(tab);
+    }
     render () {
         if (this.props.isError) {
             throw new Error(
                 `Error in Scratch GUI [location=${window.location}]: ${this.props.error}`);
         }
         const {
-             
+
             assetHost,
             cloudHost,
             error,
@@ -108,11 +153,18 @@ class GUI extends React.Component {
             onVmInit,
             projectHost,
             projectId,
-             
+
             children,
             fetchingProject,
             isLoading,
             loadingStateVisible,
+            onActivateTab: _onActivateTab,
+            rubyCode: _rubyCode,
+            rubyVersion: _rubyVersion,
+            convertedRubyCodeState: _convertedRubyCodeState,
+            onHighlightTarget: _onHighlightTarget,
+            onShowConvertRubyToBlocksErrorAlert: _onShowConvertRubyToBlocksErrorAlert,
+            updateRubyCodeErrorsState: _updateRubyCodeErrorsState,
             ...componentProps
         } = this.props;
 
@@ -120,6 +172,7 @@ class GUI extends React.Component {
         return (
             <GUIComponent
                 loading={fetchingProject || isLoading || loadingStateVisible}
+                onActivateTab={this.handleActivateTab}
                 {...componentProps}
             >
                 {children}
@@ -129,6 +182,7 @@ class GUI extends React.Component {
 }
 
 GUI.propTypes = {
+    activeTabIndex: PropTypes.number,
     storage: GUIStoragePropType,
     accountMenuOptions: AccountMenuOptionsPropTypes,
     assetHost: PropTypes.string,
@@ -170,6 +224,7 @@ GUI.propTypes = {
     urlLoaderModalVisible: PropTypes.bool,
     onRequestCloseKoshienTestModal: PropTypes.func,
     onRequestCloseUrlLoaderModal: PropTypes.func,
+    onActivateTab: PropTypes.func,
     onActivateRubyTab: PropTypes.func,
     onUrlLoaderSubmit: PropTypes.func,
     onStartSelectingUrlLoad: PropTypes.func,
@@ -179,6 +234,12 @@ GUI.propTypes = {
     theme: PropTypes.string,
     blockDisplayModalVisible: PropTypes.bool,
     onSetTheme: PropTypes.func,
+    rubyCode: rubyCodeShape,
+    rubyVersion: PropTypes.string,
+    convertedRubyCodeState: PropTypes.func,
+    onHighlightTarget: PropTypes.func,
+    onShowConvertRubyToBlocksErrorAlert: PropTypes.func,
+    updateRubyCodeErrorsState: PropTypes.func,
     username: PropTypes.string,
     userOwnsProject: PropTypes.bool,
     // TODO: Is this unused?
@@ -231,6 +292,8 @@ const mapStateToProps = (state, ownProps) => {
         colorMode: state.scratchGui.settings.colorMode,
         theme: state.scratchGui.settings.theme,
         blockDisplayModalVisible: state.scratchGui.blockDisplay.modalVisible,
+        rubyCode: state.scratchGui.rubyCode,
+        rubyVersion: state.scratchGui.settings.rubyVersion,
         vm: state.scratchGui.vm
     };
 };
@@ -250,7 +313,11 @@ const mapDispatchToProps = dispatch => ({
     onRequestCloseTelemetryModal: () => dispatch(closeTelemetryModal()),
     onRequestCloseKoshienTestModal: () => dispatch(closeKoshienTestModal()),
     onRequestCloseUrlLoaderModal: () => dispatch(closeUrlLoaderModal()),
-    onRequestCloseTipsLibrary: () => dispatch(closeTipsLibrary())
+    onRequestCloseTipsLibrary: () => dispatch(closeTipsLibrary()),
+    convertedRubyCodeState: () => dispatch(convertedRubyCode()),
+    onHighlightTarget: id => dispatch(highlightTarget(id)),
+    onShowConvertRubyToBlocksErrorAlert: () => showAlertWithTimeout(dispatch, 'convertRubyToBlocksError'),
+    updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors))
 });
 
 const ConnectedGUI = injectIntl(connect(
