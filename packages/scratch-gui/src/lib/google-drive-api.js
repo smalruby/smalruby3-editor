@@ -66,7 +66,7 @@ class GoogleDriveAPI {
             throw new Error(
                 'Google Drive API credentials not configured. ' +
                 'Please set GOOGLE_CLIENT_ID and GOOGLE_API_KEY environment variables. ' +
-                'See docs/google-drive-setup.md for setup instructions.'
+                'See docs/google-api-setup.md for setup instructions.'
             );
         }
 

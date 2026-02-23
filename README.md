@@ -82,7 +82,7 @@ Smalruby 3 integrates [Opal](https://opalrb.com/) to convert Ruby code into Java
 
 ### Google Drive Integration
 Smalruby 3 supports loading and saving projects directly to Google Drive.
-For setup instructions, please see [Google Drive Setup Guide](packages/scratch-gui/docs/google-drive-setup.md).
+For setup instructions, please see [Google API Setup Guide](packages/scratch-gui/docs/google-api-setup.md).
 
 ## Monorepo migration
 
