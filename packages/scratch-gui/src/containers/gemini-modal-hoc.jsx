@@ -25,6 +25,12 @@ const messages = defineMessages({
         id: 'gui.geminiModal.timeoutError',
         defaultMessage: 'Request timed out (2 minutes). Please try again.',
         description: 'Error shown when Gemini API request times out'
+    },
+    overloadedError: {
+        id: 'gui.geminiModal.overloadedError',
+        // eslint-disable-next-line max-len
+        defaultMessage: 'Gemini is currently experiencing high demand and is temporarily unavailable. Please wait about 5 minutes and try again.',
+        description: 'Error shown when Gemini API returns 503 due to high demand'
     }
 });
 
@@ -258,7 +264,9 @@ const GeminiModalHOC = function (WrappedComponent) {
                 console.error('[GeminiModalHOC] Error calling Gemini API:', error);
 
                 let errorMessage;
-                if (error.message && error.message.includes('401')) {
+                if (error.message && error.message.includes('503')) {
+                    errorMessage = this.props.intl.formatMessage(messages.overloadedError);
+                } else if (error.message && error.message.includes('401')) {
                     errorMessage = this.props.intl.formatMessage(messages.authError);
                 } else if (error.message && error.message.includes('timeout')) {
                     errorMessage = this.props.intl.formatMessage(messages.timeoutError);
@@ -294,10 +302,38 @@ const GeminiModalHOC = function (WrappedComponent) {
 
         handleApplyCode (index) {
             const {latestCodes} = this.state;
-            const code = latestCodes[index];
+            let code = latestCodes[index];
             if (code && this._applyGeminiCode) {
+                code = this._sanitizeSoundNames(code);
                 this._applyGeminiCode(code);
             }
+        }
+
+        /**
+         * Comment out play()/play_until_done() calls with sound names
+         * that don't exist on the current sprite.
+         * @param {string} code - Ruby source code to sanitize
+         * @returns {string} Sanitized code with invalid play() calls commented out
+         */
+        _sanitizeSoundNames (code) {
+            const target = this.props.editingTarget;
+            if (!target || !target.sprite || !target.sprite.sounds) {
+                return code;
+            }
+            const validSounds = new Set(
+                target.sprite.sounds.map(s => s.name)
+            );
+            // Match play("...") or play_until_done("...") lines
+            return code.replace(
+                /^( *)(play(?:_until_done)?)\(("[^"]*")\)/gm,
+                (match, indent, fn, nameWithQuotes) => {
+                    const name = nameWithQuotes.slice(1, -1);
+                    if (validSounds.has(name)) {
+                        return match; // keep as-is
+                    }
+                    return `${indent}# ${fn}(${nameWithQuotes}) # この音は存在しないのでコメントアウトしました`;
+                }
+            );
         }
 
         handleClearHistory () {

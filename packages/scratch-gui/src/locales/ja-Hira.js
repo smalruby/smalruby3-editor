@@ -339,6 +339,7 @@ export default {
     'gui.geminiModal.cancel': 'ちゅうだん',
     'gui.geminiModal.surprise': 'サプライズ！',
     'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2ふん）。もういちどおためしください。',
+    'gui.geminiModal.overloadedError': 'Geminiへのアクセスがしゅうちゅうしているため、いちじてきにりようできません。5ふんほどまってから、もういちどおためしください。',
 
     // Tutorials
     'gui.howtos.getting-started.step.rubyTab': 'ブロックのつぎはルビー(Ruby)にチャレンジしてみよう！',
