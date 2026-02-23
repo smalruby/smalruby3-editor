@@ -67,6 +67,7 @@ class GeminiAPI {
 
         const url = `${GEMINI_API_BASE}/${this.modelName}:generateContent`;
 
+        const startTime = Date.now();
         try {
             const response = await this._fetchWithRetry(url, accessToken, requestBody, signal);
             const data = await response.json();
@@ -77,8 +78,7 @@ class GeminiAPI {
             }
 
             const responseText = data.candidates[0].content.parts[0].text;
-            console.log('[GeminiAPI] Response received:', responseText);
-            console.log('[GeminiAPI] Code block extracted:', GeminiAPI.extractCodeBlock(responseText));
+            const elapsedMs = Date.now() - startTime;
             const modelTurn = {
                 role: 'model',
                 parts: [{text: responseText}]
@@ -88,12 +88,25 @@ class GeminiAPI {
             this.history.push(newUserTurn);
             this.history.push(modelTurn);
 
+            // Record to window.smalruby for debugging via browser console
+            if (typeof window !== 'undefined') {
+                window.smalruby = window.smalruby || {};
+                window.smalruby.gemini = window.smalruby.gemini || {exchanges: []};
+                window.smalruby.gemini.exchanges.push({
+                    userMessage,
+                    responseText,
+                    codeBlock: GeminiAPI.extractCodeBlock(responseText),
+                    elapsedMs,
+                    timestamp: new Date().toISOString()
+                });
+                window.smalruby.gemini.lastElapsedMs = elapsedMs;
+            }
+
             this._abortController = null;
             return responseText;
         } catch (error) {
             this._abortController = null;
             if (error.name === 'AbortError') {
-                console.log('[GeminiAPI] Request cancelled by user');
                 throw error;
             }
             console.error('[GeminiAPI] Failed to send message:', error);

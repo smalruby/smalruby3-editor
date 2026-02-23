@@ -138,14 +138,14 @@
 .chat-bubble-model {
     width: 100%;
     font-size: 0.9rem;
-    line-height: 1.5;
+    line-height: 1.75rem;
     word-break: break-word;
 }
 
 /* Markdown content styles */
 .markdown-content {
     font-size: 0.9rem;
-    line-height: 1.5;
+    line-height: 1.75rem;
     color: $text-primary;
 }
 
@@ -244,8 +244,19 @@
 /* Apply code button - centered below the last Gemini message, glowing */
 .apply-button-container {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     margin-top: 10px;
+    gap: 6px;
+}
+
+.apply-code-note {
+    font-size: 0.75rem;
+    color: $text-primary-transparent;
+    text-align: center;
+    margin: 0;
+    line-height: 1.4;
+    max-width: 420px;
 }
 
 @keyframes glow-pulse-apply {

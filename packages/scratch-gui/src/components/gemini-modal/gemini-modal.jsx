@@ -67,8 +67,14 @@ const messages = defineMessages({
     },
     applyCode: {
         id: 'gui.geminiModal.applyCode',
-        defaultMessage: 'Apply code',
+        defaultMessage: 'Insert This Code',
         description: 'Button to apply generated code to editor'
+    },
+    applyCodeNote: {
+        id: 'gui.geminiModal.applyCodeNote',
+        // eslint-disable-next-line max-len
+        defaultMessage: 'AI-generated programs may not always work correctly. When that happens, enjoy debugging — finding and fixing problems in your program!',
+        description: 'Disclaimer note shown below the apply code button'
     },
     emptyHistory: {
         id: 'gui.geminiModal.emptyHistory',
@@ -257,6 +263,9 @@ const GeminiModal = ({
                                                             >
                                                                 {intl.formatMessage(messages.applyCode)}
                                                             </button>
+                                                            <p className={styles.applyCodeNote}>
+                                                                {intl.formatMessage(messages.applyCodeNote)}
+                                                            </p>
                                                         </div>
                                                     )}
                                                 </div>
