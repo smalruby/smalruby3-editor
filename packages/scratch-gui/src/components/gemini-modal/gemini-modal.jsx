@@ -156,12 +156,7 @@ const GeminiModal = ({
         return {x, y};
     });
 
-    // Auto-scroll to bottom of chat history when new messages arrive
-    useEffect(() => {
-        if (chatHistoryRef.current) {
-            chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
-        }
-    }, [history, isLoading]);
+    // No auto-scroll: user reads from top, so don't jump to bottom on new messages
 
     // Focus input when modal opens
     useEffect(() => {

@@ -313,11 +313,8 @@ const GeminiModalHOC = function (WrappedComponent) {
         }
 
         handleInputKeyDown (e) {
-            // Do NOT send on Enter key - user must click the send button
-            // Prevent accidental submission; a future option may be Cmd/Shift+Enter
-            if (e.key === 'Enter') {
-                e.preventDefault();
-            }
+            // Allow Enter/Return to insert a newline (default textarea behavior)
+            // User must click the send button to submit
         }
 
         render () {
