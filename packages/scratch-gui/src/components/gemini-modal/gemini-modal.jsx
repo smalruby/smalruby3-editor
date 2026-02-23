@@ -4,20 +4,20 @@ import Draggable from 'react-draggable';
 import {defineMessages, useIntl} from 'react-intl';
 import styles from './gemini-modal.css';
 
-const MODAL_WIDTH = 360;
-const MODAL_HEIGHT = 480;
+import closeIcon from '../debug-modal/icons/icon--close.svg';
+import iconAI from '../ruby-toolbar/icon--ai.svg';
+
+const MODAL_WIDTH = 560;
+const MODAL_HEIGHT = 520;
 const MENU_BAR_HEIGHT = 48;
+const MAX_STAGE_WIDTH = 1280;
+const MAX_STAGE_HEIGHT = 600;
 
 const messages = defineMessages({
     title: {
         id: 'gui.geminiModal.title',
         defaultMessage: 'AI Assistant (Gemini)',
         description: 'Title for the Gemini AI assistant modal'
-    },
-    close: {
-        id: 'gui.geminiModal.close',
-        defaultMessage: 'Close',
-        description: 'Close button label'
     },
     clearHistory: {
         id: 'gui.geminiModal.clearHistory',
@@ -84,11 +84,14 @@ const GeminiModal = ({
     const chatHistoryRef = useRef(null);
     const inputRef = useRef(null);
 
-    // Initial position: bottom-right area of the workspace
-    const [defaultPosition] = useState(() => ({
-        x: Math.max(0, window.innerWidth - MODAL_WIDTH - 20),
-        y: Math.max(0, window.innerHeight - MODAL_HEIGHT - MENU_BAR_HEIGHT - 20)
-    }));
+    // Initial position: centered within the capped stage area
+    const [defaultPosition] = useState(() => {
+        const stageWidth = Math.min(window.innerWidth, MAX_STAGE_WIDTH);
+        const stageHeight = Math.min(window.innerHeight - MENU_BAR_HEIGHT, MAX_STAGE_HEIGHT);
+        const x = Math.max(0, ((stageWidth - MODAL_WIDTH) / 2));
+        const y = Math.max(0, MENU_BAR_HEIGHT + ((stageHeight - MODAL_HEIGHT) / 2));
+        return {x, y};
+    });
 
     // Auto-scroll to bottom of chat history when new messages arrive
     useEffect(() => {
@@ -110,24 +113,34 @@ const GeminiModal = ({
         <div className={styles.overlay}>
             <Draggable
                 defaultPosition={defaultPosition}
-                handle={`.${styles.header}`}
+                handle={`.${styles.modalHeader}`}
                 bounds="parent"
             >
-                <div className={styles.panel}>
-                    {/* Draggable header */}
-                    <div className={styles.header}>
-                        <span className={styles.headerTitle}>
+                <div className={styles.modalContainer}>
+                    {/* Header - drag handle, matches debug-modal style */}
+                    <div className={styles.modalHeader}>
+                        <div className={styles.headerTitle}>
+                            <img
+                                className={styles.aiIcon}
+                                src={iconAI}
+                                alt=""
+                            />
                             {intl.formatMessage(messages.title)}
-                        </span>
+                        </div>
                         <button
-                            className={styles.headerCloseButton}
+                            className={styles.closeButton}
                             onClick={onClose}
                         >
-                            {'✕'}
+                            <img
+                                className={styles.closeIcon}
+                                src={closeIcon}
+                                alt=""
+                            />
                         </button>
                     </div>
 
-                    <div className={styles.body}>
+                    {/* Body */}
+                    <div className={styles.modalContent}>
                         {/* Chat history */}
                         <div
                             className={styles.chatHistory}
@@ -208,7 +221,7 @@ const GeminiModal = ({
                                 onChange={onInputChange}
                                 onKeyDown={onInputKeyDown}
                                 disabled={isLoading}
-                                rows={1}
+                                rows={2}
                             />
                             <button
                                 className={styles.sendButton}
