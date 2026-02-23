@@ -13,11 +13,11 @@ import {loadAllGoogleScripts} from './google-script-loader';
 // Using 'drive.file' scope to allow:
 // - Reading files selected by the user via Picker
 // - Uploading new files to Google Drive
-// Adding 'generative-language' scope to allow:
-// - Calling Gemini API for AI-assisted code generation
+// Adding 'generative-language.retriever' scope to allow:
+// - Calling Gemini API (generateContent) for AI-assisted code generation
 const SCOPES = [
     'https://www.googleapis.com/auth/drive.file',
-    'https://www.googleapis.com/auth/generative-language'
+    'https://www.googleapis.com/auth/generative-language.retriever'
 ].join(' ');
 
 // Discovery docs for Google Drive API
