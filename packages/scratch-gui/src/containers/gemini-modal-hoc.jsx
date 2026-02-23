@@ -135,6 +135,8 @@ const GeminiModalHOC = function (WrappedComponent) {
             this.handleClearHistory = this.handleClearHistory.bind(this);
             this.handleInputChange = this.handleInputChange.bind(this);
             this.handleInputKeyDown = this.handleInputKeyDown.bind(this);
+            this.handleRegisterApplyCallback = this.handleRegisterApplyCallback.bind(this);
+            this._applyGeminiCode = null;
         }
 
         handleOpenModal () {
@@ -143,6 +145,15 @@ const GeminiModalHOC = function (WrappedComponent) {
 
         handleCloseModal () {
             this.setState({isModalOpen: false});
+        }
+
+        /**
+         * Called by WrappedComponent to register the function that applies
+         * generated code to the Monaco editor.
+         * @param {function} callback - Function that accepts a code string
+         */
+        handleRegisterApplyCallback (callback) {
+            this._applyGeminiCode = callback;
         }
 
         async handleSend () {
@@ -203,8 +214,8 @@ const GeminiModalHOC = function (WrappedComponent) {
 
         handleApplyCode () {
             const {latestCode} = this.state;
-            if (latestCode && this.props.onApplyGeminiCode) {
-                this.props.onApplyGeminiCode(latestCode);
+            if (latestCode && this._applyGeminiCode) {
+                this._applyGeminiCode(latestCode);
             }
         }
 
@@ -231,17 +242,16 @@ const GeminiModalHOC = function (WrappedComponent) {
 
         render () {
             const {
-                onApplyGeminiCode,
-                intl,
+                intl, // consumed in error message handling (this.props.intl)
                 ...passThroughProps
             } = this.props;
-            void onApplyGeminiCode; // consumed in handleApplyCode via this.props
-            void intl; // consumed in error message handling via this.props
+            void intl;
 
             return (
                 <React.Fragment>
                     <WrappedComponent
                         onOpenGeminiModal={this.handleOpenModal}
+                        onRegisterGeminiApply={this.handleRegisterApplyCallback}
                         {...passThroughProps}
                     />
                     {this.state.isModalOpen && (
@@ -268,13 +278,11 @@ const GeminiModalHOC = function (WrappedComponent) {
     GeminiModalComponent.propTypes = {
         intl: intlShape.isRequired,
         vm: PropTypes.instanceOf(VM).isRequired,
-        editingTarget: PropTypes.object,
-        onApplyGeminiCode: PropTypes.func
+        editingTarget: PropTypes.object
     };
 
     GeminiModalComponent.defaultProps = {
-        editingTarget: null,
-        onApplyGeminiCode: null
+        editingTarget: null
     };
 
     return injectIntl(GeminiModalComponent);

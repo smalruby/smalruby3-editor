@@ -13,6 +13,7 @@ import iconRedo from './icon--redo.svg';
 import iconBack from './icon--back.svg';
 import iconForward from './icon--forward.svg';
 import iconDownload from './icon--download.svg';
+import iconAI from './icon--ai.svg';
 
 const messages = defineMessages({
     executeLine: {
@@ -59,6 +60,11 @@ const messages = defineMessages({
         id: 'gui.rubyToolbar.download',
         defaultMessage: 'Download Ruby code',
         description: 'Tooltip for download button'
+    },
+    aiAssistant: {
+        id: 'gui.rubyToolbar.aiAssistant',
+        defaultMessage: 'AI Assistant (Gemini)',
+        description: 'Tooltip for AI assistant button'
     },
     stage: {
         id: 'gui.rubyToolbar.stage',
@@ -254,6 +260,15 @@ const RubyToolbar = props => {
         }
     }, [props]);
 
+    const handleOpenAI = useCallback(() => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
+        if (props.onOpenGeminiModal) {
+            props.onOpenGeminiModal();
+        }
+    }, [props]);
+
     const handleExecuteLine = useCallback(() => {
         if (!props.editorRef) {
             return;
@@ -434,9 +449,19 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* Three-dot Menu Part - TODO */}
+            {/* AI Assistant Part */}
             <div className={`${styles.toolbarPart} ${styles.modRight}`}>
-                {/* Placeholder for three-dot menu */}
+                <button
+                    className={styles.iconButton}
+                    onClick={handleOpenAI}
+                    aria-label={intl.formatMessage(messages.aiAssistant)}
+                    title={intl.formatMessage(messages.aiAssistant)}
+                >
+                    <img
+                        src={iconAI}
+                        alt=""
+                    />
+                </button>
             </div>
         </div>
     );
@@ -450,6 +475,7 @@ RubyToolbar.propTypes = {
     onDownload: PropTypes.func,
     onExecuteLine: PropTypes.func,
     onDismissBubble: PropTypes.func,
+    onOpenGeminiModal: PropTypes.func,
     isRunning: PropTypes.bool,
     canUndo: PropTypes.bool,
     canRedo: PropTypes.bool
