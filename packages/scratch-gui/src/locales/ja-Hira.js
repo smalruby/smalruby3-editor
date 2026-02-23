@@ -320,6 +320,26 @@ export default {
     'gui.rubyToolbar.commandPlaceholder': 'スプライトをなまえでけんさく',
     'gui.rubyToolbar.download': 'ルビースクリプトをダウンロード',
     'gui.rubyToolbar.stage': 'ステージ',
+    'gui.rubyToolbar.aiAssistant': 'スモウルビーせんせい (Gemini)',
+
+    // Gemini modal
+    'gui.geminiModal.title': 'スモウルビーせんせい (Gemini)',
+    'gui.geminiModal.clearHistory': 'かいわをリセット',
+    'gui.geminiModal.inputPlaceholder': 'つくりたいものをおしえてください...',
+    'gui.geminiModal.send': 'そうしん',
+    'gui.geminiModal.thinking': 'スモウルビーせんせいがかんがえています... ({seconds}びょう)',
+    'gui.geminiModal.generatedCode': 'せいせいされたコード',
+    'gui.geminiModal.applyCode': 'プログラムをにゅうりょくする',
+    'gui.geminiModal.applyCodeNote': 'AIがつくったプログラムは、うごかないことがあります。そのときは、デバッグ（プログラムのもんだいをしらべてなおすこと）をたのしみましょう。',
+    'gui.geminiModal.emptyHistory': 'スモウルビーせんせいといっしょにプログラミングしましょう！つくりたいものをおしえてください！',
+    'gui.geminiModal.you': 'あなた',
+    'gui.geminiModal.gemini': 'スモウルビーせんせい',
+    'gui.geminiModal.authError': 'にんしょうにしっぱいしました。もういちどおためしください。',
+    'gui.geminiModal.apiError': 'Gemini APIエラーがはっせいしました。もういちどおためしください。',
+    'gui.geminiModal.cancel': 'ちゅうだん',
+    'gui.geminiModal.surprise': 'サプライズ！',
+    'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2ふん）。もういちどおためしください。',
+    'gui.geminiModal.overloadedError': 'Geminiへのアクセスがしゅうちゅうしているため、いちじてきにりようできません。5ふんほどまってから、もういちどおためしください。',
 
     // Tutorials
     'gui.howtos.getting-started.step.rubyTab': 'ブロックのつぎはルビー(Ruby)にチャレンジしてみよう！',

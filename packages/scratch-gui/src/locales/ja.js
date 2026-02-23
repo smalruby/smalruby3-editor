@@ -320,6 +320,26 @@ export default {
     'gui.rubyToolbar.commandPlaceholder': 'スプライトを名前で検索',
     'gui.rubyToolbar.download': 'ルビースクリプトをダウンロード',
     'gui.rubyToolbar.stage': 'ステージ',
+    'gui.rubyToolbar.aiAssistant': 'スモウルビー先生 (Gemini)',
+
+    // Gemini modal
+    'gui.geminiModal.title': 'スモウルビー先生 (Gemini)',
+    'gui.geminiModal.clearHistory': '会話をリセット',
+    'gui.geminiModal.inputPlaceholder': '作りたいものを教えてください...',
+    'gui.geminiModal.send': '送信',
+    'gui.geminiModal.thinking': 'スモウルビー先生が考えています... ({seconds}秒)',
+    'gui.geminiModal.generatedCode': '生成されたコード',
+    'gui.geminiModal.applyCode': 'プログラムを入力する',
+    'gui.geminiModal.applyCodeNote': 'AIが生成したプログラムは動作しないことがあります。そのときは、デバッグ（プログラムの問題を調べて直すこと）を楽しみましょう。',
+    'gui.geminiModal.emptyHistory': 'スモウルビー先生といっしょにプログラミングしましょう！作りたいものを教えてください！',
+    'gui.geminiModal.you': 'あなた',
+    'gui.geminiModal.gemini': 'スモウルビー先生',
+    'gui.geminiModal.authError': '認証に失敗しました。もう一度お試しください。',
+    'gui.geminiModal.apiError': 'Gemini APIエラーが発生しました。もう一度お試しください。',
+    'gui.geminiModal.cancel': '中断',
+    'gui.geminiModal.surprise': 'サプライズ！',
+    'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2分）。もう一度お試しください。',
+    'gui.geminiModal.overloadedError': 'Geminiへのアクセスが集中しているため、一時的に利用できません。5分ほど待ってから、もう一度お試しください。',
 
     // Tutorials
     'gui.howtos.getting-started.name': 'さあ、始めましょう',

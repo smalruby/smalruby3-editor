@@ -167,7 +167,7 @@ describe('motion converter', () => {
 
 ## Google Drive Integration
 
-Setup instructions: `docs/google-drive-setup.md`
+Setup instructions: `docs/google-api-setup.md`
 
 Required environment variables:
 - `GOOGLE_CLIENT_ID`: OAuth 2.0 client ID

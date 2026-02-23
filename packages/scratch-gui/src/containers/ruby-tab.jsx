@@ -27,6 +27,7 @@ import {smalrubyLanguage, smalrubyLanguageConfiguration} from './ruby-tab/smalru
 
 import RubyDownloader from './ruby-downloader.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
+import GeminiModalHOC from './gemini-modal-hoc.jsx';
 import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
 import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
@@ -57,6 +58,7 @@ class RubyTab extends React.Component {
             'handleScriptGlowOff',
             'handleVisualReport',
             'handleDismissBubble',
+            'handleApplyGeminiCode',
             'updateUndoRedoState'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
@@ -405,6 +407,11 @@ class RubyTab extends React.Component {
         });
 
         this.updateUndoRedoState();
+
+        // Register the apply callback with GeminiModalHOC
+        if (this.props.onRegisterGeminiApply) {
+            this.props.onRegisterGeminiApply(this.handleApplyGeminiCode);
+        }
     }
 
     updateUndoRedoState () {
@@ -556,6 +563,10 @@ class RubyTab extends React.Component {
         if (this.bubbleRef) {
             this.bubbleRef.classList.remove(styles.visible);
         }
+    }
+
+    handleApplyGeminiCode (code) {
+        this.props.onChange(code);
     }
 
     clearExecutingLineHighlight () {
@@ -723,6 +734,7 @@ class RubyTab extends React.Component {
                         onDownload={this.handleDownload}
                         onExecuteLine={this.handleExecuteLine}
                         onDismissBubble={this.handleDismissBubble}
+                        onOpenGeminiModal={this.props.onOpenGeminiModal}
                         isRunning={!!this.state.runningBlockId}
                         canUndo={this.state.canUndo}
                         canRedo={this.state.canRedo}
@@ -801,6 +813,8 @@ RubyTab.propTypes = {
     intl: intlShape.isRequired,
     isVisible: PropTypes.bool,
     onChange: PropTypes.func,
+    onOpenGeminiModal: PropTypes.func,
+    onRegisterGeminiApply: PropTypes.func,
     onRequestCloseFile: PropTypes.func,
     onProjectTelemetryEvent: PropTypes.func,
     onSetAiSaveStatus: PropTypes.func,
@@ -846,7 +860,9 @@ const mapDispatchToProps = dispatch => ({
     onMarkRubyTabUsed: () => dispatch(markRubyTabUsed())
 });
 
-export default RubyToBlocksConverterHOC(injectIntl(connect(
+const ConnectedRubyTab = RubyToBlocksConverterHOC(injectIntl(connect(
     mapStateToProps,
     mapDispatchToProps
 )(RubyTab)));
+
+export default GeminiModalHOC(ConnectedRubyTab);

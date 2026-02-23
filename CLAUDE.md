@@ -142,11 +142,12 @@ Smalruby provides a Ruby code editor (Monaco Editor) in `scratch-gui`. Ruby code
 ### Google Drive Integration
 
 Smalruby supports loading and saving projects to Google Drive. Setup requires:
-- Google Cloud Platform project with Drive API and Picker API enabled
+
+- Google Cloud Platform project with Drive API, Picker API, and Generative Language API enabled
 - OAuth 2.0 client credentials
 - Environment variables: `GOOGLE_CLIENT_ID`, `GOOGLE_API_KEY`
 
-See `packages/scratch-gui/docs/google-drive-setup.md` for detailed setup instructions.
+See `packages/scratch-gui/docs/google-api-setup.md` for detailed setup instructions.
 
 ### Custom Extensions
 

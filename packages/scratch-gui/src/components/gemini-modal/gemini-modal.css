@@ -1,0 +1,481 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+@import "../../css/z-index.css";
+
+/* Full-screen overlay (pointer-events: none so it doesn't block the editor) */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: transparent;
+    pointer-events: none;
+    z-index: $z-index-modal;
+}
+
+/* Draggable floating panel - matches debug-modal container style */
+.modal-container {
+    background: white;
+    border-radius: 8px;
+    width: 560px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    overflow: hidden;
+    box-shadow: 0 4px 4px 0 $ui-black-transparent-10;
+    outline: none;
+    pointer-events: auto;
+}
+
+/* Header - matches debug-modal .modal-header with green color */
+.modal-header {
+    display: flex;
+    border-radius: 8px 8px 0 0;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: $ui-green-2;
+    cursor: move;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.header-title {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 1rem;
+    line-height: 1.25rem;
+    font-weight: 700;
+    color: white;
+}
+
+.ai-icon {
+    height: 22px;
+    width: 22px;
+}
+
+.close-button {
+    display: flex;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+}
+
+.close-icon {
+    width: 100%;
+    height: 100%;
+}
+
+/* Body content */
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Chat history area */
+.chat-history {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 12px;
+    background-color: #f8f8f8;
+    min-height: 200px;
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-history::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.chat-message-user {
+    align-items: flex-end;
+}
+
+.chat-message-model {
+    align-items: flex-start;
+    width: 100%;
+}
+
+/* User bubble: right-aligned with top-right pointed corner */
+.chat-bubble-user {
+    padding: 8px 12px;
+    border-radius: 16px;
+    border-top-right-radius: 4px; /* pointed top-right corner */
+    max-width: 85%;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background-color: $ui-green-2;
+    color: white;
+}
+
+/* Gemini (model) response: no bubble, full width, markdown rendered */
+.chat-bubble-model {
+    width: 100%;
+    font-size: 0.9rem;
+    line-height: 1.75rem;
+    word-break: break-word;
+}
+
+/* Markdown content styles */
+.markdown-content {
+    font-size: 0.9rem;
+    line-height: 1.75rem;
+    color: $text-primary;
+}
+
+.markdown-content p {
+    margin: 0 0 0.5em 0;
+}
+
+.markdown-content p:last-child {
+    margin-bottom: 0;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+    font-size: 1em;
+    font-weight: 700;
+    margin: 0.5em 0 0.25em 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+    margin: 0.25em 0;
+    padding-left: 1.5em;
+}
+
+.markdown-content li {
+    margin-bottom: 0.2em;
+}
+
+.markdown-content code {
+    background-color: rgba(0, 0, 0, 0.07);
+    border-radius: 3px;
+    padding: 0.1em 0.3em;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+}
+
+/* Standalone code block (rendered directly, not inside .markdown-content) */
+.code-block {
+    background-color: #1e1e1e;
+    border-radius: 4px;
+    margin: 0.5em 0;
+    overflow-x: auto;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.code-block :global(.hljs) {
+    display: block;
+    padding: 10px 14px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85em;
+    line-height: 1.5;
+    background: transparent;
+    color: #d4d4d4;
+}
+
+/* Code block with highlight.js */
+.markdown-content :global(.hljs-pre) {
+    background-color: #1e1e1e;
+    border-radius: 4px;
+    margin: 0.5em 0;
+    overflow-x: auto;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.markdown-content :global(.hljs-pre) :global(.hljs) {
+    display: block;
+    padding: 10px 14px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85em;
+    line-height: 1.5;
+    background: transparent;
+    color: #d4d4d4;
+}
+
+/* highlight.js token colors (VS Dark-like theme) */
+.markdown-content :global(.hljs-comment),
+.markdown-content :global(.hljs-quote) {
+    color: #6a9955;
+    font-style: italic;
+}
+
+.markdown-content :global(.hljs-keyword),
+.markdown-content :global(.hljs-selector-tag),
+.markdown-content :global(.hljs-built_in) {
+    color: #569cd6;
+}
+
+.markdown-content :global(.hljs-string),
+.markdown-content :global(.hljs-attr) {
+    color: #ce9178;
+}
+
+.markdown-content :global(.hljs-number),
+.markdown-content :global(.hljs-literal) {
+    color: #b5cea8;
+}
+
+.markdown-content :global(.hljs-title),
+.markdown-content :global(.hljs-class) {
+    color: #4ec9b0;
+}
+
+.markdown-content :global(.hljs-variable),
+.markdown-content :global(.hljs-name) {
+    color: #9cdcfe;
+}
+
+.markdown-content :global(.hljs-symbol),
+.markdown-content :global(.hljs-bullet) {
+    color: #d7ba7d;
+}
+
+/* Apply code button - centered below the last Gemini message, glowing */
+.apply-button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+    gap: 6px;
+}
+
+.apply-code-note {
+    font-size: 0.75rem;
+    color: $text-primary-transparent;
+    text-align: center;
+    margin: 0;
+    line-height: 1.4;
+    max-width: 420px;
+}
+
+@keyframes glow-pulse-apply {
+    0%, 100% {
+        box-shadow: none;
+    }
+    50% {
+        box-shadow: 0 0 14px 8px rgba(255, 220, 50, 0.85);
+    }
+}
+
+.apply-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    background-color: $ui-green;
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    transition: background-color 0.2s;
+    animation: glow-pulse-apply 1s ease-in-out infinite;
+}
+
+.apply-button:hover {
+    background-color: $ui-green-2;
+}
+
+.chat-label {
+    font-size: 0.7rem;
+    color: $text-primary-transparent;
+    padding: 0 4px;
+}
+
+/* Input area */
+.input-area {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+/* Surprise button */
+.surprise-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: $ui-green-2;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 0.2s;
+}
+
+.surprise-button:hover:not(:disabled) {
+    background-color: $ui-green;
+}
+
+.surprise-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.surprise-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Textarea - resizable vertically, debug-modal green focus */
+.message-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1.5px solid $ui-black-transparent;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    resize: vertical;
+    min-height: 2.5rem;
+    max-height: 16rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+}
+
+.message-input:hover {
+    border-color: $ui-green-2;
+}
+
+.message-input:focus {
+    border-color: $ui-green-2;
+    box-shadow: 0 0 0 3px rgba(79, 171, 102, 0.2);
+}
+
+.message-input:disabled {
+    background-color: #f0f0f0;
+    cursor: not-allowed;
+}
+
+.send-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 600;
+    background-color: $ui-green-2;
+    color: white;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.send-button:hover:not(:disabled) {
+    background-color: $ui-green;
+}
+
+.send-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Status messages */
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: $text-primary-transparent;
+    font-size: 0.85rem;
+    padding: 8px;
+    font-style: italic;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(100, 100, 200, 0.3);
+    border-top-color: rgba(100, 100, 200, 0.9);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error-message {
+    background-color: #ffeaea;
+    border: 1px solid #ffaaaa;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: #cc0000;
+}
+
+/* Footer */
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid $ui-black-transparent;
+    margin-top: 4px;
+}
+
+.clear-button {
+    padding: 6px 12px;
+    border: 1px solid $ui-green;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+    background-color: white;
+    color: $ui-green;
+    transition: background-color 0.2s;
+}
+
+.clear-button:hover {
+    background-color: #D1FAEE;
+}
+
+.clear-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.empty-history {
+    text-align: center;
+    color: $text-primary-transparent;
+    font-size: 0.9rem;
+    padding: 32px 16px;
+    font-style: italic;
+}
