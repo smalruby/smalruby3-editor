@@ -320,6 +320,21 @@ export default {
     'gui.rubyToolbar.commandPlaceholder': 'スプライトをなまえでけんさく',
     'gui.rubyToolbar.download': 'ルビースクリプトをダウンロード',
     'gui.rubyToolbar.stage': 'ステージ',
+    'gui.rubyToolbar.aiAssistant': 'AIアシスタント (Gemini)',
+
+    // Gemini modal
+    'gui.geminiModal.title': 'AIアシスタント (Gemini)',
+    'gui.geminiModal.clearHistory': 'かいわをリセット',
+    'gui.geminiModal.inputPlaceholder': 'つくりたいものをおしえてください...',
+    'gui.geminiModal.send': 'そうしん',
+    'gui.geminiModal.thinking': 'Gemini がかんがえています...',
+    'gui.geminiModal.generatedCode': 'せいせいされたコード',
+    'gui.geminiModal.applyCode': 'コードをてきよう',
+    'gui.geminiModal.emptyHistory': 'つくりたいプログラムをおしえてください！れい: 「ネコがマウスをおいかける」',
+    'gui.geminiModal.you': 'あなた',
+    'gui.geminiModal.gemini': 'Gemini',
+    'gui.geminiModal.authError': 'にんしょうにしっぱいしました。もういちどおためしください。',
+    'gui.geminiModal.apiError': 'Gemini APIエラーがはっせいしました。もういちどおためしください。',
 
     // Tutorials
     'gui.howtos.getting-started.step.rubyTab': 'ブロックのつぎはルビー(Ruby)にチャレンジしてみよう！',
