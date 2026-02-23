@@ -55,6 +55,11 @@ const messages = defineMessages({
         defaultMessage: 'Send',
         description: 'Send button label'
     },
+    cancel: {
+        id: 'gui.geminiModal.cancel',
+        defaultMessage: 'Cancel',
+        description: 'Cancel button label shown while Gemini is generating'
+    },
     thinking: {
         id: 'gui.geminiModal.thinking',
         defaultMessage: 'Gemini is thinking... ({seconds}s)',
@@ -132,6 +137,7 @@ const GeminiModal = ({
     inputValue,
     onClose,
     onSend,
+    onCancel,
     onApplyCode,
     onClearHistory,
     onInputChange,
@@ -303,13 +309,22 @@ const GeminiModal = ({
                                 disabled={isLoading}
                                 rows={2}
                             />
-                            <button
-                                className={styles.sendButton}
-                                onClick={onSend}
-                                disabled={isLoading || !inputValue.trim()}
-                            >
-                                {intl.formatMessage(messages.send)}
-                            </button>
+                            {isLoading ? (
+                                <button
+                                    className={styles.sendButton}
+                                    onClick={onCancel}
+                                >
+                                    {intl.formatMessage(messages.cancel)}
+                                </button>
+                            ) : (
+                                <button
+                                    className={styles.sendButton}
+                                    onClick={onSend}
+                                    disabled={!inputValue.trim()}
+                                >
+                                    {intl.formatMessage(messages.send)}
+                                </button>
+                            )}
                         </div>
 
                         {/* Footer */}
@@ -342,6 +357,7 @@ GeminiModal.propTypes = {
     inputValue: PropTypes.string.isRequired,
     onClose: PropTypes.func.isRequired,
     onSend: PropTypes.func.isRequired,
+    onCancel: PropTypes.func.isRequired,
     onApplyCode: PropTypes.func.isRequired,
     onClearHistory: PropTypes.func.isRequired,
     onInputChange: PropTypes.func.isRequired,

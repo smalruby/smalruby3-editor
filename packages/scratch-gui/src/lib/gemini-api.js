@@ -23,10 +23,12 @@ class GeminiAPI {
     constructor () {
         this.history = [];
         this.modelName = GEMINI_MODEL;
+        this._abortController = null;
     }
 
     /**
-     * Send a message to Gemini and return the response text
+     * Send a message to Gemini and return the response text.
+     * Supports cancellation via an AbortController stored in this._abortController.
      * @param {string} userMessage - The user's message
      * @param {object} stateContext - Current vm/sprite/stage state to include as context
      * @param {object} stateContext.sprite - Current sprite state
@@ -35,6 +37,13 @@ class GeminiAPI {
      * @returns {Promise<string>} The response text from Gemini
      */
     async sendMessage (userMessage, stateContext) {
+        // Abort any in-flight request before starting a new one
+        this.cancelRequest();
+
+        // Create a new AbortController for this request
+        this._abortController = new AbortController();
+        const {signal} = this._abortController;
+
         // Ensure we have a valid access token
         await googleDriveAPI.initialize();
         const accessToken = await googleDriveAPI.requestAccessToken();
@@ -59,8 +68,13 @@ class GeminiAPI {
         const url = `${GEMINI_API_BASE}/${this.modelName}:generateContent`;
 
         try {
-            const response = await this._fetchWithRetry(url, accessToken, requestBody);
+            const response = await this._fetchWithRetry(url, accessToken, requestBody, signal);
             const data = await response.json();
+
+            // Check if aborted after fetch completed
+            if (signal.aborted) {
+                throw new DOMException('Request was cancelled', 'AbortError');
+            }
 
             const responseText = data.candidates[0].content.parts[0].text;
             console.log('[GeminiAPI] Response received:', responseText);
@@ -70,14 +84,30 @@ class GeminiAPI {
                 parts: [{text: responseText}]
             };
 
-            // Add both turns to history
+            // Add both turns to history only on success
             this.history.push(newUserTurn);
             this.history.push(modelTurn);
 
+            this._abortController = null;
             return responseText;
         } catch (error) {
+            this._abortController = null;
+            if (error.name === 'AbortError') {
+                console.log('[GeminiAPI] Request cancelled by user');
+                throw error;
+            }
             console.error('[GeminiAPI] Failed to send message:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Cancel the current in-flight request if any.
+     */
+    cancelRequest () {
+        if (this._abortController) {
+            this._abortController.abort();
+            this._abortController = null;
         }
     }
 
@@ -86,16 +116,18 @@ class GeminiAPI {
      * @param {string} url - API endpoint URL
      * @param {string} accessToken - OAuth access token
      * @param {object} body - Request body
+     * @param {AbortSignal} signal - AbortSignal for cancellation
      * @returns {Promise<Response>} Fetch response
      */
-    async _fetchWithRetry (url, accessToken, body) {
+    async _fetchWithRetry (url, accessToken, body, signal) {
         const doFetch = token => fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal
         });
 
         let response = await doFetch(accessToken);

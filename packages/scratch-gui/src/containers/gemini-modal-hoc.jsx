@@ -8,7 +8,7 @@ import VM from '@smalruby/scratch-vm';
 import GeminiAPI from '../lib/gemini-api';
 import GeminiModal from '../components/gemini-modal/gemini-modal.jsx';
 
-const TIMEOUT_SECONDS = 30;
+const TIMEOUT_SECONDS = 120;
 
 const messages = defineMessages({
     authError: {
@@ -23,7 +23,7 @@ const messages = defineMessages({
     },
     timeoutError: {
         id: 'gui.geminiModal.timeoutError',
-        defaultMessage: 'Request timed out (30 seconds). Please try again.',
+        defaultMessage: 'Request timed out (2 minutes). Please try again.',
         description: 'Error shown when Gemini API request times out'
     }
 });
@@ -142,6 +142,7 @@ const GeminiModalHOC = function (WrappedComponent) {
             this.handleOpenModal = this.handleOpenModal.bind(this);
             this.handleCloseModal = this.handleCloseModal.bind(this);
             this.handleSend = this.handleSend.bind(this);
+            this.handleCancel = this.handleCancel.bind(this);
             this.handleApplyCode = this.handleApplyCode.bind(this);
             this.handleClearHistory = this.handleClearHistory.bind(this);
             this.handleInputChange = this.handleInputChange.bind(this);
@@ -152,6 +153,7 @@ const GeminiModalHOC = function (WrappedComponent) {
 
         componentWillUnmount () {
             this._clearTimers();
+            this.geminiAPI.cancelRequest();
         }
 
         _startTimers () {
@@ -161,10 +163,14 @@ const GeminiModalHOC = function (WrappedComponent) {
             }, 1000);
             this._timeoutTimer = setTimeout(() => {
                 this._clearTimers();
-                this.setState({
+                // Cancel the in-flight request on timeout
+                this.geminiAPI.cancelRequest();
+                // Remove the pending user message from history (last entry)
+                this.setState(prevState => ({
                     isLoading: false,
-                    error: this.props.intl.formatMessage(messages.timeoutError)
-                });
+                    error: this.props.intl.formatMessage(messages.timeoutError),
+                    chatHistory: prevState.chatHistory.slice(0, -1)
+                }));
             }, TIMEOUT_SECONDS * 1000);
         }
 
@@ -238,9 +244,19 @@ const GeminiModalHOC = function (WrappedComponent) {
                     isLoading: false
                 }));
             } catch (error) {
+                this._clearTimers();
+
+                // AbortError means user cancelled — remove pending user message, no error shown
+                if (error.name === 'AbortError') {
+                    this.setState(prevState => ({
+                        isLoading: false,
+                        chatHistory: prevState.chatHistory.slice(0, -1)
+                    }));
+                    return;
+                }
+
                 console.error('[GeminiModalHOC] Error calling Gemini API:', error);
 
-                this._clearTimers();
                 let errorMessage;
                 if (error.message && error.message.includes('401')) {
                     errorMessage = this.props.intl.formatMessage(messages.authError);
@@ -250,11 +266,30 @@ const GeminiModalHOC = function (WrappedComponent) {
                     errorMessage = this.props.intl.formatMessage(messages.apiError);
                 }
 
-                this.setState({
+                // Remove the pending user message from history on error
+                this.setState(prevState => ({
                     isLoading: false,
-                    error: errorMessage
-                });
+                    error: errorMessage,
+                    chatHistory: prevState.chatHistory.slice(0, -1)
+                }));
             }
+        }
+
+        /**
+         * Cancel the current in-flight Gemini request.
+         * Stops the timers, aborts the fetch, and removes the pending user message.
+         */
+        handleCancel () {
+            if (!this.state.isLoading) {
+                return;
+            }
+            this._clearTimers();
+            this.geminiAPI.cancelRequest();
+            // Remove the pending user message (the last entry added optimistically)
+            this.setState(prevState => ({
+                isLoading: false,
+                chatHistory: prevState.chatHistory.slice(0, -1)
+            }));
         }
 
         handleApplyCode () {
@@ -278,10 +313,10 @@ const GeminiModalHOC = function (WrappedComponent) {
         }
 
         handleInputKeyDown (e) {
-            // Send on Enter (without Shift), but not during IME composition
-            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+            // Do NOT send on Enter key - user must click the send button
+            // Prevent accidental submission; a future option may be Cmd/Shift+Enter
+            if (e.key === 'Enter') {
                 e.preventDefault();
-                this.handleSend();
             }
         }
 
@@ -310,6 +345,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                             inputValue={this.state.inputValue}
                             onClose={this.handleCloseModal}
                             onSend={this.handleSend}
+                            onCancel={this.handleCancel}
                             onApplyCode={this.handleApplyCode}
                             onClearHistory={this.handleClearHistory}
                             onInputChange={this.handleInputChange}

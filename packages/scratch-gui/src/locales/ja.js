@@ -335,7 +335,8 @@ export default {
     'gui.geminiModal.gemini': 'スモウルビー先生',
     'gui.geminiModal.authError': '認証に失敗しました。もう一度お試しください。',
     'gui.geminiModal.apiError': 'Gemini APIエラーが発生しました。もう一度お試しください。',
-    'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（30秒）。もう一度お試しください。',
+    'gui.geminiModal.cancel': '中断',
+    'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2分）。もう一度お試しください。',
 
     // Tutorials
     'gui.howtos.getting-started.name': 'さあ、始めましょう',

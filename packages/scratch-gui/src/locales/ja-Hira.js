@@ -335,7 +335,8 @@ export default {
     'gui.geminiModal.gemini': 'スモウルビーせんせい',
     'gui.geminiModal.authError': 'にんしょうにしっぱいしました。もういちどおためしください。',
     'gui.geminiModal.apiError': 'Gemini APIエラーがはっせいしました。もういちどおためしください。',
-    'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（30びょう）。もういちどおためしください。',
+    'gui.geminiModal.cancel': 'ちゅうだん',
+    'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2ふん）。もういちどおためしください。',
 
     // Tutorials
     'gui.howtos.getting-started.step.rubyTab': 'ブロックのつぎはルビー(Ruby)にチャレンジしてみよう！',
