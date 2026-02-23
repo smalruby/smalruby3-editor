@@ -566,9 +566,7 @@ class RubyTab extends React.Component {
     }
 
     handleApplyGeminiCode (code) {
-        if (this.editorRef) {
-            this.editorRef.setValue(code);
-        }
+        this.props.onChange(code);
     }
 
     clearExecutingLineHighlight () {

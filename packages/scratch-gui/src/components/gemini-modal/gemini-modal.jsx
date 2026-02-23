@@ -1,8 +1,12 @@
-import React, {useRef, useEffect} from 'react';
+import React, {useRef, useEffect, useState} from 'react';
 import PropTypes from 'prop-types';
+import Draggable from 'react-draggable';
 import {defineMessages, useIntl} from 'react-intl';
-import Modal from '../../containers/modal.jsx';
 import styles from './gemini-modal.css';
+
+const MODAL_WIDTH = 360;
+const MODAL_HEIGHT = 480;
+const MENU_BAR_HEIGHT = 48;
 
 const messages = defineMessages({
     title: {
@@ -80,6 +84,12 @@ const GeminiModal = ({
     const chatHistoryRef = useRef(null);
     const inputRef = useRef(null);
 
+    // Initial position: bottom-right area of the workspace
+    const [defaultPosition] = useState(() => ({
+        x: Math.max(0, window.innerWidth - MODAL_WIDTH - 20),
+        y: Math.max(0, window.innerHeight - MODAL_HEIGHT - MENU_BAR_HEIGHT - 20)
+    }));
+
     // Auto-scroll to bottom of chat history when new messages arrive
     useEffect(() => {
         if (chatHistoryRef.current) {
@@ -94,122 +104,135 @@ const GeminiModal = ({
         }
     }, [isVisible]);
 
+    if (!isVisible) return null;
+
     return (
-        <Modal
-            className={styles.modalContent}
-            contentLabel={intl.formatMessage(messages.title)}
-            onRequestClose={onClose}
-        >
-            <div className={styles.body}>
-                {/* Chat history */}
-                <div
-                    className={styles.chatHistory}
-                    ref={chatHistoryRef}
-                >
-                    {history.length === 0 ? (
-                        <div className={styles.emptyHistory}>
-                            {intl.formatMessage(messages.emptyHistory)}
-                        </div>
-                    ) : (
-                        history.map((msg, index) => (
-                            <div
-                                key={index}
-                                className={`${styles.chatMessage} ${
-                                    msg.role === 'user' ?
-                                        styles.chatMessageUser :
-                                        styles.chatMessageModel
-                                }`}
-                            >
-                                <span className={styles.chatLabel}>
-                                    {msg.role === 'user' ?
-                                        intl.formatMessage(messages.you) :
-                                        intl.formatMessage(messages.gemini)
-                                    }
-                                </span>
-                                <div
-                                    className={`${styles.chatBubble} ${
-                                        msg.role === 'user' ?
-                                            styles.chatBubbleUser :
-                                            styles.chatBubbleModel
-                                    }`}
-                                >
-                                    {msg.role === 'model' ?
-                                        msg.text.replace(/```ruby[\s\S]*?```/g, '[Rubyコード]') :
-                                        msg.text
-                                    }
-                                </div>
-                            </div>
-                        ))
-                    )}
-                    {isLoading && (
-                        <div className={styles.loadingIndicator}>
-                            {intl.formatMessage(messages.thinking)}
-                        </div>
-                    )}
-                </div>
-
-                {/* Error message */}
-                {error && (
-                    <div className={styles.errorMessage}>
-                        {error}
+        <div className={styles.overlay}>
+            <Draggable
+                defaultPosition={defaultPosition}
+                handle={`.${styles.header}`}
+                bounds="parent"
+            >
+                <div className={styles.panel}>
+                    {/* Draggable header */}
+                    <div className={styles.header}>
+                        <span className={styles.headerTitle}>
+                            {intl.formatMessage(messages.title)}
+                        </span>
+                        <button
+                            className={styles.headerCloseButton}
+                            onClick={onClose}
+                        >
+                            {'✕'}
+                        </button>
                     </div>
-                )}
 
-                {/* Generated code preview */}
-                {latestCode && (
-                    <div className={styles.codePreviewSection}>
-                        <div className={styles.codePreviewHeader}>
-                            <span>{intl.formatMessage(messages.generatedCode)}</span>
+                    <div className={styles.body}>
+                        {/* Chat history */}
+                        <div
+                            className={styles.chatHistory}
+                            ref={chatHistoryRef}
+                        >
+                            {history.length === 0 ? (
+                                <div className={styles.emptyHistory}>
+                                    {intl.formatMessage(messages.emptyHistory)}
+                                </div>
+                            ) : (
+                                history.map((msg, index) => (
+                                    <div
+                                        key={index}
+                                        className={`${styles.chatMessage} ${
+                                            msg.role === 'user' ?
+                                                styles.chatMessageUser :
+                                                styles.chatMessageModel
+                                        }`}
+                                    >
+                                        <span className={styles.chatLabel}>
+                                            {msg.role === 'user' ?
+                                                intl.formatMessage(messages.you) :
+                                                intl.formatMessage(messages.gemini)
+                                            }
+                                        </span>
+                                        <div
+                                            className={`${styles.chatBubble} ${
+                                                msg.role === 'user' ?
+                                                    styles.chatBubbleUser :
+                                                    styles.chatBubbleModel
+                                            }`}
+                                        >
+                                            {msg.role === 'model' ?
+                                                msg.text.replace(/```ruby[\s\S]*?```/g, '[Rubyコード]') :
+                                                msg.text
+                                            }
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                            {isLoading && (
+                                <div className={styles.loadingIndicator}>
+                                    {intl.formatMessage(messages.thinking)}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Error message */}
+                        {error && (
+                            <div className={styles.errorMessage}>
+                                {error}
+                            </div>
+                        )}
+
+                        {/* Generated code preview */}
+                        {latestCode && (
+                            <div className={styles.codePreviewSection}>
+                                <div className={styles.codePreviewHeader}>
+                                    <span>{intl.formatMessage(messages.generatedCode)}</span>
+                                    <button
+                                        className={styles.applyButton}
+                                        onClick={onApplyCode}
+                                    >
+                                        {intl.formatMessage(messages.applyCode)}
+                                    </button>
+                                </div>
+                                <pre className={styles.codePreview}>{latestCode}</pre>
+                            </div>
+                        )}
+
+                        {/* Input area */}
+                        <div className={styles.inputArea}>
+                            <textarea
+                                ref={inputRef}
+                                className={styles.messageInput}
+                                placeholder={intl.formatMessage(messages.inputPlaceholder)}
+                                value={inputValue}
+                                onChange={onInputChange}
+                                onKeyDown={onInputKeyDown}
+                                disabled={isLoading}
+                                rows={1}
+                            />
                             <button
-                                className={styles.applyButton}
-                                onClick={onApplyCode}
+                                className={styles.sendButton}
+                                onClick={onSend}
+                                disabled={isLoading || !inputValue.trim()}
                             >
-                                {intl.formatMessage(messages.applyCode)}
+                                {intl.formatMessage(messages.send)}
                             </button>
                         </div>
-                        <pre className={styles.codePreview}>{latestCode}</pre>
+
+                        {/* Footer */}
+                        <div className={styles.footer}>
+                            <button
+                                className={styles.clearButton}
+                                onClick={onClearHistory}
+                                disabled={isLoading}
+                            >
+                                {intl.formatMessage(messages.clearHistory)}
+                            </button>
+                        </div>
                     </div>
-                )}
-
-                {/* Input area */}
-                <div className={styles.inputArea}>
-                    <textarea
-                        ref={inputRef}
-                        className={styles.messageInput}
-                        placeholder={intl.formatMessage(messages.inputPlaceholder)}
-                        value={inputValue}
-                        onChange={onInputChange}
-                        onKeyDown={onInputKeyDown}
-                        disabled={isLoading}
-                        rows={1}
-                    />
-                    <button
-                        className={styles.sendButton}
-                        onClick={onSend}
-                        disabled={isLoading || !inputValue.trim()}
-                    >
-                        {intl.formatMessage(messages.send)}
-                    </button>
                 </div>
-
-                {/* Footer */}
-                <div className={styles.footer}>
-                    <button
-                        className={styles.clearButton}
-                        onClick={onClearHistory}
-                        disabled={isLoading}
-                    >
-                        {intl.formatMessage(messages.clearHistory)}
-                    </button>
-                    <button
-                        className={styles.closeButton}
-                        onClick={onClose}
-                    >
-                        {intl.formatMessage(messages.close)}
-                    </button>
-                </div>
-            </div>
-        </Modal>
+            </Draggable>
+        </div>
     );
 };
 
