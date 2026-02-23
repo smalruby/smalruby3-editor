@@ -336,6 +336,7 @@ export default {
     'gui.geminiModal.authError': '認証に失敗しました。もう一度お試しください。',
     'gui.geminiModal.apiError': 'Gemini APIエラーが発生しました。もう一度お試しください。',
     'gui.geminiModal.cancel': '中断',
+    'gui.geminiModal.surprise': 'サプライズ！',
     'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2分）。もう一度お試しください。',
 
     // Tutorials

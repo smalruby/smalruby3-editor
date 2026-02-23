@@ -336,6 +336,7 @@ export default {
     'gui.geminiModal.authError': 'にんしょうにしっぱいしました。もういちどおためしください。',
     'gui.geminiModal.apiError': 'Gemini APIエラーがはっせいしました。もういちどおためしください。',
     'gui.geminiModal.cancel': 'ちゅうだん',
+    'gui.geminiModal.surprise': 'サプライズ！',
     'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2ふん）。もういちどおためしください。',
 
     // Tutorials
