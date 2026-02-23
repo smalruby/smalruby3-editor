@@ -327,7 +327,7 @@ export default {
     'gui.geminiModal.clearHistory': '会話をリセット',
     'gui.geminiModal.inputPlaceholder': '作りたいものを教えてください...',
     'gui.geminiModal.send': '送信',
-    'gui.geminiModal.thinking': 'Gemini が考えています...',
+    'gui.geminiModal.thinking': 'Gemini が考えています... ({seconds}秒)',
     'gui.geminiModal.generatedCode': '生成されたコード',
     'gui.geminiModal.applyCode': 'コードを適用',
     'gui.geminiModal.emptyHistory': '作りたいプログラムを教えてください！例: 「ネコがマウスを追いかける」',
@@ -335,6 +335,7 @@ export default {
     'gui.geminiModal.gemini': 'Gemini',
     'gui.geminiModal.authError': '認証に失敗しました。もう一度お試しください。',
     'gui.geminiModal.apiError': 'Gemini APIエラーが発生しました。もう一度お試しください。',
+    'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（30秒）。もう一度お試しください。',
 
     // Tutorials
     'gui.howtos.getting-started.name': 'さあ、始めましょう',

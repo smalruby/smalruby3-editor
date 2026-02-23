@@ -36,8 +36,8 @@ const messages = defineMessages({
     },
     thinking: {
         id: 'gui.geminiModal.thinking',
-        defaultMessage: 'Gemini is thinking...',
-        description: 'Loading indicator text'
+        defaultMessage: 'Gemini is thinking... ({seconds}s)',
+        description: 'Loading indicator text with elapsed seconds'
     },
     generatedCode: {
         id: 'gui.geminiModal.generatedCode',
@@ -70,6 +70,7 @@ const GeminiModal = ({
     isVisible,
     history,
     isLoading,
+    loadingSeconds,
     error,
     latestCode,
     inputValue,
@@ -183,7 +184,8 @@ const GeminiModal = ({
                             )}
                             {isLoading && (
                                 <div className={styles.loadingIndicator}>
-                                    {intl.formatMessage(messages.thinking)}
+                                    <span className={styles.loadingSpinner} />
+                                    {intl.formatMessage(messages.thinking, {seconds: loadingSeconds})}
                                 </div>
                             )}
                         </div>
@@ -256,6 +258,7 @@ GeminiModal.propTypes = {
         text: PropTypes.string.isRequired
     })).isRequired,
     isLoading: PropTypes.bool.isRequired,
+    loadingSeconds: PropTypes.number,
     error: PropTypes.string,
     latestCode: PropTypes.string,
     inputValue: PropTypes.string.isRequired,
@@ -268,6 +271,7 @@ GeminiModal.propTypes = {
 };
 
 GeminiModal.defaultProps = {
+    loadingSeconds: 0,
     error: null,
     latestCode: null
 };

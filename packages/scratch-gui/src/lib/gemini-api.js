@@ -63,6 +63,8 @@ class GeminiAPI {
             const data = await response.json();
 
             const responseText = data.candidates[0].content.parts[0].text;
+            console.log('[GeminiAPI] Response received:', responseText);
+            console.log('[GeminiAPI] Code block extracted:', GeminiAPI.extractCodeBlock(responseText));
             const modelTurn = {
                 role: 'model',
                 parts: [{text: responseText}]
@@ -128,17 +130,25 @@ class GeminiAPI {
      * @returns {string|null} Extracted code or null if not found
      */
     static extractCodeBlock (text) {
-        // Match ```ruby ... ``` or ``` ... ```
-        const rubyMatch = text.match(/```ruby\n([\s\S]*?)```/);
+        // Match ```ruby ... ``` (with optional whitespace after ruby)
+        const rubyMatch = text.match(/```ruby[ \t]*\r?\n([\s\S]*?)```/);
         if (rubyMatch) {
             return rubyMatch[1].trim();
         }
 
-        const genericMatch = text.match(/```\n([\s\S]*?)```/);
+        // Match ``` ... ``` (generic code block)
+        const genericMatch = text.match(/```[ \t]*\r?\n([\s\S]*?)```/);
         if (genericMatch) {
             return genericMatch[1].trim();
         }
 
+        // Match ```ruby content``` without newline (edge case)
+        const inlineMatch = text.match(/```ruby([\s\S]*?)```/);
+        if (inlineMatch) {
+            return inlineMatch[1].trim();
+        }
+
+        console.warn('[GeminiAPI] No code block found in response:', text.substring(0, 200));
         return null;
     }
 }

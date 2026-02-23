@@ -8,6 +8,8 @@ import VM from '@smalruby/scratch-vm';
 import GeminiAPI from '../lib/gemini-api';
 import GeminiModal from '../components/gemini-modal/gemini-modal.jsx';
 
+const TIMEOUT_SECONDS = 30;
+
 const messages = defineMessages({
     authError: {
         id: 'gui.geminiModal.authError',
@@ -18,6 +20,11 @@ const messages = defineMessages({
         id: 'gui.geminiModal.apiError',
         defaultMessage: 'Gemini API error. Please try again.',
         description: 'Error shown when Gemini API call fails'
+    },
+    timeoutError: {
+        id: 'gui.geminiModal.timeoutError',
+        defaultMessage: 'Request timed out (30 seconds). Please try again.',
+        description: 'Error shown when Gemini API request times out'
     }
 });
 
@@ -123,10 +130,14 @@ const GeminiModalHOC = function (WrappedComponent) {
                 isModalOpen: false,
                 chatHistory: [], // [{role: 'user'|'model', text: string}]
                 isLoading: false,
+                loadingSeconds: 0,
                 error: null,
                 latestCode: null,
                 inputValue: ''
             };
+
+            this._timerInterval = null;
+            this._timeoutTimer = null;
 
             this.handleOpenModal = this.handleOpenModal.bind(this);
             this.handleCloseModal = this.handleCloseModal.bind(this);
@@ -137,6 +148,35 @@ const GeminiModalHOC = function (WrappedComponent) {
             this.handleInputKeyDown = this.handleInputKeyDown.bind(this);
             this.handleRegisterApplyCallback = this.handleRegisterApplyCallback.bind(this);
             this._applyGeminiCode = null;
+        }
+
+        componentWillUnmount () {
+            this._clearTimers();
+        }
+
+        _startTimers () {
+            this.setState({loadingSeconds: 0});
+            this._timerInterval = setInterval(() => {
+                this.setState(prev => ({loadingSeconds: prev.loadingSeconds + 1}));
+            }, 1000);
+            this._timeoutTimer = setTimeout(() => {
+                this._clearTimers();
+                this.setState({
+                    isLoading: false,
+                    error: this.props.intl.formatMessage(messages.timeoutError)
+                });
+            }, TIMEOUT_SECONDS * 1000);
+        }
+
+        _clearTimers () {
+            if (this._timerInterval) {
+                clearInterval(this._timerInterval);
+                this._timerInterval = null;
+            }
+            if (this._timeoutTimer) {
+                clearTimeout(this._timeoutTimer);
+                this._timeoutTimer = null;
+            }
         }
 
         handleOpenModal () {
@@ -162,6 +202,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                 return;
             }
 
+            this._startTimers();
             this.setState({
                 isLoading: true,
                 error: null,
@@ -190,6 +231,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                 const modelMessage = {role: 'model', text: responseText};
                 const latestCode = GeminiAPI.extractCodeBlock(responseText);
 
+                this._clearTimers();
                 this.setState(prevState => ({
                     chatHistory: [...prevState.chatHistory, modelMessage],
                     latestCode: latestCode,
@@ -198,9 +240,12 @@ const GeminiModalHOC = function (WrappedComponent) {
             } catch (error) {
                 console.error('[GeminiModalHOC] Error calling Gemini API:', error);
 
+                this._clearTimers();
                 let errorMessage;
                 if (error.message && error.message.includes('401')) {
                     errorMessage = this.props.intl.formatMessage(messages.authError);
+                } else if (error.message && error.message.includes('timeout')) {
+                    errorMessage = this.props.intl.formatMessage(messages.timeoutError);
                 } else {
                     errorMessage = this.props.intl.formatMessage(messages.apiError);
                 }
@@ -259,6 +304,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                             isVisible={this.state.isModalOpen}
                             history={this.state.chatHistory}
                             isLoading={this.state.isLoading}
+                            loadingSeconds={this.state.loadingSeconds}
                             error={this.state.error}
                             latestCode={this.state.latestCode}
                             inputValue={this.state.inputValue}

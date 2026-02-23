@@ -327,7 +327,7 @@ export default {
     'gui.geminiModal.clearHistory': 'かいわをリセット',
     'gui.geminiModal.inputPlaceholder': 'つくりたいものをおしえてください...',
     'gui.geminiModal.send': 'そうしん',
-    'gui.geminiModal.thinking': 'Gemini がかんがえています...',
+    'gui.geminiModal.thinking': 'Gemini がかんがえています... ({seconds}びょう)',
     'gui.geminiModal.generatedCode': 'せいせいされたコード',
     'gui.geminiModal.applyCode': 'コードをてきよう',
     'gui.geminiModal.emptyHistory': 'つくりたいプログラムをおしえてください！れい: 「ネコがマウスをおいかける」',
@@ -335,6 +335,7 @@ export default {
     'gui.geminiModal.gemini': 'Gemini',
     'gui.geminiModal.authError': 'にんしょうにしっぱいしました。もういちどおためしください。',
     'gui.geminiModal.apiError': 'Gemini APIエラーがはっせいしました。もういちどおためしください。',
+    'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（30びょう）。もういちどおためしください。',
 
     // Tutorials
     'gui.howtos.getting-started.step.rubyTab': 'ブロックのつぎはルビー(Ruby)にチャレンジしてみよう！',
