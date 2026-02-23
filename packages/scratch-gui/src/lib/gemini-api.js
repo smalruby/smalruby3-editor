@@ -5,14 +5,14 @@
  * Communicates with Google Gemini API using the OAuth 2.0 access token
  * from GoogleDriveAPI (shared authentication).
  *
- * API: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
+ * API: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent
  * Auth: Bearer token from Google Identity Services
  */
 
 import googleDriveAPI from './google-drive-api';
 import {buildSystemInstruction} from './gemini-context';
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-3-flash-preview';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**
