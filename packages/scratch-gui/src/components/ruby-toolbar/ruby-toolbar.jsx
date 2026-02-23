@@ -63,7 +63,7 @@ const messages = defineMessages({
     },
     aiAssistant: {
         id: 'gui.rubyToolbar.aiAssistant',
-        defaultMessage: 'AI Assistant (Gemini)',
+        defaultMessage: 'Smalruby Teacher (Gemini)',
         description: 'Tooltip for AI assistant button'
     },
     stage: {

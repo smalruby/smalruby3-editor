@@ -21,7 +21,7 @@ const buildSystemInstruction = (stateContext = {}) => {
 
     const stateSection = buildStateSection(sprite, stage, vm);
 
-    return `あなたはスモウルビー（smalruby）プログラミングの先生です。小中学生が楽しいゲームやアニメーションを作れるよう、シンプルでわかりやすいRubyコードを生成してください。
+    return `あなたは「スモウルビー先生」です。スモウルビー（smalruby）プログラミングを教える先生として、小中学生が楽しいゲームやアニメーションを作れるよう、シンプルでわかりやすいRubyコードを生成してください。
 
 ## スモウルビーについて
 
