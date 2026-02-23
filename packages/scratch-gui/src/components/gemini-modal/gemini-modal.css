@@ -1,0 +1,249 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+
+.modalContent {
+    min-width: 560px;
+    max-width: 700px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    background-color: $ui-white;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Chat history area */
+.chatHistory {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background-color: #f8f8f8;
+    min-height: 200px;
+    max-height: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.chatMessage {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.chatMessageUser {
+    align-items: flex-end;
+}
+
+.chatMessageModel {
+    align-items: flex-start;
+}
+
+.chatBubble {
+    padding: 0.5rem 0.75rem;
+    border-radius: 1rem;
+    max-width: 85%;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.chatBubbleUser {
+    background-color: $motion-primary;
+    color: $ui-white;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.chatBubbleModel {
+    background-color: #e8e8e8;
+    color: $text-primary;
+    border-bottom-left-radius: 0.25rem;
+}
+
+.chatLabel {
+    font-size: 0.7rem;
+    color: $text-primary-transparent;
+    padding: 0 0.5rem;
+}
+
+/* Code preview area */
+.codePreviewSection {
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+}
+
+.codePreviewHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.applyButton {
+    padding: 0.3rem 0.75rem;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 500;
+    background-color: $looks-secondary;
+    color: $ui-white;
+    transition: background-color 0.2s;
+}
+
+.applyButton:hover {
+    background-color: $looks-tertiary;
+}
+
+.codePreview {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    padding: 0.75rem;
+    margin: 0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    max-height: 150px;
+    overflow-y: auto;
+    white-space: pre;
+}
+
+/* Input area */
+.inputArea {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+}
+
+.messageInput {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    resize: vertical;
+    min-height: 2.5rem;
+    max-height: 8rem;
+}
+
+.messageInput:focus {
+    outline: none;
+    border-color: $motion-primary;
+}
+
+.messageInput:disabled {
+    background-color: #f0f0f0;
+    cursor: not-allowed;
+}
+
+.sendButton {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    font-weight: 500;
+    background-color: $motion-primary;
+    color: $ui-white;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    height: 2.5rem;
+}
+
+.sendButton:hover:not(:disabled) {
+    background-color: $motion-tertiary;
+}
+
+.sendButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Status messages */
+.loadingIndicator {
+    text-align: center;
+    color: $text-primary-transparent;
+    font-size: 0.8rem;
+    padding: 0.5rem;
+    font-style: italic;
+}
+
+.errorMessage {
+    background-color: #ffeaea;
+    border: 1px solid #ffaaaa;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: #cc0000;
+}
+
+/* Footer */
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid $ui-black-transparent;
+    margin-top: 0.5rem;
+}
+
+.clearButton {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 500;
+    background-color: $ui-white;
+    color: $text-primary;
+    transition: background-color 0.2s;
+}
+
+.clearButton:hover {
+    background-color: $ui-black-transparent;
+}
+
+.closeButton {
+    padding: 0.4rem 0.75rem;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 500;
+    background-color: $ui-black-transparent;
+    color: $text-primary;
+    transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+    background-color: #cccccc;
+}
+
+.emptyHistory {
+    text-align: center;
+    color: $text-primary-transparent;
+    font-size: 0.85rem;
+    padding: 2rem 1rem;
+    font-style: italic;
+}
