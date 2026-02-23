@@ -5,46 +5,52 @@
 ## Monorepo Root Commands
 ```bash
 # Install dependencies
-docker compose run --rm app bash -c "npm install"
+docker compose run --rm app npm install
 
-# Build all packages
-docker compose run --rm app bash -c "npm run build"
+# Build all packages (production)
+docker compose run --rm app npm run build
 
-# Build in development mode
-docker compose run --rm app bash -c "npm run build:dev"
+# Build in development mode (faster, with source maps)
+docker compose run --rm app npm run build:dev
 
-# Run all tests (unit and integration)
-docker compose run --rm app bash -c "npm test"
+# Run all tests (lint + unit + integration)
+docker compose run --rm app npm test
 
 # Run unit tests only
-docker compose run --rm app bash -c "npm run test:unit"
+docker compose run --rm app npm run test:unit
 
 # Run integration tests only
-docker compose run --rm app bash -c "npm run test:integration"
+docker compose run --rm app npm run test:integration
 
 # Run lint for all packages
-docker compose run --rm app bash -c "npm run lint"
+docker compose run --rm app npm run lint
 ```
 
 ## Package-Specific Commands
-You can run commands for specific packages by changing to their directory.
 
-### Scratch VM
+### Scratch VM (unit tests use tap)
 ```bash
-# Run VM tests
+# Run all VM tests
 docker compose run --rm app bash -c "cd /app/packages/scratch-vm && npm test"
 
-# Run specific tap tests
-docker compose run --rm app bash -c "cd /app/packages/scratch-vm && npm run tap:unit"
+# Run a specific unit test file
+docker compose run --rm app bash -c "cd /app/packages/scratch-vm && npm exec tap test/unit/specific-file.js"
 ```
 
-### Scratch GUI
+### Scratch GUI (unit and integration tests use jest)
 ```bash
 # Run GUI unit tests
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:unit"
 
+# Run a specific unit test file
+docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/unit/path/to/test.test.js"
+
 # Run GUI integration tests (requires build:dev first)
-docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run build:dev && npm run test:integration"
+docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run build:dev"
+docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:integration"
+
+# Run a specific integration test file
+docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/integration/specific.test.js"
 ```
 
 ## System Utilities (Darwin)
