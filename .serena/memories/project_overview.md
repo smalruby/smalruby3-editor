@@ -11,8 +11,18 @@ Smalruby 3 is a Ruby-based visual programming environment forked from Scratch 3.
 - **Monorepo Management**: npm workspaces
 
 ## Codebase Structure
-- `packages/scratch-gui`: The React web interface.
-- `packages/scratch-vm`: The execution engine.
+- `packages/scratch-gui`: React web interface. Key subdirectories:
+  - `src/lib/ruby-to-blocks-converter/`: Ruby AST (prism) → Scratch blocks
+  - `src/lib/ruby-generator/`: Scratch blocks → Ruby source
+  - `src/containers/ruby-tab/`: Monaco Editor integration and tab switching
+  - `src/lib/prism-parser.js`: @ruby/prism WASM loader (browser + Node.js)
+- `packages/scratch-vm`: Scratch VM — executes projects, manages block runtime.
 - `packages/scratch-render`: WebGL rendering engine.
 - `packages/scratch-svg-renderer`: SVG rendering engine.
-- `packages/task-herder`: Task management/tracking utility.
+- `packages/task-herder`: Async task queue with throttling.
+
+## Key Rules Files
+- `.claude/rules/scratch-gui/development.md`: Testing philosophy, Ruby mode architecture, commands
+- `.claude/rules/scratch-vm/development.md`: VM-specific commands and patterns
+- `.claude/rules/code-style.md`: ESLint, naming conventions, React/Redux patterns
+- `.claude/rules/git-workflow.md`: Branching, Conventional Commits, PR workflow
