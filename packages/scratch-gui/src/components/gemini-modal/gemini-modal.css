@@ -55,7 +55,6 @@
 .ai-icon {
     height: 22px;
     width: 22px;
-    filter: brightness(0) invert(1);
 }
 
 .close-button {
