@@ -1,10 +1,11 @@
 # Smalruby 3 Editor Monorepo
 
-Smalruby 3 is a Ruby-based visual programming environment forked from Scratch 3.0. It allows users to write Ruby code which is transpiled to JavaScript using Opal and executed within the Scratch VM.
+Smalruby 3 is a Ruby-based visual programming environment forked from Scratch 3.0. Users write Ruby code in a Monaco Editor; the code is parsed by @ruby/prism (WASM) and converted to/from Scratch blocks within the browser.
 
 ## Tech Stack
-- **Frontend**: React, Redux, Ace Editor (for Ruby code editing)
-- **Runtime**: Node.js/JavaScript (Scratch VM), Opal (Ruby-to-JS transpiler)
+- **Frontend**: React, Redux, Monaco Editor (for Ruby code editing)
+- **Parser**: @ruby/prism (WebAssembly-based Ruby parser — runs in browser and Node.js)
+- **Runtime**: Node.js/JavaScript (Scratch VM)
 - **Rendering**: WebGL (scratch-render), SVG (scratch-svg-renderer)
 - **Environment**: Docker-based development environment
 - **Monorepo Management**: npm workspaces

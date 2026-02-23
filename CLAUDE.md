@@ -11,7 +11,7 @@ This is the **Smalruby 3 Editor** monorepo - a Ruby-based visual programming env
 This project uses npm workspaces with the following packages:
 
 - **`packages/scratch-gui`**: React-based web interface with Ruby mode, custom extensions, and Google Drive integration
-- **`packages/scratch-vm`**: Virtual machine that executes projects, with Opal integration for Ruby execution
+- **`packages/scratch-vm`**: Virtual machine that executes projects and manages blocks
 - **`packages/scratch-render`**: WebGL-based rendering engine for sprites and backdrops
 - **`packages/scratch-svg-renderer`**: SVG processing for vector images
 - **`packages/task-herder`**: Asynchronous task queue with throttling and concurrency control
@@ -98,14 +98,14 @@ docker compose run --rm app npm run test:integration
 
 **IMPORTANT**: `test:unit` and `test:integration` commands do NOT accept file arguments. To run individual test files, use `npm exec` (or `npx`):
 
-For unit tests (uses tap):
+For unit tests:
 
 ```bash
-# scratch-vm unit tests
+# scratch-vm unit tests (uses tap)
 docker compose run --rm app bash -c "cd packages/scratch-vm && npm exec tap test/unit/specific-file.js"
 
-# scratch-gui unit tests
-docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec tap test/unit/specific-file.test.js"
+# scratch-gui unit tests (uses jest)
+docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest test/unit/specific-file.test.js"
 ```
 
 For integration tests (uses jest):
@@ -130,11 +130,14 @@ docker compose run --rm app npm run clean
 
 ## Smalruby-Specific Features
 
-### Ruby Mode with Opal
+### Ruby Mode with @ruby/prism
 
-Smalruby integrates [Opal](https://opalrb.com/) to transpile Ruby code into JavaScript that runs within the Scratch VM. The `scratch-vm` package handles Ruby execution, while `scratch-gui` provides the Ruby code editor (Monaco Editor) and UI.
+Smalruby provides a Ruby code editor (Monaco Editor) in `scratch-gui`. Ruby code is parsed using [@ruby/prism](https://github.com/ruby/prism) (a WebAssembly-based Ruby parser) and converted to/from Scratch blocks within the browser.
 
-**Opal Setup**: The `packages/scratch-gui` package runs `npm run setup:opal` automatically before builds to generate `static/javascripts/setup-opal.js` from Opal sources.
+- **Parser**: `@ruby/prism` — parses Ruby source into an AST (WebAssembly, runs in browser and Node.js)
+- **Ruby → Blocks**: `src/lib/ruby-to-blocks-converter/` — converts prism AST nodes into Scratch blocks
+- **Blocks → Ruby**: `src/lib/ruby-generator/` — generates Ruby source from Scratch block data
+- **Integration**: `src/containers/ruby-tab/` — Monaco Editor integration and tab switching logic
 
 ### Google Drive Integration
 
@@ -157,7 +160,7 @@ Custom Smalruby extensions are located in `packages/scratch-vm/src/extensions/`:
 
 Each package has its own development workflow. See package-specific rules in `.claude/rules/`:
 
-- `.claude/rules/scratch-gui/` - GUI development, Opal integration, testing
+- `.claude/rules/scratch-gui/` - GUI development, Ruby mode, testing
 - `.claude/rules/scratch-vm/` - VM development, extensions, playground
 - `.claude/rules/scratch-render/` - Rendering engine development
 - `.claude/rules/scratch-svg-renderer/` - SVG processing

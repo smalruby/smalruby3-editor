@@ -53,17 +53,17 @@ docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm test"
 # Lint only
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:lint"
 
-# Unit tests only
+# Unit tests only (uses jest)
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:unit"
 
-# Run specific unit test (does not use tap)
+# Run specific unit test file
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/unit/your-test.test.js"
 
 # Integration tests only (requires build first)
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run build:dev"
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:integration"
 
-# Run specific test (does not use tap)
+# Run specific integration test file
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run build:dev"
 docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm exec jest test/integration/your-test.test.js"
 
@@ -76,26 +76,94 @@ docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run tes
 ## Key Directories
 
 - `src/`: React components and application code
-  - `containers/ruby-tab/`: Ruby code editor integration
-  - `lib/ruby-to-blocks-converter/`: Ruby-to-blocks conversion logic
-  - `lib/ruby-generator/`: Blocks-to-Ruby code generation
+  - `containers/ruby-tab/`: Ruby code editor integration (Monaco Editor + tab switching)
+  - `lib/ruby-to-blocks-converter/`: Ruby AST → Scratch blocks conversion logic
+  - `lib/ruby-generator/`: Scratch blocks → Ruby code generation
+  - `lib/prism-parser.js`: `@ruby/prism` WebAssembly loader (browser + Node.js)
+  - `lib/ruby-parser.js`: High-level Ruby parsing interface
 - `test/`: Test files
-  - `test/unit/`: Unit tests
-  - `test/integration/`: Integration tests (Selenium-based)
+  - `test/unit/`: Unit tests (jest)
+  - `test/integration/`: Integration tests (jest + Selenium)
   - `test/smoke/`: Smoke tests
-- `scripts/`: Build and setup scripts
-  - `scripts/makePWAAssetsManifest.js`: PWA manifest generation
-  - `scripts/postbuild.mjs`: Post-build processing
 
 ## Ruby Mode Integration
+
+### Parser: @ruby/prism
+
+Ruby code is parsed using [@ruby/prism](https://github.com/ruby/prism), a WebAssembly-based Ruby parser. The WASM module runs both in the browser and in Node.js (for tests).
+
+- **Entry point**: `src/lib/prism-parser.js` — loads the WASM module and caches the prism instance
+- **High-level API**: `src/lib/ruby-parser.js` — wraps prism-parser for use by converters
+
+### Ruby ↔ Blocks Conversion
+
+| Direction | Directory | Description |
+|-----------|-----------|-------------|
+| Ruby → Blocks | `src/lib/ruby-to-blocks-converter/` | Walks prism AST, creates Scratch block data |
+| Blocks → Ruby | `src/lib/ruby-generator/` | Generates Ruby source from block tree |
+
+**Key files in `ruby-to-blocks-converter/`:**
+- `index.js` — entry point, orchestrates conversion
+- `ast-handlers/` — handlers for each prism AST node type
+- `converter-registry.js` — registry mapping block opcodes to converters
+- `register-converters.js` — registers all converter modules
+- `target-applier.js` — applies converted blocks to a Scratch target (VM)
+- `scope-manager.js` — variable/scope tracking during conversion
 
 ### Monaco Editor
 
 Ruby code editing uses Monaco Editor (`@monaco-editor/react`). The Ruby editor is integrated in `src/containers/ruby-tab/`.
 
-### Ruby-to-Blocks Conversion
+## Testing Philosophy for Ruby ↔ Blocks Conversion
 
-The `src/lib/ruby-to-blocks-converter/` directory contains logic for converting Ruby code back to Scratch blocks.
+### General Policy
+
+- **Unit tests are preferred** for all Ruby ↔ Blocks conversion logic
+- A VM mock is available, so most conversion behavior can be tested without a real browser
+- Extend the VM mock (add methods/state) as needed to cover new cases
+- Integration tests are reserved for behavior that genuinely requires a browser environment
+
+### When to Use Unit Tests (`test/unit/`)
+
+Use unit tests for:
+- Ruby → Blocks conversion (`ruby-to-blocks-converter/`)
+- Blocks → Ruby generation (`ruby-generator/`)
+- Round-trip correctness (Ruby → Blocks → Ruby)
+- Individual converter modules (motion, looks, sound, control, etc.)
+- Parser behavior (`prism-parser.js`, `ruby-parser.js`)
+- Snippet completion logic (`snippets-completer.js`)
+
+**Key unit test directories:**
+- `test/unit/lib/ruby-to-blocks-converter/` — converter unit tests
+- `test/unit/lib/ruby-generator/` — generator unit tests
+
+### When to Use Integration Tests (`test/integration/`)
+
+Use integration tests **only** for behavior that cannot be tested in unit tests:
+- Tab switching timing (Ruby tab ↔ Blocks tab)
+- Monaco Editor lifecycle (mount, unmount, editor readiness)
+- UI interactions that depend on browser rendering or actual DOM timing
+- End-to-end flows requiring a real build (e.g., `ruby-tab.test.js`)
+
+**Key integration test files:**
+- `test/integration/ruby-tab.test.js` — tab switching, editor lifecycle
+- `test/integration/ruby-tab-completion-and-indent.test.js` — Monaco completion/indent behavior
+- `test/integration/ruby-tab/` — additional Ruby tab integration scenarios
+
+### Test Structure Example
+
+```javascript
+// Unit test: ruby-to-blocks-converter
+import {createRubyToBlocksConverter} from '../../../src/lib/ruby-to-blocks-converter';
+
+describe('motion converter', () => {
+    test('should convert move(10) to motion_movesteps block', async () => {
+        const converter = createRubyToBlocksConverter(mockVM);
+        const blocks = await converter.convertRuby('move(10)');
+        expect(blocks).toMatchBlock({ opcode: 'motion_movesteps' });
+    });
+});
+```
 
 ## Google Drive Integration
 
@@ -159,3 +227,5 @@ The GUI is built as a PWA. Assets and manifest are generated by:
 - Hot module replacement (HMR) is enabled in development mode
 - The app uses scratch-blocks (Blockly fork) for visual block programming
 - CSS modules are used for styling (except raw.css files and driver.js)
+- Unit tests use jest with jsdom environment (configured in `package.json`)
+- The `@ruby/prism` WASM module requires special jest transform configuration (see `package.json`)
