@@ -432,6 +432,17 @@ const RubyToolbar = props => {
                         </div>
                     )}
                 </div>
+                <button
+                    className={styles.iconButton}
+                    onClick={handleOpenAI}
+                    aria-label={intl.formatMessage(messages.aiAssistant)}
+                    title={intl.formatMessage(messages.aiAssistant)}
+                >
+                    <img
+                        src={iconAI}
+                        alt=""
+                    />
+                </button>
             </div>
 
             {/* Download Part */}
@@ -444,21 +455,6 @@ const RubyToolbar = props => {
                 >
                     <img
                         src={iconDownload}
-                        alt=""
-                    />
-                </button>
-            </div>
-
-            {/* AI Assistant Part */}
-            <div className={`${styles.toolbarPart} ${styles.modRight}`}>
-                <button
-                    className={styles.iconButton}
-                    onClick={handleOpenAI}
-                    aria-label={intl.formatMessage(messages.aiAssistant)}
-                    title={intl.formatMessage(messages.aiAssistant)}
-                >
-                    <img
-                        src={iconAI}
                         alt=""
                     />
                 </button>
