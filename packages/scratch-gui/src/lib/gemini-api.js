@@ -95,7 +95,7 @@ class GeminiAPI {
                 window.smalruby.gemini.exchanges.push({
                     userMessage,
                     responseText,
-                    codeBlock: GeminiAPI.extractCodeBlock(responseText),
+                    codeBlocks: GeminiAPI.extractAllCodeBlocks(responseText),
                     elapsedMs,
                     timestamp: new Date().toISOString()
                 });
@@ -170,31 +170,33 @@ class GeminiAPI {
     }
 
     /**
-     * Extract a Ruby code block from Gemini's markdown response
+     * Extract a Ruby code block from Gemini's markdown response (first match only)
      * @param {string} text - Response text from Gemini
      * @returns {string|null} Extracted code or null if not found
      */
     static extractCodeBlock (text) {
-        // Match ```ruby ... ``` (with optional whitespace after ruby)
-        const rubyMatch = text.match(/```ruby[ \t]*\r?\n([\s\S]*?)```/);
-        if (rubyMatch) {
-            return rubyMatch[1].trim();
-        }
+        const blocks = GeminiAPI.extractAllCodeBlocks(text);
+        return blocks.length > 0 ? blocks[0] : null;
+    }
 
-        // Match ``` ... ``` (generic code block)
-        const genericMatch = text.match(/```[ \t]*\r?\n([\s\S]*?)```/);
-        if (genericMatch) {
-            return genericMatch[1].trim();
+    /**
+     * Extract all Ruby code blocks from Gemini's markdown response
+     * @param {string} text - Response text from Gemini
+     * @returns {string[]} Array of extracted code blocks (may be empty)
+     */
+    static extractAllCodeBlocks (text) {
+        const blocks = [];
+        // Match ```ruby ... ``` or ``` ... ``` (global)
+        const pattern = /```(?:ruby)?[ \t]*\r?\n([\s\S]*?)```/g;
+        let match = pattern.exec(text);
+        while (match !== null) {
+            const code = match[1].trim();
+            if (code) {
+                blocks.push(code);
+            }
+            match = pattern.exec(text);
         }
-
-        // Match ```ruby content``` without newline (edge case)
-        const inlineMatch = text.match(/```ruby([\s\S]*?)```/);
-        if (inlineMatch) {
-            return inlineMatch[1].trim();
-        }
-
-        console.warn('[GeminiAPI] No code block found in response:', text.substring(0, 200));
-        return null;
+        return blocks;
     }
 }
 

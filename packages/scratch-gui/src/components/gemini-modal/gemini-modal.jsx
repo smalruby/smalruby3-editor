@@ -104,33 +104,127 @@ const markedOptions = {
     gfm: true
 };
 
+// Shared renderer for non-code markdown (no code block renderer needed)
+const markdownRenderer = new marked.Renderer();
+markdownRenderer.link = (_href, _title, linkText) => linkText;
+markdownRenderer.html = () => '';
+// Suppress fenced code blocks in non-code segments (they shouldn't appear)
+markdownRenderer.code = (code, language) => {
+    const lang = language && hljs.getLanguage(language) ? language : null;
+    const highlighted = lang ?
+        hljs.highlight(code, {language: lang}).value :
+        hljs.highlightAuto(code).value;
+    return `<pre class="hljs-pre"><code class="hljs">${highlighted}</code></pre>`;
+};
+marked.use({renderer: markdownRenderer, ...markedOptions});
+
 /**
- * Render Gemini model response as safe Markdown HTML with syntax highlighting.
- * Strips raw HTML, disables external links, and applies highlight.js to code blocks.
- * @param {string} text - Raw markdown text from Gemini
+ * Render plain Markdown text (no code blocks) as safe HTML.
+ * @param {string} text - Markdown text (without fenced code blocks)
  * @returns {string} Safe HTML string
  */
-const renderMarkdown = text => {
-    // Custom renderer: disable links, highlight Ruby code blocks
-    const renderer = new marked.Renderer();
+const renderMarkdownText = text => marked.parse(text);
 
-    // Disable external links - render as plain text
-    renderer.link = (_href, _title, linkText) => linkText;
+/**
+ * Split a Gemini response into alternating text/code segments.
+ * Returns an array like: [{type:'text', content:'...'}, {type:'code', content:'...'}, ...]
+ * @param {string} text - Raw markdown text from Gemini
+ * @returns {Array<{type:string, content:string}>} Segments
+ */
+const splitIntoSegments = text => {
+    const segments = [];
+    // Match ```ruby ... ``` or ``` ... ```
+    const pattern = /```(?:ruby)?[ \t]*\r?\n([\s\S]*?)```/g;
+    let lastIndex = 0;
+    let match = pattern.exec(text);
+    while (match !== null) {
+        // Text before this code block
+        if (match.index > lastIndex) {
+            const textContent = text.slice(lastIndex, match.index);
+            if (textContent.trim()) {
+                segments.push({type: 'text', content: textContent});
+            }
+        }
+        // Code block
+        segments.push({type: 'code', content: match[1].trim()});
+        lastIndex = match.index + match[0].length;
+        match = pattern.exec(text);
+    }
+    // Remaining text after last code block
+    if (lastIndex < text.length) {
+        const textContent = text.slice(lastIndex);
+        if (textContent.trim()) {
+            segments.push({type: 'text', content: textContent});
+        }
+    }
+    return segments;
+};
 
-    // Disable raw HTML in output
-    renderer.html = () => '';
+/**
+ * Renders one model (Gemini) response bubble with per-code-block apply buttons.
+ * @param {object} props - Component props
+ * @param {string} props.text - Raw markdown text from Gemini
+ * @param {boolean} props.isLast - Whether this is the last model message
+ * @param {boolean} props.isLoading - Whether a request is in progress
+ * @param {string[]} props.latestCodes - Code blocks extracted from the last response
+ * @param {Function} props.onApplyCode - Click handler for apply button (reads data-index)
+ * @param {string} props.applyLabel - Translated label for the apply button
+ * @param {string} props.applyNoteLabel - Translated disclaimer note text
+ */
+const ModelMessageContent = ({text, isLast, isLoading, latestCodes, onApplyCode, applyLabel, applyNoteLabel}) => {
+    const segments = splitIntoSegments(text);
+    let codeIndex = 0;
+    return segments.map((seg, segIdx) => {
+        if (seg.type === 'text') {
+            return (
+                <div
+                    key={segIdx}
+                    className={styles.markdownContent}
+                    /* eslint-disable-next-line react/no-danger */
+                    dangerouslySetInnerHTML={{__html: renderMarkdownText(seg.content)}}
+                />
+            );
+        }
+        // Code segment
+        const highlighted = hljs.highlight(seg.content, {language: 'ruby'}).value;
+        const currentCodeIndex = codeIndex;
+        codeIndex++;
+        const showButton = isLast && !isLoading && latestCodes[currentCodeIndex] === seg.content;
+        return (
+            <div key={segIdx}>
+                {/* eslint-disable react/no-danger */}
+                <pre className={styles.codeBlock}>
+                    <code
+                        className="hljs"
+                        dangerouslySetInnerHTML={{__html: highlighted}}
+                    />
+                </pre>
+                {/* eslint-enable react/no-danger */}
+                {showButton && (
+                    <div className={styles.applyButtonContainer}>
+                        <button
+                            className={styles.applyButton}
+                            data-index={currentCodeIndex}
+                            onClick={onApplyCode}
+                        >
+                            {applyLabel}
+                        </button>
+                        <p className={styles.applyCodeNote}>{applyNoteLabel}</p>
+                    </div>
+                )}
+            </div>
+        );
+    });
+};
 
-    // Code block with syntax highlighting
-    renderer.code = (code, language) => {
-        const lang = language && hljs.getLanguage(language) ? language : null;
-        const highlighted = lang ?
-            hljs.highlight(code, {language: lang}).value :
-            hljs.highlightAuto(code).value;
-        return `<pre class="hljs-pre"><code class="hljs">${highlighted}</code></pre>`;
-    };
-
-    marked.use({renderer, ...markedOptions});
-    return marked.parse(text);
+ModelMessageContent.propTypes = {
+    text: PropTypes.string.isRequired,
+    isLast: PropTypes.bool.isRequired,
+    isLoading: PropTypes.bool.isRequired,
+    latestCodes: PropTypes.arrayOf(PropTypes.string).isRequired,
+    onApplyCode: PropTypes.func.isRequired,
+    applyLabel: PropTypes.string.isRequired,
+    applyNoteLabel: PropTypes.string.isRequired
 };
 
 const GeminiModal = ({
@@ -139,7 +233,7 @@ const GeminiModal = ({
     isLoading,
     loadingSeconds,
     error,
-    latestCode,
+    latestCodes,
     inputValue,
     onClose,
     onSend,
@@ -178,10 +272,13 @@ const GeminiModal = ({
         onInputChange({target: {value: randomPrompt}});
     }, [onInputChange]);
 
-    if (!isVisible) return null;
+    // Apply code button: read code index from data-index attribute to avoid arrow function in JSX
+    const handleApplyCodeClick = useCallback(e => {
+        const idx = parseInt(e.currentTarget.dataset.index, 10);
+        onApplyCode(idx);
+    }, [onApplyCode]);
 
-    // Find whether the last message in history has code (for Apply button)
-    const hasLatestCode = Boolean(latestCode);
+    if (!isVisible) return null;
 
     return (
         <div className={styles.overlay}>
@@ -248,26 +345,15 @@ const GeminiModal = ({
                                                 </div>
                                             ) : (
                                                 <div className={styles.chatBubbleModel}>
-                                                    <div
-                                                        className={styles.markdownContent}
-                                                        /* eslint-disable-next-line react/no-danger */
-                                                        dangerouslySetInnerHTML={{
-                                                            __html: renderMarkdown(msg.text)
-                                                        }}
+                                                    <ModelMessageContent
+                                                        text={msg.text}
+                                                        isLast={isLastModel}
+                                                        isLoading={isLoading}
+                                                        latestCodes={latestCodes}
+                                                        onApplyCode={handleApplyCodeClick}
+                                                        applyLabel={intl.formatMessage(messages.applyCode)}
+                                                        applyNoteLabel={intl.formatMessage(messages.applyCodeNote)}
                                                     />
-                                                    {isLastModel && hasLatestCode && !isLoading && (
-                                                        <div className={styles.applyButtonContainer}>
-                                                            <button
-                                                                className={styles.applyButton}
-                                                                onClick={onApplyCode}
-                                                            >
-                                                                {intl.formatMessage(messages.applyCode)}
-                                                            </button>
-                                                            <p className={styles.applyCodeNote}>
-                                                                {intl.formatMessage(messages.applyCodeNote)}
-                                                            </p>
-                                                        </div>
-                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -357,7 +443,7 @@ GeminiModal.propTypes = {
     isLoading: PropTypes.bool.isRequired,
     loadingSeconds: PropTypes.number,
     error: PropTypes.string,
-    latestCode: PropTypes.string,
+    latestCodes: PropTypes.arrayOf(PropTypes.string),
     inputValue: PropTypes.string.isRequired,
     onClose: PropTypes.func.isRequired,
     onSend: PropTypes.func.isRequired,
@@ -371,7 +457,7 @@ GeminiModal.propTypes = {
 GeminiModal.defaultProps = {
     loadingSeconds: 0,
     error: null,
-    latestCode: null
+    latestCodes: []
 };
 
 export default GeminiModal;

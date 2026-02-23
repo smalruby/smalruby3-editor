@@ -132,7 +132,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                 isLoading: false,
                 loadingSeconds: 0,
                 error: null,
-                latestCode: null,
+                latestCodes: [], // all code blocks from the last model response
                 inputValue: ''
             };
 
@@ -235,12 +235,12 @@ const GeminiModalHOC = function (WrappedComponent) {
                 );
 
                 const modelMessage = {role: 'model', text: responseText};
-                const latestCode = GeminiAPI.extractCodeBlock(responseText);
+                const latestCodes = GeminiAPI.extractAllCodeBlocks(responseText);
 
                 this._clearTimers();
                 this.setState(prevState => ({
                     chatHistory: [...prevState.chatHistory, modelMessage],
-                    latestCode: latestCode,
+                    latestCodes: latestCodes,
                     isLoading: false
                 }));
             } catch (error) {
@@ -292,10 +292,11 @@ const GeminiModalHOC = function (WrappedComponent) {
             }));
         }
 
-        handleApplyCode () {
-            const {latestCode} = this.state;
-            if (latestCode && this._applyGeminiCode) {
-                this._applyGeminiCode(latestCode);
+        handleApplyCode (index) {
+            const {latestCodes} = this.state;
+            const code = latestCodes[index];
+            if (code && this._applyGeminiCode) {
+                this._applyGeminiCode(code);
             }
         }
 
@@ -303,7 +304,7 @@ const GeminiModalHOC = function (WrappedComponent) {
             this.geminiAPI.clearHistory();
             this.setState({
                 chatHistory: [],
-                latestCode: null,
+                latestCodes: [],
                 error: null
             });
         }
@@ -338,7 +339,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                             isLoading={this.state.isLoading}
                             loadingSeconds={this.state.loadingSeconds}
                             error={this.state.error}
-                            latestCode={this.state.latestCode}
+                            latestCodes={this.state.latestCodes}
                             inputValue={this.state.inputValue}
                             onClose={this.handleCloseModal}
                             onSend={this.handleSend}

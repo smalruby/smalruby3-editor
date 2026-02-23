@@ -183,6 +183,26 @@
     font-size: 0.9em;
 }
 
+/* Standalone code block (rendered directly, not inside .markdown-content) */
+.code-block {
+    background-color: #1e1e1e;
+    border-radius: 4px;
+    margin: 0.5em 0;
+    overflow-x: auto;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.code-block :global(.hljs) {
+    display: block;
+    padding: 10px 14px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85em;
+    line-height: 1.5;
+    background: transparent;
+    color: #d4d4d4;
+}
+
 /* Code block with highlight.js */
 .markdown-content :global(.hljs-pre) {
     background-color: #1e1e1e;
