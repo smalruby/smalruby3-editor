@@ -96,6 +96,28 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         resourceQuery: /^$/, // reject any query string
         type: 'asset' // let webpack decide on the best type of asset
     })
+    .addModuleRule({
+        // Load Ruby bootstrap script as a raw string for the TypeProf Web Worker
+        test: /typeprof-bootstrap\.rb$/,
+        type: 'asset/source'
+    })
+    .addPlugin(new webpack.DefinePlugin({
+        // Inject the TypeProf bootstrap Ruby script into the worker bundle
+        __TYPEPROF_BOOTSTRAP_CODE__: webpack.DefinePlugin.runtimeValue(
+            () => {
+                const rbPath = path.resolve(
+                    __dirname,
+                    'src/containers/ruby-tab/typeprof-bootstrap.rb'
+                );
+                return JSON.stringify(fs.readFileSync(rbPath, 'utf-8'));
+            },
+            {
+                fileDependencies: [
+                    path.resolve(__dirname, 'src/containers/ruby-tab/typeprof-bootstrap.rb')
+                ]
+            }
+        )
+    }))
     .addPlugin(new webpack.DefinePlugin({
         'process.env.DEBUG': Boolean(process.env.DEBUG),
         'process.env.GA_ID': `"${process.env.GA_ID || 'UA-000000-01'}"`,

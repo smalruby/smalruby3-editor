@@ -126,6 +126,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-context-menu": "2.2.16",
     "@ruby/prism": "^1.9.0",
+    "@ruby/wasm-wasi": "^2.8.1",
     "@smalruby/scratch-render": "12.6.2",
     "@smalruby/scratch-svg-renderer": "12.6.2",
     "@smalruby/scratch-vm": "12.6.2",

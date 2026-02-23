@@ -1,0 +1,120 @@
+# RBS type definitions for Smalruby built-in methods
+# These methods are available in sprite scripts.
+
+# Smalruby sprite class (the implicit self in sprite scripts)
+class SmalrubySprite
+  # Motion
+  def move: (Numeric steps) -> void
+  def turn_right: (Numeric degrees) -> void
+  def turn_left: (Numeric degrees) -> void
+  def go_to: (String target) -> void
+          | ([Numeric, Numeric] xy) -> void
+  def glide: (String target, secs: Numeric) -> void
+           | ([Numeric, Numeric] xy, secs: Numeric) -> void
+  def point_towards: (String target) -> void
+  def bounce_if_on_edge: -> void
+  def x: -> Float
+  def x=: (Numeric value) -> void
+  def y: -> Float
+  def y=: (Numeric value) -> void
+  def direction: -> Float
+  def direction=: (Numeric degrees) -> void
+  def rotation_style=: (String style) -> void
+
+  # Looks
+  def say: (String message) -> void
+         | (String message, Numeric secs) -> void
+  def think: (String message) -> void
+           | (String message, Numeric secs) -> void
+  def switch_costume: (String name) -> void
+  def next_costume: -> void
+  def switch_backdrop: (String name) -> void
+  def next_backdrop: -> void
+  def show: -> void
+  def hide: -> void
+  def go_layers: (Integer n, String direction) -> void
+  def change_effect_by: (String effect, Numeric delta) -> void
+  def set_effect: (String effect, Numeric value) -> void
+  def clear_graphic_effects: -> void
+  def size: -> Float
+  def size=: (Numeric percent) -> void
+  def costume_number: -> Integer
+  def costume_name: -> String
+  def backdrop_number: -> Integer
+  def backdrop_name: -> String
+
+  # Sound
+  def play_sound: (String name) -> void
+  def play_sound_until_done: (String name) -> void
+  def stop_all_sounds: -> void
+  def volume: -> Float
+  def volume=: (Numeric percent) -> void
+
+  # Events
+  def broadcast: (String message) -> void
+  def broadcast_and_wait: (String message) -> void
+
+  # Control
+  def stop: (String what) -> void
+  def create_clone: (String target) -> void
+  def delete_this_clone: -> void
+
+  # Sensing
+  def touching?: (String target) -> bool
+  def touching_color?: (String color) -> bool
+  def color_is_touching_color?: (String color1, String color2) -> bool
+  def distance: (String target) -> Float
+  def ask: (String question) -> void
+  def answer: -> String
+  def drag_mode=: (String mode) -> void
+  def loudness: -> Float
+  def days_since_2000: -> Float
+  def user_name: -> String
+
+  # Procedures (custom blocks)
+  def define: (String name) -> void
+end
+
+# Keyboard class for key sensing
+class Keyboard
+  def self.pressed?: (String key) -> bool
+end
+
+# Mouse class for mouse sensing
+class Mouse
+  def self.down?: -> bool
+  def self.x: -> Float
+  def self.y: -> Float
+end
+
+# Timer class
+class Timer
+  def self.value: -> Float
+  def self.reset: -> void
+end
+
+# Sprite class for accessing other sprites
+class Sprite
+  def initialize: (String name) -> void
+  def x: -> Float
+  def y: -> Float
+  def direction: -> Float
+  def costume_number: -> Integer
+  def costume_name: -> String
+  def size: -> Float
+  def volume: -> Float
+end
+
+# Top-level function to access another sprite
+def sprite: (String name) -> Sprite
+
+# Stage for accessing stage properties
+class Stage
+  def backdrop_number: -> Integer
+  def backdrop_name: -> String
+  def volume: -> Float
+  def variable: (String name) -> untyped
+end
+
+# Top-level stage accessor
+def stage: -> Stage

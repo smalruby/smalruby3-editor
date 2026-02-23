@@ -23,6 +23,7 @@ import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
 
 import CompletionProviderManager from './ruby-tab/completion-provider-manager';
 import SnippetsCompleter from './ruby-tab/snippets-completer';
+import TypeProfLspClient from './ruby-tab/typeprof-lsp-client';
 import {smalrubyLanguage, smalrubyLanguageConfiguration} from './ruby-tab/smalruby-mode';
 
 import RubyDownloader from './ruby-downloader.jsx';
@@ -65,6 +66,7 @@ class RubyTab extends React.Component {
         this.containerRef = null;
         this.resizeObserver = null;
         this.completionProvider = null;
+        this.typeProfLspClient = null;
         this.lastProcessedVersion = props.rubyVersion;
         this.downloadCallbackRef = null;
         this.executingLineDecoration = null;
@@ -199,6 +201,10 @@ class RubyTab extends React.Component {
         if (this.completionProviderManager) {
             this.completionProviderManager.dispose();
             this.completionProviderManager = null;
+        }
+        if (this.typeProfLspClient) {
+            this.typeProfLspClient.dispose();
+            this.typeProfLspClient = null;
         }
         if (this.contentChangeListener) {
             this.contentChangeListener.dispose();
@@ -382,6 +388,19 @@ class RubyTab extends React.Component {
                 provideCompletionItems: (model, position, context, token) => (
                     completer.provideCompletionItems(model, position, context, token, monaco)
                 )
+            });
+        }
+
+        // Start TypeProf LSP client asynchronously (lazy loading).
+        // Snippet completion remains available immediately as fallback.
+        if (!this.typeProfLspClient) {
+            this.typeProfLspClient = new TypeProfLspClient(monaco, 'smalruby');
+            // ruby.wasm is placed in static/ by the webpack CopyPlugin
+            const wasmUrl = `${window.location.origin}/static/ruby.wasm`;
+            this.typeProfLspClient.start(wasmUrl).catch(err => {
+                // TypeProf is optional: snippet completion still works without it
+                // eslint-disable-next-line no-console
+                console.warn('TypeProf LSP failed to start:', err);
             });
         }
 

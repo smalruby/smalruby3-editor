@@ -36,6 +36,9 @@ src/generated/
 static/microbit/
 static/microbitMore/
 
+# Ruby WASM binary (53MB, downloaded during setup)
+static/ruby.wasm
+
 # Build output
 build/
 dist/

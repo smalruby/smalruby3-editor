@@ -144,9 +144,31 @@ const downloadMicrobitMoreHex = async () => {
     console.info(`Wrote ${relativeGeneratedFile}`);
 };
 
+const downloadRubyWasm = async () => {
+    const destPath = path.join(basePath, 'static', 'ruby.wasm');
+    if (fs.existsSync(destPath)) {
+        console.info('ruby.wasm already exists, skipping download');
+        return;
+    }
+    // Download the pre-built ruby.wasm from mame/typeprof.wasm GitHub releases.
+    // This binary includes TypeProf and its dependencies compiled to WebAssembly.
+    const url = 'https://github.com/mame/typeprof.wasm/releases/latest/download/ruby.wasm';
+    console.info(`Downloading ${url}`);
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to download ruby.wasm: ${response.status} ${response.statusText}`);
+    }
+    const wasmBuffer = Buffer.from(await response.arrayBuffer());
+    const staticDir = path.join(basePath, 'static');
+    fs.mkdirSync(staticDir, {recursive: true});
+    fs.writeFileSync(destPath, wasmBuffer);
+    console.info(`Wrote static/ruby.wasm (${(wasmBuffer.length / 1024 / 1024).toFixed(1)} MB)`);
+};
+
 const prepare = async () => {
     await downloadMicrobitHex();
     await downloadMicrobitMoreHex();
+    await downloadRubyWasm();
 };
 
 prepare().then(
