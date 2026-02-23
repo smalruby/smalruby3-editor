@@ -13,7 +13,12 @@ import {loadAllGoogleScripts} from './google-script-loader';
 // Using 'drive.file' scope to allow:
 // - Reading files selected by the user via Picker
 // - Uploading new files to Google Drive
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+// Adding 'generative-language' scope to allow:
+// - Calling Gemini API for AI-assisted code generation
+const SCOPES = [
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/generative-language'
+].join(' ');
 
 // Discovery docs for Google Drive API
 const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
@@ -32,6 +37,19 @@ class GoogleDriveAPI {
         this.tokenClient = null;
         this.accessToken = null;
         this.pickerCallback = null;
+    }
+
+    /**
+     * Check if the current access token is valid (not expired)
+     * @returns {boolean} True if token exists and is not expired
+     */
+    _isTokenValid () {
+        const token = window.gapi.client.getToken();
+        if (!token || !token.expires_at) {
+            return false;
+        }
+        // expires_at is in seconds since epoch; add 60s buffer to avoid edge cases
+        return (token.expires_at * 1000) > (Date.now() + 60000);
     }
 
     /**
@@ -99,13 +117,13 @@ class GoogleDriveAPI {
                 resolve(response.access_token);
             };
 
-            // Check if user already has valid token
-            if (this.accessToken && window.gapi.client.getToken()) {
+            // Check if user already has a valid, non-expired token
+            if (this.accessToken && this._isTokenValid()) {
                 resolve(this.accessToken);
                 return;
             }
 
-            // Request new token
+            // Request new token (prompt: '' = silent re-auth if session still valid)
             this.tokenClient.requestAccessToken({prompt: ''});
         });
     }
