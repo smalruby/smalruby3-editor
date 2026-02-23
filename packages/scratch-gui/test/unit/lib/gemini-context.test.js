@@ -57,14 +57,14 @@ describe('gemini-context', () => {
             expect(instruction).toContain('pen');
         });
 
-        test('should not include state section when no context provided', () => {
+        test('should not include state section header when no context provided', () => {
             const instruction = buildSystemInstruction();
-            expect(instruction).not.toContain('現在の状態');
+            expect(instruction).not.toContain('## 現在の状態');
         });
 
-        test('should not include state section when empty context provided', () => {
+        test('should not include state section header when empty context provided', () => {
             const instruction = buildSystemInstruction({});
-            expect(instruction).not.toContain('現在の状態');
+            expect(instruction).not.toContain('## 現在の状態');
         });
 
         test('should not include extensions section when vm has no extensions', () => {
@@ -106,10 +106,10 @@ describe('gemini-context', () => {
             expect(section).not.toContain('有効な拡張機能');
         });
 
-        test('should format sprite as JSON', () => {
+        test('should format sprite state in markdown', () => {
             const sprite = {name: 'TestSprite', x: 10};
             const section = buildStateSection(sprite, undefined, undefined);
-            expect(section).toContain('"name": "TestSprite"');
+            expect(section).toContain('### 現在編集中のスプライト: "TestSprite"');
         });
     });
 });
