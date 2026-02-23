@@ -21,6 +21,7 @@ import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
 
+import CompletionProviderManager from './ruby-tab/completion-provider-manager';
 import SnippetsCompleter from './ruby-tab/snippets-completer';
 import {smalrubyLanguage, smalrubyLanguageConfiguration} from './ruby-tab/smalruby-mode';
 
@@ -195,9 +196,9 @@ class RubyTab extends React.Component {
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
         }
-        if (this.completionProvider) {
-            this.completionProvider.dispose();
-            this.completionProvider = null;
+        if (this.completionProviderManager) {
+            this.completionProviderManager.dispose();
+            this.completionProviderManager = null;
         }
         if (this.contentChangeListener) {
             this.contentChangeListener.dispose();
@@ -374,9 +375,10 @@ class RubyTab extends React.Component {
         monaco.languages.setMonarchTokensProvider('smalruby', smalrubyLanguage);
         monaco.languages.setLanguageConfiguration('smalruby', smalrubyLanguageConfiguration);
 
-        if (!this.completionProvider) {
+        if (!this.completionProviderManager) {
+            this.completionProviderManager = new CompletionProviderManager();
             const completer = new SnippetsCompleter(this.props.vm);
-            this.completionProvider = monaco.languages.registerCompletionItemProvider('smalruby', {
+            this.completionProviderManager.register(monaco, 'smalruby', {
                 provideCompletionItems: (model, position, context, token) => (
                     completer.provideCompletionItems(model, position, context, token, monaco)
                 )
