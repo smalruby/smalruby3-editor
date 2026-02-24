@@ -303,3 +303,25 @@ jobs:
           full_commit_message: "Build for ${{ steps.branch.outputs.BRANCH_NAME }} (${{ github.sha }}) ${{ github.event.head_commit.message }}"
           destination_dir: ${{ steps.branch.outputs.BRANCH_NAME }}
           keep_files: true
+      - name: Comment preview URL on PR (once only)
+        if: |
+          github.event_name == 'pull_request' &&
+          (!(
+            github.ref == 'refs/heads/develop' ||
+            github.ref == 'refs/heads/master' ||
+            github.ref == 'refs/heads/main' ||
+            startsWith(github.ref, 'refs/heads/hotfix/') ||
+            startsWith(github.ref, 'refs/heads/dependabot/') ||
+            startsWith(github.ref, 'refs/heads/renovate/')
+          ))
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_URL: https://smalruby.jp/smalruby3-editor/${{ steps.branch.outputs.BRANCH_NAME }}/
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          ALREADY_COMMENTED=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json comments \
+            --jq "[.comments[].body | contains(\"$PREVIEW_URL\")] | any")
+          if [ "$ALREADY_COMMENTED" != "true" ]; then
+            gh pr comment "$PR_NUMBER" --repo ${{ github.repository }} \
+              --body "🚀 Preview deployed: $PREVIEW_URL"
+          fi
