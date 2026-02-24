@@ -72,6 +72,25 @@ describe('gemini-context', () => {
             const instruction = buildSystemInstruction(stateContext);
             expect(instruction).not.toContain('有効な拡張機能');
         });
+
+        test('should explain that loops automatically wait one frame per iteration', () => {
+            const instruction = buildSystemInstruction();
+            expect(instruction).toMatch(/loop.*1フレーム|ループ.*1フレーム|毎.*ループ.*自動|自動.*待機/);
+        });
+
+        test('should warn against using sleep for animation/FPS adjustment', () => {
+            const instruction = buildSystemInstruction();
+            expect(instruction).toMatch(/next_costume.*sleep|sleep.*next_costume|アニメーション.*sleep|sleep.*アニメーション/);
+        });
+
+        test('should not include sleep(0.1) in sample code blocks', () => {
+            const instruction = buildSystemInstruction();
+            // サンプルプログラム（```rubyブロック内）にsleep(0.1)が含まれていないこと
+            // コードブロックを抽出してチェック
+            const codeBlocks = instruction.match(/```ruby[\s\S]*?```/g) || [];
+            const codeContent = codeBlocks.join('\n');
+            expect(codeContent).not.toContain('sleep(0.1)');
+        });
     });
 
     describe('buildStateSection', () => {

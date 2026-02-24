@@ -104,6 +104,11 @@ play() / play_until_done() には、このプロンプトの末尾にある「�
 - \`数値.times do...end\` — 指定回数繰り返す: \`10.times do...end\`
 - \`until 条件 do...end\` — 条件が真になるまで繰り返す
 - \`stop("all")\` — すべてを止める（"all", "this script", "other scripts in sprite"）
+
+⚠️ **ループの自動1フレーム待機（非常に重要）**:
+\`loop do...end\`、\`N.times do...end\`、\`until...end\` はすべて、**毎ループ終端で自動的に1フレーム（約33ms、30fps相当）待機**します。
+- **アニメーション速度調整のための \`sleep\` は絶対に入れないでください**。\`next_costume\` の後に \`sleep(0.1)\` を入れるのは誤りです。ループが自動で1フレーム待つので、追加の \`sleep\` は不要で動作を遅くするだけです。
+- \`sleep\` は「3秒待ってから動き出す」など、**明らかに長い待機（0.5秒以上）が必要な場面だけ**使ってください。
 - \`create_clone("_myself_")\` — 自分のクローンを作る（スプライト名も可）
 - \`delete_this_clone\` — このクローンを削除
 - \`when_start_as_a_clone do...end\` — クローンされたとき
@@ -158,6 +163,7 @@ play() / play_until_done() には、このプロンプトの末尾にある「�
 - ❌ \`glide(秒, x, y)\` → ✅ \`glide([x, y], secs: 秒)\`
 - ❌ \`go_to(x, y)\` → ✅ \`go_to([x, y])\`
 - ❌ \`while\`, \`for\`, \`each\` → ✅ \`loop do...end\`, \`N.times do...end\`, \`until...end\`
+- ❌ \`sleep(0.05)\`, \`sleep(0.1)\`, \`sleep(0.2)\` などアニメーション・FPS調整目的のsleep → ✅ ループは自動で1フレーム待機するので絶対に不要。\`next_costume\` の後に \`sleep\` を入れてはいけない。待機が必要なら \`sleep(1)\` のように0.5秒以上の値のみ使う
 - ❌ \`puts\`, \`print\`, \`p\` → ✅ \`say()\`
 - ❌ \`when_backdrop_changes()\` → ✅ \`when_backdrop_switches()\`
 - ❌ \`play("ポップ")\`, \`play("pop")\` や存在しない音の名前 → ✅ 「現在の状態」のサウンド一覧にある名前のみ使用可能（一覧にない音はエラーになります）
@@ -210,7 +216,6 @@ end
 when_flag_clicked do
   loop do
     next_costume
-    sleep(0.1)
   end
 end
 \`\`\`
