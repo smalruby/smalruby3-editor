@@ -16,6 +16,11 @@ This project uses npm workspaces with the following packages:
 - **`packages/scratch-svg-renderer`**: SVG processing for vector images
 - **`packages/task-herder`**: Asynchronous task queue with throttling and concurrency control
 
+## Build & Test Commands
+
+- **Development builds**: Always use `build:dev` for development builds, never the default `build` command.
+- **Test runner**: Tests in `scratch-gui` use `jest` (not `tap`). Do not confuse test runners or their assertion APIs (e.g., use `expect().toEqual()` not `t.deepEqual()`). Only `scratch-vm` uses `tap`.
+
 ## Docker Environment
 
 **CRITICAL**: All npm commands MUST be run inside Docker containers. Never run npm commands directly on the host.
@@ -192,6 +197,18 @@ After changing environment variables, restart the service:
 docker compose restart app
 ```
 
+## Development Practices
+
+### Scope & Design Discipline
+
+- When fixing a bug pattern (e.g., `set_xxx` methods, log level changes), always check for **ALL instances** of the pattern across the codebase before proposing a fix. Do not fix only the reported instance.
+- When designing a fix, consider assignment/usage contexts (e.g., `flag = true`) not just standalone expressions.
+
+### Investigation Approach
+
+- For UI/browser bugs, prefer **reproducing with Playwright first** before deep code exploration. Don't spend extensive time reading code when the bug is visually reproducible.
+- When debugging block conversion issues, start from the user-facing symptom and trace inward, rather than guessing at coordinates or layout causes.
+
 ## Browser Debugging with Playwright MCP
 
 When verifying behavior in the browser using Playwright MCP, use the `window.smalruby` debug global object exposed by `packages/scratch-gui/src/containers/ruby-tab.jsx`:
@@ -230,12 +247,26 @@ Follow TDD (Test-Driven Development) approach:
 2. **GREEN**: Implement code to make tests pass
 3. **REFACTOR**: Improve code while keeping tests green (only when needed)
 
+### Testing Strategy
+
+- UI behavior and features that involve browser interaction should use **integration tests**, not unit tests.
+- After making any fix, run the **FULL test suite** before committing — not just the tests you think are affected. Fixes frequently cause regressions in unrelated test files (e.g., looks tests, phase tests).
+
 ## Key Directories
 
 - `packages/`: All workspace packages
 - `scripts/`: Monorepo-level build scripts
 - `.github/workflows/`: CI/CD configuration
 - `.claude/rules/`: Package-specific development rules
+
+### Locale / Translation Files
+
+Japanese locale files are located at:
+
+- `packages/scratch-gui/src/locales/ja.js` — Main Japanese locale (kanji/hiragana)
+- `packages/scratch-gui/src/locales/ja-Hira.js` — Hiragana-only (phonetic) locale
+
+Always check these paths first when adding or modifying user-facing strings.
 
 ## Cross-Package Dependencies
 
