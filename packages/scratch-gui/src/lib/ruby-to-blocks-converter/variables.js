@@ -300,6 +300,7 @@ const VariablesConverter = {
                         }
                     });
                     converter._addTextInput(block, 'VALUE', converter._isNumber(rh) ? rh.toString() : rh, '0');
+                    variable.dataType = converter._inferDataType(rh);
                     return block;
                 }
             } else if (scope === 'local' && !variable.isArgument) {
@@ -319,6 +320,7 @@ const VariablesConverter = {
                     block.comment = converter._createComment(commentText, block.id);
 
                     converter._addTextInput(block, 'VALUE', converter._isNumber(rh) ? rh.toString() : rh, '0');
+                    variable.dataType = converter._inferDataType(rh);
                     return block;
                 }
             }
