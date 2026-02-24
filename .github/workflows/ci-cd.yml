@@ -224,6 +224,21 @@ jobs:
           full_commit_message: "Build for ${{ github.sha }} ${{ github.event.head_commit.message }}"
           cname: smalruby.app
           external_repository: smalruby/smalruby.app
+      - name: Rebuild for smalruby3-editor GitHub Pages
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        env:
+          PUBLIC_PATH: /smalruby3-editor/
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MESH_GRAPHQL_ENDPOINT: ${{ secrets.MESH_GRAPHQL_ENDPOINT }}
+          MESH_API_KEY: ${{ secrets.MESH_API_KEY }}
+          MESH_AWS_REGION: ${{ secrets.MESH_AWS_REGION }}
+          MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
+          MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
+          MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+          GTM_ID: ''
+          GTM_ENV_AUTH: ''
+        run: cd packages/scratch-gui && npm exec node ./scripts/postbuild.mjs
       - name: Prepare deployment files
         if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         run: touch packages/scratch-gui/build/.nojekyll
