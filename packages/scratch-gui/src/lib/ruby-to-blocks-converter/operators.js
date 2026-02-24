@@ -8,6 +8,26 @@ const MathE = '::Math::E';
  */
 const OperatorsConverter = {
     register: function (converter) {
+        // String-typed variable + any: use operator_join (must be registered before the numeric + handler)
+        converter.registerOnSend('variable', '+', 1, params => {
+            const {receiver, args} = params;
+            const variable = converter.lookupVariableFromVariableBlock(receiver);
+            if (!variable || variable.dataType !== 'string') return null;
+
+            let rh = args[0];
+            if (_.isArray(rh)) {
+                if (rh.length !== 1) return null;
+                rh = rh[0];
+            }
+
+            if (!converter._isStringOrBlock(rh)) return null;
+
+            const block = converter._createBlock('operator_join', 'value');
+            converter._addTextInput(block, 'STRING1', receiver, 'apple');
+            converter._addTextInput(block, 'STRING2', converter._isNumber(rh) ? rh.toString() : rh, 'banana');
+            return block;
+        });
+
         converter.registerOnSend('self', 'rand', 1, params => {
             const {args} = params;
             if (!converter._isBlock(args[0]) || args[0].opcode !== 'ruby_range') return null;
@@ -80,6 +100,12 @@ const OperatorsConverter = {
                     rh = rh[0];
                 }
 
+                // Skip string-typed variables for + (handled by the dedicated string handler)
+                if (operator === '+' && converter.isVariableBlock(receiver)) {
+                    const variable = converter.lookupVariableFromVariableBlock(receiver);
+                    if (variable && variable.dataType === 'string') return null;
+                }
+
                 if (!converter._isNumberOrBlock(rh)) return null;
 
                 let opcode;
@@ -102,7 +128,7 @@ const OperatorsConverter = {
             });
         });
 
-        converter.registerOnSend(['variable', 'string', 'block'], '+', 1, params => {
+        converter.registerOnSend(['string', 'block'], '+', 1, params => {
             const {receiver, args} = params;
             let rh = args[0];
             if (_.isArray(rh)) {
