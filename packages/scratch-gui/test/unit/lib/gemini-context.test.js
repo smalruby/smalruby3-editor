@@ -78,9 +78,18 @@ describe('gemini-context', () => {
             expect(instruction).toMatch(/loop.*1フレーム|ループ.*1フレーム|毎.*ループ.*自動|自動.*待機/);
         });
 
-        test('should warn against using sleep with values less than 0.1', () => {
+        test('should warn against using sleep for animation/FPS adjustment', () => {
             const instruction = buildSystemInstruction();
-            expect(instruction).toMatch(/sleep.*0\.1未満|0\.1.*未満.*sleep|sleep.*不要|フレーム調整.*sleep/i);
+            expect(instruction).toMatch(/next_costume.*sleep|sleep.*next_costume|アニメーション.*sleep|sleep.*アニメーション/);
+        });
+
+        test('should not include sleep(0.1) in sample code blocks', () => {
+            const instruction = buildSystemInstruction();
+            // サンプルプログラム（```rubyブロック内）にsleep(0.1)が含まれていないこと
+            // コードブロックを抽出してチェック
+            const codeBlocks = instruction.match(/```ruby[\s\S]*?```/g) || [];
+            const codeContent = codeBlocks.join('\n');
+            expect(codeContent).not.toContain('sleep(0.1)');
         });
     });
 
