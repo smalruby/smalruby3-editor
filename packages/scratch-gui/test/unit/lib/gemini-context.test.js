@@ -72,6 +72,16 @@ describe('gemini-context', () => {
             const instruction = buildSystemInstruction(stateContext);
             expect(instruction).not.toContain('有効な拡張機能');
         });
+
+        test('should explain that loops automatically wait one frame per iteration', () => {
+            const instruction = buildSystemInstruction();
+            expect(instruction).toMatch(/loop.*1フレーム|ループ.*1フレーム|毎.*ループ.*自動|自動.*待機/);
+        });
+
+        test('should warn against using sleep with values less than 0.1', () => {
+            const instruction = buildSystemInstruction();
+            expect(instruction).toMatch(/sleep.*0\.1未満|0\.1.*未満.*sleep|sleep.*不要|フレーム調整.*sleep/i);
+        });
     });
 
     describe('buildStateSection', () => {

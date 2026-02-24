@@ -104,6 +104,11 @@ play() / play_until_done() には、このプロンプトの末尾にある「�
 - \`数値.times do...end\` — 指定回数繰り返す: \`10.times do...end\`
 - \`until 条件 do...end\` — 条件が真になるまで繰り返す
 - \`stop("all")\` — すべてを止める（"all", "this script", "other scripts in sprite"）
+
+⚠️ **ループの自動1フレーム待機（重要）**:
+\`loop do...end\`、\`N.times do...end\`、\`until...end\` はすべて、**毎ループ終端で自動的に1フレーム（約33ms、30fps相当）待機**します。
+そのため、**FPS調整のために \`sleep\` を入れる必要はありません**。\`sleep(0.05)\` や \`sleep(0.1)\` のような0.1秒未満の小さな値の \`sleep\` は不要で、むしろ動作を遅くするだけです。
+\`sleep\` は \`sleep(1)\` のように、意図的に長い待機が必要な場合のみ使ってください。
 - \`create_clone("_myself_")\` — 自分のクローンを作る（スプライト名も可）
 - \`delete_this_clone\` — このクローンを削除
 - \`when_start_as_a_clone do...end\` — クローンされたとき
@@ -158,6 +163,7 @@ play() / play_until_done() には、このプロンプトの末尾にある「�
 - ❌ \`glide(秒, x, y)\` → ✅ \`glide([x, y], secs: 秒)\`
 - ❌ \`go_to(x, y)\` → ✅ \`go_to([x, y])\`
 - ❌ \`while\`, \`for\`, \`each\` → ✅ \`loop do...end\`, \`N.times do...end\`, \`until...end\`
+- ❌ \`sleep(0.05)\`, \`sleep(0.1)\` などフレーム調整目的の0.1秒未満のsleep → ✅ ループは自動で1フレーム待機するので不要。長い待機だけ \`sleep(1)\` のように使う
 - ❌ \`puts\`, \`print\`, \`p\` → ✅ \`say()\`
 - ❌ \`when_backdrop_changes()\` → ✅ \`when_backdrop_switches()\`
 - ❌ \`play("ポップ")\`, \`play("pop")\` や存在しない音の名前 → ✅ 「現在の状態」のサウンド一覧にある名前のみ使用可能（一覧にない音はエラーになります）
