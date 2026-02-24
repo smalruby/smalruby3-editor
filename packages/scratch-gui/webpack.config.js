@@ -212,7 +212,8 @@ const buildConfig = baseConfig.clone()
             // Having `publicPath: '/'` (the default) means the `gui.js` file in `build/index.html`
             // would be looked for at the root of the filesystem, which is incorrect.
             // Hence, we're resetting the public path to be relative.
-            publicPath: ''
+            // PUBLIC_PATH can be set for GitHub Pages subdirectory deployments (e.g. /smalruby3-editor/).
+            publicPath: process.env.PUBLIC_PATH || ''
         }
     })
     .addPlugin(new HtmlWebpackPlugin({

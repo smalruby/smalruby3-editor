@@ -224,6 +224,21 @@ jobs:
           full_commit_message: "Build for ${{ github.sha }} ${{ github.event.head_commit.message }}"
           cname: smalruby.app
           external_repository: smalruby/smalruby.app
+      - name: Rebuild for smalruby3-editor GitHub Pages
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        env:
+          PUBLIC_PATH: /smalruby3-editor/
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          MESH_GRAPHQL_ENDPOINT: ${{ secrets.MESH_GRAPHQL_ENDPOINT }}
+          MESH_API_KEY: ${{ secrets.MESH_API_KEY }}
+          MESH_AWS_REGION: ${{ secrets.MESH_AWS_REGION }}
+          MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
+          MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
+          MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+          GTM_ID: ''
+          GTM_ENV_AUTH: ''
+        run: cd packages/scratch-gui && npm exec node ./scripts/postbuild.mjs
       - name: Prepare deployment files
         if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         run: touch packages/scratch-gui/build/.nojekyll
@@ -288,3 +303,25 @@ jobs:
           full_commit_message: "Build for ${{ steps.branch.outputs.BRANCH_NAME }} (${{ github.sha }}) ${{ github.event.head_commit.message }}"
           destination_dir: ${{ steps.branch.outputs.BRANCH_NAME }}
           keep_files: true
+      - name: Comment preview URL on PR (once only)
+        if: |
+          github.event_name == 'pull_request' &&
+          (!(
+            github.ref == 'refs/heads/develop' ||
+            github.ref == 'refs/heads/master' ||
+            github.ref == 'refs/heads/main' ||
+            startsWith(github.ref, 'refs/heads/hotfix/') ||
+            startsWith(github.ref, 'refs/heads/dependabot/') ||
+            startsWith(github.ref, 'refs/heads/renovate/')
+          ))
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_URL: https://smalruby.jp/smalruby3-editor/${{ steps.branch.outputs.BRANCH_NAME }}/
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          ALREADY_COMMENTED=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json comments \
+            --jq "[.comments[].body | contains(\"$PREVIEW_URL\")] | any")
+          if [ "$ALREADY_COMMENTED" != "true" ]; then
+            gh pr comment "$PR_NUMBER" --repo ${{ github.repository }} \
+              --body "🚀 Preview deployed: $PREVIEW_URL"
+          fi
