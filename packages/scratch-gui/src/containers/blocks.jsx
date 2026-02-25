@@ -225,6 +225,9 @@ class Blocks extends React.Component {
 
             window.dispatchEvent(new Event('resize'));
 
+            // Restore palette visibility state when switching back to the code tab
+            this._applyPaletteVisibility(this.props.paletteVisible);
+
             if (this._pendingScrollCenter) {
                 this._pendingScrollCenter = false;
                 if (this.workspace.options && this.workspace.options.zoomOptions) {
@@ -257,6 +260,7 @@ class Blocks extends React.Component {
         if (visible) {
             toolbox.HtmlDiv.style.display = '';
             if (extensionButton) extensionButton.style.display = '';
+            if (flyout.svgGroup_) flyout.svgGroup_.style.display = '';
             const selectedItem = toolbox.getSelectedItem();
             if (selectedItem) {
                 toolbox.setSelectedItem(selectedItem);
@@ -265,6 +269,10 @@ class Blocks extends React.Component {
             flyout.hide();
             toolbox.HtmlDiv.style.display = 'none';
             if (extensionButton) extensionButton.style.display = 'none';
+            // flyout.hide() only sets isVisible_=false, but workspace.setVisible(true)
+            // restores containerVisible_=true which makes updateDisplay_ show the flyout again.
+            // Directly hide the SVG group to ensure it stays hidden regardless of containerVisible_.
+            if (flyout.svgGroup_) flyout.svgGroup_.style.display = 'none';
         }
         this.ScratchBlocks.svgResize(this.workspace);
     }
@@ -318,6 +326,11 @@ class Blocks extends React.Component {
         const queue = this.toolboxUpdateQueue;
         this.toolboxUpdateQueue = [];
         queue.forEach(fn => fn());
+
+        // Re-apply palette visibility since updateToolbox/setFlyoutScrollPos may re-show the flyout
+        if (!this.props.paletteVisible) {
+            this._applyPaletteVisibility(false);
+        }
     }
 
     withToolboxUpdates (fn) {
