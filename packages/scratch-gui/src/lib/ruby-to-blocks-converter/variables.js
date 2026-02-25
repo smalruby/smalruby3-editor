@@ -263,7 +263,7 @@ const VariablesConverter = {
 
                     converter._addInput(block, 'VALUE', addBlock);
                 }
-            } else if (COMPOUND_OPERATOR_MAP.hasOwnProperty(operator)) {
+            } else if (Object.prototype.hasOwnProperty.call(COMPOUND_OPERATOR_MAP, operator)) {
                 const opcode = COMPOUND_OPERATOR_MAP[operator];
 
                 block = converter._createBlock('data_setvariableto', 'statement', {
