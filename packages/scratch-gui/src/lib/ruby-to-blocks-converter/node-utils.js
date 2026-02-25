@@ -232,7 +232,7 @@ const NodeUtils = {
      * Infer the data type of a value (literal or block).
      * Returns null if the type cannot be determined statically.
      * @param {*} value - A literal value or block object
-     * @returns {'string'|'number'|'boolean'|null}
+     * @returns {'string'|'number'|'boolean'|null} The inferred data type, or null if unknown
      */
     _inferDataType (value) {
         if (this._isString(value)) return 'string';
@@ -246,7 +246,7 @@ const NodeUtils = {
      * Determine the data type ('string', 'number', 'boolean') of a block's return value.
      * Returns null if the type cannot be determined statically.
      * @param {object} block - The block object
-     * @returns {'string'|'number'|'boolean'|null}
+     * @returns {'string'|'number'|'boolean'|null} The data type of the block's return value, or null if unknown
      */
     _getBlockDataType (block) {
         if (!this._isBlock(block)) return null;
