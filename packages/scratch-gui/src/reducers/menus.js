@@ -1,5 +1,6 @@
 const OPEN_MENU = 'scratch-gui/menus/OPEN_MENU';
 const CLOSE_MENU = 'scratch-gui/menus/CLOSE_MENU';
+const TOGGLE_MENU = 'scratch-gui/menus/TOGGLE_MENU';
 
 const MENU_ABOUT = 'aboutMenu';
 const MENU_ACCOUNT = 'accountMenu';
@@ -109,6 +110,24 @@ const reducer = function (state, action) {
             ...Object.fromEntries(toClose.map(({id}) => [id, false]))
         };
     }
+    case TOGGLE_MENU: {
+        const menu = rootMenu.findById(action.menu);
+        if (state[action.menu]) {
+            // Currently open: close this menu and any submenus
+            const toClose = [menu, ...menu.descendants()];
+            return {
+                ...state,
+                ...Object.fromEntries(toClose.map(({id}) => [id, false]))
+            };
+        }
+        // Currently closed: open it, closing siblings
+        const toClose = menu.siblings().flatMap(sibling => [sibling, ...sibling.descendants()]);
+        return {
+            ...state,
+            [action.menu]: true,
+            ...Object.fromEntries(toClose.map(({id}) => [id, false]))
+        };
+    }
     default:
         return state;
     }
@@ -119,6 +138,10 @@ const openMenu = menu => ({
 });
 const closeMenu = menu => ({
     type: CLOSE_MENU,
+    menu: menu
+});
+const toggleMenu = menu => ({
+    type: TOGGLE_MENU,
     menu: menu
 });
 
@@ -132,10 +155,12 @@ const accountMenuOpen = state => state.scratchGui.menus[MENU_ACCOUNT];
 
 const openEditMenu = () => openMenu(MENU_EDIT);
 const closeEditMenu = () => closeMenu(MENU_EDIT);
+const toggleEditMenu = () => toggleMenu(MENU_EDIT);
 const editMenuOpen = state => state.scratchGui.menus[MENU_EDIT];
 
 const openFileMenu = () => openMenu(MENU_FILE);
 const closeFileMenu = () => closeMenu(MENU_FILE);
+const toggleFileMenu = () => toggleMenu(MENU_FILE);
 const fileMenuOpen = state => state.scratchGui.menus[MENU_FILE];
 
 const openLanguageMenu = () => openMenu(MENU_LANGUAGE);
@@ -152,6 +177,7 @@ const modeMenuOpen = state => state.scratchGui.menus[MENU_MODE];
 
 const openSettingsMenu = () => openMenu(MENU_SETTINGS);
 const closeSettingsMenu = () => closeMenu(MENU_SETTINGS);
+const toggleSettingsMenu = () => toggleMenu(MENU_SETTINGS);
 const settingsMenuOpen = state => state.scratchGui.menus[MENU_SETTINGS];
 
 const openColorModeMenu = () => openMenu(MENU_COLOR_MODE);
@@ -185,9 +211,11 @@ export {
     accountMenuOpen,
     openEditMenu,
     closeEditMenu,
+    toggleEditMenu,
     editMenuOpen,
     openFileMenu,
     closeFileMenu,
+    toggleFileMenu,
     fileMenuOpen,
     openLanguageMenu,
     closeLanguageMenu,
@@ -200,6 +228,7 @@ export {
     modeMenuOpen,
     openSettingsMenu,
     closeSettingsMenu,
+    toggleSettingsMenu,
     settingsMenuOpen,
     openColorModeMenu,
     closeColorModeMenu,
