@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, {useMemo} from 'react';
+import React, {useCallback, useMemo} from 'react';
 import {FormattedMessage} from 'react-intl';
 import {connect} from 'react-redux';
 
@@ -57,6 +57,10 @@ const PreferenceMenu = ({
 }) => {
     const itemKeys = useMemo(() => Object.keys(itemsMap), [itemsMap]);
     const selectedItem = useMemo(() => itemsMap[selectedItemKey], [itemsMap, selectedItemKey]);
+    const handleClick = useCallback(e => {
+        e.stopPropagation();
+        onRequestOpen();
+    }, [onRequestOpen]);
     return (
         <MenuItem
             expanded={open}
@@ -64,7 +68,7 @@ const PreferenceMenu = ({
         >
             <div
                 className={styles.option}
-                onClick={onRequestOpen}
+                onClick={handleClick}
             >
                 <img
                     src={selectedItem.icon || defaultMenuIconSrc}

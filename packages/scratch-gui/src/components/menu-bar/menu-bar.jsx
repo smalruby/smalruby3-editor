@@ -78,11 +78,11 @@ import {
     openAccountMenu,
     closeAccountMenu,
     accountMenuOpen,
-    openFileMenu,
     closeFileMenu,
+    toggleFileMenu,
     fileMenuOpen,
-    openEditMenu,
     closeEditMenu,
+    toggleEditMenu,
     editMenuOpen,
     openLoginMenu,
     closeLoginMenu,
@@ -97,8 +97,8 @@ import {
     closeMeshV2Menu,
     meshV2MenuOpen,
     settingsMenuOpen,
-    openSettingsMenu,
-    closeSettingsMenu
+    closeSettingsMenu,
+    toggleSettingsMenu
 } from '../../reducers/menus';
 
 import {updateRubyCodeTarget} from '../../reducers/ruby-code';
@@ -1642,9 +1642,9 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onOpenKoshienTestModal: () => dispatch(openKoshienTestModal()),
     onClickAccount: () => dispatch(openAccountMenu()),
     onRequestCloseAccount: () => dispatch(closeAccountMenu()),
-    onClickFile: () => dispatch(openFileMenu()),
+    onClickFile: () => dispatch(toggleFileMenu()),
     onRequestCloseFile: () => dispatch(closeFileMenu()),
-    onClickEdit: () => dispatch(openEditMenu()),
+    onClickEdit: () => dispatch(toggleEditMenu()),
     onRequestCloseEdit: () => dispatch(closeEditMenu()),
     onClickKoshien: () => dispatch(openKoshienMenu()),
     onRequestCloseKoshien: () => dispatch(closeKoshienMenu()),
@@ -1656,7 +1656,7 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onRequestCloseMode: () => dispatch(closeModeMenu()),
     onRequestOpenAbout: () => dispatch(openAboutMenu()),
     onRequestCloseAbout: () => dispatch(closeAboutMenu()),
-    onClickSettings: () => dispatch(openSettingsMenu()),
+    onClickSettings: () => dispatch(toggleSettingsMenu()),
     onRequestCloseSettings: () => dispatch(closeSettingsMenu()),
     onClickNew: needSave => {
         dispatch(requestNewProject(needSave));

@@ -56,9 +56,14 @@ class Menu extends React.Component {
             target = target.parentElement;
         }
 
-        // Clicked outside the menu, close it
+        // Clicked outside the menu, close it after React event handlers execute
+        // In React 18, document mouseup fires before React synthetic click events,
+        // so delaying here allows the menu button's onClick (toggle) to run first.
+        // If the button's toggle already closed the menu, onRequestClose becomes a no-op.
         if (!this.menu.contains(e.target)) {
-            this.props.onRequestClose();
+            setTimeout(() => {
+                this.props.onRequestClose();
+            }, 0);
         }
     }
     ref (c) {

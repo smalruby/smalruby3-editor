@@ -2,7 +2,8 @@ import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
 import {
     SETTINGS_MENU_XPATH,
-    FILE_MENU_XPATH
+    FILE_MENU_XPATH,
+    EDIT_MENU_XPATH
 } from '../helpers/menu-xpaths';
 
 const {
@@ -166,5 +167,54 @@ describe('Menu bar settings', () => {
             const settingsMenu = await findByText(menu, scope.menuBar);
             expect(await settingsMenu.isDisplayed()).toBe(true);
         }
+    });
+
+    test('Settings menu closes when clicked again while open', async () => {
+        await loadUri(uri);
+        // Open the settings menu
+        await clickXpath(SETTINGS_MENU_XPATH);
+        // Verify it is open by checking for a menu item
+        const langOption = await findByXpath(
+            '//ul[contains(@class, "menu_menu")]'
+        );
+        expect(await langOption.isDisplayed()).toBe(true);
+        // Click the settings menu button again via JS to avoid interception by the open menu list
+        const settingsBtn = await driver.findElement({xpath: SETTINGS_MENU_XPATH});
+        await driver.executeScript('arguments[0].click()', settingsBtn);
+        // Wait for the menu to close
+        await driver.wait(async () => {
+            const openMenus = await driver.findElements({xpath: '//ul[contains(@class, "menu_menu")]'});
+            return openMenus.length === 0;
+        }, 5000, 'Settings menu did not close after second click');
+    });
+
+    test('File menu closes when clicked again while open', async () => {
+        await loadUri(uri);
+        await clickXpath(FILE_MENU_XPATH);
+        const menuList = await findByXpath('//ul[contains(@class, "menu_menu")]');
+        expect(await menuList.isDisplayed()).toBe(true);
+        // Click the file menu button again via JS to avoid interception by the open menu list
+        const fileBtn = await driver.findElement({xpath: FILE_MENU_XPATH});
+        await driver.executeScript('arguments[0].click()', fileBtn);
+        // Wait for the menu to close
+        await driver.wait(async () => {
+            const openMenus = await driver.findElements({xpath: '//ul[contains(@class, "menu_menu")]'});
+            return openMenus.length === 0;
+        }, 5000, 'File menu did not close after second click');
+    });
+
+    test('Edit menu closes when clicked again while open', async () => {
+        await loadUri(uri);
+        await clickXpath(EDIT_MENU_XPATH);
+        const menuList = await findByXpath('//ul[contains(@class, "menu_menu")]');
+        expect(await menuList.isDisplayed()).toBe(true);
+        // Click the edit menu button again via JS to avoid interception by the open menu list
+        const editBtn = await driver.findElement({xpath: EDIT_MENU_XPATH});
+        await driver.executeScript('arguments[0].click()', editBtn);
+        // Wait for the menu to close
+        await driver.wait(async () => {
+            const openMenus = await driver.findElements({xpath: '//ul[contains(@class, "menu_menu")]'});
+            return openMenus.length === 0;
+        }, 5000, 'Edit menu did not close after second click');
     });
 });

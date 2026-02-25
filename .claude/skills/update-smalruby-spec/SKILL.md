@@ -141,18 +141,25 @@ docker compose run --rm app npm run test:unit
 
 ### 5-1. コミット
 
-```bash
-git add packages/scratch-gui/docs/smalruby-language-spec.md \
-       packages/scratch-gui/src/lib/gemini-context.js \
-       packages/scratch-gui/src/containers/ruby-tab/smalruby-mode.js
+1. Use the **Write tool** to write the commit message to `/tmp/commit-msg.txt`:
 
-git commit -m "$(cat <<'EOF'
-docs: update smalruby language spec for <変更内容の要約>
+   ```
+   docs: update smalruby language spec for <変更内容の要約>
 
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
-EOF
-)"
-```
+   Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+   ```
+
+2. Then run:
+
+   ```bash
+   git add packages/scratch-gui/docs/smalruby-language-spec.md \
+          packages/scratch-gui/src/lib/gemini-context.js \
+          packages/scratch-gui/src/containers/ruby-tab/smalruby-mode.js
+
+   git commit -F /tmp/commit-msg.txt
+
+   rm /tmp/commit-msg.txt
+   ```
 
 ### 5-2. 報告
 
