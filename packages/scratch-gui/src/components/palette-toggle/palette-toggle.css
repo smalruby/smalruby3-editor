@@ -1,0 +1,35 @@
+@import "../../css/z-index.css";
+
+.palette-toggle-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: $z-index-extension-button;
+    width: 16px;
+    height: 48px;
+    padding: 0;
+    background-color: white;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    font-size: 8px;
+    color: rgb(87, 94, 117);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.15s ease;
+}
+
+.palette-toggle-button:hover {
+    opacity: 0.85;
+    background-color: #f8f8f8;
+}
+
+.palette-toggle-button-hidden {
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0 4px 4px 0;
+    border-left: none;
+    left: 0;
+}
