@@ -97,33 +97,37 @@ Wait for explicit user approval ("looks good", "OK", "yes", etc.) before proceed
 
 ## Phase 4: GitHub Issue Creation
 
-After user approves the design, create the GitHub Issue using a temporary file:
+After user approves the design, create the GitHub Issue using the Write tool and a temporary file:
 
-```bash
-cat > /tmp/design-issue-body.md <<'EOF'
-## Goal
-<goal>
+1. Use the **Write tool** to write the issue body to `/tmp/design-issue-body.md`:
 
-## Affected Files
-<list>
+   ```markdown
+   ## Goal
+   <goal>
 
-## Implementation Steps
-<checkbox list using `- [ ]` markdown syntax>
+   ## Affected Files
+   <list>
 
-## Test Plan
-<list>
+   ## Implementation Steps
+   <checkbox list using `- [ ]` markdown syntax>
 
-## Risks & Open Questions
-<list>
-EOF
+   ## Test Plan
+   <list>
 
-gh issue create \
-  --repo smalruby/smalruby3-editor \
-  --title "<type>: <short description>" \
-  --body-file /tmp/design-issue-body.md
+   ## Risks & Open Questions
+   <list>
+   ```
 
-rm /tmp/design-issue-body.md
-```
+2. Then run:
+
+   ```bash
+   gh issue create \
+     --repo smalruby/smalruby3-editor \
+     --title "<type>: <short description>" \
+     --body-file /tmp/design-issue-body.md
+
+   rm /tmp/design-issue-body.md
+   ```
 
 Issue title must follow Conventional Commits style (`feat:`, `fix:`, `refactor:`, etc.).
 
