@@ -228,6 +228,67 @@ const NodeUtils = {
         return this.getBlockType(block) === 'value_variable' && block.opcode === 'data_listcontents';
     },
 
+    /**
+     * Infer the data type of a value (literal or block).
+     * Returns null if the type cannot be determined statically.
+     * @param {*} value - A literal value or block object
+     * @returns {'string'|'number'|'boolean'|null} The inferred data type, or null if unknown
+     */
+    _inferDataType (value) {
+        if (this._isString(value)) return 'string';
+        if (this._isNumber(value)) return 'number';
+        if (this._isTrue(value) || this._isFalse(value)) return 'boolean';
+        if (this._isBlock(value)) return this._getBlockDataType(value);
+        return null;
+    },
+
+    /**
+     * Determine the data type ('string', 'number', 'boolean') of a block's return value.
+     * Returns null if the type cannot be determined statically.
+     * @param {object} block - The block object
+     * @returns {'string'|'number'|'boolean'|null} The data type of the block's return value, or null if unknown
+     */
+    _getBlockDataType (block) {
+        if (!this._isBlock(block)) return null;
+
+        const comment = block.comment ? this._context.comments[block.comment] : null;
+        const commentText = comment ? comment.text : '';
+
+        if (commentText === '@ruby:method:to_s') return 'string';
+        if (commentText === '@ruby:method:to_i') return 'number';
+
+        const STRING_OPCODES = [
+            'operator_join',
+            'operator_letter_of'
+        ];
+        const NUMBER_OPCODES = [
+            'operator_add',
+            'operator_subtract',
+            'operator_multiply',
+            'operator_divide',
+            'operator_mod',
+            'operator_round',
+            'operator_mathop',
+            'operator_random',
+            'operator_length'
+        ];
+        const BOOLEAN_OPCODES = [
+            'operator_and',
+            'operator_or',
+            'operator_not',
+            'operator_equals',
+            'operator_gt',
+            'operator_lt',
+            'operator_contains'
+        ];
+
+        if (STRING_OPCODES.includes(block.opcode)) return 'string';
+        if (NUMBER_OPCODES.includes(block.opcode)) return 'number';
+        if (BOOLEAN_OPCODES.includes(block.opcode)) return 'boolean';
+
+        return null;
+    },
+
     isRubyExpression (block) {
         return this._isRubyExpression(block);
     },

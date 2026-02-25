@@ -73,7 +73,8 @@ const VariableUtils = {
                     scope: 'local', // Mark as local for internal tracking
                     scopeIndex: scopeIndex,
                     type: type,
-                    isArgument: isArgument
+                    isArgument: isArgument,
+                    dataType: null
                 };
                 this._context[storeName][transformedName] = variable;
             }
@@ -99,7 +100,8 @@ const VariableUtils = {
                 id: Blockly.utils.genUid(),
                 name: varName,
                 scope: scope,
-                type: type
+                type: type,
+                dataType: null
             };
             this._context[storeName][varName] = variable;
         }

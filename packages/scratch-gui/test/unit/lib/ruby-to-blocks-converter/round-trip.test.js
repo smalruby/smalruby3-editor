@@ -92,6 +92,12 @@ describe('Ruby Round Trip', () => {
         await expectRoundTrip('if touching?("_edge_")\n  move(10)\nend');
     });
 
+    test('string variable concatenation uses operator_join (regression for #181)', async () => {
+        await expectRoundTrip('a = "He"\nb = "llo"\na + b', 'a = "He"\nb = "llo"\n\na + b');
+        await expectRoundTrip('a = "He"\na + "llo"', 'a = "He"\n\na + "llo"');
+        await expectRoundTrip('a = 1.to_s\na + "!"', 'a = 1.to_s\n\na + "!"');
+    });
+
     test('return statement in method', async () => {
         await expectRoundTrip(`
 def self.add(a, b)
