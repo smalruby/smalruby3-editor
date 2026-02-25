@@ -76,9 +76,10 @@ response format. Update client code to handle the new structure."
    ```
 
 4. **Create PR using `gh` CLI**:
-   ```bash
-   # Create temporary file for PR body
-   cat > /tmp/pr-body.md <<'EOF'
+
+   Use the **Write tool** to write the PR body to `/tmp/pr-body.md`:
+
+   ```markdown
    ## Summary
    Brief description of changes.
 
@@ -92,9 +93,11 @@ response format. Update client code to handle the new structure."
 
    ## Related Issues
    Fixes #123
-   EOF
+   ```
 
-   # Create PR
+   Then run:
+
+   ```bash
    gh pr create \
      --repo smalruby/smalruby3-editor \
      --base develop \
@@ -102,7 +105,6 @@ response format. Update client code to handle the new structure."
      --title "feat: descriptive title" \
      --body-file /tmp/pr-body.md
 
-   # Clean up
    rm /tmp/pr-body.md
    ```
 
@@ -134,9 +136,11 @@ gh issue list --repo smalruby/smalruby3-editor
 
 # View specific issue
 gh issue view 123 --repo smalruby/smalruby3-editor
+```
 
-# Create issue (use temporary file)
-cat > /tmp/issue-body.md <<'EOF'
+Use the **Write tool** to write the issue body to `/tmp/issue-body.md`:
+
+```markdown
 ## Description
 Issue description here.
 
@@ -149,8 +153,11 @@ What should happen.
 
 ## Actual Behavior
 What actually happens.
-EOF
+```
 
+Then run:
+
+```bash
 gh issue create \
   --repo smalruby/smalruby3-editor \
   --title "bug: descriptive title" \
@@ -172,10 +179,16 @@ gh issue create --body "Description with \`code\` and \"quotes\""
 ```
 
 ✅ **Do this instead**:
-```bash
-cat > /tmp/body.md <<'EOF'
+
+Use the **Write tool** to write the content to `/tmp/body.md`:
+
+```markdown
 Description with `code` and "quotes"
-EOF
+```
+
+Then run:
+
+```bash
 gh issue create --body-file /tmp/body.md
 rm /tmp/body.md
 ```
