@@ -40,6 +40,8 @@ import {
     SOUNDS_TAB_INDEX,
     RUBY_TAB_INDEX
 } from '../reducers/editor-tab';
+import {togglePalette} from '../reducers/palette-visibility';
+import PaletteToggle from '../components/palette-toggle/palette-toggle.jsx';
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -73,6 +75,7 @@ class Blocks extends React.Component {
             'handlePromptCallback',
             'handlePromptClose',
             'handleCustomProceduresClose',
+            'handleTogglePalette',
             'onScriptGlowOn',
             'onScriptGlowOff',
             'onBlockGlowOn',
@@ -171,7 +174,8 @@ class Blocks extends React.Component {
             this.props.locale !== nextProps.locale ||
             this.props.anyModalVisible !== nextProps.anyModalVisible ||
             this.props.stageSize !== nextProps.stageSize ||
-            this.props.selectedBlocks !== nextProps.selectedBlocks
+            this.props.selectedBlocks !== nextProps.selectedBlocks ||
+            this.props.paletteVisible !== nextProps.paletteVisible
         );
     }
     componentDidUpdate (prevProps) {
@@ -193,6 +197,10 @@ class Blocks extends React.Component {
         // Do not check against prevProps.toolboxXML because that may not have been rendered.
         if (this.props.isVisible && this.props.toolboxXML !== this._renderedToolboxXML) {
             this.requestToolboxUpdate();
+        }
+
+        if (this.props.paletteVisible !== prevProps.paletteVisible) {
+            this._applyPaletteVisibility(this.props.paletteVisible);
         }
 
         if (this.props.isVisible === prevProps.isVisible) {
@@ -236,6 +244,29 @@ class Blocks extends React.Component {
 
         // Clear the flyout blocks so that they can be recreated on mount.
         this.props.vm.clearFlyoutBlocks();
+    }
+    handleTogglePalette () {
+        this.props.onTogglePalette();
+    }
+    _applyPaletteVisibility (visible) {
+        if (!this.workspace) return;
+        const flyout = this.workspace.getFlyout();
+        const toolbox = this.workspace.getToolbox();
+        if (!flyout || !toolbox) return;
+        const extensionButton = document.querySelector('[class*="extension-button_extension-button-container"]');
+        if (visible) {
+            toolbox.HtmlDiv.style.display = '';
+            if (extensionButton) extensionButton.style.display = '';
+            const selectedItem = toolbox.getSelectedItem();
+            if (selectedItem) {
+                toolbox.setSelectedItem(selectedItem);
+            }
+        } else {
+            flyout.hide();
+            toolbox.HtmlDiv.style.display = 'none';
+            if (extensionButton) extensionButton.style.display = 'none';
+        }
+        this.ScratchBlocks.svgResize(this.workspace);
     }
     requestToolboxUpdate () {
         clearTimeout(this.toolboxUpdateTimeout);
@@ -751,8 +782,14 @@ class Blocks extends React.Component {
             updateMetrics: _updateMetricsProp,
             useCatBlocks: _useCatBlocks,
             workspaceMetrics: _workspaceMetrics,
+            paletteVisible,
+            onTogglePalette: _onTogglePalette,
             ...props
         } = this.props;
+
+        // Calculate toggle button position based on toolbox width (toolbox + flyout combined)
+        const toolbox = this.workspace ? this.workspace.getToolbox() : null;
+        const toggleButtonLeft = paletteVisible && toolbox ? toolbox.getWidth() : 0;
 
         return (
             <React.Fragment>
@@ -761,6 +798,13 @@ class Blocks extends React.Component {
                     onDrop={this.handleDrop}
                     {...props}
                 />
+                {toolbox ? (
+                    <PaletteToggle
+                        paletteVisible={paletteVisible}
+                        style={{left: `${toggleButtonLeft}px`}}
+                        onClick={this.handleTogglePalette}
+                    />
+                ) : null}
                 {this.state.prompt ? (
                     <Prompt
                         defaultValue={this.state.prompt.defaultValue}
@@ -835,7 +879,9 @@ Blocks.propTypes = {
     activeTabIndex: PropTypes.number,
     workspaceMetrics: PropTypes.shape({
         targets: PropTypes.objectOf(PropTypes.object)
-    })
+    }),
+    paletteVisible: PropTypes.bool,
+    onTogglePalette: PropTypes.func
 };
 
 Blocks.defaultOptions = {
@@ -874,7 +920,8 @@ const mapStateToProps = state => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     customProceduresVisible: state.scratchGui.customProcedures.active,
     workspaceMetrics: state.scratchGui.workspaceMetrics,
-    useCatBlocks: isTimeTravel2020(state) || state.scratchGui.settings.theme === CAT_BLOCKS_THEME
+    useCatBlocks: isTimeTravel2020(state) || state.scratchGui.settings.theme === CAT_BLOCKS_THEME,
+    paletteVisible: state.scratchGui.paletteVisibility.paletteVisible
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -902,6 +949,9 @@ const mapDispatchToProps = dispatch => ({
     },
     updateMetrics: metrics => {
         dispatch(updateMetrics(metrics));
+    },
+    onTogglePalette: () => {
+        dispatch(togglePalette());
     }
 });
 
