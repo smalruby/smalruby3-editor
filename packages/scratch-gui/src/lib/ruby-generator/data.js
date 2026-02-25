@@ -78,6 +78,18 @@ export default function (Generator) {
             // Not the last block, output normal variable assignment
         }
 
+        // Check for compound assignment syntax comments (@ruby:syntax:-=, *=, /=, %=)
+        const compoundMatch = comment ? comment.match(/^@ruby:syntax:([+\-*/%])=$/) : null;
+        if (compoundMatch && hasValueInput) {
+            const variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+            const op = compoundMatch[1];
+            const operatorBlock = Generator.getBlock(block.inputs.VALUE.block);
+            if (operatorBlock) {
+                const rh = Generator.valueToCode(operatorBlock, 'NUM2', Generator.ORDER_NONE) || '0';
+                return `${variable} ${op}= ${Generator.nosToCode(rh)}\n`;
+            }
+        }
+
         const variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
 
         // Check if this is a return value marker block (return variable with no VALUE input)

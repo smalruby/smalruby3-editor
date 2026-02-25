@@ -13,6 +13,60 @@ describe('RubyGenerator/Data', () => {
         DataBlocks(RubyGenerator);
     });
 
+    describe('data_setvariableto', () => {
+        const makeCompoundAssignmentTest = (operator, opcode, rhValue) => {
+            const operatorBlock = {
+                id: 'operator-block-id',
+                opcode: opcode,
+                inputs: {
+                    NUM2: {block: 'num2-block-id'}
+                }
+            };
+            const block = {
+                id: 'block-id',
+                opcode: 'data_setvariableto',
+                fields: {
+                    VARIABLE: {
+                        id: 'var-id',
+                        value: 'a'
+                    }
+                },
+                inputs: {
+                    VALUE: {
+                        block: 'operator-block-id'
+                    }
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = {text: `@ruby:syntax:${operator}=`};
+            RubyGenerator.variableName = jest.fn().mockReturnValue('@a');
+            RubyGenerator.getFieldId = jest.fn().mockReturnValue('var-id');
+            RubyGenerator.getBlock = jest.fn().mockReturnValue(operatorBlock);
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue(String(rhValue));
+            RubyGenerator.nosToCode = jest.fn(v => v);
+            return block;
+        };
+
+        test('compound assignment -= generates variable -= value', () => {
+            const block = makeCompoundAssignmentTest('-', 'operator_subtract', 1);
+            expect(RubyGenerator.data_setvariableto(block)).toEqual('@a -= 1\n');
+        });
+
+        test('compound assignment *= generates variable *= value', () => {
+            const block = makeCompoundAssignmentTest('*', 'operator_multiply', 2);
+            expect(RubyGenerator.data_setvariableto(block)).toEqual('@a *= 2\n');
+        });
+
+        test('compound assignment /= generates variable /= value', () => {
+            const block = makeCompoundAssignmentTest('/', 'operator_divide', 2);
+            expect(RubyGenerator.data_setvariableto(block)).toEqual('@a /= 2\n');
+        });
+
+        test('compound assignment %= generates variable %= value', () => {
+            const block = makeCompoundAssignmentTest('%', 'operator_mod', 3);
+            expect(RubyGenerator.data_setvariableto(block)).toEqual('@a %= 3\n');
+        });
+    });
+
     describe('data_lengthoflist', () => {
         test('normal', () => {
             const block = {
