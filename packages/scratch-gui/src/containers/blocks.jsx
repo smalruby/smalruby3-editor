@@ -225,6 +225,9 @@ class Blocks extends React.Component {
 
             window.dispatchEvent(new Event('resize'));
 
+            // Restore palette visibility state when switching back to the code tab
+            this._applyPaletteVisibility(this.props.paletteVisible);
+
             if (this._pendingScrollCenter) {
                 this._pendingScrollCenter = false;
                 if (this.workspace.options && this.workspace.options.zoomOptions) {
