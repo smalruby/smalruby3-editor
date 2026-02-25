@@ -40,8 +40,8 @@ export default function (Generator) {
         const comment = Generator.getCommentText(block);
         const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
 
-        // Check for local variable metadata
-        if (comment && comment.startsWith('@ruby:lvar:')) {
+        // Check for local variable metadata (skip if compound assignment syntax is also present)
+        if (comment && comment.startsWith('@ruby:lvar:') && !comment.includes('@ruby:syntax:')) {
             const parts = comment.split(':');
             if (parts.length === 4) {
                 const originalName = parts[2];
@@ -78,14 +78,21 @@ export default function (Generator) {
             // Not the last block, output normal variable assignment
         }
 
-        // Check for compound assignment syntax comments (@ruby:syntax:-=, *=, /=, %=)
-        const compoundMatch = comment ? comment.match(/^@ruby:syntax:([+\-*/%])=$/) : null;
+        // Check for compound assignment syntax comments (@ruby:syntax:+=, -=, *=, /=, %=)
+        // Supports both standalone (@ruby:syntax:+=) and combined with lvar (@ruby:lvar:name:idx,@ruby:syntax:+=)
+        const compoundMatch = comment ? comment.match(/@ruby:syntax:([+\-*/%])=/) : null;
         if (compoundMatch && hasValueInput) {
-            const variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
             const op = compoundMatch[1];
+            // Extract original variable name from @ruby:lvar comment if present
+            const lvarMatch = comment.match(/@ruby:lvar:(\w+):\d+/);
+            const variable = lvarMatch ?
+                lvarMatch[1] :
+                Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
             const operatorBlock = Generator.getBlock(block.inputs.VALUE.block);
             if (operatorBlock) {
-                const rh = Generator.valueToCode(operatorBlock, 'NUM2', Generator.ORDER_NONE) || '0';
+                // For operator_join (string +=), use STRING2 input; for numeric operators, use NUM2
+                const rhInput = operatorBlock.opcode === 'operator_join' ? 'STRING2' : 'NUM2';
+                const rh = Generator.valueToCode(operatorBlock, rhInput, Generator.ORDER_NONE) || '0';
                 return `${variable} ${op}= ${Generator.nosToCode(rh)}\n`;
             }
         }

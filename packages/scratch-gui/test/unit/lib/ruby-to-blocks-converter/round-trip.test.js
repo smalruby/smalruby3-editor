@@ -105,6 +105,18 @@ describe('Ruby Round Trip', () => {
         await expectRoundTrip('@a = 10\n@a %= 4');
     });
 
+    test('string variable += uses operator_join', async () => {
+        await expectRoundTrip('@a = "hello"\n@a += "!"');
+    });
+
+    test('local variable compound assignment operators', async () => {
+        await expectRoundTrip('a = 1\na += 2');
+        await expectRoundTrip('a = 1\na -= 3');
+        await expectRoundTrip('a = 1\na *= 4');
+        await expectRoundTrip('a = 1\na /= 5');
+        await expectRoundTrip('a = 1\na %= 6');
+    });
+
     test('return statement in method', async () => {
         await expectRoundTrip(`
 def self.add(a, b)
