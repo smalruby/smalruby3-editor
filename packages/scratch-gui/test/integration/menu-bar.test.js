@@ -167,4 +167,40 @@ describe('Menu bar settings', () => {
             expect(await settingsMenu.isDisplayed()).toBe(true);
         }
     });
+
+    test('Settings menu closes when clicked again while open', async () => {
+        await loadUri(uri);
+        // Open the settings menu
+        await clickXpath(SETTINGS_MENU_XPATH);
+        // Verify it is open by checking for a menu item
+        const langOption = await findByXpath(
+            '//ul[contains(@class, "menu_menu")]'
+        );
+        expect(await langOption.isDisplayed()).toBe(true);
+        // Click the settings menu button again to close it
+        await clickXpath(SETTINGS_MENU_XPATH);
+        // Verify the menu is closed
+        const menus = await driver.findElements({xpath: '//ul[contains(@class, "menu_menu")]'});
+        expect(menus.length).toBe(0);
+    });
+
+    test('File menu closes when clicked again while open', async () => {
+        await loadUri(uri);
+        await clickXpath(FILE_MENU_XPATH);
+        const menuList = await findByXpath('//ul[contains(@class, "menu_menu")]');
+        expect(await menuList.isDisplayed()).toBe(true);
+        await clickXpath(FILE_MENU_XPATH);
+        const menus = await driver.findElements({xpath: '//ul[contains(@class, "menu_menu")]'});
+        expect(menus.length).toBe(0);
+    });
+
+    test('Edit menu closes when clicked again while open', async () => {
+        await loadUri(uri);
+        await clickXpath(EDIT_MENU_XPATH);
+        const menuList = await findByXpath('//ul[contains(@class, "menu_menu")]');
+        expect(await menuList.isDisplayed()).toBe(true);
+        await clickXpath(EDIT_MENU_XPATH);
+        const menus = await driver.findElements({xpath: '//ul[contains(@class, "menu_menu")]'});
+        expect(menus.length).toBe(0);
+    });
 });
