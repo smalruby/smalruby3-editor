@@ -20,6 +20,9 @@ const OperatorsConverter = {
                 rh = rh[0];
             }
 
+            // Boolean values are not valid operands for string concatenation
+            if (converter._isTrue(rh) || converter._isFalse(rh)) return null;
+
             if (!converter._isStringOrBlock(rh)) return null;
 
             const block = converter._createBlock('operator_join', 'value');
@@ -106,6 +109,9 @@ const OperatorsConverter = {
                     if (variable && variable.dataType === 'string') return null;
                 }
 
+                // Boolean values are not valid operands for numeric arithmetic
+                if (converter._isTrue(rh) || converter._isFalse(rh)) return null;
+
                 if (!converter._isNumberOrBlock(rh)) return null;
 
                 let opcode;
@@ -135,6 +141,9 @@ const OperatorsConverter = {
                 if (rh.length !== 1) return null;
                 rh = rh[0];
             }
+
+            // Boolean values are not valid operands for string concatenation
+            if (converter._isTrue(rh) || converter._isFalse(rh)) return null;
 
             if (!converter._isStringOrBlock(rh)) return null;
 

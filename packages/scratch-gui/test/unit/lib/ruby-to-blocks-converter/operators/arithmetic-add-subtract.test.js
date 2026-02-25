@@ -217,5 +217,31 @@ describe('RubyToBlocksConverter/Operators', () => {
             code = 'a = touching?("edge")\na + "!"';
             await convertAndExpectRubyBlockError(converter, target, code);
         });
+
+        test('string variable + boolean literal is ruby block error', async () => {
+            code = 'a = "Hello"\na + true';
+            await convertAndExpectRubyBlockError(converter, target, code);
+
+            converter = new RubyToBlocksConverter(null);
+            code = 'a = "Hello"\na + false';
+            await convertAndExpectRubyBlockError(converter, target, code);
+        });
+    });
+
+    describe('operator_add type safety', () => {
+        test('number variable + boolean literal is ruby block error', async () => {
+            code = 'a = 10\na + true';
+            await convertAndExpectRubyBlockError(converter, target, code);
+        });
+
+        test('number variable + false is ruby block error', async () => {
+            code = 'a = 10\na + false';
+            await convertAndExpectRubyBlockError(converter, target, code);
+        });
+
+        test('number variable + string literal is ruby block error', async () => {
+            code = 'a = 10\na + "Hello"';
+            await convertAndExpectRubyBlockError(converter, target, code);
+        });
     });
 });
