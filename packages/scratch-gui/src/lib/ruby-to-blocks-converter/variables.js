@@ -199,12 +199,75 @@ const VariablesConverter = {
             return block;
         });
 
+        // Operator to opcode mapping for compound assignments
+        const COMPOUND_OPERATOR_MAP = {
+            '-': 'operator_subtract',
+            '*': 'operator_multiply',
+            '/': 'operator_divide',
+            '%': 'operator_mod'
+        };
+
         // Register onXxx handlers
         converter.registerOnOpAsgn((lh, operator, rh) => {
             let block;
-            if (operator === '+' && converter._isString(lh) && converter._isNumberOrBlock(rh)) {
-                const variable = converter._lookupOrCreateVariable(lh);
-                if (variable.scope === 'global' || variable.scope === 'instance') {
+            if (!converter._isString(lh)) {
+                return block;
+            }
+            if (!converter._isNumberOrBlock(rh) && !converter._isStringOrBlock(rh)) {
+                return block;
+            }
+
+            const variable = converter._lookupOrCreateVariable(lh);
+
+            if (operator === '+') {
+                // Check if this is a string-typed variable: use operator_join
+                if (variable.dataType === 'string') {
+                    block = converter._createBlock('data_setvariableto', 'statement', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: variable.id,
+                                value: variable.name,
+                                variableType: variable.type
+                            }
+                        }
+                    });
+
+                    const syntaxComment = `@ruby:syntax:+=`;
+                    if (variable.scope === 'local') {
+                        const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
+                        block.comment = converter._createComment(
+                            `${lvarComment},${syntaxComment}`, block.id
+                        );
+                    } else {
+                        block.comment = converter._createComment(syntaxComment, block.id);
+                    }
+
+                    const variableBlock = converter._createBlock('data_variable', 'value_variable', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: variable.id,
+                                value: variable.name,
+                                variableType: variable.type
+                            }
+                        }
+                    });
+                    if (variable.scope === 'local') {
+                        const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
+                        variableBlock.comment = converter._createComment(lvarComment, variableBlock.id);
+                    }
+
+                    const joinBlock = converter._createBlock('operator_join', 'value');
+                    converter._addTextInput(joinBlock, 'STRING1', variableBlock, 'apple');
+                    converter._addTextInput(
+                        joinBlock, 'STRING2', converter._isNumber(rh) ? rh.toString() : rh, 'banana'
+                    );
+
+                    converter._addInput(block, 'VALUE', joinBlock);
+                } else if (variable.scope === 'global' || variable.scope === 'instance') {
+                    if (!converter._isNumberOrBlock(rh)) return block;
+
                     block = converter._createBlock('data_changevariableby', 'statement', {
                         fields: {
                             VARIABLE: {
@@ -217,7 +280,9 @@ const VariablesConverter = {
                     });
                     converter._addNumberInput(block, 'VALUE', 'math_number', rh, 1);
                 } else {
-                    // Assignment for local variables
+                    // Numeric += for local variables
+                    if (!converter._isNumberOrBlock(rh)) return block;
+
                     block = converter._createBlock('data_setvariableto', 'statement', {
                         fields: {
                             VARIABLE: {
@@ -229,8 +294,10 @@ const VariablesConverter = {
                         }
                     });
 
-                    const commentText = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
-                    block.comment = converter._createComment(commentText, block.id);
+                    const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
+                    block.comment = converter._createComment(
+                        `${lvarComment},@ruby:syntax:+=`, block.id
+                    );
 
                     const variableBlock = converter._createBlock('data_variable', 'value_variable', {
                         fields: {
@@ -242,7 +309,7 @@ const VariablesConverter = {
                             }
                         }
                     });
-                    variableBlock.comment = converter._createComment(commentText, variableBlock.id);
+                    variableBlock.comment = converter._createComment(lvarComment, variableBlock.id);
 
                     const addBlock = converter._createBlock('operator_add', 'value');
                     converter._addInput(addBlock, 'NUM1', variableBlock);
@@ -250,6 +317,53 @@ const VariablesConverter = {
 
                     converter._addInput(block, 'VALUE', addBlock);
                 }
+            } else if (Object.prototype.hasOwnProperty.call(COMPOUND_OPERATOR_MAP, operator)) {
+                if (!converter._isNumberOrBlock(rh)) return block;
+
+                const opcode = COMPOUND_OPERATOR_MAP[operator];
+
+                block = converter._createBlock('data_setvariableto', 'statement', {
+                    fields: {
+                        VARIABLE: {
+                            name: 'VARIABLE',
+                            id: variable.id,
+                            value: variable.name,
+                            variableType: variable.type
+                        }
+                    }
+                });
+
+                const syntaxComment = `@ruby:syntax:${operator}=`;
+                if (variable.scope === 'local') {
+                    const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
+                    block.comment = converter._createComment(
+                        `${lvarComment},${syntaxComment}`, block.id
+                    );
+                } else {
+                    block.comment = converter._createComment(syntaxComment, block.id);
+                }
+
+                const variableBlock = converter._createBlock('data_variable', 'value_variable', {
+                    fields: {
+                        VARIABLE: {
+                            name: 'VARIABLE',
+                            id: variable.id,
+                            value: variable.name,
+                            variableType: variable.type
+                        }
+                    }
+                });
+
+                if (variable.scope === 'local') {
+                    const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
+                    variableBlock.comment = converter._createComment(lvarComment, variableBlock.id);
+                }
+
+                const operatorBlock = converter._createBlock(opcode, 'value');
+                converter._addInput(operatorBlock, 'NUM1', variableBlock);
+                converter._addNumberInput(operatorBlock, 'NUM2', 'math_number', rh, 1);
+
+                converter._addInput(block, 'VALUE', operatorBlock);
             }
             return block;
         });

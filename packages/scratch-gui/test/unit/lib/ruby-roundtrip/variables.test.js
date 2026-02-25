@@ -24,6 +24,14 @@ describe('Ruby Roundtrip: Variables category blocks', () => {
             @sprite_only_variable = 0
             $my_variable += 1
             @sprite_only_variable += 1
+            $my_variable -= 1
+            @sprite_only_variable -= 1
+            $my_variable *= 2
+            @sprite_only_variable *= 2
+            $my_variable /= 3
+            @sprite_only_variable /= 3
+            $my_variable %= 4
+            @sprite_only_variable %= 4
             show_variable("$my_variable")
             show_variable("@sprite_only_variable")
             hide_variable("$my_variable")
