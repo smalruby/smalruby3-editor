@@ -167,6 +167,7 @@ const ImageStep = ({title, image, code, onInsertCodeFactory, animateInsertCode})
                 className={animateInsertCode ?
                     classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay, styles.insertCodeButtonGlow) :
                     classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay)}
+                data-card-action="insert-code"
                 onClick={onInsertCodeFactory(code)}
             >
                 <img
@@ -205,6 +206,7 @@ const NextPrevButtons = ({isRtl, onNextStep, onPrevStep, expanded, animateNext})
                             (animateNext ? classNames(styles.leftButton, styles.leftButtonGlow) : styles.leftButton) :
                             (animateNext ? classNames(styles.rightButton, styles.rightButtonGlow) : styles.rightButton)
                     ) : styles.hidden}
+                    data-card-action="next"
                     onClick={onNextStep}
                 >
                     <img
@@ -219,6 +221,7 @@ const NextPrevButtons = ({isRtl, onNextStep, onPrevStep, expanded, animateNext})
                 <div className={expanded ? (isRtl ? styles.rightCard : styles.leftCard) : styles.hidden} />
                 <div
                     className={expanded ? (isRtl ? styles.rightButton : styles.leftButton) : styles.hidden}
+                    data-card-action="prev"
                     onClick={onPrevStep}
                 >
                     <img
@@ -431,7 +434,13 @@ const Cards = props => {
                 onStop={onEndDrag}
             >
                 <div className={styles.cardContainer}>
-                    <div className={styles.card}>
+                    <div
+                        className={styles.card}
+                        data-deck-id={activeDeckId}
+                        data-step={step + 1}
+                        data-total-steps={steps.length}
+                        data-steps-remaining={steps.length - step - 1}
+                    >
                         <CardHeader
                             expanded={expanded}
                             step={step}

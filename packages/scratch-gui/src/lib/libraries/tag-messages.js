@@ -136,6 +136,11 @@ export default defineMessages({
         description: 'Tag for filtering a library for first time users',
         id: 'gui.libraryTags.firstTime'
     },
+    mesh: {
+        defaultMessage: 'Mesh',
+        description: 'Tag for filtering a library for Mesh networking tutorials',
+        id: 'gui.libraryTags.mesh'
+    },
     gettingStarted: {
         defaultMessage: 'Getting Started',
         description: 'Category for getting started tutorials',
