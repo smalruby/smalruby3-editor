@@ -21,7 +21,8 @@ class LanguageMenu extends React.PureComponent {
         super(props);
         bindAll(this, [
             'setRef',
-            'handleMouseOver'
+            'handleMouseOver',
+            'handleClickOpen'
         ]);
     }
 
@@ -43,6 +44,11 @@ class LanguageMenu extends React.PureComponent {
         }
     }
 
+    handleClickOpen (e) {
+        e.stopPropagation();
+        this.props.onRequestOpen();
+    }
+
     render () {
         return (
             <MenuItem
@@ -51,7 +57,7 @@ class LanguageMenu extends React.PureComponent {
             >
                 <div
                     className={styles.option}
-                    onClick={this.props.onRequestOpen}
+                    onClick={this.handleClickOpen}
                     onMouseOver={this.handleMouseOver}
                 >
                     <img
