@@ -115,6 +115,178 @@ describe('RubyToBlocksConverter/Variables', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
+        test('compound assignment -= (data_setvariableto + operator_subtract)', async () => {
+            const code = `${varName} -= 1`;
+            const expected = [
+                {
+                    opcode: 'data_setvariableto',
+                    fields: [
+                        {
+                            name: 'VARIABLE',
+                            variable: varName
+                        }
+                    ],
+                    inputs: [
+                        {
+                            name: 'VALUE',
+                            block: {
+                                opcode: 'operator_subtract',
+                                inputs: [
+                                    {
+                                        name: 'NUM1',
+                                        block: {
+                                            opcode: 'data_variable',
+                                            fields: [
+                                                {
+                                                    name: 'VARIABLE',
+                                                    variable: varName
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        name: 'NUM2',
+                                        block: expectedInfo.makeNumber(1)
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    comment: {text: '@ruby:syntax:-=', minimized: true}
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('compound assignment *= (data_setvariableto + operator_multiply)', async () => {
+            const code = `${varName} *= 2`;
+            const expected = [
+                {
+                    opcode: 'data_setvariableto',
+                    fields: [
+                        {
+                            name: 'VARIABLE',
+                            variable: varName
+                        }
+                    ],
+                    inputs: [
+                        {
+                            name: 'VALUE',
+                            block: {
+                                opcode: 'operator_multiply',
+                                inputs: [
+                                    {
+                                        name: 'NUM1',
+                                        block: {
+                                            opcode: 'data_variable',
+                                            fields: [
+                                                {
+                                                    name: 'VARIABLE',
+                                                    variable: varName
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        name: 'NUM2',
+                                        block: expectedInfo.makeNumber(2)
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    comment: {text: '@ruby:syntax:*=', minimized: true}
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('compound assignment /= (data_setvariableto + operator_divide)', async () => {
+            const code = `${varName} /= 2`;
+            const expected = [
+                {
+                    opcode: 'data_setvariableto',
+                    fields: [
+                        {
+                            name: 'VARIABLE',
+                            variable: varName
+                        }
+                    ],
+                    inputs: [
+                        {
+                            name: 'VALUE',
+                            block: {
+                                opcode: 'operator_divide',
+                                inputs: [
+                                    {
+                                        name: 'NUM1',
+                                        block: {
+                                            opcode: 'data_variable',
+                                            fields: [
+                                                {
+                                                    name: 'VARIABLE',
+                                                    variable: varName
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        name: 'NUM2',
+                                        block: expectedInfo.makeNumber(2)
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    comment: {text: '@ruby:syntax:/=', minimized: true}
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('compound assignment %= (data_setvariableto + operator_mod)', async () => {
+            const code = `${varName} %= 3`;
+            const expected = [
+                {
+                    opcode: 'data_setvariableto',
+                    fields: [
+                        {
+                            name: 'VARIABLE',
+                            variable: varName
+                        }
+                    ],
+                    inputs: [
+                        {
+                            name: 'VALUE',
+                            block: {
+                                opcode: 'operator_mod',
+                                inputs: [
+                                    {
+                                        name: 'NUM1',
+                                        block: {
+                                            opcode: 'data_variable',
+                                            fields: [
+                                                {
+                                                    name: 'VARIABLE',
+                                                    variable: varName
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        name: 'NUM2',
+                                        block: expectedInfo.makeNumber(3)
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    comment: {text: '@ruby:syntax:%=', minimized: true}
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
         test('data_showvariable', async () => {
             const code = `show_variable("${varName}")`;
             const expected = [

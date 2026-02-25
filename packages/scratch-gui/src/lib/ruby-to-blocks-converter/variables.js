@@ -199,11 +199,24 @@ const VariablesConverter = {
             return block;
         });
 
+        // Operator to opcode mapping for compound assignments
+        const COMPOUND_OPERATOR_MAP = {
+            '-': 'operator_subtract',
+            '*': 'operator_multiply',
+            '/': 'operator_divide',
+            '%': 'operator_mod'
+        };
+
         // Register onXxx handlers
         converter.registerOnOpAsgn((lh, operator, rh) => {
             let block;
-            if (operator === '+' && converter._isString(lh) && converter._isNumberOrBlock(rh)) {
-                const variable = converter._lookupOrCreateVariable(lh);
+            if (!converter._isString(lh) || !converter._isNumberOrBlock(rh)) {
+                return block;
+            }
+
+            const variable = converter._lookupOrCreateVariable(lh);
+
+            if (operator === '+') {
                 if (variable.scope === 'global' || variable.scope === 'instance') {
                     block = converter._createBlock('data_changevariableby', 'statement', {
                         fields: {
@@ -250,6 +263,43 @@ const VariablesConverter = {
 
                     converter._addInput(block, 'VALUE', addBlock);
                 }
+            } else if (COMPOUND_OPERATOR_MAP.hasOwnProperty(operator)) {
+                const opcode = COMPOUND_OPERATOR_MAP[operator];
+
+                block = converter._createBlock('data_setvariableto', 'statement', {
+                    fields: {
+                        VARIABLE: {
+                            name: 'VARIABLE',
+                            id: variable.id,
+                            value: variable.name,
+                            variableType: variable.type
+                        }
+                    }
+                });
+
+                block.comment = converter._createComment(`@ruby:syntax:${operator}=`, block.id);
+
+                const variableBlock = converter._createBlock('data_variable', 'value_variable', {
+                    fields: {
+                        VARIABLE: {
+                            name: 'VARIABLE',
+                            id: variable.id,
+                            value: variable.name,
+                            variableType: variable.type
+                        }
+                    }
+                });
+
+                if (variable.scope === 'local') {
+                    const lvarComment = `@ruby:lvar:${variable.originalName}:${variable.scopeIndex}`;
+                    variableBlock.comment = converter._createComment(lvarComment, variableBlock.id);
+                }
+
+                const operatorBlock = converter._createBlock(opcode, 'value');
+                converter._addInput(operatorBlock, 'NUM1', variableBlock);
+                converter._addNumberInput(operatorBlock, 'NUM2', 'math_number', rh, 1);
+
+                converter._addInput(block, 'VALUE', operatorBlock);
             }
             return block;
         });
