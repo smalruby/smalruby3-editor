@@ -19,6 +19,7 @@ import koshienFileReducer, {koshienFileInitialState} from './koshien-file';
 import rubyCodeReducer, {rubyCodeInitialState} from './ruby-code';
 import cardsReducer, {cardsInitialState} from './cards';
 import tutorialOnboardingReducer, {tutorialOnboardingInitialState} from './tutorial-onboarding';
+import paletteVisibilityReducer, {initialState as paletteVisibilityInitialState} from './palette-visibility';
 
 /**
  * All Smalruby reducers
@@ -30,7 +31,8 @@ export const smalrubyReducers = {
     koshienFile: koshienFileReducer,
     rubyCode: rubyCodeReducer,
     cards: cardsReducer,
-    tutorialOnboarding: tutorialOnboardingReducer
+    tutorialOnboarding: tutorialOnboardingReducer,
+    paletteVisibility: paletteVisibilityReducer
 };
 
 /**
@@ -43,5 +45,6 @@ export const smalrubyInitialState = {
     koshienFile: koshienFileInitialState,
     rubyCode: rubyCodeInitialState,
     cards: cardsInitialState,
-    tutorialOnboarding: tutorialOnboardingInitialState
+    tutorialOnboarding: tutorialOnboardingInitialState,
+    paletteVisibility: paletteVisibilityInitialState
 };
