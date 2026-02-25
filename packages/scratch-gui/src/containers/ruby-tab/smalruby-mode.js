@@ -81,32 +81,51 @@ export const smalrubyLanguage = {
         'bounce_if_on_edge', 'x', 'y', 'direction',
         // Looks
         'say', 'think', 'switch_costume', 'switch_backdrop', 'switch_backdrop_and_wait',
-        'change_effect_by', 'set_effect', 'go_to_layer', 'go_layers',
+        'next_costume', 'next_backdrop',
+        'change_effect_by', 'set_effect', 'clear_graphic_effects',
+        'go_to_layer', 'go_layers', 'go_to_front', 'go_to_back', 'go_forward', 'go_backward',
+        'show', 'hide', 'size',
         'costume_number', 'costume_name', 'backdrop_number', 'backdrop_name',
-        'next_costume', 'next_backdrop', 'clear_graphic_effects', 'show', 'hide', 'size',
-        // Control
-        'sleep', 'repeat', 'loop', 'forever', 'stop', 'create_clone', 'times',
-        'when_start_as_a_clone', 'delete_this_clone',
-        // Events (often used as hats)
-        'when_flag_clicked', 'when_key_pressed', 'when_clicked',
-        'when_backdrop_switches_to', 'when_greater_than', 'when_receive', 'broadcast', 'broadcast_and_wait',
         // Sound
-        'play_sound_until_done', 'start_sound', 'stop_all_sounds',
+        'play', 'play_until_done', 'stop_all_sounds',
         'change_sound_effect_by', 'set_sound_effect', 'clear_sound_effects',
-        'change_volume_by', 'volume',
+        'volume',
+        // Events
+        'when_flag_clicked', 'when_key_pressed', 'when_clicked',
+        'when_backdrop_switches', 'when_greater_than', 'when_receive',
+        'broadcast', 'broadcast_and_wait',
+        // Control
+        'sleep', 'loop', 'forever', 'repeat', 'times', 'stop',
+        'create_clone', 'when_start_as_a_clone', 'delete_this_clone',
         // Sensing
-        'touching?', 'touching_color?', 'color_is_touching_color?', 'distance_to',
-        'ask_and_wait', 'answer', 'key_pressed?', 'mouse_down?', 'mouse_x', 'mouse_y',
-        'loudness', 'timer', 'reset_timer', 'current', 'days_since_2000', 'username',
+        'touching?', 'touching_color?', 'color_is_touching_color?', 'distance',
+        'ask', 'answer', 'loudness', 'days_since_2000', 'user_name',
+        // Operators / Math
+        'rand', 'round', 'abs', 'floor', 'ceil',
+        'length', 'include?', 'empty?', 'to_s', 'to_i',
+        // Data
+        'list', 'push', 'delete_at', 'insert', 'index', 'clear',
+        'show_variable', 'hide_variable', 'show_list', 'hide_list',
+        // Music
+        'play_drum', 'rest', 'play_note', 'tempo',
         // Pen
-        'clear', 'stamp', 'pen_down', 'pen_up', 'change_pen_color_by', 'set_pen_color_to',
-        'change_pen_size_by', 'set_pen_size_to'
+        'stamp',
+        // Class-level settings
+        'set_name', 'set_x', 'set_y', 'set_direction', 'set_visible',
+        'set_size', 'set_current_costume', 'set_rotation_style'
+    ],
+
+    // Smalruby constant/class names used as receivers
+    smalrubyConstants: [
+        'Keyboard', 'Mouse', 'Timer', 'Time', 'Math', 'Pen'
     ],
 
     operators: [
         '=', '>', '<', '!', '~', '?', ':',
-        '==', '<=', '>=', '!=', '&&', '||', '++', '--',
-        '+', '-', '*', '/', '%', '&', '|', '^', '<<', '>>', '=>'
+        '==', '<=', '>=', '!=', '&&', '||',
+        '+', '-', '*', '/', '%', '**',
+        '+=', '-=', '*=', '/=', '%=',
+        '&', '|', '^', '<<', '>>', '=>', '..'
     ],
 
     symbols: /[=><!~?:&|+\-*/^%]+/,
@@ -119,6 +138,7 @@ export const smalrubyLanguage = {
             [/[a-zA-Z_]\w*[!?]?/, {
                 cases: {
                     '@keywords': 'keyword',
+                    '@smalrubyConstants': 'type',
                     '@smalrubyMethods': 'type.identifier',
                     '@default': 'identifier'
                 }
