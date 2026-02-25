@@ -122,10 +122,12 @@ end`,
                 ),
                 image: 'mesh1Step3',
                 code: `when_flag_clicked do
+  show_variable("$送信メッセージ")
   $送信メッセージ = "こんにちは！元気ですか？"
   say("送信中...", 1)
   broadcast("メッセージが来た")
 end`,
+                codeType: 'blocks',
                 animationTarget: 'insertCodeButton'
             },
             {
@@ -138,15 +140,18 @@ end`,
                 ),
                 image: 'mesh1Step4',
                 code: `when_flag_clicked do
+  show_variable("$送信メッセージ")
   $送信メッセージ = "こんにちは！元気ですか？"
   say("送信中...", 1)
   broadcast("メッセージが来た")
 end
 
 when_receive("メッセージが来た") do
+  show_variable("@受信メッセージ")
   @受信メッセージ = $送信メッセージ
   say(@受信メッセージ)
 end`,
+                codeType: 'blocks',
                 animationTarget: 'insertCodeButton'
             },
             {
@@ -179,7 +184,14 @@ end`,
                         id="gui.howtos.mesh-tutorial-1.step7.title"
                     />
                 ),
-                image: 'mesh1Step7'
+                image: 'mesh1Step7',
+                animationTarget: 'nextButton'
+            },
+            {
+                deckIds: [
+                    'mesh-tutorial-2',
+                    'mesh-tutorial-3'
+                ]
             }
         ],
         urlId: 'meshTutorial1'
@@ -241,10 +253,12 @@ end`,
                 ),
                 image: 'mesh2Step4',
                 code: `when_flag_clicked do
+  show_variable("$送信メッセージ")
   $送信メッセージ = "こんにちは！元気ですか？"
   say("送信中...", 1)
   broadcast("メッセージが来た")
 end`,
+                codeType: 'blocks',
                 animationTarget: 'insertCodeButton'
             },
             {
@@ -257,9 +271,11 @@ end`,
                 ),
                 image: 'mesh2Step5',
                 code: `when_receive("メッセージが来た") do
+  show_variable("@受信メッセージ")
   @受信メッセージ = $送信メッセージ
   say(@受信メッセージ)
 end`,
+                codeType: 'blocks',
                 animationTarget: 'insertCodeButton'
             },
             {
@@ -281,7 +297,14 @@ end`,
                         id="gui.howtos.mesh-tutorial-2.step7.title"
                     />
                 ),
-                image: 'mesh2Step7'
+                image: 'mesh2Step7',
+                animationTarget: 'nextButton'
+            },
+            {
+                deckIds: [
+                    'mesh-tutorial-3',
+                    'mesh-tutorial-1'
+                ]
             }
         ],
         urlId: 'meshTutorial2'
@@ -365,10 +388,12 @@ end`,
                 ),
                 image: 'mesh3Step6',
                 code: `when_flag_clicked do
+  show_variable("$送信メッセージ")
   $送信メッセージ = "こんにちは！元気ですか？"
   say("送信中...", 1)
   broadcast("メッセージが来た")
 end`,
+                codeType: 'blocks',
                 animationTarget: 'insertCodeButton'
             },
             {
@@ -381,9 +406,11 @@ end`,
                 ),
                 image: 'mesh3Step7',
                 code: `when_receive("メッセージが来た") do
+  show_variable("@受信メッセージ")
   @受信メッセージ = mesh.sensor_value("送信メッセージ")
   say(@受信メッセージ)
 end`,
+                codeType: 'blocks',
                 animationTarget: 'insertCodeButton'
             },
             {
@@ -405,7 +432,14 @@ end`,
                         id="gui.howtos.mesh-tutorial-3.step9.title"
                     />
                 ),
-                image: 'mesh3Step9'
+                image: 'mesh3Step9',
+                animationTarget: 'nextButton'
+            },
+            {
+                deckIds: [
+                    'mesh-tutorial-1',
+                    'mesh-tutorial-2'
+                ]
             }
         ],
         urlId: 'meshTutorial3'

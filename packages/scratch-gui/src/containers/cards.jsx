@@ -19,6 +19,7 @@ import {
 
 import {
     activateTab,
+    BLOCKS_TAB_INDEX,
     RUBY_TAB_INDEX
 } from '../reducers/editor-tab';
 
@@ -129,7 +130,7 @@ class Cards extends React.Component {
         this.props.onPrevStepDispatch();
     }
 
-    _handleInsertCodeFactory (code) {
+    _handleInsertCodeFactory (code, codeType) {
         return () => {
             // Stop insertCode animation and schedule nextButton animation
             this._clearAnimationTimers();
@@ -139,7 +140,7 @@ class Cards extends React.Component {
             }, ANIMATION_DELAY_MS);
             this._animationTimers.push(timer);
 
-            this.props.onInsertCodeDispatch(code);
+            this.props.onInsertCodeDispatch(code, codeType);
         };
     }
     // === Smalruby: End of tutorial glow animation ===
@@ -214,9 +215,14 @@ const mapDispatchToProps = dispatch => ({
     onEndDrag: () => dispatch(endDrag()),
     // === Smalruby: Start of tutorial glow animation ===
     // Renamed from onInsertCodeFactory to allow interception in render()
-    onInsertCodeDispatch: code => {
-        dispatch(activateTab(RUBY_TAB_INDEX));
+    onInsertCodeDispatch: (code, codeType) => {
         dispatch(updateRubyCode(code));
+        if (codeType === 'blocks') {
+            // Inject Ruby silently then switch to blocks tab for block conversion
+            dispatch(activateTab(BLOCKS_TAB_INDEX));
+        } else {
+            dispatch(activateTab(RUBY_TAB_INDEX));
+        }
     }
     // === Smalruby: End of tutorial glow animation ===
 });

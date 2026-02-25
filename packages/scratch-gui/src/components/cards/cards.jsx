@@ -151,7 +151,7 @@ VideoStep.propTypes = {
 };
 
 // === Smalruby: Start of tutorial glow animation (insert-code button overlay) ===
-const ImageStep = ({title, image, code, onInsertCodeFactory, animateInsertCode}) => (<Fragment>
+const ImageStep = ({title, image, code, codeType, onInsertCodeFactory, animateInsertCode}) => (<Fragment>
     <div className={styles.stepTitle}>
         {title}
     </div>
@@ -167,18 +167,26 @@ const ImageStep = ({title, image, code, onInsertCodeFactory, animateInsertCode})
                 className={animateInsertCode ?
                     classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay, styles.insertCodeButtonGlow) :
                     classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay)}
-                data-card-action="insert-code"
-                onClick={onInsertCodeFactory(code)}
+                data-card-action={codeType === 'blocks' ? 'insert-blocks' : 'insert-ruby'}
+                onClick={onInsertCodeFactory(code, codeType)}
             >
                 <img
                     className={styles.codeIcon}
                     src={codeIcon}
                 />
-                <FormattedMessage
-                    defaultMessage="Insert This Code"
-                    description="Button to insert code into Ruby tab"
-                    id="gui.cards.insert-code"
-                />
+                {codeType === 'blocks' ? (
+                    <FormattedMessage
+                        defaultMessage="Insert Blocks"
+                        description="Button to insert code as blocks (injects Ruby then switches to blocks tab)"
+                        id="gui.cards.insert-blocks"
+                    />
+                ) : (
+                    <FormattedMessage
+                        defaultMessage="Insert This Ruby"
+                        description="Button to insert code into Ruby tab"
+                        id="gui.cards.insert-ruby"
+                    />
+                )}
             </button>
         ) : null}
     </div>
@@ -188,6 +196,7 @@ const ImageStep = ({title, image, code, onInsertCodeFactory, animateInsertCode})
 ImageStep.propTypes = {
     animateInsertCode: PropTypes.bool, // Smalruby: tutorial glow animation
     code: PropTypes.string,
+    codeType: PropTypes.string, // 'ruby' (default) or 'blocks'
     image: PropTypes.string.isRequired,
     onInsertCodeFactory: PropTypes.func,
     title: PropTypes.node.isRequired
@@ -482,6 +491,7 @@ const Cards = props => {
                                         <ImageStep
                                             animateInsertCode={animateInsertCode}
                                             code={steps[step].code}
+                                            codeType={steps[step].codeType}
                                             image={translateImage(steps[step].image, locale)}
                                             onInsertCodeFactory={onInsertCodeFactory}
                                             title={steps[step].title}
@@ -519,6 +529,7 @@ Cards.propTypes = {
                 image: PropTypes.string,
                 video: PropTypes.string,
                 code: PropTypes.string,
+                codeType: PropTypes.string,
                 deckIds: PropTypes.arrayOf(PropTypes.string)
             }))
         })

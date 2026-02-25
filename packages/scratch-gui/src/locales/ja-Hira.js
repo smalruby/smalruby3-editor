@@ -377,7 +377,8 @@ export default {
     'gui.howtos.mesh-tutorial-3.step9.title': 'まとめ＆つぎのステップ',
     // Mesh tag
     'gui.libraryTags.mesh': 'Mesh',
-    'gui.cards.insert-code': 'プログラムをにゅうりょくする',
+    'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
+    'gui.cards.insert-blocks': 'コードをにゅうりょくする',
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
