@@ -206,7 +206,7 @@ end`,
             />
         ),
         tags: ['ruby', 'mesh'],
-        category: CATEGORIES.gettingStarted,
+        category: CATEGORIES.chatApp,
         img: libraryMesh2,
         steps: [
             {
@@ -319,7 +319,7 @@ end`,
             />
         ),
         tags: ['ruby', 'mesh'],
-        category: CATEGORIES.gettingStarted,
+        category: CATEGORIES.chatApp,
         img: libraryMesh3,
         steps: [
             {
