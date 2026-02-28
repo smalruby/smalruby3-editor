@@ -33,7 +33,7 @@ import {PLATFORM} from '../lib/platform.js';
 
 // === Smalruby: Start of tutorial glow animation ===
 const ANIMATION_DELAY_MS = 3000;
-const INSERT_CODE_ANIMATION_DELAY_MS = 1000; // Shorter delay so users notice the button quickly
+const INSERT_CODE_ANIMATION_DELAY_MS = 300; // Shorter delay so users notice the button quickly
 // === Smalruby: End of tutorial glow animation ===
 
 class Cards extends React.Component {
