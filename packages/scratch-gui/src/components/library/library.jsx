@@ -17,6 +17,7 @@ import {getLocalStorageValue, setLocalStorageValue} from '../../lib/local-storag
 // Tutorial categories - kept for message definitions (tutorials have been removed from Smalruby)
 const CATEGORIES = {
     gettingStarted: 'gettingStarted',
+    chatApp: 'chatApp',
     basics: 'basics',
     intermediate: 'intermediate',
     prompts: 'prompts'
@@ -42,6 +43,11 @@ const messages = defineMessages({
         id: `gui.library.gettingStarted`,
         defaultMessage: 'Getting Started',
         description: 'Label for getting started category'
+    },
+    [CATEGORIES.chatApp]: {
+        id: `gui.library.chatApp`,
+        defaultMessage: 'Build a Chat App',
+        description: 'Label for chat app tutorial category'
     },
     [CATEGORIES.basics]: {
         id: `gui.library.basics`,

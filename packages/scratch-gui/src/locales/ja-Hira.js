@@ -346,15 +346,15 @@ export default {
     'gui.howtos.getting-started.step.bounceCode': 'ルビーをひょうじしてプログラムをにゅうりょくしてみよう',
     'gui.howtos.getting-started.step.runRuby': 'じっこうボタンをおしてプログラムをじっこうしよう',
     'gui.howtos.getting-started.step.firstProgram': 'ネコがいったりきたりするプログラムができました🎉',
-    // Mesh Tutorial 1
-    'gui.howtos.mesh-tutorial-1.name': 'メッセージをおくってみよう',
-    'gui.howtos.mesh-tutorial-1.step1.title': 'なにをつくるの？',
-    'gui.howtos.mesh-tutorial-1.step2.title': '「へんすう」ってなんだろう？',
-    'gui.howtos.mesh-tutorial-1.step3.title': 'メッセージをおくるプログラムをかこう',
-    'gui.howtos.mesh-tutorial-1.step4.title': 'メッセージをうけとるプログラムをかこう',
-    'gui.howtos.mesh-tutorial-1.step5.title': 'じっこうしてかくにんしよう',
-    'gui.howtos.mesh-tutorial-1.step6.title': 'メッセージをかえてみよう',
-    'gui.howtos.mesh-tutorial-1.step7.title': 'まとめ',
+    // Chat Tutorial 1 Basic 1
+    'gui.howtos.chat-1-basic-1.name': 'メッセージをおくってみよう！',
+    'gui.howtos.chat-1-basic-1.step1.title': 'はなれたブロックにメッセージをおくってみよう！',
+    'gui.howtos.chat-1-basic-1.step2.title': 'まずはコードをにゅうりょくしてプログラムをじっこうしてみよう',
+    'gui.howtos.chat-1-basic-1.step3.title': '「◯◯をおくる」ははなれたところにあるめいれいをじっこうできる',
+    'gui.howtos.chat-1-basic-1.step4.title': '「そうしんちゅう...」ってほんとうかな？きちんとおくるようにするよ',
+    'gui.howtos.chat-1-basic-1.step5.title': 'へんすう「そうしんメッセージ」のつくりかた',
+    'gui.howtos.chat-1-basic-1.step6.title': 'だいじなこと『へんすうを◯◯にする、◯◯をおくる、〇〇をうけとったとき』',
+    'gui.howtos.chat-1-basic-1.step7.title': 'しゃべるないようをかえてみよう',
     // Mesh Tutorial 2
     'gui.howtos.mesh-tutorial-2.name': '2つのキャラクターでかいわしよう',
     'gui.howtos.mesh-tutorial-2.step1.title': '2にんでかいわしてみよう',
@@ -382,6 +382,7 @@ export default {
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
+    'gui.library.chatApp': 'チャットアプリをつくろう',
     'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!',
     'gui.aria.clearButton': 'クリア'
 };

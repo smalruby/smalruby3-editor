@@ -4,14 +4,14 @@ import introBounceCode from './steps/intro-2-bounce-code.ja.gif';
 import introRunRuby from './steps/intro-3-run-ruby.ja.gif';
 import introFirstProgram from './steps/intro-4-first-program.gif';
 
-// Mesh Tutorial 1: メッセージを送ってみよう
-import mesh1Step1 from './steps/mesh1-1-complete-image.gif';
-import mesh1Step2 from './steps/mesh1-2-variable.gif';
-import mesh1Step3 from './steps/mesh1-3-send-code.gif';
-import mesh1Step4 from './steps/mesh1-4-receive-code.gif';
-import mesh1Step5 from './steps/mesh1-5-run.gif';
-import mesh1Step6 from './steps/mesh1-6-customize.gif';
-import mesh1Step7 from './steps/mesh1-7-summary.gif';
+// Chat Tutorial 1 Basic 1: メッセージを送ってみよう
+import chat1Basic1Step1 from './steps/chat1-basic1-1-intro.gif';
+import chat1Basic1Step2 from './steps/chat1-basic1-2-run-code.gif';
+import chat1Basic1Step3 from './steps/chat1-basic1-3-broadcast.png';
+import chat1Basic1Step4 from './steps/chat1-basic1-4-variable.png';
+import chat1Basic1Step5 from './steps/chat1-basic1-5-create-variable.gif';
+import chat1Basic1Step6 from './steps/chat1-basic1-6-key-concepts.png';
+import chat1Basic1Step7 from './steps/chat1-basic1-7-customize.gif';
 
 // Mesh Tutorial 2: 2つのキャラクターで会話しよう
 import mesh2Step1 from './steps/mesh2-1-two-sprites.gif';
@@ -39,14 +39,14 @@ const jaImages = {
     introBounceCode: introBounceCode,
     introRunRuby: introRunRuby,
     introFirstProgram: introFirstProgram,
-    // Mesh Tutorial 1
-    mesh1Step1: mesh1Step1,
-    mesh1Step2: mesh1Step2,
-    mesh1Step3: mesh1Step3,
-    mesh1Step4: mesh1Step4,
-    mesh1Step5: mesh1Step5,
-    mesh1Step6: mesh1Step6,
-    mesh1Step7: mesh1Step7,
+    // Chat Tutorial 1 Basic 1
+    chat1Basic1Step1: chat1Basic1Step1,
+    chat1Basic1Step2: chat1Basic1Step2,
+    chat1Basic1Step3: chat1Basic1Step3,
+    chat1Basic1Step4: chat1Basic1Step4,
+    chat1Basic1Step5: chat1Basic1Step5,
+    chat1Basic1Step6: chat1Basic1Step6,
+    chat1Basic1Step7: chat1Basic1Step7,
     // Mesh Tutorial 2
     mesh2Step1: mesh2Step1,
     mesh2Step2: mesh2Step2,

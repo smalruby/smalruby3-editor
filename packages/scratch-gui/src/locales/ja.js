@@ -350,15 +350,15 @@ export default {
     'gui.howtos.getting-started.step.bounceCode': 'ルビーを表示してプログラムを入力してみよう',
     'gui.howtos.getting-started.step.runRuby': '実行ボタンを押してプログラムを実行しよう',
     'gui.howtos.getting-started.step.firstProgram': 'ネコが行ったり来たりするプログラムができました🎉',
-    // Mesh Tutorial 1
-    'gui.howtos.mesh-tutorial-1.name': 'メッセージを送ってみよう',
-    'gui.howtos.mesh-tutorial-1.step1.title': '何を作るの？',
-    'gui.howtos.mesh-tutorial-1.step2.title': '「変数」って何だろう？',
-    'gui.howtos.mesh-tutorial-1.step3.title': 'メッセージを送るプログラムを書こう',
-    'gui.howtos.mesh-tutorial-1.step4.title': 'メッセージを受け取るプログラムを書こう',
-    'gui.howtos.mesh-tutorial-1.step5.title': '実行して確認しよう',
-    'gui.howtos.mesh-tutorial-1.step6.title': 'メッセージを変えてみよう',
-    'gui.howtos.mesh-tutorial-1.step7.title': 'まとめ',
+    // Chat Tutorial 1 Basic 1
+    'gui.howtos.chat-1-basic-1.name': 'メッセージを送ってみよう！',
+    'gui.howtos.chat-1-basic-1.step1.title': '離れたブロックにメッセージを送ってみよう！',
+    'gui.howtos.chat-1-basic-1.step2.title': 'まずはコードを入力してプログラムを実行してみよう',
+    'gui.howtos.chat-1-basic-1.step3.title': '「◯◯を送る」は離れたところにある命令を実行できる',
+    'gui.howtos.chat-1-basic-1.step4.title': '「送信中...」って本当かな？きちんと送るようにするよ',
+    'gui.howtos.chat-1-basic-1.step5.title': '変数「送信メッセージ」の作り方',
+    'gui.howtos.chat-1-basic-1.step6.title': '大事なこと『変数を◯◯にする、◯◯を送る、〇〇を受け取ったとき』',
+    'gui.howtos.chat-1-basic-1.step7.title': 'しゃべる内容を変えてみよう',
     // Mesh Tutorial 2
     'gui.howtos.mesh-tutorial-2.name': '2つのキャラクターで会話しよう',
     'gui.howtos.mesh-tutorial-2.step1.title': '2人で会話してみよう',
@@ -393,6 +393,7 @@ export default {
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': '始めましょう',
+    'gui.library.chatApp': 'チャットアプリをつくろう',
     'gui.menuBar.tutorialTooltip': 'ルビーを試してみよう!',
     'gui.aria.clearButton': 'クリア'
 };

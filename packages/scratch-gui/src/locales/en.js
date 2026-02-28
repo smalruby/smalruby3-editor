@@ -278,8 +278,18 @@ export default {
     'gui.cards.insert-blocks': 'Insert Blocks',
     'gui.tipsLibrary.tutorials': 'Choose a Tutorial',
     'gui.libraryTags.ruby': 'Ruby',
+    'gui.libraryTags.mesh': 'Mesh',
     'gui.libraryTags.firstTime': 'First Time',
     'gui.libraryCategories.gettingStarted': 'Getting Started',
+    'gui.library.chatApp': 'Build a Chat App',
+    'gui.howtos.chat-1-basic-1.name': "Let's Send a Message!",
+    'gui.howtos.chat-1-basic-1.step1.title': "Let's send a message to a remote block!",
+    'gui.howtos.chat-1-basic-1.step2.title': 'First, insert the code and run the program',
+    'gui.howtos.chat-1-basic-1.step3.title': "'broadcast' can run commands in a remote place",
+    'gui.howtos.chat-1-basic-1.step4.title': "Is 'Sending...' really accurate? Let's send it properly",
+    'gui.howtos.chat-1-basic-1.step5.title': "How to create the 'send message' variable",
+    'gui.howtos.chat-1-basic-1.step6.title': "Key concepts: 'set variable', 'broadcast', 'when received'",
+    'gui.howtos.chat-1-basic-1.step7.title': 'Try changing what is said',
     'gui.menuBar.tutorialTooltip': 'Try Ruby!',
     'gui.aria.clearButton': 'Clear'
 };

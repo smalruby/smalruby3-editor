@@ -1,7 +1,8 @@
 import messages from './tag-messages.js';
 
 export const CATEGORIES = {
-    gettingStarted: 'gettingStarted'
+    gettingStarted: 'gettingStarted',
+    chatApp: 'chatApp' // チャットアプリをつくろう / Build a Chat App
 };
 
 export default [

@@ -5,8 +5,9 @@ import {FormattedMessage} from 'react-intl';
 // translated in thumbnails.
 // Intro
 import libraryIntro from './thumbnails/getting-started.jpg';
-// Mesh tutorials
-import libraryMesh1 from './thumbnails/mesh-tutorial-1.jpg';
+// Chat App tutorials
+import libraryChat1Basic1 from './thumbnails/chat-1-basic-1.jpg';
+// Mesh tutorials (to be migrated)
 import libraryMesh2 from './thumbnails/mesh-tutorial-2.jpg';
 import libraryMesh3 from './thumbnails/mesh-tutorial-3.jpg';
 import {CATEGORIES} from '../tutorial-tags';
@@ -77,55 +78,46 @@ end`,
         urlId: 'getStarted'
     },
 
-    // ─── Mesh Tutorial 1: メッセージを送ってみよう ───────────────────────────
-    'mesh-tutorial-1': {
+    // ─── Chat App Tutorial 1-Basic-1: メッセージを送ってみよう（コード入力版） ──
+    'chat-1-basic-1': {
         name: (
             <FormattedMessage
-                defaultMessage="メッセージを送ってみよう"
-                description="Name for the Mesh Tutorial 1"
-                id="gui.howtos.mesh-tutorial-1.name"
+                defaultMessage="メッセージを送ってみよう！"
+                description="Name for Chat Tutorial 1 Basic 1: send a message by inserting code"
+                id="gui.howtos.chat-1-basic-1.name"
             />
         ),
         tags: ['ruby', 'mesh'],
-        category: CATEGORIES.gettingStarted,
-        img: libraryMesh1,
+        category: CATEGORIES.chatApp,
+        img: libraryChat1Basic1,
         steps: [
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="何を作るの？"
-                        description="Mesh1 Step 1: What are we making?"
-                        id="gui.howtos.mesh-tutorial-1.step1.title"
+                        defaultMessage="離れたブロックにメッセージを送ってみよう！"
+                        description="Chat1 Basic1 Step 1: Intro - send message to remote block"
+                        id="gui.howtos.chat-1-basic-1.step1.title"
                     />
                 ),
-                image: 'mesh1Step1',
+                image: 'chat1Basic1Step1',
                 animationTarget: 'nextButton'
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="「変数」って何だろう？"
-                        description="Mesh1 Step 2: What is a variable?"
-                        id="gui.howtos.mesh-tutorial-1.step2.title"
+                        defaultMessage="まずはコードを入力してプログラムを実行してみよう"
+                        description="Chat1 Basic1 Step 2: Insert code and run"
+                        id="gui.howtos.chat-1-basic-1.step2.title"
                     />
                 ),
-                image: 'mesh1Step2',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="メッセージを送るプログラムを書こう"
-                        description="Mesh1 Step 3: Write the send program"
-                        id="gui.howtos.mesh-tutorial-1.step3.title"
-                    />
-                ),
-                image: 'mesh1Step3',
+                image: 'chat1Basic1Step2',
                 code: `when_flag_clicked do
-  show_variable("$送信メッセージ")
-  $送信メッセージ = "こんにちは！元気ですか？"
   say("送信中...", 1)
   broadcast("メッセージが来た")
+end
+
+when_receive("メッセージが来た") do
+  say("こんにちは！元気ですか？")
 end`,
                 codeType: 'blocks',
                 animationTarget: 'insertCodeButton'
@@ -133,23 +125,31 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="メッセージを受け取るプログラムを書こう"
-                        description="Mesh1 Step 4: Write the receive program"
-                        id="gui.howtos.mesh-tutorial-1.step4.title"
+                        defaultMessage="「◯◯を送る」は離れたところにある命令を実行できる"
+                        description="Chat1 Basic1 Step 3: broadcast block explanation"
+                        id="gui.howtos.chat-1-basic-1.step3.title"
                     />
                 ),
-                image: 'mesh1Step4',
+                image: 'chat1Basic1Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="「送信中...」って本当かな？きちんと送るようにするよ"
+                        description="Chat1 Basic1 Step 4: Use variable for message content"
+                        id="gui.howtos.chat-1-basic-1.step4.title"
+                    />
+                ),
+                image: 'chat1Basic1Step4',
                 code: `when_flag_clicked do
-  show_variable("$送信メッセージ")
   $送信メッセージ = "こんにちは！元気ですか？"
   say("送信中...", 1)
   broadcast("メッセージが来た")
 end
 
 when_receive("メッセージが来た") do
-  show_variable("@受信メッセージ")
-  @受信メッセージ = $送信メッセージ
-  say(@受信メッセージ)
+  say($送信メッセージ)
 end`,
                 codeType: 'blocks',
                 animationTarget: 'insertCodeButton'
@@ -157,44 +157,43 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="実行して確認しよう"
-                        description="Mesh1 Step 5: Run and check"
-                        id="gui.howtos.mesh-tutorial-1.step5.title"
+                        defaultMessage="変数「送信メッセージ」の作り方"
+                        description="Chat1 Basic1 Step 5: How to create a variable"
+                        id="gui.howtos.chat-1-basic-1.step5.title"
                     />
                 ),
-                image: 'mesh1Step5',
+                image: 'chat1Basic1Step5',
                 animationTarget: 'nextButton'
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="メッセージを変えてみよう"
-                        description="Mesh1 Step 6: Customize the message"
-                        id="gui.howtos.mesh-tutorial-1.step6.title"
+                        defaultMessage="大事なこと『変数を◯◯にする、◯◯を送る、〇〇を受け取ったとき』"
+                        description="Chat1 Basic1 Step 6: Key concepts recap"
+                        id="gui.howtos.chat-1-basic-1.step6.title"
                     />
                 ),
-                image: 'mesh1Step6',
+                image: 'chat1Basic1Step6',
                 animationTarget: 'nextButton'
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="まとめ"
-                        description="Mesh1 Step 7: Summary"
-                        id="gui.howtos.mesh-tutorial-1.step7.title"
+                        defaultMessage="しゃべる内容を変えてみよう"
+                        description="Chat1 Basic1 Step 7: Customize the message"
+                        id="gui.howtos.chat-1-basic-1.step7.title"
                     />
                 ),
-                image: 'mesh1Step7',
+                image: 'chat1Basic1Step7',
                 animationTarget: 'nextButton'
             },
             {
                 deckIds: [
-                    'mesh-tutorial-2',
-                    'mesh-tutorial-3'
+                    'mesh-tutorial-2'
                 ]
             }
         ],
-        urlId: 'meshTutorial1'
+        urlId: 'chat1Basic1'
     },
 
     // ─── Mesh Tutorial 2: 2つのキャラクターで会話しよう ──────────────────────
@@ -303,7 +302,7 @@ end`,
             {
                 deckIds: [
                     'mesh-tutorial-3',
-                    'mesh-tutorial-1'
+                    'chat-1-basic-1'
                 ]
             }
         ],
@@ -437,7 +436,7 @@ end`,
             },
             {
                 deckIds: [
-                    'mesh-tutorial-1',
+                    'chat-1-basic-1',
                     'mesh-tutorial-2'
                 ]
             }
