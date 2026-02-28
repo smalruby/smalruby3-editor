@@ -33,6 +33,7 @@ import {PLATFORM} from '../lib/platform.js';
 
 // === Smalruby: Start of tutorial glow animation ===
 const ANIMATION_DELAY_MS = 3000;
+const INSERT_CODE_ANIMATION_DELAY_MS = 1000; // Shorter delay so users notice the button quickly
 // === Smalruby: End of tutorial glow animation ===
 
 class Cards extends React.Component {
@@ -100,13 +101,14 @@ class Cards extends React.Component {
         const target = currentStep.animationTarget;
         if (!target) return;
 
+        const delay = target === 'insertCodeButton' ? INSERT_CODE_ANIMATION_DELAY_MS : ANIMATION_DELAY_MS;
         const timer = setTimeout(() => {
             if (target === 'nextButton') {
                 this.setState({animateNext: true});
             } else if (target === 'insertCodeButton') {
                 this.setState({animateInsertCode: true});
             }
-        }, ANIMATION_DELAY_MS);
+        }, delay);
         this._animationTimers.push(timer);
     }
 
