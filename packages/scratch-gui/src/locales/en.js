@@ -299,6 +299,17 @@ export default {
     'gui.howtos.chat-2-sprites-1.step5.title': 'Add the Penguin sprite',
     'gui.howtos.chat-2-sprites-1.step6.title': 'Adjust the Penguin position and direction',
     'gui.howtos.chat-2-sprites-1.step7.title': 'Enter the Penguin code to finish. Try clicking Cat or Penguin!',
+    // Chat Tutorial 3 Mesh 1
+    'gui.howtos.chat-3-mesh-1.name': "Let's Connect with the Mesh Extension!",
+    'gui.howtos.chat-3-mesh-1.step1.title': "Connect to other people's Smalruby using the Mesh extension",
+    'gui.howtos.chat-3-mesh-1.step2.title': 'Form a group and select the Mesh extension (even one person can do it with two Smalruby windows)',
+    'gui.howtos.chat-3-mesh-1.step3.title': 'The first person becomes the host. Others join the mesh',
+    'gui.howtos.chat-3-mesh-1.step4.title': "Change the sprite's costume",
+    'gui.howtos.chat-3-mesh-1.step5.title': 'The host and others use different code. Enter the host code first',
+    'gui.howtos.chat-3-mesh-1.step6.title': 'Next, enter the code for those who joined the mesh',
+    'gui.howtos.chat-3-mesh-1.step7.title': 'Click your sprite to send a message!',
+    'gui.howtos.chat-3-mesh-1.step8.title': 'Key concept: use "sensor value" to get other people\'s "sent message"',
+    'gui.howtos.chat-3-mesh-1.external.kairyudo.name': 'Kairyudo: Try Programming! "Create a Chat App"',
     'gui.menuBar.tutorialTooltip': 'Try Ruby!',
     'gui.aria.clearButton': 'Clear'
 };

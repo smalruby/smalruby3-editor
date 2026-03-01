@@ -22,16 +22,14 @@ import chat2Sprites1Step5 from './steps/chat2-sprites1-5-add-penguin.gif';
 import chat2Sprites1Step6 from './steps/chat2-sprites1-6-settings.gif';
 import chat2Sprites1Step7 from './steps/chat2-sprites1-7-penguin-code.png';
 
-// Mesh Tutorial 3: 2台のパソコンでつながろう
-import mesh3Step1 from './steps/mesh3-1-network.gif';
-import mesh3Step2 from './steps/mesh3-2-add-extension.gif';
-import mesh3Step3 from './steps/mesh3-3-host.gif';
-import mesh3Step4 from './steps/mesh3-4-join.gif';
-import mesh3Step5 from './steps/mesh3-5-sync.gif';
-import mesh3Step6 from './steps/mesh3-6-pc1-code.gif';
-import mesh3Step7 from './steps/mesh3-7-pc2-code.gif';
-import mesh3Step8 from './steps/mesh3-8-run-two.gif';
-import mesh3Step9 from './steps/mesh3-9-summary.gif';
+// Chat Tutorial 3 Mesh 1: メッシュ拡張機能でつながろう
+import chat3Mesh1Step1 from './steps/chat3-mesh1-1-intro.gif';
+import chat3Mesh1Step2 from './steps/chat3-mesh1-2-select-mesh.gif';
+import chat3Mesh1Step3 from './steps/chat3-mesh1-3-host-join.png';
+import chat3Mesh1Step4 from './steps/chat3-mesh1-4-costume.gif';
+import chat3Mesh1Step5 from './steps/chat3-mesh1-5-host-code.png';
+import chat3Mesh1Step6 from './steps/chat3-mesh1-6-member-code.png';
+import chat3Mesh1Step8 from './steps/chat3-mesh1-8-sensor.png';
 
 const enImages = {
     // Getting Started
@@ -55,16 +53,14 @@ const enImages = {
     chat2Sprites1Step5: chat2Sprites1Step5,
     chat2Sprites1Step6: chat2Sprites1Step6,
     chat2Sprites1Step7: chat2Sprites1Step7,
-    // Mesh Tutorial 3
-    mesh3Step1: mesh3Step1,
-    mesh3Step2: mesh3Step2,
-    mesh3Step3: mesh3Step3,
-    mesh3Step4: mesh3Step4,
-    mesh3Step5: mesh3Step5,
-    mesh3Step6: mesh3Step6,
-    mesh3Step7: mesh3Step7,
-    mesh3Step8: mesh3Step8,
-    mesh3Step9: mesh3Step9
+    // Chat Tutorial 3 Mesh 1
+    chat3Mesh1Step1: chat3Mesh1Step1,
+    chat3Mesh1Step2: chat3Mesh1Step2,
+    chat3Mesh1Step3: chat3Mesh1Step3,
+    chat3Mesh1Step4: chat3Mesh1Step4,
+    chat3Mesh1Step5: chat3Mesh1Step5,
+    chat3Mesh1Step6: chat3Mesh1Step6,
+    chat3Mesh1Step8: chat3Mesh1Step8
 };
 
 export {enImages};
