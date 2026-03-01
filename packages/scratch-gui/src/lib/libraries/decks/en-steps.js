@@ -13,14 +13,14 @@ import chat1Basic1Step5 from './steps/chat1-basic1-5-create-variable.gif';
 import chat1Basic1Step6 from './steps/chat1-basic1-6-key-concepts.png';
 import chat1Basic1Step7 from './steps/chat1-basic1-7-customize.gif';
 
-// Mesh Tutorial 2: 2つのキャラクターで会話しよう
-import mesh2Step1 from './steps/mesh2-1-two-sprites.gif';
-import mesh2Step2 from './steps/mesh2-2-add-sprite.gif';
-import mesh2Step3 from './steps/mesh2-3-sprite-programs.gif';
-import mesh2Step4 from './steps/mesh2-4-sprite-a.gif';
-import mesh2Step5 from './steps/mesh2-5-sprite-b.gif';
-import mesh2Step6 from './steps/mesh2-6-run.gif';
-import mesh2Step7 from './steps/mesh2-7-next.gif';
+// Chat Tutorial 2 Sprites 1: ネコとペンギンで会話しよう
+import chat2Sprites1Step1 from './steps/chat2-sprites1-1-intro.gif';
+import chat2Sprites1Step2 from './steps/chat2-sprites1-2-cat-code.png';
+import chat2Sprites1Step3 from './steps/chat2-sprites1-3-local-var.gif';
+import chat2Sprites1Step4 from './steps/chat2-sprites1-4-messages.png';
+import chat2Sprites1Step5 from './steps/chat2-sprites1-5-add-penguin.gif';
+import chat2Sprites1Step6 from './steps/chat2-sprites1-6-settings.gif';
+import chat2Sprites1Step7 from './steps/chat2-sprites1-7-penguin-code.png';
 
 // Mesh Tutorial 3: 2台のパソコンでつながろう
 import mesh3Step1 from './steps/mesh3-1-network.gif';
@@ -47,14 +47,14 @@ const enImages = {
     chat1Basic1Step5: chat1Basic1Step5,
     chat1Basic1Step6: chat1Basic1Step6,
     chat1Basic1Step7: chat1Basic1Step7,
-    // Mesh Tutorial 2
-    mesh2Step1: mesh2Step1,
-    mesh2Step2: mesh2Step2,
-    mesh2Step3: mesh2Step3,
-    mesh2Step4: mesh2Step4,
-    mesh2Step5: mesh2Step5,
-    mesh2Step6: mesh2Step6,
-    mesh2Step7: mesh2Step7,
+    // Chat Tutorial 2 Sprites 1
+    chat2Sprites1Step1: chat2Sprites1Step1,
+    chat2Sprites1Step2: chat2Sprites1Step2,
+    chat2Sprites1Step3: chat2Sprites1Step3,
+    chat2Sprites1Step4: chat2Sprites1Step4,
+    chat2Sprites1Step5: chat2Sprites1Step5,
+    chat2Sprites1Step6: chat2Sprites1Step6,
+    chat2Sprites1Step7: chat2Sprites1Step7,
     // Mesh Tutorial 3
     mesh3Step1: mesh3Step1,
     mesh3Step2: mesh3Step2,

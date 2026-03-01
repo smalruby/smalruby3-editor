@@ -7,8 +7,8 @@ import {FormattedMessage} from 'react-intl';
 import libraryIntro from './thumbnails/getting-started.jpg';
 // Chat App tutorials
 import libraryChat1Basic1 from './thumbnails/chat-1-basic-1.jpg';
+import libraryChat2Sprites1 from './thumbnails/chat-2-sprites-1.gif';
 // Mesh tutorials (to be migrated)
-import libraryMesh2 from './thumbnails/mesh-tutorial-2.jpg';
 import libraryMesh3 from './thumbnails/mesh-tutorial-3.jpg';
 import {CATEGORIES} from '../tutorial-tags';
 
@@ -189,90 +189,55 @@ end`,
             },
             {
                 deckIds: [
-                    'mesh-tutorial-2'
+                    'chat-2-sprites-1'
                 ]
             }
         ],
         urlId: 'chat1Basic1'
     },
 
-    // ─── Mesh Tutorial 2: 2つのキャラクターで会話しよう ──────────────────────
-    'mesh-tutorial-2': {
+    // ─── Chat Tutorial 2 Sprites 1: ネコとペンギンで会話しよう ──────────────
+    'chat-2-sprites-1': {
         name: (
             <FormattedMessage
-                defaultMessage="2つのキャラクターで会話しよう"
-                description="Name for the Mesh Tutorial 2"
-                id="gui.howtos.mesh-tutorial-2.name"
+                defaultMessage="ネコとペンギンで会話しよう"
+                description="Name for Chat Tutorial 2 Sprites 1"
+                id="gui.howtos.chat-2-sprites-1.name"
             />
         ),
         tags: ['ruby', 'mesh'],
         category: CATEGORIES.chatApp,
-        img: libraryMesh2,
+        img: libraryChat2Sprites1,
         steps: [
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="2人で会話してみよう"
-                        description="Mesh2 Step 1: Intro to 2-sprite chat"
-                        id="gui.howtos.mesh-tutorial-2.step1.title"
+                        defaultMessage="ネコとペンギンの会話"
+                        description="Chat2 Sprites1 Step 1: Intro - cat and penguin conversation"
+                        id="gui.howtos.chat-2-sprites-1.step1.title"
                     />
                 ),
-                image: 'mesh2Step1',
+                image: 'chat2Sprites1Step1',
                 animationTarget: 'nextButton'
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="スプライトを追加しよう"
-                        description="Mesh2 Step 2: Add a sprite"
-                        id="gui.howtos.mesh-tutorial-2.step2.title"
+                        defaultMessage="ネコのコードを入力する"
+                        description="Chat2 Sprites1 Step 2: Insert cat code"
+                        id="gui.howtos.chat-2-sprites-1.step2.title"
                     />
                 ),
-                image: 'mesh2Step2',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="スプライトごとに別のプログラムがある"
-                        description="Mesh2 Step 3: Each sprite has its own program"
-                        id="gui.howtos.mesh-tutorial-2.step3.title"
-                    />
-                ),
-                image: 'mesh2Step3',
-                animationTarget: 'nextButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="スプライトA（送る側）のプログラムを書こう"
-                        description="Mesh2 Step 4: Write sprite A program"
-                        id="gui.howtos.mesh-tutorial-2.step4.title"
-                    />
-                ),
-                image: 'mesh2Step4',
-                code: `when_flag_clicked do
-  show_variable("$送信メッセージ")
-  $送信メッセージ = "こんにちは！元気ですか？"
+                image: 'chat2Sprites1Step2',
+                code: `when_clicked do
+  $送信メッセージ = "ネコ：こんにちは"
   say("送信中...", 1)
-  broadcast("メッセージが来た")
-end`,
-                codeType: 'blocks',
-                animationTarget: 'insertCodeButton'
-            },
-            {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="スプライトB（受け取る側）のプログラムを書こう"
-                        description="Mesh2 Step 5: Write sprite B program"
-                        id="gui.howtos.mesh-tutorial-2.step5.title"
-                    />
-                ),
-                image: 'mesh2Step5',
-                code: `when_receive("メッセージが来た") do
-  show_variable("@受信メッセージ")
+  broadcast("ネコからのメッセージ")
+end
+
+when_receive("ペンギンからのメッセージ") do
   @受信メッセージ = $送信メッセージ
-  say(@受信メッセージ)
+  say(@受信メッセージ, 3)
 end`,
                 codeType: 'blocks',
                 animationTarget: 'insertCodeButton'
@@ -280,33 +245,76 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="実行して確認しよう"
-                        description="Mesh2 Step 6: Run and check"
-                        id="gui.howtos.mesh-tutorial-2.step6.title"
+                        defaultMessage="大事なこと：変数「受信メッセージ」は「このスプライトのみ」になっています"
+                        description="Chat2 Sprites1 Step 3: Instance variable is sprite-local"
+                        id="gui.howtos.chat-2-sprites-1.step3.title"
                     />
                 ),
-                image: 'mesh2Step6',
+                image: 'chat2Sprites1Step3',
                 animationTarget: 'nextButton'
             },
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="次はネットワークでつなごう"
-                        description="Mesh2 Step 7: Preview of Mesh tutorial"
-                        id="gui.howtos.mesh-tutorial-2.step7.title"
+                        defaultMessage="大事なこと：「ネコのメッセージ」を送り、「ペンギンからのメッセージ」を受け取る"
+                        description="Chat2 Sprites1 Step 4: Cat sends, receives from Penguin"
+                        id="gui.howtos.chat-2-sprites-1.step4.title"
                     />
                 ),
-                image: 'mesh2Step7',
+                image: 'chat2Sprites1Step4',
                 animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ペンギンのスプライトを追加します"
+                        description="Chat2 Sprites1 Step 5: Add penguin sprite"
+                        id="gui.howtos.chat-2-sprites-1.step5.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step5',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ペンギンの位置と向きを調整します"
+                        description="Chat2 Sprites1 Step 6: Adjust penguin position and direction"
+                        id="gui.howtos.chat-2-sprites-1.step6.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step6',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ペンギンのコードを入力すると完成。ネコやペンギンを押してみよう！"
+                        description="Chat2 Sprites1 Step 7: Insert penguin code and run"
+                        id="gui.howtos.chat-2-sprites-1.step7.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step7',
+                code: `when_clicked do
+  $送信メッセージ = "ペンギン：こんにちは"
+  say("送信中...", 1)
+  broadcast("ペンギンからのメッセージ")
+end
+
+when_receive("ネコからのメッセージ") do
+  @受信メッセージ = $送信メッセージ
+  say(@受信メッセージ, 3)
+end`,
+                codeType: 'blocks',
+                animationTarget: 'insertCodeButton'
             },
             {
                 deckIds: [
-                    'mesh-tutorial-3',
-                    'chat-1-basic-1'
+                    'mesh-tutorial-3'
                 ]
             }
         ],
-        urlId: 'meshTutorial2'
+        urlId: 'chat2Sprites1'
     },
 
     // ─── Mesh Tutorial 3: 2台のパソコンでつながろう ──────────────────────────
@@ -437,7 +445,7 @@ end`,
             {
                 deckIds: [
                     'chat-1-basic-1',
-                    'mesh-tutorial-2'
+                    'chat-2-sprites-1'
                 ]
             }
         ],
