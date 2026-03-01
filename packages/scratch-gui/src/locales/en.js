@@ -290,6 +290,15 @@ export default {
     'gui.howtos.chat-1-basic-1.step5.title': "How to create the 'send message' variable",
     'gui.howtos.chat-1-basic-1.step6.title': "Key concepts: 'set variable', 'broadcast', 'when received'",
     'gui.howtos.chat-1-basic-1.step7.title': 'Try changing what is said',
+    // Chat Tutorial 2 Sprites 1
+    'gui.howtos.chat-2-sprites-1.name': "Let's Chat with Cat and Penguin!",
+    'gui.howtos.chat-2-sprites-1.step1.title': 'Cat and Penguin conversation',
+    'gui.howtos.chat-2-sprites-1.step2.title': 'Enter the Cat code',
+    'gui.howtos.chat-2-sprites-1.step3.title': 'Important: the "received message" variable is set to "This sprite only"',
+    'gui.howtos.chat-2-sprites-1.step4.title': 'Important: send "Cat\'s message" and receive "Message from Penguin"',
+    'gui.howtos.chat-2-sprites-1.step5.title': 'Add the Penguin sprite',
+    'gui.howtos.chat-2-sprites-1.step6.title': 'Adjust the Penguin position and direction',
+    'gui.howtos.chat-2-sprites-1.step7.title': 'Enter the Penguin code to finish. Try clicking Cat or Penguin!',
     'gui.menuBar.tutorialTooltip': 'Try Ruby!',
     'gui.aria.clearButton': 'Clear'
 };

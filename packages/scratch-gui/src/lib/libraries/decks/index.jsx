@@ -256,7 +256,7 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="大事なこと：「ネコのメッセージ」を送り、「ペンギンからのメッセージ」を受け取る"
+                        defaultMessage="大事なこと：「ネコからのメッセージ」を送り、「ペンギンからのメッセージ」を受け取る"
                         description="Chat2 Sprites1 Step 4: Cat sends, receives from Penguin"
                         id="gui.howtos.chat-2-sprites-1.step4.title"
                     />
