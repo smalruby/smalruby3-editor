@@ -90,12 +90,36 @@ const TargetApplier = {
             }
         });
 
+        // Map of old broadcast IDs to existing IDs (for reusing existing broadcast vars)
+        const broadcastIdMap = {};
+
         Object.keys(this._context.broadcastMsgs).forEach(name => {
             const broadcastMsg = this._context.broadcastMsgs[name];
-            if (!Object.prototype.hasOwnProperty.call(stage.variables, broadcastMsg.id)) {
+            // Check if a broadcast variable with the same name already exists in stage
+            const existingBroadcast = stage.lookupVariableByNameAndType(
+                broadcastMsg.name, Variable.BROADCAST_MESSAGE_TYPE
+            );
+            if (existingBroadcast) {
+                // Reuse existing broadcast variable ID
+                broadcastIdMap[broadcastMsg.id] = existingBroadcast.id;
+                broadcastMsg.id = existingBroadcast.id;
+            } else if (!Object.prototype.hasOwnProperty.call(stage.variables, broadcastMsg.id)) {
                 stage.createVariable(broadcastMsg.id, broadcastMsg.name, Variable.BROADCAST_MESSAGE_TYPE);
             }
         });
+
+        // Update BROADCAST_OPTION field IDs in blocks to match existing broadcast variable IDs
+        if (Object.keys(broadcastIdMap).length > 0) {
+            Object.keys(this._context.blocks).forEach(blockId => {
+                const block = this._context.blocks[blockId];
+                if (block.fields && block.fields.BROADCAST_OPTION) {
+                    const field = block.fields.BROADCAST_OPTION;
+                    if (broadcastIdMap[field.id]) {
+                        field.id = broadcastIdMap[field.id];
+                    }
+                }
+            });
+        }
 
         const extensionPromises = [];
         this._context.extensionIDs.forEach(extensionID => {
