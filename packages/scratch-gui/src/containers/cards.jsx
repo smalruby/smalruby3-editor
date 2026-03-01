@@ -19,6 +19,7 @@ import {
 
 import {
     activateTab,
+    BLOCKS_TAB_INDEX,
     RUBY_TAB_INDEX
 } from '../reducers/editor-tab';
 
@@ -32,6 +33,7 @@ import {PLATFORM} from '../lib/platform.js';
 
 // === Smalruby: Start of tutorial glow animation ===
 const ANIMATION_DELAY_MS = 3000;
+const INSERT_CODE_ANIMATION_DELAY_MS = 300; // Shorter delay so users notice the button quickly
 // === Smalruby: End of tutorial glow animation ===
 
 class Cards extends React.Component {
@@ -99,13 +101,14 @@ class Cards extends React.Component {
         const target = currentStep.animationTarget;
         if (!target) return;
 
+        const delay = target === 'insertCodeButton' ? INSERT_CODE_ANIMATION_DELAY_MS : ANIMATION_DELAY_MS;
         const timer = setTimeout(() => {
             if (target === 'nextButton') {
                 this.setState({animateNext: true});
             } else if (target === 'insertCodeButton') {
                 this.setState({animateInsertCode: true});
             }
-        }, ANIMATION_DELAY_MS);
+        }, delay);
         this._animationTimers.push(timer);
     }
 
@@ -129,7 +132,7 @@ class Cards extends React.Component {
         this.props.onPrevStepDispatch();
     }
 
-    _handleInsertCodeFactory (code) {
+    _handleInsertCodeFactory (code, codeType) {
         return () => {
             // Stop insertCode animation and schedule nextButton animation
             this._clearAnimationTimers();
@@ -139,7 +142,7 @@ class Cards extends React.Component {
             }, ANIMATION_DELAY_MS);
             this._animationTimers.push(timer);
 
-            this.props.onInsertCodeDispatch(code);
+            this.props.onInsertCodeDispatch(code, codeType);
         };
     }
     // === Smalruby: End of tutorial glow animation ===
@@ -214,9 +217,14 @@ const mapDispatchToProps = dispatch => ({
     onEndDrag: () => dispatch(endDrag()),
     // === Smalruby: Start of tutorial glow animation ===
     // Renamed from onInsertCodeFactory to allow interception in render()
-    onInsertCodeDispatch: code => {
-        dispatch(activateTab(RUBY_TAB_INDEX));
+    onInsertCodeDispatch: (code, codeType) => {
         dispatch(updateRubyCode(code));
+        if (codeType === 'blocks') {
+            // Inject Ruby silently then switch to blocks tab for block conversion
+            dispatch(activateTab(BLOCKS_TAB_INDEX));
+        } else {
+            dispatch(activateTab(RUBY_TAB_INDEX));
+        }
     }
     // === Smalruby: End of tutorial glow animation ===
 });

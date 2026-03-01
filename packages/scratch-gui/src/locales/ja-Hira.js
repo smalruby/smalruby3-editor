@@ -157,10 +157,10 @@ export default {
     'gui.smalruby3.blockDisplayModal.saveToFile': 'ふぁいるにせってい',
     'gui.menuBar.blockDisplay': 'ブロックひょうじ...',
     'gui.menuBar.learn': 'まなぶ',
-    
+
     'gui.smalruby3.gui.feedback': 'フィードバックをそうしん',
     'gui.smalruby3.feedbackConfirm': 'スモウルビーをよりよくするためのフィードバック（ごいけん）をそうしんするがいぶサイトをひらきます。よろしいですか？',
-    
+
     // Block Display Modal - Block Messages (Hiragana)
     // Motion blocks
     'gui.smalruby3.blockDisplayModal.motion_movesteps': '(10) ほうごかす',
@@ -346,10 +346,43 @@ export default {
     'gui.howtos.getting-started.step.bounceCode': 'ルビーをひょうじしてプログラムをにゅうりょくしてみよう',
     'gui.howtos.getting-started.step.runRuby': 'じっこうボタンをおしてプログラムをじっこうしよう',
     'gui.howtos.getting-started.step.firstProgram': 'ネコがいったりきたりするプログラムができました🎉',
-    'gui.cards.insert-code': 'プログラムをにゅうりょくする',
+    // Chat Tutorial 1 Basic 1
+    'gui.howtos.chat-1-basic-1.name': 'メッセージをおくってみよう！',
+    'gui.howtos.chat-1-basic-1.step1.title': 'はなれたブロックにメッセージをおくってみよう！',
+    'gui.howtos.chat-1-basic-1.step2.title': 'まずはコードをにゅうりょくしてプログラムをじっこうしてみよう',
+    'gui.howtos.chat-1-basic-1.step3.title': '「◯◯をおくる」ははなれたところにあるめいれいをじっこうできる',
+    'gui.howtos.chat-1-basic-1.step4.title': '「そうしんちゅう...」ってほんとうかな？きちんとおくるようにするよ',
+    'gui.howtos.chat-1-basic-1.step5.title': 'へんすう「そうしんメッセージ」のつくりかた',
+    'gui.howtos.chat-1-basic-1.step6.title': 'だいじなこと『へんすうを◯◯にする、◯◯をおくる、〇〇をうけとったとき』',
+    'gui.howtos.chat-1-basic-1.step7.title': 'しゃべるないようをかえてみよう',
+    // Chat Tutorial 2 Sprites 1
+    'gui.howtos.chat-2-sprites-1.name': 'ネコとペンギンでかいわしよう',
+    'gui.howtos.chat-2-sprites-1.step1.title': 'ネコとペンギンのかいわ',
+    'gui.howtos.chat-2-sprites-1.step2.title': 'ネコのコードをにゅうりょくする',
+    'gui.howtos.chat-2-sprites-1.step3.title': 'だいじなこと：へんすう「じゅしんメッセージ」は「このスプライトのみ」になっています',
+    'gui.howtos.chat-2-sprites-1.step4.title': 'だいじなこと：「ネコからのメッセージ」をおくり、「ペンギンからのメッセージ」をうけとる',
+    'gui.howtos.chat-2-sprites-1.step5.title': 'ペンギンのスプライトをついかします',
+    'gui.howtos.chat-2-sprites-1.step6.title': 'ペンギンのいちとむきをちょうせいします',
+    'gui.howtos.chat-2-sprites-1.step7.title': 'ペンギンのコードをにゅうりょくするとかんせい。ネコやペンギンをおしてみよう！',
+    // Chat Tutorial 3 Mesh 1
+    'gui.howtos.chat-3-mesh-1.name': 'メッシュかくちょうきのうでつながろう',
+    'gui.howtos.chat-3-mesh-1.step1.title': 'メッシュかくちょうきのうをつかってほかのひとのスモウルビーとつながろう',
+    'gui.howtos.chat-3-mesh-1.step2.title': '2にんいじょうのグループをつくってメッシュかくちょうきのうをえらぶ（1にんでも2つのスモウルビーをつかえばできる）',
+    'gui.howtos.chat-3-mesh-1.step3.title': '1にんめはホストになる。ほかのひとはメッシュにさんかする',
+    'gui.howtos.chat-3-mesh-1.step4.title': 'スプライトのコスチュームをかえてみよう',
+    'gui.howtos.chat-3-mesh-1.step5.title': 'ホストとそれいがいでコードがちがうよ。まずはホストのコードをにゅうりょくする',
+    'gui.howtos.chat-3-mesh-1.step6.title': 'つぎにメッシュにさんかしたひとのコードをにゅうりょくする',
+    'gui.howtos.chat-3-mesh-1.step7.title': 'じぶんのスプライトをおしてメッセージをおくってみよう',
+    'gui.howtos.chat-3-mesh-1.step8.title': 'だいじなこと：ほかのひとの「そうしんメッセージ」は「センサーのあたい」でとりだせるよ',
+    'gui.howtos.chat-3-mesh-1.external.kairyudo.name': 'かいりゅうどう やってみよう！プログラミング「チャットアプリをせいさくしよう」',
+    // Mesh tag
+    'gui.libraryTags.mesh': 'Mesh',
+    'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
+    'gui.cards.insert-blocks': 'コードをにゅうりょくする',
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
+    'gui.library.chatApp': 'チャットアプリをつくろう',
     'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!',
     'gui.aria.clearButton': 'クリア'
 };

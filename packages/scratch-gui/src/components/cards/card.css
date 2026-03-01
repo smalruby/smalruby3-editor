@@ -336,6 +336,7 @@ body .card-container {
     cursor: pointer;
     transition: background-color 0.2s;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    white-space: nowrap;
 }
 
 .insert-code-button:hover {

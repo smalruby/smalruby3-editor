@@ -12,15 +12,7 @@ import Filter from '../filter/filter.jsx';
 import TagButton from '../../containers/tag-button.jsx';
 import {legacyConfig} from '../../legacy-config';
 import Spinner from '../spinner/spinner.jsx';
-import {getLocalStorageValue, setLocalStorageValue} from '../../lib/local-storage.js';
-
-// Tutorial categories - kept for message definitions (tutorials have been removed from Smalruby)
-const CATEGORIES = {
-    gettingStarted: 'gettingStarted',
-    basics: 'basics',
-    intermediate: 'intermediate',
-    prompts: 'prompts'
-};
+import {CATEGORIES} from '../../lib/libraries/tutorial-tags';
 
 import styles from './library.css';
 import {ModalFocusContext} from '../../contexts/modal-focus-context.jsx';
@@ -43,20 +35,10 @@ const messages = defineMessages({
         defaultMessage: 'Getting Started',
         description: 'Label for getting started category'
     },
-    [CATEGORIES.basics]: {
-        id: `gui.library.basics`,
-        defaultMessage: 'Basics',
-        description: 'Label for basics category'
-    },
-    [CATEGORIES.intermediate]: {
-        id: `gui.library.intermediate`,
-        defaultMessage: 'Intermediate',
-        description: 'Label for intermediate category'
-    },
-    [CATEGORIES.prompts]: {
-        id: `gui.library.prompts`,
-        defaultMessage: 'Prompts',
-        description: 'Label for prompts category'
+    [CATEGORIES.chatApp]: {
+        id: `gui.library.chatApp`,
+        defaultMessage: 'Build a Chat App',
+        description: 'Label for chat app tutorial category'
     },
     membershipTag: {
         defaultMessage: 'Membership',

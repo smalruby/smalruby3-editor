@@ -1,7 +1,8 @@
 import messages from './tag-messages.js';
 
 export const CATEGORIES = {
-    gettingStarted: 'gettingStarted'
+    gettingStarted: 'gettingStarted',
+    chatApp: 'chatApp' // チャットアプリをつくろう / Build a Chat App
 };
 
 export default [
@@ -11,5 +12,6 @@ export default [
     {tag: 'games', intlLabel: messages.games},
     {tag: 'stories', intlLabel: messages.stories},
     {tag: 'ruby', intlLabel: messages.ruby},
+    {tag: 'mesh', intlLabel: messages.mesh},
     {tag: 'はじめて', intlLabel: messages.firstTime}
 ];
