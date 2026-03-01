@@ -9,7 +9,7 @@ import libraryIntro from './thumbnails/getting-started.jpg';
 import libraryChat1Basic1 from './thumbnails/chat-1-basic-1.jpg';
 import libraryChat2Sprites1 from './thumbnails/chat-2-sprites-1.jpg';
 // Chat Tutorial 3 Mesh 1: メッシュ拡張機能でつながろう
-import libraryChat3Mesh1 from './thumbnails/mesh-tutorial-3.jpg';
+import libraryChat3Mesh1 from './thumbnails/chat-3-mesh-1.jpg';
 import libraryChat3Mesh1ExternalKairyudo from './thumbnails/chat3-mesh1-external-kairyudo.png';
 import {CATEGORIES} from '../tutorial-tags';
 
