@@ -7,7 +7,7 @@ import {FormattedMessage} from 'react-intl';
 import libraryIntro from './thumbnails/getting-started.jpg';
 // Chat App tutorials
 import libraryChat1Basic1 from './thumbnails/chat-1-basic-1.jpg';
-import libraryChat2Sprites1 from './thumbnails/chat-2-sprites-1.gif';
+import libraryChat2Sprites1 from './thumbnails/chat-2-sprites-1.jpg';
 // Mesh tutorials (to be migrated)
 import libraryMesh3 from './thumbnails/mesh-tutorial-3.jpg';
 import {CATEGORIES} from '../tutorial-tags';
