@@ -364,7 +364,7 @@ export default {
     'gui.howtos.chat-2-sprites-1.step1.title': 'ネコとペンギンの会話',
     'gui.howtos.chat-2-sprites-1.step2.title': 'ネコのコードを入力する',
     'gui.howtos.chat-2-sprites-1.step3.title': '大事なこと：変数「受信メッセージ」は「このスプライトのみ」になっています',
-    'gui.howtos.chat-2-sprites-1.step4.title': '大事なこと：「ネコのメッセージ」を送り、「ペンギンからのメッセージ」を受け取る',
+    'gui.howtos.chat-2-sprites-1.step4.title': '大事なこと：「ネコからのメッセージ」を送り、「ペンギンからのメッセージ」を受け取る',
     'gui.howtos.chat-2-sprites-1.step5.title': 'ペンギンのスプライトを追加します',
     'gui.howtos.chat-2-sprites-1.step6.title': 'ペンギンの位置と向きを調整します',
     'gui.howtos.chat-2-sprites-1.step7.title': 'ペンギンのコードを入力すると完成。ネコやペンギンを押してみよう！',

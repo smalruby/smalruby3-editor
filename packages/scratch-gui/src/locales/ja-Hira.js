@@ -157,10 +157,10 @@ export default {
     'gui.smalruby3.blockDisplayModal.saveToFile': 'ふぁいるにせってい',
     'gui.menuBar.blockDisplay': 'ブロックひょうじ...',
     'gui.menuBar.learn': 'まなぶ',
-    
+
     'gui.smalruby3.gui.feedback': 'フィードバックをそうしん',
     'gui.smalruby3.feedbackConfirm': 'スモウルビーをよりよくするためのフィードバック（ごいけん）をそうしんするがいぶサイトをひらきます。よろしいですか？',
-    
+
     // Block Display Modal - Block Messages (Hiragana)
     // Motion blocks
     'gui.smalruby3.blockDisplayModal.motion_movesteps': '(10) ほうごかす',
@@ -360,7 +360,7 @@ export default {
     'gui.howtos.chat-2-sprites-1.step1.title': 'ネコとペンギンのかいわ',
     'gui.howtos.chat-2-sprites-1.step2.title': 'ネコのコードをにゅうりょくする',
     'gui.howtos.chat-2-sprites-1.step3.title': 'だいじなこと：へんすう「じゅしんメッセージ」は「このスプライトのみ」になっています',
-    'gui.howtos.chat-2-sprites-1.step4.title': 'だいじなこと：「ネコのメッセージ」をおくり、「ペンギンからのメッセージ」をうけとる',
+    'gui.howtos.chat-2-sprites-1.step4.title': 'だいじなこと：「ネコからのメッセージ」をおくり、「ペンギンからのメッセージ」をうけとる',
     'gui.howtos.chat-2-sprites-1.step5.title': 'ペンギンのスプライトをついかします',
     'gui.howtos.chat-2-sprites-1.step6.title': 'ペンギンのいちとむきをちょうせいします',
     'gui.howtos.chat-2-sprites-1.step7.title': 'ペンギンのコードをにゅうりょくするとかんせい。ネコやペンギンをおしてみよう！',
