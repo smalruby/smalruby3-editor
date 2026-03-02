@@ -13,13 +13,15 @@ import {loadAllGoogleScripts} from './google-script-loader';
 // Using 'drive.file' scope to allow:
 // - Reading files selected by the user via Picker
 // - Uploading new files to Google Drive
-// Adding 'generative-language.peruserquota' scope to allow:
+// Adding 'generative-language' scope to allow:
 // - Calling Gemini API (generateContent) for AI-assisted code generation
-// Note: peruserquota is a non-sensitive scope sufficient for generateContent;
-//       the broader 'retriever' scope is not needed as we do not use corpus operations.
+// Note: 'generative-language' is the correct scope for GenerateContent per the API docs.
+//       The 'peruserquota' sub-scope only tracks quota and does not grant API access.
+//       The 'retriever' sub-scope only covers corpus/semantic-retrieval operations.
+//       This scope is sensitive and requires Google OAuth app verification.
 const SCOPES = [
     'https://www.googleapis.com/auth/drive.file',
-    'https://www.googleapis.com/auth/generative-language.peruserquota'
+    'https://www.googleapis.com/auth/generative-language'
 ].join(' ');
 
 // Discovery docs for Google Drive API

@@ -125,9 +125,7 @@ describe('GoogleDriveAPI', () => {
             return GoogleDriveAPI.initialize().then(() => {
                 expect(mockGoogle.accounts.oauth2.initTokenClient).toHaveBeenCalledWith(
                     expect.objectContaining({
-                        scope: expect.stringContaining(
-                            'https://www.googleapis.com/auth/generative-language'
-                        )
+                        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/generative-language'
                     })
                 );
             });
