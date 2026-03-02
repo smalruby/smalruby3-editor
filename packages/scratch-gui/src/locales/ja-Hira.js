@@ -376,7 +376,7 @@ export default {
     'gui.howtos.chat-3-mesh-1.step8.title': 'だいじなこと：ほかのひとの「そうしんメッセージ」は「センサーのあたい」でとりだせるよ',
     'gui.howtos.chat-3-mesh-1.external.kairyudo.name': 'かいりゅうどう やってみよう！プログラミング「チャットアプリをせいさくしよう」',
     // Mesh tag
-    'gui.libraryTags.mesh': 'Mesh',
+    'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
     'gui.cards.insert-blocks': 'コードをにゅうりょくする',
     'gui.libraryTags.ruby': 'ルビー',
