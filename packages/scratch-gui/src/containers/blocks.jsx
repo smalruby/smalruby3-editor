@@ -175,6 +175,7 @@ class Blocks extends React.Component {
             this.props.anyModalVisible !== nextProps.anyModalVisible ||
             this.props.stageSize !== nextProps.stageSize ||
             this.props.selectedBlocks !== nextProps.selectedBlocks ||
+            this.props.tutorialAllowedBlocks !== nextProps.tutorialAllowedBlocks ||
             this.props.paletteVisible !== nextProps.paletteVisible
         );
     }
@@ -184,8 +185,9 @@ class Blocks extends React.Component {
             this.ScratchBlocks.hideChaff();
         }
 
-        // If selectedBlocks changed, update toolbox
-        if (this.props.selectedBlocks !== prevProps.selectedBlocks) {
+        // If selectedBlocks or tutorialAllowedBlocks changed, update toolbox
+        if (this.props.selectedBlocks !== prevProps.selectedBlocks ||
+            this.props.tutorialAllowedBlocks !== prevProps.tutorialAllowedBlocks) {
             const toolboxXML = this.getToolboxXML();
             if (toolboxXML) {
                 this.props.updateToolboxState(toolboxXML);
@@ -482,10 +484,12 @@ class Blocks extends React.Component {
             }
 
             // If no URL parameter, use GUI settings to generate only_blocks equivalent
-            if (!onlyBlocks && this.props.selectedBlocks) {
+            // tutorialAllowedBlocks (from active tutorial deck) takes priority over selectedBlocks
+            const effectiveSelectedBlocks = this.props.tutorialAllowedBlocks || this.props.selectedBlocks;
+            if (!onlyBlocks && effectiveSelectedBlocks) {
                 // Convert selectedBlocks to onlyBlocks format (individual block IDs)
                 const selectedBlockIds = [];
-                Object.values(this.props.selectedBlocks).forEach(categoryBlocks => {
+                Object.values(effectiveSelectedBlocks).forEach(categoryBlocks => {
                     selectedBlockIds.push(...categoryBlocks);
                 });
 
@@ -854,6 +858,7 @@ class Blocks extends React.Component {
 
 Blocks.propTypes = {
     selectedBlocks: PropTypes.object,
+    tutorialAllowedBlocks: PropTypes.object,
     anyModalVisible: PropTypes.bool,
     canUseCloud: PropTypes.bool,
     customProceduresVisible: PropTypes.bool,
@@ -929,6 +934,7 @@ const mapStateToProps = state => ({
     locale: state.locales.locale,
     messages: state.locales.messages,
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
+    tutorialAllowedBlocks: state.scratchGui.cards.tutorialAllowedBlocks,
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     customProceduresVisible: state.scratchGui.customProcedures.active,
