@@ -88,7 +88,7 @@ end`,
                 id="gui.howtos.chat-1-basic-1.name"
             />
         ),
-        tags: ['ruby', 'mesh'],
+        tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat1Basic1,
         allowedBlocks: {
@@ -215,7 +215,7 @@ end`,
                 id="gui.howtos.chat-2-sprites-1.name"
             />
         ),
-        tags: ['ruby', 'mesh'],
+        tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat2Sprites1,
         allowedBlocks: {
@@ -345,7 +345,7 @@ end`,
                 id="gui.howtos.chat-3-mesh-1.name"
             />
         ),
-        tags: ['ruby', 'mesh'],
+        tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat3Mesh1,
         allowedBlocks: {
