@@ -175,6 +175,7 @@ class Blocks extends React.Component {
             this.props.anyModalVisible !== nextProps.anyModalVisible ||
             this.props.stageSize !== nextProps.stageSize ||
             this.props.selectedBlocks !== nextProps.selectedBlocks ||
+            this.props.tutorialAllowedBlocks !== nextProps.tutorialAllowedBlocks ||
             this.props.paletteVisible !== nextProps.paletteVisible
         );
     }
@@ -184,8 +185,9 @@ class Blocks extends React.Component {
             this.ScratchBlocks.hideChaff();
         }
 
-        // If selectedBlocks changed, update toolbox
-        if (this.props.selectedBlocks !== prevProps.selectedBlocks) {
+        // If selectedBlocks or tutorialAllowedBlocks changed, update toolbox
+        if (this.props.selectedBlocks !== prevProps.selectedBlocks ||
+            this.props.tutorialAllowedBlocks !== prevProps.tutorialAllowedBlocks) {
             const toolboxXML = this.getToolboxXML();
             if (toolboxXML) {
                 this.props.updateToolboxState(toolboxXML);
@@ -472,8 +474,23 @@ class Blocks extends React.Component {
                 this.props.colorMode
             );
 
-            // Check for only_blocks setting in Stage comments first (highest priority)
-            let onlyBlocks = this.extractOnlyBlocksFromStageComments();
+            let onlyBlocks;
+
+            // tutorialAllowedBlocks has highest priority (active tutorial overrides stage comments and URL params)
+            if (this.props.tutorialAllowedBlocks) {
+                const allowedBlockIds = [];
+                Object.values(this.props.tutorialAllowedBlocks).forEach(categoryBlocks => {
+                    allowedBlockIds.push(...categoryBlocks);
+                });
+                if (allowedBlockIds.length < TOTAL_DEFAULT_BLOCKS) {
+                    onlyBlocks = allowedBlockIds.join(',');
+                }
+            }
+
+            // Check for only_blocks setting in Stage comments (second priority)
+            if (!onlyBlocks) {
+                onlyBlocks = this.extractOnlyBlocksFromStageComments();
+            }
 
             // If no Stage comment setting, check URL parameter
             if (!onlyBlocks) {
@@ -481,15 +498,12 @@ class Blocks extends React.Component {
                 onlyBlocks = queryParams.only_blocks;
             }
 
-            // If no URL parameter, use GUI settings to generate only_blocks equivalent
+            // If no URL parameter, use GUI selectedBlocks setting
             if (!onlyBlocks && this.props.selectedBlocks) {
-                // Convert selectedBlocks to onlyBlocks format (individual block IDs)
                 const selectedBlockIds = [];
                 Object.values(this.props.selectedBlocks).forEach(categoryBlocks => {
                     selectedBlockIds.push(...categoryBlocks);
                 });
-
-                // If not all blocks are selected, generate onlyBlocks string
                 if (selectedBlockIds.length < TOTAL_DEFAULT_BLOCKS) {
                     onlyBlocks = selectedBlockIds.join(',');
                 }
@@ -854,6 +868,7 @@ class Blocks extends React.Component {
 
 Blocks.propTypes = {
     selectedBlocks: PropTypes.object,
+    tutorialAllowedBlocks: PropTypes.object,
     anyModalVisible: PropTypes.bool,
     canUseCloud: PropTypes.bool,
     customProceduresVisible: PropTypes.bool,
@@ -929,6 +944,7 @@ const mapStateToProps = state => ({
     locale: state.locales.locale,
     messages: state.locales.messages,
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
+    tutorialAllowedBlocks: state.scratchGui.cards.tutorialAllowedBlocks,
     toolboxXML: state.scratchGui.toolbox.toolboxXML,
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     customProceduresVisible: state.scratchGui.customProcedures.active,

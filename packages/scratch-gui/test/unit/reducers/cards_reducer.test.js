@@ -11,7 +11,8 @@ describe('cards reducer', () => {
             x: 0,
             y: 0,
             expanded: true,
-            dragging: false
+            dragging: false,
+            tutorialAllowedBlocks: null
         });
     });
 
@@ -46,5 +47,46 @@ describe('cards reducer', () => {
         expect(state.visible).toBe(true);
         state = reducer(state, closeCards());
         expect(state.visible).toBe(false);
+    });
+
+    describe('tutorialAllowedBlocks', () => {
+        test('should set tutorialAllowedBlocks when activating a deck with allowedBlocks', () => {
+            const state = reducer(undefined, activateDeck('chat-1-basic-1'));
+            expect(state.tutorialAllowedBlocks).not.toBeNull();
+            expect(state.tutorialAllowedBlocks.event).toContain('event_whenflagclicked');
+            expect(state.tutorialAllowedBlocks.event).toContain('event_whenbroadcastreceived');
+            expect(state.tutorialAllowedBlocks.event).toContain('event_broadcast');
+            expect(state.tutorialAllowedBlocks.looks).toContain('looks_sayforsecs');
+            expect(state.tutorialAllowedBlocks.looks).toContain('looks_say');
+            expect(state.tutorialAllowedBlocks.motion).toEqual([]);
+        });
+
+        test('should set tutorialAllowedBlocks when activating chat-2-sprites-1', () => {
+            const state = reducer(undefined, activateDeck('chat-2-sprites-1'));
+            expect(state.tutorialAllowedBlocks).not.toBeNull();
+            expect(state.tutorialAllowedBlocks.event).toContain('event_whenthisspriteclicked');
+            expect(state.tutorialAllowedBlocks.looks).toContain('looks_sayforsecs');
+            expect(state.tutorialAllowedBlocks.looks).not.toContain('looks_say');
+        });
+
+        test('should set tutorialAllowedBlocks when activating chat-3-mesh-1', () => {
+            const state = reducer(undefined, activateDeck('chat-3-mesh-1'));
+            expect(state.tutorialAllowedBlocks).not.toBeNull();
+            expect(state.tutorialAllowedBlocks.event).toContain('event_whenthisspriteclicked');
+        });
+
+        test('should clear tutorialAllowedBlocks when activating a deck without allowedBlocks', () => {
+            let state = reducer(undefined, activateDeck('chat-1-basic-1'));
+            expect(state.tutorialAllowedBlocks).not.toBeNull();
+            state = reducer(state, activateDeck('intro-getting-started'));
+            expect(state.tutorialAllowedBlocks).toBeNull();
+        });
+
+        test('should clear tutorialAllowedBlocks when closing cards', () => {
+            let state = reducer(undefined, activateDeck('chat-1-basic-1'));
+            expect(state.tutorialAllowedBlocks).not.toBeNull();
+            state = reducer(state, closeCards());
+            expect(state.tutorialAllowedBlocks).toBeNull();
+        });
     });
 });

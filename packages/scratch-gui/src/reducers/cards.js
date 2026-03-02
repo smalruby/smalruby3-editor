@@ -20,7 +20,8 @@ const initialState = {
     x: 0,
     y: 0,
     expanded: true,
-    dragging: false
+    dragging: false,
+    tutorialAllowedBlocks: null
 };
 
 const reducer = function (state, action) {
@@ -28,7 +29,8 @@ const reducer = function (state, action) {
     switch (action.type) {
     case CLOSE_CARDS:
         return Object.assign({}, state, {
-            visible: false
+            visible: false,
+            tutorialAllowedBlocks: null
         });
     case SHRINK_EXPAND_CARDS:
         return Object.assign({}, state, {
@@ -38,15 +40,18 @@ const reducer = function (state, action) {
         return Object.assign({}, state, {
             visible: true
         });
-    case ACTIVATE_DECK:
+    case ACTIVATE_DECK: {
+        const deck = state.content[action.activeDeckId];
         return Object.assign({}, state, {
             activeDeckId: action.activeDeckId,
             step: 0,
             x: 0,
             y: 0,
             expanded: true,
-            visible: true
+            visible: true,
+            tutorialAllowedBlocks: (deck && deck.allowedBlocks) ? deck.allowedBlocks : null
         });
+    }
     case NEXT_STEP:
         if (state.activeDeckId !== null) {
             analytics.event({

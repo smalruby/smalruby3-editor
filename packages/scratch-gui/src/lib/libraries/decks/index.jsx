@@ -91,6 +91,15 @@ end`,
         tags: ['ruby', 'mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat1Basic1,
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
         steps: [
             {
                 title: (
@@ -209,6 +218,15 @@ end`,
         tags: ['ruby', 'mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat2Sprites1,
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs'],
+            sound: [],
+            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
         steps: [
             {
                 title: (
@@ -330,6 +348,15 @@ end`,
         tags: ['ruby', 'mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat3Mesh1,
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs'],
+            sound: [],
+            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
         steps: [
             {
                 title: (
