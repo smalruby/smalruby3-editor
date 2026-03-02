@@ -380,7 +380,7 @@ export default {
     'gui.howtos.chat-3-mesh-1.step8.title': '大事なこと：他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
     'gui.howtos.chat-3-mesh-1.external.kairyudo.name': '開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」',
     // Mesh tag
-    'gui.libraryTags.mesh': 'Mesh',
+    'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.all-tutorials': 'チュートリアル',
     'gui.cards.shrink': '縮小',
     'gui.cards.expand': '展開',
