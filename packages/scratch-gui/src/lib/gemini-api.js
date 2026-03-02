@@ -4,9 +4,10 @@
  *
  * Communicates with Google Gemini API using the OAuth 2.0 access token
  * from GoogleDriveAPI (shared authentication).
+ * Each user's own Google account quota is used for Gemini API calls.
  *
  * API: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent
- * Auth: Bearer token from Google Identity Services
+ * Auth: Bearer token from Google Identity Services (generative-language scope)
  */
 
 import googleDriveAPI from './google-drive-api';
