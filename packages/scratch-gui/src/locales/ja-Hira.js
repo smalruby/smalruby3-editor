@@ -158,6 +158,7 @@ export default {
     'gui.menuBar.blockDisplay': 'ブロックひょうじ...',
     'gui.menuBar.learn': 'まなぶ',
 
+    'gui.smalruby3.gui.privacyPolicy': 'プライバシーポリシー',
     'gui.smalruby3.gui.feedback': 'フィードバックをそうしん',
     'gui.smalruby3.feedbackConfirm': 'スモウルビーをよりよくするためのフィードバック（ごいけん）をそうしんするがいぶサイトをひらきます。よろしいですか？',
 

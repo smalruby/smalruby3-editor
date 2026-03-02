@@ -542,6 +542,18 @@ const GUIComponent = props => {
                                         </Tab>
                                     </TabList>
                                     <a
+                                        className={styles.privacyLink}
+                                        href="/privacy-policy.html"
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Privacy Policy"
+                                            description="Link to privacy policy"
+                                            id="gui.smalruby3.gui.privacyPolicy"
+                                        />
+                                    </a>
+                                    <a
                                         className={styles.feedbackLink}
                                         href="https://docs.google.com/forms/d/e/1FAIpQLSemSOgv8TlJXF6vmFzVm5yUdcNZVMEKBcBcsKHnbW0RFmU3sg/viewform?usp=dialog"
                                         rel="noopener noreferrer"

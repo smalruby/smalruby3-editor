@@ -78,8 +78,22 @@
     height: $stage-menu-height;
 }
 
-.feedback-link {
+.privacy-link {
     margin-left: auto;
+    padding: 0 1rem 0.25rem;
+    font-size: 0.65rem;
+    color: $text-primary-transparent;
+    text-decoration: none;
+    white-space: nowrap;
+    align-self: flex-end;
+}
+
+.privacy-link:hover {
+    color: $text-primary;
+    text-decoration: underline;
+}
+
+.feedback-link {
     padding: 0 3.75rem 0.25rem;
     font-size: 0.65rem;
     color: $text-primary-transparent;
