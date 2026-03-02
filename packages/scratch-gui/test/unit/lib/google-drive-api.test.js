@@ -147,8 +147,8 @@ describe('GoogleDriveAPI', () => {
         });
 
         test('should resolve with access token when new token is received', () => {
-            mockTokenClient.requestAccessToken.mockImplementation(() => {
-                mockTokenClient.callback({access_token: 'new-token-123'});
+            mockTokenClient.requestAccessToken.mockImplementation(config => {
+                mockTokenClient.callback({access_token: 'new-token-123', state: config && config.state});
             });
             mockGapi.client.getToken.mockReturnValue(null);
 
@@ -176,8 +176,8 @@ describe('GoogleDriveAPI', () => {
             mockGapi.client.getToken.mockReturnValue(expiredToken);
 
             // Should request new token
-            mockTokenClient.requestAccessToken.mockImplementation(() => {
-                mockTokenClient.callback({access_token: 'fresh-token'});
+            mockTokenClient.requestAccessToken.mockImplementation(config => {
+                mockTokenClient.callback({access_token: 'fresh-token', state: config && config.state});
             });
 
             return GoogleDriveAPI.requestAccessToken().then(token => {
@@ -208,8 +208,8 @@ describe('GoogleDriveAPI', () => {
             };
             mockGapi.client.getToken.mockReturnValue(tokenWithoutExpiry);
 
-            mockTokenClient.requestAccessToken.mockImplementation(() => {
-                mockTokenClient.callback({access_token: 'refreshed-token'});
+            mockTokenClient.requestAccessToken.mockImplementation(config => {
+                mockTokenClient.callback({access_token: 'refreshed-token', state: config && config.state});
             });
 
             return GoogleDriveAPI.requestAccessToken().then(token => {
@@ -226,8 +226,8 @@ describe('GoogleDriveAPI', () => {
             };
             mockGapi.client.getToken.mockReturnValue(expiredToken);
 
-            mockTokenClient.requestAccessToken.mockImplementation(() => {
-                mockTokenClient.callback({access_token: 'updated-token'});
+            mockTokenClient.requestAccessToken.mockImplementation(config => {
+                mockTokenClient.callback({access_token: 'updated-token', state: config && config.state});
             });
 
             return GoogleDriveAPI.requestAccessToken().then(() => {
