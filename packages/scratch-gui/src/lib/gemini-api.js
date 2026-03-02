@@ -125,7 +125,10 @@ class GeminiAPI {
     }
 
     /**
-     * Perform fetch with automatic retry on 401 (token expired)
+     * Perform fetch with automatic retry on auth errors.
+     * - 401: token expired → request new token silently and retry
+     * - 403 ACCESS_TOKEN_SCOPE_INSUFFICIENT: user has an old token without the
+     *   required peruserquota scope → force consent screen and retry
      * @param {string} url - API endpoint URL
      * @param {string} accessToken - OAuth access token
      * @param {object} body - Request body
@@ -150,6 +153,27 @@ class GeminiAPI {
             console.warn('[GeminiAPI] 401 received, requesting new access token...');
             const newToken = await googleDriveAPI.requestAccessToken();
             response = await doFetch(newToken);
+        } else if (!response.ok && response.status === 403) {
+            // Check if the token is missing the required scope (e.g. user has an old
+            // token obtained before peruserquota was added to the app's OAuth scopes)
+            const errorText = await response.text();
+            let isScopeError = false;
+            try {
+                const errorData = JSON.parse(errorText);
+                isScopeError = errorData?.error?.details?.some(
+                    d => d.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT'
+                );
+            } catch {
+                // Not JSON - not a scope error
+            }
+            if (isScopeError) {
+                // Show consent screen so the user grants the missing scope, then retry
+                console.warn('[GeminiAPI] Scope insufficient, requesting re-authorization...');
+                const newToken = await googleDriveAPI.requestAccessToken(true);
+                response = await doFetch(newToken);
+            } else {
+                throw new Error(`Gemini API error ${response.status}: ${errorText}`);
+            }
         }
 
         if (!response.ok) {

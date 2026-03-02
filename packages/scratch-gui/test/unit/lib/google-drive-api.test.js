@@ -200,6 +200,27 @@ describe('GoogleDriveAPI', () => {
             });
         });
 
+        test('should bypass cached token and show consent when forceConsent=true', () => {
+            GoogleDriveAPI.accessToken = 'valid-token';
+            const validToken = {
+                access_token: 'valid-token',
+                expires_at: (Date.now() + 3600000) / 1000 // 1 hour from now
+            };
+            mockGapi.client.getToken.mockReturnValue(validToken);
+
+            mockTokenClient.requestAccessToken.mockImplementation(config => {
+                expect(config.prompt).toBe('consent');
+                mockTokenClient.callback({access_token: 'new-scope-token', state: config && config.state});
+            });
+
+            return GoogleDriveAPI.requestAccessToken(true).then(token => {
+                expect(token).toBe('new-scope-token');
+                expect(mockTokenClient.requestAccessToken).toHaveBeenCalledWith(
+                    expect.objectContaining({prompt: 'consent'})
+                );
+            });
+        });
+
         test('should handle token without expires_at (treat as expired)', () => {
             GoogleDriveAPI.accessToken = 'token-no-expiry';
             const tokenWithoutExpiry = {

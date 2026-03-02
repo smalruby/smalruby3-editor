@@ -116,12 +116,15 @@ class GoogleDriveAPI {
 
     /**
      * Request access token
+     * @param {boolean} forceConsent - When true, always show the consent screen to ensure
+     *   all required scopes are granted (e.g. after a scope is added to the app).
      * @returns {Promise<string>} Promise that resolves with access token
      */
-    requestAccessToken () {
+    requestAccessToken (forceConsent = false) {
         return new Promise((resolve, reject) => {
-            // Check if user already has a valid, non-expired token
-            if (this.accessToken && this._isTokenValid()) {
+            // Check if user already has a valid, non-expired token.
+            // Skip when forceConsent=true to ensure new scopes are granted.
+            if (!forceConsent && this.accessToken && this._isTokenValid()) {
                 resolve(this.accessToken);
                 return;
             }
@@ -143,9 +146,10 @@ class GoogleDriveAPI {
                 resolve(response.access_token);
             };
 
-            // Request new token with state for CSRF protection
-            // (prompt: '' = silent re-auth if session still valid)
-            this.tokenClient.requestAccessToken({prompt: '', state: expectedState});
+            // forceConsent=true: show consent screen to grant newly added scopes
+            // prompt='': silent re-auth if session still valid
+            const prompt = forceConsent ? 'consent' : '';
+            this.tokenClient.requestAccessToken({prompt, state: expectedState});
         });
     }
 

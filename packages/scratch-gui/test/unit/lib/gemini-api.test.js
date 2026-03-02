@@ -164,6 +164,48 @@ describe('GeminiAPI', () => {
             expect(mockGoogleDriveAPI.requestAccessToken).toHaveBeenCalled();
             expect(result).toContain('loop do');
         });
+
+        test('should force consent re-authorization when 403 is ACCESS_TOKEN_SCOPE_INSUFFICIENT', async () => {
+            const scopeErrorBody = JSON.stringify({
+                error: {
+                    code: 403,
+                    message: 'Request had insufficient authentication scopes.',
+                    status: 'PERMISSION_DENIED',
+                    details: [{
+                        '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                        reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT'
+                    }]
+                }
+            });
+
+            global.fetch
+                .mockResolvedValueOnce({
+                    ok: false,
+                    status: 403,
+                    text: jest.fn().mockResolvedValue(scopeErrorBody)
+                })
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: jest.fn().mockResolvedValue(mockSuccessResponse)
+                });
+
+            mockGoogleDriveAPI.requestAccessToken.mockResolvedValue('consent-token');
+
+            const result = await geminiApi.sendMessage('test', {});
+            // forceConsent=true should be passed
+            expect(mockGoogleDriveAPI.requestAccessToken).toHaveBeenCalledWith(true);
+            expect(result).toContain('loop do');
+        });
+
+        test('should throw on 403 that is not a scope error', async () => {
+            global.fetch.mockResolvedValue({
+                ok: false,
+                status: 403,
+                text: jest.fn().mockResolvedValue('{"error":{"code":403,"message":"Forbidden"}}')
+            });
+
+            await expect(geminiApi.sendMessage('test', {})).rejects.toThrow('Gemini API error 403');
+        });
     });
 
     describe('extractCodeBlock', () => {
