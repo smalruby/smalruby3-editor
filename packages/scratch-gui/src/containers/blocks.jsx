@@ -474,8 +474,23 @@ class Blocks extends React.Component {
                 this.props.colorMode
             );
 
-            // Check for only_blocks setting in Stage comments first (highest priority)
-            let onlyBlocks = this.extractOnlyBlocksFromStageComments();
+            let onlyBlocks;
+
+            // tutorialAllowedBlocks has highest priority (active tutorial overrides stage comments and URL params)
+            if (this.props.tutorialAllowedBlocks) {
+                const allowedBlockIds = [];
+                Object.values(this.props.tutorialAllowedBlocks).forEach(categoryBlocks => {
+                    allowedBlockIds.push(...categoryBlocks);
+                });
+                if (allowedBlockIds.length < TOTAL_DEFAULT_BLOCKS) {
+                    onlyBlocks = allowedBlockIds.join(',');
+                }
+            }
+
+            // Check for only_blocks setting in Stage comments (second priority)
+            if (!onlyBlocks) {
+                onlyBlocks = this.extractOnlyBlocksFromStageComments();
+            }
 
             // If no Stage comment setting, check URL parameter
             if (!onlyBlocks) {
@@ -483,17 +498,12 @@ class Blocks extends React.Component {
                 onlyBlocks = queryParams.only_blocks;
             }
 
-            // If no URL parameter, use GUI settings to generate only_blocks equivalent
-            // tutorialAllowedBlocks (from active tutorial deck) takes priority over selectedBlocks
-            const effectiveSelectedBlocks = this.props.tutorialAllowedBlocks || this.props.selectedBlocks;
-            if (!onlyBlocks && effectiveSelectedBlocks) {
-                // Convert selectedBlocks to onlyBlocks format (individual block IDs)
+            // If no URL parameter, use GUI selectedBlocks setting
+            if (!onlyBlocks && this.props.selectedBlocks) {
                 const selectedBlockIds = [];
-                Object.values(effectiveSelectedBlocks).forEach(categoryBlocks => {
+                Object.values(this.props.selectedBlocks).forEach(categoryBlocks => {
                     selectedBlockIds.push(...categoryBlocks);
                 });
-
-                // If not all blocks are selected, generate onlyBlocks string
                 if (selectedBlockIds.length < TOTAL_DEFAULT_BLOCKS) {
                     onlyBlocks = selectedBlockIds.join(',');
                 }
