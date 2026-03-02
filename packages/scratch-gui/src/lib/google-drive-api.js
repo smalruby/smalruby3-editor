@@ -55,6 +55,16 @@ class GoogleDriveAPI {
     }
 
     /**
+     * Generate a cryptographically random state string for CSRF protection
+     * @returns {string} Random 32-character hex string
+     */
+    _generateState () {
+        const array = new Uint8Array(16);
+        window.crypto.getRandomValues(array);
+        return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    /**
      * Initialize Google API and Identity Services
      * @returns {Promise<void>} Promise that resolves when initialization is complete
      */
@@ -110,23 +120,32 @@ class GoogleDriveAPI {
      */
     requestAccessToken () {
         return new Promise((resolve, reject) => {
-            this.tokenClient.callback = response => {
-                if (response.error) {
-                    reject(new Error(`Authentication failed: ${response.error}`));
-                    return;
-                }
-                this.accessToken = response.access_token;
-                resolve(response.access_token);
-            };
-
             // Check if user already has a valid, non-expired token
             if (this.accessToken && this._isTokenValid()) {
                 resolve(this.accessToken);
                 return;
             }
 
-            // Request new token (prompt: '' = silent re-auth if session still valid)
-            this.tokenClient.requestAccessToken({prompt: ''});
+            // Generate a random state value for CSRF protection
+            const expectedState = this._generateState();
+
+            this.tokenClient.callback = response => {
+                if (response.error) {
+                    reject(new Error(`Authentication failed: ${response.error}`));
+                    return;
+                }
+                // Validate state to guard against CSRF attacks
+                if (response.state !== expectedState) {
+                    reject(new Error('OAuth state mismatch: potential CSRF attack detected'));
+                    return;
+                }
+                this.accessToken = response.access_token;
+                resolve(response.access_token);
+            };
+
+            // Request new token with state for CSRF protection
+            // (prompt: '' = silent re-auth if session still valid)
+            this.tokenClient.requestAccessToken({prompt: '', state: expectedState});
         });
     }
 
