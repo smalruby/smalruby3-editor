@@ -78,9 +78,14 @@
     height: $stage-menu-height;
 }
 
-.privacy-link {
+.legal-links {
     margin-left: auto;
-    padding: 0 1rem 0.25rem;
+    display: flex;
+    align-items: flex-end;
+}
+
+.privacy-link {
+    padding: 0 0.5rem 0.25rem;
     font-size: 0.65rem;
     color: $text-primary-transparent;
     text-decoration: none;
@@ -93,8 +98,15 @@
     text-decoration: underline;
 }
 
+.link-separator {
+    padding: 0 0 0.25rem;
+    font-size: 0.65rem;
+    color: $text-primary-transparent;
+    align-self: flex-end;
+}
+
 .feedback-link {
-    padding: 0 3.75rem 0.25rem;
+    padding: 0 3.75rem 0.25rem 0.5rem;
     font-size: 0.65rem;
     color: $text-primary-transparent;
     text-decoration: none;
