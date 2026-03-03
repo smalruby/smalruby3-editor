@@ -102,5 +102,13 @@
         "labelJa": "クローンを削除する",
         "filterText": "kuroonwo sakujosuru クローンを削除する delete_this_clone",
         "sortText": "05_kuroonwo_sakujo"
+    },
+    "when_start_as_a_clone_compat": {
+        "snippet": "when(:start_as_a_clone) do\n\t${1}\nend",
+        "description": "クローンされたとき（when:記法）",
+        "type": "event",
+        "labelJa": "クローンされたとき（when:記法）",
+        "filterText": "kuroon sareta クローンされたとき when start_as_a_clone self.when",
+        "sortText": "05z_kuroon_compat"
     }
 }

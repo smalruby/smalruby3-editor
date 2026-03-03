@@ -166,5 +166,29 @@
         "labelJa": "大きさ",
         "filterText": "ookisa 大きさ size",
         "sortText": "02_ookisa"
+    },
+    "print": {
+        "snippet": "print(\"${1:こんにちは!}\")",
+        "description": "(こんにちは!) と言う（print）",
+        "type": "function",
+        "labelJa": "print（言う）",
+        "filterText": "print iu 言う こんにちは hyoujisuru 表示する",
+        "sortText": "02z_print"
+    },
+    "puts": {
+        "snippet": "puts(\"${1:こんにちは!}\")",
+        "description": "(こんにちは!) と言う（puts）",
+        "type": "function",
+        "labelJa": "puts（言う）",
+        "filterText": "puts iu 言う こんにちは hyoujisuru 表示する",
+        "sortText": "02z_puts"
+    },
+    "p_output": {
+        "snippet": "p(\"${1:こんにちは!}\")",
+        "description": "(こんにちは!) と言う（p）",
+        "type": "function",
+        "labelJa": "p（言う）",
+        "filterText": "p_output iu 言う こんにちは hyoujisuru 表示する",
+        "sortText": "02z_p_output"
     }
 }
