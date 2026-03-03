@@ -3,6 +3,8 @@ import SeleniumHelper from '../helpers/selenium-helper';
 
 const {
     clickText,
+    findByText,
+    findByXpath,
     getDriver,
     getLogs,
     loadUri
@@ -12,7 +14,7 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 
 let driver;
 
-describe.skip('Working with the how-to library', () => {
+describe('Backpack with localStorage', () => {
     beforeAll(() => {
         driver = getDriver();
     });
@@ -21,24 +23,65 @@ describe.skip('Working with the how-to library', () => {
         await driver.quit();
     });
 
-    test('Backpack is "Coming Soon" without backpack host param', async () => {
+    test('Backpack header is visible without backpack_host param', async () => {
         await loadUri(uri);
-        // Check that the backpack header is visible and wrapped in a coming soon tooltip
-        await clickText('Backpack', '*[@data-for="backpack-tooltip"]');
+        // Backpack should always be visible (localStorage default)
+        await findByText('Backpack');
         const logs = await getLogs();
-        await expect(logs).toEqual([]);
+        expect(logs).toEqual([]);
     });
 
-    test('Backpack can be expanded with backpack host param', async () => {
-        await loadUri(`${uri}?backpack_host=https://backpack.scratch.mit.edu`);
+    test('Backpack can be expanded and shows empty state', async () => {
+        await loadUri(uri);
+        // Clear localStorage to ensure clean state
+        await driver.executeScript(`localStorage.removeItem('smalrubyBackpack')`);
 
-        // Try activating the backpack from the costumes tab to make sure it isn't pushed off
+        // Click Backpack to expand
+        await clickText('Backpack');
+        // Should show empty state
+        await findByText('Backpack is empty');
+        const logs = await getLogs();
+        expect(logs).toEqual([]);
+    });
+
+    test('Backpack can be expanded from Costumes tab', async () => {
+        await loadUri(uri);
+        await driver.executeScript(`localStorage.removeItem('smalrubyBackpack')`);
+
+        // Switch to costumes tab first
         await clickText('Costumes');
 
-        // Check that the backpack header is visible and wrapped in a coming soon tooltip
-        await clickText('Backpack'); // Not wrapped in tooltip
-        await clickText('Backpack is empty'); // Make sure it can expand, is empty
+        // Backpack is at the bottom; click to expand
+        await clickText('Backpack');
+        await findByText('Backpack is empty');
         const logs = await getLogs();
-        await expect(logs).toEqual([]);
+        expect(logs).toEqual([]);
+    });
+
+    test('Backpack persists items in localStorage across page load', async () => {
+        await loadUri(uri);
+        // Seed localStorage with a backpack item directly
+        const item = {
+            id: 'test-id-123',
+            type: 'script',
+            name: 'test script',
+            mime: 'application/json',
+            body: 'W10=', // base64 of '[]'
+            thumbnail: '/9j/4AAQSkZJRg==' // minimal jpeg header base64
+        };
+        await driver.executeScript(
+            `localStorage.setItem('smalrubyBackpack', JSON.stringify([${JSON.stringify(item)}]))`
+        );
+
+        // Reload the page
+        await driver.navigate().refresh();
+
+        // Expand backpack
+        await clickText('Backpack');
+
+        // Should show the seeded item (by its type label 'script')
+        await findByXpath('//li[contains(@class, "backpackItem")]');
+        const logs = await getLogs();
+        expect(logs).toEqual([]);
     });
 });
