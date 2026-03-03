@@ -437,6 +437,7 @@ const RubyToolbar = props => {
                     onClick={handleOpenAI}
                     aria-label={intl.formatMessage(messages.aiAssistant)}
                     title={intl.formatMessage(messages.aiAssistant)}
+                    disabled
                 >
                     <img
                         src={iconAI}
