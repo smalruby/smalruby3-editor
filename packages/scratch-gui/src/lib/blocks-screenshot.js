@@ -8,26 +8,27 @@ const EXPORT_PADDING = 16;
 /**
  * Returns the blocks bounding box for the given workspace, or null if the
  * workspace is empty (no blocks placed).
+ * Scratch Blocks returns {x, y, width, height} in workspace coordinates.
  * @param {object} workspace - Scratch Blocks / Blockly workspace instance
- * @returns {{top: number, bottom: number, left: number, right: number}|null} Bounding box or null for empty workspace
+ * @returns {{x: number, y: number, width: number, height: number}|null} Bounding box or null for empty workspace
  */
 const getBlocksBoundingBox = function (workspace) {
     const bbox = workspace.getBlocksBoundingBox();
     if (!bbox) return null;
-    if (bbox.top === bbox.bottom && bbox.left === bbox.right) return null;
+    if (bbox.width === 0 && bbox.height === 0) return null;
     return bbox;
 };
 
 /**
  * Calculates the canvas pixel dimensions needed to contain all blocks with padding.
- * @param {{top: number, bottom: number, left: number, right: number}} bbox
+ * @param {{x: number, y: number, width: number, height: number}} bbox
  * @param {number} scale - Workspace zoom scale
  * @param {number} [padding] - Padding in pixels (default: EXPORT_PADDING)
  * @returns {{width: number, height: number}} Canvas dimensions in pixels
  */
 const calculateCanvasDimensions = function (bbox, scale, padding = EXPORT_PADDING) {
-    const blockWidth = (bbox.right - bbox.left) * scale;
-    const blockHeight = (bbox.bottom - bbox.top) * scale;
+    const blockWidth = bbox.width * scale;
+    const blockHeight = bbox.height * scale;
     return {
         width: Math.ceil(blockWidth + (padding * 2)),
         height: Math.ceil(blockHeight + (padding * 2))
@@ -48,7 +49,7 @@ const buildFilename = function (projectTitle, spriteName) {
  * Builds an SVG string that contains only the blocks from the workspace,
  * clipped to their bounding box with padding, on a white background.
  * @param {object} workspace
- * @param {{top: number, bottom: number, left: number, right: number}} bbox
+ * @param {{x: number, y: number, width: number, height: number}} bbox
  * @param {number} scale
  * @param {number} width - Canvas width in pixels
  * @param {number} height - Canvas height in pixels
@@ -83,10 +84,11 @@ const buildExportSVG = function (workspace, bbox, scale, width, height, padding 
     bg.setAttribute('fill', '#ffffff');
     svg.appendChild(bg);
 
-    // Clone block canvas and re-position so bbox.topleft -> (padding, padding)
+    // Clone block canvas and re-position so bbox top-left -> (padding, padding).
+    // bbox.x and bbox.y are workspace coordinates of the top-left of all blocks.
     const canvasClone = blockCanvas.cloneNode(true);
-    const tx = ((-bbox.left) * scale) + padding;
-    const ty = ((-bbox.top) * scale) + padding;
+    const tx = ((-bbox.x) * scale) + padding;
+    const ty = ((-bbox.y) * scale) + padding;
     canvasClone.setAttribute('transform', `translate(${tx}, ${ty}) scale(${scale})`);
     svg.appendChild(canvasClone);
 

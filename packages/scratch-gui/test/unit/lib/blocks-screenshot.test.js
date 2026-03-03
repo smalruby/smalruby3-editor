@@ -28,7 +28,7 @@ const makeMockWorkspace = ({boundingBox = null, scale = 1} = {}) => {
 
 describe('getBlocksBoundingBox', () => {
     test('returns null when bounding box is a zero-area point (no blocks)', () => {
-        const workspace = makeMockWorkspace({boundingBox: {top: 0, bottom: 0, left: 0, right: 0}});
+        const workspace = makeMockWorkspace({boundingBox: {x: 0, y: 0, width: 0, height: 0}});
         expect(getBlocksBoundingBox(workspace)).toBeNull();
     });
 
@@ -38,13 +38,13 @@ describe('getBlocksBoundingBox', () => {
     });
 
     test('returns bounding box when blocks exist', () => {
-        const bbox = {top: 10, bottom: 110, left: 20, right: 220};
+        const bbox = {x: 20, y: 10, width: 200, height: 100};
         const workspace = makeMockWorkspace({boundingBox: bbox});
         expect(getBlocksBoundingBox(workspace)).toEqual(bbox);
     });
 
     test('returns bounding box with negative top-left coordinates', () => {
-        const bbox = {top: -50, bottom: 50, left: -30, right: 70};
+        const bbox = {x: -30, y: -50, width: 100, height: 100};
         const workspace = makeMockWorkspace({boundingBox: bbox});
         expect(getBlocksBoundingBox(workspace)).toEqual(bbox);
     });
@@ -54,14 +54,14 @@ describe('getBlocksBoundingBox', () => {
 
 describe('calculateCanvasDimensions', () => {
     test('includes padding on all sides at scale=1', () => {
-        const bbox = {top: 0, bottom: 100, left: 0, right: 200};
+        const bbox = {x: 0, y: 0, width: 200, height: 100};
         const {width, height} = calculateCanvasDimensions(bbox, 1);
         expect(width).toBe(200 + EXPORT_PADDING * 2);
         expect(height).toBe(100 + EXPORT_PADDING * 2);
     });
 
     test('applies scale to block dimensions', () => {
-        const bbox = {top: 0, bottom: 100, left: 0, right: 200};
+        const bbox = {x: 0, y: 0, width: 200, height: 100};
         const scale = 1.5;
         const {width, height} = calculateCanvasDimensions(bbox, scale);
         expect(width).toBe(Math.ceil(200 * scale + EXPORT_PADDING * 2));
@@ -69,15 +69,15 @@ describe('calculateCanvasDimensions', () => {
     });
 
     test('handles bounding box with non-zero origin', () => {
-        const bbox = {top: 50, bottom: 150, left: 30, right: 230};
+        const bbox = {x: 30, y: 50, width: 200, height: 100};
         const {width, height} = calculateCanvasDimensions(bbox, 1);
-        expect(width).toBe(200 + EXPORT_PADDING * 2); // right - left = 200
-        expect(height).toBe(100 + EXPORT_PADDING * 2); // bottom - top = 100
+        expect(width).toBe(200 + EXPORT_PADDING * 2);
+        expect(height).toBe(100 + EXPORT_PADDING * 2);
     });
 
     test('single block is small with minimal extra padding', () => {
         // A single block might be ~150x50 workspace units
-        const bbox = {top: 100, bottom: 150, left: 100, right: 250};
+        const bbox = {x: 100, y: 100, width: 150, height: 50};
         const {width, height} = calculateCanvasDimensions(bbox, 1);
         expect(width).toBe(150 + EXPORT_PADDING * 2); // 150 + 32 = 182
         expect(height).toBe(50 + EXPORT_PADDING * 2);  // 50 + 32 = 82
@@ -130,14 +130,14 @@ describe('downloadBlocksAsImage', () => {
     });
 
     test('does nothing when workspace has no blocks', async () => {
-        const workspace = makeMockWorkspace({boundingBox: {top: 0, bottom: 0, left: 0, right: 0}});
+        const workspace = makeMockWorkspace({boundingBox: {x: 0, y: 0, width: 0, height: 0}});
         await downloadBlocksAsImage(workspace, 'project', 'sprite');
         expect(downloadBlob).not.toHaveBeenCalled();
     });
 
     test('downloads PNG with correct filename', async () => {
         const workspace = makeMockWorkspace({
-            boundingBox: {top: 0, bottom: 100, left: 0, right: 200},
+            boundingBox: {x: 0, y: 0, width: 200, height: 100},
             scale: 1
         });
         await downloadBlocksAsImage(workspace, 'myProject', 'Sprite1');
@@ -148,7 +148,7 @@ describe('downloadBlocksAsImage', () => {
     });
 
     test('canvas dimensions include padding', async () => {
-        const bbox = {top: 0, bottom: 100, left: 0, right: 200};
+        const bbox = {x: 0, y: 0, width: 200, height: 100};
         const workspace = makeMockWorkspace({boundingBox: bbox, scale: 1});
 
         let capturedCanvas;
@@ -168,7 +168,7 @@ describe('downloadBlocksAsImage', () => {
     });
 
     test('canvas dimensions respect scale', async () => {
-        const bbox = {top: 0, bottom: 100, left: 0, right: 200};
+        const bbox = {x: 0, y: 0, width: 200, height: 100};
         const scale = 2;
         const workspace = makeMockWorkspace({boundingBox: bbox, scale});
 
