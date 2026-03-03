@@ -108,7 +108,7 @@
         "description": "クローンされたとき（when:記法）",
         "type": "event",
         "labelJa": "クローンされたとき（when:記法）",
-        "filterText": "kuroon sareta クローンされたとき when start_as_a_clone self.when",
+        "filterText": "kuroon sareta クローンされたとき when start_as_a_clone",
         "sortText": "05z_kuroon_compat"
     }
 }
