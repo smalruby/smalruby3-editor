@@ -77,6 +77,14 @@ const buildExportSVG = function (workspace, bbox, scale, width, height, padding 
         });
     }
 
+    // Include Scratch Blocks' injected styles from document head.
+    // These set fill colors for .blocklyText etc. and are not inside the SVG element.
+    document.querySelectorAll('style').forEach(style => {
+        if ((style.textContent || '').includes('blocklyText')) {
+            svg.appendChild(style.cloneNode(true));
+        }
+    });
+
     // White background
     const bg = document.createElementNS(svgNS, 'rect');
     bg.setAttribute('width', String(width));
