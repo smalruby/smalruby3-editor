@@ -1,3 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20">
-  <path fill="#575E75" d="M17 6h-2.5l-1.2-1.8A1 1 0 0 0 12.5 4h-5a1 1 0 0 0-.8.4L5.5 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-7 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36">
+  <defs>
+    <style>
+      .c1{fill:#231f20;opacity:0.15}
+      .c2{fill:#fff}
+      .c3{opacity:0.75}
+      .c4{fill:none;stroke:#575e75;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5px}
+    </style>
+  </defs>
+  <circle class="c1" cx="18" cy="18" r="18"/>
+  <circle class="c2" cx="18" cy="18" r="16"/>
+  <g class="c3">
+    <rect class="c4" x="10" y="14" width="16" height="11" rx="1.5"/>
+    <path class="c4" d="M15 14 l1.5-2.5h3l1.5 2.5"/>
+    <circle class="c4" cx="18" cy="19.5" r="3.5"/>
+  </g>
 </svg>
