@@ -248,6 +248,37 @@ describe('RubyToBlocksConverter/Looks', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
+        test('minus assign', async () => {
+            code = 'self.size -= 10';
+            expected = [
+                {
+                    opcode: 'looks_changesizeby',
+                    inputs: [
+                        {
+                            name: 'CHANGE',
+                            block: expectedInfo.makeNumber(-10)
+                        }
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+            code = 'self.size -= x';
+            expected = [
+                {
+                    opcode: 'looks_changesizeby',
+                    inputs: [
+                        {
+                            name: 'CHANGE',
+                            block: (await rubyToExpected(converter, target, '0 - x'))[0],
+                            shadow: expectedInfo.makeNumber(10)
+                        }
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
         test('invalid', async () => {
             { for (const c of [
                 'self.size += "10"',

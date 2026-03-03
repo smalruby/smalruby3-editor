@@ -177,6 +177,23 @@ end
         await expectRoundTrip('move(10) unless touching?("_edge_")');
     });
 
+    test('-= operator on motion x/y round-trips correctly', async () => {
+        await expectRoundTrip('self.x -= 10');
+        await expectRoundTrip('self.y -= 10');
+        await expectRoundTrip('self.x -= 3.5');
+        await expectRoundTrip('self.y -= 3.5');
+    });
+
+    test('-= operator on looks size round-trips correctly', async () => {
+        await expectRoundTrip('self.size -= 10');
+        await expectRoundTrip('self.size -= 5.5');
+    });
+
+    test('-= operator on sound volume round-trips correctly', async () => {
+        await expectRoundTrip('self.volume -= 10');
+        await expectRoundTrip('self.volume -= 2.5');
+    });
+
     test('float literals with integer appearance (x.0) are preserved', async () => {
         await expectRoundTrip('1.0 + 1.0');
         await expectRoundTrip('move(1.0)');

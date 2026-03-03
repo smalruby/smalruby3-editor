@@ -41,6 +41,10 @@ export default function (Generator){
 
     Generator.sound_changevolumeby = function (block) {
         const volume = Generator.valueToCode(block, 'VOLUME', Generator.ORDER_NONE) || '0';
+        const volumeNum = parseFloat(volume);
+        if (!isNaN(volumeNum) && volumeNum < 0) {
+            return `self.volume -= ${-volumeNum}\n`;
+        }
         return `self.volume += ${volume}\n`;
     };
 

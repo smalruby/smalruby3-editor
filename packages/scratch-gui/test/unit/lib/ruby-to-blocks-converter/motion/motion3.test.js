@@ -49,6 +49,35 @@ describe('RubyToBlocksConverter/Motion', () => {
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
+        code = 'self.x -= 10';
+        expected = [
+            {
+                opcode: 'motion_changexby',
+                inputs: [
+                    {
+                        name: 'DX',
+                        block: expectedInfo.makeNumber(-10)
+                    }
+                ]
+            }
+        ];
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        code = 'self.x -= y';
+        expected = [
+            {
+                opcode: 'motion_changexby',
+                inputs: [
+                    {
+                        name: 'DX',
+                        block: (await rubyToExpected(converter, target, '0 - y'))[0],
+                        shadow: expectedInfo.makeNumber(10)
+                    }
+                ]
+            }
+        ];
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
         { for (const s of [
             'self.x += "10"',
             'self.x += :symbol',
@@ -126,6 +155,35 @@ describe('RubyToBlocksConverter/Motion', () => {
                     {
                         name: 'DY',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
+                        shadow: expectedInfo.makeNumber(10)
+                    }
+                ]
+            }
+        ];
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        code = 'self.y -= 10';
+        expected = [
+            {
+                opcode: 'motion_changeyby',
+                inputs: [
+                    {
+                        name: 'DY',
+                        block: expectedInfo.makeNumber(-10)
+                    }
+                ]
+            }
+        ];
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        code = 'self.y -= x';
+        expected = [
+            {
+                opcode: 'motion_changeyby',
+                inputs: [
+                    {
+                        name: 'DY',
+                        block: (await rubyToExpected(converter, target, '0 - x'))[0],
                         shadow: expectedInfo.makeNumber(10)
                     }
                 ]
@@ -236,6 +294,8 @@ describe('RubyToBlocksConverter/Motion', () => {
                 'self.y = 10',
                 'self.x += 5',
                 'self.y += 5',
+                'self.x -= 5',
+                'self.y -= 5',
                 'x',
                 'y',
                 'direction'

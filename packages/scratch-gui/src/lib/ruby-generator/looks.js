@@ -81,6 +81,10 @@ export default function (Generator) {
 
     Generator.looks_changesizeby = function (block) {
         const change = Generator.valueToCode(block, 'CHANGE', Generator.ORDER_NONE) || '0';
+        const changeNum = parseFloat(change);
+        if (!isNaN(changeNum) && changeNum < 0) {
+            return `self.size -= ${-changeNum}\n`;
+        }
         return `self.size += ${change}\n`;
     };
 

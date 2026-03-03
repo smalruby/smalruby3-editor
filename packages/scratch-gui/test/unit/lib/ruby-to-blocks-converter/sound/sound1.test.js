@@ -242,6 +242,37 @@ describe('RubyToBlocksConverter/Sound', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
+        test('minus assign', async () => {
+            code = 'self.volume -= 10';
+            expected = [
+                {
+                    opcode: 'sound_changevolumeby',
+                    inputs: [
+                        {
+                            name: 'VOLUME',
+                            block: expectedInfo.makeNumber(-10)
+                        }
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+            code = 'self.volume -= x';
+            expected = [
+                {
+                    opcode: 'sound_changevolumeby',
+                    inputs: [
+                        {
+                            name: 'VOLUME',
+                            block: (await rubyToExpected(converter, target, '0 - x'))[0],
+                            shadow: expectedInfo.makeNumber(-10)
+                        }
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
         test('invalid', async () => {
             { for (const c of [
                 'self.volume += "10"',
