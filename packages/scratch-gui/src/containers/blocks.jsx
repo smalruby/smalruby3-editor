@@ -42,6 +42,8 @@ import {
 } from '../reducers/editor-tab';
 import {togglePalette} from '../reducers/palette-visibility';
 import PaletteToggle from '../components/palette-toggle/palette-toggle.jsx';
+import BlocksScreenshotButton from '../components/blocks-screenshot-button/blocks-screenshot-button.jsx';
+import {downloadBlocksAsImage} from '../lib/blocks-screenshot';
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -88,7 +90,8 @@ class Blocks extends React.Component {
             'onWorkspaceUpdate',
             'onWorkspaceMetricsChange',
             'setBlocks',
-            'setLocale'
+            'setLocale',
+            'handleDownloadBlocksImage'
         ]);
         this.ScratchBlocks.prompt = this.handlePromptStart;
         this.ScratchBlocks.statusButtonCallback = this.handleConnectionModalStart;
@@ -786,6 +789,13 @@ class Blocks extends React.Component {
                 this.updateToolbox(); // To show new variables/custom blocks
             });
     }
+    handleDownloadBlocksImage () {
+        if (!this.workspace) return;
+        const target = this.props.vm.editingTarget;
+        const spriteName = target ? target.sprite.name : 'sprite';
+        const projectTitle = this.props.projectTitle || 'project';
+        downloadBlocksAsImage(this.workspace, projectTitle, spriteName);
+    }
     render () {
         const {
             anyModalVisible: _anyModalVisible,
@@ -811,6 +821,7 @@ class Blocks extends React.Component {
             workspaceMetrics: _workspaceMetrics,
             paletteVisible,
             onTogglePalette: _onTogglePalette,
+            projectTitle: _projectTitle,
             ...props
         } = this.props;
 
@@ -830,6 +841,11 @@ class Blocks extends React.Component {
                         paletteVisible={paletteVisible}
                         style={{left: `${toggleButtonLeft}px`}}
                         onClick={this.handleTogglePalette}
+                    />
+                ) : null}
+                {toolbox ? (
+                    <BlocksScreenshotButton
+                        onClick={this.handleDownloadBlocksImage}
                     />
                 ) : null}
                 {this.state.prompt ? (
@@ -909,7 +925,8 @@ Blocks.propTypes = {
         targets: PropTypes.objectOf(PropTypes.object)
     }),
     paletteVisible: PropTypes.bool,
-    onTogglePalette: PropTypes.func
+    onTogglePalette: PropTypes.func,
+    projectTitle: PropTypes.string
 };
 
 Blocks.defaultOptions = {
@@ -950,7 +967,8 @@ const mapStateToProps = state => ({
     customProceduresVisible: state.scratchGui.customProcedures.active,
     workspaceMetrics: state.scratchGui.workspaceMetrics,
     useCatBlocks: isTimeTravel2020(state) || state.scratchGui.settings.theme === CAT_BLOCKS_THEME,
-    paletteVisible: state.scratchGui.paletteVisibility.paletteVisible
+    paletteVisible: state.scratchGui.paletteVisibility.paletteVisible,
+    projectTitle: state.scratchGui.projectTitle
 });
 
 const mapDispatchToProps = dispatch => ({
