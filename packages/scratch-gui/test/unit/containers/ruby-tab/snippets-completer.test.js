@@ -301,6 +301,131 @@ describe('SnippetsCompleter', () => {
         });
     });
 
+    describe('legacy notation snippets (self.when / print / puts / p)', () => {
+        describe('self.when(:xxx) event snippets at top level', () => {
+            const topLevelWord = 'when';
+            const topLevelModel = () => createModel(topLevelWord, topLevelWord, 1, 1 + topLevelWord.length);
+            const topLevelPos = {lineNumber: 1, column: 1 + topLevelWord.length};
+
+            test('should include when(:flag_clicked) compat snippet at top level', () => {
+                const result = completer.provideCompletionItems(topLevelModel(), topLevelPos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.includes('when(:flag_clicked)')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should include when(:clicked) compat snippet at top level', () => {
+                const result = completer.provideCompletionItems(topLevelModel(), topLevelPos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.includes('when(:clicked)')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should include when(:key_pressed) compat snippet at top level', () => {
+                const result = completer.provideCompletionItems(topLevelModel(), topLevelPos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.includes('when(:key_pressed,')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should include when(:backdrop_switches) compat snippet at top level', () => {
+                const result = completer.provideCompletionItems(topLevelModel(), topLevelPos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.includes('when(:backdrop_switches,')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should include when(:receive) compat snippet at top level', () => {
+                const result = completer.provideCompletionItems(topLevelModel(), topLevelPos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.includes('when(:receive,')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should include when(:greater_than) compat snippet at top level', () => {
+                const result = completer.provideCompletionItems(topLevelModel(), topLevelPos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.includes('when(:greater_than,')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should include when(:start_as_a_clone) compat snippet at top level', () => {
+                const result = completer.provideCompletionItems(topLevelModel(), topLevelPos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.includes('when(:start_as_a_clone)')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should not show compat event snippets inside a block', () => {
+                const fullText = `${INSIDE_BLOCK_TEXT}when`;
+                const col = INSIDE_BLOCK_COL_BASE + 4;
+                const model = createModel('when', fullText, INSIDE_BLOCK_LINE, col);
+                const pos = {lineNumber: INSIDE_BLOCK_LINE, column: col};
+                const result = completer.provideCompletionItems(model, pos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.includes('when(:flag_clicked)')
+                );
+                expect(snippet).toBeUndefined();
+            });
+        });
+
+        describe('print/puts/p output snippets inside block', () => {
+            test('should include print snippet when typing "pri" inside a block', () => {
+                const fullText = `${INSIDE_BLOCK_TEXT}pri`;
+                const col = INSIDE_BLOCK_COL_BASE + 3;
+                const model = createModel('pri', fullText, INSIDE_BLOCK_LINE, col);
+                const pos = {lineNumber: INSIDE_BLOCK_LINE, column: col};
+                const result = completer.provideCompletionItems(model, pos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.startsWith('print(')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should include puts snippet when typing "put" inside a block', () => {
+                const fullText = `${INSIDE_BLOCK_TEXT}put`;
+                const col = INSIDE_BLOCK_COL_BASE + 3;
+                const model = createModel('put', fullText, INSIDE_BLOCK_LINE, col);
+                const pos = {lineNumber: INSIDE_BLOCK_LINE, column: col};
+                const result = completer.provideCompletionItems(model, pos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.startsWith('puts(')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should include p snippet when typing "p_o" inside a block', () => {
+                const fullText = `${INSIDE_BLOCK_TEXT}p_o`;
+                const col = INSIDE_BLOCK_COL_BASE + 3;
+                const model = createModel('p_o', fullText, INSIDE_BLOCK_LINE, col);
+                const pos = {lineNumber: INSIDE_BLOCK_LINE, column: col};
+                const result = completer.provideCompletionItems(model, pos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.startsWith('p(')
+                );
+                expect(snippet).toBeDefined();
+            });
+
+            test('should not show print snippet at top level', () => {
+                const fullText = 'pri';
+                const model = createModel('pri', fullText, 1, 4);
+                const pos = {lineNumber: 1, column: 4};
+                const result = completer.provideCompletionItems(model, pos, context, token, monaco);
+                const snippet = result.suggestions.find(s =>
+                    s.insertText && s.insertText.startsWith('print(')
+                );
+                expect(snippet).toBeUndefined();
+            });
+        });
+    });
+
     describe('context-aware completion', () => {
         describe('type filtering', () => {
             test('should allow def snippet at top level', () => {

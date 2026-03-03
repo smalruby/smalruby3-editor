@@ -62,5 +62,53 @@
         "labelJa": "メッセージを送って待つ",
         "filterText": "messeejiwo okutte matsu メッセージを送って待つ broadcast_and_wait",
         "sortText": "04_messeejiwo_okutte"
+    },
+    "when_flag_clicked_compat": {
+        "snippet": "when(:flag_clicked) do\n\t${1}\nend",
+        "description": "旗が押されたとき（when:記法）",
+        "type": "event",
+        "labelJa": "旗が押されたとき（when:記法）",
+        "filterText": "hataga osareta 旗が押されたとき when flag_clicked self.when",
+        "sortText": "04z_hataga_compat"
+    },
+    "when_clicked_compat": {
+        "snippet": "when(:clicked) do\n\t${1}\nend",
+        "description": "このスプライトが押されたとき（when:記法）",
+        "type": "event",
+        "labelJa": "スプライトが押されたとき（when:記法）",
+        "filterText": "supuraitoga osareta スプライトが押されたとき when clicked self.when",
+        "sortText": "04z_supuraitoga_compat"
+    },
+    "when_key_pressed_compat": {
+        "snippet": "when(:key_pressed, \"${1:space}\") do\n\t${2}\nend",
+        "description": "[スペース▼] キーが押されたとき（when:記法）",
+        "type": "event",
+        "labelJa": "キーが押されたとき（when:記法）",
+        "filterText": "kiiga osareta キーが押されたとき when key_pressed self.when スペース",
+        "sortText": "04z_kiiga_compat"
+    },
+    "when_backdrop_switches_compat": {
+        "snippet": "when(:backdrop_switches, \"${1:背景1}\") do\n\t${2}\nend",
+        "description": "背景が [背景1▼] になったとき（when:記法）",
+        "type": "event",
+        "labelJa": "背景が変わったとき（when:記法）",
+        "filterText": "haikeiga kawatta 背景が変わったとき when backdrop_switches self.when",
+        "sortText": "04z_haikeiga_compat"
+    },
+    "when_receive_compat": {
+        "snippet": "when(:receive, \"${1:メッセージ1}\") do\n\t${2}\nend",
+        "description": "[メッセージ1▼] を受け取ったとき（when:記法）",
+        "type": "event",
+        "labelJa": "受け取ったとき（when:記法）",
+        "filterText": "uketotta 受け取ったとき when receive self.when メッセージ",
+        "sortText": "04z_uketotta_compat"
+    },
+    "when_greater_than_compat": {
+        "snippet": "when(:greater_than, \"${1:loudness}\", ${2:10}) do\n\t${3}\nend",
+        "description": "[音量▼] > (10) のとき（when:記法）",
+        "type": "event",
+        "labelJa": "より大きいとき（when:記法）",
+        "filterText": "yori ookii 大きいとき when greater_than self.when 音量",
+        "sortText": "04z_yori_ookii_compat"
     }
 }
