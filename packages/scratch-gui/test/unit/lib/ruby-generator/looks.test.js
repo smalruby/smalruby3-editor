@@ -155,6 +155,26 @@ describe('RubyGenerator/Looks', () => {
         });
     });
 
+    describe('looks_changesizeby', () => {
+        test('positive CHANGE emits self.size += N', () => {
+            const block = {id: 'b1', opcode: 'looks_changesizeby', inputs: {CHANGE: {}}};
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('10');
+            expect(RubyGenerator.looks_changesizeby(block)).toEqual('self.size += 10\n');
+        });
+
+        test('negative CHANGE emits self.size -= N (absolute value)', () => {
+            const block = {id: 'b1', opcode: 'looks_changesizeby', inputs: {CHANGE: {}}};
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('-10');
+            expect(RubyGenerator.looks_changesizeby(block)).toEqual('self.size -= 10\n');
+        });
+
+        test('zero CHANGE emits self.size += 0', () => {
+            const block = {id: 'b1', opcode: 'looks_changesizeby', inputs: {CHANGE: {}}};
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('0');
+            expect(RubyGenerator.looks_changesizeby(block)).toEqual('self.size += 0\n');
+        });
+    });
+
     describe('scrub_ (meta-comment filtering)', () => {
         test('should filter out @ruby: comments', () => {
             const block = {
