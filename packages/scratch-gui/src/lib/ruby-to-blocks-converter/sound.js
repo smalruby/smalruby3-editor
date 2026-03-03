@@ -122,10 +122,23 @@ const SoundConverter = {
         // Register onXxx handlers
         converter.registerOnOpAsgn((lh, operator, rh) => {
             let block;
-            if (converter._isBlock(lh) && operator === '+' && converter._isNumberOrBlock(rh)) {
+            if (converter._isBlock(lh) && (operator === '+' || operator === '-') && converter._isNumberOrBlock(rh)) {
                 if (lh.opcode === 'sound_volume') {
                     block = converter._changeBlock(lh, 'sound_changevolumeby', 'statement');
-                    converter._addNumberInput(block, 'VOLUME', 'math_number', rh, -10);
+                    if (operator === '-') {
+                        let negatedRh;
+                        if (converter._isNumber(rh)) {
+                            negatedRh = -Number(rh.toString());
+                        } else {
+                            const subtractBlock = converter._createBlock('operator_subtract', 'value');
+                            converter._addNumberInput(subtractBlock, 'NUM1', 'math_number', 0, '');
+                            converter._addNumberInput(subtractBlock, 'NUM2', 'math_number', rh, '');
+                            negatedRh = subtractBlock;
+                        }
+                        converter._addNumberInput(block, 'VOLUME', 'math_number', negatedRh, -10);
+                    } else {
+                        converter._addNumberInput(block, 'VOLUME', 'math_number', rh, -10);
+                    }
                 }
             }
             return block;
