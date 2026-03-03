@@ -115,7 +115,7 @@ describe('GoogleDriveAPI', () => {
             });
         });
 
-        test('should include generative-language scope for Gemini', () => {
+        test('should NOT include generative-language scope (temporarily disabled until OAuth consent is approved)', () => {
             const mockTokenClient = {
                 callback: null,
                 requestAccessToken: jest.fn()
@@ -123,12 +123,9 @@ describe('GoogleDriveAPI', () => {
             mockGoogle.accounts.oauth2.initTokenClient.mockReturnValue(mockTokenClient);
 
             return GoogleDriveAPI.initialize().then(() => {
-                expect(mockGoogle.accounts.oauth2.initTokenClient).toHaveBeenCalledWith(
-                    expect.objectContaining({
-                        scope: expect.stringContaining(
-                            'https://www.googleapis.com/auth/generative-language'
-                        )
-                    })
+                const callArg = mockGoogle.accounts.oauth2.initTokenClient.mock.calls[0][0];
+                expect(callArg.scope).not.toContain(
+                    'https://www.googleapis.com/auth/generative-language'
                 );
             });
         });

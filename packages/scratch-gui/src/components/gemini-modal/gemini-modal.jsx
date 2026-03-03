@@ -396,7 +396,7 @@ const GeminiModal = ({
                                 value={inputValue}
                                 onChange={onInputChange}
                                 onKeyDown={onInputKeyDown}
-                                disabled={isLoading}
+                                disabled
                                 rows={2}
                             />
                             {isLoading ? (
