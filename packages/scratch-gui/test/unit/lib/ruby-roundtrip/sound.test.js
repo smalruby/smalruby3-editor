@@ -27,7 +27,7 @@ describe('Ruby Roundtrip: Sound category blocks', () => {
             change_sound_effect_by("PAN", 10)
             set_sound_effect("PITCH", 100)
             clear_sound_effects
-            self.volume += -10
+            self.volume -= 10
             self.volume = 100
 
             volume
