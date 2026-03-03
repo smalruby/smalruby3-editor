@@ -67,6 +67,10 @@ export default function (Generator) {
 
     Generator.motion_changexby = function (block) {
         const dx = Generator.valueToCode(block, 'DX', Generator.ORDER_NONE) || 0;
+        const dxNum = parseFloat(dx);
+        if (!isNaN(dxNum) && dxNum < 0) {
+            return `self.x -= ${-dxNum}\n`;
+        }
         return `self.x += ${dx}\n`;
     };
 
@@ -77,6 +81,10 @@ export default function (Generator) {
 
     Generator.motion_changeyby = function (block) {
         const dy = Generator.valueToCode(block, 'DY', Generator.ORDER_NONE) || 0;
+        const dyNum = parseFloat(dy);
+        if (!isNaN(dyNum) && dyNum < 0) {
+            return `self.y -= ${-dyNum}\n`;
+        }
         return `self.y += ${dy}\n`;
     };
 
