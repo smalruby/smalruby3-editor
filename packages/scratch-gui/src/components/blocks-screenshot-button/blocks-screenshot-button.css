@@ -1,0 +1,32 @@
+@import "../../css/z-index.css";
+
+/* Position above the Scratch Blocks zoom controls.
+   Zoom controls: MARGIN_SIDE(12) + WIDTH(36) and MARGIN_BOTTOM(12) + HEIGHT(124).
+   This button sits 8px above the top of the zoom controls. */
+.screenshot-button {
+    position: absolute;
+    bottom: 144px; /* MARGIN_BOTTOM(12) + HEIGHT(124) + spacing(8) */
+    right: 20px;   /* MARGIN_SIDE(12) + scrollbar(8) */
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    background-color: #ffffff;
+    border: none;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: $z-index-extension-button;
+    transition: opacity 0.15s ease;
+}
+
+.screenshot-button:hover {
+    opacity: 0.75;
+}
+
+.screenshot-icon {
+    width: 20px;
+    height: 20px;
+}
