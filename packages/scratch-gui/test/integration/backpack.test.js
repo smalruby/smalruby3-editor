@@ -7,7 +7,8 @@ const {
     findByXpath,
     getDriver,
     getLogs,
-    loadUri
+    loadUri,
+    waitForLoadingFinished
 } = new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/index.html');
@@ -73,14 +74,16 @@ describe('Backpack with localStorage', () => {
             `localStorage.setItem('smalrubyBackpack', JSON.stringify([${JSON.stringify(item)}]))`
         );
 
-        // Reload the page
+        // Reload the page and wait for it to finish loading
         await driver.navigate().refresh();
+        await waitForLoadingFinished();
 
         // Expand backpack
         await clickText('Backpack');
 
-        // Should show the seeded item (by its type label 'script')
-        await findByXpath('//li[contains(@class, "backpackItem")]');
+        // Should show items list (not empty state)
+        // The ul.backpack-list-inner only renders when there are items
+        await findByXpath('//ul[contains(@class, "backpack-list-inner")]');
         const logs = await getLogs();
         expect(logs).toEqual([]);
     });
