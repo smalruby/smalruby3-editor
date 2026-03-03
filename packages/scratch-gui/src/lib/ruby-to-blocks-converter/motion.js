@@ -143,7 +143,7 @@ const MotionConverter = {
         // Register onXxx handlers
         converter.registerOnOpAsgn((lh, operator, rh) => {
             let block;
-            if (converter._isBlock(lh) && operator === '+' && converter._isNumberOrBlock(rh)) {
+            if (converter._isBlock(lh) && (operator === '+' || operator === '-') && converter._isNumberOrBlock(rh)) {
                 let xy;
                 switch (lh.opcode) {
                 case 'motion_xposition':
@@ -152,13 +152,22 @@ const MotionConverter = {
                     if (converter._isStage()) {
                         throw new RubyToBlocksConverterError(lh.node, 'Stage selected: no motion blocks');
                     }
-                    if (lh.opcode === 'motion_xposition') {
-                        xy = 'x';
-                    } else {
-                        xy = 'y';
-                    }
+                    xy = lh.opcode === 'motion_xposition' ? 'x' : 'y';
                     block = converter._changeBlock(lh, `motion_change${xy}by`, 'statement');
-                    converter._addNumberInput(block, `D${_.toUpper(xy)}`, 'math_number', rh, 10);
+                    if (operator === '-') {
+                        let negatedRh;
+                        if (converter._isNumber(rh)) {
+                            negatedRh = -Number(rh.toString());
+                        } else {
+                            const subtractBlock = converter._createBlock('operator_subtract', 'value');
+                            converter._addNumberInput(subtractBlock, 'NUM1', 'math_number', 0, '');
+                            converter._addNumberInput(subtractBlock, 'NUM2', 'math_number', rh, '');
+                            negatedRh = subtractBlock;
+                        }
+                        converter._addNumberInput(block, `D${_.toUpper(xy)}`, 'math_number', negatedRh, 10);
+                    } else {
+                        converter._addNumberInput(block, `D${_.toUpper(xy)}`, 'math_number', rh, 10);
+                    }
                     break;
                 }
             }
