@@ -2,6 +2,7 @@ import {ScratchStorage, Asset} from 'scratch-storage';
 
 import defaultProject from './default-project';
 import {GUIStorage, TranslatorFunction} from '../gui-config';
+import {getLocalStorageBackpackAssetURL} from './backpack-api';
 
 import saveProjectToServer from '../lib/save-project-to-server';
 
@@ -148,7 +149,10 @@ export class LegacyStorage implements GUIStorage {
         };
     }
 
-    private getBackpackAssetURL (asset) {
+    getBackpackAssetURL (asset) {
+        if (this.backpackHost === 'localStorage') {
+            return getLocalStorageBackpackAssetURL(this.backpackHost, asset.assetId);
+        }
         return `${this.backpackHost}/${asset.assetId}.${asset.dataFormat}`;
     }
 }
