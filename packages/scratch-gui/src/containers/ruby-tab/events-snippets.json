@@ -68,7 +68,7 @@
         "description": "旗が押されたとき（when:記法）",
         "type": "event",
         "labelJa": "旗が押されたとき（when:記法）",
-        "filterText": "hataga osareta 旗が押されたとき when flag_clicked self.when",
+        "filterText": "hataga osareta 旗が押されたとき when flag_clicked",
         "sortText": "04z_hataga_compat"
     },
     "when_clicked_compat": {
@@ -76,7 +76,7 @@
         "description": "このスプライトが押されたとき（when:記法）",
         "type": "event",
         "labelJa": "スプライトが押されたとき（when:記法）",
-        "filterText": "supuraitoga osareta スプライトが押されたとき when clicked self.when",
+        "filterText": "supuraitoga osareta スプライトが押されたとき when clicked",
         "sortText": "04z_supuraitoga_compat"
     },
     "when_key_pressed_compat": {
@@ -84,7 +84,7 @@
         "description": "[スペース▼] キーが押されたとき（when:記法）",
         "type": "event",
         "labelJa": "キーが押されたとき（when:記法）",
-        "filterText": "kiiga osareta キーが押されたとき when key_pressed self.when スペース",
+        "filterText": "kiiga osareta キーが押されたとき when key_pressed スペース",
         "sortText": "04z_kiiga_compat"
     },
     "when_backdrop_switches_compat": {
@@ -92,7 +92,7 @@
         "description": "背景が [背景1▼] になったとき（when:記法）",
         "type": "event",
         "labelJa": "背景が変わったとき（when:記法）",
-        "filterText": "haikeiga kawatta 背景が変わったとき when backdrop_switches self.when",
+        "filterText": "haikeiga kawatta 背景が変わったとき when backdrop_switches",
         "sortText": "04z_haikeiga_compat"
     },
     "when_receive_compat": {
@@ -100,7 +100,7 @@
         "description": "[メッセージ1▼] を受け取ったとき（when:記法）",
         "type": "event",
         "labelJa": "受け取ったとき（when:記法）",
-        "filterText": "uketotta 受け取ったとき when receive self.when メッセージ",
+        "filterText": "uketotta 受け取ったとき when receive メッセージ",
         "sortText": "04z_uketotta_compat"
     },
     "when_greater_than_compat": {
@@ -108,7 +108,7 @@
         "description": "[音量▼] > (10) のとき（when:記法）",
         "type": "event",
         "labelJa": "より大きいとき（when:記法）",
-        "filterText": "yori ookii 大きいとき when greater_than self.when 音量",
+        "filterText": "yori ookii 大きいとき when greater_than 音量",
         "sortText": "04z_yori_ookii_compat"
     }
 }

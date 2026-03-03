@@ -374,6 +374,21 @@ describe('SnippetsCompleter', () => {
                 );
                 expect(snippet).toBeUndefined();
             });
+
+            test('compat when snippets filterText should not contain "self" to prevent matching when typing "sel"', () => {
+                // When user types "sel", Monaco word is "sel".
+                // If filterText contains "self.when", Monaco fuzzy-matches "sel" and shows these snippets.
+                // When selected, it replaces "sel" with "when(:xxx)..." — missing the "self." prefix.
+                // Fix: remove "self.when" from filterText so "sel" does not trigger compat snippets.
+                const result = completer.provideCompletionItems(topLevelModel(), topLevelPos, context, token, monaco);
+                const compatSnippets = result.suggestions.filter(s =>
+                    s.insertText && s.insertText.includes('when(:')
+                );
+                expect(compatSnippets.length).toBeGreaterThan(0);
+                compatSnippets.forEach(snippet => {
+                    expect(snippet.filterText).not.toContain('self');
+                });
+            });
         });
 
         describe('print/puts/p output snippets inside block', () => {
