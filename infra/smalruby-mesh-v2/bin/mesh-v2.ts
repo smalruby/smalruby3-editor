@@ -1,11 +1,11 @@
-#!/opt/homebrew/opt/node/bin/node
+#!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib/core';
 import { MeshV2Stack } from '../lib/mesh-v2-stack';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-// Load .env file
-dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
+// Load .env file (.env provides defaults; environment variables take priority)
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = new cdk.App();
 

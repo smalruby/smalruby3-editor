@@ -52,12 +52,25 @@ services:
       - type: volume
         source: smalruby3-editor_infra_mesh_v2_node_modules
         target: /app/infra/smalruby-mesh-v2/node_modules
+      - type: volume
+        source: smalruby3-editor_infra_bundle
+        target: /bundle
+      - type: bind
+        source: ${HOME}/.aws
+        target: /root/.aws
+        read_only: true
     environment:
+      - BUNDLE_PATH=/bundle
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
       - AWS_DEFAULT_REGION
+      - CDK_DEFAULT_ACCOUNT
+      - CDK_DEFAULT_REGION
       - STAGE
+      - APPSYNC_CUSTOM_DOMAIN
+      - APPSYNC_ENDPOINT
+      - APPSYNC_API_KEY
       - MESH_SECRET_KEY
       - MESH_HOST_HEARTBEAT_INTERVAL_SECONDS
       - MESH_HOST_HEARTBEAT_TTL_SECONDS
@@ -72,3 +85,4 @@ volumes:
   smalruby3-editor_root_cache:
   smalruby3-editor_node_modules:
   smalruby3-editor_infra_mesh_v2_node_modules:
+  smalruby3-editor_infra_bundle:
