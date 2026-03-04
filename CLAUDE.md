@@ -16,6 +16,10 @@ This project uses npm workspaces with the following packages:
 - **`packages/scratch-svg-renderer`**: SVG processing for vector images
 - **`packages/task-herder`**: Asynchronous task queue with throttling and concurrency control
 
+The `infra/` directory contains AWS CDK infrastructure projects (independent from npm workspaces):
+
+- **`infra/smalruby-mesh-v2`**: AWS CDK project for the Mesh v2 networking service (AppSync + DynamoDB)
+
 ## Build & Test Commands
 
 - **Development builds**: Always use `build:dev` for development builds, never the default `build` command.
@@ -131,6 +135,55 @@ Remove build artifacts from all packages:
 
 ```bash
 docker compose run --rm app npm run clean
+```
+
+## Infrastructure Commands (infra/)
+
+AWS CDK infrastructure projects live in `infra/`. They are independent from npm workspaces and use the dedicated `infra` Docker service.
+
+### Docker Service
+
+- Service name: `infra`
+- Working directory: `/app/infra/smalruby-mesh-v2` (default)
+- Includes: Node.js 24 + AWS CLI v2
+
+### Setup
+
+Set AWS credentials as environment variables before running infra commands:
+
+```bash
+export AWS_ACCESS_KEY_ID=your-key-id
+export AWS_SECRET_ACCESS_KEY=your-secret-key
+export AWS_DEFAULT_REGION=ap-northeast-1
+```
+
+Or configure via AWS SSO / named profile and add `AWS_PROFILE` to your shell environment.
+
+### smalruby-mesh-v2
+
+```bash
+# Install dependencies
+docker compose run --rm infra npm install
+
+# Synthesize CloudFormation template
+docker compose run --rm infra npx cdk synth
+
+# Show diff against deployed stack
+docker compose run --rm infra npx cdk diff --context stage=stg
+
+# Deploy to staging
+docker compose run --rm -e STAGE=stg infra npx cdk deploy --context stage=stg
+
+# Deploy to production
+docker compose run --rm -e STAGE=prod infra npx cdk deploy --context stage=prod
+```
+
+Convenience shortcuts via root `package.json`:
+
+```bash
+docker compose run --rm infra npm run -w /app infra:mesh-v2:synth
+docker compose run --rm infra npm run -w /app infra:mesh-v2:deploy
+docker compose run --rm infra npm run -w /app infra:mesh-v2:diff
 ```
 
 ## Smalruby-Specific Features
@@ -254,7 +307,9 @@ Follow TDD (Test-Driven Development) approach:
 
 ## Key Directories
 
-- `packages/`: All workspace packages
+- `packages/`: All workspace packages (npm workspaces)
+- `infra/`: AWS CDK infrastructure projects (independent projects, not workspaces)
+  - `infra/smalruby-mesh-v2/`: Mesh v2 networking service (AppSync + DynamoDB)
 - `scripts/`: Monorepo-level build scripts
 - `.github/workflows/`: CI/CD configuration
 - `.claude/rules/`: Package-specific development rules
