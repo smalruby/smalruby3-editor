@@ -27,6 +27,7 @@ export class GeminiRelayStack extends cdk.Stack {
     const rateLimitWindowMinutes = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES || '35', 10);
     const rateLimitMaxRequests = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '40', 10);
     const maxUserMessageLength = parseInt(process.env.MAX_USER_MESSAGE_LENGTH || '250', 10);
+    const minUserMessageLength = parseInt(process.env.MIN_USER_MESSAGE_LENGTH || '10', 10);
 
     // Stack全体にタグ付与
     cdk.Tags.of(this).add('Project', 'GeminiRelay');
@@ -66,6 +67,7 @@ export class GeminiRelayStack extends cdk.Stack {
         RATE_LIMIT_WINDOW_MINUTES: String(rateLimitWindowMinutes),
         RATE_LIMIT_MAX_REQUESTS: String(rateLimitMaxRequests),
         MAX_USER_MESSAGE_LENGTH: String(maxUserMessageLength),
+        MIN_USER_MESSAGE_LENGTH: String(minUserMessageLength),
         CORS_ALLOWED_ORIGINS: corsOriginsEnv,
         STAGE: stage,
       },

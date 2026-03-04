@@ -8,7 +8,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "test:integration": "jest --config jest.integration.config.js"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.149",

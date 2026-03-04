@@ -14,9 +14,47 @@ describe('validateInput', () => {
     expect(result.error).toBe('INPUT_MISSING');
   });
 
+  test('1文字では短すぎるため INPUT_TOO_SHORT エラーになる', () => {
+    const result = validateInput('あ');
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('INPUT_TOO_SHORT');
+  });
+
+  test('5文字でも短すぎるため INPUT_TOO_SHORT エラーになる', () => {
+    const result = validateInput('あいうえお');
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('INPUT_TOO_SHORT');
+  });
+
+  test('9文字でも短すぎるため INPUT_TOO_SHORT エラーになる', () => {
+    const result = validateInput('あいうえおかきくけ');
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('INPUT_TOO_SHORT');
+  });
+
+  test('10文字（最小文字数）は通過する', () => {
+    const msg = 'あいうえおかきくけこ'; // 10文字
+    expect(msg.length).toBe(10);
+    expect(validateInput(msg)).toEqual({ valid: true });
+  });
+
+  test('マルチバイト文字（日本語）は1文字としてカウントされる', () => {
+    const msg = 'あ'.repeat(250); // 250文字の日本語
+    expect(msg.length).toBe(250); // JSのString.lengthでも250
+    expect(validateInput(msg)).toEqual({ valid: true });
+  });
+
   test('message exceeding 250 chars fails', () => {
     const longMsg = 'a'.repeat(251);
     const result = validateInput(longMsg);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('INPUT_TOO_LONG');
+  });
+
+  test('マルチバイト251文字は INPUT_TOO_LONG エラーになる', () => {
+    const msg = 'あ'.repeat(251);
+    expect(msg.length).toBe(251);
+    const result = validateInput(msg);
     expect(result.valid).toBe(false);
     expect(result.error).toBe('INPUT_TOO_LONG');
   });

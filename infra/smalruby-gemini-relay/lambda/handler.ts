@@ -11,10 +11,11 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const RATE_LIMIT_WINDOW_MINUTES = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES || '35', 10);
 const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '40', 10);
 const MAX_USER_MESSAGE_LENGTH = parseInt(process.env.MAX_USER_MESSAGE_LENGTH || '250', 10);
+const MIN_USER_MESSAGE_LENGTH = parseInt(process.env.MIN_USER_MESSAGE_LENGTH || '10', 10);
 const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || 'https://smalruby.app').split(',').map(o => o.trim());
 
 // Gemini model
-const GEMINI_MODEL = 'gemini-3-flash-preview';
+const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,9 @@ const DANGEROUS_PATTERNS = [
 export function validateInput(userMessage: string): { valid: boolean; error?: string } {
   if (!userMessage || typeof userMessage !== 'string') {
     return { valid: false, error: 'INPUT_MISSING' };
+  }
+  if (userMessage.length < MIN_USER_MESSAGE_LENGTH) {
+    return { valid: false, error: 'INPUT_TOO_SHORT' };
   }
   if (userMessage.length > MAX_USER_MESSAGE_LENGTH) {
     return { valid: false, error: 'INPUT_TOO_LONG' };
