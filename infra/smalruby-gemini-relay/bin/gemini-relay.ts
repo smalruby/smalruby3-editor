@@ -16,7 +16,7 @@ const stackName = stage === 'prod' ? 'GeminiRelayStack' : `GeminiRelayStack-${st
 new GeminiRelayStack(app, stackName, {
   stackName: stackName,
   env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION || 'ap-northeast-1',
+    account: process.env.CDK_DEFAULT_ACCOUNT || process.env.AWS_ACCOUNT_ID,
+    region: process.env.CDK_DEFAULT_REGION || process.env.AWS_REGION || 'ap-northeast-1',
   },
 });
