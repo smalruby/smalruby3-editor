@@ -9,5 +9,8 @@ node_modules
 cdk.out
 cdk.out.*
 
-# Environment variables
+# Environment variables (all are gitignored; use symlink: ln -s .env.production .env)
 .env
+.env.production
+.env.stg
+.env.stg2
