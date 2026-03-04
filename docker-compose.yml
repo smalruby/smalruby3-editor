@@ -40,7 +40,35 @@ services:
         max-size: "100m"
         max-file: "3"
 
+  infra:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile
+    working_dir: /app/infra/smalruby-mesh-v2
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      - type: volume
+        source: smalruby3-editor_infra_mesh_v2_node_modules
+        target: /app/infra/smalruby-mesh-v2/node_modules
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+      - AWS_DEFAULT_REGION
+      - STAGE
+      - MESH_SECRET_KEY
+      - MESH_HOST_HEARTBEAT_INTERVAL_SECONDS
+      - MESH_HOST_HEARTBEAT_TTL_SECONDS
+      - MESH_MEMBER_HEARTBEAT_INTERVAL_SECONDS
+      - MESH_MEMBER_HEARTBEAT_TTL_SECONDS
+      - MESH_MAX_CONNECTION_TIME_SECONDS
+      - MESH_EVENT_TTL_SECONDS
+      - MESH_POLLING_INTERVAL_SECONDS
+
 volumes:
   smalruby3-editor_root_npm:
   smalruby3-editor_root_cache:
   smalruby3-editor_node_modules:
+  smalruby3-editor_infra_mesh_v2_node_modules:
