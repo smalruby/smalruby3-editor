@@ -1,0 +1,12 @@
+query GetNodeStatus($nodeId: ID!) {
+  getNodeStatus(nodeId: $nodeId) {
+    nodeId
+    groupId
+    domain
+    data {
+      key
+      value
+    }
+    timestamp
+  }
+}

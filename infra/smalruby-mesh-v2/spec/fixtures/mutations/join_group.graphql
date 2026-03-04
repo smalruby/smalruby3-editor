@@ -1,0 +1,10 @@
+mutation JoinGroup($groupId: ID!, $domain: String!, $nodeId: ID!) {
+  joinGroup(groupId: $groupId, domain: $domain, nodeId: $nodeId) {
+    id
+    name
+    groupId
+    domain
+    expiresAt
+    heartbeatIntervalSeconds
+  }
+}

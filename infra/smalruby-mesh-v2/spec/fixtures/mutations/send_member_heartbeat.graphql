@@ -1,0 +1,9 @@
+mutation SendMemberHeartbeat($groupId: ID!, $domain: String!, $nodeId: ID!) {
+  sendMemberHeartbeat(groupId: $groupId, domain: $domain, nodeId: $nodeId) {
+    nodeId
+    groupId
+    domain
+    expiresAt
+    heartbeatIntervalSeconds
+  }
+}

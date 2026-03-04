@@ -1,0 +1,8 @@
+query ListNodesInGroup($groupId: ID!, $domain: String!) {
+  listNodesInGroup(groupId: $groupId, domain: $domain) {
+    id
+    name
+    groupId
+    domain
+  }
+}

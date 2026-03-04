@@ -142,3 +142,9 @@ built-monorepo
 .*-mcp/
 
 /notes
+
+# CDK (infra/)
+infra/**/cdk.out/
+infra/**/cdk.out.*/
+infra/**/tmp/
+infra/**/.cdk.staging/

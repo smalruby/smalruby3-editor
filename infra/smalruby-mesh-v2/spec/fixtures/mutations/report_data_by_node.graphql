@@ -1,0 +1,16 @@
+mutation ReportDataByNode($groupId: ID!, $domain: String!, $nodeId: ID!, $data: [SensorDataInput!]!) {
+  reportDataByNode(groupId: $groupId, domain: $domain, nodeId: $nodeId, data: $data) {
+    groupId
+    domain
+    nodeStatus {
+      nodeId
+      groupId
+      domain
+      data {
+        key
+        value
+      }
+      timestamp
+    }
+  }
+}

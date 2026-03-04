@@ -1,0 +1,8 @@
+mutation RenewHeartbeat($groupId: ID!, $domain: String!, $hostId: ID!) {
+  renewHeartbeat(groupId: $groupId, domain: $domain, hostId: $hostId) {
+    groupId
+    domain
+    expiresAt
+    heartbeatIntervalSeconds
+  }
+}
