@@ -5,17 +5,12 @@ import {defineMessages, injectIntl} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
 import VM from '@smalruby/scratch-vm';
 
-import GeminiAPI from '../lib/gemini-api';
+import GeminiAPI, {RateLimitError} from '../lib/gemini-api';
 import GeminiModal from '../components/gemini-modal/gemini-modal.jsx';
 
 const TIMEOUT_SECONDS = 120;
 
 const messages = defineMessages({
-    authError: {
-        id: 'gui.geminiModal.authError',
-        defaultMessage: 'Authentication failed. Please try again.',
-        description: 'Error shown when Gemini OAuth authentication fails'
-    },
     apiError: {
         id: 'gui.geminiModal.apiError',
         defaultMessage: 'Gemini API error. Please try again.',
@@ -31,6 +26,11 @@ const messages = defineMessages({
         // eslint-disable-next-line max-len
         defaultMessage: 'Gemini is currently experiencing high demand and is temporarily unavailable. Please wait about 5 minutes and try again.',
         description: 'Error shown when Gemini API returns 503 due to high demand'
+    },
+    rateLimitError: {
+        id: 'gui.geminiModal.rateLimitError',
+        defaultMessage: 'You have reached the usage limit. Please try again in {minutes} minutes.',
+        description: 'Error shown when the relay rate limit is exceeded'
     }
 });
 
@@ -264,10 +264,12 @@ const GeminiModalHOC = function (WrappedComponent) {
                 console.error('[GeminiModalHOC] Error calling Gemini API:', error);
 
                 let errorMessage;
-                if (error.message && error.message.includes('503')) {
-                    errorMessage = this.props.intl.formatMessage(messages.overloadedError);
-                } else if (error.message && error.message.includes('401')) {
-                    errorMessage = this.props.intl.formatMessage(messages.authError);
+                if (error instanceof RateLimitError) {
+                    const minutes = Math.ceil((error.resetAfterSeconds || 0) / 60);
+                    errorMessage = this.props.intl.formatMessage(
+                        messages.rateLimitError,
+                        {minutes}
+                    );
                 } else if (error.message && error.message.includes('timeout')) {
                     errorMessage = this.props.intl.formatMessage(messages.timeoutError);
                 } else {

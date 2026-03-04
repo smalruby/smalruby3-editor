@@ -341,6 +341,7 @@ export default {
     'gui.geminiModal.surprise': 'サプライズ！',
     'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2分）。もう一度お試しください。',
     'gui.geminiModal.overloadedError': 'Geminiへのアクセスが集中しているため、一時的に利用できません。5分ほど待ってから、もう一度お試しください。',
+    'gui.geminiModal.rateLimitError': '利用回数の上限に達しました。{minutes}分後にもう一度お試しください。',
 
     // Tutorials
     'gui.howtos.getting-started.name': 'さあ、始めましょう',
