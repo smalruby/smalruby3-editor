@@ -1,98 +1,14 @@
 /**
  * Unit tests for gemini-context.js
- * Tests the system instruction builder and state section builder
+ *
+ * Note: buildSystemInstruction was moved to infra/smalruby-gemini-relay.
+ * This file tests only buildStateSection, which builds the sprite/stage/vm
+ * state JSON passed to the relay as stateContext.
  */
 
-import {buildSystemInstruction, buildStateSection} from '../../../src/lib/gemini-context';
+import {buildStateSection} from '../../../src/lib/gemini-context';
 
 describe('gemini-context', () => {
-    describe('buildSystemInstruction', () => {
-        test('should return a non-empty string', () => {
-            const instruction = buildSystemInstruction();
-            expect(typeof instruction).toBe('string');
-            expect(instruction.length).toBeGreaterThan(100);
-        });
-
-        test('should include smalruby method references', () => {
-            const instruction = buildSystemInstruction();
-            expect(instruction).toContain('move');
-            expect(instruction).toContain('turn_right');
-            expect(instruction).toContain('when_flag_clicked');
-            expect(instruction).toContain('loop do');
-        });
-
-        test('should include sample programs', () => {
-            const instruction = buildSystemInstruction();
-            expect(instruction).toContain('point_towards("_mouse_")');
-        });
-
-        test('should include generation guidelines', () => {
-            const instruction = buildSystemInstruction();
-            expect(instruction).toContain('```ruby');
-        });
-
-        test('should include sprite state when provided', () => {
-            const stateContext = {
-                sprite: {name: 'ネコ', x: 10, y: 20, costumes: [{name: 'コスチューム1'}]}
-            };
-            const instruction = buildSystemInstruction(stateContext);
-            expect(instruction).toContain('ネコ');
-            expect(instruction).toContain('コスチューム1');
-        });
-
-        test('should include stage state when provided', () => {
-            const stateContext = {
-                stage: {costumes: [{name: '背景1'}], sounds: []}
-            };
-            const instruction = buildSystemInstruction(stateContext);
-            expect(instruction).toContain('背景1');
-        });
-
-        test('should include loaded extensions when provided', () => {
-            const stateContext = {
-                vm: {extensions: ['music', 'pen']}
-            };
-            const instruction = buildSystemInstruction(stateContext);
-            expect(instruction).toContain('music');
-            expect(instruction).toContain('pen');
-        });
-
-        test('should not include state section header when no context provided', () => {
-            const instruction = buildSystemInstruction();
-            expect(instruction).not.toContain('## 現在の状態');
-        });
-
-        test('should not include state section header when empty context provided', () => {
-            const instruction = buildSystemInstruction({});
-            expect(instruction).not.toContain('## 現在の状態');
-        });
-
-        test('should not include extensions section when vm has no extensions', () => {
-            const stateContext = {vm: {extensions: []}};
-            const instruction = buildSystemInstruction(stateContext);
-            expect(instruction).not.toContain('有効な拡張機能');
-        });
-
-        test('should explain that loops automatically wait one frame per iteration', () => {
-            const instruction = buildSystemInstruction();
-            expect(instruction).toMatch(/loop.*1フレーム|ループ.*1フレーム|毎.*ループ.*自動|自動.*待機/);
-        });
-
-        test('should warn against using sleep for animation/FPS adjustment', () => {
-            const instruction = buildSystemInstruction();
-            expect(instruction).toMatch(/next_costume.*sleep|sleep.*next_costume|アニメーション.*sleep|sleep.*アニメーション/);
-        });
-
-        test('should not include sleep(0.1) in sample code blocks', () => {
-            const instruction = buildSystemInstruction();
-            // サンプルプログラム（```rubyブロック内）にsleep(0.1)が含まれていないこと
-            // コードブロックを抽出してチェック
-            const codeBlocks = instruction.match(/```ruby[\s\S]*?```/g) || [];
-            const codeContent = codeBlocks.join('\n');
-            expect(codeContent).not.toContain('sleep(0.1)');
-        });
-    });
-
     describe('buildStateSection', () => {
         test('should return empty string when all args are undefined', () => {
             const section = buildStateSection(undefined, undefined, undefined);
@@ -129,6 +45,25 @@ describe('gemini-context', () => {
             const sprite = {name: 'TestSprite', x: 10};
             const section = buildStateSection(sprite, undefined, undefined);
             expect(section).toContain('### 現在編集中のスプライト: "TestSprite"');
+        });
+
+        test('should list costume names', () => {
+            const sprite = {name: 'Cat', x: 0, y: 0, costumes: [{name: 'コスチューム1'}, {name: 'コスチューム2'}]};
+            const section = buildStateSection(sprite, undefined, undefined);
+            expect(section).toContain('コスチューム1');
+            expect(section).toContain('コスチューム2');
+        });
+
+        test('should show no-sound warning when sound list is empty', () => {
+            const sprite = {name: 'Cat', x: 0, y: 0, sounds: []};
+            const section = buildStateSection(sprite, undefined, undefined);
+            expect(section).toContain('play()');
+        });
+
+        test('should include current code when provided', () => {
+            const sprite = {name: 'Cat', x: 0, y: 0, currentCode: 'when_flag_clicked do\n  move(10)\nend'};
+            const section = buildStateSection(sprite, undefined, undefined);
+            expect(section).toContain('when_flag_clicked');
         });
     });
 });

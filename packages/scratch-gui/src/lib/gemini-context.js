@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 /**
  * Smalruby state context for Gemini AI assistant
  *
