@@ -17,6 +17,7 @@ new GeminiRelayStack(app, stackName, {
   stackName: stackName,
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT || process.env.AWS_ACCOUNT_ID,
-    region: process.env.CDK_DEFAULT_REGION || process.env.AWS_REGION || 'ap-northeast-1',
+    // Use us-east-1 as default: Gemini API global endpoint is most reliable from US regions
+    region: process.env.CDK_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
   },
 });
