@@ -16,6 +16,10 @@ This project uses npm workspaces with the following packages:
 - **`packages/scratch-svg-renderer`**: SVG processing for vector images
 - **`packages/task-herder`**: Asynchronous task queue with throttling and concurrency control
 
+The `infra/` directory contains AWS CDK infrastructure projects (independent from npm workspaces):
+
+- **`infra/smalruby-mesh-v2`**: AWS CDK project for the Mesh v2 networking service (AppSync + DynamoDB)
+
 ## Build & Test Commands
 
 - **Development builds**: Always use `build:dev` for development builds, never the default `build` command.
@@ -254,7 +258,9 @@ Follow TDD (Test-Driven Development) approach:
 
 ## Key Directories
 
-- `packages/`: All workspace packages
+- `packages/`: All workspace packages (npm workspaces)
+- `infra/`: AWS CDK infrastructure projects (independent projects, not workspaces)
+  - `infra/smalruby-mesh-v2/`: Mesh v2 networking service (AppSync + DynamoDB)
 - `scripts/`: Monorepo-level build scripts
 - `.github/workflows/`: CI/CD configuration
 - `.claude/rules/`: Package-specific development rules

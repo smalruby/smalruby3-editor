@@ -1,0 +1,29 @@
+{
+  "name": "mesh-v2-javascript-client",
+  "version": "0.1.0",
+  "description": "JavaScript prototype client for Mesh v2 integration",
+  "main": "server.js",
+  "scripts": {
+    "build": "esbuild mesh-client.js --bundle --format=esm --outfile=mesh-client.bundle.js",
+    "start": "npm run build && node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "mesh",
+    "graphql",
+    "appsync",
+    "websocket"
+  ],
+  "author": "Smalruby Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "aws-amplify": "^6.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

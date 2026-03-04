@@ -19,6 +19,10 @@ The `packages` directory in this repository contains:
 
 _Please add to this list as more packages are migrated to the monorepo._
 
+The `infra` directory contains AWS CDK infrastructure projects:
+
+- `infra/smalruby-mesh-v2`: **Mesh v2**. AWS CDK project for the serverless mesh networking service (AppSync + DynamoDB), enabling real-time communication between Smalruby instances.
+
 Each package has its own `README.md` file with more information about that package.
 
 ## Development
@@ -83,6 +87,23 @@ Smalruby 3 integrates [Opal](https://opalrb.com/) to convert Ruby code into Java
 ### Google Drive Integration
 Smalruby 3 supports loading and saving projects directly to Google Drive.
 For setup instructions, please see [Google API Setup Guide](packages/scratch-gui/docs/google-api-setup.md).
+
+### AWS Infrastructure (infra/)
+
+AWS CDK infrastructure projects are managed in the `infra/` directory. Use the `infra` Docker service for CDK operations:
+
+```bash
+# Install dependencies
+docker compose run --rm infra npm install
+
+# Deploy Mesh v2 to staging
+docker compose run --rm infra npx cdk deploy --context stage=stg
+
+# Show deployment diff
+docker compose run --rm infra npx cdk diff --context stage=stg
+```
+
+AWS credentials must be set via environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`) before running these commands.
 
 ## Monorepo migration
 

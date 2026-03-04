@@ -1,0 +1,8 @@
+mutation LeaveGroup($groupId: ID!, $nodeId: ID!, $domain: String!) {
+  leaveGroup(groupId: $groupId, nodeId: $nodeId, domain: $domain) {
+    peerId
+    groupId
+    domain
+    message
+  }
+}

@@ -1,0 +1,10 @@
+query ListGroupsByDomain($domain: String!) {
+  listGroupsByDomain(domain: $domain) {
+    id
+    domain
+    fullId
+    name
+    hostId
+    expiresAt
+  }
+}

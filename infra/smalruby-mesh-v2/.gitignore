@@ -1,0 +1,16 @@
+*.js
+!jest.config.js
+!js/**/*.js
+*.d.ts
+node_modules
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+cdk.out.*
+
+# Environment variables (all are gitignored; use symlink: ln -s .env.production .env)
+.env
+.env.production
+.env.stg
+.env.stg2

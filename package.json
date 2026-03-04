@@ -35,7 +35,10 @@
     "update-legal": "npm --workspaces exec -c 'rm -f ./{LICENSE,TRADEMARK} && cp -f ../../{LICENSE,TRADEMARK} .'",
     "version": "cross-env-shell ./scripts/npm-version.sh",
     "start": "npm run --workspace=packages/scratch-gui start",
-    "start:dist": "npm run --workspace=packages/scratch-gui start:dist"
+    "start:dist": "npm run --workspace=packages/scratch-gui start:dist",
+    "infra:mesh-v2:synth": "cd infra/smalruby-mesh-v2 && npx cdk synth",
+    "infra:mesh-v2:deploy": "cd infra/smalruby-mesh-v2 && npx cdk deploy",
+    "infra:mesh-v2:diff": "cd infra/smalruby-mesh-v2 && npx cdk diff"
   },
   "config": {
     "commitizen": {

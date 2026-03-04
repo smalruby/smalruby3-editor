@@ -1,0 +1,12 @@
+query ListGroupStatuses($groupId: ID!, $domain: String!) {
+  listGroupStatuses(groupId: $groupId, domain: $domain) {
+    nodeId
+    groupId
+    domain
+    data {
+      key
+      value
+    }
+    timestamp
+  }
+}

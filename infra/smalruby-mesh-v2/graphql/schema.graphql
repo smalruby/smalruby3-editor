@@ -1,0 +1,229 @@
+# --- データの基本構造 ---
+
+input SensorDataInput {
+  key: String!
+  value: String!
+}
+
+type SensorData {
+  key: String!
+  value: String!
+}
+
+# --- 主要エンティティ ---
+
+type Group {
+  id: ID!           # group_id部分のみ
+  domain: String!   # domain部分（グローバルIP or 任意文字列、最大256文字）
+  fullId: String!   # {group_id}@{domain}の完全なID
+  name: String!
+  hostId: ID!
+  expiresAt: AWSDateTime!
+  heartbeatIntervalSeconds: Int
+  useWebSocket: Boolean!       # NEW: WebSocket 使用フラグ
+  pollingIntervalSeconds: Int  # NEW: ポーリング間隔（useWebSocket=false の場合のみ）
+}
+
+type Node {
+  id: ID!
+  name: String!
+  groupId: ID
+  domain: String    # 所属しているdomain
+  expiresAt: AWSDateTime
+  heartbeatIntervalSeconds: Int
+  useWebSocket: Boolean        # NEW: グループの設定を継承
+  pollingIntervalSeconds: Int  # NEW: ポーリング間隔（useWebSocket=false の場合のみ）
+}
+
+# メッセージの包括的な型
+# 単一のSubscriptionですべてのメッセージタイプを受け取るために使用
+# 各Mutationは該当するフィールドのみを設定する
+type MeshMessage {
+  groupId: ID!              # Subscription フィルタリング用
+  domain: String!           # Subscription フィルタリング用
+  nodeStatus: NodeStatus
+  batchEvent: BatchEvent
+  groupDissolve: GroupDissolvePayload
+}
+
+type NodeStatus {
+  nodeId: ID!
+  groupId: ID!
+  domain: String!
+  data: [SensorData!]!
+  timestamp: AWSDateTime!
+}
+
+type Event {
+  name: String!
+  firedByNodeId: ID!
+  groupId: ID!
+  domain: String!
+  payload: String
+  timestamp: AWSDateTime!
+  cursor: String           # NEW: ポーリング用のカーソル（SK）
+}
+
+# イベントのバッチ送信用の入力型
+input EventInput {
+  eventName: String!
+  payload: String
+  firedAt: AWSDateTime!  # イベント発火日時（ISO 8601形式、ミリ秒含む）
+}
+
+# バッチイベント型（複数イベントを含む）
+type BatchEvent {
+  events: [Event!]!      # イベントの配列
+  firedByNodeId: ID!
+  groupId: ID!
+  domain: String!
+  timestamp: AWSDateTime!
+}
+
+type GroupDissolvePayload {
+  groupId: ID!
+  domain: String!
+  message: String!
+}
+
+type HeartbeatPayload {
+  groupId: ID!
+  domain: String!
+  expiresAt: AWSDateTime!
+  heartbeatIntervalSeconds: Int
+}
+
+type MemberHeartbeatPayload {
+  nodeId: ID!
+  groupId: ID!
+  domain: String!
+  expiresAt: AWSDateTime!
+  heartbeatIntervalSeconds: Int
+}
+
+type LeaveGroupPayload {
+  peerId: ID!
+  groupId: ID!
+  domain: String!
+  message: String!
+}
+
+# NEW: recordEventsByNode のレスポンス型
+type RecordEventsPayload {
+  groupId: ID!
+  domain: String!
+  recordedCount: Int!       # 記録したイベント数
+  nextSince: String!        # NEW: 次回の getEventsSince の since に指定する値
+}
+
+# --- クエリ (Queries) ---
+
+type Query {
+  # Domain内のグループ一覧取得（スキャン機能）
+  listGroupsByDomain(domain: String!): [Group!]!
+
+  # NodeStatus取得
+  getNodeStatus(nodeId: ID!): NodeStatus
+
+  # グループ内の全NodeStatus取得
+  listGroupStatuses(groupId: ID!, domain: String!): [NodeStatus!]!
+
+  # グループ内の全Node取得
+  listNodesInGroup(groupId: ID!, domain: String!): [Node!]!
+
+  # NEW: 前回取得日時以降のイベントを取得（ポーリング用）
+  # since: 前回の nextSince または Event.cursor を指定
+  getEventsSince(
+    groupId: ID!
+    domain: String!
+    since: String!
+  ): [Event!]!
+}
+
+# --- ミューテーション (Mutations) ---
+
+type Mutation {
+  # ドメイン管理
+  # リクエスト元のソースIPからドメインを生成する
+  createDomain: String!
+
+  # グループ管理
+  createGroup(
+    name: String!
+    hostId: ID!
+    domain: String!
+    maxConnectionTimeSeconds: Int  # オプション: 1以上、環境変数の値以下
+    useWebSocket: Boolean!         # NEW: WebSocket 使用フラグ
+  ): Group!
+
+  joinGroup(
+    groupId: ID!
+    domain: String!
+    nodeId: ID!
+  ): Node!
+
+  leaveGroup(
+    groupId: ID!
+    domain: String!
+    nodeId: ID!
+  ): LeaveGroupPayload
+
+  dissolveGroup(
+    groupId: ID!
+    domain: String!
+    hostId: ID!
+  ): MeshMessage
+
+  # ハートビート更新 (Host)
+  renewHeartbeat(
+    groupId: ID!
+    domain: String!
+    hostId: ID!
+  ): HeartbeatPayload!
+
+  # ハートビート更新 (Member)
+  sendMemberHeartbeat(
+    groupId: ID!
+    domain: String!
+    nodeId: ID!
+  ): MemberHeartbeatPayload!
+
+  # データ通信
+  reportDataByNode(
+    groupId: ID!
+    domain: String!
+    nodeId: ID!
+    data: [SensorDataInput!]!
+  ): MeshMessage
+
+  # 複数イベントを一度に送信（1回のSubscriptionを発火）
+  fireEventsByNode(
+    groupId: ID!
+    domain: String!
+    nodeId: ID!
+    events: [EventInput!]!
+  ): MeshMessage
+
+  # NEW: ポーリング用のイベント記録 mutation
+  recordEventsByNode(
+    groupId: ID!
+    domain: String!
+    nodeId: ID!
+    events: [EventInput!]!
+  ): RecordEventsPayload!
+}
+
+# --- サブスクリプション (Subscriptions) ---
+
+type Subscription {
+  # グループ内のメッセージ（データ更新、イベント、解散通知）を統合して購読
+  # これにより、WebSocketストリームが1つになり、送信順序（Mutation実行順序）が受信側でも保証される
+  onMessageInGroup(groupId: ID!, domain: String!): MeshMessage
+    @aws_subscribe(mutations: ["reportDataByNode", "fireEventsByNode", "dissolveGroup"])
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

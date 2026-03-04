@@ -18,6 +18,7 @@ on:
       - 'README.md'
       - 'Release.md'
       - 'TRADEMARK'
+      - 'infra/**'
   push:
     branches: [main, master, develop, hotfix/*]
     paths-ignore:
@@ -36,6 +37,7 @@ on:
       - 'README.md'
       - 'Release.md'
       - 'TRADEMARK'
+      - 'infra/**'
   workflow_dispatch:
 
 concurrency:

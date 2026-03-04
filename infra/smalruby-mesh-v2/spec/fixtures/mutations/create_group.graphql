@@ -1,0 +1,24 @@
+mutation CreateGroup(
+  $name: String!
+  $hostId: ID!
+  $domain: String!
+  $maxConnectionTimeSeconds: Int
+  $useWebSocket: Boolean!
+) {
+  createGroup(
+    name: $name
+    hostId: $hostId
+    domain: $domain
+    maxConnectionTimeSeconds: $maxConnectionTimeSeconds
+    useWebSocket: $useWebSocket
+  ) {
+    id
+    domain
+    fullId
+    name
+    hostId
+    expiresAt
+    useWebSocket
+    pollingIntervalSeconds
+  }
+}
