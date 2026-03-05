@@ -169,6 +169,21 @@ const MotionConverter = {
                         converter._addNumberInput(block, `D${_.toUpper(xy)}`, 'math_number', rh, 10);
                     }
                     break;
+                case 'motion_direction':
+                    // All Motion blocks are sprite-only
+                    if (converter._isStage()) {
+                        throw new RubyToBlocksConverterError(lh.node, 'Stage selected: no motion blocks');
+                    }
+                    if (operator === '+') {
+                        block = converter._changeBlock(lh, 'motion_turnright', 'statement');
+                        converter._addNumberInput(block, 'DEGREES', 'math_number', rh, 15);
+                        block.comment = converter._createComment('@ruby:operator:+=', block.id);
+                    } else {
+                        block = converter._changeBlock(lh, 'motion_turnleft', 'statement');
+                        converter._addNumberInput(block, 'DEGREES', 'math_number', rh, 15);
+                        block.comment = converter._createComment('@ruby:operator:-=', block.id);
+                    }
+                    break;
                 }
             }
             return block;
