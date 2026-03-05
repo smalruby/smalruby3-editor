@@ -81,13 +81,19 @@ class FuriganaRenderer {
         div.style.overflow = 'hidden';
         div.style.pointerEvents = 'none';
 
+        const GAP = 4; // minimum gap between adjacent labels (px)
+        let prevRight = 0; // right edge (px) of previous label
+
         for (const ann of anns) {
             const span = document.createElement('span');
             span.textContent = ann.label;
             span.style.position = 'absolute';
             // .view-zones container is already offset by contentLeft,
-            // so span.left = column * charWidth (no contentLeft needed)
-            span.style.left = `${ann.startColumn * charWidth}px`;
+            // so span.left = column * charWidth (no contentLeft needed).
+            // Push right if needed to avoid overlapping the previous label.
+            const naturalLeft = ann.startColumn * charWidth;
+            const left = Math.max(naturalLeft, prevRight);
+            span.style.left = `${left}px`;
             span.style.bottom = '1px';
             span.style.fontSize = `${fontSize}px`;
             span.style.lineHeight = '1';
@@ -96,9 +102,24 @@ class FuriganaRenderer {
             span.style.whiteSpace = 'nowrap';
             span.style.userSelect = 'none';
             div.appendChild(span);
+
+            prevRight = left + this._measureTextWidth(ann.label, fontSize) + GAP;
         }
 
         return div;
+    }
+
+    /**
+     * Measure text width using an offscreen canvas (no DOM insertion needed).
+     * The canvas context is cached for performance.
+     */
+    _measureTextWidth (text, fontSize) {
+        if (!this._measureCanvas) {
+            this._measureCanvas = document.createElement('canvas');
+        }
+        const ctx = this._measureCanvas.getContext('2d');
+        ctx.font = `${fontSize}px sans-serif`;
+        return ctx.measureText(text).width;
     }
 }
 
