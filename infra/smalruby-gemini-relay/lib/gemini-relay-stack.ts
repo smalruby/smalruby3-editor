@@ -4,6 +4,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as path from 'path';
 import { Construct } from 'constructs';
 
@@ -48,10 +49,20 @@ export class GeminiRelayStack extends cdk.Stack {
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false, // Disable for cost optimization
+      },
       timeToLiveAttribute: 'ttl',
     });
 
     cdk.Tags.of(this.table).add('ResourceType', 'DynamoDB');
+
+    // CloudWatch Log Group (explicit, for retention control)
+    const logGroup = new logs.LogGroup(this, 'GeminiRelayHandlerLogGroup', {
+      logGroupName: `/aws/lambda/GeminiRelayHandler${stageSuffix}`,
+      retention: stage === 'prod' ? logs.RetentionDays.ONE_MONTH : logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
     // Lambda function (esbuild bundling)
     const handlerFn = new lambdaNodejs.NodejsFunction(this, 'GeminiRelayHandler', {
@@ -61,6 +72,7 @@ export class GeminiRelayStack extends cdk.Stack {
       handler: 'handler',
       timeout: cdk.Duration.seconds(60),
       memorySize: 256,
+      logGroup,
       environment: {
         RATE_LIMIT_TABLE_NAME: this.table.tableName,
         GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
@@ -101,6 +113,16 @@ export class GeminiRelayStack extends cdk.Stack {
         handlerFn
       ),
     });
+
+    // Stage-level throttling: DoS protection without WAF
+    // prod: 10 RPS sustained / 30 burst; stg: 5 RPS / 10 burst
+    const defaultStage = this.api.defaultStage?.node.defaultChild as apigatewayv2.CfnStage;
+    if (defaultStage) {
+      defaultStage.defaultRouteSettings = {
+        throttlingRateLimit: stage === 'prod' ? 10 : 5,
+        throttlingBurstLimit: stage === 'prod' ? 30 : 10,
+      };
+    }
 
     cdk.Tags.of(this.api).add('ResourceType', 'APIGatewayHTTPAPI');
 

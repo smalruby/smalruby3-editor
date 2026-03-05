@@ -13,6 +13,10 @@ const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || 
 const MAX_USER_MESSAGE_LENGTH = parseInt(process.env.MAX_USER_MESSAGE_LENGTH || '250', 10);
 const MIN_USER_MESSAGE_LENGTH = parseInt(process.env.MIN_USER_MESSAGE_LENGTH || '10', 10);
 const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || 'https://smalruby.app').split(',').map(o => o.trim());
+const MAX_FIELD_NAME_LENGTH = 100;       // sprite/costume/sound names
+const MAX_CURRENT_CODE_LENGTH = 1000;    // currentCode in stateContext
+const MAX_HISTORY_TURNS = 20;            // conversation turns
+const MAX_HISTORY_TURN_TEXT_LENGTH = 1000; // chars per history turn
 
 // Gemini model
 const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
@@ -83,6 +87,77 @@ const DANGEROUS_PATTERNS = [
   /system prompt/i,
   /jailbreak/i,
 ];
+
+export function validateStateContext(stateContext?: StateContext): { valid: boolean; error?: string } {
+  if (!stateContext) return { valid: true };
+
+  const isInvalidName = (name: string) =>
+    name.length > MAX_FIELD_NAME_LENGTH || /[\r\n]/.test(name);
+
+  if (stateContext.sprite) {
+    const s = stateContext.sprite;
+    if (s.name && isInvalidName(s.name)) {
+      return { valid: false, error: 'INVALID_STATE_CONTEXT' };
+    }
+    for (const c of s.costumes || []) {
+      if (c.name && isInvalidName(c.name)) {
+        return { valid: false, error: 'INVALID_STATE_CONTEXT' };
+      }
+    }
+    for (const snd of s.sounds || []) {
+      if (snd.name && isInvalidName(snd.name)) {
+        return { valid: false, error: 'INVALID_STATE_CONTEXT' };
+      }
+    }
+    if (s.currentCode) {
+      if (s.currentCode.length > MAX_CURRENT_CODE_LENGTH) {
+        return { valid: false, error: 'INVALID_STATE_CONTEXT' };
+      }
+      for (const pattern of DANGEROUS_PATTERNS) {
+        if (pattern.test(s.currentCode)) {
+          return { valid: false, error: 'INVALID_STATE_CONTEXT' };
+        }
+      }
+    }
+  }
+
+  if (stateContext.stage) {
+    const st = stateContext.stage;
+    for (const c of st.costumes || []) {
+      if (c.name && isInvalidName(c.name)) {
+        return { valid: false, error: 'INVALID_STATE_CONTEXT' };
+      }
+    }
+    for (const snd of st.sounds || []) {
+      if (snd.name && isInvalidName(snd.name)) {
+        return { valid: false, error: 'INVALID_STATE_CONTEXT' };
+      }
+    }
+  }
+
+  for (const ext of stateContext.vm?.extensions || []) {
+    if (isInvalidName(ext)) {
+      return { valid: false, error: 'INVALID_STATE_CONTEXT' };
+    }
+  }
+
+  return { valid: true };
+}
+
+export function validateHistory(history?: HistoryTurn[]): { valid: boolean; error?: string } {
+  if (!history) return { valid: true };
+  if (history.length > MAX_HISTORY_TURNS) {
+    return { valid: false, error: 'HISTORY_TOO_LONG' };
+  }
+  for (const turn of history) {
+    for (const part of turn.parts) {
+      if (part.text && part.text.length > MAX_HISTORY_TURN_TEXT_LENGTH) {
+        return { valid: false, error: 'HISTORY_TOO_LONG' };
+      }
+    }
+  }
+  return { valid: true };
+}
 
 export function validateInput(userMessage: string): { valid: boolean; error?: string } {
   if (!userMessage || typeof userMessage !== 'string') {
@@ -450,6 +525,26 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     };
   }
 
+  // Validate stateContext (prompt injection prevention)
+  const stateContextValidation = validateStateContext(body.stateContext);
+  if (!stateContextValidation.valid) {
+    return {
+      statusCode: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: stateContextValidation.error }),
+    };
+  }
+
+  // Validate history
+  const historyValidation = validateHistory(body.history);
+  if (!historyValidation.valid) {
+    return {
+      statusCode: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: historyValidation.error }),
+    };
+  }
+
   // Rate limiting by source IP
   const sourceIp = event.requestContext.http.sourceIp || 'unknown';
   const rateLimitResult = await checkAndIncrementRateLimit(sourceIp);
@@ -518,14 +613,17 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     const outputTokens = geminiData.usageMetadata?.candidatesTokenCount || 0;
     const totalTokens = geminiData.usageMetadata?.totalTokenCount || 0;
 
-    // Log token usage to CloudWatch
-    console.log(JSON.stringify({
+    // Log token usage to CloudWatch (omit sourceIp in prod for cost/privacy)
+    const logData: Record<string, unknown> = {
       event: 'gemini_response',
-      sourceIp,
       outputTokens,
       totalTokens,
       userMessageLength: body.userMessage.length,
-    }));
+    };
+    if (process.env.STAGE !== 'prod') {
+      logData.sourceIp = sourceIp;
+    }
+    console.log(JSON.stringify(logData));
 
     return {
       statusCode: 200,
