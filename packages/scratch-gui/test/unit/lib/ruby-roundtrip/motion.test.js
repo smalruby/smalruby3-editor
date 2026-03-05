@@ -23,6 +23,8 @@ describe('Ruby Roundtrip: Motion category blocks', () => {
             move(10)
             turn_right(15)
             turn_left(15)
+            self.direction += 15
+            self.direction -= 15
             go_to("_random_")
             go_to("_mouse_")
             go_to("Abby")

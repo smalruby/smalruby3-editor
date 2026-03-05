@@ -267,6 +267,94 @@ describe('RubyToBlocksConverter/Motion', () => {
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
     });
 
+    test('self.direction += N maps to motion_turnright with @ruby:operator:+= comment', async () => {
+        let code;
+        let expected;
+
+        code = 'self.direction += 10';
+        expected = [
+            {
+                opcode: 'motion_turnright',
+                inputs: [
+                    {
+                        name: 'DEGREES',
+                        block: expectedInfo.makeNumber(10)
+                    }
+                ],
+                comment: {text: '@ruby:operator:+=', minimized: true}
+            }
+        ];
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        code = 'self.direction += x';
+        expected = [
+            {
+                opcode: 'motion_turnright',
+                inputs: [
+                    {
+                        name: 'DEGREES',
+                        block: (await rubyToExpected(converter, target, 'x'))[0],
+                        shadow: expectedInfo.makeNumber(15)
+                    }
+                ],
+                comment: {text: '@ruby:operator:+=', minimized: true}
+            }
+        ];
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        { for (const s of [
+            'self.direction += "10"',
+            'self.direction += :symbol',
+            'self.direction += abc'
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
+    });
+
+    test('self.direction -= N maps to motion_turnleft with @ruby:operator:-= comment', async () => {
+        let code;
+        let expected;
+
+        code = 'self.direction -= 10';
+        expected = [
+            {
+                opcode: 'motion_turnleft',
+                inputs: [
+                    {
+                        name: 'DEGREES',
+                        block: expectedInfo.makeNumber(10)
+                    }
+                ],
+                comment: {text: '@ruby:operator:-=', minimized: true}
+            }
+        ];
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        code = 'self.direction -= x';
+        expected = [
+            {
+                opcode: 'motion_turnleft',
+                inputs: [
+                    {
+                        name: 'DEGREES',
+                        block: (await rubyToExpected(converter, target, 'x'))[0],
+                        shadow: expectedInfo.makeNumber(15)
+                    }
+                ],
+                comment: {text: '@ruby:operator:-=', minimized: true}
+            }
+        ];
+        await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+        { for (const s of [
+            'self.direction -= "10"',
+            'self.direction -= :symbol',
+            'self.direction -= abc'
+        ]) {
+            await convertAndExpectRubyBlockError(converter, target, s);
+        } }
+    });
+
     describe('Stage validation', () => {
         let stageTarget;
 
@@ -296,6 +384,8 @@ describe('RubyToBlocksConverter/Motion', () => {
                 'self.y += 5',
                 'self.x -= 5',
                 'self.y -= 5',
+                'self.direction += 5',
+                'self.direction -= 5',
                 'x',
                 'y',
                 'direction'

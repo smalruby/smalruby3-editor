@@ -58,4 +58,42 @@ describe('RubyGenerator/Motion', () => {
             expect(RubyGenerator.motion_changeyby(makeBlock('b1'))).toEqual('self.y += 0\n');
         });
     });
+
+    describe('motion_turnright', () => {
+        test('without comment emits turn_right(N)', () => {
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('15');
+            expect(RubyGenerator.motion_turnright(makeBlock('b1'))).toEqual('turn_right(15)\n');
+        });
+
+        test('with @ruby:operator:+= comment emits self.direction += N', () => {
+            RubyGenerator.cache_.comments['b1'] = {text: '@ruby:operator:+='};
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('10');
+            expect(RubyGenerator.motion_turnright(makeBlock('b1'))).toEqual('self.direction += 10\n');
+        });
+
+        test('with @ruby:operator:+= comment emits self.direction += expr', () => {
+            RubyGenerator.cache_.comments['b1'] = {text: '@ruby:operator:+='};
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('x');
+            expect(RubyGenerator.motion_turnright(makeBlock('b1'))).toEqual('self.direction += x\n');
+        });
+    });
+
+    describe('motion_turnleft', () => {
+        test('without comment emits turn_left(N)', () => {
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('15');
+            expect(RubyGenerator.motion_turnleft(makeBlock('b1'))).toEqual('turn_left(15)\n');
+        });
+
+        test('with @ruby:operator:-= comment emits self.direction -= N', () => {
+            RubyGenerator.cache_.comments['b1'] = {text: '@ruby:operator:-='};
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('10');
+            expect(RubyGenerator.motion_turnleft(makeBlock('b1'))).toEqual('self.direction -= 10\n');
+        });
+
+        test('with @ruby:operator:-= comment emits self.direction -= expr', () => {
+            RubyGenerator.cache_.comments['b1'] = {text: '@ruby:operator:-='};
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('x');
+            expect(RubyGenerator.motion_turnleft(makeBlock('b1'))).toEqual('self.direction -= x\n');
+        });
+    });
 });
