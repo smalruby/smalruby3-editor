@@ -35,7 +35,7 @@ import {closeFileMenu} from '../reducers/menus.js';
 import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
 import styles from './ruby-tab/ruby-tab.css';
 import {loadMonacoLocale} from '../lib/monaco-i18n-helper';
-import {getPrism} from '../lib/prism-parser';
+import {getPrism, loadPrism} from '../lib/prism-parser';
 
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
 const DEFAULT_FONT_SIZE = 16;
@@ -599,11 +599,20 @@ class RubyTab extends React.Component {
     _renderFurigana () {
         if (!this.editorRef || !this.monacoRef) return;
         const prism = getPrism();
-        if (!prism) return;
-        const code = this.props.rubyCode.code || '';
-        const parseResult = prism.parse(code);
-        const annotations = this.furiganaAnnotator.annotate(code, parseResult);
-        this.furiganaRenderer.render(this.editorRef, this.monacoRef, annotations);
+        if (prism) {
+            const code = this.props.rubyCode.code || '';
+            const parseResult = prism.parse(code);
+            const annotations = this.furiganaAnnotator.annotate(code, parseResult);
+            this.furiganaRenderer.render(this.editorRef, this.monacoRef, annotations);
+        } else {
+            loadPrism().then(loadedPrism => {
+                if (!this.state.furiganaEnabled || !this.editorRef || !this.monacoRef) return;
+                const code = this.props.rubyCode.code || '';
+                const parseResult = loadedPrism.parse(code);
+                const annotations = this.furiganaAnnotator.annotate(code, parseResult);
+                this.furiganaRenderer.render(this.editorRef, this.monacoRef, annotations);
+            });
+        }
     }
 
     _scheduleFuriganaUpdate () {

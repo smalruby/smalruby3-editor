@@ -19,7 +19,7 @@ class FuriganaAnnotator {
     annotate (sourceCode, parseResult) {
         this._annotations = new Map();
         this._sourceCode = sourceCode || '';
-        this._lineOffsets = this._buildLineOffsets(this._sourceCode);
+        this._buildMappings(this._sourceCode);
         if (parseResult && parseResult.value) {
             this._walkNode(parseResult.value);
         }
@@ -32,14 +32,35 @@ class FuriganaAnnotator {
 
     // ---- Internal helpers ----
 
-    _buildLineOffsets (source) {
-        const offsets = [0]; // line 1 starts at byte offset 0
-        for (let i = 0; i < source.length; i++) {
-            if (source[i] === '\n') {
-                offsets.push(i + 1);
+    /**
+     * Build UTF-8 byte-based line offsets and a byteToChar mapping.
+     * Prism gives byte offsets, but Monaco uses character (JS) columns.
+     */
+    _buildMappings (source) {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(source);
+
+        // byteToChar[byteIdx] = corresponding JS char index
+        this._byteToChar = new Uint32Array(bytes.length + 1);
+        let byteIdx = 0;
+        let charIdx = 0;
+        for (const codePoint of source) { // iterates Unicode code points
+            const cpByteLen = encoder.encode(codePoint).length;
+            for (let b = 0; b < cpByteLen; b++) {
+                this._byteToChar[byteIdx + b] = charIdx;
+            }
+            byteIdx += cpByteLen;
+            charIdx++;
+        }
+        this._byteToChar[byteIdx] = charIdx; // sentinel at end
+
+        // line byte offsets: _lineOffsets[n] = byte index where line (n+1) starts
+        this._lineOffsets = [0];
+        for (let i = 0; i < bytes.length; i++) {
+            if (bytes[i] === 0x0a) { // '\n'
+                this._lineOffsets.push(i + 1);
             }
         }
-        return offsets;
     }
 
     _locToLineCol (byteOffset) {
@@ -54,16 +75,24 @@ class FuriganaAnnotator {
                 hi = mid - 1;
             }
         }
+        const lineStartByte = offsets[lo];
+        // Column in JS chars (for correct pixel positioning with Monaco)
+        const column = this._byteToChar[byteOffset] - this._byteToChar[lineStartByte];
         return {
             line: lo + 1, // 1-based
-            column: byteOffset - offsets[lo] // 0-based byte offset from line start
+            column
         };
     }
 
     _addAnnotation (loc, label) {
         if (!loc) return;
         const {line, column} = this._locToLineCol(loc.startOffset);
-        const endColumn = column + loc.length;
+        const endByteOffset = loc.startOffset + loc.length;
+        const lineStartByte = this._lineOffsets[line - 1];
+        const endColumn = (
+            this._byteToChar[Math.min(endByteOffset, this._byteToChar.length - 1)] -
+            this._byteToChar[lineStartByte]
+        );
         if (!this._annotations.has(line)) {
             this._annotations.set(line, []);
         }
@@ -76,7 +105,10 @@ class FuriganaAnnotator {
 
     _getSourceText (loc) {
         if (!loc) return '';
-        return this._sourceCode.slice(loc.startOffset, loc.startOffset + loc.length);
+        const startChar = this._byteToChar[loc.startOffset];
+        const endByte = Math.min(loc.startOffset + loc.length, this._byteToChar.length - 1);
+        const endChar = this._byteToChar[endByte];
+        return this._sourceCode.slice(startChar, endChar);
     }
 
     _isStringType (node) {
