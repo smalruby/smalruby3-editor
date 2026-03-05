@@ -66,6 +66,16 @@ const messages = defineMessages({
         defaultMessage: 'Smalruby Teacher (Gemini)',
         description: 'Tooltip for AI assistant button'
     },
+    furiganaOn: {
+        id: 'gui.rubyToolbar.furiganaOn',
+        defaultMessage: 'Hide furigana',
+        description: 'Tooltip for furigana toggle button when ON'
+    },
+    furiganaOff: {
+        id: 'gui.rubyToolbar.furiganaOff',
+        defaultMessage: 'Show furigana',
+        description: 'Tooltip for furigana toggle button when OFF'
+    },
     stage: {
         id: 'gui.rubyToolbar.stage',
         defaultMessage: 'Stage',
@@ -269,6 +279,15 @@ const RubyToolbar = props => {
         }
     }, [props]);
 
+    const handleToggleFurigana = useCallback(() => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
+        if (props.onToggleFurigana) {
+            props.onToggleFurigana();
+        }
+    }, [props]);
+
     const handleExecuteLine = useCallback(() => {
         if (!props.editorRef) {
             return;
@@ -380,6 +399,19 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
+            {/* Furigana Toggle */}
+            <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
+                <button
+                    className={`${styles.furiganaButton} ${props.furiganaEnabled ? styles.furiganaButtonActive : ''}`}
+                    onClick={handleToggleFurigana}
+                    aria-label={intl.formatMessage(props.furiganaEnabled ? messages.furiganaOn : messages.furiganaOff)}
+                    aria-pressed={props.furiganaEnabled}
+                    title={intl.formatMessage(props.furiganaEnabled ? messages.furiganaOn : messages.furiganaOff)}
+                >
+                    {'ふ'}
+                </button>
+            </div>
+
             {/* Navigation & Command Part */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
                 <button
@@ -474,7 +506,9 @@ RubyToolbar.propTypes = {
     onOpenGeminiModal: PropTypes.func,
     isRunning: PropTypes.bool,
     canUndo: PropTypes.bool,
-    canRedo: PropTypes.bool
+    canRedo: PropTypes.bool,
+    furiganaEnabled: PropTypes.bool,
+    onToggleFurigana: PropTypes.func
 };
 
 export default RubyToolbar;

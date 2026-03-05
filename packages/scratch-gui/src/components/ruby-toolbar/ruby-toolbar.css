@@ -171,3 +171,31 @@
     background-color: hsla(215, 100%, 65%, 0.25);
     font-weight: bold;
 }
+
+.furiganaButton {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid $ui-black-transparent;
+    background-color: transparent;
+    cursor: pointer;
+    border-radius: $form-radius;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: bold;
+    color: $text-primary;
+    transition: background-color 0.2s;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.furiganaButton:hover {
+    background-color: hsla(0, 0%, 0%, 0.05);
+}
+
+.furiganaButtonActive {
+    background-color: hsla(215, 100%, 65%, 0.2);
+    border-color: $looks-secondary;
+    color: $looks-secondary;
+}
