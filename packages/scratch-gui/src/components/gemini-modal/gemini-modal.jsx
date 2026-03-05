@@ -424,9 +424,11 @@ const GeminiModal = ({
                                         {intl.formatMessage(messages.send)}
                                     </button>
                                 )}
-                                <span className={`${styles.charCounter} ${
-                                    isLengthValid ? styles.charCounterValid : styles.charCounterInvalid
-                                }`}>
+                                <span
+                                    className={`${styles.charCounter} ${
+                                        isLengthValid ? styles.charCounterValid : styles.charCounterInvalid
+                                    }`}
+                                >
                                     {inputLen} / {MAX_USER_MESSAGE_LENGTH}
                                 </span>
                             </div>
