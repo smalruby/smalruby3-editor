@@ -326,7 +326,7 @@ export default {
     // Gemini modal
     'gui.geminiModal.title': 'スモウルビー先生 (Gemini)',
     'gui.geminiModal.clearHistory': '会話をリセット',
-    'gui.geminiModal.inputPlaceholder': '作りたいものを教えてください...',
+    'gui.geminiModal.inputPlaceholder': '作りたいものを{min}文字から{max}文字で教えてください...',
     'gui.geminiModal.send': '送信',
     'gui.geminiModal.thinking': 'スモウルビー先生が考えています... ({seconds}秒)',
     'gui.geminiModal.generatedCode': '生成されたコード',
@@ -341,6 +341,7 @@ export default {
     'gui.geminiModal.surprise': 'サプライズ！',
     'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2分）。もう一度お試しください。',
     'gui.geminiModal.overloadedError': 'Geminiへのアクセスが集中しているため、一時的に利用できません。5分ほど待ってから、もう一度お試しください。',
+    'gui.geminiModal.rateLimitError': '利用回数の上限に達しました。{minutes}分後にもう一度お試しください。',
 
     // Tutorials
     'gui.howtos.getting-started.name': 'さあ、始めましょう',

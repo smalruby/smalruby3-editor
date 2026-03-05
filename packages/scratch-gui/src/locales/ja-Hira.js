@@ -326,7 +326,7 @@ export default {
     // Gemini modal
     'gui.geminiModal.title': 'スモウルビーせんせい (Gemini)',
     'gui.geminiModal.clearHistory': 'かいわをリセット',
-    'gui.geminiModal.inputPlaceholder': 'つくりたいものをおしえてください...',
+    'gui.geminiModal.inputPlaceholder': 'つくりたいものを{min}もじから{max}もじでおしえてください...',
     'gui.geminiModal.send': 'そうしん',
     'gui.geminiModal.thinking': 'スモウルビーせんせいがかんがえています... ({seconds}びょう)',
     'gui.geminiModal.generatedCode': 'せいせいされたコード',
@@ -341,6 +341,7 @@ export default {
     'gui.geminiModal.surprise': 'サプライズ！',
     'gui.geminiModal.timeoutError': 'リクエストがタイムアウトしました（2ふん）。もういちどおためしください。',
     'gui.geminiModal.overloadedError': 'Geminiへのアクセスがしゅうちゅうしているため、いちじてきにりようできません。5ふんほどまってから、もういちどおためしください。',
+    'gui.geminiModal.rateLimitError': 'りようかいすうのじょうげんにたっしました。{minutes}ふんごにもういちどおためしください。',
 
     // Tutorials
     'gui.howtos.getting-started.step.rubyTab': 'ブロックのつぎはルビー(Ruby)にチャレンジしてみよう！',

@@ -1,45 +1,25 @@
 /* eslint-disable no-console */
 /**
  * Unit tests for GeminiAPI
- * Tests: OAuth auth, message sending, code block extraction, error handling
+ * Tests: relay communication, message sending, code block extraction, error handling
  */
 
 // Mock fetch globally
 global.fetch = jest.fn();
 
-// Mock google-drive-api singleton
-jest.mock('../../../src/lib/google-drive-api', () => ({
-    __esModule: true,
-    default: {
-        isInitialized: true,
-        accessToken: 'test-access-token',
-        initialize: jest.fn().mockResolvedValue(undefined),
-        requestAccessToken: jest.fn().mockResolvedValue('test-access-token')
-    }
-}));
-
-// Mock gemini-context
-jest.mock('../../../src/lib/gemini-context', () => ({
-    __esModule: true,
-    buildSystemInstruction: jest.fn().mockReturnValue('mock system instruction')
-}));
-
 describe('GeminiAPI', () => {
     let GeminiAPI;
+    let RateLimitError;
     let geminiApi;
-    let mockGoogleDriveAPI;
 
     beforeEach(() => {
+        jest.resetModules();
         global.fetch = jest.fn();
 
-        GeminiAPI = require('../../../src/lib/gemini-api').default;
+        const module = require('../../../src/lib/gemini-api');
+        GeminiAPI = module.default;
+        RateLimitError = module.RateLimitError;
         geminiApi = new GeminiAPI();
-        mockGoogleDriveAPI = require('../../../src/lib/google-drive-api').default;
-
-        // Reset mock implementations
-        mockGoogleDriveAPI.initialize.mockResolvedValue(undefined);
-        mockGoogleDriveAPI.requestAccessToken.mockResolvedValue('test-access-token');
-        mockGoogleDriveAPI.accessToken = 'test-access-token';
     });
 
     afterEach(() => {
@@ -50,75 +30,52 @@ describe('GeminiAPI', () => {
         test('should initialize with empty chat history', () => {
             expect(geminiApi.history).toEqual([]);
         });
-
-        test('should have a model name configured', () => {
-            expect(geminiApi.modelName).toBeDefined();
-            expect(typeof geminiApi.modelName).toBe('string');
-        });
     });
 
     describe('sendMessage', () => {
-        const mockSuccessResponse = {
-            candidates: [{
-                content: {
-                    parts: [{
-                        text: 'Here is a simple program:\n```ruby\nloop do\n  move(10)\nend\n```'
-                    }]
-                }
-            }]
+        const mockRelayResponse = {
+            text: 'Here is a simple program:\n```ruby\nloop do\n  move(10)\nend\n```',
+            outputTokens: 42
         };
 
         beforeEach(() => {
             global.fetch.mockResolvedValue({
                 ok: true,
-                json: jest.fn().mockResolvedValue(mockSuccessResponse)
+                status: 200,
+                json: jest.fn().mockResolvedValue(mockRelayResponse)
             });
         });
 
-        test('should call Gemini API with correct endpoint', async () => {
+        test('should POST to relay /generate endpoint', async () => {
             await geminiApi.sendMessage('make sprite move', {});
 
             expect(global.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('generativelanguage.googleapis.com'),
-                expect.any(Object)
+                expect.stringContaining('/generate'),
+                expect.objectContaining({method: 'POST'})
             );
         });
 
-        test('should include Bearer token in Authorization header', async () => {
-            await geminiApi.sendMessage('make sprite move', {});
-
-            expect(global.fetch).toHaveBeenCalledWith(
-                expect.any(String),
-                expect.objectContaining({
-                    headers: expect.objectContaining({
-                        'Authorization': 'Bearer test-access-token'
-                    })
-                })
-            );
-        });
-
-        test('should include system instruction in request', async () => {
+        test('should not include Authorization header', async () => {
             await geminiApi.sendMessage('make sprite move', {});
 
             const callArgs = global.fetch.mock.calls[0][1];
-            const body = JSON.parse(callArgs.body);
-            expect(body.system_instruction).toBeDefined();
+            expect(callArgs.headers['Authorization']).toBeUndefined();
         });
 
-        test('should pass sprite state to buildSystemInstruction', async () => {
-            const {buildSystemInstruction} = require('../../../src/lib/gemini-context');
-            const spriteState = {name: 'Cat', x: 10, y: 20};
-            const stateContext = {sprite: spriteState};
+        test('should send userMessage, history, and stateContext in request body', async () => {
+            const stateContext = {sprite: {name: 'Cat'}};
             await geminiApi.sendMessage('make sprite move', stateContext);
 
-            expect(buildSystemInstruction).toHaveBeenCalledWith(stateContext);
+            const callArgs = global.fetch.mock.calls[0][1];
+            const body = JSON.parse(callArgs.body);
+            expect(body.userMessage).toBe('make sprite move');
+            expect(body.history).toBeDefined();
+            expect(body.stateContext).toEqual(stateContext);
         });
 
-        test('should return response text from Gemini', async () => {
+        test('should return response text from relay', async () => {
             const result = await geminiApi.sendMessage('make sprite move', {});
-            expect(result).toBe(
-                'Here is a simple program:\n```ruby\nloop do\n  move(10)\nend\n```'
-            );
+            expect(result).toBe(mockRelayResponse.text);
         });
 
         test('should add user message and assistant response to history', async () => {
@@ -136,33 +93,55 @@ describe('GeminiAPI', () => {
             expect(geminiApi.history).toHaveLength(4);
         });
 
-        test('should throw error when API returns non-ok response', async () => {
+        test('should include previous history in subsequent requests', async () => {
+            await geminiApi.sendMessage('first message', {});
+
+            const firstCallBody = JSON.parse(global.fetch.mock.calls[0][1].body);
+            expect(firstCallBody.history).toHaveLength(0);
+
+            await geminiApi.sendMessage('second message', {});
+
+            const secondCallBody = JSON.parse(global.fetch.mock.calls[1][1].body);
+            expect(secondCallBody.history).toHaveLength(2);
+        });
+
+        test('should throw RateLimitError when relay returns 429', async () => {
             global.fetch.mockResolvedValue({
                 ok: false,
-                status: 401,
-                text: jest.fn().mockResolvedValue('Unauthorized')
+                status: 429,
+                json: jest.fn().mockResolvedValue({
+                    error: 'RATE_LIMIT_EXCEEDED',
+                    resetAfterSeconds: 600
+                })
+            });
+
+            await expect(geminiApi.sendMessage('test', {})).rejects.toThrow(RateLimitError);
+        });
+
+        test('should include resetAfterSeconds in RateLimitError', async () => {
+            global.fetch.mockResolvedValue({
+                ok: false,
+                status: 429,
+                json: jest.fn().mockResolvedValue({
+                    error: 'RATE_LIMIT_EXCEEDED',
+                    resetAfterSeconds: 600
+                })
+            });
+
+            await expect(geminiApi.sendMessage('test', {})).rejects.toMatchObject({
+                name: 'RateLimitError',
+                resetAfterSeconds: 600
+            });
+        });
+
+        test('should throw error when relay returns non-ok response', async () => {
+            global.fetch.mockResolvedValue({
+                ok: false,
+                status: 500,
+                text: jest.fn().mockResolvedValue('Internal Server Error')
             });
 
             await expect(geminiApi.sendMessage('test', {})).rejects.toThrow();
-        });
-
-        test('should request new access token when 401 occurs', async () => {
-            global.fetch
-                .mockResolvedValueOnce({
-                    ok: false,
-                    status: 401,
-                    text: jest.fn().mockResolvedValue('Unauthorized')
-                })
-                .mockResolvedValueOnce({
-                    ok: true,
-                    json: jest.fn().mockResolvedValue(mockSuccessResponse)
-                });
-
-            mockGoogleDriveAPI.requestAccessToken.mockResolvedValue('new-access-token');
-
-            const result = await geminiApi.sendMessage('test', {});
-            expect(mockGoogleDriveAPI.requestAccessToken).toHaveBeenCalled();
-            expect(result).toContain('loop do');
         });
     });
 
@@ -202,9 +181,7 @@ describe('GeminiAPI', () => {
         test('should clear chat history', async () => {
             global.fetch.mockResolvedValue({
                 ok: true,
-                json: jest.fn().mockResolvedValue({
-                    candidates: [{content: {parts: [{text: 'ok'}]}}]
-                })
+                json: jest.fn().mockResolvedValue({text: 'ok', outputTokens: 5})
             });
 
             await geminiApi.sendMessage('test', {});

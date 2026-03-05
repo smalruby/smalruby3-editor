@@ -201,6 +201,9 @@ jobs:
           MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
           MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
           MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+          GEMINI_RELAY_ENDPOINT: ${{ secrets.GEMINI_RELAY_ENDPOINT }}
+          MAX_USER_MESSAGE_LENGTH: ${{ vars.MAX_USER_MESSAGE_LENGTH }}
+          MIN_USER_MESSAGE_LENGTH: ${{ vars.MIN_USER_MESSAGE_LENGTH }}
           GTM_ID: ${{ github.ref == 'refs/heads/develop' && secrets.GTM_ID || '' }}
           GTM_ENV_AUTH: ${{ github.ref == 'refs/heads/develop' && secrets.GTM_ENV_AUTH || '' }}
         run: npm run build
@@ -238,6 +241,9 @@ jobs:
           MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
           MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
           MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+          GEMINI_RELAY_ENDPOINT: ${{ secrets.GEMINI_RELAY_ENDPOINT }}
+          MAX_USER_MESSAGE_LENGTH: ${{ vars.MAX_USER_MESSAGE_LENGTH }}
+          MIN_USER_MESSAGE_LENGTH: ${{ vars.MIN_USER_MESSAGE_LENGTH }}
           GTM_ID: ''
           GTM_ENV_AUTH: ''
         run: cd packages/scratch-gui && npm exec node ./scripts/postbuild.mjs
@@ -274,6 +280,9 @@ jobs:
           MESH_DATA_UPDATE_INTERVAL_MS: ${{ vars.MESH_DATA_UPDATE_INTERVAL_MS }}
           MESH_EVENT_BATCH_INTERVAL_MS: ${{ vars.MESH_EVENT_BATCH_INTERVAL_MS }}
           MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: ${{ vars.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS }}
+          GEMINI_RELAY_ENDPOINT: ${{ secrets.GEMINI_RELAY_ENDPOINT }}
+          MAX_USER_MESSAGE_LENGTH: ${{ vars.MAX_USER_MESSAGE_LENGTH }}
+          MIN_USER_MESSAGE_LENGTH: ${{ vars.MIN_USER_MESSAGE_LENGTH }}
           GTM_ID: ''
           GTM_ENV_AUTH: ''
         run: cd packages/scratch-gui && npm exec node ./scripts/postbuild.mjs

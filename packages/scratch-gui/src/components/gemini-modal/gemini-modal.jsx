@@ -14,6 +14,9 @@ import iconSurprise from '../action-menu/icon--surprise.svg';
 // Register only Ruby language for highlight.js (keep bundle small)
 hljs.registerLanguage('ruby', rubyLang);
 
+const MAX_USER_MESSAGE_LENGTH = parseInt(process.env.MAX_USER_MESSAGE_LENGTH || '250', 10);
+const MIN_USER_MESSAGE_LENGTH = parseInt(process.env.MIN_USER_MESSAGE_LENGTH || '10', 10);
+
 const MODAL_WIDTH = 560;
 const MODAL_HEIGHT = 520;
 const MENU_BAR_HEIGHT = 48;
@@ -47,7 +50,7 @@ const messages = defineMessages({
     },
     inputPlaceholder: {
         id: 'gui.geminiModal.inputPlaceholder',
-        defaultMessage: 'Tell me what you want to create...',
+        defaultMessage: 'Tell me what you want to create (between {min} and {max} characters)...',
         description: 'Placeholder text for message input'
     },
     send: {
@@ -280,6 +283,9 @@ const GeminiModal = ({
 
     if (!isVisible) return null;
 
+    const inputLen = inputValue.length;
+    const isLengthValid = inputLen >= MIN_USER_MESSAGE_LENGTH && inputLen <= MAX_USER_MESSAGE_LENGTH;
+
     return (
         <div className={styles.overlay}>
             <Draggable
@@ -392,29 +398,40 @@ const GeminiModal = ({
                             <textarea
                                 ref={inputRef}
                                 className={styles.messageInput}
-                                placeholder={intl.formatMessage(messages.inputPlaceholder)}
+                                placeholder={intl.formatMessage(messages.inputPlaceholder, {
+                                    min: MIN_USER_MESSAGE_LENGTH,
+                                    max: MAX_USER_MESSAGE_LENGTH
+                                })}
                                 value={inputValue}
                                 onChange={onInputChange}
                                 onKeyDown={onInputKeyDown}
-                                disabled
                                 rows={2}
                             />
-                            {isLoading ? (
-                                <button
-                                    className={styles.sendButton}
-                                    onClick={onCancel}
+                            <div className={styles.sendArea}>
+                                {isLoading ? (
+                                    <button
+                                        className={styles.sendButton}
+                                        onClick={onCancel}
+                                    >
+                                        {intl.formatMessage(messages.cancel)}
+                                    </button>
+                                ) : (
+                                    <button
+                                        className={styles.sendButton}
+                                        onClick={onSend}
+                                        disabled={!isLengthValid}
+                                    >
+                                        {intl.formatMessage(messages.send)}
+                                    </button>
+                                )}
+                                <span
+                                    className={`${styles.charCounter} ${
+                                        isLengthValid ? styles.charCounterValid : styles.charCounterInvalid
+                                    }`}
                                 >
-                                    {intl.formatMessage(messages.cancel)}
-                                </button>
-                            ) : (
-                                <button
-                                    className={styles.sendButton}
-                                    onClick={onSend}
-                                    disabled={!inputValue.trim()}
-                                >
-                                    {intl.formatMessage(messages.send)}
-                                </button>
-                            )}
+                                    {inputLen} / {MAX_USER_MESSAGE_LENGTH}
+                                </span>
+                            </div>
                         </div>
 
                         {/* Footer */}
