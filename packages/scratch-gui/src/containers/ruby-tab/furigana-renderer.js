@@ -27,10 +27,8 @@ class FuriganaRenderer {
 
         if (!annotations || annotations.size === 0) return;
 
-        const layoutInfo = editor.getLayoutInfo();
         const fontInfo = editor.getOption(monaco.editor.EditorOption.fontInfo);
         const charWidth = fontInfo.typicalHalfwidthCharacterWidth;
-        const contentLeft = layoutInfo.contentLeft;
         const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
 
         // Height for each furigana zone: half a line height, minimum 12px
@@ -40,7 +38,7 @@ class FuriganaRenderer {
         editor.changeViewZones(accessor => {
             for (const [lineNumber, anns] of annotations) {
                 const domNode = this._createZoneDom(
-                    anns, contentLeft, charWidth, zoneHeight, fontSize
+                    anns, charWidth, zoneHeight, fontSize
                 );
 
                 const zoneId = accessor.addZone({
@@ -76,7 +74,7 @@ class FuriganaRenderer {
         this.render(editor, monaco, annotations);
     }
 
-    _createZoneDom (anns, contentLeft, charWidth, zoneHeight, fontSize) {
+    _createZoneDom (anns, charWidth, zoneHeight, fontSize) {
         const div = document.createElement('div');
         div.style.position = 'relative';
         div.style.height = `${zoneHeight}px`;
@@ -87,7 +85,9 @@ class FuriganaRenderer {
             const span = document.createElement('span');
             span.textContent = ann.label;
             span.style.position = 'absolute';
-            span.style.left = `${contentLeft + (ann.startColumn * charWidth)}px`;
+            // .view-zones container is already offset by contentLeft,
+            // so span.left = column * charWidth (no contentLeft needed)
+            span.style.left = `${ann.startColumn * charWidth}px`;
             span.style.bottom = '1px';
             span.style.fontSize = `${fontSize}px`;
             span.style.lineHeight = '1';
