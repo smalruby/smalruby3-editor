@@ -46,7 +46,7 @@
 <body>
   <h1>プライバシーポリシー</h1>
   <p class="meta">
-    制定日：2025年3月3日<br>
+    制定日：2025年3月3日（最終改定：2026年3月5日）<br>
     運営者：NPO法人Rubyプログラミング少年団
   </p>
 
@@ -78,16 +78,22 @@
       <strong>Google Drive API（drive.file スコープ）</strong><br>
       ユーザーが Google ピッカーで明示的に選択したファイルの読み取り、および Google ドライブへのファイルのアップロード・更新のために使用します。ユーザーが選択していないファイルやフォルダにはアクセスしません。
     </li>
-    <li>
-      <strong>Gemini API（generative-language.retriever スコープ）</strong><br>
-      AI による Ruby コード生成支援機能のために使用します。入力されたコードの文脈情報を Gemini API に送信し、コード補完・提案を行います。
-    </li>
   </ul>
   <p>
     Google API から取得した情報の使用は、<a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API サービスのユーザーデータポリシー</a>に準拠します。これには、限定的な使用の要件が含まれます。
   </p>
 
-  <h2>2.3 アクセス解析（Google タグマネージャー / Google Analytics）</h2>
+  <h2>2.3 AI コード生成支援（スモウルビー先生）について</h2>
+  <p>
+    本サービスでは、AI による Ruby コード生成支援機能「スモウルビー先生」をご利用いただけます。この機能は、当法人が運営する中継サービス（smalruby-gemini-relay）を経由して Google の Gemini API に接続します。<strong>Google アカウントへのログインは不要です。</strong>
+  </p>
+  <ul>
+    <li>この機能をご利用の場合、入力されたコードの文脈情報が当法人の中継サービス（AWS Lambda）を経由して Gemini API に送信されます。</li>
+    <li>中継サービスはリクエストを転送するのみで、コードの内容を保存しません。</li>
+    <li>Gemini API の利用は <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Google Gemini API 利用規約</a> に従います。</li>
+  </ul>
+
+  <h2>2.4 アクセス解析（Google タグマネージャー / Google Analytics）</h2>
   <p>
     本サービスでは、サービスの改善を目的として、Google タグマネージャー（GTM）を通じた Google Analytics 4（GA4）によるアクセス解析を実施しています。
   </p>
@@ -120,7 +126,8 @@
   <h2>5. 利用する外部サービス</h2>
   <p>本サービスでは以下の外部サービスを利用しています。各サービスのプライバシーポリシーについては、各社のウェブサイトをご参照ください。</p>
   <ul>
-    <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google プライバシーポリシー</a>（Google Drive、Gemini API、Google Analytics、Google タグマネージャー）</li>
+    <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google プライバシーポリシー</a>（Google Drive、Google Analytics、Google タグマネージャー）</li>
+    <li><a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Google Gemini API 利用規約</a>（AI コード生成支援機能）</li>
   </ul>
 
   <h2>6. Cookie について</h2>
