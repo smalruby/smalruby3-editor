@@ -110,7 +110,9 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         'process.env.MESH_EVENT_BATCH_INTERVAL_MS': `"${process.env.MESH_EVENT_BATCH_INTERVAL_MS || ''}"`,
         'process.env.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS': `"${process.env.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS || ''}"`,
         'process.env.MESH_NETWORK_FILTER': `"${process.env.MESH_NETWORK_FILTER || ''}"`,
-        'process.env.GEMINI_RELAY_ENDPOINT': `"${process.env.GEMINI_RELAY_ENDPOINT || ''}"`
+        'process.env.GEMINI_RELAY_ENDPOINT': `"${process.env.GEMINI_RELAY_ENDPOINT || ''}"`,
+        'process.env.MAX_USER_MESSAGE_LENGTH': `"${process.env.MAX_USER_MESSAGE_LENGTH || '250'}"`,
+        'process.env.MIN_USER_MESSAGE_LENGTH': `"${process.env.MIN_USER_MESSAGE_LENGTH || '10'}"`
     }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [

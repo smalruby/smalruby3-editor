@@ -326,7 +326,7 @@ export default {
     // Gemini modal
     'gui.geminiModal.title': 'スモウルビー先生 (Gemini)',
     'gui.geminiModal.clearHistory': '会話をリセット',
-    'gui.geminiModal.inputPlaceholder': '作りたいものを教えてください...',
+    'gui.geminiModal.inputPlaceholder': '作りたいものを{min}文字から{max}文字で教えてください...',
     'gui.geminiModal.send': '送信',
     'gui.geminiModal.thinking': 'スモウルビー先生が考えています... ({seconds}秒)',
     'gui.geminiModal.generatedCode': '生成されたコード',

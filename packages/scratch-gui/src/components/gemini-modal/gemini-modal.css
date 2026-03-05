@@ -405,6 +405,27 @@
     cursor: not-allowed;
 }
 
+.send-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.char-counter {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.char-counter-valid {
+    color: $ui-green-2;
+}
+
+.char-counter-invalid {
+    color: #cc0000;
+}
+
 /* Status messages */
 .loading-indicator {
     display: flex;

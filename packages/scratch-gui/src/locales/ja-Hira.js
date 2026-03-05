@@ -326,7 +326,7 @@ export default {
     // Gemini modal
     'gui.geminiModal.title': 'スモウルビーせんせい (Gemini)',
     'gui.geminiModal.clearHistory': 'かいわをリセット',
-    'gui.geminiModal.inputPlaceholder': 'つくりたいものをおしえてください...',
+    'gui.geminiModal.inputPlaceholder': 'つくりたいものを{min}もじから{max}もじでおしえてください...',
     'gui.geminiModal.send': 'そうしん',
     'gui.geminiModal.thinking': 'スモウルビーせんせいがかんがえています... ({seconds}びょう)',
     'gui.geminiModal.generatedCode': 'せいせいされたコード',
