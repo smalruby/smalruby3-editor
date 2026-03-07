@@ -84,7 +84,7 @@ export default function (Generator) {
         if (compoundMatch && hasValueInput) {
             const op = compoundMatch[1];
             // Extract original variable name from @ruby:lvar comment if present
-            const lvarMatch = comment.match(/@ruby:lvar:(\w+):\d+/);
+            const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+):\d+/);
             const variable = lvarMatch ?
                 lvarMatch[1] :
                 Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));

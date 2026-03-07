@@ -10,8 +10,9 @@ const VariableUtils = {
     // Helper function to convert argument names to snake_case lowercase
     _toSnakeCaseLowercase (name) {
         return name
-            // Replace any sequence of non-alphanumeric characters except underscores with underscore
-            .replace(/[^a-zA-Z0-9_]+/g, '_')
+            // Replace ASCII non-alphanumeric characters (except underscores) with underscore.
+            // Unicode characters (Japanese kana/kanji, etc.) are preserved as-is.
+            .replace(/[^a-zA-Z0-9_\u0100-\uFFFF]+/g, '_')
             // Convert camelCase to snake_case: insert underscore before uppercase letters
             .replace(/([a-z])([A-Z])/g, '$1_$2')
             // Convert to lowercase
