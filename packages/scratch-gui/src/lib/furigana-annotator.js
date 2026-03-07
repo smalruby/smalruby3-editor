@@ -251,7 +251,8 @@ class FuriganaAnnotator {
         const unescaped = node.unescaped;
         const content = (unescaped && typeof unescaped === 'object') ?
             unescaped.value : unescaped;
-        this._addAnnotation(node.location, `文字列「${content}」`);
+        const specialLabel = FuriganaAnnotator._SPECIAL_STRING_LABELS[content];
+        this._addAnnotation(node.location, specialLabel || `文字列「${content}」`);
     }
 
     // ---- Method calls ----
@@ -998,5 +999,18 @@ class FuriganaAnnotator {
         this._walkNode(node.right);
     }
 }
+
+/**
+ * Special string values used in smalruby that represent UI menu options.
+ * These are displayed with descriptive Japanese labels instead of raw 文字列「...」.
+ */
+FuriganaAnnotator._SPECIAL_STRING_LABELS = {
+    /* eslint-disable quote-props */
+    '_mouse_': 'マウスのポインター',
+    '_edge_': '端',
+    '_random_': 'ランダムな場所',
+    '_myself_': '自分自身'
+    /* eslint-enable quote-props */
+};
 
 export default FuriganaAnnotator;

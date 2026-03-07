@@ -842,4 +842,31 @@ describe('FuriganaAnnotator', () => {
             expect(labelsAt(anns, 3)).toContain('変数urine');
         });
     });
+
+    describe('special string literals', () => {
+        test('_mouse_ annotates as マウスのポインター', () => {
+            const anns = annotate('go_to("_mouse_")');
+            expect(labelsAt(anns, 1)).toContain('マウスのポインター');
+            expect(labelsAt(anns, 1)).not.toContain('文字列「_mouse_」');
+        });
+        test('_edge_ annotates as 端', () => {
+            const anns = annotate('touching?("_edge_")');
+            expect(labelsAt(anns, 1)).toContain('端');
+            expect(labelsAt(anns, 1)).not.toContain('文字列「_edge_」');
+        });
+        test('_random_ annotates as ランダムな場所', () => {
+            const anns = annotate('go_to("_random_")');
+            expect(labelsAt(anns, 1)).toContain('ランダムな場所');
+            expect(labelsAt(anns, 1)).not.toContain('文字列「_random_」');
+        });
+        test('_myself_ annotates as 自分自身', () => {
+            const anns = annotate('create_clone("_myself_")');
+            expect(labelsAt(anns, 1)).toContain('自分自身');
+            expect(labelsAt(anns, 1)).not.toContain('文字列「_myself_」');
+        });
+        test('normal string still annotates as 文字列', () => {
+            const anns = annotate('say("hello")');
+            expect(labelsAt(anns, 1)).toContain('文字列「hello」');
+        });
+    });
 });
