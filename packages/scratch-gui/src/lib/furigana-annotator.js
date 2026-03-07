@@ -420,6 +420,9 @@ class FuriganaAnnotator {
             case 'index':
                 this._addAnnotation(node.messageLoc, '検索する');
                 break;
+            case 'clear':
+                this._addAnnotation(node.messageLoc, '全削除する');
+                break;
             default:
                 break;
             }
@@ -696,9 +699,10 @@ class FuriganaAnnotator {
     }
 
     /**
-     * Returns the value of a keyword argument by key, or null.
+     * Returns the source text of a keyword argument value by key name, or null.
+     * Handles `method(key: value)` style keyword arguments.
      * @param {object} callNode
-     * @param {string} key
+     * @param {string} key - keyword argument name (e.g. 'secs')
      */
     _getKwargSourceText (callNode, key) {
         const args = callNode.arguments_ && callNode.arguments_.arguments_;
@@ -706,12 +710,21 @@ class FuriganaAnnotator {
         for (const arg of args) {
             const type = typeof arg.toJSON === 'function' ? arg.toJSON().type : null;
             if (type === 'KeywordHashNode') {
-                for (const element of (arg.elements || [])) {
-                    const elemType = typeof element.toJSON === 'function' ? element.toJSON().type : null;
-                    if (elemType === 'AssocNode') {
-                        const keyText = this._getSourceText(element.key && element.key.location);
-                        if (keyText === key && element.value) {
-                            return this._getSourceText(element.value.location);
+                // Use childNodes() since .elements may not be directly accessible
+                if (typeof arg.childNodes !== 'function') continue;
+                for (const assocNode of arg.childNodes()) {
+                    if (!assocNode) continue;
+                    const assocType = typeof assocNode.toJSON === 'function' ?
+                        assocNode.toJSON().type : null;
+                    if (assocType === 'AssocNode') {
+                        // key is a SymbolNode; use valueLoc for "secs" part of "secs: 1"
+                        const keyNode = assocNode.key;
+                        if (!keyNode) continue;
+                        const keyJ = typeof keyNode.toJSON === 'function' ? keyNode.toJSON() : null;
+                        const keyLoc = keyJ && (keyJ.valueLoc || keyJ.location);
+                        const keyText = this._getSourceText(keyLoc);
+                        if (keyText === key && assocNode.value) {
+                            return this._getSourceText(assocNode.value.location);
                         }
                     }
                 }

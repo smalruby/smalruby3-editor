@@ -744,6 +744,83 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
+    // ---- Phase 3: list operations, dynamic labels ----
+
+    describe('list operations (receiver-based)', () => {
+        test('list().push annotates as 追加する', () => {
+            expect(labelsAt(annotate('list("@items").push("apple")'), 1)).toContain('追加する');
+        });
+        test('list().delete_at annotates as 削除する', () => {
+            expect(labelsAt(annotate('list("@items").delete_at(1)'), 1)).toContain('削除する');
+        });
+        test('list().clear annotates as 全削除する', () => {
+            expect(labelsAt(annotate('list("@items").clear'), 1)).toContain('全削除する');
+        });
+        test('list().insert annotates as 挿入する', () => {
+            expect(labelsAt(annotate('list("@items").insert(1, "banana")'), 1)).toContain('挿入する');
+        });
+        test('list().index annotates as 検索する', () => {
+            expect(labelsAt(annotate('list("@items").index("apple")'), 1)).toContain('検索する');
+        });
+        test('list().length annotates as 長さ', () => {
+            expect(labelsAt(annotate('list("@items").length'), 1)).toContain('長さ');
+        });
+        test('list().include? annotates as 含むか', () => {
+            expect(labelsAt(annotate('list("@items").include?("apple")'), 1)).toContain('含むか');
+        });
+    });
+
+    describe('glide dynamic label', () => {
+        test('glide with array and secs produces dynamic label', () => {
+            const labels = labelsAt(annotate('glide([100, 50], secs: 1)'), 1);
+            expect(labels.some(l => l.includes('秒') && l.includes('x座標') && l.includes('y座標'))).toBe(true);
+        });
+        test('glide without parseable args falls back to default', () => {
+            const labels = labelsAt(annotate('glide("_mouse_", secs: 2)'), 1);
+            expect(labels.some(l => l.includes('移動') || l.includes('glide') || l.includes('秒'))).toBe(true);
+        });
+    });
+
+    describe('go_to_layer dynamic label', () => {
+        test('go_to_layer("front") annotates as 最前面へ移動する', () => {
+            expect(labelsAt(annotate('go_to_layer("front")'), 1)).toContain('最前面へ移動する');
+        });
+        test('go_to_layer("back") annotates as 最背面へ移動する', () => {
+            expect(labelsAt(annotate('go_to_layer("back")'), 1)).toContain('最背面へ移動する');
+        });
+    });
+
+    describe('go_layers dynamic label', () => {
+        test('go_layers forward embeds n', () => {
+            const labels = labelsAt(annotate('go_layers(2, "forward")'), 1);
+            expect(labels.some(l => l.includes('2') && l.includes('手前'))).toBe(true);
+        });
+        test('go_layers backward embeds n', () => {
+            const labels = labelsAt(annotate('go_layers(3, "backward")'), 1);
+            expect(labels.some(l => l.includes('3') && l.includes('奥'))).toBe(true);
+        });
+    });
+
+    describe('when_greater_than dynamic label', () => {
+        test('LOUDNESS version produces 音量 label', () => {
+            const labels = labelsAt(annotate('when_greater_than("LOUDNESS", 10) do\nend'), 1);
+            expect(labels.some(l => l.includes('音量') && l.includes('10'))).toBe(true);
+        });
+        test('TIMER version produces タイマー label', () => {
+            const labels = labelsAt(annotate('when_greater_than("TIMER", 5) do\nend'), 1);
+            expect(labels.some(l => l.includes('タイマー') && l.includes('5'))).toBe(true);
+        });
+    });
+
+    describe('rest dynamic label', () => {
+        test('rest(0.25) annotates as 0.25拍休む', () => {
+            expect(labelsAt(annotate('rest(0.25)'), 1)).toContain('0.25拍休む');
+        });
+        test('rest(1) annotates as 1拍休む', () => {
+            expect(labelsAt(annotate('rest(1)'), 1)).toContain('1拍休む');
+        });
+    });
+
     describe('multiline program from book examples', () => {
         test('kakaku example', () => {
             const code = [
