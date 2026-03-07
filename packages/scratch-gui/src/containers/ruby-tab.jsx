@@ -84,7 +84,7 @@ class RubyTab extends React.Component {
         this.furiganaDebounceTimer = null;
         this.furiganaLastMs = 0; // last measured render time, used for adaptive debounce
         const savedFurigana = typeof window !== 'undefined' && window.localStorage ?
-            window.localStorage.getItem(FURIGANA_ENABLED_KEY) === 'true' : false;
+            window.localStorage.getItem(FURIGANA_ENABLED_KEY) !== 'false' : true;
         this.state = {
             runningBlockId: null,
             executingLine: null,
