@@ -108,6 +108,23 @@ response format. Update client code to handle the new structure."
    rm /tmp/pr-body.md
    ```
 
+### Merging Pull Requests
+
+**IMPORTANT**: Squash merges are NOT allowed on this repository. Always use `--merge`:
+
+```bash
+gh pr merge <number> \
+  --repo smalruby/smalruby3-editor \
+  --merge \
+  --delete-branch
+```
+
+After merging, update the local develop branch:
+
+```bash
+git checkout develop && git pull origin develop
+```
+
 ### PR Requirements
 
 Before creating a PR, ensure:
