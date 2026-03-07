@@ -232,13 +232,14 @@ const NodeUtils = {
 
     _wrapVariableAsBooleanCondition (varBlock) {
         // Creates !(varBlock == (0 < 0)) as a boolean block.
+        // Uses the same pattern as visitFalseNode: operator_lt with OPERAND1/OPERAND2 text inputs.
         // (0 < 0) is false; !(varBlock == false) is truthy when varBlock is truthy.
         const previousNode = this._context.currentNode;
         this._context.currentNode = null;
 
         const ltBlock = this._createBlock('operator_lt', 'value_boolean');
-        this._addNumberInput(ltBlock, 'NUM1', 'math_number', 0, 0);
-        this._addNumberInput(ltBlock, 'NUM2', 'math_number', 0, 0);
+        this._addTextInput(ltBlock, 'OPERAND1', '0', '0');
+        this._addTextInput(ltBlock, 'OPERAND2', '0', '0');
 
         const eqBlock = this._createBlock('operator_equals', 'value_boolean');
         this._addInput(eqBlock, 'OPERAND1', varBlock);
