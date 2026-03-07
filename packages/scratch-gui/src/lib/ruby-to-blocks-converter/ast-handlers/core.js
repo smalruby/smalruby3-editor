@@ -94,10 +94,15 @@ const CoreHandlers = {
         }
         cond = split.value;
         if (!this._isFalseOrBooleanBlock(cond)) {
-            throw new RubyToBlocksConverterError(
-                node,
-                `condition is not boolean: ${this._getSource(node)}`
-            );
+            if (this._isBlock(cond) && cond.opcode === 'data_variable') {
+                this._context.variableHint = this._getRubyVariableName(cond);
+                cond = this._wrapVariableAsBooleanCondition(cond);
+            } else {
+                throw new RubyToBlocksConverterError(
+                    node,
+                    `condition is not boolean: ${this._getSource(node)}`
+                );
+            }
         }
         return cond;
     },

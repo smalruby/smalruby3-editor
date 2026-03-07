@@ -26,6 +26,7 @@ const ContextUtils = {
             literalCallIndices: {},
             elsifCounter: 0,
             caseCounter: 0,
+            variableHint: null,
             isValue: false,
             inMyBlockDefinition: false,
             scopeStack: [],

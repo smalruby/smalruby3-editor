@@ -9,7 +9,10 @@ const ControlFlowHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
+        this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
+        const variableHint = this._context.variableHint;
+        this._context.variableHint = null;
         const split = this._splitPreBlocksAndValue(cond);
         cond = split.value;
         preBlocks.push(...split.preBlocks);
@@ -34,7 +37,9 @@ const ControlFlowHandlers = {
             }
         }
 
+        let hasElsif = false;
         if (node.subsequent && node.subsequent.constructor.name === 'IfNode') {
+            hasElsif = true;
             const elseBlock = _.isArray(elseStatement) ? elseStatement[0] : elseStatement;
             if (this.isBlock(block) && this.isBlock(elseBlock)) {
                 let n;
@@ -69,7 +74,8 @@ const ControlFlowHandlers = {
 
         // Detect if modifier form: endKeywordLoc is null for modifier syntax
         if (node.endKeywordLoc === null && this._isBlock(block)) {
-            const commentText = '@ruby:syntax:if_modifier';
+            let commentText = '@ruby:syntax:if_modifier';
+            if (variableHint) commentText += `,@ruby:variable:${variableHint}`;
             if (block.comment) {
                 const comment = this._context.comments[block.comment];
                 if (comment) {
@@ -78,6 +84,16 @@ const ControlFlowHandlers = {
                 }
             } else {
                 const commentId = this._createComment(commentText, block.id, 0, 0, true);
+                block.comment = commentId;
+            }
+        } else if (variableHint && !hasElsif && this._isBlock(block)) {
+            // Attach @ruby:variable: comment for round-trip (non-modifier, non-elsif forms)
+            const varCommentText = `@ruby:variable:${variableHint}`;
+            if (block.comment) {
+                const existingComment = this._context.comments[block.comment];
+                if (existingComment) existingComment.text += `,${varCommentText}`;
+            } else {
+                const commentId = this._createComment(varCommentText, block.id, 0, 0, true);
                 block.comment = commentId;
             }
         }
@@ -193,7 +209,10 @@ const ControlFlowHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
+        this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
+        const variableHint = this._context.variableHint;
+        this._context.variableHint = null;
         const split = this._splitPreBlocksAndValue(cond);
         cond = split.value;
         preBlocks.push(...split.preBlocks);
@@ -205,6 +224,17 @@ const ControlFlowHandlers = {
             this._restoreContext(saved);
 
             block = this._createRubyStatementBlock(this._getSource(node), node);
+        }
+
+        if (variableHint && this._isBlock(block)) {
+            const varCommentText = `@ruby:variable:${variableHint}`;
+            if (block.comment) {
+                const existingComment = this._context.comments[block.comment];
+                if (existingComment) existingComment.text += `,${varCommentText}`;
+            } else {
+                const commentId = this._createComment(varCommentText, block.id, 0, 0, true);
+                block.comment = commentId;
+            }
         }
 
         if (preBlocks.length > 0 && block) {
@@ -220,7 +250,10 @@ const ControlFlowHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
+        this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
+        const variableHint = this._context.variableHint;
+        this._context.variableHint = null;
         const split = this._splitPreBlocksAndValue(cond);
         cond = split.value;
         preBlocks.push(...split.preBlocks);
@@ -259,6 +292,7 @@ const ControlFlowHandlers = {
             } else {
                 commentText = '@ruby:syntax:unless';
             }
+            if (variableHint) commentText += `,@ruby:variable:${variableHint}`;
             if (block.comment) {
                 const comment = this._context.comments[block.comment];
                 if (comment) {
@@ -288,7 +322,10 @@ const ControlFlowHandlers = {
         const saved = this._saveContext();
 
         const preBlocks = [];
+        this._context.variableHint = null;
         let cond = this._processCondition(node.predicate);
+        const variableHint = this._context.variableHint;
+        this._context.variableHint = null;
         const split = this._splitPreBlocksAndValue(cond);
         cond = split.value;
         preBlocks.push(...split.preBlocks);
@@ -308,7 +345,11 @@ const ControlFlowHandlers = {
             block = this._createRubyStatementBlock(this._getSource(node), node);
         } else if (this._isBlock(block)) {
             // Attach @ruby:syntax:while comment for round-trip fidelity
-            const commentId = this._createComment('@ruby:syntax:while', block.id, 0, 0, true);
+            let commentText = '@ruby:syntax:while';
+            if (variableHint) {
+                commentText += `,@ruby:variable:${variableHint}`;
+            }
+            const commentId = this._createComment(commentText, block.id, 0, 0, true);
             block.comment = commentId;
         }
 

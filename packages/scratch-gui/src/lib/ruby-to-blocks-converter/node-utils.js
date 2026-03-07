@@ -220,6 +220,38 @@ const NodeUtils = {
         return /_variable$/.test(this._getBlockType(block));
     },
 
+    _getRubyVariableName (varBlock) {
+        const varName = varBlock.fields.VARIABLE.value;
+        const variable = this._context.variables[varName] ||
+            this._context.localVariables[varName];
+        if (!variable) return varName;
+        if (variable.scope === 'instance') return `@${variable.name}`;
+        if (variable.scope === 'global') return `$${variable.name}`;
+        return variable.originalName || variable.name;
+    },
+
+    _wrapVariableAsBooleanCondition (varBlock) {
+        // Creates !(varBlock == (0 < 0)) as a boolean block.
+        // Uses the same pattern as visitFalseNode: operator_lt with OPERAND1/OPERAND2 text inputs.
+        // (0 < 0) is false; !(varBlock == false) is truthy when varBlock is truthy.
+        const previousNode = this._context.currentNode;
+        this._context.currentNode = null;
+
+        const ltBlock = this._createBlock('operator_lt', 'value_boolean');
+        this._addTextInput(ltBlock, 'OPERAND1', '0', '0');
+        this._addTextInput(ltBlock, 'OPERAND2', '0', '0');
+
+        const eqBlock = this._createBlock('operator_equals', 'value_boolean');
+        this._addInput(eqBlock, 'OPERAND1', varBlock);
+        this._addInput(eqBlock, 'OPERAND2', ltBlock);
+
+        const notBlock = this._createBlock('operator_not', 'value_boolean');
+        this._addInput(notBlock, 'OPERAND', eqBlock);
+
+        this._context.currentNode = previousNode;
+        return notBlock;
+    },
+
     isVariableBlock (block) {
         return this.isVariableBlockType(block) && block.opcode === 'data_variable';
     },

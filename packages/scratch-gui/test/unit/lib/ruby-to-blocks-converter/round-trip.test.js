@@ -235,6 +235,42 @@ end
         );
     });
 
+    describe('variable as condition (@ruby:variable: round-trip)', () => {
+        test('while with instance variable', async () => {
+            await expectRoundTrip('while @game_on\n  move(10)\nend');
+        });
+
+        test('until with instance variable', async () => {
+            await expectRoundTrip('until @done\n  move(10)\nend');
+        });
+
+        test('if with instance variable', async () => {
+            await expectRoundTrip('if @flag\n  move(10)\nend');
+        });
+
+        test('if with instance variable and else', async () => {
+            await expectRoundTrip('if @flag\n  move(10)\nelse\n  turn_right(180)\nend');
+        });
+
+        test('unless with instance variable', async () => {
+            await expectRoundTrip('unless @flag\n  move(10)\nend');
+        });
+
+        test('if_modifier with instance variable', async () => {
+            await expectRoundTrip('move(10) if @flag');
+        });
+
+        test('global variable as while condition', async () => {
+            await expectRoundTrip('while $running\n  move(10)\nend');
+        });
+
+        test('complex program with while and boolean variable', async () => {
+            await expectRoundTrip(
+                'when_flag_clicked do\n  @game_on = true\n  while @game_on\n    go_to("_random_")\n    @game_on = false\n  end\nend'
+            );
+        });
+    });
+
     describe('class syntax round trip', () => {
         const expectClassRoundTrip = async (code, expectedRuby = null, spriteOptions = {}) => {
             const result = await converter.targetCodeToBlocks(null, code);
