@@ -165,13 +165,13 @@ describe('FuriganaAnnotator', () => {
     });
 
     describe('control flow: while / end', () => {
-        test('while keyword annotates as 繰り返す', () => {
+        test('while keyword annotates as 真である限り繰り返す', () => {
             const anns = annotate('n = 3\nwhile n > 0\n  n = n - 1\nend');
-            expect(labelsAt(anns, 2)).toContain('繰り返す');
+            expect(labelsAt(anns, 2)).toContain('真である限り繰り返す');
         });
-        test('end of while annotates as ブロック終了', () => {
+        test('end of while annotates as 繰り返し終了', () => {
             const anns = annotate('n = 3\nwhile n > 0\n  n = n - 1\nend');
-            expect(labelsAt(anns, 4)).toContain('ブロック終了');
+            expect(labelsAt(anns, 4)).toContain('繰り返し終了');
         });
     });
 
@@ -320,9 +320,9 @@ describe('FuriganaAnnotator', () => {
             const anns = annotate('n = 0\nuntil n >= 3\n  n += 1\nend');
             expect(labelsAt(anns, 2)).toContain('まで繰り返す');
         });
-        test('end of until annotates as ブロック終了', () => {
+        test('end of until annotates as 繰り返し終了', () => {
             const anns = annotate('n = 0\nuntil n >= 3\n  n += 1\nend');
-            expect(labelsAt(anns, 4)).toContain('ブロック終了');
+            expect(labelsAt(anns, 4)).toContain('繰り返し終了');
         });
     });
 

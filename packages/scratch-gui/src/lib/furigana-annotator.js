@@ -910,7 +910,7 @@ class FuriganaAnnotator {
     _handleUntilNode (node) {
         this._addAnnotation(node.keywordLoc, 'まで繰り返す');
         if (node.closingLoc) {
-            this._addAnnotation(node.closingLoc, 'ブロック終了');
+            this._addAnnotation(node.closingLoc, '繰り返し終了');
         }
         this._walkNode(node.predicate);
         this._walkNode(node.statements);
@@ -919,9 +919,9 @@ class FuriganaAnnotator {
     // ---- Control flow: while ----
 
     _handleWhileNode (node) {
-        this._addAnnotation(node.keywordLoc, '繰り返す');
+        this._addAnnotation(node.keywordLoc, '真である限り繰り返す');
         if (node.closingLoc) {
-            this._addAnnotation(node.closingLoc, 'ブロック終了');
+            this._addAnnotation(node.closingLoc, '繰り返し終了');
         }
         this._walkNode(node.predicate);
         this._walkNode(node.statements);

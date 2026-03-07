@@ -188,7 +188,23 @@ export default function (Generator) {
         return `wait until ${operator}\n`;
     };
 
+    const getWhileCondition = function (block) {
+        const condBlockId = block.inputs.CONDITION ? block.inputs.CONDITION.block : null;
+        const condBlock = condBlockId ? Generator.getBlock(condBlockId) : null;
+        if (condBlock && condBlock.opcode === 'operator_not') {
+            return Generator.valueToCode(condBlock, 'OPERAND', Generator.ORDER_NONE) || false;
+        }
+        // Fallback: use the full condition as-is
+        return Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
+    };
+
     Generator.control_repeat_until = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment === '@ruby:syntax:while') {
+            const operator = getWhileCondition(block);
+            const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+            return `while ${operator}\n${branch}end\n`;
+        }
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         return `until ${operator}\n${branch}end\n`;

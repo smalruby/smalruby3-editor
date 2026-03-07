@@ -60,6 +60,14 @@ describe('convert Code from Ruby', () => {
         expect(await currentRubyProgram()).toEqual('move(10)\n');
     });
 
+    test('while round-trip: Ruby -> Blocks -> Ruby preserves while syntax', async () => {
+        await loadUri(uri);
+        const code = `while touching?("_edge_")
+  move(10)
+end`;
+        await rubyHelper.expectInterconvertBetweenCodeAndRuby(code);
+    });
+
     describe('syntax error', () => {
         beforeEach(async () => {
             await loadUri(uri);

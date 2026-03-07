@@ -1,6 +1,8 @@
 import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
 import {
-    convertAndExpectRubyBlockError
+    convertAndExpectRubyBlockError,
+    convertAndExpectToEqualBlocks,
+    rubyToExpected
 } from '../../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/Control', () => {
@@ -77,6 +79,94 @@ describe('RubyToBlocksConverter/Control', () => {
             for (const s of cases) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
+        });
+    });
+
+    describe('while (control_repeat_until with @ruby:syntax:while)', () => {
+        test('while cond; body; end => control_repeat_until(not(cond), body) + @ruby:syntax:while comment', async () => {
+            const code = `
+                while touching?("_edge_")
+                  move(10)
+                end
+            `;
+            const condBlock = (await rubyToExpected(converter, target, 'touching?("_edge_")'))[0];
+            const moveBlock = (await rubyToExpected(converter, target, 'move(10)'))[0];
+            const expected = [
+                {
+                    opcode: 'control_repeat_until',
+                    comment: {
+                        text: '@ruby:syntax:while',
+                        minimized: true
+                    },
+                    inputs: [
+                        {
+                            name: 'CONDITION',
+                            block: {
+                                opcode: 'operator_not',
+                                inputs: [
+                                    {
+                                        name: 'OPERAND',
+                                        block: condBlock
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    branches: [
+                        moveBlock
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('while with comparison: while @x >= 0; body; end', async () => {
+            const code = `
+                while @x >= 0
+                  move(10)
+                end
+            `;
+            const condBlock = (await rubyToExpected(converter, target, '@x >= 0'))[0];
+            const moveBlock = (await rubyToExpected(converter, target, 'move(10)'))[0];
+            const expected = [
+                {
+                    opcode: 'control_repeat_until',
+                    comment: {
+                        text: '@ruby:syntax:while',
+                        minimized: true
+                    },
+                    inputs: [
+                        {
+                            name: 'CONDITION',
+                            block: {
+                                opcode: 'operator_not',
+                                inputs: [
+                                    {
+                                        name: 'OPERAND',
+                                        block: condBlock
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    branches: [
+                        moveBlock
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('while with non-boolean condition should error', async () => {
+            const code = `
+                while move(10)
+                  bounce_if_on_edge
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(1);
+            expect(converter.errors[0].text).toMatch(/condition is not boolean: move\(10\)/);
+            expect(res).toBeFalsy();
         });
     });
 

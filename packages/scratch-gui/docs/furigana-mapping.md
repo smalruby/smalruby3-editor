@@ -160,8 +160,8 @@ Ruby tab のふりがな機能（「ふ」ボタン）で表示されるふり�
 | `end`（if / case） | `分岐終了` | |
 | `until` | `まで繰り返す` | do ... end のブロックを取るとき |
 | `until` | `まで` | wait until ... のとき |
-| `while` | `繰り返す` | |
-| `end`（while / do ブロック） | `ブロック終了` | |
+| `while` | `真である限り繰り返す` | |
+| `end`（while/while do/until/until do ブロック） | `繰り返し終了` | |
 | `def` | `メソッド作成` | |
 | `case` | `状態分岐` | |
 | `when` | `のとき` | |
