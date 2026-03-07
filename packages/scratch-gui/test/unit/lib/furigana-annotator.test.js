@@ -29,8 +29,8 @@ describe('FuriganaAnnotator', () => {
             annotations = annotate('answer = 10');
         });
 
-        test('line 1 has 変数answer, 紐付けろ, 数値10 in order', () => {
-            expect(labelsAt(annotations, 1)).toEqual(['変数answer', '紐付けろ', '数値10']);
+        test('line 1 has 変数answer, 紐付ける, 数値10 in order', () => {
+            expect(labelsAt(annotations, 1)).toEqual(['変数answer', '紐付ける', '数値10']);
         });
         test('answer starts at column 0', () => {
             expect(annotations.get(1)[0].startColumn).toBe(0);
@@ -63,14 +63,14 @@ describe('FuriganaAnnotator', () => {
     });
 
     describe('method calls', () => {
-        test('puts annotates as 表示しろ', () => {
-            expect(labelsAt(annotate('puts "text"'), 1)).toContain('表示しろ');
+        test('puts annotates as 表示する', () => {
+            expect(labelsAt(annotate('puts "text"'), 1)).toContain('表示する');
         });
-        test('print annotates as 表示しろ', () => {
-            expect(labelsAt(annotate('print "text"'), 1)).toContain('表示しろ');
+        test('print annotates as 表示する', () => {
+            expect(labelsAt(annotate('print "text"'), 1)).toContain('表示する');
         });
-        test('gets annotates as 入力文字列を取得', () => {
-            expect(labelsAt(annotate('age = gets.to_i'), 1)).toContain('入力文字列を取得');
+        test('gets annotates as 入力する', () => {
+            expect(labelsAt(annotate('age = gets.to_i'), 1)).toContain('入力する');
         });
         test('to_i annotates as 整数化', () => {
             expect(labelsAt(annotate('age = gets.to_i'), 1)).toContain('整数化');
@@ -146,21 +146,21 @@ describe('FuriganaAnnotator', () => {
     });
 
     describe('control flow: if / elsif / else / end', () => {
-        test('if keyword annotates as もしも', () => {
+        test('if keyword annotates as もし', () => {
             const anns = annotate('x = 5\nif x <= 5\n  puts "ok"\nend');
-            expect(labelsAt(anns, 2)).toContain('もしも');
+            expect(labelsAt(anns, 2)).toContain('もし');
         });
         test('end of if annotates as 分岐終了', () => {
             const anns = annotate('x = 5\nif x <= 5\n  puts "ok"\nend');
             expect(labelsAt(anns, 4)).toContain('分岐終了');
         });
-        test('else annotates as そうでなければ', () => {
+        test('else annotates as でなければ', () => {
             const anns = annotate('x = 5\nif x <= 5\n  puts "small"\nelse\n  puts "big"\nend');
-            expect(labelsAt(anns, 4)).toContain('そうでなければ');
+            expect(labelsAt(anns, 4)).toContain('でなければ');
         });
-        test('elsif annotates as そうではなく', () => {
+        test('elsif annotates as ではなく', () => {
             const anns = annotate('x = 5\nif x <= 5\n  puts "small"\nelsif x >= 65\n  puts "big"\nend');
-            expect(labelsAt(anns, 4)).toContain('そうではなく');
+            expect(labelsAt(anns, 4)).toContain('ではなく');
         });
     });
 
@@ -201,6 +201,104 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
+    describe('global variables', () => {
+        test('$x = ... annotates as グローバル変数x and 紐付ける', () => {
+            const anns = annotate('$score = 0');
+            expect(labelsAt(anns, 1)).toContain('グローバル変数score');
+            expect(labelsAt(anns, 1)).toContain('紐付ける');
+        });
+        test('$x read annotates as グローバル変数x', () => {
+            const anns = annotate('$score = 0\nputs $score');
+            expect(labelsAt(anns, 2)).toContain('グローバル変数score');
+        });
+    });
+
+    describe('instance variables', () => {
+        test('@x = ... annotates as インスタンス変数x and 紐付ける', () => {
+            const anns = annotate('@name = "Alice"');
+            expect(labelsAt(anns, 1)).toContain('インスタンス変数name');
+            expect(labelsAt(anns, 1)).toContain('紐付ける');
+        });
+        test('@x read annotates as インスタンス変数x', () => {
+            const anns = annotate('@name = "Alice"\nputs @name');
+            expect(labelsAt(anns, 2)).toContain('インスタンス変数name');
+        });
+    });
+
+    describe('boolean literals', () => {
+        test('true annotates as 真', () => {
+            const anns = annotate('x = true');
+            expect(labelsAt(anns, 1)).toContain('真');
+        });
+        test('false annotates as 偽', () => {
+            const anns = annotate('x = false');
+            expect(labelsAt(anns, 1)).toContain('偽');
+        });
+    });
+
+    describe('operator assignment', () => {
+        test('+= (numeric) annotates as ずつ増やす', () => {
+            const anns = annotate('x = 1\nx += 1');
+            expect(labelsAt(anns, 2)).toContain('ずつ増やす');
+        });
+        test('+= (string) annotates as と連結', () => {
+            const anns = annotate('x = "hello"\nx += " world"');
+            expect(labelsAt(anns, 2)).toContain('と連結');
+        });
+        test('-= annotates as ずつ減らす', () => {
+            const anns = annotate('x = 5\nx -= 1');
+            expect(labelsAt(anns, 2)).toContain('ずつ減らす');
+        });
+        test('*= annotates as 倍にする', () => {
+            const anns = annotate('x = 2\nx *= 3');
+            expect(labelsAt(anns, 2)).toContain('倍にする');
+        });
+        test('/= annotates as 分の1にする', () => {
+            const anns = annotate('x = 6\nx /= 2');
+            expect(labelsAt(anns, 2)).toContain('分の1にする');
+        });
+        test('%= annotates as 余りにする', () => {
+            const anns = annotate('x = 7\nx %= 3');
+            expect(labelsAt(anns, 2)).toContain('余りにする');
+        });
+        test('**= annotates as べき乗にする', () => {
+            const anns = annotate('x = 2\nx **= 3');
+            expect(labelsAt(anns, 2)).toContain('べき乗にする');
+        });
+    });
+
+    describe('exponentiation and unary operators', () => {
+        test('** annotates as べき乗', () => {
+            const anns = annotate('x = 2\na = x ** 3');
+            expect(labelsAt(anns, 2)).toContain('べき乗');
+        });
+    });
+
+    describe('to_f conversion', () => {
+        test('.to_f annotates as 浮動小数点数化', () => {
+            const anns = annotate('x = "3"\ny = x.to_f');
+            expect(labelsAt(anns, 2)).toContain('浮動小数点数化');
+        });
+    });
+
+    describe('wait method', () => {
+        test('wait annotates as 待つ', () => {
+            const anns = annotate('wait(1)');
+            expect(labelsAt(anns, 1)).toContain('待つ');
+        });
+    });
+
+    describe('until loop', () => {
+        test('until keyword annotates as まで繰り返す', () => {
+            const anns = annotate('n = 0\nuntil n >= 3\n  n += 1\nend');
+            expect(labelsAt(anns, 2)).toContain('まで繰り返す');
+        });
+        test('end of until annotates as ブロック終了', () => {
+            const anns = annotate('n = 0\nuntil n >= 3\n  n += 1\nend');
+            expect(labelsAt(anns, 4)).toContain('ブロック終了');
+        });
+    });
+
     describe('multiline program from book examples', () => {
         test('kakaku example', () => {
             const code = [
@@ -211,14 +309,14 @@ describe('FuriganaAnnotator', () => {
             const anns = annotate(code);
             // line 1: kakaku = 100
             expect(labelsAt(anns, 1)).toContain('変数kakaku');
-            expect(labelsAt(anns, 1)).toContain('紐付けろ');
+            expect(labelsAt(anns, 1)).toContain('紐付ける');
             expect(labelsAt(anns, 1)).toContain('数値100');
             // line 2: urine = kakaku * 0.7
             expect(labelsAt(anns, 2)).toContain('変数urine');
             expect(labelsAt(anns, 2)).toContain('掛ける');
             expect(labelsAt(anns, 2)).toContain('数値0.7');
             // line 3: puts urine
-            expect(labelsAt(anns, 3)).toContain('表示しろ');
+            expect(labelsAt(anns, 3)).toContain('表示する');
             expect(labelsAt(anns, 3)).toContain('変数urine');
         });
     });

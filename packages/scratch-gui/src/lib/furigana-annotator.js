@@ -150,7 +150,7 @@ class FuriganaAnnotator {
 
     _handleLocalVariableWriteNode (node) {
         this._addAnnotation(node.nameLoc, `変数${node.name}`);
-        this._addAnnotation(node.operatorLoc, '紐付けろ');
+        this._addAnnotation(node.operatorLoc, '紐付ける');
         this._walkNode(node.value);
     }
 
@@ -158,15 +158,68 @@ class FuriganaAnnotator {
         this._addAnnotation(node.location, `変数${node.name}`);
     }
 
+    _handleLocalVariableOperatorWriteNode (node) {
+        this._addAnnotation(node.nameLoc, `変数${node.name}`);
+        this._addAnnotation(node.binaryOperatorLoc, this._opAsgnLabel(node.binaryOperator, node.value));
+        this._walkNode(node.value);
+    }
+
     _handleInstanceVariableWriteNode (node) {
-        // @name → 変数name (strip @)
-        this._addAnnotation(node.nameLoc, `変数${node.name.slice(1)}`);
-        this._addAnnotation(node.operatorLoc, '紐付けろ');
+        // @name → インスタンス変数name (strip @)
+        this._addAnnotation(node.nameLoc, `インスタンス変数${node.name.slice(1)}`);
+        this._addAnnotation(node.operatorLoc, '紐付ける');
         this._walkNode(node.value);
     }
 
     _handleInstanceVariableReadNode (node) {
-        this._addAnnotation(node.location, `変数${node.name.slice(1)}`);
+        this._addAnnotation(node.location, `インスタンス変数${node.name.slice(1)}`);
+    }
+
+    _handleInstanceVariableOperatorWriteNode (node) {
+        this._addAnnotation(node.nameLoc, `インスタンス変数${node.name.slice(1)}`);
+        this._addAnnotation(node.binaryOperatorLoc, this._opAsgnLabel(node.binaryOperator, node.value));
+        this._walkNode(node.value);
+    }
+
+    _handleGlobalVariableWriteNode (node) {
+        // $name → グローバル変数name (strip $)
+        this._addAnnotation(node.nameLoc, `グローバル変数${node.name.slice(1)}`);
+        this._addAnnotation(node.operatorLoc, '紐付ける');
+        this._walkNode(node.value);
+    }
+
+    _handleGlobalVariableReadNode (node) {
+        this._addAnnotation(node.location, `グローバル変数${node.name.slice(1)}`);
+    }
+
+    _handleGlobalVariableOperatorWriteNode (node) {
+        this._addAnnotation(node.nameLoc, `グローバル変数${node.name.slice(1)}`);
+        this._addAnnotation(node.binaryOperatorLoc, this._opAsgnLabel(node.binaryOperator, node.value));
+        this._walkNode(node.value);
+    }
+
+    /**
+     * Returns furigana label for operator-assignment (+=, -=, *=, etc.)
+     * @param {string} binaryOperator - e.g. '+', '-', '*', '/', '%', '**'
+     * @param {object} valueNode - prism AST node for the RHS
+     */
+    _opAsgnLabel (binaryOperator, valueNode) {
+        switch (binaryOperator) {
+        case '+':
+            return this._isStringType(valueNode) ? 'と連結' : 'ずつ増やす';
+        case '-':
+            return 'ずつ減らす';
+        case '*':
+            return '倍にする';
+        case '/':
+            return '分の1にする';
+        case '%':
+            return '余りにする';
+        case '**':
+            return 'べき乗にする';
+        default:
+            return binaryOperator;
+        }
     }
 
     // ---- Literals ----
@@ -179,6 +232,14 @@ class FuriganaAnnotator {
     _handleFloatNode (node) {
         const text = this._getSourceText(node.location);
         this._addAnnotation(node.location, `数値${text}`);
+    }
+
+    _handleTrueNode (node) {
+        this._addAnnotation(node.location, '真');
+    }
+
+    _handleFalseNode (node) {
+        this._addAnnotation(node.location, '偽');
     }
 
     _handleStringNode (node) {
@@ -200,6 +261,9 @@ class FuriganaAnnotator {
             case 'to_i':
                 this._addAnnotation(node.messageLoc, '整数化');
                 break;
+            case 'to_f':
+                this._addAnnotation(node.messageLoc, '浮動小数点数化');
+                break;
             case 'to_s':
                 this._addAnnotation(node.messageLoc, '文字列化');
                 break;
@@ -220,6 +284,15 @@ class FuriganaAnnotator {
                 break;
             case '%':
                 this._addAnnotation(node.messageLoc, '余り');
+                break;
+            case '**':
+                this._addAnnotation(node.messageLoc, 'べき乗');
+                break;
+            case '+@':
+                this._addAnnotation(node.messageLoc, '正');
+                break;
+            case '-@':
+                this._addAnnotation(node.messageLoc, '負');
                 break;
             case '<=':
                 this._addAnnotation(node.messageLoc, '以下');
@@ -250,10 +323,13 @@ class FuriganaAnnotator {
             switch (name) {
             case 'puts':
             case 'print':
-                this._addAnnotation(node.messageLoc, '表示しろ');
+                this._addAnnotation(node.messageLoc, '表示する');
                 break;
             case 'gets':
-                this._addAnnotation(node.messageLoc, '入力文字列を取得');
+                this._addAnnotation(node.messageLoc, '入力する');
+                break;
+            case 'wait':
+                this._addAnnotation(node.messageLoc, '待つ');
                 break;
             default:
                 break;
@@ -273,12 +349,13 @@ class FuriganaAnnotator {
     _handleIfNode (node) {
         const keyword = this._getSourceText(node.ifKeywordLoc);
         if (keyword === 'if') {
-            this._addAnnotation(node.ifKeywordLoc, 'もしも');
+            this._addAnnotation(node.ifKeywordLoc, 'もし');
+            // Only the outermost if adds 分岐終了 (elsif shares the same endKeywordLoc)
+            if (node.endKeywordLoc) {
+                this._addAnnotation(node.endKeywordLoc, '分岐終了');
+            }
         } else if (keyword === 'elsif') {
-            this._addAnnotation(node.ifKeywordLoc, 'そうではなく');
-        }
-        if (node.endKeywordLoc) {
-            this._addAnnotation(node.endKeywordLoc, '分岐終了');
+            this._addAnnotation(node.ifKeywordLoc, 'ではなく');
         }
         this._walkNode(node.predicate);
         this._walkNode(node.statements);
@@ -286,7 +363,18 @@ class FuriganaAnnotator {
     }
 
     _handleElseNode (node) {
-        this._addAnnotation(node.elseKeywordLoc, 'そうでなければ');
+        this._addAnnotation(node.elseKeywordLoc, 'でなければ');
+        this._walkNode(node.statements);
+    }
+
+    // ---- Control flow: until ----
+
+    _handleUntilNode (node) {
+        this._addAnnotation(node.keywordLoc, 'まで繰り返す');
+        if (node.closingLoc) {
+            this._addAnnotation(node.closingLoc, 'ブロック終了');
+        }
+        this._walkNode(node.predicate);
         this._walkNode(node.statements);
     }
 
