@@ -552,6 +552,198 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
+    // ---- Phase 2: receiver-based methods ----
+
+    describe('self attribute setters (self.x = n)', () => {
+        test('self.x = n annotates as X座標を設定', () => {
+            expect(labelsAt(annotate('self.x = 100'), 1)).toContain('X座標を設定');
+        });
+        test('self.y = n annotates as Y座標を設定', () => {
+            expect(labelsAt(annotate('self.y = 50'), 1)).toContain('Y座標を設定');
+        });
+        test('self.direction = n annotates as 向きを設定', () => {
+            expect(labelsAt(annotate('self.direction = 90'), 1)).toContain('向きを設定');
+        });
+        test('self.size = n annotates as 大きさを設定', () => {
+            expect(labelsAt(annotate('self.size = 200'), 1)).toContain('大きさを設定');
+        });
+        test('self.volume = n annotates as 音量を設定', () => {
+            expect(labelsAt(annotate('self.volume = 50'), 1)).toContain('音量を設定');
+        });
+        test('self.rotation_style = "..." annotates as 回転スタイルを設定', () => {
+            expect(labelsAt(annotate('self.rotation_style = "left-right"'), 1)).toContain('回転スタイルを設定');
+        });
+        test('self.instrument = n annotates as 楽器を設定', () => {
+            expect(labelsAt(annotate('self.instrument = 1'), 1)).toContain('楽器を設定');
+        });
+        test('self.tempo = n annotates as テンポを設定', () => {
+            expect(labelsAt(annotate('self.tempo = 120'), 1)).toContain('テンポを設定');
+        });
+        test('self.drag_mode = "..." annotates as ドラッグモードを設定', () => {
+            expect(labelsAt(annotate('self.drag_mode = "draggable"'), 1)).toContain('ドラッグモードを設定');
+        });
+    });
+
+    describe('self attribute operator writes (self.x += n)', () => {
+        test('self.x += n annotates as X座標を変える', () => {
+            expect(labelsAt(annotate('self.x += 10'), 1)).toContain('X座標を変える');
+        });
+        test('self.y += n annotates as Y座標を変える', () => {
+            expect(labelsAt(annotate('self.y += -10'), 1)).toContain('Y座標を変える');
+        });
+        test('self.size += n annotates as 大きさを変える', () => {
+            expect(labelsAt(annotate('self.size += 10'), 1)).toContain('大きさを変える');
+        });
+        test('self.volume += n annotates as 音量を変える', () => {
+            expect(labelsAt(annotate('self.volume += -10'), 1)).toContain('音量を変える');
+        });
+        test('self.tempo += n annotates as テンポを変える', () => {
+            expect(labelsAt(annotate('self.tempo += 20'), 1)).toContain('テンポを変える');
+        });
+    });
+
+    describe('Keyboard / Mouse / Timer class methods', () => {
+        test('Keyboard.pressed? annotates as キーが押されているか', () => {
+            expect(labelsAt(annotate('Keyboard.pressed?("space")'), 1)).toContain('キーが押されているか');
+        });
+        test('Mouse.down? annotates as マウスが押されているか', () => {
+            expect(labelsAt(annotate('Mouse.down?'), 1)).toContain('マウスが押されているか');
+        });
+        test('Mouse.x annotates as マウスのX座標', () => {
+            expect(labelsAt(annotate('Mouse.x'), 1)).toContain('マウスのX座標');
+        });
+        test('Mouse.y annotates as マウスのY座標', () => {
+            expect(labelsAt(annotate('Mouse.y'), 1)).toContain('マウスのY座標');
+        });
+        test('Timer.value annotates as タイマー', () => {
+            expect(labelsAt(annotate('Timer.value'), 1)).toContain('タイマー');
+        });
+        test('Timer.reset annotates as タイマーをリセット', () => {
+            expect(labelsAt(annotate('Timer.reset'), 1)).toContain('タイマーをリセット');
+        });
+    });
+
+    describe('Time.now.xxx chain methods', () => {
+        test('Time.now.year annotates as 今の年', () => {
+            expect(labelsAt(annotate('Time.now.year'), 1)).toContain('今の年');
+        });
+        test('Time.now.month annotates as 今の月', () => {
+            expect(labelsAt(annotate('Time.now.month'), 1)).toContain('今の月');
+        });
+        test('Time.now.day annotates as 今の日', () => {
+            expect(labelsAt(annotate('Time.now.day'), 1)).toContain('今の日');
+        });
+        test('Time.now.hour annotates as 今の時', () => {
+            expect(labelsAt(annotate('Time.now.hour'), 1)).toContain('今の時');
+        });
+        test('Time.now.min annotates as 今の分', () => {
+            expect(labelsAt(annotate('Time.now.min'), 1)).toContain('今の分');
+        });
+        test('Time.now.sec annotates as 今の秒', () => {
+            expect(labelsAt(annotate('Time.now.sec'), 1)).toContain('今の秒');
+        });
+        test('Time.now.wday annotates as 今の曜日', () => {
+            expect(labelsAt(annotate('Time.now.wday'), 1)).toContain('今の曜日');
+        });
+    });
+
+    describe('Math class methods', () => {
+        test('Math.sqrt annotates as 平方根', () => {
+            expect(labelsAt(annotate('Math.sqrt(9)'), 1)).toContain('平方根');
+        });
+        test('Math.sin annotates as sin', () => {
+            expect(labelsAt(annotate('Math.sin(90)'), 1)).toContain('sin');
+        });
+        test('Math.cos annotates as cos', () => {
+            expect(labelsAt(annotate('Math.cos(0)'), 1)).toContain('cos');
+        });
+        test('Math.tan annotates as tan', () => {
+            expect(labelsAt(annotate('Math.tan(45)'), 1)).toContain('tan');
+        });
+        test('Math.asin annotates as asin', () => {
+            expect(labelsAt(annotate('Math.asin(1)'), 1)).toContain('asin');
+        });
+        test('Math.acos annotates as acos', () => {
+            expect(labelsAt(annotate('Math.acos(0)'), 1)).toContain('acos');
+        });
+        test('Math.atan annotates as atan', () => {
+            expect(labelsAt(annotate('Math.atan(1)'), 1)).toContain('atan');
+        });
+        test('Math.log annotates as ln', () => {
+            expect(labelsAt(annotate('Math.log(10)'), 1)).toContain('ln');
+        });
+        test('Math.log10 annotates as log', () => {
+            expect(labelsAt(annotate('Math.log10(100)'), 1)).toContain('log');
+        });
+    });
+
+    describe('Numeric / String receiver methods', () => {
+        test('.round annotates as 四捨五入', () => {
+            expect(labelsAt(annotate('x = 3.7\nx.round'), 2)).toContain('四捨五入');
+        });
+        test('.abs annotates as 絶対値', () => {
+            expect(labelsAt(annotate('x = -5\nx.abs'), 2)).toContain('絶対値');
+        });
+        test('.floor annotates as 切り捨て', () => {
+            expect(labelsAt(annotate('x = 3.7\nx.floor'), 2)).toContain('切り捨て');
+        });
+        test('.ceil annotates as 切り上げ', () => {
+            expect(labelsAt(annotate('x = 3.2\nx.ceil'), 2)).toContain('切り上げ');
+        });
+        test('.length annotates as 長さ', () => {
+            expect(labelsAt(annotate('"hello".length'), 1)).toContain('長さ');
+        });
+        test('.include? annotates as 含むか', () => {
+            expect(labelsAt(annotate('"hello".include?("ell")'), 1)).toContain('含むか');
+        });
+        test('N.times annotates as 回繰り返す', () => {
+            const anns = annotate('10.times do\nend');
+            expect(labelsAt(anns, 1)).toContain('回繰り返す');
+        });
+    });
+
+    describe('pen methods (pen local variable receiver)', () => {
+        test('pen.stamp annotates as スタンプ', () => {
+            expect(labelsAt(annotate('pen = 1\npen.stamp'), 2)).toContain('スタンプ');
+        });
+        test('pen.down annotates as ペンを下ろす', () => {
+            expect(labelsAt(annotate('pen = 1\npen.down'), 2)).toContain('ペンを下ろす');
+        });
+        test('pen.up annotates as ペンを上げる', () => {
+            expect(labelsAt(annotate('pen = 1\npen.up'), 2)).toContain('ペンを上げる');
+        });
+        test('pen.size = n annotates as ペンの太さを設定', () => {
+            expect(labelsAt(annotate('pen = 1\npen.size = 3'), 2)).toContain('ペンの太さを設定');
+        });
+        test('pen.color = n annotates as ペンの色を設定', () => {
+            expect(labelsAt(annotate('pen = 1\npen.color = "#ff0000"'), 2)).toContain('ペンの色を設定');
+        });
+        test('pen.saturation = n annotates as 彩度を設定', () => {
+            expect(labelsAt(annotate('pen = 1\npen.saturation = 100'), 2)).toContain('彩度を設定');
+        });
+        test('pen.brightness = n annotates as 明るさを設定', () => {
+            expect(labelsAt(annotate('pen = 1\npen.brightness = 100'), 2)).toContain('明るさを設定');
+        });
+        test('pen.transparency = n annotates as 透明度を設定', () => {
+            expect(labelsAt(annotate('pen = 1\npen.transparency = 50'), 2)).toContain('透明度を設定');
+        });
+    });
+
+    describe('pen operator writes (pen.size += n)', () => {
+        test('pen.size += n annotates as ペンの太さを変える', () => {
+            expect(labelsAt(annotate('pen = 1\npen.size += 1'), 2)).toContain('ペンの太さを変える');
+        });
+        test('pen.color += n annotates as ペンの色を変える', () => {
+            expect(labelsAt(annotate('pen = 1\npen.color += 10'), 2)).toContain('ペンの色を変える');
+        });
+    });
+
+    describe('Pen class methods (Pen.clear)', () => {
+        test('Pen.clear annotates as 全消去', () => {
+            expect(labelsAt(annotate('Pen.clear'), 1)).toContain('全消去');
+        });
+    });
+
     describe('multiline program from book examples', () => {
         test('kakaku example', () => {
             const code = [

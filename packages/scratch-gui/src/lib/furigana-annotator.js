@@ -260,7 +260,72 @@ class FuriganaAnnotator {
         const name = node.name;
 
         if (node.receiver) {
-            // Method calls with receiver (operators, conversions, ...)
+            // Method calls with receiver
+            const receiverType = typeof node.receiver.toJSON === 'function' ?
+                node.receiver.toJSON().type : null;
+            const receiverName = (receiverType === 'ConstantReadNode') ?
+                node.receiver.name : null;
+
+            // ---- Constant-receiver class methods ----
+            if (receiverType === 'ConstantReadNode') {
+                switch (receiverName) {
+                case 'Keyboard':
+                    if (name === 'pressed?') {
+                        this._addAnnotation(node.messageLoc, 'キーが押されているか');
+                    }
+                    break;
+                case 'Mouse':
+                    if (name === 'down?') {
+                        this._addAnnotation(node.messageLoc, 'マウスが押されているか');
+                    } else if (name === 'x') {
+                        this._addAnnotation(node.messageLoc, 'マウスのX座標');
+                    } else if (name === 'y') {
+                        this._addAnnotation(node.messageLoc, 'マウスのY座標');
+                    }
+                    break;
+                case 'Timer':
+                    if (name === 'value') {
+                        this._addAnnotation(node.messageLoc, 'タイマー');
+                    } else if (name === 'reset') {
+                        this._addAnnotation(node.messageLoc, 'タイマーをリセット');
+                    }
+                    break;
+                case 'Pen':
+                    if (name === 'clear') {
+                        this._addAnnotation(node.messageLoc, '全消去');
+                    }
+                    break;
+                case 'Math':
+                    this._annotateMathMethod(node, name);
+                    break;
+                default:
+                    break;
+                }
+            } else if (receiverType === 'CallNode') {
+                // ---- Chained calls: Time.now.xxx ----
+                const innerReceiver = node.receiver;
+                const innerReceiverType = typeof innerReceiver.toJSON === 'function' ?
+                    innerReceiver.toJSON().type : null;
+                // Check if it's Time.now chain: outer.name is year/month/etc,
+                // node.receiver is CallNode(name=now, receiver=ConstantReadNode(Time))
+                const innerName = node.receiver.name;
+                if (innerName === 'now') {
+                    const innerRec = node.receiver.receiver;
+                    const innerRecType = innerRec && typeof innerRec.toJSON === 'function' ?
+                        innerRec.toJSON().type : null;
+                    if (innerRecType === 'ConstantReadNode' && innerRec.name === 'Time') {
+                        this._annotateTimeNowMethod(node, name);
+                    }
+                }
+            } else if (receiverType === 'SelfNode') {
+                // ---- self.attr = value ----
+                this._annotateSelfSetter(node, name);
+            } else if (receiverType === 'LocalVariableReadNode' && node.receiver.name === 'pen') {
+                // ---- pen.xxx ----
+                this._annotatePenMethod(node, name);
+            }
+
+            // ---- Operators and conversions (any receiver) ----
             switch (name) {
             case 'to_i':
                 this._addAnnotation(node.messageLoc, '整数化');
@@ -318,6 +383,42 @@ class FuriganaAnnotator {
                 break;
             case '!':
                 this._addAnnotation(node.messageLoc, 'ではない');
+                break;
+            // ---- Numeric / String methods ----
+            case 'round':
+                this._addAnnotation(node.messageLoc, '四捨五入');
+                break;
+            case 'abs':
+                this._addAnnotation(node.messageLoc, '絶対値');
+                break;
+            case 'floor':
+                this._addAnnotation(node.messageLoc, '切り捨て');
+                break;
+            case 'ceil':
+                this._addAnnotation(node.messageLoc, '切り上げ');
+                break;
+            case 'length':
+                this._addAnnotation(node.messageLoc, '長さ');
+                break;
+            case 'include?':
+                this._addAnnotation(node.messageLoc, '含むか');
+                break;
+            // ---- Control ----
+            case 'times':
+                this._addAnnotation(node.messageLoc, '回繰り返す');
+                break;
+            // ---- List operations ----
+            case 'push':
+                this._addAnnotation(node.messageLoc, '追加する');
+                break;
+            case 'delete_at':
+                this._addAnnotation(node.messageLoc, '削除する');
+                break;
+            case 'insert':
+                this._addAnnotation(node.messageLoc, '挿入する');
+                break;
+            case 'index':
+                this._addAnnotation(node.messageLoc, '検索する');
                 break;
             default:
                 break;
@@ -619,6 +720,68 @@ class FuriganaAnnotator {
         return null;
     }
 
+    _annotateMathMethod (node, name) {
+        const mathLabels = {
+            sqrt: '平方根',
+            sin: 'sin',
+            cos: 'cos',
+            tan: 'tan',
+            asin: 'asin',
+            acos: 'acos',
+            atan: 'atan',
+            log: 'ln',
+            log10: 'log'
+        };
+        const label = mathLabels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    }
+
+    _annotateTimeNowMethod (node, name) {
+        const timeLabels = {
+            year: '今の年',
+            month: '今の月',
+            day: '今の日',
+            hour: '今の時',
+            min: '今の分',
+            sec: '今の秒',
+            wday: '今の曜日'
+        };
+        const label = timeLabels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    }
+
+    _annotateSelfSetter (node, name) {
+        // name ends with '=' for assignments like self.x = n
+        const selfSetterLabels = {
+            'x=': 'X座標を設定',
+            'y=': 'Y座標を設定',
+            'direction=': '向きを設定',
+            'size=': '大きさを設定',
+            'volume=': '音量を設定',
+            'rotation_style=': '回転スタイルを設定',
+            'instrument=': '楽器を設定',
+            'tempo=': 'テンポを設定',
+            'drag_mode=': 'ドラッグモードを設定'
+        };
+        const label = selfSetterLabels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    }
+
+    _annotatePenMethod (node, name) {
+        const penLabels = {
+            'stamp': 'スタンプ',
+            'down': 'ペンを下ろす',
+            'up': 'ペンを上げる',
+            'size=': 'ペンの太さを設定',
+            'color=': 'ペンの色を設定',
+            'saturation=': '彩度を設定',
+            'brightness=': '明るさを設定',
+            'transparency=': '透明度を設定'
+        };
+        const label = penLabels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    }
+
     _annotateGlide (node) {
         const secs = this._getKwargSourceText(node, 'secs');
         const firstArg = node.arguments_ && node.arguments_.arguments_ && node.arguments_.arguments_[0];
@@ -674,6 +837,35 @@ class FuriganaAnnotator {
         const beats = this._getArgSourceText(node, 0);
         const beatsLabel = beats === null ? 'n' : beats;
         this._addAnnotation(node.messageLoc, `${beatsLabel}拍休む`);
+    }
+
+    // ---- self.attr += n (CallOperatorWriteNode) ----
+
+    _handleCallOperatorWriteNode (node) {
+        const receiverType = node.receiver && typeof node.receiver.toJSON === 'function' ?
+            node.receiver.toJSON().type : null;
+        const attrName = node.readName; // e.g. "x" for self.x += 10
+
+        if (receiverType === 'SelfNode') {
+            const selfOpLabels = {
+                x: 'X座標を変える',
+                y: 'Y座標を変える',
+                size: '大きさを変える',
+                volume: '音量を変える',
+                tempo: 'テンポを変える'
+            };
+            const label = selfOpLabels[attrName];
+            if (label) this._addAnnotation(node.messageLoc, label);
+        } else if (receiverType === 'LocalVariableReadNode' && node.receiver.name === 'pen') {
+            const penOpLabels = {
+                size: 'ペンの太さを変える',
+                color: 'ペンの色を変える'
+            };
+            const label = penOpLabels[attrName];
+            if (label) this._addAnnotation(node.messageLoc, label);
+        }
+        if (node.receiver) this._walkNode(node.receiver);
+        if (node.value) this._walkNode(node.value);
     }
 
     // ---- Control flow: if / elsif / else ----
