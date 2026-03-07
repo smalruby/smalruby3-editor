@@ -301,7 +301,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                 // Collect state context
                 const stateContext = collectStateContext(
                     this.props.vm,
-                    this.props.editingTarget
+                    this.props.vm && this.props.vm.editingTarget
                 );
 
                 // Call Gemini API
@@ -376,7 +376,7 @@ const GeminiModalHOC = function (WrappedComponent) {
             const {latestCodes} = this.state;
             let code = latestCodes[index];
             if (code && this._applyGeminiCode) {
-                const target = this.props.editingTarget;
+                const target = this.props.vm && this.props.vm.editingTarget;
                 const validSounds = target && target.sprite && target.sprite.sounds ?
                     target.sprite.sounds.map(s => s.name) : [];
                 const validCostumes = target && target.sprite && target.sprite.costumes ?
@@ -448,12 +448,7 @@ const GeminiModalHOC = function (WrappedComponent) {
 
     GeminiModalComponent.propTypes = {
         intl: intlShape.isRequired,
-        vm: PropTypes.instanceOf(VM).isRequired,
-        editingTarget: PropTypes.object
-    };
-
-    GeminiModalComponent.defaultProps = {
-        editingTarget: null
+        vm: PropTypes.instanceOf(VM).isRequired
     };
 
     return injectIntl(GeminiModalComponent);
