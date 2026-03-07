@@ -397,11 +397,40 @@ class FuriganaAnnotator {
 
     _handleDefNode (node) {
         this._addAnnotation(node.defKeywordLoc, 'メソッド作成');
+        if (node.nameLoc) {
+            this._addAnnotation(node.nameLoc, `${node.name}という名前`);
+        }
         if (node.endKeywordLoc) {
             this._addAnnotation(node.endKeywordLoc, '作成終了');
         }
         if (node.parameters) this._walkNode(node.parameters);
         if (node.body) this._walkNode(node.body);
+    }
+
+    _handleRequiredParameterNode (node) {
+        this._addAnnotation(node.location, `引数${node.name}`);
+    }
+
+    _handleOptionalParameterNode (node) {
+        this._addAnnotation(node.nameLoc || node.location, `引数${node.name}`);
+        this._walkNode(node.value);
+    }
+
+    // ---- return ----
+
+    _handleReturnNode (node) {
+        this._addAnnotation(node.keywordLoc, '呼び出し元に返す');
+        this._walkChildren(node);
+    }
+
+    // ---- class definition ----
+
+    _handleClassNode (node) {
+        this._addAnnotation(node.classKeywordLoc, 'クラス作成');
+        if (node.endKeywordLoc) {
+            this._addAnnotation(node.endKeywordLoc, '作成終了');
+        }
+        this._walkChildren(node);
     }
 
     // ---- case / when ----

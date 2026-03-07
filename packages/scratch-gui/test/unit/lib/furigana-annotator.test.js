@@ -180,9 +180,36 @@ describe('FuriganaAnnotator', () => {
             const anns = annotate('def greet\n  puts "hi"\nend');
             expect(labelsAt(anns, 1)).toContain('メソッド作成');
         });
+        test('method name annotates as Nという名前', () => {
+            const anns = annotate('def greet\n  puts "hi"\nend');
+            expect(labelsAt(anns, 1)).toContain('greetという名前');
+        });
         test('end of def annotates as 作成終了', () => {
             const anns = annotate('def greet\n  puts "hi"\nend');
             expect(labelsAt(anns, 3)).toContain('作成終了');
+        });
+        test('required parameter annotates as 引数N', () => {
+            const anns = annotate('def add(a, b)\n  a + b\nend');
+            expect(labelsAt(anns, 1)).toContain('引数a');
+            expect(labelsAt(anns, 1)).toContain('引数b');
+        });
+    });
+
+    describe('return', () => {
+        test('return annotates as 呼び出し元に返す', () => {
+            const anns = annotate('def double(x)\n  return x * 2\nend');
+            expect(labelsAt(anns, 2)).toContain('呼び出し元に返す');
+        });
+    });
+
+    describe('class definition', () => {
+        test('class keyword annotates as クラス作成', () => {
+            const anns = annotate('class Dog\nend');
+            expect(labelsAt(anns, 1)).toContain('クラス作成');
+        });
+        test('end of class annotates as 作成終了', () => {
+            const anns = annotate('class Dog\nend');
+            expect(labelsAt(anns, 2)).toContain('作成終了');
         });
     });
 
