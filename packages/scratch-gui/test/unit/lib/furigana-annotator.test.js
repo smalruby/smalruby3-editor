@@ -326,6 +326,232 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
+    // ---- Phase 1: smalruby methods (no-receiver) ----
+
+    describe('Motion methods', () => {
+        test('move annotates as 動かす', () => {
+            expect(labelsAt(annotate('move(10)'), 1)).toContain('動かす');
+        });
+        test('turn_right annotates as 右に回す', () => {
+            expect(labelsAt(annotate('turn_right(15)'), 1)).toContain('右に回す');
+        });
+        test('turn_left annotates as 左に回す', () => {
+            expect(labelsAt(annotate('turn_left(15)'), 1)).toContain('左に回す');
+        });
+        test('go_to annotates as 移動する', () => {
+            expect(labelsAt(annotate('go_to("_mouse_")'), 1)).toContain('移動する');
+        });
+        test('point_towards annotates as 向く', () => {
+            expect(labelsAt(annotate('point_towards("_mouse_")'), 1)).toContain('向く');
+        });
+        test('bounce_if_on_edge annotates as 端で跳ね返る', () => {
+            expect(labelsAt(annotate('bounce_if_on_edge'), 1)).toContain('端で跳ね返る');
+        });
+    });
+
+    describe('Motion property getters (no-receiver, no-arg method calls)', () => {
+        test('x getter annotates as X座標', () => {
+            expect(labelsAt(annotate('move(x)'), 1)).toContain('X座標');
+        });
+        test('y getter annotates as Y座標', () => {
+            expect(labelsAt(annotate('move(y)'), 1)).toContain('Y座標');
+        });
+        test('direction getter annotates as 向き', () => {
+            expect(labelsAt(annotate('say(direction)'), 1)).toContain('向き');
+        });
+    });
+
+    describe('Looks methods', () => {
+        test('say annotates as 言う', () => {
+            expect(labelsAt(annotate('say("hello")'), 1)).toContain('言う');
+        });
+        test('think annotates as 考える', () => {
+            expect(labelsAt(annotate('think("hmm")'), 1)).toContain('考える');
+        });
+        test('switch_costume annotates as コスチュームにする', () => {
+            expect(labelsAt(annotate('switch_costume("costume2")'), 1)).toContain('コスチュームにする');
+        });
+        test('next_costume annotates as 次のコスチュームにする', () => {
+            expect(labelsAt(annotate('next_costume'), 1)).toContain('次のコスチュームにする');
+        });
+        test('switch_backdrop annotates as 背景にする', () => {
+            expect(labelsAt(annotate('switch_backdrop("backdrop2")'), 1)).toContain('背景にする');
+        });
+        test('switch_backdrop_and_wait annotates as 背景にして待つ', () => {
+            expect(labelsAt(annotate('switch_backdrop_and_wait("backdrop2")'), 1)).toContain('背景にして待つ');
+        });
+        test('next_backdrop annotates as 次の背景にする', () => {
+            expect(labelsAt(annotate('next_backdrop'), 1)).toContain('次の背景にする');
+        });
+        test('set_effect annotates as 画像効果を設定', () => {
+            expect(labelsAt(annotate('set_effect("color", 25)'), 1)).toContain('画像効果を設定');
+        });
+        test('change_effect_by annotates as 画像効果を変える', () => {
+            expect(labelsAt(annotate('change_effect_by("color", 10)'), 1)).toContain('画像効果を変える');
+        });
+        test('clear_graphic_effects annotates as 画像効果をなくす', () => {
+            expect(labelsAt(annotate('clear_graphic_effects'), 1)).toContain('画像効果をなくす');
+        });
+        test('show annotates as 表示する', () => {
+            expect(labelsAt(annotate('show'), 1)).toContain('表示する');
+        });
+        test('hide annotates as 隠す', () => {
+            expect(labelsAt(annotate('hide'), 1)).toContain('隠す');
+        });
+    });
+
+    describe('Looks property getters', () => {
+        test('costume_number annotates as コスチューム番号', () => {
+            expect(labelsAt(annotate('costume_number'), 1)).toContain('コスチューム番号');
+        });
+        test('costume_name annotates as コスチューム名', () => {
+            expect(labelsAt(annotate('costume_name'), 1)).toContain('コスチューム名');
+        });
+        test('backdrop_number annotates as 背景番号', () => {
+            expect(labelsAt(annotate('backdrop_number'), 1)).toContain('背景番号');
+        });
+        test('backdrop_name annotates as 背景名', () => {
+            expect(labelsAt(annotate('backdrop_name'), 1)).toContain('背景名');
+        });
+        test('size getter annotates as 大きさ', () => {
+            expect(labelsAt(annotate('say(size)'), 1)).toContain('大きさ');
+        });
+    });
+
+    describe('Sound methods', () => {
+        test('play annotates as 音を鳴らす', () => {
+            expect(labelsAt(annotate('play("ニャー")'), 1)).toContain('音を鳴らす');
+        });
+        test('play_until_done annotates as 音が終わるまで鳴らす', () => {
+            expect(labelsAt(annotate('play_until_done("ニャー")'), 1)).toContain('音が終わるまで鳴らす');
+        });
+        test('stop_all_sounds annotates as 音をすべて止める', () => {
+            expect(labelsAt(annotate('stop_all_sounds'), 1)).toContain('音をすべて止める');
+        });
+        test('change_sound_effect_by annotates as 音の効果を変える', () => {
+            expect(labelsAt(annotate('change_sound_effect_by("PITCH", 10)'), 1)).toContain('音の効果を変える');
+        });
+        test('set_sound_effect annotates as 音の効果を設定', () => {
+            expect(labelsAt(annotate('set_sound_effect("PITCH", 100)'), 1)).toContain('音の効果を設定');
+        });
+        test('clear_sound_effects annotates as 音の効果をなくす', () => {
+            expect(labelsAt(annotate('clear_sound_effects'), 1)).toContain('音の効果をなくす');
+        });
+        test('volume getter annotates as 音量', () => {
+            expect(labelsAt(annotate('volume'), 1)).toContain('音量');
+        });
+    });
+
+    describe('Events methods', () => {
+        test('when_flag_clicked annotates as 旗が押されたとき', () => {
+            const anns = annotate('when_flag_clicked do\nend');
+            expect(labelsAt(anns, 1)).toContain('旗が押されたとき');
+        });
+        test('when_key_pressed annotates as キーが押されたとき', () => {
+            const anns = annotate('when_key_pressed("space") do\nend');
+            expect(labelsAt(anns, 1)).toContain('キーが押されたとき');
+        });
+        test('when_clicked annotates as クリックされたとき', () => {
+            const anns = annotate('when_clicked do\nend');
+            expect(labelsAt(anns, 1)).toContain('クリックされたとき');
+        });
+        test('when_backdrop_switches annotates as 背景が切り替わったとき', () => {
+            const anns = annotate('when_backdrop_switches("backdrop2") do\nend');
+            expect(labelsAt(anns, 1)).toContain('背景が切り替わったとき');
+        });
+        test('when_receive annotates as 受け取ったとき', () => {
+            const anns = annotate('when_receive("start") do\nend');
+            expect(labelsAt(anns, 1)).toContain('受け取ったとき');
+        });
+        test('broadcast annotates as 送る', () => {
+            expect(labelsAt(annotate('broadcast("start")'), 1)).toContain('送る');
+        });
+        test('broadcast_and_wait annotates as 送って待つ', () => {
+            expect(labelsAt(annotate('broadcast_and_wait("start")'), 1)).toContain('送って待つ');
+        });
+    });
+
+    describe('Control methods', () => {
+        test('sleep annotates as 秒待つ', () => {
+            expect(labelsAt(annotate('sleep(1)'), 1)).toContain('秒待つ');
+        });
+        test('loop annotates as ずっと繰り返す', () => {
+            const anns = annotate('loop do\nend');
+            expect(labelsAt(anns, 1)).toContain('ずっと繰り返す');
+        });
+        test('stop annotates as 止める', () => {
+            expect(labelsAt(annotate('stop("all")'), 1)).toContain('止める');
+        });
+        test('create_clone annotates as クローンを作る', () => {
+            expect(labelsAt(annotate('create_clone("_myself_")'), 1)).toContain('クローンを作る');
+        });
+        test('delete_this_clone annotates as このクローンを削除', () => {
+            expect(labelsAt(annotate('delete_this_clone'), 1)).toContain('このクローンを削除');
+        });
+        test('when_start_as_a_clone annotates as クローンされたとき', () => {
+            const anns = annotate('when_start_as_a_clone do\nend');
+            expect(labelsAt(anns, 1)).toContain('クローンされたとき');
+        });
+    });
+
+    describe('Sensing methods', () => {
+        test('touching? annotates as 触れているか', () => {
+            expect(labelsAt(annotate('touching?("_edge_")'), 1)).toContain('触れているか');
+        });
+        test('touching_color? annotates as 色に触れているか', () => {
+            expect(labelsAt(annotate('touching_color?("#ff0000")'), 1)).toContain('色に触れているか');
+        });
+        test('color_is_touching_color? annotates as 色が色に触れているか', () => {
+            expect(labelsAt(annotate('color_is_touching_color?("#ff0000", "#00ff00")'), 1))
+                .toContain('色が色に触れているか');
+        });
+        test('distance annotates as 距離', () => {
+            expect(labelsAt(annotate('distance("_mouse_")'), 1)).toContain('距離');
+        });
+        test('ask annotates as 質問する', () => {
+            expect(labelsAt(annotate('ask("名前は?")'), 1)).toContain('質問する');
+        });
+        test('answer annotates as 答え', () => {
+            expect(labelsAt(annotate('answer'), 1)).toContain('答え');
+        });
+        test('loudness annotates as マイクの音量', () => {
+            expect(labelsAt(annotate('loudness'), 1)).toContain('マイクの音量');
+        });
+        test('days_since_2000 annotates as 2000年からの日数', () => {
+            expect(labelsAt(annotate('days_since_2000'), 1)).toContain('2000年からの日数');
+        });
+        test('user_name annotates as ユーザー名', () => {
+            expect(labelsAt(annotate('user_name'), 1)).toContain('ユーザー名');
+        });
+    });
+
+    describe('Data methods', () => {
+        test('show_variable annotates as 変数を表示', () => {
+            expect(labelsAt(annotate('show_variable("@score")'), 1)).toContain('変数を表示');
+        });
+        test('hide_variable annotates as 変数を隠す', () => {
+            expect(labelsAt(annotate('hide_variable("@score")'), 1)).toContain('変数を隠す');
+        });
+        test('show_list annotates as リストを表示', () => {
+            expect(labelsAt(annotate('show_list("@items")'), 1)).toContain('リストを表示');
+        });
+        test('hide_list annotates as リストを隠す', () => {
+            expect(labelsAt(annotate('hide_list("@items")'), 1)).toContain('リストを隠す');
+        });
+    });
+
+    describe('Music methods', () => {
+        test('play_drum annotates as ドラムを鳴らす', () => {
+            expect(labelsAt(annotate('play_drum(drum: 1, beats: 0.25)'), 1)).toContain('ドラムを鳴らす');
+        });
+        test('play_note annotates as 音符を鳴らす', () => {
+            expect(labelsAt(annotate('play_note(note: 60, beats: 0.25)'), 1)).toContain('音符を鳴らす');
+        });
+        test('tempo getter annotates as テンポ', () => {
+            expect(labelsAt(annotate('tempo'), 1)).toContain('テンポ');
+        });
+    });
+
     describe('multiline program from book examples', () => {
         test('kakaku example', () => {
             const code = [
