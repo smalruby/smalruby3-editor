@@ -113,19 +113,23 @@ class FuriganaAnnotator {
 
     _isStringType (node) {
         if (!node) return false;
-        const name = node.constructor.name;
-        return name === 'StringNode' ||
-            name === 'InterpolatedStringNode' ||
-            name === 'ConcatStringNode';
+        const t = typeof node.toJSON === 'function' ? node.toJSON().type : null;
+        return t === 'StringNode' ||
+            t === 'InterpolatedStringNode' ||
+            t === 'ConcatStringNode';
     }
 
     /**
      * Dispatch to _handleXxxNode handler, or fall back to walking children.
+     * Uses node.toJSON().type (a stable string literal) instead of
+     * node.constructor.name, which gets mangled by minification in production
+     * builds (terser renames class names).
      * @param {object} node - prism AST node
      */
     _walkNode (node) {
-        if (!node || typeof node !== 'object' || !node.constructor) return;
-        const typeName = node.constructor.name;
+        if (!node || typeof node !== 'object') return;
+        const typeName = typeof node.toJSON === 'function' ? node.toJSON().type : null;
+        if (!typeName) return;
         const handler = this[`_handle${typeName}`];
         if (handler) {
             handler.call(this, node);
