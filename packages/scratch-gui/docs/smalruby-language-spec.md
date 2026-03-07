@@ -190,16 +190,23 @@ end
   turn_right(36)
 end
 
+# 条件ループ（条件が真である限り繰り返す）
+i = 0
+while i < 5
+  move(5)
+  i += 1
+end
+
 # 条件ループ（条件が真になるまで繰り返す）
 until touching?("_edge_")
   move(5)
 end
 ```
 
-**注意**: `while`, `for`, `each` ループはサポートされていません。
+**注意**: `for`, `each` ループはサポートされていません。
 
 **重要 — ループの自動1フレーム待機**:
-`loop do...end`、`N.times do...end`、`until...end` はすべて、**毎ループ終端で自動的に1フレーム（約33ms、30fps相当）待機**します。
+`loop do...end`、`N.times do...end`、`while...end`、`until...end` はすべて、**毎ループ終端で自動的に1フレーム（約33ms、30fps相当）待機**します。
 これはScratchのブロック実行モデルに由来する仕様で、CPUを占有しないよう設計されています。
 
 - FPS調整のために `sleep(0.05)` のような小さな値を入れる必要は**ありません**（むしろ動作が遅くなります）
@@ -376,6 +383,7 @@ end
 | `if 条件...end` | もし〜なら | `if x > 0 ... end` |
 | `if 条件...else...end` | もし〜でなければ | `if x > 0 ... else ... end` |
 | `until 条件 do...end` | 〜まで繰り返す | `until touching?("_edge_") do ... end` |
+| `while 条件 do...end` | 〜である間繰り返す | `while @score < 100 ... end` |
 | `stop("対象")` | 実行を止める | `stop("all")` |
 | `create_clone("対象")` | クローンを作る | `create_clone("_myself_")` |
 | `delete_this_clone` | このクローンを削除 | `delete_this_clone` |
@@ -540,7 +548,6 @@ hide_list("@items")                     # リストの非表示
 
 以下のRuby構文はsmalrubyでは**使用できません**:
 
-- `while` ループ
 - `for` ループ
 - `each` メソッド
 - `begin`/`rescue`/`ensure`（例外処理）
@@ -618,18 +625,6 @@ change_size(10)
 # ✅ self.size = / self.size += を使います
 self.size = 200
 self.size += 10
-```
-
-```ruby
-# ❌ while ループは使えません
-while true
-  move(1)
-end
-
-# ✅ loop を使います
-loop do
-  move(1)
-end
 ```
 
 ```ruby
