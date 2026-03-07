@@ -18,4 +18,11 @@ describe('Ruby Generator Procedure Arguments', () => {
         expect(converter._toSnakeCaseLowercase('simple_arg')).toBe('simple_arg');
         expect(converter._toSnakeCaseLowercase('_private_var_')).toBe('_private_var_');
     });
+
+    test('toSnakeCaseLowercase preserves Japanese characters', async () => {
+        expect(converter._toSnakeCaseLowercase('価格')).toBe('価格');
+        expect(converter._toSnakeCaseLowercase('売値')).toBe('売値');
+        expect(converter._toSnakeCaseLowercase('ねこ')).toBe('ねこ');
+        expect(converter._toSnakeCaseLowercase('スコア')).toBe('スコア');
+    });
 });

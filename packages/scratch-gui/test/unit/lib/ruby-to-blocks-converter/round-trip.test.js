@@ -206,6 +206,23 @@ end
         await expectRoundTrip('1.0 / ((1.0 / 3435.0) * Math.log(20.0) + 1.0 / 298.0) - 273.0');
     });
 
+    test('Japanese local variable names round-trip correctly', async () => {
+        await expectRoundTrip('価格 = 100');
+        await expectRoundTrip('価格 = 100\n売値 = 価格 * 0.7\nputs 売値',
+            '価格 = 100\n売値 = 価格 * 0.7\nputs(売値)');
+        await expectRoundTrip('ねこ = "にゃー"\nputs ねこ',
+            'ねこ = "にゃー"\nputs(ねこ)');
+        await expectRoundTrip('スコア = 0\nスコア = スコア + 10');
+    });
+
+    test('Japanese local variable compound assignment round-trips correctly', async () => {
+        await expectRoundTrip('価格 = 100\n価格 += 10');
+        await expectRoundTrip('価格 = 100\n価格 -= 10');
+        await expectRoundTrip('価格 = 2\n価格 *= 3');
+        await expectRoundTrip('価格 = 100\n価格 /= 2');
+        await expectRoundTrip('価格 = 7\n価格 %= 3');
+    });
+
     describe('class syntax round trip', () => {
         const expectClassRoundTrip = async (code, expectedRuby = null, spriteOptions = {}) => {
             const result = await converter.targetCodeToBlocks(null, code);
