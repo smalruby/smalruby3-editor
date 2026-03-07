@@ -1003,14 +1003,43 @@ class FuriganaAnnotator {
 /**
  * Special string values used in smalruby that represent UI menu options.
  * These are displayed with descriptive Japanese labels instead of raw 文字列「...」.
+ * Labels are sourced from scratch-l10n editor/blocks/ja.json.
  */
 FuriganaAnnotator._SPECIAL_STRING_LABELS = {
-    /* eslint-disable quote-props */
+    // Special sprite/location targets
     '_mouse_': 'マウスのポインター',
     '_edge_': '端',
     '_random_': 'ランダムな場所',
-    '_myself_': '自分自身'
-    /* eslint-enable quote-props */
+    '_myself_': '自分自身',
+    // Key names (EVENT_WHENKEYPRESSED_*)
+    'space': 'スペース',
+    'left arrow': '左向き矢印',
+    'right arrow': '右向き矢印',
+    'down arrow': '下向き矢印',
+    'up arrow': '上向き矢印',
+    'any': 'どれかのキー',
+    // Stop options (CONTROL_STOP_*)
+    'all': 'すべて',
+    'this script': 'このスクリプト',
+    'other scripts in sprite': 'スプライトの他のスクリプト',
+    // Rotation styles (MOTION_SETROTATIONSTYLE_*)
+    'all around': '自由に回転',
+    'left-right': '左右のみ',
+    "don't rotate": '回転しない',
+    // Drag modes (SENSING_SETDRAGMODE_*)
+    'draggable': 'できる',
+    'not draggable': 'できない',
+    // Sound effects (SOUND_EFFECTS_*)
+    'PITCH': 'ピッチ',
+    'PAN': '左右にパン',
+    // Graphic effects (LOOKS_EFFECT_*)
+    'color': '色',
+    'fisheye': '魚眼レンズ',
+    'whirl': '渦巻き',
+    'pixelate': 'ピクセル化',
+    'mosaic': 'モザイク',
+    'brightness': '明るさ',
+    'ghost': '幽霊'
 };
 
 export default FuriganaAnnotator;

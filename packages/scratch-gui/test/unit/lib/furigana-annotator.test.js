@@ -869,4 +869,93 @@ describe('FuriganaAnnotator', () => {
             expect(labelsAt(anns, 1)).toContain('文字列「hello」');
         });
     });
+
+    describe('dropdown menu string values', () => {
+        describe('key names', () => {
+            test('"space" → スペース', () => {
+                expect(labelsAt(annotate('Keyboard.pressed?("space")'), 1)).toContain('スペース');
+            });
+            test('"up arrow" → 上向き矢印', () => {
+                expect(labelsAt(annotate('when_key_pressed("up arrow") do\nend'), 1)).toContain('上向き矢印');
+            });
+            test('"down arrow" → 下向き矢印', () => {
+                expect(labelsAt(annotate('Keyboard.pressed?("down arrow")'), 1)).toContain('下向き矢印');
+            });
+            test('"left arrow" → 左向き矢印', () => {
+                expect(labelsAt(annotate('Keyboard.pressed?("left arrow")'), 1)).toContain('左向き矢印');
+            });
+            test('"right arrow" → 右向き矢印', () => {
+                expect(labelsAt(annotate('Keyboard.pressed?("right arrow")'), 1)).toContain('右向き矢印');
+            });
+            test('"any" → どれかのキー', () => {
+                expect(labelsAt(annotate('Keyboard.pressed?("any")'), 1)).toContain('どれかのキー');
+            });
+        });
+
+        describe('stop options', () => {
+            test('"all" → すべて', () => {
+                expect(labelsAt(annotate('stop("all")'), 1)).toContain('すべて');
+            });
+            test('"this script" → このスクリプト', () => {
+                expect(labelsAt(annotate('stop("this script")'), 1)).toContain('このスクリプト');
+            });
+            test('"other scripts in sprite" → スプライトの他のスクリプト', () => {
+                expect(labelsAt(annotate('stop("other scripts in sprite")'), 1)).toContain('スプライトの他のスクリプト');
+            });
+        });
+
+        describe('rotation styles', () => {
+            test('"all around" → 自由に回転', () => {
+                expect(labelsAt(annotate('self.rotation_style = "all around"'), 1)).toContain('自由に回転');
+            });
+            test('"left-right" → 左右のみ', () => {
+                expect(labelsAt(annotate('self.rotation_style = "left-right"'), 1)).toContain('左右のみ');
+            });
+            test('"don\'t rotate" → 回転しない', () => {
+                expect(labelsAt(annotate("self.rotation_style = \"don't rotate\""), 1)).toContain('回転しない');
+            });
+        });
+
+        describe('drag modes', () => {
+            test('"draggable" → できる', () => {
+                expect(labelsAt(annotate('self.drag_mode = "draggable"'), 1)).toContain('できる');
+            });
+            test('"not draggable" → できない', () => {
+                expect(labelsAt(annotate('self.drag_mode = "not draggable"'), 1)).toContain('できない');
+            });
+        });
+
+        describe('sound effects', () => {
+            test('"PITCH" → ピッチ', () => {
+                expect(labelsAt(annotate('set_sound_effect("PITCH", 100)'), 1)).toContain('ピッチ');
+            });
+            test('"PAN" → 左右にパン', () => {
+                expect(labelsAt(annotate('set_sound_effect("PAN", 50)'), 1)).toContain('左右にパン');
+            });
+        });
+
+        describe('graphic effects', () => {
+            test('"color" → 色', () => {
+                expect(labelsAt(annotate('set_effect("color", 25)'), 1)).toContain('色');
+            });
+            test('"fisheye" → 魚眼レンズ', () => {
+                expect(labelsAt(annotate('set_effect("fisheye", 50)'), 1)).toContain('魚眼レンズ');
+            });
+            test('"whirl" → 渦巻き', () => {
+                expect(labelsAt(annotate('set_effect("whirl", 100)'), 1)).toContain('渦巻き');
+            });
+            test('"pixelate" → ピクセル化', () => {
+                expect(labelsAt(annotate('set_effect("pixelate", 10)'), 1)).toContain('ピクセル化');
+            });
+            test('"mosaic" → モザイク', () => {
+                expect(labelsAt(annotate('set_effect("mosaic", 25)'), 1)).toContain('モザイク');
+            });
+            test('"brightness" → 明るさ', () => {
+                expect(labelsAt(annotate('change_effect_by("brightness", 10)'), 1)).toContain('明るさ');
+            });
+            test('"ghost" → 幽霊', () => {
+                expect(labelsAt(annotate('set_effect("ghost", 50)'), 1)).toContain('幽霊');
+            });
+        });
+    });
 });
