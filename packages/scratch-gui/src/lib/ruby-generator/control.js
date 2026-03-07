@@ -63,14 +63,16 @@ export default function (Generator) {
 
     const getUnlessInfo = function (block) {
         const comment = Generator.getCommentText(block);
-        if (comment === '@ruby:syntax:unless') {
-            return {hasElse: false};
-        }
-        if (comment === '@ruby:syntax:unless_else') {
+        if (!comment) return null;
+        // Check more specific patterns first to avoid substring conflicts
+        if (comment.includes('@ruby:syntax:unless_else')) {
             return {hasElse: true};
         }
-        if (comment === '@ruby:syntax:unless_modifier') {
+        if (comment.includes('@ruby:syntax:unless_modifier')) {
             return {isModifier: true};
+        }
+        if (comment.includes('@ruby:syntax:unless')) {
+            return {hasElse: false};
         }
         return null;
     };
@@ -90,10 +92,17 @@ export default function (Generator) {
 
     const getModifierInfo = function (block) {
         const comment = Generator.getCommentText(block);
-        if (comment === '@ruby:syntax:if_modifier') {
+        if (comment && comment.includes('@ruby:syntax:if_modifier')) {
             return 'if';
         }
         return null;
+    };
+
+    const getVariableHint = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (!comment) return null;
+        const match = comment.match(/@ruby:variable:([^,]+)/);
+        return match ? match[1] : null;
     };
 
     Generator.control_if = function (block) {
@@ -103,6 +112,21 @@ export default function (Generator) {
             if (content) {
                 return `case ${caseInfo.subject}\n${content}end\n`;
             }
+        }
+        const comment = Generator.getCommentText(block);
+        const varName = getVariableHint(block);
+        if (varName) {
+            const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+            if (comment.includes('@ruby:syntax:unless_modifier')) {
+                return `${branch.trim()} unless ${varName}\n`;
+            }
+            if (comment.includes('@ruby:syntax:unless')) {
+                return `unless ${varName}\n${branch}end\n`;
+            }
+            if (comment.includes('@ruby:syntax:if_modifier')) {
+                return `${branch.trim()} if ${varName}\n`;
+            }
+            return `if ${varName}\n${branch}end\n`;
         }
         const unlessInfo = getUnlessInfo(block);
         if (unlessInfo) {
@@ -169,6 +193,17 @@ export default function (Generator) {
                 return `case ${caseInfo.subject}\n${content}end\n`;
             }
         }
+        const varName = getVariableHint(block);
+        if (varName) {
+            const comment = Generator.getCommentText(block);
+            const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+            const branch2 = Generator.statementToCode(block, 'SUBSTACK2') || '';
+            if (comment.includes('@ruby:syntax:unless_else') ||
+                comment.includes('@ruby:syntax:unless')) {
+                return `unless ${varName}\n${branch}else\n${branch2}end\n`;
+            }
+            return `if ${varName}\n${branch}else\n${branch2}end\n`;
+        }
         const unlessInfo = getUnlessInfo(block);
         if (unlessInfo && unlessInfo.hasElse) {
             const operator = getUnlessCondition(block);
@@ -200,6 +235,14 @@ export default function (Generator) {
 
     Generator.control_repeat_until = function (block) {
         const comment = Generator.getCommentText(block);
+        const varName = getVariableHint(block);
+        if (varName) {
+            const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+            if (comment.includes('@ruby:syntax:while')) {
+                return `while ${varName}\n${branch}end\n`;
+            }
+            return `until ${varName}\n${branch}end\n`;
+        }
         if (comment === '@ruby:syntax:while') {
             const operator = getWhileCondition(block);
             const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
