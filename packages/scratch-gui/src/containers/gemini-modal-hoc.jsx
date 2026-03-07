@@ -8,6 +8,76 @@ import VM from '@smalruby/scratch-vm';
 import GeminiAPI, {RateLimitError} from '../lib/gemini-api';
 import GeminiModal from '../components/gemini-modal/gemini-modal.jsx';
 
+/**
+ * Replace invalid resource references in Gemini-generated Ruby code with valid ones.
+ * - Sounds: replace with first valid sound; comment out if no sounds exist
+ * - Costumes: replace with first valid costume; skip if no costumes exist
+ * - Backdrops: replace with first valid backdrop; skip if no backdrops exist
+ * @param {string} code - Ruby source code to sanitize
+ * @param {string[]} validSounds - List of valid sound names on the current sprite
+ * @param {string[]} validCostumes - List of valid costume names on the current sprite
+ * @param {string[]} validBackdrops - List of valid backdrop names on the stage
+ * @returns {string} Sanitized code
+ */
+export const sanitizeResourceReferences = (code, validSounds, validCostumes, validBackdrops) => {
+    let result = code;
+
+    // --- Sounds ---
+    result = result.replace(
+        /^( *)(play(?:_until_done)?)\(("[^"]*"|'[^']*')\)/gm,
+        (match, indent, fn, nameWithQuotes) => {
+            const name = nameWithQuotes.slice(1, -1);
+            if (validSounds.includes(name)) return match;
+            if (validSounds.length === 0) {
+                return `${indent}# ${fn}(${nameWithQuotes}) # この音は存在しないのでコメントアウトしました`;
+            }
+            return `${indent}${fn}("${validSounds[0]}")`;
+        }
+    );
+
+    // --- Costumes ---
+    if (validCostumes.length > 0) {
+        result = result.replace(
+            /^( *)switch_costume\(("[^"]*"|'[^']*')\)/gm,
+            (match, indent, nameWithQuotes) => {
+                const name = nameWithQuotes.slice(1, -1);
+                if (validCostumes.includes(name)) return match;
+                return `${indent}switch_costume("${validCostumes[0]}")`;
+            }
+        );
+        result = result.replace(
+            /^( *)(?:self\.)?costume\s*=\s*("[^"]*"|'[^']*')/gm,
+            (match, indent, nameWithQuotes) => {
+                const name = nameWithQuotes.slice(1, -1);
+                if (validCostumes.includes(name)) return match;
+                return `${indent}self.costume = "${validCostumes[0]}"`;
+            }
+        );
+    }
+
+    // --- Backdrops ---
+    if (validBackdrops.length > 0) {
+        result = result.replace(
+            /^( *)(switch_backdrop(?:_(?:and_wait|to_and_wait))?)\(("[^"]*"|'[^']*')\)/gm,
+            (match, indent, fn, nameWithQuotes) => {
+                const name = nameWithQuotes.slice(1, -1);
+                if (validBackdrops.includes(name)) return match;
+                return `${indent}${fn}("${validBackdrops[0]}")`;
+            }
+        );
+        result = result.replace(
+            /^( *)(?:self\.)?backdrop\s*=\s*("[^"]*"|'[^']*')/gm,
+            (match, indent, nameWithQuotes) => {
+                const name = nameWithQuotes.slice(1, -1);
+                if (validBackdrops.includes(name)) return match;
+                return `${indent}self.backdrop = "${validBackdrops[0]}"`;
+            }
+        );
+    }
+
+    return result;
+};
+
 const TIMEOUT_SECONDS = 120;
 
 const messages = defineMessages({
@@ -306,36 +376,19 @@ const GeminiModalHOC = function (WrappedComponent) {
             const {latestCodes} = this.state;
             let code = latestCodes[index];
             if (code && this._applyGeminiCode) {
-                code = this._sanitizeSoundNames(code);
+                const target = this.props.editingTarget;
+                const validSounds = target && target.sprite && target.sprite.sounds ?
+                    target.sprite.sounds.map(s => s.name) : [];
+                const validCostumes = target && target.sprite && target.sprite.costumes ?
+                    target.sprite.costumes.map(c => c.name) : [];
+                const stage = this.props.vm && this.props.vm.runtime &&
+                    this.props.vm.runtime.targets &&
+                    this.props.vm.runtime.targets.find(t => t.isStage);
+                const validBackdrops = stage && stage.sprite && stage.sprite.costumes ?
+                    stage.sprite.costumes.map(c => c.name) : [];
+                code = sanitizeResourceReferences(code, validSounds, validCostumes, validBackdrops);
                 this._applyGeminiCode(code);
             }
-        }
-
-        /**
-         * Comment out play()/play_until_done() calls with sound names
-         * that don't exist on the current sprite.
-         * @param {string} code - Ruby source code to sanitize
-         * @returns {string} Sanitized code with invalid play() calls commented out
-         */
-        _sanitizeSoundNames (code) {
-            const target = this.props.editingTarget;
-            if (!target || !target.sprite || !target.sprite.sounds) {
-                return code;
-            }
-            const validSounds = new Set(
-                target.sprite.sounds.map(s => s.name)
-            );
-            // Match play("...") or play_until_done("...") lines
-            return code.replace(
-                /^( *)(play(?:_until_done)?)\(("[^"]*")\)/gm,
-                (match, indent, fn, nameWithQuotes) => {
-                    const name = nameWithQuotes.slice(1, -1);
-                    if (validSounds.has(name)) {
-                        return match; // keep as-is
-                    }
-                    return `${indent}# ${fn}(${nameWithQuotes}) # この音は存在しないのでコメントアウトしました`;
-                }
-            );
         }
 
         handleClearHistory () {
