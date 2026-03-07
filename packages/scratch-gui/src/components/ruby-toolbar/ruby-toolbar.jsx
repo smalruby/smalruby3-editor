@@ -14,6 +14,7 @@ import iconBack from './icon--back.svg';
 import iconForward from './icon--forward.svg';
 import iconDownload from './icon--download.svg';
 import iconAI from './icon--ai.svg';
+import iconFurigana from './icon--furigana.svg';
 
 const messages = defineMessages({
     executeLine: {
@@ -408,7 +409,10 @@ const RubyToolbar = props => {
                     aria-pressed={props.furiganaEnabled}
                     title={intl.formatMessage(props.furiganaEnabled ? messages.furiganaOn : messages.furiganaOff)}
                 >
-                    {'ふ'}
+                    <img
+                        src={iconFurigana}
+                        alt=""
+                    />
                 </button>
             </div>
 

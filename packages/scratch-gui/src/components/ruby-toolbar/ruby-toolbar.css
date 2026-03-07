@@ -175,27 +175,27 @@
 .furiganaButton {
     width: 2rem;
     height: 2rem;
-    padding: 0;
-    border: 1px solid $ui-black-transparent;
+    padding: 2px;
+    border: none;
     background-color: transparent;
     cursor: pointer;
     border-radius: $form-radius;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.875rem;
-    font-weight: bold;
-    color: $text-primary;
-    transition: background-color 0.2s;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    transition: box-shadow 0.2s, opacity 0.2s;
 }
 
-.furiganaButton:hover {
-    background-color: hsla(0, 0%, 0%, 0.05);
+.furiganaButton img {
+    width: 28px;
+    height: 28px;
+}
+
+.furiganaButton:hover:not(:disabled) {
+    opacity: 0.85;
 }
 
 .furiganaButtonActive {
-    background-color: hsla(215, 100%, 65%, 0.2);
-    border-color: $looks-secondary;
-    color: $looks-secondary;
+    background: linear-gradient(to bottom, #e8f8ee, #c2eacc);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.7), 0 0 10px 4px rgba(76, 175, 80, 0.35);
 }
