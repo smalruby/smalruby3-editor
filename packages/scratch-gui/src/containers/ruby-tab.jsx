@@ -39,6 +39,7 @@ import {getPrism, loadPrism} from '../lib/prism-parser';
 
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
 const DEFAULT_FONT_SIZE = 16;
+const FURIGANA_ENABLED_KEY = 'smalruby:furiganaEnabled';
 
 class RubyTab extends React.Component {
     constructor (props) {
@@ -82,12 +83,14 @@ class RubyTab extends React.Component {
         this.furiganaRenderer = new FuriganaRenderer();
         this.furiganaDebounceTimer = null;
         this.furiganaLastMs = 0; // last measured render time, used for adaptive debounce
+        const savedFurigana = typeof window !== 'undefined' && window.localStorage ?
+            window.localStorage.getItem(FURIGANA_ENABLED_KEY) === 'true' : false;
         this.state = {
             runningBlockId: null,
             executingLine: null,
             canUndo: false,
             canRedo: false,
-            furiganaEnabled: false
+            furiganaEnabled: savedFurigana
         };
 
         loadMonacoLocale(props.locale);
@@ -414,6 +417,11 @@ class RubyTab extends React.Component {
             }
         });
 
+        // Restore furigana if it was enabled in the previous session
+        if (this.state.furiganaEnabled) {
+            this._renderFurigana();
+        }
+
         editor.onDidChangeCursorPosition(() => {
             this.handleDismissBubble();
         });
@@ -587,6 +595,9 @@ class RubyTab extends React.Component {
 
     handleToggleFurigana () {
         const enabled = !this.state.furiganaEnabled;
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(FURIGANA_ENABLED_KEY, enabled);
+        }
         this.setState({furiganaEnabled: enabled}, () => {
             if (!this.editorRef || !this.monacoRef) return;
             if (enabled) {
