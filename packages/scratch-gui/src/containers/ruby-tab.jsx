@@ -27,15 +27,19 @@ import {smalrubyLanguage, smalrubyLanguageConfiguration} from './ruby-tab/smalru
 
 import RubyDownloader from './ruby-downloader.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
+import FuriganaAnnotator from '../lib/furigana-annotator';
+import FuriganaRenderer from './ruby-tab/furigana-renderer';
 import GeminiModalHOC from './gemini-modal-hoc.jsx';
 import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
 import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
 import styles from './ruby-tab/ruby-tab.css';
 import {loadMonacoLocale} from '../lib/monaco-i18n-helper';
+import {getPrism, loadPrism} from '../lib/prism-parser';
 
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
 const DEFAULT_FONT_SIZE = 16;
+const FURIGANA_ENABLED_KEY = 'smalruby:furiganaEnabled';
 
 class RubyTab extends React.Component {
     constructor (props) {
@@ -59,6 +63,7 @@ class RubyTab extends React.Component {
             'handleVisualReport',
             'handleDismissBubble',
             'handleApplyGeminiCode',
+            'handleToggleFurigana',
             'updateUndoRedoState'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
@@ -74,11 +79,18 @@ class RubyTab extends React.Component {
         this.pasteMutationObserver = null;
         this.bodyMutationObserver = null;
         this.bubbleRef = null;
+        this.furiganaAnnotator = new FuriganaAnnotator();
+        this.furiganaRenderer = new FuriganaRenderer();
+        this.furiganaDebounceTimer = null;
+        this.furiganaLastMs = 0; // last measured render time, used for adaptive debounce
+        const savedFurigana = typeof window !== 'undefined' && window.localStorage ?
+            window.localStorage.getItem(FURIGANA_ENABLED_KEY) !== 'false' : true;
         this.state = {
             runningBlockId: null,
             executingLine: null,
             canUndo: false,
-            canRedo: false
+            canRedo: false,
+            furiganaEnabled: savedFurigana
         };
 
         loadMonacoLocale(props.locale);
@@ -213,6 +225,10 @@ class RubyTab extends React.Component {
         if (this.bodyMutationObserver) {
             this.bodyMutationObserver.disconnect();
             this.bodyMutationObserver = null;
+        }
+        if (this.furiganaDebounceTimer) {
+            clearTimeout(this.furiganaDebounceTimer);
+            this.furiganaDebounceTimer = null;
         }
     }
 
@@ -396,7 +412,15 @@ class RubyTab extends React.Component {
 
         this.contentChangeListener = editor.onDidChangeModelContent(() => {
             this.updateUndoRedoState();
+            if (this.state.furiganaEnabled) {
+                this._scheduleFuriganaUpdate();
+            }
         });
+
+        // Restore furigana if it was enabled in the previous session
+        if (this.state.furiganaEnabled) {
+            this._renderFurigana();
+        }
 
         editor.onDidChangeCursorPosition(() => {
             this.handleDismissBubble();
@@ -569,6 +593,58 @@ class RubyTab extends React.Component {
         this.props.onChange(code);
     }
 
+    handleToggleFurigana () {
+        const enabled = !this.state.furiganaEnabled;
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(FURIGANA_ENABLED_KEY, enabled);
+        }
+        this.setState({furiganaEnabled: enabled}, () => {
+            if (!this.editorRef || !this.monacoRef) return;
+            if (enabled) {
+                this._renderFurigana();
+            } else {
+                this.furiganaRenderer.clear(this.editorRef);
+            }
+        });
+    }
+
+    _renderFurigana () {
+        if (!this.editorRef || !this.monacoRef) return;
+        const prism = getPrism();
+        if (prism) {
+            const code = this.props.rubyCode.code || '';
+            const t0 = performance.now();
+            const parseResult = prism.parse(code);
+            const annotations = this.furiganaAnnotator.annotate(code, parseResult);
+            this.furiganaRenderer.render(this.editorRef, this.monacoRef, annotations);
+            this.furiganaLastMs = performance.now() - t0;
+        } else {
+            loadPrism().then(loadedPrism => {
+                if (!this.state.furiganaEnabled || !this.editorRef || !this.monacoRef) return;
+                const code = this.props.rubyCode.code || '';
+                const t0 = performance.now();
+                const parseResult = loadedPrism.parse(code);
+                const annotations = this.furiganaAnnotator.annotate(code, parseResult);
+                this.furiganaRenderer.render(this.editorRef, this.monacoRef, annotations);
+                this.furiganaLastMs = performance.now() - t0;
+            });
+        }
+    }
+
+    _scheduleFuriganaUpdate () {
+        if (this.furiganaDebounceTimer) {
+            clearTimeout(this.furiganaDebounceTimer);
+        }
+        // Wait 2x the last render time (minimum 50ms) so typing never races with rendering
+        const delay = Math.max(50, this.furiganaLastMs * 2);
+        this.furiganaDebounceTimer = setTimeout(() => {
+            this.furiganaDebounceTimer = null;
+            if (this.state.furiganaEnabled) {
+                this._renderFurigana();
+            }
+        }, delay);
+    }
+
     clearExecutingLineHighlight () {
         if (this.executingLineDecoration) {
             this.executingLineDecoration.clear();
@@ -738,6 +814,8 @@ class RubyTab extends React.Component {
                         isRunning={!!this.state.runningBlockId}
                         canUndo={this.state.canUndo}
                         canRedo={this.state.canRedo}
+                        furiganaEnabled={this.state.furiganaEnabled}
+                        onToggleFurigana={this.handleToggleFurigana}
                     />
                     <div className={styles.editorWrapper}>
                         <Editor

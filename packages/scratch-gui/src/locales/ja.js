@@ -322,6 +322,8 @@ export default {
     'gui.rubyToolbar.download': 'ルビースクリプトをダウンロード',
     'gui.rubyToolbar.stage': 'ステージ',
     'gui.rubyToolbar.aiAssistant': 'スモウルビー先生 (Gemini)',
+    'gui.rubyToolbar.furiganaOn': 'ふりがなをかくす',
+    'gui.rubyToolbar.furiganaOff': 'ふりがなをみせる',
 
     // Gemini modal
     'gui.geminiModal.title': 'スモウルビー先生 (Gemini)',
