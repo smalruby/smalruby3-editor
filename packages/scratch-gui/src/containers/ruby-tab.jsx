@@ -81,6 +81,7 @@ class RubyTab extends React.Component {
         this.furiganaAnnotator = new FuriganaAnnotator();
         this.furiganaRenderer = new FuriganaRenderer();
         this.furiganaDebounceTimer = null;
+        this.furiganaLastMs = 0; // last measured render time, used for adaptive debounce
         this.state = {
             runningBlockId: null,
             executingLine: null,
@@ -601,16 +602,20 @@ class RubyTab extends React.Component {
         const prism = getPrism();
         if (prism) {
             const code = this.props.rubyCode.code || '';
+            const t0 = performance.now();
             const parseResult = prism.parse(code);
             const annotations = this.furiganaAnnotator.annotate(code, parseResult);
             this.furiganaRenderer.render(this.editorRef, this.monacoRef, annotations);
+            this.furiganaLastMs = performance.now() - t0;
         } else {
             loadPrism().then(loadedPrism => {
                 if (!this.state.furiganaEnabled || !this.editorRef || !this.monacoRef) return;
                 const code = this.props.rubyCode.code || '';
+                const t0 = performance.now();
                 const parseResult = loadedPrism.parse(code);
                 const annotations = this.furiganaAnnotator.annotate(code, parseResult);
                 this.furiganaRenderer.render(this.editorRef, this.monacoRef, annotations);
+                this.furiganaLastMs = performance.now() - t0;
             });
         }
     }
@@ -619,12 +624,14 @@ class RubyTab extends React.Component {
         if (this.furiganaDebounceTimer) {
             clearTimeout(this.furiganaDebounceTimer);
         }
+        // Wait 2x the last render time (minimum 50ms) so typing never races with rendering
+        const delay = Math.max(50, this.furiganaLastMs * 2);
         this.furiganaDebounceTimer = setTimeout(() => {
             this.furiganaDebounceTimer = null;
             if (this.state.furiganaEnabled) {
                 this._renderFurigana();
             }
-        }, 300);
+        }, delay);
     }
 
     clearExecutingLineHighlight () {
