@@ -223,6 +223,18 @@ end
         await expectRoundTrip('価格 = 7\n価格 %= 3');
     });
 
+    test('while...end round-trip', async () => {
+        await expectRoundTrip(
+            'while touching?("_edge_")\n  move(10)\nend'
+        );
+    });
+
+    test('while with comparison round-trip', async () => {
+        await expectRoundTrip(
+            '@shikin = 30000\nwhile @shikin >= 0\n  say(@shikin, 1)\n  @shikin = @shikin - 5080\nend'
+        );
+    });
+
     describe('class syntax round trip', () => {
         const expectClassRoundTrip = async (code, expectedRuby = null, spriteOptions = {}) => {
             const result = await converter.targetCodeToBlocks(null, code);

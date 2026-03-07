@@ -285,10 +285,40 @@ const ControlFlowHandlers = {
     },
 
     visitWhileNode (node) {
-        // Prism WhileNode is similar to UntilNode but opcode is different in converters
-        // Actually, Smalruby's onUntil handles 'until'.
-        // For 'while', we usually use ruby_statement or specific converter.
-        return this._createRubyStatementBlock(this._getSource(node), node);
+        const saved = this._saveContext();
+
+        const preBlocks = [];
+        let cond = this._processCondition(node.predicate);
+        const split = this._splitPreBlocksAndValue(cond);
+        cond = split.value;
+        preBlocks.push(...split.preBlocks);
+
+        // Negate condition: while cond => until !(cond)
+        const notBlock = this._createBlock('operator_not', 'value_boolean');
+        if (this._isFalseOrBooleanBlock(cond)) {
+            this._addInput(notBlock, 'OPERAND', cond);
+        }
+
+        const statement = this._processStatement(node.statements);
+
+        let block = this._callConvertersHandler('onUntil', notBlock, statement);
+        if (!block) {
+            this._restoreContext(saved);
+
+            block = this._createRubyStatementBlock(this._getSource(node), node);
+        } else if (this._isBlock(block)) {
+            // Attach @ruby:syntax:while comment for round-trip fidelity
+            const commentId = this._createComment('@ruby:syntax:while', block.id, 0, 0, true);
+            block.comment = commentId;
+        }
+
+        if (preBlocks.length > 0 && block) {
+            if (_.isArray(block)) {
+                return [...preBlocks, ...block];
+            }
+            return [...preBlocks, block];
+        }
+        return block;
     },
 
     visitAndNode (node) {
