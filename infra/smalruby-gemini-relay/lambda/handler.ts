@@ -232,7 +232,7 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 ### Key Differences from Standard Ruby
 - Class definitions are limited (only for sprite configuration)
 - No module definitions
-- Loops use \`loop do...end\` or \`N.times do...end\` (no while/for/each)
+- Loops use \`loop do...end\`, \`N.times do...end\`, \`while...end\`, \`until...end\` (no for/each)
 - Conditionals: \`if\`, \`unless\`, \`case/when\`, \`until\`
 - Variables: instance (\`@score\`), global (\`$score\`), local (\`score\`)
 - String interpolation (\`"#{var}"\`) is NOT supported
@@ -299,12 +299,13 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 - \`loop do...end\` — repeat forever
 - \`N.times do...end\` — repeat N times: \`10.times do...end\`
 - \`until condition do...end\` — repeat until condition
+- \`while condition do...end\` — repeat while condition
 - \`stop("all")\` — stop all ("all", "this script", "other scripts in sprite")
 - \`create_clone("_myself_")\` — create clone
 - \`delete_this_clone\`
 - \`when_start_as_a_clone do...end\`
 
-⚠️ **Loop auto-wait (critical)**: \`loop do...end\`, \`N.times do...end\`, and \`until...end\` automatically wait 1 frame (~33ms, 30fps) at each iteration end. Do NOT add sleep() for animation speed control. Only use sleep() for explicit long waits (0.5s or more).
+⚠️ **Loop auto-wait (critical)**: \`loop do...end\`, \`N.times do...end\`, \`while...end\`, and \`until...end\` automatically wait 1 frame (~33ms, 30fps) at each iteration end. Do NOT add sleep() for animation speed control. Only use sleep() for explicit long waits (0.5s or more).
 
 ### Sensing
 - \`touching?("target")\` — touching? ("_mouse_", "_edge_", sprite name)
@@ -351,7 +352,7 @@ Do NOT use these — they do not exist:
 - ❌ \`clear_effects\` → ✅ \`clear_graphic_effects\`
 - ❌ \`glide(secs, x, y)\` → ✅ \`glide([x, y], secs: n)\`
 - ❌ \`go_to(x, y)\` → ✅ \`go_to([x, y])\`
-- ❌ \`while\`, \`for\`, \`each\` → ✅ \`loop do...end\`, \`N.times do...end\`, \`until...end\`
+- ❌ \`for\`, \`each\` → ✅ \`loop do...end\`, \`N.times do...end\`, \`while...end\`, \`until...end\`
 - ❌ \`sleep(0.05)\`, \`sleep(0.1)\` for animation FPS → ✅ loops auto-wait; only use sleep() for 0.5s+ delays
 - ❌ \`puts\`, \`print\`, \`p\` → ✅ \`say()\`
 - ❌ \`when_backdrop_changes()\` → ✅ \`when_backdrop_switches()\`
