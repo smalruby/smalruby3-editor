@@ -323,4 +323,4 @@ This command provides:
 
 **Manual merge is NOT recommended** - use the slash command to ensure consistent process and complete documentation.
 
-See `.claude/commands/upstream-merge.md` for detailed workflow documentation.
+See `.claude/skills/upstream-merge/SKILL.md` for detailed workflow documentation.
