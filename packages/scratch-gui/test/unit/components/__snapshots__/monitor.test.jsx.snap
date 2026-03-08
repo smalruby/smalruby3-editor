@@ -16,7 +16,7 @@ exports[`Monitor Component it selects the correct colors based on dark mode 1`] 
           My label
         </div>
         <div
-          style="background: rgb(170, 170, 170); color: rgb(187, 187, 187);"
+          style="color: rgb(187, 187, 187);"
         />
       </div>
     </div>
@@ -40,7 +40,7 @@ exports[`Monitor Component it selects the correct colors based on default color 
           My label
         </div>
         <div
-          style="background: rgb(17, 17, 17); color: rgb(68, 68, 68);"
+          style="color: rgb(68, 68, 68);"
         />
       </div>
     </div>
