@@ -67,6 +67,8 @@ jobs:
           node-version-file: '.nvmrc'
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
+      - name: Build dependency packages
+        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render
       - name: Lint
         run: npm run lint
 
@@ -88,6 +90,8 @@ jobs:
           node-version-file: '.nvmrc'
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
+      - name: Build dependency packages
+        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render
       - name: Run scratch-vm Unit Tests
         run: npm run test:unit --workspace=packages/scratch-vm
 
@@ -109,6 +113,8 @@ jobs:
           node-version-file: '.nvmrc'
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
+      - name: Build dependency packages
+        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render
       - name: Run scratch-gui Unit Tests
         run: npm run test:unit --workspace=packages/scratch-gui
 
