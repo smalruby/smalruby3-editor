@@ -194,6 +194,37 @@ The mesh v2 extension uses AWS AppSync for real-time collaboration:
 
 5. **Only after all tests pass and lint is clean**, commit and push.
 
+## Smalruby Marker Blocks
+
+Smalruby のカスタムコードは upstream ファイルの中に **マーカーコメント** で囲んで配置する。
+upstream merge 時にコンフリクトを解決しやすくするための仕組み。
+
+### マーカーの書式
+
+```javascript
+// === Smalruby: Start of <機能名> ===
+// ... Smalruby 固有のコード ...
+// === Smalruby: End of <機能名> ===
+```
+
+### ルール
+
+1. **upstream ファイルに Smalruby コードを追加するときは必ずマーカーで囲む**
+2. **マーカー内のコードだけを変更する** — マーカー外は upstream の管轄
+3. **新しいマーカーを追加したら、このセクションに記載する**
+4. **マーカーを削除する場合は、このセクションからも削除する**
+
+### 現在のマーカー一覧
+
+| ファイル | 機能名 | 説明 |
+|----------|--------|------|
+| `src/extension-support/extension-manager.js` | extension registration | Smalruby 拡張機能の登録 |
+
+### 関連ファイル
+
+マーカーで囲まれたコードが参照するファイル:
+- `src/extension-support/smalruby-extensions.js` — extension-manager.js のマーカーから参照
+
 ## Development Notes
 
 - The VM exports both Node.js and browser builds

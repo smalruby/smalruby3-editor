@@ -57,6 +57,25 @@ export default MyComponent;
 - Follow existing reducer/action patterns for consistency
 - Keep state shape flat when possible
 
+## Smalruby Marker Comments
+
+upstream のファイルに Smalruby 固有のコードを追加する際は、必ず **マーカーコメント** で囲む。
+
+```javascript
+// === Smalruby: Start of <機能名> ===
+// ... Smalruby 固有のコード ...
+// === Smalruby: End of <機能名> ===
+```
+
+- Start と End は必ずペアにする
+- `<機能名>` は英語で、何の機能かわかる名前にする
+- ファイル全体が Smalruby 固有の場合はファイル冒頭に `// === Smalruby: This file is Smalruby-specific (<説明>) ===`
+- マーカーを追加・削除したら、該当パッケージの `development.md` のマーカー一覧を更新する
+
+詳細は各パッケージの development.md を参照:
+- `.claude/rules/scratch-gui/development.md` — scratch-gui のマーカー一覧
+- `.claude/rules/scratch-vm/development.md` — scratch-vm のマーカー一覧
+
 ## Documentation
 
 ### JSDoc Comments
