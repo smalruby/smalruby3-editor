@@ -59,50 +59,70 @@ test('MeshV2Service Integration: Batching and Timing', async t => {
         }
     };
 
-    // 1. Fire events at intervals
-    sender.fireEvent('e1');
-    await new Promise(r => setTimeout(r, 100));
-    sender.fireEvent('e2');
-    await new Promise(r => setTimeout(r, 100));
-    sender.fireEvent('e3');
-
-    // 2. Process batch (simulates timer trigger)
-    await sender.processBatchEvents();
-
-    // 3. Verify queuing
-    t.equal(receiver.pendingBroadcasts.length, 3, 'Events should be queued');
-    t.equal(receiver.pendingBroadcasts[0].event.name, 'e1');
-    t.equal(receiver.pendingBroadcasts[1].event.name, 'e2');
-    t.equal(receiver.pendingBroadcasts[2].event.name, 'e3');
-
-    // 4. Process events via BEFORE_STEP simulation
-    // Mock Date.now to control elapsed time
+    // Mock both Date.now and Date constructor to avoid CI timing flakiness
     const realDateNow = Date.now;
+    const RealDate = Date;
     const startTime = realDateNow();
     let currentTime = startTime;
     Date.now = () => currentTime;
+    // eslint-disable-next-line no-global-assign
+    Date = class extends RealDate {
+        constructor (...args) {
+            if (args.length === 0) {
+                super(currentTime);
+            } else {
+                super(...args);
+            }
+        }
+
+        static now () {
+            return currentTime;
+        }
+    };
 
     try {
+        // 1. Fire events at controlled intervals
+        sender.fireEvent('e1');
+        currentTime = startTime + 100;
+        sender.fireEvent('e2');
+        currentTime = startTime + 200;
+        sender.fireEvent('e3');
+
+        // 2. Process batch (simulates timer trigger)
+        await sender.processBatchEvents();
+
+        // 3. Verify queuing
+        t.equal(receiver.pendingBroadcasts.length, 3, 'Events should be queued');
+        t.equal(receiver.pendingBroadcasts[0].event.name, 'e1');
+        t.equal(receiver.pendingBroadcasts[1].event.name, 'e2');
+        t.equal(receiver.pendingBroadcasts[2].event.name, 'e3');
+
+        // 4. Process events via BEFORE_STEP simulation
+        // Reset time to when batch was received (same as last event time)
+        currentTime = startTime + 200;
+
         // Initially, only e1 should be ready (offset 0)
         receiver.processNextBroadcast();
         t.equal(broadcasted.length, 1);
         t.equal(broadcasted[0].name, 'e1');
         t.equal(receiver.pendingBroadcasts.length, 2);
 
-        // Advance time to 150ms, e2 should be ready (offset ~100ms)
-        currentTime = startTime + 150;
+        // Advance time to 150ms after batch receipt, e2 should be ready (offset 100ms)
+        currentTime = startTime + 350;
         receiver.processNextBroadcast();
         t.equal(broadcasted.length, 2);
         t.equal(broadcasted[1].name, 'e2');
         t.equal(receiver.pendingBroadcasts.length, 1);
 
-        // Advance time to 300ms, e3 should be ready (offset ~200ms)
-        currentTime = startTime + 300;
+        // Advance time to 300ms after batch receipt, e3 should be ready (offset 200ms)
+        currentTime = startTime + 500;
         receiver.processNextBroadcast();
         t.equal(broadcasted.length, 3);
         t.equal(broadcasted[2].name, 'e3');
         t.equal(receiver.pendingBroadcasts.length, 0);
     } finally {
+        // eslint-disable-next-line no-global-assign
+        Date = RealDate;
         Date.now = realDateNow;
     }
 
