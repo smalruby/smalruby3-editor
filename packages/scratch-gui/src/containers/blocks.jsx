@@ -909,7 +909,7 @@ class Blocks extends React.Component {
             updateMetrics: _updateMetricsProp,
             useCatBlocks: _useCatBlocks,
             workspaceMetrics: _workspaceMetrics,
-            colorMode: _colorMode,
+            colorMode,
             paletteVisible,
             onTogglePalette: _onTogglePalette,
             projectTitle: _projectTitle,

@@ -96,6 +96,7 @@ const setScratchBlocks = function (scratchBlocks) {
 export {
     reducer as default,
     initialState,
+    initialState as blockDisplayInitialState,
     setSelectedBlocks,
     openBlockDisplayModal,
     closeBlockDisplayModal,

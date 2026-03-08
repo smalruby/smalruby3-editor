@@ -50,7 +50,7 @@ export default eslintConfigScratch.defineConfig(
         rules: {
             // webpack inline loader syntax (e.g. `!raw-loader!./file.svg`) is not resolvable by the
             // TypeScript resolver; these are valid at runtime via webpack's loader pipeline
-            'import-x/no-unresolved': ['error', {ignore: ['^!']}],
+            'import-x/no-unresolved': ['error', {ignore: ['^!', '^redux$']}],
 
             // BEGIN: these caused trouble after upgrading eslint-plugin-react from 7.24.0 to 7.33.2
             'react/forbid-prop-types': 'warn',
