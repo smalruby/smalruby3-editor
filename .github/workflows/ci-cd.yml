@@ -81,8 +81,23 @@ jobs:
         run: npm run build:dev
       - name: Lint
         run: npm run lint
-      - name: Run Unit Tests
-        run: npm run test:unit
+      - name: Run Unit Tests (scratch-vm and scratch-gui in parallel)
+        run: |
+          npm run test:unit --workspace=packages/scratch-vm &
+          pid_vm=$!
+          npm run test:unit --workspace=packages/scratch-gui &
+          pid_gui=$!
+
+          # Wait for both and capture exit codes
+          wait $pid_vm
+          rc_vm=$?
+          wait $pid_gui
+          rc_gui=$?
+
+          if [ $rc_vm -ne 0 ] || [ $rc_gui -ne 0 ]; then
+            echo "Unit test failures: scratch-vm=$rc_vm, scratch-gui=$rc_gui"
+            exit 1
+          fi
 
   integration-test-vm:
     runs-on: ubuntu-latest
