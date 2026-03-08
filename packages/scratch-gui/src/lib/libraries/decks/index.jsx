@@ -212,7 +212,7 @@ end`,
     'chat-1-basic-2': {
         name: (
             <FormattedMessage
-                defaultMessage="ブロックを自分で組み立ててみよう！"
+                defaultMessage="メッセージを送ってみよう！Lv2"
                 description="Name for Chat Tutorial 1 Basic 2: build blocks manually"
                 id="gui.howtos.chat-1-basic-2.name"
             />
@@ -320,7 +320,7 @@ end`,
     'chat-1-basic-3': {
         name: (
             <FormattedMessage
-                defaultMessage="Rubyで同じプログラムを作ろう！"
+                defaultMessage="メッセージを送ってみよう！Lv3"
                 description="Name for Chat Tutorial 1 Basic 3: build with Ruby"
                 id="gui.howtos.chat-1-basic-3.name"
             />
