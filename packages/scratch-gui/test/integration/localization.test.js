@@ -49,7 +49,7 @@ describe('Localization', () => {
         await new Promise(resolve => setTimeout(resolve, 1000)); // wait for blocks refresh
 
         // Make sure the blocks are translating
-        await clickText('調べる'); // Sensing category in Japanese
+        await clickBlocksCategory('調べる'); // Sensing category in Japanese
         await new Promise(resolve => setTimeout(resolve, 1000)); // wait for blocks to scroll
         await clickText('答え'); // Find the "answer" block in Japanese
 
