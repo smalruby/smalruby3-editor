@@ -100,6 +100,10 @@ const buildExportSVG = function (workspace, bbox, scale, width, height, padding 
     // Clone block canvas and re-position so bbox top-left -> (padding, padding).
     // bbox.x and bbox.y are workspace coordinates of the top-left of all blocks.
     const canvasClone = blockCanvas.cloneNode(true);
+    // Scratch Blocks v2 uses CSS style.transform (e.g. "translate(311px, 0px) scale(0.675)")
+    // instead of an SVG transform attribute. Clear the CSS transform so it doesn't
+    // override the SVG transform attribute we set below for export positioning.
+    canvasClone.style.transform = '';
     const tx = ((-bbox.x) * scale) + padding;
     const ty = ((-bbox.y) * scale) + padding;
     canvasClone.setAttribute('transform', `translate(${tx}, ${ty}) scale(${scale})`);
