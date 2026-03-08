@@ -366,12 +366,12 @@ export default {
     // Chat Tutorial 1 Basic 2
     'gui.howtos.chat-1-basic-2.name': 'メッセージを送ってみよう！Lv2',
     'gui.howtos.chat-1-basic-2.step1.title': '今度はブロックを自分で組み立ててみよう！',
-    'gui.howtos.chat-1-basic-2.step2.title': '変数「送信メッセージ」を作り、「🟢が押されたとき」と「送信メッセージを◯◯にする」を配置しよう',
+    'gui.howtos.chat-1-basic-2.step2.title': '変数「送信メッセージ」を作り、「{greenFlag}が押されたとき」と「送信メッセージを◯◯にする」を配置しよう',
     'gui.howtos.chat-1-basic-2.step3.title': '「◯◯と◯秒言う」を追加して「送信中...」と入力しよう',
     'gui.howtos.chat-1-basic-2.step4.title': '★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ',
     'gui.howtos.chat-1-basic-2.step5.title': '★「◯◯を受け取ったとき」を新しく配置しよう — 送ったメッセージを受け取るよ',
     'gui.howtos.chat-1-basic-2.step6.title': '★「◯◯と言う」に「送信メッセージ」変数をはめよう — 変数で値を渡すよ',
-    'gui.howtos.chat-1-basic-2.step7.title': '🟢を押して実行！しゃべる内容も変えてみよう',
+    'gui.howtos.chat-1-basic-2.step7.title': '{greenFlag}を押して実行！しゃべる内容も変えてみよう',
     // Chat Tutorial 1 Basic 3
     'gui.howtos.chat-1-basic-3.name': 'メッセージを送ってみよう！Lv3',
     'gui.howtos.chat-1-basic-3.step1.title': '今度はRubyで同じプログラムを作ろう！',
@@ -379,7 +379,7 @@ export default {
     'gui.howtos.chat-1-basic-3.step3.title': 'ベースのコードを「プログラムを入力」で入力しよう',
     'gui.howtos.chat-1-basic-3.step4.title': '★ $送信メッセージ = "こんにちは！元気ですか？" を手で入力しよう — $で始まる変数は全体で使えるよ',
     'gui.howtos.chat-1-basic-3.step5.title': '★ say("ここを変えるよ") を say($送信メッセージ) に変えよう — 変数で値を渡すよ',
-    'gui.howtos.chat-1-basic-3.step6.title': 'ブロックタブに戻して🟢を押して実行しよう！',
+    'gui.howtos.chat-1-basic-3.step6.title': 'ブロックタブに戻して{greenFlag}を押して実行しよう！',
     'gui.howtos.chat-1-basic-3.step7.title': '大事なこと：Rubyでも「送る」「受け取ったとき」「変数」は同じ考え方',
     // Chat Tutorial 2 Sprites 1
     'gui.howtos.chat-2-sprites-1.name': 'ネコとペンギンで会話しよう',

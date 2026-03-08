@@ -362,12 +362,12 @@ export default {
     // Chat Tutorial 1 Basic 2
     'gui.howtos.chat-1-basic-2.name': 'メッセージをおくってみよう！Lv2',
     'gui.howtos.chat-1-basic-2.step1.title': 'こんどはブロックをじぶんでくみたててみよう！',
-    'gui.howtos.chat-1-basic-2.step2.title': 'へんすう「そうしんメッセージ」をつくり、「🟢がおされたとき」と「そうしんメッセージを◯◯にする」をはいちしよう',
+    'gui.howtos.chat-1-basic-2.step2.title': 'へんすう「そうしんメッセージ」をつくり、「{greenFlag}がおされたとき」と「そうしんメッセージを◯◯にする」をはいちしよう',
     'gui.howtos.chat-1-basic-2.step3.title': '「◯◯と◯びょういう」をついかして「そうしんちゅう...」とにゅうりょくしよう',
     'gui.howtos.chat-1-basic-2.step4.title': '★「◯◯をおくる」をついかしよう — はなれたブロックをじっこうできるよ',
     'gui.howtos.chat-1-basic-2.step5.title': '★「◯◯をうけとったとき」をあたらしくはいちしよう — おくったメッセージをうけとるよ',
     'gui.howtos.chat-1-basic-2.step6.title': '★「◯◯という」に「そうしんメッセージ」へんすうをはめよう — へんすうであたいをわたすよ',
-    'gui.howtos.chat-1-basic-2.step7.title': '🟢をおしてじっこう！しゃべるないようもかえてみよう',
+    'gui.howtos.chat-1-basic-2.step7.title': '{greenFlag}をおしてじっこう！しゃべるないようもかえてみよう',
     // Chat Tutorial 1 Basic 3
     'gui.howtos.chat-1-basic-3.name': 'メッセージをおくってみよう！Lv3',
     'gui.howtos.chat-1-basic-3.step1.title': 'こんどはRubyでおなじプログラムをつくろう！',
@@ -375,7 +375,7 @@ export default {
     'gui.howtos.chat-1-basic-3.step3.title': 'ベースのコードを「プログラムをにゅうりょく」でにゅうりょくしよう',
     'gui.howtos.chat-1-basic-3.step4.title': '★ $そうしんメッセージ = "こんにちは！げんきですか？" をてでにゅうりょくしよう — $ではじまるへんすうはぜんたいでつかえるよ',
     'gui.howtos.chat-1-basic-3.step5.title': '★ say("ここをかえるよ") を say($そうしんメッセージ) にかえよう — へんすうであたいをわたすよ',
-    'gui.howtos.chat-1-basic-3.step6.title': 'ブロックタブにもどして🟢をおしてじっこうしよう！',
+    'gui.howtos.chat-1-basic-3.step6.title': 'ブロックタブにもどして{greenFlag}をおしてじっこうしよう！',
     'gui.howtos.chat-1-basic-3.step7.title': 'だいじなこと：Rubyでも「おくる」「うけとったとき」「へんすう」はおなじかんがえかた',
     // Chat Tutorial 2 Sprites 1
     'gui.howtos.chat-2-sprites-1.name': 'ネコとペンギンでかいわしよう',

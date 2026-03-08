@@ -15,6 +15,21 @@ import libraryChat3Mesh1 from './thumbnails/chat-3-mesh-1.jpg';
 import libraryChat3Mesh1ExternalKairyudo from './thumbnails/chat3-mesh1-external-kairyudo.png';
 import {CATEGORIES} from '../tutorial-tags';
 
+// Green flag icon for inline use in tutorial step titles
+import greenFlagIcon from '../../../components/green-flag/icon--green-flag.svg';
+
+const GreenFlagIcon = () => (
+    <img
+        src={greenFlagIcon}
+        style={{
+            display: 'inline-block',
+            height: '1.2em',
+            verticalAlign: 'middle',
+            margin: '0 0.1em'
+        }}
+    />
+);
+
 const decks = {
     'intro-getting-started': {
         name: (
@@ -244,9 +259,10 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="変数「送信メッセージ」を作り、「🟢が押されたとき」と「送信メッセージを◯◯にする」を配置しよう"
+                        defaultMessage="変数「送信メッセージ」を作り、「{greenFlag}が押されたとき」と「送信メッセージを◯◯にする」を配置しよう"
                         description="Chat1 Basic2 Step 2: Create variable and place flag + set blocks"
                         id="gui.howtos.chat-1-basic-2.step2.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
                     />
                 ),
                 image: 'chat1Basic2Step2',
@@ -299,9 +315,10 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="🟢を押して実行！しゃべる内容も変えてみよう"
+                        defaultMessage="{greenFlag}を押して実行！しゃべる内容も変えてみよう"
                         description="Chat1 Basic2 Step 7: Run and customize"
                         id="gui.howtos.chat-1-basic-2.step7.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
                     />
                 ),
                 image: 'chat1Basic2Step7',
@@ -404,9 +421,10 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="ブロックタブに戻して🟢を押して実行しよう！"
+                        defaultMessage="ブロックタブに戻して{greenFlag}を押して実行しよう！"
                         description="Chat1 Basic3 Step 6: Switch to blocks tab and run"
                         id="gui.howtos.chat-1-basic-3.step6.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
                     />
                 ),
                 image: 'chat1Basic3Step6',

@@ -294,12 +294,12 @@ export default {
     // Chat Tutorial 1 Basic 2
     'gui.howtos.chat-1-basic-2.name': "Let's Send a Message! Lv2",
     'gui.howtos.chat-1-basic-2.step1.title': "Now let's build the blocks yourself!",
-    'gui.howtos.chat-1-basic-2.step2.title': 'Create the "send message" variable, and place "when flag clicked" and "set send message to"',
+    'gui.howtos.chat-1-basic-2.step2.title': 'Create the "send message" variable, and place "when {greenFlag} clicked" and "set send message to"',
     'gui.howtos.chat-1-basic-2.step3.title': 'Add "say for seconds" and type "Sending..."',
     'gui.howtos.chat-1-basic-2.step4.title': '★ Add "broadcast" — it can run remote blocks',
     'gui.howtos.chat-1-basic-2.step5.title': '★ Place a new "when I receive" — it receives the sent message',
     'gui.howtos.chat-1-basic-2.step6.title': '★ Put the "send message" variable into "say" — pass values with variables',
-    'gui.howtos.chat-1-basic-2.step7.title': 'Click the green flag to run! Try changing what is said',
+    'gui.howtos.chat-1-basic-2.step7.title': 'Click {greenFlag} to run! Try changing what is said',
     // Chat Tutorial 1 Basic 3
     'gui.howtos.chat-1-basic-3.name': "Let's Send a Message! Lv3",
     'gui.howtos.chat-1-basic-3.step1.title': "Now let's build the same program in Ruby!",
@@ -307,7 +307,7 @@ export default {
     'gui.howtos.chat-1-basic-3.step3.title': 'Insert the base code using "Insert Program"',
     'gui.howtos.chat-1-basic-3.step4.title': '★ Type $send_message = "Hello! How are you?" — variables starting with $ are global',
     'gui.howtos.chat-1-basic-3.step5.title': '★ Change say("change this") to say($send_message) — pass values with variables',
-    'gui.howtos.chat-1-basic-3.step6.title': 'Switch back to blocks tab and click the green flag to run!',
+    'gui.howtos.chat-1-basic-3.step6.title': 'Switch back to blocks tab and click {greenFlag} to run!',
     'gui.howtos.chat-1-basic-3.step7.title': 'Key concept: "broadcast", "when received", and "variables" work the same way in Ruby',
     // Chat Tutorial 2 Sprites 1
     'gui.howtos.chat-2-sprites-1.name': "Let's Chat with Cat and Penguin!",
