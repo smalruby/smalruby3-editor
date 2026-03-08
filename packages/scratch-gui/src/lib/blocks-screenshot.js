@@ -15,8 +15,13 @@ const EXPORT_PADDING = 16;
 const getBlocksBoundingBox = function (workspace) {
     const bbox = workspace.getBlocksBoundingBox();
     if (!bbox) return null;
-    if (bbox.width === 0 && bbox.height === 0) return null;
-    return bbox;
+    // Scratch Blocks v2 returns {top, bottom, left, right}; convert to {x, y, width, height}
+    const x = 'x' in bbox ? bbox.x : bbox.left;
+    const y = 'y' in bbox ? bbox.y : bbox.top;
+    const width = 'width' in bbox ? bbox.width : (bbox.right - bbox.left);
+    const height = 'height' in bbox ? bbox.height : (bbox.bottom - bbox.top);
+    if (width === 0 && height === 0) return null;
+    return {x, y, width, height};
 };
 
 /**
