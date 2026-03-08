@@ -81,22 +81,8 @@ jobs:
         run: npm run build:dev
       - name: Lint
         run: npm run lint
-      - name: Create test-results directories
-        run: |
-          mkdir -p packages/scratch-vm/test-results
-          mkdir -p packages/scratch-gui/test-results
       - name: Run Unit Tests
-        env:
-          TAP_REPORTER: junit
-          TAP_REPORTER_FILE: test-results/unit-tests-results.xml
         run: npm run test:unit
-      - name: Store Test Results
-        if: always() # Even if tests fail
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
-        with:
-          name: test-output-unit
-          path: |
-            packages/*/test-results/*
 
   integration-test-vm:
     runs-on: ubuntu-latest

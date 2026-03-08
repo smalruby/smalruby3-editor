@@ -12,12 +12,12 @@
 |------|--------|------|
 | Prerequisites | ✅ | 2026-03-08 |
 | Branch creation | ✅ | 2026-03-08 |
-| Merge execution | ⏳ | |
-| Conflict resolution | ⏳ | |
-| Lint | ⏳ | |
-| Build | ⏳ | |
-| Unit tests | ⏳ | |
-| Integration tests | ⏳ | |
-| CI check | ⏳ | |
-| Documentation | ⏳ | |
-| PR creation | ⏳ | |
+| Merge execution | ✅ | 2026-03-08 |
+| Conflict resolution | ✅ | 2026-03-08 |
+| Lint | ✅ | 2026-03-08 |
+| Build | ✅ | 2026-03-08 |
+| Unit tests | ✅ | 2026-03-08 |
+| Integration tests | ✅ | 2026-03-08 |
+| CI check | ⏳ Running | |
+| Documentation | ✅ | 2026-03-08 |
+| PR creation | ✅ | PR #238 |
