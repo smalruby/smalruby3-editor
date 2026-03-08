@@ -120,6 +120,12 @@ jobs:
 
   integration-test-vm:
     runs-on: ubuntu-latest
+    if: |
+      (!(
+        github.ref == 'refs/heads/develop' ||
+        github.ref == 'refs/heads/master' ||
+        github.ref == 'refs/heads/main'
+      ))
     strategy:
       matrix:
         shard: [1, 2]
@@ -175,6 +181,12 @@ jobs:
 
   integration-test-gui:
     runs-on: ubuntu-latest
+    if: |
+      (!(
+        github.ref == 'refs/heads/develop' ||
+        github.ref == 'refs/heads/master' ||
+        github.ref == 'refs/heads/main'
+      ))
     strategy:
       matrix:
         shard: [1, 2]
