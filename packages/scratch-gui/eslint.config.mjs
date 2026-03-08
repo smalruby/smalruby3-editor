@@ -1,8 +1,7 @@
 import {eslintConfigScratch} from 'eslint-config-scratch';
 import {globalIgnores} from 'eslint/config';
 import globals from 'globals';
-import importPlugin from 'eslint-plugin-import';
-import path from 'path';
+import importPlugin from 'eslint-plugin-import-x';
 
 export default eslintConfigScratch.defineConfig(
     eslintConfigScratch.legacy.base,
@@ -15,13 +14,6 @@ export default eslintConfigScratch.defineConfig(
         },
         rules: {
             'no-console': 'off'
-        },
-        settings: {
-            // TODO: figure out why this is needed...
-            // probably something with eslint-plugin-import's parser or resolver
-            'import/core-modules': [
-                'eslint/config'
-            ]
         }
     },
     {
@@ -49,13 +41,17 @@ export default eslintConfigScratch.defineConfig(
             'react': {
                 version: 'detect'
             },
-            'import/resolver': {
-                webpack: {
-                    config: path.resolve(import.meta.dirname, 'webpack.config.js')
+            'import-x/resolver': {
+                typescript: {
+                    project: 'tsconfig.eslint.json'
                 }
             }
         },
         rules: {
+            // webpack inline loader syntax (e.g. `!raw-loader!./file.svg`) is not resolvable by the
+            // TypeScript resolver; these are valid at runtime via webpack's loader pipeline
+            'import-x/no-unresolved': ['error', {ignore: ['^!']}],
+
             // BEGIN: these caused trouble after upgrading eslint-plugin-react from 7.24.0 to 7.33.2
             'react/forbid-prop-types': 'warn',
             'react/no-unknown-property': 'warn',
@@ -97,13 +93,6 @@ export default eslintConfigScratch.defineConfig(
         }
     },
     {
-        files: ['{src,test}/**/*.{ts,tsx}'],
-        rules: {
-            // TODO: get TS parsing to work with eslint-plugin-import
-            'import/named': 'off'
-        }
-    },
-    {
         // disable some checks for these generated files
         files: ['{src,test}/**/types.d.ts'],
         rules: {
@@ -131,8 +120,8 @@ export default eslintConfigScratch.defineConfig(
         files: ['test/unit/util/define-dynamic-block.test.js'],
         settings: {
             // TODO: figure out why this is needed...
-            // probably something with eslint-plugin-import's parser or resolver
-            'import/core-modules': [
+            // probably something with eslint-plugin-import-x's parser or resolver
+            'import-x/core-modules': [
                 '@smalruby/scratch-vm/src/extension-support/block-type'
             ]
         }

@@ -6,7 +6,7 @@ import styles from './sprite-selector-item.css';
 import contextMenuStyles from '../context-menu/context-menu.css';
 import {DangerousMenuItem, MenuItem} from '../context-menu/context-menu.jsx';
 import {FormattedMessage} from 'react-intl';
-import ContextMenu from '../../lib/radix-ui-context-menu.js';
+import * as ContextMenu from '@radix-ui/react-context-menu';
 
 const SpriteSelectorItem = props => {
     useEffect(() => {
@@ -16,11 +16,11 @@ const SpriteSelectorItem = props => {
                 contextMenu.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}));
             }
         };
-    
+
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
-    
+
 
     return (
         <ContextMenu.Root modal={false}>
