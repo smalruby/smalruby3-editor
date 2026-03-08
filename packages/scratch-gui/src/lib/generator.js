@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import log from './log';
-import Blockly from 'scratch-blocks';
+import * as Blockly from 'scratch-blocks';
 
 /**
  * Class for a code generator that translates the blocks into a language.
@@ -80,7 +80,7 @@ class Generator {
      * @returns {string} Category name.
      */
     static get NAME_TYPE () {
-        return Blockly.NAME_TYPE;
+        return Blockly.Names.NameType;
     }
 
     /**

@@ -40,8 +40,10 @@ describe('Palette toggle', () => {
         // The show-palette button (▶) should now be visible
         await findByXpath('//button[@title="ブロックパレットを表示する"]');
         // The toolbox should be hidden
+        // The toolbox should be hidden
+        // Note: scratch-blocks v2 uses "blocklyToolbox" class (was "blocklyToolboxDiv" in v1)
         const toolboxVisible = await driver.executeScript(
-            'const el = document.querySelector(".blocklyToolboxDiv"); return el ? el.style.display !== "none" : true;'
+            'const el = document.querySelector(".blocklyToolbox"); return el ? el.style.display !== "none" : true;'
         );
         expect(toolboxVisible).toBe(false);
         // The extension button should be hidden
@@ -64,8 +66,9 @@ describe('Palette toggle', () => {
         // The hide-palette button should be visible again
         await findByXpath('//button[@title="ブロックパレットを隠す"]');
         // The toolbox should be visible again
+        // Note: scratch-blocks v2 uses "blocklyToolbox" class (was "blocklyToolboxDiv" in v1)
         const toolboxVisible = await driver.executeScript(
-            'const el = document.querySelector(".blocklyToolboxDiv"); return el ? el.style.display !== "none" : true;'
+            'const el = document.querySelector(".blocklyToolbox"); return el ? el.style.display !== "none" : true;'
         );
         expect(toolboxVisible).toBe(true);
         const logs = await getLogs();
