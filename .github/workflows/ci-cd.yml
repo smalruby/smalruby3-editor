@@ -68,7 +68,7 @@ jobs:
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
       - name: Build dependency packages
-        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render
+        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm
       - name: Lint
         run: npm run lint
 
@@ -91,7 +91,7 @@ jobs:
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
       - name: Build dependency packages
-        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render
+        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm
       - name: Run scratch-vm Unit Tests
         run: npm run test:unit --workspace=packages/scratch-vm
 
@@ -114,7 +114,7 @@ jobs:
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
       - name: Build dependency packages
-        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render
+        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm
       - name: Run scratch-gui Unit Tests
         run: npm run test:unit --workspace=packages/scratch-gui
 
