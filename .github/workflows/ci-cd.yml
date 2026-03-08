@@ -86,6 +86,9 @@ jobs:
 
   integration-test-vm:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1, 2]
     env:
       NODE_OPTIONS: --max-old-space-size=4000
     steps:
@@ -113,12 +116,27 @@ jobs:
           MESH_DATA_UPDATE_INTERVAL_MS: 100
           MESH_EVENT_BATCH_INTERVAL_MS: 100
           MESH_PERIODIC_DATA_SYNC_INTERVAL_MS: 1000
-        run: npm run test:integration --workspace=packages/scratch-vm
+        working-directory: packages/scratch-vm
+        run: |
+          # Collect all integration test files and sort for deterministic sharding
+          files=$(find test/integration -name '*.js' -o -name '*.test.js' | sort)
+          total=$(echo "$files" | wc -l)
+          half=$(( (total + 1) / 2 ))
+
+          if [ "${{ matrix.shard }}" = "1" ]; then
+            selected=$(echo "$files" | head -n "$half")
+          else
+            selected=$(echo "$files" | tail -n +"$((half + 1))")
+          fi
+
+          echo "Shard ${{ matrix.shard }}/$total files: running $(echo "$selected" | wc -l) files"
+          echo "$selected"
+          echo "$selected" | xargs npx tap
       - name: Store Test Results
         if: always() # Even if tests fail
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          name: test-output-integration-vm
+          name: test-output-integration-vm-shard-${{ matrix.shard }}
           path: packages/scratch-vm/test-results/*
 
   integration-test-gui:
