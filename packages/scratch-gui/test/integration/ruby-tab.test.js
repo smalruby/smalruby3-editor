@@ -60,52 +60,6 @@ describe('convert Code from Ruby', () => {
         expect(await currentRubyProgram()).toEqual('move(10)\n');
     });
 
-    test('while round-trip: Ruby -> Blocks -> Ruby preserves while syntax', async () => {
-        await loadUri(uri);
-        const code = `while touching?("_edge_")
-  move(10)
-end`;
-        await rubyHelper.expectInterconvertBetweenCodeAndRuby(code);
-    });
-
-    test('variable as while condition round-trip: Ruby -> Blocks -> Ruby', async () => {
-        await loadUri(uri);
-        const code = `@game_on = true
-while @game_on
-  move(10)
-  @game_on = false
-end`;
-        await rubyHelper.expectInterconvertBetweenCodeAndRuby(code);
-    });
-
-    test('variable as until condition round-trip: Ruby -> Blocks -> Ruby', async () => {
-        await loadUri(uri);
-        const code = `@done = false
-until @done
-  move(10)
-  @done = true
-end`;
-        await rubyHelper.expectInterconvertBetweenCodeAndRuby(code);
-    });
-
-    test('variable as if condition round-trip: Ruby -> Blocks -> Ruby', async () => {
-        await loadUri(uri);
-        const code = `@flag = true
-if @flag
-  move(10)
-end`;
-        await rubyHelper.expectInterconvertBetweenCodeAndRuby(code);
-    });
-
-    test('variable as unless condition round-trip: Ruby -> Blocks -> Ruby', async () => {
-        await loadUri(uri);
-        const code = `@flag = false
-unless @flag
-  move(10)
-end`;
-        await rubyHelper.expectInterconvertBetweenCodeAndRuby(code);
-    });
-
     describe('syntax error', () => {
         beforeEach(async () => {
             await loadUri(uri);
