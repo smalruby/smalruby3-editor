@@ -1,12 +1,12 @@
 @import "../../css/z-index.css";
 
 /* Position above the Scratch Blocks zoom controls.
-   bottom = scrollbar(10) + MARGIN_BOTTOM(12) + HEIGHT(124) + MARGIN_BETWEEN(8) = 154px
-   right  = MARGIN_SIDE(12) + scrollbar(10) = 22px */
+   bottom = scrollbar(11) + MARGIN_BOTTOM(12) + HEIGHT(124) + gap(8) + offset(7) = 162px
+   right  = MARGIN_SIDE(12) + scrollbar(11) + offset(7) = 30px */
 .screenshotButton {
     position: absolute;
-    bottom: 154px;
-    right: 22px;
+    bottom: 162px;
+    right: 30px;
     width: 36px;
     height: 36px;
     padding: 0;

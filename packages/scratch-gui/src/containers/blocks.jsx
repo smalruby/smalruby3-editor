@@ -242,6 +242,11 @@ class Blocks extends React.Component {
 
         if (this.props.paletteVisible !== prevProps.paletteVisible) {
             this._applyPaletteVisibility(this.props.paletteVisible);
+            // Re-render after DOM visibility changes so the toggle position
+            // is computed with correct toolbox/flyout widths.
+            if (this.props.paletteVisible) {
+                requestAnimationFrame(() => this.forceUpdate());
+            }
         }
 
         if (this.props.isVisible === prevProps.isVisible) {
@@ -917,8 +922,14 @@ class Blocks extends React.Component {
         } = this.props;
 
         // Calculate toggle button position based on toolbox width (toolbox + flyout combined)
+        // In Scratch Blocks v2, getWidth() returns only the category menu width;
+        // the flyout width must be added separately.
         const toolbox = this.workspace ? this.workspace.getToolbox() : null;
-        const toggleButtonLeft = paletteVisible && toolbox ? toolbox.getWidth() : 0;
+        const flyout = toolbox ? toolbox.getFlyout() : null;
+        const toolboxTotalWidth = toolbox ?
+            toolbox.getWidth() + (flyout ? flyout.getWidth() : 0) :
+            0;
+        const toggleButtonLeft = paletteVisible ? toolboxTotalWidth : 0;
 
         return (
             <React.Fragment>
