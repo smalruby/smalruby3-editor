@@ -1,5 +1,5 @@
 import {Variable} from './constants';
-import Blockly from 'scratch-blocks';
+import * as Blockly from 'scratch-blocks';
 import {RubyToBlocksConverterError} from './errors';
 
 /**
@@ -68,7 +68,7 @@ const VariableUtils = {
 
             if (!variable) {
                 variable = {
-                    id: Blockly.utils.genUid(),
+                    id: Blockly.utils.idGenerator.genUid(),
                     name: transformedName,
                     originalName: varName,
                     scope: 'local', // Mark as local for internal tracking
@@ -98,7 +98,7 @@ const VariableUtils = {
             }
         } else {
             variable = {
-                id: Blockly.utils.genUid(),
+                id: Blockly.utils.idGenerator.genUid(),
                 name: varName,
                 scope: scope,
                 type: type,
@@ -140,7 +140,7 @@ const VariableUtils = {
         let broadcastMsg = this._context.broadcastMsgs[key];
         if (!broadcastMsg) {
             broadcastMsg = {
-                id: Blockly.utils.genUid(),
+                id: Blockly.utils.idGenerator.genUid(),
                 name: name,
                 scope: 'global'
             };
@@ -180,7 +180,7 @@ const VariableUtils = {
             );
         }
         procedure = {
-            id: Blockly.utils.genUid(),
+            id: Blockly.utils.idGenerator.genUid(),
             name: name,
             procCode: [name],
             argumentNames: [],
