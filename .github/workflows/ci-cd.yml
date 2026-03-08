@@ -51,7 +51,28 @@ permissions:
   pull-requests: write # comment on released pull requests
 
 jobs:
-  lint-and-unit-test:
+  lint:
+    runs-on: ubuntu-latest
+    if: |
+      (!(
+        github.ref == 'refs/heads/develop' ||
+        github.ref == 'refs/heads/master' ||
+        github.ref == 'refs/heads/main'
+      ))
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          cache: 'npm'
+          node-version-file: '.nvmrc'
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build dependency packages
+        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm
+      - name: Lint
+        run: npm run lint
+
+  unit-test-vm:
     runs-on: ubuntu-latest
     if: |
       (!(
@@ -67,22 +88,35 @@ jobs:
         with:
           cache: 'npm'
           node-version-file: '.nvmrc'
-      - name: Info
-        run: |
-          cat <<EOF
-          Node version: $(node --version)
-          NPM version: $(npm --version)
-          GitHub ref: ${{ github.ref }}
-          GitHub head ref: ${{ github.head_ref }}
-          EOF
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
-      - name: Build packages
-        run: npm run build:dev
-      - name: Lint
-        run: npm run lint
-      - name: Run Unit Tests
-        run: npm run test:unit
+      - name: Build dependency packages
+        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm
+      - name: Run scratch-vm Unit Tests
+        run: npm run test:unit --workspace=packages/scratch-vm
+
+  unit-test-gui:
+    runs-on: ubuntu-latest
+    if: |
+      (!(
+        github.ref == 'refs/heads/develop' ||
+        github.ref == 'refs/heads/master' ||
+        github.ref == 'refs/heads/main'
+      ))
+    env:
+      NODE_OPTIONS: --max-old-space-size=4000
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          cache: 'npm'
+          node-version-file: '.nvmrc'
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build dependency packages
+        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm
+      - name: Run scratch-gui Unit Tests
+        run: npm run test:unit --workspace=packages/scratch-gui
 
   integration-test-vm:
     runs-on: ubuntu-latest
