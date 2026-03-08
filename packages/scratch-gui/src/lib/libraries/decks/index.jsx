@@ -7,6 +7,8 @@ import {FormattedMessage} from 'react-intl';
 import libraryIntro from './thumbnails/getting-started.jpg';
 // Chat App tutorials
 import libraryChat1Basic1 from './thumbnails/chat-1-basic-1.jpg';
+import libraryChat1Basic2 from './thumbnails/chat-1-basic-2.jpg';
+import libraryChat1Basic3 from './thumbnails/chat-1-basic-3.jpg';
 import libraryChat2Sprites1 from './thumbnails/chat-2-sprites-1.jpg';
 // Chat Tutorial 3 Mesh 1: メッシュ拡張機能でつながろう
 import libraryChat3Mesh1 from './thumbnails/chat-3-mesh-1.jpg';
@@ -199,11 +201,235 @@ end`,
             },
             {
                 deckIds: [
-                    'chat-2-sprites-1'
+                    'chat-1-basic-2'
                 ]
             }
         ],
         urlId: 'chat1Basic1'
+    },
+
+    // ─── Chat App Tutorial 1-Basic-2: ブロックを自分で組み立ててみよう ──
+    'chat-1-basic-2': {
+        name: (
+            <FormattedMessage
+                defaultMessage="ブロックを自分で組み立ててみよう！"
+                description="Name for Chat Tutorial 1 Basic 2: build blocks manually"
+                id="gui.howtos.chat-1-basic-2.name"
+            />
+        ),
+        tags: ['mesh'],
+        category: CATEGORIES.chatApp,
+        img: libraryChat1Basic2,
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="今度はブロックを自分で組み立ててみよう！"
+                        description="Chat1 Basic2 Step 1: Intro - build blocks manually"
+                        id="gui.howtos.chat-1-basic-2.step1.title"
+                    />
+                ),
+                image: 'chat1Basic2Step1',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="変数「送信メッセージ」を作り、「🟢が押されたとき」と「送信メッセージを◯◯にする」を配置しよう"
+                        description="Chat1 Basic2 Step 2: Create variable and place flag + set blocks"
+                        id="gui.howtos.chat-1-basic-2.step2.title"
+                    />
+                ),
+                image: 'chat1Basic2Step2',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="「◯◯と◯秒言う」を追加して「送信中...」と入力しよう"
+                        description="Chat1 Basic2 Step 3: Add say-for-secs block"
+                        id="gui.howtos.chat-1-basic-2.step3.title"
+                    />
+                ),
+                image: 'chat1Basic2Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ"
+                        description="Chat1 Basic2 Step 4: Add broadcast block - key concept"
+                        id="gui.howtos.chat-1-basic-2.step4.title"
+                    />
+                ),
+                image: 'chat1Basic2Step4',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★「◯◯を受け取ったとき」を新しく配置しよう — 送ったメッセージを受け取るよ"
+                        description="Chat1 Basic2 Step 5: Place when-receive block - key concept"
+                        id="gui.howtos.chat-1-basic-2.step5.title"
+                    />
+                ),
+                image: 'chat1Basic2Step5',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★「◯◯と言う」に「送信メッセージ」変数をはめよう — 変数で値を渡すよ"
+                        description="Chat1 Basic2 Step 6: Insert variable into say block - key concept"
+                        id="gui.howtos.chat-1-basic-2.step6.title"
+                    />
+                ),
+                image: 'chat1Basic2Step6',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="🟢を押して実行！しゃべる内容も変えてみよう"
+                        description="Chat1 Basic2 Step 7: Run and customize"
+                        id="gui.howtos.chat-1-basic-2.step7.title"
+                    />
+                ),
+                image: 'chat1Basic2Step7',
+                animationTarget: 'nextButton'
+            },
+            {
+                deckIds: [
+                    'chat-1-basic-3'
+                ]
+            }
+        ],
+        urlId: 'chat1Basic2'
+    },
+
+    // ─── Chat App Tutorial 1-Basic-3: Rubyで同じプログラムを作ろう ──
+    'chat-1-basic-3': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Rubyで同じプログラムを作ろう！"
+                description="Name for Chat Tutorial 1 Basic 3: build with Ruby"
+                id="gui.howtos.chat-1-basic-3.name"
+            />
+        ),
+        tags: ['mesh'],
+        category: CATEGORIES.chatApp,
+        img: libraryChat1Basic3,
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="今度はRubyで同じプログラムを作ろう！"
+                        description="Chat1 Basic3 Step 1: Intro - build with Ruby"
+                        id="gui.howtos.chat-1-basic-3.step1.title"
+                    />
+                ),
+                image: 'chat1Basic3Step1',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ルビータブに切り替えよう"
+                        description="Chat1 Basic3 Step 2: Switch to Ruby tab"
+                        id="gui.howtos.chat-1-basic-3.step2.title"
+                    />
+                ),
+                image: 'chat1Basic3Step2',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ベースのコードを「プログラムを入力」で入力しよう"
+                        description="Chat1 Basic3 Step 3: Insert base code"
+                        id="gui.howtos.chat-1-basic-3.step3.title"
+                    />
+                ),
+                image: 'chat1Basic3Step3',
+                code: `when_flag_clicked do
+  say("送信中...", 1)
+  broadcast("メッセージが来た")
+end
+
+when_receive("メッセージが来た") do
+  say("ここを変えるよ")
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★ $送信メッセージ = &quot;こんにちは！元気ですか？&quot; を手で入力しよう — $で始まる変数は全体で使えるよ"
+                        description="Chat1 Basic3 Step 4: Type variable assignment - key concept"
+                        id="gui.howtos.chat-1-basic-3.step4.title"
+                    />
+                ),
+                image: 'chat1Basic3Step4',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★ say(&quot;ここを変えるよ&quot;) を say($送信メッセージ) に変えよう — 変数で値を渡すよ"
+                        description="Chat1 Basic3 Step 5: Change say to use variable - key concept"
+                        id="gui.howtos.chat-1-basic-3.step5.title"
+                    />
+                ),
+                image: 'chat1Basic3Step5',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ブロックタブに戻して🟢を押して実行しよう！"
+                        description="Chat1 Basic3 Step 6: Switch to blocks tab and run"
+                        id="gui.howtos.chat-1-basic-3.step6.title"
+                    />
+                ),
+                image: 'chat1Basic3Step6',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="大事なこと：Rubyでも「送る」「受け取ったとき」「変数」は同じ考え方"
+                        description="Chat1 Basic3 Step 7: Key concepts - same in Ruby"
+                        id="gui.howtos.chat-1-basic-3.step7.title"
+                    />
+                ),
+                image: 'chat1Basic3Step7',
+                animationTarget: 'nextButton'
+            },
+            {
+                deckIds: [
+                    'chat-2-sprites-1'
+                ]
+            }
+        ],
+        urlId: 'chat1Basic3'
     },
 
     // ─── Chat Tutorial 2 Sprites 1: ネコとペンギンで会話しよう ──────────────

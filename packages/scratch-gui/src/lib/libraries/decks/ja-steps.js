@@ -13,6 +13,24 @@ import chat1Basic1Step5 from './steps/chat1-basic1-5-create-variable.gif';
 import chat1Basic1Step6 from './steps/chat1-basic1-6-key-concepts.png';
 import chat1Basic1Step7 from './steps/chat1-basic1-7-customize.gif';
 
+// Chat Tutorial 1 Basic 2: ブロックを自分で組み立ててみよう
+import chat1Basic2Step1 from './steps/chat1-basic2-1-intro.gif';
+import chat1Basic2Step2 from './steps/chat1-basic2-2-variable-setup.gif';
+import chat1Basic2Step3 from './steps/chat1-basic2-3-say-block.gif';
+import chat1Basic2Step4 from './steps/chat1-basic2-4-broadcast.png';
+import chat1Basic2Step5 from './steps/chat1-basic2-5-receive.png';
+import chat1Basic2Step6 from './steps/chat1-basic2-6-say-variable.png';
+import chat1Basic2Step7 from './steps/chat1-basic2-7-run.gif';
+
+// Chat Tutorial 1 Basic 3: Rubyで同じプログラムを作ろう
+import chat1Basic3Step1 from './steps/chat1-basic3-1-intro.png';
+import chat1Basic3Step2 from './steps/chat1-basic3-2-ruby-tab.gif';
+import chat1Basic3Step3 from './steps/chat1-basic3-3-base-code.png';
+import chat1Basic3Step4 from './steps/chat1-basic3-4-add-variable.png';
+import chat1Basic3Step5 from './steps/chat1-basic3-5-change-say.png';
+import chat1Basic3Step6 from './steps/chat1-basic3-6-run.gif';
+import chat1Basic3Step7 from './steps/chat1-basic3-7-key-concepts.png';
+
 // Chat Tutorial 2 Sprites 1: ネコとペンギンで会話しよう
 import chat2Sprites1Step1 from './steps/chat2-sprites1-1-intro.gif';
 import chat2Sprites1Step2 from './steps/chat2-sprites1-2-cat-code.png';
@@ -45,6 +63,22 @@ const jaImages = {
     chat1Basic1Step5: chat1Basic1Step5,
     chat1Basic1Step6: chat1Basic1Step6,
     chat1Basic1Step7: chat1Basic1Step7,
+    // Chat Tutorial 1 Basic 2
+    chat1Basic2Step1: chat1Basic2Step1,
+    chat1Basic2Step2: chat1Basic2Step2,
+    chat1Basic2Step3: chat1Basic2Step3,
+    chat1Basic2Step4: chat1Basic2Step4,
+    chat1Basic2Step5: chat1Basic2Step5,
+    chat1Basic2Step6: chat1Basic2Step6,
+    chat1Basic2Step7: chat1Basic2Step7,
+    // Chat Tutorial 1 Basic 3
+    chat1Basic3Step1: chat1Basic3Step1,
+    chat1Basic3Step2: chat1Basic3Step2,
+    chat1Basic3Step3: chat1Basic3Step3,
+    chat1Basic3Step4: chat1Basic3Step4,
+    chat1Basic3Step5: chat1Basic3Step5,
+    chat1Basic3Step6: chat1Basic3Step6,
+    chat1Basic3Step7: chat1Basic3Step7,
     // Chat Tutorial 2 Sprites 1
     chat2Sprites1Step1: chat2Sprites1Step1,
     chat2Sprites1Step2: chat2Sprites1Step2,
