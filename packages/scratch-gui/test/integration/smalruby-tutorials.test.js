@@ -1,3 +1,8 @@
+/**
+ * Integration tests for Smalruby tutorials.
+ * Consolidated from smalruby-tutorials.test.js and tutorial-block-restriction.test.js
+ * to reduce cold-start overhead.
+ */
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
 
@@ -7,11 +12,13 @@ const {
     findByXpath,
     getDriver,
     getLogs,
-    loadUri
+    loadUri,
+    scope,
+    textExists
 } = new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/index.html');
-const uriPrefix = path.resolve(__dirname, '../../build/index.html?tutorial=');
+const uriWithTutorial = id => `${uri}?tutorial=${id}`;
 
 let driver;
 
@@ -39,9 +46,7 @@ describe('Smalruby Tutorials', () => {
     });
 
     test('can open tutorials by url id', async () => {
-        // urlId for intro-getting-started is 'getStarted'
-        await loadUri(`${uriPrefix}getStarted`);
-        // should open the tutorial card immediately
+        await loadUri(`${uriWithTutorial('getStarted')}`);
         await findByXpath('//div[contains(@class, "card_card_")]');
 
         const logs = await getLogs({includeAllLevels: true});
@@ -50,14 +55,111 @@ describe('Smalruby Tutorials', () => {
     });
 
     test('can close tutorial card', async () => {
-        await loadUri(`${uriPrefix}getStarted`);
+        await loadUri(`${uriWithTutorial('getStarted')}`);
         await findByXpath('//div[contains(@class, "card_card_")]');
 
-        // Click the close button
         await clickText('Close');
 
-        // Verify the card is gone
         const cards = await driver.findElements({xpath: '//div[contains(@class, "card_card_")]'});
         expect(cards.length).toBe(0);
+    });
+
+    describe('Tutorial Block Restriction', () => {
+        describe('chat-1-basic-1 tutorial', () => {
+            test('restricts toolbox to allowed blocks (Looks and Events; no Motion or Sound)', async () => {
+                await loadUri(uriWithTutorial('chat1Basic1'));
+                await findByXpath('//div[contains(@class, "card_card_")]');
+                await driver.sleep(1000);
+
+                expect(await textExists('Looks', scope.blocksTab)).toBe(true);
+                expect(await textExists('Events', scope.blocksTab)).toBe(true);
+
+                expect(await textExists('Motion', scope.blocksTab)).toBe(false);
+                expect(await textExists('Sound', scope.blocksTab)).toBe(false);
+                expect(await textExists('Control', scope.blocksTab)).toBe(false);
+                expect(await textExists('Sensing', scope.blocksTab)).toBe(false);
+                expect(await textExists('Operators', scope.blocksTab)).toBe(false);
+
+                const logs = await getLogs();
+                expect(logs).toEqual([]);
+            });
+
+            test('restores all blocks after tutorial is closed', async () => {
+                await loadUri(uriWithTutorial('chat1Basic1'));
+                await findByXpath('//div[contains(@class, "card_card_")]');
+                await driver.sleep(1000);
+
+                expect(await textExists('Motion', scope.blocksTab)).toBe(false);
+
+                await clickText('Close');
+                await driver.sleep(500);
+
+                expect(await textExists('Motion', scope.blocksTab)).toBe(true);
+                expect(await textExists('Looks', scope.blocksTab)).toBe(true);
+                expect(await textExists('Sound', scope.blocksTab)).toBe(true);
+                expect(await textExists('Events', scope.blocksTab)).toBe(true);
+                expect(await textExists('Control', scope.blocksTab)).toBe(true);
+                expect(await textExists('Sensing', scope.blocksTab)).toBe(true);
+                expect(await textExists('Operators', scope.blocksTab)).toBe(true);
+
+                const logs = await getLogs();
+                expect(logs).toEqual([]);
+            });
+
+            test('overrides only_blocks restriction; restores it after close', async () => {
+                const testUri = `${uri}?only_blocks=sound_&tutorial=chat1Basic1`;
+                await loadUri(testUri);
+                await findByXpath('//div[contains(@class, "card_card_")]');
+                await driver.sleep(1000);
+
+                expect(await textExists('Looks', scope.blocksTab)).toBe(true);
+                expect(await textExists('Events', scope.blocksTab)).toBe(true);
+                expect(await textExists('Sound', scope.blocksTab)).toBe(false);
+                expect(await textExists('Motion', scope.blocksTab)).toBe(false);
+
+                await clickText('Close');
+                await driver.sleep(500);
+
+                expect(await textExists('Sound', scope.blocksTab)).toBe(true);
+                expect(await textExists('Looks', scope.blocksTab)).toBe(false);
+                expect(await textExists('Events', scope.blocksTab)).toBe(false);
+                expect(await textExists('Motion', scope.blocksTab)).toBe(false);
+
+                const logs = await getLogs();
+                expect(logs).toEqual([]);
+            });
+        });
+
+        describe('chat-2-sprites-1 tutorial', () => {
+            test('restricts toolbox to allowed blocks (no Motion)', async () => {
+                await loadUri(uriWithTutorial('chat2Sprites1'));
+                await findByXpath('//div[contains(@class, "card_card_")]');
+                await driver.sleep(1000);
+
+                expect(await textExists('Looks', scope.blocksTab)).toBe(true);
+                expect(await textExists('Events', scope.blocksTab)).toBe(true);
+                expect(await textExists('Motion', scope.blocksTab)).toBe(false);
+                expect(await textExists('Sound', scope.blocksTab)).toBe(false);
+
+                const logs = await getLogs();
+                expect(logs).toEqual([]);
+            });
+        });
+
+        describe('chat-3-mesh-1 tutorial', () => {
+            test('restricts toolbox to allowed blocks (no Motion)', async () => {
+                await loadUri(uriWithTutorial('chat3Mesh1'));
+                await findByXpath('//div[contains(@class, "card_card_")]');
+                await driver.sleep(1000);
+
+                expect(await textExists('Looks', scope.blocksTab)).toBe(true);
+                expect(await textExists('Events', scope.blocksTab)).toBe(true);
+                expect(await textExists('Motion', scope.blocksTab)).toBe(false);
+                expect(await textExists('Sound', scope.blocksTab)).toBe(false);
+
+                const logs = await getLogs();
+                expect(logs).toEqual([]);
+            });
+        });
     });
 });
