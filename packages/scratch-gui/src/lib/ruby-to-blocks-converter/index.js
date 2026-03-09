@@ -21,25 +21,25 @@ import TargetApplier from './target-applier';
 const messages = defineMessages({
     couldNotConvertPrimitive: {
         defaultMessage: '"{ SOURCE }" could not be converted to a block.' +
-            ' Check the spelling or use a supported value.',
+            '\nCheck the spelling or use a supported value.',
         description: 'Error message for converting ruby to block when find the primitive',
         id: 'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive'
     },
     wrongInstruction: {
         defaultMessage: '"{ SOURCE }" is the wrong instruction.' +
-            ' Check the spelling or use a supported block.',
+            '\nCheck the spelling or use a supported block.',
         description: 'Error message for converting ruby to block when find the wrong instruction',
         id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstruction'
     },
     cannotChangeVariableScope: {
         defaultMessage: '"{ VARIABLE }", can\'t change variable scope.' +
-            ' Delete the variable first, then recreate it with the correct scope.',
+            '\nDelete the variable first, then recreate it with the correct scope.',
         description: 'Error message when trying to change variable scope from global to instance or vice versa',
         id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope'
     },
     wrongInstructionInClass: {
         defaultMessage: '"{ SOURCE }" cannot be placed directly inside a class definition.' +
-            ' Use it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
+            '\nUse it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
         description: 'Error message when a non-hat/non-def block is placed directly in a class body',
         id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass'
     }

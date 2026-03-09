@@ -28,7 +28,7 @@ describe('QuickFixProvider', () => {
     describe('variable scope errors', () => {
         test('should suggest changing @ to $ for instance-to-global scope change', () => {
             const marker = createMarker(
-                '"@my_var", can\'t change variable scope. Delete the variable first, then recreate it with the correct scope.',
+                '"@my_var", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
                 '@my_var = 10'
             );
             const result = provider.provideCodeActions(
@@ -41,7 +41,7 @@ describe('QuickFixProvider', () => {
 
         test('should suggest changing $ to @ for global-to-instance scope change', () => {
             const marker = createMarker(
-                '"$my_var", can\'t change variable scope. Delete the variable first, then recreate it with the correct scope.',
+                '"$my_var", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
                 '$my_var = 10'
             );
             const result = provider.provideCodeActions(
@@ -65,7 +65,7 @@ describe('QuickFixProvider', () => {
             provider.setVM(mockVM);
 
             const marker = createMarker(
-                'costume "costume3" does not exist. Check the name or add the costume first.',
+                'costume "costume3" does not exist.\nCheck the name or add the costume first.',
                 'self.costume = "costume3"'
             );
             const result = provider.provideCodeActions(
@@ -79,7 +79,7 @@ describe('QuickFixProvider', () => {
         test('should return no actions if no costumes available', () => {
             provider.setVM(null);
             const marker = createMarker(
-                'costume "missing" does not exist. Check the name or add the costume first.',
+                'costume "missing" does not exist.\nCheck the name or add the costume first.',
                 'self.costume = "missing"'
             );
             const result = provider.provideCodeActions(
@@ -104,7 +104,7 @@ describe('QuickFixProvider', () => {
             provider.setVM(mockVM);
 
             const marker = createMarker(
-                'backdrop "backdrop3" does not exist. Check the name or add the backdrop first.',
+                'backdrop "backdrop3" does not exist.\nCheck the name or add the backdrop first.',
                 'self.backdrop = "backdrop3"'
             );
             const result = provider.provideCodeActions(
@@ -129,7 +129,7 @@ describe('QuickFixProvider', () => {
             provider.setVM(mockVM);
 
             const marker = createMarker(
-                'sound "Boing" does not exist. Check the name or add the sound first.',
+                'sound "Boing" does not exist.\nCheck the name or add the sound first.',
                 'play("Boing")'
             );
             const result = provider.provideCodeActions(
@@ -145,7 +145,7 @@ describe('QuickFixProvider', () => {
         test('should ignore markers from other owners', () => {
             const marker = {
                 owner: 'other',
-                message: '"@var", can\'t change variable scope.',
+                message: '"@var", can\'t change variable scope.\nDelete the variable first, then recreate it with the correct scope.',
                 startLineNumber: 1,
                 startColumn: 1,
                 endLineNumber: 1,

@@ -5,7 +5,7 @@ import {RubyToBlocksConverterError} from './errors';
 const messages = defineMessages({
     soundDoesNotExist: {
         defaultMessage: 'sound "{NAME}" does not exist.' +
-            ' Check the name or add the sound first.',
+            '\nCheck the name or add the sound first.',
         description: 'Error message when playing a sound that does not exist',
         id: 'gui.smalruby3.rubyToBlocksConverter.soundDoesNotExist'
     }
