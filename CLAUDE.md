@@ -254,7 +254,10 @@ Follow TDD (Test-Driven Development) approach:
 ### Testing Strategy
 
 - UI behavior and features that involve browser interaction should use **integration tests**, not unit tests.
-- After making any fix, run the **FULL test suite** before committing — not just the tests you think are affected. Fixes frequently cause regressions in unrelated test files (e.g., looks tests, phase tests).
+- **Local testing**: Run only the **directly affected test files** and **lint** before committing and pushing. Full test suites (unit + integration) are run by CI.
+  - Run lint: `docker compose run --rm app npm run lint`
+  - Run specific tests: `docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest test/unit/lib/your-test.test.js"`
+- **CI testing**: The full test suite runs automatically on push. Do not wait for full local test runs before committing — trust CI for comprehensive regression detection.
 
 ## Key Directories
 

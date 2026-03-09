@@ -73,6 +73,12 @@ docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run tes
 
 **IMPORTANT**: Integration tests require `npm run build:dev` to be run first.
 
+### Local vs CI Testing Policy
+
+- **ローカル**: 変更に直接関係するテストファイルのみ実行 + lint を通す。それが通ったら commit & push してよい。
+- **CI**: push 時に全テスト（unit + integration）が自動実行される。全体のリグレッション検出は CI に任せる。
+- ローカルで全テストスイートを実行する必要はない。
+
 ## Key Directories
 
 - `src/`: React components and application code
@@ -212,7 +218,7 @@ docker compose restart app
    docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:lint"
    ```
 
-5. **Only after all tests pass and lint is clean**, commit and push.
+5. **Lint + affected tests が通ったら** commit and push。全テストは CI が実行する。
 
 ## PWA (Progressive Web App)
 
