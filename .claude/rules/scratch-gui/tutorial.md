@@ -160,25 +160,27 @@ Thumbnails are 200x100px displayed in the tutorial library (scaled from larger s
 
 ### Using ImageMagick for Level Labels
 
-For tutorial series with difficulty levels (Lv2, Lv3, etc.), create labeled thumbnails from a base image:
+For tutorial series with difficulty levels (Lv2, Lv3, etc.), create labeled thumbnails from the Lv1 base image. The label is a 180x70 rounded rectangle composited at the center of the image.
 
 ```bash
 # Lv2 — Blue label, centered
-magick base-image.jpg \
-  -fill 'rgba(33, 150, 243, 0.85)' \
-  -draw 'roundrectangle 95,5 225,60 12,12' \
-  -font Helvetica-Bold -pointsize 72 \
-  -fill white -gravity center \
-  -annotate +0-10 'Lv2' \
+convert base-lv1.jpg \
+  \( -size 180x70 xc:none \
+     -fill 'rgba(33, 150, 243, 0.85)' \
+     -draw 'roundrectangle 0,0 179,69 15,15' \
+     -fill white -font Helvetica-Bold -pointsize 52 \
+     -gravity center -annotate 0 'Lv2' \
+  \) -gravity center -composite \
   output-lv2.jpg
 
 # Lv3 — Purple label, centered
-magick base-image.jpg \
-  -fill 'rgba(156, 39, 176, 0.85)' \
-  -draw 'roundrectangle 95,5 225,60 12,12' \
-  -font Helvetica-Bold -pointsize 72 \
-  -fill white -gravity center \
-  -annotate +0-10 'Lv3' \
+convert base-lv1.jpg \
+  \( -size 180x70 xc:none \
+     -fill 'rgba(156, 39, 176, 0.85)' \
+     -draw 'roundrectangle 0,0 179,69 15,15' \
+     -fill white -font Helvetica-Bold -pointsize 52 \
+     -gravity center -annotate 0 'Lv3' \
+  \) -gravity center -composite \
   output-lv3.jpg
 ```
 
