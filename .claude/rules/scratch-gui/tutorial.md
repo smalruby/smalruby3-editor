@@ -89,6 +89,50 @@ Use the `GreenFlagIcon` component (defined at the top of `index.jsx`) for inline
 
 The corresponding locale files use `{greenFlag}` as a placeholder (it is replaced at render time by the component).
 
+## Three-Part Tutorial Series (Lv1 / Lv2 / Lv3)
+
+チュートリアルは同じゴールを3段階の難易度で構成する。レベルごとに学び方が異なり、理解の深さが増す設計。
+
+| Level | 目的 | 操作方法 |
+|-------|------|---------|
+| **Lv1** | 動くものを体験 | コードを「コード挿入」ボタンで貼り付け、少しだけ変更 |
+| **Lv2** | ブロックの構造を理解 | ブロックを自分で1つずつ組み立てる |
+| **Lv3** | Ruby で同じプログラムを作る | Ruby コードを入力・編集する |
+
+### 典型的なステップ構成
+
+**Lv2（ブロック版）の例** — 8ステップ:
+
+1. イントロ（Lv1 の intro GIF を流用）
+2. 最初のブロック群を組み立てる（ブロック画像）
+3. 次のブロック群を追加（ブロック画像）
+4. 受信側のブロック群を組み立てる（ブロック画像）
+5. スプライト追加（Lv1 の GIF を流用）
+6. 位置調整（Lv1 の GIF を流用）
+7. 2つ目のスプライトのブロック完成（ブロック画像）
+8. 実行 → 次のチュートリアルへのナビゲーション（`deckIds`）
+
+**Lv3（Ruby 版）の例** — 8ステップ:
+
+1. イントロ（Lv1 の intro GIF を流用）
+2. ルビータブに切り替え（Ruby タブのスクリーンショット）
+3. 「Rubyコードを挿入」でベースコード入力（`code` + `animationTarget: 'insertCodeButton'`）
+4. コードの一部を変更（変更行をハイライトしたエディタスクリーンショット）
+5. スプライト追加（Lv1 の GIF を流用）
+6. 位置調整（Lv1 の GIF を流用）
+7. 2つ目のスプライトのコード入力（`code` + `codeType: 'blocks'`）
+8. 実行 → 次のチュートリアルへのナビゲーション（`deckIds`）
+
+### 画像の流用ルール
+
+同じシリーズ内（例: chat-2-sprites-1/2/3）で共通の操作は Lv1 のステップ画像をそのまま再利用する:
+
+- **イントロ GIF** — Lv1 の step 1 画像を Lv2/Lv3 の step 1 で使用
+- **スプライト追加・位置調整 GIF** — Lv1 のアニメーション GIF をそのまま流用
+- **実行ステップ** — Lv1 のイントロ GIF を流用（最終結果を見せる）
+
+`ja-steps.js` / `en-steps.js` では流用元の画像を import 済みなので、`index.jsx` で同じキー名を参照すればよい。新規 import は不要。
+
 ## Adding a New Tutorial
 
 ### 1. Define the deck in `index.jsx`
@@ -111,9 +155,11 @@ Add imports and mappings in both `ja-steps.js` and `en-steps.js`.
 
 Place in `packages/scratch-gui/src/lib/libraries/decks/thumbnails/`. Import in `index.jsx`.
 
+Lv2/Lv3 サムネイルは Lv1 のサムネイルをベースに ImageMagick でラベルを合成する（→「Thumbnail Creation」セクション参照）。
+
 ### 6. Update navigation
 
-Update `deckIds` in the last step of related decks to include the new deck.
+Update `deckIds` in the last step of related decks to include the new deck. Lv1 の最終ステップにも Lv2 への導線を追加すること。
 
 ## Screenshot Capture Workflow
 
@@ -123,31 +169,61 @@ For screenshots of assembled blocks, use the "命令ブロックを画像とし�
 
 **Workflow with Playwright MCP:**
 
-1. Navigate to `http://localhost:8601`
-2. Open the Ruby tab
-3. Enter Ruby code in the Monaco editor:
+1. Navigate to `http://localhost:8601`（ページを毎回リロードして変数スコープの衝突を回避）
+2. Ruby タブを開く
+3. Monaco editor に Ruby コードを設定:
    ```javascript
-   // Click on Monaco editor
-   page.locator('.monaco-editor .view-lines').click()
-   // Set code via Monaco API
    monaco.editor.getEditors()[0].setValue(`ruby code here`)
    ```
-4. Switch to the Code tab to trigger Ruby → Blocks conversion
-5. Click the screenshot download button (blocks.jsx toolbar)
-6. The PNG is saved via the browser's download mechanism (`saveAs` dialog)
+4. Code タブに切り替え → Ruby → Blocks 変換が実行される
+5. 「命令ブロックを画像として保存」ボタンをクリック
+6. PNG が `.playwright-mcp/スモウルビーのプロジェクト-スプライト1.png` にダウンロードされる
+7. ダウンロードファイルを `steps/` ディレクトリにコピー:
+   ```bash
+   cp .playwright-mcp/スモウルビーのプロジェクト-スプライト1.png \
+      packages/scratch-gui/src/lib/libraries/decks/steps/<target-name>.png
+   ```
 
 **Important notes:**
 - Always start with a fresh page (reload) to avoid variable scope conflicts
 - The `blocks-screenshot.js` `buildExportSVG` function copies `injectionDiv.className` to the exported SVG for correct theme styling (`.scratch-renderer.default-theme`)
 - Without this, input field text (e.g., numbers, strings in blocks) appears white-on-white
+- ダウンロードファイル名は固定（`スモウルビーのプロジェクト-スプライト1.png`）。複数キャプチャする場合は1枚ごとにコピーすること
 
-### Viewport Screenshots
+### Ruby Editor Screenshots
 
-For screenshots of the editor UI (e.g., Ruby tab view), use Playwright's `browser_take_screenshot` with `clip` to capture specific regions:
+Ruby タブのエディタ画面をスクリーンショットする場合は、Playwright の要素スクリーンショットを使う:
 
 ```javascript
-// Example: Ruby tab area
-clip: { x: 0, y: 48, width: 986, height: 250 }
+// Ruby タブパネル全体を要素スクリーンショット
+browser_take_screenshot({ element: 'ルビー tabpanel', ref: '<tabpanel ref>' })
+```
+
+**変更箇所のハイライト表示:**
+
+Lv3 チュートリアルの「ここを変えよう」ステップでは、Monaco のデコレーション API で変更行を強調する:
+
+```javascript
+// 変更行（例: 9行目）を黄色ハイライト
+const editor = monaco.editor.getEditors()[0];
+editor.deltaDecorations([], [{
+  range: new monaco.Range(9, 1, 9, 100),
+  options: {
+    isWholeLine: true,
+    className: 'myHighlight'
+  }
+}]);
+
+// ハイライト用 CSS を追加
+const style = document.createElement('style');
+style.textContent = `
+  .myHighlight {
+    background-color: rgba(255, 255, 0, 0.3) !important;
+    border: 2px solid rgba(255, 165, 0, 0.8) !important;
+    border-radius: 3px;
+  }
+`;
+document.head.appendChild(style);
 ```
 
 ### Animated GIFs
@@ -192,10 +268,21 @@ Color scheme for levels:
 
 ### Handling Common Issues
 
-- **beforeunload dialog**: Accept dialogs that appear when navigating away
-- **Monaco editor click**: Use `.monaco-editor .view-lines` selector (not the textarea directly, which may be intercepted by `blocklyMainBackground`)
-- **Variable scope conflicts**: Reload the page before creating blocks with global variables (`$var`) if a same-named instance variable (`@var`) was already created in the session
-- **HMR after code changes**: The dev server hot-reloads; wait for the rebuild before taking screenshots
+- **beforeunload dialog**: コード変更後にページ遷移すると beforeunload ダイアログが出る。`browser_handle_dialog({ accept: true })` で受理してからリロードする。2回連続で出ることがあるので注意
+- **Monaco editor**: `monaco.editor.getEditors()[0].setValue(code)` で直接コードを設定するのが最も確実。クリック操作でのテキスト入力は日本語 IME の問題が起きやすい
+- **Variable scope conflicts**: ページをリロードしてからブロック作成すること。同名のグローバル変数（`$var`）とインスタンス変数（`@var`）が混在するとスコープが衝突する
+- **HMR reload**: ステップ画像ファイルの追加・変更で webpack の HMR が走る。`[HMR] Cannot apply update. Need to do a full reload!` が出たら自動リロードされるので待つ
+- **スクリーンショットの保存先**: Playwright の `filename` パラメータで指定したパスはプロジェクトルート相対。`.playwright-mcp/` 配下のダウンロードファイルとは別
+
+### 効率的なキャプチャの手順
+
+1. ページリロード → beforeunload ダイアログを accept
+2. Ruby タブを開く
+3. `monaco.editor.getEditors()[0].setValue(code)` でコード設定
+4. 必要に応じてデコレーション追加（ハイライト等）
+5. スクリーンショット取得（要素指定 or ダウンロードボタン）
+6. ファイルを `steps/` にコピー
+7. 次のスクリーンショットへ（2 に戻る。リロードが必要な場合は 1 から）
 
 ### Debug Globals
 
