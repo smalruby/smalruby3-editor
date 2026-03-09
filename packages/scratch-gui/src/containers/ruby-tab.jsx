@@ -23,6 +23,7 @@ import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
 
 import CompletionProviderManager from './ruby-tab/completion-provider-manager';
 import SnippetsCompleter from './ruby-tab/snippets-completer';
+import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import {smalrubyLanguage, smalrubyLanguageConfiguration} from './ruby-tab/smalruby-mode';
 
 import RubyDownloader from './ruby-downloader.jsx';
@@ -79,6 +80,7 @@ class RubyTab extends React.Component {
         this.pasteMutationObserver = null;
         this.bodyMutationObserver = null;
         this.bubbleRef = null;
+        this.quickFixProvider = new QuickFixProvider();
         this.furiganaAnnotator = new FuriganaAnnotator();
         this.furiganaRenderer = new FuriganaRenderer();
         this.furiganaDebounceTimer = null;
@@ -402,6 +404,14 @@ class RubyTab extends React.Component {
                 )
             });
         }
+
+        // Register quick fix provider for conversion errors
+        this.quickFixProvider.setVM(this.props.vm);
+        monaco.languages.registerCodeActionProvider('smalruby', {
+            provideCodeActions: (model, range, ctx, token) => (
+                this.quickFixProvider.provideCodeActions(model, range, ctx, token)
+            )
+        });
 
         if (this.containerRef) {
             this.resizeObserver = new ResizeObserver(() => {

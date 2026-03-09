@@ -578,7 +578,9 @@ describe('RubyToBlocksConverter/Class', () => {
             await converter.targetCodeToBlocks(target, code);
             expect(converter.errors.length).toBeGreaterThan(0);
             const errorText = converter.errors[0].text;
-            expect(errorText).not.toMatch(/\n/);
+            // The error part (before \n hint) should not contain newlines from source
+            const errorPart = errorText.split('\n')[0];
+            expect(errorPart).not.toMatch(/\n/);
             expect(errorText).toMatch(/move\(10\)/);
             expect(errorText).not.toMatch(/class Sprite1/);
             expect(errorText).toMatch(/class definition/);

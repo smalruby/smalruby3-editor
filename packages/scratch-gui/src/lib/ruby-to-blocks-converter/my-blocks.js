@@ -1,7 +1,23 @@
+import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 import * as Blockly from 'scratch-blocks';
 import Primitive from './primitive';
 import {RubyToBlocksConverterError} from './errors';
+
+const messages = defineMessages({
+    invalidMyBlockArgumentType: {
+        defaultMessage: 'invalid type of My Block "{NAME}" argument #{INDEX}.' +
+            '\nUse a number, string, or boolean value.',
+        description: 'Error message when My Block argument has invalid type',
+        id: 'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType'
+    },
+    wrongInstructionInMyBlock: {
+        defaultMessage: '"{SOURCE}" is the wrong instruction.' +
+            '\nCheck the spelling or use a supported block.',
+        description: 'Error message when non-statement block found in My Block definition body',
+        id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock'
+    }
+});
 
 /**
  * My Blocks converter
@@ -62,7 +78,7 @@ const MyBlocksConverter = {
                 }
                 throw new RubyToBlocksConverterError(
                     converter._context.currentNode,
-                    `invalid type of My Block "${name}" argument #${i + 1}`
+                    converter._translator(messages.invalidMyBlockArgumentType, {NAME: name, INDEX: i + 1})
                 );
             });
 
@@ -361,7 +377,7 @@ const MyBlocksConverter = {
                         }
                     }
                     const src = converter._truncateSource(bNode ? bNode.source : '');
-                    const msg = `"${src}" is the wrong instruction.`;
+                    const msg = converter._translator(messages.wrongInstructionInMyBlock, {SOURCE: src});
                     throw new RubyToBlocksConverterError(bNode, msg);
                 }
             });

@@ -1,5 +1,21 @@
+import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 import {RubyToBlocksConverterError} from '../errors';
+
+const messages = defineMessages({
+    conditionIsNotBoolean: {
+        defaultMessage: 'condition is not boolean: {SOURCE}.' +
+            '\nUse a comparison operator (==, <, >, etc.).',
+        description: 'Error message when if/until condition is not a boolean expression',
+        id: 'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean'
+    },
+    includeNotStatementBlocks: {
+        defaultMessage: 'include not statement blocks.' +
+            '\nOnly use statement blocks (commands) inside a block definition.',
+        description: 'Error message when non-statement blocks are included in My Block definition body',
+        id: 'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks'
+    }
+});
 
 /**
  * Core AST handlers for RubyToBlocksConverter.
@@ -87,7 +103,7 @@ const CoreHandlers = {
             if (!this._isFalseOrBooleanBlock(split.value)) {
                 throw new RubyToBlocksConverterError(
                     node,
-                    `condition is not boolean: ${this._getSource(node)}`
+                    this._translator(messages.conditionIsNotBoolean, {SOURCE: this._getSource(node)})
                 );
             }
             return [...split.preBlocks, split.value];
@@ -100,7 +116,7 @@ const CoreHandlers = {
             } else {
                 throw new RubyToBlocksConverterError(
                     node,
-                    `condition is not boolean: ${this._getSource(node)}`
+                    this._translator(messages.conditionIsNotBoolean, {SOURCE: this._getSource(node)})
                 );
             }
         }
@@ -129,7 +145,7 @@ const CoreHandlers = {
         if (block !== null && typeof block !== 'undefined' && !this._isStatementBlock(block)) {
             if (!(this._context.inMyBlockDefinition && block.opcode === 'data_setvariableto')) {
                 this._context.inMyBlockDefinition = savedInMyBlockDefinition;
-                throw new RubyToBlocksConverterError(node, 'include not statement blocks');
+                throw new RubyToBlocksConverterError(node, this._translator(messages.includeNotStatementBlocks));
             }
         }
         this._context.inMyBlockDefinition = savedInMyBlockDefinition;

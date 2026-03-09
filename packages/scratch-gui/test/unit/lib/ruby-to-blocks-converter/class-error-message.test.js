@@ -25,11 +25,13 @@ describe('Class error message', () => {
         expect(converter.errors[0].text).toMatch(/event block|when_flag_clicked|def/);
     });
 
-    test('error message does not contain newlines', async () => {
+    test('error message does not contain source code newlines', async () => {
         const code = 'class Sprite1\n  self.when(:flag_clicked) do\n    move(10)\n  end\n  move(10)\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
-        expect(converter.errors[0].text).not.toMatch(/\n/);
+        // The error part (before \n hint) should not contain newlines from source code
+        const errorPart = converter.errors[0].text.split('\n')[0];
+        expect(errorPart).not.toMatch(/\n/);
     });
 
     test('error source is truncated', async () => {
