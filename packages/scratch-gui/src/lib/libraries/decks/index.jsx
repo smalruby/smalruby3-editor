@@ -14,6 +14,8 @@ import libraryChat2Sprites2 from './thumbnails/chat-2-sprites-2.jpg';
 import libraryChat2Sprites3 from './thumbnails/chat-2-sprites-3.jpg';
 // Chat Tutorial 3 Mesh 1: メッシュ拡張機能でつながろう
 import libraryChat3Mesh1 from './thumbnails/chat-3-mesh-1.jpg';
+import libraryChat3Mesh2 from './thumbnails/chat-3-mesh-2.jpg';
+import libraryChat3Mesh3 from './thumbnails/chat-3-mesh-3.jpg';
 import libraryChat3Mesh1ExternalKairyudo from './thumbnails/chat3-mesh1-external-kairyudo.png';
 import {CATEGORIES} from '../tutorial-tags';
 
@@ -978,6 +980,262 @@ end`,
                 animationTarget: 'nextButton'
             },
             {
+                deckIds: [
+                    'chat-3-mesh-2'
+                ]
+            }
+        ],
+        urlId: 'chat3Mesh1'
+    },
+    'chat-3-mesh-2': {
+        name: (
+            <FormattedMessage
+                defaultMessage="メッシュでつながろう Lv2"
+                description="Name for Chat Tutorial 3 Mesh 2"
+                id="gui.howtos.chat-3-mesh-2.name"
+            />
+        ),
+        tags: ['mesh'],
+        category: CATEGORIES.chatApp,
+        img: libraryChat3Mesh2,
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs'],
+            sound: [],
+            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="メッシュ拡張機能を使った会話プログラムを、ブロックを自分で組み立てて作ってみよう"
+                        description="Chat3 Mesh2 Step 1: Intro"
+                        id="gui.howtos.chat-3-mesh-2.step1.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step1',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="2人以上のグループをつくってメッシュ拡張機能を選ぶ"
+                        description="Chat3 Mesh2 Step 2: Select Mesh extension"
+                        id="gui.howtos.chat-3-mesh-2.step2.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step2',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="1人目はホストになる。他の人はメッシュに参加する"
+                        description="Chat3 Mesh2 Step 3: Host and join"
+                        id="gui.howtos.chat-3-mesh-2.step3.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="スプライトのコスチュームを変えてみよう"
+                        description="Chat3 Mesh2 Step 4: Change sprite costume"
+                        id="gui.howtos.chat-3-mesh-2.step4.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step4',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ホスト：「このスプライトが押されたとき」に変数をセットして「送信中...」と言い、メッセージを送るブロックを作ろう"
+                        description="Chat3 Mesh2 Step 5: Host clicked blocks"
+                        id="gui.howtos.chat-3-mesh-2.step5.title"
+                    />
+                ),
+                image: 'chat3Mesh2Step5',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★ ホスト：「受け取ったとき」に「送信メッセージのセンサーの値」を使おう — 他の人の変数はセンサーの値で取り出すよ！"
+                        description="Chat3 Mesh2 Step 6: Host receive blocks with sensor_value"
+                        id="gui.howtos.chat-3-mesh-2.step6.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step5',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★ メンバーも同じ構造のブロックを作ろう — メッセージの名前が逆になるよ！"
+                        description="Chat3 Mesh2 Step 7: Member blocks"
+                        id="gui.howtos.chat-3-mesh-2.step7.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step6',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ"
+                        description="Chat3 Mesh2 Step 8: Run and key concept"
+                        id="gui.howtos.chat-3-mesh-2.step8.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step8',
+                animationTarget: 'nextButton'
+            },
+            {
+                deckIds: [
+                    'chat-3-mesh-3'
+                ]
+            }
+        ],
+        urlId: 'chat3Mesh2'
+    },
+    'chat-3-mesh-3': {
+        name: (
+            <FormattedMessage
+                defaultMessage="メッシュでつながろう Lv3"
+                description="Name for Chat Tutorial 3 Mesh 3"
+                id="gui.howtos.chat-3-mesh-3.name"
+            />
+        ),
+        tags: ['mesh'],
+        category: CATEGORIES.chatApp,
+        img: libraryChat3Mesh3,
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs'],
+            sound: [],
+            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="メッシュ拡張機能を使った会話プログラムを、Rubyで作ってみよう"
+                        description="Chat3 Mesh3 Step 1: Intro"
+                        id="gui.howtos.chat-3-mesh-3.step1.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step1',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="2人以上のグループをつくってメッシュ拡張機能を選ぶ"
+                        description="Chat3 Mesh3 Step 2: Select Mesh extension"
+                        id="gui.howtos.chat-3-mesh-3.step2.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step2',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="1人目はホストになる。他の人はメッシュに参加する"
+                        description="Chat3 Mesh3 Step 3: Host and join"
+                        id="gui.howtos.chat-3-mesh-3.step3.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="スプライトのコスチュームを変えてみよう"
+                        description="Chat3 Mesh3 Step 4: Change sprite costume"
+                        id="gui.howtos.chat-3-mesh-3.step4.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step4',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ルビータブに切り替えて「Rubyコードを挿入」でホストのベースコードを入力する"
+                        description="Chat3 Mesh3 Step 5: Insert host base code"
+                        id="gui.howtos.chat-3-mesh-3.step5.title"
+                    />
+                ),
+                image: 'chat3Mesh3Step5',
+                code: `when_clicked do
+  $送信メッセージ = "ネコ：こんにちは"
+  say("送信中...", 1)
+  broadcast("ネコからのメッセージ")
+end
+
+when_receive("ペンギンからのメッセージ") do
+  @受信メッセージ = "ここを変えるよ"
+  say(@受信メッセージ, 3)
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        // eslint-disable-next-line max-len
+                        defaultMessage={'★ @受信メッセージ = "ここを変えるよ" を @受信メッセージ = mesh.sensor_value("送信メッセージ") に変えよう — 他の人の変数はmesh.sensor_valueで取り出すよ！'}
+                        description="Chat3 Mesh3 Step 6: Change to sensor_value"
+                        id="gui.howtos.chat-3-mesh-3.step6.title"
+                    />
+                ),
+                image: 'chat3Mesh3Step6',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="メンバーのコードを入力する — メッセージの名前が逆になるよ！"
+                        description="Chat3 Mesh3 Step 7: Insert member code"
+                        id="gui.howtos.chat-3-mesh-3.step7.title"
+                    />
+                ),
+                image: 'chat3Mesh3Step7',
+                code: `when_clicked do
+  $送信メッセージ = "ペンギン：こんにちは"
+  say("送信中...", 1)
+  broadcast("ペンギンからのメッセージ")
+end
+
+when_receive("ネコからのメッセージ") do
+  @受信メッセージ = mesh.sensor_value("送信メッセージ")
+  say(@受信メッセージ, 3)
+end`,
+                codeType: 'blocks',
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ"
+                        description="Chat3 Mesh3 Step 8: Run and key concept"
+                        id="gui.howtos.chat-3-mesh-3.step8.title"
+                    />
+                ),
+                image: 'chat3Mesh1Step8',
+                animationTarget: 'nextButton'
+            },
+            {
                 externalResources: {
                     kairyudo: {
                         url: 'https://app3.pasoken.or.jp/practical_example/example_1/',
@@ -986,14 +1244,14 @@ end`,
                             <FormattedMessage
                                 defaultMessage="開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」"
                                 description="External resource: Kairyudo chat app programming"
-                                id="gui.howtos.chat-3-mesh-1.external.kairyudo.name"
+                                id="gui.howtos.chat-3-mesh-3.external.kairyudo.name"
                             />
                         )
                     }
                 }
             }
         ],
-        urlId: 'chat3Mesh1'
+        urlId: 'chat3Mesh3'
     }
 };
 

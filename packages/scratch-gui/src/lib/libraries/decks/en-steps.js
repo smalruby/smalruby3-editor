@@ -61,6 +61,14 @@ import chat3Mesh1Step5 from './steps/chat3-mesh1-5-host-code.png';
 import chat3Mesh1Step6 from './steps/chat3-mesh1-6-member-code.png';
 import chat3Mesh1Step8 from './steps/chat3-mesh1-8-sensor.png';
 
+// Chat Tutorial 3 Mesh 2: ブロックを自分で組み立ててみよう（メッシュ版）
+import chat3Mesh2Step5 from './steps/chat3-mesh2-5-host-clicked.png';
+
+// Chat Tutorial 3 Mesh 3: Rubyで同じプログラムを作ろう（メッシュ版）
+import chat3Mesh3Step5 from './steps/chat3-mesh3-5-base-code.png';
+import chat3Mesh3Step6 from './steps/chat3-mesh3-6-change-sensor.png';
+import chat3Mesh3Step7 from './steps/chat3-mesh3-7-member-code.png';
+
 const enImages = {
     // Getting Started
     introRubyTab: introRubyTab,
@@ -116,7 +124,13 @@ const enImages = {
     chat3Mesh1Step4: chat3Mesh1Step4,
     chat3Mesh1Step5: chat3Mesh1Step5,
     chat3Mesh1Step6: chat3Mesh1Step6,
-    chat3Mesh1Step8: chat3Mesh1Step8
+    chat3Mesh1Step8: chat3Mesh1Step8,
+    // Chat Tutorial 3 Mesh 2
+    chat3Mesh2Step5: chat3Mesh2Step5,
+    // Chat Tutorial 3 Mesh 3
+    chat3Mesh3Step5: chat3Mesh3Step5,
+    chat3Mesh3Step6: chat3Mesh3Step6,
+    chat3Mesh3Step7: chat3Mesh3Step7
 };
 
 export {enImages};

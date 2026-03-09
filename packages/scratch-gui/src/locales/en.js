@@ -349,6 +349,27 @@ export default {
     'gui.howtos.chat-3-mesh-1.step7.title': 'Click your sprite to send a message!',
     'gui.howtos.chat-3-mesh-1.step8.title': 'Key concept: use "sensor value" to get other people\'s "sent message"',
     'gui.howtos.chat-3-mesh-1.external.kairyudo.name': 'Kairyudo: Try Programming! "Create a Chat App"',
+    // Chat Tutorial 3 Mesh 2
+    'gui.howtos.chat-3-mesh-2.name': "Let's Connect with Mesh! Lv2",
+    'gui.howtos.chat-3-mesh-2.step1.title': 'Build the mesh chat program by assembling blocks yourself!',
+    'gui.howtos.chat-3-mesh-2.step2.title': 'Form a group and select the Mesh extension',
+    'gui.howtos.chat-3-mesh-2.step3.title': 'The first person becomes the host. Others join the mesh',
+    'gui.howtos.chat-3-mesh-2.step4.title': "Change the sprite's costume",
+    'gui.howtos.chat-3-mesh-2.step5.title': 'Host: Build blocks for "when this sprite clicked" — set variable, say, and broadcast',
+    'gui.howtos.chat-3-mesh-2.step6.title': '★ Host: Build "when I receive" blocks — use "sensor value of sent message" to get other people\'s data!',
+    'gui.howtos.chat-3-mesh-2.step7.title': '★ Member: Build the same block structure — message names are reversed!',
+    'gui.howtos.chat-3-mesh-2.step8.title': 'Click your sprite to run! Use "sensor value" to get other people\'s "sent message"',
+    // Chat Tutorial 3 Mesh 3
+    'gui.howtos.chat-3-mesh-3.name': "Let's Connect with Mesh! Lv3",
+    'gui.howtos.chat-3-mesh-3.step1.title': 'Build the mesh chat program in Ruby!',
+    'gui.howtos.chat-3-mesh-3.step2.title': 'Form a group and select the Mesh extension',
+    'gui.howtos.chat-3-mesh-3.step3.title': 'The first person becomes the host. Others join the mesh',
+    'gui.howtos.chat-3-mesh-3.step4.title': "Change the sprite's costume",
+    'gui.howtos.chat-3-mesh-3.step5.title': 'Switch to the Ruby tab and press "Insert Ruby code" to enter the host base code',
+    'gui.howtos.chat-3-mesh-3.step6.title': '★ Change @received_message = "change this" to @received_message = mesh.sensor_value("sent_message") — use mesh.sensor_value to get other people\'s variables!',
+    'gui.howtos.chat-3-mesh-3.step7.title': 'Enter the member code — message names are reversed!',
+    'gui.howtos.chat-3-mesh-3.step8.title': 'Click your sprite to run! Use "sensor value" to get other people\'s "sent message"',
+    'gui.howtos.chat-3-mesh-3.external.kairyudo.name': 'Kairyudo: Try Programming! "Create a Chat App"',
     'gui.menuBar.tutorialTooltip': 'Try Ruby!',
     'gui.aria.clearButton': 'Clear'
 };
