@@ -6,12 +6,14 @@ import {RubyToBlocksConverterError} from './errors';
 
 const messages = defineMessages({
     invalidMyBlockArgumentType: {
-        defaultMessage: 'invalid type of My Block "{NAME}" argument #{INDEX}',
+        defaultMessage: 'invalid type of My Block "{NAME}" argument #{INDEX}.' +
+            ' Use a number, string, or boolean value.',
         description: 'Error message when My Block argument has invalid type',
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType'
     },
     wrongInstructionInMyBlock: {
-        defaultMessage: '"{SOURCE}" is the wrong instruction.',
+        defaultMessage: '"{SOURCE}" is the wrong instruction.' +
+            ' Check the spelling or use a supported block.',
         description: 'Error message when non-statement block found in My Block definition body',
         id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock'
     }

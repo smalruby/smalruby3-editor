@@ -20,17 +20,20 @@ import TargetApplier from './target-applier';
 
 const messages = defineMessages({
     couldNotConvertPrimitive: {
-        defaultMessage: '"{ SOURCE }" could not be converted the block.',
+        defaultMessage: '"{ SOURCE }" could not be converted to a block.' +
+            ' Check the spelling or use a supported value.',
         description: 'Error message for converting ruby to block when find the primitive',
         id: 'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive'
     },
     wrongInstruction: {
-        defaultMessage: '"{ SOURCE }" is the wrong instruction.',
+        defaultMessage: '"{ SOURCE }" is the wrong instruction.' +
+            ' Check the spelling or use a supported block.',
         description: 'Error message for converting ruby to block when find the wrong instruction',
         id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstruction'
     },
     cannotChangeVariableScope: {
-        defaultMessage: '"{ VARIABLE }", can\'t change variable scope',
+        defaultMessage: '"{ VARIABLE }", can\'t change variable scope.' +
+            ' Delete the variable first, then recreate it with the correct scope.',
         description: 'Error message when trying to change variable scope from global to instance or vice versa',
         id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope'
     },

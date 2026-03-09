@@ -4,12 +4,14 @@ import {RubyToBlocksConverterError} from './errors';
 
 const messages = defineMessages({
     costumeDoesNotExist: {
-        defaultMessage: 'costume "{NAME}" does not exist',
+        defaultMessage: 'costume "{NAME}" does not exist.' +
+            ' Check the name or add the costume first.',
         description: 'Error message when switching to a costume that does not exist',
         id: 'gui.smalruby3.rubyToBlocksConverter.costumeDoesNotExist'
     },
     backdropDoesNotExist: {
-        defaultMessage: 'backdrop "{NAME}" does not exist',
+        defaultMessage: 'backdrop "{NAME}" does not exist.' +
+            ' Check the name or add the backdrop first.',
         description: 'Error message when switching to a backdrop that does not exist',
         id: 'gui.smalruby3.rubyToBlocksConverter.backdropDoesNotExist'
     }

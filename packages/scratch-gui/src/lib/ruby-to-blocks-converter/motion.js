@@ -4,7 +4,8 @@ import {RubyToBlocksConverterError} from './errors';
 
 const messages = defineMessages({
     stageNoMotionBlocks: {
-        defaultMessage: 'Stage selected: no motion blocks',
+        defaultMessage: 'Stage selected: no motion blocks.' +
+            ' Select a sprite to use motion blocks.',
         description: 'Error message when trying to use motion blocks on the Stage',
         id: 'gui.smalruby3.rubyToBlocksConverter.stageNoMotionBlocks'
     }

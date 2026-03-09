@@ -4,12 +4,14 @@ import {RubyToBlocksConverterError} from '../errors';
 
 const messages = defineMessages({
     conditionIsNotBoolean: {
-        defaultMessage: 'condition is not boolean: {SOURCE}',
+        defaultMessage: 'condition is not boolean: {SOURCE}.' +
+            ' Use a comparison operator (==, <, >, etc.).',
         description: 'Error message when if/until condition is not a boolean expression',
         id: 'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean'
     },
     includeNotStatementBlocks: {
-        defaultMessage: 'include not statement blocks',
+        defaultMessage: 'include not statement blocks.' +
+            ' Only use statement blocks (commands) inside a block definition.',
         description: 'Error message when non-statement blocks are included in My Block definition body',
         id: 'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks'
     }

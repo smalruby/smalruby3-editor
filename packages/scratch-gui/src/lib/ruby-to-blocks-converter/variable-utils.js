@@ -5,12 +5,13 @@ import {RubyToBlocksConverterError} from './errors';
 
 const messages = defineMessages({
     cannotChangeVariableScope: {
-        defaultMessage: '"{VARIABLE}", can\'t change variable scope',
+        defaultMessage: '"{VARIABLE}", can\'t change variable scope.' +
+            ' Delete the variable first, then recreate it with the correct scope.',
         description: 'Error message when trying to change variable scope from global to instance or vice versa',
         id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope'
     },
     alreadyDefinedMyBlock: {
-        defaultMessage: 'already defined My Block "{NAME}".',
+        defaultMessage: 'already defined My Block "{NAME}". Use a different name.',
         description: 'Error message when defining a My Block with a name that already exists',
         id: 'gui.smalruby3.rubyToBlocksConverter.alreadyDefinedMyBlock'
     }
