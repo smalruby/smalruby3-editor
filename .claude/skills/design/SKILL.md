@@ -46,7 +46,8 @@ Produce a structured design and **present it to the user for approval** before c
 
 ### Commit & PR Strategy
 
-- After each phase completes: run lint → commit → push
+- After each phase completes: run lint + affected tests → commit → push
+- **ローカルでは変更に直接関係するテストのみ実行する。全テストスイートは CI が自動実行するため、ローカルでの全体実行は不要。**
 - After the **first push**: create a PR with Implementation Steps as a checkbox list
 - Subsequent phases push to the same PR
 - After each push (except the first): update the PR body to check off the completed phase's checkbox
@@ -69,7 +70,7 @@ One-paragraph description of what the feature does and why.
 
 1. **[RED]** Add/update unit tests (confirm they fail)
 2. **[GREEN]** Implement to make tests pass
-3. **[PASS]** lint + unit test confirmation
+3. **[PASS]** lint + affected tests confirmation (full suite runs on CI)
 4. **[COMMIT & PUSH]** `<type>: <description>`
 5. **[MAKE PR]** (first push only)
 6. **[UPDATE PR]** Check off this phase's checkbox in PR body (after second push onward)
@@ -79,7 +80,7 @@ One-paragraph description of what the feature does and why.
 **Phase Final: Integration Tests（post-implementation）**
 
 - Write integration tests for regression detection
-- lint + all tests (unit + integration) pass
+- lint + affected tests pass (full suite runs on CI)
 - **[COMMIT & PUSH]** `test: add integration tests for <feature>`
 
 ### Test Plan

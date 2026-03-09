@@ -73,6 +73,12 @@ docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run tes
 
 **IMPORTANT**: Integration tests require `npm run build:dev` to be run first.
 
+### Local vs CI Testing Policy
+
+- **ローカル**: 変更に直接関係するテストファイルのみ実行 + lint を通す。それが通ったら commit & push してよい。
+- **CI**: push 時に全テスト（unit + integration）が自動実行される。全体のリグレッション検出は CI に任せる。
+- ローカルで全テストスイートを実行する必要はない。
+
 ## Key Directories
 
 - `src/`: React components and application code
@@ -212,7 +218,7 @@ docker compose restart app
    docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run test:lint"
    ```
 
-5. **Only after all tests pass and lint is clean**, commit and push.
+5. **Lint + affected tests が通ったら** commit and push。全テストは CI が実行する。
 
 ## PWA (Progressive Web App)
 
@@ -262,6 +268,8 @@ upstream merge 時にコンフリクトを解決しやすくするための仕�
 | `src/components/connection-modal/connection-modal.jsx` | meshV2 initial step feature | Mesh v2 初期ステップ UI |
 | `src/components/connection-modal/connected-step.jsx` | meshV2 connected message feature | Mesh v2 接続済みステップ UI |
 | `src/components/gui/gui.jsx` | Redux action props prevention | Redux action props の伝播防止 |
+| `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |
+| `src/lib/blocks.js` | gesture recovery | ジェスチャー復旧ハンドラーのインストール |
 
 ### Smalruby 固有ファイル（ファイル全体がマーカー）
 
@@ -270,6 +278,7 @@ upstream merge 時にコンフリクトを解決しやすくするための仕�
 | `src/components/connection-modal/mesh-v2-initial-step.jsx` | Mesh v2 初期接続ステップコンポーネント |
 | `src/components/connection-modal/mesh-v2-network-filtered-step.jsx` | Mesh v2 ネットワークフィルター検出コンポーネント |
 | `src/reducers/smalruby-registry.ts` | Smalruby reducer/state の一括エクスポート |
+| `src/lib/blocks-gesture-recovery.js` | ジェスチャー復旧ハンドラー（ブロックドラッグのスタック防止） |
 
 ### 関連ファイル
 
