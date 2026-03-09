@@ -1,3 +1,7 @@
+// === Smalruby: Start of pointer event compatibility ===
+import {patchTouchForPointerEvents} from './blocks-touch-patch';
+// === Smalruby: End of pointer event compatibility ===
+
 /**
  * Connect scratch blocks with the vm
  * @param {VirtualMachine} vm - The scratch vm
@@ -5,6 +9,12 @@
  */
 export default function (vm) {
     const ScratchBlocks = require('scratch-blocks');
+
+    // === Smalruby: Start of pointer event compatibility ===
+    // Patch Touch module to recognize pointer events on touch-capable devices.
+    // See: https://github.com/smalruby/smalruby3-editor/issues/251
+    patchTouchForPointerEvents(ScratchBlocks);
+    // === Smalruby: End of pointer event compatibility ===
 
     const jsonForMenuBlock = function (name, menuOptionsFn, category, start) {
         return {
