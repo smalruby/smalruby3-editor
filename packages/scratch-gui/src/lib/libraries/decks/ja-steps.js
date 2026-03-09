@@ -40,6 +40,18 @@ import chat2Sprites1Step5 from './steps/chat2-sprites1-5-add-penguin.gif';
 import chat2Sprites1Step6 from './steps/chat2-sprites1-6-settings.gif';
 import chat2Sprites1Step7 from './steps/chat2-sprites1-7-penguin-code.png';
 
+// Chat Tutorial 2 Sprites 2: ブロックを自分で組み立ててみよう（2スプライト版）
+import chat2Sprites2Step2 from './steps/chat2-sprites2-2-when-clicked-set.png';
+import chat2Sprites2Step3 from './steps/chat2-sprites2-3-say-broadcast.png';
+import chat2Sprites2Step4 from './steps/chat2-sprites2-4-receive-variable.png';
+import chat2Sprites2Step7 from './steps/chat2-sprites2-7-penguin-blocks.png';
+
+// Chat Tutorial 2 Sprites 3: Rubyで同じプログラムを作ろう（2スプライト版）
+import chat2Sprites3Step2 from './steps/chat2-sprites3-2-ruby-tab.png';
+import chat2Sprites3Step3 from './steps/chat2-sprites3-3-base-code.png';
+import chat2Sprites3Step4 from './steps/chat2-sprites3-4-change-say.png';
+import chat2Sprites3Step7 from './steps/chat2-sprites3-7-penguin-code.png';
+
 // Chat Tutorial 3 Mesh 1: メッシュ拡張機能でつながろう
 import chat3Mesh1Step1 from './steps/chat3-mesh1-1-intro.gif';
 import chat3Mesh1Step2 from './steps/chat3-mesh1-2-select-mesh.gif';
@@ -87,6 +99,16 @@ const jaImages = {
     chat2Sprites1Step5: chat2Sprites1Step5,
     chat2Sprites1Step6: chat2Sprites1Step6,
     chat2Sprites1Step7: chat2Sprites1Step7,
+    // Chat Tutorial 2 Sprites 2
+    chat2Sprites2Step2: chat2Sprites2Step2,
+    chat2Sprites2Step3: chat2Sprites2Step3,
+    chat2Sprites2Step4: chat2Sprites2Step4,
+    chat2Sprites2Step7: chat2Sprites2Step7,
+    // Chat Tutorial 2 Sprites 3
+    chat2Sprites3Step2: chat2Sprites3Step2,
+    chat2Sprites3Step3: chat2Sprites3Step3,
+    chat2Sprites3Step4: chat2Sprites3Step4,
+    chat2Sprites3Step7: chat2Sprites3Step7,
     // Chat Tutorial 3 Mesh 1
     chat3Mesh1Step1: chat3Mesh1Step1,
     chat3Mesh1Step2: chat3Mesh1Step2,

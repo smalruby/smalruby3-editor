@@ -10,6 +10,8 @@ import libraryChat1Basic1 from './thumbnails/chat-1-basic-1.jpg';
 import libraryChat1Basic2 from './thumbnails/chat-1-basic-2.jpg';
 import libraryChat1Basic3 from './thumbnails/chat-1-basic-3.jpg';
 import libraryChat2Sprites1 from './thumbnails/chat-2-sprites-1.jpg';
+import libraryChat2Sprites2 from './thumbnails/chat-2-sprites-2.jpg';
+import libraryChat2Sprites3 from './thumbnails/chat-2-sprites-3.jpg';
 // Chat Tutorial 3 Mesh 1: メッシュ拡張機能でつながろう
 import libraryChat3Mesh1 from './thumbnails/chat-3-mesh-1.jpg';
 import libraryChat3Mesh1ExternalKairyudo from './thumbnails/chat3-mesh1-external-kairyudo.png';
@@ -575,11 +577,272 @@ end`,
             },
             {
                 deckIds: [
+                    'chat-2-sprites-2',
                     'chat-3-mesh-1'
                 ]
             }
         ],
         urlId: 'chat2Sprites1'
+    },
+
+    // ─── Chat App Tutorial 2-Sprites-2: ブロックを自分で組み立ててみよう（2スプライト版） ──
+    'chat-2-sprites-2': {
+        name: (
+            <FormattedMessage
+                defaultMessage="ネコとペンギンで会話しよう！Lv2"
+                description="Name for Chat Tutorial 2 Sprites 2: build blocks manually with two sprites"
+                id="gui.howtos.chat-2-sprites-2.name"
+            />
+        ),
+        tags: ['mesh'],
+        category: CATEGORIES.chatApp,
+        img: libraryChat2Sprites2,
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs'],
+            sound: [],
+            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="今度はブロックを自分で組み立ててみよう！"
+                        description="Chat2 Sprites2 Step 1: Intro - build blocks manually"
+                        id="gui.howtos.chat-2-sprites-2.step1.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step1',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ネコ：変数「送信メッセージ」を作り、「このスプライトが押されたとき」と「送信メッセージを◯◯にする」を配置しよう"
+                        description="Chat2 Sprites2 Step 2: Create variable and place when-clicked + set blocks"
+                        id="gui.howtos.chat-2-sprites-2.step2.title"
+                    />
+                ),
+                image: 'chat2Sprites2Step2',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ネコ：「◯◯と◯秒言う」と★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ"
+                        description="Chat2 Sprites2 Step 3: Add say-for-secs and broadcast blocks"
+                        id="gui.howtos.chat-2-sprites-2.step3.title"
+                    />
+                ),
+                image: 'chat2Sprites2Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★ ネコ：「ペンギンからのメッセージを受け取ったとき」を配置し、変数「受信メッセージ」(このスプライトのみ)を使おう — @変数はスプライト専用だよ"
+                        description="Chat2 Sprites2 Step 4: Place when-receive and use instance variable"
+                        id="gui.howtos.chat-2-sprites-2.step4.title"
+                    />
+                ),
+                image: 'chat2Sprites2Step4',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ペンギンのスプライトを追加します"
+                        description="Chat2 Sprites2 Step 5: Add penguin sprite"
+                        id="gui.howtos.chat-2-sprites-2.step5.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step5',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ペンギンの位置と向きを調整します"
+                        description="Chat2 Sprites2 Step 6: Adjust penguin position and direction"
+                        id="gui.howtos.chat-2-sprites-2.step6.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step6',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★ ペンギンも同じ構造でブロックを組み立てよう — メッセージ名がネコと逆になるよ"
+                        description="Chat2 Sprites2 Step 7: Build penguin blocks with reversed message names"
+                        id="gui.howtos.chat-2-sprites-2.step7.title"
+                    />
+                ),
+                image: 'chat2Sprites2Step7',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ネコやペンギンを押して実行！しゃべる内容も変えてみよう"
+                        description="Chat2 Sprites2 Step 8: Run and customize"
+                        id="gui.howtos.chat-2-sprites-2.step8.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step1',
+                animationTarget: 'nextButton'
+            },
+            {
+                deckIds: [
+                    'chat-2-sprites-3',
+                    'chat-3-mesh-1'
+                ]
+            }
+        ],
+        urlId: 'chat2Sprites2'
+    },
+
+    // ─── Chat App Tutorial 2-Sprites-3: Rubyで同じプログラムを作ろう（2スプライト版） ──
+    'chat-2-sprites-3': {
+        name: (
+            <FormattedMessage
+                defaultMessage="ネコとペンギンで会話しよう！Lv3"
+                description="Name for Chat Tutorial 2 Sprites 3: build with Ruby with two sprites"
+                id="gui.howtos.chat-2-sprites-3.name"
+            />
+        ),
+        tags: ['mesh'],
+        category: CATEGORIES.chatApp,
+        img: libraryChat2Sprites3,
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs'],
+            sound: [],
+            event: ['event_whenthisspriteclicked', 'event_whenbroadcastreceived', 'event_broadcast'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="今度はRubyで同じプログラムを作ろう！"
+                        description="Chat2 Sprites3 Step 1: Intro - build with Ruby"
+                        id="gui.howtos.chat-2-sprites-3.step1.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step1',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ルビータブに切り替えよう"
+                        description="Chat2 Sprites3 Step 2: Switch to Ruby tab"
+                        id="gui.howtos.chat-2-sprites-3.step2.title"
+                    />
+                ),
+                image: 'chat2Sprites3Step2',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="「ルビーを入力する」を押して、ネコのお手本を入力しよう"
+                        description="Chat2 Sprites3 Step 3: Insert cat base code"
+                        id="gui.howtos.chat-2-sprites-3.step3.title"
+                    />
+                ),
+                image: 'chat2Sprites3Step3',
+                code: `when_clicked do
+  $送信メッセージ = "ネコ：こんにちは"
+  say("送信中...", 1)
+  broadcast("ネコからのメッセージ")
+end
+
+when_receive("ペンギンからのメッセージ") do
+  @受信メッセージ = $送信メッセージ
+  say("ここを変えるよ", 3)
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="★ say(&quot;ここを変えるよ&quot;, 3) を say(@受信メッセージ, 3) に変えよう — @で始まる変数はこのスプライトだけで使えるよ"
+                        description="Chat2 Sprites3 Step 4: Change say to use instance variable"
+                        id="gui.howtos.chat-2-sprites-3.step4.title"
+                    />
+                ),
+                image: 'chat2Sprites3Step4',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ペンギンのスプライトを追加します"
+                        description="Chat2 Sprites3 Step 5: Add penguin sprite"
+                        id="gui.howtos.chat-2-sprites-3.step5.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step5',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ペンギンの位置と向きを調整します"
+                        description="Chat2 Sprites3 Step 6: Adjust penguin position and direction"
+                        id="gui.howtos.chat-2-sprites-3.step6.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step6',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ペンギンのRubyコードを「ルビーを入力する」で入力しよう — メッセージ名がネコと逆になっているよ"
+                        description="Chat2 Sprites3 Step 7: Insert penguin Ruby code"
+                        id="gui.howtos.chat-2-sprites-3.step7.title"
+                    />
+                ),
+                image: 'chat2Sprites3Step7',
+                code: `when_clicked do
+  $送信メッセージ = "ペンギン：こんにちは"
+  say("送信中...", 1)
+  broadcast("ペンギンからのメッセージ")
+end
+
+when_receive("ネコからのメッセージ") do
+  @受信メッセージ = $送信メッセージ
+  say(@受信メッセージ, 3)
+end`,
+                codeType: 'blocks',
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ネコやペンギンを押して実行しよう！"
+                        description="Chat2 Sprites3 Step 8: Run the program"
+                        id="gui.howtos.chat-2-sprites-3.step8.title"
+                    />
+                ),
+                image: 'chat2Sprites1Step1',
+                animationTarget: 'nextButton'
+            },
+            {
+                deckIds: [
+                    'chat-3-mesh-1'
+                ]
+            }
+        ],
+        urlId: 'chat2Sprites3'
     },
 
     // ─── Chat Tutorial 3 Mesh 1: メッシュ拡張機能でつながろう ───────────────
