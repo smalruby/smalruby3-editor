@@ -1,3 +1,7 @@
+// === Smalruby: Start of gesture recovery import ===
+import {installGestureRecovery} from './blocks-gesture-recovery.js';
+// === Smalruby: End of gesture recovery import ===
+
 /**
  * Connect scratch blocks with the vm
  * @param {VirtualMachine} vm - The scratch vm
@@ -337,6 +341,10 @@ export default function (vm) {
     ScratchBlocks.utils.is3dSupported = function () {
         return true;
     };
+
+    // === Smalruby: Start of gesture recovery ===
+    installGestureRecovery(ScratchBlocks);
+    // === Smalruby: End of gesture recovery ===
 
     return ScratchBlocks;
 }

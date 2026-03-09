@@ -262,6 +262,8 @@ upstream merge 時にコンフリクトを解決しやすくするための仕�
 | `src/components/connection-modal/connection-modal.jsx` | meshV2 initial step feature | Mesh v2 初期ステップ UI |
 | `src/components/connection-modal/connected-step.jsx` | meshV2 connected message feature | Mesh v2 接続済みステップ UI |
 | `src/components/gui/gui.jsx` | Redux action props prevention | Redux action props の伝播防止 |
+| `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |
+| `src/lib/blocks.js` | gesture recovery | ジェスチャー復旧ハンドラーのインストール |
 
 ### Smalruby 固有ファイル（ファイル全体がマーカー）
 
@@ -270,6 +272,7 @@ upstream merge 時にコンフリクトを解決しやすくするための仕�
 | `src/components/connection-modal/mesh-v2-initial-step.jsx` | Mesh v2 初期接続ステップコンポーネント |
 | `src/components/connection-modal/mesh-v2-network-filtered-step.jsx` | Mesh v2 ネットワークフィルター検出コンポーネント |
 | `src/reducers/smalruby-registry.ts` | Smalruby reducer/state の一括エクスポート |
+| `src/lib/blocks-gesture-recovery.js` | ジェスチャー復旧ハンドラー（ブロックドラッグのスタック防止） |
 
 ### 関連ファイル
 
