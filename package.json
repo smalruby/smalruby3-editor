@@ -27,6 +27,7 @@
     "build-monorepo": "cross-env-shell ./scripts/build-monorepo.sh",
     "clean": "npm run --workspaces clean",
     "lint": "npm run lint --workspace=packages/scratch-vm --workspace=packages/scratch-gui",
+    "postinstall": "node scripts/patch-scratch-blocks-touch.js",
     "prepare": "husky install",
     "refresh-gh-workflow": "ts-node scripts/build-gha-workflows.ts",
     "test": "npm run build:dev && npm run test:unit && npm run test:integration",
