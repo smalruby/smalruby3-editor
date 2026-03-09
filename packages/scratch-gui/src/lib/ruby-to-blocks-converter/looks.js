@@ -1,5 +1,19 @@
+import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 import {RubyToBlocksConverterError} from './errors';
+
+const messages = defineMessages({
+    costumeDoesNotExist: {
+        defaultMessage: 'costume "{NAME}" does not exist',
+        description: 'Error message when switching to a costume that does not exist',
+        id: 'gui.smalruby3.rubyToBlocksConverter.costumeDoesNotExist'
+    },
+    backdropDoesNotExist: {
+        defaultMessage: 'backdrop "{NAME}" does not exist',
+        description: 'Error message when switching to a backdrop that does not exist',
+        id: 'gui.smalruby3.rubyToBlocksConverter.backdropDoesNotExist'
+    }
+});
 
  
 const createBlockWithMessage = function (converter, opcode, message, defaultMessage) {
@@ -47,7 +61,7 @@ const validateCostume = function (converter, costumeName, args) {
     if (!costumeExists) {
         throw new RubyToBlocksConverterError(
             args[0].node,
-            `costume "${costumeName}" does not exist`
+            converter._translator(messages.costumeDoesNotExist, {NAME: costumeName})
         );
     }
 };
@@ -73,7 +87,7 @@ const validateBackdrop = function (converter, backdropName, args) {
     if (!backdropExists) {
         throw new RubyToBlocksConverterError(
             args[0].node,
-            `backdrop "${backdropName}" does not exist`
+            converter._translator(messages.backdropDoesNotExist, {NAME: backdropName})
         );
     }
 };

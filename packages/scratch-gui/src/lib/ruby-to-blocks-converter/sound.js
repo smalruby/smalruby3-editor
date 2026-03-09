@@ -1,5 +1,14 @@
+import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 import {RubyToBlocksConverterError} from './errors';
+
+const messages = defineMessages({
+    soundDoesNotExist: {
+        defaultMessage: 'sound "{NAME}" does not exist',
+        description: 'Error message when playing a sound that does not exist',
+        id: 'gui.smalruby3.rubyToBlocksConverter.soundDoesNotExist'
+    }
+});
 
 const Effects = [
     'PITCH',
@@ -18,7 +27,7 @@ const validateSound = function (converter, soundName, node) {
     if (!soundExists) {
         throw new RubyToBlocksConverterError(
             node,
-            `sound "${soundName}" does not exist`
+            converter._translator(messages.soundDoesNotExist, {NAME: soundName})
         );
     }
 };

@@ -1,6 +1,20 @@
+import {defineMessages} from 'react-intl';
 import {Variable} from './constants';
 import * as Blockly from 'scratch-blocks';
 import {RubyToBlocksConverterError} from './errors';
+
+const messages = defineMessages({
+    cannotChangeVariableScope: {
+        defaultMessage: '"{VARIABLE}", can\'t change variable scope',
+        description: 'Error message when trying to change variable scope from global to instance or vice versa',
+        id: 'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope'
+    },
+    alreadyDefinedMyBlock: {
+        defaultMessage: 'already defined My Block "{NAME}".',
+        description: 'Error message when defining a My Block with a name that already exists',
+        id: 'gui.smalruby3.rubyToBlocksConverter.alreadyDefinedMyBlock'
+    }
+});
 
 /**
  * Variable, list, and broadcast message utilities for RubyToBlocksConverter.
@@ -93,7 +107,7 @@ const VariableUtils = {
             if (variable.scope !== scope) {
                 throw new RubyToBlocksConverterError(
                     this._context.currentNode,
-                    `"${name}", can't change variable scope`
+                    this._translator(messages.cannotChangeVariableScope, {VARIABLE: name})
                 );
             }
         } else {
@@ -176,7 +190,7 @@ const VariableUtils = {
         if (procedure) {
             throw new RubyToBlocksConverterError(
                 this._context.currentNode,
-                `already defined My Block "${name}".`
+                this._translator(messages.alreadyDefinedMyBlock, {NAME: name})
             );
         }
         procedure = {

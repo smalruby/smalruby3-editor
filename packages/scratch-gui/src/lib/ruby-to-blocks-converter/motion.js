@@ -1,5 +1,14 @@
+import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 import {RubyToBlocksConverterError} from './errors';
+
+const messages = defineMessages({
+    stageNoMotionBlocks: {
+        defaultMessage: 'Stage selected: no motion blocks',
+        description: 'Error message when trying to use motion blocks on the Stage',
+        id: 'gui.smalruby3.rubyToBlocksConverter.stageNoMotionBlocks'
+    }
+});
 
 const RotationStyle = [
     'left-right',
@@ -150,7 +159,9 @@ const MotionConverter = {
                 case 'motion_yposition':
                     // All Motion blocks are sprite-only
                     if (converter._isStage()) {
-                        throw new RubyToBlocksConverterError(lh.node, 'Stage selected: no motion blocks');
+                        throw new RubyToBlocksConverterError(
+                            lh.node, converter._translator(messages.stageNoMotionBlocks)
+                        );
                     }
                     xy = lh.opcode === 'motion_xposition' ? 'x' : 'y';
                     block = converter._changeBlock(lh, `motion_change${xy}by`, 'statement');
@@ -172,7 +183,9 @@ const MotionConverter = {
                 case 'motion_direction':
                     // All Motion blocks are sprite-only
                     if (converter._isStage()) {
-                        throw new RubyToBlocksConverterError(lh.node, 'Stage selected: no motion blocks');
+                        throw new RubyToBlocksConverterError(
+                            lh.node, converter._translator(messages.stageNoMotionBlocks)
+                        );
                     }
                     if (operator === '+') {
                         block = converter._changeBlock(lh, 'motion_turnright', 'statement');
