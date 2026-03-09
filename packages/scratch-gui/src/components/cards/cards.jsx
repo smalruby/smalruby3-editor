@@ -414,9 +414,9 @@ const Cards = props => {
         // initialize positions
         x = isRtl ? (-190 - wideCardWidth - cardHorizontalDragOffset) : 292;
         x += cardHorizontalDragOffset;
-        // The tallest cards are about 320px high, and the default position is pinned
-        // to near the bottom of the blocks palette to allow room to work above.
-        const tallCardHeight = 320;
+        // The tallest cards are about 500px high (header ~40 + title ~40 + image 360 + margins ~60),
+        // and the default position is pinned to near the bottom of the blocks palette to allow room to work above.
+        const tallCardHeight = 500;
         const bottomMargin = 60; // To avoid overlapping the backpack region
         y = window.innerHeight - tallCardHeight - bottomMargin - menuBarHeight;
     }

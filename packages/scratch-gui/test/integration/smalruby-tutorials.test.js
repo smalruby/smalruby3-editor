@@ -130,6 +130,46 @@ describe('Smalruby Tutorials', () => {
             });
         });
 
+        describe('chat-1-basic-2 tutorial', () => {
+            test('restricts toolbox to allowed blocks (Looks and Events; no Motion or Sound)', async () => {
+                await loadUri(uriWithTutorial('chat1Basic2'));
+                await findByXpath('//div[contains(@class, "card_card_")]');
+                await driver.sleep(1000);
+
+                expect(await textExists('Looks', scope.blocksTab)).toBe(true);
+                expect(await textExists('Events', scope.blocksTab)).toBe(true);
+
+                expect(await textExists('Motion', scope.blocksTab)).toBe(false);
+                expect(await textExists('Sound', scope.blocksTab)).toBe(false);
+                expect(await textExists('Control', scope.blocksTab)).toBe(false);
+                expect(await textExists('Sensing', scope.blocksTab)).toBe(false);
+                expect(await textExists('Operators', scope.blocksTab)).toBe(false);
+
+                const logs = await getLogs();
+                expect(logs).toEqual([]);
+            });
+        });
+
+        describe('chat-1-basic-3 tutorial', () => {
+            test('restricts toolbox to allowed blocks (Looks and Events; no Motion or Sound)', async () => {
+                await loadUri(uriWithTutorial('chat1Basic3'));
+                await findByXpath('//div[contains(@class, "card_card_")]');
+                await driver.sleep(1000);
+
+                expect(await textExists('Looks', scope.blocksTab)).toBe(true);
+                expect(await textExists('Events', scope.blocksTab)).toBe(true);
+
+                expect(await textExists('Motion', scope.blocksTab)).toBe(false);
+                expect(await textExists('Sound', scope.blocksTab)).toBe(false);
+                expect(await textExists('Control', scope.blocksTab)).toBe(false);
+                expect(await textExists('Sensing', scope.blocksTab)).toBe(false);
+                expect(await textExists('Operators', scope.blocksTab)).toBe(false);
+
+                const logs = await getLogs();
+                expect(logs).toEqual([]);
+            });
+        });
+
         describe('chat-2-sprites-1 tutorial', () => {
             test('restricts toolbox to allowed blocks (no Motion)', async () => {
                 await loadUri(uriWithTutorial('chat2Sprites1'));
