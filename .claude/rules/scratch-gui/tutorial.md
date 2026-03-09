@@ -266,6 +266,18 @@ Color scheme for levels:
 
 ## Playwright Tips for Tutorial Work
 
+### Playwright MCP のダウンロードディレクトリ
+
+Playwright MCP でファイルがダウンロードされると、プロジェクトルート直下の **`.playwright-mcp/`** ディレクトリに保存される:
+
+```
+/Users/kouji/work/smalruby/smalruby3-editor/.playwright-mcp/
+```
+
+- 「命令ブロックを画像として保存」ボタンでダウンロードした PNG → `.playwright-mcp/スモウルビーのプロジェクト-スプライト1.png`
+- `browser_take_screenshot` の `filename` パラメータはこれとは別で、プロジェクトルート相対のパスに保存される
+- `.playwright-mcp/` は `.gitignore` に含まれるため、Git にはコミットされない
+
 ### Handling Common Issues
 
 - **beforeunload dialog**: コード変更後にページ遷移すると beforeunload ダイアログが出る。`browser_handle_dialog({ accept: true })` で受理してからリロードする。2回連続で出ることがあるので注意
