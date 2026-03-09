@@ -69,6 +69,13 @@ const buildExportSVG = function (workspace, bbox, scale, width, height, padding 
     svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
     svg.setAttribute('width', String(width));
     svg.setAttribute('height', String(height));
+    // Carry over the theme classes from the workspace's injectionDiv so that
+    // Scratch Blocks' theme-scoped CSS selectors (e.g. `.scratch-renderer.default-theme .blocklyText`)
+    // match inside the exported SVG.
+    const injectionDiv = workspace.getInjectionDiv && workspace.getInjectionDiv();
+    if (injectionDiv) {
+        svg.setAttribute('class', injectionDiv.className);
+    }
 
     // Include <defs> and <style> from parent SVG (for block shapes, filters, etc.)
     const blockCanvas = workspace.svgBlockCanvas_;
