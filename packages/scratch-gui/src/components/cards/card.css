@@ -98,6 +98,7 @@ body .card-container {
     box-shadow: 0px 5px 25px 5px $ui-black-transparent;
     align-items: center;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    max-width: 550px;
 }
 
 .header-buttons {
@@ -159,6 +160,8 @@ body .card-container {
     text-align: center;
     font-weight: bold;
     color: $text-primary;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .step-body {

@@ -382,7 +382,7 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="お手本を「ルビーを入力する」を押して入力しよう"
+                        defaultMessage="「ルビーを入力する」を押して、お手本を入力しよう"
                         description="Chat1 Basic3 Step 3: Insert base code"
                         id="gui.howtos.chat-1-basic-3.step3.title"
                     />
