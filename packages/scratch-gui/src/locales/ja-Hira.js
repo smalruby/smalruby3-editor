@@ -372,10 +372,10 @@ export default {
     'gui.howtos.chat-1-basic-3.name': 'メッセージをおくってみよう！Lv3',
     'gui.howtos.chat-1-basic-3.step1.title': 'こんどはRubyでおなじプログラムをつくろう！',
     'gui.howtos.chat-1-basic-3.step2.title': 'ルビータブにきりかえよう',
-    'gui.howtos.chat-1-basic-3.step3.title': 'ベースのコードを「プログラムをにゅうりょく」でにゅうりょくしよう',
-    'gui.howtos.chat-1-basic-3.step4.title': '★ $そうしんメッセージ = "こんにちは！げんきですか？" をてでにゅうりょくしよう — $ではじまるへんすうはぜんたいでつかえるよ',
+    'gui.howtos.chat-1-basic-3.step3.title': 'おてほんを「ルビーをにゅうりょくする」をおしてにゅうりょくしよう',
+    'gui.howtos.chat-1-basic-3.step4.title': '★ 2ぎょうめに $そうしんメッセージ = "こんにちは！げんきですか？" をにゅうりょくしよう — $ではじまるへんすうはぜんたいでつかえるよ',
     'gui.howtos.chat-1-basic-3.step5.title': '★ say("ここをかえるよ") を say($そうしんメッセージ) にかえよう — へんすうであたいをわたすよ',
-    'gui.howtos.chat-1-basic-3.step6.title': 'ブロックタブにもどして{greenFlag}をおしてじっこうしよう！',
+    'gui.howtos.chat-1-basic-3.step6.title': '{greenFlag}をおしてじっこうしよう！',
     'gui.howtos.chat-1-basic-3.step7.title': 'だいじなこと：Rubyでも「おくる」「うけとったとき」「へんすう」はおなじかんがえかた',
     // Chat Tutorial 2 Sprites 1
     'gui.howtos.chat-2-sprites-1.name': 'ネコとペンギンでかいわしよう',

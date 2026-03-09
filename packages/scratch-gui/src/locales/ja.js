@@ -376,10 +376,10 @@ export default {
     'gui.howtos.chat-1-basic-3.name': 'メッセージを送ってみよう！Lv3',
     'gui.howtos.chat-1-basic-3.step1.title': '今度はRubyで同じプログラムを作ろう！',
     'gui.howtos.chat-1-basic-3.step2.title': 'ルビータブに切り替えよう',
-    'gui.howtos.chat-1-basic-3.step3.title': 'ベースのコードを「プログラムを入力」で入力しよう',
-    'gui.howtos.chat-1-basic-3.step4.title': '★ $送信メッセージ = "こんにちは！元気ですか？" を手で入力しよう — $で始まる変数は全体で使えるよ',
+    'gui.howtos.chat-1-basic-3.step3.title': 'お手本を「ルビーを入力する」を押して入力しよう',
+    'gui.howtos.chat-1-basic-3.step4.title': '★ 2行目に $送信メッセージ = "こんにちは！元気ですか？" を入力しよう — $で始まる変数は全体で使えるよ',
     'gui.howtos.chat-1-basic-3.step5.title': '★ say("ここを変えるよ") を say($送信メッセージ) に変えよう — 変数で値を渡すよ',
-    'gui.howtos.chat-1-basic-3.step6.title': 'ブロックタブに戻して{greenFlag}を押して実行しよう！',
+    'gui.howtos.chat-1-basic-3.step6.title': '{greenFlag}を押して実行しよう！',
     'gui.howtos.chat-1-basic-3.step7.title': '大事なこと：Rubyでも「送る」「受け取ったとき」「変数」は同じ考え方',
     // Chat Tutorial 2 Sprites 1
     'gui.howtos.chat-2-sprites-1.name': 'ネコとペンギンで会話しよう',

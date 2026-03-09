@@ -304,10 +304,10 @@ export default {
     'gui.howtos.chat-1-basic-3.name': "Let's Send a Message! Lv3",
     'gui.howtos.chat-1-basic-3.step1.title': "Now let's build the same program in Ruby!",
     'gui.howtos.chat-1-basic-3.step2.title': 'Switch to the Ruby tab',
-    'gui.howtos.chat-1-basic-3.step3.title': 'Insert the base code using "Insert Program"',
-    'gui.howtos.chat-1-basic-3.step4.title': '★ Type $send_message = "Hello! How are you?" — variables starting with $ are global',
+    'gui.howtos.chat-1-basic-3.step3.title': 'Insert the example code by pressing "Insert Ruby"',
+    'gui.howtos.chat-1-basic-3.step4.title': '★ Type $send_message = "Hello! How are you?" on line 2 — variables starting with $ are global',
     'gui.howtos.chat-1-basic-3.step5.title': '★ Change say("change this") to say($send_message) — pass values with variables',
-    'gui.howtos.chat-1-basic-3.step6.title': 'Switch back to blocks tab and click {greenFlag} to run!',
+    'gui.howtos.chat-1-basic-3.step6.title': 'Click {greenFlag} to run!',
     'gui.howtos.chat-1-basic-3.step7.title': 'Key concept: "broadcast", "when received", and "variables" work the same way in Ruby',
     // Chat Tutorial 2 Sprites 1
     'gui.howtos.chat-2-sprites-1.name': "Let's Chat with Cat and Penguin!",

@@ -216,7 +216,8 @@ end`,
             },
             {
                 deckIds: [
-                    'chat-1-basic-2'
+                    'chat-1-basic-2',
+                    'chat-2-sprites-1'
                 ]
             }
         ],
@@ -326,7 +327,8 @@ end`,
             },
             {
                 deckIds: [
-                    'chat-1-basic-3'
+                    'chat-1-basic-3',
+                    'chat-2-sprites-1'
                 ]
             }
         ],
@@ -380,7 +382,7 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="ベースのコードを「プログラムを入力」で入力しよう"
+                        defaultMessage="お手本を「ルビーを入力する」を押して入力しよう"
                         description="Chat1 Basic3 Step 3: Insert base code"
                         id="gui.howtos.chat-1-basic-3.step3.title"
                     />
@@ -399,7 +401,7 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="★ $送信メッセージ = &quot;こんにちは！元気ですか？&quot; を手で入力しよう — $で始まる変数は全体で使えるよ"
+                        defaultMessage="★ 2行目に $送信メッセージ = &quot;こんにちは！元気ですか？&quot; を入力しよう — $で始まる変数は全体で使えるよ"
                         description="Chat1 Basic3 Step 4: Type variable assignment - key concept"
                         id="gui.howtos.chat-1-basic-3.step4.title"
                     />
@@ -421,8 +423,8 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        defaultMessage="ブロックタブに戻して{greenFlag}を押して実行しよう！"
-                        description="Chat1 Basic3 Step 6: Switch to blocks tab and run"
+                        defaultMessage="{greenFlag}を押して実行しよう！"
+                        description="Chat1 Basic3 Step 6: Run the program"
                         id="gui.howtos.chat-1-basic-3.step6.title"
                         values={{greenFlag: <GreenFlagIcon />}}
                     />
