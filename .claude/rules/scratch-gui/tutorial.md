@@ -306,8 +306,8 @@ monaco.editor.getEditors()[0]  // Monaco editor instance
 
 ## Card CSS Notes
 
-- `.card` has `max-width: 550px` to prevent overly wide cards
+- `.card` has `max-width: 500px` to prevent overly wide cards
 - `.step-title` uses `word-break: break-word; overflow-wrap: break-word;` for long titles
-- `.step-image` has `max-width: 450px; max-height: 200px; object-fit: contain;`
+- `.step-image` has `max-width: 480px; max-height: 360px; object-fit: contain;`
 - `.insert-code-button-overlay` positions the insert button over the step image
 - Glow animations (`.right-button-glow`, `.insert-code-button-glow`) use `@keyframes glow-pulse-*`
