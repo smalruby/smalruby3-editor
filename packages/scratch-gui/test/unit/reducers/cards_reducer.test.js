@@ -12,7 +12,10 @@ describe('cards reducer', () => {
             y: 0,
             expanded: true,
             dragging: false,
-            tutorialAllowedBlocks: null
+            tutorialAllowedBlocks: null,
+            // === Smalruby: Start of start-tutorial button ===
+            pendingProjectTitle: null
+            // === Smalruby: End of start-tutorial button ===
         });
     });
 

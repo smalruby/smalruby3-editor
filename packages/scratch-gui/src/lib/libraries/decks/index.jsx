@@ -46,6 +46,7 @@ const decks = {
         tags: ['ruby', 'はじめて'],
         category: CATEGORIES.gettingStarted,
         img: libraryIntro,
+        nameMessageId: 'gui.howtos.getting-started.name',
         steps: [
             {
                 title: (
@@ -56,7 +57,8 @@ const decks = {
                     />
                 ),
                 image: 'introRubyTab',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (
@@ -112,6 +114,7 @@ end`,
         tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat1Basic1,
+        nameMessageId: 'gui.howtos.chat-1-basic-1.name',
         allowedBlocks: {
             motion: [],
             looks: ['looks_sayforsecs', 'looks_say'],
@@ -131,7 +134,8 @@ end`,
                     />
                 ),
                 image: 'chat1Basic1Step1',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (
@@ -240,6 +244,7 @@ end`,
         tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat1Basic2,
+        nameMessageId: 'gui.howtos.chat-1-basic-2.name',
         allowedBlocks: {
             motion: [],
             looks: ['looks_sayforsecs', 'looks_say'],
@@ -259,7 +264,8 @@ end`,
                     />
                 ),
                 image: 'chat1Basic2Step1',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (
@@ -351,6 +357,7 @@ end`,
         tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat1Basic3,
+        nameMessageId: 'gui.howtos.chat-1-basic-3.name',
         allowedBlocks: {
             motion: [],
             looks: ['looks_sayforsecs', 'looks_say'],
@@ -370,7 +377,8 @@ end`,
                     />
                 ),
                 image: 'chat1Basic3Step1',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (
@@ -468,6 +476,7 @@ end`,
         tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat2Sprites1,
+        nameMessageId: 'gui.howtos.chat-2-sprites-1.name',
         allowedBlocks: {
             motion: [],
             looks: ['looks_sayforsecs'],
@@ -487,7 +496,8 @@ end`,
                     />
                 ),
                 image: 'chat2Sprites1Step1',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (
@@ -599,6 +609,7 @@ end`,
         tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat2Sprites2,
+        nameMessageId: 'gui.howtos.chat-2-sprites-2.name',
         allowedBlocks: {
             motion: [],
             looks: ['looks_sayforsecs'],
@@ -618,7 +629,8 @@ end`,
                     />
                 ),
                 image: 'chat2Sprites1Step1',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (
@@ -719,6 +731,7 @@ end`,
         tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat2Sprites3,
+        nameMessageId: 'gui.howtos.chat-2-sprites-3.name',
         allowedBlocks: {
             motion: [],
             looks: ['looks_sayforsecs'],
@@ -738,7 +751,8 @@ end`,
                     />
                 ),
                 image: 'chat2Sprites1Step1',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (
@@ -859,6 +873,7 @@ end`,
         tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat3Mesh1,
+        nameMessageId: 'gui.howtos.chat-3-mesh-1.name',
         allowedBlocks: {
             motion: [],
             looks: ['looks_sayforsecs'],
@@ -878,7 +893,8 @@ end`,
                     />
                 ),
                 image: 'chat3Mesh1Step1',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (
@@ -998,6 +1014,7 @@ end`,
         tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat3Mesh2,
+        nameMessageId: 'gui.howtos.chat-3-mesh-2.name',
         allowedBlocks: {
             motion: [],
             looks: ['looks_sayforsecs'],
@@ -1017,7 +1034,8 @@ end`,
                     />
                 ),
                 image: 'chat3Mesh1Step1',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (
@@ -1115,6 +1133,7 @@ end`,
         tags: ['mesh'],
         category: CATEGORIES.chatApp,
         img: libraryChat3Mesh3,
+        nameMessageId: 'gui.howtos.chat-3-mesh-3.name',
         allowedBlocks: {
             motion: [],
             looks: ['looks_sayforsecs'],
@@ -1134,7 +1153,8 @@ end`,
                     />
                 ),
                 image: 'chat3Mesh1Step1',
-                animationTarget: 'nextButton'
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
             },
             {
                 title: (

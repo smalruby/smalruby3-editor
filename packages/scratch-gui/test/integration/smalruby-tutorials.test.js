@@ -64,6 +64,40 @@ describe('Smalruby Tutorials', () => {
         expect(cards.length).toBe(0);
     });
 
+    // === Smalruby: Start of start-tutorial button ===
+    describe('Start Tutorial Button', () => {
+        test('shows "Start Tutorial" button on the first step of a tutorial', async () => {
+            await loadUri(uriWithTutorial('getStarted'));
+            await findByXpath('//div[contains(@class, "card_card_")]');
+
+            expect(await textExists('Start Tutorial')).toBe(true);
+
+            const logs = await getLogs();
+            expect(logs).toEqual([]);
+        });
+
+        test('clicking "Start Tutorial" resets project and sets title to tutorial name', async () => {
+            await loadUri(uriWithTutorial('getStarted'));
+            await findByXpath('//div[contains(@class, "card_card_")]');
+
+            // Click the Start Tutorial button
+            await clickText('Start Tutorial');
+
+            // Wait for project reset to complete
+            await driver.sleep(2000);
+
+            // Verify project title changed to the tutorial name
+            const titleValue = await driver.executeScript(
+                'return document.querySelector(\'input[class*="title-field"]\').value;'
+            );
+            expect(titleValue).toBe('Getting Started');
+
+            const logs = await getLogs();
+            expect(logs).toEqual([]);
+        });
+    });
+    // === Smalruby: End of start-tutorial button ===
+
     describe('Tutorial Block Restriction', () => {
         describe('chat-1-basic-1 tutorial', () => {
             test('restricts toolbox to allowed blocks (Looks and Events; no Motion or Sound)', async () => {

@@ -474,6 +474,7 @@ export default {
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
     'gui.cards.insert-blocks': 'コードをにゅうりょくする',
+    'gui.cards.start-tutorial': 'チュートリアルをはじめる',
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
