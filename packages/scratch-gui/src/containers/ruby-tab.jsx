@@ -140,12 +140,6 @@ class RubyTab extends React.Component {
             this.showErrors(this.props.rubyCode.errors);
         }
 
-        if (this.props.rubyCode.fontSize !== prevProps.rubyCode.fontSize) {
-            if (this.state.furiganaEnabled && this.editorRef && this.monacoRef) {
-                this._renderFurigana();
-            }
-        }
-
         let modified = this.props.rubyCode.modified;
         if (modified) {
             const targetId = this.props.rubyCode.target ? this.props.rubyCode.target.id : null;
@@ -225,6 +219,10 @@ class RubyTab extends React.Component {
         if (this.contentChangeListener) {
             this.contentChangeListener.dispose();
             this.contentChangeListener = null;
+        }
+        if (this.configChangeListener) {
+            this.configChangeListener.dispose();
+            this.configChangeListener = null;
         }
         if (this.pasteMutationObserver) {
             this.pasteMutationObserver.disconnect();
@@ -430,6 +428,15 @@ class RubyTab extends React.Component {
             this.updateUndoRedoState();
             if (this.state.furiganaEnabled) {
                 this._scheduleFuriganaUpdate();
+            }
+        });
+
+        // Re-render furigana when editor font configuration changes (e.g. zoom)
+        this.configChangeListener = editor.onDidChangeConfiguration(e => {
+            if (e.hasChanged(monaco.editor.EditorOption.fontInfo)) {
+                if (this.state.furiganaEnabled) {
+                    this._renderFurigana();
+                }
             }
         });
 
