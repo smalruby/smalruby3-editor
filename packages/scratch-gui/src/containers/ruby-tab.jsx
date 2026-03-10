@@ -220,6 +220,10 @@ class RubyTab extends React.Component {
             this.contentChangeListener.dispose();
             this.contentChangeListener = null;
         }
+        if (this.configChangeListener) {
+            this.configChangeListener.dispose();
+            this.configChangeListener = null;
+        }
         if (this.pasteMutationObserver) {
             this.pasteMutationObserver.disconnect();
             this.pasteMutationObserver = null;
@@ -424,6 +428,15 @@ class RubyTab extends React.Component {
             this.updateUndoRedoState();
             if (this.state.furiganaEnabled) {
                 this._scheduleFuriganaUpdate();
+            }
+        });
+
+        // Re-render furigana when editor font configuration changes (e.g. zoom)
+        this.configChangeListener = editor.onDidChangeConfiguration(e => {
+            if (e.hasChanged(monaco.editor.EditorOption.fontInfo)) {
+                if (this.state.furiganaEnabled) {
+                    this._renderFurigana();
+                }
             }
         });
 
