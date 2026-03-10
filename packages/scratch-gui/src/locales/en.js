@@ -277,6 +277,7 @@ export default {
     'gui.cards.see-more': 'See more',
     'gui.cards.insert-ruby': 'Insert This Ruby',
     'gui.cards.insert-blocks': 'Insert Blocks',
+    'gui.cards.start-tutorial': 'Start Tutorial',
     'gui.tipsLibrary.tutorials': 'Choose a Tutorial',
     'gui.libraryTags.ruby': 'Ruby',
     'gui.libraryTags.mesh': 'Mesh',

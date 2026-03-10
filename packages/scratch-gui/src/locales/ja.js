@@ -484,6 +484,7 @@ export default {
     'gui.cards.see-more': 'もっと見る',
     'gui.cards.insert-ruby': 'ルビーを入力する',
     'gui.cards.insert-blocks': 'コードを入力する',
+    'gui.cards.start-tutorial': 'チュートリアルをはじめる',
     'gui.tipsLibrary.tutorials': 'チュートリアルを選ぶ',
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',

@@ -151,7 +151,11 @@ VideoStep.propTypes = {
 };
 
 // === Smalruby: Start of tutorial glow animation (insert-code button overlay) ===
-const ImageStep = ({title, image, code, codeType, onInsertCodeFactory, animateInsertCode}) => (<Fragment>
+// === Smalruby: Start of start-tutorial button ===
+const ImageStep = ({
+    title, image, code, codeType, onInsertCodeFactory, animateInsertCode,
+    startTutorial, onStartTutorial, animateStartTutorial
+}) => (<Fragment>
     <div className={styles.stepTitle}>
         {title}
     </div>
@@ -162,6 +166,25 @@ const ImageStep = ({title, image, code, codeType, onInsertCodeFactory, animateIn
             key={image} /* Use src as key to prevent hanging around on slow connections */
             src={image}
         />
+        {startTutorial && onStartTutorial ? (
+            <button
+                className={animateStartTutorial ?
+                    classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay, styles.insertCodeButtonGlow) :
+                    classNames(styles.insertCodeButton, styles.insertCodeButtonOverlay)}
+                data-card-action="start-tutorial"
+                onClick={onStartTutorial}
+            >
+                <img
+                    className={styles.codeIcon}
+                    src={codeIcon}
+                />
+                <FormattedMessage
+                    defaultMessage="Start Tutorial"
+                    description="Button to reset project and start tutorial"
+                    id="gui.cards.start-tutorial"
+                />
+            </button>
+        ) : null}
         {code && onInsertCodeFactory ? (
             <button
                 className={animateInsertCode ?
@@ -195,12 +218,16 @@ const ImageStep = ({title, image, code, codeType, onInsertCodeFactory, animateIn
 
 ImageStep.propTypes = {
     animateInsertCode: PropTypes.bool, // Smalruby: tutorial glow animation
+    animateStartTutorial: PropTypes.bool, // Smalruby: start-tutorial button glow
     code: PropTypes.string,
     codeType: PropTypes.string, // 'ruby' (default) or 'blocks'
     image: PropTypes.string.isRequired,
     onInsertCodeFactory: PropTypes.func,
+    onStartTutorial: PropTypes.func, // Smalruby: start-tutorial button handler
+    startTutorial: PropTypes.bool, // Smalruby: show start-tutorial button
     title: PropTypes.node.isRequired
 };
+// === Smalruby: End of start-tutorial button ===
 // === Smalruby: End of tutorial glow animation (insert-code button overlay) ===
 
 // === Smalruby: Start of tutorial glow animation (next button) ===
@@ -396,6 +423,10 @@ const Cards = props => {
         animateNext,
         animateInsertCode,
         // === Smalruby: End of tutorial glow animation ===
+        // === Smalruby: Start of start-tutorial button ===
+        animateStartTutorial,
+        onStartTutorial,
+        // === Smalruby: End of start-tutorial button ===
         ...posProps
     } = props;
     let {x, y} = posProps;
@@ -490,10 +521,13 @@ const Cards = props => {
                                     ) : (
                                         <ImageStep
                                             animateInsertCode={animateInsertCode}
+                                            animateStartTutorial={animateStartTutorial}
                                             code={steps[step].code}
                                             codeType={steps[step].codeType}
                                             image={translateImage(steps[step].image, locale)}
                                             onInsertCodeFactory={onInsertCodeFactory}
+                                            onStartTutorial={steps[step].startTutorial ? onStartTutorial : null}
+                                            startTutorial={steps[step].startTutorial}
                                             title={steps[step].title}
                                         />
                                     )
@@ -520,6 +554,9 @@ Cards.propTypes = {
     animateInsertCode: PropTypes.bool,
     animateNext: PropTypes.bool,
     // === Smalruby: End of tutorial glow animation ===
+    // === Smalruby: Start of start-tutorial button ===
+    animateStartTutorial: PropTypes.bool,
+    // === Smalruby: End of start-tutorial button ===
     content: PropTypes.shape({
         id: PropTypes.shape({
             name: PropTypes.node.isRequired,
@@ -545,6 +582,9 @@ Cards.propTypes = {
     onInsertCodeFactory: PropTypes.func,
     onNextStep: PropTypes.func.isRequired,
     onPrevStep: PropTypes.func.isRequired,
+    // === Smalruby: Start of start-tutorial button ===
+    onStartTutorial: PropTypes.func,
+    // === Smalruby: End of start-tutorial button ===
     onShowAll: PropTypes.func,
     onShrinkExpandCards: PropTypes.func.isRequired,
     onStartDrag: PropTypes.func,
