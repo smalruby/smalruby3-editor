@@ -8,7 +8,7 @@ import {connect} from 'react-redux';
 import log from '../lib/log';
 
 import googleDriveAPI from '../lib/google-drive-api';
-import {projectTitleInitialState} from '../reducers/project-title';
+import {projectTitleInitialState, setProjectTitle} from '../reducers/project-title';
 import {setGoogleDriveFile} from '../reducers/google-drive-file';
 import {setProjectUnchanged} from '../reducers/project-changed';
 import {
@@ -309,6 +309,11 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
                 // Store Google Drive file metadata for direct save functionality
                 this.props.onSetGoogleDriveFile(response.id, filename, folderId);
 
+                // === Smalruby: Start of sync project title on copy save ===
+                // Update project title to match the saved filename (without .sb3 extension)
+                this.props.onSetProjectTitle(filename.replace(/\.sb3$/, ''));
+                // === Smalruby: End of sync project title on copy save ===
+
                 // Set status to saved
                 this.setState({saveStatus: 'saved'});
 
@@ -368,6 +373,7 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
         intl: intlShape.isRequired,
         locale: PropTypes.string,
         onSetGoogleDriveFile: PropTypes.func,
+        onSetProjectTitle: PropTypes.func,
         onSetProjectUnchanged: PropTypes.func,
         projectChanged: PropTypes.bool,
         projectTitle: PropTypes.string,
@@ -386,6 +392,9 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
     const mapDispatchToProps = dispatch => ({
         closeFileMenu: () => dispatch(closeFileMenu()),
         onSetGoogleDriveFile: (fileId, fileName, folderId) => dispatch(setGoogleDriveFile(fileId, fileName, folderId)),
+        // === Smalruby: Start of sync project title on copy save ===
+        onSetProjectTitle: title => dispatch(setProjectTitle(title)),
+        // === Smalruby: End of sync project title on copy save ===
         onSetProjectUnchanged: () => dispatch(setProjectUnchanged())
     });
 

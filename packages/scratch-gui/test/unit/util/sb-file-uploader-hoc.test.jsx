@@ -62,6 +62,53 @@ describe('SBFileUploaderHOC', () => {
         });
     });
 
+    test('should dispatch clearGoogleDriveFile when user uploads a file', () => {
+        // Use a component that triggers file upload on mount
+        const Component = ({onStartSelectingFileUpload}) => {
+            React.useEffect(() => {
+                onStartSelectingFileUpload();
+            }, []); // eslint-disable-line react-hooks/exhaustive-deps
+            return <div />;
+        };
+        const WrappedComponent = SBFileUploaderHOC(Component);
+        const mockClearGoogleDriveFile = jest.fn();
+        const mockRequestProjectUpload = jest.fn();
+
+        renderWithIntl(
+            <WrappedComponent
+                canSave={false}
+                cancelFileUpload={jest.fn()}
+                clearGoogleDriveFile={mockClearGoogleDriveFile}
+                closeFileMenu={jest.fn()}
+                isLoadingUpload={false}
+                isShowingWithoutId
+                isTest
+                loadingState={LoadingState.SHOWING_WITHOUT_ID}
+                projectChanged={false}
+                requestProjectUpload={mockRequestProjectUpload}
+                store={store}
+                userOwnsProject={false}
+                vm={vm}
+                onLoadingFinished={jest.fn()}
+                onLoadingStarted={jest.fn()}
+                onSetProjectTitle={jest.fn()}
+                onUpdateProjectTitle={jest.fn()}
+            />
+        );
+
+        // Find the hidden file input element created by createFileObjects
+        const fileInput = document.querySelector('input[type="file"]');
+        expect(fileInput).not.toBeNull();
+
+        // Simulate file selection (triggers handleChange)
+        const file = new File(['test'], 'test.sb3', {type: 'application/octet-stream'});
+        Object.defineProperty(fileInput, 'files', {value: [file]});
+        fileInput.dispatchEvent(new Event('change', {bubbles: true}));
+
+        expect(mockClearGoogleDriveFile).toHaveBeenCalled();
+        expect(mockRequestProjectUpload).toHaveBeenCalled();
+    });
+
     test('if isLoadingUpload becomes true, without fileToUpload set, will call cancelFileUpload', () => {
         const mockedCancelFileUpload = jest.fn();
         const WrappedComponent = getContainer();
