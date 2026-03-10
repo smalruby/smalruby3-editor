@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-import * as Blockly from 'scratch-blocks';
+import Blockly from 'scratch-blocks';
 import Generator from '../generator';
 
 import MathBlocks from './math.js';

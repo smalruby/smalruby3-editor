@@ -15,13 +15,8 @@ const EXPORT_PADDING = 16;
 const getBlocksBoundingBox = function (workspace) {
     const bbox = workspace.getBlocksBoundingBox();
     if (!bbox) return null;
-    // Scratch Blocks v2 returns {top, bottom, left, right}; convert to {x, y, width, height}
-    const x = 'x' in bbox ? bbox.x : bbox.left;
-    const y = 'y' in bbox ? bbox.y : bbox.top;
-    const width = 'width' in bbox ? bbox.width : (bbox.right - bbox.left);
-    const height = 'height' in bbox ? bbox.height : (bbox.bottom - bbox.top);
-    if (width === 0 && height === 0) return null;
-    return {x, y, width, height};
+    if (bbox.width === 0 && bbox.height === 0) return null;
+    return bbox;
 };
 
 /**
@@ -69,13 +64,6 @@ const buildExportSVG = function (workspace, bbox, scale, width, height, padding 
     svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
     svg.setAttribute('width', String(width));
     svg.setAttribute('height', String(height));
-    // Carry over the theme classes from the workspace's injectionDiv so that
-    // Scratch Blocks' theme-scoped CSS selectors (e.g. `.scratch-renderer.default-theme .blocklyText`)
-    // match inside the exported SVG.
-    const injectionDiv = workspace.getInjectionDiv && workspace.getInjectionDiv();
-    if (injectionDiv) {
-        svg.setAttribute('class', injectionDiv.className);
-    }
 
     // Include <defs> and <style> from parent SVG (for block shapes, filters, etc.)
     const blockCanvas = workspace.svgBlockCanvas_;
@@ -107,10 +95,6 @@ const buildExportSVG = function (workspace, bbox, scale, width, height, padding 
     // Clone block canvas and re-position so bbox top-left -> (padding, padding).
     // bbox.x and bbox.y are workspace coordinates of the top-left of all blocks.
     const canvasClone = blockCanvas.cloneNode(true);
-    // Scratch Blocks v2 uses CSS style.transform (e.g. "translate(311px, 0px) scale(0.675)")
-    // instead of an SVG transform attribute. Clear the CSS transform so it doesn't
-    // override the SVG transform attribute we set below for export positioning.
-    canvasClone.style.transform = '';
     const tx = ((-bbox.x) * scale) + padding;
     const ty = ((-bbox.y) * scale) + padding;
     canvasClone.setAttribute('transform', `translate(${tx}, ${ty}) scale(${scale})`);

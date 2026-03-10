@@ -88,21 +88,7 @@ const vmListenerHOC = function (WrappedComponent) {
         }
         handleKeyDown (e) {
             // Don't capture keys intended for Blockly inputs.
-            if (e.target !== document && e.target !== document.body) {
-                // === Smalruby: Start of scratch-blocks v2 keyboard focus fix ===
-                // scratch-blocks v2 adds tabindex="0" to workspace SVG <g> elements,
-                // causing keyboard events to target those elements instead of document.body.
-                // Allow keyboard events from Blockly workspace SVG elements, but still
-                // filter out events from text input fields (INPUT, TEXTAREA, contentEditable).
-                const isBlocklyWorkspaceElement = e.target &&
-                    e.target.closest &&
-                    e.target.closest('.injectionDiv') &&
-                    e.target.tagName !== 'INPUT' &&
-                    e.target.tagName !== 'TEXTAREA' &&
-                    !e.target.isContentEditable;
-                if (!isBlocklyWorkspaceElement) return;
-                // === Smalruby: End of scratch-blocks v2 keyboard focus fix ===
-            }
+            if (e.target !== document && e.target !== document.body) return;
 
             const key = (!e.key || e.key === 'Dead') ? e.keyCode : e.key;
             this.props.vm.postIOData('keyboard', {
