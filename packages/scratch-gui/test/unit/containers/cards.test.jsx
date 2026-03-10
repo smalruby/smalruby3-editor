@@ -107,13 +107,13 @@ describe('Cards container - start tutorial', () => {
 
         const actions = store.getActions();
 
+        // Should dispatch SET_PENDING_PROJECT_TITLE with the deck name
+        const setPendingTitleAction = actions.find(a => a.type === 'scratch-gui/cards/SET_PENDING_PROJECT_TITLE');
+        expect(setPendingTitleAction).toBeTruthy();
+        expect(setPendingTitleAction.title).toBe('Test Tutorial');
+
         // Should dispatch START_FETCHING_NEW (from requestNewProject(false))
         expect(actions.some(a => a.type === 'scratch-gui/project-state/START_FETCHING_NEW')).toBe(true);
-
-        // Should dispatch projectTitle/SET_PROJECT_TITLE with the deck name
-        const setTitleAction = actions.find(a => a.type === 'projectTitle/SET_PROJECT_TITLE');
-        expect(setTitleAction).toBeTruthy();
-        expect(setTitleAction.title).toBe('Test Tutorial');
 
         confirmSpy.mockRestore();
     });

@@ -11,6 +11,9 @@ const PREV_STEP = 'scratch-gui/cards/PREV_STEP';
 const DRAG_CARD = 'scratch-gui/cards/DRAG_CARD';
 const START_DRAG = 'scratch-gui/cards/START_DRAG';
 const END_DRAG = 'scratch-gui/cards/END_DRAG';
+// === Smalruby: Start of start-tutorial button ===
+const SET_PENDING_PROJECT_TITLE = 'scratch-gui/cards/SET_PENDING_PROJECT_TITLE';
+// === Smalruby: End of start-tutorial button ===
 
 const initialState = {
     visible: false,
@@ -21,7 +24,10 @@ const initialState = {
     y: 0,
     expanded: true,
     dragging: false,
-    tutorialAllowedBlocks: null
+    tutorialAllowedBlocks: null,
+    // === Smalruby: Start of start-tutorial button ===
+    pendingProjectTitle: null
+    // === Smalruby: End of start-tutorial button ===
 };
 
 const reducer = function (state, action) {
@@ -86,6 +92,12 @@ const reducer = function (state, action) {
         return Object.assign({}, state, {
             dragging: false
         });
+    // === Smalruby: Start of start-tutorial button ===
+    case SET_PENDING_PROJECT_TITLE:
+        return Object.assign({}, state, {
+            pendingProjectTitle: action.title
+        });
+    // === Smalruby: End of start-tutorial button ===
     default:
         return state;
     }
@@ -130,6 +142,12 @@ const endDrag = function () {
     return {type: END_DRAG};
 };
 
+// === Smalruby: Start of start-tutorial button ===
+const setPendingProjectTitle = function (title) {
+    return {type: SET_PENDING_PROJECT_TITLE, title};
+};
+// === Smalruby: End of start-tutorial button ===
+
 export {
     reducer as default,
     initialState as cardsInitialState,
@@ -141,5 +159,8 @@ export {
     prevStep,
     dragCard,
     startDrag,
-    endDrag
+    endDrag,
+    // === Smalruby: Start of start-tutorial button ===
+    setPendingProjectTitle
+    // === Smalruby: End of start-tutorial button ===
 };

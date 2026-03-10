@@ -13,7 +13,10 @@ import {
     prevStep,
     dragCard,
     startDrag,
-    endDrag
+    endDrag,
+    // === Smalruby: Start of start-tutorial button ===
+    setPendingProjectTitle
+    // === Smalruby: End of start-tutorial button ===
 } from '../reducers/cards';
 
 import {
@@ -34,10 +37,6 @@ import {
 import {
     requestNewProject
 } from '../reducers/project-state';
-
-import {
-    setProjectTitle
-} from '../reducers/project-title';
 
 import sharedMessages from '../lib/shared-messages';
 // === Smalruby: End of start-tutorial button ===
@@ -313,8 +312,8 @@ const mapDispatchToProps = dispatch => ({
     // === Smalruby: End of tutorial glow animation ===
     // === Smalruby: Start of start-tutorial button ===
     onStartTutorialDispatch: deckName => {
+        dispatch(setPendingProjectTitle(deckName));
         dispatch(requestNewProject(false));
-        dispatch(setProjectTitle(deckName));
     }
     // === Smalruby: End of start-tutorial button ===
 });
