@@ -67,8 +67,6 @@ jobs:
           node-version-file: '.nvmrc'
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
-      - name: Build dependency packages
-        run: npm run build:dev --workspace=packages/scratch-svg-renderer --workspace=packages/scratch-render --workspace=packages/scratch-vm
       - name: Lint
         run: npm run lint
 
