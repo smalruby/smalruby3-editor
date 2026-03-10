@@ -48,6 +48,9 @@ import {PLATFORM} from '../lib/platform.js';
 // === Smalruby: Start of tutorial glow animation ===
 const ANIMATION_DELAY_MS = 3000;
 const INSERT_CODE_ANIMATION_DELAY_MS = 300; // Shorter delay so users notice the button quickly
+// === Smalruby: Start of next-button lock ===
+const NEXT_LOCK_TIMEOUT_MS = 3000; // Unlock next button after 3 seconds even if action button not clicked
+// === Smalruby: End of next-button lock ===
 // === Smalruby: End of tutorial glow animation ===
 
 class Cards extends React.Component {
@@ -60,9 +63,15 @@ class Cards extends React.Component {
             // === Smalruby: Start of start-tutorial button ===
             animateStartTutorial: false,
             // === Smalruby: End of start-tutorial button ===
+            // === Smalruby: Start of next-button lock ===
+            nextLocked: false,
+            // === Smalruby: End of next-button lock ===
             navigatedForward: true
         };
         this._animationTimers = [];
+        // === Smalruby: Start of next-button lock ===
+        this._nextLockTimer = null;
+        // === Smalruby: End of next-button lock ===
         this._handleNextStep = this._handleNextStep.bind(this);
         this._handlePrevStep = this._handlePrevStep.bind(this);
         this._handleInsertCodeFactory = this._handleInsertCodeFactory.bind(this);
@@ -79,6 +88,9 @@ class Cards extends React.Component {
         // === Smalruby: Start of tutorial glow animation ===
         this._scheduleAnimation();
         // === Smalruby: End of tutorial glow animation ===
+        // === Smalruby: Start of next-button lock ===
+        this._scheduleNextUnlock();
+        // === Smalruby: End of next-button lock ===
     }
 
     componentDidUpdate (prevProps) {
@@ -100,6 +112,9 @@ class Cards extends React.Component {
                 // === Smalruby: End of start-tutorial button ===
             });
             this._scheduleAnimation();
+            // === Smalruby: Start of next-button lock ===
+            this._scheduleNextUnlock();
+            // === Smalruby: End of next-button lock ===
         }
         // === Smalruby: End of tutorial glow animation ===
     }
@@ -107,12 +122,47 @@ class Cards extends React.Component {
     // === Smalruby: Start of tutorial glow animation ===
     componentWillUnmount () {
         this._clearAnimationTimers();
+        // === Smalruby: Start of next-button lock ===
+        this._clearNextLockTimer();
+        // === Smalruby: End of next-button lock ===
     }
 
     _clearAnimationTimers () {
         this._animationTimers.forEach(t => clearTimeout(t));
         this._animationTimers = [];
     }
+
+    // === Smalruby: Start of next-button lock ===
+    _hasActionButton () {
+        if (!this.props.activeDeckId) return false;
+        const steps = this.props.content[this.props.activeDeckId] &&
+            this.props.content[this.props.activeDeckId].steps;
+        if (!steps) return false;
+        const currentStep = steps[this.props.step];
+        if (!currentStep) return false;
+        return !!(currentStep.startTutorial || currentStep.code);
+    }
+
+    _clearNextLockTimer () {
+        if (this._nextLockTimer) {
+            clearTimeout(this._nextLockTimer);
+            this._nextLockTimer = null;
+        }
+    }
+
+    _scheduleNextUnlock () {
+        this._clearNextLockTimer();
+        if (this._hasActionButton()) {
+            this.setState({nextLocked: true});
+            this._nextLockTimer = setTimeout(() => {
+                this.setState({nextLocked: false});
+                this._nextLockTimer = null;
+            }, NEXT_LOCK_TIMEOUT_MS);
+        } else {
+            this.setState({nextLocked: false});
+        }
+    }
+    // === Smalruby: End of next-button lock ===
 
     _scheduleAnimation () {
         if (!this.props.activeDeckId) return;
@@ -143,6 +193,9 @@ class Cards extends React.Component {
     }
 
     _handleNextStep () {
+        // === Smalruby: Start of next-button lock ===
+        if (this.state.nextLocked) return;
+        // === Smalruby: End of next-button lock ===
         this.setState({
             navigatedForward: true,
             animateNext: false,
@@ -187,7 +240,15 @@ class Cards extends React.Component {
 
         // Stop animation and schedule nextButton glow
         this._clearAnimationTimers();
-        this.setState({animateStartTutorial: false});
+        // === Smalruby: Start of next-button lock ===
+        this._clearNextLockTimer();
+        // === Smalruby: End of next-button lock ===
+        this.setState({
+            animateStartTutorial: false,
+            // === Smalruby: Start of next-button lock ===
+            nextLocked: false
+            // === Smalruby: End of next-button lock ===
+        });
         const timer = setTimeout(() => {
             this.setState({animateNext: true});
         }, ANIMATION_DELAY_MS);
@@ -199,7 +260,15 @@ class Cards extends React.Component {
         return () => {
             // Stop insertCode animation and schedule nextButton animation
             this._clearAnimationTimers();
-            this.setState({animateInsertCode: false});
+            // === Smalruby: Start of next-button lock ===
+            this._clearNextLockTimer();
+            // === Smalruby: End of next-button lock ===
+            this.setState({
+                animateInsertCode: false,
+                // === Smalruby: Start of next-button lock ===
+                nextLocked: false
+                // === Smalruby: End of next-button lock ===
+            });
             const timer = setTimeout(() => {
                 this.setState({animateNext: true});
             }, ANIMATION_DELAY_MS);
