@@ -21,6 +21,9 @@ const messages = defineMessages({
 
 const ProjectTitleInput = ({
     className,
+    // === Smalruby: Start of read-only project title for Google Drive ===
+    disabled,
+    // === Smalruby: End of read-only project title for Google Drive ===
     onSubmit,
     projectTitle
 }) => {
@@ -28,6 +31,9 @@ const ProjectTitleInput = ({
     return (
         <BufferedInput
             className={classNames(styles.titleField, className)}
+            // === Smalruby: Start of read-only project title for Google Drive ===
+            disabled={disabled}
+            // === Smalruby: End of read-only project title for Google Drive ===
             maxLength="100"
             placeholder={intl.formatMessage(messages.projectTitlePlaceholder)}
             tabIndex="0"
@@ -40,11 +46,17 @@ const ProjectTitleInput = ({
 
 ProjectTitleInput.propTypes = {
     className: PropTypes.string,
+    // === Smalruby: Start of read-only project title for Google Drive ===
+    disabled: PropTypes.bool,
+    // === Smalruby: End of read-only project title for Google Drive ===
     onSubmit: PropTypes.func,
     projectTitle: PropTypes.string
 };
 
 const mapStateToProps = state => ({
+    // === Smalruby: Start of read-only project title for Google Drive ===
+    disabled: state.scratchGui.googleDriveFile && state.scratchGui.googleDriveFile.isGoogleDriveFile,
+    // === Smalruby: End of read-only project title for Google Drive ===
     projectTitle: state.scratchGui.projectTitle
 });
 

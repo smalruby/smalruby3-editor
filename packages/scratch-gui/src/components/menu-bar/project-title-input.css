@@ -44,3 +44,11 @@ can set a width for example or what it should do in a flex box (eg. grow).
     background-color: $ui-white;
     color: $text-primary;
 }
+
+/* === Smalruby: Start of read-only project title for Google Drive === */
+.title-field:disabled {
+    border-style: solid;
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+/* === Smalruby: End of read-only project title for Google Drive === */
