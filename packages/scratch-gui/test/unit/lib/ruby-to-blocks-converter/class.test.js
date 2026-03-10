@@ -545,6 +545,289 @@ describe('RubyToBlocksConverter/Class', () => {
         });
     });
 
+    describe('set_sprite, set_costumes, set_sounds', () => {
+        test('set_sprite stores sprite name in classInfo', async () => {
+            code = `
+                class Sprite1
+                  set_sprite "Dog1"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.sprite).toEqual('Dog1');
+
+            // Comment should use sprite=Dog1 format
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:sprite=Dog1');
+        });
+
+        test('set_costumes stores array in classInfo', async () => {
+            code = `
+                class Sprite1
+                  set_costumes ["Dog1-a", "Dog1-b"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.costumes).toEqual(['Dog1-a', 'Dog1-b']);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:costumes');
+        });
+
+        test('set_sounds stores array in classInfo', async () => {
+            code = `
+                class Sprite1
+                  set_sounds ["Dog1", "Dog2"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.sounds).toEqual(['Dog1', 'Dog2']);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:sounds');
+        });
+
+        test('set_costumes and set_sounds together', async () => {
+            code = `
+                class Sprite1
+                  set_costumes ["Dog1-a", "Dog1-b"]
+                  set_sounds ["Dog1", "Dog2"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo).toBeDefined();
+            expect(converter._context.classInfo.costumes).toEqual(['Dog1-a', 'Dog1-b']);
+            expect(converter._context.classInfo.sounds).toEqual(['Dog1', 'Dog2']);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:costumes,sounds');
+        });
+
+        test('set_sprite with set_x generates sprite=Dog1,x in comment', async () => {
+            code = `
+                class Sprite1
+                  set_sprite "Dog1"
+                  set_x 100
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            expect(converter._context.classInfo.sprite).toEqual('Dog1');
+            expect(converter._context.classInfo.x).toEqual(100);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:sprite=Dog1,x');
+        });
+
+        test('set_sprite and set_costumes together is an error (mutual exclusion)', async () => {
+            code = `
+                class Sprite1
+                  set_sprite "Dog1"
+                  set_costumes ["Dog1-a", "Dog1-b"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('set_sprite and set_sounds together is an error (mutual exclusion)', async () => {
+            code = `
+                class Sprite1
+                  set_sprite "Dog1"
+                  set_sounds ["Dog1", "Dog2"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('set_sprite with invalid sprite name is an error', async () => {
+            code = `
+                class Sprite1
+                  set_sprite "NonExistentSprite999"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('set_costumes with invalid costume name is an error', async () => {
+            code = `
+                class Sprite1
+                  set_costumes ["Dog1-a", "NonExistentCostume999"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('set_sounds with invalid sound name is an error', async () => {
+            code = `
+                class Sprite1
+                  set_sounds ["Dog1", "NonExistentSound999"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('set_sprite is not converted to blocks', async () => {
+            code = `
+                class Sprite1
+                  set_sprite "Dog1"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const blocks = converter.blocks;
+            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            expect(blockOpcodes).not.toContain('ruby_statement');
+        });
+
+        test('set_costumes is not converted to blocks', async () => {
+            code = `
+                class Sprite1
+                  set_costumes ["Dog1-a", "Dog1-b"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const blocks = converter.blocks;
+            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            expect(blockOpcodes).not.toContain('ruby_statement');
+        });
+
+        test('set_sounds is not converted to blocks', async () => {
+            code = `
+                class Sprite1
+                  set_sounds ["Dog1", "Dog2"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const blocks = converter.blocks;
+            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            expect(blockOpcodes).not.toContain('ruby_statement');
+        });
+
+        test('set_sprite outside class generates error', async () => {
+            code = `
+                set_sprite "Dog1"
+                self.when(:flag_clicked) do
+                  move(10)
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('set_costumes outside class generates error', async () => {
+            code = `
+                set_costumes ["Dog1-a", "Dog1-b"]
+                self.when(:flag_clicked) do
+                  move(10)
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('set_sounds outside class generates error', async () => {
+            code = `
+                set_sounds ["Dog1", "Dog2"]
+                self.when(:flag_clicked) do
+                  move(10)
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+    });
+
     describe('class body validation', () => {
         test('value block inside class generates error', async () => {
             code = `

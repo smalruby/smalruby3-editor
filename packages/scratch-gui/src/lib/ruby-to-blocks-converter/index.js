@@ -18,6 +18,13 @@ import LineMappingUtils from './line-mapping';
 import ConverterRegistry from './converter-registry';
 import TargetApplier from './target-applier';
 import PrismErrorTranslator from './prism-error-translator';
+import spritesLibrary from '../libraries/sprites.json';
+import costumesLibrary from '../libraries/costumes.json';
+import soundsLibrary from '../libraries/sounds.json';
+
+const spriteLibraryNames = new Set(spritesLibrary.map(s => s.name));
+const costumeLibraryNames = new Set(costumesLibrary.map(c => c.name));
+const soundLibraryNames = new Set(soundsLibrary.map(s => s.name));
 
 const messages = defineMessages({
     couldNotConvertPrimitive: {
@@ -43,6 +50,30 @@ const messages = defineMessages({
             '\nUse it inside an event block (e.g. when_flag_clicked) or a method definition (def).',
         description: 'Error message when a non-hat/non-def block is placed directly in a class body',
         id: 'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass'
+    },
+    spriteAndCostumesSoundsExclusive: {
+        defaultMessage: 'set_sprite and set_costumes/set_sounds cannot be used together.' +
+            '\nUse either set_sprite or set_costumes/set_sounds.',
+        description: 'Error message when set_sprite is used with set_costumes or set_sounds',
+        id: 'gui.smalruby3.rubyToBlocksConverter.spriteAndCostumesSoundsExclusive'
+    },
+    invalidSpriteName: {
+        defaultMessage: 'sprite "{ NAME }" does not exist in the sprite library.' +
+            '\nCheck the name or use a valid sprite name.',
+        description: 'Error message when set_sprite references an invalid sprite library name',
+        id: 'gui.smalruby3.rubyToBlocksConverter.invalidSpriteName'
+    },
+    invalidCostumeName: {
+        defaultMessage: 'costume "{ NAME }" does not exist in the costume library.' +
+            '\nCheck the name or use a valid costume name.',
+        description: 'Error message when set_costumes references an invalid costume library name',
+        id: 'gui.smalruby3.rubyToBlocksConverter.invalidCostumeName'
+    },
+    invalidSoundName: {
+        defaultMessage: 'sound "{ NAME }" does not exist in the sound library.' +
+            '\nCheck the name or use a valid sound name.',
+        description: 'Error message when set_sounds references an invalid sound library name',
+        id: 'gui.smalruby3.rubyToBlocksConverter.invalidSoundName'
     }
 });
 
@@ -337,6 +368,7 @@ class RubyToBlocksConverter extends Visitor {
         // Set of recognized set_xxx class methods
         const SET_METHODS = {
             set_name: 'name',
+            set_sprite: 'sprite',
             set_x: 'x',
             set_y: 'y',
             set_direction: 'direction',
@@ -345,14 +377,15 @@ class RubyToBlocksConverter extends Visitor {
             set_current_costume: 'current_costume',
             set_rotation_style: 'rotation_style',
             set_costumes: 'costumes',
+            set_sounds: 'sounds',
             set_variables: 'variables',
             set_lists: 'lists'
         };
 
         // Canonical attribute order for comment text
         const ATTR_ORDER = [
-            'name', 'x', 'y', 'direction', 'visible', 'size',
-            'current_costume', 'rotation_style', 'costumes', 'variables', 'lists'
+            'sprite', 'name', 'x', 'y', 'direction', 'visible', 'size',
+            'current_costume', 'rotation_style', 'costumes', 'sounds', 'variables', 'lists'
         ];
 
         // Pre-scan class body for set_xxx calls
@@ -376,6 +409,43 @@ class RubyToBlocksConverter extends Visitor {
             }
         }
 
+        // Mutual exclusion: set_sprite cannot be used with set_costumes/set_sounds
+        const has = prop => Object.prototype.hasOwnProperty.call(classInfo, prop);
+        if (has('sprite') && (has('costumes') || has('sounds'))) {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.spriteAndCostumesSoundsExclusive)
+            );
+        }
+
+        // Validate library names
+        if (has('sprite') && !spriteLibraryNames.has(classInfo.sprite)) {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.invalidSpriteName, {NAME: classInfo.sprite})
+            );
+        }
+        if (has('costumes') && Array.isArray(classInfo.costumes)) {
+            for (const name of classInfo.costumes) {
+                if (!costumeLibraryNames.has(name)) {
+                    throw new RubyToBlocksConverterError(
+                        node,
+                        this._translator(messages.invalidCostumeName, {NAME: name})
+                    );
+                }
+            }
+        }
+        if (has('sounds') && Array.isArray(classInfo.sounds)) {
+            for (const name of classInfo.sounds) {
+                if (!soundLibraryNames.has(name)) {
+                    throw new RubyToBlocksConverterError(
+                        node,
+                        this._translator(messages.invalidSoundName, {NAME: name})
+                    );
+                }
+            }
+        }
+
         // Collect attribute names for comment
         const attributeNames = Object.keys(classInfo);
         if (!isSpriteIndexName && !Object.prototype.hasOwnProperty.call(classInfo, 'name')) {
@@ -391,6 +461,9 @@ class RubyToBlocksConverter extends Visitor {
             const commentParts = attributeNames.map(attr => {
                 if (attr === 'name' && !isSpriteIndexName) {
                     return `name=${className}`;
+                }
+                if (attr === 'sprite') {
+                    return `sprite=${classInfo.sprite}`;
                 }
                 return attr;
             });
@@ -486,6 +559,17 @@ class RubyToBlocksConverter extends Visitor {
                 }
             }
             return null;
+        case 'ArrayNode': {
+            const elements = argNode.elements;
+            if (!elements || elements.length === 0) return null;
+            const result = [];
+            for (const elem of elements) {
+                const val = this._extractClassMethodArg(elem);
+                if (val === null) return null;
+                result.push(val);
+            }
+            return result;
+        }
         default:
             return null;
         }
