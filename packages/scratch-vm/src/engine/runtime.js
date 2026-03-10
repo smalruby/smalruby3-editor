@@ -521,14 +521,6 @@ class Runtime extends EventEmitter {
     }
 
     /**
-     * Event name for when a frame step is about to begin.
-     * @constant {string}
-     */
-    static get BEFORE_STEP () {
-        return 'BEFORE_STEP';
-    }
-
-    /**
      * Event name for target being stopped by a stop for target call.
      * Used by blocks that need to stop individual targets.
      * @constant {string}
@@ -687,6 +679,10 @@ class Runtime extends EventEmitter {
      */
     static get MIC_LISTENING () {
         return 'MIC_LISTENING';
+    }
+
+    static get EXTENSION_DATA_LOADING () {
+        return 'EXTENSION_DATA_LOADING';
     }
 
     /**
@@ -993,7 +989,9 @@ class Runtime extends EventEmitter {
                 type: menuId,
                 inputsInline: true,
                 output: 'String',
-                style: categoryInfo.id,
+                colour: categoryInfo.color1,
+                colourSecondary: categoryInfo.color2,
+                colourTertiary: categoryInfo.color3,
                 outputShape: menuInfo.acceptReporters ?
                     ScratchBlocksConstants.OUTPUT_SHAPE_ROUND : ScratchBlocksConstants.OUTPUT_SHAPE_SQUARE,
                 args0: [
@@ -1044,7 +1042,9 @@ class Runtime extends EventEmitter {
                 message0: '%1',
                 inputsInline: true,
                 output: output,
-                style: categoryInfo.id,
+                colour: categoryInfo.color1,
+                colourSecondary: categoryInfo.color2,
+                colourTertiary: categoryInfo.color3,
                 outputShape: outputShape,
                 args0: [
                     {
@@ -1089,8 +1089,9 @@ class Runtime extends EventEmitter {
             type: extendedOpcode,
             inputsInline: true,
             category: categoryInfo.name,
-            style: categoryInfo.id,
-            extensions: []
+            colour: categoryInfo.color1,
+            colourSecondary: categoryInfo.color2,
+            colourTertiary: categoryInfo.color3
         };
         const context = {
             // TODO: store this somewhere so that we can map args appropriately after translation.
@@ -1110,7 +1111,7 @@ class Runtime extends EventEmitter {
         const iconURI = blockInfo.blockIconURI || categoryInfo.blockIconURI;
 
         if (iconURI) {
-            blockJSON.extensions.push('scratch_extension');
+            blockJSON.extensions = ['scratch_extension'];
             blockJSON.message0 = '%1 %2';
             const iconJSON = {
                 type: 'field_image',
@@ -1151,7 +1152,6 @@ class Runtime extends EventEmitter {
             }
             blockJSON.outputShape = ScratchBlocksConstants.OUTPUT_SHAPE_SQUARE;
             blockJSON.nextStatement = null; // null = available connection; undefined = terminal
-            blockJSON.extensions.push('shape_hat');
             break;
         case BlockType.CONDITIONAL:
         case BlockType.LOOP:
@@ -1198,7 +1198,7 @@ class Runtime extends EventEmitter {
 
         if (blockInfo.blockType === BlockType.REPORTER) {
             if (!blockInfo.disableMonitor && context.inputList.length === 0) {
-                blockJSON.extensions.push('monitor_block');
+                blockJSON.checkboxInFlyout = true;
             }
         } else if (blockInfo.blockType === BlockType.LOOP) {
             // Add icon to the bottom right of a loop block
@@ -1437,8 +1437,8 @@ class Runtime extends EventEmitter {
 
             return {
                 id: categoryInfo.id,
-                xml: `<category name="${name}" toolboxitemid="${categoryInfo.id}" ${statusButtonXML} ${colorXML} ${
-                    menuIconXML}>${paletteBlocks.map(block => block.xml).join('')}</category>`
+                xml: `<category name="${name}" id="${categoryInfo.id}" ${statusButtonXML} ${colorXML} ${menuIconXML}>${
+                    paletteBlocks.map(block => block.xml).join('')}</category>`
             };
         });
     }
@@ -1570,25 +1570,15 @@ class Runtime extends EventEmitter {
     }
 
     /**
-     * Returns the connected message.
-     * @param {string} extensionId - the id of the extension.
-     * @returns {string|null} - the connected message.
-     */
-    getPeripheralConnectedMessage (extensionId) {
-        if (this.getPeripheralIsConnected(extensionId) &&
-            this.peripheralExtensions[extensionId] &&
-            this.peripheralExtensions[extensionId].connectedMessage) {
-            return this.peripheralExtensions[extensionId].connectedMessage();
-        }
-        return null;
-    }
-
-    /**
      * Emit an event to indicate that the microphone is being used to stream audio.
      * @param {boolean} listening - true if the microphone is currently listening.
      */
     emitMicListening (listening) {
         this.emit(Runtime.MIC_LISTENING, listening);
+    }
+
+    emitExtensionLoading (loading) {
+        this.emit(Runtime.EXTENSION_DATA_LOADING, loading);
     }
 
     /**
@@ -2131,8 +2121,6 @@ class Runtime extends EventEmitter {
             }
             this.profiler.start(stepProfilerId);
         }
-
-        this.emit(Runtime.BEFORE_STEP);
 
         // Clean up threads that were told to stop during or since the last step
         this.threads = this.threads.filter(thread => !thread.isKilled);

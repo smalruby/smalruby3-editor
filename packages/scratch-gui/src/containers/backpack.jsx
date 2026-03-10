@@ -16,7 +16,7 @@ import DropAreaHOC from '../lib/drop-area-hoc.jsx';
 import {GUIStoragePropType} from '../gui-config';
 
 import {connect} from 'react-redux';
-import VM from '@smalruby/scratch-vm';
+import VM from '@scratch/scratch-vm';
 
 
 const dragTypes = [DragConstants.COSTUME, DragConstants.SOUND, DragConstants.SPRITE];
@@ -97,20 +97,8 @@ class Backpack extends React.Component {
 
         // Creating the payload is async, so set loading before starting
         this.setState({loading: true}, () => {
-            // If there's a failure before the backpack state changes, then we don't need to set the backpack into an
-            // error state. The operation failed, but the backpack is still potentially usable and consistent. If the
-            // backpack state might have changed on the server OR client by the time of the failure, then we should
-            // set the backpack into an error state.
-            let backpackMightHaveChanged = false;
             payloader(dragInfo.payload, this.props.vm)
                 .then(payload => {
-                    if (this.props.host === 'localStorage') {
-                        // For localStorage, no asset server presave is needed
-                        if (presaveAsset) {
-                            return {id: presaveAsset.assetId, ...payload};
-                        }
-                        return payload;
-                    }
                     // Force the asset to save to the asset server before storing in backpack
                     // Ensures any asset present in the backpack is also on the asset server
                     if (presaveAsset && !presaveAsset.clean) {
@@ -123,18 +111,12 @@ class Backpack extends React.Component {
                     }
                     return payload;
                 })
-                .then(payload => {
-                    // If the backpack save fails, the local and server backpack may or may not be out of sync.
-                    // The editor might be able to function, but that might lead to lost work.
-                    // In other words, a failure here or later should set the backpack into an error state.
-                    backpackMightHaveChanged = true;
-                    return saveBackpackObject({
-                        host: this.props.host,
-                        token: this.props.token,
-                        username: this.props.username,
-                        ...payload
-                    });
-                })
+                .then(payload => saveBackpackObject({
+                    host: this.props.host,
+                    token: this.props.token,
+                    username: this.props.username,
+                    ...payload
+                }))
                 .then(item => {
                     this.setState({
                         loading: false,
@@ -142,7 +124,7 @@ class Backpack extends React.Component {
                     });
                 })
                 .catch(error => {
-                    this.setState({error: backpackMightHaveChanged, loading: false});
+                    this.setState({error: true, loading: false});
                     throw error;
                 });
         });
@@ -266,13 +248,13 @@ const getTokenAndUsername = state => {
             username: state.session.session.user.username
         };
     }
-    // Otherwise try to pull testing params out of the URL, or return defaults for localStorage
+    // Otherwise try to pull testing params out of the URL, or return nulls
     // TODO a hack for testing the backpack
     const tokenMatches = window.location.href.match(/[?&]token=([^&]*)&?/);
     const usernameMatches = window.location.href.match(/[?&]username=([^&]*)&?/);
     return {
-        token: tokenMatches ? tokenMatches[1] : 'localToken',
-        username: usernameMatches ? usernameMatches[1] : 'localUser'
+        token: tokenMatches ? tokenMatches[1] : null,
+        username: usernameMatches ? usernameMatches[1] : null
     };
 };
 

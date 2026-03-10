@@ -1,6 +1,5 @@
-import * as ScratchBlocks from 'scratch-blocks';
+import ScratchBlocks from 'scratch-blocks';
 import {defaultColors} from './settings/color-mode';
-import {parseHexFormatToSelectedBlocks} from './block-utils';
 
 const categorySeparator = '<sep gap="36"/>';
 
@@ -13,14 +12,8 @@ const motion = function (isInitialSetup, isStage, targetId, colors) {
         'Stage selected: no motion blocks'
     );
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
-    // Since Blockly uses the UK spelling of "colour", certain attributes are named accordingly.
     return `
-    <category name="${ScratchBlocks.ScratchMsgs.translate(
-        'CATEGORY_MOTION',
-        'Motion'
-    )}" toolboxitemid="motion" colour="${
-        colors.colourPrimary
-    }" secondaryColour="${colors.colourTertiary}">
+    <category name="%{BKY_CATEGORY_MOTION}" id="motion" colour="${colors.primary}" secondaryColour="${colors.tertiary}">
         ${isStage ? `
         <label text="${stageSelected}"></label>
         ` : `
@@ -165,12 +158,7 @@ const looks = function (isInitialSetup, isStage, targetId, costumeName, backdrop
     const hmm = ScratchBlocks.ScratchMsgs.translate('LOOKS_HMM', 'Hmm...');
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
     return `
-    <category name="${ScratchBlocks.ScratchMsgs.translate(
-        'CATEGORY_LOOKS',
-        'Looks'
-    )}" toolboxitemid="looks" colour="${
-        colors.colourPrimary
-    }" secondaryColour="${colors.colourTertiary}">
+    <category name="%{BKY_CATEGORY_LOOKS}" id="looks" colour="${colors.primary}" secondaryColour="${colors.tertiary}">
         ${isStage ? '' : `
         <block type="looks_sayforsecs">
             <value name="MESSAGE">
@@ -306,12 +294,7 @@ const looks = function (isInitialSetup, isStage, targetId, costumeName, backdrop
 const sound = function (isInitialSetup, isStage, targetId, soundName, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
     return `
-    <category name="${ScratchBlocks.ScratchMsgs.translate(
-        'CATEGORY_SOUND',
-        'Sound'
-    )}" toolboxitemid="sound" colour="${
-        colors.colourPrimary
-    }" secondaryColour="${colors.colourTertiary}">
+    <category name="%{BKY_CATEGORY_SOUND}" id="sound" colour="${colors.primary}" secondaryColour="${colors.tertiary}">
         <block id="${targetId}_sound_playuntildone" type="sound_playuntildone">
             <value name="SOUND_MENU">
                 <shadow type="sound_sounds_menu">
@@ -367,12 +350,7 @@ const sound = function (isInitialSetup, isStage, targetId, soundName, colors) {
 const events = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
     return `
-    <category name="${ScratchBlocks.ScratchMsgs.translate(
-        'CATEGORY_EVENTS',
-        'Events'
-    )}" toolboxitemid="events" colour="${
-        colors.colourPrimary
-    }" secondaryColour="${colors.colourTertiary}">
+    <category name="%{BKY_CATEGORY_EVENTS}" id="events" colour="${colors.primary}" secondaryColour="${colors.tertiary}">
         <block type="event_whenflagclicked"/>
         <block type="event_whenkeypressed">
         </block>
@@ -413,13 +391,10 @@ const control = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
     return `
     <category
-        name="${ScratchBlocks.ScratchMsgs.translate(
-            'CATEGORY_CONTROL',
-            'Control'
-        )}"
-        toolboxitemid="control"
-        colour="${colors.colourPrimary}"
-        secondaryColour="${colors.colourTertiary}">
+        name="%{BKY_CATEGORY_CONTROL}"
+        id="control"
+        colour="${colors.primary}"
+        secondaryColour="${colors.tertiary}">
         <block type="control_wait">
             <value name="DURATION">
                 <shadow type="math_positive_number">
@@ -469,13 +444,10 @@ const sensing = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
     return `
     <category
-        name="${ScratchBlocks.ScratchMsgs.translate(
-            'CATEGORY_SENSING',
-            'Sensing'
-        )}"
-        toolboxitemid="sensing"
-        colour="${colors.colourPrimary}"
-        secondaryColour="${colors.colourTertiary}">
+        name="%{BKY_CATEGORY_SENSING}"
+        id="sensing"
+        colour="${colors.primary}"
+        secondaryColour="${colors.tertiary}">
         ${isStage ? '' : `
             <block type="sensing_touchingobject">
                 <value name="TOUCHINGOBJECTMENU">
@@ -555,13 +527,10 @@ const operators = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
     return `
     <category
-        name="${ScratchBlocks.ScratchMsgs.translate(
-            'CATEGORY_OPERATORS',
-            'Operators'
-        )}"
-        toolboxitemid="operators"
-        colour="${colors.colourPrimary}"
-        secondaryColour="${colors.colourTertiary}">
+        name="%{BKY_CATEGORY_OPERATORS}"
+        id="operators"
+        colour="${colors.primary}"
+        secondaryColour="${colors.tertiary}">
         <block type="operator_add">
             <value name="NUM1">
                 <shadow type="math_number">
@@ -747,13 +716,10 @@ const variables = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
     return `
     <category
-        name="${ScratchBlocks.ScratchMsgs.translate(
-            'CATEGORY_VARIABLES',
-            'Variables'
-        )}"
-        toolboxitemid="variables"
-        colour="${colors.colourPrimary}"
-        secondaryColour="${colors.colourTertiary}"
+        name="%{BKY_CATEGORY_VARIABLES}"
+        id="variables"
+        colour="${colors.primary}"
+        secondaryColour="${colors.tertiary}"
         custom="VARIABLE">
     </category>
     `;
@@ -763,13 +729,10 @@ const myBlocks = function (isInitialSetup, isStage, targetId, colors) {
     // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
     return `
     <category
-        name="${ScratchBlocks.ScratchMsgs.translate(
-            'CATEGORY_MYBLOCKS',
-            'My Blocks'
-        )}"
-        toolboxitemid="myBlocks"
-        colour="${colors.colourPrimary}"
-        secondaryColour="${colors.colourTertiary}"
+        name="%{BKY_CATEGORY_MYBLOCKS}"
+        id="myBlocks"
+        colour="${colors.primary}"
+        secondaryColour="${colors.tertiary}"
         custom="PROCEDURE">
     </category>
     `;
@@ -778,139 +741,6 @@ const myBlocks = function (isInitialSetup, isStage, targetId, colors) {
 
 const xmlOpen = '<xml style="display: none">';
 const xmlClose = '</xml>';
-
-/**
- * Parses the only_blocks parameter and returns allowed block patterns
- * @param {?string} onlyBlocks - The only_blocks URL parameter value
- * @returns {Array.<string>} - Array of allowed block patterns
- */
-const parseOnlyBlocks = function (onlyBlocks) {
-    if (!onlyBlocks) return [];
-
-    // Check if hex format (starts with '0')
-    if (onlyBlocks.startsWith('0') && onlyBlocks.length > 1) {
-        // Parse hex format and convert to allowed patterns
-        const selectedBlocks = parseHexFormatToSelectedBlocks(onlyBlocks);
-        const allowedPatterns = [];
-
-        Object.keys(selectedBlocks).forEach(categoryId => {
-            const blocksInCategory = selectedBlocks[categoryId] || [];
-            allowedPatterns.push(...blocksInCategory);
-        });
-
-        return allowedPatterns;
-    }
-
-    // Support both comma (,) and period (.) as separators (legacy format)
-    return onlyBlocks.split(/[,.]/)
-        .map(pattern => pattern.trim())
-        .filter(pattern => pattern.length > 0);
-};
-
-/**
- * Checks if a block type should be included based on only_blocks patterns
- * @param {string} blockType - The block type to check
- * @param {Array.<string>} allowedPatterns - Array of allowed patterns
- * @returns {boolean} - Whether the block should be included
- */
-const shouldIncludeBlock = function (blockType, allowedPatterns) {
-    if (!allowedPatterns || allowedPatterns.length === 0) return true;
-
-    return allowedPatterns.some(pattern => {
-        // Check if pattern is a category prefix (ends with underscore)
-        if (pattern.endsWith('_')) {
-            return blockType.startsWith(pattern);
-        }
-        // Otherwise, require exact match
-        return blockType === pattern;
-    });
-};
-
-/**
- * Hides a category completely when no blocks are selected
- * @param {string} _categoryXML - The XML string for a category (unused)
- * @returns {string} - Empty string to hide the category
- */
-const filterAllBlocks = function (_categoryXML) {
-    // When no blocks are selected, return empty string to hide the entire category
-    return '';
-};
-
-/**
- * Filters block XML content based on only_blocks patterns
- * @param {string} categoryXML - The category XML containing blocks
- * @param {Array.<string>} allowedPatterns - Array of allowed patterns
- * @returns {string} - Filtered category XML
- */
-const filterBlocks = function (categoryXML, allowedPatterns) {
-    if (!allowedPatterns || allowedPatterns.length === 0) return categoryXML;
-
-    // Extract both block and separator elements while preserving order
-    // Improved regex for better inline/normal block syntax matching
-    const inlineBlock = '<block[^>]*type="[^"]+"[^>]*\\/>';
-    const normalBlock = '<block[^>]*type="[^"]+"[^>]*>[\\s\\S]*?<\\/block>';
-    const separator = '<sep[^>]*\\/>';
-    const elementRegex = new RegExp(`(?:${inlineBlock}|${normalBlock}|${separator})`, 'g');
-    const elements = categoryXML.match(elementRegex) || [];
-
-    const filteredElements = [];
-
-    for (const element of elements) {
-        if (element.includes('<sep')) {
-            // Keep separator elements
-            filteredElements.push(element);
-        } else if (element.includes('<block')) {
-            // Filter block elements based on allowed patterns
-            const typeMatch = element.match(/type="([^"]+)"/);
-            if (typeMatch) {
-                const blockType = typeMatch[1];
-                if (shouldIncludeBlock(blockType, allowedPatterns)) {
-                    filteredElements.push(element);
-                }
-            }
-        }
-    }
-
-    // Remove consecutive separators, keeping only one
-    const consolidatedElements = [];
-    let lastWasSeparator = false;
-
-    for (const element of filteredElements) {
-        const isSeparator = element.includes('<sep');
-        if (isSeparator) {
-            if (!lastWasSeparator) {
-                consolidatedElements.push(element);
-            }
-            lastWasSeparator = true;
-        } else {
-            consolidatedElements.push(element);
-            lastWasSeparator = false;
-        }
-    }
-
-    // Remove separator at the beginning or end
-    while (consolidatedElements.length > 0 && consolidatedElements[0].includes('<sep')) {
-        consolidatedElements.shift();
-    }
-    while (consolidatedElements.length > 0 && consolidatedElements[consolidatedElements.length - 1].includes('<sep')) {
-        consolidatedElements.pop();
-    }
-
-    if (consolidatedElements.length === 0) {
-        return '';
-    }
-
-    // Reconstruct the category XML with filtered elements
-    const categoryHeader = categoryXML.match(/<category[^>]*>/)[0];
-    const categoryFooter = '</category>';
-    const blockContent = consolidatedElements.join('\n        ');
-
-    // Only add category separator if the original XML had separators
-    const hasSeparators = consolidatedElements.some(el => el.includes('<sep'));
-    const categorySeparatorLine = hasSeparators ? `\n        ${categorySeparator}` : '';
-
-    return `${categoryHeader}\n        ${blockContent}${categorySeparatorLine}\n    ${categoryFooter}`;
-};
 
 /**
  * @param {!boolean} isInitialSetup - Whether the toolbox is for initial setup. If the mode is "initial setup",
@@ -926,24 +756,16 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
  * @param {?string} backdropName - The name of the default selected backdrop dropdown.
  * @param {?string} soundName -  The name of the default selected sound dropdown.
  * @param {?object} colors - The colors for the color mode.
- * @param {?string} onlyBlocks - The only_blocks URL parameter for filtering blocks.
- * @param {?boolean} isOnlyBlocksSpecified - Whether the onlyBlocks parameter was explicitly specified.
  * @returns {string} - a ScratchBlocks-style XML document for the contents of the toolbox.
  */
-const makeToolboxXML = function (
-    isInitialSetup, isStage = true, targetId, categoriesXML = [],
-    costumeName = '', backdropName = '', soundName = '', colors = defaultColors,
-    onlyBlocks = null, isOnlyBlocksSpecified = false
-) {
+const makeToolboxXML = function (isInitialSetup, isStage = true, targetId, categoriesXML = [],
+    costumeName = '', backdropName = '', soundName = '', colors = defaultColors) {
     isStage = isInitialSetup || isStage;
     const gap = [categorySeparator];
 
     costumeName = xmlEscape(costumeName);
     backdropName = xmlEscape(backdropName);
     soundName = xmlEscape(soundName);
-
-    // Parse only_blocks parameter
-    const allowedPatterns = parseOnlyBlocks(onlyBlocks);
 
     categoriesXML = categoriesXML.slice();
     const moveCategory = categoryId => {
@@ -955,74 +777,32 @@ const makeToolboxXML = function (
         }
         // return `undefined`
     };
-
-    // Generate categories and apply filtering (except for variables, myBlocks, and extensions)
-    let motionXML = moveCategory('motion') || motion(isInitialSetup, isStage, targetId, colors.motion);
-    let looksXML = moveCategory('looks') ||
+    const motionXML = moveCategory('motion') || motion(isInitialSetup, isStage, targetId, colors.motion);
+    const looksXML = moveCategory('looks') ||
         looks(isInitialSetup, isStage, targetId, costumeName, backdropName, colors.looks);
-    let soundXML = moveCategory('sound') || sound(isInitialSetup, isStage, targetId, soundName, colors.sounds);
-    let eventsXML = moveCategory('event') || events(isInitialSetup, isStage, targetId, colors.event);
-    let controlXML = moveCategory('control') || control(isInitialSetup, isStage, targetId, colors.control);
-    let sensingXML = moveCategory('sensing') || sensing(isInitialSetup, isStage, targetId, colors.sensing);
-    let operatorsXML = moveCategory('operators') || operators(isInitialSetup, isStage, targetId, colors.operators);
-
-    // Variables and myBlocks are always included (exception categories)
+    const soundXML = moveCategory('sound') || sound(isInitialSetup, isStage, targetId, soundName, colors.sounds);
+    const eventsXML = moveCategory('event') || events(isInitialSetup, isStage, targetId, colors.event);
+    const controlXML = moveCategory('control') || control(isInitialSetup, isStage, targetId, colors.control);
+    const sensingXML = moveCategory('sensing') || sensing(isInitialSetup, isStage, targetId, colors.sensing);
+    const operatorsXML = moveCategory('operators') || operators(isInitialSetup, isStage, targetId, colors.operators);
     const variablesXML = moveCategory('data') || variables(isInitialSetup, isStage, targetId, colors.data);
     const myBlocksXML = moveCategory('procedures') || myBlocks(isInitialSetup, isStage, targetId, colors.more);
 
-    // Apply filtering to core categories if only_blocks parameter is provided
-    if (isOnlyBlocksSpecified) {
-        // Special case: when allowedPatterns is empty, hide all blocks
-        if (allowedPatterns.length === 0) {
-            motionXML = filterAllBlocks(motionXML);
-            looksXML = filterAllBlocks(looksXML);
-            soundXML = filterAllBlocks(soundXML);
-            eventsXML = filterAllBlocks(eventsXML);
-            controlXML = filterAllBlocks(controlXML);
-            sensingXML = filterAllBlocks(sensingXML);
-            operatorsXML = filterAllBlocks(operatorsXML);
-        } else {
-            motionXML = filterBlocks(motionXML, allowedPatterns);
-            looksXML = filterBlocks(looksXML, allowedPatterns);
-            soundXML = filterBlocks(soundXML, allowedPatterns);
-            eventsXML = filterBlocks(eventsXML, allowedPatterns);
-            controlXML = filterBlocks(controlXML, allowedPatterns);
-            sensingXML = filterBlocks(sensingXML, allowedPatterns);
-            operatorsXML = filterBlocks(operatorsXML, allowedPatterns);
-        }
-    }
+    const everything = [
+        xmlOpen,
+        motionXML, gap,
+        looksXML, gap,
+        soundXML, gap,
+        eventsXML, gap,
+        controlXML, gap,
+        sensingXML, gap,
+        operatorsXML, gap,
+        variablesXML, gap,
+        myBlocksXML
+    ];
 
-    // Build the final XML, only including non-empty categories
-    const everything = [xmlOpen];
-
-    // Helper function to add category if it has content
-    const addCategoryIfNotEmpty = categoryXML => {
-        if (categoryXML && categoryXML.trim() !== '') {
-            everything.push(categoryXML, gap);
-        }
-    };
-
-    // Add core categories (only if they have blocks after filtering)
-    addCategoryIfNotEmpty(motionXML);
-    addCategoryIfNotEmpty(looksXML);
-    addCategoryIfNotEmpty(soundXML);
-    addCategoryIfNotEmpty(eventsXML);
-    addCategoryIfNotEmpty(controlXML);
-    addCategoryIfNotEmpty(sensingXML);
-    addCategoryIfNotEmpty(operatorsXML);
-
-    // Variables and myBlocks are always included (exception categories)
-    addCategoryIfNotEmpty(variablesXML);
-    addCategoryIfNotEmpty(myBlocksXML);
-
-    // Extension categories are always included (exception categories)
     for (const extensionCategory of categoriesXML) {
-        addCategoryIfNotEmpty(extensionCategory.xml);
-    }
-
-    // Remove the last gap if it exists
-    if (everything.length > 1 && everything[everything.length - 1] === gap[0]) {
-        everything.pop();
+        everything.push(gap, extensionCategory.xml);
     }
 
     everything.push(xmlClose);
@@ -1030,4 +810,3 @@ const makeToolboxXML = function (
 };
 
 export default makeToolboxXML;
-export {filterBlocks};

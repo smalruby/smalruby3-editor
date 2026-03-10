@@ -1,6 +1,6 @@
 // TODO: access `BlockType` and `ArgumentType` without reaching into VM
 // Should we move these into a new extension support module or something?
-import {ArgumentType, BlockType} from '@smalruby/scratch-vm';
+import {ArgumentType, BlockType} from '@scratch/scratch-vm';
 
 /**
  * Define a block using extension info which has the ability to dynamically determine (and update) its layout.
@@ -19,7 +19,9 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
             type: extendedOpcode,
             inputsInline: true,
             category: categoryInfo.name,
-            style: categoryInfo.id
+            colour: categoryInfo.color1,
+            colourSecondary: categoryInfo.color2,
+            colourTertiary: categoryInfo.color3
         };
         // There is a scratch-blocks / Blockly extension called "scratch_extension" which adjusts the styling of
         // blocks to allow for an icon, a feature of Scratch extension blocks. However, Scratch "core" extension
@@ -74,6 +76,11 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
             this.setOutputShape(ScratchBlocks.OUTPUT_SHAPE_SQUARE);
             this.setNextStatement(true);
             break;
+        }
+
+        if (blockInfo.color1 || blockInfo.color2 || blockInfo.color3) {
+            // `setColour` handles undefined parameters by adjusting defined colors
+            this.setColour(blockInfo.color1, blockInfo.color2, blockInfo.color3);
         }
 
         // Layout block arguments

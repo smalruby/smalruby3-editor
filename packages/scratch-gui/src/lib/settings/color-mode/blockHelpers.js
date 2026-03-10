@@ -36,11 +36,9 @@ const injectExtensionCategoryMode = (dynamicBlockXML, mode) => {
     return dynamicBlockXML.map(extension => {
         const dom = parser.parseFromString(extension.xml, 'text/xml');
 
-        // This element is deserialized by Blockly, which uses the UK spelling
-        // of "colour".
-        dom.documentElement.setAttribute('colour', extensionColors.colourPrimary);
+        dom.documentElement.setAttribute('colour', extensionColors.primary);
         // Note: the category's secondaryColour matches up with the blocks' tertiary color, both used for border color.
-        dom.documentElement.setAttribute('secondaryColour', extensionColors.colourTertiary);
+        dom.documentElement.setAttribute('secondaryColour', extensionColors.tertiary);
 
         const categoryIconURI = getCategoryIconURI(extensionIcons[extension.id]);
         if (categoryIconURI) {
@@ -54,10 +52,7 @@ const injectExtensionCategoryMode = (dynamicBlockXML, mode) => {
     });
 };
 
-const injectExtensionBlockIcons = (blockInfoJson, mode) => {
-    // Don't do any manipulation for the default color mode
-    if (mode === DEFAULT_MODE) return blockInfoJson;
-
+const injectBlockIcons = (blockInfoJson, mode) => {
     // Block icons are the first element of `args0`
     if (!blockInfoJson.args0 || blockInfoJson.args0.length < 1 ||
         blockInfoJson.args0[0].type !== 'field_image') return blockInfoJson;
@@ -81,8 +76,29 @@ const injectExtensionBlockIcons = (blockInfoJson, mode) => {
     };
 };
 
+/**
+ * Applies extension color mode to static block json.
+ * No changes are applied if called with the default mode, allowing extensions to provide their own colors.
+ * @param {object} blockInfoJson - Static block json
+ * @param {string} mode - Color Mode name
+ * @returns {object} Block info json with updated colors. The original blockInfoJson is not modified.
+ */
+const injectExtensionBlockMode = (blockInfoJson, mode) => {
+    // Don't do any manipulation for the default mode
+    if (mode === DEFAULT_MODE) return blockInfoJson;
+
+    const extensionColors = getExtensionColors(mode);
+
+    return {
+        ...injectBlockIcons(blockInfoJson, mode),
+        colour: extensionColors.primary,
+        colourSecondary: extensionColors.secondary,
+        colourTertiary: extensionColors.tertiary,
+        colourQuaternary: extensionColors.quaternary
+    };
+};
+
 export {
-    injectExtensionBlockIcons,
-    injectExtensionCategoryMode,
-    getExtensionColors
+    injectExtensionBlockMode,
+    injectExtensionCategoryMode
 };
