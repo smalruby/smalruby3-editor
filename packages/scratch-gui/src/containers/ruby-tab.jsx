@@ -249,6 +249,15 @@ class RubyTab extends React.Component {
         }
         window.smalruby.stage = vm.runtime ? vm.runtime.getTargetForStage() : null;
         window.smalruby.runtime = vm.runtime;
+
+        // Expose library name lists for Playwright MCP debugging
+        if (!window.smalruby.libraries) {
+            window.smalruby.libraries = {
+                spriteNames: require('../lib/libraries/sprites.json').map(s => s.name),
+                costumeNames: require('../lib/libraries/costumes.json').map(c => c.name),
+                soundNames: require('../lib/libraries/sounds.json').map(s => s.name)
+            };
+        }
     }
 
     clearErrors () {
