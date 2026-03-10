@@ -8,10 +8,10 @@ import ProjectTitleInput from '../../../src/components/menu-bar/project-title-in
 describe('ProjectTitleInput', () => {
     const mockStore = configureStore();
 
-    test('should be disabled when isGoogleDriveFile is true', () => {
+    test('should be disabled with title tooltip when isGoogleDriveFile is true', () => {
         const store = mockStore({
             scratchGui: {
-                projectTitle: 'test-project',
+                projectTitle: 'my-long-project-name',
                 googleDriveFile: {
                     isGoogleDriveFile: true
                 }
@@ -25,9 +25,10 @@ describe('ProjectTitleInput', () => {
         const input = container.querySelector('input');
         expect(input).not.toBeNull();
         expect(input.disabled).toBe(true);
+        expect(input.title).toBe('my-long-project-name');
     });
 
-    test('should be editable when isGoogleDriveFile is false', () => {
+    test('should be editable without title tooltip when isGoogleDriveFile is false', () => {
         const store = mockStore({
             scratchGui: {
                 projectTitle: 'test-project',
@@ -44,5 +45,6 @@ describe('ProjectTitleInput', () => {
         const input = container.querySelector('input');
         expect(input).not.toBeNull();
         expect(input.disabled).toBe(false);
+        expect(input.title).toBe('');
     });
 });

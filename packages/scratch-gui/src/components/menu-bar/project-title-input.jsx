@@ -33,6 +33,7 @@ const ProjectTitleInput = ({
             className={classNames(styles.titleField, className)}
             // === Smalruby: Start of read-only project title for Google Drive ===
             disabled={disabled}
+            title={disabled ? projectTitle : null}
             // === Smalruby: End of read-only project title for Google Drive ===
             maxLength="100"
             placeholder={intl.formatMessage(messages.projectTitlePlaceholder)}
