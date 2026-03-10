@@ -167,3 +167,108 @@ describe('Cards container - start tutorial', () => {
         expect(capturedProps.animateStartTutorial).toBe(true);
     });
 });
+
+// === Smalruby: Start of next-button lock ===
+describe('Cards container - next button lock', () => {
+    beforeEach(() => {
+        capturedProps = {};
+        jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    test('blocks onNextStep when step has an action button (startTutorial)', () => {
+        const {store} = renderCards();
+
+        // Next should be locked on mount (step 0 has startTutorial)
+        act(() => {
+            capturedProps.onNextStep();
+        });
+
+        // Should NOT dispatch NEXT_STEP
+        const actions = store.getActions();
+        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(false);
+    });
+
+    test('unlocks onNextStep after 3 seconds', () => {
+        const {store} = renderCards();
+
+        // Advance past lock timeout
+        act(() => {
+            jest.advanceTimersByTime(3100);
+        });
+
+        act(() => {
+            capturedProps.onNextStep();
+        });
+
+        const actions = store.getActions();
+        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
+    });
+
+    test('unlocks onNextStep when startTutorial button is clicked', () => {
+        const {store} = renderCards();
+
+        // Click start tutorial to unlock
+        act(() => {
+            capturedProps.onStartTutorial();
+        });
+
+        act(() => {
+            capturedProps.onNextStep();
+        });
+
+        const actions = store.getActions();
+        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
+    });
+
+    test('unlocks onNextStep when insertCode button is clicked', () => {
+        // Use step 1 which has code
+        const storeState = createStoreState({step: 1});
+        const {store} = renderCards(storeState);
+
+        // Click insert code to unlock
+        act(() => {
+            capturedProps.onInsertCodeFactory('puts "hello"')();
+        });
+
+        act(() => {
+            capturedProps.onNextStep();
+        });
+
+        const actions = store.getActions();
+        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
+    });
+
+    test('does not lock onNextStep when step has no action button', () => {
+        // Create a step without startTutorial or code
+        const storeState = createStoreState({
+            content: {
+                [TEST_DECK_ID]: {
+                    name: 'Test Tutorial',
+                    nameMessageId: 'gui.howtos.test.name',
+                    img: 'test.jpg',
+                    steps: [
+                        {
+                            title: 'Plain Step',
+                            image: 'plain.png',
+                            animationTarget: 'nextButton'
+                        }
+                    ]
+                }
+            }
+        });
+        const {store} = renderCards(storeState);
+
+        // Should be able to click next immediately
+        act(() => {
+            capturedProps.onNextStep();
+        });
+
+        const actions = store.getActions();
+        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
+    });
+});
+// === Smalruby: End of next-button lock ===
