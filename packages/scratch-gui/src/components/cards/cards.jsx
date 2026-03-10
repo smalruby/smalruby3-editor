@@ -15,6 +15,9 @@ import leftArrow from './icon--prev.svg';
 import helpIcon from '../../lib/assets/icon--tutorials.svg';
 import closeIcon from './icon--close.svg';
 import codeIcon from './icon--code.svg';
+// === Smalruby: Start of start-tutorial button ===
+import startIcon from './icon--start.svg';
+// === Smalruby: End of start-tutorial button ===
 
 import {translateVideo} from '../../lib/libraries/decks/translate-video.js';
 import {translateImage} from '../../lib/libraries/decks/translate-image.js';
@@ -176,7 +179,7 @@ const ImageStep = ({
             >
                 <img
                     className={styles.codeIcon}
-                    src={codeIcon}
+                    src={startIcon}
                 />
                 <FormattedMessage
                     defaultMessage="Start Tutorial"
