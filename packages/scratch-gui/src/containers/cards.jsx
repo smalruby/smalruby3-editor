@@ -49,7 +49,7 @@ import {PLATFORM} from '../lib/platform.js';
 const ANIMATION_DELAY_MS = 3000;
 const INSERT_CODE_ANIMATION_DELAY_MS = 300; // Shorter delay so users notice the button quickly
 // === Smalruby: Start of next-button lock ===
-const NEXT_LOCK_TIMEOUT_MS = 3000; // Unlock next button after 3 seconds even if action button not clicked
+const NEXT_LOCK_TIMEOUT_MS = 5000; // Unlock next button after 5 seconds even if action button not clicked
 // === Smalruby: End of next-button lock ===
 // === Smalruby: End of tutorial glow animation ===
 
