@@ -17,6 +17,7 @@ import AstHandlers from './ast-handlers';
 import LineMappingUtils from './line-mapping';
 import ConverterRegistry from './converter-registry';
 import TargetApplier from './target-applier';
+import PrismErrorTranslator from './prism-error-translator';
 
 const messages = defineMessages({
     couldNotConvertPrimitive: {
@@ -99,6 +100,7 @@ class RubyToBlocksConverter extends Visitor {
         this._onVarHandlers = [];
         this._onVasgnHandlers = [];
         this._onDefsHandlers = [];
+        this._prismErrorTranslator = new PrismErrorTranslator(this._translator);
         this.reset();
 
         registerConverters(this);
@@ -126,6 +128,7 @@ class RubyToBlocksConverter extends Visitor {
 
     setTranslatorFunction (translator) {
         this._translator = translator;
+        this._prismErrorTranslator = new PrismErrorTranslator(translator);
     }
 
     async targetCodeToBlocks (target, code) {
@@ -138,8 +141,9 @@ class RubyToBlocksConverter extends Visitor {
             const parseResult = prism.parse(code);
             if (parseResult.errors.length > 0) {
                 parseResult.errors.forEach(e => {
+                    const translatedMessage = this._prismErrorTranslator.translate(e.message);
                     this._context.errors.push(this._toErrorAnnotation(
-                        e.location.startLine, e.location.startColumn, e.message
+                        e.location.startLine, e.location.startColumn, translatedMessage
                     ));
                 });
                 return false;
