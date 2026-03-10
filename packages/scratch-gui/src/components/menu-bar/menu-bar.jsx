@@ -1205,6 +1205,7 @@ class MenuBar extends React.Component {
                             />
                         </div>
                     )}
+                    {/* === Smalruby: Start of improved auth_error UX === */}
                     {this.props.googleDriveFile &&
                         this.props.googleDriveFile.isGoogleDriveFile &&
                         this.props.projectChanged &&
@@ -1212,23 +1213,35 @@ class MenuBar extends React.Component {
                         this.props.googleDriveSaveDirectStatus !== 'saved' && (
                         <div className={styles.saveStatus}>
                             <Button
-                                className={styles.saveDirectlyButton}
+                                className={classNames(
+                                    styles.saveDirectlyButton,
+                                    {[styles.saveDirectlyButtonAuthError]:
+                                        this.props.googleDriveSaveDirectStatus === 'auth_error'}
+                                )}
                                 title={this.props.googleDriveSaveDirectStatus === 'auth_error' ?
                                     this.props.intl.formatMessage({
                                         id: 'gui.menuBar.authExpired',
-                                        defaultMessage: 'Authentication expired. Click to save.'
+                                        defaultMessage: 'Authentication expired. Click to re-authenticate and save.'
                                     }) :
                                     null
                                 }
                                 onClick={this.handleSaveDirectlyToGoogleDrive}
                             >
-                                <FormattedMessage
-                                    defaultMessage="Save directly"
-                                    id="gui.menuBar.saveDirectlyButton"
-                                />
+                                {this.props.googleDriveSaveDirectStatus === 'auth_error' ? (
+                                    <FormattedMessage
+                                        defaultMessage="Re-authenticate & Save"
+                                        id="gui.menuBar.reAuthAndSaveButton"
+                                    />
+                                ) : (
+                                    <FormattedMessage
+                                        defaultMessage="Save directly"
+                                        id="gui.menuBar.saveDirectlyButton"
+                                    />
+                                )}
                             </Button>
                         </div>
                     )}
+                    {/* === Smalruby: End of improved auth_error UX === */}
                     {this.props.googleDriveSaveDirectStatus === 'saving' && (
                         <div className={styles.saveStatus}>
                             <Spinner

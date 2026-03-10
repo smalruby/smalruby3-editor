@@ -22,6 +22,8 @@ jest.mock('../../../src/lib/google-drive-api', () => ({
 // Mock ruby-to-blocks-converter-hoc to pass through
 jest.mock('../../../src/lib/ruby-to-blocks-converter-hoc.jsx', () => Component => Component);
 
+const googleDriveAPI = require('../../../src/lib/google-drive-api').default;
+
 describe('GoogleDriveSaverHOC', () => {
     const mockStore = configureStore();
     let store;
@@ -51,7 +53,6 @@ describe('GoogleDriveSaverHOC', () => {
     });
 
     test('should update project title when saving copy to Google Drive', async () => {
-        const googleDriveAPI = require('../../../src/lib/google-drive-api').default;
         googleDriveAPI.uploadFile.mockResolvedValue({id: 'new-file-id'});
 
         let capturedOnSaveToGoogleDrive;
@@ -80,5 +81,62 @@ describe('GoogleDriveSaverHOC', () => {
         const setTitleAction = actions.find(a => a.type === 'projectTitle/SET_PROJECT_TITLE');
         expect(setTitleAction).toBeDefined();
         expect(setTitleAction.title).toBe('new-project-name');
+    });
+
+    test('should re-authenticate and retry when user clicks save during auth_error', async () => {
+        // Setup store with a Google Drive file
+        store = mockStore({
+            scratchGui: {
+                projectState: {
+                    loadingState: 'SHOWING_WITHOUT_ID'
+                },
+                projectChanged: true,
+                projectTitle: 'test-project',
+                vm: vm,
+                googleDriveFile: {
+                    fileId: 'existing-file-id',
+                    fileName: 'test.sb3',
+                    folderId: null,
+                    isGoogleDriveFile: true
+                }
+            },
+            locales: {
+                locale: 'en'
+            }
+        });
+
+        // First call to updateFile throws 401, second succeeds
+        const authError = new Error('Unauthorized');
+        authError.status = 401;
+        googleDriveAPI.updateFile
+            .mockRejectedValueOnce(authError)
+            .mockResolvedValueOnce({});
+        googleDriveAPI.requestAccessToken.mockResolvedValue();
+
+        let capturedProps;
+        const Component = props => {
+            capturedProps = props;
+            return <div />;
+        };
+        const WrappedComponent = GoogleDriveSaverHOC(Component);
+
+        renderWithIntl(
+            <WrappedComponent
+                store={store}
+                saveProjectSb3={jest.fn().mockResolvedValue(new ArrayBuffer(8))}
+                targetCodeToBlocks={jest.fn().mockResolvedValue({
+                    result: true,
+                    apply: jest.fn().mockResolvedValue()
+                })}
+            />
+        );
+
+        // User clicks save directly (isUserInitiated=true)
+        await capturedProps.onSaveDirectlyToGoogleDrive(true);
+
+        // Should have called requestAccessToken for re-auth
+        expect(googleDriveAPI.requestAccessToken).toHaveBeenCalled();
+        // Should have retried updateFile after re-auth
+        expect(googleDriveAPI.updateFile).toHaveBeenCalledTimes(2);
     });
 });
