@@ -198,12 +198,21 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         const attrPart = classComment.slice('@ruby:class:'.length);
         allowedAttributes = attrPart.split(',');
 
-        // Check for name=ClassName in the first attribute
+        // Check for name=ClassName in the attributes
         const nameAttrIndex = allowedAttributes.findIndex(a => a.startsWith('name='));
         if (nameAttrIndex >= 0) {
             explicitClassName = allowedAttributes[nameAttrIndex].slice('name='.length);
             // Replace name=ClassName with plain 'name' for attribute processing
             allowedAttributes[nameAttrIndex] = 'name';
+        }
+
+        // Check for sprite=SpriteName in the attributes
+        const spriteAttrIndex = allowedAttributes.findIndex(a => a.startsWith('sprite='));
+        if (spriteAttrIndex >= 0) {
+            const spriteName = allowedAttributes[spriteAttrIndex].slice('sprite='.length);
+            setLines.push(`set_sprite ${this.quote_(spriteName)}`);
+            // Replace sprite=Name with plain 'sprite' for attribute processing (already handled)
+            allowedAttributes[spriteAttrIndex] = 'sprite';
         }
     }
 
@@ -305,6 +314,14 @@ RubyGenerator._generateSetXxx = function (target, setLines, allowedAttributes) {
     }
     if (allowedAttributes.indexOf('rotation_style') >= 0 && target.rotationStyle !== 'all around') {
         setLines.push(`set_rotation_style ${this.quote_(target.rotationStyle)}`);
+    }
+    if (allowedAttributes.indexOf('costumes') >= 0 && target.sprite && target.sprite.costumes) {
+        const costumeNames = target.sprite.costumes.map(c => this.quote_(c.name));
+        setLines.push(`set_costumes [${costumeNames.join(', ')}]`);
+    }
+    if (allowedAttributes.indexOf('sounds') >= 0 && target.sprite && target.sprite.sounds) {
+        const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));
+        setLines.push(`set_sounds [${soundNames.join(', ')}]`);
     }
 };
 
