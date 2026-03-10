@@ -521,6 +521,14 @@ class Runtime extends EventEmitter {
     }
 
     /**
+     * Event name for when a frame step is about to begin.
+     * @constant {string}
+     */
+    static get BEFORE_STEP () {
+        return 'BEFORE_STEP';
+    }
+
+    /**
      * Event name for target being stopped by a stop for target call.
      * Used by blocks that need to stop individual targets.
      * @constant {string}
@@ -679,10 +687,6 @@ class Runtime extends EventEmitter {
      */
     static get MIC_LISTENING () {
         return 'MIC_LISTENING';
-    }
-
-    static get EXTENSION_DATA_LOADING () {
-        return 'EXTENSION_DATA_LOADING';
     }
 
     /**
@@ -1570,15 +1574,25 @@ class Runtime extends EventEmitter {
     }
 
     /**
+     * Returns the connected message.
+     * @param {string} extensionId - the id of the extension.
+     * @returns {string|null} - the connected message.
+     */
+    getPeripheralConnectedMessage (extensionId) {
+        if (this.getPeripheralIsConnected(extensionId) &&
+            this.peripheralExtensions[extensionId] &&
+            this.peripheralExtensions[extensionId].connectedMessage) {
+            return this.peripheralExtensions[extensionId].connectedMessage();
+        }
+        return null;
+    }
+
+    /**
      * Emit an event to indicate that the microphone is being used to stream audio.
      * @param {boolean} listening - true if the microphone is currently listening.
      */
     emitMicListening (listening) {
         this.emit(Runtime.MIC_LISTENING, listening);
-    }
-
-    emitExtensionLoading (loading) {
-        this.emit(Runtime.EXTENSION_DATA_LOADING, loading);
     }
 
     /**
@@ -2121,6 +2135,8 @@ class Runtime extends EventEmitter {
             }
             this.profiler.start(stepProfilerId);
         }
+
+        this.emit(Runtime.BEFORE_STEP);
 
         // Clean up threads that were told to stop during or since the last step
         this.threads = this.threads.filter(thread => !thread.isKilled);

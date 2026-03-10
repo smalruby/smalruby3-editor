@@ -16,7 +16,7 @@ import DropAreaHOC from '../lib/drop-area-hoc.jsx';
 import {GUIStoragePropType} from '../gui-config';
 
 import {connect} from 'react-redux';
-import VM from '@scratch/scratch-vm';
+import VM from '@smalruby/scratch-vm';
 
 
 const dragTypes = [DragConstants.COSTUME, DragConstants.SOUND, DragConstants.SPRITE];
@@ -99,6 +99,13 @@ class Backpack extends React.Component {
         this.setState({loading: true}, () => {
             payloader(dragInfo.payload, this.props.vm)
                 .then(payload => {
+                    if (this.props.host === 'localStorage') {
+                        // For localStorage, no asset server presave is needed
+                        if (presaveAsset) {
+                            return {id: presaveAsset.assetId, ...payload};
+                        }
+                        return payload;
+                    }
                     // Force the asset to save to the asset server before storing in backpack
                     // Ensures any asset present in the backpack is also on the asset server
                     if (presaveAsset && !presaveAsset.clean) {
@@ -248,13 +255,13 @@ const getTokenAndUsername = state => {
             username: state.session.session.user.username
         };
     }
-    // Otherwise try to pull testing params out of the URL, or return nulls
+    // Otherwise try to pull testing params out of the URL, or return defaults for localStorage
     // TODO a hack for testing the backpack
     const tokenMatches = window.location.href.match(/[?&]token=([^&]*)&?/);
     const usernameMatches = window.location.href.match(/[?&]username=([^&]*)&?/);
     return {
-        token: tokenMatches ? tokenMatches[1] : null,
-        username: usernameMatches ? usernameMatches[1] : null
+        token: tokenMatches ? tokenMatches[1] : 'localToken',
+        username: usernameMatches ? usernameMatches[1] : 'localUser'
     };
 };
 
