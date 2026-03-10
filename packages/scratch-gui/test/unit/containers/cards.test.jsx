@@ -192,12 +192,12 @@ describe('Cards container - next button lock', () => {
         expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(false);
     });
 
-    test('unlocks onNextStep after 3 seconds', () => {
+    test('unlocks onNextStep after 5 seconds', () => {
         const {store} = renderCards();
 
         // Advance past lock timeout
         act(() => {
-            jest.advanceTimersByTime(3100);
+            jest.advanceTimersByTime(5100);
         });
 
         act(() => {
