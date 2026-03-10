@@ -1,6 +1,9 @@
 import {connect} from 'react-redux';
 import PropTypes from 'prop-types';
 import React from 'react';
+// === Smalruby: Start of start-tutorial button ===
+import {useIntl} from 'react-intl';
+// === Smalruby: End of start-tutorial button ===
 
 import {
     activateDeck,
@@ -27,6 +30,18 @@ import {
     updateRubyCode
 } from '../reducers/ruby-code';
 
+// === Smalruby: Start of start-tutorial button ===
+import {
+    requestNewProject
+} from '../reducers/project-state';
+
+import {
+    setProjectTitle
+} from '../reducers/project-title';
+
+import sharedMessages from '../lib/shared-messages';
+// === Smalruby: End of start-tutorial button ===
+
 import CardsComponent from '../components/cards/cards.jsx';
 import {loadImageData} from '../lib/libraries/decks/translate-image.js';
 import {PLATFORM} from '../lib/platform.js';
@@ -43,12 +58,18 @@ class Cards extends React.Component {
         this.state = {
             animateNext: false,
             animateInsertCode: false,
+            // === Smalruby: Start of start-tutorial button ===
+            animateStartTutorial: false,
+            // === Smalruby: End of start-tutorial button ===
             navigatedForward: true
         };
         this._animationTimers = [];
         this._handleNextStep = this._handleNextStep.bind(this);
         this._handlePrevStep = this._handlePrevStep.bind(this);
         this._handleInsertCodeFactory = this._handleInsertCodeFactory.bind(this);
+        // === Smalruby: Start of start-tutorial button ===
+        this._handleStartTutorial = this._handleStartTutorial.bind(this);
+        // === Smalruby: End of start-tutorial button ===
     }
     // === Smalruby: End of tutorial glow animation ===
 
@@ -74,7 +95,10 @@ class Cards extends React.Component {
             this._clearAnimationTimers();
             this.setState({
                 animateNext: false,
-                animateInsertCode: false
+                animateInsertCode: false,
+                // === Smalruby: Start of start-tutorial button ===
+                animateStartTutorial: false
+                // === Smalruby: End of start-tutorial button ===
             });
             this._scheduleAnimation();
         }
@@ -101,12 +125,19 @@ class Cards extends React.Component {
         const target = currentStep.animationTarget;
         if (!target) return;
 
-        const delay = target === 'insertCodeButton' ? INSERT_CODE_ANIMATION_DELAY_MS : ANIMATION_DELAY_MS;
+        // === Smalruby: Start of start-tutorial button ===
+        const shortDelayTargets = ['insertCodeButton', 'startTutorialButton'];
+        const delay = shortDelayTargets.includes(target) ? INSERT_CODE_ANIMATION_DELAY_MS : ANIMATION_DELAY_MS;
+        // === Smalruby: End of start-tutorial button ===
         const timer = setTimeout(() => {
             if (target === 'nextButton') {
                 this.setState({animateNext: true});
             } else if (target === 'insertCodeButton') {
                 this.setState({animateInsertCode: true});
+            // === Smalruby: Start of start-tutorial button ===
+            } else if (target === 'startTutorialButton') {
+                this.setState({animateStartTutorial: true});
+            // === Smalruby: End of start-tutorial button ===
             }
         }, delay);
         this._animationTimers.push(timer);
@@ -116,7 +147,10 @@ class Cards extends React.Component {
         this.setState({
             navigatedForward: true,
             animateNext: false,
-            animateInsertCode: false
+            animateInsertCode: false,
+            // === Smalruby: Start of start-tutorial button ===
+            animateStartTutorial: false
+            // === Smalruby: End of start-tutorial button ===
         });
         this._clearAnimationTimers();
         this.props.onNextStepDispatch();
@@ -126,11 +160,41 @@ class Cards extends React.Component {
         this.setState({
             navigatedForward: false,
             animateNext: false,
-            animateInsertCode: false
+            animateInsertCode: false,
+            // === Smalruby: Start of start-tutorial button ===
+            animateStartTutorial: false
+            // === Smalruby: End of start-tutorial button ===
         });
         this._clearAnimationTimers();
         this.props.onPrevStepDispatch();
     }
+
+    // === Smalruby: Start of start-tutorial button ===
+    _handleStartTutorial () {
+        // Show confirm dialog if project has been changed
+        if (this.props.projectChanged) {
+            const message = this.props.intl.formatMessage(sharedMessages.replaceProjectWarning);
+            if (!confirm(message)) { // eslint-disable-line no-alert
+                return;
+            }
+        }
+
+        // Reset project and set title to tutorial name
+        const deck = this.props.content[this.props.activeDeckId];
+        const deckName = (deck && deck.nameMessageId) ?
+            this.props.intl.formatMessage({id: deck.nameMessageId}) :
+            '';
+        this.props.onStartTutorialDispatch(deckName);
+
+        // Stop animation and schedule nextButton glow
+        this._clearAnimationTimers();
+        this.setState({animateStartTutorial: false});
+        const timer = setTimeout(() => {
+            this.setState({animateNext: true});
+        }, ANIMATION_DELAY_MS);
+        this._animationTimers.push(timer);
+    }
+    // === Smalruby: End of start-tutorial button ===
 
     _handleInsertCodeFactory (code, codeType) {
         return () => {
@@ -157,9 +221,15 @@ class Cards extends React.Component {
             // === Smalruby: Start of tutorial glow animation ===
             animateNext: this.state.animateNext,
             animateInsertCode: this.state.animateInsertCode,
+            // === Smalruby: Start of start-tutorial button ===
+            animateStartTutorial: this.state.animateStartTutorial,
+            // === Smalruby: End of start-tutorial button ===
             onNextStep: this._handleNextStep,
             onPrevStep: this._handlePrevStep,
-            onInsertCodeFactory: this._handleInsertCodeFactory
+            onInsertCodeFactory: this._handleInsertCodeFactory,
+            // === Smalruby: Start of start-tutorial button ===
+            onStartTutorial: this._handleStartTutorial
+            // === Smalruby: End of start-tutorial button ===
             // === Smalruby: End of tutorial glow animation ===
         };
         return (
@@ -173,13 +243,24 @@ Cards.propTypes = {
     activeDeckId: PropTypes.string,
     content: PropTypes.object.isRequired,
     // === Smalruby: End of tutorial glow animation ===
+    // === Smalruby: Start of start-tutorial button ===
+    intl: PropTypes.shape({
+        formatMessage: PropTypes.func.isRequired
+    }).isRequired,
+    // === Smalruby: End of start-tutorial button ===
     locale: PropTypes.string.isRequired,
     // === Smalruby: Start of tutorial glow animation ===
     onInsertCodeDispatch: PropTypes.func.isRequired,
     onNextStepDispatch: PropTypes.func.isRequired,
     onPrevStepDispatch: PropTypes.func.isRequired,
     // === Smalruby: End of tutorial glow animation ===
+    // === Smalruby: Start of start-tutorial button ===
+    onStartTutorialDispatch: PropTypes.func.isRequired,
+    // === Smalruby: End of start-tutorial button ===
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
+    // === Smalruby: Start of start-tutorial button ===
+    projectChanged: PropTypes.bool,
+    // === Smalruby: End of start-tutorial button ===
     // === Smalruby: Start of tutorial glow animation ===
     step: PropTypes.number.isRequired
     // === Smalruby: End of tutorial glow animation ===
@@ -196,7 +277,10 @@ const mapStateToProps = state => ({
     isRtl: state.locales.isRtl,
     locale: state.locales.locale,
     dragging: state.scratchGui.cards.dragging,
-    platform: state.scratchGui.platform.platform
+    platform: state.scratchGui.platform.platform,
+    // === Smalruby: Start of start-tutorial button ===
+    projectChanged: state.scratchGui.projectChanged
+    // === Smalruby: End of start-tutorial button ===
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -225,11 +309,32 @@ const mapDispatchToProps = dispatch => ({
         } else {
             dispatch(activateTab(RUBY_TAB_INDEX));
         }
-    }
+    },
     // === Smalruby: End of tutorial glow animation ===
+    // === Smalruby: Start of start-tutorial button ===
+    onStartTutorialDispatch: deckName => {
+        dispatch(requestNewProject(false));
+        dispatch(setProjectTitle(deckName));
+    }
+    // === Smalruby: End of start-tutorial button ===
 });
 
-export default connect(
+const ConnectedCards = connect(
     mapStateToProps,
     mapDispatchToProps
 )(Cards);
+
+// === Smalruby: Start of start-tutorial button ===
+// Wrapper to provide useIntl() hook to class component
+const CardsWithIntl = props => {
+    const intl = useIntl();
+    return (
+        <ConnectedCards
+            {...props}
+            intl={intl}
+        />
+    );
+};
+// === Smalruby: End of start-tutorial button ===
+
+export default CardsWithIntl;
