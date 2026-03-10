@@ -1,4 +1,11 @@
 import {Variable, LOCAL_VARIABLE_PATTERN} from './constants';
+import spritesLibrary from '../libraries/sprites.json';
+import costumesLibrary from '../libraries/costumes.json';
+import soundsLibrary from '../libraries/sounds.json';
+
+const spritesMap = new Map(spritesLibrary.map(s => [s.name, s]));
+const costumesMap = new Map(costumesLibrary.map(c => [c.name, c]));
+const soundsMap = new Map(soundsLibrary.map(s => [s.name, s]));
 
 /**
  * Mixin for applying blocks to a VM target.
@@ -200,6 +207,35 @@ const TargetApplier = {
                     } else {
                         target.rotationStyle = classInfo.rotation_style;
                     }
+                }
+
+                // Apply sprite library data (replaces costumes and sounds)
+                if (has('sprite')) {
+                    const spriteData = spritesMap.get(classInfo.sprite);
+                    if (spriteData) {
+                        if (spriteData.costumes) {
+                            target.sprite.costumes = spriteData.costumes.map(c => Object.assign({}, c));
+                        }
+                        if (spriteData.sounds) {
+                            target.sprite.sounds = spriteData.sounds.map(s => Object.assign({}, s));
+                        }
+                    }
+                }
+
+                // Apply individual costumes (complete replacement)
+                if (has('costumes') && Array.isArray(classInfo.costumes)) {
+                    target.sprite.costumes = classInfo.costumes.map(name => {
+                        const costumeData = costumesMap.get(name);
+                        return costumeData ? Object.assign({}, costumeData) : {name};
+                    });
+                }
+
+                // Apply individual sounds (complete replacement)
+                if (has('sounds') && Array.isArray(classInfo.sounds)) {
+                    target.sprite.sounds = classInfo.sounds.map(name => {
+                        const soundData = soundsMap.get(name);
+                        return soundData ? Object.assign({}, soundData) : {name};
+                    });
                 }
             }
 

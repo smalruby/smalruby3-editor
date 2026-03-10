@@ -1086,6 +1086,96 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(spriteTarget.currentCostume).toEqual(2);
         });
 
+        test('set_sprite replaces costumes and sounds from sprite library', async () => {
+            spriteTarget.sprite.costumes = [{name: 'old-costume', assetId: 'old', md5ext: 'old.svg'}];
+            spriteTarget.sprite.sounds = [{name: 'old-sound', assetId: 'old', md5ext: 'old.wav'}];
+            code = `
+                class Sprite1
+                  set_sprite "Dog1"
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            // Costumes and sounds should be replaced with Dog1's library data
+            expect(spriteTarget.sprite.costumes.length).toBeGreaterThan(0);
+            expect(spriteTarget.sprite.costumes[0].name).not.toEqual('old-costume');
+            expect(spriteTarget.sprite.sounds.length).toBeGreaterThan(0);
+            expect(spriteTarget.sprite.sounds[0].name).not.toEqual('old-sound');
+        });
+
+        test('set_costumes replaces costumes from costume library', async () => {
+            spriteTarget.sprite.costumes = [{name: 'old-costume', assetId: 'old', md5ext: 'old.svg'}];
+            code = `
+                class Sprite1
+                  set_costumes ["Dog1-a", "Dog1-b"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.sprite.costumes).toHaveLength(2);
+            expect(spriteTarget.sprite.costumes[0].name).toEqual('Dog1-a');
+            expect(spriteTarget.sprite.costumes[1].name).toEqual('Dog1-b');
+        });
+
+        test('set_sounds replaces sounds from sound library', async () => {
+            spriteTarget.sprite.sounds = [{name: 'old-sound', assetId: 'old', md5ext: 'old.wav'}];
+            code = `
+                class Sprite1
+                  set_sounds ["Dog1", "Dog2"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.sprite.sounds).toHaveLength(2);
+            expect(spriteTarget.sprite.sounds[0].name).toEqual('Dog1');
+            expect(spriteTarget.sprite.sounds[1].name).toEqual('Dog2');
+        });
+
+        test('set_costumes and set_sounds together replace both', async () => {
+            spriteTarget.sprite.costumes = [{name: 'old-costume'}];
+            spriteTarget.sprite.sounds = [{name: 'old-sound'}];
+            code = `
+                class Sprite1
+                  set_costumes ["Dog1-a", "Dog1-b"]
+                  set_sounds ["Dog1", "Dog2"]
+
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+            expect(vmConverter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+            await vmConverter.applyTargetBlocks(spriteTarget);
+
+            expect(spriteTarget.sprite.costumes).toHaveLength(2);
+            expect(spriteTarget.sprite.costumes[0].name).toEqual('Dog1-a');
+            expect(spriteTarget.sprite.sounds).toHaveLength(2);
+            expect(spriteTarget.sprite.sounds[0].name).toEqual('Dog1');
+        });
+
         test('class without classInfo does not change target attributes', async () => {
             spriteTarget.x = 10;
             spriteTarget.y = 20;
