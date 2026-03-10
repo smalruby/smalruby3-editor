@@ -117,11 +117,11 @@ const baseConfig = new ScratchWebpackConfigBuilder(
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
             {
-                from: '../../node_modules/scratch-blocks/media',
+                from: path.dirname(require.resolve('scratch-blocks/package.json')) + '/media',
                 to: 'static/blocks-media/default'
             },
             {
-                from: '../../node_modules/scratch-blocks/media',
+                from: path.dirname(require.resolve('scratch-blocks/package.json')) + '/media',
                 to: 'static/blocks-media/high-contrast'
             },
             {
