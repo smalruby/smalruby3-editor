@@ -84,6 +84,19 @@ class FuriganaAnnotator {
         };
     }
 
+    /**
+     * Create a location spanning from the receiver's start to messageLoc's end.
+     * Used for self.xxx so furigana starts above "self." instead of just "xxx".
+     */
+    _receiverSpanLoc (node) {
+        if (!node.receiver || !node.receiver.location || !node.messageLoc) return node.messageLoc;
+        const recLoc = node.receiver.location;
+        return {
+            startOffset: recLoc.startOffset,
+            length: (node.messageLoc.startOffset + node.messageLoc.length) - recLoc.startOffset
+        };
+    }
+
     _addAnnotation (loc, label) {
         if (!loc) return;
         const {line, column} = this._locToLineCol(loc.startOffset);
@@ -778,7 +791,7 @@ class FuriganaAnnotator {
             'drag_mode=': 'ドラッグモードを設定'
         };
         const label = selfSetterLabels[name];
-        if (label) this._addAnnotation(node.messageLoc, label);
+        if (label) this._addAnnotation(this._receiverSpanLoc(node), label);
     }
 
     _annotatePenMethod (node, name) {
@@ -869,7 +882,7 @@ class FuriganaAnnotator {
                 tempo: 'テンポを変える'
             };
             const label = selfOpLabels[attrName];
-            if (label) this._addAnnotation(node.messageLoc, label);
+            if (label) this._addAnnotation(this._receiverSpanLoc(node), label);
         } else if (receiverType === 'LocalVariableReadNode' && node.receiver.name === 'pen') {
             const penOpLabels = {
                 size: 'ペンの太さを変える',

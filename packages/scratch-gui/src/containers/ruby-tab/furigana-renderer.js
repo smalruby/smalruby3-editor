@@ -33,7 +33,7 @@ class FuriganaRenderer {
 
         // Height for each furigana zone: half a line height, minimum 12px
         const zoneHeight = Math.max(12, Math.floor(lineHeight * 0.55));
-        const fontSize = Math.max(9, Math.floor(zoneHeight * 0.75));
+        const fontSize = Math.max(9, Math.floor(zoneHeight * 0.75 * 1.25));
 
         editor.changeViewZones(accessor => {
             for (const [lineNumber, anns] of annotations) {
