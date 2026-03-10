@@ -116,7 +116,7 @@ const playgroundBuilder = webBuilder
         }
     })
     .addModuleRule({
-        test: require.resolve('scratch-blocks'),
+        test: require.resolve('scratch-blocks/dist/vertical.js'),
         loader: 'expose-loader',
         options: {
             exposes: 'Blockly'
@@ -175,7 +175,7 @@ const playgroundBuilder = webBuilder
     );
 
 module.exports = [
-    playgroundBuilder.get(), // webpack-dev-server only looks at the first configuration
     nodeBuilder.get(),
-    webBuilder.get()
+    webBuilder.get(),
+    playgroundBuilder.get()
 ];

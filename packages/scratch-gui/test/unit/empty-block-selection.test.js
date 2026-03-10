@@ -30,8 +30,8 @@ describe('Empty block selection filtering', () => {
         expect(xml).not.toContain('BKY_CATEGORY_OPERATORS');
         
         // Variables and myBlocks categories should still be present (always visible)
-        expect(xml).toContain('toolboxitemid="variables"');
-        expect(xml).toContain('toolboxitemid="myBlocks"');
+        expect(xml).toContain('CATEGORY_VARIABLES');
+        expect(xml).toContain('CATEGORY_MYBLOCKS');
     });
 
     test('should show all blocks when no only_blocks parameter is provided (null)', () => {

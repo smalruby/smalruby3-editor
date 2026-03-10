@@ -44,8 +44,7 @@ test('stack click activates the stack', t => {
                 if (allBlocks[blockId].opcode === 'event_whengreaterthan') {
                     blockContainer.blocklyListen({
                         blockId: blockId,
-                        targetType: 'block',
-                        type: 'click'
+                        element: 'stackclick'
                     });
                 }
             }
