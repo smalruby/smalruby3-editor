@@ -140,6 +140,12 @@ class RubyTab extends React.Component {
             this.showErrors(this.props.rubyCode.errors);
         }
 
+        if (this.props.rubyCode.fontSize !== prevProps.rubyCode.fontSize) {
+            if (this.state.furiganaEnabled && this.editorRef && this.monacoRef) {
+                this._renderFurigana();
+            }
+        }
+
         let modified = this.props.rubyCode.modified;
         if (modified) {
             const targetId = this.props.rubyCode.target ? this.props.rubyCode.target.id : null;
