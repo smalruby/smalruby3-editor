@@ -25,6 +25,9 @@ import {
 import {
     closeFileMenu
 } from '../reducers/menus';
+// === Smalruby: Start of clear Google Drive state on file upload ===
+import {clearGoogleDriveFile} from '../reducers/google-drive-file';
+// === Smalruby: End of clear Google Drive state on file upload ===
 import {getProjectTitleFromFilename} from './sb-file-uploader-utils';
 
 const messages = defineMessages({
@@ -115,6 +118,9 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                     );
                 }
                 if (uploadAllowed) {
+                    // === Smalruby: Start of clear Google Drive state on file upload ===
+                    this.props.clearGoogleDriveFile();
+                    // === Smalruby: End of clear Google Drive state on file upload ===
                     // cues step 4
                     this.props.requestProjectUpload(loadingState);
                 } else {
@@ -188,6 +194,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
             const {
 
                 cancelFileUpload,
+                clearGoogleDriveFile: clearGoogleDriveFileProp,
                 closeFileMenu: closeFileMenuProp,
                 isLoadingUpload,
                 isShowingWithoutId,
@@ -220,6 +227,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
     SBFileUploaderComponent.propTypes = {
         canSave: PropTypes.bool,
         cancelFileUpload: PropTypes.func,
+        clearGoogleDriveFile: PropTypes.func,
         closeFileMenu: PropTypes.func,
         intl: intlShape.isRequired,
         isLoadingUpload: PropTypes.bool,
@@ -259,6 +267,9 @@ const SBFileUploaderHOC = function (WrappedComponent) {
     };
     const mapDispatchToProps = (dispatch, ownProps) => ({
         cancelFileUpload: loadingState => dispatch(onLoadedProject(loadingState, false, false)),
+        // === Smalruby: Start of clear Google Drive state on file upload ===
+        clearGoogleDriveFile: () => dispatch(clearGoogleDriveFile()),
+        // === Smalruby: End of clear Google Drive state on file upload ===
         closeFileMenu: () => dispatch(closeFileMenu()),
         // transition project state from loading to regular, and close
         // loading screen and file menu
