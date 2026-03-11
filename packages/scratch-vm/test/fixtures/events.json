@@ -89,7 +89,7 @@
         "name": "comment",
         "type": "comment_create",
         "commentId": "a comment",
-        "json": { "x": 10, "y": 20 }
+        "xy": {"x": 10, "y": 20}
     },
     "mockVariableBlock": {
         "name": "block",

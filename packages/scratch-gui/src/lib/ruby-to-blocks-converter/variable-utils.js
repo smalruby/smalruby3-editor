@@ -1,6 +1,6 @@
 import {defineMessages} from 'react-intl';
 import {Variable} from './constants';
-import * as Blockly from 'scratch-blocks';
+import Blockly from 'scratch-blocks';
 import {RubyToBlocksConverterError} from './errors';
 
 const messages = defineMessages({
@@ -84,7 +84,7 @@ const VariableUtils = {
 
             if (!variable) {
                 variable = {
-                    id: Blockly.utils.idGenerator.genUid(),
+                    id: Blockly.utils.genUid(),
                     name: transformedName,
                     originalName: varName,
                     scope: 'local', // Mark as local for internal tracking
@@ -114,7 +114,7 @@ const VariableUtils = {
             }
         } else {
             variable = {
-                id: Blockly.utils.idGenerator.genUid(),
+                id: Blockly.utils.genUid(),
                 name: varName,
                 scope: scope,
                 type: type,
@@ -156,7 +156,7 @@ const VariableUtils = {
         let broadcastMsg = this._context.broadcastMsgs[key];
         if (!broadcastMsg) {
             broadcastMsg = {
-                id: Blockly.utils.idGenerator.genUid(),
+                id: Blockly.utils.genUid(),
                 name: name,
                 scope: 'global'
             };
@@ -196,7 +196,7 @@ const VariableUtils = {
             );
         }
         procedure = {
-            id: Blockly.utils.idGenerator.genUid(),
+            id: Blockly.utils.genUid(),
             name: name,
             procCode: [name],
             argumentNames: [],

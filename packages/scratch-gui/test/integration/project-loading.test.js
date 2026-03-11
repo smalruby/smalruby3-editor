@@ -3,7 +3,6 @@ import SeleniumHelper from '../helpers/selenium-helper';
 import {FILE_MENU_XPATH} from '../helpers/menu-xpaths';
 
 const {
-    clickBlocksCategory,
     clickText,
     clickXpath,
     findByText,
@@ -86,14 +85,16 @@ describe('Loading scratch gui', () => {
             await clickText('Costumes');
             await clickXpath(FILE_MENU_XPATH);
             await clickXpath('//li[span[text()="New"]]');
-            await clickBlocksCategory('Operators');
+            await findByXpath('//div[@class="scratchCategoryMenu"]');
+            await clickText('Operators', scope.blocksTab);
         });
 
         test('Not logged in->made no changes to project->create new project should not show alert', async () => {
             await loadUri(uri);
             await clickXpath(FILE_MENU_XPATH);
             await clickXpath('//li[span[text()="New"]]');
-            await clickBlocksCategory('Operators');
+            await findByXpath('//*[div[@class="scratchCategoryMenu"]]');
+            await clickText('Operators', scope.blocksTab);
         });
 
         test.skip('Not logged in->made a change to project->create new project should show alert', async () => {
@@ -107,7 +108,8 @@ describe('Loading scratch gui', () => {
             driver.switchTo()
                 .alert()
                 .accept();
-            await clickBlocksCategory('Operators');
+            await findByXpath('//*[div[@class="scratchCategoryMenu"]]');
+            await clickText('Operators', scope.blocksTab);
         });
     });
 });
