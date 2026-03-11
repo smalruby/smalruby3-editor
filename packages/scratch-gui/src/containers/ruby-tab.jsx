@@ -687,6 +687,21 @@ class RubyTab extends React.Component {
             window.localStorage.setItem(AUTO_CORRECT_ENABLED_KEY, enabled);
         }
         this.setState({autoCorrectEnabled: enabled});
+
+        // When turning ON, immediately apply auto-correct to current content
+        if (enabled && this.editorRef) {
+            const value = this.editorRef.getValue();
+            if (value) {
+                const corrected = autoCorrect(
+                    value, this.state.autoCorrectSettings
+                );
+                if (corrected !== value) {
+                    this._isAutoCorrectUpdate = true;
+                    const model = this.editorRef.getModel();
+                    model.setValue(corrected);
+                }
+            }
+        }
     }
 
     handleOpenAutoCorrectSettings () {
