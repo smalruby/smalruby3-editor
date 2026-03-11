@@ -46,17 +46,63 @@ const buildFilename = function (projectTitle, spriteName) {
 };
 
 /**
+ * Fetches an SVG file and returns it as a data URI string.
+ * Results are cached so the same URL is only fetched once.
+ * @param {string} url - Relative or absolute URL to an SVG file
+ * @returns {Promise<string>} data URI (data:image/svg+xml;base64,...)
+ */
+const svgDataUriCache = {};
+const fetchSvgAsDataUri = async function (url) {
+    if (svgDataUriCache[url]) return svgDataUriCache[url];
+    const response = await fetch(url);
+    const text = await response.text();
+    const dataUri = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(text)))}`;
+    svgDataUriCache[url] = dataUri; // eslint-disable-line require-atomic-updates
+    return dataUri;
+};
+
+/**
+ * Replaces relative image hrefs in an SVG element with inlined data URIs.
+ * This is necessary because when the SVG is serialized to a blob, relative
+ * paths lose their base URL context and the images fail to load.
+ * @param {SVGElement} svgElement - SVG element containing <image> elements
+ * @returns {Promise<void>}
+ */
+const inlineImageHrefs = async function (svgElement) {
+    const images = svgElement.querySelectorAll('image');
+    const xlinkNS = 'http://www.w3.org/1999/xlink';
+    const promises = [];
+    for (const img of images) {
+        const href = img.getAttributeNS(xlinkNS, 'href') || img.getAttribute('href') || '';
+        if (href && !href.startsWith('data:')) {
+            promises.push(
+                fetchSvgAsDataUri(href).then(dataUri => {
+                    if (img.getAttributeNS(xlinkNS, 'href')) {
+                        img.setAttributeNS(xlinkNS, 'href', dataUri);
+                    } else {
+                        img.setAttribute('href', dataUri);
+                    }
+                })
+            );
+        }
+    }
+    await Promise.all(promises);
+};
+
+/**
  * Builds an SVG string that contains only the blocks from the workspace,
  * clipped to their bounding box with padding, on a white background.
+ * Relative image hrefs (e.g. green-flag.svg, rotate icons) are inlined
+ * as data URIs so they render correctly when the SVG is loaded as a blob.
  * @param {object} workspace
  * @param {{x: number, y: number, width: number, height: number}} bbox
  * @param {number} scale
  * @param {number} width - Canvas width in pixels
  * @param {number} height - Canvas height in pixels
  * @param {number} [padding]
- * @returns {string} Serialized SVG string
+ * @returns {Promise<string>} Serialized SVG string
  */
-const buildExportSVG = function (workspace, bbox, scale, width, height, padding = EXPORT_PADDING) {
+const buildExportSVG = async function (workspace, bbox, scale, width, height, padding = EXPORT_PADDING) {
     const svgNS = 'http://www.w3.org/2000/svg';
 
     const svg = document.createElementNS(svgNS, 'svg');
@@ -99,6 +145,9 @@ const buildExportSVG = function (workspace, bbox, scale, width, height, padding 
     const ty = ((-bbox.y) * scale) + padding;
     canvasClone.setAttribute('transform', `translate(${tx}, ${ty}) scale(${scale})`);
     svg.appendChild(canvasClone);
+
+    // Inline relative image hrefs as data URIs so they survive blob serialization
+    await inlineImageHrefs(svg);
 
     return new XMLSerializer().serializeToString(svg);
 };
@@ -150,7 +199,7 @@ const downloadBlocksAsImage = async function (workspace, projectTitle, spriteNam
 
     const scale = workspace.scale;
     const {width, height} = calculateCanvasDimensions(bbox, scale);
-    const svgStr = buildExportSVG(workspace, bbox, scale, width, height);
+    const svgStr = await buildExportSVG(workspace, bbox, scale, width, height);
     const canvas = await renderSVGToCanvas(svgStr, width, height);
 
     return new Promise(resolve => {
@@ -166,6 +215,7 @@ export {
     calculateCanvasDimensions,
     buildFilename,
     buildExportSVG,
+    inlineImageHrefs,
     downloadBlocksAsImage,
     EXPORT_PADDING
 };
