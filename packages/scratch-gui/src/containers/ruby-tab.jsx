@@ -21,10 +21,12 @@ import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
 
-import CompletionProviderManager from './ruby-tab/completion-provider-manager';
-import SnippetsCompleter from './ruby-tab/snippets-completer';
 import QuickFixProvider from './ruby-tab/quick-fix-provider';
-import {smalrubyLanguage, smalrubyLanguageConfiguration} from './ruby-tab/smalruby-mode';
+import {
+    registerCustomPasteAction,
+    setupPasteDuplicateHider,
+    registerLanguageAndProviders
+} from './ruby-tab/editor-setup';
 
 import RubyDownloader from './ruby-downloader.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
@@ -337,106 +339,21 @@ class RubyTab extends React.Component {
         window.monacoEditor = editor;
         window.monaco = monaco;
 
-        // Custom paste action for Monaco Editor v0.55.1 standalone environment
-        editor.addAction({
-            id: 'smalruby.paste',
-            label: this.props.intl.formatMessage({
-                id: 'gui.rubyTab.paste',
-                defaultMessage: 'Paste'
-            }),
-            contextMenuGroupId: '9_cutcopypaste',
-            contextMenuOrder: 4,
-            precondition: '!editorReadonly',
-            run: async ed => {
-                try {
-                    const text = await navigator.clipboard.readText();
-                    if (text) {
-                        ed.trigger('keyboard', 'type', {text});
-                    }
-                } catch (err) {
-                    // eslint-disable-next-line no-console
-                    console.error('Smalruby custom paste error:', err);
-                }
-            }
+        // Set up custom paste action and hide broken duplicate
+        const pasteLabel = this.props.intl.formatMessage({
+            id: 'gui.rubyTab.paste',
+            defaultMessage: 'Paste'
         });
+        registerCustomPasteAction(editor, pasteLabel);
+        const observers = setupPasteDuplicateHider();
+        this.pasteMutationObserver = observers.pasteMutationObserver;
+        this.bodyMutationObserver = observers.bodyMutationObserver;
 
-        // Hide original (broken) Paste action in Monaco Editor v0.55.1 context menu.
-        // Monaco renders context menus in a Shadow DOM (.shadow-root-host).
-        // The aria-label is on .action-label (child), NOT on .action-item itself.
-        // We use a MutationObserver to hide the broken original paste item each time
-        // the menu opens. We also call hideDuplicatePaste() immediately on setup because
-        // the shadow host may be created lazily (on first right-click), at which point
-        // menu items are already in the DOM before the observer starts watching.
-        const hideDuplicatePaste = shadowRoot => {
-            const pasteLabels = Array.from(shadowRoot.querySelectorAll(
-                '.action-label[aria-label="Paste"], .action-label[aria-label="貼り付け"]'
-            ));
-            if (pasteLabels.length >= 2) {
-                // Hide the first item (original broken Monaco paste action)
-                const firstPasteItem = pasteLabels[0].closest('.action-item');
-                if (firstPasteItem) {
-                    firstPasteItem.style.display = 'none';
-                }
-            }
-        };
-
-        const setupPasteMutationObserver = host => {
-            if (this.pasteMutationObserver) return;
-
-            this.pasteMutationObserver = new MutationObserver(() => {
-                hideDuplicatePaste(host.shadowRoot);
-            });
-            this.pasteMutationObserver.observe(host.shadowRoot, {
-                childList: true,
-                subtree: true
-            });
-
-            // Run immediately in case menu items are already in the DOM
-            // (this happens when the shadow host is created on first right-click,
-            // at which point all items are added before our observer starts watching)
-            hideDuplicatePaste(host.shadowRoot);
-        };
-
-        const shadowRootHost = document.querySelector('.shadow-root-host');
-        if (shadowRootHost && shadowRootHost.shadowRoot) {
-            setupPasteMutationObserver(shadowRootHost);
-        } else {
-            this.bodyMutationObserver = new MutationObserver(() => {
-                const host = document.querySelector('.shadow-root-host');
-                if (host && host.shadowRoot) {
-                    setupPasteMutationObserver(host);
-                    this.bodyMutationObserver.disconnect();
-                    this.bodyMutationObserver = null;
-                }
-            });
-            this.bodyMutationObserver.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-        }
-
-        // Register Smalruby language
-        monaco.languages.register({id: 'smalruby'});
-        monaco.languages.setMonarchTokensProvider('smalruby', smalrubyLanguage);
-        monaco.languages.setLanguageConfiguration('smalruby', smalrubyLanguageConfiguration);
-
-        if (!this.completionProviderManager) {
-            this.completionProviderManager = new CompletionProviderManager();
-            const completer = new SnippetsCompleter(this.props.vm);
-            this.completionProviderManager.register(monaco, 'smalruby', {
-                provideCompletionItems: (model, position, context, token) => (
-                    completer.provideCompletionItems(model, position, context, token, monaco)
-                )
-            });
-        }
-
-        // Register quick fix provider for conversion errors
-        this.quickFixProvider.setVM(this.props.vm);
-        monaco.languages.registerCodeActionProvider('smalruby', {
-            provideCodeActions: (model, range, ctx, token) => (
-                this.quickFixProvider.provideCodeActions(model, range, ctx, token)
-            )
-        });
+        // Register language, completion, and quick fix providers
+        this.completionProviderManager = registerLanguageAndProviders(
+            monaco, editor, this.props.vm,
+            this.quickFixProvider, this.completionProviderManager
+        );
 
         if (this.containerRef) {
             this.resizeObserver = new ResizeObserver(() => {
