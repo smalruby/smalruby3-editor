@@ -357,6 +357,16 @@ export default {
     'gui.rubyToolbar.aiAssistant': 'スモウルビーせんせい (Gemini)',
     'gui.rubyToolbar.furiganaOn': 'ふりがなをかくす',
     'gui.rubyToolbar.furiganaOff': 'ふりがなをみせる',
+    'gui.rubyToolbar.autoCorrectOn': 'じどうちかんをオフにする',
+    'gui.rubyToolbar.autoCorrectOff': 'じどうちかんをオンにする',
+    'gui.rubyToolbar.moreOptions': 'そのたのオプション',
+    'gui.rubyToolbar.autoCorrectSettings': 'じどうちかんせってい',
+    'gui.autoCorrectModal.title': 'じどうちかんせってい',
+    'gui.autoCorrectModal.fullwidthNumbers': 'ぜんかくすうじ → はんかくすうじ',
+    'gui.autoCorrectModal.fullwidthAlpha': 'ぜんかくアルファベット → はんかくアルファベット',
+    'gui.autoCorrectModal.fullwidthSymbols': 'ぜんかくきごう → はんかくきごう',
+    'gui.autoCorrectModal.fullwidthSpace': 'ぜんかくスペース → はんかくスペース',
+    'gui.autoCorrectModal.replaceInStrings': 'もじれつもおきかえる',
 
     // Gemini modal
     'gui.geminiModal.title': 'スモウルビーせんせい (Gemini)',

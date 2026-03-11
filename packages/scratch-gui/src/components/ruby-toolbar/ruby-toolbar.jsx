@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useRef, useEffect} from 'react';
 import PropTypes from 'prop-types';
 import {defineMessages, useIntl} from 'react-intl';
 import VM from '@smalruby/scratch-vm';
@@ -88,6 +88,16 @@ const messages = defineMessages({
         defaultMessage: 'Enable auto-correct',
         description: 'Tooltip for auto-correct toggle button when OFF'
     },
+    moreOptions: {
+        id: 'gui.rubyToolbar.moreOptions',
+        defaultMessage: 'More options',
+        description: 'Tooltip for three-dot menu button'
+    },
+    autoCorrectSettings: {
+        id: 'gui.rubyToolbar.autoCorrectSettings',
+        defaultMessage: 'Auto-Correct Settings',
+        description: 'Label for auto-correct settings menu item'
+    },
     stage: {
         id: 'gui.rubyToolbar.stage',
         defaultMessage: 'Stage',
@@ -100,6 +110,23 @@ const RubyToolbar = props => {
     const [commandValue, setCommandValue] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
     const [filteredTargets, setFilteredTargets] = useState([]);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const moreMenuRef = useRef(null);
+
+    // Close more menu when clicking outside
+    useEffect(() => {
+        if (!showMoreMenu) return () => {};
+        const handleClickOutside = e => {
+            if (moreMenuRef.current &&
+                !moreMenuRef.current.contains(e.target)) {
+                setShowMoreMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showMoreMenu]);
 
     const getSortedSprites = useCallback(() => {
         if (!props.vm || !props.vm.runtime) {
@@ -306,6 +333,17 @@ const RubyToolbar = props => {
         }
         if (props.onToggleAutoCorrect) {
             props.onToggleAutoCorrect();
+        }
+    }, [props]);
+
+    const handleToggleMoreMenu = useCallback(() => {
+        setShowMoreMenu(prev => !prev);
+    }, []);
+
+    const handleOpenAutoCorrectSettings = useCallback(() => {
+        setShowMoreMenu(false);
+        if (props.onOpenAutoCorrectSettings) {
+            props.onOpenAutoCorrectSettings();
         }
     }, [props]);
 
@@ -519,7 +557,7 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* Download Part */}
+            {/* Download & More Part */}
             <div className={styles.toolbarPart}>
                 <button
                     className={styles.iconButton}
@@ -532,6 +570,34 @@ const RubyToolbar = props => {
                         alt=""
                     />
                 </button>
+                <div
+                    className={styles.moreMenuWrapper}
+                    ref={moreMenuRef}
+                >
+                    <button
+                        className={styles.iconButton}
+                        onClick={handleToggleMoreMenu}
+                        aria-label={intl.formatMessage(messages.moreOptions)}
+                        title={intl.formatMessage(messages.moreOptions)}
+                    >
+                        <span className={styles.moreIcon}>{'⋯'}</span>
+                    </button>
+                    {showMoreMenu && (
+                        <div className={styles.moreMenu}>
+                            <div
+                                className={styles.moreMenuItem}
+                                onClick={handleOpenAutoCorrectSettings}
+                            >
+                                <span className={styles.moreMenuIcon}>
+                                    {'🔄'}
+                                </span>
+                                {intl.formatMessage(
+                                    messages.autoCorrectSettings
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -552,7 +618,8 @@ RubyToolbar.propTypes = {
     furiganaEnabled: PropTypes.bool,
     onToggleFurigana: PropTypes.func,
     autoCorrectEnabled: PropTypes.bool,
-    onToggleAutoCorrect: PropTypes.func
+    onToggleAutoCorrect: PropTypes.func,
+    onOpenAutoCorrectSettings: PropTypes.func
 };
 
 export default RubyToolbar;

@@ -357,6 +357,16 @@ export default {
     'gui.rubyToolbar.aiAssistant': 'スモウルビー先生 (Gemini)',
     'gui.rubyToolbar.furiganaOn': 'ふりがなをかくす',
     'gui.rubyToolbar.furiganaOff': 'ふりがなをみせる',
+    'gui.rubyToolbar.autoCorrectOn': '自動置換をオフにする',
+    'gui.rubyToolbar.autoCorrectOff': '自動置換をオンにする',
+    'gui.rubyToolbar.moreOptions': 'その他のオプション',
+    'gui.rubyToolbar.autoCorrectSettings': '自動置換設定',
+    'gui.autoCorrectModal.title': '自動置換設定',
+    'gui.autoCorrectModal.fullwidthNumbers': '全角数字 → 半角数字',
+    'gui.autoCorrectModal.fullwidthAlpha': '全角アルファベット → 半角アルファベット',
+    'gui.autoCorrectModal.fullwidthSymbols': '全角記号 → 半角記号',
+    'gui.autoCorrectModal.fullwidthSpace': '全角スペース → 半角スペース',
+    'gui.autoCorrectModal.replaceInStrings': '文字列も置き換える',
 
     // Gemini modal
     'gui.geminiModal.title': 'スモウルビー先生 (Gemini)',
