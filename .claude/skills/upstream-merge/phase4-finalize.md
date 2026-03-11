@@ -13,10 +13,18 @@
     "mergeCommit": "<Phase 3 で作成した merge commit hash>",
     "notes": "X commits merged from upstream develop"
   },
+  "postMergeReverts": [],
   "previousMerges": [
     { "(前回の lastMerge をここに移動)" }
   ]
 }
+```
+
+### `postMergeReverts` の処理
+
+- **方針A（upstream を受け入れた）**: revert が解消されたので `postMergeReverts` を空配列 `[]` にする
+- **方針B（revert を維持した）**: `postMergeReverts` はそのまま残す（次回 merge でも参照される）
+- 一部だけ解消された場合: 解消されたエントリのみ削除し、残りは保持する
 ```
 
 ### Commit and Push
