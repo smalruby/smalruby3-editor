@@ -15,6 +15,7 @@ import iconForward from './icon--forward.svg';
 import iconDownload from './icon--download.svg';
 import iconAI from './icon--ai.svg';
 import iconFurigana from './icon--furigana.svg';
+import iconAutoCorrect from './icon--auto-correct.svg';
 
 const messages = defineMessages({
     executeLine: {
@@ -76,6 +77,16 @@ const messages = defineMessages({
         id: 'gui.rubyToolbar.furiganaOff',
         defaultMessage: 'Show furigana',
         description: 'Tooltip for furigana toggle button when OFF'
+    },
+    autoCorrectOn: {
+        id: 'gui.rubyToolbar.autoCorrectOn',
+        defaultMessage: 'Disable auto-correct',
+        description: 'Tooltip for auto-correct toggle button when ON'
+    },
+    autoCorrectOff: {
+        id: 'gui.rubyToolbar.autoCorrectOff',
+        defaultMessage: 'Enable auto-correct',
+        description: 'Tooltip for auto-correct toggle button when OFF'
     },
     stage: {
         id: 'gui.rubyToolbar.stage',
@@ -289,6 +300,15 @@ const RubyToolbar = props => {
         }
     }, [props]);
 
+    const handleToggleAutoCorrect = useCallback(() => {
+        if (props.onDismissBubble) {
+            props.onDismissBubble();
+        }
+        if (props.onToggleAutoCorrect) {
+            props.onToggleAutoCorrect();
+        }
+    }, [props]);
+
     const handleExecuteLine = useCallback(() => {
         if (!props.editorRef) {
             return;
@@ -400,7 +420,7 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* Furigana Toggle */}
+            {/* Furigana Toggle & Auto Correct Toggle */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
                 <button
                     className={`${styles.furiganaButton} ${props.furiganaEnabled ? styles.furiganaButtonActive : ''}`}
@@ -411,6 +431,24 @@ const RubyToolbar = props => {
                 >
                     <img
                         src={iconFurigana}
+                        alt=""
+                    />
+                </button>
+                <button
+                    className={`${styles.autoCorrectButton} ${
+                        props.autoCorrectEnabled ? styles.autoCorrectButtonActive : ''
+                    }`}
+                    onClick={handleToggleAutoCorrect}
+                    aria-label={intl.formatMessage(
+                        props.autoCorrectEnabled ? messages.autoCorrectOn : messages.autoCorrectOff
+                    )}
+                    aria-pressed={props.autoCorrectEnabled}
+                    title={intl.formatMessage(
+                        props.autoCorrectEnabled ? messages.autoCorrectOn : messages.autoCorrectOff
+                    )}
+                >
+                    <img
+                        src={iconAutoCorrect}
                         alt=""
                     />
                 </button>
@@ -512,7 +550,9 @@ RubyToolbar.propTypes = {
     canUndo: PropTypes.bool,
     canRedo: PropTypes.bool,
     furiganaEnabled: PropTypes.bool,
-    onToggleFurigana: PropTypes.func
+    onToggleFurigana: PropTypes.func,
+    autoCorrectEnabled: PropTypes.bool,
+    onToggleAutoCorrect: PropTypes.func
 };
 
 export default RubyToolbar;

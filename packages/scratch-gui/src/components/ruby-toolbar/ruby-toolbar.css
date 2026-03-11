@@ -199,3 +199,31 @@
     background: linear-gradient(to bottom, #e8f8ee, #c2eacc);
     box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.7), 0 0 10px 4px rgba(76, 175, 80, 0.35);
 }
+
+.autoCorrectButton {
+    width: 2rem;
+    height: 2rem;
+    padding: 2px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    border-radius: $form-radius;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.2s, opacity 0.2s;
+}
+
+.autoCorrectButton img {
+    width: 28px;
+    height: 28px;
+}
+
+.autoCorrectButton:hover:not(:disabled) {
+    opacity: 0.85;
+}
+
+.autoCorrectButtonActive {
+    background: linear-gradient(to bottom, #e8f8ee, #c2eacc);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.7), 0 0 10px 4px rgba(76, 175, 80, 0.35);
+}

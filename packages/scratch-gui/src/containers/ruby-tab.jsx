@@ -41,6 +41,7 @@ import {getPrism, loadPrism} from '../lib/prism-parser';
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
 const DEFAULT_FONT_SIZE = 16;
 const FURIGANA_ENABLED_KEY = 'smalruby:furiganaEnabled';
+const AUTO_CORRECT_ENABLED_KEY = 'smalruby:autoCorrectEnabled';
 
 class RubyTab extends React.Component {
     constructor (props) {
@@ -65,6 +66,7 @@ class RubyTab extends React.Component {
             'handleDismissBubble',
             'handleApplyGeminiCode',
             'handleToggleFurigana',
+            'handleToggleAutoCorrect',
             'updateUndoRedoState'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
@@ -87,12 +89,15 @@ class RubyTab extends React.Component {
         this.furiganaLastMs = 0; // last measured render time, used for adaptive debounce
         const savedFurigana = typeof window !== 'undefined' && window.localStorage ?
             window.localStorage.getItem(FURIGANA_ENABLED_KEY) !== 'false' : true;
+        const savedAutoCorrect = typeof window !== 'undefined' && window.localStorage ?
+            window.localStorage.getItem(AUTO_CORRECT_ENABLED_KEY) !== 'false' : true;
         this.state = {
             runningBlockId: null,
             executingLine: null,
             canUndo: false,
             canRedo: false,
-            furiganaEnabled: savedFurigana
+            furiganaEnabled: savedFurigana,
+            autoCorrectEnabled: savedAutoCorrect
         };
 
         loadMonacoLocale(props.locale);
@@ -616,6 +621,14 @@ class RubyTab extends React.Component {
         this.props.onChange(code);
     }
 
+    handleToggleAutoCorrect () {
+        const enabled = !this.state.autoCorrectEnabled;
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(AUTO_CORRECT_ENABLED_KEY, enabled);
+        }
+        this.setState({autoCorrectEnabled: enabled});
+    }
+
     handleToggleFurigana () {
         const enabled = !this.state.furiganaEnabled;
         if (typeof window !== 'undefined' && window.localStorage) {
@@ -839,6 +852,8 @@ class RubyTab extends React.Component {
                         canRedo={this.state.canRedo}
                         furiganaEnabled={this.state.furiganaEnabled}
                         onToggleFurigana={this.handleToggleFurigana}
+                        autoCorrectEnabled={this.state.autoCorrectEnabled}
+                        onToggleAutoCorrect={this.handleToggleAutoCorrect}
                     />
                     <div className={styles.editorWrapper}>
                         <Editor
