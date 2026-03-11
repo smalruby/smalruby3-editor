@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
+  <!-- Fullwidth A -->
+  <text x="1" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#e04040">Ａ</text>
+  <!-- Arrow -->
+  <path d="M13 14 L17 14" stroke="#555" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M15.5 11.5 L17.5 14 L15.5 16.5" stroke="#555" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Halfwidth A -->
+  <text x="18" y="20" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#4c97ff">A</text>
+</svg>

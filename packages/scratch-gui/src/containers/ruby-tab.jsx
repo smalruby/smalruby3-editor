@@ -34,6 +34,8 @@ import GeminiModalHOC from './gemini-modal-hoc.jsx';
 import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
 import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
+import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-modal.jsx';
+import {autoCorrect, defaultSettings as defaultAutoCorrectSettings} from '../lib/auto-correct';
 import styles from './ruby-tab/ruby-tab.css';
 import {loadMonacoLocale} from '../lib/monaco-i18n-helper';
 import {getPrism, loadPrism} from '../lib/prism-parser';
@@ -41,6 +43,8 @@ import {getPrism, loadPrism} from '../lib/prism-parser';
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
 const DEFAULT_FONT_SIZE = 16;
 const FURIGANA_ENABLED_KEY = 'smalruby:furiganaEnabled';
+const AUTO_CORRECT_ENABLED_KEY = 'smalruby:autoCorrectEnabled';
+const AUTO_CORRECT_SETTINGS_KEY = 'smalruby:autoCorrectSettings';
 
 class RubyTab extends React.Component {
     constructor (props) {
@@ -65,6 +69,10 @@ class RubyTab extends React.Component {
             'handleDismissBubble',
             'handleApplyGeminiCode',
             'handleToggleFurigana',
+            'handleToggleAutoCorrect',
+            'handleOpenAutoCorrectSettings',
+            'handleCloseAutoCorrectSettings',
+            'handleAutoCorrectSettingChange',
             'updateUndoRedoState'
         ]);
         this.mainTooltipId = 'ruby-downloader-tooltip';
@@ -87,12 +95,29 @@ class RubyTab extends React.Component {
         this.furiganaLastMs = 0; // last measured render time, used for adaptive debounce
         const savedFurigana = typeof window !== 'undefined' && window.localStorage ?
             window.localStorage.getItem(FURIGANA_ENABLED_KEY) !== 'false' : true;
+        const savedAutoCorrect = typeof window !== 'undefined' && window.localStorage ?
+            window.localStorage.getItem(AUTO_CORRECT_ENABLED_KEY) !== 'false' : true;
+        let savedAutoCorrectSettings = defaultAutoCorrectSettings;
+        if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+                const raw = window.localStorage.getItem(AUTO_CORRECT_SETTINGS_KEY);
+                if (raw) {
+                    savedAutoCorrectSettings = {
+                        ...defaultAutoCorrectSettings,
+                        ...JSON.parse(raw)
+                    };
+                }
+            } catch (_e) { /* use defaults */ }
+        }
         this.state = {
             runningBlockId: null,
             executingLine: null,
             canUndo: false,
             canRedo: false,
-            furiganaEnabled: savedFurigana
+            furiganaEnabled: savedFurigana,
+            autoCorrectEnabled: savedAutoCorrect,
+            autoCorrectSettings: savedAutoCorrectSettings,
+            showAutoCorrectModal: false
         };
 
         loadMonacoLocale(props.locale);
@@ -249,6 +274,10 @@ class RubyTab extends React.Component {
         }
         window.smalruby.stage = vm.runtime ? vm.runtime.getTargetForStage() : null;
         window.smalruby.runtime = vm.runtime;
+        window.smalruby.autoCorrect = {
+            enabled: this.state.autoCorrectEnabled,
+            settings: this.state.autoCorrectSettings
+        };
     }
 
     clearErrors () {
@@ -487,6 +516,42 @@ class RubyTab extends React.Component {
     }
 
     handleEditorChange (value) {
+        if (this._isAutoCorrectUpdate) {
+            // Prevent infinite loop: this change was caused by auto-correct itself
+            this._isAutoCorrectUpdate = false;
+            this.props.onChange(value);
+            return;
+        }
+
+        if (this.state.autoCorrectEnabled && this.editorRef) {
+            const corrected = autoCorrect(value, this.state.autoCorrectSettings);
+            if (corrected !== value) {
+                // Apply corrected text while preserving cursor position
+                this._isAutoCorrectUpdate = true;
+                const position = this.editorRef.getPosition();
+                const model = this.editorRef.getModel();
+                // Calculate cursor offset adjustment
+                const beforeCursor = value.substring(
+                    0, model.getOffsetAt(position)
+                );
+                const correctedBeforeCursor = autoCorrect(
+                    beforeCursor, this.state.autoCorrectSettings
+                );
+                const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
+
+                // Use setValue to replace the entire content
+                model.setValue(corrected);
+
+                // Restore cursor position adjusted for character width changes
+                const newOffset = model.getOffsetAt(position) - offsetDiff;
+                const newPosition = model.getPositionAt(
+                    Math.max(0, newOffset)
+                );
+                this.editorRef.setPosition(newPosition);
+                return;
+            }
+        }
+
         this.props.onChange(value);
     }
 
@@ -614,6 +679,50 @@ class RubyTab extends React.Component {
 
     handleApplyGeminiCode (code) {
         this.props.onChange(code);
+    }
+
+    handleToggleAutoCorrect () {
+        const enabled = !this.state.autoCorrectEnabled;
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(AUTO_CORRECT_ENABLED_KEY, enabled);
+        }
+        this.setState({autoCorrectEnabled: enabled});
+
+        // When turning ON, immediately apply auto-correct to current content
+        if (enabled && this.editorRef) {
+            const value = this.editorRef.getValue();
+            if (value) {
+                const corrected = autoCorrect(
+                    value, this.state.autoCorrectSettings
+                );
+                if (corrected !== value) {
+                    this._isAutoCorrectUpdate = true;
+                    const model = this.editorRef.getModel();
+                    model.setValue(corrected);
+                }
+            }
+        }
+    }
+
+    handleOpenAutoCorrectSettings () {
+        this.setState({showAutoCorrectModal: true});
+    }
+
+    handleCloseAutoCorrectSettings () {
+        this.setState({showAutoCorrectModal: false});
+    }
+
+    handleAutoCorrectSettingChange (key, value) {
+        this.setState(prevState => {
+            const newSettings = {...prevState.autoCorrectSettings, [key]: value};
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem(
+                    AUTO_CORRECT_SETTINGS_KEY,
+                    JSON.stringify(newSettings)
+                );
+            }
+            return {autoCorrectSettings: newSettings};
+        });
     }
 
     handleToggleFurigana () {
@@ -839,6 +948,9 @@ class RubyTab extends React.Component {
                         canRedo={this.state.canRedo}
                         furiganaEnabled={this.state.furiganaEnabled}
                         onToggleFurigana={this.handleToggleFurigana}
+                        autoCorrectEnabled={this.state.autoCorrectEnabled}
+                        onToggleAutoCorrect={this.handleToggleAutoCorrect}
+                        onOpenAutoCorrectSettings={this.handleOpenAutoCorrectSettings}
                     />
                     <div className={styles.editorWrapper}>
                         <Editor
@@ -903,6 +1015,13 @@ class RubyTab extends React.Component {
                         />
                     </button>
                 </div>
+                {this.state.showAutoCorrectModal && (
+                    <AutoCorrectModal
+                        settings={this.state.autoCorrectSettings}
+                        onSettingChange={this.handleAutoCorrectSettingChange}
+                        onRequestClose={this.handleCloseAutoCorrectSettings}
+                    />
+                )}
             </>
         );
     }
