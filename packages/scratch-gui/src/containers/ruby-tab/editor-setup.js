@@ -35,7 +35,8 @@ const registerCustomPasteAction = (editor, pasteLabel) => {
  * Hide the original (broken) Paste action in Monaco Editor v0.55.1 context menu.
  * Monaco renders context menus in a Shadow DOM (.shadow-root-host).
  * Returns MutationObserver references for cleanup.
- * @returns {{ pasteMutationObserver: MutationObserver|null, bodyMutationObserver: MutationObserver|null }} Observer refs for cleanup.
+ * @returns {object} Observer refs for cleanup:
+ *   { pasteMutationObserver: MutationObserver|null, bodyMutationObserver: MutationObserver|null }.
  */
 const setupPasteDuplicateHider = () => {
     let pasteMutationObserver = null;

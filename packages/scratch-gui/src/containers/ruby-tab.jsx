@@ -49,6 +49,13 @@ import {
     AUTO_CORRECT_SETTINGS_KEY
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
+import {
+    clearDecoration,
+    highlightLine,
+    highlightLineRange,
+    findExecutableLine
+} from './ruby-tab/execution-highlighter';
+import {showBubble, dismissBubble, removeBubble} from './ruby-tab/visual-report-bubble';
 
 class RubyTab extends React.Component {
     constructor (props) {
@@ -233,11 +240,10 @@ class RubyTab extends React.Component {
         this.props.vm.removeListener('SCRIPT_GLOW_OFF', this.handleScriptGlowOff);
         this.props.vm.removeListener('VISUAL_REPORT', this.handleVisualReport);
         this.handleDismissBubble();
-        if (this.bubbleRef) {
-            document.body.removeChild(this.bubbleRef);
-            this.bubbleRef = null;
-        }
-        this.clearExecutingLineHighlight();
+        removeBubble(this.bubbleRef);
+        this.bubbleRef = null;
+        clearDecoration(this.executingLineDecoration);
+        this.executingLineDecoration = null;
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
         }
@@ -542,7 +548,8 @@ class RubyTab extends React.Component {
     handleScriptGlowOff (data) {
         if (this.state.runningBlockId === data.id) {
             this.setState({runningBlockId: null, executingLine: null});
-            this.clearExecutingLineHighlight();
+            clearDecoration(this.executingLineDecoration);
+            this.executingLineDecoration = null;
         }
     }
 
@@ -550,40 +557,11 @@ class RubyTab extends React.Component {
         if (this.props.activeTabIndex !== RUBY_TAB_INDEX) {
             return;
         }
-
-        const button = document.querySelector('button[aria-label*="カーソル行を実行"]') ||
-                       document.querySelector('button[aria-label*="Execute current line"]') ||
-                       document.querySelector('button[aria-label*="実行を停止"]') ||
-                       document.querySelector('button[aria-label*="Stop execution"]');
-        if (!button) {
-            return;
-        }
-
-        const rect = button.getBoundingClientRect();
-
-        if (!this.bubbleRef) {
-            this.bubbleRef = document.createElement('div');
-            this.bubbleRef.className = styles.valueReportBubble;
-            document.body.appendChild(this.bubbleRef);
-        }
-
-        this.bubbleRef.textContent = String(data.value);
-
-        const x = rect.right + 10;
-        const y = rect.top;
-
-        this.bubbleRef.style.left = `${x}px`;
-        this.bubbleRef.style.top = `${y}px`;
-
-        requestAnimationFrame(() => {
-            this.bubbleRef.classList.add(styles.visible);
-        });
+        this.bubbleRef = showBubble(this.bubbleRef, data.value);
     }
 
     handleDismissBubble () {
-        if (this.bubbleRef) {
-            this.bubbleRef.classList.remove(styles.visible);
-        }
+        dismissBubble(this.bubbleRef);
     }
 
     handleApplyGeminiCode (code) {
@@ -686,50 +664,18 @@ class RubyTab extends React.Component {
         }, delay);
     }
 
-    clearExecutingLineHighlight () {
-        if (this.executingLineDecoration) {
-            this.executingLineDecoration.clear();
-            this.executingLineDecoration = null;
-        }
-    }
-
     highlightExecutingLine (lineNumber) {
-        if (!this.editorRef || !this.monacoRef) {
-            return;
-        }
-
-        this.clearExecutingLineHighlight();
-
-        this.executingLineDecoration = this.editorRef.createDecorationsCollection([{
-            range: new this.monacoRef.Range(lineNumber, 1, lineNumber, 1),
-            options: {
-                isWholeLine: true,
-                className: 'executing-line'
-            }
-        }]);
-
-        // Scroll to the executing line
-        this.editorRef.revealLineInCenter(lineNumber);
+        if (!this.editorRef || !this.monacoRef) return;
+        this.executingLineDecoration = highlightLine(
+            this.editorRef, this.monacoRef, lineNumber, this.executingLineDecoration
+        );
     }
 
     highlightExecutingLineRange (startLine, endLine) {
-        if (!this.editorRef || !this.monacoRef) {
-            return;
-        }
-
-        this.clearExecutingLineHighlight();
-
-        this.executingLineDecoration = this.editorRef.createDecorationsCollection([{
-            range: new this.monacoRef.Range(startLine, 1, endLine, 1),
-            options: {
-                isWholeLine: true,
-                className: 'executing-line'
-            }
-        }]);
-
-        // Scroll to reveal the range (center on the middle line)
-        const middleLine = Math.floor((startLine + endLine) / 2);
-        this.editorRef.revealLineInCenter(middleLine);
+        if (!this.editorRef || !this.monacoRef) return;
+        this.executingLineDecoration = highlightLineRange(
+            this.editorRef, this.monacoRef, startLine, endLine, this.executingLineDecoration
+        );
     }
 
     async handleExecuteLine (lineNumber) {
@@ -747,20 +693,9 @@ class RubyTab extends React.Component {
 
         // Find the actual line to execute (skip empty lines)
         const rubyCode = this.props.rubyCode.code;
-        const lines = rubyCode.split('\n');
-        let targetLine = lineNumber;
+        const targetLine = findExecutableLine(rubyCode, lineNumber);
 
-        // If the current line is empty or whitespace-only, search upwards for a non-empty line
-        while (targetLine >= 1) {
-            const line = lines[targetLine - 1]; // Convert to 0-indexed
-            if (line && line.trim() !== '') {
-                break;
-            }
-            targetLine--;
-        }
-
-        // If no non-empty line found, cannot execute
-        if (targetLine < 1) {
+        if (!targetLine) {
             // eslint-disable-next-line no-console
             console.warn('[handleExecuteLine] No non-empty line found');
             this.props.onShowAlert('cannotExecuteLine');
