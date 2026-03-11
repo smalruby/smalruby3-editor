@@ -39,12 +39,14 @@ import {autoCorrect, defaultSettings as defaultAutoCorrectSettings} from '../lib
 import styles from './ruby-tab/ruby-tab.css';
 import {loadMonacoLocale} from '../lib/monaco-i18n-helper';
 import {getPrism, loadPrism} from '../lib/prism-parser';
-
-const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48];
-const DEFAULT_FONT_SIZE = 16;
-const FURIGANA_ENABLED_KEY = 'smalruby:furiganaEnabled';
-const AUTO_CORRECT_ENABLED_KEY = 'smalruby:autoCorrectEnabled';
-const AUTO_CORRECT_SETTINGS_KEY = 'smalruby:autoCorrectSettings';
+import {
+    FONT_SIZES,
+    DEFAULT_FONT_SIZE,
+    FURIGANA_ENABLED_KEY,
+    AUTO_CORRECT_ENABLED_KEY,
+    AUTO_CORRECT_SETTINGS_KEY
+} from './ruby-tab/constants';
+import updateDebugGlobals from './ruby-tab/debug-globals';
 
 class RubyTab extends React.Component {
     constructor (props) {
@@ -264,20 +266,10 @@ class RubyTab extends React.Component {
     }
 
     _updateDebugGlobals () {
-        if (!window.smalruby) window.smalruby = {};
-        const vm = this.props.vm;
-        window.smalruby.vm = vm;
-        if (vm.editingTarget) {
-            window.smalruby.sprite = vm.editingTarget;
-            window.smalruby.blocks = vm.editingTarget.blocks;
-            window.smalruby.comments = vm.editingTarget.comments;
-        }
-        window.smalruby.stage = vm.runtime ? vm.runtime.getTargetForStage() : null;
-        window.smalruby.runtime = vm.runtime;
-        window.smalruby.autoCorrect = {
+        updateDebugGlobals(this.props.vm, {
             enabled: this.state.autoCorrectEnabled,
             settings: this.state.autoCorrectSettings
-        };
+        });
     }
 
     clearErrors () {
