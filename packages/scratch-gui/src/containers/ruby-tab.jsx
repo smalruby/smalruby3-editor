@@ -35,7 +35,7 @@ import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
 import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
 import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-modal.jsx';
-import {defaultSettings as defaultAutoCorrectSettings} from '../lib/auto-correct';
+import {autoCorrect, defaultSettings as defaultAutoCorrectSettings} from '../lib/auto-correct';
 import styles from './ruby-tab/ruby-tab.css';
 import {loadMonacoLocale} from '../lib/monaco-i18n-helper';
 import {getPrism, loadPrism} from '../lib/prism-parser';
@@ -274,6 +274,10 @@ class RubyTab extends React.Component {
         }
         window.smalruby.stage = vm.runtime ? vm.runtime.getTargetForStage() : null;
         window.smalruby.runtime = vm.runtime;
+        window.smalruby.autoCorrect = {
+            enabled: this.state.autoCorrectEnabled,
+            settings: this.state.autoCorrectSettings
+        };
     }
 
     clearErrors () {
@@ -512,6 +516,42 @@ class RubyTab extends React.Component {
     }
 
     handleEditorChange (value) {
+        if (this._isAutoCorrectUpdate) {
+            // Prevent infinite loop: this change was caused by auto-correct itself
+            this._isAutoCorrectUpdate = false;
+            this.props.onChange(value);
+            return;
+        }
+
+        if (this.state.autoCorrectEnabled && this.editorRef) {
+            const corrected = autoCorrect(value, this.state.autoCorrectSettings);
+            if (corrected !== value) {
+                // Apply corrected text while preserving cursor position
+                this._isAutoCorrectUpdate = true;
+                const position = this.editorRef.getPosition();
+                const model = this.editorRef.getModel();
+                // Calculate cursor offset adjustment
+                const beforeCursor = value.substring(
+                    0, model.getOffsetAt(position)
+                );
+                const correctedBeforeCursor = autoCorrect(
+                    beforeCursor, this.state.autoCorrectSettings
+                );
+                const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
+
+                // Use setValue to replace the entire content
+                model.setValue(corrected);
+
+                // Restore cursor position adjusted for character width changes
+                const newOffset = model.getOffsetAt(position) - offsetDiff;
+                const newPosition = model.getPositionAt(
+                    Math.max(0, newOffset)
+                );
+                this.editorRef.setPosition(newPosition);
+                return;
+            }
+        }
+
         this.props.onChange(value);
     }
 
