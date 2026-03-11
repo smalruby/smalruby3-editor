@@ -49,6 +49,24 @@ describe('auto-correct integration', () => {
             expect(result).toBe('ハッシュ = {ABC: 123}');
         });
 
+        test('should fix smart double quotes in puts statement', () => {
+            const input = 'puts \u201Cハロー\u201D';
+            const result = autoCorrect(input, defaultSettings);
+            expect(result).toBe('puts "ハロー"');
+        });
+
+        test('should fix smart single quotes', () => {
+            const input = "x = \u2018hello\u2019";
+            const result = autoCorrect(input, defaultSettings);
+            expect(result).toBe("x = 'hello'");
+        });
+
+        test('should fix minus sign U+2212', () => {
+            const input = 'result = 10 \u2212 3';
+            const result = autoCorrect(input, defaultSettings);
+            expect(result).toBe('result = 10 - 3');
+        });
+
         test('should fix fullwidth method definition', () => {
             const input = [
                 'ｄｅｆ　ｍｅｔｈｏｄ（ａ，　ｂ）',
@@ -83,6 +101,13 @@ describe('auto-correct integration', () => {
             const input = 'ｘ ＝ "Ａ" ＋ ｙ ＋ "Ｂ"';
             const result = autoCorrect(input, settingsNoStrings);
             expect(result).toBe('x = "Ａ" + y + "Ｂ"');
+        });
+
+        test('should preserve content inside smart-quoted strings', () => {
+            const input = 'ｐｕｔｓ \u201CＡＢＣ\u201D';
+            const result = autoCorrect(input, settingsNoStrings);
+            // Smart quotes become halfwidth, but content inside is preserved
+            expect(result).toBe('puts "ＡＢＣ"');
         });
     });
 

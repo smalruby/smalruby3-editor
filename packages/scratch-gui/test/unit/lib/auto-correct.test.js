@@ -85,6 +85,23 @@ describe('autoCorrect', () => {
             const settings = {...allOn, fullwidthSymbols: false};
             expect(autoCorrect('（１）', settings)).toBe('（1）');
         });
+
+        test('should convert smart double quotes to halfwidth', () => {
+            expect(autoCorrect('puts \u201Cハロー\u201D', allOn)).toBe('puts "ハロー"');
+        });
+
+        test('should convert smart single quotes to halfwidth', () => {
+            expect(autoCorrect("puts \u2018hello\u2019", allOn)).toBe("puts 'hello'");
+        });
+
+        test('should convert minus sign U+2212 to halfwidth hyphen', () => {
+            expect(autoCorrect('x = 10 \u2212 5', allOn)).toBe('x = 10 - 5');
+        });
+
+        test('should not convert smart quotes when fullwidthSymbols is off', () => {
+            const settings = {...allOn, fullwidthSymbols: false};
+            expect(autoCorrect('puts \u201Cハロー\u201D', settings)).toBe('puts \u201Cハロー\u201D');
+        });
     });
 
     describe('fullwidth space', () => {

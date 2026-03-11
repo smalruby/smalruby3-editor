@@ -27,6 +27,15 @@ for (let i = 0xFF01; i <= 0xFF5E; i++) {
     FULLWIDTH_SYMBOL_MAP[full] = half;
 }
 
+// Extra symbols commonly produced by Japanese IME that fall outside FF01-FF5E.
+const EXTRA_SYMBOL_MAP = {
+    '\u201C': '"', // " left double quotation mark
+    '\u201D': '"', // " right double quotation mark
+    '\u2018': "'", // ' left single quotation mark
+    '\u2019': "'", // ' right single quotation mark
+    '\u2212': '-' // − minus sign
+};
+
 /**
  * Build a regex that matches fullwidth characters according to the given settings.
  * @param {object} settings - The auto-correct settings.
@@ -47,6 +56,10 @@ const buildPattern = settings => {
         parts.push('\uFF1A-\uFF20'); // ： to ＠
         parts.push('\uFF3B-\uFF40'); // ［ to ｀
         parts.push('\uFF5B-\uFF5E'); // ｛ to ～
+        // Extra symbols from Japanese IME
+        parts.push('\u201C\u201D'); // "" smart double quotes
+        parts.push('\u2018\u2019'); // '' smart single quotes
+        parts.push('\u2212'); // − minus sign
     }
     if (settings.fullwidthSpace) {
         parts.push('\u3000'); // ideographic space
@@ -88,9 +101,14 @@ const replaceChar = (ch, settings) => {
         return ' ';
     }
 
-    // Fullwidth symbols
+    // Fullwidth symbols (FF01-FF5E range)
     if (settings.fullwidthSymbols && FULLWIDTH_SYMBOL_MAP[ch]) {
         return FULLWIDTH_SYMBOL_MAP[ch];
+    }
+
+    // Extra symbols (smart quotes, minus sign, etc.)
+    if (settings.fullwidthSymbols && EXTRA_SYMBOL_MAP[ch]) {
+        return EXTRA_SYMBOL_MAP[ch];
     }
 
     return ch;
@@ -108,8 +126,10 @@ const findStringRegions = code => {
     let i = 0;
     while (i < code.length) {
         const ch = code[i];
-        if (ch === '"' || ch === "'") {
-            const quote = ch;
+        if (ch === '"' || ch === "'" || ch === '\u201C' || ch === '\u2018') {
+            // Map opening smart quotes to their closing counterpart
+            const closeQuote = ch === '\u201C' ? '\u201D' :
+                ch === '\u2018' ? '\u2019' : ch;
             const start = i;
             i++; // skip opening quote
             while (i < code.length) {
@@ -117,7 +137,7 @@ const findStringRegions = code => {
                     i += 2; // skip escaped character
                     continue;
                 }
-                if (code[i] === quote) {
+                if (code[i] === closeQuote) {
                     break;
                 }
                 i++;
@@ -145,7 +165,8 @@ const findStringRegions = code => {
  */
 const isInString = (index, regions) => {
     for (const [start, end] of regions) {
-        if (index > start && index <= end) {
+        // Exclude both quote delimiters so they remain eligible for conversion
+        if (index > start && index < end) {
             return true;
         }
     }
