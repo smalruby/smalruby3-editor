@@ -59,6 +59,9 @@
 }
 
 .settingLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.875rem;
     color: hsla(0, 0%, 0%, 0.85);
     cursor: pointer;

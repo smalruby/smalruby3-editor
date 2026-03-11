@@ -98,6 +98,11 @@ const messages = defineMessages({
         defaultMessage: 'Auto-Correct Settings',
         description: 'Label for auto-correct settings menu item'
     },
+    saveRubyScript: {
+        id: 'gui.rubyToolbar.saveRubyScript',
+        defaultMessage: 'Save Ruby script',
+        description: 'Label for save Ruby script menu item'
+    },
     stage: {
         id: 'gui.rubyToolbar.stage',
         defaultMessage: 'Stage',
@@ -300,10 +305,10 @@ const RubyToolbar = props => {
     }, [handleSelectTarget]);
 
     const handleDownload = useCallback(() => {
+        setShowMoreMenu(false);
         if (props.onDismissBubble) {
             props.onDismissBubble();
         }
-        // Trigger download Ruby code
         if (props.onDownload) {
             props.onDownload();
         }
@@ -557,19 +562,8 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* Download & More Part */}
+            {/* More Menu Part */}
             <div className={styles.toolbarPart}>
-                <button
-                    className={styles.iconButton}
-                    onClick={handleDownload}
-                    aria-label={intl.formatMessage(messages.download)}
-                    title={intl.formatMessage(messages.download)}
-                >
-                    <img
-                        src={iconDownload}
-                        alt=""
-                    />
-                </button>
                 <div
                     className={styles.moreMenuWrapper}
                     ref={moreMenuRef}
@@ -586,11 +580,26 @@ const RubyToolbar = props => {
                         <div className={styles.moreMenu}>
                             <div
                                 className={styles.moreMenuItem}
+                                onClick={handleDownload}
+                            >
+                                <img
+                                    className={styles.moreMenuIconImg}
+                                    src={iconDownload}
+                                    alt=""
+                                />
+                                {intl.formatMessage(
+                                    messages.saveRubyScript
+                                )}
+                            </div>
+                            <div
+                                className={styles.moreMenuItem}
                                 onClick={handleOpenAutoCorrectSettings}
                             >
-                                <span className={styles.moreMenuIcon}>
-                                    {'🔄'}
-                                </span>
+                                <img
+                                    className={styles.moreMenuIconImg}
+                                    src={iconAutoCorrect}
+                                    alt=""
+                                />
                                 {intl.formatMessage(
                                     messages.autoCorrectSettings
                                 )}
