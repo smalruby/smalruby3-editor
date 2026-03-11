@@ -23,12 +23,55 @@ upstream scratch-editor の変更を Smalruby fork に取り込む半自動ワ�
 | `reference-api-migration.md` | ScratchBlocks API 変更一覧 |
 | `reference-test-patterns.md` | テスト修正の既知パターン集 |
 
+## `.upstream-merge-history.json` スキーマ
+
+```json
+{
+  "lastMerge": {
+    "date": "YYYY-MM-DD",
+    "upstreamCommit": "<upstream commit hash>",
+    "smalrubyCommit": "<smalruby commit hash before merge>",
+    "mergeCommit": "<merge commit hash>",
+    "notes": "description"
+  },
+  "postMergeReverts": [
+    {
+      "date": "YYYY-MM-DD",
+      "pr": "#NNN",
+      "reason": "why the revert was needed",
+      "scope": "short scope label",
+      "affectedAreas": [
+        {
+          "category": "human-readable category name",
+          "files": ["path/to/file1", "path/to/file2"],
+          "detail": "what was reverted and why"
+        }
+      ],
+      "nextMergeGuidance": "instructions for how to handle these files on the next upstream merge"
+    }
+  ],
+  "previousMerges": [
+    { "...(rotated from lastMerge)" }
+  ]
+}
+```
+
+### `postMergeReverts` の意味
+
+upstream merge 後に、取り込んだ変更の一部を revert した場合に記録する。
+
+- Git 上は `lastMerge.upstreamCommit` まで取り込み済みだが、**一部のファイルは revert されている**ことを示す
+- 次回の upstream merge 時、`affectedAreas` のファイルでコンフリクトが発生する可能性が高い
+- `nextMergeGuidance` に従ってコンフリクトを解決する
+- revert の原因が解消された場合（upstream 側で修正された等）、merge 完了後に該当エントリを削除する
+
 ## 進め方
 
 1. Phase 1 から順番に実行する
 2. 各フェーズの開始時に該当ファイルを読み込む
-3. コンフリクト解決やテスト修正で詰まったら、リファレンスファイルを読み込む
-4. 各フェーズが完了したら次のフェーズに進む
+3. **Phase 1 で `postMergeReverts` がある場合は、Phase 2 の前にユーザーと方針を確認する**
+4. コンフリクト解決やテスト修正で詰まったら、リファレンスファイルを読み込む
+5. 各フェーズが完了したら次のフェーズに進む
 
 ## 絶対に守るルール
 
