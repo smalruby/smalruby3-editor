@@ -32,6 +32,7 @@ import MeshBlocks from './mesh.js';
 import MeshV2Blocks from './mesh_v2.js';
 import SmalrubotS1Blocks from './smalrubot_s1.js';
 import KoshienBlocks from './koshien.js';
+import FaceSensingBlocks from './face_sensing.js';
 
 const SCALAR_TYPE = '';
 const LIST_TYPE = 'list';
@@ -675,5 +676,6 @@ MeshBlocks(RubyGenerator);
 MeshV2Blocks(RubyGenerator);
 SmalrubotS1Blocks(RubyGenerator);
 KoshienBlocks(RubyGenerator);
+FaceSensingBlocks(RubyGenerator);
 
 export default RubyGenerator;
