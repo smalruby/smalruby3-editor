@@ -332,11 +332,11 @@ describe('FuriganaAnnotator', () => {
         test('move annotates as 動かす', () => {
             expect(labelsAt(annotate('move(10)'), 1)).toContain('動かす');
         });
-        test('turn_right annotates as 右に回す', () => {
-            expect(labelsAt(annotate('turn_right(15)'), 1)).toContain('右に回す');
+        test('turn_right annotates as 時計回りに回す', () => {
+            expect(labelsAt(annotate('turn_right(15)'), 1)).toContain('時計回りに回す');
         });
-        test('turn_left annotates as 左に回す', () => {
-            expect(labelsAt(annotate('turn_left(15)'), 1)).toContain('左に回す');
+        test('turn_left annotates as 反時計回りに回す', () => {
+            expect(labelsAt(annotate('turn_left(15)'), 1)).toContain('反時計回りに回す');
         });
         test('go_to annotates as 移動する', () => {
             expect(labelsAt(annotate('go_to("_mouse_")'), 1)).toContain('移動する');
@@ -344,8 +344,8 @@ describe('FuriganaAnnotator', () => {
         test('point_towards annotates as 向く', () => {
             expect(labelsAt(annotate('point_towards("_mouse_")'), 1)).toContain('向く');
         });
-        test('bounce_if_on_edge annotates as 端で跳ね返る', () => {
-            expect(labelsAt(annotate('bounce_if_on_edge'), 1)).toContain('端で跳ね返る');
+        test('bounce_if_on_edge annotates as もし端に着いたら、跳ね返る', () => {
+            expect(labelsAt(annotate('bounce_if_on_edge'), 1)).toContain('もし端に着いたら、跳ね返る');
         });
     });
 
@@ -443,17 +443,17 @@ describe('FuriganaAnnotator', () => {
     });
 
     describe('Events methods', () => {
-        test('when_flag_clicked annotates as 旗が押されたとき', () => {
+        test('when_flag_clicked annotates as ⚑が押されたとき', () => {
             const anns = annotate('when_flag_clicked do\nend');
-            expect(labelsAt(anns, 1)).toContain('旗が押されたとき');
+            expect(labelsAt(anns, 1)).toContain('⚑が押されたとき');
         });
         test('when_key_pressed annotates as キーが押されたとき', () => {
             const anns = annotate('when_key_pressed("space") do\nend');
             expect(labelsAt(anns, 1)).toContain('キーが押されたとき');
         });
-        test('when_clicked annotates as クリックされたとき', () => {
+        test('when_clicked annotates as このスプライトが押されたとき', () => {
             const anns = annotate('when_clicked do\nend');
-            expect(labelsAt(anns, 1)).toContain('クリックされたとき');
+            expect(labelsAt(anns, 1)).toContain('このスプライトが押されたとき');
         });
         test('when_backdrop_switches annotates as 背景が切り替わったとき', () => {
             const anns = annotate('when_backdrop_switches("backdrop2") do\nend');
@@ -472,8 +472,8 @@ describe('FuriganaAnnotator', () => {
     });
 
     describe('Control methods', () => {
-        test('sleep annotates as 秒待つ', () => {
-            expect(labelsAt(annotate('sleep(1)'), 1)).toContain('秒待つ');
+        test('sleep annotates as 待つ', () => {
+            expect(labelsAt(annotate('sleep(1)'), 1)).toContain('待つ');
         });
         test('loop annotates as ずっと繰り返す', () => {
             const anns = annotate('loop do\nend');
@@ -599,6 +599,12 @@ describe('FuriganaAnnotator', () => {
         });
         test('self.tempo += n annotates as テンポを変える', () => {
             expect(labelsAt(annotate('self.tempo += 20'), 1)).toContain('テンポを変える');
+        });
+        test('self.direction += n annotates as 時計回りに回す', () => {
+            expect(labelsAt(annotate('self.direction += 180'), 1)).toContain('時計回りに回す');
+        });
+        test('self.direction -= n annotates as 反時計回りに回す', () => {
+            expect(labelsAt(annotate('self.direction -= 90'), 1)).toContain('反時計回りに回す');
         });
     });
 
@@ -818,6 +824,85 @@ describe('FuriganaAnnotator', () => {
         });
         test('rest(1) annotates as 1拍休む', () => {
             expect(labelsAt(annotate('rest(1)'), 1)).toContain('1拍休む');
+        });
+    });
+
+    describe('do...end block annotations', () => {
+        test('loop do...end: do → 以下の処理, end → 繰り返し終了', () => {
+            const anns = annotate('loop do\n  puts 1\nend');
+            expect(labelsAt(anns, 1)).toContain('ずっと繰り返す');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('繰り返し終了');
+        });
+        test('N.times do...end: do → 以下の処理, end → 繰り返し終了', () => {
+            const anns = annotate('10.times do\n  puts 1\nend');
+            expect(labelsAt(anns, 1)).toContain('回繰り返す');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('繰り返し終了');
+        });
+        test('when_clicked do...end: do → 以下の処理, end → ブロック終了', () => {
+            const anns = annotate('when_clicked do\n  move(10)\nend');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('ブロック終了');
+        });
+        test('when_flag_clicked do...end: do → 以下の処理, end → ブロック終了', () => {
+            const anns = annotate('when_flag_clicked do\n  move(10)\nend');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('ブロック終了');
+        });
+        test('when_key_pressed do...end: do → 以下の処理, end → ブロック終了', () => {
+            const anns = annotate('when_key_pressed("space") do\n  move(10)\nend');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('ブロック終了');
+        });
+        test('when_start_as_a_clone do...end: do → 以下の処理, end → ブロック終了', () => {
+            const anns = annotate('when_start_as_a_clone do\n  move(10)\nend');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('ブロック終了');
+        });
+    });
+
+    describe('literal argument unit suffixes', () => {
+        test('move(10) → 10 annotates as 10歩 (not 数値10)', () => {
+            const anns = annotate('move(10)');
+            expect(labelsAt(anns, 1)).toContain('10歩');
+            expect(labelsAt(anns, 1)).not.toContain('数値10');
+        });
+        test('move(0.5) → 0.5 annotates as 0.5歩', () => {
+            const anns = annotate('move(0.5)');
+            expect(labelsAt(anns, 1)).toContain('0.5歩');
+        });
+        test('move(x) → variable x gets no unit', () => {
+            const anns = annotate('x = 10\nmove(x)');
+            expect(labelsAt(anns, 2)).toContain('変数x');
+            expect(labelsAt(anns, 2)).not.toContain('x歩');
+        });
+        test('turn_right(15) → 15 annotates as 15度', () => {
+            const anns = annotate('turn_right(15)');
+            expect(labelsAt(anns, 1)).toContain('15度');
+            expect(labelsAt(anns, 1)).not.toContain('数値15');
+        });
+        test('turn_left(90) → 90 annotates as 90度', () => {
+            const anns = annotate('turn_left(90)');
+            expect(labelsAt(anns, 1)).toContain('90度');
+        });
+        test('self.direction += 180 → 180 annotates as 180度', () => {
+            const anns = annotate('self.direction += 180');
+            expect(labelsAt(anns, 1)).toContain('180度');
+            expect(labelsAt(anns, 1)).not.toContain('数値180');
+        });
+        test('self.direction -= 45 → 45 annotates as 45度', () => {
+            const anns = annotate('self.direction -= 45');
+            expect(labelsAt(anns, 1)).toContain('45度');
+        });
+        test('sleep(1) → 1 annotates as 1秒', () => {
+            const anns = annotate('sleep(1)');
+            expect(labelsAt(anns, 1)).toContain('1秒');
+            expect(labelsAt(anns, 1)).not.toContain('数値1');
+        });
+        test('sleep(0.5) → 0.5 annotates as 0.5秒', () => {
+            const anns = annotate('sleep(0.5)');
+            expect(labelsAt(anns, 1)).toContain('0.5秒');
         });
     });
 

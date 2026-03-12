@@ -86,7 +86,6 @@ class FuriganaRenderer {
 
         for (const ann of anns) {
             const span = document.createElement('span');
-            span.textContent = ann.label;
             span.style.position = 'absolute';
             // .view-zones container is already offset by contentLeft,
             // so span.left = column * charWidth (no contentLeft needed).
@@ -101,12 +100,42 @@ class FuriganaRenderer {
             span.style.fontFamily = 'sans-serif';
             span.style.whiteSpace = 'nowrap';
             span.style.userSelect = 'none';
+
+            // Render ⚑ (green flag) in green (#4CBF56)
+            if (ann.label.includes('⚑')) {
+                this._appendColoredLabel(span, ann.label, '⚑', '#4CBF56');
+            } else {
+                span.textContent = ann.label;
+            }
+
             div.appendChild(span);
 
             prevRight = left + this._measureTextWidth(ann.label, fontSize) + GAP;
         }
 
         return div;
+    }
+
+    /**
+     * Append label text to a span, coloring occurrences of a special character.
+     * @param {HTMLElement} span - parent span element
+     * @param {string} label - full label text
+     * @param {string} char - character to color differently
+     * @param {string} color - CSS color for the special character
+     */
+    _appendColoredLabel (span, label, char, color) {
+        const parts = label.split(char);
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i]) {
+                span.appendChild(document.createTextNode(parts[i]));
+            }
+            if (i < parts.length - 1) {
+                const coloredSpan = document.createElement('span');
+                coloredSpan.textContent = char;
+                coloredSpan.style.color = color;
+                span.appendChild(coloredSpan);
+            }
+        }
     }
 
     /**
