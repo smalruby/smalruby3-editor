@@ -1131,4 +1131,171 @@ describe('FuriganaAnnotator', () => {
             });
         });
     });
+
+    // ---- Extension furigana tests ----
+
+    describe('translate extension', () => {
+        test('translate("hello", "ja") → 翻訳する', () => {
+            expect(labelsAt(annotate('translate("hello", "ja")'), 1)).toContain('翻訳する');
+        });
+        test('language → 言語', () => {
+            expect(labelsAt(annotate('language'), 1)).toContain('言語');
+        });
+    });
+
+    describe('video_sensing extension (predefined receiver)', () => {
+        test('video_sensing receiver → ビデオ', () => {
+            expect(labelsAt(annotate('video_sensing.video_turn("on")'), 1)).toContain('ビデオ');
+        });
+        test('video_sensing.video_turn("on") → ビデオを切り替える + オン', () => {
+            const labels = labelsAt(annotate('video_sensing.video_turn("on")'), 1);
+            expect(labels).toContain('ビデオを切り替える');
+            expect(labels).toContain('オン');
+        });
+        test('video_sensing.video_turn("off") → オフ', () => {
+            expect(labelsAt(annotate('video_sensing.video_turn("off")'), 1)).toContain('オフ');
+        });
+        test('video_sensing.video_turn("on-flipped") → 左右反転', () => {
+            expect(labelsAt(annotate('video_sensing.video_turn("on-flipped")'), 1)).toContain('左右反転');
+        });
+        test('video_sensing.video_transparency = 50 → ビデオの透明度を設定', () => {
+            expect(labelsAt(annotate('video_sensing.video_transparency = 50'), 1))
+                .toContain('ビデオの透明度を設定');
+        });
+        test('video_sensing.video_on("motion", "this sprite") → ビデオの値 + 動き + このスプライト', () => {
+            const labels = labelsAt(annotate('video_sensing.video_on("motion", "this sprite")'), 1);
+            expect(labels).toContain('ビデオの値');
+            expect(labels).toContain('動き');
+            expect(labels).toContain('このスプライト');
+        });
+        test('video_sensing.when_video_motion_greater_than(10) do; end → ビデオモーション ＞ のとき', () => {
+            const labels = labelsAt(annotate('video_sensing.when_video_motion_greater_than(10) do; end'), 1);
+            expect(labels).toContain('ビデオ');
+            expect(labels).toContain('ビデオモーション ＞ のとき');
+        });
+    });
+
+    describe('text2speech extension (predefined receiver)', () => {
+        test('text2speech receiver → 音声合成', () => {
+            expect(labelsAt(annotate('text2speech.speak("hello")'), 1)).toContain('音声合成');
+        });
+        test('text2speech.speak("hello") → 話す', () => {
+            expect(labelsAt(annotate('text2speech.speak("hello")'), 1)).toContain('話す');
+        });
+        test('text2speech.voice = "ALTO" → 声を設定', () => {
+            expect(labelsAt(annotate('text2speech.voice = "ALTO"'), 1)).toContain('声を設定');
+        });
+        test('text2speech.language = "ja" → 言語を設定', () => {
+            expect(labelsAt(annotate('text2speech.language = "ja"'), 1)).toContain('言語を設定');
+        });
+    });
+
+    describe('microbit extension (predefined receiver)', () => {
+        test('microbit receiver → マイクロビット', () => {
+            expect(labelsAt(annotate('microbit.temperature'), 1)).toContain('マイクロビット');
+        });
+        test('microbit.temperature → 温度', () => {
+            expect(labelsAt(annotate('microbit.temperature'), 1)).toContain('温度');
+        });
+        test('microbit.light_intensity → 明るさ', () => {
+            expect(labelsAt(annotate('microbit.light_intensity'), 1)).toContain('明るさ');
+        });
+        test('microbit.button_pressed?("A") → ボタンが押されたか + A', () => {
+            const labels = labelsAt(annotate('microbit.button_pressed?("A")'), 1);
+            expect(labels).toContain('ボタンが押されたか');
+            expect(labels).toContain('A');
+        });
+        test('microbit.when_tilted("LEFT") do; end → 傾いたとき + 左', () => {
+            const labels = labelsAt(annotate('microbit.when_tilted("LEFT") do; end'), 1);
+            expect(labels).toContain('傾いたとき');
+            expect(labels).toContain('左');
+        });
+        test('microbit.display_text("Hello!") → テキスト表示', () => {
+            expect(labelsAt(annotate('microbit.display_text("Hello!")'), 1)).toContain('テキスト表示');
+        });
+        test('microbit.clear_display → LED消去', () => {
+            expect(labelsAt(annotate('microbit.clear_display'), 1)).toContain('LED消去');
+        });
+        test('microbit.acceleration("x") → 加速度 + x', () => {
+            const labels = labelsAt(annotate('microbit.acceleration("x")'), 1);
+            expect(labels).toContain('加速度');
+            expect(labels).toContain('x');
+        });
+        test('microbit.play_tone(440, 100) → 音を鳴らす', () => {
+            expect(labelsAt(annotate('microbit.play_tone(440, 100)'), 1)).toContain('音を鳴らす');
+        });
+        test('microbit.send_data_to_microbit("data", "label") → データ送信', () => {
+            expect(labelsAt(annotate('microbit.send_data_to_microbit("data", "label")'), 1))
+                .toContain('データ送信');
+        });
+    });
+
+    describe('mesh extensions (predefined receiver)', () => {
+        test('mesh_v1.sensor_value("x") → メッシュ(従来) + センサーの値', () => {
+            const labels = labelsAt(annotate('mesh_v1.sensor_value("x")'), 1);
+            expect(labels).toContain('メッシュ(従来)');
+            expect(labels).toContain('センサーの値');
+        });
+        test('mesh.sensor_value("x") → メッシュ + センサーの値', () => {
+            const labels = labelsAt(annotate('mesh.sensor_value("x")'), 1);
+            expect(labels).toContain('メッシュ');
+            expect(labels).toContain('センサーの値');
+        });
+    });
+
+    describe('smalrubot_s1 extension (predefined receiver)', () => {
+        test('smalrubot_s1 receiver → スモウルボットS1', () => {
+            expect(labelsAt(annotate('smalrubot_s1.action("forward")'), 1)).toContain('スモウルボットS1');
+        });
+        test('smalrubot_s1.action("forward") → 動作する + 進める', () => {
+            const labels = labelsAt(annotate('smalrubot_s1.action("forward")'), 1);
+            expect(labels).toContain('動作する');
+            expect(labels).toContain('進める');
+        });
+        test('smalrubot_s1.action("backward") → バックさせる', () => {
+            expect(labelsAt(annotate('smalrubot_s1.action("backward")'), 1)).toContain('バックさせる');
+        });
+        test('smalrubot_s1.sensor_value("left") → センサーの値', () => {
+            expect(labelsAt(annotate('smalrubot_s1.sensor_value("left")'), 1)).toContain('センサーの値');
+        });
+        test('smalrubot_s1.bend_arm(90, 1) → アームを曲げる', () => {
+            expect(labelsAt(annotate('smalrubot_s1.bend_arm(90, 1)'), 1)).toContain('アームを曲げる');
+        });
+        test('smalrubot_s1.get_motor_speed("left") → モーター速度', () => {
+            expect(labelsAt(annotate('smalrubot_s1.get_motor_speed("left")'), 1)).toContain('モーター速度');
+        });
+    });
+
+    describe('koshien extension (predefined receiver)', () => {
+        test('koshien receiver → スモウルビー甲子園', () => {
+            expect(labelsAt(annotate('koshien.turn_over'), 1)).toContain('スモウルビー甲子園');
+        });
+        test('koshien.connect_game(name: "player1") → ゲームに接続', () => {
+            expect(labelsAt(annotate('koshien.connect_game(name: "player1")'), 1)).toContain('ゲームに接続');
+        });
+        test('koshien.move_to("0:0") → 移動する + x:0,y:0', () => {
+            const labels = labelsAt(annotate('koshien.move_to("0:0")'), 1);
+            expect(labels).toContain('移動する');
+            expect(labels).toContain('x:0,y:0');
+        });
+        test('koshien.turn_over → ターン終了', () => {
+            expect(labelsAt(annotate('koshien.turn_over'), 1)).toContain('ターン終了');
+        });
+        test('koshien.map("1:2") → マップ + x:1,y:2', () => {
+            const labels = labelsAt(annotate('koshien.map("1:2")'), 1);
+            expect(labels).toContain('マップ');
+            expect(labels).toContain('x:1,y:2');
+        });
+        test('koshien.position(0, 0) → 座標', () => {
+            expect(labelsAt(annotate('koshien.position(0, 0)'), 1)).toContain('座標');
+        });
+        test('koshien.set_message("hello") → メッセージ設定', () => {
+            expect(labelsAt(annotate('koshien.set_message("hello")'), 1)).toContain('メッセージ設定');
+        });
+        test('koshien.get_map_area("-1:3") → マップエリア + x:-1,y:3', () => {
+            const labels = labelsAt(annotate('koshien.get_map_area("-1:3")'), 1);
+            expect(labels).toContain('マップエリア');
+            expect(labels).toContain('x:-1,y:3');
+        });
+    });
 });

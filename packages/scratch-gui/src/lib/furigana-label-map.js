@@ -107,6 +107,8 @@ const TOPLEVEL_METHOD_LABELS = {
     // Music
     'play_drum': 'ドラムを鳴らす',
     'play_note': '音符を鳴らす',
+    // Translate
+    'translate': '翻訳する',
     // Class configuration (set_xxx)
     'set_name': '名前を設定',
     'set_sprite': 'スプライトを設定',
@@ -141,11 +143,100 @@ const TOPLEVEL_PROPERTY_LABELS = {
     loudness: 'マイクの音量',
     days_since_2000: '2000年からの日数',
     user_name: 'ユーザー名',
-    tempo: 'テンポ'
+    tempo: 'テンポ',
+    language: '言語'
+};
+
+/**
+ * Special string values used in smalruby that represent UI menu options.
+ * Labels are sourced from scratch-l10n editor/blocks/ja.json.
+ */
+const SPECIAL_STRING_LABELS = {
+    // Special sprite/location targets
+    '_mouse_': 'マウスのポインター',
+    '_edge_': '端',
+    '_random_': 'ランダムな場所',
+    '_myself_': '自分自身',
+    // Key names (EVENT_WHENKEYPRESSED_*)
+    'space': 'スペース',
+    'left arrow': '左向き矢印',
+    'right arrow': '右向き矢印',
+    'down arrow': '下向き矢印',
+    'up arrow': '上向き矢印',
+    'any': 'どれかのキー',
+    // Stop options (CONTROL_STOP_*)
+    'all': 'すべて',
+    'this script': 'このスクリプト',
+    'other scripts in sprite': 'スプライトの他のスクリプト',
+    // Rotation styles (MOTION_SETROTATIONSTYLE_*)
+    'all around': '自由に回転',
+    'left-right': '左右のみ',
+    "don't rotate": '回転しない',
+    // Drag modes (SENSING_SETDRAGMODE_*)
+    'draggable': 'できる',
+    'not draggable': 'できない',
+    // Sound effects (SOUND_EFFECTS_*)
+    'PITCH': 'ピッチ',
+    'PAN': '左右にパン',
+    // Graphic effects (LOOKS_EFFECT_*)
+    'color': '色',
+    'fisheye': '魚眼レンズ',
+    'whirl': '渦巻き',
+    'pixelate': 'ピクセル化',
+    'mosaic': 'モザイク',
+    'brightness': '明るさ',
+    'ghost': '幽霊'
+};
+
+/**
+ * Methods whose literal arguments should use a unit suffix instead of 数値/文字列.
+ * e.g. move(10) → 「10歩」 instead of 「数値10」
+ */
+const METHOD_ARG_UNITS = {
+    move: '歩',
+    turn_right: '度',
+    turn_left: '度',
+    sleep: '秒'
+};
+
+/**
+ * Context-specific string labels for face_sensing PART menu arguments.
+ */
+const FACE_SENSING_PART_LABELS = {
+    nose: '鼻',
+    mouth: '口',
+    left_eye: '左目',
+    right_eye: '右目',
+    between_eyes: '両目の間',
+    left_ear: '左耳',
+    right_ear: '右耳',
+    top_of_head: '頭のてっぺん'
+};
+
+/**
+ * Context-specific string labels for face_sensing DIRECTION menu arguments.
+ */
+const FACE_SENSING_DIRECTION_LABELS = {
+    left: '左',
+    right: '右'
+};
+
+/**
+ * Maps face_sensing method names to their context-specific string label maps.
+ */
+const FACE_SENSING_STRING_MAP = {
+    go_to: FACE_SENSING_PART_LABELS,
+    when_this_sprite_touch: FACE_SENSING_PART_LABELS,
+    when_face_tilted: FACE_SENSING_DIRECTION_LABELS
 };
 
 export {
     RECEIVER_METHOD_LABELS,
     TOPLEVEL_METHOD_LABELS,
-    TOPLEVEL_PROPERTY_LABELS
+    TOPLEVEL_PROPERTY_LABELS,
+    SPECIAL_STRING_LABELS,
+    METHOD_ARG_UNITS,
+    FACE_SENSING_PART_LABELS,
+    FACE_SENSING_DIRECTION_LABELS,
+    FACE_SENSING_STRING_MAP
 };
