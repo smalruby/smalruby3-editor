@@ -1,6 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (furigana call helpers) ===
 
 import {FACE_SENSING_STRING_MAP} from './furigana-label-map';
+import {EXTENSION_STRING_MAPS} from './furigana-extension-handlers';
 
 /**
  * Call-related helper methods for FuriganaAnnotator.
@@ -169,15 +170,25 @@ const callHelpers = {
     },
 
     /**
-     * Set context-specific string label map for face_sensing arguments.
-     * Called from _handleCallNode before walking arguments.
+     * Set context-specific string label map for extension arguments.
+     * Checks face_sensing string maps and general extension string maps.
      * @param {object} node - CallNode
      * @param {string} name - method name
      */
-    _setFaceSensingStringMap (node, name) {
+    _setExtensionStringMap (node, name) {
+        // face_sensing string maps (from furigana-label-map)
         const fsStringMap = FACE_SENSING_STRING_MAP[name];
         if (fsStringMap && this._isPredefinedReceiver(node, 'face_sensing')) {
             this._stringLabelMap = fsStringMap;
+            return;
+        }
+        // General extension string maps
+        for (const extName of Object.keys(EXTENSION_STRING_MAPS)) {
+            const extMap = EXTENSION_STRING_MAPS[extName];
+            if (extMap[name] && this._isPredefinedReceiver(node, extName)) {
+                this._stringLabelMap = extMap[name];
+                return;
+            }
         }
     },
 

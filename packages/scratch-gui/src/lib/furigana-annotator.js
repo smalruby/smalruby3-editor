@@ -8,6 +8,12 @@ import {
 } from './furigana-label-map';
 import {nodeHandlers} from './furigana-node-handlers';
 import {callHelpers} from './furigana-call-helpers';
+import {
+    EXTENSION_HANDLER_MAP,
+    EXTENSION_RECEIVER_LABELS,
+    EXTENSION_STRING_MAPS,
+    extensionHandlers
+} from './furigana-extension-handlers';
 
 /**
  * Annotates Ruby source code with furigana (Japanese reading aids).
@@ -201,15 +207,15 @@ class FuriganaAnnotator {
                 default:
                     break;
                 }
-            } else if (receiverType === 'CallNode') {
+            } else if (receiverType === 'CallNode' || receiverType === 'LocalVariableReadNode') {
                 const innerName = node.receiver.name;
                 const innerRec = node.receiver.receiver;
 
-                if (!innerRec && innerName === 'pen') {
-                    this._annotatePenMethod(node, name);
-                } else if (!innerRec && innerName === 'face_sensing') {
-                    this._annotateFaceSensingMethod(node, name);
-                } else if (innerName === 'now') {
+                // Predefined extension receiver dispatch (pen.xxx, face_sensing.xxx, etc.)
+                if (!innerRec && EXTENSION_HANDLER_MAP[innerName]) {
+                    this[EXTENSION_HANDLER_MAP[innerName]](node, name);
+                } else if (receiverType === 'CallNode' && innerName === 'now') {
+                    // Time.now.xxx chained call
                     const innerRecType = innerRec && typeof innerRec.toJSON === 'function' ?
                         innerRec.toJSON().type : null;
                     if (innerRecType === 'ConstantReadNode' && innerRec.name === 'Time') {
@@ -218,10 +224,6 @@ class FuriganaAnnotator {
                 }
             } else if (receiverType === 'SelfNode') {
                 this._annotateSelfSetter(node, name);
-            } else if (receiverType === 'LocalVariableReadNode' && node.receiver.name === 'pen') {
-                this._annotatePenMethod(node, name);
-            } else if (receiverType === 'LocalVariableReadNode' && node.receiver.name === 'face_sensing') {
-                this._annotateFaceSensingMethod(node, name);
             }
 
             // ---- Operators and conversions (any receiver) ----
@@ -247,10 +249,8 @@ class FuriganaAnnotator {
             this._annotateWhenGreaterThan(node);
         } else if (name === 'rest') {
             this._annotateRest(node);
-        } else if (name === 'pen') {
-            this._addAnnotation(node.messageLoc || node.location, 'ペン');
-        } else if (name === 'face_sensing') {
-            this._addAnnotation(node.messageLoc || node.location, '顔認識');
+        } else if (EXTENSION_RECEIVER_LABELS[name]) {
+            this._addAnnotation(node.messageLoc || node.location, EXTENSION_RECEIVER_LABELS[name]);
         }
 
         // Set unit context for literal arguments
@@ -274,8 +274,8 @@ class FuriganaAnnotator {
         // Explicit child traversal
         if (node.receiver) this._walkNode(node.receiver);
 
-        // Set context-specific string label map for face_sensing args
-        this._setFaceSensingStringMap(node, name);
+        // Set context-specific string label map for extension args
+        this._setExtensionStringMap(node, name);
 
         if (node.arguments_) {
             if (methodUnit) this._argUnit = methodUnit;
@@ -288,6 +288,6 @@ class FuriganaAnnotator {
 }
 
 // Mix in handler methods from separate modules
-Object.assign(FuriganaAnnotator.prototype, nodeHandlers, callHelpers);
+Object.assign(FuriganaAnnotator.prototype, nodeHandlers, callHelpers, extensionHandlers);
 
 export default FuriganaAnnotator;

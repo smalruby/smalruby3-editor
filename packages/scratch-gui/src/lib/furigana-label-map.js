@@ -107,6 +107,8 @@ const TOPLEVEL_METHOD_LABELS = {
     // Music
     'play_drum': 'ドラムを鳴らす',
     'play_note': '音符を鳴らす',
+    // Translate
+    'translate': '翻訳する',
     // Class configuration (set_xxx)
     'set_name': '名前を設定',
     'set_sprite': 'スプライトを設定',
@@ -141,7 +143,8 @@ const TOPLEVEL_PROPERTY_LABELS = {
     loudness: 'マイクの音量',
     days_since_2000: '2000年からの日数',
     user_name: 'ユーザー名',
-    tempo: 'テンポ'
+    tempo: 'テンポ',
+    language: '言語'
 };
 
 /**
