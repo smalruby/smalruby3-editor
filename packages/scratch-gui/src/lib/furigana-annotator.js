@@ -373,6 +373,22 @@ class FuriganaAnnotator {
             this._annotateRest(node);
         }
 
+        // Annotate do...end block keywords
+        if (node.block) {
+            const block = node.block;
+            const blockType = typeof block.toJSON === 'function' ? block.toJSON().type : null;
+            if (blockType === 'BlockNode') {
+                if (block.openingLoc) {
+                    this._addAnnotation(block.openingLoc, '以下の処理');
+                }
+                // loop / times → 繰り返し終了, others → ブロック終了
+                const isRepeat = name === 'loop' || name === 'times';
+                if (block.closingLoc) {
+                    this._addAnnotation(block.closingLoc, isRepeat ? '繰り返し終了' : 'ブロック終了');
+                }
+            }
+        }
+
         // Explicit child traversal
         if (node.receiver) this._walkNode(node.receiver);
         if (node.arguments_) {

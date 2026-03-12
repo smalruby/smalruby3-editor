@@ -827,6 +827,41 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
+    describe('do...end block annotations', () => {
+        test('loop do...end: do → 以下の処理, end → 繰り返し終了', () => {
+            const anns = annotate('loop do\n  puts 1\nend');
+            expect(labelsAt(anns, 1)).toContain('ずっと繰り返す');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('繰り返し終了');
+        });
+        test('N.times do...end: do → 以下の処理, end → 繰り返し終了', () => {
+            const anns = annotate('10.times do\n  puts 1\nend');
+            expect(labelsAt(anns, 1)).toContain('回繰り返す');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('繰り返し終了');
+        });
+        test('when_clicked do...end: do → 以下の処理, end → ブロック終了', () => {
+            const anns = annotate('when_clicked do\n  move(10)\nend');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('ブロック終了');
+        });
+        test('when_flag_clicked do...end: do → 以下の処理, end → ブロック終了', () => {
+            const anns = annotate('when_flag_clicked do\n  move(10)\nend');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('ブロック終了');
+        });
+        test('when_key_pressed do...end: do → 以下の処理, end → ブロック終了', () => {
+            const anns = annotate('when_key_pressed("space") do\n  move(10)\nend');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('ブロック終了');
+        });
+        test('when_start_as_a_clone do...end: do → 以下の処理, end → ブロック終了', () => {
+            const anns = annotate('when_start_as_a_clone do\n  move(10)\nend');
+            expect(labelsAt(anns, 1)).toContain('以下の処理');
+            expect(labelsAt(anns, 3)).toContain('ブロック終了');
+        });
+    });
+
     describe('multiline program from book examples', () => {
         test('kakaku example', () => {
             const code = [
