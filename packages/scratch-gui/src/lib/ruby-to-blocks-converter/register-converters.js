@@ -23,6 +23,7 @@ import MakeyMakeyConverter from './makeymakey';
 import VideoConverter from './video';
 import Text2SpeechConverter from './text2speech';
 import KoshienConverter from './koshien';
+import FaceSensingConverter from './face_sensing';
 
 const registerConverters = function (converter) {
     [
@@ -37,6 +38,7 @@ const registerConverters = function (converter) {
         MeshV2Converter,
         MeshConverter,
         KoshienConverter,
+        FaceSensingConverter,
         BoostConverter,
         TranslateConverter,
         SoundConverter,
