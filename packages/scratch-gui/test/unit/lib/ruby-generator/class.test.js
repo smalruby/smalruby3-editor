@@ -550,7 +550,7 @@ describe('RubyGenerator/Class', () => {
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Stage');
-            expect(result).toContain('set_current_backdrop 2');
+            expect(result).toContain('set_current_backdrop 3');
             expect(result).not.toContain('set_current_costume');
         });
 
@@ -737,7 +737,7 @@ describe('RubyGenerator/Class', () => {
             expect(result).toContain('set_direction 180');
             expect(result).toContain('set_visible false');
             expect(result).toContain('set_size 50');
-            expect(result).toContain('set_current_costume 2');
+            expect(result).toContain('set_current_costume 3');
             expect(result).toContain('set_rotation_style "left-right"');
             expect(result).toContain('set_costumes ["Dog1-a", "Dog1-b"]');
             expect(result).toContain('set_sounds ["Dog1"]');
@@ -789,7 +789,7 @@ describe('RubyGenerator/Class', () => {
 
             expect(result).toContain('class Stage < ::Smalruby3::Sprite');
             expect(result).toContain('set_name "ステージ"');
-            expect(result).toContain('set_current_backdrop 2');
+            expect(result).toContain('set_current_backdrop 3');
             expect(result).toContain('set_backdrops ["Arctic", "Baseball 1"]');
             expect(result).toContain('set_sounds ["Dog1"]');
         });

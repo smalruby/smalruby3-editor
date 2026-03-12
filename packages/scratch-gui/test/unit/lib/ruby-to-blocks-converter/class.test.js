@@ -1120,7 +1120,7 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(res).toBeTruthy();
             await vmConverter.applyTargetBlocks(spriteTarget);
 
-            expect(spriteTarget.currentCostume).toEqual(2);
+            expect(spriteTarget.currentCostume).toEqual(1);
         });
 
         test('set_sprite replaces costumes and sounds from sprite library', async () => {
@@ -1571,7 +1571,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 expect(res).toBeTruthy();
                 await vmConverter.applyTargetBlocks(stageTarget);
 
-                expect(stageTarget.currentCostume).toEqual(2);
+                expect(stageTarget.currentCostume).toEqual(1);
             });
 
             test('set_backdrops replaces costumes from backdrop library', async () => {

@@ -192,6 +192,11 @@ RubyGenerator.finish = function (code, options) {
     return s + code;
 };
 
+// Check if a string is a valid Ruby constant name (class name)
+RubyGenerator._isValidClassName = function (name) {
+    return /^[A-Z][\p{L}\p{N}_]*$/u.test(name);
+};
+
 RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     const target = this.currentTarget;
     const isStage = target && target.isStage;
@@ -244,7 +249,7 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         }
     } else if (allowedAttributes.indexOf('name') >= 0) {
         const spriteName = target.sprite.name;
-        if (/^[A-Z]/.test(spriteName)) {
+        if (this._isValidClassName(spriteName)) {
             className = spriteName;
         } else {
             // Calculate sprite index
@@ -256,7 +261,7 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     } else {
         // No name attribute - use Sprite%index% or sprite name if uppercase
         const spriteName = target.sprite.name;
-        if (isAutoWrap && /^[A-Z]/.test(spriteName)) {
+        if (isAutoWrap && this._isValidClassName(spriteName)) {
             className = spriteName;
         } else {
             const sprites = target.runtime.targets.filter(t => !t.isStage);
@@ -345,7 +350,7 @@ RubyGenerator._generateSetXxx = function (target, setLines, allowedAttributes, a
         setLines.push(`set_size ${target.size}`);
     }
     if (has('current_costume') && target.currentCostume > 0) {
-        setLines.push(`set_current_costume ${target.currentCostume}`);
+        setLines.push(`set_current_costume ${target.currentCostume + 1}`);
     }
     if (has('rotation_style') && target.rotationStyle !== 'all around') {
         setLines.push(`set_rotation_style ${this.quote_(target.rotationStyle)}`);
@@ -363,7 +368,7 @@ RubyGenerator._generateSetXxx = function (target, setLines, allowedAttributes, a
 RubyGenerator._generateStageSetXxx = function (target, setLines, allowedAttributes, autoAll) {
     const has = attr => autoAll || allowedAttributes.indexOf(attr) >= 0;
     if (has('current_backdrop') && target.currentCostume > 0) {
-        setLines.push(`set_current_backdrop ${target.currentCostume}`);
+        setLines.push(`set_current_backdrop ${target.currentCostume + 1}`);
     }
     if (has('backdrops') && target.sprite && target.sprite.costumes) {
         const backdropNames = target.sprite.costumes.map(c => this.quote_(c.name));

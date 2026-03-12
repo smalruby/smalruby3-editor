@@ -210,10 +210,12 @@ const TargetApplier = {
                     }
                 }
                 if (has('current_costume')) {
+                    // Convert 1-based user input to 0-based internal index
+                    const costumeIndex = classInfo.current_costume - 1;
                     if (typeof target.setCostume === 'function') {
-                        target.setCostume(classInfo.current_costume);
+                        target.setCostume(costumeIndex);
                     } else {
-                        target.currentCostume = classInfo.current_costume;
+                        target.currentCostume = costumeIndex;
                     }
                 }
                 if (has('rotation_style')) {
@@ -226,10 +228,12 @@ const TargetApplier = {
 
                 // Apply current_backdrop (stage-specific, same internal mechanism as current_costume)
                 if (has('current_backdrop')) {
+                    // Convert 1-based user input to 0-based internal index
+                    const backdropIndex = classInfo.current_backdrop - 1;
                     if (typeof target.setCostume === 'function') {
-                        target.setCostume(classInfo.current_backdrop);
+                        target.setCostume(backdropIndex);
                     } else {
-                        target.currentCostume = classInfo.current_backdrop;
+                        target.currentCostume = backdropIndex;
                     }
                 }
 

@@ -34,7 +34,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
     test('set_current_backdrop round trip', async () => {
         const input = [
             'class Stage',
-            '  set_current_backdrop 1',
+            '  set_current_backdrop 2',
             '',
             '  self.when(:flag_clicked) do',
             '    broadcast("message1")',
@@ -43,7 +43,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
         ].join('\n');
         const expected = [
             'class Stage',
-            '  set_current_backdrop 1',
+            '  set_current_backdrop 2',
             '',
             '  when_flag_clicked do',
             '    broadcast("message1")',
