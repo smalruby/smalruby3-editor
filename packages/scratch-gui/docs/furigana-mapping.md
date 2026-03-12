@@ -2,7 +2,7 @@
 
 Ruby tab のふりがな機能（「ふ」ボタン）で表示されるふりがなの対応表です。
 
-実装: `src/lib/furigana-annotator.js`
+実装: `src/lib/furigana-annotator.js`, `src/lib/furigana-extension-handlers.js`, `src/lib/furigana-call-helpers.js`, `src/lib/furigana-node-handlers.js`, `src/lib/furigana-label-map.js`
 
 ---
 
@@ -424,3 +424,112 @@ Ruby tab のふりがな機能（「ふ」ボタン）で表示されるふり�
 | `self.tempo = ...` | `テンポを設定` | 「テンポを...にする」 |
 | `self.tempo += ...` | `テンポを変える` | 「テンポを...ずつ変える」 |
 | `tempo`（ゲッター） | `テンポ` | 「テンポ」 |
+
+### 翻訳（Translate拡張機能）
+
+| Ruby | ふりがな | Scratchブロック |
+| ------ | --------- | ------ |
+| `translate("hello", "ja")` | `翻訳する` | 「helloをjaに翻訳する」 |
+| `language`（ゲッター） | `言語` | 「言語」 |
+
+### ビデオ（Video Sensing拡張機能）
+
+`video_sensing` は事前定義レシーバー。レシーバー自体に `ビデオ` のふりがなが付く。
+
+| Ruby | ふりがな | Scratchブロック |
+| ------ | --------- | ------ |
+| `video_sensing`（レシーバー） | `ビデオ` | — |
+| `video_sensing.when_video_motion_greater_than(n) do...end` | `ビデオ` `ビデオモーション ＞ のとき` `以下の処理` `ブロック終了` | 「ビデオモーション>nのとき」 |
+| `video_sensing.video_turn("on")` | `ビデオ` `ビデオを切り替える` `オン` | 「ビデオをオンにする」 |
+| `video_sensing.video_turn("off")` | `ビデオ` `ビデオを切り替える` `オフ` | 「ビデオをオフにする」 |
+| `video_sensing.video_turn("on-flipped")` | `ビデオ` `ビデオを切り替える` `左右反転` | 「ビデオを左右反転にする」 |
+| `video_sensing.video_transparency = n` | `ビデオ` `ビデオの透明度を設定` | 「ビデオの透明度をnにする」 |
+| `video_sensing.video_on("motion", "this sprite")` | `ビデオ` `ビデオの値` `動き` `このスプライト` | 「このスプライトのビデオの動き」 |
+
+### 音声合成（Text to Speech拡張機能）
+
+`text2speech` は事前定義レシーバー。レシーバー自体に `音声合成` のふりがなが付く。
+
+| Ruby | ふりがな | Scratchブロック |
+| ------ | --------- | ------ |
+| `text2speech`（レシーバー） | `音声合成` | — |
+| `text2speech.speak("hello")` | `音声合成` `話す` | 「helloと話す」 |
+| `text2speech.voice = "ALTO"` | `音声合成` `声を設定` | 「声をALTOにする」 |
+| `text2speech.language = "ja"` | `音声合成` `言語を設定` | 「言語をjaにする」 |
+
+### マイクロビット（micro:bit More拡張機能）
+
+`microbit` は事前定義レシーバー。レシーバー自体に `マイクロビット` のふりがなが付く。
+
+| Ruby | ふりがな | Scratchブロック |
+| ------ | --------- | ------ |
+| `microbit`（レシーバー） | `マイクロビット` | — |
+| `microbit.when_button_is("A", "down") do...end` | `マイクロビット` `ボタンのとき` `A` | 「ボタンAが押されたとき」 |
+| `microbit.button_pressed?("A")` | `マイクロビット` `ボタンが押されたか` `A` | 「ボタンAが押された」 |
+| `microbit.when("SHAKE") do...end` | `マイクロビット` `のとき` `振られた` | 「振られたとき」 |
+| `microbit.when_tilted("LEFT") do...end` | `マイクロビット` `傾いたとき` `左` | 「左に傾いたとき」 |
+| `microbit.tilted?("FRONT")` | `マイクロビット` `傾いているか` `前` | 「前に傾いた」 |
+| `microbit.tilt_angle("FRONT")` | `マイクロビット` `傾きの角度` `前` | 「前の傾きの角度」 |
+| `microbit.display_pattern(...)` | `マイクロビット` `LEDに表示` | 「LEDパターン表示」 |
+| `microbit.display_text("Hello!")` | `マイクロビット` `テキスト表示` | 「テキスト表示」 |
+| `microbit.clear_display` | `マイクロビット` `LED消去` | 「LED消去」 |
+| `microbit.light_intensity` | `マイクロビット` `明るさ` | 「明るさ」 |
+| `microbit.temperature` | `マイクロビット` `温度` | 「温度」 |
+| `microbit.sound_level` | `マイクロビット` `音の大きさ` | 「音の大きさ」 |
+| `microbit.acceleration("x")` | `マイクロビット` `加速度` `x` | 「x軸の加速度」 |
+| `microbit.magnetic_force("absolute")` | `マイクロビット` `磁力` `絶対値` | 「磁力の絶対値」 |
+| `microbit.play_tone(440, 100)` | `マイクロビット` `音を鳴らす` | 「音を鳴らす」 |
+| `microbit.stop_tone` | `マイクロビット` `音を止める` | 「音を止める」 |
+| `microbit.send_data_to_microbit(data, label)` | `マイクロビット` `データ送信` | 「データ送信」 |
+
+### メッシュ（Mesh拡張機能）
+
+`mesh` は事前定義レシーバー。レシーバー自体に `メッシュ` のふりがなが付く。
+
+| Ruby | ふりがな | Scratchブロック |
+| ------ | --------- | ------ |
+| `mesh`（レシーバー） | `メッシュ` | — |
+| `mesh.sensor_value("x")` | `メッシュ` `センサーの値` | 「xセンサーの値」 |
+
+### メッシュ・従来（Mesh V1拡張機能）
+
+`mesh_v1` は事前定義レシーバー。レシーバー自体に `メッシュ(従来)` のふりがなが付く。
+
+| Ruby | ふりがな | Scratchブロック |
+| ------ | --------- | ------ |
+| `mesh_v1`（レシーバー） | `メッシュ(従来)` | — |
+| `mesh_v1.sensor_value("x")` | `メッシュ(従来)` `センサーの値` | 「xセンサーの値」 |
+
+### スモウルボットS1（Smalrubot S1拡張機能）
+
+`smalrubot_s1` は事前定義レシーバー。レシーバー自体に `スモウルボットS1` のふりがなが付く。
+
+| Ruby | ふりがな | Scratchブロック |
+| ------ | --------- | ------ |
+| `smalrubot_s1`（レシーバー） | `スモウルボットS1` | — |
+| `smalrubot_s1.action("forward")` | `スモウルボットS1` `動作する` `進める` | 「進める」 |
+| `smalrubot_s1.action("backward")` | `スモウルボットS1` `動作する` `バックさせる` | 「バックさせる」 |
+| `smalrubot_s1.action("turnLeft")` | `スモウルボットS1` `動作する` `左に曲げる` | 「左に曲げる」 |
+| `smalrubot_s1.action("turnRight")` | `スモウルボットS1` `動作する` `右に曲げる` | 「右に曲げる」 |
+| `smalrubot_s1.action("stop")` | `スモウルボットS1` `動作する` `止める` | 「止める」 |
+| `smalrubot_s1.bend_arm(90, 1)` | `スモウルボットS1` `アームを曲げる` | 「アームを曲げる」 |
+| `smalrubot_s1.sensor_value("left")` | `スモウルボットS1` `センサーの値` | 「左のセンサー」 |
+| `smalrubot_s1.get_motor_speed("left")` | `スモウルボットS1` `モーター速度` | 「左DCモーターの速度」 |
+| `smalrubot_s1.set_motor_speed("left", 50)` | `スモウルボットS1` `モーター速度を設定` | 「左DCモーターの速度を50にする」 |
+| `smalrubot_s1.led("left", true)` | `スモウルボットS1` `LED設定` | 「左のLEDをオンにする」 |
+
+### 甲子園（Koshien拡張機能）
+
+`koshien` は事前定義レシーバー。レシーバー自体に `甲子園` のふりがなが付く。
+
+| Ruby | ふりがな | Scratchブロック |
+| ------ | --------- | ------ |
+| `koshien`（レシーバー） | `甲子園` | — |
+| `koshien.connect_game(name: "player1")` | `甲子園` `ゲームに接続` | 「ゲームに接続する」 |
+| `koshien.move_to("0:0")` | `甲子園` `移動する` | 「移動する」 |
+| `koshien.turn_over` | `甲子園` `ターン終了` | 「ターン終了」 |
+| `koshien.calc_route(result: ...)` | `甲子園` `ルート計算` | 「ルート計算」 |
+| `koshien.map("0:0")` | `甲子園` `マップ` | 「マップ」 |
+| `koshien.map_all` | `甲子園` `全マップ` | 「全マップ」 |
+| `koshien.position(x, y)` | `甲子園` `座標` | 「座標」 |
+| `koshien.set_message("hello")` | `甲子園` `メッセージ設定` | 「メッセージ設定」 |
