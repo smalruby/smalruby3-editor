@@ -33,6 +33,9 @@ import {
 } from '../reducers/project-state';
 import {GUIStoragePropType} from '../gui-config';
 import {getProjectThumbnail, storeProjectThumbnail} from './store-project-thumbnail';
+// === Smalruby: Start of URL params for Playwright ===
+import {getUrlParams} from './url-params';
+// === Smalruby: End of URL params for Playwright ===
 
 /**
  * Higher Order Component to provide behavior for saving projects.
@@ -53,7 +56,10 @@ const ProjectSaverHOC = function (WrappedComponent) {
             ]);
         }
         UNSAFE_componentWillMount () {
-            if (!this.props.noBeforeUnloadHandler && typeof window === 'object') {
+            // === Smalruby: Start of no_beforeunload URL param ===
+            if (!this.props.noBeforeUnloadHandler && typeof window === 'object' &&
+                !getUrlParams().noBeforeUnload) {
+                // === Smalruby: End of no_beforeunload URL param ===
                 // Note: it might be better to use a listener instead of assigning onbeforeunload;
                 // but then it'd be hard to turn this listening off in our tests
                 window.onbeforeunload = e => this.leavePageConfirm(e);

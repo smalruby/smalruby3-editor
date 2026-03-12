@@ -6,9 +6,19 @@ const COSTUMES_TAB_INDEX = 1;
 const SOUNDS_TAB_INDEX = 2;
 const RUBY_TAB_INDEX = 3;
 
-const initialState = {
-    activeTabIndex: BLOCKS_TAB_INDEX
+// === Smalruby: Start of initial tab from URL param ===
+import {getUrlParams} from '../lib/url-params';
+
+const getInitialTabIndex = () => {
+    const {initialTab} = getUrlParams();
+    if (initialTab === null) return BLOCKS_TAB_INDEX;
+    return initialTab;
 };
+
+const initialState = {
+    activeTabIndex: getInitialTabIndex()
+};
+// === Smalruby: End of initial tab from URL param ===
 
 const reducer = function (state, action) {
     if (typeof state === 'undefined') state = initialState;

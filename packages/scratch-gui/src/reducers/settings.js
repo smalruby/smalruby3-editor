@@ -1,16 +1,27 @@
 import {detectColorMode} from '../lib/settings/color-mode/persistence';
 import {detectTheme} from '../lib/settings/theme/persistence';
 import {detectRubyVersion} from '../lib/settings/ruby-version/persistence';
+// === Smalruby: Start of URL params for Playwright ===
+import {getUrlParams} from '../lib/url-params';
+// === Smalruby: End of URL params for Playwright ===
 
 const SET_COLOR_MODE = 'scratch-gui/settings/SET_COLOR_MODE';
 const SET_THEME = 'scratch-gui/settings/SET_THEME';
 const SET_RUBY_VERSION = 'scratch-gui/settings/SET_RUBY_VERSION';
 
+// === Smalruby: Start of ruby_version URL param ===
+const detectInitialRubyVersion = () => {
+    const {rubyVersion} = getUrlParams();
+    if (rubyVersion === null) return detectRubyVersion();
+    return rubyVersion;
+};
+
 const initialState = {
     colorMode: detectColorMode(),
     theme: detectTheme(),
-    rubyVersion: detectRubyVersion()
+    rubyVersion: detectInitialRubyVersion()
 };
+// === Smalruby: End of ruby_version URL param ===
 
 const reducer = (state = initialState, action) => {
     switch (action.type) {

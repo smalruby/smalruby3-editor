@@ -374,6 +374,112 @@ describe('RubyGenerator/Class', () => {
         });
     });
 
+    describe('set_sprite/set_costumes/set_sounds generation', () => {
+        test('@ruby:class:sprite=Dog1 outputs set_sprite "Dog1"', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.sprite.costumes = [{name: 'Dog1-a'}, {name: 'Dog1-b'}];
+            target.sprite.sounds = [{name: 'Dog1'}];
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sprite=Dog1'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_sprite "Dog1"');
+            expect(result).not.toContain('set_costumes');
+            expect(result).not.toContain('set_sounds');
+        });
+
+        test('@ruby:class:sprite=Dog1,x outputs set_sprite and set_x', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 100;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.sprite.costumes = [{name: 'Dog1-a'}];
+            target.sprite.sounds = [{name: 'Dog1'}];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sprite=Dog1,x'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_sprite "Dog1"');
+            expect(result).toContain('set_x 100');
+        });
+
+        test('@ruby:class:costumes outputs set_costumes with array', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.sprite.costumes = [{name: 'Dog1-a'}, {name: 'Dog1-b'}];
+            target.sprite.sounds = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:costumes'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_costumes ["Dog1-a", "Dog1-b"]');
+            expect(result).not.toContain('set_sprite');
+        });
+
+        test('@ruby:class:sounds outputs set_sounds with array', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.sprite.costumes = [];
+            target.sprite.sounds = [{name: 'Dog1'}, {name: 'Dog2'}];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sounds'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_sounds ["Dog1", "Dog2"]');
+            expect(result).not.toContain('set_sprite');
+        });
+
+        test('@ruby:class:costumes,sounds outputs both', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.sprite.costumes = [{name: 'Dog1-a'}, {name: 'Dog1-b'}];
+            target.sprite.sounds = [{name: 'Dog1'}, {name: 'Dog2'}];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:costumes,sounds'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_costumes ["Dog1-a", "Dog1-b"]');
+            expect(result).toContain('set_sounds ["Dog1", "Dog2"]');
+        });
+
+        test('@ruby:class without sprite/costumes/sounds does not output them', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.sprite.costumes = [{name: 'Dog1-a'}];
+            target.sprite.sounds = [{name: 'Dog1'}];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).not.toContain('set_sprite');
+            expect(result).not.toContain('set_costumes');
+            expect(result).not.toContain('set_sounds');
+        });
+    });
+
     describe('top-level code outside class (version 2 file output)', () => {
         test('non-hat code after class end is commented out in version 2 file output', () => {
             const {target, runtime} = makeMockTarget('Sprite1', 1);

@@ -106,7 +106,21 @@ const TOPLEVEL_METHOD_LABELS = {
     'hide_list': 'リストを隠す',
     // Music
     'play_drum': 'ドラムを鳴らす',
-    'play_note': '音符を鳴らす'
+    'play_note': '音符を鳴らす',
+    // Class configuration (set_xxx)
+    'set_name': '名前を設定',
+    'set_sprite': 'スプライトを設定',
+    'set_x': 'X座標を設定',
+    'set_y': 'Y座標を設定',
+    'set_direction': '向きを設定',
+    'set_visible': '表示を設定',
+    'set_size': '大きさを設定',
+    'set_current_costume': 'コスチュームを設定',
+    'set_rotation_style': '回転方法を設定',
+    'set_costumes': 'コスチュームを設定',
+    'set_sounds': '音を設定',
+    'set_variables': '変数を設定',
+    'set_lists': 'リストを設定'
 };
 
 /**
