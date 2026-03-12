@@ -491,7 +491,7 @@ describe('RubyGenerator/Class', () => {
             const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n\nmove(10)\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true});
 
-            expect(result).toContain('class Sprite1');
+            expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
             // hat code should be inside class
             expect(result).toContain('  self.when(:flag_clicked) do');
             // non-hat code should be outside class and commented out
@@ -635,7 +635,7 @@ describe('RubyGenerator/Class', () => {
             const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true});
 
-            expect(result).toContain('class Stage');
+            expect(result).toContain('class Stage < ::Smalruby3::Sprite');
             expect(result).not.toContain('Stage.new');
         });
 
@@ -662,7 +662,7 @@ describe('RubyGenerator/Class', () => {
             const code = 'when_flag_clicked do\n  broadcast("message1")\nend\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true});
 
-            expect(result).toContain('class Stage');
+            expect(result).toContain('class Stage < ::Smalruby3::Sprite');
             expect(result).toContain('  when_flag_clicked do');
             expect(result).toContain('    broadcast("message1")');
             expect(result).not.toContain('# when_flag_clicked');
@@ -755,7 +755,7 @@ describe('RubyGenerator/Class', () => {
             const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
 
-            expect(result).toContain('class Sprite1');
+            expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
             expect(result).not.toContain('Sprite.new');
         });
     });

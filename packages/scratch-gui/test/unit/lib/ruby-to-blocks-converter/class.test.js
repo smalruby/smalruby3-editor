@@ -16,7 +16,7 @@ describe('RubyToBlocksConverter/Class', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
+        converter = new RubyToBlocksConverter(null, {version: '2'});
         target = null;
         code = null;
         expected = null;
@@ -112,6 +112,42 @@ describe('RubyToBlocksConverter/Class', () => {
             const targetComments = Object.values(comments).filter(c => c.blockId === null);
             expect(targetComments).toHaveLength(1);
             expect(targetComments[0].text).toEqual('@ruby:class');
+        });
+
+        test('class with superclass < ::Smalruby3::Sprite is accepted', async () => {
+            code = `
+                class Sprite1 < ::Smalruby3::Sprite
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            expected = await rubyToExpected(converter, target, `
+                self.when(:flag_clicked) do
+                  move(10)
+                end
+            `);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class');
+        });
+
+        test('class definition is rejected in version 1', async () => {
+            const v1Converter = new RubyToBlocksConverter(null, {version: '1'});
+            code = `
+                class Sprite1
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await v1Converter.targetCodeToBlocks(target, code);
+            expect(res).toBeFalsy();
+            expect(v1Converter.errors).toHaveLength(1);
+            expect(v1Converter.errors[0].text).toContain('version 1');
         });
     });
 
@@ -921,7 +957,7 @@ describe('RubyToBlocksConverter/Class', () => {
         beforeEach(() => {
             ({target: spriteTarget, runtime} = makeSpriteTarget());
             spriteTarget.sprite = {name: 'スプライト1', costumes: []};
-            vmConverter = makeConverter(spriteTarget, runtime);
+            vmConverter = makeConverter(spriteTarget, runtime, {version: '2'});
         });
 
         test('class Sprite1 applies sprite name Sprite1', async () => {
@@ -1499,7 +1535,7 @@ describe('RubyToBlocksConverter/Class', () => {
             beforeEach(() => {
                 ({target: stageTarget, runtime} = makeStageTarget());
                 stageTarget.sprite = {name: 'Stage', costumes: []};
-                vmConverter = makeConverter(stageTarget, runtime);
+                vmConverter = makeConverter(stageTarget, runtime, {version: '2'});
             });
 
             test('set_name applies to stage', async () => {

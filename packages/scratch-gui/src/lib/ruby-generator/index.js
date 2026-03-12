@@ -308,7 +308,8 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         code = this.prefixLines(code, this.INDENT);
     }
     const separator = setCode.length > 0 && code.length > 0 ? '\n' : '';
-    code = `class ${className}\n${setCode}${separator}${code}end\n`;
+    const inheritance = forFileOutput ? ' < ::Smalruby3::Sprite' : '';
+    code = `class ${className}${inheritance}\n${setCode}${separator}${code}end\n`;
 
     if (outsideCode.length > 0) {
         code += outsideCode;

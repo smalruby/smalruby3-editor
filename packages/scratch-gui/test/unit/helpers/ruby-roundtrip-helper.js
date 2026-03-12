@@ -134,7 +134,7 @@ export const setupRubyGenerator = () => {
  * @param {object} runtime
  * @returns {RubyToBlocksConverter}
  */
-export const makeConverter = (target, runtime) => {
+export const makeConverter = (target, runtime, options) => {
     const vm = {
         runtime,
         emitWorkspaceUpdate: () => {},
@@ -143,7 +143,7 @@ export const makeConverter = (target, runtime) => {
             loadExtensionURL: () => Promise.resolve()
         }
     };
-    const converter = new RubyToBlocksConverter(vm);
+    const converter = new RubyToBlocksConverter(vm, options);
     converter._context.target = target;
     return converter;
 };

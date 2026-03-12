@@ -30,7 +30,7 @@ describe('Ruby Roundtrip: class set_sprite/set_costumes/set_sounds', () => {
         const stage = runtime.getTargetForStage();
         runtime.targets = [stage, target];
         setupRubyGenerator();
-        converter = makeConverter(target, runtime);
+        converter = makeConverter(target, runtime, {version: '2'});
     });
 
     test('set_sprite round trip', async () => {

@@ -28,7 +28,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
         target.sprite = {name: 'Stage', costumes: [], sounds: []};
         runtime.targets = [target];
         setupRubyGenerator();
-        converter = makeConverter(target, runtime);
+        converter = makeConverter(target, runtime, {version: '2'});
     });
 
     test('set_current_backdrop round trip', async () => {

@@ -94,6 +94,12 @@ const messages = defineMessages({
             '\nThis method is only available for class Stage.',
         description: 'Error message when a stage-only set_xxx method is used in a sprite class',
         id: 'gui.smalruby3.rubyToBlocksConverter.stageMethodInSpriteClass'
+    },
+    classNotSupportedInV1: {
+        defaultMessage: 'class definitions are not supported in Ruby version 1.' +
+            '\nPlease switch to Ruby version 2 from the settings menu.',
+        description: 'Error message when class syntax is used in Ruby version 1',
+        id: 'gui.smalruby3.rubyToBlocksConverter.classNotSupportedInV1'
     }
 });
 
@@ -382,9 +388,19 @@ class RubyToBlocksConverter extends Visitor {
     }
 
     visitClassNode (node) {
+        // class definitions are only supported in version 2
+        if (String(this.version) === '1') {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.classNotSupportedInV1)
+            );
+        }
+
         const className = node.name;
         const isSpriteIndexName = /^Sprite\d+$/.test(className);
         const isStageClass = className === 'Stage';
+
+        // Accept optional superclass `< ::Smalruby3::Sprite` (ignored, purely for readability)
 
         // Set of recognized set_xxx class methods (sprite-specific)
         const SPRITE_SET_METHODS = {
