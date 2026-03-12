@@ -34,7 +34,7 @@ const EXTENSION_RECEIVER_LABELS = {
     mesh_v1: 'メッシュ(従来)',
     mesh: 'メッシュ',
     smalrubot_s1: 'スモウルボットS1',
-    koshien: '甲子園'
+    koshien: 'スモウルビー甲子園'
 };
 
 // ---- Extension-specific string label maps ----
@@ -85,7 +85,19 @@ const SMALRUBOT_S1_POSITION_LABELS = {
 };
 
 /**
- * Maps extension receiver names → { methodName: stringLabelMap }.
+ * Dynamic label function for koshien position strings ("X:Y" → "x:X,y:Y").
+ * @param {string} content - string literal value
+ * @returns {string|null} furigana label or null
+ */
+const KOSHIEN_POSITION_LABEL_FN = content => {
+    const match = content.match(/^(-?\d+):(-?\d+)$/);
+    if (match) return `x:${match[1]},y:${match[2]}`;
+    return null;
+};
+
+/**
+ * Maps extension receiver names → { methodName: stringLabelMap|function }.
+ * Values can be plain objects (exact match) or functions (dynamic transform).
  * Used to set context-specific _stringLabelMap before walking arguments.
  */
 const EXTENSION_STRING_MAPS = {
@@ -107,6 +119,14 @@ const EXTENSION_STRING_MAPS = {
     },
     smalrubot_s1: {
         action: SMALRUBOT_S1_ACTION_LABELS
+    },
+    koshien: {
+        move_to: KOSHIEN_POSITION_LABEL_FN,
+        get_map_area: KOSHIEN_POSITION_LABEL_FN,
+        map: KOSHIEN_POSITION_LABEL_FN,
+        map_from: KOSHIEN_POSITION_LABEL_FN,
+        position_of_x: KOSHIEN_POSITION_LABEL_FN,
+        position_of_y: KOSHIEN_POSITION_LABEL_FN
     }
 };
 

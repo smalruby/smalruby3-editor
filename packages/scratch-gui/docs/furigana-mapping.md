@@ -518,18 +518,19 @@ Ruby tab のふりがな機能（「ふ」ボタン）で表示されるふり�
 | `smalrubot_s1.set_motor_speed("left", 50)` | `スモウルボットS1` `モーター速度を設定` | 「左DCモーターの速度を50にする」 |
 | `smalrubot_s1.led("left", true)` | `スモウルボットS1` `LED設定` | 「左のLEDをオンにする」 |
 
-### 甲子園（Koshien拡張機能）
+### スモウルビー甲子園（Koshien拡張機能）
 
-`koshien` は事前定義レシーバー。レシーバー自体に `甲子園` のふりがなが付く。
+`koshien` は事前定義レシーバー。レシーバー自体に `スモウルビー甲子園` のふりがなが付く。
+座標引数 `"X:Y"` は動的に `x:X,y:Y` のふりがなが付く。
 
 | Ruby | ふりがな | Scratchブロック |
 | ------ | --------- | ------ |
-| `koshien`（レシーバー） | `甲子園` | — |
-| `koshien.connect_game(name: "player1")` | `甲子園` `ゲームに接続` | 「ゲームに接続する」 |
-| `koshien.move_to("0:0")` | `甲子園` `移動する` | 「移動する」 |
-| `koshien.turn_over` | `甲子園` `ターン終了` | 「ターン終了」 |
-| `koshien.calc_route(result: ...)` | `甲子園` `ルート計算` | 「ルート計算」 |
-| `koshien.map("0:0")` | `甲子園` `マップ` | 「マップ」 |
-| `koshien.map_all` | `甲子園` `全マップ` | 「全マップ」 |
-| `koshien.position(x, y)` | `甲子園` `座標` | 「座標」 |
-| `koshien.set_message("hello")` | `甲子園` `メッセージ設定` | 「メッセージ設定」 |
+| `koshien`（レシーバー） | `スモウルビー甲子園` | — |
+| `koshien.connect_game(name: "player1")` | `スモウルビー甲子園` `ゲームに接続` | 「ゲームに接続する」 |
+| `koshien.move_to("0:0")` | `スモウルビー甲子園` `移動する` `x:0,y:0` | 「移動する」 |
+| `koshien.turn_over` | `スモウルビー甲子園` `ターン終了` | 「ターン終了」 |
+| `koshien.calc_route(result: ...)` | `スモウルビー甲子園` `ルート計算` | 「ルート計算」 |
+| `koshien.map("1:2")` | `スモウルビー甲子園` `マップ` `x:1,y:2` | 「マップ」 |
+| `koshien.map_all` | `スモウルビー甲子園` `全マップ` | 「全マップ」 |
+| `koshien.position(x, y)` | `スモウルビー甲子園` `座標` | 「座標」 |
+| `koshien.set_message("hello")` | `スモウルビー甲子園` `メッセージ設定` | 「メッセージ設定」 |

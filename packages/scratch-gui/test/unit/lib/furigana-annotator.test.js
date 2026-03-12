@@ -1267,26 +1267,35 @@ describe('FuriganaAnnotator', () => {
     });
 
     describe('koshien extension (predefined receiver)', () => {
-        test('koshien receiver → 甲子園', () => {
-            expect(labelsAt(annotate('koshien.turn_over'), 1)).toContain('甲子園');
+        test('koshien receiver → スモウルビー甲子園', () => {
+            expect(labelsAt(annotate('koshien.turn_over'), 1)).toContain('スモウルビー甲子園');
         });
         test('koshien.connect_game(name: "player1") → ゲームに接続', () => {
             expect(labelsAt(annotate('koshien.connect_game(name: "player1")'), 1)).toContain('ゲームに接続');
         });
-        test('koshien.move_to("0:0") → 移動する', () => {
-            expect(labelsAt(annotate('koshien.move_to("0:0")'), 1)).toContain('移動する');
+        test('koshien.move_to("0:0") → 移動する + x:0,y:0', () => {
+            const labels = labelsAt(annotate('koshien.move_to("0:0")'), 1);
+            expect(labels).toContain('移動する');
+            expect(labels).toContain('x:0,y:0');
         });
         test('koshien.turn_over → ターン終了', () => {
             expect(labelsAt(annotate('koshien.turn_over'), 1)).toContain('ターン終了');
         });
-        test('koshien.map("0:0") → マップ', () => {
-            expect(labelsAt(annotate('koshien.map("0:0")'), 1)).toContain('マップ');
+        test('koshien.map("1:2") → マップ + x:1,y:2', () => {
+            const labels = labelsAt(annotate('koshien.map("1:2")'), 1);
+            expect(labels).toContain('マップ');
+            expect(labels).toContain('x:1,y:2');
         });
         test('koshien.position(0, 0) → 座標', () => {
             expect(labelsAt(annotate('koshien.position(0, 0)'), 1)).toContain('座標');
         });
         test('koshien.set_message("hello") → メッセージ設定', () => {
             expect(labelsAt(annotate('koshien.set_message("hello")'), 1)).toContain('メッセージ設定');
+        });
+        test('koshien.get_map_area("-1:3") → マップエリア + x:-1,y:3', () => {
+            const labels = labelsAt(annotate('koshien.get_map_area("-1:3")'), 1);
+            expect(labels).toContain('マップエリア');
+            expect(labels).toContain('x:-1,y:3');
         });
     });
 });

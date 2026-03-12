@@ -115,10 +115,18 @@ const nodeHandlers = {
         const unescaped = node.unescaped;
         const content = (unescaped && typeof unescaped === 'object') ?
             unescaped.value : unescaped;
-        // Check context-specific string label map first (e.g., face_sensing PART/DIRECTION)
-        if (this._stringLabelMap && this._stringLabelMap[content]) {
-            this._addAnnotation(node.location, this._stringLabelMap[content]);
-            return;
+        // Check context-specific string label map/function first
+        if (this._stringLabelMap) {
+            if (typeof this._stringLabelMap === 'function') {
+                const fnLabel = this._stringLabelMap(content);
+                if (fnLabel) {
+                    this._addAnnotation(node.location, fnLabel);
+                    return;
+                }
+            } else if (this._stringLabelMap[content]) {
+                this._addAnnotation(node.location, this._stringLabelMap[content]);
+                return;
+            }
         }
         const specialLabel = SPECIAL_STRING_LABELS[content];
         this._addAnnotation(node.location, specialLabel || `文字列「${content}」`);
