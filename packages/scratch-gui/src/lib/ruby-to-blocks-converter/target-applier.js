@@ -4,10 +4,12 @@ import {loadSound} from '@smalruby/scratch-vm/src/import/load-sound';
 import spritesLibrary from '../libraries/sprites.json';
 import costumesLibrary from '../libraries/costumes.json';
 import soundsLibrary from '../libraries/sounds.json';
+import backdropsLibrary from '../libraries/backdrops.json';
 
 const spritesMap = new Map(spritesLibrary.map(s => [s.name, s]));
 const costumesMap = new Map(costumesLibrary.map(c => [c.name, c]));
 const soundsMap = new Map(soundsLibrary.map(s => [s.name, s]));
+const backdropsMap = new Map(backdropsLibrary.map(b => [b.name, b]));
 
 /**
  * Mixin for applying blocks to a VM target.
@@ -222,6 +224,15 @@ const TargetApplier = {
                     }
                 }
 
+                // Apply current_backdrop (stage-specific, same internal mechanism as current_costume)
+                if (has('current_backdrop')) {
+                    if (typeof target.setCostume === 'function') {
+                        target.setCostume(classInfo.current_backdrop);
+                    } else {
+                        target.currentCostume = classInfo.current_backdrop;
+                    }
+                }
+
                 // Collect new costumes and sounds to load via VM API
                 let newCostumes = null;
                 let newSounds = null;
@@ -244,6 +255,14 @@ const TargetApplier = {
                     newCostumes = classInfo.costumes.map(name => {
                         const costumeData = costumesMap.get(name);
                         return costumeData ? Object.assign({}, costumeData) : {name};
+                    });
+                }
+
+                // Apply backdrops (stage-specific, uses backdrop library)
+                if (has('backdrops') && Array.isArray(classInfo.backdrops)) {
+                    newCostumes = classInfo.backdrops.map(name => {
+                        const backdropData = backdropsMap.get(name);
+                        return backdropData ? Object.assign({}, backdropData) : {name};
                     });
                 }
 

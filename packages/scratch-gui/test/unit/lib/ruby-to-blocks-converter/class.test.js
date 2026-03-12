@@ -5,6 +5,7 @@ import {
 } from '../../../helpers/expect-to-equal-blocks';
 import {
     makeSpriteTarget,
+    makeStageTarget,
     makeConverter
 } from '../../helpers/ruby-roundtrip-helper';
 
@@ -1195,6 +1196,389 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(spriteTarget.x).toEqual(10);
             expect(spriteTarget.y).toEqual(20);
             expect(spriteTarget.sprite.name).toEqual('スプライト1');
+        });
+    });
+
+    describe('class Stage', () => {
+        describe('basic stage class syntax', () => {
+            test('class Stage with when_flag_clicked', async () => {
+                code = `
+                    class Stage
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                expected = await rubyToExpected(converter, target, `
+                    self.when(:flag_clicked) do
+                      switch_backdrop("Arctic")
+                    end
+                `);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+                const comments = converter._context.comments;
+                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                expect(targetComments).toHaveLength(1);
+                expect(targetComments[0].text).toEqual('@ruby:class');
+            });
+
+            test('empty class Stage', async () => {
+                code = `
+                    class Stage
+                    end
+                `;
+                const res = await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+
+                const comments = converter._context.comments;
+                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                expect(targetComments).toHaveLength(1);
+                expect(targetComments[0].text).toEqual('@ruby:class');
+            });
+        });
+
+        describe('stage set_xxx methods', () => {
+            test('set_current_backdrop stores in classInfo', async () => {
+                code = `
+                    class Stage
+                      set_current_backdrop 1
+
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+
+                expect(converter._context.classInfo).toBeDefined();
+                expect(converter._context.classInfo.current_backdrop).toEqual(1);
+
+                const comments = converter._context.comments;
+                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                expect(targetComments).toHaveLength(1);
+                expect(targetComments[0].text).toEqual('@ruby:class:current_backdrop');
+            });
+
+            test('set_backdrops stores array in classInfo', async () => {
+                code = `
+                    class Stage
+                      set_backdrops ["Arctic", "Baseball 1"]
+
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+
+                expect(converter._context.classInfo).toBeDefined();
+                expect(converter._context.classInfo.backdrops).toEqual(['Arctic', 'Baseball 1']);
+
+                const comments = converter._context.comments;
+                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                expect(targetComments).toHaveLength(1);
+                expect(targetComments[0].text).toEqual('@ruby:class:backdrops');
+            });
+
+            test('set_sounds stores array in classInfo for stage', async () => {
+                code = `
+                    class Stage
+                      set_sounds ["Dog1", "Dog2"]
+
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+
+                expect(converter._context.classInfo).toBeDefined();
+                expect(converter._context.classInfo.sounds).toEqual(['Dog1', 'Dog2']);
+            });
+
+            test('set_backdrops and set_sounds together', async () => {
+                code = `
+                    class Stage
+                      set_backdrops ["Arctic", "Baseball 1"]
+                      set_sounds ["Dog1", "Dog2"]
+
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+
+                expect(converter._context.classInfo).toBeDefined();
+                expect(converter._context.classInfo.backdrops).toEqual(['Arctic', 'Baseball 1']);
+                expect(converter._context.classInfo.sounds).toEqual(['Dog1', 'Dog2']);
+
+                const comments = converter._context.comments;
+                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                expect(targetComments).toHaveLength(1);
+                expect(targetComments[0].text).toEqual('@ruby:class:backdrops,sounds');
+            });
+
+            test('set_name is allowed for stage', async () => {
+                code = `
+                    class Stage
+                      set_name "ステージ"
+
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+
+                expect(converter._context.classInfo).toBeDefined();
+                expect(converter._context.classInfo.name).toEqual('ステージ');
+            });
+
+            test('all stage set_xxx only converts without error', async () => {
+                code = `
+                    class Stage
+                      set_name "ステージ"
+                      set_current_backdrop 1
+                      set_backdrops ["Arctic", "Baseball 1"]
+                      set_sounds ["Dog1", "Dog2"]
+                    end
+                `;
+                const res = await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+
+                expect(converter._context.classInfo).toBeDefined();
+                expect(converter._context.classInfo.name).toEqual('ステージ');
+                expect(converter._context.classInfo.current_backdrop).toEqual(1);
+                expect(converter._context.classInfo.backdrops).toEqual(['Arctic', 'Baseball 1']);
+                expect(converter._context.classInfo.sounds).toEqual(['Dog1', 'Dog2']);
+            });
+        });
+
+        describe('stage-forbidden methods', () => {
+            test('set_x is not allowed in class Stage', async () => {
+                code = `
+                    class Stage
+                      set_x 100
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+
+            test('set_y is not allowed in class Stage', async () => {
+                code = `
+                    class Stage
+                      set_y -50
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+
+            test('set_direction is not allowed in class Stage', async () => {
+                code = `
+                    class Stage
+                      set_direction 180
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+
+            test('set_visible is not allowed in class Stage', async () => {
+                code = `
+                    class Stage
+                      set_visible false
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+
+            test('set_size is not allowed in class Stage', async () => {
+                code = `
+                    class Stage
+                      set_size 50
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+
+            test('set_rotation_style is not allowed in class Stage', async () => {
+                code = `
+                    class Stage
+                      set_rotation_style "left-right"
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+
+            test('set_sprite is not allowed in class Stage', async () => {
+                code = `
+                    class Stage
+                      set_sprite "Dog1"
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+
+            test('set_costumes is not allowed in class Stage', async () => {
+                code = `
+                    class Stage
+                      set_costumes ["Dog1-a", "Dog1-b"]
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+
+            test('set_current_costume is not allowed in class Stage', async () => {
+                code = `
+                    class Stage
+                      set_current_costume 2
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+        });
+
+        describe('stage-specific methods not allowed in sprite class', () => {
+            test('set_current_backdrop is not allowed in sprite class', async () => {
+                code = `
+                    class Sprite1
+                      set_current_backdrop 1
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+
+            test('set_backdrops is not allowed in sprite class', async () => {
+                code = `
+                    class Sprite1
+                      set_backdrops ["Arctic", "Baseball 1"]
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+        });
+
+        describe('backdrop library validation', () => {
+            test('set_backdrops with invalid backdrop name is an error', async () => {
+                code = `
+                    class Stage
+                      set_backdrops ["Arctic", "NonExistentBackdrop999"]
+                    end
+                `;
+                await converter.targetCodeToBlocks(target, code);
+                expect(converter.errors.length).toBeGreaterThan(0);
+            });
+        });
+
+        describe('applyTargetBlocks applies stage classInfo', () => {
+            let stageTarget, runtime, vmConverter;
+
+            beforeEach(() => {
+                ({target: stageTarget, runtime} = makeStageTarget());
+                stageTarget.sprite = {name: 'Stage', costumes: []};
+                vmConverter = makeConverter(stageTarget, runtime);
+            });
+
+            test('set_name applies to stage', async () => {
+                code = `
+                    class Stage
+                      set_name "ステージ"
+
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await vmConverter.targetCodeToBlocks(stageTarget, code);
+                expect(vmConverter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+                await vmConverter.applyTargetBlocks(stageTarget);
+
+                expect(stageTarget.sprite.name).toEqual('ステージ');
+            });
+
+            test('set_current_backdrop applies to stage', async () => {
+                code = `
+                    class Stage
+                      set_current_backdrop 2
+
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await vmConverter.targetCodeToBlocks(stageTarget, code);
+                expect(vmConverter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+                await vmConverter.applyTargetBlocks(stageTarget);
+
+                expect(stageTarget.currentCostume).toEqual(2);
+            });
+
+            test('set_backdrops replaces costumes from backdrop library', async () => {
+                stageTarget.sprite.costumes = [{name: 'old-backdrop', assetId: 'old', md5ext: 'old.svg'}];
+                code = `
+                    class Stage
+                      set_backdrops ["Arctic", "Baseball 1"]
+
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await vmConverter.targetCodeToBlocks(stageTarget, code);
+                expect(vmConverter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+                await vmConverter.applyTargetBlocks(stageTarget);
+
+                expect(stageTarget.sprite.costumes).toHaveLength(2);
+                expect(stageTarget.sprite.costumes[0].name).toEqual('Arctic');
+                expect(stageTarget.sprite.costumes[1].name).toEqual('Baseball 1');
+            });
+
+            test('set_sounds replaces sounds for stage', async () => {
+                stageTarget.sprite.sounds = [{name: 'old-sound', assetId: 'old', md5ext: 'old.wav'}];
+                code = `
+                    class Stage
+                      set_sounds ["Dog1", "Dog2"]
+
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await vmConverter.targetCodeToBlocks(stageTarget, code);
+                expect(vmConverter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+                await vmConverter.applyTargetBlocks(stageTarget);
+
+                expect(stageTarget.sprite.sounds).toHaveLength(2);
+                expect(stageTarget.sprite.sounds[0].name).toEqual('Dog1');
+                expect(stageTarget.sprite.sounds[1].name).toEqual('Dog2');
+            });
         });
     });
 });

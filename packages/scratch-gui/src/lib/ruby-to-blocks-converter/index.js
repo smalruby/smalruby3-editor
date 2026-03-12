@@ -21,10 +21,12 @@ import PrismErrorTranslator from './prism-error-translator';
 import spritesLibrary from '../libraries/sprites.json';
 import costumesLibrary from '../libraries/costumes.json';
 import soundsLibrary from '../libraries/sounds.json';
+import backdropsLibrary from '../libraries/backdrops.json';
 
 const spriteLibraryNames = new Set(spritesLibrary.map(s => s.name));
 const costumeLibraryNames = new Set(costumesLibrary.map(c => c.name));
 const soundLibraryNames = new Set(soundsLibrary.map(s => s.name));
+const backdropLibraryNames = new Set(backdropsLibrary.map(b => b.name));
 
 const messages = defineMessages({
     couldNotConvertPrimitive: {
@@ -74,6 +76,24 @@ const messages = defineMessages({
             '\nCheck the name or use a valid sound name.',
         description: 'Error message when set_sounds references an invalid sound library name',
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidSoundName'
+    },
+    invalidBackdropName: {
+        defaultMessage: 'backdrop "{ NAME }" does not exist in the backdrop library.' +
+            '\nCheck the name or use a valid backdrop name.',
+        description: 'Error message when set_backdrops references an invalid backdrop library name',
+        id: 'gui.smalruby3.rubyToBlocksConverter.invalidBackdropName'
+    },
+    spriteMethodInStageClass: {
+        defaultMessage: '"{ METHOD }" cannot be used in class Stage.' +
+            '\nThis method is only available for sprites.',
+        description: 'Error message when a sprite-only set_xxx method is used in class Stage',
+        id: 'gui.smalruby3.rubyToBlocksConverter.spriteMethodInStageClass'
+    },
+    stageMethodInSpriteClass: {
+        defaultMessage: '"{ METHOD }" cannot be used in a sprite class.' +
+            '\nThis method is only available for class Stage.',
+        description: 'Error message when a stage-only set_xxx method is used in a sprite class',
+        id: 'gui.smalruby3.rubyToBlocksConverter.stageMethodInSpriteClass'
     }
 });
 
@@ -364,9 +384,10 @@ class RubyToBlocksConverter extends Visitor {
     visitClassNode (node) {
         const className = node.name;
         const isSpriteIndexName = /^Sprite\d+$/.test(className);
+        const isStageClass = className === 'Stage';
 
-        // Set of recognized set_xxx class methods
-        const SET_METHODS = {
+        // Set of recognized set_xxx class methods (sprite-specific)
+        const SPRITE_SET_METHODS = {
             set_name: 'name',
             set_sprite: 'sprite',
             set_x: 'x',
@@ -382,11 +403,38 @@ class RubyToBlocksConverter extends Visitor {
             set_lists: 'lists'
         };
 
+        // Set of recognized set_xxx class methods (stage-specific)
+        const STAGE_SET_METHODS = {
+            set_name: 'name',
+            set_current_backdrop: 'current_backdrop',
+            set_backdrops: 'backdrops',
+            set_sounds: 'sounds',
+            set_variables: 'variables',
+            set_lists: 'lists'
+        };
+
+        // Methods only allowed in sprite classes (forbidden in Stage)
+        const SPRITE_ONLY_METHODS = new Set([
+            'set_sprite', 'set_x', 'set_y', 'set_direction', 'set_visible',
+            'set_size', 'set_current_costume', 'set_rotation_style', 'set_costumes'
+        ]);
+
+        // Methods only allowed in stage class (forbidden in sprite classes)
+        const STAGE_ONLY_METHODS = new Set([
+            'set_current_backdrop', 'set_backdrops'
+        ]);
+
+        const SET_METHODS = isStageClass ? STAGE_SET_METHODS : SPRITE_SET_METHODS;
+
         // Canonical attribute order for comment text
-        const ATTR_ORDER = [
+        const SPRITE_ATTR_ORDER = [
             'sprite', 'name', 'x', 'y', 'direction', 'visible', 'size',
             'current_costume', 'rotation_style', 'costumes', 'sounds', 'variables', 'lists'
         ];
+        const STAGE_ATTR_ORDER = [
+            'name', 'current_backdrop', 'backdrops', 'sounds', 'variables', 'lists'
+        ];
+        const ATTR_ORDER = isStageClass ? STAGE_ATTR_ORDER : SPRITE_ATTR_ORDER;
 
         // Pre-scan class body for set_xxx calls
         const classInfo = {};
@@ -394,24 +442,40 @@ class RubyToBlocksConverter extends Visitor {
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
                 if (this._getNodeTypeName(stmt) === 'CallNode' &&
-                    SET_METHODS[stmt.name] &&
                     !stmt.receiver &&
                     stmt.arguments_ &&
                     stmt.arguments_.arguments_.length === 1) {
-                    const attrName = SET_METHODS[stmt.name];
-                    const arg = stmt.arguments_.arguments_[0];
-                    const value = this._extractClassMethodArg(arg);
-                    if (value !== null) {
-                        classInfo[attrName] = value;
-                        setMethodNames.add(stmt.name);
+
+                    // Check for cross-class method usage
+                    if (isStageClass && SPRITE_ONLY_METHODS.has(stmt.name)) {
+                        throw new RubyToBlocksConverterError(
+                            stmt,
+                            this._translator(messages.spriteMethodInStageClass, {METHOD: stmt.name})
+                        );
+                    }
+                    if (!isStageClass && STAGE_ONLY_METHODS.has(stmt.name)) {
+                        throw new RubyToBlocksConverterError(
+                            stmt,
+                            this._translator(messages.stageMethodInSpriteClass, {METHOD: stmt.name})
+                        );
+                    }
+
+                    if (SET_METHODS[stmt.name]) {
+                        const attrName = SET_METHODS[stmt.name];
+                        const arg = stmt.arguments_.arguments_[0];
+                        const value = this._extractClassMethodArg(arg);
+                        if (value !== null) {
+                            classInfo[attrName] = value;
+                            setMethodNames.add(stmt.name);
+                        }
                     }
                 }
             }
         }
 
-        // Mutual exclusion: set_sprite cannot be used with set_costumes/set_sounds
+        // Mutual exclusion: set_sprite cannot be used with set_costumes/set_sounds (sprite only)
         const has = prop => Object.prototype.hasOwnProperty.call(classInfo, prop);
-        if (has('sprite') && (has('costumes') || has('sounds'))) {
+        if (!isStageClass && has('sprite') && (has('costumes') || has('sounds'))) {
             throw new RubyToBlocksConverterError(
                 node,
                 this._translator(messages.spriteAndCostumesSoundsExclusive)
@@ -435,6 +499,16 @@ class RubyToBlocksConverter extends Visitor {
                 }
             }
         }
+        if (has('backdrops') && Array.isArray(classInfo.backdrops)) {
+            for (const name of classInfo.backdrops) {
+                if (!backdropLibraryNames.has(name)) {
+                    throw new RubyToBlocksConverterError(
+                        node,
+                        this._translator(messages.invalidBackdropName, {NAME: name})
+                    );
+                }
+            }
+        }
         if (has('sounds') && Array.isArray(classInfo.sounds)) {
             for (const name of classInfo.sounds) {
                 if (!soundLibraryNames.has(name)) {
@@ -448,18 +522,18 @@ class RubyToBlocksConverter extends Visitor {
 
         // Collect attribute names for comment
         const attributeNames = Object.keys(classInfo);
-        if (!isSpriteIndexName && !Object.prototype.hasOwnProperty.call(classInfo, 'name')) {
+        if (!isSpriteIndexName && !isStageClass && !Object.prototype.hasOwnProperty.call(classInfo, 'name')) {
             attributeNames.push('name');
         }
         // Sort by canonical order
         attributeNames.sort((a, b) => ATTR_ORDER.indexOf(a) - ATTR_ORDER.indexOf(b));
 
         // Generate comment text
-        // For non-Sprite\d+ class names, use name=ClassName format to preserve the class name
+        // For non-Sprite\d+ class names (excluding Stage), use name=ClassName format to preserve the class name
         let commentText;
         if (attributeNames.length > 0) {
             const commentParts = attributeNames.map(attr => {
-                if (attr === 'name' && !isSpriteIndexName) {
+                if (attr === 'name' && !isSpriteIndexName && !isStageClass) {
                     return `name=${className}`;
                 }
                 if (attr === 'sprite') {
@@ -475,7 +549,7 @@ class RubyToBlocksConverter extends Visitor {
 
         // Store class info in context
         if (attributeNames.length > 0) {
-            if (!Object.prototype.hasOwnProperty.call(classInfo, 'name') && !isSpriteIndexName) {
+            if (!Object.prototype.hasOwnProperty.call(classInfo, 'name') && !isSpriteIndexName && !isStageClass) {
                 classInfo.name = className;
             }
             this._context.classInfo = classInfo;
