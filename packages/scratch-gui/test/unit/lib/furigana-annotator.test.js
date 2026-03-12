@@ -708,39 +708,71 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
-    describe('face_sensing methods (face_sensing local variable receiver)', () => {
-        test('face_sensing.go_to annotates as ～へ移動', () => {
-            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.go_to("nose")'), 2)).toContain('～へ移動');
+    describe('face_sensing methods (predefined extension receiver)', () => {
+        test('face_sensing.go_to("nose") annotates face_sensing as 顔認識, go_to as 行く, "nose" as 鼻', () => {
+            const labels = labelsAt(annotate('face_sensing.go_to("nose")'), 1);
+            expect(labels).toContain('顔認識');
+            expect(labels).toContain('行く');
+            expect(labels).toContain('鼻');
+        });
+        test('face_sensing.go_to("left_eye") annotates "left_eye" as 左目', () => {
+            const labels = labelsAt(annotate('face_sensing.go_to("left_eye")'), 1);
+            expect(labels).toContain('左目');
+        });
+        test('face_sensing.go_to("top_of_head") annotates "top_of_head" as 頭のてっぺん', () => {
+            const labels = labelsAt(annotate('face_sensing.go_to("top_of_head")'), 1);
+            expect(labels).toContain('頭のてっぺん');
         });
         test('face_sensing.point_in_direction_of_face_tilt annotates as 顔の傾きの方向を向く', () => {
-            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.point_in_direction_of_face_tilt'), 2))
-                .toContain('顔の傾きの方向を向く');
+            const labels = labelsAt(annotate('face_sensing.point_in_direction_of_face_tilt'), 1);
+            expect(labels).toContain('顔認識');
+            expect(labels).toContain('顔の傾きの方向を向く');
         });
-        test('face_sensing.set_size_to_face_size annotates as 顔の大きさに合わせる', () => {
-            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.set_size_to_face_size'), 2))
-                .toContain('顔の大きさに合わせる');
+        test('face_sensing.set_size_to_face_size annotates as 大きさを顔の大きさにする', () => {
+            const labels = labelsAt(annotate('face_sensing.set_size_to_face_size'), 1);
+            expect(labels).toContain('顔認識');
+            expect(labels).toContain('大きさを顔の大きさにする');
         });
-        test('face_sensing.when_face_tilted annotates as 顔が傾いたとき', () => {
-            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.when_face_tilted("left") do; end'), 2))
-                .toContain('顔が傾いたとき');
+        test('face_sensing.when_face_tilted("left") annotates as 顔が傾いたとき with 左', () => {
+            const labels = labelsAt(annotate('face_sensing.when_face_tilted("left") do; end'), 1);
+            expect(labels).toContain('顔認識');
+            expect(labels).toContain('顔が傾いたとき');
+            expect(labels).toContain('左');
         });
-        test('face_sensing.when_this_sprite_touch annotates as ～に触れたとき', () => {
-            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.when_this_sprite_touch("nose") do; end'), 2))
-                .toContain('～に触れたとき');
+        test('face_sensing.when_face_tilted("right") annotates "right" as 右', () => {
+            const labels = labelsAt(annotate('face_sensing.when_face_tilted("right") do; end'), 1);
+            expect(labels).toContain('右');
+        });
+        test('face_sensing.when_this_sprite_touch("nose") annotates as 触れたとき with 鼻', () => {
+            const labels = labelsAt(annotate('face_sensing.when_this_sprite_touch("nose") do; end'), 1);
+            expect(labels).toContain('顔認識');
+            expect(labels).toContain('触れたとき');
+            expect(labels).toContain('鼻');
         });
         test('face_sensing.when_face_detected annotates as 顔が見つかったとき', () => {
-            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.when_face_detected do; end'), 2))
-                .toContain('顔が見つかったとき');
+            const labels = labelsAt(annotate('face_sensing.when_face_detected do; end'), 1);
+            expect(labels).toContain('顔認識');
+            expect(labels).toContain('顔が見つかったとき');
         });
-        test('face_sensing.face_detected? annotates as 顔が見つかったか', () => {
-            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.face_detected?'), 2))
-                .toContain('顔が見つかったか');
+        test('face_sensing.face_detected? annotates as 顔が見つかった', () => {
+            const labels = labelsAt(annotate('face_sensing.face_detected?'), 1);
+            expect(labels).toContain('顔認識');
+            expect(labels).toContain('顔が見つかった');
         });
         test('face_sensing.face_tilt annotates as 顔の傾き', () => {
-            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.face_tilt'), 2)).toContain('顔の傾き');
+            const labels = labelsAt(annotate('face_sensing.face_tilt'), 1);
+            expect(labels).toContain('顔認識');
+            expect(labels).toContain('顔の傾き');
         });
         test('face_sensing.face_size annotates as 顔の大きさ', () => {
-            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.face_size'), 2)).toContain('顔の大きさ');
+            const labels = labelsAt(annotate('face_sensing.face_size'), 1);
+            expect(labels).toContain('顔認識');
+            expect(labels).toContain('顔の大きさ');
+        });
+        test('PART string labels do not leak to non-face_sensing context', () => {
+            const labels = labelsAt(annotate('go_to("nose")'), 1);
+            expect(labels).not.toContain('鼻');
+            expect(labels).toContain('文字列「nose」');
         });
     });
 

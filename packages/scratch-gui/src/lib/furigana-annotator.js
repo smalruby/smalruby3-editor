@@ -280,6 +280,11 @@ class FuriganaAnnotator {
         const unescaped = node.unescaped;
         const content = (unescaped && typeof unescaped === 'object') ?
             unescaped.value : unescaped;
+        // Check context-specific string label map first (e.g., face_sensing PART/DIRECTION)
+        if (this._stringLabelMap && this._stringLabelMap[content]) {
+            this._addAnnotation(node.location, this._stringLabelMap[content]);
+            return;
+        }
         const specialLabel = FuriganaAnnotator._SPECIAL_STRING_LABELS[content];
         this._addAnnotation(node.location, specialLabel || `文字列「${content}」`);
     }
@@ -332,15 +337,14 @@ class FuriganaAnnotator {
                     break;
                 }
             } else if (receiverType === 'CallNode') {
-                // ---- Chained calls: Time.now.xxx ----
-                const innerReceiver = node.receiver;
-                const innerReceiverType = typeof innerReceiver.toJSON === 'function' ?
-                    innerReceiver.toJSON().type : null;
-                // Check if it's Time.now chain: outer.name is year/month/etc,
-                // node.receiver is CallNode(name=now, receiver=ConstantReadNode(Time))
                 const innerName = node.receiver.name;
-                if (innerName === 'now') {
-                    const innerRec = node.receiver.receiver;
+                const innerRec = node.receiver.receiver;
+
+                if (!innerRec && innerName === 'face_sensing') {
+                    // ---- face_sensing.xxx (predefined extension receiver) ----
+                    this._annotateFaceSensingMethod(node, name);
+                } else if (innerName === 'now') {
+                    // ---- Chained calls: Time.now.xxx ----
                     const innerRecType = innerRec && typeof innerRec.toJSON === 'function' ?
                         innerRec.toJSON().type : null;
                     if (innerRecType === 'ConstantReadNode' && innerRec.name === 'Time') {
@@ -382,6 +386,8 @@ class FuriganaAnnotator {
             this._annotateWhenGreaterThan(node);
         } else if (name === 'rest') {
             this._annotateRest(node);
+        } else if (name === 'face_sensing') {
+            this._addAnnotation(node.messageLoc || node.location, '顔認識');
         }
 
         // Set unit context for literal arguments of specific methods
@@ -405,11 +411,19 @@ class FuriganaAnnotator {
 
         // Explicit child traversal
         if (node.receiver) this._walkNode(node.receiver);
+
+        // Set context-specific string label map for face_sensing PART/DIRECTION args
+        const fsStringMap = FuriganaAnnotator._FACE_SENSING_STRING_MAP[name];
+        if (fsStringMap && this._isFaceSensingReceiver(node)) {
+            this._stringLabelMap = fsStringMap;
+        }
+
         if (node.arguments_) {
             if (methodUnit) this._argUnit = methodUnit;
             node.arguments_.arguments_.forEach(arg => this._walkNode(arg));
             if (methodUnit) this._argUnit = null;
         }
+        if (this._stringLabelMap) this._stringLabelMap = null;
         if (node.block) this._walkNode(node.block);
     }
 
@@ -540,20 +554,32 @@ class FuriganaAnnotator {
         if (label) this._addAnnotation(node.messageLoc, label);
     }
 
+    _isFaceSensingReceiver (node) {
+        if (!node.receiver) return false;
+        const recType = typeof node.receiver.toJSON === 'function' ?
+            node.receiver.toJSON().type : null;
+        if (recType === 'LocalVariableReadNode' && node.receiver.name === 'face_sensing') return true;
+        if (recType === 'CallNode' && !node.receiver.receiver && node.receiver.name === 'face_sensing') {
+            return true;
+        }
+        return false;
+    }
+
     _annotateFaceSensingMethod (node, name) {
         const faceSensingLabels = {
-            'go_to': '～へ移動',
+            'go_to': '行く',
             'point_in_direction_of_face_tilt': '顔の傾きの方向を向く',
-            'set_size_to_face_size': '顔の大きさに合わせる',
+            'set_size_to_face_size': '大きさを顔の大きさにする',
             'when_face_tilted': '顔が傾いたとき',
-            'when_this_sprite_touch': '～に触れたとき',
+            'when_this_sprite_touch': '触れたとき',
             'when_face_detected': '顔が見つかったとき',
-            'face_detected?': '顔が見つかったか',
+            'face_detected?': '顔が見つかった',
             'face_tilt': '顔の傾き',
             'face_size': '顔の大きさ'
         };
         const fsLabel = faceSensingLabels[name];
         if (fsLabel) this._addAnnotation(node.messageLoc, fsLabel);
+
     }
 
     _annotateGlide (node) {
@@ -822,5 +848,43 @@ FuriganaAnnotator._SPECIAL_STRING_LABELS = {
     'brightness': '明るさ',
     'ghost': '幽霊'
 };
+
+/**
+ * Maps face_sensing method names to their context-specific string label maps.
+ * Only methods with PART or DIRECTION arguments are listed.
+ */
+FuriganaAnnotator._FACE_SENSING_STRING_MAP = {
+    go_to: null, // set below after PART_LABELS defined
+    when_this_sprite_touch: null,
+    when_face_tilted: null
+};
+
+/**
+ * Context-specific string labels for face_sensing PART menu arguments.
+ * Used via _stringLabelMap to avoid polluting global _SPECIAL_STRING_LABELS.
+ */
+FuriganaAnnotator._FACE_SENSING_PART_LABELS = {
+    nose: '鼻',
+    mouth: '口',
+    left_eye: '左目',
+    right_eye: '右目',
+    between_eyes: '両目の間',
+    left_ear: '左耳',
+    right_ear: '右耳',
+    top_of_head: '頭のてっぺん'
+};
+
+/**
+ * Context-specific string labels for face_sensing DIRECTION menu arguments.
+ */
+FuriganaAnnotator._FACE_SENSING_DIRECTION_LABELS = {
+    left: '左',
+    right: '右'
+};
+
+// Wire up the string map references after definitions
+FuriganaAnnotator._FACE_SENSING_STRING_MAP.go_to = FuriganaAnnotator._FACE_SENSING_PART_LABELS;
+FuriganaAnnotator._FACE_SENSING_STRING_MAP.when_this_sprite_touch = FuriganaAnnotator._FACE_SENSING_PART_LABELS;
+FuriganaAnnotator._FACE_SENSING_STRING_MAP.when_face_tilted = FuriganaAnnotator._FACE_SENSING_DIRECTION_LABELS;
 
 export default FuriganaAnnotator;
