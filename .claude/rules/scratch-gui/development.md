@@ -270,6 +270,19 @@ upstream merge 時にコンフリクトを解決しやすくするための仕�
 | `src/components/gui/gui.jsx` | Redux action props prevention | Redux action props の伝播防止 |
 | `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |
 | `src/lib/blocks.js` | gesture recovery | ジェスチャー復旧ハンドラーのインストール |
+| `src/playground/render-gui.jsx` | URL params for Playwright | URL パラメーター import |
+| `src/playground/render-gui.jsx` | no_beforeunload URL param | beforeunload 無効化 |
+| `src/playground/render-gui-standalone.jsx` | URL params for Playwright | URL パラメーター import |
+| `src/playground/render-gui-standalone.jsx` | no_beforeunload URL param | beforeunload 無効化 |
+| `src/playground/player.jsx` | URL params for Playwright | URL パラメーター import |
+| `src/playground/player.jsx` | no_beforeunload URL param | beforeunload 無効化 |
+| `src/lib/project-saver-hoc.jsx` | URL params for Playwright | URL パラメーター import |
+| `src/lib/project-saver-hoc.jsx` | no_beforeunload URL param | beforeunload 無効化 |
+| `src/lib/project-fetcher-hoc.jsx` | URL params for Playwright | URL パラメーター import |
+| `src/lib/project-fetcher-hoc.jsx` | initial tab from URL param | 初期タブ URL パラメーター |
+| `src/reducers/editor-tab.js` | initial tab from URL param | 初期タブ URL パラメーター |
+| `src/reducers/settings.js` | URL params for Playwright | URL パラメーター import |
+| `src/reducers/settings.js` | ruby_version URL param | Ruby バージョン URL パラメーター |
 
 ### Smalruby 固有ファイル（ファイル全体がマーカー）
 
@@ -279,11 +292,31 @@ upstream merge 時にコンフリクトを解決しやすくするための仕�
 | `src/components/connection-modal/mesh-v2-network-filtered-step.jsx` | Mesh v2 ネットワークフィルター検出コンポーネント |
 | `src/reducers/smalruby-registry.ts` | Smalruby reducer/state の一括エクスポート |
 | `src/lib/blocks-gesture-recovery.js` | ジェスチャー復旧ハンドラー（ブロックドラッグのスタック防止） |
+| `src/lib/url-params.js` | Playwright テスト用 URL パラメーター解析ユーティリティ |
+| `src/containers/ruby-tab/debug-globals.js` | Playwright MCP 用デバッググローバル変数 |
 
 ### 関連ファイル
 
 マーカーで囲まれたコードが参照するファイル:
 - `src/reducers/smalruby-registry.ts` — gui.ts のマーカーから参照
+
+## Playwright MCP Testing with URL Parameters
+
+When verifying behavior in the browser using Playwright MCP, use the following URL parameters to streamline testing:
+
+```
+http://localhost:8601?no_beforeunload=1&tab=ruby&ruby_version=2
+```
+
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `no_beforeunload` | `1`, `true` | Disable the beforeunload confirmation dialog. **Always use this** in Playwright tests to prevent navigation being blocked. |
+| `tab` | `code`, `blocks`, `costumes`, `sounds`, `ruby` | Activate a specific tab on startup. Use `tab=ruby` to skip manual navigation to the Ruby tab. |
+| `ruby_version` | `1`, `2` | Set the Ruby version, overriding localStorage. Use this to ensure consistent test behavior regardless of previous test runs. |
+
+Invalid parameter values are silently ignored (falls back to defaults).
+
+**Implementation**: `src/lib/url-params.js` — cached URL parameter parser used by playground entry points, reducers, and HOCs.
 
 ## Development Notes
 

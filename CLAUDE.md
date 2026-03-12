@@ -215,6 +215,22 @@ docker compose restart app
 
 ## Browser Debugging with Playwright MCP
 
+### URL Parameters for Testing
+
+Always use URL parameters to streamline Playwright MCP testing:
+
+```
+http://localhost:8601?no_beforeunload=1&tab=ruby&ruby_version=2
+```
+
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `no_beforeunload` | `1`, `true` | **Always use this.** Disables beforeunload dialog that blocks navigation. |
+| `tab` | `code`, `costumes`, `sounds`, `ruby` | Activate a specific tab on startup. |
+| `ruby_version` | `1`, `2` | Set Ruby version, overriding localStorage. |
+
+### Debug Globals
+
 When verifying behavior in the browser using Playwright MCP, use the `window.smalruby` debug global object exposed by `packages/scratch-gui/src/containers/ruby-tab.jsx`:
 
 ```javascript
