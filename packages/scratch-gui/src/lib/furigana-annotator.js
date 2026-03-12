@@ -573,6 +573,11 @@ class FuriganaAnnotator {
         const attrName = node.readName; // e.g. "x" for self.x += 10
 
         if (receiverType === 'SelfNode') {
+            if (attrName === 'direction') {
+                const dirLabel = node.binaryOperator === '-' ?
+                    '反時計回りに回す' : '時計回りに回す';
+                this._addAnnotation(this._receiverSpanLoc(node), dirLabel);
+            }
             const selfOpLabels = {
                 x: 'X座標を変える',
                 y: 'Y座標を変える',

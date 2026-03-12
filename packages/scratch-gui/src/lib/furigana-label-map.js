@@ -51,8 +51,8 @@ const TOPLEVEL_METHOD_LABELS = {
     'wait': '待つ',
     // Motion
     'move': '動かす',
-    'turn_right': '右に回す',
-    'turn_left': '左に回す',
+    'turn_right': '時計回りに回す',
+    'turn_left': '反時計回りに回す',
     'go_to': '移動する',
     'point_towards': '向く',
     'bounce_if_on_edge': '端で跳ね返る',
@@ -85,7 +85,7 @@ const TOPLEVEL_METHOD_LABELS = {
     'broadcast': '送る',
     'broadcast_and_wait': '送って待つ',
     // Control
-    'sleep': '秒待つ',
+    'sleep': '待つ',
     'loop': 'ずっと繰り返す',
     'stop': '止める',
     'create_clone': 'クローンを作る',

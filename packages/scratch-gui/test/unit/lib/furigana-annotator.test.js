@@ -332,11 +332,11 @@ describe('FuriganaAnnotator', () => {
         test('move annotates as 動かす', () => {
             expect(labelsAt(annotate('move(10)'), 1)).toContain('動かす');
         });
-        test('turn_right annotates as 右に回す', () => {
-            expect(labelsAt(annotate('turn_right(15)'), 1)).toContain('右に回す');
+        test('turn_right annotates as 時計回りに回す', () => {
+            expect(labelsAt(annotate('turn_right(15)'), 1)).toContain('時計回りに回す');
         });
-        test('turn_left annotates as 左に回す', () => {
-            expect(labelsAt(annotate('turn_left(15)'), 1)).toContain('左に回す');
+        test('turn_left annotates as 反時計回りに回す', () => {
+            expect(labelsAt(annotate('turn_left(15)'), 1)).toContain('反時計回りに回す');
         });
         test('go_to annotates as 移動する', () => {
             expect(labelsAt(annotate('go_to("_mouse_")'), 1)).toContain('移動する');
@@ -472,8 +472,8 @@ describe('FuriganaAnnotator', () => {
     });
 
     describe('Control methods', () => {
-        test('sleep annotates as 秒待つ', () => {
-            expect(labelsAt(annotate('sleep(1)'), 1)).toContain('秒待つ');
+        test('sleep annotates as 待つ', () => {
+            expect(labelsAt(annotate('sleep(1)'), 1)).toContain('待つ');
         });
         test('loop annotates as ずっと繰り返す', () => {
             const anns = annotate('loop do\nend');
@@ -599,6 +599,12 @@ describe('FuriganaAnnotator', () => {
         });
         test('self.tempo += n annotates as テンポを変える', () => {
             expect(labelsAt(annotate('self.tempo += 20'), 1)).toContain('テンポを変える');
+        });
+        test('self.direction += n annotates as 時計回りに回す', () => {
+            expect(labelsAt(annotate('self.direction += 180'), 1)).toContain('時計回りに回す');
+        });
+        test('self.direction -= n annotates as 反時計回りに回す', () => {
+            expect(labelsAt(annotate('self.direction -= 90'), 1)).toContain('反時計回りに回す');
         });
     });
 
