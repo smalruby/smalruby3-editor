@@ -162,10 +162,17 @@ RubyGenerator.finish = function (code, options) {
     // For version 1 file output (withSpriteNew), use Sprite.new format
     // even when @ruby:class comment is present.
     // For version 2, @ruby:class takes priority over withSpriteNew.
+    // For version 2 stage targets without @ruby:class, auto-wrap with class Stage.
     if (classComment && this.version !== '1') {
         code = this._wrapWithClass(
             code, classComment, options && options.withSpriteNew
         );
+    } else if (this.version !== '1' && options && options.withSpriteNew &&
+               this.currentTarget && this.currentTarget.isStage) {
+        // Version 2: auto-wrap stage with class Stage
+        if (code.length > 0) {
+            code = this._wrapWithClass(code, '@ruby:class', true);
+        }
     } else if (options && options.withSpriteNew) {
         const spriteNewCode = this.spriteNew(this.currentTarget);
         if (code.length > 0) {
@@ -188,6 +195,7 @@ RubyGenerator.finish = function (code, options) {
 
 RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     const target = this.currentTarget;
+    const isStage = target && target.isStage;
     let className;
     const setLines = [];
 
@@ -217,7 +225,17 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         }
     }
 
-    if (explicitClassName) {
+    if (isStage) {
+        // Stage always uses class name "Stage"
+        className = 'Stage';
+        // Generate set_name only if explicitly listed and name differs from "Stage"
+        if (allowedAttributes.indexOf('name') >= 0) {
+            const spriteName = target.sprite.name;
+            if (spriteName !== 'Stage') {
+                setLines.push(`set_name ${this.quote_(spriteName)}`);
+            }
+        }
+    } else if (explicitClassName) {
         // Use the explicit class name from name=ClassName
         className = explicitClassName;
         const spriteName = target.sprite.name;
@@ -243,7 +261,11 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     }
 
     // Generate set_xxx only for listed attributes
-    this._generateSetXxx(target, setLines, allowedAttributes);
+    if (isStage) {
+        this._generateStageSetXxx(target, setLines, allowedAttributes);
+    } else {
+        this._generateSetXxx(target, setLines, allowedAttributes);
+    }
 
     let setCode = '';
     if (setLines.length > 0) {
@@ -319,6 +341,20 @@ RubyGenerator._generateSetXxx = function (target, setLines, allowedAttributes) {
     if (allowedAttributes.indexOf('costumes') >= 0 && target.sprite && target.sprite.costumes) {
         const costumeNames = target.sprite.costumes.map(c => this.quote_(c.name));
         setLines.push(`set_costumes [${costumeNames.join(', ')}]`);
+    }
+    if (allowedAttributes.indexOf('sounds') >= 0 && target.sprite && target.sprite.sounds) {
+        const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));
+        setLines.push(`set_sounds [${soundNames.join(', ')}]`);
+    }
+};
+
+RubyGenerator._generateStageSetXxx = function (target, setLines, allowedAttributes) {
+    if (allowedAttributes.indexOf('current_backdrop') >= 0 && target.currentCostume > 0) {
+        setLines.push(`set_current_backdrop ${target.currentCostume}`);
+    }
+    if (allowedAttributes.indexOf('backdrops') >= 0 && target.sprite && target.sprite.costumes) {
+        const backdropNames = target.sprite.costumes.map(c => this.quote_(c.name));
+        setLines.push(`set_backdrops [${backdropNames.join(', ')}]`);
     }
     if (allowedAttributes.indexOf('sounds') >= 0 && target.sprite && target.sprite.sounds) {
         const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));

@@ -514,6 +514,157 @@ describe('RubyGenerator/Class', () => {
         });
     });
 
+    describe('class Stage generation', () => {
+        const makeMockStageTarget = () => {
+            const stage = {
+                isStage: true,
+                sprite: {name: 'Stage', costumes: [], sounds: []},
+                currentCostume: 0,
+                variables: {}
+            };
+            const runtime = {targets: [stage]};
+            stage.runtime = runtime;
+            return {target: stage, runtime};
+        };
+
+        test('@ruby:class on stage wraps code with class Stage', () => {
+            const {target} = makeMockStageTarget();
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Stage');
+            expect(result).not.toContain('class Sprite');
+            expect(result).not.toContain('# @ruby:class');
+        });
+
+        test('@ruby:class:current_backdrop outputs set_current_backdrop', () => {
+            const {target} = makeMockStageTarget();
+            target.currentCostume = 2;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:current_backdrop'];
+
+            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Stage');
+            expect(result).toContain('set_current_backdrop 2');
+            expect(result).not.toContain('set_current_costume');
+        });
+
+        test('@ruby:class:backdrops outputs set_backdrops with array', () => {
+            const {target} = makeMockStageTarget();
+            target.sprite.costumes = [{name: 'Arctic'}, {name: 'Baseball 1'}];
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:backdrops'];
+
+            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Stage');
+            expect(result).toContain('set_backdrops ["Arctic", "Baseball 1"]');
+            expect(result).not.toContain('set_costumes');
+        });
+
+        test('@ruby:class:sounds outputs set_sounds for stage', () => {
+            const {target} = makeMockStageTarget();
+            target.sprite.sounds = [{name: 'Dog1'}, {name: 'Dog2'}];
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sounds'];
+
+            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Stage');
+            expect(result).toContain('set_sounds ["Dog1", "Dog2"]');
+        });
+
+        test('@ruby:class:backdrops,sounds outputs both for stage', () => {
+            const {target} = makeMockStageTarget();
+            target.sprite.costumes = [{name: 'Arctic'}, {name: 'Baseball 1'}];
+            target.sprite.sounds = [{name: 'Dog1'}];
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:backdrops,sounds'];
+
+            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('set_backdrops ["Arctic", "Baseball 1"]');
+            expect(result).toContain('set_sounds ["Dog1"]');
+        });
+
+        test('@ruby:class:name outputs set_name for stage', () => {
+            const {target} = makeMockStageTarget();
+            target.sprite.name = 'ステージ';
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name'];
+
+            const code = '';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Stage');
+            expect(result).toContain('set_name "ステージ"');
+        });
+
+        test('@ruby:class without attributes produces no set_xxx for stage', () => {
+            const {target} = makeMockStageTarget();
+            target.currentCostume = 2;
+            target.sprite.costumes = [{name: 'Arctic'}];
+            target.sprite.sounds = [{name: 'Dog1'}];
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Stage');
+            expect(result).not.toContain('set_current_backdrop');
+            expect(result).not.toContain('set_backdrops');
+            expect(result).not.toContain('set_sounds');
+            expect(result).not.toContain('set_name');
+        });
+
+        test('stage without @ruby:class and withSpriteNew auto-wraps with class Stage in version 2', () => {
+            RubyGenerator.init({version: '2'});
+            const {target} = makeMockStageTarget();
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = [];
+
+            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).toContain('class Stage');
+            expect(result).not.toContain('Stage.new');
+        });
+
+        test('stage without @ruby:class in version 1 uses Stage.new format', () => {
+            RubyGenerator.init({version: '1'});
+            const {target} = makeMockStageTarget();
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = [];
+
+            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).toContain('Stage.new');
+            expect(result).not.toContain('class Stage');
+        });
+
+        test('empty stage code auto-wraps with class Stage in version 2', () => {
+            RubyGenerator.init({version: '2'});
+            const {target} = makeMockStageTarget();
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = [];
+
+            const result = RubyGenerator.finish('', {withSpriteNew: true});
+
+            // Empty stage should not produce any output
+            expect(result).toEqual('');
+        });
+    });
+
     describe('withSpriteNew (version 1 file output)', () => {
         test('@ruby:class with withSpriteNew uses Sprite.new instead of class', () => {
             RubyGenerator.init({version: '1'});
