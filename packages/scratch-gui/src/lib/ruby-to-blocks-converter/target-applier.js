@@ -1,4 +1,6 @@
 import {Variable, LOCAL_VARIABLE_PATTERN} from './constants';
+import {loadCostume} from '@smalruby/scratch-vm/src/import/load-costume';
+import {loadSound} from '@smalruby/scratch-vm/src/import/load-sound';
 import spritesLibrary from '../libraries/sprites.json';
 import costumesLibrary from '../libraries/costumes.json';
 import soundsLibrary from '../libraries/sounds.json';
@@ -17,6 +19,14 @@ const TargetApplier = {
      * @returns {Promise} Promise that resolves when application is complete
      */
     applyTargetBlocks (target) {
+        // Sequence counter to handle re-entrant calls. When classInfo includes
+        // costumes/sounds, vm.addCostume triggers emitProjectChanged → React
+        // re-render → the useEffect in ruby-tab.jsx may fire again while
+        // rubyCode.modified is still true, starting a second applyTargetBlocks.
+        // Only the latest call's .then() will proceed; earlier ones bail out.
+        const applySeq = (target._smalrubyApplySeq || 0) + 1;
+        target._smalrubyApplySeq = applySeq;
+
         let stage;
         if (target.isStage) {
             stage = target;
@@ -136,6 +146,9 @@ const TargetApplier = {
         });
 
         return Promise.all(extensionPromises).then(() => {
+            // If a newer applyTargetBlocks was started, skip this one
+            if (target._smalrubyApplySeq !== applySeq) return;
+
             Object.keys(target.blocks._blocks).forEach(blockId => {
                 target.blocks.deleteBlock(blockId);
             });
@@ -209,22 +222,26 @@ const TargetApplier = {
                     }
                 }
 
+                // Collect new costumes and sounds to load via VM API
+                let newCostumes = null;
+                let newSounds = null;
+
                 // Apply sprite library data (replaces costumes and sounds)
                 if (has('sprite')) {
                     const spriteData = spritesMap.get(classInfo.sprite);
                     if (spriteData) {
                         if (spriteData.costumes) {
-                            target.sprite.costumes = spriteData.costumes.map(c => Object.assign({}, c));
+                            newCostumes = spriteData.costumes.map(c => Object.assign({}, c));
                         }
                         if (spriteData.sounds) {
-                            target.sprite.sounds = spriteData.sounds.map(s => Object.assign({}, s));
+                            newSounds = spriteData.sounds.map(s => Object.assign({}, s));
                         }
                     }
                 }
 
                 // Apply individual costumes (complete replacement)
                 if (has('costumes') && Array.isArray(classInfo.costumes)) {
-                    target.sprite.costumes = classInfo.costumes.map(name => {
+                    newCostumes = classInfo.costumes.map(name => {
                         const costumeData = costumesMap.get(name);
                         return costumeData ? Object.assign({}, costumeData) : {name};
                     });
@@ -232,11 +249,16 @@ const TargetApplier = {
 
                 // Apply individual sounds (complete replacement)
                 if (has('sounds') && Array.isArray(classInfo.sounds)) {
-                    target.sprite.sounds = classInfo.sounds.map(name => {
+                    newSounds = classInfo.sounds.map(name => {
                         const soundData = soundsMap.get(name);
                         return soundData ? Object.assign({}, soundData) : {name};
                     });
                 }
+
+                // Load assets via VM API and replace costumes/sounds
+                return this._loadAndReplaceCostumesAndSounds(
+                    target, newCostumes, newSounds
+                );
             }
 
             this.vm.emitWorkspaceUpdate();
@@ -245,6 +267,91 @@ const TargetApplier = {
             }
         });
     }
+};
+
+/**
+ * Load costume and sound assets via VM API, then replace
+ * the target's costumes/sounds arrays.
+ * @param {Target} target - VM target to update
+ * @param {Array|null} newCostumes - costume data from library, or null
+ * @param {Array|null} newSounds - sound data from library, or null
+ * @returns {Promise} resolves when all assets are loaded and applied
+ */
+TargetApplier._loadAndReplaceCostumesAndSounds = function (target, newCostumes, newSounds) {
+    const runtime = this.vm.runtime;
+    const hasRenderer = runtime && runtime.renderer;
+    const hasStorage = runtime && runtime.storage;
+    const promises = [];
+
+    if (newCostumes && newCostumes.length > 0) {
+        if (hasRenderer && hasStorage) {
+            // Load each costume asset directly via loadCostume (from scratch-vm).
+            // This creates renderer skins without the side effects of vm.addCostume
+            // (no name deduplication, no emitProjectChanged, no re-render triggers).
+            const costumeObjs = newCostumes.map(c => ({
+                name: c.name,
+                rotationCenterX: c.rotationCenterX,
+                rotationCenterY: c.rotationCenterY,
+                bitmapResolution: c.bitmapResolution,
+                skinId: null
+            }));
+            const costumeChain = costumeObjs.reduce((chain, costumeObj, i) => chain.then(() => {
+                const c = newCostumes[i];
+                const md5ext = c.md5ext || `${c.assetId}.${c.dataFormat}`;
+                return loadCostume(md5ext, costumeObj, runtime, 2);
+            }), Promise.resolve());
+
+            promises.push(costumeChain.then(() => {
+                // Replace costumes array directly — no name dedup, no min-1 guard
+                target.sprite.costumes = costumeObjs;
+                target.setCostume(0);
+            }));
+        } else {
+            // Fallback for test environments without renderer/storage
+            target.sprite.costumes = newCostumes;
+        }
+    }
+
+    if (newSounds && newSounds.length > 0) {
+        if (hasRenderer && hasStorage) {
+            // Load each sound asset directly via loadSound (from scratch-vm).
+            const soundObjs = newSounds.map(s => ({
+                name: s.name,
+                format: s.format || s.dataFormat,
+                md5: s.md5ext || `${s.assetId}.${s.dataFormat}`,
+                rate: s.rate,
+                sampleCount: s.sampleCount
+            }));
+            const soundBank = target.sprite.soundBank;
+            const soundChain = soundObjs.reduce(
+                (chain, soundObj) => chain.then(() => loadSound(soundObj, runtime, soundBank)),
+                Promise.resolve()
+            );
+
+            promises.push(soundChain.then(() => {
+                // Replace sounds array directly
+                target.sprite.sounds = soundObjs;
+            }));
+        } else {
+            // Fallback for test environments without renderer/storage
+            target.sprite.sounds = newSounds;
+        }
+    }
+
+    if (promises.length === 0) {
+        this.vm.emitWorkspaceUpdate();
+        if (typeof this.vm.emitTargetsUpdate === 'function') {
+            this.vm.emitTargetsUpdate();
+        }
+        return Promise.resolve();
+    }
+
+    return Promise.all(promises).then(() => {
+        this.vm.emitWorkspaceUpdate();
+        if (typeof this.vm.emitTargetsUpdate === 'function') {
+            this.vm.emitTargetsUpdate();
+        }
+    });
 };
 
 export default TargetApplier;

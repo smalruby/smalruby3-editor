@@ -20,7 +20,9 @@
       "node": "./dist/node/scratch-vm.js",
       "default": "./src/index.js"
     },
-    "./src/extension-support/block-type": "./src/extension-support/block-type"
+    "./src/extension-support/block-type": "./src/extension-support/block-type",
+    "./src/import/load-costume": "./src/import/load-costume.js",
+    "./src/import/load-sound": "./src/import/load-sound.js"
   },
   "main": "./dist/node/scratch-vm.js",
   "browser": "./dist/web/scratch-vm.js",
