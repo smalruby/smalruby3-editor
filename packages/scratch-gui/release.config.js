@@ -6,19 +6,14 @@ module.exports = {
             // default channel
         },
         {
-            name: 'alpha',
-            channel: 'alpha',
-            prerelease: true
+            name: 'hotfix/REPLACE', // replace with actual hotfix branch name
+            channel: 'hotfix',
+            prerelease: 'hotfix'
         },
         {
             name: 'beta',
             channel: 'beta',
             prerelease: true
-        },
-        {
-            name: 'hotfix/REPLACE', // replace with actual hotfix branch name
-            channel: 'hotfix',
-            prerelease: 'hotfix'
         }
     ]
 };

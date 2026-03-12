@@ -88,7 +88,7 @@ const domToBlock = function (blockDOM, blocks, isTopBlock, parent) {
         }
         case 'comment':
         {
-            block.comment = `${block.id}_comment`;
+            block.comment = xmlChild.attribs.id;
             break;
         }
         case 'value':

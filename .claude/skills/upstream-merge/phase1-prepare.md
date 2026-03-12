@@ -24,7 +24,30 @@ git remote add upstream https://github.com/scratchfoundation/scratch-editor.git
 `.upstream-merge-history.json` を読み込み、前回 merge の commit ID を取得する。
 ファイルが存在しない場合はエラー。
 
-### 1.3 Upstream差分確認
+### 1.3 Post-Merge Reverts 確認
+
+`postMergeReverts` 配列が存在する場合、**revert された変更がある**ことを意味する。
+
+ユーザーに以下を報告し、方針を確認する:
+
+```
+⚠️  前回の upstream merge 後に revert された変更があります:
+
+  - scope: <scope>
+  - reason: <reason>
+  - affected: <N> ファイル (<categories>)
+
+次回 merge ガイダンス:
+  <nextMergeGuidance>
+
+以下のどちらの方針で進めますか？
+  (A) upstream の変更を受け入れて revert を解消する（upstream 側で問題が修正済みの場合）
+  (B) 引き続き revert を維持する（upstream 側で問題が未解決の場合）
+```
+
+選択された方針を Phase 2 で使用する。
+
+### 1.4 Upstream差分確認
 
 **重要**: `git fetch upstream` は絶対に使わない（gh-pages を含む全ブランチを取得してしまう）。
 
@@ -35,8 +58,13 @@ git log <lastMerge.upstreamCommit>..upstream/develop --oneline --format="%h %s"
 
 - 新しい commit 数を表示
 - 最新10件の commit message を表示
+- `postMergeReverts` がある場合、upstream の diff に revert 対象のファイル変更が含まれるか確認:
+  ```bash
+  git diff --name-only <lastMerge.upstreamCommit>..upstream/develop
+  ```
+  `affectedAreas` のファイルと重複があれば報告する
 
-### 1.4 ユーザー確認
+### 1.5 ユーザー確認
 
 - "X commits を merge します。続行しますか？"
 - Yes / No / View all commits の選択肢

@@ -199,3 +199,85 @@
     background: linear-gradient(to bottom, #e8f8ee, #c2eacc);
     box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.7), 0 0 10px 4px rgba(76, 175, 80, 0.35);
 }
+
+.autoCorrectButton {
+    width: 2rem;
+    height: 2rem;
+    padding: 2px;
+    margin-left: 2px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    border-radius: $form-radius;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.2s, opacity 0.2s;
+}
+
+.autoCorrectButton img {
+    width: 28px;
+    height: 28px;
+}
+
+.autoCorrectButton:hover:not(:disabled) {
+    opacity: 0.85;
+}
+
+.autoCorrectButtonActive {
+    background: linear-gradient(to bottom, #e8f8ee, #c2eacc);
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.7), 0 0 10px 4px rgba(76, 175, 80, 0.35);
+}
+
+.moreMenuWrapper {
+    position: relative;
+}
+
+.moreIcon {
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #575e75;
+    letter-spacing: 1px;
+}
+
+.moreMenu {
+    position: absolute;
+    top: calc(100% + calc($space / 2));
+    right: 0;
+    min-width: 200px;
+    background-color: white;
+    border: 1px solid hsla(0, 0%, 0%, 0.15);
+    border-radius: $form-radius;
+    box-shadow: 0 0 8px 1px hsla(0, 0%, 0%, 0.15);
+    z-index: 100;
+    padding: calc($space / 2) 0;
+}
+
+[dir="rtl"] .moreMenu {
+    right: auto;
+    left: 0;
+}
+
+.moreMenuItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #575e75;
+    white-space: nowrap;
+}
+
+.moreMenuItem:hover {
+    background-color: hsla(0, 0%, 0%, 0.05);
+}
+
+.moreMenuIcon {
+    font-size: 1rem;
+}
+
+.moreMenuIconImg {
+    width: 20px;
+    height: 20px;
+}

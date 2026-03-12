@@ -48,31 +48,6 @@ describe('getBlocksBoundingBox', () => {
         const workspace = makeMockWorkspace({boundingBox: bbox});
         expect(getBlocksBoundingBox(workspace)).toEqual(bbox);
     });
-
-    test('converts {top, bottom, left, right} format to {x, y, width, height}', () => {
-        const workspace = makeMockWorkspace({
-            boundingBox: {top: 10, bottom: 110, left: 20, right: 220}
-        });
-        expect(getBlocksBoundingBox(workspace)).toEqual({
-            x: 20, y: 10, width: 200, height: 100
-        });
-    });
-
-    test('returns null for zero-area {top, bottom, left, right} format', () => {
-        const workspace = makeMockWorkspace({
-            boundingBox: {top: 0, bottom: 0, left: 0, right: 0}
-        });
-        expect(getBlocksBoundingBox(workspace)).toBeNull();
-    });
-
-    test('handles {top, bottom, left, right} with negative coordinates', () => {
-        const workspace = makeMockWorkspace({
-            boundingBox: {top: -50, bottom: 50, left: -30, right: 70}
-        });
-        expect(getBlocksBoundingBox(workspace)).toEqual({
-            x: -30, y: -50, width: 100, height: 100
-        });
-    });
 });
 
 // ---- calculateCanvasDimensions ----
@@ -190,18 +165,6 @@ describe('downloadBlocksAsImage', () => {
         expect(capturedCanvas.height).toBe(100 + EXPORT_PADDING * 2);
 
         document.createElement.mockRestore();
-    });
-
-    test('downloads PNG with {top, bottom, left, right} bbox format', async () => {
-        const workspace = makeMockWorkspace({
-            boundingBox: {top: 10, bottom: 110, left: 20, right: 220},
-            scale: 1
-        });
-        await downloadBlocksAsImage(workspace, 'proj', 'Sprite1');
-        expect(downloadBlob).toHaveBeenCalledWith(
-            'proj_Sprite1.png',
-            expect.any(Blob)
-        );
     });
 
     test('canvas dimensions respect scale', async () => {

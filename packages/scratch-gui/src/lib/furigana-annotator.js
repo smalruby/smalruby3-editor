@@ -1,3 +1,9 @@
+import {
+    RECEIVER_METHOD_LABELS,
+    TOPLEVEL_METHOD_LABELS,
+    TOPLEVEL_PROPERTY_LABELS
+} from './furigana-label-map';
+
 /**
  * Annotates Ruby source code with furigana (Japanese reading aids).
  *
@@ -35,6 +41,7 @@ class FuriganaAnnotator {
     /**
      * Build UTF-8 byte-based line offsets and a byteToChar mapping.
      * Prism gives byte offsets, but Monaco uses character (JS) columns.
+     * @param source
      */
     _buildMappings (source) {
         const encoder = new TextEncoder();
@@ -87,6 +94,7 @@ class FuriganaAnnotator {
     /**
      * Create a location spanning from the receiver's start to messageLoc's end.
      * Used for self.xxx so furigana starts above "self." instead of just "xxx".
+     * @param node
      */
     _receiverSpanLoc (node) {
         if (!node.receiver || !node.receiver.location || !node.messageLoc) return node.messageLoc;
@@ -340,338 +348,29 @@ class FuriganaAnnotator {
             }
 
             // ---- Operators and conversions (any receiver) ----
-            switch (name) {
-            case 'to_i':
-                this._addAnnotation(node.messageLoc, '整数化');
-                break;
-            case 'to_f':
-                this._addAnnotation(node.messageLoc, '浮動小数点数化');
-                break;
-            case 'to_s':
-                this._addAnnotation(node.messageLoc, '文字列化');
-                break;
-            case '+':
+            if (name === '+') {
                 this._addAnnotation(
                     node.messageLoc,
                     this._isStringType(node.receiver) ? '連結' : '足す'
                 );
-                break;
-            case '-':
-                this._addAnnotation(node.messageLoc, '引く');
-                break;
-            case '*':
-                this._addAnnotation(node.messageLoc, '掛ける');
-                break;
-            case '/':
-                this._addAnnotation(node.messageLoc, '割る');
-                break;
-            case '%':
-                this._addAnnotation(node.messageLoc, '余り');
-                break;
-            case '**':
-                this._addAnnotation(node.messageLoc, 'べき乗');
-                break;
-            case '+@':
-                this._addAnnotation(node.messageLoc, '正');
-                break;
-            case '-@':
-                this._addAnnotation(node.messageLoc, '負');
-                break;
-            case '<=':
-                this._addAnnotation(node.messageLoc, '以下');
-                break;
-            case '>=':
-                this._addAnnotation(node.messageLoc, '以上');
-                break;
-            case '<':
-                this._addAnnotation(node.messageLoc, '小さい');
-                break;
-            case '>':
-                this._addAnnotation(node.messageLoc, '大きい');
-                break;
-            case '==':
-                this._addAnnotation(node.messageLoc, '等しい');
-                break;
-            case '!=':
-                this._addAnnotation(node.messageLoc, '等しくない');
-                break;
-            case '!':
-                this._addAnnotation(node.messageLoc, 'ではない');
-                break;
-            // ---- Numeric / String methods ----
-            case 'round':
-                this._addAnnotation(node.messageLoc, '四捨五入');
-                break;
-            case 'abs':
-                this._addAnnotation(node.messageLoc, '絶対値');
-                break;
-            case 'floor':
-                this._addAnnotation(node.messageLoc, '切り捨て');
-                break;
-            case 'ceil':
-                this._addAnnotation(node.messageLoc, '切り上げ');
-                break;
-            case 'length':
-                this._addAnnotation(node.messageLoc, '長さ');
-                break;
-            case 'include?':
-                this._addAnnotation(node.messageLoc, '含むか');
-                break;
-            // ---- Control ----
-            case 'times':
-                this._addAnnotation(node.messageLoc, '回繰り返す');
-                break;
-            // ---- List operations ----
-            case 'push':
-                this._addAnnotation(node.messageLoc, '追加する');
-                break;
-            case 'delete_at':
-                this._addAnnotation(node.messageLoc, '削除する');
-                break;
-            case 'insert':
-                this._addAnnotation(node.messageLoc, '挿入する');
-                break;
-            case 'index':
-                this._addAnnotation(node.messageLoc, '検索する');
-                break;
-            case 'clear':
-                this._addAnnotation(node.messageLoc, '全削除する');
-                break;
-            default:
-                break;
+            } else if (RECEIVER_METHOD_LABELS[name]) {
+                this._addAnnotation(node.messageLoc, RECEIVER_METHOD_LABELS[name]);
             }
-        } else {
+        } else if (TOPLEVEL_METHOD_LABELS[name]) {
             // Top-level method calls (no receiver)
-            switch (name) {
-            // ---- Standard I/O (legacy) ----
-            case 'puts':
-            case 'print':
-                this._addAnnotation(node.messageLoc, '表示する');
-                break;
-            case 'gets':
-                this._addAnnotation(node.messageLoc, '入力する');
-                break;
-            case 'wait':
-                this._addAnnotation(node.messageLoc, '待つ');
-                break;
-            // ---- Motion ----
-            case 'move':
-                this._addAnnotation(node.messageLoc, '動かす');
-                break;
-            case 'turn_right':
-                this._addAnnotation(node.messageLoc, '右に回す');
-                break;
-            case 'turn_left':
-                this._addAnnotation(node.messageLoc, '左に回す');
-                break;
-            case 'go_to':
-                this._addAnnotation(node.messageLoc, '移動する');
-                break;
-            case 'glide':
-                this._annotateGlide(node);
-                break;
-            case 'point_towards':
-                this._addAnnotation(node.messageLoc, '向く');
-                break;
-            case 'bounce_if_on_edge':
-                this._addAnnotation(node.messageLoc, '端で跳ね返る');
-                break;
-            // ---- Motion property getters ----
-            case 'x':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, 'X座標');
-                break;
-            case 'y':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, 'Y座標');
-                break;
-            case 'direction':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, '向き');
-                break;
-            // ---- Looks ----
-            case 'say':
-                this._addAnnotation(node.messageLoc, '言う');
-                break;
-            case 'think':
-                this._addAnnotation(node.messageLoc, '考える');
-                break;
-            case 'switch_costume':
-                this._addAnnotation(node.messageLoc, 'コスチュームにする');
-                break;
-            case 'next_costume':
-                this._addAnnotation(node.messageLoc, '次のコスチュームにする');
-                break;
-            case 'switch_backdrop':
-                this._addAnnotation(node.messageLoc, '背景にする');
-                break;
-            case 'switch_backdrop_and_wait':
-                this._addAnnotation(node.messageLoc, '背景にして待つ');
-                break;
-            case 'next_backdrop':
-                this._addAnnotation(node.messageLoc, '次の背景にする');
-                break;
-            case 'set_effect':
-                this._addAnnotation(node.messageLoc, '画像効果を設定');
-                break;
-            case 'change_effect_by':
-                this._addAnnotation(node.messageLoc, '画像効果を変える');
-                break;
-            case 'clear_graphic_effects':
-                this._addAnnotation(node.messageLoc, '画像効果をなくす');
-                break;
-            case 'show':
-                this._addAnnotation(node.messageLoc, '表示する');
-                break;
-            case 'hide':
-                this._addAnnotation(node.messageLoc, '隠す');
-                break;
-            case 'go_to_layer':
-                this._annotateGoToLayer(node);
-                break;
-            case 'go_layers':
-                this._annotateGoLayers(node);
-                break;
-            // ---- Looks property getters ----
-            case 'costume_number':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, 'コスチューム番号');
-                break;
-            case 'costume_name':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, 'コスチューム名');
-                break;
-            case 'backdrop_number':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, '背景番号');
-                break;
-            case 'backdrop_name':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, '背景名');
-                break;
-            case 'size':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, '大きさ');
-                break;
-            // ---- Sound ----
-            case 'play':
-                this._addAnnotation(node.messageLoc, '音を鳴らす');
-                break;
-            case 'play_until_done':
-                this._addAnnotation(node.messageLoc, '音が終わるまで鳴らす');
-                break;
-            case 'stop_all_sounds':
-                this._addAnnotation(node.messageLoc, '音をすべて止める');
-                break;
-            case 'change_sound_effect_by':
-                this._addAnnotation(node.messageLoc, '音の効果を変える');
-                break;
-            case 'set_sound_effect':
-                this._addAnnotation(node.messageLoc, '音の効果を設定');
-                break;
-            case 'clear_sound_effects':
-                this._addAnnotation(node.messageLoc, '音の効果をなくす');
-                break;
-            case 'volume':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, '音量');
-                break;
-            // ---- Events ----
-            case 'when_flag_clicked':
-                this._addAnnotation(node.messageLoc, '旗が押されたとき');
-                break;
-            case 'when_key_pressed':
-                this._addAnnotation(node.messageLoc, 'キーが押されたとき');
-                break;
-            case 'when_clicked':
-                this._addAnnotation(node.messageLoc, 'クリックされたとき');
-                break;
-            case 'when_backdrop_switches':
-                this._addAnnotation(node.messageLoc, '背景が切り替わったとき');
-                break;
-            case 'when_greater_than':
-                this._annotateWhenGreaterThan(node);
-                break;
-            case 'when_receive':
-                this._addAnnotation(node.messageLoc, '受け取ったとき');
-                break;
-            case 'broadcast':
-                this._addAnnotation(node.messageLoc, '送る');
-                break;
-            case 'broadcast_and_wait':
-                this._addAnnotation(node.messageLoc, '送って待つ');
-                break;
-            // ---- Control ----
-            case 'sleep':
-                this._addAnnotation(node.messageLoc, '秒待つ');
-                break;
-            case 'loop':
-                this._addAnnotation(node.messageLoc, 'ずっと繰り返す');
-                break;
-            case 'stop':
-                this._addAnnotation(node.messageLoc, '止める');
-                break;
-            case 'create_clone':
-                this._addAnnotation(node.messageLoc, 'クローンを作る');
-                break;
-            case 'delete_this_clone':
-                this._addAnnotation(node.messageLoc, 'このクローンを削除');
-                break;
-            case 'when_start_as_a_clone':
-                this._addAnnotation(node.messageLoc, 'クローンされたとき');
-                break;
-            // ---- Sensing ----
-            case 'touching?':
-                this._addAnnotation(node.messageLoc, '触れているか');
-                break;
-            case 'touching_color?':
-                this._addAnnotation(node.messageLoc, '色に触れているか');
-                break;
-            case 'color_is_touching_color?':
-                this._addAnnotation(node.messageLoc, '色が色に触れているか');
-                break;
-            case 'distance':
-                this._addAnnotation(node.messageLoc, '距離');
-                break;
-            case 'ask':
-                this._addAnnotation(node.messageLoc, '質問する');
-                break;
-            case 'answer':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, '答え');
-                break;
-            case 'loudness':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, 'マイクの音量');
-                break;
-            case 'days_since_2000':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, '2000年からの日数');
-                break;
-            case 'user_name':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, 'ユーザー名');
-                break;
-            // ---- Operators ----
-            case 'rand':
-                this._addAnnotation(node.messageLoc, '乱数');
-                break;
-            // ---- Data ----
-            case 'show_variable':
-                this._addAnnotation(node.messageLoc, '変数を表示');
-                break;
-            case 'hide_variable':
-                this._addAnnotation(node.messageLoc, '変数を隠す');
-                break;
-            case 'show_list':
-                this._addAnnotation(node.messageLoc, 'リストを表示');
-                break;
-            case 'hide_list':
-                this._addAnnotation(node.messageLoc, 'リストを隠す');
-                break;
-            // ---- Music ----
-            case 'play_drum':
-                this._addAnnotation(node.messageLoc, 'ドラムを鳴らす');
-                break;
-            case 'rest':
-                this._annotateRest(node);
-                break;
-            case 'play_note':
-                this._addAnnotation(node.messageLoc, '音符を鳴らす');
-                break;
-            case 'tempo':
-                if (!node.arguments_) this._addAnnotation(node.messageLoc, 'テンポ');
-                break;
-            default:
-                break;
-            }
+            this._addAnnotation(node.messageLoc, TOPLEVEL_METHOD_LABELS[name]);
+        } else if (!node.arguments_ && TOPLEVEL_PROPERTY_LABELS[name]) {
+            this._addAnnotation(node.messageLoc, TOPLEVEL_PROPERTY_LABELS[name]);
+        } else if (name === 'glide') {
+            this._annotateGlide(node);
+        } else if (name === 'go_to_layer') {
+            this._annotateGoToLayer(node);
+        } else if (name === 'go_layers') {
+            this._annotateGoLayers(node);
+        } else if (name === 'when_greater_than') {
+            this._annotateWhenGreaterThan(node);
+        } else if (name === 'rest') {
+            this._annotateRest(node);
         }
 
         // Explicit child traversal

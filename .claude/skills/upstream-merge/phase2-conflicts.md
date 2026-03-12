@@ -2,6 +2,38 @@
 
 コンフリクトを検出し、既知パターンに従って解決する。
 
+## Post-Merge Reverts の処理
+
+`.upstream-merge-history.json` に `postMergeReverts` がある場合、Phase 1 で確認した方針に従う。
+
+### 方針A: upstream を受け入れて revert を解消する場合
+
+`affectedAreas` に記載されたファイルのコンフリクトは **upstream (theirs) を受け入れ**、Smalruby マーカーブロックのみ再適用する。
+
+```bash
+# 特定ファイルを upstream 版で解決する場合
+git checkout --theirs <file>
+git add <file>
+```
+
+ただし Smalruby マーカーを含むファイル（`blocks.jsx` 等）は手動でマーカー部分だけ再挿入する。
+
+`affectedAreas` の `category: "Smalruby-specific additions"` に記載されたファイルは **ours を保持**する。
+
+### 方針B: revert を維持する場合
+
+`affectedAreas` に記載されたファイルのコンフリクトは **ours を保持**する。
+
+```bash
+# 特定ファイルを現在の Smalruby 版で解決する場合
+git checkout --ours <file>
+git add <file>
+```
+
+upstream が追加した新しいファイルや、revert 対象外のファイルは通常通り受け入れる。
+
+---
+
 ## Known Conflicts 一覧
 
 以下のファイルは upstream merge 時にほぼ毎回コンフリクトが発生する。
