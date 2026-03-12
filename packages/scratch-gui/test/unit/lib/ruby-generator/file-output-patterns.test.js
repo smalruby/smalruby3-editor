@@ -1515,3 +1515,136 @@ describe('Version comparison edge cases', () => {
         expect(result).not.toContain('class ');
     });
 });
+
+// ============================================================
+// 12. Extension hat blocks inside class
+// ============================================================
+describe('Extension hat blocks inside class', () => {
+    test('microbit.when_button_is inside class with @ruby:class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code = 'microbit.when_button_is("A", "down") do\n  puts("hello")\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('class Sprite1');
+        expect(result).toContain('  microbit.when_button_is("A", "down") do');
+        expect(result).not.toContain('# microbit');
+    });
+
+    test('microbit.when_button_is inside auto-wrapped class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target);
+
+        const code = 'microbit.when_button_is("A", "down") do\n  puts("hello")\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
+        expect(result).toContain('  microbit.when_button_is("A", "down") do');
+        expect(result).not.toContain('# microbit');
+    });
+
+    test('face_sensing.when_face_tilted inside class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code = 'face_sensing.when_face_tilted("left") do\n  move(10)\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('class Sprite1');
+        expect(result).toContain('  face_sensing.when_face_tilted("left") do');
+        expect(result).not.toContain('# face_sensing');
+    });
+
+    test('ev3.when_button_pressed inside class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code = 'ev3.when_button_pressed(1) do\n  move(10)\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('  ev3.when_button_pressed(1) do');
+        expect(result).not.toContain('# ev3');
+    });
+
+    test('video_sensing.when_video_motion_greater_than inside class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code = 'video_sensing.when_video_motion_greater_than(10) do\n  move(10)\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('  video_sensing.when_video_motion_greater_than(10) do');
+        expect(result).not.toContain('# video_sensing');
+    });
+
+    test('mixed core and extension hat blocks inside class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code =
+            'when_flag_clicked do\n  move(10)\nend\n\n' +
+            'microbit.when_button_is("A", "down") do\n  puts("hello")\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('  when_flag_clicked do');
+        expect(result).toContain('  microbit.when_button_is("A", "down") do');
+        expect(result).not.toContain('# microbit');
+        expect(result).not.toContain('# when_flag_clicked');
+    });
+
+    test('SpriteName.when(:boost_color) inside class (boost pattern)', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code = 'Sprite1.when(:boost_color, "any") do\n  move(10)\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('  Sprite1.when(:boost_color, "any") do');
+        expect(result).not.toContain('# Sprite1.when');
+    });
+
+    test('wedo2.when_distance inside class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code = 'wedo2.when_distance("<", 50) do\n  move(10)\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('  wedo2.when_distance("<", 50) do');
+        expect(result).not.toContain('# wedo2');
+    });
+
+    test('makey.when_key_pressed inside class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code = 'makey.when_key_pressed("space") do\n  move(10)\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('  makey.when_key_pressed("space") do');
+        expect(result).not.toContain('# makey');
+    });
+
+    test('microbit_v1.when_button_pressed inside class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code = 'microbit_v1.when_button_pressed("A") do\n  move(10)\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('  microbit_v1.when_button_pressed("A") do');
+        expect(result).not.toContain('# microbit_v1');
+    });
+
+    test('gdx_for.when_gesture inside class', () => {
+        const {target} = makeMockTarget('Sprite1');
+        setupGenerator('2', target, ['@ruby:class']);
+
+        const code = 'gdx_for.when_gesture("shaken") do\n  move(10)\nend\n';
+        const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+        expect(result).toContain('  gdx_for.when_gesture("shaken") do');
+        expect(result).not.toContain('# gdx_for');
+    });
+});
