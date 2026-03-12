@@ -708,6 +708,42 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
+    describe('face_sensing methods (face_sensing local variable receiver)', () => {
+        test('face_sensing.go_to annotates as ～へ移動', () => {
+            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.go_to("nose")'), 2)).toContain('～へ移動');
+        });
+        test('face_sensing.point_in_direction_of_face_tilt annotates as 顔の傾きの方向を向く', () => {
+            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.point_in_direction_of_face_tilt'), 2))
+                .toContain('顔の傾きの方向を向く');
+        });
+        test('face_sensing.set_size_to_face_size annotates as 顔の大きさに合わせる', () => {
+            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.set_size_to_face_size'), 2))
+                .toContain('顔の大きさに合わせる');
+        });
+        test('face_sensing.when_face_tilted annotates as 顔が傾いたとき', () => {
+            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.when_face_tilted("left") do; end'), 2))
+                .toContain('顔が傾いたとき');
+        });
+        test('face_sensing.when_this_sprite_touch annotates as ～に触れたとき', () => {
+            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.when_this_sprite_touch("nose") do; end'), 2))
+                .toContain('～に触れたとき');
+        });
+        test('face_sensing.when_face_detected annotates as 顔が見つかったとき', () => {
+            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.when_face_detected do; end'), 2))
+                .toContain('顔が見つかったとき');
+        });
+        test('face_sensing.face_detected? annotates as 顔が見つかったか', () => {
+            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.face_detected?'), 2))
+                .toContain('顔が見つかったか');
+        });
+        test('face_sensing.face_tilt annotates as 顔の傾き', () => {
+            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.face_tilt'), 2)).toContain('顔の傾き');
+        });
+        test('face_sensing.face_size annotates as 顔の大きさ', () => {
+            expect(labelsAt(annotate('face_sensing = 1\nface_sensing.face_size'), 2)).toContain('顔の大きさ');
+        });
+    });
+
     describe('pen methods (pen local variable receiver)', () => {
         test('pen.stamp annotates as スタンプ', () => {
             expect(labelsAt(annotate('pen = 1\npen.stamp'), 2)).toContain('スタンプ');

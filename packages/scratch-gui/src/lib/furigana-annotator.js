@@ -353,6 +353,9 @@ class FuriganaAnnotator {
             } else if (receiverType === 'LocalVariableReadNode' && node.receiver.name === 'pen') {
                 // ---- pen.xxx ----
                 this._annotatePenMethod(node, name);
+            } else if (receiverType === 'LocalVariableReadNode' && node.receiver.name === 'face_sensing') {
+                // ---- face_sensing.xxx ----
+                this._annotateFaceSensingMethod(node, name);
             }
 
             // ---- Operators and conversions (any receiver) ----
@@ -535,6 +538,22 @@ class FuriganaAnnotator {
         };
         const label = penLabels[name];
         if (label) this._addAnnotation(node.messageLoc, label);
+    }
+
+    _annotateFaceSensingMethod (node, name) {
+        const faceSensingLabels = {
+            'go_to': '～へ移動',
+            'point_in_direction_of_face_tilt': '顔の傾きの方向を向く',
+            'set_size_to_face_size': '顔の大きさに合わせる',
+            'when_face_tilted': '顔が傾いたとき',
+            'when_this_sprite_touch': '～に触れたとき',
+            'when_face_detected': '顔が見つかったとき',
+            'face_detected?': '顔が見つかったか',
+            'face_tilt': '顔の傾き',
+            'face_size': '顔の大きさ'
+        };
+        const fsLabel = faceSensingLabels[name];
+        if (fsLabel) this._addAnnotation(node.messageLoc, fsLabel);
     }
 
     _annotateGlide (node) {
