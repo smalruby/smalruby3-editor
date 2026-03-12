@@ -681,6 +681,153 @@ describe('RubyGenerator/Class', () => {
         });
     });
 
+    describe('v2 sprite auto-wrap (no @ruby:class, withSpriteNew)', () => {
+        test('sprite without @ruby:class auto-wraps with class in version 2', () => {
+            RubyGenerator.init({version: '2'});
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.isStage = false;
+            target.sprite.costumes = [{name: 'costume1'}];
+            target.sprite.sounds = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = [];
+
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
+            expect(result).not.toContain('Sprite.new');
+            expect(result).toContain('  set_costumes ["costume1"]');
+            expect(result).toContain('  when_flag_clicked do');
+        });
+
+        test('sprite auto-wrap generates all non-default set_xxx', () => {
+            RubyGenerator.init({version: '2'});
+            const {target, runtime} = makeMockTarget('ネコ', 1);
+            target.runtime = runtime;
+            target.x = 100;
+            target.y = -50;
+            target.direction = 180;
+            target.visible = false;
+            target.size = 50;
+            target.currentCostume = 2;
+            target.rotationStyle = 'left-right';
+            target.isStage = false;
+            target.sprite.costumes = [{name: 'Dog1-a'}, {name: 'Dog1-b'}];
+            target.sprite.sounds = [{name: 'Dog1'}];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = [];
+
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
+            expect(result).toContain('set_name "ネコ"');
+            expect(result).toContain('set_x 100');
+            expect(result).toContain('set_y -50');
+            expect(result).toContain('set_direction 180');
+            expect(result).toContain('set_visible false');
+            expect(result).toContain('set_size 50');
+            expect(result).toContain('set_current_costume 2');
+            expect(result).toContain('set_rotation_style "left-right"');
+            expect(result).toContain('set_costumes ["Dog1-a", "Dog1-b"]');
+            expect(result).toContain('set_sounds ["Dog1"]');
+        });
+
+        test('sprite auto-wrap uses uppercase sprite name as class name', () => {
+            RubyGenerator.init({version: '2'});
+            const {target, runtime} = makeMockTarget('Cat', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.isStage = false;
+            target.sprite.costumes = [{name: 'costume1'}];
+            target.sprite.sounds = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = [];
+
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).toContain('class Cat < ::Smalruby3::Sprite');
+            expect(result).not.toContain('set_name');
+        });
+
+        test('stage auto-wrap generates all non-default set_xxx', () => {
+            RubyGenerator.init({version: '2'});
+            const stage = {
+                isStage: true,
+                sprite: {
+                    name: 'ステージ',
+                    costumes: [{name: 'Arctic'}, {name: 'Baseball 1'}],
+                    sounds: [{name: 'Dog1'}]
+                },
+                currentCostume: 2,
+                variables: {}
+            };
+            stage.runtime = {targets: [stage]};
+            RubyGenerator.currentTarget_ = stage;
+            RubyGenerator.cache_.targetCommentTexts = [];
+
+            const code = 'when_flag_clicked do\n  broadcast("message1")\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).toContain('class Stage < ::Smalruby3::Sprite');
+            expect(result).toContain('set_name "ステージ"');
+            expect(result).toContain('set_current_backdrop 2');
+            expect(result).toContain('set_backdrops ["Arctic", "Baseball 1"]');
+            expect(result).toContain('set_sounds ["Dog1"]');
+        });
+
+        test('sprite auto-wrap with default values produces no set_xxx except costumes', () => {
+            RubyGenerator.init({version: '2'});
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.isStage = false;
+            target.sprite.costumes = [{name: 'costume1'}];
+            target.sprite.sounds = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = [];
+
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).not.toContain('set_x');
+            expect(result).not.toContain('set_y');
+            expect(result).not.toContain('set_direction');
+            expect(result).not.toContain('set_visible');
+            expect(result).not.toContain('set_size');
+            expect(result).not.toContain('set_current_costume');
+            expect(result).not.toContain('set_rotation_style');
+            expect(result).not.toContain('set_name');
+            // costumes are always generated in auto-wrap
+            expect(result).toContain('set_costumes ["costume1"]');
+        });
+    });
+
     describe('withSpriteNew (version 1 file output)', () => {
         test('@ruby:class with withSpriteNew uses Sprite.new instead of class', () => {
             RubyGenerator.init({version: '1'});

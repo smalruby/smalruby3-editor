@@ -167,9 +167,8 @@ RubyGenerator.finish = function (code, options) {
         code = this._wrapWithClass(
             code, classComment, options && options.withSpriteNew
         );
-    } else if (this.version !== '1' && options && options.withSpriteNew &&
-               this.currentTarget && this.currentTarget.isStage) {
-        // Version 2: auto-wrap stage with class Stage
+    } else if (this.version !== '1' && options && options.withSpriteNew) {
+        // Version 2: auto-wrap with class (both sprite and stage)
         if (code.length > 0) {
             code = this._wrapWithClass(code, '@ruby:class', true);
         }
@@ -225,15 +224,16 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         }
     }
 
+    // Determine if this is an auto-wrap (no user-defined @ruby:class attributes)
+    const isAutoWrap = allowedAttributes.length === 0 && forFileOutput;
+
     if (isStage) {
         // Stage always uses class name "Stage"
         className = 'Stage';
-        // Generate set_name only if explicitly listed and name differs from "Stage"
-        if (allowedAttributes.indexOf('name') >= 0) {
-            const spriteName = target.sprite.name;
-            if (spriteName !== 'Stage') {
-                setLines.push(`set_name ${this.quote_(spriteName)}`);
-            }
+        // Generate set_name if explicitly listed or auto-wrapping, and name differs from "Stage"
+        if ((allowedAttributes.indexOf('name') >= 0 || isAutoWrap) &&
+            target.sprite.name !== 'Stage') {
+            setLines.push(`set_name ${this.quote_(target.sprite.name)}`);
         }
     } else if (explicitClassName) {
         // Use the explicit class name from name=ClassName
@@ -254,17 +254,26 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
             setLines.push(`set_name ${this.quote_(spriteName)}`);
         }
     } else {
-        // No name attribute - use Sprite%index%
-        const sprites = target.runtime.targets.filter(t => !t.isStage);
-        const index = sprites.indexOf(target) + 1;
-        className = `Sprite${index}`;
+        // No name attribute - use Sprite%index% or sprite name if uppercase
+        const spriteName = target.sprite.name;
+        if (isAutoWrap && /^[A-Z]/.test(spriteName)) {
+            className = spriteName;
+        } else {
+            const sprites = target.runtime.targets.filter(t => !t.isStage);
+            const index = sprites.indexOf(target) + 1;
+            className = `Sprite${index}`;
+            if (isAutoWrap && spriteName !== className) {
+                setLines.push(`set_name ${this.quote_(spriteName)}`);
+            }
+        }
     }
 
-    // Generate set_xxx only for listed attributes
+    // Generate set_xxx for listed attributes, or all non-default attributes if auto-wrapping
+    const autoAll = isAutoWrap;
     if (isStage) {
-        this._generateStageSetXxx(target, setLines, allowedAttributes);
+        this._generateStageSetXxx(target, setLines, allowedAttributes, autoAll);
     } else {
-        this._generateSetXxx(target, setLines, allowedAttributes);
+        this._generateSetXxx(target, setLines, allowedAttributes, autoAll);
     }
 
     let setCode = '';
@@ -318,47 +327,49 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     return code;
 };
 
-RubyGenerator._generateSetXxx = function (target, setLines, allowedAttributes) {
-    if (allowedAttributes.indexOf('x') >= 0 && target.x !== 0) {
+RubyGenerator._generateSetXxx = function (target, setLines, allowedAttributes, autoAll) {
+    const has = attr => autoAll || allowedAttributes.indexOf(attr) >= 0;
+    if (has('x') && target.x !== 0) {
         setLines.push(`set_x ${target.x}`);
     }
-    if (allowedAttributes.indexOf('y') >= 0 && target.y !== 0) {
+    if (has('y') && target.y !== 0) {
         setLines.push(`set_y ${target.y}`);
     }
-    if (allowedAttributes.indexOf('direction') >= 0 && target.direction !== 90) {
+    if (has('direction') && target.direction !== 90) {
         setLines.push(`set_direction ${target.direction}`);
     }
-    if (allowedAttributes.indexOf('visible') >= 0 && !target.visible) {
+    if (has('visible') && !target.visible) {
         setLines.push(`set_visible ${!!target.visible}`);
     }
-    if (allowedAttributes.indexOf('size') >= 0 && target.size !== 100) {
+    if (has('size') && target.size !== 100) {
         setLines.push(`set_size ${target.size}`);
     }
-    if (allowedAttributes.indexOf('current_costume') >= 0 && target.currentCostume > 0) {
+    if (has('current_costume') && target.currentCostume > 0) {
         setLines.push(`set_current_costume ${target.currentCostume}`);
     }
-    if (allowedAttributes.indexOf('rotation_style') >= 0 && target.rotationStyle !== 'all around') {
+    if (has('rotation_style') && target.rotationStyle !== 'all around') {
         setLines.push(`set_rotation_style ${this.quote_(target.rotationStyle)}`);
     }
-    if (allowedAttributes.indexOf('costumes') >= 0 && target.sprite && target.sprite.costumes) {
+    if (has('costumes') && target.sprite && target.sprite.costumes) {
         const costumeNames = target.sprite.costumes.map(c => this.quote_(c.name));
         setLines.push(`set_costumes [${costumeNames.join(', ')}]`);
     }
-    if (allowedAttributes.indexOf('sounds') >= 0 && target.sprite && target.sprite.sounds) {
+    if (has('sounds') && target.sprite && target.sprite.sounds) {
         const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));
         setLines.push(`set_sounds [${soundNames.join(', ')}]`);
     }
 };
 
-RubyGenerator._generateStageSetXxx = function (target, setLines, allowedAttributes) {
-    if (allowedAttributes.indexOf('current_backdrop') >= 0 && target.currentCostume > 0) {
+RubyGenerator._generateStageSetXxx = function (target, setLines, allowedAttributes, autoAll) {
+    const has = attr => autoAll || allowedAttributes.indexOf(attr) >= 0;
+    if (has('current_backdrop') && target.currentCostume > 0) {
         setLines.push(`set_current_backdrop ${target.currentCostume}`);
     }
-    if (allowedAttributes.indexOf('backdrops') >= 0 && target.sprite && target.sprite.costumes) {
+    if (has('backdrops') && target.sprite && target.sprite.costumes) {
         const backdropNames = target.sprite.costumes.map(c => this.quote_(c.name));
         setLines.push(`set_backdrops [${backdropNames.join(', ')}]`);
     }
-    if (allowedAttributes.indexOf('sounds') >= 0 && target.sprite && target.sprite.sounds) {
+    if (has('sounds') && target.sprite && target.sprite.sounds) {
         const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));
         setLines.push(`set_sounds [${soundNames.join(', ')}]`);
     }
