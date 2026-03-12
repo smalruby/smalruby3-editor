@@ -347,19 +347,71 @@ Ruby tab のふりがな機能（「ふ」ボタン）で表示されるふり�
 
 ### ペン（Pen拡張機能）
 
+`pen` は事前定義レシーバー（変数定義不要）。レシーバー自体に `ペン` のふりがなが付く。
+
 | Ruby | ふりがな | Scratchブロック |
 | ------ | --------- | ------ |
+| `pen`（レシーバー） | `ペン` | — |
 | `Pen.clear` | `全消去` | 「全部消す」 |
-| `pen.stamp` | `スタンプ` | 「スタンプ」 |
-| `pen.down` | `ペンを下ろす` | 「ペンを下ろす」 |
-| `pen.up` | `ペンを上げる` | 「ペンを上げる」 |
-| `pen.color = ...` | `ペンの色を設定` | 「ペンの色を...にする」 |
-| `pen.saturation = ...` | `彩度を設定` | 「ペンの彩度を...にする」 |
-| `pen.brightness = ...` | `明るさを設定` | 「ペンの明るさを...にする」 |
-| `pen.transparency = ...` | `透明度を設定` | 「ペンの透明度を...にする」 |
-| `pen.size = ...` | `ペンの太さを設定` | 「ペンの太さを...にする」 |
-| `pen.size += ...` | `ペンの太さを変える` | 「ペンの太さを...ずつ変える」 |
-| `pen.color += ...` | `ペンの色を変える` | 「ペンの色を...ずつ変える」 |
+| `pen.stamp` | `ペン` `スタンプ` | 「スタンプ」 |
+| `pen.down` | `ペン` `ペンを下ろす` | 「ペンを下ろす」 |
+| `pen.up` | `ペン` `ペンを上げる` | 「ペンを上げる」 |
+| `pen.color = ...` | `ペン` `ペンの色を設定` | 「ペンの色を...にする」 |
+| `pen.saturation = ...` | `ペン` `彩度を設定` | 「ペンの彩度を...にする」 |
+| `pen.brightness = ...` | `ペン` `明るさを設定` | 「ペンの明るさを...にする」 |
+| `pen.transparency = ...` | `ペン` `透明度を設定` | 「ペンの透明度を...にする」 |
+| `pen.size = ...` | `ペン` `ペンの太さを設定` | 「ペンの太さを...にする」 |
+| `pen.size += ...` | `ペン` `ペンの太さを変える` | 「ペンの太さを...ずつ変える」 |
+| `pen.color += ...` | `ペン` `ペンの色を変える` | 「ペンの色を...ずつ変える」 |
+
+### 顔認識（Face Sensing拡張機能）
+
+`face_sensing` は事前定義レシーバー（変数定義不要）。レシーバー自体に `顔認識` のふりがなが付く。
+
+| Ruby | ふりがな | Scratchブロック |
+| ------ | --------- | ------ |
+| `face_sensing`（レシーバー） | `顔認識` | — |
+| `face_sensing.go_to("nose")` | `顔認識` `行く` `鼻` | 「鼻へ行く」 |
+| `face_sensing.go_to("mouth")` | `顔認識` `行く` `口` | 「口へ行く」 |
+| `face_sensing.go_to("left_eye")` | `顔認識` `行く` `左目` | 「左目へ行く」 |
+| `face_sensing.go_to("right_eye")` | `顔認識` `行く` `右目` | 「右目へ行く」 |
+| `face_sensing.go_to("left_ear")` | `顔認識` `行く` `左耳` | 「左耳へ行く」 |
+| `face_sensing.go_to("right_ear")` | `顔認識` `行く` `右耳` | 「右耳へ行く」 |
+| `face_sensing.go_to("chin")` | `顔認識` `行く` `あご` | 「あごへ行く」 |
+| `face_sensing.go_to("top_of_head")` | `顔認識` `行く` `頭のてっぺん` | 「頭のてっぺんへ行く」 |
+| `face_sensing.point_in_direction_of_face_tilt` | `顔認識` `顔の傾きの方向を向く` | 「顔の傾きの方向を向く」 |
+| `face_sensing.set_size_to_face_size` | `顔認識` `大きさを顔の大きさにする` | 「大きさを顔の大きさにする」 |
+| `face_sensing.when_face_tilted("left") do...end` | `顔認識` `顔が傾いたとき` `左` `以下の処理` `ブロック終了` | 「顔が左に傾いたとき」 |
+| `face_sensing.when_face_tilted("right") do...end` | `顔認識` `顔が傾いたとき` `右` `以下の処理` `ブロック終了` | 「顔が右に傾いたとき」 |
+| `face_sensing.when_this_sprite_touch("nose") do...end` | `顔認識` `触れたとき` `鼻` `以下の処理` `ブロック終了` | 「鼻に触れたとき」 |
+| `face_sensing.when_face_detected do...end` | `顔認識` `顔が見つかったとき` `以下の処理` `ブロック終了` | 「顔が見つかったとき」 |
+| `face_sensing.face_detected?` | `顔認識` `顔が見つかった` | 「顔が見つかった」 |
+| `face_sensing.face_tilt` | `顔認識` `顔の傾き` | 「顔の傾き」 |
+| `face_sensing.face_size` | `顔認識` `顔の大きさ` | 「顔の大きさ」 |
+
+#### 顔のパーツ（PART）ラベル
+
+`go_to` と `when_this_sprite_touch` の文字列引数に付くふりがな（face_sensing専用）:
+
+| Ruby | ふりがな |
+| ------ | --------- |
+| `"nose"` | `鼻` |
+| `"mouth"` | `口` |
+| `"left_eye"` | `左目` |
+| `"right_eye"` | `右目` |
+| `"left_ear"` | `左耳` |
+| `"right_ear"` | `右耳` |
+| `"chin"` | `あご` |
+| `"top_of_head"` | `頭のてっぺん` |
+
+#### 顔の傾き方向（DIRECTION）ラベル
+
+`when_face_tilted` の文字列引数に付くふりがな（face_sensing専用）:
+
+| Ruby | ふりがな |
+| ------ | --------- |
+| `"left"` | `左` |
+| `"right"` | `右` |
 
 ### 音楽（Music拡張機能）
 

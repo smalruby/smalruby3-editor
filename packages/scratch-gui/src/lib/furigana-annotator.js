@@ -340,7 +340,10 @@ class FuriganaAnnotator {
                 const innerName = node.receiver.name;
                 const innerRec = node.receiver.receiver;
 
-                if (!innerRec && innerName === 'face_sensing') {
+                if (!innerRec && innerName === 'pen') {
+                    // ---- pen.xxx (predefined extension receiver) ----
+                    this._annotatePenMethod(node, name);
+                } else if (!innerRec && innerName === 'face_sensing') {
                     // ---- face_sensing.xxx (predefined extension receiver) ----
                     this._annotateFaceSensingMethod(node, name);
                 } else if (innerName === 'now') {
@@ -386,6 +389,8 @@ class FuriganaAnnotator {
             this._annotateWhenGreaterThan(node);
         } else if (name === 'rest') {
             this._annotateRest(node);
+        } else if (name === 'pen') {
+            this._addAnnotation(node.messageLoc || node.location, 'ペン');
         } else if (name === 'face_sensing') {
             this._addAnnotation(node.messageLoc || node.location, '顔認識');
         }
@@ -414,7 +419,7 @@ class FuriganaAnnotator {
 
         // Set context-specific string label map for face_sensing PART/DIRECTION args
         const fsStringMap = FuriganaAnnotator._FACE_SENSING_STRING_MAP[name];
-        if (fsStringMap && this._isFaceSensingReceiver(node)) {
+        if (fsStringMap && this._isPredefinedReceiver(node, 'face_sensing')) {
             this._stringLabelMap = fsStringMap;
         }
 
@@ -554,12 +559,16 @@ class FuriganaAnnotator {
         if (label) this._addAnnotation(node.messageLoc, label);
     }
 
-    _isFaceSensingReceiver (node) {
+    /**
+     * Check if a node's receiver is a predefined extension name (e.g. 'pen', 'face_sensing').
+     * Handles both LocalVariableReadNode (variable defined) and CallNode (no definition).
+     */
+    _isPredefinedReceiver (node, extensionName) {
         if (!node.receiver) return false;
         const recType = typeof node.receiver.toJSON === 'function' ?
             node.receiver.toJSON().type : null;
-        if (recType === 'LocalVariableReadNode' && node.receiver.name === 'face_sensing') return true;
-        if (recType === 'CallNode' && !node.receiver.receiver && node.receiver.name === 'face_sensing') {
+        if (recType === 'LocalVariableReadNode' && node.receiver.name === extensionName) return true;
+        if (recType === 'CallNode' && !node.receiver.receiver && node.receiver.name === extensionName) {
             return true;
         }
         return false;
@@ -661,7 +670,7 @@ class FuriganaAnnotator {
             };
             const label = selfOpLabels[attrName];
             if (label) this._addAnnotation(this._receiverSpanLoc(node), label);
-        } else if (receiverType === 'LocalVariableReadNode' && node.receiver.name === 'pen') {
+        } else if (this._isPredefinedReceiver(node, 'pen')) {
             const penOpLabels = {
                 size: 'ペンの太さを変える',
                 color: 'ペンの色を変える'

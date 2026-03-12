@@ -776,39 +776,59 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
-    describe('pen methods (pen local variable receiver)', () => {
-        test('pen.stamp annotates as スタンプ', () => {
-            expect(labelsAt(annotate('pen = 1\npen.stamp'), 2)).toContain('スタンプ');
+    describe('pen methods (predefined extension receiver)', () => {
+        test('pen.stamp annotates pen as ペン, stamp as スタンプ', () => {
+            const labels = labelsAt(annotate('pen.stamp'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('スタンプ');
         });
         test('pen.down annotates as ペンを下ろす', () => {
-            expect(labelsAt(annotate('pen = 1\npen.down'), 2)).toContain('ペンを下ろす');
+            const labels = labelsAt(annotate('pen.down'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('ペンを下ろす');
         });
         test('pen.up annotates as ペンを上げる', () => {
-            expect(labelsAt(annotate('pen = 1\npen.up'), 2)).toContain('ペンを上げる');
+            const labels = labelsAt(annotate('pen.up'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('ペンを上げる');
         });
         test('pen.size = n annotates as ペンの太さを設定', () => {
-            expect(labelsAt(annotate('pen = 1\npen.size = 3'), 2)).toContain('ペンの太さを設定');
+            const labels = labelsAt(annotate('pen.size = 3'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('ペンの太さを設定');
         });
         test('pen.color = n annotates as ペンの色を設定', () => {
-            expect(labelsAt(annotate('pen = 1\npen.color = "#ff0000"'), 2)).toContain('ペンの色を設定');
+            const labels = labelsAt(annotate('pen.color = "#ff0000"'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('ペンの色を設定');
         });
         test('pen.saturation = n annotates as 彩度を設定', () => {
-            expect(labelsAt(annotate('pen = 1\npen.saturation = 100'), 2)).toContain('彩度を設定');
+            const labels = labelsAt(annotate('pen.saturation = 100'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('彩度を設定');
         });
         test('pen.brightness = n annotates as 明るさを設定', () => {
-            expect(labelsAt(annotate('pen = 1\npen.brightness = 100'), 2)).toContain('明るさを設定');
+            const labels = labelsAt(annotate('pen.brightness = 100'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('明るさを設定');
         });
         test('pen.transparency = n annotates as 透明度を設定', () => {
-            expect(labelsAt(annotate('pen = 1\npen.transparency = 50'), 2)).toContain('透明度を設定');
+            const labels = labelsAt(annotate('pen.transparency = 50'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('透明度を設定');
         });
     });
 
     describe('pen operator writes (pen.size += n)', () => {
-        test('pen.size += n annotates as ペンの太さを変える', () => {
-            expect(labelsAt(annotate('pen = 1\npen.size += 1'), 2)).toContain('ペンの太さを変える');
+        test('pen.size += n annotates pen as ペン', () => {
+            const labels = labelsAt(annotate('pen.size += 1'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('ペンの太さを変える');
         });
-        test('pen.color += n annotates as ペンの色を変える', () => {
-            expect(labelsAt(annotate('pen = 1\npen.color += 10'), 2)).toContain('ペンの色を変える');
+        test('pen.color += n annotates pen as ペン', () => {
+            const labels = labelsAt(annotate('pen.color += 10'), 1);
+            expect(labels).toContain('ペン');
+            expect(labels).toContain('ペンの色を変える');
         });
     });
 
