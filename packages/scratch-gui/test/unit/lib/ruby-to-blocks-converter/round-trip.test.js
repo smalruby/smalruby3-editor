@@ -266,32 +266,40 @@ end
 
         test('complex program with while and boolean variable', async () => {
             await expectRoundTrip(
-                'when_flag_clicked do\n  @game_on = true\n  while @game_on\n    go_to("_random_")\n    @game_on = false\n  end\nend'
+                'when_flag_clicked do\n  @game_on = true\n  while @game_on\n    go_to("_random_")\n    @game_on = false\n  end\nend',
+                // v1 generator outputs self.when(:flag_clicked) format
+                'self.when(:flag_clicked) do\n  @game_on = true\n  while @game_on\n    go_to("_random_")\n    @game_on = false\n  end\nend'
             );
         });
     });
 
     describe('class syntax round trip', () => {
+        let converterV2;
+
+        beforeEach(() => {
+            converterV2 = new RubyToBlocksConverter(null, {version: 2});
+        });
+
         const expectClassRoundTrip = async (code, expectedRuby = null, spriteOptions = {}) => {
-            const result = await converter.targetCodeToBlocks(null, code);
-            expect(converter.errors).toHaveLength(0);
+            const result = await converterV2.targetCodeToBlocks(null, code);
+            expect(converterV2.errors).toHaveLength(0);
             expect(result).toBeTruthy();
 
             const blocks = new Blocks();
             blocks.forceNoGlow = true;
-            Object.keys(converter.blocks).forEach(blockId => {
-                blocks.createBlock(converter.blocks[blockId]);
+            Object.keys(converterV2.blocks).forEach(blockId => {
+                blocks.createBlock(converterV2.blocks[blockId]);
             });
 
             const variables = {};
-            [converter.variables, converter._context.localVariables].forEach(vars => {
+            [converterV2.variables, converterV2._context.localVariables].forEach(vars => {
                 Object.values(vars).forEach(v => {
                     variables[v.id] = v;
                 });
             });
 
             const lists = {};
-            Object.values(converter.lists).forEach(v => {
+            Object.values(converterV2.lists).forEach(v => {
                 lists[v.id] = v;
             });
 
@@ -301,7 +309,7 @@ end
                 blocks: blocks,
                 variables: variables,
                 lists: lists,
-                comments: converter._context.comments,
+                comments: converterV2._context.comments,
                 isStage: false,
                 sprite: {name: spriteName, costumes: []},
                 x: spriteOptions.x || 0,
@@ -409,9 +417,10 @@ end
         });
 
         test('class with all set_xxx only round trip', async () => {
+            // currentCostume is 0-based internally, generator outputs 1-based (currentCostume + 1)
             await expectClassRoundTrip(
-                `class Sprite1\n  set_name "ネコ"\n  set_x 100\n  set_y -50\n  set_direction 180\n  set_visible false\n  set_size 50\n  set_current_costume 2\n  set_rotation_style "left-right"\nend`,
-                `class Sprite1\n  set_name "ネコ"\n  set_x 100\n  set_y -50\n  set_direction 180\n  set_visible false\n  set_size 50\n  set_current_costume 2\n  set_rotation_style "left-right"\nend`,
+                `class Sprite1\n  set_name "ネコ"\n  set_x 100\n  set_y -50\n  set_direction 180\n  set_visible false\n  set_size 50\n  set_current_costume 3\n  set_rotation_style "left-right"\nend`,
+                `class Sprite1\n  set_name "ネコ"\n  set_x 100\n  set_y -50\n  set_direction 180\n  set_visible false\n  set_size 50\n  set_current_costume 3\n  set_rotation_style "left-right"\nend`,
                 {name: 'ネコ', x: 100, y: -50, direction: 180, visible: false, size: 50, currentCostume: 2, rotationStyle: 'left-right'}
             );
         });

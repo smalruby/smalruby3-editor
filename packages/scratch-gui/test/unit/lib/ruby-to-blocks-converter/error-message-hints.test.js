@@ -1,14 +1,10 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
 
 describe('Error message resolution hints', () => {
-    let converter;
     const target = null;
 
-    beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
-    });
-
     test('wrongInstruction error includes hint', async () => {
+        const converter = new RubyToBlocksConverter(null);
         const code = 'when_key_pressed("invalid") do\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -16,6 +12,8 @@ describe('Error message resolution hints', () => {
     });
 
     test('wrongInstructionInClass error includes hint', async () => {
+        // Class syntax requires version 2
+        const converter = new RubyToBlocksConverter(null, {version: 2});
         const code = 'class Sprite1\n  move(10)\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -23,6 +21,8 @@ describe('Error message resolution hints', () => {
     });
 
     test('conditionIsNotBoolean error includes hint', async () => {
+        // Class syntax requires version 2
+        const converter = new RubyToBlocksConverter(null, {version: 2});
         const code = 'class Sprite1\n  self.when(:flag_clicked) do\n    if 42\n      move(10)\n    end\n  end\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -30,6 +30,8 @@ describe('Error message resolution hints', () => {
     });
 
     test('includeNotStatementBlocks error includes hint', async () => {
+        // Class syntax requires version 2
+        const converter = new RubyToBlocksConverter(null, {version: 2});
         const code = [
             'class Sprite1',
             '  self.when(:flag_clicked) do',
