@@ -1,14 +1,14 @@
 import RubyGenerator from '../../../src/lib/ruby-generator';
 import {
-    makeSpriteTarget,
+    makeStageTarget,
     makeConverter,
     setupRubyGenerator
 } from '../helpers/ruby-roundtrip-helper';
 
 /**
- * Round trip: Ruby → Blocks → apply → Ruby (version 2, class syntax)
+ * Round trip: Ruby → Blocks → apply → Ruby (version 2, class Stage syntax)
  */
-const classRoundTrip = async (converter, target, code) => {
+const classRoundTrip = async (converter, target, code, options = {}) => {
     const result = await converter.targetCodeToBlocks(target, code);
     if (!result) {
         throw new Error(
@@ -17,38 +17,36 @@ const classRoundTrip = async (converter, target, code) => {
     }
     await converter.applyTargetBlocks(target);
     RubyGenerator.currentTarget = target;
-    return RubyGenerator.targetToCode(target, {version: '2'}).trim();
+    return RubyGenerator.targetToCode(target, {version: '2', ...options}).trim();
 };
 
-describe('Ruby Roundtrip: class set_sprite/set_costumes/set_sounds', () => {
+describe('Ruby Roundtrip: class Stage set_xxx', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeSpriteTarget());
-        target.sprite = {name: 'スプライト1', costumes: [], sounds: []};
-        // Generator needs runtime.targets for sprite index calculation
-        const stage = runtime.getTargetForStage();
-        runtime.targets = [stage, target];
+        ({target, runtime} = makeStageTarget());
+        target.sprite = {name: 'Stage', costumes: [], sounds: []};
+        runtime.targets = [target];
         setupRubyGenerator();
         converter = makeConverter(target, runtime, {version: '2'});
     });
 
-    test('set_sprite round trip', async () => {
+    test('set_current_backdrop round trip', async () => {
         const input = [
-            'class Sprite1',
-            '  set_sprite "Dog1"',
+            'class Stage',
+            '  set_current_backdrop 2',
             '',
             '  self.when(:flag_clicked) do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
         const expected = [
-            'class Sprite1',
-            '  set_sprite "Dog1"',
+            'class Stage',
+            '  set_current_backdrop 2',
             '',
             '  when_flag_clicked do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
@@ -56,22 +54,22 @@ describe('Ruby Roundtrip: class set_sprite/set_costumes/set_sounds', () => {
         expect(generated).toBe(expected);
     });
 
-    test('set_costumes round trip', async () => {
+    test('set_backdrops round trip', async () => {
         const input = [
-            'class Sprite1',
-            '  set_costumes ["Dog1-a", "Dog1-b"]',
+            'class Stage',
+            '  set_backdrops ["Arctic", "Baseball 1"]',
             '',
             '  self.when(:flag_clicked) do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
         const expected = [
-            'class Sprite1',
-            '  set_costumes ["Dog1-a", "Dog1-b"]',
+            'class Stage',
+            '  set_backdrops ["Arctic", "Baseball 1"]',
             '',
             '  when_flag_clicked do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
@@ -81,20 +79,20 @@ describe('Ruby Roundtrip: class set_sprite/set_costumes/set_sounds', () => {
 
     test('set_sounds round trip', async () => {
         const input = [
-            'class Sprite1',
+            'class Stage',
             '  set_sounds ["Dog1", "Dog2"]',
             '',
             '  self.when(:flag_clicked) do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
         const expected = [
-            'class Sprite1',
+            'class Stage',
             '  set_sounds ["Dog1", "Dog2"]',
             '',
             '  when_flag_clicked do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
@@ -102,24 +100,24 @@ describe('Ruby Roundtrip: class set_sprite/set_costumes/set_sounds', () => {
         expect(generated).toBe(expected);
     });
 
-    test('set_costumes and set_sounds round trip', async () => {
+    test('set_backdrops and set_sounds round trip', async () => {
         const input = [
-            'class Sprite1',
-            '  set_costumes ["Dog1-a", "Dog1-b"]',
+            'class Stage',
+            '  set_backdrops ["Arctic", "Baseball 1"]',
             '  set_sounds ["Dog1", "Dog2"]',
             '',
             '  self.when(:flag_clicked) do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
         const expected = [
-            'class Sprite1',
-            '  set_costumes ["Dog1-a", "Dog1-b"]',
+            'class Stage',
+            '  set_backdrops ["Arctic", "Baseball 1"]',
             '  set_sounds ["Dog1", "Dog2"]',
             '',
             '  when_flag_clicked do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
@@ -127,24 +125,22 @@ describe('Ruby Roundtrip: class set_sprite/set_costumes/set_sounds', () => {
         expect(generated).toBe(expected);
     });
 
-    test('set_sprite with set_x round trip', async () => {
+    test('set_name round trip', async () => {
         const input = [
-            'class Sprite1',
-            '  set_sprite "Dog1"',
-            '  set_x 100',
+            'class Stage',
+            '  set_name "ステージ"',
             '',
             '  self.when(:flag_clicked) do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
         const expected = [
-            'class Sprite1',
-            '  set_sprite "Dog1"',
-            '  set_x 100',
+            'class Stage',
+            '  set_name "ステージ"',
             '',
             '  when_flag_clicked do',
-            '    move(10)',
+            '    broadcast("message1")',
             '  end',
             'end'
         ].join('\n');
@@ -152,29 +148,22 @@ describe('Ruby Roundtrip: class set_sprite/set_costumes/set_sounds', () => {
         expect(generated).toBe(expected);
     });
 
-    test('set_sprite with named class round trip', async () => {
+    test('version 1 uses Stage.new format', async () => {
         const input = [
-            'class Cat',
-            '  set_name "ネコ"',
-            '  set_sprite "Dog1"',
-            '',
-            '  self.when(:flag_clicked) do',
-            '    move(10)',
-            '  end',
+            'self.when(:flag_clicked) do',
+            '  broadcast("message1")',
             'end'
         ].join('\n');
-        // Generator outputs in canonical order: sprite before name
-        const expected = [
-            'class Cat',
-            '  set_sprite "Dog1"',
-            '  set_name "ネコ"',
-            '',
-            '  when_flag_clicked do',
-            '    move(10)',
-            '  end',
-            'end'
-        ].join('\n');
-        const generated = await classRoundTrip(converter, target, input);
-        expect(generated).toBe(expected);
+
+        const result = await converter.targetCodeToBlocks(target, input);
+        expect(result).toBeTruthy();
+        await converter.applyTargetBlocks(target);
+        RubyGenerator.currentTarget = target;
+
+        const generated = RubyGenerator.targetToCode(
+            target, {version: '1', withSpriteNew: true}
+        ).trim();
+
+        expect(generated).toMatch(/^Stage\.new/);
     });
 });

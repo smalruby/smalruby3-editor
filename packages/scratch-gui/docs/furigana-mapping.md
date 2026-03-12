@@ -176,6 +176,33 @@ Ruby tab のふりがな機能（「ふ」ボタン）で表示されるふり�
 | `class` | `クラス作成` | |
 | `end`（class） | `作成終了` | class に対応する end |
 
+## クラス設定メソッド（set_xxx）
+
+### スプライト用
+
+| Ruby | ふりがな | 備考 |
+| ------ | --------- | ------ |
+| `set_name "名前"` | `名前を設定` | class定義内のみ |
+| `set_sprite "名前"` | `スプライトを設定` | class定義内のみ |
+| `set_x 数値` | `X座標を設定` | class定義内のみ |
+| `set_y 数値` | `Y座標を設定` | class定義内のみ |
+| `set_direction 数値` | `向きを設定` | class定義内のみ |
+| `set_visible true/false` | `表示を設定` | class定義内のみ |
+| `set_size 数値` | `大きさを設定` | class定義内のみ |
+| `set_current_costume 数値` | `コスチュームを設定` | class定義内のみ |
+| `set_rotation_style "..."` | `回転方法を設定` | class定義内のみ |
+| `set_costumes [...]` | `コスチュームを設定` | class定義内のみ |
+| `set_sounds [...]` | `音を設定` | class定義内のみ |
+
+### ステージ用
+
+| Ruby | ふりがな | 備考 |
+| ------ | --------- | ------ |
+| `set_name "名前"` | `名前を設定` | class Stage内のみ |
+| `set_current_backdrop 数値` | `現在の背景を設定` | class Stage内のみ |
+| `set_backdrops [...]` | `背景を設定` | class Stage内のみ |
+| `set_sounds [...]` | `音を設定` | class Stage内のみ |
+
 ## smalrubyのメソッド
 
 ### 動き（Motion）

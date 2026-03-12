@@ -117,7 +117,7 @@ RubyGenerator.init = function (options) {
     this.notEqualsCallCache_ = {};
     this.greaterThanOrEqualCallCache_ = {};
     this.lessThanOrEqualCallCache_ = {};
-    this.version = options && options.version ? options.version : '1';
+    this.version = options && options.version ? String(options.version) : '1';
     if (this.variableDB_) {
         this.variableDB_.reset();
     } else {
@@ -153,25 +153,32 @@ RubyGenerator.finish = function (code, options) {
         }
     }
 
-    // Add non-class target comments
-    if (otherComments.length > 0) {
-        const commentCodes = otherComments.map(comment => `${this.prefixLines(comment, '# ')}\n`);
-        code = `${commentCodes.join('\n')}\n${code}`;
-    }
-
     // For version 1 file output (withSpriteNew), use Sprite.new format
     // even when @ruby:class comment is present.
     // For version 2, @ruby:class takes priority over withSpriteNew.
+    // For version 2 stage targets without @ruby:class, auto-wrap with class Stage.
     if (classComment && this.version !== '1') {
         code = this._wrapWithClass(
             code, classComment, options && options.withSpriteNew
         );
+    } else if (this.version !== '1' && options && options.withSpriteNew) {
+        // Version 2: auto-wrap with class (both sprite and stage)
+        if (code.length > 0) {
+            code = this._wrapWithClass(code, '@ruby:class', true);
+        }
     } else if (options && options.withSpriteNew) {
         const spriteNewCode = this.spriteNew(this.currentTarget);
         if (code.length > 0) {
             code = this.prefixLines(code, this.INDENT);
         }
         code = `${spriteNewCode} do\n${code}end\n`;
+    }
+
+    // Add non-class target comments AFTER class wrapping so they appear
+    // before the class definition, not inside it.
+    if (otherComments.length > 0) {
+        const commentCodes = otherComments.map(comment => `${this.prefixLines(comment, '# ')}\n`);
+        code = `${commentCodes.join('\n')}\n${code}`;
     }
 
     if (defs.length === 0 && code.length === 0) {
@@ -186,8 +193,14 @@ RubyGenerator.finish = function (code, options) {
     return s + code;
 };
 
+// Check if a string is a valid Ruby constant name (class name)
+RubyGenerator._isValidClassName = function (name) {
+    return /^[A-Z][\p{L}\p{N}_]*$/u.test(name);
+};
+
 RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     const target = this.currentTarget;
+    const isStage = target && target.isStage;
     let className;
     const setLines = [];
 
@@ -217,7 +230,18 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         }
     }
 
-    if (explicitClassName) {
+    // Determine if this is an auto-wrap (no user-defined @ruby:class attributes)
+    const isAutoWrap = allowedAttributes.length === 0 && forFileOutput;
+
+    if (isStage) {
+        // Stage always uses class name "Stage"
+        className = 'Stage';
+        // Generate set_name if explicitly listed or auto-wrapping, and name differs from "Stage"
+        if ((allowedAttributes.indexOf('name') >= 0 || isAutoWrap) &&
+            target.sprite.name !== 'Stage') {
+            setLines.push(`set_name ${this.quote_(target.sprite.name)}`);
+        }
+    } else if (explicitClassName) {
         // Use the explicit class name from name=ClassName
         className = explicitClassName;
         const spriteName = target.sprite.name;
@@ -226,7 +250,7 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         }
     } else if (allowedAttributes.indexOf('name') >= 0) {
         const spriteName = target.sprite.name;
-        if (/^[A-Z]/.test(spriteName)) {
+        if (this._isValidClassName(spriteName)) {
             className = spriteName;
         } else {
             // Calculate sprite index
@@ -236,14 +260,27 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
             setLines.push(`set_name ${this.quote_(spriteName)}`);
         }
     } else {
-        // No name attribute - use Sprite%index%
-        const sprites = target.runtime.targets.filter(t => !t.isStage);
-        const index = sprites.indexOf(target) + 1;
-        className = `Sprite${index}`;
+        // No name attribute - use Sprite%index% or sprite name if uppercase
+        const spriteName = target.sprite.name;
+        if (isAutoWrap && this._isValidClassName(spriteName)) {
+            className = spriteName;
+        } else {
+            const sprites = target.runtime.targets.filter(t => !t.isStage);
+            const index = sprites.indexOf(target) + 1;
+            className = `Sprite${index}`;
+            if (isAutoWrap && spriteName !== className) {
+                setLines.push(`set_name ${this.quote_(spriteName)}`);
+            }
+        }
     }
 
-    // Generate set_xxx only for listed attributes
-    this._generateSetXxx(target, setLines, allowedAttributes);
+    // Generate set_xxx for listed attributes, or all non-default attributes if auto-wrapping
+    const autoAll = isAutoWrap;
+    if (isStage) {
+        this._generateStageSetXxx(target, setLines, allowedAttributes, autoAll);
+    } else {
+        this._generateSetXxx(target, setLines, allowedAttributes, autoAll);
+    }
 
     let setCode = '';
     if (setLines.length > 0) {
@@ -261,6 +298,8 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
             const trimmed = section.trim();
             if (trimmed.length === 0) continue;
             if (/^self\.when\(/.test(trimmed) ||
+                /^when_/.test(trimmed) ||
+                /^\w+\.when[\s_(]/.test(trimmed) ||
                 /^def /.test(trimmed)) {
                 insideSections.push(section);
             } else {
@@ -285,7 +324,8 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         code = this.prefixLines(code, this.INDENT);
     }
     const separator = setCode.length > 0 && code.length > 0 ? '\n' : '';
-    code = `class ${className}\n${setCode}${separator}${code}end\n`;
+    const inheritance = forFileOutput ? ' < ::Smalruby3::Sprite' : '';
+    code = `class ${className}${inheritance}\n${setCode}${separator}${code}end\n`;
 
     if (outsideCode.length > 0) {
         code += outsideCode;
@@ -294,33 +334,49 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     return code;
 };
 
-RubyGenerator._generateSetXxx = function (target, setLines, allowedAttributes) {
-    if (allowedAttributes.indexOf('x') >= 0 && target.x !== 0) {
+RubyGenerator._generateSetXxx = function (target, setLines, allowedAttributes, autoAll) {
+    const has = attr => autoAll || allowedAttributes.indexOf(attr) >= 0;
+    if (has('x') && target.x !== 0) {
         setLines.push(`set_x ${target.x}`);
     }
-    if (allowedAttributes.indexOf('y') >= 0 && target.y !== 0) {
+    if (has('y') && target.y !== 0) {
         setLines.push(`set_y ${target.y}`);
     }
-    if (allowedAttributes.indexOf('direction') >= 0 && target.direction !== 90) {
+    if (has('direction') && target.direction !== 90) {
         setLines.push(`set_direction ${target.direction}`);
     }
-    if (allowedAttributes.indexOf('visible') >= 0 && !target.visible) {
+    if (has('visible') && !target.visible) {
         setLines.push(`set_visible ${!!target.visible}`);
     }
-    if (allowedAttributes.indexOf('size') >= 0 && target.size !== 100) {
+    if (has('size') && target.size !== 100) {
         setLines.push(`set_size ${target.size}`);
     }
-    if (allowedAttributes.indexOf('current_costume') >= 0 && target.currentCostume > 0) {
-        setLines.push(`set_current_costume ${target.currentCostume}`);
+    if (has('current_costume') && target.currentCostume > 0) {
+        setLines.push(`set_current_costume ${target.currentCostume + 1}`);
     }
-    if (allowedAttributes.indexOf('rotation_style') >= 0 && target.rotationStyle !== 'all around') {
+    if (has('rotation_style') && target.rotationStyle !== 'all around') {
         setLines.push(`set_rotation_style ${this.quote_(target.rotationStyle)}`);
     }
-    if (allowedAttributes.indexOf('costumes') >= 0 && target.sprite && target.sprite.costumes) {
+    if (has('costumes') && target.sprite && target.sprite.costumes) {
         const costumeNames = target.sprite.costumes.map(c => this.quote_(c.name));
         setLines.push(`set_costumes [${costumeNames.join(', ')}]`);
     }
-    if (allowedAttributes.indexOf('sounds') >= 0 && target.sprite && target.sprite.sounds) {
+    if (has('sounds') && target.sprite && target.sprite.sounds) {
+        const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));
+        setLines.push(`set_sounds [${soundNames.join(', ')}]`);
+    }
+};
+
+RubyGenerator._generateStageSetXxx = function (target, setLines, allowedAttributes, autoAll) {
+    const has = attr => autoAll || allowedAttributes.indexOf(attr) >= 0;
+    if (has('current_backdrop') && target.currentCostume > 0) {
+        setLines.push(`set_current_backdrop ${target.currentCostume + 1}`);
+    }
+    if (has('backdrops') && target.sprite && target.sprite.costumes) {
+        const backdropNames = target.sprite.costumes.map(c => this.quote_(c.name));
+        setLines.push(`set_backdrops [${backdropNames.join(', ')}]`);
+    }
+    if (has('sounds') && target.sprite && target.sprite.sounds) {
         const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));
         setLines.push(`set_sounds [${soundNames.join(', ')}]`);
     }

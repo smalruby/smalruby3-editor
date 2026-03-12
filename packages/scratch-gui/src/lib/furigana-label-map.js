@@ -109,7 +109,7 @@ const TOPLEVEL_METHOD_LABELS = {
     'play_note': '音符を鳴らす',
     // Translate
     'translate': '翻訳する',
-    // Class configuration (set_xxx)
+    // Class configuration (set_xxx) — sprite
     'set_name': '名前を設定',
     'set_sprite': 'スプライトを設定',
     'set_x': 'X座標を設定',
@@ -122,7 +122,10 @@ const TOPLEVEL_METHOD_LABELS = {
     'set_costumes': 'コスチュームを設定',
     'set_sounds': '音を設定',
     'set_variables': '変数を設定',
-    'set_lists': 'リストを設定'
+    'set_lists': 'リストを設定',
+    // Class configuration (set_xxx) — stage
+    'set_current_backdrop': '現在の背景を設定',
+    'set_backdrops': '背景を設定'
 };
 
 /**
