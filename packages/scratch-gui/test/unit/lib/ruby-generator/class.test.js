@@ -652,6 +652,22 @@ describe('RubyGenerator/Class', () => {
             expect(result).not.toContain('class Stage');
         });
 
+        test('@ruby:class with withSpriteNew keeps version 2 hat blocks inside class', () => {
+            RubyGenerator.init({version: '2'});
+            const {target} = makeMockStageTarget();
+            target.sprite.costumes = [{name: 'Arctic'}, {name: 'Baseball 1'}];
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:backdrops'];
+
+            const code = 'when_flag_clicked do\n  broadcast("message1")\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true});
+
+            expect(result).toContain('class Stage');
+            expect(result).toContain('  when_flag_clicked do');
+            expect(result).toContain('    broadcast("message1")');
+            expect(result).not.toContain('# when_flag_clicked');
+        });
+
         test('empty stage code auto-wraps with class Stage in version 2', () => {
             RubyGenerator.init({version: '2'});
             const {target} = makeMockStageTarget();

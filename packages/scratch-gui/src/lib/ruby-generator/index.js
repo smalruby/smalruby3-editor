@@ -283,6 +283,7 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
             const trimmed = section.trim();
             if (trimmed.length === 0) continue;
             if (/^self\.when\(/.test(trimmed) ||
+                /^when_/.test(trimmed) ||
                 /^def /.test(trimmed)) {
                 insideSections.push(section);
             } else {
