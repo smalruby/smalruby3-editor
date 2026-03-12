@@ -211,6 +211,26 @@ describe('FuriganaAnnotator', () => {
             const anns = annotate('class Dog\nend');
             expect(labelsAt(anns, 2)).toContain('作成終了');
         });
+        test('set_current_backdrop annotates as 現在の背景を設定', () => {
+            const anns = annotate('class Stage\n  set_current_backdrop 1\nend');
+            expect(labelsAt(anns, 2)).toContain('現在の背景を設定');
+        });
+        test('set_backdrops annotates as 背景を設定', () => {
+            const anns = annotate('class Stage\n  set_backdrops ["Arctic"]\nend');
+            expect(labelsAt(anns, 2)).toContain('背景を設定');
+        });
+        test('set_current_costume annotates as コスチュームを設定', () => {
+            const anns = annotate('class Sprite1\n  set_current_costume 2\nend');
+            expect(labelsAt(anns, 2)).toContain('コスチュームを設定');
+        });
+        test('set_name annotates as 名前を設定', () => {
+            const anns = annotate('class Stage\n  set_name "ステージ"\nend');
+            expect(labelsAt(anns, 2)).toContain('名前を設定');
+        });
+        test('set_sounds annotates as 音を設定', () => {
+            const anns = annotate('class Stage\n  set_sounds ["Dog1"]\nend');
+            expect(labelsAt(anns, 2)).toContain('音を設定');
+        });
     });
 
     describe('case / when / end', () => {

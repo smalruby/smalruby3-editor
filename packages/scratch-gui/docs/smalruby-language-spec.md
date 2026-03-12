@@ -59,11 +59,14 @@ end
 
 ### class定義のみで使えるメソッド
 
-以下の `set_xxx` メソッドは **class定義のトップレベルでのみ** 使用できます（イベントハンドラの中では使用できません）:
+以下の `set_xxx` メソッドは **class定義のトップレベルでのみ** 使用できます（イベントハンドラの中では使用できません）。
+
+#### スプライト用（`class Sprite1` / `class Cat` など）
 
 | メソッド | 説明 | デフォルト値 |
 |---|---|---|
 | `set_name "名前"` | スプライト名を設定 | - |
+| `set_sprite "名前"` | スプライトライブラリから読み込み | - |
 | `set_x 数値` | X座標を設定 | 0 |
 | `set_y 数値` | Y座標を設定 | 0 |
 | `set_direction 数値` | 向きを設定 | 90 |
@@ -71,8 +74,40 @@ end
 | `set_size 数値` | 大きさ(%)を設定 | 100 |
 | `set_current_costume 数値` | コスチューム番号を設定 | 0 |
 | `set_rotation_style "スタイル"` | 回転スタイルを設定 | "all around" |
+| `set_costumes ["名前1", "名前2"]` | コスチュームをライブラリから設定 | - |
+| `set_sounds ["名前1", "名前2"]` | 音をライブラリから設定 | - |
 
-**注意**: トップレベル（classなし形式）では `set_xxx` は使えませんが、代わりに `self.属性 = 値` 形式でスプライトの設定を変更できます（例: `self.rotation_style = "left-right"`）。
+#### ステージ用（`class Stage`）
+
+| メソッド | 説明 | デフォルト値 |
+|---|---|---|
+| `set_name "名前"` | ステージ名を設定 | - |
+| `set_current_backdrop 数値` | 現在の背景番号を設定 | 0 |
+| `set_backdrops ["名前1", "名前2"]` | 背景をライブラリから設定 | - |
+| `set_sounds ["名前1", "名前2"]` | 音をライブラリから設定 | - |
+
+**注意**:
+- スプライト用メソッド（`set_x`, `set_y`, `set_direction`, `set_visible`, `set_size`, `set_rotation_style`, `set_sprite`, `set_costumes`, `set_current_costume`）は `class Stage` では使えません。
+- ステージ用メソッド（`set_current_backdrop`, `set_backdrops`）はスプライトクラスでは使えません。
+- トップレベル（classなし形式）では `set_xxx` は使えませんが、代わりに `self.属性 = 値` 形式で設定を変更できます（例: `self.rotation_style = "left-right"`）。
+
+### ステージのclass定義
+
+ステージは `class Stage` で設定を記述できます。
+
+```ruby
+class Stage
+  set_current_backdrop 1
+  set_backdrops ["Arctic", "Blue Sky"]
+  set_sounds ["pop"]
+
+  when_flag_clicked do
+    switch_backdrop("Blue Sky")
+  end
+end
+```
+
+**注意**: Version 2（Ruby version 2）では、ステージの `class Stage` が省略された場合、ファイル保存時に自動的に `class Stage ... end` で補完されます。
 
 ## 3. 対応しているRuby構文
 
