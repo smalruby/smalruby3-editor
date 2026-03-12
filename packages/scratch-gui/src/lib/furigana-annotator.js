@@ -251,12 +251,20 @@ class FuriganaAnnotator {
 
     _handleIntegerNode (node) {
         const text = this._getSourceText(node.location);
-        this._addAnnotation(node.location, `数値${text}`);
+        if (this._argUnit) {
+            this._addAnnotation(node.location, `${text}${this._argUnit}`);
+        } else {
+            this._addAnnotation(node.location, `数値${text}`);
+        }
     }
 
     _handleFloatNode (node) {
         const text = this._getSourceText(node.location);
-        this._addAnnotation(node.location, `数値${text}`);
+        if (this._argUnit) {
+            this._addAnnotation(node.location, `${text}${this._argUnit}`);
+        } else {
+            this._addAnnotation(node.location, `数値${text}`);
+        }
     }
 
     _handleTrueNode (node) {
@@ -373,6 +381,9 @@ class FuriganaAnnotator {
             this._annotateRest(node);
         }
 
+        // Set unit context for literal arguments of specific methods
+        const methodUnit = FuriganaAnnotator._METHOD_ARG_UNITS[name];
+
         // Annotate do...end block keywords
         if (node.block) {
             const block = node.block;
@@ -392,7 +403,9 @@ class FuriganaAnnotator {
         // Explicit child traversal
         if (node.receiver) this._walkNode(node.receiver);
         if (node.arguments_) {
+            if (methodUnit) this._argUnit = methodUnit;
             node.arguments_.arguments_.forEach(arg => this._walkNode(arg));
+            if (methodUnit) this._argUnit = null;
         }
         if (node.block) this._walkNode(node.block);
     }
@@ -612,7 +625,12 @@ class FuriganaAnnotator {
             if (label) this._addAnnotation(node.messageLoc, label);
         }
         if (node.receiver) this._walkNode(node.receiver);
+        // Set unit context for self.direction +=/-= value
+        if (receiverType === 'SelfNode' && attrName === 'direction') {
+            this._argUnit = '度';
+        }
         if (node.value) this._walkNode(node.value);
+        this._argUnit = null;
     }
 
     // ---- Control flow: if / elsif / else ----
@@ -738,6 +756,17 @@ class FuriganaAnnotator {
  * These are displayed with descriptive Japanese labels instead of raw 文字列「...」.
  * Labels are sourced from scratch-l10n editor/blocks/ja.json.
  */
+/**
+ * Methods whose literal arguments should use a unit suffix instead of 数値/文字列.
+ * e.g. move(10) → 「10歩」 instead of 「数値10」
+ */
+FuriganaAnnotator._METHOD_ARG_UNITS = {
+    move: '歩',
+    turn_right: '度',
+    turn_left: '度',
+    sleep: '秒'
+};
+
 FuriganaAnnotator._SPECIAL_STRING_LABELS = {
     // Special sprite/location targets
     '_mouse_': 'マウスのポインター',

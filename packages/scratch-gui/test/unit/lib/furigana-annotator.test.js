@@ -862,6 +862,50 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
+    describe('literal argument unit suffixes', () => {
+        test('move(10) → 10 annotates as 10歩 (not 数値10)', () => {
+            const anns = annotate('move(10)');
+            expect(labelsAt(anns, 1)).toContain('10歩');
+            expect(labelsAt(anns, 1)).not.toContain('数値10');
+        });
+        test('move(0.5) → 0.5 annotates as 0.5歩', () => {
+            const anns = annotate('move(0.5)');
+            expect(labelsAt(anns, 1)).toContain('0.5歩');
+        });
+        test('move(x) → variable x gets no unit', () => {
+            const anns = annotate('x = 10\nmove(x)');
+            expect(labelsAt(anns, 2)).toContain('変数x');
+            expect(labelsAt(anns, 2)).not.toContain('x歩');
+        });
+        test('turn_right(15) → 15 annotates as 15度', () => {
+            const anns = annotate('turn_right(15)');
+            expect(labelsAt(anns, 1)).toContain('15度');
+            expect(labelsAt(anns, 1)).not.toContain('数値15');
+        });
+        test('turn_left(90) → 90 annotates as 90度', () => {
+            const anns = annotate('turn_left(90)');
+            expect(labelsAt(anns, 1)).toContain('90度');
+        });
+        test('self.direction += 180 → 180 annotates as 180度', () => {
+            const anns = annotate('self.direction += 180');
+            expect(labelsAt(anns, 1)).toContain('180度');
+            expect(labelsAt(anns, 1)).not.toContain('数値180');
+        });
+        test('self.direction -= 45 → 45 annotates as 45度', () => {
+            const anns = annotate('self.direction -= 45');
+            expect(labelsAt(anns, 1)).toContain('45度');
+        });
+        test('sleep(1) → 1 annotates as 1秒', () => {
+            const anns = annotate('sleep(1)');
+            expect(labelsAt(anns, 1)).toContain('1秒');
+            expect(labelsAt(anns, 1)).not.toContain('数値1');
+        });
+        test('sleep(0.5) → 0.5 annotates as 0.5秒', () => {
+            const anns = annotate('sleep(0.5)');
+            expect(labelsAt(anns, 1)).toContain('0.5秒');
+        });
+    });
+
     describe('multiline program from book examples', () => {
         test('kakaku example', () => {
             const code = [
