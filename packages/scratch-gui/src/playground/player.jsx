@@ -10,13 +10,19 @@ import Box from '../components/box/box.jsx';
 import GUI from '../containers/gui.jsx';
 import HashParserHOC from '../lib/hash-parser-hoc.jsx';
 import AppStateHOC from '../lib/app-state-hoc.jsx';
+// === Smalruby: Start of URL params for Playwright ===
+import {getUrlParams} from '../lib/url-params.js';
+// === Smalruby: End of URL params for Playwright ===
 
 import {setPlayer} from '../reducers/mode';
 
-if (process.env.NODE_ENV === 'production' && typeof window === 'object') {
+// === Smalruby: Start of no_beforeunload URL param ===
+if (process.env.NODE_ENV === 'production' && typeof window === 'object' &&
+    !getUrlParams().noBeforeUnload) {
     // Warn before navigating away
     window.onbeforeunload = () => true;
 }
+// === Smalruby: End of no_beforeunload URL param ===
 
 import styles from './player.css';
 

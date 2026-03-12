@@ -22,6 +22,9 @@ import {
 } from '../reducers/editor-tab';
 
 import log from './log';
+// === Smalruby: Start of URL params for Playwright ===
+import {getUrlParams} from './url-params';
+// === Smalruby: End of URL params for Playwright ===
 import {GUIStoragePropType} from '../gui-config';
 
 /* Higher Order Component to provide behavior for loading projects by id. If
@@ -75,7 +78,10 @@ const ProjectFetcherHOC = function (WrappedComponent) {
                 this.props.onProjectUnchanged();
             }
             if (this.props.isShowingProject && (prevProps.isLoadingProject || prevProps.isCreatingNew)) {
-                this.props.onActivateTab(BLOCKS_TAB_INDEX);
+                // === Smalruby: Start of initial tab from URL param ===
+                const {initialTab} = getUrlParams();
+                this.props.onActivateTab(initialTab === null ? BLOCKS_TAB_INDEX : initialTab);
+                // === Smalruby: End of initial tab from URL param ===
             }
         }
         fetchProject (projectId, loadingState) {
