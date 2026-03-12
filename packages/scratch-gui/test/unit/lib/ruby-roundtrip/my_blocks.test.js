@@ -52,7 +52,7 @@ describe('Ruby Roundtrip: My Blocks (procedure) category', () => {
               a + b
             end
 
-            when_flag_clicked do
+            self.when(:flag_clicked) do
               say(add(1, 5))
             end
         `);
@@ -74,7 +74,7 @@ describe('Ruby Roundtrip: My Blocks (procedure) category', () => {
               @_return_add = a + b
             end
 
-            when_flag_clicked do
+            self.when(:flag_clicked) do
               add(1, 5)
               say(@_return_add)
             end

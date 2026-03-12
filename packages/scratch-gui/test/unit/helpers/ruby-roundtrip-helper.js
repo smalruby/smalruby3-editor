@@ -156,7 +156,7 @@ export const makeConverter = (target, runtime, options) => {
  * @param {string} code  Ruby source
  * @returns {Promise<string>} Generated Ruby (trimmed)
  */
-export const rubyToBlocksToRuby = async (converter, target, code) => {
+export const rubyToBlocksToRuby = async (converter, target, code, options = {}) => {
     const result = await converter.targetCodeToBlocks(target, code);
     if (!result) {
         throw new Error(
@@ -165,7 +165,7 @@ export const rubyToBlocksToRuby = async (converter, target, code) => {
     }
     await converter.applyTargetBlocks(target);
     RubyGenerator.currentTarget = target;
-    return RubyGenerator.targetToCode(target).trim();
+    return RubyGenerator.targetToCode(target, options).trim();
 };
 
 /**
@@ -184,7 +184,7 @@ export const rubyToBlocksToRuby = async (converter, target, code) => {
  * @param {string} code           Input Ruby
  * @param {string|null} expectedRuby  Expected output Ruby (defaults to `code`)
  */
-export const expectRoundTrip = async (converter, target, code, expectedRuby = null) => {
-    const result = await rubyToBlocksToRuby(converter, target, code);
+export const expectRoundTrip = async (converter, target, code, expectedRuby = null, options) => {
+    const result = await rubyToBlocksToRuby(converter, target, code, options);
     expect(result).toBe((expectedRuby !== null ? expectedRuby : code).trim());
 };
