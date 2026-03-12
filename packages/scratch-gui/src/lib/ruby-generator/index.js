@@ -153,12 +153,6 @@ RubyGenerator.finish = function (code, options) {
         }
     }
 
-    // Add non-class target comments
-    if (otherComments.length > 0) {
-        const commentCodes = otherComments.map(comment => `${this.prefixLines(comment, '# ')}\n`);
-        code = `${commentCodes.join('\n')}\n${code}`;
-    }
-
     // For version 1 file output (withSpriteNew), use Sprite.new format
     // even when @ruby:class comment is present.
     // For version 2, @ruby:class takes priority over withSpriteNew.
@@ -178,6 +172,13 @@ RubyGenerator.finish = function (code, options) {
             code = this.prefixLines(code, this.INDENT);
         }
         code = `${spriteNewCode} do\n${code}end\n`;
+    }
+
+    // Add non-class target comments AFTER class wrapping so they appear
+    // before the class definition, not inside it.
+    if (otherComments.length > 0) {
+        const commentCodes = otherComments.map(comment => `${this.prefixLines(comment, '# ')}\n`);
+        code = `${commentCodes.join('\n')}\n${code}`;
     }
 
     if (defs.length === 0 && code.length === 0) {
