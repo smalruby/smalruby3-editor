@@ -55,7 +55,7 @@ const TOPLEVEL_METHOD_LABELS = {
     'turn_left': '反時計回りに回す',
     'go_to': '移動する',
     'point_towards': '向く',
-    'bounce_if_on_edge': '端で跳ね返る',
+    'bounce_if_on_edge': 'もし端に着いたら、跳ね返る',
     // Looks
     'say': '言う',
     'think': '考える',
@@ -77,9 +77,9 @@ const TOPLEVEL_METHOD_LABELS = {
     'set_sound_effect': '音の効果を設定',
     'clear_sound_effects': '音の効果をなくす',
     // Events
-    'when_flag_clicked': '旗が押されたとき',
+    'when_flag_clicked': '⚑が押されたとき',
     'when_key_pressed': 'キーが押されたとき',
-    'when_clicked': 'クリックされたとき',
+    'when_clicked': 'このスプライトが押されたとき',
     'when_backdrop_switches': '背景が切り替わったとき',
     'when_receive': '受け取ったとき',
     'broadcast': '送る',

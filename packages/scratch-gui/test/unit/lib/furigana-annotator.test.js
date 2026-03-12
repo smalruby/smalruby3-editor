@@ -344,8 +344,8 @@ describe('FuriganaAnnotator', () => {
         test('point_towards annotates as 向く', () => {
             expect(labelsAt(annotate('point_towards("_mouse_")'), 1)).toContain('向く');
         });
-        test('bounce_if_on_edge annotates as 端で跳ね返る', () => {
-            expect(labelsAt(annotate('bounce_if_on_edge'), 1)).toContain('端で跳ね返る');
+        test('bounce_if_on_edge annotates as もし端に着いたら、跳ね返る', () => {
+            expect(labelsAt(annotate('bounce_if_on_edge'), 1)).toContain('もし端に着いたら、跳ね返る');
         });
     });
 
@@ -443,17 +443,17 @@ describe('FuriganaAnnotator', () => {
     });
 
     describe('Events methods', () => {
-        test('when_flag_clicked annotates as 旗が押されたとき', () => {
+        test('when_flag_clicked annotates as ⚑が押されたとき', () => {
             const anns = annotate('when_flag_clicked do\nend');
-            expect(labelsAt(anns, 1)).toContain('旗が押されたとき');
+            expect(labelsAt(anns, 1)).toContain('⚑が押されたとき');
         });
         test('when_key_pressed annotates as キーが押されたとき', () => {
             const anns = annotate('when_key_pressed("space") do\nend');
             expect(labelsAt(anns, 1)).toContain('キーが押されたとき');
         });
-        test('when_clicked annotates as クリックされたとき', () => {
+        test('when_clicked annotates as このスプライトが押されたとき', () => {
             const anns = annotate('when_clicked do\nend');
-            expect(labelsAt(anns, 1)).toContain('クリックされたとき');
+            expect(labelsAt(anns, 1)).toContain('このスプライトが押されたとき');
         });
         test('when_backdrop_switches annotates as 背景が切り替わったとき', () => {
             const anns = annotate('when_backdrop_switches("backdrop2") do\nend');
