@@ -83,6 +83,12 @@ const RubyToolbar = props => {
         setShowMoreMenu(prev => !prev);
     }, []);
 
+    const handleInsertClass = useCallback(() => {
+        setShowMoreMenu(false);
+        if (props.onDismissBubble) props.onDismissBubble();
+        if (props.onInsertClass) props.onInsertClass();
+    }, [props]);
+
     const handleOpenAutoCorrectSettings = useCallback(() => {
         setShowMoreMenu(false);
         if (props.onOpenAutoCorrectSettings) props.onOpenAutoCorrectSettings();
@@ -248,6 +254,13 @@ const RubyToolbar = props => {
                             </div>
                             <div
                                 className={styles.moreMenuItem}
+                                onClick={handleInsertClass}
+                            >
+                                <span className={styles.moreMenuIcon}>{'{ }'}</span>
+                                {intl.formatMessage(messages.insertClass)}
+                            </div>
+                            <div
+                                className={styles.moreMenuItem}
                                 onClick={handleOpenAutoCorrectSettings}
                             >
                                 <img
@@ -271,6 +284,7 @@ RubyToolbar.propTypes = {
     editorRef: PropTypes.object,
     onSelectTarget: PropTypes.func.isRequired,
     onDownload: PropTypes.func,
+    onInsertClass: PropTypes.func,
     onExecuteLine: PropTypes.func,
     onDismissBubble: PropTypes.func,
     onOpenGeminiModal: PropTypes.func,

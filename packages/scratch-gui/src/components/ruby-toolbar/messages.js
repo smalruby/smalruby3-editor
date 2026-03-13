@@ -88,6 +88,11 @@ const messages = defineMessages({
         defaultMessage: 'Save Ruby script',
         description: 'Label for save Ruby script menu item'
     },
+    insertClass: {
+        id: 'gui.rubyToolbar.insertClass',
+        defaultMessage: 'Insert class',
+        description: 'Label for insert class menu item in More menu'
+    },
     stage: {
         id: 'gui.rubyToolbar.stage',
         defaultMessage: 'Stage',

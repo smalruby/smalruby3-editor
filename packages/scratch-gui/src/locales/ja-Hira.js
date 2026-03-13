@@ -392,6 +392,7 @@ export default {
     'gui.rubyToolbar.moreOptions': 'そのたのオプション',
     'gui.rubyToolbar.autoCorrectSettings': 'じどうちかんせってい',
     'gui.rubyToolbar.saveRubyScript': 'ルビースクリプトをほぞん',
+    'gui.rubyToolbar.insertClass': 'クラスをそうにゅう',
     'gui.autoCorrectModal.title': 'じどうちかんせってい',
     'gui.autoCorrectModal.fullwidthNumbers': 'ぜんかくすうじ → はんかくすうじ',
     'gui.autoCorrectModal.fullwidthAlpha': 'ぜんかくアルファベット → はんかくアルファベット',
