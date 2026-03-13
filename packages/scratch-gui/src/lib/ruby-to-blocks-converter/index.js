@@ -105,6 +105,27 @@ const messages = defineMessages({
         defaultMessage: 'Stage class can only inherit from ::Smalruby3::Stage or Smalruby3::Stage.',
         description: 'Error message when Stage class has invalid superclass',
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidStageSuperclass'
+    },
+    moduleNotSupportedInV1: {
+        defaultMessage: 'module is only available in Ruby version 2.' +
+            '\nPlease switch to Ruby version 2 from the settings menu.',
+        description: 'Error message when module syntax is used in Ruby version 1',
+        id: 'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInV1'
+    },
+    nestedModuleNotSupported: {
+        defaultMessage: 'Nested modules are not supported in Smalruby.',
+        description: 'Error message when a module is nested inside another module',
+        id: 'gui.smalruby3.rubyToBlocksConverter.nestedModuleNotSupported'
+    },
+    onlyMethodsInModule: {
+        defaultMessage: 'Only method definitions (def) can be placed inside a module in Smalruby.',
+        description: 'Error message when non-def statement is inside a module',
+        id: 'gui.smalruby3.rubyToBlocksConverter.onlyMethodsInModule'
+    },
+    undefinedModule: {
+        defaultMessage: 'Module "{ NAME }" is not defined.',
+        description: 'Error message when include references an undefined module',
+        id: 'gui.smalruby3.rubyToBlocksConverter.undefinedModule'
     }
 });
 
@@ -414,6 +435,48 @@ class RubyToBlocksConverter extends Visitor {
         return this.visit(node.statements);
     }
 
+    visitModuleNode (node) {
+        // module definitions are only supported in version 2
+        if (String(this.version) === '1') {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.moduleNotSupportedInV1)
+            );
+        }
+
+        // Nested modules are not supported
+        if (this._context.currentModuleName) {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.nestedModuleNotSupported)
+            );
+        }
+
+        const moduleName = node.name;
+
+        // Validate: only DefNode allowed in module body
+        if (node.body && node.body.body) {
+            for (const stmt of node.body.body) {
+                const typeName = this._getNodeTypeName(stmt);
+                if (typeName !== 'DefNode') {
+                    throw new RubyToBlocksConverterError(
+                        stmt,
+                        this._translator(messages.onlyMethodsInModule)
+                    );
+                }
+            }
+        }
+
+        // Save the module's method DefNodes in context for later expansion by include
+        this._context.modules[moduleName] = {
+            name: moduleName,
+            methods: (node.body && node.body.body) ? node.body.body : []
+        };
+
+        // Module definition itself does not produce blocks
+        return [];
+    }
+
     visitClassNode (node) {
         // class definitions are only supported in version 2
         if (String(this.version) === '1') {
@@ -532,6 +595,33 @@ class RubyToBlocksConverter extends Visitor {
             }
         }
 
+        // Pre-scan for include statements and collect included module names (in order)
+        const includedModuleNames = [];
+        const includeStatements = new Set();
+        if (node.body && node.body.body) {
+            for (const stmt of node.body.body) {
+                if (this._getNodeTypeName(stmt) === 'CallNode' &&
+                    stmt.name === 'include' &&
+                    !stmt.receiver &&
+                    stmt.arguments_ &&
+                    stmt.arguments_.arguments_.length === 1) {
+                    const argNode = stmt.arguments_.arguments_[0];
+                    const argType = this._getNodeTypeName(argNode);
+                    if (argType === 'ConstantReadNode') {
+                        const moduleName = argNode.name;
+                        if (!this._context.modules[moduleName]) {
+                            throw new RubyToBlocksConverterError(
+                                stmt,
+                                this._translator(messages.undefinedModule, {NAME: moduleName})
+                            );
+                        }
+                        includedModuleNames.push(moduleName);
+                        includeStatements.add(stmt);
+                    }
+                }
+            }
+        }
+
         // Mutual exclusion: set_sprite cannot be used with set_costumes/set_sounds (sprite only)
         const has = prop => Object.prototype.hasOwnProperty.call(classInfo, prop);
         if (!isStageClass && has('sprite') && (has('costumes') || has('sounds'))) {
@@ -612,6 +702,11 @@ class RubyToBlocksConverter extends Visitor {
                 }
             });
         }
+        // Add include= parts for each included module (in order)
+        includedModuleNames.forEach(moduleName => {
+            commentParts.push(`include=${moduleName}`);
+        });
+
         if (commentParts.length > 0) {
             commentText = `@ruby:class:${commentParts.join(',')}`;
         } else {
@@ -627,7 +722,31 @@ class RubyToBlocksConverter extends Visitor {
             this._context.classInfo = classInfo;
         }
 
-        // Visit class body, filtering out set_xxx calls
+        // Expand included module methods: visit each module's DefNodes and attach comments
+        const moduleBlocks = [];
+        for (const moduleName of includedModuleNames) {
+            const moduleDef = this._context.modules[moduleName];
+            this._context.currentModuleName = moduleName;
+            for (const methodNode of moduleDef.methods) {
+                const block = this.visit(methodNode);
+                if (block) {
+                    const blocks = Array.isArray(block) ? block : [block];
+                    for (const b of blocks) {
+                        if (b && b.opcode === 'procedures_definition') {
+                            // Attach @ruby:module_source:ModuleName comment
+                            const commentId = this._createComment(
+                                `@ruby:module_source:${moduleName}`, b.id, 0, 0, true
+                            );
+                            b.comment = commentId;
+                        }
+                    }
+                    moduleBlocks.push(...blocks);
+                }
+            }
+            this._context.currentModuleName = null;
+        }
+
+        // Visit class body, filtering out set_xxx calls and include statements
         if (node.body && node.body.body) {
             const filteredStatements = node.body.body.filter(stmt => {
                 if (this._getNodeTypeName(stmt) === 'CallNode' &&
@@ -635,11 +754,15 @@ class RubyToBlocksConverter extends Visitor {
                     !stmt.receiver) {
                     return false;
                 }
+                // Filter out include statements (already processed above)
+                if (includeStatements.has(stmt)) {
+                    return false;
+                }
                 return true;
             });
 
             if (filteredStatements.length === 0) {
-                return [];
+                return moduleBlocks;
             }
 
             // Visit filtered statements manually
@@ -676,9 +799,9 @@ class RubyToBlocksConverter extends Visitor {
                 }
             }
 
-            return blocks;
+            return [...moduleBlocks, ...blocks];
         }
-        return [];
+        return moduleBlocks;
     }
 
     _extractClassMethodArg (argNode) {

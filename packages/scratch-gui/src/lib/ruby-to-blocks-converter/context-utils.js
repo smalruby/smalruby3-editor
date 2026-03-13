@@ -37,7 +37,9 @@ const ContextUtils = {
             lineToNodeMap: new Map(),
             containerNodeRanges: [], // Store {startLine, endLine} for container nodes (block, begin, kwbegin)
             processDepth: 0,
-            rootNode: null
+            rootNode: null,
+            modules: {},
+            currentModuleName: null
         };
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());
