@@ -37,6 +37,8 @@ import {closeFileMenu} from '../reducers/menus.js';
 import {wrapCurrentCodeWithClass} from '../lib/insert-class';
 import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
 import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-modal.jsx';
+import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-preview.jsx';
+import {generatePreviewCode} from '../lib/ruby-script-preview';
 import {autoCorrect, defaultSettings as defaultAutoCorrectSettings} from '../lib/auto-correct';
 import styles from './ruby-tab/ruby-tab.css';
 import {loadMonacoLocale} from '../lib/monaco-i18n-helper';
@@ -105,6 +107,8 @@ const RubyTab = props => {
     );
     const [autoCorrectSettings, setAutoCorrectSettings] = useState(loadAutoCorrectSettings);
     const [showAutoCorrectModal, setShowAutoCorrectModal] = useState(false);
+    const [showScriptPreview, setShowScriptPreview] = useState(false);
+    const [previewCode, setPreviewCode] = useState('');
 
     // --- Instance refs ---
     const editorRef = useRef(null);
@@ -510,6 +514,31 @@ const RubyTab = props => {
         setShowAutoCorrectModal(false);
     }, []);
 
+    const handlePreviewRubyScript = useCallback(async () => {
+        // Validate and convert Ruby code to blocks (same as download flow)
+        if (rubyCode.modified) {
+            const converter = await targetCodeToBlocks(
+                vm, rubyCode.target, rubyCode.code, intl,
+                {version: rubyVersion}
+            );
+            if (!converter.result) {
+                onShowAlert('convertRubyToBlocksError');
+                updateRubyCodeErrorsState(converter.errors);
+                showErrors(converter.errors);
+                return;
+            }
+            await converter.apply();
+            props.onChange(rubyCode.code);
+        }
+        const code = generatePreviewCode(vm.editingTarget, rubyVersion);
+        setPreviewCode(code);
+        setShowScriptPreview(true);
+    }, [vm, rubyCode, intl, rubyVersion, onShowAlert, updateRubyCodeErrorsState, props]);
+
+    const handleCloseScriptPreview = useCallback(() => {
+        setShowScriptPreview(false);
+    }, []);
+
     const handleAutoCorrectSettingChange = useCallback((key, value) => {
         setAutoCorrectSettings(prev => {
             const newSettings = {...prev, [key]: value};
@@ -834,6 +863,7 @@ const RubyTab = props => {
                     autoCorrectEnabled={autoCorrectEnabled}
                     onToggleAutoCorrect={handleToggleAutoCorrect}
                     onOpenAutoCorrectSettings={handleOpenAutoCorrectSettings}
+                    onPreviewRubyScript={handlePreviewRubyScript}
                 />
                 <div className={styles.editorWrapper}>
                     <Editor
@@ -902,6 +932,12 @@ const RubyTab = props => {
                     settings={autoCorrectSettings}
                     onSettingChange={handleAutoCorrectSettingChange}
                     onRequestClose={handleCloseAutoCorrectSettings}
+                />
+            )}
+            {showScriptPreview && (
+                <RubyScriptPreview
+                    code={previewCode}
+                    onClose={handleCloseScriptPreview}
                 />
             )}
         </>
