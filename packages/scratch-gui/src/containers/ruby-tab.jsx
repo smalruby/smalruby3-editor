@@ -623,6 +623,12 @@ const RubyTab = props => {
 
         converter.apply()
             .then(() => {
+                // === Smalruby: Start of update editor after execute ===
+                // Regenerate Ruby code from blocks so that auto-imported
+                // modules are reflected in the editor immediately.
+                updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
+                // === Smalruby: End of update editor after execute ===
+
                 const blockId = converter.getBlockIdForLine(targetLine);
                 if (!blockId) {
                     // eslint-disable-next-line no-console
@@ -659,12 +665,6 @@ const RubyTab = props => {
                     target: vm.editingTarget,
                     stackClick: true
                 });
-
-                // === Smalruby: Start of update editor after execute ===
-                // Regenerate Ruby code from blocks so that auto-imported
-                // modules are reflected in the editor immediately.
-                updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
-                // === Smalruby: End of update editor after execute ===
             })
             .catch(error => {
                 // eslint-disable-next-line no-console
