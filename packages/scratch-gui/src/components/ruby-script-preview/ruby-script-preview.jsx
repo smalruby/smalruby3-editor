@@ -1,10 +1,14 @@
 // === Smalruby: This file is Smalruby-specific (Ruby script preview panel) ===
 
-import React, {useState, useCallback, useRef} from 'react';
+import React, {useState, useCallback, useRef, useMemo} from 'react';
 import PropTypes from 'prop-types';
 import Draggable from 'react-draggable';
 import {defineMessages, useIntl} from 'react-intl';
+import hljs from 'highlight.js/lib/core';
+import rubyLang from 'highlight.js/lib/languages/ruby';
 import styles from './ruby-script-preview.css';
+
+hljs.registerLanguage('ruby', rubyLang);
 
 import closeIcon from '../cards/icon--close.svg';
 import shrinkIcon from '../cards/icon--shrink.svg';
@@ -54,6 +58,11 @@ const RubyScriptPreview = ({code, onClose}) => {
     const handleShrinkExpand = useCallback(() => {
         setExpanded(prev => !prev);
     }, []);
+
+    const highlightedHtml = useMemo(
+        () => hljs.highlight(code, {language: 'ruby'}).value,
+        [code]
+    );
 
     const handleCopy = useCallback(() => {
         navigator.clipboard.writeText(code).then(() => {
@@ -113,9 +122,12 @@ const RubyScriptPreview = ({code, onClose}) => {
                         </div>
                     </div>
                     <div className={expanded ? styles.body : styles.hidden}>
-                        <pre className={styles.codeArea}>
-                            {code}
-                        </pre>
+                        {/* eslint-disable react/no-danger */}
+                        <pre
+                            className={styles.codeArea}
+                            dangerouslySetInnerHTML={{__html: highlightedHtml}}
+                        />
+                        {/* eslint-enable react/no-danger */}
                         <div className={styles.footer}>
                             <button
                                 className={copied ? styles.copyButtonCopied : styles.copyButton}

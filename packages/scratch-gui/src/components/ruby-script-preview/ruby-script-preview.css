@@ -142,6 +142,53 @@
     background: $pen-primary;
 }
 
+/* highlight.js token colors (GitHub-light-like theme) */
+.code-area :global(.hljs-keyword),
+.code-area :global(.hljs-selector-tag),
+.code-area :global(.hljs-built_in) {
+    color: #d73a49;
+    font-weight: bold;
+}
+
+.code-area :global(.hljs-string),
+.code-area :global(.hljs-attr) {
+    color: #032f62;
+}
+
+.code-area :global(.hljs-comment),
+.code-area :global(.hljs-quote) {
+    color: #6a737d;
+    font-style: italic;
+}
+
+.code-area :global(.hljs-number),
+.code-area :global(.hljs-literal) {
+    color: #005cc5;
+}
+
+.code-area :global(.hljs-title),
+.code-area :global(.hljs-class) {
+    color: #6f42c1;
+}
+
+.code-area :global(.hljs-variable),
+.code-area :global(.hljs-name) {
+    color: #e36209;
+}
+
+.code-area :global(.hljs-symbol),
+.code-area :global(.hljs-bullet) {
+    color: #0086b3;
+}
+
+.code-area :global(.hljs-params) {
+    color: #24292e;
+}
+
+.code-area :global(.hljs-subst) {
+    color: #24292e;
+}
+
 /* Hidden state for collapse */
 .hidden {
     display: none;
