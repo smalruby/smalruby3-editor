@@ -65,10 +65,11 @@ const RubyScriptPreview = ({code, onClose}) => {
 
     // Position: right side, full height below menu bar
     const panelWidth = 600;
-    const panelHeight = window.innerHeight - MENU_BAR_HEIGHT - 16;
+    const margin = 16;
+    const panelHeight = window.innerHeight - MENU_BAR_HEIGHT - (margin * 2);
     const defaultPosition = {
-        x: window.innerWidth - panelWidth - 32,
-        y: MENU_BAR_HEIGHT + 8
+        x: window.innerWidth - panelWidth - margin,
+        y: MENU_BAR_HEIGHT + margin
     };
 
     return (
