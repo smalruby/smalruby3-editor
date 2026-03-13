@@ -239,6 +239,7 @@ class MenuBar extends React.Component {
             'getSaveAIAsHandler',
             'getTestAIHandler',
             'handleAISaveFinished',
+            'handleTestAISaveFinished',
             'handleAISaveAsFinished',
             'handleAISaveError',
             'restoreOptionMessage',
@@ -411,14 +412,14 @@ class MenuBar extends React.Component {
     }
     getTestAIHandler (downloadProjectCallback) {
         return () => {
-            // Option B: Save after displaying the modal
-            // Open the Koshien test modal
-            this.props.onOpenKoshienTestModal();
-            // Set AI save status to 'saving'
+            // Save first, then open modal via onSaveFinished callback
             this.props.onSetAiSaveStatus('saving');
-            // Call download callback
             downloadProjectCallback();
         };
+    }
+    handleTestAISaveFinished () {
+        this.handleAISaveFinished();
+        this.props.onOpenKoshienTestModal();
     }
     handleAISaveAsFinished () {
         // Set AI save status to 'saved'
@@ -1143,7 +1144,7 @@ class MenuBar extends React.Component {
                                     <MenuSection>
                                         <RubyDownloader
                                             onSaveError={this.handleAISaveError}
-                                            onSaveFinished={this.handleAISaveFinished}
+                                            onSaveFinished={this.handleTestAISaveFinished}
                                         >
                                             {(className, downloadProjectCallback) => (
                                                 <MenuItem
