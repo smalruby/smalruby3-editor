@@ -392,6 +392,7 @@ export default {
     'gui.rubyToolbar.moreOptions': 'その他のオプション',
     'gui.rubyToolbar.autoCorrectSettings': '自動置換設定',
     'gui.rubyToolbar.saveRubyScript': 'ルビースクリプトを保存',
+    'gui.rubyToolbar.insertClass': 'クラスを挿入',
     'gui.autoCorrectModal.title': '自動置換設定',
     'gui.autoCorrectModal.fullwidthNumbers': '全角数字 → 半角数字',
     'gui.autoCorrectModal.fullwidthAlpha': '全角アルファベット → 半角アルファベット',

@@ -34,6 +34,7 @@ import FuriganaRenderer from './ruby-tab/furigana-renderer';
 import GeminiModalHOC from './gemini-modal-hoc.jsx';
 import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
+import {wrapCurrentCodeWithClass} from '../lib/insert-class';
 import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
 import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-modal.jsx';
 import {autoCorrect, defaultSettings as defaultAutoCorrectSettings} from '../lib/auto-correct';
@@ -436,6 +437,21 @@ const RubyTab = props => {
         }
     }, [getSaveToComputerHandler]);
 
+    const handleInsertClass = useCallback(() => {
+        if (!editorRef.current) return;
+        const code = editorRef.current.getValue() || '';
+        const target = vm.editingTarget;
+        if (!target) return;
+        const wrapped = wrapCurrentCodeWithClass(code, target);
+        if (wrapped === null) return; // class already exists
+        const model = editorRef.current.getModel();
+        const fullRange = model.getFullModelRange();
+        editorRef.current.executeEdits('insertClass', [{
+            range: fullRange,
+            text: wrapped
+        }]);
+    }, [vm]);
+
     const handleAISaveFinished = useCallback(() => {
         onSetAiSaveStatus('saved');
         setTimeout(() => {
@@ -806,6 +822,7 @@ const RubyTab = props => {
                     editorRef={editorRef.current}
                     onSelectTarget={handleSelectTarget}
                     onDownload={handleDownload}
+                    onInsertClass={handleInsertClass}
                     onExecuteLine={handleExecuteLine}
                     onDismissBubble={handleDismissBubbleStable}
                     onOpenGeminiModal={onOpenGeminiModal}
