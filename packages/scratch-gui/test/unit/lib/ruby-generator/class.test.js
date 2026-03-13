@@ -906,4 +906,161 @@ describe('RubyGenerator/Class', () => {
             expect(result).not.toContain('Sprite.new');
         });
     });
+
+    describe('superclass inheritance from <=', () => {
+        test('<=//Smalruby3/Sprite outputs < ::Smalruby3::Sprite (non-file output)', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=//Smalruby3/Sprite'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
+        });
+
+        test('<=Smalruby3/Sprite outputs < Smalruby3::Sprite (non-file output)', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Smalruby3/Sprite'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Sprite1 < Smalruby3::Sprite');
+        });
+
+        test('<=Foo outputs < Foo (non-file output)', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Foo'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Sprite1 < Foo');
+        });
+
+        test('<=Sprite outputs < Sprite (non-file output)', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Sprite'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Sprite1 < Sprite');
+        });
+
+        test('no <= omits superclass (non-file output)', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Sprite1\n');
+            expect(result).not.toContain(' < ');
+        });
+
+        test('<=//Smalruby3/Sprite in file output uses specified superclass', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.isStage = false;
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=//Smalruby3/Sprite'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
+
+            expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
+        });
+
+        test('<=Foo in file output uses Foo as superclass', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.isStage = false;
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Foo'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
+
+            expect(result).toContain('class Sprite1 < Foo');
+        });
+
+        test('no <= in file output defaults to ::Smalruby3::Sprite', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 0;
+            target.y = 0;
+            target.direction = 90;
+            target.visible = true;
+            target.size = 100;
+            target.currentCostume = 0;
+            target.rotationStyle = 'all around';
+            target.isStage = false;
+            target.sprite.costumes = [];
+            target.variables = {};
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
+
+            expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
+        });
+
+        test('<=Foo with other attributes preserves both', () => {
+            const {target, runtime} = makeMockTarget('Sprite1', 1);
+            target.runtime = runtime;
+            target.x = 10;
+            RubyGenerator.currentTarget_ = target;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Foo,x'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Sprite1 < Foo');
+            expect(result).toContain('set_x 10');
+        });
+
+        test('Stage class does not use <= (always no superclass in non-file output)', () => {
+            const stage = {isStage: true, sprite: {name: 'Stage'}};
+            const runtime = {targets: [stage]};
+            stage.runtime = runtime;
+            RubyGenerator.currentTarget_ = stage;
+            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
+
+            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const result = RubyGenerator.finish(code, {});
+
+            expect(result).toContain('class Stage\n');
+            expect(result).not.toContain(' < ');
+        });
+    });
 });
