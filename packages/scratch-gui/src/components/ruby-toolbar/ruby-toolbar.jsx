@@ -94,6 +94,12 @@ const RubyToolbar = props => {
         if (props.onOpenAutoCorrectSettings) props.onOpenAutoCorrectSettings();
     }, [props]);
 
+    const handlePreviewRubyScript = useCallback(() => {
+        setShowMoreMenu(false);
+        if (props.onDismissBubble) props.onDismissBubble();
+        if (props.onPreviewRubyScript) props.onPreviewRubyScript();
+    }, [props]);
+
     const handleExecuteLine = useCallback(() => {
         if (!props.editorRef) return;
         const position = props.editorRef.getPosition();
@@ -261,6 +267,13 @@ const RubyToolbar = props => {
                             </div>
                             <div
                                 className={styles.moreMenuItem}
+                                onClick={handlePreviewRubyScript}
+                            >
+                                <span className={styles.moreMenuIcon}>{'</>'}</span>
+                                {intl.formatMessage(messages.previewRubyScript)}
+                            </div>
+                            <div
+                                className={styles.moreMenuItem}
                                 onClick={handleOpenAutoCorrectSettings}
                             >
                                 <img
@@ -295,7 +308,8 @@ RubyToolbar.propTypes = {
     onToggleFurigana: PropTypes.func,
     autoCorrectEnabled: PropTypes.bool,
     onToggleAutoCorrect: PropTypes.func,
-    onOpenAutoCorrectSettings: PropTypes.func
+    onOpenAutoCorrectSettings: PropTypes.func,
+    onPreviewRubyScript: PropTypes.func
 };
 
 export default RubyToolbar;

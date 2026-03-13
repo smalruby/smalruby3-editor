@@ -1,0 +1,195 @@
+/* === Smalruby: This file is Smalruby-specific (Ruby script preview panel) === */
+
+@import "../../css/colors.css";
+@import "../../css/units.css";
+@import "../../css/z-index.css";
+
+/* Full-screen overlay (pointer-events: none so it doesn't block the editor) */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: transparent;
+    pointer-events: none;
+    z-index: $z-index-card;
+}
+
+/* Draggable floating panel */
+.panel-container {
+    background: white;
+    border-radius: 8px;
+    min-width: 600px;
+    max-width: 50vw;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    overflow: hidden;
+    box-shadow: 0px 5px 25px 5px $ui-black-transparent;
+    pointer-events: auto;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: $motion-primary;
+    cursor: move;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.header-title {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.header-button {
+    display: flex;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+    border-radius: 4px;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-button:hover {
+    background-color: $ui-black-transparent;
+}
+
+.header-button img {
+    width: 100%;
+    height: 100%;
+}
+
+/* Body content */
+.body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Code area */
+.code-area {
+    flex: 1;
+    overflow: auto;
+    margin: 0;
+    padding: 12px 16px;
+    font-family: "Hack", "Source Code Pro", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre;
+    background: #fafafa;
+    color: #333;
+    user-select: text;
+    cursor: text;
+    tab-size: 2;
+}
+
+/* Footer with copy button */
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 12px;
+    border-top: 1px solid $ui-tertiary;
+    background: white;
+    flex-shrink: 0;
+}
+
+.copy-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid $ui-tertiary;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #575e75;
+    transition: background 0.15s;
+}
+
+.copy-button:hover {
+    background: #f0f0f0;
+}
+
+.copy-button-copied {
+    composes: copy-button;
+    background: $pen-primary;
+    color: white;
+    border-color: $pen-primary;
+}
+
+.copy-button-copied:hover {
+    background: $pen-primary;
+}
+
+/* highlight.js token colors (GitHub-light-like theme) */
+.code-area :global(.hljs-keyword),
+.code-area :global(.hljs-selector-tag),
+.code-area :global(.hljs-built_in) {
+    color: #d73a49;
+    font-weight: bold;
+}
+
+.code-area :global(.hljs-string),
+.code-area :global(.hljs-attr) {
+    color: #032f62;
+}
+
+.code-area :global(.hljs-comment),
+.code-area :global(.hljs-quote) {
+    color: #6a737d;
+    font-style: italic;
+}
+
+.code-area :global(.hljs-number),
+.code-area :global(.hljs-literal) {
+    color: #005cc5;
+}
+
+.code-area :global(.hljs-title),
+.code-area :global(.hljs-class) {
+    color: #6f42c1;
+}
+
+.code-area :global(.hljs-variable),
+.code-area :global(.hljs-name) {
+    color: #e36209;
+}
+
+.code-area :global(.hljs-symbol),
+.code-area :global(.hljs-bullet) {
+    color: #0086b3;
+}
+
+.code-area :global(.hljs-params) {
+    color: #24292e;
+}
+
+.code-area :global(.hljs-subst) {
+    color: #24292e;
+}
+
+/* Hidden state for collapse */
+.hidden {
+    display: none;
+}
