@@ -200,6 +200,83 @@ describe('RubyDownloader Container', () => {
             expect(onSaveFinished).not.toHaveBeenCalled();
         });
 
+        test('does not write file when conversion fails', async () => {
+            mockTargetCodeToBlocks.mockResolvedValue({
+                result: false,
+                errors: [{row: 1, column: 0, message: 'error'}]
+            });
+
+            store = createStore({
+                rubyCode: {
+                    modified: true,
+                    code: 'bad code',
+                    target: {id: 'target', blocks: {}}
+                }
+            });
+
+            const {getByText} = render(
+                <Provider store={store}>
+                    <RubyDownloader
+                        onConversionError={jest.fn()}
+                        onSaveError={jest.fn()}
+                    >
+                        {(className, downloadProject) => (
+                            <button onClick={downloadProject}>Download</button>
+                        )}
+                    </RubyDownloader>
+                </Provider>
+            );
+
+            fireEvent.click(getByText('Download'));
+
+            await waitFor(() => {
+                expect(mockTargetCodeToBlocks).toHaveBeenCalled();
+            });
+
+            // File System API should not be called
+            expect(mockWritable.write).not.toHaveBeenCalled();
+        });
+
+        test('writes file after successful conversion round-trip', async () => {
+            const mockApply = jest.fn(() => Promise.resolve());
+            mockTargetCodeToBlocks.mockResolvedValue({
+                result: true,
+                errors: [],
+                apply: mockApply
+            });
+
+            store = createStore({
+                rubyCode: {
+                    modified: true,
+                    code: 'puts "hello"',
+                    target: {id: 'target', blocks: {}}
+                }
+            });
+            const onSaveFinished = jest.fn();
+
+            const {getByText} = render(
+                <Provider store={store}>
+                    <RubyDownloader onSaveFinished={onSaveFinished}>
+                        {(className, downloadProject) => (
+                            <button onClick={downloadProject}>Download</button>
+                        )}
+                    </RubyDownloader>
+                </Provider>
+            );
+
+            fireEvent.click(getByText('Download'));
+
+            await waitFor(() => {
+                expect(onSaveFinished).toHaveBeenCalled();
+            });
+
+            // Conversion was applied
+            expect(mockApply).toHaveBeenCalled();
+            // File was written via File System API
+            expect(mockWritable.write).toHaveBeenCalled();
+            expect(mockWritable.close).toHaveBeenCalled();
+        });
+
         test('dispatches convertedRubyCode after successful conversion', async () => {
             const mockApply = jest.fn(() => Promise.resolve());
             mockTargetCodeToBlocks.mockResolvedValue({
