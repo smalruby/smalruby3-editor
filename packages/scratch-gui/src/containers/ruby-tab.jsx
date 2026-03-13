@@ -447,6 +447,12 @@ const RubyTab = props => {
         onClearAiSaveStatus();
     }, [onClearAiSaveStatus]);
 
+    const handleConversionError = useCallback(errors => {
+        onShowAlert('convertRubyToBlocksError');
+        updateRubyCodeErrorsState(errors);
+        showErrors(errors);
+    }, [onShowAlert, updateRubyCodeErrorsState]); // showErrors uses refs, safe in stale closure
+
     const handleToggleFurigana = useCallback(() => {
         setFuriganaEnabled(prev => {
             const enabled = !prev;
@@ -839,6 +845,7 @@ const RubyTab = props => {
             </div>
             {/* Hidden RubyDownloader for storing download callback */}
             <RubyDownloader
+                onConversionError={handleConversionError}
                 onSaveError={handleAISaveError}
                 onSaveFinished={handleAISaveFinished}
             >
