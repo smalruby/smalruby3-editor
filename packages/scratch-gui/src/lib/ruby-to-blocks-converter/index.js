@@ -126,6 +126,16 @@ const messages = defineMessages({
         defaultMessage: 'Module "{ NAME }" is not defined.',
         description: 'Error message when include references an undefined module',
         id: 'gui.smalruby3.rubyToBlocksConverter.undefinedModule'
+    },
+    moduleFunctionNotSupported: {
+        defaultMessage: 'module_function is not supported in Smalruby.',
+        description: 'Error message when module_function is used',
+        id: 'gui.smalruby3.rubyToBlocksConverter.moduleFunctionNotSupported'
+    },
+    extendNotSupported: {
+        defaultMessage: 'extend is not supported in Smalruby.',
+        description: 'Error message when extend is used',
+        id: 'gui.smalruby3.rubyToBlocksConverter.extendNotSupported'
     }
 });
 
@@ -458,6 +468,12 @@ class RubyToBlocksConverter extends Visitor {
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
                 const typeName = this._getNodeTypeName(stmt);
+                if (typeName === 'CallNode' && stmt.name === 'module_function' && !stmt.receiver) {
+                    throw new RubyToBlocksConverterError(
+                        stmt,
+                        this._translator(messages.moduleFunctionNotSupported)
+                    );
+                }
                 if (typeName !== 'DefNode') {
                     throw new RubyToBlocksConverterError(
                         stmt,
@@ -595,28 +611,36 @@ class RubyToBlocksConverter extends Visitor {
             }
         }
 
-        // Pre-scan for include statements and collect included module names (in order)
+        // Pre-scan for include/extend statements
         const includedModuleNames = [];
         const includeStatements = new Set();
         if (node.body && node.body.body) {
             for (const stmt of node.body.body) {
-                if (this._getNodeTypeName(stmt) === 'CallNode' &&
-                    stmt.name === 'include' &&
-                    !stmt.receiver &&
-                    stmt.arguments_ &&
-                    stmt.arguments_.arguments_.length === 1) {
-                    const argNode = stmt.arguments_.arguments_[0];
-                    const argType = this._getNodeTypeName(argNode);
-                    if (argType === 'ConstantReadNode') {
-                        const moduleName = argNode.name;
-                        if (!this._context.modules[moduleName]) {
-                            throw new RubyToBlocksConverterError(
-                                stmt,
-                                this._translator(messages.undefinedModule, {NAME: moduleName})
-                            );
+                if (this._getNodeTypeName(stmt) === 'CallNode' && !stmt.receiver) {
+                    // Reject extend
+                    if (stmt.name === 'extend') {
+                        throw new RubyToBlocksConverterError(
+                            stmt,
+                            this._translator(messages.extendNotSupported)
+                        );
+                    }
+                    // Handle include
+                    if (stmt.name === 'include' &&
+                        stmt.arguments_ &&
+                        stmt.arguments_.arguments_.length === 1) {
+                        const argNode = stmt.arguments_.arguments_[0];
+                        const argType = this._getNodeTypeName(argNode);
+                        if (argType === 'ConstantReadNode') {
+                            const moduleName = argNode.name;
+                            if (!this._context.modules[moduleName]) {
+                                throw new RubyToBlocksConverterError(
+                                    stmt,
+                                    this._translator(messages.undefinedModule, {NAME: moduleName})
+                                );
+                            }
+                            includedModuleNames.push(moduleName);
+                            includeStatements.add(stmt);
                         }
-                        includedModuleNames.push(moduleName);
-                        includeStatements.add(stmt);
                     }
                 }
             }

@@ -220,6 +220,38 @@ describe('RubyToBlocksConverter/Module', () => {
             expect(result).toBeFalsy();
             expect(converter.errors.length).toBeGreaterThan(0);
         });
+
+        test('module_function throws error', async () => {
+            const code = `
+                module Utils
+                  module_function
+
+                  def add(a, b)
+                    a + b
+                  end
+                end
+            `;
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBeFalsy();
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('extend throws error', async () => {
+            const code = `
+                module Utils
+                  def add(a, b)
+                    a + b
+                  end
+                end
+
+                class Sprite1
+                  extend Utils
+                end
+            `;
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBeFalsy();
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
     });
 
     describe('module before class in code', () => {
