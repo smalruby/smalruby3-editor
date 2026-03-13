@@ -6,8 +6,9 @@ import {connect} from 'react-redux';
 import {projectTitleInitialState} from '../reducers/project-title';
 import RubyGenerator from '../lib/ruby-generator';
 import VM from '@smalruby/scratch-vm';
-import {rubyCodeShape} from '../reducers/ruby-code';
+import {rubyCodeShape, convertedRubyCode} from '../reducers/ruby-code';
 import {setKoshienFileHandle, clearKoshienFileHandle} from '../reducers/koshien-file';
+import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
 
 class RubyDownloader extends React.Component {
     constructor (props) {
@@ -15,11 +16,52 @@ class RubyDownloader extends React.Component {
         bindAll(this, [
             'downloadProject',
             'saveWithFileSystemAPI',
-            'supportsFileSystemAPI'
+            'supportsFileSystemAPI',
+            'validateAndConvert'
         ]);
     }
     supportsFileSystemAPI () {
         return 'showSaveFilePicker' in window;
+    }
+    /**
+     * Validate Ruby code by converting to blocks. If conversion succeeds,
+     * apply blocks to update sprite/stage state (round-trip).
+     * @param {boolean} converted - set to true after successful conversion
+     * @returns {Promise<boolean>} true if conversion succeeded or was unnecessary
+     */
+    async validateAndConvert () {
+        if (!this.props.rubyCode.modified) {
+            return true;
+        }
+        try {
+            const converter = await targetCodeToBlocks(
+                this.props.vm,
+                this.props.rubyCode.target,
+                this.props.rubyCode.code,
+                this.props.intl,
+                {version: this.props.rubyVersion}
+            );
+            if (!converter.result) {
+                if (this.props.onConversionError) {
+                    this.props.onConversionError(converter.errors);
+                }
+                if (this.props.onSaveError) {
+                    this.props.onSaveError(
+                        new Error('Ruby to blocks conversion failed')
+                    );
+                }
+                return false;
+            }
+            await converter.apply();
+            this.props.onConvertedRubyCode();
+            return true;
+        } catch (err) {
+            console.error('Error during Ruby to blocks conversion:', err);
+            if (this.props.onSaveError) {
+                this.props.onSaveError(err);
+            }
+            return false;
+        }
     }
     saveRuby () {
         const idToTarget = {};
@@ -36,6 +78,9 @@ class RubyDownloader extends React.Component {
             withSpriteNew: true,
             version: this.props.rubyVersion
         };
+        // After validateAndConvert, blocks are already applied and
+        // rubyCode.modified is reset, so targetsCode is not needed.
+        // This branch remains for safety in non-validated paths.
         if (this.props.rubyCode.modified) {
             options.targetsCode = {
                 [this.props.rubyCode.target.id]: this.props.rubyCode.code
@@ -84,10 +129,14 @@ class RubyDownloader extends React.Component {
             }
         }
     }
-    downloadProject () {
+    async downloadProject () {
+        // Validate and convert Ruby code to blocks before saving
+        const valid = await this.validateAndConvert();
+        if (!valid) return;
+
         // Use File System Access API if available (Chrome/Edge)
         if (this.supportsFileSystemAPI()) {
-            this.saveWithFileSystemAPI();
+            await this.saveWithFileSystemAPI();
             return;
         }
 
@@ -135,7 +184,12 @@ RubyDownloader.propTypes = {
     children: PropTypes.func,
     className: PropTypes.string,
     forceFilePicker: PropTypes.bool,
+    intl: PropTypes.shape({
+        formatMessage: PropTypes.func
+    }),
     koshienFileHandle: PropTypes.shape({}),
+    onConversionError: PropTypes.func,
+    onConvertedRubyCode: PropTypes.func,
     onSaveFinished: PropTypes.func,
     onSaveError: PropTypes.func,
     onSetKoshienFileHandle: PropTypes.func,
@@ -167,7 +221,8 @@ const mapStateToProps = state => ({
 
 const mapDispatchToProps = dispatch => ({
     onSetKoshienFileHandle: fileHandle => dispatch(setKoshienFileHandle(fileHandle)),
-    onClearKoshienFileHandle: () => dispatch(clearKoshienFileHandle())
+    onClearKoshienFileHandle: () => dispatch(clearKoshienFileHandle()),
+    onConvertedRubyCode: () => dispatch(convertedRubyCode())
 });
 
 export default connect(
