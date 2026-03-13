@@ -208,9 +208,23 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     // Support name=ClassName format for preserving class names
     let allowedAttributes = [];
     let explicitClassName = null;
+    let superclassPath = null;
     if (classComment.startsWith('@ruby:class:')) {
         const attrPart = classComment.slice('@ruby:class:'.length);
         allowedAttributes = attrPart.split(',');
+
+        // Check for <=superclass in the attributes
+        const superAttrIndex = allowedAttributes.findIndex(a => a.startsWith('<='));
+        if (superAttrIndex >= 0) {
+            const encoded = allowedAttributes[superAttrIndex].slice(2);
+            // Decode: leading // → ::, then / → ::
+            if (encoded.startsWith('//')) {
+                superclassPath = `::${encoded.slice(2).replace(/\//g, '::')}`;
+            } else {
+                superclassPath = encoded.replace(/\//g, '::');
+            }
+            allowedAttributes.splice(superAttrIndex, 1);
+        }
 
         // Check for name=ClassName in the attributes
         const nameAttrIndex = allowedAttributes.findIndex(a => a.startsWith('name='));
@@ -324,7 +338,12 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         code = this.prefixLines(code, this.INDENT);
     }
     const separator = setCode.length > 0 && code.length > 0 ? '\n' : '';
-    const inheritance = forFileOutput ? ' < ::Smalruby3::Sprite' : '';
+    let inheritance = '';
+    if (superclassPath) {
+        inheritance = ` < ${superclassPath}`;
+    } else if (forFileOutput) {
+        inheritance = ' < ::Smalruby3::Sprite';
+    }
     code = `class ${className}${inheritance}\n${setCode}${separator}${code}end\n`;
 
     if (outsideCode.length > 0) {

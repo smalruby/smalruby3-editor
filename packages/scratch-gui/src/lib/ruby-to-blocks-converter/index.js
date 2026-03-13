@@ -100,6 +100,11 @@ const messages = defineMessages({
             '\nPlease switch to Ruby version 2 from the settings menu.',
         description: 'Error message when class syntax is used in Ruby version 1',
         id: 'gui.smalruby3.rubyToBlocksConverter.classNotSupportedInV1'
+    },
+    invalidStageSuperclass: {
+        defaultMessage: 'Stage class can only inherit from ::Smalruby3::Stage or Smalruby3::Stage.',
+        description: 'Error message when Stage class has invalid superclass',
+        id: 'gui.smalruby3.rubyToBlocksConverter.invalidStageSuperclass'
     }
 });
 
@@ -383,6 +388,28 @@ class RubyToBlocksConverter extends Visitor {
         return handlerName ? handlerName.slice('visit'.length) : null;
     }
 
+    /**
+     * Convert a ConstantReadNode or ConstantPathNode to its full path string.
+     * e.g. ConstantReadNode "Foo" -> "Foo"
+     * e.g. ConstantPathNode(ConstantPathNode(null, "Smalruby3"), "Sprite") -> "::Smalruby3::Sprite"
+     * @param {object} node - A prism constant node
+     * @returns {string} The full constant path
+     */
+    _constantNodeToPath (node) {
+        const typeName = this._getNodeTypeName(node);
+        if (typeName === 'ConstantReadNode') {
+            return node.name;
+        }
+        if (typeName === 'ConstantPathNode') {
+            if (node.parent) {
+                return `${this._constantNodeToPath(node.parent)}::${node.name}`;
+            }
+            // Leading :: (root scope)
+            return `::${node.name}`;
+        }
+        return String(node.name || '');
+    }
+
     visitProgramNode (node) {
         return this.visit(node.statements);
     }
@@ -400,7 +427,23 @@ class RubyToBlocksConverter extends Visitor {
         const isSpriteIndexName = /^Sprite\d+$/.test(className);
         const isStageClass = className === 'Stage';
 
-        // Accept optional superclass `< ::Smalruby3::Sprite` (ignored, purely for readability)
+        // Extract superclass path (e.g. "::Smalruby3::Sprite", "Foo")
+        let superclassPath = null;
+        if (node.superclass) {
+            superclassPath = this._constantNodeToPath(node.superclass);
+        }
+
+        // Stage only accepts no superclass, ::Smalruby3::Stage, or Smalruby3::Stage
+        if (isStageClass && superclassPath !== null) {
+            if (superclassPath !== '::Smalruby3::Stage' && superclassPath !== 'Smalruby3::Stage') {
+                throw new RubyToBlocksConverterError(
+                    node.superclass,
+                    this._translator(messages.invalidStageSuperclass)
+                );
+            }
+            // Accepted Stage superclass — don't store it (Stage is always Stage)
+            superclassPath = null;
+        }
 
         // Set of recognized set_xxx class methods (sprite-specific)
         const SPRITE_SET_METHODS = {
@@ -546,17 +589,30 @@ class RubyToBlocksConverter extends Visitor {
 
         // Generate comment text
         // For non-Sprite\d+ class names (excluding Stage), use name=ClassName format to preserve the class name
+        // Superclass is encoded as <=path with :: replaced by /
         let commentText;
+        const commentParts = [];
+        if (superclassPath) {
+            let encodedSuperclass;
+            if (superclassPath.startsWith('::')) {
+                encodedSuperclass = `//${superclassPath.slice(2).replace(/::/g, '/')}`;
+            } else {
+                encodedSuperclass = superclassPath.replace(/::/g, '/');
+            }
+            commentParts.push(`<=${encodedSuperclass}`);
+        }
         if (attributeNames.length > 0) {
-            const commentParts = attributeNames.map(attr => {
+            attributeNames.forEach(attr => {
                 if (attr === 'name' && !isSpriteIndexName && !isStageClass) {
-                    return `name=${className}`;
+                    commentParts.push(`name=${className}`);
+                } else if (attr === 'sprite') {
+                    commentParts.push(`sprite=${classInfo.sprite}`);
+                } else {
+                    commentParts.push(attr);
                 }
-                if (attr === 'sprite') {
-                    return `sprite=${classInfo.sprite}`;
-                }
-                return attr;
             });
+        }
+        if (commentParts.length > 0) {
             commentText = `@ruby:class:${commentParts.join(',')}`;
         } else {
             commentText = '@ruby:class';
