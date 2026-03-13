@@ -19,6 +19,9 @@ import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
+// === Smalruby: Start of module sync ===
+import {syncModules} from '../lib/module-sync';
+// === Smalruby: End of module sync ===
 
 import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import {
@@ -557,8 +560,20 @@ const RubyTab = props => {
         if (rubyCode.modified) {
             const converter = await targetCodeToBlocksHOC(intl);
             if (converter.result) {
-                converter.apply().then(() => {
+                converter.apply().then(async () => {
                     clearErrors();
+                    // === Smalruby: Start of module sync ===
+                    if (rubyCode.target && String(newVersion) === '2') {
+                        try {
+                            await syncModules(
+                                vm, rubyCode.target, intl, newVersion
+                            );
+                        } catch (e) {
+                            // eslint-disable-next-line no-console
+                            console.error('Module sync error:', e);
+                        }
+                    }
+                    // === Smalruby: End of module sync ===
                     updateRubyCodeTargetState(vm.editingTarget, newVersion);
                 });
             } else {
@@ -786,9 +801,21 @@ const RubyTab = props => {
             if (changedTarget || blocksTabVisible) {
                 targetCodeToBlocksHOC(intl).then(converter => {
                     if (converter.result) {
-                        converter.apply().then(() => {
+                        converter.apply().then(async () => {
                             modified = false;
                             clearErrors();
+                            // === Smalruby: Start of module sync ===
+                            if (rubyCode.target && String(rubyVersion) === '2') {
+                                try {
+                                    await syncModules(
+                                        vm, rubyCode.target, intl, rubyVersion
+                                    );
+                                } catch (e) {
+                                    // eslint-disable-next-line no-console
+                                    console.error('Module sync error:', e);
+                                }
+                            }
+                            // === Smalruby: End of module sync ===
                             if (!modified) {
                                 const etChanged = editingTarget &&
                                     editingTarget !== prev.editingTarget;
