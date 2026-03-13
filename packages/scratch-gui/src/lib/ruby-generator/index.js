@@ -471,6 +471,30 @@ RubyGenerator.finishTargets = function (code, _options) {
         s += `${prepares.join('\n')}\n\n`;
     }
 
+    // Deduplicate module definitions in multi-target output.
+    // Extract all module...end blocks, keep unique ones, place them before class definitions.
+    const moduleRegex = /^module (\w+)\n[\s\S]*?^end\n/gm;
+    const seenModules = new Set();
+    const uniqueModules = [];
+    let match;
+    while ((match = moduleRegex.exec(code)) !== null) {
+        const moduleName = match[1];
+        if (!seenModules.has(moduleName)) {
+            seenModules.add(moduleName);
+            uniqueModules.push(match[0]);
+        }
+    }
+
+    if (uniqueModules.length > 0) {
+        // Remove all module definitions from code
+        code = code.replace(moduleRegex, '');
+        // Clean up extra blank lines left by removal
+        code = code.replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '');
+        // Prepend unique modules
+        const modulesCode = uniqueModules.join('\n');
+        code = `${modulesCode}\n${code}`;
+    }
+
     return s + code;
 };
 
