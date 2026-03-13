@@ -114,9 +114,93 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(targetComments[0].text).toEqual('@ruby:class');
         });
 
-        test('class with superclass < ::Smalruby3::Sprite is accepted', async () => {
+        test('class with superclass < ::Smalruby3::Sprite preserves superclass in comment', async () => {
             code = `
                 class Sprite1 < ::Smalruby3::Sprite
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            expected = await rubyToExpected(converter, target, `
+                self.when(:flag_clicked) do
+                  move(10)
+                end
+            `);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:<=//Smalruby3/Sprite');
+        });
+
+        test('class with superclass < Smalruby3::Sprite preserves superclass in comment', async () => {
+            code = `
+                class Sprite1 < Smalruby3::Sprite
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            expected = await rubyToExpected(converter, target, `
+                self.when(:flag_clicked) do
+                  move(10)
+                end
+            `);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:<=Smalruby3/Sprite');
+        });
+
+        test('class with superclass < Sprite preserves superclass in comment', async () => {
+            code = `
+                class Sprite1 < Sprite
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            expected = await rubyToExpected(converter, target, `
+                self.when(:flag_clicked) do
+                  move(10)
+                end
+            `);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:<=Sprite');
+        });
+
+        test('class with superclass < Foo preserves superclass in comment', async () => {
+            code = `
+                class Sprite1 < Foo
+                  self.when(:flag_clicked) do
+                    move(10)
+                  end
+                end
+            `;
+            expected = await rubyToExpected(converter, target, `
+                self.when(:flag_clicked) do
+                  move(10)
+                end
+            `);
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+            const comments = converter._context.comments;
+            const targetComments = Object.values(comments).filter(c => c.blockId === null);
+            expect(targetComments).toHaveLength(1);
+            expect(targetComments[0].text).toEqual('@ruby:class:<=Foo');
+        });
+
+        test('class without superclass has no <= in comment', async () => {
+            code = `
+                class Sprite1
                   self.when(:flag_clicked) do
                     move(10)
                   end
@@ -1236,6 +1320,63 @@ describe('RubyToBlocksConverter/Class', () => {
     });
 
     describe('class Stage', () => {
+        describe('stage superclass handling', () => {
+            test('class Stage < ::Smalruby3::Stage is accepted (no <= in comment)', async () => {
+                code = `
+                    class Stage < ::Smalruby3::Stage
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                expected = await rubyToExpected(converter, target, `
+                    self.when(:flag_clicked) do
+                      switch_backdrop("Arctic")
+                    end
+                `);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+                const comments = converter._context.comments;
+                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                expect(targetComments).toHaveLength(1);
+                expect(targetComments[0].text).toEqual('@ruby:class');
+            });
+
+            test('class Stage < Smalruby3::Stage is accepted (no <= in comment)', async () => {
+                code = `
+                    class Stage < Smalruby3::Stage
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                expected = await rubyToExpected(converter, target, `
+                    self.when(:flag_clicked) do
+                      switch_backdrop("Arctic")
+                    end
+                `);
+                await convertAndExpectToEqualBlocks(converter, target, code, expected);
+
+                const comments = converter._context.comments;
+                const targetComments = Object.values(comments).filter(c => c.blockId === null);
+                expect(targetComments).toHaveLength(1);
+                expect(targetComments[0].text).toEqual('@ruby:class');
+            });
+
+            test('class Stage < Foo is rejected', async () => {
+                code = `
+                    class Stage < Foo
+                      self.when(:flag_clicked) do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await converter.targetCodeToBlocks(target, code);
+                expect(res).toBeFalsy();
+                expect(converter.errors).toHaveLength(1);
+            });
+        });
+
         describe('basic stage class syntax', () => {
             test('class Stage with when_flag_clicked', async () => {
                 code = `
