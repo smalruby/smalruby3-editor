@@ -55,7 +55,6 @@ export const findTargetsWithModule = (vm, moduleName, excludeTargetId) => {
 export const generateTargetCode = (target, version) => {
     RubyGenerator.initTargets({});
     return RubyGenerator.targetToCode_(target, {
-        withSpriteNew: true,
         version
     });
 };
