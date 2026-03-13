@@ -659,13 +659,20 @@ const RubyTab = props => {
                     target: vm.editingTarget,
                     stackClick: true
                 });
+
+                // === Smalruby: Start of update editor after execute ===
+                // Regenerate Ruby code from blocks so that auto-imported
+                // modules are reflected in the editor immediately.
+                updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
+                // === Smalruby: End of update editor after execute ===
             })
             .catch(error => {
                 // eslint-disable-next-line no-console
                 console.error('[handleExecuteLine] Apply error:', error);
                 onShowAlert('convertRubyToBlocksError');
             });
-    }, [vm, rubyCode, intl, rubyVersion, onShowAlert, updateRubyCodeErrorsState, onDismissAlert]);
+    }, [vm, rubyCode, intl, rubyVersion, onShowAlert, updateRubyCodeErrorsState, onDismissAlert,
+        updateRubyCodeTargetState]);
 
     const renderDownloaderChildren = useCallback((_, downloadProjectCallback) => {
         downloadCallbackRef.current = downloadProjectCallback;
