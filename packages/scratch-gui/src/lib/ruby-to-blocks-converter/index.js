@@ -18,6 +18,7 @@ import LineMappingUtils from './line-mapping';
 import ConverterRegistry from './converter-registry';
 import TargetApplier from './target-applier';
 import PrismErrorTranslator from './prism-error-translator';
+import {findTargetsWithModule, generateTargetCode, extractModuleCode} from '../module-sync';
 import spritesLibrary from '../libraries/sprites.json';
 import costumesLibrary from '../libraries/costumes.json';
 import soundsLibrary from '../libraries/sounds.json';
@@ -136,6 +137,23 @@ const messages = defineMessages({
         defaultMessage: 'extend is not supported in Smalruby.',
         description: 'Error message when extend is used',
         id: 'gui.smalruby3.rubyToBlocksConverter.extendNotSupported'
+    },
+    moduleNotSupportedInStage: {
+        defaultMessage: 'module is not supported in Stage.' +
+            '\nModules can only be used in sprite classes.',
+        description: 'Error message when module syntax is used in Stage',
+        id: 'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInStage'
+    },
+    includeNotSupportedInStage: {
+        defaultMessage: 'include is not supported in class Stage.' +
+            '\nModules can only be included in sprite classes.',
+        description: 'Error message when include is used in class Stage',
+        id: 'gui.smalruby3.rubyToBlocksConverter.includeNotSupportedInStage'
+    },
+    moduleImportFailed: {
+        defaultMessage: 'Failed to import module "{ NAME }" from other sprites.',
+        description: 'Error message when module auto-import from other sprites fails',
+        id: 'gui.smalruby3.rubyToBlocksConverter.moduleImportFailed'
     }
 });
 
@@ -454,6 +472,16 @@ class RubyToBlocksConverter extends Visitor {
             );
         }
 
+        // === Smalruby: Start of stage module restriction ===
+        // module is not supported in Stage (stage and sprite have different available methods)
+        if (this._context.target && this._context.target.isStage) {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.moduleNotSupportedInStage)
+            );
+        }
+        // === Smalruby: End of stage module restriction ===
+
         // Nested modules are not supported
         if (this._context.currentModuleName) {
             throw new RubyToBlocksConverterError(
@@ -492,6 +520,57 @@ class RubyToBlocksConverter extends Visitor {
         // Module definition itself does not produce blocks
         return [];
     }
+
+    // === Smalruby: Start of auto-import module from other sprites ===
+    /**
+     * Try to import a module definition from other sprites.
+     * Searches other sprites' block comments for `@ruby:module_source:moduleName`,
+     * generates Ruby code from the found sprite, extracts the module definition,
+     * parses it, and stores the DefNodes in this._context.modules.
+     * @param {string} moduleName - The module name to import
+     * @returns {boolean} true if the module was successfully imported
+     */
+    _importModuleFromOtherSprites (moduleName) {
+        if (!this.vm || !this.vm.runtime) return false;
+
+        const currentTargetId = this._context.target ? this._context.target.id : null;
+        const sourceCandidates = findTargetsWithModule(this.vm, moduleName, currentTargetId);
+        if (sourceCandidates.length === 0) return false;
+
+        // Use the first sprite that has the module
+        const sourceTarget = sourceCandidates[0];
+        const sourceCode = generateTargetCode(sourceTarget, String(this.version));
+        const moduleCode = extractModuleCode(sourceCode, moduleName);
+        if (!moduleCode) return false;
+
+        // Parse the module code to get DefNodes
+        const prism = RubyParser.getPrism();
+        if (!prism) return false;
+
+        const parseResult = prism.parse(moduleCode);
+        if (parseResult.errors.length > 0) return false;
+
+        // The parsed result should be: ProgramNode > StatementsNode > [ModuleNode]
+        const root = parseResult.value;
+        let moduleNode = null;
+        if (root.statements && root.statements.body) {
+            for (const stmt of root.statements.body) {
+                if (this._getNodeTypeName(stmt) === 'ModuleNode') {
+                    moduleNode = stmt;
+                    break;
+                }
+            }
+        }
+        if (!moduleNode) return false;
+
+        // Store the module's method DefNodes
+        this._context.modules[moduleName] = {
+            name: moduleName,
+            methods: (moduleNode.body && moduleNode.body.body) ? moduleNode.body.body : []
+        };
+        return true;
+    }
+    // === Smalruby: End of auto-import module from other sprites ===
 
     visitClassNode (node) {
         // class definitions are only supported in version 2
@@ -632,12 +711,29 @@ class RubyToBlocksConverter extends Visitor {
                         const argType = this._getNodeTypeName(argNode);
                         if (argType === 'ConstantReadNode') {
                             const moduleName = argNode.name;
-                            if (!this._context.modules[moduleName]) {
+
+                            // === Smalruby: Start of stage include restriction ===
+                            if (isStageClass) {
                                 throw new RubyToBlocksConverterError(
                                     stmt,
-                                    this._translator(messages.undefinedModule, {NAME: moduleName})
+                                    this._translator(messages.includeNotSupportedInStage)
                                 );
                             }
+                            // === Smalruby: End of stage include restriction ===
+
+                            // === Smalruby: Start of auto-import module from other sprites ===
+                            if (!this._context.modules[moduleName]) {
+                                // Try to import the module from other sprites
+                                const imported = this._importModuleFromOtherSprites(moduleName);
+                                if (!imported) {
+                                    throw new RubyToBlocksConverterError(
+                                        stmt,
+                                        this._translator(messages.undefinedModule, {NAME: moduleName})
+                                    );
+                                }
+                            }
+                            // === Smalruby: End of auto-import module from other sprites ===
+
                             includedModuleNames.push(moduleName);
                             includeStatements.add(stmt);
                         }
