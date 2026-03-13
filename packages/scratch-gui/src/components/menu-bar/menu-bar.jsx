@@ -101,7 +101,9 @@ import {
     toggleSettingsMenu
 } from '../../reducers/menus';
 
-import {updateRubyCodeTarget} from '../../reducers/ruby-code';
+import {updateRubyCodeTarget, updateRubyCodeErrors} from '../../reducers/ruby-code';
+import {activateTab, RUBY_TAB_INDEX} from '../../reducers/editor-tab';
+import {showAlertWithTimeout} from '../../reducers/alerts';
 
 import collectMetadata from '../../lib/collect-metadata';
 import {PLATFORM} from '../../lib/platform';
@@ -242,6 +244,7 @@ class MenuBar extends React.Component {
             'handleTestAISaveFinished',
             'handleAISaveAsFinished',
             'handleAISaveError',
+            'handleConversionError',
             'restoreOptionMessage',
             'handleClickLoadFromUrl',
             'handleSaveDirectlyToGoogleDrive',
@@ -432,6 +435,11 @@ class MenuBar extends React.Component {
     handleAISaveError () {
         // Clear AI save status
         this.props.onClearAiSaveStatus();
+    }
+    handleConversionError (errors) {
+        this.props.onActivateRubyTab();
+        this.props.onShowConvertRubyToBlocksErrorAlert();
+        this.props.onUpdateRubyCodeErrors(errors);
     }
     handleClickLoadFromUrl () {
         if (this.props.onStartSelectingUrlLoad) {
@@ -1106,6 +1114,7 @@ class MenuBar extends React.Component {
                                 >
                                     <MenuSection>
                                         <RubyDownloader
+                                            onConversionError={this.handleConversionError}
                                             onSaveError={this.handleAISaveError}
                                             onSaveFinished={this.handleAISaveFinished}
                                         >
@@ -1124,6 +1133,7 @@ class MenuBar extends React.Component {
                                         </RubyDownloader>
                                         <RubyDownloader
                                             forceFilePicker
+                                            onConversionError={this.handleConversionError}
                                             onSaveError={this.handleAISaveError}
                                             onSaveFinished={this.handleAISaveAsFinished}
                                         >
@@ -1143,6 +1153,7 @@ class MenuBar extends React.Component {
                                     </MenuSection>
                                     <MenuSection>
                                         <RubyDownloader
+                                            onConversionError={this.handleConversionError}
                                             onSaveError={this.handleAISaveError}
                                             onSaveFinished={this.handleTestAISaveFinished}
                                         >
@@ -1518,6 +1529,7 @@ MenuBar.propTypes = {
     onClickLogin: PropTypes.func,
     onClickLogo: PropTypes.func,
     onOpenTipsLibrary: PropTypes.func,
+    onActivateRubyTab: PropTypes.func,
     onActivateTutorial: PropTypes.func,
     showTutorialTooltip: PropTypes.bool,
     onClickMeshV2: PropTypes.func,
@@ -1556,6 +1568,7 @@ MenuBar.propTypes = {
     onSaveDirectlyToGoogleDrive: PropTypes.func,
     onSetAiSaveStatus: PropTypes.func,
     onSetMeshV2Domain: PropTypes.func,
+    onShowConvertRubyToBlocksErrorAlert: PropTypes.func,
     onClearAiSaveStatus: PropTypes.func,
     onStartSelectingUrlLoad: PropTypes.func,
     onToggleLoginOpen: PropTypes.func,
@@ -1568,6 +1581,7 @@ MenuBar.propTypes = {
     settingsMenuOpen: PropTypes.bool,
     shouldSaveBeforeTransition: PropTypes.func,
     showComingSoon: PropTypes.bool,
+    onUpdateRubyCodeErrors: PropTypes.func,
     updateRubyCodeTargetState: PropTypes.func,
     username: PropTypes.string,
     avatarBadge: PropTypes.number,
@@ -1686,7 +1700,10 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onSeeCommunity: ownProps.onSeeCommunity ?? (() => dispatch(setPlayer(true))),
     onSetTimeTravelMode: mode => dispatch(setTimeTravel(mode)),
     updateRubyCodeTargetState: target => dispatch(updateRubyCodeTarget(target)),
-    onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal())
+    onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal()),
+    onActivateRubyTab: () => dispatch(activateTab(RUBY_TAB_INDEX)),
+    onShowConvertRubyToBlocksErrorAlert: () => showAlertWithTimeout(dispatch, 'convertRubyToBlocksError'),
+    onUpdateRubyCodeErrors: errors => dispatch(updateRubyCodeErrors(errors))
 });
 
 export default compose(
