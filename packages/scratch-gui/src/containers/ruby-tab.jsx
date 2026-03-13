@@ -19,6 +19,9 @@ import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
+// === Smalruby: Start of module editor update ===
+import RubyGenerator from '../lib/ruby-generator';
+// === Smalruby: End of module editor update ===
 // === Smalruby: Start of module sync ===
 import {syncModules} from '../lib/module-sync';
 // === Smalruby: End of module sync ===
@@ -626,7 +629,15 @@ const RubyTab = props => {
                 // === Smalruby: Start of update editor after execute ===
                 // Regenerate Ruby code from blocks so that auto-imported
                 // modules are reflected in the editor immediately.
-                updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
+                // Using direct editor setValue because Redux prop-driven
+                // updates via @monaco-editor/react may not take effect
+                // reliably within the same callback.
+                const regenerated = RubyGenerator.targetToCode(
+                    vm.editingTarget, {version: rubyVersion}
+                );
+                if (editorRef.current && regenerated !== code) {
+                    editorRef.current.setValue(regenerated);
+                }
                 // === Smalruby: End of update editor after execute ===
 
                 const blockId = converter.getBlockIdForLine(targetLine);
@@ -671,8 +682,7 @@ const RubyTab = props => {
                 console.error('[handleExecuteLine] Apply error:', error);
                 onShowAlert('convertRubyToBlocksError');
             });
-    }, [vm, rubyCode, intl, rubyVersion, onShowAlert, updateRubyCodeErrorsState, onDismissAlert,
-        updateRubyCodeTargetState]);
+    }, [vm, rubyCode, intl, rubyVersion, onShowAlert, updateRubyCodeErrorsState, onDismissAlert]);
 
     const renderDownloaderChildren = useCallback((_, downloadProjectCallback) => {
         downloadCallbackRef.current = downloadProjectCallback;
