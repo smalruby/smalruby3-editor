@@ -231,7 +231,7 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 
 ### Key Differences from Standard Ruby
 - Class definitions are limited (only for sprite configuration)
-- \`module\` definitions and \`include\` are supported (Version 2 only) — use to share methods across sprites
+- **\`module\` and \`include\` ARE supported** (Version 2 only) — use to share \`def\` methods across sprites. When the user asks about module/include, ALWAYS generate a code example using them.
 - Loops use \`loop do...end\`, \`N.times do...end\`, \`while...end\`, \`until...end\` (no for/each)
 - Conditionals: \`if\`, \`unless\`, \`case/when\`, \`until\`
 - Variables: instance (\`@score\`), global (\`$score\`), local (\`score\`)
@@ -381,6 +381,23 @@ Do NOT use these — they do not exist:
 - ❌ \`when_backdrop_changes()\` → ✅ \`when_backdrop_switches()\`
 
 ## Sample Programs
+
+### Share methods with module/include
+\\\`\\\`\\\`ruby
+module Utils
+  def add(a, b)
+    a + b
+  end
+end
+
+class Sprite1
+  include Utils
+
+  when_flag_clicked do
+    say(add(1, 5))
+  end
+end
+\\\`\\\`\\\`
 
 ### Follow the mouse
 \`\`\`ruby
