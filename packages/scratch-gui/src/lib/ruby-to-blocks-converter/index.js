@@ -452,8 +452,28 @@ class RubyToBlocksConverter extends Visitor {
             return [];
         }
 
-        // Build offset-to-line mapping
-        const lineStarts = [0]; // line 1 starts at offset 0
+        // Prism WASM reports byte offsets (UTF-8), but JavaScript strings use
+        // UTF-16 char indices. Build a byte→char mapping to convert between them.
+        const sourceBytes = new TextEncoder().encode(sourceCode);
+        const byteToChar = new Int32Array(sourceBytes.length + 1);
+        {
+            let ci = 0;
+            let bi = 0;
+            while (ci < sourceCode.length) {
+                const cp = sourceCode.codePointAt(ci);
+                const charLen = cp > 0xFFFF ? 2 : 1; // surrogate pair in UTF-16
+                const byteLen = cp <= 0x7F ? 1 : cp <= 0x7FF ? 2 : cp <= 0xFFFF ? 3 : 4;
+                for (let b = 0; b < byteLen; b++) {
+                    byteToChar[bi + b] = ci;
+                }
+                bi += byteLen;
+                ci += charLen;
+            }
+            byteToChar[bi] = ci; // end sentinel
+        }
+
+        // Build char-offset-to-line mapping
+        const lineStarts = [0]; // line 1 starts at char offset 0
         for (let i = 0; i < sourceCode.length; i++) {
             if (sourceCode[i] === '\n') {
                 lineStarts.push(i + 1);
@@ -469,14 +489,18 @@ class RubyToBlocksConverter extends Visitor {
         };
 
         return parseResult.comments.map(comment => {
-            const startOffset = comment.location.startOffset;
-            const length = comment.location.length;
-            const rawText = sourceCode.substring(startOffset, startOffset + length);
-            const line = offsetToLine(startOffset);
+            const startByte = comment.location.startOffset;
+            const lengthBytes = comment.location.length;
+            // Convert byte offsets to char offsets
+            const startCharOffset = startByte in byteToChar ? byteToChar[startByte] : 0;
+            const endByte = startByte + lengthBytes;
+            const endCharOffset = endByte in byteToChar ? byteToChar[endByte] : sourceCode.length;
+            const rawText = sourceCode.substring(startCharOffset, endCharOffset);
+            const line = offsetToLine(startCharOffset);
             const lineStart = lineStarts[line - 1];
 
             // Check if there's non-whitespace before this comment on the same line
-            const textBeforeOnLine = sourceCode.substring(lineStart, startOffset);
+            const textBeforeOnLine = sourceCode.substring(lineStart, startCharOffset);
             const isTrailing = textBeforeOnLine.trim().length > 0;
 
             let type;
@@ -495,7 +519,7 @@ class RubyToBlocksConverter extends Visitor {
                 }
             }
 
-            return {type, text, line, startOffset, endOffset: startOffset + length, isTrailing};
+            return {type, text, line, startOffset: startCharOffset, endOffset: endCharOffset, isTrailing};
         });
     }
 
@@ -510,6 +534,27 @@ class RubyToBlocksConverter extends Visitor {
         if (sourceComments.length === 0) {
             return;
         }
+
+        // Build a map from start line to block ID.
+        // Unlike lineToNodeMap (which uses a range/shallowest strategy), this maps only
+        // lines where a node actually STARTS, preferring the most specific (smallest range) node.
+        // This ensures "# comment\nloop do" attaches to the loop block, not a parent block.
+        const lineStartBlockMap = new Map();
+        for (const [node, blockId] of this._context.nodeToBlockMap.entries()) {
+            const startLine = this._getNodeStartLine(node);
+            if (startLine === null) continue;
+            const endLine = this._getNodeEndLine(node) || startLine;
+            const range = endLine - startLine;
+            const existing = lineStartBlockMap.get(startLine);
+            if (!existing || range < existing.range) {
+                lineStartBlockMap.set(startLine, {blockId, range});
+            }
+        }
+
+        const findBlockForLine = line => {
+            const entry = lineStartBlockMap.get(line);
+            return entry ? entry.blockId : null;
+        };
 
         // Group consecutive non-trailing comments that share adjacent lines
         const groups = [];
@@ -535,7 +580,8 @@ class RubyToBlocksConverter extends Visitor {
             if (group.isTrailing) {
                 // Trailing (inline) comment: attach to block on the same line
                 const comment = group.comments[0];
-                const blockId = this._findBlockIdForLine(comment.line);
+                const blockId = findBlockForLine(comment.line) ||
+                    this._findBlockIdForLine(comment.line);
                 if (blockId) {
                     this._mergeUserComment(blockId, text, true);
                 } else {
@@ -554,7 +600,7 @@ class RubyToBlocksConverter extends Visitor {
                 if (isBeforeContainer) {
                     this._createComment(text, null);
                 } else {
-                    const blockId = this._findBlockIdForLine(nextCodeLine);
+                    const blockId = findBlockForLine(nextCodeLine);
                     if (blockId) {
                         this._mergeUserComment(blockId, text, false);
                     } else {
@@ -567,7 +613,8 @@ class RubyToBlocksConverter extends Visitor {
                                     (r.type === 'ClassNode' || r.type === 'ModuleNode' || r.type === 'DefNode')
                             );
                             if (hitContainer) break;
-                            const scanBlockId = this._findBlockIdForLine(scanLine);
+                            const scanBlockId = findBlockForLine(scanLine) ||
+                                this._findBlockIdForLine(scanLine);
                             if (scanBlockId) {
                                 this._mergeUserComment(scanBlockId, text, false);
                                 found = true;

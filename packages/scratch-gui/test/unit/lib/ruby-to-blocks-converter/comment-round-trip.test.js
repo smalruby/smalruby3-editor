@@ -95,6 +95,46 @@ describe('Ruby Comment Round Trip', () => {
         expect(generatedRuby.trim()).toEqual('# just a comment');
     });
 
+    test('comments inside nested control structures are preserved', async () => {
+        const code = [
+            '# before loop',
+            'loop do',
+            '  # before if',
+            '  if distance("_mouse_") < 100',
+            '    # before point_towards',
+            '    point_towards("_mouse_")',
+            '    self.direction += 180',
+            '    move(10)',
+            '  else',
+            '    # before move in else',
+            '    move(2)',
+            '    bounce_if_on_edge',
+            '  end',
+            'end'
+        ].join('\n');
+        const result = await converter.targetCodeToBlocks(null, code);
+        expect(converter.errors).toHaveLength(0);
+        expect(result).toBeTruthy();
+
+        const comments = converter._context.comments;
+        const commentValues = Object.values(comments);
+        const userComments = commentValues.filter(c => !c.text.startsWith('@ruby:') &&
+            c.text.split('\n').some(line => !line.startsWith('@ruby:')));
+
+        // All 4 user comments should be preserved
+        const userTexts = userComments.map(c =>
+            c.text.split('\n').filter(l => !l.startsWith('@ruby:')).join('\n')
+        );
+        expect(userTexts.some(t => t.includes('before loop'))).toBe(true);
+        expect(userTexts.some(t => t.includes('before if'))).toBe(true);
+        expect(userTexts.some(t => t.includes('before point_towards'))).toBe(true);
+        expect(userTexts.some(t => t.includes('before move in else'))).toBe(true);
+    });
+
+    test('Japanese comments with multibyte characters are preserved', async () => {
+        await expectRoundTrip('# ゴーストが動く\nmove(10)');
+    });
+
     test('code without comments still works (regression)', async () => {
         await expectRoundTrip('move(10)');
     });
