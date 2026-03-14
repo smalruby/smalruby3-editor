@@ -117,6 +117,7 @@ RubyGenerator.init = function (options) {
     this.notEqualsCallCache_ = {};
     this.greaterThanOrEqualCallCache_ = {};
     this.lessThanOrEqualCallCache_ = {};
+    this._moduleMethodCodes = {};
     this.version = options && options.version ? String(options.version) : '1';
     if (this.variableDB_) {
         this.variableDB_.reset();
@@ -153,6 +154,34 @@ RubyGenerator.finish = function (code, options) {
         }
     }
 
+    // Generate module...end blocks from collected module method codes
+    let moduleCode = '';
+    if (classComment) {
+        // Parse include= from class comment to determine module order
+        const includeModuleNames = [];
+        if (classComment.startsWith('@ruby:class:')) {
+            const attrPart = classComment.slice('@ruby:class:'.length);
+            const attrs = attrPart.split(',');
+            for (const attr of attrs) {
+                const includeMatch = attr.match(/^include=(.+)$/);
+                if (includeMatch) {
+                    includeModuleNames.push(includeMatch[1]);
+                }
+            }
+        }
+
+        // Generate module blocks in include order
+        for (const moduleName of includeModuleNames) {
+            const methods = this._moduleMethodCodes[moduleName];
+            if (methods && methods.length > 0) {
+                const methodsCode = methods.join('\n');
+                moduleCode += `module ${moduleName}\n`;
+                moduleCode += this.prefixLines(methodsCode, this.INDENT);
+                moduleCode += `end\n\n`;
+            }
+        }
+    }
+
     // For version 1 file output (withSpriteNew), use Sprite.new format
     // even when @ruby:class comment is present.
     // For version 2, @ruby:class takes priority over withSpriteNew.
@@ -181,7 +210,7 @@ RubyGenerator.finish = function (code, options) {
         code = `${commentCodes.join('\n')}\n${code}`;
     }
 
-    if (defs.length === 0 && code.length === 0) {
+    if (defs.length === 0 && moduleCode.length === 0 && code.length === 0) {
         return '';
     }
 
@@ -190,7 +219,7 @@ RubyGenerator.finish = function (code, options) {
         s += `${defs.join('\n')}\n\n`;
     }
 
-    return s + code;
+    return s + moduleCode + code;
 };
 
 // Check if a string is a valid Ruby constant name (class name)
@@ -202,6 +231,7 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     const target = this.currentTarget;
     const isStage = target && target.isStage;
     let className;
+    const includeNames = [];
     const setLines = [];
 
     // Parse attribute list from @ruby:class:attr1,attr2,...
@@ -241,6 +271,15 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
             setLines.push(`set_sprite ${this.quote_(spriteName)}`);
             // Replace sprite=Name with plain 'sprite' for attribute processing (already handled)
             allowedAttributes[spriteAttrIndex] = 'sprite';
+        }
+
+        // Extract include=ModuleName entries (in order) and remove from allowedAttributes
+        for (let i = allowedAttributes.length - 1; i >= 0; i--) {
+            const includeMatch = allowedAttributes[i].match(/^include=(.+)$/);
+            if (includeMatch) {
+                includeNames.unshift(includeMatch[1]);
+                allowedAttributes.splice(i, 1);
+            }
         }
     }
 
@@ -301,6 +340,12 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
         setCode = setLines.map(line => `${this.INDENT}${line}\n`).join('');
     }
 
+    // Generate include statements for modules
+    let includeCode = '';
+    if (includeNames.length > 0) {
+        includeCode = includeNames.map(name => `${this.INDENT}include ${name}\n`).join('');
+    }
+
     let outsideCode = '';
     if (forFileOutput && code.length > 0) {
         // Split code into top-level sections (separated by blank lines)
@@ -337,14 +382,16 @@ RubyGenerator._wrapWithClass = function (code, classComment, forFileOutput) {
     if (code.length > 0) {
         code = this.prefixLines(code, this.INDENT);
     }
-    const separator = setCode.length > 0 && code.length > 0 ? '\n' : '';
+    // Build the inner class content with separators
+    const innerParts = [setCode, includeCode, code].filter(p => p.length > 0);
+    const innerCode = innerParts.join('\n');
     let inheritance = '';
     if (superclassPath) {
         inheritance = ` < ${superclassPath}`;
     } else if (forFileOutput) {
         inheritance = ' < ::Smalruby3::Sprite';
     }
-    code = `class ${className}${inheritance}\n${setCode}${separator}${code}end\n`;
+    code = `class ${className}${inheritance}\n${innerCode}end\n`;
 
     if (outsideCode.length > 0) {
         code += outsideCode;
@@ -422,6 +469,30 @@ RubyGenerator.finishTargets = function (code, _options) {
     const prepares = Object.keys(this.prepares_).map(name => this.prepares_[name]);
     if (prepares.length > 0) {
         s += `${prepares.join('\n')}\n\n`;
+    }
+
+    // Deduplicate module definitions in multi-target output.
+    // Extract all module...end blocks, keep unique ones, place them before class definitions.
+    const moduleRegex = /^module (\w+)\n[\s\S]*?^end\n/gm;
+    const seenModules = new Set();
+    const uniqueModules = [];
+    let match;
+    while ((match = moduleRegex.exec(code)) !== null) {
+        const moduleName = match[1];
+        if (!seenModules.has(moduleName)) {
+            seenModules.add(moduleName);
+            uniqueModules.push(match[0]);
+        }
+    }
+
+    if (uniqueModules.length > 0) {
+        // Remove all module definitions from code
+        code = code.replace(moduleRegex, '');
+        // Clean up extra blank lines left by removal
+        code = code.replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '');
+        // Prepend unique modules
+        const modulesCode = uniqueModules.join('\n');
+        code = `${modulesCode}\n${code}`;
     }
 
     return s + code;

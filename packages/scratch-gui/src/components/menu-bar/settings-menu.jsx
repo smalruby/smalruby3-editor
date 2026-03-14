@@ -82,6 +82,26 @@ const SettingsMenu = ({
             alert(intl.formatMessage(rubyVersionMessages.koshienCannotChangeRubyVersion));
             return;
         }
+        // === Smalruby: Start of v1 switch prevention ===
+        // Prevent switching to v1 when v2 features (module/class) are in use
+        if (rubyVersion === '1' && vm.runtime) { // eslint-disable-line react/prop-types
+            const hasV2Features = vm.runtime.targets.some(target => { // eslint-disable-line react/prop-types
+                if (!target.comments) return false;
+                return Object.values(target.comments).some(comment =>
+                    comment.text && (
+                        comment.text.startsWith('@ruby:module_source:') ||
+                        comment.text === '@ruby:class' ||
+                        comment.text.startsWith('@ruby:class:')
+                    )
+                );
+            });
+            if (hasV2Features) {
+                // eslint-disable-next-line no-alert
+                alert(intl.formatMessage(rubyVersionMessages.cannotSwitchToV1));
+                return;
+            }
+        }
+        // === Smalruby: End of v1 switch prevention ===
         onChangeRubyVersion(rubyVersion);
     }, [intl, vm, onChangeRubyVersion]);
 

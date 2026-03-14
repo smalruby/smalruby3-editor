@@ -44,6 +44,8 @@ const RECEIVER_METHOD_LABELS = {
  * (no receiver). Used by FuriganaAnnotator._handleCallNode.
  */
 const TOPLEVEL_METHOD_LABELS = {
+    // Module
+    'include': '取り込む',
     // Standard I/O
     'puts': '表示する',
     'print': '表示する',

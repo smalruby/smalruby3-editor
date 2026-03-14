@@ -16,6 +16,10 @@ export default function (Generator) {
     };
 
     Generator.procedures_definition = function (block) {
+        // Check for @ruby:module_source:ModuleName comment
+        const comment = Generator.getCommentText(block);
+        const moduleSourceMatch = comment && comment.match(/^@ruby:module_source:(.+)$/);
+
         const customBlock = Generator.getInputTargetBlock(block, 'custom_block');
 
         // Save and temporarily clear block.next to prevent scrub_ from processing it
@@ -61,6 +65,16 @@ export default function (Generator) {
         // Mark this block so scrub_ knows not to process block.next
         // (we've already manually processed it above)
         block._skipNextInScrub = true;
+
+        // If this is a module method, store the code separately and suppress from main output
+        if (moduleSourceMatch) {
+            const moduleName = moduleSourceMatch[1];
+            if (!Generator._moduleMethodCodes[moduleName]) {
+                Generator._moduleMethodCodes[moduleName] = [];
+            }
+            Generator._moduleMethodCodes[moduleName].push(code);
+            return '';
+        }
 
         return code;
     };

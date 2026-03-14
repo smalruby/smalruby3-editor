@@ -54,8 +54,49 @@ end
 
 - クラス名に名前空間は指定できません（`Foo::Bar` は不可）
 - クラス継承 (`class Foo < Bar`) は構文上は許容されますが、親クラスは無視されます
-- class定義のトップレベルに置けるのは、**イベントハンドラ**（`when_xxx`）と**メソッド定義**（`def`）のみです
-- `module` は使用できません
+- class定義のトップレベルに置けるのは、**イベントハンドラ**（`when_xxx`）、**メソッド定義**（`def`）、**`include`** のみです
+
+### module定義とinclude（Version 2のみ）
+
+`module` を定義し、`include` でクラスに取り込むことで、メソッドを複数のスプライトで共有できます。
+
+```ruby
+module Utils
+  def add(a, b)
+    a + b
+  end
+
+  def greet
+    say("hello")
+  end
+end
+
+class Sprite1
+  include Utils
+
+  when_flag_clicked do
+    say(add(1, 5))
+  end
+end
+```
+
+別のスプライトでも同じモジュールを `include` して、メソッドを再利用できます。
+
+```ruby
+class Sprite2
+  include Utils
+
+  when_flag_clicked do
+    say(add(10, 20))
+  end
+end
+```
+
+**制限事項**:
+- `module` 内に置けるのは **メソッド定義（`def`）のみ** です（変数代入やネストした `module` は不可）
+- `module_function` や `extend` は使用できません
+- ステージ（`class Stage`）では `module` 定義や `include` は使用できません
+- Version 1 では `module` は使用できません
 
 ### class定義のみで使えるメソッド
 
@@ -586,7 +627,7 @@ hide_list("@items")                     # リストの非表示
 - `for` ループ
 - `each` メソッド
 - `begin`/`rescue`/`ensure`（例外処理）
-- `module` 定義
+- `module_function`, `extend`（`module` と `include` は Version 2 でサポート）
 - `require` / `require_relative`
 - 文字列の式展開 (`"Hello #{name}"`)
 - 多重代入 (`a, b = 1, 2`)

@@ -231,7 +231,7 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 
 ### Key Differences from Standard Ruby
 - Class definitions are limited (only for sprite configuration)
-- No module definitions
+- **\`module\` and \`include\` ARE supported** (Version 2 only) — use to share \`def\` methods across sprites. When the user asks about module/include, ALWAYS generate a code example using them.
 - Loops use \`loop do...end\`, \`N.times do...end\`, \`while...end\`, \`until...end\` (no for/each)
 - Conditionals: \`if\`, \`unless\`, \`case/when\`, \`until\`
 - Variables: instance (\`@score\`), global (\`$score\`), local (\`score\`)
@@ -330,6 +330,28 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 - Local variables: \`count = 0\`
 - \`show_variable("@score")\` / \`hide_variable("@score")\`
 
+### Module / Include (Version 2 only)
+- Define reusable methods in a \`module\`, then \`include\` in a class to share across sprites
+- \`module ModuleName ... end\` — define a module with \`def\` methods only
+- \`include ModuleName\` — include module methods in a class
+- Only \`def\` methods allowed inside \`module\` (no variables, no nested modules)
+- Not available on Stage or in Version 1
+\`\`\`ruby
+module Utils
+  def add(a, b)
+    a + b
+  end
+end
+
+class Sprite1
+  include Utils
+
+  when_flag_clicked do
+    say(add(1, 5))
+  end
+end
+\`\`\`
+
 ### Pen (extension)
 - \`Pen.clear\`
 - \`pen.down\` / \`pen.up\`
@@ -353,11 +375,29 @@ Do NOT use these — they do not exist:
 - ❌ \`glide(secs, x, y)\` → ✅ \`glide([x, y], secs: n)\`
 - ❌ \`go_to(x, y)\` → ✅ \`go_to([x, y])\`
 - ❌ \`for\`, \`each\` → ✅ \`loop do...end\`, \`N.times do...end\`, \`while...end\`, \`until...end\`
+- ❌ \`module_function\`, \`extend\` → ✅ use \`module\` + \`include\` instead
 - ❌ \`sleep(0.05)\`, \`sleep(0.1)\` for animation FPS → ✅ loops auto-wait; only use sleep() for 0.5s+ delays
 - ❌ \`puts\`, \`print\`, \`p\` → ✅ \`say()\`
 - ❌ \`when_backdrop_changes()\` → ✅ \`when_backdrop_switches()\`
 
 ## Sample Programs
+
+### Share methods with module/include
+\\\`\\\`\\\`ruby
+module Utils
+  def add(a, b)
+    a + b
+  end
+end
+
+class Sprite1
+  include Utils
+
+  when_flag_clicked do
+    say(add(1, 5))
+  end
+end
+\\\`\\\`\\\`
 
 ### Follow the mouse
 \`\`\`ruby

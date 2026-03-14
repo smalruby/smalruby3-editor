@@ -19,6 +19,12 @@ import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
+// === Smalruby: Start of module editor update ===
+import RubyGenerator from '../lib/ruby-generator';
+// === Smalruby: End of module editor update ===
+// === Smalruby: Start of module sync ===
+import {syncModules} from '../lib/module-sync';
+// === Smalruby: End of module sync ===
 
 import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import {
@@ -557,8 +563,20 @@ const RubyTab = props => {
         if (rubyCode.modified) {
             const converter = await targetCodeToBlocksHOC(intl);
             if (converter.result) {
-                converter.apply().then(() => {
+                converter.apply().then(async () => {
                     clearErrors();
+                    // === Smalruby: Start of module sync ===
+                    if (rubyCode.target && String(newVersion) === '2') {
+                        try {
+                            await syncModules(
+                                vm, rubyCode.target, intl, newVersion
+                            );
+                        } catch (e) {
+                            // eslint-disable-next-line no-console
+                            console.error('Module sync error:', e);
+                        }
+                    }
+                    // === Smalruby: End of module sync ===
                     updateRubyCodeTargetState(vm.editingTarget, newVersion);
                 });
             } else {
@@ -608,6 +626,41 @@ const RubyTab = props => {
 
         converter.apply()
             .then(() => {
+                // === Smalruby: Start of update editor after execute ===
+                // Regenerate Ruby code from blocks so that auto-imported
+                // modules are reflected in the editor immediately.
+                // Using direct editor setValue because Redux prop-driven
+                // updates via @monaco-editor/react may not take effect
+                // reliably within the same callback.
+                const regenerated = RubyGenerator.targetToCode(
+                    vm.editingTarget, {version: rubyVersion}
+                );
+                if (editorRef.current && regenerated !== code) {
+                    // Remember cursor content to restore position after setValue
+                    const cursorLine = editorRef.current.getPosition().lineNumber;
+                    const cursorContent = editorRef.current.getModel()
+                        .getLineContent(cursorLine)
+                        .trim();
+
+                    editorRef.current.setValue(regenerated);
+
+                    // Restore cursor to matching line in regenerated code
+                    if (typeof cursorContent === 'string' && cursorContent.length > 0) {
+                        const lines = regenerated.split('\n');
+                        for (let i = 0; i < lines.length; i++) {
+                            if (lines[i].trim() === cursorContent) {
+                                const newLine = i + 1;
+                                editorRef.current.setPosition({
+                                    lineNumber: newLine, column: 1
+                                });
+                                editorRef.current.revealLineInCenter(newLine);
+                                break;
+                            }
+                        }
+                    }
+                }
+                // === Smalruby: End of update editor after execute ===
+
                 const blockId = converter.getBlockIdForLine(targetLine);
                 if (!blockId) {
                     // eslint-disable-next-line no-console
@@ -786,9 +839,21 @@ const RubyTab = props => {
             if (changedTarget || blocksTabVisible) {
                 targetCodeToBlocksHOC(intl).then(converter => {
                     if (converter.result) {
-                        converter.apply().then(() => {
+                        converter.apply().then(async () => {
                             modified = false;
                             clearErrors();
+                            // === Smalruby: Start of module sync ===
+                            if (rubyCode.target && String(rubyVersion) === '2') {
+                                try {
+                                    await syncModules(
+                                        vm, rubyCode.target, intl, rubyVersion
+                                    );
+                                } catch (e) {
+                                    // eslint-disable-next-line no-console
+                                    console.error('Module sync error:', e);
+                                }
+                            }
+                            // === Smalruby: End of module sync ===
                             if (!modified) {
                                 const etChanged = editingTarget &&
                                     editingTarget !== prev.editingTarget;

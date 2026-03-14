@@ -206,6 +206,16 @@ const nodeHandlers = {
         this._walkChildren(node);
     },
 
+    // ---- module definition ----
+
+    _handleModuleNode (node) {
+        this._addAnnotation(node.moduleKeywordLoc, 'モジュール作成');
+        if (node.endKeywordLoc) {
+            this._addAnnotation(node.endKeywordLoc, '作成終了');
+        }
+        this._walkChildren(node);
+    },
+
     // ---- class definition ----
 
     _handleClassNode (node) {
