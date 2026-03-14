@@ -636,7 +636,28 @@ const RubyTab = props => {
                     vm.editingTarget, {version: rubyVersion}
                 );
                 if (editorRef.current && regenerated !== code) {
+                    // Remember cursor content to restore position after setValue
+                    const cursorLine = editorRef.current.getPosition().lineNumber;
+                    const cursorContent = editorRef.current.getModel()
+                        .getLineContent(cursorLine)
+                        .trim();
+
                     editorRef.current.setValue(regenerated);
+
+                    // Restore cursor to matching line in regenerated code
+                    if (typeof cursorContent === 'string' && cursorContent.length > 0) {
+                        const lines = regenerated.split('\n');
+                        for (let i = 0; i < lines.length; i++) {
+                            if (lines[i].trim() === cursorContent) {
+                                const newLine = i + 1;
+                                editorRef.current.setPosition({
+                                    lineNumber: newLine, column: 1
+                                });
+                                editorRef.current.revealLineInCenter(newLine);
+                                break;
+                            }
+                        }
+                    }
                 }
                 // === Smalruby: End of update editor after execute ===
 
