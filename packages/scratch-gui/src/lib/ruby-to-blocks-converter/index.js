@@ -323,6 +323,10 @@ class RubyToBlocksConverter extends Visitor {
                     this._context.extensionIDs.add(extensionID);
                 }
             });
+
+            // Associate source comments with blocks
+            this._associateSourceComments(parseResult, code);
+
             return true;
         } catch (e) {
             let error;
@@ -493,6 +497,138 @@ class RubyToBlocksConverter extends Visitor {
 
             return {type, text, line, startOffset, endOffset: startOffset + length, isTrailing};
         });
+    }
+
+    /**
+     * Associate extracted source comments with blocks or create workspace comments.
+     * Called after all blocks have been created in targetCodeToBlocks.
+     * @param {object} parseResult - The prism parse result
+     * @param {string} sourceCode - The original source code
+     */
+    _associateSourceComments (parseResult, sourceCode) {
+        const sourceComments = this._extractSourceComments(parseResult, sourceCode);
+        if (sourceComments.length === 0) {
+            return;
+        }
+
+        // Group consecutive non-trailing comments that share adjacent lines
+        const groups = [];
+        let currentGroup = null;
+        for (const comment of sourceComments) {
+            if (comment.isTrailing) {
+                // Trailing comments are always individual
+                groups.push({comments: [comment], isTrailing: true});
+                currentGroup = null;
+            } else if (currentGroup && comment.line === currentGroup.endLine + 1) {
+                // Consecutive comment on next line
+                currentGroup.comments.push(comment);
+                currentGroup.endLine = comment.line;
+            } else {
+                currentGroup = {comments: [comment], isTrailing: false, endLine: comment.line};
+                groups.push(currentGroup);
+            }
+        }
+
+        for (const group of groups) {
+            const text = group.comments.map(c => c.text).join('\n');
+
+            if (group.isTrailing) {
+                // Trailing (inline) comment: attach to block on the same line
+                const comment = group.comments[0];
+                const blockId = this._findBlockIdForLine(comment.line);
+                if (blockId) {
+                    this._mergeUserComment(blockId, text, true);
+                } else {
+                    this._createComment(text, null);
+                }
+            } else {
+                // Preceding comment: attach to block on the next code line
+                const nextCodeLine = group.endLine + 1;
+
+                // Check if next line is a class/module/def start
+                // In that case, create a target-level comment (describes the definition, not a block)
+                const isBeforeContainer = this._context.containerNodeRanges.some(
+                    r => r.startLine === nextCodeLine &&
+                        (r.type === 'ClassNode' || r.type === 'ModuleNode' || r.type === 'DefNode')
+                );
+                if (isBeforeContainer) {
+                    this._createComment(text, null);
+                } else {
+                    const blockId = this._findBlockIdForLine(nextCodeLine);
+                    if (blockId) {
+                        this._mergeUserComment(blockId, text, false);
+                    } else {
+                        // No block found on next line - try scanning further down
+                        // but stop at container node boundaries
+                        let found = false;
+                        for (let scanLine = nextCodeLine + 1; scanLine <= nextCodeLine + 5; scanLine++) {
+                            const hitContainer = this._context.containerNodeRanges.some(
+                                r => r.startLine === scanLine &&
+                                    (r.type === 'ClassNode' || r.type === 'ModuleNode' || r.type === 'DefNode')
+                            );
+                            if (hitContainer) break;
+                            const scanBlockId = this._findBlockIdForLine(scanLine);
+                            if (scanBlockId) {
+                                this._mergeUserComment(scanBlockId, text, false);
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            // Target-level (workspace) comment
+                            this._createComment(text, null);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Find the block ID associated with a given source line number.
+     * Uses lineToNodeMap and nodeToBlockMap.
+     * @param {number} line - 1-based line number
+     * @returns {string|null} The block ID, or null if not found
+     */
+    _findBlockIdForLine (line) {
+        const entry = this._context.lineToNodeMap.get(line);
+        if (!entry) {
+            return null;
+        }
+        const blockId = this._context.nodeToBlockMap.get(entry.node);
+        return blockId || null;
+    }
+
+    /**
+     * Merge a user comment with an existing block comment, or create a new one.
+     * User comment text is placed before any `@ruby:` metadata lines.
+     * @param {string} blockId - The block ID to attach the comment to
+     * @param {string} userText - The user comment text
+     * @param {boolean} isInline - Whether this is an inline (trailing) comment
+     */
+    _mergeUserComment (blockId, userText, isInline) {
+        const block = this._context.blocks[blockId];
+        if (!block) {
+            return;
+        }
+
+        const inlineMarker = isInline ? '@ruby:comment_position:inline\n' : '';
+
+        if (block.comment) {
+            // Block already has a comment - merge
+            const existingComment = this._context.comments[block.comment];
+            if (existingComment) {
+                // Put user text before metadata lines
+                const lines = existingComment.text.split('\n');
+                const metadataLines = lines.filter(l => l.startsWith('@ruby:'));
+                const newText = `${inlineMarker}${userText}\n${metadataLines.join('\n')}`;
+                existingComment.text = newText;
+            }
+        } else {
+            // Create new comment for this block
+            const commentText = isInline ? `${inlineMarker}${userText}` : userText;
+            block.comment = this._createComment(commentText, block.id);
+        }
     }
 
     /**
