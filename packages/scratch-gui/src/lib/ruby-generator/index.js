@@ -675,10 +675,19 @@ RubyGenerator.scrub_ = function (block, code) {
     }
 
     let commentCode = '';
+    let isInlineComment = false;
     if (!this.isConnectedValue(block)) {
         let comment = this.getCommentText(block);
-        if (comment && !comment.startsWith('@ruby:')) {
-            commentCode += `${this.prefixLines(comment, '# ')}\n`;
+        if (comment) {
+            isInlineComment = comment.split('\n').some(line => line === '@ruby:comment_position:inline');
+            const filteredComment = comment.split('\n')
+                .filter(line => !line.startsWith('@ruby:'))
+                .join('\n');
+            if (filteredComment.trim().length > 0) {
+                if (!isInlineComment) {
+                    commentCode += `${this.prefixLines(filteredComment, '# ')}\n`;
+                }
+            }
         }
         const inputs = this.getInputs(block);
         for (const name in inputs) {
@@ -715,6 +724,14 @@ RubyGenerator.scrub_ = function (block, code) {
         }
         endCode = 'end\n';
         delete block.isStatement;
+    }
+    if (isInlineComment && !this.isConnectedValue(block)) {
+        const inlineComment = this.getCommentText(block).split('\n')
+            .filter(line => !line.startsWith('@ruby:'))
+            .join(' ');
+        if (inlineComment.trim().length > 0 && code.endsWith('\n')) {
+            code = `${code.slice(0, -1)} # ${inlineComment.trim()}\n`;
+        }
     }
     return commentCode + code + nextCode + endCode;
 };
