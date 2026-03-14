@@ -4,7 +4,7 @@ describe('Error message resolution hints', () => {
     const target = null;
 
     test('wrongInstruction error includes hint', async () => {
-        const converter = new RubyToBlocksConverter(null);
+        const converter = new RubyToBlocksConverter(null, {version: '2'});
         const code = 'when_key_pressed("invalid") do\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -23,7 +23,7 @@ describe('Error message resolution hints', () => {
     test('conditionIsNotBoolean error includes hint', async () => {
         // Class syntax requires version 2
         const converter = new RubyToBlocksConverter(null, {version: 2});
-        const code = 'class Sprite1\n  self.when(:flag_clicked) do\n    if 42\n      move(10)\n    end\n  end\nend';
+        const code = 'class Sprite1\n  when_flag_clicked do\n    if 42\n      move(10)\n    end\n  end\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
         expect(converter.errors[0].text).toMatch(/comparison operator|==|<|>/);
@@ -34,7 +34,7 @@ describe('Error message resolution hints', () => {
         const converter = new RubyToBlocksConverter(null, {version: 2});
         const code = [
             'class Sprite1',
-            '  self.when(:flag_clicked) do',
+            '  when_flag_clicked do',
             '    def my_proc',
             '      123',
             '    end',

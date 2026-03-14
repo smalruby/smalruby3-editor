@@ -47,7 +47,7 @@ describe('RubyGenerator/Module', () => {
                 Utils: ['def add(a, b)\n  a + b\nend\n']
             };
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             // module...end should appear before class
@@ -81,7 +81,7 @@ describe('RubyGenerator/Module', () => {
                 Helpers: ['def greet\n  say("hello")\nend\n']
             };
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             // Both modules should appear
@@ -107,7 +107,7 @@ describe('RubyGenerator/Module', () => {
 
             RubyGenerator._moduleMethodCodes = {};
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).not.toContain('module ');

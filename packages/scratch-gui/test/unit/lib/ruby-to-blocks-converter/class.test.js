@@ -26,13 +26,13 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class Sprite1 with when_flag_clicked', async () => {
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `);
@@ -48,21 +48,21 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class with multiple event handlers', async () => {
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
 
-                  self.when(:key_pressed, "space") do
+                  when_key_pressed("space") do
                     move(20)
                   end
                 end
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
 
-                self.when(:key_pressed, "space") do
+                when_key_pressed("space") do
                   move(20)
                 end
             `);
@@ -77,7 +77,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class with top-level statements outside', async () => {
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -85,7 +85,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 bounce_if_on_edge
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
 
@@ -117,13 +117,13 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class with superclass < ::Smalruby3::Sprite preserves superclass in comment', async () => {
             code = `
                 class Sprite1 < ::Smalruby3::Sprite
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `);
@@ -138,13 +138,13 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class with superclass < Smalruby3::Sprite preserves superclass in comment', async () => {
             code = `
                 class Sprite1 < Smalruby3::Sprite
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `);
@@ -159,13 +159,13 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class with superclass < Sprite preserves superclass in comment', async () => {
             code = `
                 class Sprite1 < Sprite
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `);
@@ -180,13 +180,13 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class with superclass < Foo preserves superclass in comment', async () => {
             code = `
                 class Sprite1 < Foo
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `);
@@ -201,13 +201,13 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class without superclass has no <= in comment', async () => {
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `);
@@ -219,33 +219,19 @@ describe('RubyToBlocksConverter/Class', () => {
             expect(targetComments[0].text).toEqual('@ruby:class');
         });
 
-        test('class definition is rejected in version 1', async () => {
-            const v1Converter = new RubyToBlocksConverter(null, {version: '1'});
-            code = `
-                class Sprite1
-                  self.when(:flag_clicked) do
-                    move(10)
-                  end
-                end
-            `;
-            const res = await v1Converter.targetCodeToBlocks(target, code);
-            expect(res).toBeFalsy();
-            expect(v1Converter.errors).toHaveLength(1);
-            expect(v1Converter.errors[0].text).toContain('version 1');
-        });
     });
 
     describe('class name and set_name', () => {
         test('class Cat changes sprite name and generates @ruby:class:name=Cat', async () => {
             code = `
                 class Cat
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `);
@@ -267,13 +253,13 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_name "ネコ"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
             `;
             expected = await rubyToExpected(converter, target, `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `);
@@ -295,7 +281,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_name "ネコ"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -313,7 +299,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class Sprite1 without set_name generates @ruby:class', async () => {
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -338,7 +324,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_y -50
                   set_direction 180
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -364,7 +350,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_visible false
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -388,7 +374,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_size 50
                   set_current_costume 2
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -412,7 +398,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_rotation_style "left-right"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -441,7 +427,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_current_costume 2
                   set_rotation_style "left-right"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -461,7 +447,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Cat
                   set_x 100
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -486,7 +472,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_name "ネコ"
                   set_x 100
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -510,7 +496,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Cat
                   set_name "ネコ"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -532,7 +518,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class Cat without set_name generates @ruby:class:name=Cat', async () => {
             code = `
                 class Cat
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -555,7 +541,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_name "ネコ"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -576,7 +562,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Cat
                   set_x 100
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -598,7 +584,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('set_xxx without class generates error', async () => {
             code = `
                 set_x 100
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `;
@@ -672,7 +658,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_sprite "Dog1"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -696,7 +682,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_costumes ["Dog1-a", "Dog1-b"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -719,7 +705,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_sounds ["Dog1", "Dog2"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -743,7 +729,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_costumes ["Dog1-a", "Dog1-b"]
                   set_sounds ["Dog1", "Dog2"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -768,7 +754,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_sprite "Dog1"
                   set_x 100
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -792,7 +778,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_sprite "Dog1"
                   set_costumes ["Dog1-a", "Dog1-b"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -807,7 +793,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_sprite "Dog1"
                   set_sounds ["Dog1", "Dog2"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -821,7 +807,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_sprite "NonExistentSprite999"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -835,7 +821,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_costumes ["Dog1-a", "NonExistentCostume999"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -849,7 +835,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_sounds ["Dog1", "NonExistentSound999"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -863,7 +849,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_sprite "Dog1"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -882,7 +868,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_costumes ["Dog1-a", "Dog1-b"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -901,7 +887,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_sounds ["Dog1", "Dog2"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -918,7 +904,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('set_sprite outside class generates error', async () => {
             code = `
                 set_sprite "Dog1"
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `;
@@ -929,7 +915,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('set_costumes outside class generates error', async () => {
             code = `
                 set_costumes ["Dog1-a", "Dog1-b"]
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `;
@@ -940,7 +926,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('set_sounds outside class generates error', async () => {
             code = `
                 set_sounds ["Dog1", "Dog2"]
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `;
@@ -973,7 +959,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('error message reports the specific statement, not the class', async () => {
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                   move(10)
@@ -993,7 +979,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('hat block inside class is allowed', async () => {
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1010,7 +996,7 @@ describe('RubyToBlocksConverter/Class', () => {
                     move(10)
                   end
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     func
                   end
                 end
@@ -1023,7 +1009,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('hat block with non-hat statement after it inside class is allowed', async () => {
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                     bounce_if_on_edge
                   end
@@ -1047,7 +1033,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class Sprite1 applies sprite name Sprite1', async () => {
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1065,7 +1051,7 @@ describe('RubyToBlocksConverter/Class', () => {
         test('class Cat applies sprite name Cat', async () => {
             code = `
                 class Cat
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1083,7 +1069,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_name "ネコ"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1102,7 +1088,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_x 100
                   set_y -50
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1121,7 +1107,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_direction 180
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1140,7 +1126,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_visible false
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1158,7 +1144,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_size 50
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1176,7 +1162,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_rotation_style "left-right"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1194,7 +1180,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_current_costume 2
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1214,7 +1200,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_sprite "Dog1"
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1237,7 +1223,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_costumes ["Dog1-a", "Dog1-b"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1258,7 +1244,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 class Sprite1
                   set_sounds ["Dog1", "Dog2"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1281,7 +1267,7 @@ describe('RubyToBlocksConverter/Class', () => {
                   set_costumes ["Dog1-a", "Dog1-b"]
                   set_sounds ["Dog1", "Dog2"]
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1302,7 +1288,7 @@ describe('RubyToBlocksConverter/Class', () => {
             spriteTarget.y = 20;
             code = `
                 class Sprite1
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -1324,13 +1310,13 @@ describe('RubyToBlocksConverter/Class', () => {
             test('class Stage < ::Smalruby3::Stage is accepted (no <= in comment)', async () => {
                 code = `
                     class Stage < ::Smalruby3::Stage
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
                 `;
                 expected = await rubyToExpected(converter, target, `
-                    self.when(:flag_clicked) do
+                    when_flag_clicked do
                       switch_backdrop("Arctic")
                     end
                 `);
@@ -1345,13 +1331,13 @@ describe('RubyToBlocksConverter/Class', () => {
             test('class Stage < Smalruby3::Stage is accepted (no <= in comment)', async () => {
                 code = `
                     class Stage < Smalruby3::Stage
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
                 `;
                 expected = await rubyToExpected(converter, target, `
-                    self.when(:flag_clicked) do
+                    when_flag_clicked do
                       switch_backdrop("Arctic")
                     end
                 `);
@@ -1366,7 +1352,7 @@ describe('RubyToBlocksConverter/Class', () => {
             test('class Stage < Foo is rejected', async () => {
                 code = `
                     class Stage < Foo
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
@@ -1381,13 +1367,13 @@ describe('RubyToBlocksConverter/Class', () => {
             test('class Stage with when_flag_clicked', async () => {
                 code = `
                     class Stage
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
                 `;
                 expected = await rubyToExpected(converter, target, `
-                    self.when(:flag_clicked) do
+                    when_flag_clicked do
                       switch_backdrop("Arctic")
                     end
                 `);
@@ -1421,7 +1407,7 @@ describe('RubyToBlocksConverter/Class', () => {
                     class Stage
                       set_current_backdrop 1
 
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
@@ -1444,7 +1430,7 @@ describe('RubyToBlocksConverter/Class', () => {
                     class Stage
                       set_backdrops ["Arctic", "Baseball 1"]
 
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
@@ -1467,7 +1453,7 @@ describe('RubyToBlocksConverter/Class', () => {
                     class Stage
                       set_sounds ["Dog1", "Dog2"]
 
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
@@ -1486,7 +1472,7 @@ describe('RubyToBlocksConverter/Class', () => {
                       set_backdrops ["Arctic", "Baseball 1"]
                       set_sounds ["Dog1", "Dog2"]
 
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
@@ -1510,7 +1496,7 @@ describe('RubyToBlocksConverter/Class', () => {
                     class Stage
                       set_name "ステージ"
 
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
@@ -1684,7 +1670,7 @@ describe('RubyToBlocksConverter/Class', () => {
                     class Stage
                       set_name "ステージ"
 
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
@@ -1702,7 +1688,7 @@ describe('RubyToBlocksConverter/Class', () => {
                     class Stage
                       set_current_backdrop 2
 
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
@@ -1721,7 +1707,7 @@ describe('RubyToBlocksConverter/Class', () => {
                     class Stage
                       set_backdrops ["Arctic", "Baseball 1"]
 
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end
@@ -1742,7 +1728,7 @@ describe('RubyToBlocksConverter/Class', () => {
                     class Stage
                       set_sounds ["Dog1", "Dog2"]
 
-                      self.when(:flag_clicked) do
+                      when_flag_clicked do
                         switch_backdrop("Arctic")
                       end
                     end

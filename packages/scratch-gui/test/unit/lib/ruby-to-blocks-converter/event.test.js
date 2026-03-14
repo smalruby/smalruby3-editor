@@ -11,7 +11,7 @@ describe('RubyToBlocksConverter/Event', () => {
     let code;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
+        converter = new RubyToBlocksConverter(null, {version: '2'});
         target = null;
         code = null;
     });
@@ -19,24 +19,17 @@ describe('RubyToBlocksConverter/Event', () => {
     describe('event_whenflagclicked', () => {
         test('invalid', async () => {
             const cases = [
-                'self.when(:flag_clicked)',
-                'self.when(:flag_clicked, 1)'
+                'when_flag_clicked',
+                'when_flag_clicked(1) {}'
             ];
             for (const s of cases) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-
-            const cases2 = [
-                '12.when(:flag_clicked) {}'
-            ];
-            for (const s of cases2) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
         });
 
         test('valid with block body', async () => {
             code = `
-                self.when(:flag_clicked) do
+                when_flag_clicked do
                   move(10)
                 end
             `;
@@ -49,25 +42,18 @@ describe('RubyToBlocksConverter/Event', () => {
     describe('event_whenkeypressed', () => {
         test('invalid', async () => {
             const cases = [
-                'self.when(:key_pressed)',
-                'self.when(:key_pressed, 1)',
-                'self.when(:key_pressed, "space", 1)'
+                'when_key_pressed',
+                'when_key_pressed(1) {}',
+                'when_key_pressed("space", 1) {}'
             ];
             for (const s of cases) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-
-            const cases2 = [
-                '12.when(:key_pressed, "space") {}'
-            ];
-            for (const s of cases2) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
         });
 
         test('valid with block body', async () => {
             code = `
-                self.when(:key_pressed, "space") do
+                when_key_pressed("space") do
                   move(10)
                 end
             `;
@@ -80,24 +66,17 @@ describe('RubyToBlocksConverter/Event', () => {
     describe('event_whenthisspriteclicked', () => {
         test('invalid', async () => {
             const cases = [
-                'self.when(:this_sprite_clicked)',
-                'self.when(:this_sprite_clicked, 1)'
+                'when_clicked',
+                'when_clicked(1) {}'
             ];
             for (const s of cases) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-
-            const cases2 = [
-                '12.when(:this_sprite_clicked) {}'
-            ];
-            for (const s of cases2) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
         });
 
         test('valid with block body', async () => {
             code = `
-                self.when(:clicked) do
+                when_clicked do
                   move(10)
                 end
             `;
@@ -108,89 +87,59 @@ describe('RubyToBlocksConverter/Event', () => {
     });
 
     describe('event_whenstageclicked', () => {
-        test('invalid', async () => {
-            const cases = [
-                'self.when(:stage_clicked)',
-                'self.when(:stage_clicked, 1)'
-            ];
-            for (const s of cases) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-
-            const cases2 = [
-                '12.when(:stage_clicked) {}'
-            ];
-            for (const s of cases2) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-        });
-
-        test('error', async () => {
+        test('valid with stage target', async () => {
+            const stageTarget = {isStage: true};
             code = `
-                self.when(:stage_clicked) do
-                  move(10)
+                when_clicked do
+                  switch_backdrop("backdrop1")
                 end
             `;
-            const res = await converter.targetCodeToBlocks(target, code);
-            expect(converter.errors).toHaveLength(1);
-            expect(res).toBeFalsy();
+            const res = await converter.targetCodeToBlocks(stageTarget, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
         });
     });
 
     describe('event_whenbackdropswitchesto', () => {
         test('invalid', async () => {
             const cases = [
-                'self.when(:backdrop_switches_to)',
-                'self.when(:backdrop_switches_to, 1)',
-                'self.when(:backdrop_switches_to, "backdrop1", 1)'
+                'when_backdrop_switches',
+                'when_backdrop_switches(1) {}',
+                'when_backdrop_switches("backdrop1", 1) {}'
             ];
             for (const s of cases) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-
-            const cases2 = [
-                '12.when(:backdrop_switches_to, "backdrop1") {}'
-            ];
-            for (const s of cases2) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-        });
-
-        test('error', async () => {
-            code = `
-                self.when(:backdrop_switches_to, "backdrop1") do
-                  move(10)
-                end
-            `;
-            const res = await converter.targetCodeToBlocks(target, code);
-            expect(converter.errors).toHaveLength(1);
-            expect(res).toBeFalsy();
-        });
-    });
-
-    describe('event_whengreaterthan', () => {
-        test('invalid', async () => {
-            const cases = [
-                'self.when(:greater_than)',
-                'self.when(:greater_than, 1)',
-                'self.when(:greater_than, "loudness", 1)',
-                'self.when(:greater_than, "loudness", 10, 1)'
-            ];
-            for (const s of cases) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-
-            const cases2 = [
-                '12.when(:greater_than, "loudness", 10) {}'
-            ];
-            for (const s of cases2) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
         });
 
         test('valid with block body', async () => {
             code = `
-                self.when(:greater_than, "loudness", 10) do
+                when_backdrop_switches("backdrop1") do
+                  move(10)
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+        });
+    });
+
+    describe('event_whengreaterthan', () => {
+        test('invalid', async () => {
+            const cases = [
+                'when_greater_than',
+                'when_greater_than(1) {}',
+                'when_greater_than("loudness", 1)',
+                'when_greater_than("loudness", 10, 1) {}'
+            ];
+            for (const s of cases) {
+                await convertAndExpectRubyBlockError(converter, target, s);
+            }
+        });
+
+        test('valid with block body', async () => {
+            code = `
+                when_greater_than("loudness", 10) do
                   move(10)
                 end
             `;
@@ -203,25 +152,18 @@ describe('RubyToBlocksConverter/Event', () => {
     describe('event_whenbroadcastreceived', () => {
         test('invalid', async () => {
             const cases = [
-                'self.when(:receive)',
-                'self.when(:receive, 1)',
-                'self.when(:receive, "msg1", 1)'
+                'when_receive',
+                'when_receive(1) {}',
+                'when_receive("msg1", 1) {}'
             ];
             for (const s of cases) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-
-            const cases2 = [
-                '12.when(:receive, "msg1") {}'
-            ];
-            for (const s of cases2) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
         });
 
         test('valid with block body', async () => {
             code = `
-                self.when(:receive, "msg1") do
+                when_receive("msg1") do
                   move(10)
                 end
             `;

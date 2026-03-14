@@ -21,7 +21,7 @@ describe('RubyToBlocksConverter/Module', () => {
                 class Sprite1
                   include Utils
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -90,7 +90,7 @@ describe('RubyToBlocksConverter/Module', () => {
                 class Sprite1
                   include Utils
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -129,7 +129,7 @@ describe('RubyToBlocksConverter/Module', () => {
                   include Utils
                   include Helpers
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end
@@ -160,29 +160,13 @@ describe('RubyToBlocksConverter/Module', () => {
         });
     });
 
-    describe('v1 restrictions', () => {
-        test('module in v1 throws error', async () => {
-            const converterV1 = new RubyToBlocksConverter(null, {version: '1'});
-            const code = `
-                module Utils
-                  def add(a, b)
-                    a + b
-                  end
-                end
-            `;
-            const result = await converterV1.targetCodeToBlocks(target, code);
-            expect(result).toBeFalsy();
-            expect(converterV1.errors.length).toBeGreaterThan(0);
-        });
-    });
-
     describe('error handling', () => {
         test('include with undefined module throws error', async () => {
             const code = `
                 class Sprite1
                   include NonExistent
 
-                  self.when(:flag_clicked) do
+                  when_flag_clicked do
                     move(10)
                   end
                 end

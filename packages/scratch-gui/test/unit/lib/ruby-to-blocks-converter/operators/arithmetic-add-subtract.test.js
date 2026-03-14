@@ -13,7 +13,7 @@ describe('RubyToBlocksConverter/Operators', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
+        converter = new RubyToBlocksConverter(null, {version: '2'});
         target = null;
         code = null;
         expected = null;
@@ -222,7 +222,7 @@ describe('RubyToBlocksConverter/Operators', () => {
             code = 'a = "Hello"\na + true';
             await convertAndExpectRubyBlockError(converter, target, code);
 
-            converter = new RubyToBlocksConverter(null);
+            converter = new RubyToBlocksConverter(null, {version: '2'});
             code = 'a = "Hello"\na + false';
             await convertAndExpectRubyBlockError(converter, target, code);
         });

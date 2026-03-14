@@ -301,7 +301,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
         test('explicit return variable assignment should NOT add @ruby:return comment', async () => {
             const code = `
-                def self.add(a, b)
+                def add(a, b)
                   @_return_add_ = a + b
                 end
             `;

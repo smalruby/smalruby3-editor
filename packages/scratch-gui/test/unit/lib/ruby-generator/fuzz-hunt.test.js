@@ -1,6 +1,6 @@
 /**
  * Aggressive fuzz/random testing to hunt for bugs in RubyGenerator
- * file output (v1/v2, class/no-class, extensions, edge cases).
+ * file output (class/no-class, extensions, edge cases).
  */
 import RubyGenerator from '../../../../src/lib/ruby-generator';
 
@@ -364,38 +364,9 @@ describe('Stage with extension hat blocks', () => {
     });
 });
 
-// ============================================================
-// 6. v1 output - extensions should NOT be in class
-// ============================================================
-describe('v1 output with extensions', () => {
-    test('v1 with withSpriteNew wraps in Sprite.new, not class', () => {
-        const {target} = makeMockTarget('Sprite1', 1, {
-            sprite: {name: 'Sprite1', costumes: [], sounds: []}
-        });
-        setupGenerator('1', target);
-
-        const code = 'microbit.when_button_is("A", "down") do\n  puts("hello")\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
-
-        expect(result).not.toContain('class ');
-        expect(result).toContain('Sprite.new("Sprite1")');
-        expect(result).toContain('microbit.when_button_is');
-    });
-
-    test('v1 without withSpriteNew returns code as-is', () => {
-        const {target} = makeMockTarget('Sprite1');
-        setupGenerator('1', target);
-
-        const code = 'microbit.when_button_is("A", "down") do\n  puts("hello")\nend\n';
-        const result = RubyGenerator.finish(code, {});
-
-        expect(result).toBe(code);
-        expect(result).not.toContain('class ');
-    });
-});
 
 // ============================================================
-// 7. Attribute edge cases with costume/backdrop 1-based indexing
+// 6. Attribute edge cases with costume/backdrop 1-based indexing
 // ============================================================
 describe('Costume/backdrop 1-based indexing edge cases', () => {
     test('currentCostume=0 should NOT generate set_current_costume', () => {
@@ -480,7 +451,7 @@ describe('Costume/backdrop 1-based indexing edge cases', () => {
 });
 
 // ============================================================
-// 8. Multiple sprites - index calculation
+// 7. Multiple sprites - index calculation
 // ============================================================
 describe('Multiple sprites - index edge cases', () => {
     test('third sprite with invalid name gets Sprite3', () => {
@@ -538,7 +509,7 @@ describe('Multiple sprites - index edge cases', () => {
 });
 
 // ============================================================
-// 9. Attribute combinations - all non-default at once
+// 8. Attribute combinations - all non-default at once
 // ============================================================
 describe('All attributes non-default simultaneously', () => {
     test('sprite with every attribute non-default in auto-wrap', () => {
@@ -606,7 +577,7 @@ describe('All attributes non-default simultaneously', () => {
 });
 
 // ============================================================
-// 10. require/prepare definitions with class
+// 9. require/prepare definitions with class
 // ============================================================
 describe('require/prepare definitions with class', () => {
     test('require goes to requires_ (processed by targetsToCode, not finish)', () => {
@@ -640,7 +611,7 @@ describe('require/prepare definitions with class', () => {
 });
 
 // ============================================================
-// 11. Comments edge cases
+// 10. Comments edge cases
 // ============================================================
 describe('Comments interaction with class', () => {
     test('non-class comment + @ruby:class comment', () => {
@@ -670,7 +641,7 @@ describe('Comments interaction with class', () => {
 });
 
 // ============================================================
-// 12. Empty/minimal code edge cases
+// 11. Empty/minimal code edge cases
 // ============================================================
 describe('Empty and minimal code', () => {
     test('empty code with auto-wrap still generates class with set_xxx', () => {
@@ -720,7 +691,7 @@ describe('Empty and minimal code', () => {
 });
 
 // ============================================================
-// 13. Regex boundary tests - potential false positives/negatives
+// 12. Regex boundary tests - potential false positives/negatives
 // ============================================================
 describe('Regex boundary tests for hat block detection', () => {
     test('method starting with "when" but not a hat block is commented out', () => {
@@ -779,7 +750,7 @@ describe('Regex boundary tests for hat block detection', () => {
 });
 
 // ============================================================
-// 14. Deeply nested / complex code structures
+// 13. Deeply nested / complex code structures
 // ============================================================
 describe('Complex code structures', () => {
     test('hat block with nested if/else', () => {
@@ -825,35 +796,7 @@ describe('Complex code structures', () => {
 });
 
 // ============================================================
-// 15. v1 extension hat blocks (self.when style)
-// ============================================================
-describe('v1 extension hat blocks', () => {
-    test('self.when(:flag_clicked) in v1 without withSpriteNew', () => {
-        const {target} = makeMockTarget('Sprite1');
-        setupGenerator('1', target);
-
-        const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {});
-
-        expect(result).toBe(code);
-    });
-
-    test('self.when(:flag_clicked) in v1 with withSpriteNew', () => {
-        const {target} = makeMockTarget('Sprite1', 1, {
-            sprite: {name: 'Sprite1', costumes: [], sounds: []}
-        });
-        setupGenerator('1', target);
-
-        const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
-
-        expect(result).toContain('Sprite.new("Sprite1") do');
-        expect(result).toContain('  self.when(:flag_clicked) do');
-    });
-});
-
-// ============================================================
-// 16. Separator and formatting checks
+// 14. Separator and formatting checks
 // ============================================================
 describe('Class body formatting', () => {
     test('set_xxx and hat blocks separated by blank line', () => {
@@ -898,7 +841,7 @@ describe('Class body formatting', () => {
 });
 
 // ============================================================
-// 17. @ruby:class with explicit name= and sprite=
+// 15. @ruby:class with explicit name= and sprite=
 // ============================================================
 describe('@ruby:class with explicit name= and sprite=', () => {
     test('name=CustomName preserves class name', () => {
@@ -937,7 +880,7 @@ describe('@ruby:class with explicit name= and sprite=', () => {
 });
 
 // ============================================================
-// 18. Stress test - many hat blocks
+// 16. Stress test - many hat blocks
 // ============================================================
 describe('Stress tests', () => {
     test('10 different hat blocks all inside class', () => {
