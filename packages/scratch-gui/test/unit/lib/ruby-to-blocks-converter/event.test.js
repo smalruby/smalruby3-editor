@@ -86,6 +86,20 @@ describe('RubyToBlocksConverter/Event', () => {
         });
     });
 
+    describe('event_whenstageclicked', () => {
+        test('valid with stage target', async () => {
+            const stageTarget = {isStage: true};
+            code = `
+                when_clicked do
+                  switch_backdrop("backdrop1")
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(stageTarget, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+        });
+    });
+
     describe('event_whenbackdropswitchesto', () => {
         test('invalid', async () => {
             const cases = [
