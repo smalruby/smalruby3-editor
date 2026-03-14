@@ -438,6 +438,64 @@ class RubyToBlocksConverter extends Visitor {
     }
 
     /**
+     * Extract comments from prism parse result and return structured data.
+     * @param {object} parseResult - The prism parse result
+     * @param {string} sourceCode - The original source code
+     * @returns {Array<object>} Array of comment objects with type, text, line, isTrailing
+     */
+    _extractSourceComments (parseResult, sourceCode) {
+        if (!parseResult.comments || parseResult.comments.length === 0) {
+            return [];
+        }
+
+        // Build offset-to-line mapping
+        const lineStarts = [0]; // line 1 starts at offset 0
+        for (let i = 0; i < sourceCode.length; i++) {
+            if (sourceCode[i] === '\n') {
+                lineStarts.push(i + 1);
+            }
+        }
+        const offsetToLine = offset => {
+            for (let i = lineStarts.length - 1; i >= 0; i--) {
+                if (offset >= lineStarts[i]) {
+                    return i + 1; // 1-based line numbers
+                }
+            }
+            return 1;
+        };
+
+        return parseResult.comments.map(comment => {
+            const startOffset = comment.location.startOffset;
+            const length = comment.location.length;
+            const rawText = sourceCode.substring(startOffset, startOffset + length);
+            const line = offsetToLine(startOffset);
+            const lineStart = lineStarts[line - 1];
+
+            // Check if there's non-whitespace before this comment on the same line
+            const textBeforeOnLine = sourceCode.substring(lineStart, startOffset);
+            const isTrailing = textBeforeOnLine.trim().length > 0;
+
+            let type;
+            let text;
+            if (comment.type === 1) {
+                // EmbDocComment: =begin\n...\n=end\n
+                type = 'embdoc';
+                text = rawText.replace(/^=begin\n?/, '').replace(/\n?=end\n?$/, '');
+            } else {
+                // InlineComment: # ...
+                type = 'inline';
+                // Strip '# ' or '#' prefix
+                text = rawText.replace(/^#/, '');
+                if (text.startsWith(' ')) {
+                    text = text.substring(1);
+                }
+            }
+
+            return {type, text, line, startOffset, endOffset: startOffset + length, isTrailing};
+        });
+    }
+
+    /**
      * Convert a ConstantReadNode or ConstantPathNode to its full path string.
      * e.g. ConstantReadNode "Foo" -> "Foo"
      * e.g. ConstantPathNode(ConstantPathNode(null, "Smalruby3"), "Sprite") -> "::Smalruby3::Sprite"
