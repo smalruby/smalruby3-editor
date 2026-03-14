@@ -12,7 +12,7 @@ describe('RubyToBlocksConverter', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
+        converter = new RubyToBlocksConverter(null, {version: '2'});
         target = null;
         code = null;
         expected = null;
@@ -93,14 +93,14 @@ describe('RubyToBlocksConverter', () => {
 
             test('hats', async () => {
                 code = `
-                    self.when(:flag_clicked) {}
-                    self.when(:flag_clicked) {}
-                    self.when(:flag_clicked) {}
+                    when_flag_clicked {}
+                    when_flag_clicked {}
+                    when_flag_clicked {}
                 `;
                 expected = [
-                    (await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}'))[0],
-                    (await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}'))[0],
-                    (await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}'))[0]
+                    (await rubyToExpected(converter, target, 'when_flag_clicked {}'))[0],
+                    (await rubyToExpected(converter, target, 'when_flag_clicked {}'))[0],
+                    (await rubyToExpected(converter, target, 'when_flag_clicked {}'))[0]
                 ];
                 await convertAndExpectToEqualBlocks(converter, target, code, expected);
             });
@@ -128,7 +128,7 @@ describe('RubyToBlocksConverter', () => {
                     y
                     size
                     move(10)
-                    self.when(:flag_clicked) {}
+                    when_flag_clicked {}
                     bounce_if_on_edge
                     forever {}
                     move(10)
@@ -141,7 +141,7 @@ describe('RubyToBlocksConverter', () => {
                     (await rubyToExpected(converter, target, 'y'))[0],
                     (await rubyToExpected(converter, target, 'size'))[0],
                     (await rubyToExpected(converter, target, 'move(10)'))[0],
-                    (await rubyToExpected(converter, target, 'self.when(:flag_clicked) {}'))[0],
+                    (await rubyToExpected(converter, target, 'when_flag_clicked {}'))[0],
                     (await rubyToExpected(converter, target, 'bounce_if_on_edge; forever {}'))[0],
                     (await rubyToExpected(converter, target, 'move(10)'))[0],
                     (await rubyToExpected(converter, target, 'x'))[0]

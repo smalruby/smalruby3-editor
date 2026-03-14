@@ -13,7 +13,7 @@ describe('RubyToBlocksConverter/Pen', () => {
     let expected;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
+        converter = new RubyToBlocksConverter(null, {version: '2'});
         target = null;
         code = null;
         expected = null;

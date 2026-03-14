@@ -27,7 +27,7 @@ describe('Class error message', () => {
     test('error message does not contain source code newlines', async () => {
         // Class syntax requires version 2
         const converter = new RubyToBlocksConverter(null, {version: 2});
-        const code = 'class Sprite1\n  self.when(:flag_clicked) do\n    move(10)\n  end\n  move(10)\nend';
+        const code = 'class Sprite1\n  when_flag_clicked do\n    move(10)\n  end\n  move(10)\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
         // The error part (before \n hint) should not contain newlines from source code
@@ -36,7 +36,7 @@ describe('Class error message', () => {
     });
 
     test('error source is truncated', async () => {
-        const converter = new RubyToBlocksConverter(null);
+        const converter = new RubyToBlocksConverter(null, {version: '2'});
         const code = 'when_key_pressed("invalid") do\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);
@@ -45,7 +45,7 @@ describe('Class error message', () => {
     });
 
     test('top-level wrongInstruction error has SOURCE expanded', async () => {
-        const converter = new RubyToBlocksConverter(null);
+        const converter = new RubyToBlocksConverter(null, {version: '2'});
         const code = 'when_key_pressed("invalid") do\nend';
         await converter.targetCodeToBlocks(target, code);
         expect(converter.errors.length).toBeGreaterThan(0);

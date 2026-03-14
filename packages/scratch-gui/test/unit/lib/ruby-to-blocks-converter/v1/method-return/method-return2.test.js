@@ -1,8 +1,8 @@
-import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
+import RubyToBlocksConverter from '../../../../../../src/lib/ruby-to-blocks-converter';
 import {
     convertAndExpectToEqualBlocks,
     expectedInfo
-} from '../../../../helpers/expect-to-equal-blocks';
+} from '../../../../../helpers/expect-to-equal-blocks';
 import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
 
@@ -301,7 +301,7 @@ describe('RubyToBlocksConverter/Method Return', () => {
 
         test('explicit return variable assignment should NOT add @ruby:return comment', async () => {
             const code = `
-                def add(a, b)
+                def self.add(a, b)
                   @_return_add_ = a + b
                 end
             `;

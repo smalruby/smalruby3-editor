@@ -6,7 +6,7 @@ describe('Ruby Round Trip', () => {
     let converter;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
+        converter = new RubyToBlocksConverter(null, {version: '2'});
     });
 
     const expectRoundTrip = async (code, expectedRuby = null) => {
@@ -46,10 +46,10 @@ describe('Ruby Round Trip', () => {
             }
         };
 
-        RubyGenerator.init();
+        RubyGenerator.init({version: '2'});
         RubyGenerator.currentTarget = target;
-        
-        const generatedRuby = RubyGenerator.targetToCode(target);
+
+        const generatedRuby = RubyGenerator.targetToCode(target, {version: '2'});
         expect(generatedRuby.trim()).toEqual((expectedRuby || code).trim());
     };
 
@@ -119,13 +119,13 @@ describe('Ruby Round Trip', () => {
 
     test('return statement in method', async () => {
         await expectRoundTrip(`
-def self.add(a, b)
+def add(a, b)
   return a + b
 end
 `.trim());
 
         await expectRoundTrip(`
-def self.div(a, b)
+def div(a, b)
   if b == 0
     return 0
   end
@@ -134,7 +134,7 @@ end
 `.trim());
 
         await expectRoundTrip(`
-def self.check(x)
+def check(x)
   if x < 0
     return "negative"
   end
@@ -266,9 +266,7 @@ end
 
         test('complex program with while and boolean variable', async () => {
             await expectRoundTrip(
-                'when_flag_clicked do\n  @game_on = true\n  while @game_on\n    go_to("_random_")\n    @game_on = false\n  end\nend',
-                // v1 generator outputs self.when(:flag_clicked) format
-                'self.when(:flag_clicked) do\n  @game_on = true\n  while @game_on\n    go_to("_random_")\n    @game_on = false\n  end\nend'
+                'when_flag_clicked do\n  @game_on = true\n  while @game_on\n    go_to("_random_")\n    @game_on = false\n  end\nend'
             );
         });
     });
@@ -337,55 +335,54 @@ end
 
         test('basic class Sprite1 round trip', async () => {
             await expectClassRoundTrip(
-                `class Sprite1\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
                 `class Sprite1\n  when_flag_clicked do\n    move(10)\n  end\nend`
             );
         });
 
         test('class Cat round trip', async () => {
             await expectClassRoundTrip(
-                `class Cat\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
                 `class Cat\n  when_flag_clicked do\n    move(10)\n  end\nend`,
+                null,
                 {name: 'Cat'}
             );
         });
 
         test('class with set_name round trip', async () => {
             await expectClassRoundTrip(
-                `class Sprite1\n  set_name "ネコ"\n\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
                 `class Sprite1\n  set_name "ネコ"\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
+                null,
                 {name: 'ネコ'}
             );
         });
 
         test('class with set_x and set_y round trip', async () => {
             await expectClassRoundTrip(
-                `class Sprite1\n  set_x 100\n  set_y -50\n\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
                 `class Sprite1\n  set_x 100\n  set_y -50\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
+                null,
                 {x: 100, y: -50}
             );
         });
 
         test('class with name and set_x round trip', async () => {
             await expectClassRoundTrip(
-                `class Cat\n  set_x 90\n\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
                 `class Cat\n  set_x 90\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
+                null,
                 {name: 'Cat', x: 90}
             );
         });
 
         test('class Cat with set_name round trip preserves class name', async () => {
             await expectClassRoundTrip(
-                `class Cat\n  set_name "ネコ"\n\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
                 `class Cat\n  set_name "ネコ"\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
+                null,
                 {name: 'ネコ'}
             );
         });
 
         test('class Cat with set_name and set_x round trip', async () => {
             await expectClassRoundTrip(
-                `class Cat\n  set_name "ネコ"\n  set_x 100\n\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
                 `class Cat\n  set_name "ネコ"\n  set_x 100\n\n  when_flag_clicked do\n    move(10)\n  end\nend`,
+                null,
                 {name: 'ネコ', x: 100}
             );
         });
@@ -394,8 +391,8 @@ end
             // Even though sprite has non-default x,y, they should NOT appear
             // because the class had no set_xxx calls (comment is @ruby:class)
             await expectClassRoundTrip(
-                `class Sprite1\n  self.when(:flag_clicked) do\n    move(10)\n  end\nend`,
                 `class Sprite1\n  when_flag_clicked do\n    move(10)\n  end\nend`,
+                null,
                 {x: 100, y: -50}
             );
         });

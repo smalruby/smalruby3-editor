@@ -10,13 +10,13 @@ describe('RubyToBlocksConverter/My Blocks', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
+        converter = new RubyToBlocksConverter(null, {version: '2'});
         target = null;
     });
 
     test('procedures_definition,procedures_prototype no arguments', async () => {
         const code = `
-            def self.made_block
+            def made_block
             end
         `;
         const expected = [
@@ -42,7 +42,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
 
     test('procedures_definition,procedures_prototype', async () => {
         const code = `
-            def self.made_block(arg1, arg2)
+            def made_block(arg1, arg2)
               move(10)
             end
         `;
@@ -87,7 +87,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
 
     test('argument_reporter_string_number', async () => {
         const code = `
-            def self.made_block(arg1, arg2)
+            def made_block(arg1, arg2)
               move(arg1)
             end
         `;
@@ -141,7 +141,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
 
     test('argument_reporter_boolean,argument_reporter_string_number', async () => {
         const code = `
-            def self.made_block(arg1, arg2)
+            def made_block(arg1, arg2)
               move(arg1)
               if arg2
                 bounce_if_on_edge

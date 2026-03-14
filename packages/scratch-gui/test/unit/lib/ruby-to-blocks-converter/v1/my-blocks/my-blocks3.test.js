@@ -1,22 +1,22 @@
-import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
+import RubyToBlocksConverter from '../../../../../../src/lib/ruby-to-blocks-converter';
 import {
     convertAndExpectToEqualBlocks,
     rubyToExpected,
     expectedInfo
-} from '../../../../helpers/expect-to-equal-blocks';
+} from '../../../../../helpers/expect-to-equal-blocks';
 
-describe('RubyToBlocksConverter/My Blocks', () => {
+describe('RubyToBlocksConverter/My Blocks (v1)', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, {version: '1'});
         target = null;
     });
 
     test('procedures_call 2', async () => {
         const code = `
-            def made_block(arg1)
+            def self.made_block(arg1)
             end
 
             made_block(12)
@@ -58,7 +58,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
 
     test('procedures_call recursive', async () => {
         const code = `
-            def made_block(arg1)
+            def self.made_block(arg1)
               made_block(arg1 - 1)
             end
 
@@ -132,7 +132,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
     describe('error if argument type miss match', () => {
         test('defined string_number, call boolean', async () => {
             const code = `
-                def made_block(arg1, arg2)
+                def self.made_block(arg1, arg2)
                   if arg2
                   end
                 end
@@ -147,7 +147,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
 
         test('defined boolean, call string_number', async () => {
             const code = `
-                def made_block(arg1, arg2)
+                def self.made_block(arg1, arg2)
                 end
 
                 made_block(:symbol, 1)

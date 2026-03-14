@@ -1,22 +1,22 @@
-import RubyToBlocksConverter from '../../../../../src/lib/ruby-to-blocks-converter';
+import RubyToBlocksConverter from '../../../../../../src/lib/ruby-to-blocks-converter';
 import {
     convertAndExpectToEqualBlocks,
     rubyToExpected,
     expectedInfo
-} from '../../../../helpers/expect-to-equal-blocks';
+} from '../../../../../helpers/expect-to-equal-blocks';
 
-describe('RubyToBlocksConverter/My Blocks', () => {
+describe('RubyToBlocksConverter/My Blocks (v1)', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, {version: '1'});
         target = null;
     });
 
     test('argument_reporter_boolean,argument_reporter_string_number 2', async () => {
         const code = `
-            def made_block(arg1)
+            def self.made_block(arg1)
               move(arg1)
               if arg1
               end
@@ -86,11 +86,11 @@ describe('RubyToBlocksConverter/My Blocks', () => {
 
     test('argument_reporter_boolean,argument_reporter_string_number 3', async () => {
         const code = `
-            def made_block(arg1)
+            def self.made_block(arg1)
               move(arg1)
             end
 
-            def made_block2(arg1)
+            def self.made_block2(arg1)
               move(arg1)
               if arg1
               end
@@ -199,7 +199,7 @@ describe('RubyToBlocksConverter/My Blocks', () => {
 
     test('procedures_call', async () => {
         const code = `
-            def made_block(arg1, arg2)
+            def self.made_block(arg1, arg2)
               move(arg1)
               if arg2
                 bounce_if_on_edge

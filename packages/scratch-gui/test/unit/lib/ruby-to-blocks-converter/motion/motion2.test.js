@@ -12,7 +12,7 @@ describe('RubyToBlocksConverter/Motion', () => {
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
+        converter = new RubyToBlocksConverter(null, {version: '2'});
         target = null;
     });
 

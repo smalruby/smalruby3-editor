@@ -11,7 +11,7 @@ describe('RubyToBlocksConverter/Control', () => {
     let code;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null);
+        converter = new RubyToBlocksConverter(null, {version: '2'});
         target = null;
         code = null;
     });
@@ -173,17 +173,10 @@ describe('RubyToBlocksConverter/Control', () => {
     describe('control_start_as_clone', () => {
         test('invalid', async () => {
             const cases1 = [
-                'self.when(:start_as_a_clone)',
-                'self.when(:start_as_a_clone, 1)'
+                'when_start_as_a_clone',
+                'when_start_as_a_clone(1) {}'
             ];
             for (const s of cases1) {
-                await convertAndExpectRubyBlockError(converter, target, s);
-            }
-
-            const cases2 = [
-                '12.when(:start_as_a_clone) {}'
-            ];
-            for (const s of cases2) {
                 await convertAndExpectRubyBlockError(converter, target, s);
             }
         });
@@ -203,7 +196,7 @@ describe('RubyToBlocksConverter/Control', () => {
         test('sprite-only clone blocks should throw error on stage', async () => {
             const spriteOnlyCommands = [
                 'delete_this_clone',
-                'self.when_start_as_a_clone {}'
+                'when_start_as_a_clone {}'
             ];
 
             for (const command of spriteOnlyCommands) {
@@ -235,7 +228,7 @@ describe('RubyToBlocksConverter/Control', () => {
         test('all blocks should work on sprite', async () => {
             const allCommands = [
                 'delete_this_clone',
-                'self.when_start_as_a_clone {}',
+                'when_start_as_a_clone {}',
                 'create_clone("Sprite1")',
                 'sleep(1)',
                 'repeat(3) {}',
