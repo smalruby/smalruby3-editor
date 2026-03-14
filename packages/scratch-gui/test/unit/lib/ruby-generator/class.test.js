@@ -35,12 +35,12 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite1');
             expect(result).toContain('end\n');
-            expect(result).toContain('  self.when(:flag_clicked) do');
+            expect(result).toContain('  when_flag_clicked do');
             // Should NOT output @ruby:class as a comment line
             expect(result).not.toContain('# @ruby:class');
         });
@@ -51,7 +51,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Cat');
@@ -65,7 +65,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite1');
@@ -83,7 +83,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = sprite2;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite2');
@@ -96,7 +96,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name=Cat'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Cat');
@@ -112,7 +112,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name=Cat'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Cat');
@@ -134,7 +134,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name=Cat,x,y'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Cat');
@@ -147,7 +147,7 @@ describe('RubyGenerator/Class', () => {
         test('no @ruby:class comment does not wrap with class', () => {
             RubyGenerator.cache_.targetCommentTexts = [];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).not.toContain('class ');
@@ -197,7 +197,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:x,y'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('set_x 100');
@@ -383,7 +383,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sprite=Dog1'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('set_sprite "Dog1"');
@@ -407,7 +407,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sprite=Dog1,x'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('set_sprite "Dog1"');
@@ -423,7 +423,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:costumes'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('set_costumes ["Dog1-a", "Dog1-b"]');
@@ -439,7 +439,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sounds'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('set_sounds ["Dog1", "Dog2"]');
@@ -455,7 +455,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:costumes,sounds'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('set_costumes ["Dog1-a", "Dog1-b"]');
@@ -471,7 +471,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).not.toContain('set_sprite');
@@ -488,12 +488,12 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
             // hat code + non-hat code (separated by blank line as in real output)
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n\nmove(10)\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n\nmove(10)\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true});
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
             // hat code should be inside class
-            expect(result).toContain('  self.when(:flag_clicked) do');
+            expect(result).toContain('  when_flag_clicked do');
             // non-hat code should be outside class and commented out
             expect(result).toMatch(/^# move\(10\)$/m);
         });
@@ -504,7 +504,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n\nmove(10)\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n\nmove(10)\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite1');
@@ -532,7 +532,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
-            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const code = 'when_flag_clicked do\n  switch_backdrop("Arctic")\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Stage');
@@ -546,7 +546,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:current_backdrop'];
 
-            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const code = 'when_flag_clicked do\n  switch_backdrop("Arctic")\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Stage');
@@ -560,7 +560,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:backdrops'];
 
-            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const code = 'when_flag_clicked do\n  switch_backdrop("Arctic")\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Stage');
@@ -574,7 +574,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:sounds'];
 
-            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const code = 'when_flag_clicked do\n  switch_backdrop("Arctic")\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Stage');
@@ -588,7 +588,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:backdrops,sounds'];
 
-            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const code = 'when_flag_clicked do\n  switch_backdrop("Arctic")\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('set_backdrops ["Arctic", "Baseball 1"]');
@@ -616,7 +616,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
-            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const code = 'when_flag_clicked do\n  switch_backdrop("Arctic")\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Stage');
@@ -632,24 +632,11 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = [];
 
-            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
+            const code = 'when_flag_clicked do\n  switch_backdrop("Arctic")\nend\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true});
 
             expect(result).toContain('class Stage < ::Smalruby3::Sprite');
             expect(result).not.toContain('Stage.new');
-        });
-
-        test('stage without @ruby:class in version 1 uses Stage.new format', () => {
-            RubyGenerator.init({version: '1'});
-            const {target} = makeMockStageTarget();
-            RubyGenerator.currentTarget_ = target;
-            RubyGenerator.cache_.targetCommentTexts = [];
-
-            const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true});
-
-            expect(result).toContain('Stage.new');
-            expect(result).not.toContain('class Stage');
         });
 
         test('@ruby:class with withSpriteNew keeps version 2 hat blocks inside class', () => {
@@ -828,60 +815,7 @@ describe('RubyGenerator/Class', () => {
         });
     });
 
-    describe('withSpriteNew (version 1 file output)', () => {
-        test('@ruby:class with withSpriteNew uses Sprite.new instead of class', () => {
-            RubyGenerator.init({version: '1'});
-            const {target, runtime} = makeMockTarget('ネコ', 1);
-            target.runtime = runtime;
-            target.x = 90;
-            target.y = -50;
-            target.direction = 45;
-            target.visible = true;
-            target.size = 100;
-            target.currentCostume = 0;
-            target.rotationStyle = 'all around';
-            target.isStage = false;
-            target.sprite.costumes = [];
-            target.variables = {};
-            RubyGenerator.currentTarget_ = target;
-            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:name,x,y,direction'];
-
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '1'});
-
-            expect(result).toContain('Sprite.new("ネコ"');
-            expect(result).toContain('x: 90');
-            expect(result).toContain('y: -50');
-            expect(result).toContain('direction: 45');
-            expect(result).not.toContain('class ');
-            expect(result).not.toContain('set_name');
-            expect(result).not.toContain('set_x');
-        });
-
-        test('@ruby:class without attributes and withSpriteNew uses Sprite.new with defaults', () => {
-            RubyGenerator.init({version: '1'});
-            const {target, runtime} = makeMockTarget('Sprite1', 1);
-            target.runtime = runtime;
-            target.x = 0;
-            target.y = 0;
-            target.direction = 90;
-            target.visible = true;
-            target.size = 100;
-            target.currentCostume = 0;
-            target.rotationStyle = 'all around';
-            target.isStage = false;
-            target.sprite.costumes = [];
-            target.variables = {};
-            RubyGenerator.currentTarget_ = target;
-            RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
-
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-            const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '1'});
-
-            expect(result).toContain('Sprite.new("Sprite1")');
-            expect(result).not.toContain('class ');
-        });
-
+    describe('withSpriteNew (version 2)', () => {
         test('@ruby:class with version 2 still uses class format even with withSpriteNew', () => {
             RubyGenerator.init({version: '2'});
             const {target, runtime} = makeMockTarget('Sprite1', 1);
@@ -899,7 +833,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
@@ -914,7 +848,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=//Smalruby3/Sprite'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
@@ -926,7 +860,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Smalruby3/Sprite'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite1 < Smalruby3::Sprite');
@@ -938,7 +872,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Foo'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite1 < Foo');
@@ -950,7 +884,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Sprite'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite1 < Sprite');
@@ -962,7 +896,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite1\n');
@@ -985,7 +919,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=//Smalruby3/Sprite'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
@@ -1007,7 +941,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Foo'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
 
             expect(result).toContain('class Sprite1 < Foo');
@@ -1029,7 +963,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {withSpriteNew: true, version: '2'});
 
             expect(result).toContain('class Sprite1 < ::Smalruby3::Sprite');
@@ -1042,7 +976,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = target;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class:<=Foo,x'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Sprite1 < Foo');
@@ -1056,7 +990,7 @@ describe('RubyGenerator/Class', () => {
             RubyGenerator.currentTarget_ = stage;
             RubyGenerator.cache_.targetCommentTexts = ['@ruby:class'];
 
-            const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+            const code = 'when_flag_clicked do\n  move(10)\nend\n';
             const result = RubyGenerator.finish(code, {});
 
             expect(result).toContain('class Stage\n');

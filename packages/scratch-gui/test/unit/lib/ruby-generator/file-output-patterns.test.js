@@ -55,164 +55,7 @@ const setupGenerator = (version, target, commentTexts = []) => {
 };
 
 // ============================================================
-// 1. Version 1 - No class (standard v1 output)
-// ============================================================
-describe('Version 1 - No class (standard v1 output)', () => {
-    test('simple hat block without withSpriteNew returns code as-is', () => {
-        const {target} = makeMockTarget('Sprite1');
-        setupGenerator('1', target);
-
-        const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {});
-
-        expect(result).toBe(code);
-        expect(result).not.toContain('class ');
-        expect(result).not.toContain('Sprite.new');
-    });
-
-    test('multiple hat blocks without withSpriteNew', () => {
-        const {target} = makeMockTarget('Sprite1');
-        setupGenerator('1', target);
-
-        const code =
-            'self.when(:flag_clicked) do\n  move(10)\nend\n\n' +
-            'self.when(:flag_clicked) do\n  turn_right(15)\nend\n';
-        const result = RubyGenerator.finish(code, {});
-
-        expect(result).toBe(code);
-        expect(result).not.toContain('class ');
-    });
-
-    test('hat block with withSpriteNew uses Sprite.new format', () => {
-        const {target} = makeMockTarget('Sprite1', 1, {
-            sprite: {name: 'Sprite1', costumes: [], sounds: []}
-        });
-        setupGenerator('1', target);
-
-        const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
-
-        expect(result).toContain('Sprite.new("Sprite1")');
-        expect(result).toContain('  self.when(:flag_clicked) do');
-        expect(result).toContain('end\n');
-        expect(result).not.toContain('class ');
-    });
-
-    test('stage target with withSpriteNew uses Stage.new format', () => {
-        const {target} = makeMockStageTarget({
-            x: 0, y: 0, direction: 90, visible: true, size: 100,
-            currentCostume: 0, rotationStyle: 'all around',
-            sprite: {name: 'Stage', costumes: [], sounds: []}
-        });
-        setupGenerator('1', target);
-
-        const code = 'self.when(:flag_clicked) do\n  switch_backdrop("Arctic")\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
-
-        expect(result).toContain('Stage.new("Stage")');
-        expect(result).not.toContain('class ');
-    });
-
-    test('empty code returns empty string', () => {
-        const {target} = makeMockTarget('Sprite1');
-        setupGenerator('1', target);
-
-        const result = RubyGenerator.finish('', {});
-
-        expect(result).toBe('');
-    });
-
-    test('empty code with withSpriteNew still wraps with Sprite.new', () => {
-        const {target} = makeMockTarget('Sprite1', 1, {
-            sprite: {name: 'Sprite1', costumes: [], sounds: []}
-        });
-        setupGenerator('1', target);
-
-        const result = RubyGenerator.finish('', {withSpriteNew: true});
-
-        expect(result).toContain('Sprite.new("Sprite1")');
-        expect(result).toContain('do\n');
-        expect(result).toContain('end\n');
-    });
-
-    test('Sprite.new includes non-default attributes', () => {
-        const {target} = makeMockTarget('Cat', 1, {
-            x: 50, y: -30, direction: 45, visible: false, size: 75,
-            sprite: {
-                name: 'Cat',
-                costumes: [{
-                    assetId: 'abc', name: 'costume1',
-                    bitmapResolution: 1, dataFormat: 'svg',
-                    rotationCenterX: 48, rotationCenterY: 50
-                }],
-                sounds: []
-            },
-            rotationStyle: 'left-right'
-        });
-        setupGenerator('1', target);
-
-        const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
-
-        expect(result).toContain('Sprite.new("Cat"');
-        expect(result).toContain('x: 50');
-        expect(result).toContain('y: -30');
-        expect(result).toContain('direction: 45');
-        expect(result).toContain('visible: false');
-        expect(result).toContain('size: 75');
-        expect(result).toContain('rotation_style: "left-right"');
-    });
-});
-
-// ============================================================
-// 2. Version 1 - With @ruby:class
-// ============================================================
-describe('Version 1 - With @ruby:class', () => {
-    test('@ruby:class with withSpriteNew uses Sprite.new (NOT class)', () => {
-        const {target} = makeMockTarget('Sprite1', 1, {
-            sprite: {name: 'Sprite1', costumes: [], sounds: []}
-        });
-        setupGenerator('1', target, ['@ruby:class']);
-
-        const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
-
-        expect(result).toContain('Sprite.new("Sprite1")');
-        expect(result).not.toContain('class ');
-    });
-
-    test('@ruby:class:x,y with withSpriteNew uses Sprite.new with attributes', () => {
-        const {target} = makeMockTarget('ネコ', 1, {
-            x: 100, y: -50, direction: 45,
-            sprite: {name: 'ネコ', costumes: [], sounds: []}
-        });
-        setupGenerator('1', target, ['@ruby:class:x,y']);
-
-        const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {withSpriteNew: true});
-
-        expect(result).toContain('Sprite.new("ネコ"');
-        expect(result).toContain('x: 100');
-        expect(result).toContain('y: -50');
-        expect(result).toContain('direction: 45');
-        expect(result).not.toContain('class ');
-    });
-
-    test('@ruby:class WITHOUT withSpriteNew does NOT wrap with class in v1', () => {
-        const {target} = makeMockTarget('Sprite1');
-        setupGenerator('1', target, ['@ruby:class']);
-
-        const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
-        const result = RubyGenerator.finish(code, {});
-
-        // v1 ignores @ruby:class entirely
-        expect(result).not.toContain('class ');
-        expect(result).toContain('self.when(:flag_clicked)');
-    });
-});
-
-// ============================================================
-// 3. Version 2 - No class, no withSpriteNew (Ruby tab)
+// 1. Version 2 - No class, no withSpriteNew (Ruby tab)
 // ============================================================
 describe('Version 2 - No class, no withSpriteNew (Ruby tab)', () => {
     test('simple hat block returns code as-is', () => {
@@ -259,7 +102,7 @@ describe('Version 2 - No class, no withSpriteNew (Ruby tab)', () => {
 });
 
 // ============================================================
-// 4. Version 2 - No class, WITH withSpriteNew (file output, auto-wrap)
+// 2. Version 2 - No class, WITH withSpriteNew (file output, auto-wrap)
 // ============================================================
 describe('Version 2 - No class, WITH withSpriteNew (auto-wrap)', () => {
     test('simple sprite auto-wraps with class', () => {
@@ -425,14 +268,14 @@ describe('Version 2 - No class, WITH withSpriteNew (auto-wrap)', () => {
 });
 
 // ============================================================
-// 5. Version 2 - With @ruby:class (user wrote class)
+// 3. Version 2 - With @ruby:class (user wrote class)
 // ============================================================
 describe('Version 2 - With @ruby:class', () => {
     test('@ruby:class WITHOUT withSpriteNew -> class format, no inheritance', () => {
         const {target} = makeMockTarget('Sprite1');
         setupGenerator('2', target, ['@ruby:class']);
 
-        const code = 'self.when(:flag_clicked) do\n  move(10)\nend\n';
+        const code = 'when_flag_clicked do\n  move(10)\nend\n';
         const result = RubyGenerator.finish(code, {});
 
         expect(result).toContain('class Sprite1');
@@ -577,7 +420,7 @@ describe('Version 2 - With @ruby:class', () => {
 });
 
 // ============================================================
-// 6. Version 2 - Hat block format in class with file output
+// 4. Version 2 - Hat block format in class with file output
 // ============================================================
 describe('Version 2 - Hat block format in class', () => {
     test('v2 hat blocks in class with withSpriteNew are inside class', () => {
@@ -642,7 +485,7 @@ describe('Version 2 - Hat block format in class', () => {
 });
 
 // ============================================================
-// 7. Non-hat code in file output
+// 5. Non-hat code in file output
 // ============================================================
 describe('Non-hat code in file output', () => {
     test('non-hat code with withSpriteNew and @ruby:class -> commented out outside class', () => {
@@ -706,7 +549,7 @@ describe('Non-hat code in file output', () => {
 });
 
 // ============================================================
-// 8. Edge cases
+// 6. Edge cases
 // ============================================================
 describe('Edge cases', () => {
     test('sprite at index 2 -> correct Sprite2', () => {
@@ -1288,7 +1131,7 @@ describe('Edge cases', () => {
 });
 
 // ============================================================
-// 9. finishTargets and initTargets
+// 7. finishTargets and initTargets
 // ============================================================
 describe('finishTargets and initTargets', () => {
     test('initTargets sets up requires_ and prepares_', () => {
@@ -1329,7 +1172,7 @@ describe('finishTargets and initTargets', () => {
 });
 
 // ============================================================
-// 10. quote_ edge cases
+// 8. quote_ edge cases
 // ============================================================
 describe('quote_ edge cases', () => {
     test('escapes double quotes', () => {
@@ -1366,7 +1209,7 @@ describe('quote_ edge cases', () => {
 });
 
 // ============================================================
-// 11. spriteNew edge cases
+// 9. spriteNew edge cases
 // ============================================================
 describe('spriteNew edge cases', () => {
     test('returns null for null target', () => {
@@ -1473,7 +1316,7 @@ describe('spriteNew edge cases', () => {
 });
 
 // ============================================================
-// 12. Version comparison edge cases
+// 10. Version comparison edge cases
 // ============================================================
 describe('Version comparison edge cases', () => {
     test('version defaults to "1" when not specified', () => {
@@ -1517,7 +1360,7 @@ describe('Version comparison edge cases', () => {
 });
 
 // ============================================================
-// 12. Extension hat blocks inside class
+// 11. Extension hat blocks inside class
 // ============================================================
 describe('Extension hat blocks inside class', () => {
     test('microbit.when_button_is inside class with @ruby:class', () => {

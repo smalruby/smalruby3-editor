@@ -43,11 +43,11 @@ describe('RubyGenerator/MethodReturn', () => {
         RubyGenerator.currentTarget.comments = comments;
         // Trigger currentTarget setter
         RubyGenerator.currentTarget = RubyGenerator.currentTarget;
-        return RubyGenerator.targetToCode(RubyGenerator.currentTarget);
+        return RubyGenerator.targetToCode(RubyGenerator.currentTarget, {version: '2'});
     };
 
     describe('Method Return Values', () => {
-        test('def self.add(x, y)', () => {
+        test('def add(x, y)', () => {
             const blocks = {
                 b1: {
                     id: 'b1',
@@ -92,7 +92,7 @@ describe('RubyGenerator/MethodReturn', () => {
             };
             const code = generateCode(blocks, ['b1'], comments);
             // With @ruby:return comment, this is an implicit return - output just the value
-            expect(code).toBe('def self.add(x, y)\n  x + y\nend\n');
+            expect(code).toBe('def add(x, y)\n  x + y\nend\n');
         });
 
         test('standalone add(1, 2)', () => {
@@ -219,7 +219,7 @@ describe('RubyGenerator/MethodReturn', () => {
             };
             const code = generateCode(blocks, ['b1'], {});
             // Without @ruby:return comment, output normal variable assignment
-            expect(code).toBe('def self.add(x, y)\n  @_return_add = x + y\nend\n');
+            expect(code).toBe('def add(x, y)\n  @_return_add = x + y\nend\n');
         });
     });
 
