@@ -173,6 +173,9 @@ Ruby tab のふりがな機能（「ふ」ボタン）で表示されるふり�
 | `def メソッド名(arg1, arg2)` | `引数arg1`, `引数arg2` | def メソッド名(...)の引数 |
 | `end`（def） | `作成終了` | def に対応する end |
 | `return` | `呼び出し元に返す` | |
+| `module` | `モジュール作成` | |
+| `end`（module） | `作成終了` | module に対応する end |
+| `include` | `取り込む` | module を class に取り込む |
 | `class` | `クラス作成` | |
 | `end`（class） | `作成終了` | class に対応する end |
 

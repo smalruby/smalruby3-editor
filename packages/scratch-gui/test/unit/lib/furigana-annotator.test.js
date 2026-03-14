@@ -202,6 +202,28 @@ describe('FuriganaAnnotator', () => {
         });
     });
 
+    describe('module definition and include', () => {
+        test('module keyword annotates as モジュール作成', () => {
+            const anns = annotate('module Utils\nend');
+            expect(labelsAt(anns, 1)).toContain('モジュール作成');
+        });
+        test('end of module annotates as 作成終了', () => {
+            const anns = annotate('module Utils\nend');
+            expect(labelsAt(anns, 2)).toContain('作成終了');
+        });
+        test('include annotates as 取り込む', () => {
+            const anns = annotate('class Sprite1\n  include Utils\nend');
+            expect(labelsAt(anns, 2)).toContain('取り込む');
+        });
+        test('module with def annotates both', () => {
+            const anns = annotate('module Utils\n  def add(a, b)\n    a + b\n  end\nend');
+            expect(labelsAt(anns, 1)).toContain('モジュール作成');
+            expect(labelsAt(anns, 2)).toContain('メソッド作成');
+            expect(labelsAt(anns, 4)).toContain('作成終了');
+            expect(labelsAt(anns, 5)).toContain('作成終了');
+        });
+    });
+
     describe('class definition', () => {
         test('class keyword annotates as クラス作成', () => {
             const anns = annotate('class Dog\nend');
