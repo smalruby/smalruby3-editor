@@ -218,6 +218,25 @@ const VariableUtils = {
         this._lookupOrCreateList('$_symbols_');
     },
 
+    _symbolToBlock (symbolName, node) {
+        this._collectSymbol(symbolName);
+        const list = this._lookupOrCreateList('$_symbols_');
+        const block = this._createBlock('data_itemnumoflist', 'value', {
+            fields: {
+                LIST: {
+                    name: 'LIST',
+                    id: list.id,
+                    value: list.name,
+                    variableType: list.type
+                }
+            }
+        });
+        block.node = node;
+        this._addTextInput(block, 'ITEM', `:${symbolName}`, 'thing');
+        block.comment = this._createComment(`@ruby:symbol:${symbolName}`, block.id);
+        return block;
+    },
+
     _changeToBooleanArgument (varName) {
         varName = varName.toString();
         const variable = this._context.localVariables[varName];

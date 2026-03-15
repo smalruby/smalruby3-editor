@@ -187,6 +187,10 @@ const ContextUtils = {
             return 'nil';
         }
 
+        if (this._isSymbol(receiver)) {
+            return 'symbol';
+        }
+
         if (this._isConst(receiver)) {
             return receiver.toString();
         }

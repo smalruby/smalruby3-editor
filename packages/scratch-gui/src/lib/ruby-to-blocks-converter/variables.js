@@ -631,6 +631,14 @@ const VariablesConverter = {
         });
 
         converter.registerOnVasgn((scope, variable, rh) => {
+            // === Smalruby: Start of symbol assignment ===
+            if ((scope === 'global' || scope === 'instance' ||
+                (scope === 'local' && !variable.isArgument)) &&
+                converter._isPrimitive(rh) && rh.type === 'sym') {
+                rh = converter._symbolToBlock(rh.value, rh.node);
+            }
+            // === Smalruby: End of symbol assignment ===
+
             // === Smalruby: Start of array syntax ===
             if ((scope === 'global' || scope === 'instance' ||
                 (scope === 'local' && !variable.isArgument)) &&

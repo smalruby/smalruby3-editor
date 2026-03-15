@@ -250,6 +250,50 @@ const OperatorsConverter = {
             });
         });
 
+        // === Smalruby: Start of symbol comparison ===
+        ['>', '<', '=='].forEach(operator => {
+            converter.registerOnSend('symbol', operator, 1, params => {
+                const {receiver, args} = params;
+                let rh = args[0];
+                if (_.isArray(rh)) {
+                    if (rh.length !== 1) return null;
+                    rh = rh[0];
+                }
+
+                const receiverBlock = converter._symbolToBlock(
+                    converter._getSymbolValue(receiver), receiver.node
+                );
+                if (converter._isPrimitive(rh) && rh.type === 'sym') {
+                    rh = converter._symbolToBlock(rh.value, rh.node);
+                }
+
+                let opcode;
+                if (operator === '>') {
+                    opcode = 'operator_gt';
+                } else if (operator === '<') {
+                    opcode = 'operator_lt';
+                } else {
+                    opcode = 'operator_equals';
+                }
+
+                const block = converter._createBlock(opcode, 'value_boolean');
+                converter._addInput(
+                    block, 'OPERAND1', receiverBlock, converter._createTextBlock('')
+                );
+                if (converter._isBlock(rh)) {
+                    converter._addInput(
+                        block, 'OPERAND2', rh, converter._createTextBlock('50')
+                    );
+                } else {
+                    converter._addTextInput(
+                        block, 'OPERAND2', converter._isNumber(rh) ? rh.toString() : rh, '50'
+                    );
+                }
+                return block;
+            });
+        });
+        // === Smalruby: End of symbol comparison ===
+
         converter.registerOnSend(['variable', 'boolean', 'block'], '!', 0, params => {
             const {receiver} = params;
             if (!converter._isFalseOrBooleanBlock(receiver)) return null;
