@@ -66,6 +66,8 @@ const VariablesConverter = {
                 prefixedName = `$${varName}`;
             } else if (variable.scope === 'instance') {
                 prefixedName = `@${varName}`;
+            } else if (variable.scope === 'local') {
+                prefixedName = variable.originalName;
             } else {
                 return {block: null, converted: false};
             }
@@ -87,18 +89,16 @@ const VariablesConverter = {
 
         /**
          * Adjust a 0-indexed Ruby array index to 1-indexed Scratch list index.
-         * Only adjusts when the receiver was converted from variable to list (array syntax).
+         * Always wraps in operator_add(index, 1) with @ruby:array:index comment
+         * to enable round-trip conversion.
          */
         const adjustIndex = function (index, converted) {
             if (!converted) return index;
-            if (typeof index === 'number') return index + 1;
-            if (converter._isPrimitive(index) &&
-                (index.type === 'int' || index.type === 'float')) {
-                return index.value + 1;
-            }
-            // For block expressions, wrap in operator_add(index, 1) with comment
-            // This is handled at the generator level via @ruby:array:index_offset
-            return index;
+            const addBlock = converter._createBlock('operator_add', 'value');
+            converter._addNumberInput(addBlock, 'NUM1', 'math_number', index, 0);
+            converter._addNumberInput(addBlock, 'NUM2', 'math_number', 1, 0);
+            addBlock.comment = converter._createComment('@ruby:array:index', addBlock.id);
+            return addBlock;
         };
         // === Smalruby: End of array syntax ===
 
@@ -632,7 +632,8 @@ const VariablesConverter = {
 
         converter.registerOnVasgn((scope, variable, rh) => {
             // === Smalruby: Start of array syntax ===
-            if ((scope === 'global' || scope === 'instance') &&
+            if ((scope === 'global' || scope === 'instance' ||
+                (scope === 'local' && !variable.isArgument)) &&
                 converter._isArray(rh)) {
                 if (converter.version < 2) {
                     throw new RubyToBlocksConverterError(
@@ -644,8 +645,10 @@ const VariablesConverter = {
                 let prefixedName;
                 if (variable.scope === 'global') {
                     prefixedName = `$${variable.name}`;
-                } else {
+                } else if (variable.scope === 'instance') {
                     prefixedName = `@${variable.name}`;
+                } else {
+                    prefixedName = variable.originalName;
                 }
                 const listVar = converter._lookupOrCreateList(prefixedName);
 
@@ -660,8 +663,13 @@ const VariablesConverter = {
                         }
                     }
                 });
+                let arrayLiteralComment = `@ruby:array:literal:${elements.length}`;
+                if (scope === 'local') {
+                    arrayLiteralComment =
+                        `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${arrayLiteralComment}`;
+                }
                 clearBlock.comment = converter._createComment(
-                    `@ruby:array:literal:${elements.length}`, clearBlock.id
+                    arrayLiteralComment, clearBlock.id
                 );
 
                 // Create push blocks for each element

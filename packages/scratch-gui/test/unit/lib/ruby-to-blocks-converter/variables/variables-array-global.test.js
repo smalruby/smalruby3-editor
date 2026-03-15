@@ -75,7 +75,21 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
+                            block: {
+                                opcode: 'operator_add',
+                                comment: {text: '@ruby:array:index', minimized: true},
+                                inputs: [
+                                    {
+                                        name: 'NUM1',
+                                        block: expectedInfo.makeNumber(0)
+                                    },
+                                    {
+                                        name: 'NUM2',
+                                        block: expectedInfo.makeNumber(1)
+                                    }
+                                ]
+                            },
+                            shadow: expectedInfo.makeNumber(1, 'math_integer')
                         }
                     ]
                 }
@@ -113,7 +127,21 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
+                            block: {
+                                opcode: 'operator_add',
+                                comment: {text: '@ruby:array:index', minimized: true},
+                                inputs: [
+                                    {
+                                        name: 'NUM1',
+                                        block: expectedInfo.makeNumber(0)
+                                    },
+                                    {
+                                        name: 'NUM2',
+                                        block: expectedInfo.makeNumber(1)
+                                    }
+                                ]
+                            },
+                            shadow: expectedInfo.makeNumber(1, 'math_integer')
                         },
                         {
                             name: 'ITEM',
@@ -139,7 +167,21 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
+                            block: {
+                                opcode: 'operator_add',
+                                comment: {text: '@ruby:array:index', minimized: true},
+                                inputs: [
+                                    {
+                                        name: 'NUM1',
+                                        block: expectedInfo.makeNumber(0)
+                                    },
+                                    {
+                                        name: 'NUM2',
+                                        block: expectedInfo.makeNumber(1)
+                                    }
+                                ]
+                            },
+                            shadow: expectedInfo.makeNumber(1, 'math_integer')
                         },
                         {
                             name: 'ITEM',
@@ -165,7 +207,21 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
+                            block: {
+                                opcode: 'operator_add',
+                                comment: {text: '@ruby:array:index', minimized: true},
+                                inputs: [
+                                    {
+                                        name: 'NUM1',
+                                        block: expectedInfo.makeNumber(0)
+                                    },
+                                    {
+                                        name: 'NUM2',
+                                        block: expectedInfo.makeNumber(1)
+                                    }
+                                ]
+                            },
+                            shadow: expectedInfo.makeNumber(1, 'math_integer')
                         }
                     ]
                 }

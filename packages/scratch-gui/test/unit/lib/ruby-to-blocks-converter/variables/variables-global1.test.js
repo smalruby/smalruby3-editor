@@ -65,7 +65,21 @@ describe('RubyToBlocksConverter/Variables', () => {
                     inputs: [
                         {
                             name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
+                            block: {
+                                opcode: 'operator_add',
+                                comment: {text: '@ruby:array:index', minimized: true},
+                                inputs: [
+                                    {
+                                        name: 'NUM1',
+                                        block: expectedInfo.makeNumber(0)
+                                    },
+                                    {
+                                        name: 'NUM2',
+                                        block: expectedInfo.makeNumber(1)
+                                    }
+                                ]
+                            },
+                            shadow: expectedInfo.makeNumber(1, 'math_integer')
                         }
                     ]
                 }
