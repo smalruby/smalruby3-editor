@@ -112,7 +112,9 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         'process.env.MESH_NETWORK_FILTER': `"${process.env.MESH_NETWORK_FILTER || ''}"`,
         'process.env.GEMINI_RELAY_ENDPOINT': `"${process.env.GEMINI_RELAY_ENDPOINT || ''}"`,
         'process.env.MAX_USER_MESSAGE_LENGTH': `"${process.env.MAX_USER_MESSAGE_LENGTH || '250'}"`,
-        'process.env.MIN_USER_MESSAGE_LENGTH': `"${process.env.MIN_USER_MESSAGE_LENGTH || '10'}"`
+        'process.env.MIN_USER_MESSAGE_LENGTH': `"${process.env.MIN_USER_MESSAGE_LENGTH || '10'}"`,
+        // === Smalruby: version update notification ===
+        'process.env.COMMIT_SHA': `"${process.env.COMMIT_SHA || ''}"`
     }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
@@ -290,7 +292,8 @@ const buildWithPwaConfig = buildConfig.clone()
             skipWaiting: true,
             additionalManifestEntries: assetsManifest,
             exclude: [
-                /\.DS_Store/
+                /\.DS_Store/,
+                /version\.json$/ // === Smalruby: exclude from precache for version update notification ===
             ],
             maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
             // Don't add revision to files that already have hash in filename
@@ -345,7 +348,8 @@ const distWithHtmlConfig = buildConfig.clone()
             skipWaiting: true,
             additionalManifestEntries: assetsManifest,
             exclude: [
-                /\.DS_Store/
+                /\.DS_Store/,
+                /version\.json$/ // === Smalruby: exclude from precache for version update notification ===
             ],
             maximumFileSizeToCacheInBytes: 64 * 1024 * 1024,
             // Don't add revision to files that already have hash in filename

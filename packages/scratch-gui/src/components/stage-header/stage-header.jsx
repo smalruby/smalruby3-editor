@@ -17,7 +17,9 @@ import smallStageIcon from './icon--small-stage.svg';
 import middleStageIcon from './icon--middle-stage.svg';
 import unFullScreenIcon from './icon--unfullscreen.svg';
 
-import scratchLogo from '../menu-bar/scratch-logo.svg';
+// === Smalruby: Start of replace Scratch logo with Smalruby logo ===
+import smalrubyLogo from '../menu-bar/hatti.svg';
+// === Smalruby: End of replace Scratch logo with Smalruby logo ===
 import styles from './stage-header.css';
 import {storeProjectThumbnail} from '../../lib/store-project-thumbnail.js';
 import dataURItoBlob from '../../lib/data-uri-to-blob.js';
@@ -100,20 +102,18 @@ const StageHeaderComponent = function (props) {
 
     if (isFullScreen) {
         const stageDimensions = getStageDimensions(null, true);
+        // === Smalruby: Start of replace Scratch branding with Smalruby ===
+        // Upstream renders a Scratch logo linking to scratch.mit.edu here.
+        // Smalruby shows its own logo without external link.
         const stageButton = showBranding ? (
             <div className={styles.embedScratchLogo}>
-                <a
-                    href="https://scratch.mit.edu"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                >
-                    <img
-                        alt="Scratch"
-                        src={scratchLogo}
-                    />
-                </a>
+                <img
+                    alt="Smalruby"
+                    src={smalrubyLogo}
+                />
             </div>
         ) : (
+        // === Smalruby: End of replace Scratch branding with Smalruby ===
             <div className={styles.unselectWrapper}>
                 <Button
                     className={styles.stageButton}

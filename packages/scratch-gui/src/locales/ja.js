@@ -550,6 +550,8 @@ export default {
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': '始めましょう',
     'gui.library.chatApp': 'チャットアプリをつくろう',
+    'gui.menuBar.updateTooltip': '新しいスモウルビーを使ってみよう！',
+    'gui.menuBar.updateConfirm': '新しいバージョンのスモウルビーが利用可能です。いますぐ更新する場合は「OK」を、あとにする場合は「キャンセル」を押してください。',
     'gui.menuBar.tutorialTooltip': 'ルビーを試してみよう!',
     'gui.aria.clearButton': 'クリア'
 };
