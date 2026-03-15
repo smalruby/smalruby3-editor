@@ -39,7 +39,8 @@ const ContextUtils = {
             processDepth: 0,
             rootNode: null,
             modules: {},
-            currentModuleName: null
+            currentModuleName: null,
+            symbols: new Set()
         };
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {
             this._loadVariables(this.vm.runtime.getTargetForStage());

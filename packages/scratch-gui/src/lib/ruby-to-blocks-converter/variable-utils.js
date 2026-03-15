@@ -209,6 +209,15 @@ const VariableUtils = {
         return procedure;
     },
 
+    _collectSymbol (name) {
+        this._context.symbols.add(`:${name}`);
+    },
+
+    _createSymbolsList () {
+        if (this._context.symbols.size === 0) return;
+        this._lookupOrCreateList('$_symbols_');
+    },
+
     _changeToBooleanArgument (varName) {
         varName = varName.toString();
         const variable = this._context.localVariables[varName];
