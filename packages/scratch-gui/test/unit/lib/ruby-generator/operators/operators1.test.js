@@ -47,6 +47,40 @@ describe('RubyGenerator/Operators', () => {
         });
     });
 
+    describe('operator_subtract', () => {
+        test('normal', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_subtract',
+                inputs: {
+                    NUM1: {},
+                    NUM2: {}
+                }
+            };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('5')
+                .mockReturnValueOnce('3');
+            expect(RubyGenerator.operator_subtract(block))
+                .toEqual(['5 - 3', RubyGenerator.ORDER_ADDITIVE]);
+        });
+
+        test('with @ruby:array:index passes through NUM1 for round-trip', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'operator_subtract',
+                inputs: {
+                    NUM1: {block: 'itemnumoflist-block-id'},
+                    NUM2: {}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:array:index'};
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('@my_list.index("thing")');
+            expect(RubyGenerator.operator_subtract(block))
+                .toEqual(['@my_list.index("thing")', RubyGenerator.ORDER_FUNCTION_CALL]);
+        });
+    });
+
     describe('operator_join', () => {
         test('normal', () => {
             const block = {

@@ -239,5 +239,34 @@ describe('RubyGenerator/Data', () => {
             expect(RubyGenerator.data_itemoflist(block))
                 .toEqual(['@my_list[@i - 1]', RubyGenerator.ORDER_FUNCTION_CALL]);
         });
+
+        test('operator_add index offset pattern detected for round-trip', () => {
+            // When INDEX is operator_add(x, 1) with @ruby:array:index_offset comment,
+            // the generator should use x directly (not generate "(x + 1) - 1")
+            const addBlock = {
+                id: 'add-block-id',
+                opcode: 'operator_add',
+                inputs: {
+                    NUM1: {block: 'num1-block-id'},
+                    NUM2: {block: 'num2-block-id'}
+                }
+            };
+            const block = {
+                id: 'block-id',
+                opcode: 'data_itemoflist',
+                fields: {LIST: {id: 'list-id', value: 'my list'}},
+                inputs: {INDEX: {block: 'add-block-id'}}
+            };
+            RubyGenerator.cache_.comments['add-block-id'] = {text: '@ruby:array:index_offset'};
+            RubyGenerator.getBlock = jest.fn().mockReturnValue(addBlock);
+            // valueToCode for NUM1 of the add block returns the 0-indexed value
+            RubyGenerator.valueToCode = jest.fn()
+                .mockImplementation((b, input) => {
+                    if (b === addBlock && input === 'NUM1') return '@i';
+                    return null;
+                });
+            expect(RubyGenerator.data_itemoflist(block))
+                .toEqual(['@my_list[@i]', RubyGenerator.ORDER_FUNCTION_CALL]);
+        });
     });
 });
