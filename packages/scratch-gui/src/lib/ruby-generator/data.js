@@ -132,18 +132,27 @@ export default function (Generator) {
         return `hide_variable(${Generator.quote_(variable)})\n`;
     };
 
+    // === Smalruby: Start of array syntax ===
     const getListName = function (block) {
-        const list = Generator.listName(Generator.getFieldId(block, 'LIST'));
-        return `list(${Generator.quote_(list)})`;
+        return Generator.listName(Generator.getFieldId(block, 'LIST'));
     };
 
+    /**
+     * Convert Scratch 1-indexed list index to Ruby 0-indexed array index.
+     * For literal numbers, subtracts 1 directly.
+     * For expressions, generates "(expr - 1)".
+     */
     const getListIndex = function (block) {
         const index = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE) || 1;
-        if (index === '0') {
-            return 1;
+        const numIndex = Number(index);
+        if (!isNaN(numIndex) && String(numIndex) === String(index)) {
+            // Literal number: convert 1-indexed to 0-indexed
+            return Math.max(0, numIndex - 1);
         }
-        return index;
+        // Expression: wrap with "- 1"
+        return `${index} - 1`;
     };
+    // === Smalruby: End of array syntax ===
 
     Generator.data_listcontents = function (block) {
         const list = getListName(block);
