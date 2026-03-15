@@ -160,6 +160,18 @@ const messages = defineMessages({
             '\nWrite { SUGGESTION } instead.',
         description: 'Error message when a symbol is used where a string is expected without .to_s',
         id: 'gui.smalruby3.rubyToBlocksConverter.symbolNeedsToS'
+    },
+    symbolCannotArithmetic: {
+        defaultMessage: '"{ SOURCE }" — symbols cannot be used in arithmetic (+, -, *, /).' +
+            '\nUse .to_s to convert first, e.g. { SUGGESTION }.',
+        description: 'Error message when a symbol is used in arithmetic operation',
+        id: 'gui.smalruby3.rubyToBlocksConverter.symbolCannotArithmetic'
+    },
+    symbolCannotCompare: {
+        defaultMessage: '"{ SOURCE }" — symbols can only be compared with other symbols using >, <, >=, <=.' +
+            '\nUse == instead, or convert with .to_s.',
+        description: 'Error message when a symbol is compared with non-symbol using >, <, >=, <=',
+        id: 'gui.smalruby3.rubyToBlocksConverter.symbolCannotCompare'
     }
 });
 
@@ -245,6 +257,14 @@ class RubyToBlocksConverter extends Visitor {
 
     _symbolNeedsToSMessage () {
         return messages.symbolNeedsToS;
+    }
+
+    _symbolCannotArithmeticMessage () {
+        return messages.symbolCannotArithmetic;
+    }
+
+    _symbolCannotCompareMessage () {
+        return messages.symbolCannotCompare;
     }
 
     setTranslatorFunction (translator) {

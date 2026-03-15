@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import {RubyToBlocksConverterError} from './errors';
 
 const Math = '::Math';
 const MathE = '::Math::E';
@@ -225,12 +226,26 @@ const OperatorsConverter = {
 
         ['>', '<', '=='].forEach(operator => {
             converter.registerOnSend('any', operator, 1, params => {
-                const {receiver, args} = params;
+                const {receiver, args, node} = params;
                 let rh = args[0];
                 if (_.isArray(rh)) {
                     if (rh.length !== 1) return null;
                     rh = rh[0];
                 }
+
+                // === Smalruby: Start of symbol comparison guard ===
+                // For >, <: reject symbol args (Ruby raises ArgumentError for mixed types)
+                if (operator !== '==' &&
+                    converter._isPrimitive(rh) && rh.type === 'sym') {
+                    const source = converter._truncateSource(converter._getSource(node));
+                    throw new RubyToBlocksConverterError(
+                        node,
+                        converter._translator(
+                            converter._symbolCannotCompareMessage(), {SOURCE: source}
+                        )
+                    );
+                }
+                // === Smalruby: End of symbol comparison guard ===
 
                 let opcode;
                 if (operator === '>') {
@@ -253,17 +268,28 @@ const OperatorsConverter = {
         // === Smalruby: Start of symbol comparison ===
         ['>', '<', '=='].forEach(operator => {
             converter.registerOnSend('symbol', operator, 1, params => {
-                const {receiver, args} = params;
+                const {receiver, args, node} = params;
                 let rh = args[0];
                 if (_.isArray(rh)) {
                     if (rh.length !== 1) return null;
                     rh = rh[0];
                 }
 
+                const rhIsSymbol = converter._isPrimitive(rh) && rh.type === 'sym';
+
+                // For >, <: both sides must be symbols (Ruby raises ArgumentError for mixed types)
+                if (operator !== '==' && !rhIsSymbol) {
+                    const source = converter._truncateSource(converter._getSource(node));
+                    throw new RubyToBlocksConverterError(
+                        node,
+                        converter._translator(converter._symbolCannotCompareMessage(), {SOURCE: source})
+                    );
+                }
+
                 const receiverBlock = converter._symbolToBlock(
                     converter._getSymbolValue(receiver), receiver.node
                 );
-                if (converter._isPrimitive(rh) && rh.type === 'sym') {
+                if (rhIsSymbol) {
                     rh = converter._symbolToBlock(rh.value, rh.node);
                 }
 

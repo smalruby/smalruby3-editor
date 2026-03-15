@@ -59,8 +59,39 @@ const ExpressionHandlers = {
         if (!block) {
             this._restoreContext(saved);
 
-            // === Smalruby: Start of symbol needs to_s error ===
+            // === Smalruby: Start of symbol error checks ===
+            const arithmeticOps = ['+', '-', '*', '/', '%', '**'];
+            const comparisonOps = ['>', '<', '>=', '<='];
+            const isSymReceiver = this._isPrimitive(receiver) && receiver.type === 'sym';
             const symbolArg = args.find(a => this._isPrimitive(a) && a.type === 'sym');
+
+            // Symbol in arithmetic → specific error
+            if (arithmeticOps.indexOf(name) >= 0 && (isSymReceiver || symbolArg)) {
+                const source = this._truncateSource(this._getSource(node));
+                const sym = isSymReceiver ? receiver : symbolArg;
+                const suggestion = source.replace(
+                    `:${sym.value}`,
+                    `:${sym.value}.to_s`
+                );
+                throw new RubyToBlocksConverterError(
+                    node,
+                    this._translator(this._symbolCannotArithmeticMessage(), {
+                        SOURCE: source,
+                        SUGGESTION: suggestion
+                    })
+                );
+            }
+
+            // Symbol in comparison with non-symbol → specific error
+            if (comparisonOps.indexOf(name) >= 0 && (isSymReceiver || symbolArg)) {
+                const source = this._truncateSource(this._getSource(node));
+                throw new RubyToBlocksConverterError(
+                    node,
+                    this._translator(this._symbolCannotCompareMessage(), {SOURCE: source})
+                );
+            }
+
+            // Symbol in other contexts → needs .to_s
             if (symbolArg) {
                 const source = this._truncateSource(this._getSource(node));
                 const suggestion = source.replace(
@@ -75,7 +106,7 @@ const ExpressionHandlers = {
                     })
                 );
             }
-            // === Smalruby: End of symbol needs to_s error ===
+            // === Smalruby: End of symbol error checks ===
 
             if (node.block) {
                 block = this._createBlock('ruby_statement_with_block', 'statement');

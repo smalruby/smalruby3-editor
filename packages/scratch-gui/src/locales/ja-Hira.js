@@ -121,6 +121,8 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.includeNotSupportedInStage': 'includeはclass Stageではつかえません。\nモジュールはスプライトのクラスでのみとりこめます。',
     'gui.smalruby3.rubyToBlocksConverter.moduleImportFailed': 'モジュール「{ NAME }」をほかのスプライトからとりこめませんでした。',
     'gui.smalruby3.rubyToBlocksConverter.symbolNeedsToS': '「{ SOURCE }」— シンボルには .to_s をつけてください。\n{ SUGGESTION } とかいてください。',
+    'gui.smalruby3.rubyToBlocksConverter.symbolCannotArithmetic': '「{ SOURCE }」— シンボルは +、-、*、/ などのけいさんにはつかえません。\n{ SUGGESTION } のように .to_s するとけいさんにつかえます。',
+    'gui.smalruby3.rubyToBlocksConverter.symbolCannotCompare': '「{ SOURCE }」— シンボルとシンボルいがいのあたいは >、<、>=、<= でくらべられません。\n== でくらべるか、.to_s でもじれつにへんかんしてください。',
     'gui.smalruby3.prismError.expectedCloseArgs': '`)` がたりません。\n`)` をついかしてひきすうをとじてください。',
     'gui.smalruby3.prismError.expectedCloseArray': '`]` がたりません。\n`]` をついかしてはいれつをとじてください。',
     'gui.smalruby3.prismError.expectedCloseHash': '`}` がたりません。\n`}` をついかしてハッシュをとじてください。',
