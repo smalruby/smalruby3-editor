@@ -373,12 +373,59 @@ const NodeUtils = {
         return expression.toString() === textBlock.fields.TEXT.value;
     },
 
+    /**
+     * Build a byte-offset → char-offset mapping for the current source code.
+     * Prism WASM returns UTF-8 byte offsets, but JavaScript strings use
+     * UTF-16 char indices. This mapping must be built once after setting sourceCode.
+     */
+    _buildByteToCharMap () {
+        const sourceCode = this._context.sourceCode;
+        if (!sourceCode) {
+            this._context.byteToChar = new Int32Array(1);
+            return;
+        }
+        const sourceBytes = new TextEncoder().encode(sourceCode);
+        const byteToChar = new Int32Array(sourceBytes.length + 1);
+        let ci = 0;
+        let bi = 0;
+        while (ci < sourceCode.length) {
+            const cp = sourceCode.codePointAt(ci);
+            const charLen = cp > 0xFFFF ? 2 : 1; // surrogate pair in UTF-16
+            const byteLen = cp <= 0x7F ? 1 : cp <= 0x7FF ? 2 : cp <= 0xFFFF ? 3 : 4;
+            for (let b = 0; b < byteLen; b++) {
+                byteToChar[bi + b] = ci;
+            }
+            bi += byteLen;
+            ci += charLen;
+        }
+        byteToChar[bi] = ci; // end sentinel
+        this._context.byteToChar = byteToChar;
+    },
+
+    /**
+     * Convert a byte offset from Prism to a char offset for JavaScript strings.
+     * Lazily builds the mapping if not yet constructed.
+     * @param {number} byteOffset - UTF-8 byte offset from Prism
+     * @returns {number} UTF-16 char offset for JavaScript
+     */
+    _byteOffsetToCharOffset (byteOffset) {
+        if (!this._context.byteToChar) {
+            this._buildByteToCharMap();
+        }
+        const map = this._context.byteToChar;
+        if (!map || byteOffset < 0) return 0;
+        if (byteOffset >= map.length) return this._context.sourceCode ? this._context.sourceCode.length : 0;
+        return map[byteOffset];
+    },
+
     _getSource (node) {
         if (!node || !node.location) {
             return '';
         }
         const {startOffset, length} = node.location;
-        return this._context.sourceCode.slice(startOffset, startOffset + length);
+        const startChar = this._byteOffsetToCharOffset(startOffset);
+        const endChar = this._byteOffsetToCharOffset(startOffset + length);
+        return this._context.sourceCode.slice(startChar, endChar);
     },
 
     _truncateSource (src, maxLength = 40) {
@@ -457,14 +504,16 @@ const NodeUtils = {
                 column: node.location.startColumn || 0
             };
         }
-        const offset = node.location.startOffset;
-        if (typeof offset !== 'number' || !this._context.sourceCode) {
+        const byteOffset = node.location.startOffset;
+        if (typeof byteOffset !== 'number' || !this._context.sourceCode) {
             return {line: 1, column: 0};
         }
+        // Convert byte offset to char offset before walking the string
+        const charOffset = this._byteOffsetToCharOffset(byteOffset);
         const source = this._context.sourceCode;
         let line = 1;
         let column = 0;
-        for (let i = 0; i < offset && i < source.length; i++) {
+        for (let i = 0; i < charOffset && i < source.length; i++) {
             if (source[i] === '\n') {
                 line++;
                 column = 0;

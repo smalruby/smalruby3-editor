@@ -247,14 +247,18 @@ class RubyToBlocksConverter extends Visitor {
         this._setTarget(target);
         this._loadVariables(target);
         this._context.sourceCode = code;
+        this._buildByteToCharMap();
         try {
             const prism = RubyParser.getPrism() || await RubyParser.loadPrism();
             const parseResult = prism.parse(code);
             if (parseResult.errors.length > 0) {
                 parseResult.errors.forEach(e => {
                     const translatedMessage = this._prismErrorTranslator.translate(e.message);
+                    // Prism error locations have startOffset (byte-based) but not startLine/startColumn.
+                    // Compute line/column from the byte offset using our byte→char mapping.
+                    const loc = this._getLoc({location: e.location});
                     this._context.errors.push(this._toErrorAnnotation(
-                        e.location.startLine, e.location.startColumn, translatedMessage
+                        loc.line, loc.column, translatedMessage
                     ));
                 });
                 return false;
@@ -452,24 +456,10 @@ class RubyToBlocksConverter extends Visitor {
             return [];
         }
 
-        // Prism WASM reports byte offsets (UTF-8), but JavaScript strings use
-        // UTF-16 char indices. Build a byte→char mapping to convert between them.
-        const sourceBytes = new TextEncoder().encode(sourceCode);
-        const byteToChar = new Int32Array(sourceBytes.length + 1);
-        {
-            let ci = 0;
-            let bi = 0;
-            while (ci < sourceCode.length) {
-                const cp = sourceCode.codePointAt(ci);
-                const charLen = cp > 0xFFFF ? 2 : 1; // surrogate pair in UTF-16
-                const byteLen = cp <= 0x7F ? 1 : cp <= 0x7FF ? 2 : cp <= 0xFFFF ? 3 : 4;
-                for (let b = 0; b < byteLen; b++) {
-                    byteToChar[bi + b] = ci;
-                }
-                bi += byteLen;
-                ci += charLen;
-            }
-            byteToChar[bi] = ci; // end sentinel
+        // Ensure sourceCode and byteToChar map are available for _byteOffsetToCharOffset
+        if (this._context.sourceCode !== sourceCode) {
+            this._context.sourceCode = sourceCode;
+            this._context.byteToChar = null; // force rebuild
         }
 
         // Build char-offset-to-line mapping
@@ -491,10 +481,9 @@ class RubyToBlocksConverter extends Visitor {
         return parseResult.comments.map(comment => {
             const startByte = comment.location.startOffset;
             const lengthBytes = comment.location.length;
-            // Convert byte offsets to char offsets
-            const startCharOffset = startByte in byteToChar ? byteToChar[startByte] : 0;
-            const endByte = startByte + lengthBytes;
-            const endCharOffset = endByte in byteToChar ? byteToChar[endByte] : sourceCode.length;
+            // Convert byte offsets to char offsets using shared mapping
+            const startCharOffset = this._byteOffsetToCharOffset(startByte);
+            const endCharOffset = this._byteOffsetToCharOffset(startByte + lengthBytes);
             const rawText = sourceCode.substring(startCharOffset, endCharOffset);
             const line = offsetToLine(startCharOffset);
             const lineStart = lineStarts[line - 1];
