@@ -123,13 +123,12 @@ import koshienIcon from './icon--koshien.svg';
 import meshConnectedIcon from './icon--mesh-connected.png';
 import meshDisconnectedIcon from './icon--mesh-disconnected.png';
 
-import scratchLogo from './scratch-logo.svg';
-import scratchLogoAndroid from './scratch-logo-android.svg';
-import ninetiesLogo from './nineties_logo.svg';
-import catLogo from './cat_logo.svg';
-import prehistoricLogo from './prehistoric-logo.svg';
-import oldtimeyLogo from './oldtimey-logo.svg';
+// === Smalruby: Start of replace Scratch logos with Smalruby logo ===
+// Upstream imports scratchLogo, scratchLogoAndroid, ninetiesLogo, catLogo,
+// prehistoricLogo, oldtimeyLogo and defines getScratchLogo() here.
+// Smalruby uses a single logo instead.
 import smalrubyLogo from './hatti.svg';
+// === Smalruby: End of replace Scratch logos with Smalruby logo ===
 
 import sharedMessages from '../../lib/shared-messages';
 
@@ -153,7 +152,6 @@ const ariaMessages = defineMessages({
     }
 });
 
-const getScratchLogo = platform => (platform === PLATFORM.ANDROID ? scratchLogoAndroid : scratchLogo);
 
 const MenuBarItemTooltip = ({
     children,
@@ -340,18 +338,10 @@ class MenuBar extends React.Component {
                 document.documentElement.style.height = '';
             }
 
-            // Change logo for modes
-            if (mode === '1990') {
-                document.getElementById('logo_img').src = ninetiesLogo;
-            } else if (mode === '2020') {
-                document.getElementById('logo_img').src = catLogo;
-            } else if (mode === '1920') {
-                document.getElementById('logo_img').src = oldtimeyLogo;
-            } else if (mode === '220022BC') {
-                document.getElementById('logo_img').src = prehistoricLogo;
-            } else {
-                document.getElementById('logo_img').src = getScratchLogo(this.props.platform);
-            }
+            // === Smalruby: Start of remove time-travel logo switching ===
+            // Upstream switches logo_img.src per mode here.
+            // Smalruby always uses the same logo, so this is removed.
+            // === Smalruby: End of remove time-travel logo switching ===
 
             this.props.onSetTimeTravelMode(mode);
         };
