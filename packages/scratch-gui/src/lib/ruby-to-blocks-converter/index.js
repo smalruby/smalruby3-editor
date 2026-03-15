@@ -328,6 +328,9 @@ class RubyToBlocksConverter extends Visitor {
                 }
             });
 
+            // Create $_symbols_ list if symbols were collected
+            this._createSymbolsList();
+
             // Associate source comments with blocks
             this._associateSourceComments(parseResult, code);
 

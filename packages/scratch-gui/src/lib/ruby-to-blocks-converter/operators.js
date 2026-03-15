@@ -315,6 +315,21 @@ const OperatorsConverter = {
             return block;
         });
 
+        // === Smalruby: Start of symbol to_s ===
+        converter.registerOnSend('symbol', 'to_s', 0, params => {
+            const {receiver} = params;
+            const symbolName = converter._getSymbolValue(receiver);
+            if (!symbolName) return null;
+
+            converter._collectSymbol(symbolName);
+            const block = converter._createBlock('operator_join', 'value');
+            converter._addTextInput(block, 'STRING1', symbolName, '');
+            converter._addTextInput(block, 'STRING2', '', '');
+            block.comment = converter._createComment(`@ruby:symbol:${symbolName}`, block.id);
+            return block;
+        });
+        // === Smalruby: End of symbol to_s ===
+
         converter.registerOnSend(['variable', 'number', 'string', 'block'], 'to_s', 0, params => {
             const {receiver} = params;
 
