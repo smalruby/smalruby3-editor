@@ -173,21 +173,34 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('data_itemnumoflist via index', async () => {
+        test('data_itemnumoflist via index (wrapped in subtract 1 for 0-indexed)', async () => {
             const code = `${varName}.index("thing")`;
             const expected = [
                 {
-                    opcode: 'data_itemnumoflist',
-                    fields: [
-                        {
-                            name: 'LIST',
-                            list: varName
-                        }
-                    ],
+                    opcode: 'operator_subtract',
+                    comment: {text: '@ruby:array:index', minimized: true},
                     inputs: [
                         {
-                            name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
+                            name: 'NUM1',
+                            block: {
+                                opcode: 'data_itemnumoflist',
+                                fields: [
+                                    {
+                                        name: 'LIST',
+                                        list: varName
+                                    }
+                                ],
+                                inputs: [
+                                    {
+                                        name: 'ITEM',
+                                        block: expectedInfo.makeText('thing')
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            name: 'NUM2',
+                            block: expectedInfo.makeNumber(1)
                         }
                     ]
                 }

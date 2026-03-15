@@ -309,6 +309,20 @@ const VariablesConverter = {
             converter._addTextInput(
                 block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
             );
+
+            // === Smalruby: Start of array syntax ===
+            // Wrap in operator_subtract(result, 1) for 0-indexed return value
+            if (converted) {
+                const subtractBlock = converter._createBlock('operator_subtract', 'value');
+                converter._addInput(subtractBlock, 'NUM1', block);
+                converter._addNumberInput(subtractBlock, 'NUM2', 'math_number', 1, 0);
+                subtractBlock.comment = converter._createComment(
+                    '@ruby:array:index', subtractBlock.id
+                );
+                return subtractBlock;
+            }
+            // === Smalruby: End of array syntax ===
+
             return block;
         });
 
