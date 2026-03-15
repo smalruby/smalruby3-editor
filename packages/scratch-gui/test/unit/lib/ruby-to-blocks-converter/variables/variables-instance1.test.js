@@ -33,16 +33,17 @@ describe('RubyToBlocksConverter/Variables', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('operator_length', async () => {
+        // === Smalruby: Start of array syntax ===
+        // In version 2, @a.length and @a[0] are list operations (array syntax)
+        test('data_lengthoflist via length', async () => {
             const code = `${varName}.length`;
             const expected = [
                 {
-                    opcode: 'operator_length',
-                    inputs: [
+                    opcode: 'data_lengthoflist',
+                    fields: [
                         {
-                            name: 'STRING',
-                            block: (await rubyToExpected(converter, target, varName))[0],
-                            shadow: expectedInfo.makeText('apple')
+                            name: 'LIST',
+                            list: varName
                         }
                     ]
                 }
@@ -50,26 +51,28 @@ describe('RubyToBlocksConverter/Variables', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('operator_letter_of', async () => {
+        test('data_itemoflist via [] with 0-indexed', async () => {
             const code = `${varName}[0]`;
             const expected = [
                 {
-                    opcode: 'operator_letter_of',
+                    opcode: 'data_itemoflist',
+                    fields: [
+                        {
+                            name: 'LIST',
+                            list: varName
+                        }
+                    ],
                     inputs: [
                         {
-                            name: 'STRING',
-                            block: (await rubyToExpected(converter, target, varName))[0],
-                            shadow: expectedInfo.makeText('apple')
-                        },
-                        {
-                            name: 'LETTER',
-                            block: expectedInfo.makeNumber(1)
+                            name: 'INDEX',
+                            block: expectedInfo.makeNumber(1, 'math_integer')
                         }
                     ]
                 }
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
+        // === Smalruby: End of array syntax ===
 
         test('data_setvariableto', async () => {
             const code = `${varName} = "world"`;

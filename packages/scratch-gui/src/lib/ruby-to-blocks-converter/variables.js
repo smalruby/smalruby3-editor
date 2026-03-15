@@ -5,6 +5,71 @@ import _ from 'lodash';
  */
 const VariablesConverter = {
     register: function (converter) {
+        // === Smalruby: Start of array syntax ===
+        /**
+         * Convert a data_variable block to data_listcontents for list operations.
+         * When $a (global) or @a (instance) is used with array methods like .push(),
+         * the variable read creates a data_variable block, but list operations need
+         * a data_listcontents block with LIST field.
+         * @param {Object} block - The receiver block to convert
+         * @returns {{block: Object|null, converted: boolean}} The converted block and whether conversion happened
+         */
+        const convertToListBlock = function (block) {
+            if (!converter._isBlock(block)) return {block: null, converted: false};
+
+            // Already a list block, no conversion needed
+            if (converter.isListBlock(block)) return {block, converted: false};
+
+            // Only convert data_variable blocks in version 2
+            if (converter.version < 2) return {block: null, converted: false};
+            if (block.opcode !== 'data_variable') return {block: null, converted: false};
+
+            const varName = block.fields.VARIABLE.value;
+            const variable = converter._context.variables[varName] ||
+                converter._context.localVariables[varName];
+            if (!variable) return {block: null, converted: false};
+
+            let prefixedName;
+            if (variable.scope === 'global') {
+                prefixedName = `$${varName}`;
+            } else if (variable.scope === 'instance') {
+                prefixedName = `@${varName}`;
+            } else {
+                return {block: null, converted: false};
+            }
+
+            const listVar = converter._lookupOrCreateList(prefixedName);
+
+            // Convert the block in-place
+            block.opcode = 'data_listcontents';
+            delete block.fields.VARIABLE;
+            block.fields.LIST = {
+                name: 'LIST',
+                id: listVar.id,
+                value: listVar.name,
+                variableType: listVar.type
+            };
+
+            return {block, converted: true};
+        };
+
+        /**
+         * Adjust a 0-indexed Ruby array index to 1-indexed Scratch list index.
+         * Only adjusts when the receiver was converted from variable to list (array syntax).
+         */
+        const adjustIndex = function (index, converted) {
+            if (!converted) return index;
+            if (typeof index === 'number') return index + 1;
+            if (converter._isPrimitive(index) &&
+                (index.type === 'int' || index.type === 'float')) {
+                return index.value + 1;
+            }
+            // For block expressions, wrap in operator_add(index, 1) with comment
+            // This is handled at the generator level via @ruby:array:index_offset
+            return index;
+        };
+        // === Smalruby: End of array syntax ===
+
         converter.registerOnSend('self', 'show_variable', 1, params => {
             const {args} = params;
             if (!converter._isString(args[0])) return null;
@@ -109,25 +174,62 @@ const VariablesConverter = {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
-            const block = converter._changeBlock(receiver, 'data_addtolist', 'statement');
+            // === Smalruby: Start of array syntax ===
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            const recv = converted ? listBlock : receiver;
+            if (!recv) return null;
+            // === Smalruby: End of array syntax ===
+
+            const block = converter._changeBlock(recv, 'data_addtolist', 'statement');
             converter._addTextInput(
                 block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
             );
             return block;
         });
 
+        // === Smalruby: Start of array syntax ===
+        converter.registerOnSend('variable', '<<', 1, params => {
+            const {receiver, args} = params;
+            if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
+
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            const recv = converted ? listBlock : receiver;
+            if (!recv) return null;
+
+            const block = converter._changeBlock(recv, 'data_addtolist', 'statement');
+            converter._addTextInput(
+                block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
+            );
+            return block;
+        });
+        // === Smalruby: End of array syntax ===
+
         converter.registerOnSend('variable', 'delete_at', 1, params => {
             const {receiver, args} = params;
             if (!converter._isNumberOrBlock(args[0])) return null;
 
-            const block = converter._changeBlock(receiver, 'data_deleteoflist', 'statement');
-            converter._addNumberInput(block, 'INDEX', 'math_integer', args[0], 1);
+            // === Smalruby: Start of array syntax ===
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            const recv = converted ? listBlock : receiver;
+            if (!recv) return null;
+            const index = adjustIndex(args[0], converted);
+            // === Smalruby: End of array syntax ===
+
+            const block = converter._changeBlock(recv, 'data_deleteoflist', 'statement');
+            converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
             return block;
         });
 
         converter.registerOnSend('variable', 'clear', 0, params => {
             const {receiver} = params;
-            return converter._changeBlock(receiver, 'data_deletealloflist', 'statement');
+
+            // === Smalruby: Start of array syntax ===
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            const recv = converted ? listBlock : receiver;
+            if (!recv) return null;
+            // === Smalruby: End of array syntax ===
+
+            return converter._changeBlock(recv, 'data_deletealloflist', 'statement');
         });
 
         converter.registerOnSend('variable', 'insert', 2, params => {
@@ -135,8 +237,15 @@ const VariablesConverter = {
             if (!converter._isNumberOrBlock(args[0])) return null;
             if (!converter._isStringOrBlock(args[1]) && !converter._isNumberOrBlock(args[1])) return null;
 
-            const block = converter._changeBlock(receiver, 'data_insertatlist', 'statement');
-            converter._addNumberInput(block, 'INDEX', 'math_integer', args[0], 1);
+            // === Smalruby: Start of array syntax ===
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            const recv = converted ? listBlock : receiver;
+            if (!recv) return null;
+            const index = adjustIndex(args[0], converted);
+            // === Smalruby: End of array syntax ===
+
+            const block = converter._changeBlock(recv, 'data_insertatlist', 'statement');
+            converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
             converter._addTextInput(
                 block, 'ITEM', converter._isNumber(args[1]) ? args[1].toString() : args[1], 'thing'
             );
@@ -148,8 +257,15 @@ const VariablesConverter = {
             if (!converter._isNumberOrBlock(args[0])) return null;
             if (!converter._isStringOrBlock(args[1]) && !converter._isNumberOrBlock(args[1])) return null;
 
-            const block = converter._changeBlock(receiver, 'data_replaceitemoflist', 'statement');
-            converter._addNumberInput(block, 'INDEX', 'math_integer', args[0], 1);
+            // === Smalruby: Start of array syntax ===
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            const recv = converted ? listBlock : receiver;
+            if (!recv) return null;
+            const index = adjustIndex(args[0], converted);
+            // === Smalruby: End of array syntax ===
+
+            const block = converter._changeBlock(recv, 'data_replaceitemoflist', 'statement');
+            converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
             converter._addTextInput(
                 block, 'ITEM', converter._isNumber(args[1]) ? args[1].toString() : args[1], 'thing'
             );
@@ -159,6 +275,16 @@ const VariablesConverter = {
         converter.registerOnSend('variable', '[]', 1, params => {
             const {receiver, args} = params;
             if (!converter._isNumberOrBlock(args[0])) return null;
+
+            // === Smalruby: Start of array syntax ===
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            if (converted && listBlock) {
+                const index = adjustIndex(args[0], true);
+                const block = converter._changeBlock(listBlock, 'data_itemoflist', 'value');
+                converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
+                return block;
+            }
+            // === Smalruby: End of array syntax ===
 
             if (converter._isBlock(receiver) && converter.isListBlock(receiver)) {
                 const block = converter._changeBlock(receiver, 'data_itemoflist', 'value');
@@ -173,7 +299,13 @@ const VariablesConverter = {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
-            const block = converter._changeBlock(receiver, 'data_itemnumoflist', 'value');
+            // === Smalruby: Start of array syntax ===
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            const recv = converted ? listBlock : receiver;
+            if (!recv) return null;
+            // === Smalruby: End of array syntax ===
+
+            const block = converter._changeBlock(recv, 'data_itemnumoflist', 'value');
             converter._addTextInput(
                 block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
             );
@@ -182,6 +314,14 @@ const VariablesConverter = {
 
         converter.registerOnSend('variable', 'length', 0, params => {
             const {receiver} = params;
+
+            // === Smalruby: Start of array syntax ===
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            if (converted && listBlock) {
+                return converter._changeBlock(listBlock, 'data_lengthoflist', 'value');
+            }
+            // === Smalruby: End of array syntax ===
+
             if (converter._isBlock(receiver) && converter.isListBlock(receiver)) {
                 return converter._changeBlock(receiver, 'data_lengthoflist', 'value');
             }
@@ -192,7 +332,13 @@ const VariablesConverter = {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
-            const block = converter._changeBlock(receiver, 'data_listcontainsitem', 'value');
+            // === Smalruby: Start of array syntax ===
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            const recv = converted ? listBlock : receiver;
+            if (!recv) return null;
+            // === Smalruby: End of array syntax ===
+
+            const block = converter._changeBlock(recv, 'data_listcontainsitem', 'value');
             converter._addTextInput(
                 block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
             );
