@@ -328,6 +328,8 @@ class MenuBar extends React.Component {
             this.props.intl.formatMessage(updateMessages.updateConfirm)
         );
         if (confirmed) {
+            // Disable beforeunload to prevent a second confirmation dialog
+            window.onbeforeunload = null;
             window.location.reload();
         } else {
             this.setState({updateAvailable: false});
