@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import Primitive from '../primitive';
+import {RubyToBlocksConverterError} from '../errors';
 
 /**
  * Expression AST handlers for RubyToBlocksConverter.
@@ -57,6 +58,24 @@ const ExpressionHandlers = {
 
         if (!block) {
             this._restoreContext(saved);
+
+            // === Smalruby: Start of symbol needs to_s error ===
+            const symbolArg = args.find(a => this._isPrimitive(a) && a.type === 'sym');
+            if (symbolArg) {
+                const source = this._truncateSource(this._getSource(node));
+                const suggestion = source.replace(
+                    `:${symbolArg.value}`,
+                    `:${symbolArg.value}.to_s`
+                );
+                throw new RubyToBlocksConverterError(
+                    node,
+                    this._translator(this._symbolNeedsToSMessage(), {
+                        SOURCE: source,
+                        SUGGESTION: suggestion
+                    })
+                );
+            }
+            // === Smalruby: End of symbol needs to_s error ===
 
             if (node.block) {
                 block = this._createBlock('ruby_statement_with_block', 'statement');

@@ -120,6 +120,7 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInStage': 'moduleはステージでは使えません。\nモジュールはスプライトのクラスでのみ使えます。',
     'gui.smalruby3.rubyToBlocksConverter.includeNotSupportedInStage': 'includeはclass Stageでは使えません。\nモジュールはスプライトのクラスでのみ取り込めます。',
     'gui.smalruby3.rubyToBlocksConverter.moduleImportFailed': 'モジュール「{ NAME }」を他のスプライトから取り込めませんでした。',
+    'gui.smalruby3.rubyToBlocksConverter.symbolNeedsToS': '「{ SOURCE }」— シンボルには .to_s を付けてください。\n{ SUGGESTION } と書いてください。',
     'gui.smalruby3.prismError.expectedCloseArgs': '`)` が足りません。\n`)` を追加して引数を閉じてください。',
     'gui.smalruby3.prismError.expectedCloseArray': '`]` が足りません。\n`]` を追加して配列を閉じてください。',
     'gui.smalruby3.prismError.expectedCloseHash': '`}` が足りません。\n`}` を追加してハッシュを閉じてください。',

@@ -154,6 +154,12 @@ const messages = defineMessages({
         defaultMessage: 'Failed to import module "{ NAME }" from other sprites.',
         description: 'Error message when module auto-import from other sprites fails',
         id: 'gui.smalruby3.rubyToBlocksConverter.moduleImportFailed'
+    },
+    symbolNeedsToS: {
+        defaultMessage: '"{ SOURCE }" — symbols need .to_s to be used as a string.' +
+            '\nWrite { SUGGESTION } instead.',
+        description: 'Error message when a symbol is used where a string is expected without .to_s',
+        id: 'gui.smalruby3.rubyToBlocksConverter.symbolNeedsToS'
     }
 });
 
@@ -237,6 +243,10 @@ class RubyToBlocksConverter extends Visitor {
         return this._context.broadcastMsgs;
     }
 
+    _symbolNeedsToSMessage () {
+        return messages.symbolNeedsToS;
+    }
+
     setTranslatorFunction (translator) {
         this._translator = translator;
         this._prismErrorTranslator = new PrismErrorTranslator(translator);
@@ -290,6 +300,19 @@ class RubyToBlocksConverter extends Visitor {
                 } else {
                     const Primitive = require('./primitive').default;
                     if (block instanceof Primitive) {
+                        // === Smalruby: Start of symbol error ===
+                        if (block.type === 'sym') {
+                            const source = this._truncateSource(this._getSource(block.node));
+                            const suggestion = `${source}.to_s`;
+                            throw new RubyToBlocksConverterError(
+                                block.node,
+                                this._translator(
+                                    messages.symbolNeedsToS,
+                                    {SOURCE: source, SUGGESTION: suggestion}
+                                )
+                            );
+                        }
+                        // === Smalruby: End of symbol error ===
                         throw new RubyToBlocksConverterError(
                             block.node,
                             this._translator(
