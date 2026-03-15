@@ -1,8 +1,7 @@
-import _ from 'lodash';
-
 import Blockly from 'scratch-blocks';
 import Generator from '../generator';
 
+import EncodingHelpers from './encoding.js';
 import MathBlocks from './math.js';
 import TextBlocks from './text.js';
 import ColourBlocks from './colour.js';
@@ -498,58 +497,6 @@ RubyGenerator.finishTargets = function (code, _options) {
     return s + code;
 };
 
-RubyGenerator.isString = function (s) {
-    return _.isString(s);
-};
-
-RubyGenerator.isWhiteSpace = function (s) {
-    return s === null || (this.isString(s) && s.trim().length === 0);
-};
-
-RubyGenerator.scalarToCode = function (scalar) {
-    if (this.isString(scalar)) {
-        return this.quote_(scalar);
-    }
-    return scalar;
-};
-
-RubyGenerator.listToCode = function (list) {
-    const values = list.map(i => {
-        if (this.isString(i)) {
-            return this.quote_(i);
-        }
-        return i;
-    }).join(', ');
-    return `[${values}]`;
-};
-
-RubyGenerator.hashToCode = function (hash, separator = ': ', brace = true) {
-    const lines = [];
-    for (const key in hash) {
-        const value = hash[key];
-        lines.push(`${key}${separator}${value}`);
-    }
-    let code = lines.join(',\n');
-    if (brace) {
-        code = ['{', this.prefixLines(code, this.INDENT), '}'].join('\n');
-    }
-    return code;
-};
-
-RubyGenerator.numberOrStringToCode = function (value) {
-    if (RubyGenerator.isString(value) &&
-        value[0] === '"' &&
-        value[value.length - 1] === '"') {
-        const s = value.slice(1, value.length - 1);
-        const n = Number(s);
-        if (!isNaN(n) && !(n === 0 && RubyGenerator.isWhiteSpace(s))) {
-            return n;
-        }
-    }
-    return value;
-};
-RubyGenerator.nosToCode = RubyGenerator.numberOrStringToCode;
-
 RubyGenerator.spriteNew = function (renderedTarget) {
     if (!renderedTarget) {
         return null;
@@ -639,34 +586,6 @@ RubyGenerator.spriteNew = function (renderedTarget) {
     const klass = renderedTarget.isStage ? 'Stage' : 'Sprite';
     const name = renderedTarget.sprite.name;
     return `${klass}.new(${this.quote_(name)}${code})`;
-};
-
-RubyGenerator.scrubNakedValue = function (line) {
-    return `${line}\n`;
-};
-
-RubyGenerator.escapeChars_ = {
-    '"': '\\"',
-    '\\': '\\\\',
-    '\n': '\\n',
-    '\t': '\\t',
-    '\r': '\\r',
-    '\b': '\\b',
-    '\f': '\\f',
-    '\v': '\\v',
-    '\0': '\\0'
-};
-
-RubyGenerator.quote_ = function (string) {
-    let i;
-    const s = String(string);
-    const sb = ['"'];
-    for (i = 0; i < s.length; i++) {
-        const ch = s.charAt(i);
-        sb.push(RubyGenerator.escapeChars_[ch] || ch);
-    }
-    sb.push('"');
-    return sb.join('');
 };
 
 RubyGenerator.scrub_ = function (block, code) {
@@ -810,6 +729,7 @@ RubyGenerator.getScripts = function () {
     });
 };
 
+EncodingHelpers(RubyGenerator);
 MathBlocks(RubyGenerator);
 TextBlocks(RubyGenerator);
 ColourBlocks(RubyGenerator);
