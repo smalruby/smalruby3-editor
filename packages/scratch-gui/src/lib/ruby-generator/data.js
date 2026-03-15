@@ -244,6 +244,13 @@ export default function (Generator) {
     };
 
     Generator.data_itemnumoflist = function (block) {
+        // === Smalruby: Start of symbol reference ===
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:symbol:')) {
+            const symbolName = comment.slice('@ruby:symbol:'.length);
+            return [`:${symbolName}`, Generator.ORDER_ATOMIC];
+        }
+        // === Smalruby: End of symbol reference ===
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
         return [`${list}.index(${Generator.nosToCode(item)})`, Generator.ORDER_FUNCTION_CALL];

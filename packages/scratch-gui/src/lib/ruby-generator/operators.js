@@ -230,6 +230,12 @@ export default function (Generator) {
 
     Generator.operator_join = function (block) {
         const comment = Generator.getCommentText(block);
+        // === Smalruby: Start of symbol to_s ===
+        if (comment && comment.startsWith('@ruby:symbol:')) {
+            const symbolName = comment.slice('@ruby:symbol:'.length);
+            return [`:${symbolName}.to_s`, Generator.ORDER_FUNCTION_CALL];
+        }
+        // === Smalruby: End of symbol to_s ===
         if (comment === '@ruby:method:to_s') {
             const value = Generator.valueToCode(block, 'STRING1', Generator.ORDER_FUNCTION_CALL) ||
                 Generator.quote_('');
