@@ -122,14 +122,19 @@ const LooksConverter = {
                 const {receiver, args} = params;
                 if (!converter._isSelf(receiver) && receiver !== null) return null;
                 const symbolName = resolveSymbolArg(converter, args[0]);
-                if (!symbolName) return null;
+                const symbolVarBlock = symbolName ? null : converter._resolveSymbolVariable(args[0]);
+                if (!symbolName && !symbolVarBlock) return null;
+
+                const message = symbolName || symbolVarBlock;
 
                 if (args.length === 1) {
                     const block = converter._createBlock(opcodes1[methodName], 'statement');
-                    converter._addTextInput(block, 'MESSAGE', symbolName, defaults[methodName]);
-                    block.comment = converter._createComment(
-                        `@ruby:symbol:${symbolName}`, block.id
-                    );
+                    converter._addTextInput(block, 'MESSAGE', message, defaults[methodName]);
+                    if (symbolName) {
+                        block.comment = converter._createComment(
+                            `@ruby:symbol:${symbolName}`, block.id
+                        );
+                    }
                     return block;
                 }
 
@@ -140,11 +145,13 @@ const LooksConverter = {
                     }
                     if (converter._isNumberOrBlock(secs)) {
                         const block = converter._createBlock(opcodes2[methodName], 'statement');
-                        converter._addTextInput(block, 'MESSAGE', symbolName, defaults[methodName]);
+                        converter._addTextInput(block, 'MESSAGE', message, defaults[methodName]);
                         converter._addNumberInput(block, 'SECS', 'math_number', secs, 2);
-                        block.comment = converter._createComment(
-                            `@ruby:symbol:${symbolName}`, block.id
-                        );
+                        if (symbolName) {
+                            block.comment = converter._createComment(
+                                `@ruby:symbol:${symbolName}`, block.id
+                            );
+                        }
                         return block;
                     }
                 }
@@ -157,12 +164,20 @@ const LooksConverter = {
             converter.registerOnSend('sprite', methodName, -1, params => {
                 const {args} = params;
                 if (args.length === 0) return null;
+
+                const isSymbolArg = arg =>
+                    (converter._isPrimitive(arg) && arg.type === 'sym');
+                const isSymbolVar = arg => {
+                    if (!converter._isBlock(arg)) return false;
+                    const v = converter.lookupVariableFromVariableBlock(arg);
+                    return v && v.dataType === 'symbol';
+                };
+
                 if (!args.every(arg =>
-                    converter._isNumberOrStringOrBlock(arg) ||
-                    (converter._isPrimitive(arg) && arg.type === 'sym')
+                    converter._isNumberOrStringOrBlock(arg) || isSymbolArg(arg)
                 )) return null;
-                // Only handle if at least one symbol arg
-                if (!args.some(arg => converter._isPrimitive(arg) && arg.type === 'sym')) return null;
+                // Only handle if at least one symbol arg or symbol variable
+                if (!args.some(arg => isSymbolArg(arg) || isSymbolVar(arg))) return null;
 
                 let firstBlock = null;
                 let lastBlock = null;
@@ -170,10 +185,16 @@ const LooksConverter = {
                 args.forEach(arg => {
                     const block = converter._createBlock('looks_sayforsecs', 'statement');
                     const symbolName = resolveSymbolArg(converter, arg);
+                    const symbolVar = symbolName ? null : converter._resolveSymbolVariable(arg);
                     if (symbolName) {
                         converter._addTextInput(block, 'MESSAGE', symbolName, 'Hello!');
                         block.comment = converter._createComment(
                             `@ruby:symbol:${symbolName},@ruby:method:${methodName}`, block.id
+                        );
+                    } else if (symbolVar) {
+                        converter._addTextInput(block, 'MESSAGE', symbolVar, 'Hello!');
+                        block.comment = converter.createComment(
+                            `@ruby:method:${methodName}`, block.id, 200, 0
                         );
                     } else {
                         converter._addTextInput(

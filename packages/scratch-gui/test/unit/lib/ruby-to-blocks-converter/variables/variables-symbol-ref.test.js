@@ -42,7 +42,7 @@ describe('RubyToBlocksConverter/Variables/SymbolReference', () => {
             expect(block.inputs).toHaveProperty('ITEM');
             const itemBlockId = block.inputs.ITEM.block;
             const itemBlock = converter._context.blocks[itemBlockId];
-            expect(itemBlock.fields.TEXT.value).toBe(':foo');
+            expect(itemBlock.fields.TEXT.value).toBe('foo');
         });
 
         test('has LIST field referencing $_symbols_', () => {

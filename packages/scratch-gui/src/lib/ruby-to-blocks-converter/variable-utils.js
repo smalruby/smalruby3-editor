@@ -232,8 +232,29 @@ const VariableUtils = {
             }
         });
         block.node = node;
-        this._addTextInput(block, 'ITEM', `:${symbolName}`, 'thing');
+        this._addTextInput(block, 'ITEM', symbolName, 'thing');
         block.comment = this._createComment(`@ruby:symbol:${symbolName}`, block.id);
+        return block;
+    },
+
+    _resolveSymbolVariable (value) {
+        if (!this._isBlock(value)) return null;
+        const variable = this.lookupVariableFromVariableBlock(value);
+        if (!variable || variable.dataType !== 'symbol') return null;
+
+        const list = this._lookupOrCreateList('$_symbols_');
+        const block = this._createBlock('data_itemoflist', 'value', {
+            fields: {
+                LIST: {
+                    name: 'LIST',
+                    id: list.id,
+                    value: list.name,
+                    variableType: list.type
+                }
+            }
+        });
+        this._addNumberInput(block, 'INDEX', 'math_integer', value, 1);
+        block.comment = this._createComment('@ruby:symbol:var', block.id);
         return block;
     },
 

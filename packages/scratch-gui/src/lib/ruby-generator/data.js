@@ -238,6 +238,13 @@ export default function (Generator) {
     };
 
     Generator.data_itemoflist = function (block) {
+        // === Smalruby: Start of symbol variable lookup ===
+        const comment = Generator.getCommentText(block);
+        if (comment === '@ruby:symbol:var') {
+            const index = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE);
+            return [index, Generator.ORDER_ATOMIC];
+        }
+        // === Smalruby: End of symbol variable lookup ===
         const index = getListIndex(block);
         const list = getListName(block);
         return [`${list}[${index}]`, Generator.ORDER_FUNCTION_CALL];

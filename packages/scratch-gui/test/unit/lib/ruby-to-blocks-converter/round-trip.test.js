@@ -531,5 +531,10 @@ end
         await expectRoundTrip('say(:foo)');
         await expectRoundTrip('think(:foo)');
     });
+
+    test('symbol variable say round-trip', async () => {
+        await expectRoundTrip('$a = :foo\nsay($a)');
+        await expectRoundTrip('$a = :foo\nthink($a)');
+    });
     // === Smalruby: End of symbol support ===
 });

@@ -124,4 +124,24 @@ describe('RubyGenerator/Symbol', () => {
             expect(result).toBe('think(:foo)\n');
         });
     });
+
+    describe('data_itemoflist with @ruby:symbol:var comment', () => {
+        test('generates variable name for @ruby:symbol:var comment', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'data_itemoflist',
+                fields: {
+                    LIST: {id: 'list-id', value: '_symbols_'}
+                },
+                inputs: {
+                    INDEX: {block: 'index-block-id'}
+                }
+            };
+            RubyGenerator.cache_.comments['block-id'] = {text: '@ruby:symbol:var'};
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('$a');
+
+            const result = RubyGenerator.data_itemoflist(block);
+            expect(result[0]).toBe('$a');
+        });
+    });
 });
