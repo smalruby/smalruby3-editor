@@ -275,6 +275,7 @@ class MenuBar extends React.Component {
         this.state = {
             updateAvailable: false
         };
+        this.updatePending = false;
         this.versionChecker = createVersionChecker({
             currentCommitId: process.env.COMMIT_SHA,
             onUpdateAvailable: this.handleUpdateAvailable
@@ -302,6 +303,13 @@ class MenuBar extends React.Component {
         if (this.props.extensionLoadCounter !== prevProps.extensionLoadCounter) {
             this.syncMeshV2Domain();
         }
+        // === Smalruby: Start of version update notification ===
+        // Show pending update notification when project becomes clean (e.g. after save)
+        if (this.updatePending && prevProps.projectChanged && !this.props.projectChanged) {
+            this.updatePending = false;
+            this.setState({updateAvailable: true});
+        }
+        // === Smalruby: End of version update notification ===
     }
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
@@ -320,7 +328,12 @@ class MenuBar extends React.Component {
     }
     // === Smalruby: Start of version update notification ===
     handleUpdateAvailable () {
-        this.setState({updateAvailable: true});
+        if (this.props.projectChanged) {
+            // Defer notification until project is saved
+            this.updatePending = true;
+        } else {
+            this.setState({updateAvailable: true});
+        }
     }
     handleUpdateNotificationClick () {
         // eslint-disable-next-line no-alert
