@@ -211,8 +211,92 @@ describe('RubyGenerator/Looks', () => {
 
             const code = 'say("Hello!")\n';
             const result = RubyGenerator.scrub_(block, code);
-            
+
             expect(result).toEqual('# normal comment\nsay("Hello!")\n');
+        });
+
+        test('should filter @ruby: lines and keep user comment when mixed', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'looks_say',
+                inputs: {},
+                next: null
+            };
+            RubyGenerator.cache_.comments['block-id'] = {
+                text: 'user comment\n@ruby:syntax:+=\n@ruby:lvar:x:0'
+            };
+            RubyGenerator.getInputs = jest.fn().mockReturnValue({});
+            RubyGenerator.isConnectedValue = jest.fn().mockReturnValue(false);
+            RubyGenerator.getBlock = jest.fn().mockReturnValue(null);
+            RubyGenerator.blockToCode = jest.fn().mockReturnValue('');
+
+            const code = 'x += 10\n';
+            const result = RubyGenerator.scrub_(block, code);
+
+            expect(result).toEqual('# user comment\nx += 10\n');
+        });
+
+        test('should handle multi-line user comments mixed with metadata', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'looks_say',
+                inputs: {},
+                next: null
+            };
+            RubyGenerator.cache_.comments['block-id'] = {
+                text: 'first line\nsecond line\n@ruby:method:puts'
+            };
+            RubyGenerator.getInputs = jest.fn().mockReturnValue({});
+            RubyGenerator.isConnectedValue = jest.fn().mockReturnValue(false);
+            RubyGenerator.getBlock = jest.fn().mockReturnValue(null);
+            RubyGenerator.blockToCode = jest.fn().mockReturnValue('');
+
+            const code = 'puts("hello")\n';
+            const result = RubyGenerator.scrub_(block, code);
+
+            expect(result).toEqual('# first line\n# second line\nputs("hello")\n');
+        });
+
+        test('should output nothing when all lines are @ruby: metadata', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'looks_say',
+                inputs: {},
+                next: null
+            };
+            RubyGenerator.cache_.comments['block-id'] = {
+                text: '@ruby:syntax:+=\n@ruby:lvar:x:0'
+            };
+            RubyGenerator.getInputs = jest.fn().mockReturnValue({});
+            RubyGenerator.isConnectedValue = jest.fn().mockReturnValue(false);
+            RubyGenerator.getBlock = jest.fn().mockReturnValue(null);
+            RubyGenerator.blockToCode = jest.fn().mockReturnValue('');
+
+            const code = 'x += 10\n';
+            const result = RubyGenerator.scrub_(block, code);
+
+            expect(result).toEqual('x += 10\n');
+        });
+
+        test('should output inline comment on same line with @ruby:comment_position:inline marker', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'looks_say',
+                inputs: {},
+                next: null
+            };
+            RubyGenerator.cache_.comments['block-id'] = {
+                text: '@ruby:comment_position:inline\ninline comment\n@ruby:syntax:+='
+            };
+            RubyGenerator.getInputs = jest.fn().mockReturnValue({});
+            RubyGenerator.isConnectedValue = jest.fn().mockReturnValue(false);
+            RubyGenerator.getBlock = jest.fn().mockReturnValue(null);
+            RubyGenerator.blockToCode = jest.fn().mockReturnValue('');
+
+            const code = 'x += 10\n';
+            const result = RubyGenerator.scrub_(block, code);
+
+            expect(result).toEqual('x += 10 # inline comment\n');
         });
     });
 });
