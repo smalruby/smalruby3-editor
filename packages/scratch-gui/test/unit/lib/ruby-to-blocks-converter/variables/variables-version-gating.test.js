@@ -78,11 +78,10 @@ describe('RubyToBlocksConverter/Variables/VersionGating', () => {
             expect(v1Converter.errors[0].text).toContain('version 2');
         });
 
-        test('$a.include?("thing") is rejected in v1', async () => {
+        test('$a.include?("thing") is allowed in v1 (pre-existing behavior)', async () => {
             const res = await v1Converter.targetCodeToBlocks(target, '$a.include?("thing")');
-            expect(res).toBeFalsy();
-            expect(v1Converter.errors).toHaveLength(1);
-            expect(v1Converter.errors[0].text).toContain('version 2');
+            expect(res).toBeTruthy();
+            expect(v1Converter.errors).toHaveLength(0);
         });
 
         test('$a = [1, 2, 3] is rejected in v1', async () => {

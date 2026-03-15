@@ -369,9 +369,12 @@ const VariablesConverter = {
             if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
             // === Smalruby: Start of array syntax ===
-            const {block: listBlock, converted} = convertToListBlock(receiver);
-            const recv = converted ? listBlock : receiver;
-            if (!recv) return null;
+            let recv = receiver;
+            if (converter.version >= 2) {
+                const {block: listBlock, converted} = convertToListBlock(receiver);
+                recv = converted ? listBlock : receiver;
+                if (!recv) return null;
+            }
             // === Smalruby: End of array syntax ===
 
             const block = converter._changeBlock(recv, 'data_listcontainsitem', 'value_boolean');
@@ -383,6 +386,8 @@ const VariablesConverter = {
 
         // === Smalruby: Start of array syntax ===
         converter.registerOnSend('variable', 'empty?', 0, params => {
+            if (converter.version < 2) return null;
+
             const {receiver} = params;
 
             const {block: listBlock, converted} = convertToListBlock(receiver);
