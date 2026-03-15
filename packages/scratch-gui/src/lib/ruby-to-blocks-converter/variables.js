@@ -1,6 +1,29 @@
+import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 // === Smalruby: Start of array syntax ===
 import {RubyToBlocksConverterError} from './errors';
+
+const messages = defineMessages({
+    arraySyntaxNotAvailableInV1: {
+        defaultMessage: 'Array syntax is only available in Ruby version 2.' +
+            '\nPlease switch to Ruby version 2 from the settings menu,' +
+            '\nor use list() syntax instead.',
+        description: 'Error message when array syntax ($a.push, $a[0], etc.) is used in Ruby version 1',
+        id: 'gui.smalruby3.rubyToBlocksConverter.arraySyntaxNotAvailableInV1'
+    },
+    listSyntaxNotAvailableInV2: {
+        defaultMessage: 'list() syntax is only available in Ruby version 1.' +
+            '\nPlease use array syntax ($a.push(), $a[0], etc.) instead.',
+        description: 'Error message when list() syntax is used in Ruby version 2',
+        id: 'gui.smalruby3.rubyToBlocksConverter.listSyntaxNotAvailableInV2'
+    },
+    arrayLiteralNotAvailableInV1: {
+        defaultMessage: 'Array literal syntax is only available in Ruby version 2.' +
+            '\nPlease switch to Ruby version 2 from the settings menu.',
+        description: 'Error message when array literal ($a = [1, 2, 3]) is used in Ruby version 1',
+        id: 'gui.smalruby3.rubyToBlocksConverter.arrayLiteralNotAvailableInV1'
+    }
+});
 // === Smalruby: End of array syntax ===
 
 /**
@@ -29,9 +52,7 @@ const VariablesConverter = {
             if (converter.version < 2) {
                 throw new RubyToBlocksConverterError(
                     converter._context.currentNode,
-                    'Array syntax is only available in Ruby version 2.' +
-                    '\nPlease switch to Ruby version 2 from the settings menu,' +
-                    '\nor use list() syntax instead.'
+                    converter._translator(messages.arraySyntaxNotAvailableInV1)
                 );
             }
 
@@ -129,8 +150,7 @@ const VariablesConverter = {
             if (converter.version >= 2) {
                 throw new RubyToBlocksConverterError(
                     params.node,
-                    'list() syntax is only available in Ruby version 1.' +
-                    '\nPlease use array syntax ($a.push(), $a[0], etc.) instead.'
+                    converter._translator(messages.listSyntaxNotAvailableInV2)
                 );
             }
             // === Smalruby: End of array syntax ===
@@ -617,8 +637,7 @@ const VariablesConverter = {
                 if (converter.version < 2) {
                     throw new RubyToBlocksConverterError(
                         converter._context.currentNode,
-                        'Array literal syntax is only available in Ruby version 2.' +
-                        '\nPlease switch to Ruby version 2 from the settings menu.'
+                        converter._translator(messages.arrayLiteralNotAvailableInV1)
                     );
                 }
                 const elements = rh.value;
