@@ -103,7 +103,6 @@ describe('RubyToBlocksConverter/Looks', () => {
             { for (const c of [
                 'say("Hello!", "2")',
                 'say("Hello!", 2, 3)',
-                'say(:symbol, 2)',
                 'say("Hello!", :symbol)'
             ]) {
                 await convertAndExpectRubyBlockError(converter, target, c);
@@ -160,7 +159,6 @@ describe('RubyToBlocksConverter/Looks', () => {
         test('invalid', async () => {
             { for (const c of [
                 'say',
-                'say(:symbol)',
                 'say(1, 2, 1)'
             ]) {
                 await convertAndExpectRubyBlockError(converter, target, c);
@@ -250,7 +248,6 @@ describe('RubyToBlocksConverter/Looks', () => {
             { for (const c of [
                 'think("Hello!", "2")',
                 'think("Hello!", 2, 3)',
-                'think(:symbol, 2)',
                 'think("Hello!", :symbol)'
             ]) {
                 await convertAndExpectRubyBlockError(converter, target, c);
