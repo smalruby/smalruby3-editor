@@ -30,19 +30,48 @@ describe('Ruby Round Trip', () => {
         const lists = {};
         Object.values(converter.lists).forEach(v => {
             lists[v.id] = v;
+            // Lists must also be in variables for variableName/listName lookup
+            variables[v.id] = v;
         });
+
+        // Separate global (stage) and instance (sprite) variables
+        const stageVars = {};
+        const spriteVars = {};
+        Object.keys(variables).forEach(id => {
+            const v = variables[id];
+            if (v.scope === 'global') {
+                stageVars[id] = v;
+            } else {
+                spriteVars[id] = v;
+            }
+        });
+
+        const stage = {
+            id: 'stage-id',
+            isStage: true,
+            variables: stageVars,
+            lookupVariableById: id => stageVars[id],
+            lookupVariableByNameAndType: (name, type) => {
+                return Object.values(stageVars).find(v => v.name === name && v.type === type);
+            }
+        };
 
         const target = {
             id: 'target-id',
             blocks: blocks,
-            variables: variables,
+            variables: spriteVars,
             lists: lists,
             comments: converter._context.comments,
             isStage: false,
             // Mocking some methods needed by RubyGenerator or Blocks
-            lookupVariableById: id => variables[id],
+            lookupVariableById: id => spriteVars[id] || stageVars[id],
             lookupVariableByNameAndType: (name, type) => {
-                return Object.values(variables).find(v => v.name === name && v.type === type);
+                return Object.values(spriteVars).find(v => v.name === name && v.type === type) ||
+                    Object.values(stageVars).find(v => v.name === name && v.type === type);
+            },
+            runtime: {
+                targets: [stage, null],
+                getTargetForStage: () => stage
             }
         };
 
@@ -422,4 +451,63 @@ end
             );
         });
     });
+
+    // === Smalruby: Start of array syntax ===
+    describe('array syntax round trip', () => {
+        test('push via method call', async () => {
+            await expectRoundTrip('$a.push("hello")');
+        });
+
+        test('push via << operator', async () => {
+            await expectRoundTrip('$a << "hello"', '$a.push("hello")');
+        });
+
+        test('delete_at with 0-indexed', async () => {
+            await expectRoundTrip('$a.delete_at(0)');
+        });
+
+        test('clear', async () => {
+            await expectRoundTrip('$a.clear');
+        });
+
+        test('insert with 0-indexed', async () => {
+            await expectRoundTrip('$a.insert(0, "thing")');
+        });
+
+        test('replace item with 0-indexed', async () => {
+            await expectRoundTrip('$a[0] = "thing"');
+        });
+
+        test('item access with 0-indexed', async () => {
+            await expectRoundTrip('$a[0]');
+        });
+
+        test('index method', async () => {
+            // Parentheses from operator_subtract wrapper (valid Ruby)
+            await expectRoundTrip('$a.index("thing")', '($a.index("thing"))');
+        });
+
+        test('length', async () => {
+            await expectRoundTrip('$a.length');
+        });
+
+        test('include?', async () => {
+            await expectRoundTrip('$a.include?("thing")');
+        });
+
+        test('array literal assignment', async () => {
+            await expectRoundTrip('$a = [1, 2, 3]');
+        });
+
+        test('empty array literal', async () => {
+            await expectRoundTrip('$a = []');
+        });
+
+        test('instance variable array operations', async () => {
+            await expectRoundTrip('@items.push("apple")');
+            await expectRoundTrip('@items[0]');
+            await expectRoundTrip('@items.length');
+        });
+    });
+    // === Smalruby: End of array syntax ===
 });

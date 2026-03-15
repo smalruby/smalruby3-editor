@@ -220,7 +220,8 @@ describe('RubyToBlocksConverter/Operators', () => {
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
-        code = 'list("@list").empty?';
+        // list() syntax is only available in v1; use array syntax in v2
+        code = '@list.empty?';
         expected = [
             {
                 opcode: 'operator_equals',

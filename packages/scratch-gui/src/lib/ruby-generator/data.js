@@ -132,18 +132,41 @@ export default function (Generator) {
         return `hide_variable(${Generator.quote_(variable)})\n`;
     };
 
+    // === Smalruby: Start of array syntax ===
     const getListName = function (block) {
-        const list = Generator.listName(Generator.getFieldId(block, 'LIST'));
-        return `list(${Generator.quote_(list)})`;
+        return Generator.listName(Generator.getFieldId(block, 'LIST'));
     };
 
+    /**
+     * Convert Scratch 1-indexed list index to Ruby 0-indexed array index.
+     * For literal numbers, subtracts 1 directly.
+     * For expressions, generates "(expr - 1)".
+     * Detects operator_add(x, 1) with @ruby:array:index_offset comment for round-trip.
+     */
     const getListIndex = function (block) {
-        const index = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE) || 1;
-        if (index === '0') {
-            return 1;
+        // Check for operator_add(x, 1) round-trip pattern
+        const indexBlockId = block.inputs && block.inputs.INDEX && block.inputs.INDEX.block;
+        if (indexBlockId) {
+            const indexBlock = Generator.getBlock(indexBlockId);
+            if (indexBlock && indexBlock.opcode === 'operator_add') {
+                const comment = Generator.getCommentText(indexBlock);
+                if (comment && comment.includes('@ruby:array:index_offset')) {
+                    // Use NUM1 directly (the original 0-indexed value)
+                    return Generator.valueToCode(indexBlock, 'NUM1', Generator.ORDER_NONE) || 0;
+                }
+            }
         }
-        return index;
+
+        const index = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE) || 1;
+        const numIndex = Number(index);
+        if (!isNaN(numIndex) && String(numIndex) === String(index)) {
+            // Literal number: convert 1-indexed to 0-indexed
+            return Math.max(0, numIndex - 1);
+        }
+        // Expression: wrap with "- 1"
+        return `${index} - 1`;
     };
+    // === Smalruby: End of array syntax ===
 
     Generator.data_listcontents = function (block) {
         const list = getListName(block);
@@ -151,6 +174,14 @@ export default function (Generator) {
     };
 
     Generator.data_addtolist = function (block) {
+        // === Smalruby: Start of array syntax ===
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.includes('@ruby:array:literal:element')) {
+            // Suppressed: handled by data_deletealloflist array literal pattern
+            return '';
+        }
+        // === Smalruby: End of array syntax ===
+
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
         return `${list}.push(${Generator.nosToCode(item)})\n`;
@@ -164,6 +195,23 @@ export default function (Generator) {
 
     Generator.data_deletealloflist = function (block) {
         const list = getListName(block);
+
+        // === Smalruby: Start of array syntax ===
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:array:literal:')) {
+            const count = parseInt(comment.split(':')[3], 10);
+            const values = [];
+            let nextId = block.next;
+            for (let i = 0; i < count; i++) {
+                const pushBlock = Generator.getBlock(nextId);
+                const value = Generator.valueToCode(pushBlock, 'ITEM', Generator.ORDER_NONE) || '0';
+                values.push(Generator.nosToCode(value));
+                nextId = pushBlock.next;
+            }
+            return `${list} = [${values.join(', ')}]\n`;
+        }
+        // === Smalruby: End of array syntax ===
+
         return `${list}.clear\n`;
     };
 
