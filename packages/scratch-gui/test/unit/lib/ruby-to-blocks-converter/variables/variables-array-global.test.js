@@ -328,4 +328,17 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
     });
+
+    describe('include? in if-condition', () => {
+        test('$a.include?("hello") works as if-condition', async () => {
+            const code = `
+                if $a.include?("hello")
+                  bounce_if_on_edge
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+        });
+    });
 });

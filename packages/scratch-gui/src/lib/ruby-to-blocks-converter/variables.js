@@ -374,7 +374,7 @@ const VariablesConverter = {
             if (!recv) return null;
             // === Smalruby: End of array syntax ===
 
-            const block = converter._changeBlock(recv, 'data_listcontainsitem', 'value');
+            const block = converter._changeBlock(recv, 'data_listcontainsitem', 'value_boolean');
             converter._addTextInput(
                 block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
             );
