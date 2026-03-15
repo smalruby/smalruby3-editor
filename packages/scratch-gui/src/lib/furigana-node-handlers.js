@@ -111,6 +111,13 @@ const nodeHandlers = {
         this._addAnnotation(node.location, '偽');
     },
 
+    _handleSymbolNode (node) {
+        const unescaped = node.unescaped;
+        const content = (unescaped && typeof unescaped === 'object') ?
+            unescaped.value : unescaped;
+        this._addAnnotation(node.location, `シンボル「${content}」`);
+    },
+
     _handleStringNode (node) {
         const unescaped = node.unescaped;
         const content = (unescaped && typeof unescaped === 'object') ?
