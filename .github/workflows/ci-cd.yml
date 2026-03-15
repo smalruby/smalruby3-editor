@@ -259,7 +259,12 @@ jobs:
           MIN_USER_MESSAGE_LENGTH: ${{ vars.MIN_USER_MESSAGE_LENGTH }}
           GTM_ID: ${{ github.ref == 'refs/heads/develop' && secrets.GTM_ID || '' }}
           GTM_ENV_AUTH: ${{ github.ref == 'refs/heads/develop' && secrets.GTM_ENV_AUTH || '' }}
+          COMMIT_SHA: ${{ github.sha }}
         run: npm run build
+      - name: Generate version.json
+        run: |
+          echo '{"commitId":"${{ github.sha }}"}' > packages/scratch-gui/build/version.json
+          echo '{"commitId":"${{ github.sha }}"}' > packages/scratch-gui/dist/version.json
       - name: Store Build Output
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
