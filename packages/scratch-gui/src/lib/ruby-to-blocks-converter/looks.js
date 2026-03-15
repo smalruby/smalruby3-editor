@@ -111,7 +111,6 @@ const resolveSymbolArg = function (converter, arg) {
 
 const LooksConverter = {
     register: function (converter) {
-        // === Smalruby: Start of symbol implicit conversion ===
         // say/think with symbol argument - sprite-only
         ['say', 'think'].forEach(methodName => {
             const opcodes1 = {say: 'looks_say', think: 'looks_think'};
@@ -220,7 +219,6 @@ const LooksConverter = {
                 return firstBlock;
             });
         });
-        // === Smalruby: End of symbol implicit conversion ===
 
         // print/puts/p - sprite-only, mapped to looks_sayforsecs
         ['print', 'puts', 'p'].forEach(methodName => {

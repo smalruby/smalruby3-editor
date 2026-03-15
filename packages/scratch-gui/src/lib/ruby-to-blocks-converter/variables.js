@@ -1,6 +1,5 @@
 import {defineMessages} from 'react-intl';
 import _ from 'lodash';
-// === Smalruby: Start of array syntax ===
 import {RubyToBlocksConverterError} from './errors';
 
 const messages = defineMessages({
@@ -24,14 +23,12 @@ const messages = defineMessages({
         id: 'gui.smalruby3.rubyToBlocksConverter.arrayLiteralNotAvailableInV1'
     }
 });
-// === Smalruby: End of array syntax ===
 
 /**
  * Variables converter
  */
 const VariablesConverter = {
     register: function (converter) {
-        // === Smalruby: Start of array syntax ===
         /**
          * Convert a data_variable block to data_listcontents for list operations.
          * When $a (global) or @a (instance) is used with array methods like .push(),
@@ -100,7 +97,6 @@ const VariablesConverter = {
             addBlock.comment = converter._createComment('@ruby:array:index', addBlock.id);
             return addBlock;
         };
-        // === Smalruby: End of array syntax ===
 
         converter.registerOnSend('self', 'show_variable', 1, params => {
             const {args} = params;
@@ -146,14 +142,12 @@ const VariablesConverter = {
             const {args} = params;
             if (!converter._isString(args[0])) return null;
 
-            // === Smalruby: Start of array syntax ===
             if (converter.version >= 2) {
                 throw new RubyToBlocksConverterError(
                     params.node,
                     converter._translator(messages.listSyntaxNotAvailableInV2)
                 );
             }
-            // === Smalruby: End of array syntax ===
 
             const variable = converter._lookupOrCreateList(args[0]);
             if (variable.scope === 'global' || variable.scope === 'instance') {
@@ -215,11 +209,9 @@ const VariablesConverter = {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
-            // === Smalruby: Start of array syntax ===
             const {block: listBlock, converted} = convertToListBlock(receiver);
             const recv = converted ? listBlock : receiver;
             if (!recv) return null;
-            // === Smalruby: End of array syntax ===
 
             const block = converter._changeBlock(recv, 'data_addtolist', 'statement');
             converter._addTextInput(
@@ -228,7 +220,6 @@ const VariablesConverter = {
             return block;
         });
 
-        // === Smalruby: Start of array syntax ===
         converter.registerOnSend('variable', '<<', 1, params => {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
@@ -244,18 +235,15 @@ const VariablesConverter = {
             );
             return block;
         });
-        // === Smalruby: End of array syntax ===
 
         converter.registerOnSend('variable', 'delete_at', 1, params => {
             const {receiver, args} = params;
             if (!converter._isNumberOrBlock(args[0])) return null;
 
-            // === Smalruby: Start of array syntax ===
             const {block: listBlock, converted} = convertToListBlock(receiver);
             const recv = converted ? listBlock : receiver;
             if (!recv) return null;
             const index = adjustIndex(args[0], converted);
-            // === Smalruby: End of array syntax ===
 
             const block = converter._changeBlock(recv, 'data_deleteoflist', 'statement');
             converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
@@ -265,11 +253,9 @@ const VariablesConverter = {
         converter.registerOnSend('variable', 'clear', 0, params => {
             const {receiver} = params;
 
-            // === Smalruby: Start of array syntax ===
             const {block: listBlock, converted} = convertToListBlock(receiver);
             const recv = converted ? listBlock : receiver;
             if (!recv) return null;
-            // === Smalruby: End of array syntax ===
 
             return converter._changeBlock(recv, 'data_deletealloflist', 'statement');
         });
@@ -279,12 +265,10 @@ const VariablesConverter = {
             if (!converter._isNumberOrBlock(args[0])) return null;
             if (!converter._isStringOrBlock(args[1]) && !converter._isNumberOrBlock(args[1])) return null;
 
-            // === Smalruby: Start of array syntax ===
             const {block: listBlock, converted} = convertToListBlock(receiver);
             const recv = converted ? listBlock : receiver;
             if (!recv) return null;
             const index = adjustIndex(args[0], converted);
-            // === Smalruby: End of array syntax ===
 
             const block = converter._changeBlock(recv, 'data_insertatlist', 'statement');
             converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
@@ -299,12 +283,10 @@ const VariablesConverter = {
             if (!converter._isNumberOrBlock(args[0])) return null;
             if (!converter._isStringOrBlock(args[1]) && !converter._isNumberOrBlock(args[1])) return null;
 
-            // === Smalruby: Start of array syntax ===
             const {block: listBlock, converted} = convertToListBlock(receiver);
             const recv = converted ? listBlock : receiver;
             if (!recv) return null;
             const index = adjustIndex(args[0], converted);
-            // === Smalruby: End of array syntax ===
 
             const block = converter._changeBlock(recv, 'data_replaceitemoflist', 'statement');
             converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
@@ -318,7 +300,6 @@ const VariablesConverter = {
             const {receiver, args} = params;
             if (!converter._isNumberOrBlock(args[0])) return null;
 
-            // === Smalruby: Start of array syntax ===
             const {block: listBlock, converted} = convertToListBlock(receiver);
             if (converted && listBlock) {
                 const index = adjustIndex(args[0], true);
@@ -326,7 +307,6 @@ const VariablesConverter = {
                 converter._addNumberInput(block, 'INDEX', 'math_integer', index, 1);
                 return block;
             }
-            // === Smalruby: End of array syntax ===
 
             if (converter._isBlock(receiver) && converter.isListBlock(receiver)) {
                 const block = converter._changeBlock(receiver, 'data_itemoflist', 'value');
@@ -341,18 +321,15 @@ const VariablesConverter = {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
-            // === Smalruby: Start of array syntax ===
             const {block: listBlock, converted} = convertToListBlock(receiver);
             const recv = converted ? listBlock : receiver;
             if (!recv) return null;
-            // === Smalruby: End of array syntax ===
 
             const block = converter._changeBlock(recv, 'data_itemnumoflist', 'value');
             converter._addTextInput(
                 block, 'ITEM', converter._isNumber(args[0]) ? args[0].toString() : args[0], 'thing'
             );
 
-            // === Smalruby: Start of array syntax ===
             // Wrap in operator_subtract(result, 1) for 0-indexed return value
             if (converted) {
                 const subtractBlock = converter._createBlock('operator_subtract', 'value');
@@ -363,7 +340,6 @@ const VariablesConverter = {
                 );
                 return subtractBlock;
             }
-            // === Smalruby: End of array syntax ===
 
             return block;
         });
@@ -371,12 +347,10 @@ const VariablesConverter = {
         converter.registerOnSend('variable', 'length', 0, params => {
             const {receiver} = params;
 
-            // === Smalruby: Start of array syntax ===
             const {block: listBlock, converted} = convertToListBlock(receiver);
             if (converted && listBlock) {
                 return converter._changeBlock(listBlock, 'data_lengthoflist', 'value');
             }
-            // === Smalruby: End of array syntax ===
 
             if (converter._isBlock(receiver) && converter.isListBlock(receiver)) {
                 return converter._changeBlock(receiver, 'data_lengthoflist', 'value');
@@ -388,14 +362,12 @@ const VariablesConverter = {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
-            // === Smalruby: Start of array syntax ===
             let recv = receiver;
             if (converter.version >= 2) {
                 const {block: listBlock, converted} = convertToListBlock(receiver);
                 recv = converted ? listBlock : receiver;
                 if (!recv) return null;
             }
-            // === Smalruby: End of array syntax ===
 
             const block = converter._changeBlock(recv, 'data_listcontainsitem', 'value_boolean');
             converter._addTextInput(
@@ -404,7 +376,6 @@ const VariablesConverter = {
             return block;
         });
 
-        // === Smalruby: Start of array syntax ===
         converter.registerOnSend('variable', 'empty?', 0, params => {
             if (converter.version < 2) return null;
 
@@ -427,7 +398,6 @@ const VariablesConverter = {
             block.comment = converter._createComment(commentText, block.id);
             return block;
         });
-        // === Smalruby: End of array syntax ===
 
         // Operator to opcode mapping for compound assignments
         const COMPOUND_OPERATOR_MAP = {
@@ -631,15 +601,12 @@ const VariablesConverter = {
         });
 
         converter.registerOnVasgn((scope, variable, rh) => {
-            // === Smalruby: Start of symbol assignment ===
             if ((scope === 'global' || scope === 'instance' ||
                 (scope === 'local' && !variable.isArgument)) &&
                 converter._isPrimitive(rh) && rh.type === 'sym') {
                 rh = converter._symbolToBlock(rh.value, rh.node);
             }
-            // === Smalruby: End of symbol assignment ===
 
-            // === Smalruby: Start of array syntax ===
             if ((scope === 'global' || scope === 'instance' ||
                 (scope === 'local' && !variable.isArgument)) &&
                 converter._isArray(rh)) {
@@ -707,7 +674,6 @@ const VariablesConverter = {
                 // Link blocks
                 return converter._linkBlocks(blocks);
             }
-            // === Smalruby: End of array syntax ===
 
             if (scope === 'global' || scope === 'instance') {
                 if (converter._isNumberOrBlock(rh) || converter._isStringOrBlock(rh)) {

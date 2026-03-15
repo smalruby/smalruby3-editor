@@ -233,7 +233,6 @@ const OperatorsConverter = {
                     rh = rh[0];
                 }
 
-                // === Smalruby: Start of symbol comparison guard ===
                 // For >, <: reject symbol args (Ruby raises ArgumentError for mixed types)
                 if (operator !== '==' &&
                     converter._isPrimitive(rh) && rh.type === 'sym') {
@@ -245,7 +244,6 @@ const OperatorsConverter = {
                         )
                     );
                 }
-                // === Smalruby: End of symbol comparison guard ===
 
                 let opcode;
                 if (operator === '>') {
@@ -265,7 +263,6 @@ const OperatorsConverter = {
             });
         });
 
-        // === Smalruby: Start of symbol comparison ===
         ['>', '<', '=='].forEach(operator => {
             converter.registerOnSend('symbol', operator, 1, params => {
                 const {receiver, args, node} = params;
@@ -318,7 +315,6 @@ const OperatorsConverter = {
                 return block;
             });
         });
-        // === Smalruby: End of symbol comparison ===
 
         converter.registerOnSend(['variable', 'boolean', 'block'], '!', 0, params => {
             const {receiver} = params;
@@ -341,7 +337,6 @@ const OperatorsConverter = {
             return block;
         });
 
-        // === Smalruby: Start of symbol to_s ===
         converter.registerOnSend('symbol', 'to_s', 0, params => {
             const {receiver} = params;
             const symbolName = converter._getSymbolValue(receiver);
@@ -354,7 +349,6 @@ const OperatorsConverter = {
             block.comment = converter._createComment(`@ruby:symbol:${symbolName}`, block.id);
             return block;
         });
-        // === Smalruby: End of symbol to_s ===
 
         converter.registerOnSend(['variable', 'number', 'string', 'block'], 'to_s', 0, params => {
             const {receiver} = params;

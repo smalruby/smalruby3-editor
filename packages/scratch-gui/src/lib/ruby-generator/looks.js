@@ -36,13 +36,11 @@ export default function (Generator) {
     };
 
     Generator.looks_say = function (block) {
-        // === Smalruby: Start of symbol implicit conversion ===
         const sayComment = Generator.getCommentText(block);
         if (sayComment && sayComment.startsWith('@ruby:symbol:')) {
             const symbolName = sayComment.slice('@ruby:symbol:'.length);
             return `say(:${symbolName})\n`;
         }
-        // === Smalruby: End of symbol implicit conversion ===
         const message = Generator.valueToCode(block, 'MESSAGE', Generator.ORDER_NONE) || Generator.quote_('');
         return `say(${message})\n`;
     };
@@ -54,13 +52,11 @@ export default function (Generator) {
     };
 
     Generator.looks_think = function (block) {
-        // === Smalruby: Start of symbol implicit conversion ===
         const thinkComment = Generator.getCommentText(block);
         if (thinkComment && thinkComment.startsWith('@ruby:symbol:')) {
             const symbolName = thinkComment.slice('@ruby:symbol:'.length);
             return `think(:${symbolName})\n`;
         }
-        // === Smalruby: End of symbol implicit conversion ===
         const message = Generator.valueToCode(block, 'MESSAGE', Generator.ORDER_NONE) || Generator.quote_('');
         return `think(${message})\n`;
     };

@@ -452,7 +452,6 @@ end
         });
     });
 
-    // === Smalruby: Start of array syntax ===
     describe('array syntax round trip', () => {
         test('push via method call', async () => {
             await expectRoundTrip('$a.push("hello")');
@@ -509,9 +508,7 @@ end
             await expectRoundTrip('@items.length');
         });
     });
-    // === Smalruby: End of array syntax ===
 
-    // === Smalruby: Start of symbol support ===
     test('symbol .to_s round-trip', async () => {
         await expectRoundTrip('say(:foo.to_s)');
         await expectRoundTrip('say(:bar_baz.to_s)');
@@ -536,5 +533,4 @@ end
         await expectRoundTrip('$a = :foo\nsay($a)');
         await expectRoundTrip('$a = :foo\nthink($a)');
     });
-    // === Smalruby: End of symbol support ===
 });

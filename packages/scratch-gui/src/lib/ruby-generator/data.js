@@ -132,7 +132,6 @@ export default function (Generator) {
         return `hide_variable(${Generator.quote_(variable)})\n`;
     };
 
-    // === Smalruby: Start of array syntax ===
     const getListName = function (block) {
         const comment = Generator.getCommentText(block);
         if (comment) {
@@ -173,7 +172,6 @@ export default function (Generator) {
         // Expression: wrap with "- 1"
         return `${index} - 1`;
     };
-    // === Smalruby: End of array syntax ===
 
     Generator.data_listcontents = function (block) {
         const list = getListName(block);
@@ -181,13 +179,11 @@ export default function (Generator) {
     };
 
     Generator.data_addtolist = function (block) {
-        // === Smalruby: Start of array syntax ===
         const comment = Generator.getCommentText(block);
         if (comment && comment.includes('@ruby:array:literal:element')) {
             // Suppressed: handled by data_deletealloflist array literal pattern
             return '';
         }
-        // === Smalruby: End of array syntax ===
 
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
@@ -203,7 +199,6 @@ export default function (Generator) {
     Generator.data_deletealloflist = function (block) {
         const list = getListName(block);
 
-        // === Smalruby: Start of array syntax ===
         const comment = Generator.getCommentText(block);
         const arrayLiteralMatch = comment ? comment.match(/@ruby:array:literal:(\d+)/) : null;
         if (arrayLiteralMatch) {
@@ -218,7 +213,6 @@ export default function (Generator) {
             }
             return `${list} = [${values.join(', ')}]\n`;
         }
-        // === Smalruby: End of array syntax ===
 
         return `${list}.clear\n`;
     };
@@ -238,26 +232,22 @@ export default function (Generator) {
     };
 
     Generator.data_itemoflist = function (block) {
-        // === Smalruby: Start of symbol variable lookup ===
         const comment = Generator.getCommentText(block);
         if (comment === '@ruby:symbol:var') {
             const index = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE);
             return [index, Generator.ORDER_ATOMIC];
         }
-        // === Smalruby: End of symbol variable lookup ===
         const index = getListIndex(block);
         const list = getListName(block);
         return [`${list}[${index}]`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.data_itemnumoflist = function (block) {
-        // === Smalruby: Start of symbol reference ===
         const comment = Generator.getCommentText(block);
         if (comment && comment.startsWith('@ruby:symbol:')) {
             const symbolName = comment.slice('@ruby:symbol:'.length);
             return [`:${symbolName}`, Generator.ORDER_ATOMIC];
         }
-        // === Smalruby: End of symbol reference ===
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
         return [`${list}.index(${Generator.nosToCode(item)})`, Generator.ORDER_FUNCTION_CALL];

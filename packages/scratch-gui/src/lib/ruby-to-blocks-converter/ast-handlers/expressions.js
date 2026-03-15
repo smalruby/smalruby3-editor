@@ -59,7 +59,6 @@ const ExpressionHandlers = {
         if (!block) {
             this._restoreContext(saved);
 
-            // === Smalruby: Start of symbol error checks ===
             const arithmeticOps = ['+', '-', '*', '/', '%', '**'];
             const comparisonOps = ['>', '<', '>=', '<='];
             const isSymReceiver = this._isPrimitive(receiver) && receiver.type === 'sym';
@@ -106,7 +105,6 @@ const ExpressionHandlers = {
                     })
                 );
             }
-            // === Smalruby: End of symbol error checks ===
 
             if (node.block) {
                 block = this._createBlock('ruby_statement_with_block', 'statement');

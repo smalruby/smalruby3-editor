@@ -320,7 +320,6 @@ class RubyToBlocksConverter extends Visitor {
                 } else {
                     const Primitive = require('./primitive').default;
                     if (block instanceof Primitive) {
-                        // === Smalruby: Start of symbol error ===
                         if (block.type === 'sym') {
                             const source = this._truncateSource(this._getSource(block.node));
                             const suggestion = `${source}.to_s`;
@@ -332,7 +331,6 @@ class RubyToBlocksConverter extends Visitor {
                                 )
                             );
                         }
-                        // === Smalruby: End of symbol error ===
                         throw new RubyToBlocksConverterError(
                             block.node,
                             this._translator(
@@ -748,7 +746,6 @@ class RubyToBlocksConverter extends Visitor {
             );
         }
 
-        // === Smalruby: Start of stage module restriction ===
         // module is not supported in Stage (stage and sprite have different available methods)
         if (this._context.target && this._context.target.isStage) {
             throw new RubyToBlocksConverterError(
@@ -756,7 +753,6 @@ class RubyToBlocksConverter extends Visitor {
                 this._translator(messages.moduleNotSupportedInStage)
             );
         }
-        // === Smalruby: End of stage module restriction ===
 
         // Nested modules are not supported
         if (this._context.currentModuleName) {
@@ -797,7 +793,6 @@ class RubyToBlocksConverter extends Visitor {
         return [];
     }
 
-    // === Smalruby: Start of auto-import module from other sprites ===
     /**
      * Try to import a module definition from other sprites.
      * Searches other sprites' block comments for `@ruby:module_source:moduleName`,
@@ -846,7 +841,6 @@ class RubyToBlocksConverter extends Visitor {
         };
         return true;
     }
-    // === Smalruby: End of auto-import module from other sprites ===
 
     visitClassNode (node) {
         // class definitions are only supported in version 2
@@ -988,16 +982,13 @@ class RubyToBlocksConverter extends Visitor {
                         if (argType === 'ConstantReadNode') {
                             const moduleName = argNode.name;
 
-                            // === Smalruby: Start of stage include restriction ===
                             if (isStageClass) {
                                 throw new RubyToBlocksConverterError(
                                     stmt,
                                     this._translator(messages.includeNotSupportedInStage)
                                 );
                             }
-                            // === Smalruby: End of stage include restriction ===
 
-                            // === Smalruby: Start of auto-import module from other sprites ===
                             if (!this._context.modules[moduleName]) {
                                 // Try to import the module from other sprites
                                 const imported = this._importModuleFromOtherSprites(moduleName);
@@ -1008,7 +999,6 @@ class RubyToBlocksConverter extends Visitor {
                                     );
                                 }
                             }
-                            // === Smalruby: End of auto-import module from other sprites ===
 
                             includedModuleNames.push(moduleName);
                             includeStatements.add(stmt);
