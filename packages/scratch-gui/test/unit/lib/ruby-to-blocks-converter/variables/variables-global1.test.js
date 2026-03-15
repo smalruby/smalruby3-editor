@@ -322,64 +322,7 @@ describe('RubyToBlocksConverter/Variables', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
-        test('data_listcontents', async () => {
-            const code = `list("${varName}")`;
-            const expected = [
-                {
-                    opcode: 'data_listcontents',
-                    fields: [
-                        {
-                            name: 'LIST',
-                            list: varName
-                        }
-                    ]
-                }
-            ];
-            await convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
-
-        test('data_addtolist', async () => {
-            const code = `list("${varName}").push("thing")`;
-            const expected = [
-                {
-                    opcode: 'data_addtolist',
-                    fields: [
-                        {
-                            name: 'LIST',
-                            list: varName
-                        }
-                    ],
-                    inputs: [
-                        {
-                            name: 'ITEM',
-                            block: expectedInfo.makeText('thing')
-                        }
-                    ]
-                }
-            ];
-            await convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
-
-        test('data_deleteoflist', async () => {
-            const code = `list("${varName}").delete_at(1)`;
-            const expected = [
-                {
-                    opcode: 'data_deleteoflist',
-                    fields: [
-                        {
-                            name: 'LIST',
-                            list: varName
-                        }
-                    ],
-                    inputs: [
-                        {
-                            name: 'INDEX',
-                            block: expectedInfo.makeNumber(1, 'math_integer')
-                        }
-                    ]
-                }
-            ];
-            await convertAndExpectToEqualBlocks(converter, target, code, expected);
-        });
+        // list() syntax tests removed: list() is only available in v1.
+        // Array syntax equivalents are tested in variables-array-global.test.js.
     });
 });

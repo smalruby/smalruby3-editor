@@ -1,4 +1,7 @@
 import _ from 'lodash';
+// === Smalruby: Start of array syntax ===
+import {RubyToBlocksConverterError} from './errors';
+// === Smalruby: End of array syntax ===
 
 /**
  * Variables converter
@@ -20,9 +23,17 @@ const VariablesConverter = {
             // Already a list block, no conversion needed
             if (converter.isListBlock(block)) return {block, converted: false};
 
-            // Only convert data_variable blocks in version 2
-            if (converter.version < 2) return {block: null, converted: false};
             if (block.opcode !== 'data_variable') return {block: null, converted: false};
+
+            // Only convert data_variable blocks in version 2
+            if (converter.version < 2) {
+                throw new RubyToBlocksConverterError(
+                    converter._context.currentNode,
+                    'Array syntax is only available in Ruby version 2.' +
+                    '\nPlease switch to Ruby version 2 from the settings menu,' +
+                    '\nor use list() syntax instead.'
+                );
+            }
 
             const varName = block.fields.VARIABLE.value;
             const variable = converter._context.variables[varName] ||
@@ -114,6 +125,16 @@ const VariablesConverter = {
             const {args} = params;
             if (!converter._isString(args[0])) return null;
 
+            // === Smalruby: Start of array syntax ===
+            if (converter.version >= 2) {
+                throw new RubyToBlocksConverterError(
+                    params.node,
+                    'list() syntax is only available in Ruby version 1.' +
+                    '\nPlease use array syntax ($a.push(), $a[0], etc.) instead.'
+                );
+            }
+            // === Smalruby: End of array syntax ===
+
             const variable = converter._lookupOrCreateList(args[0]);
             if (variable.scope === 'global' || variable.scope === 'instance') {
                 return converter._createBlock('data_listcontents', 'value_variable', {
@@ -192,6 +213,7 @@ const VariablesConverter = {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0]) && !converter._isNumberOrBlock(args[0])) return null;
 
+            // convertToListBlock will throw error in v1 if receiver is data_variable
             const {block: listBlock, converted} = convertToListBlock(receiver);
             const recv = converted ? listBlock : receiver;
             if (!recv) return null;
@@ -358,6 +380,29 @@ const VariablesConverter = {
             );
             return block;
         });
+
+        // === Smalruby: Start of array syntax ===
+        converter.registerOnSend('variable', 'empty?', 0, params => {
+            const {receiver} = params;
+
+            const {block: listBlock, converted} = convertToListBlock(receiver);
+            if (!converted || !listBlock) return null;
+
+            const name = 'empty?';
+            const index = (converter._context.methodCallIndices[name] || 0) + 1;
+            converter._context.methodCallIndices[name] = index;
+            const commentText = `@ruby:method:${name}:${index}`;
+
+            const lengthBlock = converter._changeBlock(listBlock, 'data_lengthoflist', 'value');
+            lengthBlock.comment = converter._createComment(commentText, lengthBlock.id);
+
+            const block = converter._createBlock('operator_equals', 'value_boolean');
+            converter._addInput(block, 'OPERAND1', lengthBlock, converter._createTextBlock(''));
+            converter._addTextInput(block, 'OPERAND2', '0', '50');
+            block.comment = converter._createComment(commentText, block.id);
+            return block;
+        });
+        // === Smalruby: End of array syntax ===
 
         // Operator to opcode mapping for compound assignments
         const COMPOUND_OPERATOR_MAP = {
@@ -563,8 +608,14 @@ const VariablesConverter = {
         converter.registerOnVasgn((scope, variable, rh) => {
             // === Smalruby: Start of array syntax ===
             if ((scope === 'global' || scope === 'instance') &&
-                converter.version >= 2 &&
                 converter._isArray(rh)) {
+                if (converter.version < 2) {
+                    throw new RubyToBlocksConverterError(
+                        converter._context.currentNode,
+                        'Array literal syntax is only available in Ruby version 2.' +
+                        '\nPlease switch to Ruby version 2 from the settings menu.'
+                    );
+                }
                 const elements = rh.value;
                 let prefixedName;
                 if (variable.scope === 'global') {
