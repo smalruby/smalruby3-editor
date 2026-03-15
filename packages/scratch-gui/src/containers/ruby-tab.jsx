@@ -12,6 +12,7 @@ import {
     updateRubyFontSize
 } from '../reducers/ruby-code';
 import {setRubyVersion} from '../reducers/settings';
+import {setProjectChanged} from '../reducers/project-changed';
 import {showAlertWithTimeout, closeAlertWithId} from '../reducers/alerts';
 import {markRubyTabUsed} from '../reducers/tutorial-onboarding';
 import VM from '@smalruby/scratch-vm';
@@ -1049,7 +1050,10 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch => ({
-    onChange: code => dispatch(updateRubyCode(code)),
+    onChange: code => {
+        dispatch(updateRubyCode(code));
+        dispatch(setProjectChanged());
+    },
     updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors)),
     updateRubyCodeTargetState: (target, version) => dispatch(updateRubyCodeTarget(target, version)),
     onRevertRubyVersion: version => dispatch(setRubyVersion(version)),
