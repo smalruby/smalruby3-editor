@@ -134,6 +134,13 @@ export default function (Generator) {
 
     // === Smalruby: Start of array syntax ===
     const getListName = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment) {
+            const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+)/);
+            if (lvarMatch) {
+                return lvarMatch[1];
+            }
+        }
         return Generator.listName(Generator.getFieldId(block, 'LIST'));
     };
 
@@ -150,7 +157,7 @@ export default function (Generator) {
             const indexBlock = Generator.getBlock(indexBlockId);
             if (indexBlock && indexBlock.opcode === 'operator_add') {
                 const comment = Generator.getCommentText(indexBlock);
-                if (comment && comment.includes('@ruby:array:index_offset')) {
+                if (comment && comment.includes('@ruby:array:index')) {
                     // Use NUM1 directly (the original 0-indexed value)
                     return Generator.valueToCode(indexBlock, 'NUM1', Generator.ORDER_NONE) || 0;
                 }
@@ -198,8 +205,9 @@ export default function (Generator) {
 
         // === Smalruby: Start of array syntax ===
         const comment = Generator.getCommentText(block);
-        if (comment && comment.startsWith('@ruby:array:literal:')) {
-            const count = parseInt(comment.split(':')[3], 10);
+        const arrayLiteralMatch = comment ? comment.match(/@ruby:array:literal:(\d+)/) : null;
+        if (arrayLiteralMatch) {
+            const count = parseInt(arrayLiteralMatch[1], 10);
             const values = [];
             let nextId = block.next;
             for (let i = 0; i < count; i++) {
