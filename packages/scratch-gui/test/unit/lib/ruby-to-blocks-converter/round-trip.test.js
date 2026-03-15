@@ -510,4 +510,26 @@ end
         });
     });
     // === Smalruby: End of array syntax ===
+
+    // === Smalruby: Start of symbol support ===
+    test('symbol .to_s round-trip', async () => {
+        await expectRoundTrip('say(:foo.to_s)');
+        await expectRoundTrip('say(:bar_baz.to_s)');
+    });
+
+    test('symbol variable assignment round-trip', async () => {
+        await expectRoundTrip('$a = :foo');
+        await expectRoundTrip('@x = :bar');
+        await expectRoundTrip('a = :baz');
+    });
+
+    test('symbol comparison round-trip', async () => {
+        await expectRoundTrip(':foo == :bar');
+    });
+
+    test('symbol say implicit round-trip', async () => {
+        await expectRoundTrip('say(:foo)');
+        await expectRoundTrip('think(:foo)');
+    });
+    // === Smalruby: End of symbol support ===
 });
