@@ -154,6 +154,22 @@ const ariaMessages = defineMessages({
     }
 });
 
+// === Smalruby: Start of version update notification messages ===
+const updateMessages = defineMessages({
+    updateTooltip: {
+        id: 'gui.menuBar.updateTooltip',
+        defaultMessage: 'Try the new Smalruby!',
+        description: 'tooltip text shown when a new version is available'
+    },
+    updateConfirm: {
+        id: 'gui.menuBar.updateConfirm',
+        // eslint-disable-next-line max-len
+        defaultMessage: 'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',
+        description: 'confirm dialog text for version update notification'
+    }
+});
+// === Smalruby: End of version update notification messages ===
+
 
 const MenuBarItemTooltip = ({
     children,
@@ -309,8 +325,7 @@ class MenuBar extends React.Component {
     handleUpdateNotificationClick () {
         // eslint-disable-next-line no-alert
         const confirmed = window.confirm(
-            '新しいバージョンのスモウルビーが利用可能です。' +
-            'いますぐ更新する場合は「はい」を、あとにする場合は「キャンセル」を押してください。'
+            this.props.intl.formatMessage(updateMessages.updateConfirm)
         );
         if (confirmed) {
             window.location.reload();
@@ -709,7 +724,9 @@ class MenuBar extends React.Component {
                                 >
                                     <div className={styles.updateTooltipArrow} />
                                     <div className={styles.updateTooltipContent}>
-                                        {'新しいスモウルビーを使ってみよう！'}
+                                        <FormattedMessage
+                                            {...updateMessages.updateTooltip}
+                                        />
                                     </div>
                                 </div>
                             )}
