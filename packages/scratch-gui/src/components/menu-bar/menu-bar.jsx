@@ -128,6 +128,8 @@ import meshDisconnectedIcon from './icon--mesh-disconnected.png';
 // prehistoricLogo, oldtimeyLogo and defines getScratchLogo() here.
 // Smalruby uses a single logo instead.
 import smalrubyLogo from './hatti.svg';
+import hattiGreeting from './hatti-greeting.png';
+import {createVersionChecker} from '../../lib/version-checker';
 // === Smalruby: End of replace Scratch logos with Smalruby logo ===
 
 import sharedMessages from '../../lib/shared-messages';
@@ -249,8 +251,19 @@ class MenuBar extends React.Component {
             'handleExtensionAdded',
             'handleClickKoshienEntryForm',
             'handleMeshV2MenuClick',
-            'handleClickTutorials'
+            'handleClickTutorials',
+            'handleUpdateAvailable',
+            'handleUpdateNotificationClick'
         ]);
+        // === Smalruby: Start of version update notification ===
+        this.state = {
+            updateAvailable: false
+        };
+        this.versionChecker = createVersionChecker({
+            currentCommitId: process.env.COMMIT_SHA,
+            onUpdateAvailable: this.handleUpdateAvailable
+        });
+        // === Smalruby: End of version update notification ===
     }
     componentDidMount () {
         document.addEventListener('keydown', this.handleKeyPress);
@@ -264,6 +277,10 @@ class MenuBar extends React.Component {
         }
 
         this.syncMeshV2Domain();
+
+        // === Smalruby: Start of version update notification ===
+        this.versionChecker.start();
+        // === Smalruby: End of version update notification ===
     }
     componentDidUpdate (prevProps) {
         if (this.props.extensionLoadCounter !== prevProps.extensionLoadCounter) {
@@ -273,6 +290,10 @@ class MenuBar extends React.Component {
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
 
+        // === Smalruby: Start of version update notification ===
+        this.versionChecker.stop();
+        // === Smalruby: End of version update notification ===
+
         // Remove extension listener
         if (this.props.vm.runtime) {
             this.props.vm.runtime.off('EXTENSION_ADDED', this.handleExtensionAdded);
@@ -281,6 +302,27 @@ class MenuBar extends React.Component {
             this.props.vm.runtime.off('PERIPHERAL_REQUEST_ERROR', this.handleExtensionAdded);
         }
     }
+    // === Smalruby: Start of version update notification ===
+    handleUpdateAvailable () {
+        this.setState({updateAvailable: true});
+    }
+    handleUpdateNotificationClick () {
+        // eslint-disable-next-line no-alert
+        const confirmed = window.confirm(
+            '新しいバージョンのスモウルビーが利用可能です。' +
+            'いますぐ更新する場合は「はい」を、あとにする場合は「キャンセル」を押してください。'
+        );
+        if (confirmed) {
+            window.location.reload();
+        } else {
+            this.setState({updateAvailable: false});
+            // Re-check after 1 hour
+            setTimeout(() => {
+                this.versionChecker.check();
+            }, 60 * 60 * 1000);
+        }
+    }
+    // === Smalruby: End of version update notification ===
     handleClickNew () {
         // if the project is dirty, and user owns the project, we will autosave.
         // but if they are not logged in and can't save, user should consider
@@ -645,18 +687,34 @@ class MenuBar extends React.Component {
             >
                 <div className={styles.mainMenu}>
                     <div className={styles.fileGroup}>
+                        {/* === Smalruby: Start of version update notification UI === */}
                         <div className={classNames(styles.menuBarItem)}>
                             <img
                                 id="logo_img"
                                 alt="Smalruby"
                                 className={classNames(styles.scratchLogo, {
-                                    [styles.clickable]: typeof this.props.onClickLogo !== 'undefined'
+                                    [styles.clickable]: typeof this.props.onClickLogo !== 'undefined' ||
+                                        this.state.updateAvailable
                                 })}
                                 draggable={false}
-                                src={this.props.logo}
-                                onClick={this.props.onClickLogo}
+                                src={this.state.updateAvailable ? hattiGreeting : this.props.logo}
+                                onClick={this.state.updateAvailable ?
+                                    this.handleUpdateNotificationClick :
+                                    this.props.onClickLogo}
                             />
+                            {this.state.updateAvailable && (
+                                <div
+                                    className={styles.updateTooltip}
+                                    onClick={this.handleUpdateNotificationClick}
+                                >
+                                    <div className={styles.updateTooltipArrow} />
+                                    <div className={styles.updateTooltipContent}>
+                                        {'新しいスモウルビーを使ってみよう！'}
+                                    </div>
+                                </div>
+                            )}
                         </div>
+                        {/* === Smalruby: End of version update notification UI === */}
                         {(this.props.canChangeColorMode || this.props.canChangeLanguage || this.props.canChangeTheme) &&
                         (<SettingsMenu
                             canChangeLanguage={this.props.canChangeLanguage}
