@@ -547,6 +547,63 @@ const VariablesConverter = {
         });
 
         converter.registerOnVasgn((scope, variable, rh) => {
+            // === Smalruby: Start of array syntax ===
+            if ((scope === 'global' || scope === 'instance') &&
+                converter.version >= 2 &&
+                converter._isArray(rh)) {
+                const elements = rh.value;
+                let prefixedName;
+                if (variable.scope === 'global') {
+                    prefixedName = `$${variable.name}`;
+                } else {
+                    prefixedName = `@${variable.name}`;
+                }
+                const listVar = converter._lookupOrCreateList(prefixedName);
+
+                // Create clear block
+                const clearBlock = converter._createBlock('data_deletealloflist', 'statement', {
+                    fields: {
+                        LIST: {
+                            name: 'LIST',
+                            id: listVar.id,
+                            value: listVar.name,
+                            variableType: listVar.type
+                        }
+                    }
+                });
+                clearBlock.comment = converter._createComment(
+                    `@ruby:array:literal:${elements.length}`, clearBlock.id
+                );
+
+                // Create push blocks for each element
+                const blocks = [clearBlock];
+                for (let i = 0; i < elements.length; i++) {
+                    const elem = elements[i];
+                    const pushBlock = converter._createBlock('data_addtolist', 'statement', {
+                        fields: {
+                            LIST: {
+                                name: 'LIST',
+                                id: listVar.id,
+                                value: listVar.name,
+                                variableType: listVar.type
+                            }
+                        }
+                    });
+                    converter._addTextInput(
+                        pushBlock, 'ITEM',
+                        converter._isNumber(elem) ? elem.toString() : elem, 'thing'
+                    );
+                    pushBlock.comment = converter._createComment(
+                        '@ruby:array:literal:element', pushBlock.id
+                    );
+                    blocks.push(pushBlock);
+                }
+
+                // Link blocks
+                return converter._linkBlocks(blocks);
+            }
+            // === Smalruby: End of array syntax ===
+
             if (scope === 'global' || scope === 'instance') {
                 if (converter._isNumberOrBlock(rh) || converter._isStringOrBlock(rh)) {
                     const block = converter._createBlock('data_setvariableto', 'statement', {

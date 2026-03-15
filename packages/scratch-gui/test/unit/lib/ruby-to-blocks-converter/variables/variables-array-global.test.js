@@ -232,5 +232,87 @@ describe('RubyToBlocksConverter/Variables/ArraySyntax', () => {
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
+
+        test('array literal $a = [1, 2, 3] generates clear + push blocks', async () => {
+            const code = `${varName} = [1, 2, 3]`;
+            const expected = [
+                {
+                    opcode: 'data_deletealloflist',
+                    fields: [
+                        {
+                            name: 'LIST',
+                            list: varName
+                        }
+                    ],
+                    comment: {text: '@ruby:array:literal:3', minimized: true},
+                    next: {
+                        opcode: 'data_addtolist',
+                        fields: [
+                            {
+                                name: 'LIST',
+                                list: varName
+                            }
+                        ],
+                        inputs: [
+                            {
+                                name: 'ITEM',
+                                block: expectedInfo.makeText('1')
+                            }
+                        ],
+                        comment: {text: '@ruby:array:literal:element', minimized: true},
+                        next: {
+                            opcode: 'data_addtolist',
+                            fields: [
+                                {
+                                    name: 'LIST',
+                                    list: varName
+                                }
+                            ],
+                            inputs: [
+                                {
+                                    name: 'ITEM',
+                                    block: expectedInfo.makeText('2')
+                                }
+                            ],
+                            comment: {text: '@ruby:array:literal:element', minimized: true},
+                            next: {
+                                opcode: 'data_addtolist',
+                                fields: [
+                                    {
+                                        name: 'LIST',
+                                        list: varName
+                                    }
+                                ],
+                                inputs: [
+                                    {
+                                        name: 'ITEM',
+                                        block: expectedInfo.makeText('3')
+                                    }
+                                ],
+                                comment: {text: '@ruby:array:literal:element', minimized: true}
+                            }
+                        }
+                    }
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('empty array literal $a = [] generates clear only', async () => {
+            const code = `${varName} = []`;
+            const expected = [
+                {
+                    opcode: 'data_deletealloflist',
+                    fields: [
+                        {
+                            name: 'LIST',
+                            list: varName
+                        }
+                    ],
+                    comment: {text: '@ruby:array:literal:0', minimized: true}
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
     });
 });

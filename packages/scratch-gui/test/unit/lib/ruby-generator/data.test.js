@@ -269,4 +269,86 @@ describe('RubyGenerator/Data', () => {
                 .toEqual(['@my_list[@i]', RubyGenerator.ORDER_FUNCTION_CALL]);
         });
     });
+
+    describe('array literal pattern', () => {
+        beforeEach(() => {
+            RubyGenerator.listName = jest.fn().mockReturnValue('@my_list');
+            RubyGenerator.getFieldId = jest.fn().mockReturnValue('list-id');
+            RubyGenerator.nosToCode = jest.fn(v => v);
+        });
+
+        test('data_deletealloflist with @ruby:array:literal generates array literal', () => {
+            const push3 = {
+                id: 'push3-id',
+                opcode: 'data_addtolist',
+                fields: {LIST: {id: 'list-id', value: 'my_list'}},
+                inputs: {ITEM: {block: 'item3-id'}},
+                next: null
+            };
+            const push2 = {
+                id: 'push2-id',
+                opcode: 'data_addtolist',
+                fields: {LIST: {id: 'list-id', value: 'my_list'}},
+                inputs: {ITEM: {block: 'item2-id'}},
+                next: 'push3-id'
+            };
+            const push1 = {
+                id: 'push1-id',
+                opcode: 'data_addtolist',
+                fields: {LIST: {id: 'list-id', value: 'my_list'}},
+                inputs: {ITEM: {block: 'item1-id'}},
+                next: 'push2-id'
+            };
+            const clearBlock = {
+                id: 'clear-id',
+                opcode: 'data_deletealloflist',
+                fields: {LIST: {id: 'list-id', value: 'my_list'}},
+                next: 'push1-id'
+            };
+            RubyGenerator.cache_.comments['clear-id'] = {text: '@ruby:array:literal:3'};
+            RubyGenerator.cache_.comments['push1-id'] = {text: '@ruby:array:literal:element'};
+            RubyGenerator.cache_.comments['push2-id'] = {text: '@ruby:array:literal:element'};
+            RubyGenerator.cache_.comments['push3-id'] = {text: '@ruby:array:literal:element'};
+            RubyGenerator.getBlock = jest.fn()
+                .mockImplementation(id => {
+                    const blocks = {
+                        'push1-id': push1,
+                        'push2-id': push2,
+                        'push3-id': push3
+                    };
+                    return blocks[id] || null;
+                });
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('1')
+                .mockReturnValueOnce('2')
+                .mockReturnValueOnce('3');
+            expect(RubyGenerator.data_deletealloflist(clearBlock))
+                .toEqual('@my_list = [1, 2, 3]\n');
+        });
+
+        test('data_deletealloflist with @ruby:array:literal:0 generates empty array', () => {
+            const clearBlock = {
+                id: 'clear-id',
+                opcode: 'data_deletealloflist',
+                fields: {LIST: {id: 'list-id', value: 'my_list'}},
+                next: null
+            };
+            RubyGenerator.cache_.comments['clear-id'] = {text: '@ruby:array:literal:0'};
+            expect(RubyGenerator.data_deletealloflist(clearBlock))
+                .toEqual('@my_list = []\n');
+        });
+
+        test('data_addtolist with @ruby:array:literal:element returns empty string', () => {
+            const block = {
+                id: 'push-id',
+                opcode: 'data_addtolist',
+                fields: {LIST: {id: 'list-id', value: 'my_list'}},
+                inputs: {ITEM: {block: 'item-id'}}
+            };
+            RubyGenerator.cache_.comments['push-id'] = {text: '@ruby:array:literal:element'};
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"thing"');
+            expect(RubyGenerator.data_addtolist(block))
+                .toEqual('');
+        });
+    });
 });

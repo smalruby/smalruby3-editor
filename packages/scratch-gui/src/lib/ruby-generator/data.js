@@ -174,6 +174,14 @@ export default function (Generator) {
     };
 
     Generator.data_addtolist = function (block) {
+        // === Smalruby: Start of array syntax ===
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.includes('@ruby:array:literal:element')) {
+            // Suppressed: handled by data_deletealloflist array literal pattern
+            return '';
+        }
+        // === Smalruby: End of array syntax ===
+
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
         return `${list}.push(${Generator.nosToCode(item)})\n`;
@@ -187,6 +195,23 @@ export default function (Generator) {
 
     Generator.data_deletealloflist = function (block) {
         const list = getListName(block);
+
+        // === Smalruby: Start of array syntax ===
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:array:literal:')) {
+            const count = parseInt(comment.split(':')[3], 10);
+            const values = [];
+            let nextId = block.next;
+            for (let i = 0; i < count; i++) {
+                const pushBlock = Generator.getBlock(nextId);
+                const value = Generator.valueToCode(pushBlock, 'ITEM', Generator.ORDER_NONE) || '0';
+                values.push(Generator.nosToCode(value));
+                nextId = pushBlock.next;
+            }
+            return `${list} = [${values.join(', ')}]\n`;
+        }
+        // === Smalruby: End of array syntax ===
+
         return `${list}.clear\n`;
     };
 
