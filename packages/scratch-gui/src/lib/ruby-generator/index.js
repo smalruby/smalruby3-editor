@@ -2,6 +2,7 @@ import Blockly from 'scratch-blocks';
 import Generator from '../generator';
 
 import EncodingHelpers from './encoding.js';
+import VariableHelpers from './variables.js';
 import MathBlocks from './math.js';
 import TextBlocks from './text.js';
 import ColourBlocks from './colour.js';
@@ -659,68 +660,6 @@ RubyGenerator.spriteName = function () {
     return 'self';
 };
 
-const escapeIdentityRegexp =
-    /[\x00-\x1f\x7f-\x9f !"#$%&'()*+,-./:;<=>?@[\\\]^`{|}~]/g; // eslint-disable-line no-control-regex
-
-RubyGenerator.escapeVariableName = function (s) {
-    return s.replace(escapeIdentityRegexp, '_');
-};
-
-RubyGenerator.escapeMethodName = RubyGenerator.escapeVariableName;
-
-RubyGenerator.makeVariableName = function (isStage, name) {
-    const prefix = isStage ? '$' : '@';
-    return `${prefix}${name.replace(escapeIdentityRegexp, '_')}`;
-};
-
-RubyGenerator.variableName = function (id, type = SCALAR_TYPE) {
-    let currVar;
-    let isStage;
-    const target = this.currentTarget;
-    const variables = target.variables;
-    if (Object.prototype.hasOwnProperty.call(variables, id)) {
-        currVar = variables[id];
-        isStage = target.isStage;
-    } else if (target.runtime && !target.isStage) {
-        const stage = target.runtime.getTargetForStage();
-        if (stage && Object.prototype.hasOwnProperty.call(stage.variables, id)) {
-            currVar = stage.variables[id];
-            isStage = true;
-        }
-    }
-    if (currVar && currVar.type === type) {
-        return this.makeVariableName(isStage, currVar.name);
-    }
-    return null;
-};
-
-RubyGenerator.listName = function (id) {
-    return this.variableName(id, LIST_TYPE);
-};
-
-RubyGenerator.variableNameByName = function (name, type = SCALAR_TYPE) {
-    let currVar;
-    let isStage;
-    const target = this.currentTarget;
-    if (target.runtime) {
-        const stage = target.runtime.getTargetForStage();
-        currVar = stage.lookupVariableByNameAndType(name, type);
-        isStage = true;
-    }
-    if (!currVar) {
-        currVar = target.lookupVariableByNameAndType(name, type);
-        isStage = target.isStage;
-    }
-    if (currVar && currVar.type === type) {
-        return this.makeVariableName(isStage, currVar.name);
-    }
-    return null;
-};
-
-RubyGenerator.listNameByName = function (name) {
-    return this.variableNameByName(name, LIST_TYPE);
-};
-
 RubyGenerator.getScripts = function () {
     return Generator.prototype.getScripts.call(this).sort((a, b) => {
         const aValue = (this.getBlock(a).opcode === 'procedures_definition' ? 1 : -1);
@@ -730,6 +669,7 @@ RubyGenerator.getScripts = function () {
 };
 
 EncodingHelpers(RubyGenerator);
+VariableHelpers(RubyGenerator);
 MathBlocks(RubyGenerator);
 TextBlocks(RubyGenerator);
 ColourBlocks(RubyGenerator);
