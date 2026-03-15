@@ -106,7 +106,7 @@
 }
 
 .feedback-link {
-    padding: 0 3.75rem 0.25rem 0.5rem;
+    padding: 0 0.5rem 0.25rem 0.5rem;
     font-size: 0.65rem;
     color: $text-primary-transparent;
     text-decoration: none;
@@ -117,6 +117,13 @@
 .feedback-link:hover {
     color: $text-primary;
     text-decoration: underline;
+}
+
+@media (max-width: 767px) {
+    .feedback-link,
+    .link-separator {
+        display: none;
+    }
 }
 
 .tab {
