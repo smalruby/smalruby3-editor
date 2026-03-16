@@ -359,6 +359,35 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
         });
     });
 
+    describe('v1 version gating', () => {
+        let v1Converter;
+
+        beforeEach(() => {
+            v1Converter = new RubyToBlocksConverter(null, {version: '1'});
+        });
+
+        test('hash literal in v1 throws error', async () => {
+            const code = '$a = {name: "Alice"}';
+            await v1Converter.targetCodeToBlocks(null, code);
+            expect(v1Converter.errors).toHaveLength(1);
+            expect(v1Converter.errors[0].text).toMatch(/Hash syntax is only available in Ruby version 2/);
+        });
+
+        test('hash read in v1 throws error', async () => {
+            const code = '$a[:name]';
+            await v1Converter.targetCodeToBlocks(null, code);
+            expect(v1Converter.errors).toHaveLength(1);
+            expect(v1Converter.errors[0].text).toMatch(/Hash syntax is only available in Ruby version 2/);
+        });
+
+        test('hash write in v1 throws error', async () => {
+            const code = '$a[:name] = "Bob"';
+            await v1Converter.targetCodeToBlocks(null, code);
+            expect(v1Converter.errors).toHaveLength(1);
+            expect(v1Converter.errors[0].text).toMatch(/Hash syntax is only available in Ruby version 2/);
+        });
+    });
+
     describe('@a - instance hash', () => {
         test('hash literal @a = {x: 1} generates correct list names', async () => {
             const code = '@a = {x: 1}';

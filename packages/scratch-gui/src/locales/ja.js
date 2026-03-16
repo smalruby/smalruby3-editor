@@ -109,6 +109,7 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.arraySyntaxNotAvailableInV1': '配列の書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えるか、\nlist()の書き方を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.listSyntaxNotAvailableInV2': 'list()の書き方はルビーバージョン1でのみ使えます。\n配列の書き方（$a.push()、$a[0]など）を使ってください。',
     'gui.smalruby3.rubyToBlocksConverter.arrayLiteralNotAvailableInV1': '配列リテラルの書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えてください。',
+    'gui.smalruby3.rubyToBlocksConverter.hashSyntaxNotAvailableInV1': 'ハッシュの書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えてください。',
     'gui.smalruby3.rubyToBlocksConverter.classNotSupportedInV1': 'classの定義はルビーバージョン1では使えません。\n設定メニューからルビーバージョン2に切り替えてください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidStageSuperclass': 'Stageクラスは ::Smalruby3::Stage または Smalruby3::Stage のみ継承できます。',
     'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInV1': 'moduleの定義はルビーバージョン1では使えません。\n設定メニューからルビーバージョン2に切り替えてください。',
