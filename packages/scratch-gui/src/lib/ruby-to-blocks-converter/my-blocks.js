@@ -187,7 +187,8 @@ const MyBlocksConverter = {
 
             converter._enterScope('method');
 
-            const procedureName = node.name;
+            // Use renamed name if this is a module method being renamed for super
+            const procedureName = converter._context.superRenameTarget || node.name;
             const block = converter._createBlock('procedures_definition', 'hat', {
                 topLevel: true
             });
@@ -272,7 +273,55 @@ const MyBlocksConverter = {
                     last = last[last.length - 1];
                 }
                 const lastCommentText = (last && last.comment) ? converter._context.comments[last.comment].text : '';
-                if (converter._isValueBlock(last) &&
+                // Check if the last expression is a procedures_call to a procedure with a return
+                // value (e.g., super calls to module methods that return values). In this case,
+                // the procedures_call sets the callee's return variable, and we need to copy it
+                // to this procedure's return variable.
+                if (last && last.opcode === 'procedures_call' &&
+                    converter._isProcedureCallWithReturnValue(last) &&
+                    !lastCommentText.includes('@ruby:syntax:return')) {
+                    const calledProccode = last.mutation.proccode;
+                    const calledProcName = calledProccode
+                        .split(' ')
+                        .filter(i => !/^%[sb]$/.test(i))
+                        .join('_');
+                    const sourceVariable = converter._lookupOrCreateVariable(`@_return_${calledProcName}_`);
+                    const targetVariable = converter._lookupOrCreateVariable(`@_return_${procedureName}_`);
+
+                    // Create a data_variable block to read the callee's return variable
+                    const sourceBlock = converter._createBlock('data_variable', 'value_variable', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: sourceVariable.id,
+                                value: sourceVariable.name,
+                                variableType: sourceVariable.type
+                            }
+                        }
+                    });
+
+                    // Create assignment: @_return_procedureName_ = @_return_calledProcName_
+                    const returnBlock = converter._createBlock('data_setvariableto', 'statement', {
+                        fields: {
+                            VARIABLE: {
+                                name: 'VARIABLE',
+                                id: targetVariable.id,
+                                value: targetVariable.name,
+                                variableType: targetVariable.type
+                            }
+                        }
+                    });
+                    returnBlock.comment = converter._createComment(`@ruby:return:${procedureName}`, returnBlock.id);
+                    converter._addInput(returnBlock, 'VALUE', sourceBlock);
+
+                    // Link: procedures_call → return assignment
+                    last.next = returnBlock.id;
+                    returnBlock.parent = last.id;
+                    body.push(returnBlock);
+
+                    // Mark procedure as having a return value
+                    procedure.hasReturnValue = true;
+                } else if (converter._isValueBlock(last) &&
                     !(last instanceof Primitive && (last.type === 'self' || last.type === 'nil')) &&
                     !lastCommentText.includes('@ruby:syntax:return')) {
                     const variable = converter._lookupOrCreateVariable(`@_return_${procedureName}_`);

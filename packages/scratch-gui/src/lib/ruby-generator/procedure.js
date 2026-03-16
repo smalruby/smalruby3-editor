@@ -15,10 +15,43 @@ export default function (Generator) {
             .toLowerCase();
     };
 
+    /**
+     * Generate method header with a specific name (for renamed module methods with super_of).
+     * @param {object} defBlock - The procedures_definition block
+     * @param {object} customBlock - The procedures_prototype block
+     * @param {string} originalName - The original method name to use
+     * @returns {string} The method header code
+     */
+    const blockToMethodWithName = function (defBlock, customBlock, originalName) {
+        const args = [];
+        const paramNamesIdsAndDefaults =
+            Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(customBlock.mutation.proccode);
+        for (let i = 0; i < paramNamesIdsAndDefaults[0].length; i++) {
+            let paramName = Generator.escapeVariableName(paramNamesIdsAndDefaults[0][i]);
+            paramName = toSnakeCaseLowercase(paramName);
+            args.push(paramName);
+        }
+        const argsString = args.length > 0 ? `(${args.join(', ')})` : '';
+        if (Generator.version.toString() === '2') {
+            return `def ${originalName}${argsString}\n`;
+        }
+        return `def self.${originalName}${argsString}\n`;
+    };
+
     Generator.procedures_definition = function (block) {
         // Check for @ruby:module_source:ModuleName comment
+        // Extended format: @ruby:module_source:Mod:super_of:originalName
         const comment = Generator.getCommentText(block);
         const moduleSourceMatch = comment && comment.match(/^@ruby:module_source:(.+)$/);
+
+        // Check for super_of: extract original method name for renamed module methods
+        let superOfOriginalName = null;
+        if (moduleSourceMatch) {
+            const superOfMatch = moduleSourceMatch[1].match(/^(.+):super_of:(.+)$/);
+            if (superOfMatch) {
+                superOfOriginalName = superOfMatch[2];
+            }
+        }
 
         const customBlock = Generator.getInputTargetBlock(block, 'custom_block');
 
@@ -27,7 +60,13 @@ export default function (Generator) {
         block.next = null;
 
         // Generate method header (def self.method_name(args))
-        let code = Generator.blockToCode(customBlock);
+        // If this is a renamed module method (super_of), use the original name
+        let code;
+        if (superOfOriginalName) {
+            code = blockToMethodWithName(block, customBlock, superOfOriginalName);
+        } else {
+            code = Generator.blockToCode(customBlock);
+        }
 
         // Generate method body from the saved next block
         const bodyBlock = Generator.getBlock(savedNext);
@@ -68,7 +107,12 @@ export default function (Generator) {
 
         // If this is a module method, store the code separately and suppress from main output
         if (moduleSourceMatch) {
-            const moduleName = moduleSourceMatch[1];
+            // Extract module name (handle super_of: suffix)
+            let moduleName = moduleSourceMatch[1];
+            const superOfIdx = moduleName.indexOf(':super_of:');
+            if (superOfIdx !== -1) {
+                moduleName = moduleName.substring(0, superOfIdx);
+            }
             if (!Generator._moduleMethodCodes[moduleName]) {
                 Generator._moduleMethodCodes[moduleName] = [];
             }
@@ -139,8 +183,35 @@ export default function (Generator) {
     };
 
     Generator.procedures_call = function (block) {
-        // Check if this procedures_call has @ruby:return:methodName comment
+        // Check for super call comments
         const comment = Generator.getCommentText(block);
+
+        if (comment === '@ruby:super:forwarding') {
+            // ForwardingSuperNode: output bare 'super' (forwards all args)
+            return 'super\n';
+        }
+
+        if (comment === '@ruby:super') {
+            // SuperNode: output 'super(args)'
+            const args = [];
+            const paramNamesIdsAndDefaults =
+                Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(block.mutation.proccode);
+            const ids = paramNamesIdsAndDefaults[1];
+            const defaults = paramNamesIdsAndDefaults[2];
+            for (let i = 0; i < ids.length; i++) {
+                let value;
+                if (block.inputs[ids[i]]) {
+                    value = Generator.valueToCode(block, ids[i], Generator.ORDER_NONE);
+                } else {
+                    value = defaults[i];
+                }
+                args.push(Generator.nosToCode(value));
+            }
+            const argsString = args.length > 0 ? `(${args.join(', ')})` : '';
+            return `super${argsString}\n`;
+        }
+
+        // Check if this procedures_call has @ruby:return:methodName comment
         if (comment && comment.startsWith('@ruby:return:')) {
             const methodName = comment.replace('@ruby:return:', '');
 

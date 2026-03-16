@@ -1008,6 +1008,36 @@ class RubyToBlocksConverter extends Visitor {
             }
         }
 
+        // Pre-scan class methods for super usage to determine which module methods need renaming
+        // superMethodMap: { methodName: { moduleName, renamedProcName } }
+        const superMethodMap = {};
+        if (node.body && node.body.body && includedModuleNames.length > 0) {
+            for (const stmt of node.body.body) {
+                if (this._getNodeTypeName(stmt) === 'DefNode' && !stmt.receiver) {
+                    const methodName = stmt.name;
+                    if (this._nodeContainsSuper(stmt)) {
+                        // Find which module has a method with the same name
+                        let foundModule = null;
+                        for (const moduleName of includedModuleNames) {
+                            const moduleDef = this._context.modules[moduleName];
+                            if (moduleDef && moduleDef.methods.some(m => m.name === methodName)) {
+                                foundModule = moduleName;
+                                break;
+                            }
+                        }
+                        if (foundModule) {
+                            const index = Object.keys(superMethodMap).length + 1;
+                            superMethodMap[methodName] = {
+                                moduleName: foundModule,
+                                renamedProcName: `_super_${methodName}_${index}_`
+                            };
+                        }
+                    }
+                }
+            }
+        }
+        this._context.superMethodMap = superMethodMap;
+
         // Mutual exclusion: set_sprite cannot be used with set_costumes/set_sounds (sprite only)
         const has = prop => Object.prototype.hasOwnProperty.call(classInfo, prop);
         if (!isStageClass && has('sprite') && (has('costumes') || has('sounds'))) {
@@ -1114,14 +1144,31 @@ class RubyToBlocksConverter extends Visitor {
             const moduleDef = this._context.modules[moduleName];
             this._context.currentModuleName = moduleName;
             for (const methodNode of moduleDef.methods) {
+                const originalMethodName = methodNode.name;
+                const superEntry = superMethodMap[originalMethodName];
+
+                // If this method is overridden with super, rename it
+                if (superEntry && superEntry.moduleName === moduleName) {
+                    this._context.superRenameTarget = superEntry.renamedProcName;
+                }
+
                 const block = this.visit(methodNode);
+
+                this._context.superRenameTarget = null;
+
                 if (block) {
                     const blocks = Array.isArray(block) ? block : [block];
                     for (const b of blocks) {
                         if (b && b.opcode === 'procedures_definition') {
-                            // Attach @ruby:module_source:ModuleName comment
+                            // Attach comment with super_of info if renamed
+                            let moduleCommentText;
+                            if (superEntry && superEntry.moduleName === moduleName) {
+                                moduleCommentText = `@ruby:module_source:${moduleName}:super_of:${originalMethodName}`;
+                            } else {
+                                moduleCommentText = `@ruby:module_source:${moduleName}`;
+                            }
                             const commentId = this._createComment(
-                                `@ruby:module_source:${moduleName}`, b.id, 0, 0, true
+                                moduleCommentText, b.id, 0, 0, true
                             );
                             b.comment = commentId;
                         }
@@ -1188,6 +1235,27 @@ class RubyToBlocksConverter extends Visitor {
             return [...moduleBlocks, ...blocks];
         }
         return moduleBlocks;
+    }
+
+    /**
+     * Check if an AST node tree contains a SuperNode or ForwardingSuperNode.
+     * @param {object} node - AST node to search
+     * @returns {boolean} true if super is found
+     */
+    _nodeContainsSuper (node) {
+        if (!node) return false;
+        const typeName = this._getNodeTypeName(node);
+        if (typeName === 'SuperNode' || typeName === 'ForwardingSuperNode') {
+            return true;
+        }
+        if (node.compactChildNodes) {
+            for (const child of node.compactChildNodes()) {
+                if (this._nodeContainsSuper(child)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     _extractClassMethodArg (argNode) {
