@@ -360,7 +360,7 @@ describe('downloadRubyAsImage', () => {
         expect(editor.layout).toHaveBeenCalled();
     });
 
-    test('disables scrollBeyondLastLine before capture and restores it after', async () => {
+    test('disables full-width visual elements before capture and restores them after', async () => {
         const mockBlob = new Blob(['test'], {type: 'image/png'});
         toBlob.mockResolvedValue(mockBlob);
 
@@ -368,9 +368,20 @@ describe('downloadRubyAsImage', () => {
 
         await downloadRubyAsImage(editor, 'project', 'sprite');
 
-        // First call disables, second call (in finally) re-enables
-        expect(editor.updateOptions).toHaveBeenCalledWith({scrollBeyondLastLine: false});
-        expect(editor.updateOptions).toHaveBeenCalledWith({scrollBeyondLastLine: true});
+        // First call disables visual elements for clean capture
+        expect(editor.updateOptions).toHaveBeenCalledWith({
+            scrollBeyondLastLine: false,
+            renderLineHighlight: 'none',
+            scrollbar: {vertical: 'hidden', horizontal: 'hidden'},
+            hideCursorInOverviewRuler: true
+        });
+        // Second call (in finally) re-enables them
+        expect(editor.updateOptions).toHaveBeenCalledWith({
+            scrollBeyondLastLine: true,
+            renderLineHighlight: 'line',
+            scrollbar: {vertical: 'auto', horizontal: 'auto'},
+            hideCursorInOverviewRuler: false
+        });
     });
 
     test('calls editor.layout() to trigger re-render', async () => {

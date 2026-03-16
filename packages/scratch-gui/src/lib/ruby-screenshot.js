@@ -107,8 +107,15 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
     const originalOverflow = containerEl.style.overflow;
 
     try {
-        // Disable scrollBeyondLastLine to get tight content height
-        editor.updateOptions({scrollBeyondLastLine: false});
+        // Disable visual elements that span the full editor width, which
+        // would otherwise prevent cropRightWhitespace from detecting the
+        // true content boundary.
+        editor.updateOptions({
+            scrollBeyondLastLine: false,
+            renderLineHighlight: 'none',
+            scrollbar: {vertical: 'hidden', horizontal: 'hidden'},
+            hideCursorInOverviewRuler: true
+        });
         editor.layout();
 
         // Expand editor to full content height so all lines are in the DOM
@@ -141,7 +148,12 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
         }
     } finally {
         // Restore original state
-        editor.updateOptions({scrollBeyondLastLine: true});
+        editor.updateOptions({
+            scrollBeyondLastLine: true,
+            renderLineHighlight: 'line',
+            scrollbar: {vertical: 'auto', horizontal: 'auto'},
+            hideCursorInOverviewRuler: false
+        });
         containerEl.style.height = originalHeight;
         containerEl.style.overflow = originalOverflow;
         editor.layout();
