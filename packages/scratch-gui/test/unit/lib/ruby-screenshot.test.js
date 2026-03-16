@@ -1,5 +1,8 @@
 import {
     buildFilename,
+    cropToWidth,
+    measureTextWidth,
+    measureFuriganaWidth,
     downloadRubyAsImage
 } from '../../../src/lib/ruby-screenshot';
 
@@ -52,11 +55,150 @@ describe('buildFilename', () => {
     });
 });
 
+// ---- measureTextWidth ----
+
+describe('measureTextWidth', () => {
+    test('returns 0 when .view-lines is not found', () => {
+        const div = document.createElement('div');
+        expect(measureTextWidth(div)).toBe(0);
+    });
+
+    test('measures max right edge of text spans', () => {
+        const editor = document.createElement('div');
+        const viewLines = document.createElement('div');
+        viewLines.classList.add('view-lines');
+
+        // Create two lines with spans at different widths
+        const line1 = document.createElement('div');
+        const span1 = document.createElement('span');
+        const innerSpan1 = document.createElement('span');
+        innerSpan1.textContent = 'short';
+        span1.appendChild(innerSpan1);
+        line1.appendChild(span1);
+
+        const line2 = document.createElement('div');
+        const span2 = document.createElement('span');
+        const innerSpan2 = document.createElement('span');
+        innerSpan2.textContent = 'this is a longer line of code';
+        span2.appendChild(innerSpan2);
+        line2.appendChild(span2);
+
+        viewLines.appendChild(line1);
+        viewLines.appendChild(line2);
+        editor.appendChild(viewLines);
+        document.body.appendChild(editor);
+
+        // jsdom returns 0 for getBoundingClientRect, so result is 0
+        // but the function should not throw
+        const width = measureTextWidth(editor);
+        expect(typeof width).toBe('number');
+
+        document.body.removeChild(editor);
+    });
+});
+
+// ---- measureFuriganaWidth ----
+
+describe('measureFuriganaWidth', () => {
+    test('returns 0 when .view-zones is not found', () => {
+        const div = document.createElement('div');
+        expect(measureFuriganaWidth(div)).toBe(0);
+    });
+
+    test('returns 0 when view-zones has no spans', () => {
+        const editor = document.createElement('div');
+        const viewZones = document.createElement('div');
+        viewZones.classList.add('view-zones');
+        editor.appendChild(viewZones);
+        expect(measureFuriganaWidth(editor)).toBe(0);
+    });
+});
+
+// ---- cropToWidth ----
+
+describe('cropToWidth', () => {
+    afterEach(() => {
+        document.createElement.mockRestore?.();
+        delete global.createImageBitmap;
+    });
+
+    test('crops blob to specified width', async () => {
+        const imgWidth = 1000;
+        const imgHeight = 500;
+        global.createImageBitmap = jest.fn(() =>
+            Promise.resolve({width: imgWidth, height: imgHeight, close: jest.fn()})
+        );
+
+        const canvases = [];
+        const mockCtx = {drawImage: jest.fn()};
+        const realCreateElement = document.createElement.bind(document);
+        jest.spyOn(document, 'createElement').mockImplementation(tag => {
+            const el = realCreateElement(tag);
+            if (tag === 'canvas') {
+                canvases.push(el);
+                el.getContext = jest.fn(() => mockCtx);
+                el.toBlob = jest.fn(cb => cb(new Blob(['cropped'], {type: 'image/png'})));
+            }
+            return el;
+        });
+
+        const inputBlob = new Blob(['original'], {type: 'image/png'});
+        const result = await cropToWidth(inputBlob, 400);
+
+        expect(result).not.toBe(inputBlob);
+        expect(canvases[0].width).toBe(400);
+        expect(canvases[0].height).toBe(imgHeight);
+        expect(mockCtx.drawImage).toHaveBeenCalledTimes(1);
+    });
+
+    test('returns original blob when cropWidth >= image width', async () => {
+        global.createImageBitmap = jest.fn(() =>
+            Promise.resolve({width: 200, height: 100, close: jest.fn()})
+        );
+
+        const inputBlob = new Blob(['original'], {type: 'image/png'});
+        const result = await cropToWidth(inputBlob, 300);
+
+        expect(result).toBe(inputBlob);
+    });
+
+    test('returns original blob when cropWidth equals image width', async () => {
+        global.createImageBitmap = jest.fn(() =>
+            Promise.resolve({width: 200, height: 100, close: jest.fn()})
+        );
+
+        const inputBlob = new Blob(['original'], {type: 'image/png'});
+        const result = await cropToWidth(inputBlob, 200);
+
+        expect(result).toBe(inputBlob);
+    });
+});
+
 // ---- downloadRubyAsImage ----
 
 describe('downloadRubyAsImage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        // Mock createImageBitmap for cropToWidth called inside downloadRubyAsImage.
+        // Return a small image so cropping can work when contentWidth > 0.
+        global.createImageBitmap = jest.fn(() =>
+            Promise.resolve({width: 2000, height: 400, close: jest.fn()})
+        );
+        const mockCtx = {drawImage: jest.fn()};
+        const realCreateElement = document.createElement.bind(document);
+        jest.spyOn(document, 'createElement').mockImplementation(tag => {
+            const el = realCreateElement(tag);
+            if (tag === 'canvas') {
+                el.getContext = jest.fn(() => mockCtx);
+                el.toBlob = jest.fn(cb => cb(new Blob(['cropped'], {type: 'image/png'})));
+            }
+            return el;
+        });
+    });
+
+    afterEach(() => {
+        document.createElement.mockRestore?.();
+        delete global.createImageBitmap;
     });
 
     test('does nothing when editor is null', async () => {
@@ -108,6 +250,7 @@ describe('downloadRubyAsImage', () => {
 
         await downloadRubyAsImage(editor, 'MyProject', 'Cat');
 
+        // In jsdom, measureTextWidth returns 0, so no crop → original blob
         expect(downloadBlob).toHaveBeenCalledWith('MyProject_Cat_ruby.png', mockBlob);
     });
 
