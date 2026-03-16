@@ -100,6 +100,8 @@ const validateBackdrop = function (converter, backdropName, args) {
 /**
  * Convert a symbol Primitive to its string name and collect it.
  * Returns the symbol name (without colon) or null if not a symbol.
+ * @param {object} converter - The Ruby-to-blocks converter instance.
+ * @param {object} arg - The argument to check for symbol type.
  */
 const resolveSymbolArg = function (converter, arg) {
     if (converter._isPrimitive(arg) && arg.type === 'sym') {

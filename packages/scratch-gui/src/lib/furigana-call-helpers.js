@@ -126,6 +126,8 @@ const callHelpers = {
     /**
      * Check if a node's receiver is a predefined extension name.
      * Handles both LocalVariableReadNode and CallNode patterns.
+     * @param {object} node - A Prism CallNode.
+     * @param {string} extensionName - The extension name to match.
      */
     _isPredefinedReceiver (node, extensionName) {
         if (!node.receiver) return false;

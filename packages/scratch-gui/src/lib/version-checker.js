@@ -11,7 +11,7 @@ const DEFAULT_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
  * @param {Function} options.onUpdateAvailable - Called when a newer version is found.
  * @param {number} [options.initialDelayMs] - Delay before first check (default 5s).
  * @param {number} [options.intervalMs] - Interval between checks (default 1h).
- * @returns {{start: Function, stop: Function, check: Function}}
+ * @returns {{start: Function, stop: Function, check: Function}} Version checker controller.
  */
 const createVersionChecker = ({
     currentCommitId,

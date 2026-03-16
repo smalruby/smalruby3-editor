@@ -141,6 +141,8 @@ class FuriganaRenderer {
     /**
      * Measure text width using an offscreen canvas (no DOM insertion needed).
      * The canvas context is cached for performance.
+     * @param {string} text - The text to measure.
+     * @param {number} fontSize - The font size in pixels.
      */
     _measureTextWidth (text, fontSize) {
         if (!this._measureCanvas) {

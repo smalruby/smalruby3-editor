@@ -31,11 +31,11 @@ const VariablesConverter = {
     register: function (converter) {
         /**
          * Convert a data_variable block to data_listcontents for list operations.
-         * When $a (global) or @a (instance) is used with array methods like .push(),
+         * When $a (global) or `@a` (instance) is used with array methods like .push(),
          * the variable read creates a data_variable block, but list operations need
          * a data_listcontents block with LIST field.
-         * @param {Object} block - The receiver block to convert
-         * @returns {{block: Object|null, converted: boolean}} The converted block and whether conversion happened
+         * @param {object} block - The receiver block to convert
+         * @returns {{block: object|null, converted: boolean}} The converted block and whether conversion happened
          */
         const convertToListBlock = function (block) {
             if (!converter._isBlock(block)) return {block: null, converted: false};
@@ -86,8 +86,10 @@ const VariablesConverter = {
 
         /**
          * Adjust a 0-indexed Ruby array index to 1-indexed Scratch list index.
-         * Always wraps in operator_add(index, 1) with @ruby:array:index comment
+         * Always wraps in operator_add(index, 1) with `@ruby`:array:index comment
          * to enable round-trip conversion.
+         * @param {object} index - The index block or value.
+         * @param {boolean} converted - Whether the receiver was converted to a list block.
          */
         const adjustIndex = function (index, converted) {
             if (!converted) return index;
