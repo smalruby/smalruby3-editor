@@ -106,6 +106,222 @@ const VariablesConverter = {
             return addBlock;
         };
 
+        /**
+         * Convert a hash bracket read: $a[:key] or $a["key"].
+         * Generates data_itemoflist(INDEX: data_itemnumoflist(key, keys_list), values_list).
+         * @param {object} receiver - The receiver block (data_variable).
+         * @param {*} keyArg - The key argument (symbol or string).
+         * @returns {object|null} The generated block, or null on failure.
+         */
+        const convertHashGet = function (receiver, keyArg) {
+            if (!converter._isBlock(receiver) || receiver.opcode !== 'data_variable') return null;
+
+            const varName = receiver.fields.VARIABLE.value;
+            const variable = converter._context.variables[varName] ||
+                converter._context.localVariables[varName];
+            if (!variable) return null;
+
+            let prefixedName;
+            if (variable.scope === 'global') {
+                prefixedName = `$${varName}`;
+            } else if (variable.scope === 'instance') {
+                prefixedName = `@${varName}`;
+            } else if (variable.scope === 'local') {
+                prefixedName = variable.originalName;
+            } else {
+                return null;
+            }
+
+            const keysListName = converter._hashKeysListName(prefixedName);
+            const valuesListName = converter._hashValuesListName(prefixedName);
+            const keysList = converter._lookupOrCreateList(keysListName);
+            const valuesList = converter._lookupOrCreateList(valuesListName);
+
+            let keyStr;
+            let commentMarker;
+            if (converter._isSymbol(keyArg)) {
+                const symName = converter._getSymbolValue(keyArg);
+                keyStr = `:${symName}`;
+                commentMarker = '@ruby:hash:get:sym';
+            } else {
+                keyStr = converter._isPrimitive(keyArg) ? keyArg.value : keyArg;
+                commentMarker = '@ruby:hash:get:str';
+            }
+
+            // Create data_itemnumoflist block for key lookup
+            const numBlock = converter._createBlock('data_itemnumoflist', 'value', {
+                fields: {
+                    LIST: {
+                        name: 'LIST',
+                        id: keysList.id,
+                        value: keysList.name,
+                        variableType: keysList.type
+                    }
+                }
+            });
+            converter._addTextInput(numBlock, 'ITEM', keyStr, 'thing');
+
+            // Create data_itemoflist block for value retrieval
+            const block = converter._changeBlock(receiver, 'data_itemoflist', 'value');
+            delete block.fields.VARIABLE;
+            block.fields.LIST = {
+                name: 'LIST',
+                id: valuesList.id,
+                value: valuesList.name,
+                variableType: valuesList.type
+            };
+            converter._addNumberInput(block, 'INDEX', 'math_integer', numBlock, 1);
+            block.comment = converter._createComment(commentMarker, block.id);
+
+            return block;
+        };
+
+        /**
+         * Convert a hash bracket write (upsert): $a[:key] = value.
+         * Generates delete+push pattern (4 blocks).
+         * @param {object} receiver - The receiver block (data_variable).
+         * @param {*} keyArg - The key argument (symbol or string).
+         * @param {*} valueArg - The value to set.
+         * @returns {object|null} The generated block chain, or null on failure.
+         */
+        const convertHashSet = function (receiver, keyArg, valueArg) {
+            if (!converter._isBlock(receiver) || receiver.opcode !== 'data_variable') return null;
+
+            const varName = receiver.fields.VARIABLE.value;
+            const variable = converter._context.variables[varName] ||
+                converter._context.localVariables[varName];
+            if (!variable) return null;
+
+            let prefixedName;
+            if (variable.scope === 'global') {
+                prefixedName = `$${varName}`;
+            } else if (variable.scope === 'instance') {
+                prefixedName = `@${varName}`;
+            } else if (variable.scope === 'local') {
+                prefixedName = variable.originalName;
+            } else {
+                return null;
+            }
+
+            const keysListName = converter._hashKeysListName(prefixedName);
+            const valuesListName = converter._hashValuesListName(prefixedName);
+            const keysList = converter._lookupOrCreateList(keysListName);
+            const valuesList = converter._lookupOrCreateList(valuesListName);
+
+            let keyStr;
+            let commentMarker;
+            if (converter._isSymbol(keyArg)) {
+                const symName = converter._getSymbolValue(keyArg);
+                keyStr = `:${symName}`;
+                commentMarker = '@ruby:hash:set:sym';
+            } else {
+                keyStr = converter._isPrimitive(keyArg) ? keyArg.value : keyArg;
+                commentMarker = '@ruby:hash:set:str';
+            }
+
+            // Handle symbol values
+            let valueItem;
+            if (converter._isPrimitive(valueArg) && valueArg.type === 'sym') {
+                valueItem = converter._symbolToBlock(valueArg.value, valueArg.node);
+            } else if (converter._isNumber(valueArg)) {
+                valueItem = converter._isPrimitive(valueArg) ?
+                    valueArg.value.toString() : valueArg.toString();
+            } else if (converter._isString(valueArg)) {
+                valueItem = converter._isPrimitive(valueArg) ? valueArg.value : valueArg;
+            } else {
+                valueItem = valueArg;
+            }
+
+            // Block 1: delete from values list
+            const deleteValuesBlock = converter._changeBlock(receiver, 'data_deleteoflist', 'statement');
+            delete deleteValuesBlock.fields.VARIABLE;
+            deleteValuesBlock.fields.LIST = {
+                name: 'LIST',
+                id: valuesList.id,
+                value: valuesList.name,
+                variableType: valuesList.type
+            };
+            const numBlock1 = converter._createBlock('data_itemnumoflist', 'value', {
+                fields: {
+                    LIST: {
+                        name: 'LIST',
+                        id: keysList.id,
+                        value: keysList.name,
+                        variableType: keysList.type
+                    }
+                }
+            });
+            converter._addTextInput(numBlock1, 'ITEM', keyStr, 'thing');
+            converter._addNumberInput(deleteValuesBlock, 'INDEX', 'math_integer', numBlock1, 1);
+            deleteValuesBlock.comment = converter._createComment(commentMarker, deleteValuesBlock.id);
+
+            // Block 2: delete from keys list
+            const deleteKeysBlock = converter._createBlock('data_deleteoflist', 'statement', {
+                fields: {
+                    LIST: {
+                        name: 'LIST',
+                        id: keysList.id,
+                        value: keysList.name,
+                        variableType: keysList.type
+                    }
+                }
+            });
+            const numBlock2 = converter._createBlock('data_itemnumoflist', 'value', {
+                fields: {
+                    LIST: {
+                        name: 'LIST',
+                        id: keysList.id,
+                        value: keysList.name,
+                        variableType: keysList.type
+                    }
+                }
+            });
+            converter._addTextInput(numBlock2, 'ITEM', keyStr, 'thing');
+            converter._addNumberInput(deleteKeysBlock, 'INDEX', 'math_integer', numBlock2, 1);
+            deleteKeysBlock.comment = converter._createComment(
+                '@ruby:hash:set:delete:key', deleteKeysBlock.id
+            );
+
+            // Block 3: push key
+            const pushKeyBlock = converter._createBlock('data_addtolist', 'statement', {
+                fields: {
+                    LIST: {
+                        name: 'LIST',
+                        id: keysList.id,
+                        value: keysList.name,
+                        variableType: keysList.type
+                    }
+                }
+            });
+            converter._addTextInput(pushKeyBlock, 'ITEM', keyStr, 'thing');
+            pushKeyBlock.comment = converter._createComment(
+                '@ruby:hash:set:push:key', pushKeyBlock.id
+            );
+
+            // Block 4: push value
+            const pushValueBlock = converter._createBlock('data_addtolist', 'statement', {
+                fields: {
+                    LIST: {
+                        name: 'LIST',
+                        id: valuesList.id,
+                        value: valuesList.name,
+                        variableType: valuesList.type
+                    }
+                }
+            });
+            converter._addTextInput(
+                pushValueBlock, 'ITEM',
+                converter._isNumber(valueItem) ? valueItem.toString() : valueItem, 'thing'
+            );
+            pushValueBlock.comment = converter._createComment(
+                '@ruby:hash:set:push:value', pushValueBlock.id
+            );
+
+            return converter._linkBlocks([
+                deleteValuesBlock, deleteKeysBlock, pushKeyBlock, pushValueBlock
+            ]);
+        };
+
         converter.registerOnSend('self', 'show_variable', 1, params => {
             const {args} = params;
             if (!converter._isString(args[0])) return null;
@@ -306,6 +522,18 @@ const VariablesConverter = {
 
         converter.registerOnSend('variable', '[]', 1, params => {
             const {receiver, args} = params;
+
+            // Hash access: $a[:key] or $a["key"]
+            if (converter._isSymbol(args[0]) || converter._isString(args[0])) {
+                if (converter.version < 2) {
+                    throw new RubyToBlocksConverterError(
+                        converter._context.currentNode,
+                        converter._translator(messages.hashSyntaxNotAvailableInV1)
+                    );
+                }
+                return convertHashGet(receiver, args[0]);
+            }
+
             if (!converter._isNumberOrBlock(args[0])) return null;
 
             const {block: listBlock, converted} = convertToListBlock(receiver);

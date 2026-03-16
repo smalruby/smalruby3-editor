@@ -254,6 +254,51 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
         });
     });
 
+    describe('$a - hash read with symbol key', () => {
+        test('$a[:name] generates data_itemoflist with data_itemnumoflist', async () => {
+            const code = '$a = {name: "Alice"}\nsay($a[:name])';
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const blockIds = Object.keys(converter.blocks);
+            const blocks = blockIds.map(id => converter.blocks[id]);
+
+            // Find data_itemoflist block (hash get)
+            const itemBlock = blocks.find(b => b.opcode === 'data_itemoflist');
+            expect(itemBlock).toBeTruthy();
+
+            // Verify it has @ruby:hash:get:sym comment
+            const itemComment = converter._context.comments[itemBlock.comment];
+            expect(itemComment.text).toBe('@ruby:hash:get:sym');
+
+            // Verify it references the values list
+            expect(itemBlock.fields.LIST.value).toBe('_hash_a_values_');
+
+            // Find data_itemnumoflist block (key lookup)
+            const numBlock = blocks.find(b => b.opcode === 'data_itemnumoflist');
+            expect(numBlock).toBeTruthy();
+            // Verify it references the keys list
+            expect(numBlock.fields.LIST.value).toBe('_hash_a_keys_');
+        });
+
+        test('$a["foo"] generates data_itemoflist with string key', async () => {
+            const code = '$a = {"foo" => "bar"}\nsay($a["foo"])';
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const blockIds = Object.keys(converter.blocks);
+            const blocks = blockIds.map(id => converter.blocks[id]);
+
+            const itemBlock = blocks.find(b => b.opcode === 'data_itemoflist');
+            expect(itemBlock).toBeTruthy();
+
+            const itemComment = converter._context.comments[itemBlock.comment];
+            expect(itemComment.text).toBe('@ruby:hash:get:str');
+        });
+    });
+
     describe('@a - instance hash', () => {
         test('hash literal @a = {x: 1} generates correct list names', async () => {
             const code = '@a = {x: 1}';

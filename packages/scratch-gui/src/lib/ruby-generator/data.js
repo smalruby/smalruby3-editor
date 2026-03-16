@@ -327,6 +327,32 @@ export default function (Generator) {
             const index = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE);
             return [index, Generator.ORDER_ATOMIC];
         }
+
+        // Hash get: data_itemoflist with @ruby:hash:get:sym or @ruby:hash:get:str comment
+        if (comment && comment.startsWith('@ruby:hash:get:')) {
+            const valuesListName = getListName(block);
+            const hashVarName = getHashVarName(
+                valuesListName.replace(/_values_$/, '_keys_')
+            );
+
+            // Get the key from the nested data_itemnumoflist block
+            const indexBlockId = block.inputs && block.inputs.INDEX && block.inputs.INDEX.block;
+            if (indexBlockId) {
+                const numBlock = Generator.getBlock(indexBlockId);
+                if (numBlock && numBlock.opcode === 'data_itemnumoflist') {
+                    const rawKey = getTextInputValue(numBlock, 'ITEM');
+                    if (comment === '@ruby:hash:get:sym') {
+                        // Symbol key: ":name" → $a[:name]
+                        const symName = rawKey.slice(1); // remove leading ":"
+                        return [`${hashVarName}[:${symName}]`, Generator.ORDER_FUNCTION_CALL];
+                    }
+                    // String key: "foo" → $a["foo"]
+                    return [`${hashVarName}["${rawKey}"]`, Generator.ORDER_FUNCTION_CALL];
+
+                }
+            }
+        }
+
         const index = getListIndex(block);
         const list = getListName(block);
         return [`${list}[${index}]`, Generator.ORDER_FUNCTION_CALL];

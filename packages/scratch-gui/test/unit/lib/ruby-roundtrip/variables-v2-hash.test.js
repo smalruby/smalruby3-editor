@@ -58,4 +58,18 @@ describe('Ruby Roundtrip: V2 hash syntax', () => {
             $a = {name: "Alice", "age" => 30}
         `);
     });
+
+    test('hash read with symbol key', async () => {
+        await expectRoundTrip(converter, target, dedent`
+            $a = {name: "Alice"}
+            say($a[:name])
+        `);
+    });
+
+    test('hash read with string key', async () => {
+        await expectRoundTrip(converter, target, dedent`
+            $a = {"foo" => "bar"}
+            say($a["foo"])
+        `);
+    });
 });
