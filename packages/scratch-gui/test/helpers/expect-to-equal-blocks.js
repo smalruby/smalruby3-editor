@@ -249,7 +249,7 @@ const convertAndExpectToEqualBlocks = async function (converter, target, code, e
 const convertAndExpectRubyBlockError = async function (converter, target, code) {
     await converter.targetCodeToBlocks(target, code);
     expect(converter.errors).toHaveLength(1);
-    expect(converter.errors[0].text).toMatch(/ is the wrong instruction\.|condition is not boolean: |include not statement blocks/);
+    expect(converter.errors[0].text).toMatch(/ is the wrong instruction\.|condition is not boolean: |include not statement blocks|\.to_s/);
 };
 
 const expectToEqualRubyStatement = function (converter, expectedStatement) {

@@ -154,6 +154,24 @@ const messages = defineMessages({
         defaultMessage: 'Failed to import module "{ NAME }" from other sprites.',
         description: 'Error message when module auto-import from other sprites fails',
         id: 'gui.smalruby3.rubyToBlocksConverter.moduleImportFailed'
+    },
+    symbolNeedsToS: {
+        defaultMessage: '"{ SOURCE }" — symbols need .to_s to be used as a string.' +
+            '\nWrite { SUGGESTION } instead.',
+        description: 'Error message when a symbol is used where a string is expected without .to_s',
+        id: 'gui.smalruby3.rubyToBlocksConverter.symbolNeedsToS'
+    },
+    symbolCannotArithmetic: {
+        defaultMessage: '"{ SOURCE }" — symbols cannot be used in arithmetic (+, -, *, /).' +
+            '\nUse .to_s to convert first, e.g. { SUGGESTION }.',
+        description: 'Error message when a symbol is used in arithmetic operation',
+        id: 'gui.smalruby3.rubyToBlocksConverter.symbolCannotArithmetic'
+    },
+    symbolCannotCompare: {
+        defaultMessage: '"{ SOURCE }" — symbols can only be compared with other symbols using >, <, >=, <=.' +
+            '\nUse == instead, or convert with .to_s.',
+        description: 'Error message when a symbol is compared with non-symbol using >, <, >=, <=',
+        id: 'gui.smalruby3.rubyToBlocksConverter.symbolCannotCompare'
     }
 });
 
@@ -237,6 +255,18 @@ class RubyToBlocksConverter extends Visitor {
         return this._context.broadcastMsgs;
     }
 
+    _symbolNeedsToSMessage () {
+        return messages.symbolNeedsToS;
+    }
+
+    _symbolCannotArithmeticMessage () {
+        return messages.symbolCannotArithmetic;
+    }
+
+    _symbolCannotCompareMessage () {
+        return messages.symbolCannotCompare;
+    }
+
     setTranslatorFunction (translator) {
         this._translator = translator;
         this._prismErrorTranslator = new PrismErrorTranslator(translator);
@@ -290,6 +320,17 @@ class RubyToBlocksConverter extends Visitor {
                 } else {
                     const Primitive = require('./primitive').default;
                     if (block instanceof Primitive) {
+                        if (block.type === 'sym') {
+                            const source = this._truncateSource(this._getSource(block.node));
+                            const suggestion = `${source}.to_s`;
+                            throw new RubyToBlocksConverterError(
+                                block.node,
+                                this._translator(
+                                    messages.symbolNeedsToS,
+                                    {SOURCE: source, SUGGESTION: suggestion}
+                                )
+                            );
+                        }
                         throw new RubyToBlocksConverterError(
                             block.node,
                             this._translator(
@@ -327,6 +368,9 @@ class RubyToBlocksConverter extends Visitor {
                     this._context.extensionIDs.add(extensionID);
                 }
             });
+
+            // Create $_symbols_ list if symbols were collected
+            this._createSymbolsList();
 
             // Associate source comments with blocks
             this._associateSourceComments(parseResult, code);
@@ -702,7 +746,6 @@ class RubyToBlocksConverter extends Visitor {
             );
         }
 
-        // === Smalruby: Start of stage module restriction ===
         // module is not supported in Stage (stage and sprite have different available methods)
         if (this._context.target && this._context.target.isStage) {
             throw new RubyToBlocksConverterError(
@@ -710,7 +753,6 @@ class RubyToBlocksConverter extends Visitor {
                 this._translator(messages.moduleNotSupportedInStage)
             );
         }
-        // === Smalruby: End of stage module restriction ===
 
         // Nested modules are not supported
         if (this._context.currentModuleName) {
@@ -751,7 +793,6 @@ class RubyToBlocksConverter extends Visitor {
         return [];
     }
 
-    // === Smalruby: Start of auto-import module from other sprites ===
     /**
      * Try to import a module definition from other sprites.
      * Searches other sprites' block comments for `@ruby:module_source:moduleName`,
@@ -800,7 +841,6 @@ class RubyToBlocksConverter extends Visitor {
         };
         return true;
     }
-    // === Smalruby: End of auto-import module from other sprites ===
 
     visitClassNode (node) {
         // class definitions are only supported in version 2
@@ -942,16 +982,13 @@ class RubyToBlocksConverter extends Visitor {
                         if (argType === 'ConstantReadNode') {
                             const moduleName = argNode.name;
 
-                            // === Smalruby: Start of stage include restriction ===
                             if (isStageClass) {
                                 throw new RubyToBlocksConverterError(
                                     stmt,
                                     this._translator(messages.includeNotSupportedInStage)
                                 );
                             }
-                            // === Smalruby: End of stage include restriction ===
 
-                            // === Smalruby: Start of auto-import module from other sprites ===
                             if (!this._context.modules[moduleName]) {
                                 // Try to import the module from other sprites
                                 const imported = this._importModuleFromOtherSprites(moduleName);
@@ -962,7 +999,6 @@ class RubyToBlocksConverter extends Visitor {
                                     );
                                 }
                             }
-                            // === Smalruby: End of auto-import module from other sprites ===
 
                             includedModuleNames.push(moduleName);
                             includeStatements.add(stmt);

@@ -97,8 +97,129 @@ const validateBackdrop = function (converter, backdropName, args) {
 /**
  * Looks converter
  */
+/**
+ * Convert a symbol Primitive to its string name and collect it.
+ * Returns the symbol name (without colon) or null if not a symbol.
+ */
+const resolveSymbolArg = function (converter, arg) {
+    if (converter._isPrimitive(arg) && arg.type === 'sym') {
+        converter._collectSymbol(arg.value);
+        return arg.value;
+    }
+    return null;
+};
+
 const LooksConverter = {
     register: function (converter) {
+        // say/think with symbol argument - sprite-only
+        ['say', 'think'].forEach(methodName => {
+            const opcodes1 = {say: 'looks_say', think: 'looks_think'};
+            const opcodes2 = {say: 'looks_sayforsecs', think: 'looks_thinkforsecs'};
+            const defaults = {say: 'Hello!', think: 'Hmm...'};
+
+            converter.registerOnSend('sprite', methodName, [1, 2], params => {
+                const {receiver, args} = params;
+                if (!converter._isSelf(receiver) && receiver !== null) return null;
+                const symbolName = resolveSymbolArg(converter, args[0]);
+                const symbolVarBlock = symbolName ? null : converter._resolveSymbolVariable(args[0]);
+                if (!symbolName && !symbolVarBlock) return null;
+
+                const message = symbolName || symbolVarBlock;
+
+                if (args.length === 1) {
+                    const block = converter._createBlock(opcodes1[methodName], 'statement');
+                    converter._addTextInput(block, 'MESSAGE', message, defaults[methodName]);
+                    if (symbolName) {
+                        block.comment = converter._createComment(
+                            `@ruby:symbol:${symbolName}`, block.id
+                        );
+                    }
+                    return block;
+                }
+
+                if (args.length === 2) {
+                    let secs = args[1];
+                    if (converter._isHash(secs) && secs.size === 1) {
+                        secs = secs.get('sym:secs');
+                    }
+                    if (converter._isNumberOrBlock(secs)) {
+                        const block = converter._createBlock(opcodes2[methodName], 'statement');
+                        converter._addTextInput(block, 'MESSAGE', message, defaults[methodName]);
+                        converter._addNumberInput(block, 'SECS', 'math_number', secs, 2);
+                        if (symbolName) {
+                            block.comment = converter._createComment(
+                                `@ruby:symbol:${symbolName}`, block.id
+                            );
+                        }
+                        return block;
+                    }
+                }
+                return null;
+            });
+        });
+
+        // print/puts/p with symbol arguments - sprite-only
+        ['print', 'puts', 'p'].forEach(methodName => {
+            converter.registerOnSend('sprite', methodName, -1, params => {
+                const {args} = params;
+                if (args.length === 0) return null;
+
+                const isSymbolArg = arg =>
+                    (converter._isPrimitive(arg) && arg.type === 'sym');
+                const isSymbolVar = arg => {
+                    if (!converter._isBlock(arg)) return false;
+                    const v = converter.lookupVariableFromVariableBlock(arg);
+                    return v && v.dataType === 'symbol';
+                };
+
+                if (!args.every(arg =>
+                    converter._isNumberOrStringOrBlock(arg) || isSymbolArg(arg)
+                )) return null;
+                // Only handle if at least one symbol arg or symbol variable
+                if (!args.some(arg => isSymbolArg(arg) || isSymbolVar(arg))) return null;
+
+                let firstBlock = null;
+                let lastBlock = null;
+
+                args.forEach(arg => {
+                    const block = converter._createBlock('looks_sayforsecs', 'statement');
+                    const symbolName = resolveSymbolArg(converter, arg);
+                    const symbolVar = symbolName ? null : converter._resolveSymbolVariable(arg);
+                    if (symbolName) {
+                        converter._addTextInput(block, 'MESSAGE', symbolName, 'Hello!');
+                        block.comment = converter._createComment(
+                            `@ruby:symbol:${symbolName},@ruby:method:${methodName}`, block.id
+                        );
+                    } else if (symbolVar) {
+                        converter._addTextInput(block, 'MESSAGE', symbolVar, 'Hello!');
+                        block.comment = converter.createComment(
+                            `@ruby:method:${methodName}`, block.id, 200, 0
+                        );
+                    } else {
+                        converter._addTextInput(
+                            block, 'MESSAGE',
+                            converter._isNumber(arg) ? arg.toString() : arg, 'Hello!'
+                        );
+                        block.comment = converter.createComment(
+                            `@ruby:method:${methodName}`, block.id, 200, 0
+                        );
+                    }
+                    converter._addNumberInput(block, 'SECS', 'math_number', 1, 1);
+
+                    if (!firstBlock) {
+                        firstBlock = block;
+                    }
+                    if (lastBlock) {
+                        lastBlock.next = block.id;
+                        block.parent = lastBlock.id;
+                    }
+                    lastBlock = block;
+                });
+
+                return firstBlock;
+            });
+        });
+
         // print/puts/p - sprite-only, mapped to looks_sayforsecs
         ['print', 'puts', 'p'].forEach(methodName => {
             converter.registerOnSend('sprite', methodName, -1, params => {

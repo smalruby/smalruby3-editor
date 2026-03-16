@@ -1340,4 +1340,15 @@ describe('FuriganaAnnotator', () => {
             expect(labels).toContain('x:-1,y:3');
         });
     });
+
+    describe('symbol literals', () => {
+        test(':foo annotates as シンボル「foo」', () => {
+            const anns = annotate('x = :foo');
+            expect(labelsAt(anns, 1)).toContain('シンボル「foo」');
+        });
+        test(':bar_baz annotates as シンボル「bar_baz」', () => {
+            const anns = annotate('x = :bar_baz');
+            expect(labelsAt(anns, 1)).toContain('シンボル「bar_baz」');
+        });
+    });
 });

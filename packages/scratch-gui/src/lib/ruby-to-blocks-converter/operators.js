@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import {RubyToBlocksConverterError} from './errors';
 
 const Math = '::Math';
 const MathE = '::Math::E';
@@ -225,11 +226,23 @@ const OperatorsConverter = {
 
         ['>', '<', '=='].forEach(operator => {
             converter.registerOnSend('any', operator, 1, params => {
-                const {receiver, args} = params;
+                const {receiver, args, node} = params;
                 let rh = args[0];
                 if (_.isArray(rh)) {
                     if (rh.length !== 1) return null;
                     rh = rh[0];
+                }
+
+                // For >, <: reject symbol args (Ruby raises ArgumentError for mixed types)
+                if (operator !== '==' &&
+                    converter._isPrimitive(rh) && rh.type === 'sym') {
+                    const source = converter._truncateSource(converter._getSource(node));
+                    throw new RubyToBlocksConverterError(
+                        node,
+                        converter._translator(
+                            converter._symbolCannotCompareMessage(), {SOURCE: source}
+                        )
+                    );
                 }
 
                 let opcode;
@@ -246,6 +259,59 @@ const OperatorsConverter = {
                     block, 'OPERAND1', converter._isNumber(receiver) ? receiver.toString() : receiver, ''
                 );
                 converter._addTextInput(block, 'OPERAND2', converter._isNumber(rh) ? rh.toString() : rh, '50');
+                return block;
+            });
+        });
+
+        ['>', '<', '=='].forEach(operator => {
+            converter.registerOnSend('symbol', operator, 1, params => {
+                const {receiver, args, node} = params;
+                let rh = args[0];
+                if (_.isArray(rh)) {
+                    if (rh.length !== 1) return null;
+                    rh = rh[0];
+                }
+
+                const rhIsSymbol = converter._isPrimitive(rh) && rh.type === 'sym';
+
+                // For >, <: both sides must be symbols (Ruby raises ArgumentError for mixed types)
+                if (operator !== '==' && !rhIsSymbol) {
+                    const source = converter._truncateSource(converter._getSource(node));
+                    throw new RubyToBlocksConverterError(
+                        node,
+                        converter._translator(converter._symbolCannotCompareMessage(), {SOURCE: source})
+                    );
+                }
+
+                const receiverBlock = converter._symbolToBlock(
+                    converter._getSymbolValue(receiver), receiver.node
+                );
+                if (rhIsSymbol) {
+                    rh = converter._symbolToBlock(rh.value, rh.node);
+                }
+
+                let opcode;
+                if (operator === '>') {
+                    opcode = 'operator_gt';
+                } else if (operator === '<') {
+                    opcode = 'operator_lt';
+                } else {
+                    opcode = 'operator_equals';
+                }
+
+                const block = converter._createBlock(opcode, 'value_boolean');
+                converter._addInput(
+                    block, 'OPERAND1', receiverBlock, converter._createTextBlock('')
+                );
+                if (converter._isBlock(rh)) {
+                    converter._addInput(
+                        block, 'OPERAND2', rh, converter._createTextBlock('50')
+                    );
+                } else {
+                    converter._addTextInput(
+                        block, 'OPERAND2', converter._isNumber(rh) ? rh.toString() : rh, '50'
+                    );
+                }
                 return block;
             });
         });
@@ -268,6 +334,19 @@ const OperatorsConverter = {
 
             const block = converter._createBlock('operator_round', 'value');
             converter._addNumberInput(block, 'NUM', 'math_number', receiver, '');
+            return block;
+        });
+
+        converter.registerOnSend('symbol', 'to_s', 0, params => {
+            const {receiver} = params;
+            const symbolName = converter._getSymbolValue(receiver);
+            if (!symbolName) return null;
+
+            converter._collectSymbol(symbolName);
+            const block = converter._createBlock('operator_join', 'value');
+            converter._addTextInput(block, 'STRING1', symbolName, '');
+            converter._addTextInput(block, 'STRING2', '', '');
+            block.comment = converter._createComment(`@ruby:symbol:${symbolName}`, block.id);
             return block;
         });
 

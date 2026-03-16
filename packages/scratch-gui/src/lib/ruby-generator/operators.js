@@ -18,14 +18,12 @@ export default function (Generator) {
     };
 
     Generator.operator_subtract = function (block) {
-        // === Smalruby: Start of array syntax ===
         const comment = Generator.getCommentText(block);
         if (comment && comment.includes('@ruby:array:index')) {
             // Round-trip pattern: subtract(itemnumoflist, 1) → pass through .index() result
             const num1 = Generator.valueToCode(block, 'NUM1', Generator.ORDER_FUNCTION_CALL) || 0;
             return [num1, Generator.ORDER_FUNCTION_CALL];
         }
-        // === Smalruby: End of array syntax ===
 
         const order = Generator.ORDER_ADDITIVE;
         const num1 = Generator.valueToCode(block, 'NUM1', order) || 0;
@@ -230,6 +228,10 @@ export default function (Generator) {
 
     Generator.operator_join = function (block) {
         const comment = Generator.getCommentText(block);
+        if (comment && comment.startsWith('@ruby:symbol:')) {
+            const symbolName = comment.slice('@ruby:symbol:'.length);
+            return [`:${symbolName}.to_s`, Generator.ORDER_FUNCTION_CALL];
+        }
         if (comment === '@ruby:method:to_s') {
             const value = Generator.valueToCode(block, 'STRING1', Generator.ORDER_FUNCTION_CALL) ||
                 Generator.quote_('');

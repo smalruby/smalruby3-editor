@@ -209,6 +209,55 @@ const VariableUtils = {
         return procedure;
     },
 
+    _collectSymbol (name) {
+        this._context.symbols.add(`:${name}`);
+    },
+
+    _createSymbolsList () {
+        if (this._context.symbols.size === 0) return;
+        this._lookupOrCreateList('$_symbols_');
+    },
+
+    _symbolToBlock (symbolName, node) {
+        this._collectSymbol(symbolName);
+        const list = this._lookupOrCreateList('$_symbols_');
+        const block = this._createBlock('data_itemnumoflist', 'value', {
+            fields: {
+                LIST: {
+                    name: 'LIST',
+                    id: list.id,
+                    value: list.name,
+                    variableType: list.type
+                }
+            }
+        });
+        block.node = node;
+        this._addTextInput(block, 'ITEM', symbolName, 'thing');
+        block.comment = this._createComment(`@ruby:symbol:${symbolName}`, block.id);
+        return block;
+    },
+
+    _resolveSymbolVariable (value) {
+        if (!this._isBlock(value)) return null;
+        const variable = this.lookupVariableFromVariableBlock(value);
+        if (!variable || variable.dataType !== 'symbol') return null;
+
+        const list = this._lookupOrCreateList('$_symbols_');
+        const block = this._createBlock('data_itemoflist', 'value', {
+            fields: {
+                LIST: {
+                    name: 'LIST',
+                    id: list.id,
+                    value: list.name,
+                    variableType: list.type
+                }
+            }
+        });
+        this._addNumberInput(block, 'INDEX', 'math_integer', value, 1);
+        block.comment = this._createComment('@ruby:symbol:var', block.id);
+        return block;
+    },
+
     _changeToBooleanArgument (varName) {
         varName = varName.toString();
         const variable = this._context.localVariables[varName];

@@ -70,7 +70,6 @@ describe('RubyToBlocksConverter/Looks', () => {
         test('invalid', async () => {
             { for (const c of [
                 'think',
-                'think(:symbol)',
                 'think(1, 2, 1)'
             ]) {
                 await convertAndExpectRubyBlockError(converter, target, c);

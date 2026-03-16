@@ -122,12 +122,17 @@ const NodeUtils = {
         if (this._isPrimitive(value)) {
             return value.type === 'sym';
         }
+        if (this._isBlock(value) && value.comment) {
+            const comment = this._context.comments[value.comment];
+            return comment && comment.text.startsWith('@ruby:symbol:');
+        }
         return value && value.constructor.name === 'SymbolNode';
     },
 
     /**
      * Get the string value of a symbol node.
-     * Works for Prism SymbolNode instances ({unescaped: {value: '...'}}).
+     * Works for Prism SymbolNode instances ({unescaped: {value: '...'}}),
+     * Primitive('sym', value), and blocks with @ruby:symbol: comments.
      * @param {object} node - A symbol node.
      * @returns {string|null} The symbol value, or null if not a symbol.
      */
@@ -136,7 +141,13 @@ const NodeUtils = {
         if (this._isPrimitive(node) && node.type === 'sym') {
             return node.value;
         }
-        if (node.constructor.name === 'SymbolNode') {
+        if (this._isBlock(node) && node.comment) {
+            const comment = this._context.comments[node.comment];
+            if (comment && comment.text.startsWith('@ruby:symbol:')) {
+                return comment.text.slice('@ruby:symbol:'.length);
+            }
+        }
+        if (node.constructor && node.constructor.name === 'SymbolNode') {
             return node.unescaped ? node.unescaped.value : null;
         }
         return null;
@@ -270,6 +281,7 @@ const NodeUtils = {
         if (this._isString(value)) return 'string';
         if (this._isNumber(value)) return 'number';
         if (this._isTrue(value) || this._isFalse(value)) return 'boolean';
+        if (this._isSymbol(value)) return 'symbol';
         if (this._isBlock(value)) return this._getBlockDataType(value);
         return null;
     },

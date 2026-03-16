@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import Primitive from '../primitive';
+import {RubyToBlocksConverterError} from '../errors';
 
 /**
  * Expression AST handlers for RubyToBlocksConverter.
@@ -57,6 +58,53 @@ const ExpressionHandlers = {
 
         if (!block) {
             this._restoreContext(saved);
+
+            const arithmeticOps = ['+', '-', '*', '/', '%', '**'];
+            const comparisonOps = ['>', '<', '>=', '<='];
+            const isSymReceiver = this._isPrimitive(receiver) && receiver.type === 'sym';
+            const symbolArg = args.find(a => this._isPrimitive(a) && a.type === 'sym');
+
+            // Symbol in arithmetic → specific error
+            if (arithmeticOps.indexOf(name) >= 0 && (isSymReceiver || symbolArg)) {
+                const source = this._truncateSource(this._getSource(node));
+                const sym = isSymReceiver ? receiver : symbolArg;
+                const suggestion = source.replace(
+                    `:${sym.value}`,
+                    `:${sym.value}.to_s`
+                );
+                throw new RubyToBlocksConverterError(
+                    node,
+                    this._translator(this._symbolCannotArithmeticMessage(), {
+                        SOURCE: source,
+                        SUGGESTION: suggestion
+                    })
+                );
+            }
+
+            // Symbol in comparison with non-symbol → specific error
+            if (comparisonOps.indexOf(name) >= 0 && (isSymReceiver || symbolArg)) {
+                const source = this._truncateSource(this._getSource(node));
+                throw new RubyToBlocksConverterError(
+                    node,
+                    this._translator(this._symbolCannotCompareMessage(), {SOURCE: source})
+                );
+            }
+
+            // Symbol in other contexts → needs .to_s
+            if (symbolArg) {
+                const source = this._truncateSource(this._getSource(node));
+                const suggestion = source.replace(
+                    `:${symbolArg.value}`,
+                    `:${symbolArg.value}.to_s`
+                );
+                throw new RubyToBlocksConverterError(
+                    node,
+                    this._translator(this._symbolNeedsToSMessage(), {
+                        SOURCE: source,
+                        SUGGESTION: suggestion
+                    })
+                );
+            }
 
             if (node.block) {
                 block = this._createBlock('ruby_statement_with_block', 'statement');
