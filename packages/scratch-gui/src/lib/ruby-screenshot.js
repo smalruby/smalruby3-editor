@@ -3,9 +3,6 @@
 import {toBlob} from 'html-to-image';
 import downloadBlob from './download-blob';
 
-/** Threshold below which a colour channel is considered "content" (handles anti-aliasing). */
-const WHITE_THRESHOLD = 250;
-
 /**
  * Builds the export filename for Ruby tab screenshots.
  * @param {string} projectTitle - Project name
@@ -17,64 +14,80 @@ const buildFilename = function (projectTitle, spriteName) {
 };
 
 /**
- * Trims right-side whitespace from a PNG blob by scanning pixel data.
- * Finds the rightmost non-white column, then crops the image to that
- * column plus padding. Returns the original blob if cropping would not
- * save meaningful space.
+ * Measures the maximum rendered text width across all visible lines
+ * in the Monaco editor, relative to the editor DOM node's left edge.
+ * This is more reliable than pixel scanning because Monaco renders
+ * decorative elements (overview ruler, scrollbar, line highlights)
+ * that span the full editor width.
+ * @param {HTMLElement} editorDomNode - the editor's root DOM node
+ * @returns {number} maximum text right edge in CSS pixels, relative to editorDomNode
+ */
+const measureTextWidth = function (editorDomNode) {
+    const viewLines = editorDomNode.querySelector('.view-lines');
+    if (!viewLines) return 0;
+
+    const editorLeft = editorDomNode.getBoundingClientRect().left;
+    let maxRight = 0;
+
+    for (const line of viewLines.children) {
+        const spans = line.querySelectorAll('span span');
+        for (const span of spans) {
+            const right = span.getBoundingClientRect().right;
+            if (right > maxRight) maxRight = right;
+        }
+    }
+
+    return maxRight > 0 ? maxRight - editorLeft : 0;
+};
+
+/**
+ * Measures the maximum rendered furigana annotation width.
+ * ViewZones may extend beyond the code text width.
+ * @param {HTMLElement} editorDomNode - the editor's root DOM node
+ * @returns {number} maximum furigana right edge in CSS pixels, relative to editorDomNode
+ */
+const measureFuriganaWidth = function (editorDomNode) {
+    const viewZones = editorDomNode.querySelector('.view-zones');
+    if (!viewZones) return 0;
+
+    const editorLeft = editorDomNode.getBoundingClientRect().left;
+    let maxRight = 0;
+
+    const spans = viewZones.querySelectorAll('span');
+    for (const span of spans) {
+        const right = span.getBoundingClientRect().right;
+        if (right > maxRight) maxRight = right;
+    }
+
+    return maxRight > 0 ? maxRight - editorLeft : 0;
+};
+
+/**
+ * Crops a PNG blob to the specified width.
+ * Returns the original blob if cropping would not reduce the width.
  * @param {Blob} blob - source PNG blob
- * @param {number} padding - extra pixels to keep to the right of content
+ * @param {number} cropWidth - target width in image pixels
  * @returns {Promise<Blob>} cropped (or original) PNG blob
  */
-const cropRightWhitespace = async function (blob, padding = 32) {
+const cropToWidth = async function (blob, cropWidth) {
     const bitmap = await createImageBitmap(blob);
     const {width, height} = bitmap;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(bitmap, 0, 0);
-    bitmap.close();
-
-    // Scan columns from right to find the rightmost column with content
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const {data} = imageData;
-
-    let rightmostContentX = 0;
-    for (let x = width - 1; x >= 0; x--) {
-        let hasContent = false;
-        // Sample every 4th row for performance
-        for (let y = 0; y < height; y += 4) {
-            const idx = ((y * width) + x) * 4;
-            if (data[idx] < WHITE_THRESHOLD ||
-                data[idx + 1] < WHITE_THRESHOLD ||
-                data[idx + 2] < WHITE_THRESHOLD) {
-                hasContent = true;
-                break;
-            }
-        }
-        if (hasContent) {
-            rightmostContentX = x;
-            break;
-        }
-    }
-
-    const cropWidth = Math.min(width, rightmostContentX + 1 + padding);
-
-    // If cropping would not save meaningful space, return the original
-    if (cropWidth >= width - padding) {
+    // No crop needed if target width >= image width
+    if (cropWidth >= width) {
+        bitmap.close();
         return blob;
     }
 
-    // Create a cropped canvas and export as PNG blob
-    const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = cropWidth;
-    croppedCanvas.height = height;
-    const croppedCtx = croppedCanvas.getContext('2d');
-    croppedCtx.drawImage(canvas, 0, 0, cropWidth, height, 0, 0, cropWidth, height);
+    const canvas = document.createElement('canvas');
+    canvas.width = cropWidth;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, cropWidth, height, 0, 0, cropWidth, height);
+    bitmap.close();
 
     return new Promise(resolve => {
-        croppedCanvas.toBlob(croppedBlob => {
+        canvas.toBlob(croppedBlob => {
             resolve(croppedBlob || blob);
         }, 'image/png');
     });
@@ -85,6 +98,8 @@ const cropRightWhitespace = async function (blob, padding = 32) {
  * Temporarily expands the editor to its full content height so that all lines
  * (including those scrolled out of view) are rendered in the DOM before capture.
  * ViewZones (e.g. furigana annotations) are captured naturally as DOM elements.
+ * After capture, the image is cropped to the actual text content width to remove
+ * the large right-side whitespace caused by the editor being wider than the code.
  * @param {object} editor - Monaco editor instance
  * @param {string} projectTitle - Project name (used in filename)
  * @param {string} spriteName - Sprite / stage name (used in filename)
@@ -106,16 +121,13 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
     const originalHeight = containerEl.style.height;
     const originalOverflow = containerEl.style.overflow;
 
+    /** Extra pixels (CSS) added to the right of the content boundary. */
+    const CROP_PADDING = 16;
+    const PIXEL_RATIO = 2;
+
     try {
-        // Disable visual elements that span the full editor width, which
-        // would otherwise prevent cropRightWhitespace from detecting the
-        // true content boundary.
-        editor.updateOptions({
-            scrollBeyondLastLine: false,
-            renderLineHighlight: 'none',
-            scrollbar: {vertical: 'hidden', horizontal: 'hidden'},
-            hideCursorInOverviewRuler: true
-        });
+        // Disable scrollBeyondLastLine to get tight content height
+        editor.updateOptions({scrollBeyondLastLine: false});
         editor.layout();
 
         // Expand editor to full content height so all lines are in the DOM
@@ -133,27 +145,33 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
             });
         });
 
+        // Measure content width from rendered DOM before capture
+        const textWidth = measureTextWidth(editorDomNode);
+        const furiganaWidth = measureFuriganaWidth(editorDomNode);
+        const contentWidth = Math.max(textWidth, furiganaWidth);
+
         // Capture the editor DOM as a PNG blob.
         // skipFonts avoids SecurityError when html-to-image tries to read
         // cssRules from cross-origin stylesheets (Monaco's CDN CSS).
         const blob = await toBlob(editorDomNode, {
             backgroundColor: '#ffffff',
-            pixelRatio: 2,
+            pixelRatio: PIXEL_RATIO,
             skipFonts: true
         });
 
         if (blob) {
-            const croppedBlob = await cropRightWhitespace(blob);
-            downloadBlob(buildFilename(projectTitle, spriteName), croppedBlob);
+            let downloadableBlob = blob;
+            if (contentWidth > 0) {
+                const cropWidthPx = Math.ceil(
+                    (contentWidth + CROP_PADDING) * PIXEL_RATIO
+                );
+                downloadableBlob = await cropToWidth(blob, cropWidthPx);
+            }
+            downloadBlob(buildFilename(projectTitle, spriteName), downloadableBlob);
         }
     } finally {
         // Restore original state
-        editor.updateOptions({
-            scrollBeyondLastLine: true,
-            renderLineHighlight: 'line',
-            scrollbar: {vertical: 'auto', horizontal: 'auto'},
-            hideCursorInOverviewRuler: false
-        });
+        editor.updateOptions({scrollBeyondLastLine: true});
         containerEl.style.height = originalHeight;
         containerEl.style.overflow = originalOverflow;
         editor.layout();
@@ -164,6 +182,8 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
 
 export {
     buildFilename,
-    cropRightWhitespace,
+    cropToWidth,
+    measureFuriganaWidth,
+    measureTextWidth,
     downloadRubyAsImage
 };
