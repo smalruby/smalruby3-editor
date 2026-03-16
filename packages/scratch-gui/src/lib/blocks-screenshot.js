@@ -20,6 +20,29 @@ const getBlocksBoundingBox = function (workspace) {
 };
 
 /**
+ * Merges the blocks bounding box with the bubble canvas bounding box so that
+ * comment bubbles are included in the exported area.
+ * @param {object} workspace - Scratch Blocks / Blockly workspace instance
+ * @param {{x: number, y: number, width: number, height: number}} blockBbox - Blocks-only bounding box
+ * @returns {{x: number, y: number, width: number, height: number}} Merged bounding box
+ */
+const mergeWithBubbleBBox = function (workspace, blockBbox) {
+    const bubbleCanvas = workspace.svgBubbleCanvas_;
+    if (!bubbleCanvas || bubbleCanvas.children.length === 0) {
+        return blockBbox;
+    }
+    const bubbleBbox = bubbleCanvas.getBBox();
+    if (!bubbleBbox || (bubbleBbox.width === 0 && bubbleBbox.height === 0)) {
+        return blockBbox;
+    }
+    const minX = Math.min(blockBbox.x, bubbleBbox.x);
+    const minY = Math.min(blockBbox.y, bubbleBbox.y);
+    const maxX = Math.max(blockBbox.x + blockBbox.width, bubbleBbox.x + bubbleBbox.width);
+    const maxY = Math.max(blockBbox.y + blockBbox.height, bubbleBbox.y + bubbleBbox.height);
+    return {x: minX, y: minY, width: maxX - minX, height: maxY - minY};
+};
+
+/**
  * Calculates the canvas pixel dimensions needed to contain all blocks with padding.
  * @param {{x: number, y: number, width: number, height: number}} bbox
  * @param {number} scale - Workspace zoom scale
@@ -140,11 +163,21 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
 
     // Clone block canvas and re-position so bbox top-left -> (padding, padding).
     // bbox.x and bbox.y are workspace coordinates of the top-left of all blocks.
-    const canvasClone = blockCanvas.cloneNode(true);
     const tx = ((-bbox.x) * scale) + padding;
     const ty = ((-bbox.y) * scale) + padding;
-    canvasClone.setAttribute('transform', `translate(${tx}, ${ty}) scale(${scale})`);
+    const canvasTransform = `translate(${tx}, ${ty}) scale(${scale})`;
+
+    const canvasClone = blockCanvas.cloneNode(true);
+    canvasClone.setAttribute('transform', canvasTransform);
     svg.appendChild(canvasClone);
+
+    // Clone bubble canvas (comment bubbles) with the same transform
+    const bubbleCanvas = workspace.svgBubbleCanvas_;
+    if (bubbleCanvas && bubbleCanvas.children.length > 0) {
+        const bubbleClone = bubbleCanvas.cloneNode(true);
+        bubbleClone.setAttribute('transform', canvasTransform);
+        svg.appendChild(bubbleClone);
+    }
 
     // Inline relative image hrefs as data URIs so they survive blob serialization
     await inlineImageHrefs(svg);
@@ -194,9 +227,10 @@ const renderSVGToCanvas = function (svgStr, width, height) {
  * @returns {Promise<void>}
  */
 const downloadBlocksAsImage = async function (workspace, projectTitle, spriteName) {
-    const bbox = getBlocksBoundingBox(workspace);
-    if (!bbox) return;
+    const blockBbox = getBlocksBoundingBox(workspace);
+    if (!blockBbox) return;
 
+    const bbox = mergeWithBubbleBBox(workspace, blockBbox);
     const scale = workspace.scale;
     const {width, height} = calculateCanvasDimensions(bbox, scale);
     const svgStr = await buildExportSVG(workspace, bbox, scale, width, height);
@@ -212,6 +246,7 @@ const downloadBlocksAsImage = async function (workspace, projectTitle, spriteNam
 
 export {
     getBlocksBoundingBox,
+    mergeWithBubbleBBox,
     calculateCanvasDimensions,
     buildFilename,
     buildExportSVG,

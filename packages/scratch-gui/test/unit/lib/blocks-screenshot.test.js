@@ -1,7 +1,9 @@
 import {
     getBlocksBoundingBox,
+    mergeWithBubbleBBox,
     calculateCanvasDimensions,
     buildFilename,
+    buildExportSVG,
     downloadBlocksAsImage,
     EXPORT_PADDING
 } from '../../../src/lib/blocks-screenshot';
@@ -10,17 +12,26 @@ jest.mock('../../../src/lib/download-blob', () => jest.fn());
 import downloadBlob from '../../../src/lib/download-blob';
 
 // Helper: create a mock Blockly workspace
-const makeMockWorkspace = ({boundingBox = null, scale = 1} = {}) => {
+const makeMockWorkspace = ({boundingBox = null, scale = 1, bubbleChildren = 0} = {}) => {
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS, 'svg');
     const group = document.createElementNS(svgNS, 'g');
     svg.appendChild(group);
-    // ownerSVGElement is read-only on real SVG elements, but we can assign it on a plain obj
-    const blockCanvas = group;
+    const bubbleGroup = document.createElementNS(svgNS, 'g');
+    svg.appendChild(bubbleGroup);
+    for (let i = 0; i < bubbleChildren; i++) {
+        const rect = document.createElementNS(svgNS, 'rect');
+        rect.setAttribute('x', '100');
+        rect.setAttribute('y', '50');
+        rect.setAttribute('width', '30');
+        rect.setAttribute('height', '20');
+        bubbleGroup.appendChild(rect);
+    }
     return {
         getBlocksBoundingBox: jest.fn(() => boundingBox),
         scale,
-        svgBlockCanvas_: blockCanvas
+        svgBlockCanvas_: group,
+        svgBubbleCanvas_: bubbleGroup
     };
 };
 
@@ -47,6 +58,38 @@ describe('getBlocksBoundingBox', () => {
         const bbox = {x: -30, y: -50, width: 100, height: 100};
         const workspace = makeMockWorkspace({boundingBox: bbox});
         expect(getBlocksBoundingBox(workspace)).toEqual(bbox);
+    });
+});
+
+// ---- mergeWithBubbleBBox ----
+
+describe('mergeWithBubbleBBox', () => {
+    test('returns original bbox when bubble canvas has no children', () => {
+        const workspace = makeMockWorkspace({boundingBox: {x: 10, y: 20, width: 200, height: 100}});
+        const bbox = {x: 10, y: 20, width: 200, height: 100};
+        expect(mergeWithBubbleBBox(workspace, bbox)).toEqual(bbox);
+    });
+
+    test('returns original bbox when workspace has no bubble canvas', () => {
+        const workspace = makeMockWorkspace({boundingBox: {x: 10, y: 20, width: 200, height: 100}});
+        delete workspace.svgBubbleCanvas_;
+        const bbox = {x: 10, y: 20, width: 200, height: 100};
+        expect(mergeWithBubbleBBox(workspace, bbox)).toEqual(bbox);
+    });
+
+    test('expands bbox to include bubble canvas bounds', () => {
+        const workspace = makeMockWorkspace({
+            boundingBox: {x: 10, y: 20, width: 200, height: 100},
+            bubbleChildren: 2
+        });
+        // Mock getBBox to return a region outside the block bbox
+        workspace.svgBubbleCanvas_.getBBox = jest.fn(() => ({
+            x: 250, y: 10, width: 80, height: 40
+        }));
+        const bbox = {x: 10, y: 20, width: 200, height: 100};
+        const merged = mergeWithBubbleBBox(workspace, bbox);
+        // minX=10, minY=10, maxX=330, maxY=120
+        expect(merged).toEqual({x: 10, y: 10, width: 320, height: 110});
     });
 });
 
@@ -101,6 +144,41 @@ describe('buildFilename', () => {
 
     test('handles stage (ステージ)', () => {
         expect(buildFilename('project', 'Stage')).toBe('project_Stage.png');
+    });
+});
+
+// ---- buildExportSVG ----
+
+describe('buildExportSVG', () => {
+    test('includes bubble canvas clone in exported SVG', async () => {
+        const workspace = makeMockWorkspace({
+            boundingBox: {x: 0, y: 0, width: 200, height: 100},
+            bubbleChildren: 3
+        });
+        const bbox = {x: 0, y: 0, width: 200, height: 100};
+        const svgStr = await buildExportSVG(workspace, bbox, 1, 232, 132);
+        // Count <g elements — block canvas + bubble canvas (each is a <g>)
+        const gMatches = svgStr.match(/<g[\s>/]/g) || [];
+        expect(gMatches.length).toBeGreaterThanOrEqual(2);
+        // Bubble canvas children (rect elements) should be present
+        const rectMatches = svgStr.match(/<rect[\s>/]/g) || [];
+        // 1 background rect + 3 bubble rects = at least 4
+        expect(rectMatches.length).toBeGreaterThanOrEqual(4);
+    });
+
+    test('does not include bubble canvas when it has no children', async () => {
+        const workspace = makeMockWorkspace({
+            boundingBox: {x: 0, y: 0, width: 200, height: 100},
+            bubbleChildren: 0
+        });
+        const bbox = {x: 0, y: 0, width: 200, height: 100};
+        const svgStr = await buildExportSVG(workspace, bbox, 1, 232, 132);
+        // Count <g elements — only block canvas (1 group)
+        const gMatches = svgStr.match(/<g[\s>/]/g) || [];
+        expect(gMatches.length).toBe(1);
+        // Only background rect, no bubble rects
+        const rectMatches = svgStr.match(/<rect[\s>/]/g) || [];
+        expect(rectMatches.length).toBe(1);
     });
 });
 
