@@ -47,6 +47,8 @@ import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-moda
 import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-preview.jsx';
 import {generatePreviewCode} from '../lib/ruby-script-preview';
 import {autoCorrect, defaultSettings as defaultAutoCorrectSettings} from '../lib/auto-correct';
+import {downloadRubyAsImage} from '../lib/ruby-screenshot';
+import cameraIcon from '../components/blocks-screenshot-button/icon--camera.svg';
 import styles from './ruby-tab/ruby-tab.css';
 import {loadMonacoLocale} from '../lib/monaco-i18n-helper';
 import {getPrism, loadPrism} from '../lib/prism-parser';
@@ -421,6 +423,14 @@ const RubyTab = props => {
     const handleZoomReset = useCallback(() => {
         onFontSizeChange(DEFAULT_FONT_SIZE);
     }, [onFontSizeChange]);
+
+    const handleScreenshot = useCallback(() => {
+        if (!editorRef.current) return;
+        const target = vm.editingTarget;
+        const spriteName = target ? target.sprite.name : 'sprite';
+        const title = props.projectTitle || 'project';
+        downloadRubyAsImage(editorRef.current, title, spriteName);
+    }, [vm, props.projectTitle]);
 
     const handleSelectTarget = useCallback(targetId => {
         const target = vm.runtime.getTargetById(targetId);
@@ -965,6 +975,18 @@ const RubyTab = props => {
                 {renderDownloaderChildren}
             </RubyDownloader>
             <div className={styles.zoomControlsWrapper}>
+                <button
+                    className={styles.zoomButton}
+                    title="Rubyコードを画像として保存"
+                    onClick={handleScreenshot}
+                >
+                    <img
+                        alt="Rubyコードを画像として保存"
+                        className={styles.zoomIcon}
+                        draggable={false}
+                        src={cameraIcon}
+                    />
+                </button>
                 <button
                     className={styles.zoomButton}
                     onClick={handleZoomIn}
