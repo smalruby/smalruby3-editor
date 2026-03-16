@@ -72,6 +72,14 @@ export default function (Generator) {
 
             // Check if this is the last block in procedure definition
             if (block._isLastReturnInProcedure) {
+                // Check if there's a cached super call for this method
+                const returnMethodMatch = comment.match(/@ruby:return:(\w+)/);
+                if (returnMethodMatch && Generator.returnCallCache_ &&
+                    Generator.returnCallCache_[returnMethodMatch[1]]) {
+                    const cachedCall = Generator.returnCallCache_[returnMethodMatch[1]];
+                    delete Generator.returnCallCache_[returnMethodMatch[1]];
+                    return `${cachedCall}\n`;
+                }
                 // Output just the value (implicit return)
                 return `${Generator.nosToCode(value)}\n`;
             }

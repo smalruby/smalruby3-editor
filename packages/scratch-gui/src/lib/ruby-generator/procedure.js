@@ -16,6 +16,35 @@ export default function (Generator) {
     };
 
     /**
+     * Generate super call code from a procedures_call block with super comment.
+     * @param {object} block - The procedures_call block
+     * @param {string} superComment - `@ruby`:super or `@ruby`:super:forwarding
+     * @returns {string} The super call code (without trailing newline)
+     */
+    const generateSuperCall = function (block, superComment) {
+        if (superComment === '@ruby:super:forwarding') {
+            return 'super';
+        }
+        // SuperNode: output 'super(args)'
+        const args = [];
+        const paramNamesIdsAndDefaults =
+            Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(block.mutation.proccode);
+        const ids = paramNamesIdsAndDefaults[1];
+        const defaults = paramNamesIdsAndDefaults[2];
+        for (let i = 0; i < ids.length; i++) {
+            let value;
+            if (block.inputs[ids[i]]) {
+                value = Generator.valueToCode(block, ids[i], Generator.ORDER_NONE);
+            } else {
+                value = defaults[i];
+            }
+            args.push(Generator.nosToCode(value));
+        }
+        const argsString = args.length > 0 ? `(${args.join(', ')})` : '';
+        return `super${argsString}`;
+    };
+
+    /**
      * Generate method header with a specific name (for renamed module methods with super_of).
      * @param {object} defBlock - The procedures_definition block
      * @param {object} customBlock - The procedures_prototype block
@@ -82,6 +111,32 @@ export default function (Generator) {
             // Mark the last block so data_setvariableto knows it's the final expression
             if (Generator.isRubyReturnAssignment(lastBlock)) {
                 lastBlock._isLastReturnInProcedure = true;
+
+                // Check if the block before the return assignment is a super call.
+                // If so, store the super call in returnCallCache_ so the return
+                // assignment's data_variable can retrieve it as the implicit return value.
+                let prevBlock = bodyBlock;
+                while (prevBlock.next && Generator.getBlock(prevBlock.next) !== lastBlock) {
+                    prevBlock = Generator.getBlock(prevBlock.next);
+                }
+                if (prevBlock !== lastBlock) {
+                    const prevComment = Generator.getCommentText(prevBlock);
+                    if (prevComment === '@ruby:super' || prevComment === '@ruby:super:forwarding') {
+                        const superCode = generateSuperCall(prevBlock, prevComment);
+                        // Set up cache so the return block outputs the super call
+                        // The return comment contains the method name
+                        const returnComment = Generator.getCommentText(lastBlock);
+                        if (returnComment) {
+                            const returnMatch = returnComment.match(/@ruby:return:(\w+)/);
+                            if (returnMatch) {
+                                if (!Generator.returnCallCache_) {
+                                    Generator.returnCallCache_ = {};
+                                }
+                                Generator.returnCallCache_[returnMatch[1]] = superCode;
+                            }
+                        }
+                    }
+                }
             }
 
             const bodyCode = Generator.blockToCode(bodyBlock);
@@ -183,32 +238,32 @@ export default function (Generator) {
     };
 
     Generator.procedures_call = function (block) {
-        // Check for super call comments
         const comment = Generator.getCommentText(block);
 
-        if (comment === '@ruby:super:forwarding') {
-            // ForwardingSuperNode: output bare 'super' (forwards all args)
-            return 'super\n';
-        }
-
-        if (comment === '@ruby:super') {
-            // SuperNode: output 'super(args)'
-            const args = [];
-            const paramNamesIdsAndDefaults =
-                Generator.currentTarget.blocks.getProcedureParamNamesIdsAndDefaults(block.mutation.proccode);
-            const ids = paramNamesIdsAndDefaults[1];
-            const defaults = paramNamesIdsAndDefaults[2];
-            for (let i = 0; i < ids.length; i++) {
-                let value;
-                if (block.inputs[ids[i]]) {
-                    value = Generator.valueToCode(block, ids[i], Generator.ORDER_NONE);
-                } else {
-                    value = defaults[i];
+        // Check if this is a super call AND next block is a return assignment
+        // (i.e., super is the last expression in a method with return value)
+        if (comment === '@ruby:super' || comment === '@ruby:super:forwarding') {
+            const nextBlock = Generator.getBlock(block.next);
+            if (Generator.isRubyReturnAssignment(nextBlock)) {
+                // Super is the implicit return value — suppress this block's output.
+                // The data_setvariableto handler will output the value.
+                // Store the super call so data_setvariableto can use it.
+                const superCode = generateSuperCall(block, comment);
+                if (!Generator.returnCallCache_) {
+                    Generator.returnCallCache_ = {};
                 }
-                args.push(Generator.nosToCode(value));
+                // Extract method name from the return assignment comment
+                const nextComment = Generator.getCommentText(nextBlock);
+                if (nextComment) {
+                    const match = nextComment.match(/@ruby:return:(\w+)/);
+                    if (match) {
+                        Generator.returnCallCache_[match[1]] = superCode;
+                    }
+                }
+                return '';
             }
-            const argsString = args.length > 0 ? `(${args.join(', ')})` : '';
-            return `super${argsString}\n`;
+            // Super call as a standalone statement
+            return `${generateSuperCall(block, comment)}\n`;
         }
 
         // Check if this procedures_call has @ruby:return:methodName comment
