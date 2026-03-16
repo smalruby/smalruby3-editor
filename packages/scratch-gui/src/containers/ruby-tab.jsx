@@ -977,6 +977,7 @@ const RubyTab = props => {
             <div className={styles.zoomControlsWrapper}>
                 <button
                     className={styles.zoomButton}
+                    data-testid="ruby-screenshot"
                     title="Rubyコードを画像として保存"
                     onClick={handleScreenshot}
                 >
@@ -989,6 +990,7 @@ const RubyTab = props => {
                 </button>
                 <button
                     className={styles.zoomButton}
+                    data-testid="ruby-zoom-in"
                     onClick={handleZoomIn}
                 >
                     <img
@@ -998,6 +1000,7 @@ const RubyTab = props => {
                 </button>
                 <button
                     className={styles.zoomButton}
+                    data-testid="ruby-zoom-out"
                     onClick={handleZoomOut}
                 >
                     <img
@@ -1007,6 +1010,7 @@ const RubyTab = props => {
                 </button>
                 <button
                     className={styles.zoomButton}
+                    data-testid="ruby-zoom-reset"
                     onClick={handleZoomReset}
                 >
                     <img

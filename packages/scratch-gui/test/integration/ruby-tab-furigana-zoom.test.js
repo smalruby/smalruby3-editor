@@ -53,16 +53,14 @@ const getFuriganaInfo = async () => {
  * Click the zoom-in button in the Ruby tab.
  */
 const clickZoomIn = async () => {
-    // button[2]: screenshot(1), zoom-in(2), zoom-out(3), zoom-reset(4)
-    await clickXpath('//div[contains(@class, "ruby-tab_zoomControlsWrapper")]//button[2]');
+    await clickXpath('//button[@data-testid="ruby-zoom-in"]');
 };
 
 /**
  * Click the zoom-reset button in the Ruby tab.
  */
 const clickZoomReset = async () => {
-    // button[4]: screenshot(1), zoom-in(2), zoom-out(3), zoom-reset(4)
-    await clickXpath('//div[contains(@class, "ruby-tab_zoomControlsWrapper")]//button[4]');
+    await clickXpath('//button[@data-testid="ruby-zoom-reset"]');
 };
 
 describe('Ruby tab furigana zoom follow', () => {
