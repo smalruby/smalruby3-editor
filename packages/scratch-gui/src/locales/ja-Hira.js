@@ -109,6 +109,7 @@ export default {
     'gui.smalruby3.rubyToBlocksConverter.arraySyntaxNotAvailableInV1': 'はいれつのかきかたはルビーバージョン2でのみつかえます。\nせっていメニューからルビーバージョン2にきりかえるか、\nlist()のかきかたをつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.listSyntaxNotAvailableInV2': 'list()のかきかたはルビーバージョン1でのみつかえます。\nはいれつのかきかた（$a.push()、$a[0]など）をつかってください。',
     'gui.smalruby3.rubyToBlocksConverter.arrayLiteralNotAvailableInV1': 'はいれつリテラルのかきかたはルビーバージョン2でのみつかえます。\nせっていメニューからルビーバージョン2にきりかえてください。',
+    'gui.smalruby3.rubyToBlocksConverter.hashSyntaxNotAvailableInV1': 'ハッシュのかきかたはルビーバージョン2でのみつかえます。\nせっていメニューからルビーバージョン2にきりかえてください。',
     'gui.smalruby3.rubyToBlocksConverter.classNotSupportedInV1': 'classのていぎはルビーバージョン1ではつかえません。\nせっていメニューからルビーバージョン2にきりかえてください。',
     'gui.smalruby3.rubyToBlocksConverter.invalidStageSuperclass': 'Stageクラスは ::Smalruby3::Stage または Smalruby3::Stage のみけいしょうできます。',
     'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInV1': 'moduleのていぎはルビーバージョン1ではつかえません。\nせっていメニューからルビーバージョン2にきりかえてください。',
