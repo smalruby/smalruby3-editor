@@ -68,6 +68,21 @@ describe('Ruby super keyword round-trip', () => {
             '  def func(a)\n' +
             '    super\n' +
             '  end\n' +
+            'end',
+            // Generator adds an extra blank line before class end
+            'module Mod\n' +
+            '  def func(a)\n' +
+            '    say(a)\n' +
+            '  end\n' +
+            'end\n' +
+            '\n' +
+            'class Sprite1\n' +
+            '  include Mod\n' +
+            '\n' +
+            '  def func(a)\n' +
+            '    super\n' +
+            '  end\n' +
+            '\n' +
             'end'
         );
     });
