@@ -49,7 +49,10 @@ class FuriganaAnnotator {
 
     // ---- Internal helpers ----
 
-    /** Build UTF-8 byte-based line offsets and a byteToChar mapping. */
+    /**
+     * Build UTF-8 byte-based line offsets and a byteToChar mapping.
+     * @param {string} source - The Ruby source code.
+     */
     _buildMappings (source) {
         const encoder = new TextEncoder();
         const bytes = encoder.encode(source);
@@ -95,7 +98,10 @@ class FuriganaAnnotator {
         };
     }
 
-    /** Location spanning from receiver start to messageLoc end (for self.xxx). */
+    /**
+     * Location spanning from receiver start to messageLoc end (for self.xxx).
+     * @param {object} node - A Prism CallNode.
+     */
     _receiverSpanLoc (node) {
         if (!node.receiver || !node.receiver.location || !node.messageLoc) return node.messageLoc;
         const recLoc = node.receiver.location;
@@ -140,7 +146,10 @@ class FuriganaAnnotator {
             t === 'ConcatStringNode';
     }
 
-    /** Dispatch to _handleXxxNode or fall back to walking children. */
+    /**
+     * Dispatch to _handleXxxNode or fall back to walking children.
+     * @param {object} node - A Prism AST node.
+     */
     _walkNode (node) {
         if (!node || typeof node !== 'object') return;
         const typeName = typeof node.toJSON === 'function' ? node.toJSON().type : null;

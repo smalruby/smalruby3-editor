@@ -147,7 +147,9 @@ export default function (Generator) {
      * Convert Scratch 1-indexed list index to Ruby 0-indexed array index.
      * For literal numbers, subtracts 1 directly.
      * For expressions, generates "(expr - 1)".
-     * Detects operator_add(x, 1) with @ruby:array:index_offset comment for round-trip.
+     * Detects operator_add(x, 1) with `@ruby`:array:index_offset comment for round-trip.
+     * @param {object} block - The Scratch block containing the index input.
+     * @returns {string} The Ruby array index expression.
      */
     const getListIndex = function (block) {
         // Check for operator_add(x, 1) round-trip pattern

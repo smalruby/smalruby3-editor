@@ -5,8 +5,9 @@
 ### Linting
 
 - **Linter**: ESLint with `eslint-config-scratch`
-- **MUST pass before committing**: Always run `npm run lint` before creating commits
-- Fix linting errors automatically when possible: `npm run lint -- --fix`
+- **MUST pass with zero errors AND zero warnings before committing**: Always run `npm run lint` before creating commits. The `scratch-gui` package enforces `--max-warnings 0`.
+- Fix linting errors and warnings automatically when possible: `npm run lint -- --fix`
+- **JSDoc warnings count as failures**: Missing `@param`, `@returns`, unescaped inline tags (`@ruby` → `` `@ruby` ``), and incorrect types (`Object` → `object`) must all be fixed.
 
 ### Code Style Guidelines
 

@@ -16,6 +16,10 @@ const PartLabel = {
     7: 'top_of_head'
 };
 
+/**
+ * Register face sensing block generators.
+ * @param {object} Generator - The Ruby code generator instance.
+ */
 export default function (Generator) {
     Generator.faceSensing_goToPart = function (block) {
         const part = Generator.getFieldValue(block, 'PART', '2');

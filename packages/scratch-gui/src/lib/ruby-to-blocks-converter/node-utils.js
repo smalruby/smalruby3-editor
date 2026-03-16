@@ -132,7 +132,7 @@ const NodeUtils = {
     /**
      * Get the string value of a symbol node.
      * Works for Prism SymbolNode instances ({unescaped: {value: '...'}}),
-     * Primitive('sym', value), and blocks with @ruby:symbol: comments.
+     * Primitive('sym', value), and blocks with `@ruby`:symbol: comments.
      * @param {object} node - A symbol node.
      * @returns {string|null} The symbol value, or null if not a symbol.
      */

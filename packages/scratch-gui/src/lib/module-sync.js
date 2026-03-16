@@ -86,7 +86,6 @@ export const replaceModuleCode = (code, moduleName, newModuleCode) => {
 /**
  * Sync module changes from a source target to all other targets that include the same modules.
  * Called after Ruby→Blocks conversion completes on the source target.
- *
  * @param {object} vm - Scratch VM
  * @param {object} sourceTarget - The target whose code was just converted
  * @param {object} intl - react-intl instance for error translation

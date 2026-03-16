@@ -26,7 +26,6 @@ class RubyDownloader extends React.Component {
     /**
      * Validate Ruby code by converting to blocks. If conversion succeeds,
      * apply blocks to update sprite/stage state (round-trip).
-     * @param {boolean} converted - set to true after successful conversion
      * @returns {Promise<boolean>} true if conversion succeeded or was unnecessary
      */
     async validateAndConvert () {

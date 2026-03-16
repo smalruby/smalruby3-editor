@@ -129,6 +129,8 @@ docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest te
 docker compose run --rm app npm run lint
 ```
 
+**IMPORTANT**: Lint must pass with **zero errors AND zero warnings**. The `scratch-gui` package uses `--max-warnings 0` to enforce this. Fix all warnings (including JSDoc issues) before committing.
+
 ### Clean
 
 Remove build artifacts from all packages:
