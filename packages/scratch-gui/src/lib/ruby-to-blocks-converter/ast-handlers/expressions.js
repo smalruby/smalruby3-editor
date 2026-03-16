@@ -1,6 +1,27 @@
+import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 import Primitive from '../primitive';
 import {RubyToBlocksConverterError} from '../errors';
+
+const messages = defineMessages({
+    superNotSupportedInV1: {
+        defaultMessage: 'super is only available in Ruby version 2.' +
+            '\nPlease switch to Ruby version 2 from the settings menu.',
+        description: 'Error message when super is used in Ruby version 1',
+        id: 'gui.smalruby3.rubyToBlocksConverter.superNotSupportedInV1'
+    },
+    superOutsideMethod: {
+        defaultMessage: 'super can only be used inside a method definition (def).',
+        description: 'Error message when super is used outside a method',
+        id: 'gui.smalruby3.rubyToBlocksConverter.superOutsideMethod'
+    },
+    superWithoutModuleMethod: {
+        defaultMessage: 'super in "{ METHOD }" requires a same-named method in an included module.' +
+            '\nDefine "{ METHOD }" in a module and include it in the class.',
+        description: 'Error message when super is used but no matching module method exists',
+        id: 'gui.smalruby3.rubyToBlocksConverter.superWithoutModuleMethod'
+    }
+});
 
 /**
  * Expression AST handlers for RubyToBlocksConverter.
@@ -345,6 +366,130 @@ const ExpressionHandlers = {
         }
 
         return name;
+    },
+
+    /**
+     * Handle super(args) call - SuperNode from `@ruby`/prism.
+     * super is syntactic sugar for calling the same-named method in an included module.
+     * @param {object} node - SuperNode AST node
+     * @returns {object} procedures_call block for the module method
+     */
+    visitSuperNode (node) {
+        return this._handleSuper(node, false);
+    },
+
+    /**
+     * Handle bare super call (forwarding args) - ForwardingSuperNode from `@ruby`/prism.
+     * @param {object} node - ForwardingSuperNode AST node
+     * @returns {object} procedures_call block for the module method
+     */
+    visitForwardingSuperNode (node) {
+        return this._handleSuper(node, true);
+    },
+
+    /**
+     * Common handler for SuperNode and ForwardingSuperNode.
+     * @param {object} node - AST node
+     * @param {boolean} isForwarding - true for bare super (forward all args)
+     * @returns {object} procedures_call block
+     */
+    _handleSuper (node, isForwarding) {
+        // Validate: v1 not supported
+        if (String(this.version) === '1') {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.superNotSupportedInV1)
+            );
+        }
+
+        // Validate: must be inside a method definition
+        const procedureName = this._context.currentProcedureName;
+        if (!procedureName) {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.superOutsideMethod)
+            );
+        }
+
+        // Validate: a same-named method must exist in an included module
+        const superInfo = this._context.superMethodMap && this._context.superMethodMap[procedureName];
+        if (!superInfo) {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.superWithoutModuleMethod, {METHOD: procedureName})
+            );
+        }
+
+        // Get the renamed module procedure
+        const renamedProcName = superInfo.renamedProcName;
+        const procedure = this._lookupProcedure(renamedProcName);
+        if (!procedure) {
+            throw new RubyToBlocksConverterError(
+                node,
+                this._translator(messages.superWithoutModuleMethod, {METHOD: procedureName})
+            );
+        }
+
+        // Build arguments
+        let args;
+        if (isForwarding) {
+            // Forward all arguments from the current method
+            const currentProc = this._lookupProcedure(procedureName);
+            if (currentProc) {
+                args = currentProc.argumentVariables.map(v => {
+                    const block = this._callConvertersHandler('onVar', 'local', v);
+                    return block || v.name;
+                });
+            } else {
+                args = [];
+            }
+        } else {
+            // Explicit arguments from super(a, b, ...)
+            const savedIsValue = this._context.isValue;
+            this._context.isValue = true;
+            args = (node.arguments_ ? node.arguments_.arguments_ : []).map(
+                childNode => this.visit(childNode)
+            );
+            this._context.isValue = savedIsValue;
+        }
+
+        // Create procedures_call block directly (not via callMethod) to avoid
+        // side effects like argument boolean type conversion
+        const callBlock = this._createBlock('procedures_call', 'statement', {
+            mutation: {
+                argumentids: JSON.stringify(procedure.argumentIds),
+                proccode: procedure.procCode.join(' '),
+                tagName: 'mutation',
+                children: [],
+                warp: 'false'
+            }
+        });
+
+        // Add arguments as inputs
+        for (let i = 0; i < procedure.argumentIds.length; i++) {
+            const inputId = procedure.argumentIds[i];
+            const arg = i < args.length ? args[i] : procedure.argumentDefaults[i];
+            if (this._isNumberOrBlock(arg) || this._isStringOrBlock(arg)) {
+                this._addTextInput(callBlock, inputId, this._isNumber(arg) ? arg.toString() : arg,
+                    procedure.argumentDefaults[i] || '');
+            } else if (this._isFalse(arg)) {
+                // boolean false: don't add input (default)
+            } else {
+                this._addInput(callBlock, inputId, arg, null);
+            }
+        }
+
+        // Track this call for procedure boolean detection
+        if (!this._context.procedureCallBlocks[procedure.id]) {
+            this._context.procedureCallBlocks[procedure.id] = [];
+        }
+        this._context.procedureCallBlocks[procedure.id].push(callBlock.id);
+
+        // Attach @ruby:super or @ruby:super:forwarding comment
+        const commentText = isForwarding ? '@ruby:super:forwarding' : '@ruby:super';
+        callBlock.comment = this._createComment(commentText, callBlock.id);
+
+        return callBlock;
     }
 };
 

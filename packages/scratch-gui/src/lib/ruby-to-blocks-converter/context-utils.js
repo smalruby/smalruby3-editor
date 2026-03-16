@@ -40,6 +40,8 @@ const ContextUtils = {
             rootNode: null,
             modules: {},
             currentModuleName: null,
+            superMethodMap: {},
+            superRenameTarget: null,
             symbols: new Set()
         };
         if (this.vm && this.vm.runtime && this.vm.runtime.getTargetForStage) {

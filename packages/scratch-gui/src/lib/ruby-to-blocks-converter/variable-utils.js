@@ -186,6 +186,23 @@ const VariableUtils = {
         return this._context.procedures[name];
     },
 
+    /**
+     * Check if a procedures_call block calls a procedure that has a return value.
+     * @param {object} block - A procedures_call block
+     * @returns {boolean} true if the called procedure has hasReturnValue
+     */
+    _isProcedureCallWithReturnValue (block) {
+        if (!block || block.opcode !== 'procedures_call' || !block.mutation) return false;
+        const proccode = block.mutation.proccode;
+        if (!proccode) return false;
+        // Extract procedure name from proccode (name is the first part before any %s/%b)
+        const procName = proccode.split(' ')
+            .filter(i => !/^%[sb]$/.test(i))
+            .join('_');
+        const procedure = this._lookupProcedure(procName);
+        return procedure && procedure.hasReturnValue;
+    },
+
     _createProcedure (name) {
         name = name.toString();
         let procedure = this._context.procedures[name];
