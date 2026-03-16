@@ -171,6 +171,12 @@ const VariablesConverter = {
                 variableType: valuesList.type
             };
             converter._addNumberInput(block, 'INDEX', 'math_integer', numBlock, 1);
+
+            // Include @ruby:lvar prefix for local variables
+            if (variable.scope === 'local') {
+                commentMarker =
+                    `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${commentMarker}`;
+            }
             block.comment = converter._createComment(commentMarker, block.id);
 
             return block;
@@ -253,6 +259,12 @@ const VariablesConverter = {
             });
             converter._addTextInput(numBlock1, 'ITEM', keyStr, 'thing');
             converter._addNumberInput(deleteValuesBlock, 'INDEX', 'math_integer', numBlock1, 1);
+
+            // Include @ruby:lvar prefix for local variables
+            if (variable.scope === 'local') {
+                commentMarker =
+                    `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${commentMarker}`;
+            }
             deleteValuesBlock.comment = converter._createComment(commentMarker, deleteValuesBlock.id);
 
             // Block 2: delete from keys list

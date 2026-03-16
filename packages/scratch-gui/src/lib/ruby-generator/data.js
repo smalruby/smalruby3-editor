@@ -244,17 +244,24 @@ export default function (Generator) {
         const comment = Generator.getCommentText(block);
 
         // Hash set: delete+push pattern
-        if (comment && comment.startsWith('@ruby:hash:set:')) {
-            if (comment === '@ruby:hash:set:delete:key') {
+        if (comment && comment.includes('@ruby:hash:set:')) {
+            if (comment.includes('@ruby:hash:set:delete:key')) {
                 // Suppressed: handled by the first delete block
                 return '';
             }
 
             // This is the first block of the delete+push pattern
-            const valuesListName = getListName(block);
-            const hashVarName = getHashVarName(
-                valuesListName.replace(/_values_$/, '_keys_')
-            );
+            // Extract variable name: use @ruby:lvar if present, else derive from list name
+            const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+)/);
+            let hashVarName;
+            if (lvarMatch) {
+                hashVarName = lvarMatch[1];
+            } else {
+                const valuesListName = getListName(block);
+                hashVarName = getHashVarName(
+                    valuesListName.replace(/_values_$/, '_keys_')
+                );
+            }
 
             // Get the key from the nested data_itemnumoflist
             const indexBlockId = block.inputs && block.inputs.INDEX && block.inputs.INDEX.block;
@@ -278,7 +285,7 @@ export default function (Generator) {
             const pushValueBlock = Generator.getBlock(nextId);
             const value = Generator.valueToCode(pushValueBlock, 'ITEM', Generator.ORDER_NONE) || '0';
 
-            if (comment === '@ruby:hash:set:sym') {
+            if (comment.includes('@ruby:hash:set:sym')) {
                 const symName = rawKey.slice(1); // remove leading ":"
                 return `${hashVarName}[:${symName}] = ${Generator.nosToCode(value)}\n`;
             }
@@ -379,11 +386,18 @@ export default function (Generator) {
         }
 
         // Hash get: data_itemoflist with @ruby:hash:get:sym or @ruby:hash:get:str comment
-        if (comment && comment.startsWith('@ruby:hash:get:')) {
-            const valuesListName = getListName(block);
-            const hashVarName = getHashVarName(
-                valuesListName.replace(/_values_$/, '_keys_')
-            );
+        if (comment && comment.includes('@ruby:hash:get:')) {
+            // Extract variable name: use @ruby:lvar if present, else derive from list name
+            const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+)/);
+            let hashVarName;
+            if (lvarMatch) {
+                hashVarName = lvarMatch[1];
+            } else {
+                const valuesListName = getListName(block);
+                hashVarName = getHashVarName(
+                    valuesListName.replace(/_values_$/, '_keys_')
+                );
+            }
 
             // Get the key from the nested data_itemnumoflist block
             const indexBlockId = block.inputs && block.inputs.INDEX && block.inputs.INDEX.block;
@@ -391,7 +405,7 @@ export default function (Generator) {
                 const numBlock = Generator.getBlock(indexBlockId);
                 if (numBlock && numBlock.opcode === 'data_itemnumoflist') {
                     const rawKey = getTextInputValue(numBlock, 'ITEM');
-                    if (comment === '@ruby:hash:get:sym') {
+                    if (comment.includes('@ruby:hash:get:sym')) {
                         // Symbol key: ":name" → $a[:name]
                         const symName = rawKey.slice(1); // remove leading ":"
                         return [`${hashVarName}[:${symName}]`, Generator.ORDER_FUNCTION_CALL];

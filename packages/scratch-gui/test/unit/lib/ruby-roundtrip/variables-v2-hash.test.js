@@ -93,4 +93,41 @@ describe('Ruby Roundtrip: V2 hash syntax', () => {
             $a[:age] = 30
         `);
     });
+
+    test('local variable hash literal', async () => {
+        await expectRoundTrip(converter, target, dedent`
+            a = {x: 1}
+        `);
+    });
+
+    test('local variable hash read', async () => {
+        await expectRoundTrip(converter, target, dedent`
+            a = {x: 1}
+            say(a[:x])
+        `);
+    });
+
+    test('local variable hash write', async () => {
+        await expectRoundTrip(converter, target, dedent`
+            a = {x: 1}
+            a[:y] = 2
+        `);
+    });
+
+    test('instance variable hash full workflow', async () => {
+        await expectRoundTrip(converter, target, dedent`
+            @h = {name: "Alice", age: 30}
+            say(@h[:name])
+            @h[:age] = 31
+        `);
+    });
+
+    test('hash with multiple operations', async () => {
+        await expectRoundTrip(converter, target, dedent`
+            $a = {x: 1, y: 2}
+            say($a[:x])
+            $a[:z] = 3
+            say($a[:z])
+        `);
+    });
 });
