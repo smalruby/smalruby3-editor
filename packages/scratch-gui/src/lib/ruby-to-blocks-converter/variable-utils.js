@@ -258,6 +258,42 @@ const VariableUtils = {
         return block;
     },
 
+    /**
+     * Get the keys list name for a hash variable.
+     * @param {string} prefixedName - The prefixed variable name (e.g. '$a', '@a', 'a').
+     * @returns {string} The keys list name (e.g. '$_hash_a_keys_').
+     */
+    _hashKeysListName (prefixedName) {
+        let prefix = '';
+        let varName = prefixedName;
+        if (prefixedName[0] === '$') {
+            prefix = '$';
+            varName = prefixedName.slice(1);
+        } else if (prefixedName[0] === '@') {
+            prefix = '@';
+            varName = prefixedName.slice(1);
+        }
+        return `${prefix}_hash_${varName}_keys_`;
+    },
+
+    /**
+     * Get the values list name for a hash variable.
+     * @param {string} prefixedName - The prefixed variable name (e.g. '$a', '@a', 'a').
+     * @returns {string} The values list name (e.g. '$_hash_a_values_').
+     */
+    _hashValuesListName (prefixedName) {
+        let prefix = '';
+        let varName = prefixedName;
+        if (prefixedName[0] === '$') {
+            prefix = '$';
+            varName = prefixedName.slice(1);
+        } else if (prefixedName[0] === '@') {
+            prefix = '@';
+            varName = prefixedName.slice(1);
+        }
+        return `${prefix}_hash_${varName}_values_`;
+    },
+
     _changeToBooleanArgument (varName) {
         varName = varName.toString();
         const variable = this._context.localVariables[varName];

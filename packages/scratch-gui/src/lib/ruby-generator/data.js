@@ -175,6 +175,44 @@ export default function (Generator) {
         return `${index} - 1`;
     };
 
+    /**
+     * Get the raw text value from a block's text input.
+     * @param {object} block - The block containing the input.
+     * @param {string} inputName - The name of the input (e.g. 'ITEM').
+     * @returns {string} The raw text value.
+     */
+    const getTextInputValue = function (block, inputName) {
+        const input = block.inputs && block.inputs[inputName];
+        if (!input) return '';
+        const textBlock = Generator.getBlock(input.block);
+        if (!textBlock || !textBlock.fields || !textBlock.fields.TEXT) return '';
+        return textBlock.fields.TEXT.value;
+    };
+
+    /**
+     * Derive the Ruby hash variable name from a keys list name.
+     * E.g. '$_hash_a_keys_' → '$a', '@_hash_a_keys_' → '@a', '_hash_a_keys_' → 'a'
+     * @param {string} keysListName - The keys list name.
+     * @returns {string} The Ruby variable name.
+     */
+    const getHashVarName = function (keysListName) {
+        let prefix = '';
+        let name = keysListName;
+        if (name[0] === '$') {
+            prefix = '$';
+            name = name.slice(1);
+        } else if (name[0] === '@') {
+            prefix = '@';
+            name = name.slice(1);
+        }
+        // Remove _hash_ prefix and _keys_ suffix
+        const match = name.match(/^_hash_(.+)_keys_$/);
+        if (match) {
+            return `${prefix}${match[1]}`;
+        }
+        return keysListName;
+    };
+
     Generator.data_listcontents = function (block) {
         const list = getListName(block);
         return [list, Generator.ORDER_COLLECTION];
@@ -184,6 +222,11 @@ export default function (Generator) {
         const comment = Generator.getCommentText(block);
         if (comment && comment.includes('@ruby:array:literal:element')) {
             // Suppressed: handled by data_deletealloflist array literal pattern
+            return '';
+        }
+        if (comment && (comment.includes('@ruby:hash:literal:key:') ||
+            comment.includes('@ruby:hash:literal:value'))) {
+            // Suppressed: handled by data_deletealloflist hash literal pattern
             return '';
         }
 
@@ -214,6 +257,51 @@ export default function (Generator) {
                 nextId = pushBlock.next;
             }
             return `${list} = [${values.join(', ')}]\n`;
+        }
+
+        if (comment && comment === '@ruby:hash:literal:values') {
+            // Suppressed: handled by the keys clear block above
+            return '';
+        }
+
+        const hashLiteralMatch = comment ? comment.match(/@ruby:hash:literal:(\d+)/) : null;
+        if (hashLiteralMatch) {
+            const count = parseInt(hashLiteralMatch[1], 10);
+            // Skip the next block (clear values list)
+            let nextId = block.next;
+            const clearValuesBlock = Generator.getBlock(nextId);
+            nextId = clearValuesBlock.next;
+
+            // Derive the variable name from the keys list name
+            const hashVarName = getHashVarName(list);
+
+            const entries = [];
+            for (let i = 0; i < count; i++) {
+                // Read key block - get raw text value from ITEM input
+                const keyBlock = Generator.getBlock(nextId);
+                const keyComment = Generator.getCommentText(keyBlock);
+                const rawKey = getTextInputValue(keyBlock, 'ITEM');
+                nextId = keyBlock.next;
+
+                // Read value block
+                const valueBlock = Generator.getBlock(nextId);
+                const value = Generator.valueToCode(valueBlock, 'ITEM', Generator.ORDER_NONE) || '0';
+                nextId = valueBlock.next;
+
+                if (keyComment && keyComment.includes('@ruby:hash:literal:key:sym')) {
+                    // Symbol key: ":name" → generate {name: value} syntax
+                    const symName = rawKey.slice(1); // remove leading ":"
+                    entries.push(`${symName}: ${Generator.nosToCode(value)}`);
+                } else {
+                    // String key: generate {"name" => value} syntax
+                    entries.push(`"${rawKey}" => ${Generator.nosToCode(value)}`);
+                }
+            }
+
+            if (entries.length === 0) {
+                return `${hashVarName} = {}\n`;
+            }
+            return `${hashVarName} = {${entries.join(', ')}}\n`;
         }
 
         return `${list}.clear\n`;

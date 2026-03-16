@@ -21,6 +21,12 @@ const messages = defineMessages({
             '\nPlease switch to Ruby version 2 from the settings menu.',
         description: 'Error message when array literal ($a = [1, 2, 3]) is used in Ruby version 1',
         id: 'gui.smalruby3.rubyToBlocksConverter.arrayLiteralNotAvailableInV1'
+    },
+    hashSyntaxNotAvailableInV1: {
+        defaultMessage: 'Hash syntax is only available in Ruby version 2.' +
+            '\nPlease switch to Ruby version 2 from the settings menu.',
+        description: 'Error message when hash syntax ($a = {key: value}) is used in Ruby version 1',
+        id: 'gui.smalruby3.rubyToBlocksConverter.hashSyntaxNotAvailableInV1'
     }
 });
 
@@ -674,6 +680,131 @@ const VariablesConverter = {
                 }
 
                 // Link blocks
+                return converter._linkBlocks(blocks);
+            }
+
+            if ((scope === 'global' || scope === 'instance' ||
+                (scope === 'local' && !variable.isArgument)) &&
+                converter._isHash(rh)) {
+                if (converter.version < 2) {
+                    throw new RubyToBlocksConverterError(
+                        converter._context.currentNode,
+                        converter._translator(messages.hashSyntaxNotAvailableInV1)
+                    );
+                }
+                const hashEntries = rh.value; // Map<Primitive, Primitive>
+                let prefixedName;
+                if (variable.scope === 'global') {
+                    prefixedName = `$${variable.name}`;
+                } else if (variable.scope === 'instance') {
+                    prefixedName = `@${variable.name}`;
+                } else {
+                    prefixedName = variable.originalName;
+                }
+                const keysListName = converter._hashKeysListName(prefixedName);
+                const valuesListName = converter._hashValuesListName(prefixedName);
+                const keysList = converter._lookupOrCreateList(keysListName);
+                const valuesList = converter._lookupOrCreateList(valuesListName);
+
+                // Create clear block for keys
+                const clearKeysBlock = converter._createBlock('data_deletealloflist', 'statement', {
+                    fields: {
+                        LIST: {
+                            name: 'LIST',
+                            id: keysList.id,
+                            value: keysList.name,
+                            variableType: keysList.type
+                        }
+                    }
+                });
+                let hashLiteralComment = `@ruby:hash:literal:${hashEntries.size}`;
+                if (scope === 'local') {
+                    hashLiteralComment =
+                        `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${hashLiteralComment}`;
+                }
+                clearKeysBlock.comment = converter._createComment(
+                    hashLiteralComment, clearKeysBlock.id
+                );
+
+                // Create clear block for values
+                const clearValuesBlock = converter._createBlock('data_deletealloflist', 'statement', {
+                    fields: {
+                        LIST: {
+                            name: 'LIST',
+                            id: valuesList.id,
+                            value: valuesList.name,
+                            variableType: valuesList.type
+                        }
+                    }
+                });
+                clearValuesBlock.comment = converter._createComment(
+                    '@ruby:hash:literal:values', clearValuesBlock.id
+                );
+
+                const blocks = [clearKeysBlock, clearValuesBlock];
+
+                // Create push blocks for each key-value pair
+                hashEntries.forEach((value, key) => {
+                    let keyStr;
+                    let keyComment;
+                    if (converter._isSymbol(key)) {
+                        const symName = converter._getSymbolValue(key);
+                        keyStr = `:${symName}`;
+                        keyComment = '@ruby:hash:literal:key:sym';
+                    } else if (converter._isString(key)) {
+                        keyStr = converter._isPrimitive(key) ? key.value : key;
+                        keyComment = '@ruby:hash:literal:key:str';
+                    } else {
+                        return; // skip unsupported key types
+                    }
+
+                    // Push key
+                    const pushKeyBlock = converter._createBlock('data_addtolist', 'statement', {
+                        fields: {
+                            LIST: {
+                                name: 'LIST',
+                                id: keysList.id,
+                                value: keysList.name,
+                                variableType: keysList.type
+                            }
+                        }
+                    });
+                    converter._addTextInput(pushKeyBlock, 'ITEM', keyStr, 'thing');
+                    pushKeyBlock.comment = converter._createComment(keyComment, pushKeyBlock.id);
+                    blocks.push(pushKeyBlock);
+
+                    // Push value - handle symbol values via _symbolToBlock
+                    let valueItem;
+                    if (converter._isPrimitive(value) && value.type === 'sym') {
+                        valueItem = converter._symbolToBlock(value.value, value.node);
+                    } else if (converter._isNumber(value)) {
+                        valueItem = converter._isPrimitive(value) ? value.value.toString() : value.toString();
+                    } else if (converter._isString(value)) {
+                        valueItem = converter._isPrimitive(value) ? value.value : value;
+                    } else {
+                        valueItem = value;
+                    }
+
+                    const pushValueBlock = converter._createBlock('data_addtolist', 'statement', {
+                        fields: {
+                            LIST: {
+                                name: 'LIST',
+                                id: valuesList.id,
+                                value: valuesList.name,
+                                variableType: valuesList.type
+                            }
+                        }
+                    });
+                    converter._addTextInput(
+                        pushValueBlock, 'ITEM',
+                        converter._isNumber(valueItem) ? valueItem.toString() : valueItem, 'thing'
+                    );
+                    pushValueBlock.comment = converter._createComment(
+                        '@ruby:hash:literal:value', pushValueBlock.id
+                    );
+                    blocks.push(pushValueBlock);
+                });
+
                 return converter._linkBlocks(blocks);
             }
 
