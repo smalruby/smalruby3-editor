@@ -40,6 +40,10 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
     const originalOverflow = containerEl.style.overflow;
 
     try {
+        // Disable scrollBeyondLastLine to get tight content height
+        editor.updateOptions({scrollBeyondLastLine: false});
+        editor.layout();
+
         // Expand editor to full content height so all lines are in the DOM
         const contentHeight = editor.getContentHeight();
         containerEl.style.height = `${contentHeight}px`;
@@ -66,6 +70,7 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
         }
     } finally {
         // Restore original state
+        editor.updateOptions({scrollBeyondLastLine: true});
         containerEl.style.height = originalHeight;
         containerEl.style.overflow = originalOverflow;
         editor.layout();

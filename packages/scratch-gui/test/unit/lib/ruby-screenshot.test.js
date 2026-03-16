@@ -29,6 +29,7 @@ const makeMockEditor = ({lineCount = 5, contentHeight = 200} = {}) => {
         getScrollLeft: jest.fn(() => 0),
         setScrollTop: jest.fn(),
         setScrollLeft: jest.fn(),
+        updateOptions: jest.fn(),
         layout: jest.fn(),
         _domNode: domNode,
         _container: container
@@ -164,6 +165,19 @@ describe('downloadRubyAsImage', () => {
         // State should still be restored
         expect(editor._container.style.height).toBe('300px');
         expect(editor.layout).toHaveBeenCalled();
+    });
+
+    test('disables scrollBeyondLastLine before capture and restores it after', async () => {
+        const mockBlob = new Blob(['test'], {type: 'image/png'});
+        toBlob.mockResolvedValue(mockBlob);
+
+        const editor = makeMockEditor();
+
+        await downloadRubyAsImage(editor, 'project', 'sprite');
+
+        // First call disables, second call (in finally) re-enables
+        expect(editor.updateOptions).toHaveBeenCalledWith({scrollBeyondLastLine: false});
+        expect(editor.updateOptions).toHaveBeenCalledWith({scrollBeyondLastLine: true});
     });
 
     test('calls editor.layout() to trigger re-render', async () => {
