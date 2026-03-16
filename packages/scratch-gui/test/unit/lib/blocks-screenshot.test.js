@@ -12,7 +12,7 @@ jest.mock('../../../src/lib/download-blob', () => jest.fn());
 import downloadBlob from '../../../src/lib/download-blob';
 
 // Helper: create a mock Blockly workspace
-const makeMockWorkspace = ({boundingBox = null, scale = 1, bubbleChildren = 0} = {}) => {
+const makeMockWorkspace = ({boundingBox = null, scale = 1, bubbleChildren = 0, withForeignObject = false} = {}) => {
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS, 'svg');
     const group = document.createElementNS(svgNS, 'g');
@@ -26,6 +26,13 @@ const makeMockWorkspace = ({boundingBox = null, scale = 1, bubbleChildren = 0} =
         rect.setAttribute('width', '30');
         rect.setAttribute('height', '20');
         bubbleGroup.appendChild(rect);
+    }
+    if (withForeignObject) {
+        const fo = document.createElementNS(svgNS, 'foreignObject');
+        fo.setAttribute('class', 'scratchCommentForeignObject');
+        const body = document.createElementNS('http://www.w3.org/1999/xhtml', 'body');
+        fo.appendChild(body);
+        bubbleGroup.appendChild(fo);
     }
     return {
         getBlocksBoundingBox: jest.fn(() => boundingBox),
@@ -164,6 +171,17 @@ describe('buildExportSVG', () => {
         const rectMatches = svgStr.match(/<rect[\s>/]/g) || [];
         // 1 background rect + 3 bubble rects = at least 4
         expect(rectMatches.length).toBeGreaterThanOrEqual(4);
+    });
+
+    test('strips foreignObject elements from bubble canvas clone to avoid tainted canvas', async () => {
+        const workspace = makeMockWorkspace({
+            boundingBox: {x: 0, y: 0, width: 200, height: 100},
+            bubbleChildren: 1,
+            withForeignObject: true
+        });
+        const bbox = {x: 0, y: 0, width: 200, height: 100};
+        const svgStr = await buildExportSVG(workspace, bbox, 1, 232, 132);
+        expect(svgStr).not.toMatch(/foreignObject/);
     });
 
     test('does not include bubble canvas when it has no children', async () => {
