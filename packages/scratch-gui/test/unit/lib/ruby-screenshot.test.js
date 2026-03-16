@@ -97,6 +97,7 @@ describe('downloadRubyAsImage', () => {
         expect(domNode).toBe(editor.getDomNode());
         expect(options.backgroundColor).toBe('#ffffff');
         expect(options.pixelRatio).toBe(2);
+        expect(options.skipFonts).toBe(true);
     });
 
     test('downloads blob with correct filename', async () => {

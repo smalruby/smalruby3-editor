@@ -59,10 +59,13 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
             });
         });
 
-        // Capture the editor DOM as a PNG blob
+        // Capture the editor DOM as a PNG blob.
+        // skipFonts avoids SecurityError when html-to-image tries to read
+        // cssRules from cross-origin stylesheets (Monaco's CDN CSS).
         const blob = await toBlob(editorDomNode, {
             backgroundColor: '#ffffff',
-            pixelRatio: 2
+            pixelRatio: 2,
+            skipFonts: true
         });
 
         if (blob) {
