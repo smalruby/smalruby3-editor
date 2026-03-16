@@ -171,10 +171,14 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     canvasClone.setAttribute('transform', canvasTransform);
     svg.appendChild(canvasClone);
 
-    // Clone bubble canvas (comment bubbles) with the same transform
+    // Clone bubble canvas (comment bubbles) with the same transform.
+    // Remove <foreignObject> elements which contain HTML <textarea> for editing;
+    // they cause tainted canvas errors when the SVG is loaded via blob URL.
+    // The visible comment text is already in <text> elements, so nothing is lost.
     const bubbleCanvas = workspace.svgBubbleCanvas_;
     if (bubbleCanvas && bubbleCanvas.children.length > 0) {
         const bubbleClone = bubbleCanvas.cloneNode(true);
+        bubbleClone.querySelectorAll('foreignObject').forEach(fo => fo.remove());
         bubbleClone.setAttribute('transform', canvasTransform);
         svg.appendChild(bubbleClone);
     }
