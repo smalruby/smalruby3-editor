@@ -176,9 +176,10 @@ const ExpressionHandlers = {
 
     visitHashNode (node) {
         // Prism HashNode has elements which are AssocNode or AssocSplatNode
+        // Use toJSON().type instead of constructor.name for production build compatibility
         const elements = new Map();
         node.elements.forEach(element => {
-            if (element.constructor.name === 'AssocNode') {
+            if (element.toJSON().type === 'AssocNode') {
                 elements.set(this.visit(element.key), this.visit(element.value));
             }
         });
@@ -188,9 +189,10 @@ const ExpressionHandlers = {
     visitKeywordHashNode (node) {
         // Prism KeywordHashNode is used for keyword arguments without braces, e.g. foo(secs: 5)
         // Elements are AssocNode with SymbolNode keys
+        // Use toJSON().type instead of constructor.name for production build compatibility
         const elements = new Map();
         node.elements.forEach(element => {
-            if (element.constructor.name === 'AssocNode') {
+            if (element.toJSON().type === 'AssocNode') {
                 elements.set(this.visit(element.key), this.visit(element.value));
             }
         });
