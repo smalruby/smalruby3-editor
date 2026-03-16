@@ -504,6 +504,20 @@ const VariablesConverter = {
 
         converter.registerOnSend('variable', '[]=', 2, params => {
             const {receiver, args} = params;
+
+            // Hash write: $a[:key] = value or $a["key"] = value
+            if (converter._isSymbol(args[0]) || converter._isString(args[0])) {
+                if (converter.version < 2) {
+                    throw new RubyToBlocksConverterError(
+                        converter._context.currentNode,
+                        converter._translator(messages.hashSyntaxNotAvailableInV1)
+                    );
+                }
+                if (!converter._isStringOrBlock(args[1]) && !converter._isNumberOrBlock(args[1]) &&
+                    !(converter._isPrimitive(args[1]) && args[1].type === 'sym')) return null;
+                return convertHashSet(receiver, args[0], args[1]);
+            }
+
             if (!converter._isNumberOrBlock(args[0])) return null;
             if (!converter._isStringOrBlock(args[1]) && !converter._isNumberOrBlock(args[1])) return null;
 

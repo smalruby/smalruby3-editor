@@ -229,6 +229,11 @@ export default function (Generator) {
             // Suppressed: handled by data_deletealloflist hash literal pattern
             return '';
         }
+        if (comment && (comment === '@ruby:hash:set:push:key' ||
+            comment === '@ruby:hash:set:push:value')) {
+            // Suppressed: handled by data_deleteoflist hash set pattern
+            return '';
+        }
 
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
@@ -236,6 +241,51 @@ export default function (Generator) {
     };
 
     Generator.data_deleteoflist = function (block) {
+        const comment = Generator.getCommentText(block);
+
+        // Hash set: delete+push pattern
+        if (comment && comment.startsWith('@ruby:hash:set:')) {
+            if (comment === '@ruby:hash:set:delete:key') {
+                // Suppressed: handled by the first delete block
+                return '';
+            }
+
+            // This is the first block of the delete+push pattern
+            const valuesListName = getListName(block);
+            const hashVarName = getHashVarName(
+                valuesListName.replace(/_values_$/, '_keys_')
+            );
+
+            // Get the key from the nested data_itemnumoflist
+            const indexBlockId = block.inputs && block.inputs.INDEX && block.inputs.INDEX.block;
+            let rawKey = '';
+            if (indexBlockId) {
+                const numBlock = Generator.getBlock(indexBlockId);
+                if (numBlock && numBlock.opcode === 'data_itemnumoflist') {
+                    rawKey = getTextInputValue(numBlock, 'ITEM');
+                }
+            }
+
+            // Skip to the push:value block (3 blocks ahead: delete:key, push:key, push:value)
+            let nextId = block.next;
+            // delete:key
+            const deleteKeyBlock = Generator.getBlock(nextId);
+            nextId = deleteKeyBlock.next;
+            // push:key
+            const pushKeyBlock = Generator.getBlock(nextId);
+            nextId = pushKeyBlock.next;
+            // push:value
+            const pushValueBlock = Generator.getBlock(nextId);
+            const value = Generator.valueToCode(pushValueBlock, 'ITEM', Generator.ORDER_NONE) || '0';
+
+            if (comment === '@ruby:hash:set:sym') {
+                const symName = rawKey.slice(1); // remove leading ":"
+                return `${hashVarName}[:${symName}] = ${Generator.nosToCode(value)}\n`;
+            }
+            // @ruby:hash:set:str
+            return `${hashVarName}["${rawKey}"] = ${Generator.nosToCode(value)}\n`;
+        }
+
         const index = getListIndex(block);
         const list = getListName(block);
         return `${list}.delete_at(${Generator.nosToCode(index)})\n`;

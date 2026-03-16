@@ -299,6 +299,66 @@ describe('RubyToBlocksConverter/Variables/HashSyntax', () => {
         });
     });
 
+    describe('$a - hash write (upsert) with symbol key', () => {
+        test('$a[:name] = "Bob" generates delete+push pattern', async () => {
+            const code = '$a = {name: "Alice"}\n$a[:name] = "Bob"';
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const blockIds = Object.keys(converter.blocks);
+            const blocks = blockIds.map(id => converter.blocks[id]);
+
+            // Should have 2 delete blocks and 2 push blocks (+ literal blocks)
+            const deleteBlocks = blocks.filter(b => b.opcode === 'data_deleteoflist');
+            expect(deleteBlocks).toHaveLength(2);
+
+            // First delete should have @ruby:hash:set:sym comment
+            const setBlock = deleteBlocks.find(b => {
+                const c = converter._context.comments[b.comment];
+                return c && c.text === '@ruby:hash:set:sym';
+            });
+            expect(setBlock).toBeTruthy();
+
+            // Second delete should have @ruby:hash:set:delete:key comment
+            const deleteKeyBlock = deleteBlocks.find(b => {
+                const c = converter._context.comments[b.comment];
+                return c && c.text === '@ruby:hash:set:delete:key';
+            });
+            expect(deleteKeyBlock).toBeTruthy();
+
+            // Push key and push value blocks
+            const addBlocks = blocks.filter(b => b.opcode === 'data_addtolist');
+            const pushKeyBlock = addBlocks.find(b => {
+                const c = converter._context.comments[b.comment];
+                return c && c.text === '@ruby:hash:set:push:key';
+            });
+            expect(pushKeyBlock).toBeTruthy();
+
+            const pushValueBlock = addBlocks.find(b => {
+                const c = converter._context.comments[b.comment];
+                return c && c.text === '@ruby:hash:set:push:value';
+            });
+            expect(pushValueBlock).toBeTruthy();
+        });
+
+        test('$a["foo"] = "baz" generates delete+push with string key', async () => {
+            const code = '$a = {"foo" => "bar"}\n$a["foo"] = "baz"';
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const blockIds = Object.keys(converter.blocks);
+            const blocks = blockIds.map(id => converter.blocks[id]);
+
+            const setBlock = blocks.find(b => {
+                const c = converter._context.comments[b.comment];
+                return c && c.text === '@ruby:hash:set:str';
+            });
+            expect(setBlock).toBeTruthy();
+        });
+    });
+
     describe('@a - instance hash', () => {
         test('hash literal @a = {x: 1} generates correct list names', async () => {
             const code = '@a = {x: 1}';
