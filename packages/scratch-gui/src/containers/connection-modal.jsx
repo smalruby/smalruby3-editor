@@ -41,18 +41,14 @@ class ConnectionModal extends React.Component {
         ]);
         // === Smalruby: Start of meshV2 initial step feature ===
         // For meshV2, show initial step first unless already connected
-        const isMeshV2 = props.extensionId === 'meshV2';
         const initialPhase = props.vm.getPeripheralIsConnected(props.extensionId) ?
             PHASES.connected :
-            (isMeshV2 ? PHASES.meshV2Initial : PHASES.scanning);
-        // Reset domain when opening meshV2 modal (not already connected).
-        // This prevents stale domains cached in localStorage from silently
-        // overriding the auto-detection (createDomain) when the user does not
-        // type anything in the domain input field.
-        if (isMeshV2 && initialPhase === PHASES.meshV2Initial) {
-            props.onDomainChange(null);
-        }
+            (props.extensionId === 'meshV2' ? PHASES.meshV2Initial : PHASES.scanning);
         // === Smalruby: End of meshV2 initial step feature ===
+        // Track whether the user explicitly changed the domain input.
+        // When false and the user clicks Create/Join, we clear the cached
+        // domain so createDomain() auto-detects from source IP.
+        this.userChangedDomain = false;
         this.state = {
             extension: extensionData.find(ext => ext.extensionId === props.extensionId),
             phase: initialPhase,
@@ -233,14 +229,19 @@ class ConnectionModal extends React.Component {
         });
     }
     clearMeshV2DomainIfEmpty () {
-        if (!this.props.meshV2Domain) {
+        // If user did not explicitly change the domain input in this modal
+        // session, clear any cached domain from localStorage so that
+        // createDomain() will auto-detect from source IP.
+        if (!this.userChangedDomain) {
             const extension = this.props.vm.runtime.peripheralExtensions.meshV2;
             if (extension && extension.setDomain) {
                 extension.setDomain(null);
             }
+            this.props.onDomainChange(null);
         }
     }
     handleMeshV2DomainChange (domain) {
+        this.userChangedDomain = true;
         // Save domain to Redux
         this.props.onDomainChange(domain);
 

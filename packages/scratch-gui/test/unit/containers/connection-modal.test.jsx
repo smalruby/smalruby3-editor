@@ -140,42 +140,24 @@ describe('ConnectionModal container', () => {
         });
     });
 
-    describe('meshV2 domain reset on modal open', () => {
-        test('resets Redux domain to null when meshV2 modal opens (not connected)', () => {
-            const {setDomain} = require('../../../src/reducers/mesh-v2');
-            setDomain.mockClear();
-
+    describe('meshV2 domain handling on modal open', () => {
+        test('shows meshV2Initial phase when not connected', () => {
             const vm = createMockVm({isConnected: false});
-            renderWithStore(vm, {domain: 'old-cached-domain'});
+            const {getByTestId} = renderWithStore(vm, {domain: 'cached-domain'});
 
-            // Constructor should dispatch onDomainChange(null) to reset stale domain
-            expect(setDomain).toHaveBeenCalledWith(null);
-        });
-
-        test('does not reset domain when meshV2 is already connected', () => {
-            const {setDomain} = require('../../../src/reducers/mesh-v2');
-            setDomain.mockClear();
-
-            const vm = createMockVm({
-                isConnected: true,
-                connectedMessage: 'Connected'
-            });
-            renderWithStore(vm, {domain: 'active-domain'});
-
-            // Should NOT reset domain when already connected
-            expect(setDomain).not.toHaveBeenCalledWith(null);
-        });
-    });
-
-    describe('clearMeshV2DomainIfEmpty on button click', () => {
-        test('clears extension domain when meshV2Domain is empty', () => {
-            const vm = createMockVm({isConnected: false});
-            const {getByTestId} = renderWithStore(vm, {domain: ''});
-
-            // Simulate clicking "Join Mesh" by getting the phase
-            // The clearMeshV2DomainIfEmpty should clear the extension domain
-            // when meshV2Domain prop is empty/null
+            // Should show meshV2Initial phase (domain input visible)
             expect(getByTestId('phase').textContent).toBe('meshV2Initial');
+        });
+
+        test('preserves cached domain in Redux when modal opens', () => {
+            const {setDomain} = require('../../../src/reducers/mesh-v2');
+            setDomain.mockClear();
+
+            const vm = createMockVm({isConnected: false});
+            renderWithStore(vm, {domain: 'cached-domain'});
+
+            // Should NOT reset domain on modal open (preserves user's previous input)
+            expect(setDomain).not.toHaveBeenCalledWith(null);
         });
     });
 
