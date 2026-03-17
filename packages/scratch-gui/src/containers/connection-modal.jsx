@@ -45,6 +45,10 @@ class ConnectionModal extends React.Component {
             PHASES.connected :
             (props.extensionId === 'meshV2' ? PHASES.meshV2Initial : PHASES.scanning);
         // === Smalruby: End of meshV2 initial step feature ===
+        // Track whether the user explicitly changed the domain input.
+        // When false and the user clicks Create/Join, we clear the cached
+        // domain so createDomain() auto-detects from source IP.
+        this.userChangedDomain = false;
         this.state = {
             extension: extensionData.find(ext => ext.extensionId === props.extensionId),
             phase: initialPhase,
@@ -201,6 +205,9 @@ class ConnectionModal extends React.Component {
     }
     // === Smalruby: Start of meshV2 initial step feature ===
     handleMeshV2CreateGroup () {
+        // If domain input is empty, clear any cached domain from localStorage
+        // so that createDomain() will be called to auto-detect from source IP
+        this.clearMeshV2DomainIfEmpty();
         // Connect as host using special host ID
         this.handleConnecting('meshV2_host');
         analytics.event({
@@ -210,6 +217,9 @@ class ConnectionModal extends React.Component {
         });
     }
     handleMeshV2JoinGroup () {
+        // If domain input is empty, clear any cached domain from localStorage
+        // so that createDomain() will be called to auto-detect from source IP
+        this.clearMeshV2DomainIfEmpty();
         // Switch to scanning phase to show group list
         this.handleScanning();
         analytics.event({
@@ -218,7 +228,20 @@ class ConnectionModal extends React.Component {
             label: this.props.extensionId
         });
     }
+    clearMeshV2DomainIfEmpty () {
+        // If user did not explicitly change the domain input in this modal
+        // session, clear any cached domain from localStorage so that
+        // createDomain() will auto-detect from source IP.
+        if (!this.userChangedDomain) {
+            const extension = this.props.vm.runtime.peripheralExtensions.meshV2;
+            if (extension && extension.setDomain) {
+                extension.setDomain(null);
+            }
+            this.props.onDomainChange(null);
+        }
+    }
     handleMeshV2DomainChange (domain) {
+        this.userChangedDomain = true;
         // Save domain to Redux
         this.props.onDomainChange(domain);
 

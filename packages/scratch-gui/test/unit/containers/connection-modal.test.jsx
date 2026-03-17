@@ -140,6 +140,27 @@ describe('ConnectionModal container', () => {
         });
     });
 
+    describe('meshV2 domain handling on modal open', () => {
+        test('shows meshV2Initial phase when not connected', () => {
+            const vm = createMockVm({isConnected: false});
+            const {getByTestId} = renderWithStore(vm, {domain: 'cached-domain'});
+
+            // Should show meshV2Initial phase (domain input visible)
+            expect(getByTestId('phase').textContent).toBe('meshV2Initial');
+        });
+
+        test('preserves cached domain in Redux when modal opens', () => {
+            const {setDomain} = require('../../../src/reducers/mesh-v2');
+            setDomain.mockClear();
+
+            const vm = createMockVm({isConnected: false});
+            renderWithStore(vm, {domain: 'cached-domain'});
+
+            // Should NOT reset domain on modal open (preserves user's previous input)
+            expect(setDomain).not.toHaveBeenCalledWith(null);
+        });
+    });
+
     describe('handleConnected updates connectedMessage', () => {
         test('updates connectedMessage from vm after PERIPHERAL_CONNECTED event', () => {
             const vm = createMockVm({
