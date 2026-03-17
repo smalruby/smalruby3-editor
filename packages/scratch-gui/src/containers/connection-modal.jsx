@@ -41,9 +41,17 @@ class ConnectionModal extends React.Component {
         ]);
         // === Smalruby: Start of meshV2 initial step feature ===
         // For meshV2, show initial step first unless already connected
+        const isMeshV2 = props.extensionId === 'meshV2';
         const initialPhase = props.vm.getPeripheralIsConnected(props.extensionId) ?
             PHASES.connected :
-            (props.extensionId === 'meshV2' ? PHASES.meshV2Initial : PHASES.scanning);
+            (isMeshV2 ? PHASES.meshV2Initial : PHASES.scanning);
+        // Reset domain when opening meshV2 modal (not already connected).
+        // This prevents stale domains cached in localStorage from silently
+        // overriding the auto-detection (createDomain) when the user does not
+        // type anything in the domain input field.
+        if (isMeshV2 && initialPhase === PHASES.meshV2Initial) {
+            props.onDomainChange(null);
+        }
         // === Smalruby: End of meshV2 initial step feature ===
         this.state = {
             extension: extensionData.find(ext => ext.extensionId === props.extensionId),
@@ -201,6 +209,9 @@ class ConnectionModal extends React.Component {
     }
     // === Smalruby: Start of meshV2 initial step feature ===
     handleMeshV2CreateGroup () {
+        // If domain input is empty, clear any cached domain from localStorage
+        // so that createDomain() will be called to auto-detect from source IP
+        this.clearMeshV2DomainIfEmpty();
         // Connect as host using special host ID
         this.handleConnecting('meshV2_host');
         analytics.event({
@@ -210,6 +221,9 @@ class ConnectionModal extends React.Component {
         });
     }
     handleMeshV2JoinGroup () {
+        // If domain input is empty, clear any cached domain from localStorage
+        // so that createDomain() will be called to auto-detect from source IP
+        this.clearMeshV2DomainIfEmpty();
         // Switch to scanning phase to show group list
         this.handleScanning();
         analytics.event({
@@ -217,6 +231,14 @@ class ConnectionModal extends React.Component {
             action: 'meshV2 join group',
             label: this.props.extensionId
         });
+    }
+    clearMeshV2DomainIfEmpty () {
+        if (!this.props.meshV2Domain) {
+            const extension = this.props.vm.runtime.peripheralExtensions.meshV2;
+            if (extension && extension.setDomain) {
+                extension.setDomain(null);
+            }
+        }
     }
     handleMeshV2DomainChange (domain) {
         // Save domain to Redux
