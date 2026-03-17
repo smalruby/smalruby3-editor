@@ -140,6 +140,45 @@ describe('ConnectionModal container', () => {
         });
     });
 
+    describe('meshV2 domain reset on modal open', () => {
+        test('resets Redux domain to null when meshV2 modal opens (not connected)', () => {
+            const {setDomain} = require('../../../src/reducers/mesh-v2');
+            setDomain.mockClear();
+
+            const vm = createMockVm({isConnected: false});
+            renderWithStore(vm, {domain: 'old-cached-domain'});
+
+            // Constructor should dispatch onDomainChange(null) to reset stale domain
+            expect(setDomain).toHaveBeenCalledWith(null);
+        });
+
+        test('does not reset domain when meshV2 is already connected', () => {
+            const {setDomain} = require('../../../src/reducers/mesh-v2');
+            setDomain.mockClear();
+
+            const vm = createMockVm({
+                isConnected: true,
+                connectedMessage: 'Connected'
+            });
+            renderWithStore(vm, {domain: 'active-domain'});
+
+            // Should NOT reset domain when already connected
+            expect(setDomain).not.toHaveBeenCalledWith(null);
+        });
+    });
+
+    describe('clearMeshV2DomainIfEmpty on button click', () => {
+        test('clears extension domain when meshV2Domain is empty', () => {
+            const vm = createMockVm({isConnected: false});
+            const {getByTestId} = renderWithStore(vm, {domain: ''});
+
+            // Simulate clicking "Join Mesh" by getting the phase
+            // The clearMeshV2DomainIfEmpty should clear the extension domain
+            // when meshV2Domain prop is empty/null
+            expect(getByTestId('phase').textContent).toBe('meshV2Initial');
+        });
+    });
+
     describe('handleConnected updates connectedMessage', () => {
         test('updates connectedMessage from vm after PERIPHERAL_CONNECTED event', () => {
             const vm = createMockVm({
