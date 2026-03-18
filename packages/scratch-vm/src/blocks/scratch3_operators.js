@@ -112,6 +112,18 @@ class Scratch3OperatorsBlocks {
         const format = function (string) {
             return Cast.toString(string).toLowerCase();
         };
+        // === Smalruby: Start of regex support ===
+        const str2 = Cast.toString(args.STRING2);
+        const regexMatch = /^\/(.+)\/([gimsuy]*)$/.exec(str2);
+        if (regexMatch) {
+            try {
+                const regex = new RegExp(regexMatch[1], regexMatch[2]);
+                return regex.test(Cast.toString(args.STRING1));
+            } catch (e) {
+                return false;
+            }
+        }
+        // === Smalruby: End of regex support ===
         return format(args.STRING1).includes(format(args.STRING2));
     }
 

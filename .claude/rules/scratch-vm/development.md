@@ -226,11 +226,13 @@ upstream merge 時にコンフリクトを解決しやすくするための仕�
 | ファイル | 機能名 | 説明 |
 |----------|--------|------|
 | `src/extension-support/extension-manager.js` | extension registration | Smalruby 拡張機能の登録 |
+| `src/blocks/scratch3_operators.js` | regex support | operator_contains で正規表現マッチングをサポート |
 
 ### 関連ファイル
 
 マーカーで囲まれたコードが参照するファイル:
 - `src/extension-support/smalruby-extensions.js` — extension-manager.js のマーカーから参照
+- `test/unit/blocks_operators_regex.js` — scratch3_operators.js の regex support のテスト
 
 ## Development Notes
 
