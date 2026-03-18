@@ -1351,4 +1351,37 @@ describe('FuriganaAnnotator', () => {
             expect(labelsAt(anns, 1)).toContain('シンボル「bar_baz」');
         });
     });
+
+    // === Smalruby: Start of regex furigana tests ===
+    describe('regex literals', () => {
+        test('/^he/ annotates as 正規表現/^he/', () => {
+            const anns = annotate('r = /^he/');
+            expect(labelsAt(anns, 1)).toContain('正規表現/^he/');
+        });
+        test('/hello/i annotates with flags', () => {
+            const anns = annotate('r = /hello/i');
+            expect(labelsAt(anns, 1)).toContain('正規表現/hello/i');
+        });
+        test('regex variable assignment has 紐付ける', () => {
+            const anns = annotate('r = /^he/');
+            expect(labelsAt(anns, 1)).toEqual(['変数r', '紐付ける', '正規表現/^he/']);
+        });
+    });
+
+    describe('=~ and !~ operators', () => {
+        test('=~ annotates as 正規表現マッチ', () => {
+            const anns = annotate('"hello" =~ /^he/');
+            expect(labelsAt(anns, 1)).toContain('正規表現マッチ');
+        });
+        test('!~ annotates as 正規表現マッチしない', () => {
+            const anns = annotate('"hello" !~ /world/');
+            expect(labelsAt(anns, 1)).toContain('正規表現マッチしない');
+        });
+        test('=~ with variable and regex in if', () => {
+            const anns = annotate('r = /^he/\nif "hello" =~ r');
+            expect(labelsAt(anns, 2)).toContain('正規表現マッチ');
+            expect(labelsAt(anns, 2)).toContain('もし');
+        });
+    });
+    // === Smalruby: End of regex furigana tests ===
 });

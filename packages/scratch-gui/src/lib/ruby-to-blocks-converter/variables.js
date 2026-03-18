@@ -1062,6 +1062,33 @@ const VariablesConverter = {
                 return converter._linkBlocks(blocks);
             }
 
+            // === Smalruby: Start of regex variable assignment ===
+            if ((scope === 'global' || scope === 'instance' ||
+                (scope === 'local' && !variable.isArgument)) &&
+                converter._isRegexp(rh)) {
+                const block = converter._createBlock('data_setvariableto', 'statement', {
+                    fields: {
+                        VARIABLE: {
+                            name: 'VARIABLE',
+                            id: variable.id,
+                            value: variable.name,
+                            variableType: variable.type
+                        }
+                    }
+                });
+                converter._addTextInput(block, 'VALUE', rh.toString(), '0');
+                variable.dataType = converter._inferDataType(rh);
+
+                let commentText = '@ruby:regexp:literal';
+                if (scope === 'local') {
+                    commentText =
+                        `@ruby:lvar:${variable.originalName}:${variable.scopeIndex},${commentText}`;
+                }
+                block.comment = converter._createComment(commentText, block.id);
+                return block;
+            }
+            // === Smalruby: End of regex variable assignment ===
+
             if (scope === 'global' || scope === 'instance') {
                 if (converter._isNumberOrBlock(rh) || converter._isStringOrBlock(rh)) {
                     const block = converter._createBlock('data_setvariableto', 'statement', {

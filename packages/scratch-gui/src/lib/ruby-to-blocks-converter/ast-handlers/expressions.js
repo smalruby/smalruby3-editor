@@ -167,6 +167,15 @@ const ExpressionHandlers = {
         return new Primitive('float', node.value, node);
     },
 
+    // === Smalruby: Start of regex literal support ===
+    visitRegularExpressionNode (node) {
+        const pattern = node.unescaped.value;
+        const closingSource = this._getSource({location: node.closingLoc});
+        const flags = closingSource.length > 1 ? closingSource.slice(1) : '';
+        return new Primitive('regexp', `/${pattern}/${flags}`, node);
+    },
+    // === Smalruby: End of regex literal support ===
+
     visitTrueNode (node) {
         const index = (this._context.literalCallIndices.true || 0) + 1;
         this._context.literalCallIndices.true = index;

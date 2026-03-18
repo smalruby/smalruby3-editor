@@ -29,6 +29,9 @@ const RECEIVER_METHOD_LABELS = {
     'ceil': '切り上げ',
     'length': '長さ',
     'include?': '含むか',
+    // === Smalruby: regex match operators ===
+    '=~': '正規表現マッチ',
+    '!~': '正規表現マッチしない',
     // Control
     'times': '回繰り返す',
     // List operations

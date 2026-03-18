@@ -118,6 +118,8 @@ RubyGenerator.init = function (options) {
     this.notEqualsCallCache_ = {};
     this.greaterThanOrEqualCallCache_ = {};
     this.lessThanOrEqualCallCache_ = {};
+    // === Smalruby: regex match operator caches ===
+    this.regexNotMatchCallCache_ = {};
     this._moduleMethodCodes = {};
     this.version = options && options.version ? String(options.version) : '1';
     if (this.variableDB_) {

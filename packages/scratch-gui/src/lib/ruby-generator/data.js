@@ -40,6 +40,18 @@ export default function (Generator) {
         const comment = Generator.getCommentText(block);
         const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
 
+        // === Smalruby: Start of regex literal variable generation ===
+        if (comment && comment.includes('@ruby:regexp:literal') && hasValueInput) {
+            const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+):\d+/);
+            const variable = lvarMatch ?
+                lvarMatch[1] :
+                Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
+            const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '""';
+            const regexLiteral = Generator.unquoteRegex_(value) || Generator.nosToCode(value);
+            return `${variable} = ${regexLiteral}\n`;
+        }
+        // === Smalruby: End of regex literal variable generation ===
+
         // Check for local variable metadata (skip if compound assignment syntax is also present)
         if (comment && comment.startsWith('@ruby:lvar:') && !comment.includes('@ruby:syntax:')) {
             const parts = comment.split(':');

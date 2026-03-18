@@ -118,6 +118,13 @@ const nodeHandlers = {
         this._addAnnotation(node.location, `シンボル「${content}」`);
     },
 
+    // === Smalruby: Start of regex literal furigana ===
+    _handleRegularExpressionNode (node) {
+        const text = this._getSourceText(node.location);
+        this._addAnnotation(node.location, `正規表現${text}`);
+    },
+    // === Smalruby: End of regex literal furigana ===
+
     _handleStringNode (node) {
         const unescaped = node.unescaped;
         const content = (unescaped && typeof unescaped === 'object') ?
