@@ -111,6 +111,13 @@ export class LegacyStorage implements GUIStorage {
             [storage.AssetType.Sound],
             asset => `static/extension-assets/scratch3_music/${asset.assetId}.${asset.dataFormat}`
         );
+
+        // === Smalruby: Start of local sprite assets ===
+        storage.addWebStore(
+            [storage.AssetType.ImageVector, storage.AssetType.ImageBitmap],
+            asset => `/static/smalruby-assets/${asset.assetId}.${asset.dataFormat}`
+        );
+        // === Smalruby: End of local sprite assets ===
     }
 
     private getProjectGetConfig (projectAsset) {
