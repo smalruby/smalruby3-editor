@@ -177,6 +177,71 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
         });
     });
 
+    describe('Full round-trip: module + class + comments', () => {
+        test('complete example with module, class, comments, and method calls', async () => {
+            const inputCode = [
+                '# 挨拶の基本機能を持つモジュール',
+                'module Greeter',
+                '  def greet(name)',
+                '    say(("こんにちは、" + name) + "さん！")',
+                '  end',
+                'end',
+                '',
+                'class Sprite1',
+                '  include Greeter',
+                '',
+                '  # 挨拶メソッドを上書き（オーバーライド）',
+                '  def greet(name)',
+                '    super(name)',
+                '    if name =~ /^ス/',
+                '      say("スモウルビーマスターだね！", 2)',
+                '    else',
+                '      say("よろしくね！", 2)',
+                '    end',
+                '  end',
+                '',
+                '  when_flag_clicked do',
+                '    ask("お名前は？")',
+                '    name = answer',
+                '    # greetメソッドを実行',
+                '    greet(name)',
+                '  end',
+                'end',
+                ''
+            ].join('\n');
+
+            const outputCode = await rubyToBlocksToRuby(inputCode);
+
+            // Module comment before module
+            const moduleCommentPos = outputCode.indexOf('# 挨拶の基本機能を持つモジュール');
+            const modulePos = outputCode.indexOf('module Greeter');
+            expect(moduleCommentPos).not.toBe(-1);
+            expect(moduleCommentPos).toBeLessThan(modulePos);
+
+            // Def comment inside class, before method (find the class def, not module def)
+            const defCommentPos = outputCode.indexOf('# 挨拶メソッドを上書き（オーバーライド）');
+            const classPos = outputCode.indexOf('class Sprite1');
+            // Find def greet(name) after class Sprite1
+            const defPos = outputCode.indexOf('def greet(name)', classPos);
+            expect(defCommentPos).not.toBe(-1);
+            expect(defCommentPos).toBeGreaterThan(classPos);
+            expect(defCommentPos).toBeLessThan(defPos);
+
+            // Method call comment preserved
+            expect(outputCode).toContain('# greetメソッドを実行');
+
+            // Variable name preserved
+            expect(outputCode).toContain('greet(name)');
+            expect(outputCode).not.toContain('@_name_1_');
+
+            // Super call preserved
+            expect(outputCode).toContain('super(name)');
+
+            // Regex preserved
+            expect(outputCode).toContain('name =~ /^ス/');
+        });
+    });
+
     describe('Bug 1: module comment position', () => {
         test('comment before module is placed before module definition', async () => {
             const inputCode = [
