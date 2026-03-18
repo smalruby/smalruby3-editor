@@ -1,25 +1,36 @@
-# Smalruby 言語仕様
+# Smalruby Language Specification
 
-このドキュメントは、smalrubyで対応しているRuby構文とメソッドを定義します。
-ソースコードの `src/lib/ruby-to-blocks-converter/`（Ruby→ブロック変換）と `src/lib/ruby-generator/`（ブロック→Ruby生成）に基づいています。
+This document defines the Ruby syntax and methods supported by Smalruby.
+Based on `src/lib/ruby-to-blocks-converter/` (Ruby → Blocks) and `src/lib/ruby-generator/` (Blocks → Ruby).
 
-## 1. 概要
+Japanese version: [smalruby-language-spec.ja.md](./smalruby-language-spec.ja.md)
 
-smalrubyはRubyのサブセットで、MIT Scratch 3.0のビジュアルプログラミングブロックに対応したメソッドを持つ言語です。
+## 1. Overview
 
-**重要**: smalrubyのRubyコードは内部的にScratchブロックに変換されて実行されます。そのため、対応していないRuby構文やメソッドは使用できません。
+Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual programming blocks. Ruby code is converted to Scratch blocks for execution, so only supported methods and syntax can be used.
 
-## 2. プログラム構造
+### Key Differences from Standard Ruby
 
-### トップレベル構造
+- Class definitions are limited (only for sprite configuration)
+- **`module` and `include` ARE supported** (Version 2 only) — use to share `def` methods across sprites
+- Loops use `loop do...end`, `N.times do...end`, `while...end`, `until...end` (no `for`/`each`)
+- Variables: instance (`@score`), global (`$score`), local (`score`)
+- String interpolation (`"#{var}"`) is NOT supported
+- `require`, `puts`/`print`/`p`, exception handling (`begin/rescue`) are NOT supported
+- Compound assignment operators `+=`, `-=`, `*=`, `/=`, `%=` ARE supported
+- Recursion is NOT supported
 
-smalrubyのプログラムは、以下の2つの形式で記述できます。
+## 2. Program Structure
 
-#### 形式1: classなし（推奨・簡易形式）
+### Top-Level Structure
+
+Smalruby programs can be written in two forms.
+
+#### Form 1: Without class (recommended, simple form)
 
 ```ruby
-# イベントハンドラとメソッド定義をトップレベルに記述する
-# 内部的には class Sprite1 ... end でラップされて処理される
+# Event handlers and method definitions at top-level
+# Internally wrapped in class Sprite1 ... end
 
 self.rotation_style = "left-right"
 
@@ -35,12 +46,11 @@ def my_method(a, b)
 end
 ```
 
-#### 形式2: class定義あり
+#### Form 2: With class definition
 
 ```ruby
 class Cat
-  # class定義内でのみ使用可能な設定メソッド
-  set_name "ネコ"
+  set_name "Cat"
   set_x 100
   set_y -50
 
@@ -50,24 +60,20 @@ class Cat
 end
 ```
 
-### class定義の制限
+### Class Definition Restrictions
 
-- クラス名に名前空間は指定できません（`Foo::Bar` は不可）
-- クラス継承 (`class Foo < Bar`) は構文上は許容されますが、親クラスは無視されます
-- class定義のトップレベルに置けるのは、**イベントハンドラ**（`when_xxx`）、**メソッド定義**（`def`）、**`include`** のみです
+- Namespaced class names are not allowed (`Foo::Bar` is invalid)
+- Class inheritance (`class Foo < Bar`) is syntactically accepted but the superclass is ignored
+- Only **event handlers** (`when_xxx`), **method definitions** (`def`), and **`include`** are allowed at the class top-level
 
-### module定義とinclude（Version 2のみ）
+### Module and Include (Version 2 only)
 
-`module` を定義し、`include` でクラスに取り込むことで、メソッドを複数のスプライトで共有できます。
+Define a `module` and `include` it in a class to share methods across sprites.
 
 ```ruby
 module Utils
   def add(a, b)
     a + b
-  end
-
-  def greet
-    say("hello")
   end
 end
 
@@ -80,61 +86,48 @@ class Sprite1
 end
 ```
 
-別のスプライトでも同じモジュールを `include` して、メソッドを再利用できます。
+**Restrictions**:
+- Only `def` methods are allowed inside `module` (no variables, no nested modules)
+- `module_function` and `extend` are not supported
+- `module` and `include` are not available on Stage or in Version 1
 
-```ruby
-class Sprite2
-  include Utils
+### Class-Only Configuration Methods
 
-  when_flag_clicked do
-    say(add(10, 20))
-  end
-end
-```
+The following `set_xxx` methods can only be used at the **class definition top-level** (not inside event handlers).
 
-**制限事項**:
-- `module` 内に置けるのは **メソッド定義（`def`）のみ** です（変数代入やネストした `module` は不可）
-- `module_function` や `extend` は使用できません
-- ステージ（`class Stage`）では `module` 定義や `include` は使用できません
-- Version 1 では `module` は使用できません
+#### For Sprites (`class Sprite1` / `class Cat` etc.)
 
-### class定義のみで使えるメソッド
-
-以下の `set_xxx` メソッドは **class定義のトップレベルでのみ** 使用できます（イベントハンドラの中では使用できません）。
-
-#### スプライト用（`class Sprite1` / `class Cat` など）
-
-| メソッド | 説明 | デフォルト値 |
+| Method | Description | Default |
 |---|---|---|
-| `set_name "名前"` | スプライト名を設定 | - |
-| `set_sprite "名前"` | スプライトライブラリから読み込み | - |
-| `set_x 数値` | X座標を設定 | 0 |
-| `set_y 数値` | Y座標を設定 | 0 |
-| `set_direction 数値` | 向きを設定 | 90 |
-| `set_visible true/false` | 表示/非表示を設定 | true |
-| `set_size 数値` | 大きさ(%)を設定 | 100 |
-| `set_current_costume 数値` | コスチューム番号を設定 | 0 |
-| `set_rotation_style "スタイル"` | 回転スタイルを設定 | "all around" |
-| `set_costumes ["名前1", "名前2"]` | コスチュームをライブラリから設定 | - |
-| `set_sounds ["名前1", "名前2"]` | 音をライブラリから設定 | - |
+| `set_name "name"` | Set sprite name | - |
+| `set_sprite "name"` | Load from sprite library | - |
+| `set_x value` | Set X coordinate | 0 |
+| `set_y value` | Set Y coordinate | 0 |
+| `set_direction value` | Set direction | 90 |
+| `set_visible true/false` | Set visibility | true |
+| `set_size value` | Set size (%) | 100 |
+| `set_current_costume value` | Set costume number | 0 |
+| `set_rotation_style "style"` | Set rotation style | "all around" |
+| `set_costumes ["name1", "name2"]` | Set costumes from library | - |
+| `set_sounds ["name1", "name2"]` | Set sounds from library | - |
 
-#### ステージ用（`class Stage`）
+#### For Stage (`class Stage`)
 
-| メソッド | 説明 | デフォルト値 |
+| Method | Description | Default |
 |---|---|---|
-| `set_name "名前"` | ステージ名を設定 | - |
-| `set_current_backdrop 数値` | 現在の背景番号を設定 | 0 |
-| `set_backdrops ["名前1", "名前2"]` | 背景をライブラリから設定 | - |
-| `set_sounds ["名前1", "名前2"]` | 音をライブラリから設定 | - |
+| `set_name "name"` | Set stage name | - |
+| `set_current_backdrop value` | Set current backdrop number | 0 |
+| `set_backdrops ["name1", "name2"]` | Set backdrops from library | - |
+| `set_sounds ["name1", "name2"]` | Set sounds from library | - |
 
-**注意**:
-- スプライト用メソッド（`set_x`, `set_y`, `set_direction`, `set_visible`, `set_size`, `set_rotation_style`, `set_sprite`, `set_costumes`, `set_current_costume`）は `class Stage` では使えません。
-- ステージ用メソッド（`set_current_backdrop`, `set_backdrops`）はスプライトクラスでは使えません。
-- トップレベル（classなし形式）では `set_xxx` は使えませんが、代わりに `self.属性 = 値` 形式で設定を変更できます（例: `self.rotation_style = "left-right"`）。
+**Notes**:
+- Sprite-only methods (`set_x`, `set_y`, etc.) cannot be used in `class Stage`.
+- Stage-only methods (`set_current_backdrop`, `set_backdrops`) cannot be used in sprite classes.
+- In top-level form (without class), use `self.attribute = value` instead (e.g., `self.rotation_style = "left-right"`).
 
-### ステージのclass定義
+### Stage Class Definition
 
-ステージは `class Stage` で設定を記述できます。
+The stage can be configured using `class Stage`.
 
 ```ruby
 class Stage
@@ -148,35 +141,35 @@ class Stage
 end
 ```
 
-**注意**: Version 2（Ruby version 2）では、ステージの `class Stage` が省略された場合、ファイル保存時に自動的に `class Stage ... end` で補完されます。
+**Note**: In Version 2, if `class Stage` is omitted, it is automatically added on file save.
 
-## 3. 対応しているRuby構文
+## 3. Supported Ruby Syntax
 
-### リテラル
+### Literals
 
-| 構文 | 例 | 備考 |
+| Syntax | Example | Notes |
 |---|---|---|
-| 整数 | `42`, `-5`, `0` | |
-| 浮動小数点数 | `3.14`, `1.0` | |
-| 文字列 | `"hello"`, `"ネコ"` | **ダブルクォートのみ**。式展開(`#{}`)は不可 |
-| シンボル | `:symbol` | 限定的な用途 |
-| 配列 | `[1, 2, 3]`, `[x, y]` | `go_to` の座標指定等に使用 |
-| ハッシュ | `{key: val}` | キーワード引数として使用 |
-| 範囲 | `1..10`, `1...10` | `rand()` の引数等に使用 |
+| Integer | `42`, `-5`, `0` | |
+| Float | `3.14`, `1.0` | |
+| String | `"hello"` | **Double quotes only**. No interpolation (`#{}`) |
+| Symbol | `:symbol` | Limited use (hash keys, symbol list storage) |
+| Array | `[1, 2, 3]`, `[x, y]` | Used for coordinates in `go_to`, variable storage |
+| Hash | `{key: val}` | Used for keyword arguments and hash variable storage |
+| Range | `1..10`, `1...10` | Used in `rand()` etc. |
 | true / false | `true`, `false` | |
 | nil | `nil` | |
-| 正規表現 | `/^hello/i` | `=~`/`!~` 演算子の引数、変数への代入に使用 |
+| Regexp | `/^hello/i` | Used with `=~`/`!~` operators and variable assignment |
 
-### 変数
+### Variables
 
-| 種類 | 記法 | 説明 |
+| Type | Notation | Description |
 |---|---|---|
-| インスタンス変数 | `@score` | スプライトの変数（各スプライト固有） |
-| グローバル変数 | `$global_score` | ステージの変数（全スプライト共有） |
-| ローカル変数 | `score` | ローカルスコープの変数 |
+| Instance variable | `@score` | Sprite variable (per-sprite) |
+| Global variable | `$global_score` | Stage variable (shared across sprites) |
+| Local variable | `score` | Local scope variable |
 
 ```ruby
-# インスタンス変数（スプライトの変数）
+# Instance variable (sprite variable)
 @score = 0
 @score += 1
 @score -= 1
@@ -184,142 +177,135 @@ end
 @score /= 2
 @score %= 3
 
-# グローバル変数（ステージの変数）
+# Global variable (stage variable)
 $high_score = 100
 
-# ローカル変数
+# Local variable
 count = 0
 count += 1
 
-# 文字列変数の結合
+# String variable concatenation
 @name = "He"
-@name += "llo"  # @name は "Hello" になる
+@name += "llo"  # @name becomes "Hello"
 ```
 
-### 代入演算子
+### Assignment Operators
 
-| 演算子 | 例 | 備考 |
+| Operator | Example | Notes |
 |---|---|---|
-| `=` | `@score = 10` | 変数に値を代入 |
-| `+=` | `@score += 1` | 数値の場合は増加、文字列の場合は結合 |
-| `-=` | `@score -= 1` | 変数の値を減少 |
-| `*=` | `@score *= 2` | 変数の値を乗算 |
-| `/=` | `@score /= 2` | 変数の値を除算 |
-| `%=` | `@score %= 3` | 変数の値の剰余 |
+| `=` | `@score = 10` | Assign value to variable |
+| `+=` | `@score += 1` | Increment for numbers, concatenate for strings |
+| `-=` | `@score -= 1` | Decrease variable value |
+| `*=` | `@score *= 2` | Multiply variable value |
+| `/=` | `@score /= 2` | Divide variable value |
+| `%=` | `@score %= 3` | Modulo of variable value |
 
-**備考**: `+=` は数値変数に対しては `data_changevariableby` ブロック（変数をNずつ変える）に、文字列変数に対しては `data_setvariableto` + `operator_join` ブロック（文字列結合）に変換されます。`-=`, `*=`, `/=`, `%=` は `data_setvariableto` + 対応する算術演算子ブロックに変換されます。
-
-### 条件分岐
+### Conditionals
 
 ```ruby
-# if文
+# if statement
 if x > 10
-  say("大きい")
+  say("big")
 end
 
-# if-else文
+# if-else
 if touching?("_edge_")
   bounce_if_on_edge
 else
   move(10)
 end
 
-# if-elsif-else文
+# if-elsif-else
 if x > 100
-  say("とても大きい")
+  say("very big")
 elsif x > 50
-  say("大きい")
+  say("big")
 else
-  say("小さい")
+  say("small")
 end
 
-# unless文
+# unless
 unless touching?("_edge_")
   move(10)
 end
 
-# case-when文
+# case-when
 case @direction
 when 1
   move(10)
 when 2
   turn_right(90)
 else
-  say("不明")
+  say("unknown")
 end
 
-# 修飾子if / unless
+# Modifier if / unless
 move(10) if Keyboard.pressed?("space")
-say("セーフ") unless touching?("_edge_")
+say("safe") unless touching?("_edge_")
 ```
 
-### ループ
+### Loops
 
 ```ruby
-# 永久ループ
+# Forever loop
 loop do
   move(1)
 end
 
-# 回数指定ループ
+# Repeat N times
 10.times do
   move(10)
   turn_right(36)
 end
 
-# 条件ループ（条件が真である限り繰り返す）
+# While loop
 i = 0
 while i < 5
   move(5)
   i += 1
 end
 
-# 条件ループ（条件が真になるまで繰り返す）
+# Until loop
 until touching?("_edge_")
   move(5)
 end
 ```
 
-**注意**: `for`, `each` ループはサポートされていません。
+**Note**: `for` and `each` loops are NOT supported.
 
-**重要 — ループの自動1フレーム待機**:
-`loop do...end`、`N.times do...end`、`while...end`、`until...end` はすべて、**毎ループ終端で自動的に1フレーム（約33ms、30fps相当）待機**します。
-これはScratchのブロック実行モデルに由来する仕様で、CPUを占有しないよう設計されています。
+**Important — Loop auto-wait**: `loop do...end`, `N.times do...end`, `while...end`, and `until...end` automatically wait 1 frame (~33ms, 30fps) at each iteration end. Do NOT add `sleep()` for animation speed control. Only use `sleep()` for explicit long waits (0.5s or more).
 
-- FPS調整のために `sleep(0.05)` のような小さな値を入れる必要は**ありません**（むしろ動作が遅くなります）
-- `sleep` は `sleep(1)` のように意図的に長い待機が必要な場合のみ使ってください
+### Logical Operators
 
-### 論理演算子
-
-| 演算子 | 例 | 備考 |
+| Operator | Example | Notes |
 |---|---|---|
-| `&&` / `and` | `a && b` | かつ |
-| `\|\|` / `or` | `a \|\| b` | または |
-| `!` | `!touching?("_edge_")` | でない |
+| `&&` / `and` | `a && b` | AND |
+| `\|\|` / `or` | `a \|\| b` | OR |
+| `!` | `!touching?("_edge_")` | NOT |
 
-### 正規表現マッチ演算子
+### Regex Match Operators
 
-| 演算子 | 例 | 備考 |
+| Operator | Example | Notes |
 |---|---|---|
-| `=~` | `"hello" =~ /^he/` | マッチする場合は真 |
-| `!~` | `"hello" !~ /world/` | マッチしない場合は真 |
+| `=~` | `"hello" =~ /^he/` | True if matches |
+| `!~` | `"hello" !~ /world/` | True if does not match |
 
-正規表現リテラルは変数に代入することもできます。
+Regex literals can also be assigned to variables.
 
 ```ruby
 r = /^hello/i
 if @name =~ r
-  say("マッチ!")
+  say("matched!")
 end
 ```
 
-**対応するフラグ**: `i`（大文字小文字を無視）、`m`（複数行モード）、`x`（拡張モード）
+**Supported flags**: `i` (case-insensitive), `m` (multiline), `x` (extended)
 
-**注意**: 正規表現の内部的な仕組みとして、`=~`/`!~` は「〇〇に△△が含まれる」ブロック（`operator_contains`）に変換されます。`STRING2` に `/pattern/` 形式の文字列が設定された場合、VMが正規表現として解釈します。
+**Note**: Internally, `=~`/`!~` are converted to `operator_contains` blocks. When `STRING2` contains a `/pattern/` format string, the VM interprets it as a regular expression.
 
-### 比較演算子
+### Comparison Operators
 
-| 演算子 | 例 |
+| Operator | Example |
 |---|---|
 | `==` | `@score == 10` |
 | `!=` | `@score != 0` |
@@ -328,363 +314,396 @@ end
 | `>=` | `@score >= 100` |
 | `<=` | `Timer.value <= 0` |
 
-### 算術演算子
+### Arithmetic Operators
 
-| 演算子 | 例 |
+| Operator | Example |
 |---|---|
 | `+` | `@score + 1` |
 | `-` | `x - 10` |
 | `*` | `@speed * 2` |
 | `/` | `360 / 10` |
 | `%` | `@count % 2` |
-| `**` | `10 ** 2`（10のn乗） |
+| `**` | `10 ** 2` (power) |
 
-### メソッド定義
+### Method Definition
 
 ```ruby
-# メソッド定義
+# Method definition
 def greet(name)
   say(name)
 end
 
-# メソッド呼び出し
-greet("こんにちは")
+# Method call
+greet("hello")
 ```
 
-**制限事項**:
-- キーワード引数には対応していません（`def foo(name:)` は不可）
-- クラスメソッド（`def self.method`）は定義できません
-- `attr_accessor`/`attr_reader`/`attr_writer` は使えません
-- メソッドのオーバーロードはできません
-- 再帰呼び出しはできません
+**Restrictions**:
+- Keyword arguments are not supported (`def foo(name:)` is invalid)
+- Class methods (`def self.method`) cannot be defined
+- `attr_accessor`/`attr_reader`/`attr_writer` are not supported
+- Method overloading is not supported
+- Recursion is not supported
 
-### 戻り値
+### Return Values
 
 ```ruby
 def add(a, b)
-  a + b  # 最後の式が戻り値になる（暗黙の戻り値）
+  a + b  # Last expression is the return value (implicit return)
 end
 
 def check(x)
-  return true if x > 0  # 明示的なreturn
+  return true if x > 0  # Explicit return
   false
 end
 ```
 
-## 4. 対応しているメソッド一覧
+### super (Version 2 only)
 
-### 動き（Motion）
-
-| メソッド | 説明 | 例 |
-|---|---|---|
-| `move(歩数)` | 向いている方向に移動 | `move(10)` |
-| `turn_right(度数)` | 右に回転 | `turn_right(15)` |
-| `turn_left(度数)` | 左に回転 | `turn_left(15)` |
-| `go_to("場所")` | 指定の場所に移動 | `go_to("_mouse_")`, `go_to("_random_")` |
-| `go_to([x, y])` | 指定の座標に移動 | `go_to([0, 0])` |
-| `glide("場所", secs: 秒数)` | 場所に滑らかに移動 | `glide("_mouse_", secs: 1)` |
-| `glide([x, y], secs: 秒数)` | 座標に滑らかに移動 | `glide([100, 50], secs: 2)` |
-| `point_towards("対象")` | 対象の方向を向く | `point_towards("_mouse_")` |
-| `bounce_if_on_edge` | 端に触れたら跳ね返る | `bounce_if_on_edge` |
-| `self.direction = 度数` | 向きを設定 | `self.direction = 90` |
-| `self.x = 数値` | X座標を設定 | `self.x = 0` |
-| `self.y = 数値` | Y座標を設定 | `self.y = 0` |
-| `self.x += 数値` | X座標を変化させる | `self.x += 10` |
-| `self.y += 数値` | Y座標を変化させる | `self.y += -10` |
-| `self.rotation_style = "スタイル"` | 回転スタイルを設定 | `self.rotation_style = "left-right"` |
-| `x` | 現在のX座標を取得 | `x` |
-| `y` | 現在のY座標を取得 | `y` |
-| `direction` | 現在の向きを取得 | `direction` |
-
-**go_to / point_towards の対象名**:
-- `"_mouse_"` — マウスポインター
-- `"_random_"` — ランダムな位置
-
-**rotation_style の値**:
-- `"all around"` — 自由に回転
-- `"left-right"` — 左右のみ
-- `"don't rotate"` — 回転しない
-
-### 見た目（Looks）
-
-| メソッド | 説明 | 例 |
-|---|---|---|
-| `say(メッセージ)` | 吹き出しでメッセージを表示 | `say("こんにちは")` |
-| `say(メッセージ, 秒数)` | 秒数だけ吹き出しを表示 | `say("やあ", 2)` |
-| `think(メッセージ)` | 考え中の吹き出しを表示 | `think("うーん")` |
-| `think(メッセージ, 秒数)` | 秒数だけ考え中の吹き出しを表示 | `think("うーん", 2)` |
-| `switch_costume("名前")` | 指定のコスチュームに変更 | `switch_costume("costume2")` |
-| `next_costume` | 次のコスチュームに変更 | `next_costume` |
-| `switch_backdrop("名前")` | 背景を変更 | `switch_backdrop("backdrop2")` |
-| `switch_backdrop_and_wait("名前")` | 背景を変更して完了を待つ | `switch_backdrop_and_wait("backdrop2")` |
-| `next_backdrop` | 次の背景に変更 | `next_backdrop` |
-| `self.size = パーセント` | 大きさを設定 | `self.size = 200` |
-| `self.size += 変化量` | 大きさを変化させる | `self.size += 10` |
-| `set_effect("効果名", 値)` | 画像効果を設定 | `set_effect("color", 25)` |
-| `change_effect_by("効果名", 変化量)` | 画像効果を変化させる | `change_effect_by("color", 10)` |
-| `clear_graphic_effects` | すべての画像効果をクリア | `clear_graphic_effects` |
-| `show` | スプライトを表示 | `show` |
-| `hide` | スプライトを非表示 | `hide` |
-| `go_to_layer("front")` | 最前面に移動 | `go_to_layer("front")` |
-| `go_to_layer("back")` | 最背面に移動 | `go_to_layer("back")` |
-| `go_layers(数, "forward")` | 前に数レイヤー移動 | `go_layers(1, "forward")` |
-| `go_layers(数, "backward")` | 後ろに数レイヤー移動 | `go_layers(1, "backward")` |
-| `costume_number` | コスチューム番号を取得 | `costume_number` |
-| `costume_name` | コスチューム名を取得 | `costume_name` |
-| `backdrop_number` | 背景番号を取得 | `backdrop_number` |
-| `backdrop_name` | 背景名を取得 | `backdrop_name` |
-| `size` | 大きさ(%)を取得 | `size` |
-
-**画像効果名**: `"color"`, `"fisheye"`, `"whirl"`, `"pixelate"`, `"mosaic"`, `"brightness"`, `"ghost"`
-
-### 音（Sound）
-
-| メソッド | 説明 | 例 |
-|---|---|---|
-| `play("音の名前")` | 音を再生（待たない） | `play("ニャー")` |
-| `play_until_done("音の名前")` | 音が終わるまで待って再生 | `play_until_done("ニャー")` |
-| `stop_all_sounds` | すべての音を止める | `stop_all_sounds` |
-| `change_sound_effect_by("効果名", 変化量)` | 音の効果を変化させる | `change_sound_effect_by("PITCH", 10)` |
-| `set_sound_effect("効果名", 値)` | 音の効果を設定 | `set_sound_effect("PITCH", 100)` |
-| `clear_sound_effects` | 音の効果をクリア | `clear_sound_effects` |
-| `self.volume = 値` | 音量を設定 | `self.volume = 50` |
-| `self.volume += 変化量` | 音量を変化させる | `self.volume += -10` |
-| `volume` | 現在の音量を取得 | `volume` |
-
-**音の効果名**: `"PITCH"`, `"PAN"`
-
-### イベント（Events）
-
-| メソッド | 説明 | 例 |
-|---|---|---|
-| `when_flag_clicked do...end` | 旗が押されたとき | `when_flag_clicked do ... end` |
-| `when_key_pressed("キー") do...end` | キーが押されたとき | `when_key_pressed("space") do ... end` |
-| `when_clicked do...end` | スプライトがクリックされたとき | `when_clicked do ... end` |
-| `when_backdrop_switches("名前") do...end` | 背景が切り替わったとき | `when_backdrop_switches("backdrop2") do ... end` |
-| `when_greater_than("種類", 値) do...end` | 値が超えたとき | `when_greater_than("LOUDNESS", 10) do ... end` |
-| `when_receive("メッセージ") do...end` | メッセージを受け取ったとき | `when_receive("start") do ... end` |
-| `broadcast("メッセージ")` | メッセージを送る | `broadcast("start")` |
-| `broadcast_and_wait("メッセージ")` | メッセージを送って待つ | `broadcast_and_wait("start")` |
-
-**キー名**: `"space"`, `"left arrow"`, `"right arrow"`, `"up arrow"`, `"down arrow"`, `"any"`, `"a"`〜`"z"`, `"0"`〜`"9"`
-
-**when_greater_than の種類**: `"LOUDNESS"`, `"TIMER"`
-
-### 制御（Control）
-
-| メソッド | 説明 | 例 |
-|---|---|---|
-| `sleep(秒数)` | 指定秒数待つ | `sleep(1)` |
-| `loop do...end` | ずっと繰り返す | `loop do ... end` |
-| `数値.times do...end` | 指定回数繰り返す | `10.times do ... end` |
-| `if 条件...end` | もし〜なら | `if x > 0 ... end` |
-| `if 条件...else...end` | もし〜でなければ | `if x > 0 ... else ... end` |
-| `until 条件 do...end` | 〜まで繰り返す | `until touching?("_edge_") do ... end` |
-| `while 条件 do...end` | 〜である間繰り返す | `while @score < 100 ... end` |
-| `stop("対象")` | 実行を止める | `stop("all")` |
-| `create_clone("対象")` | クローンを作る | `create_clone("_myself_")` |
-| `delete_this_clone` | このクローンを削除 | `delete_this_clone` |
-| `when_start_as_a_clone do...end` | クローンされたとき | `when_start_as_a_clone do ... end` |
-
-**stop の対象**: `"all"`, `"this script"`, `"other scripts in sprite"`
-
-**create_clone の対象**: `"_myself_"`, スプライト名
-
-### 調べる（Sensing）
-
-| メソッド | 説明 | 例 |
-|---|---|---|
-| `touching?("対象")` | 対象に触れているか | `touching?("_mouse_")`, `touching?("_edge_")` |
-| `touching_color?("色")` | 色に触れているか | `touching_color?("#ff0000")` |
-| `color_is_touching_color?("色1", "色2")` | 色が色に触れているか | `color_is_touching_color?("#ff0000", "#00ff00")` |
-| `distance("対象")` | 対象までの距離 | `distance("_mouse_")` |
-| `ask("質問")` | 質問して答えを待つ | `ask("名前は?")` |
-| `answer` | 答えを取得 | `answer` |
-| `Keyboard.pressed?("キー")` | キーが押されているか | `Keyboard.pressed?("space")` |
-| `Mouse.down?` | マウスが押されているか | `Mouse.down?` |
-| `Mouse.x` | マウスのX座標 | `Mouse.x` |
-| `Mouse.y` | マウスのY座標 | `Mouse.y` |
-| `self.drag_mode = "モード"` | ドラッグモードを設定 | `self.drag_mode = "draggable"` |
-| `loudness` | マイクの音量 | `loudness` |
-| `Timer.value` | タイマーの値 | `Timer.value` |
-| `Timer.reset` | タイマーをリセット | `Timer.reset` |
-| `Time.now.year` | 現在の年 | `Time.now.year` |
-| `Time.now.month` | 現在の月 | `Time.now.month` |
-| `Time.now.day` | 現在の日 | `Time.now.day` |
-| `Time.now.hour` | 現在の時 | `Time.now.hour` |
-| `Time.now.min` | 現在の分 | `Time.now.min` |
-| `Time.now.sec` | 現在の秒 | `Time.now.sec` |
-| `Time.now.wday + 1` | 曜日（1=日〜7=土） | `Time.now.wday + 1` |
-| `days_since_2000` | 2000年からの日数 | `days_since_2000` |
-| `user_name` | ユーザー名 | `user_name` |
-
-**touching? の対象名**:
-- `"_mouse_"` — マウスポインター
-- `"_edge_"` — 端
-- スプライト名 — 他のスプライト
-
-**他のスプライト/ステージの情報を取得する**:
+When a class `include`s a module and overrides a same-named method, `super` calls the module's version of that method.
 
 ```ruby
-sprite("Sprite2").x           # X座標
-sprite("Sprite2").y           # Y座標
-sprite("Sprite2").direction   # 向き
-sprite("Sprite2").costume_number  # コスチューム番号
-sprite("Sprite2").costume_name    # コスチューム名
-sprite("Sprite2").size        # 大きさ
-sprite("Sprite2").volume      # 音量
-sprite("Sprite2").variable("@score")  # 変数の値
+module Utils
+  def greet
+    say("hello")
+  end
+end
 
-stage.backdrop_number   # ステージの背景番号
-stage.backdrop_name     # ステージの背景名
-stage.volume            # ステージの音量
-stage.variable("$var")  # ステージの変数の値
+class Sprite1
+  include Utils
+
+  def greet
+    super        # Calls Utils' greet (forwards arguments)
+    say("goodbye")
+  end
+
+  when_flag_clicked do
+    greet
+  end
+end
 ```
 
-### 演算（Operators）
-
-| メソッド | 説明 | 例 |
-|---|---|---|
-| `rand(範囲)` | ランダムな数 | `rand(1..10)` |
-| `値.round` | 四捨五入 | `3.7.round` |
-| `値.abs` | 絶対値 | `(-5).abs` |
-| `値.floor` | 切り捨て | `3.7.floor` |
-| `値.ceil` | 切り上げ | `3.2.ceil` |
-| `Math.sqrt(数値)` | 平方根 | `Math.sqrt(9)` |
-| `Math.sin(数値)` | サイン | `Math.sin(90)` |
-| `Math.cos(数値)` | コサイン | `Math.cos(0)` |
-| `Math.tan(数値)` | タンジェント | `Math.tan(45)` |
-| `Math.asin(数値)` | アークサイン | `Math.asin(1)` |
-| `Math.acos(数値)` | アークコサイン | `Math.acos(0)` |
-| `Math.atan(数値)` | アークタンジェント | `Math.atan(1)` |
-| `Math.log(数値)` | 自然対数 | `Math.log(10)` |
-| `Math.log10(数値)` | 常用対数 | `Math.log10(100)` |
-| `Math::E ** 数値` | eのn乗 | `Math::E ** 2` |
-| `10 ** 数値` | 10のn乗 | `10 ** 3` |
-| `文字列.length` | 文字列の長さ | `"hello".length` |
-| `文字列.include?(部分文字列)` | 文字列を含むか | `"hello".include?("ell")` |
-| `文字列[位置]` | 文字列の文字を取得 | `"hello"[0]` |
-| `文字列1 + 文字列2` | 文字列の結合 | `"hello" + " world"` |
-| `文字列変数 + 値` | 文字列変数の結合 | `@name + "さん"`（`@name`が文字列型の場合） |
-| `文字列 =~ /正規表現/` | 正規表現にマッチするか | `"hello" =~ /^he/` |
-| `/正規表現/ =~ 文字列` | 正規表現にマッチするか（逆順） | `/^he/ =~ "hello"` |
-| `文字列 !~ /正規表現/` | 正規表現にマッチしないか | `"hello" !~ /world/` |
-| `/正規表現/ !~ 文字列` | 正規表現にマッチしないか（逆順） | `/world/ !~ "hello"` |
-
-### 変数/リスト（Data）
-
-#### 変数の使用
+`super(args)` can also pass arguments explicitly.
 
 ```ruby
-# スプライトの変数（インスタンス変数）
-@score = 0
-@score += 1      # 増加
-@score -= 1      # 減少
-@score *= 2      # 乗算
-@score /= 2      # 除算
-@score %= 3      # 剰余
+module Utils
+  def add(a, b)
+    a + b
+  end
+end
 
-# ステージの変数（グローバル変数）
+class Sprite1
+  include Utils
+
+  def add(a, b)
+    result = super(a, b)  # Calls Utils' add
+    result * 2
+  end
+end
+```
+
+**Restrictions**:
+- `super` can only be used inside a `def` method
+- A same-named method must exist in an included module
+- Not available in Version 1
+- Not available on Stage (`class Stage`)
+
+## 4. Available Methods
+
+### Motion
+
+| Method | Description | Example |
+|---|---|---|
+| `move(steps)` | Move forward | `move(10)` |
+| `turn_right(degrees)` | Rotate clockwise | `turn_right(15)` |
+| `turn_left(degrees)` | Rotate counter-clockwise | `turn_left(15)` |
+| `go_to("target")` | Move to target | `go_to("_mouse_")`, `go_to("_random_")` |
+| `go_to([x, y])` | Move to coordinates | `go_to([0, 0])` |
+| `glide("target", secs: n)` | Glide to target | `glide("_mouse_", secs: 1)` |
+| `glide([x, y], secs: n)` | Glide to coordinates | `glide([100, 50], secs: 2)` |
+| `point_towards("target")` | Point towards target | `point_towards("_mouse_")` |
+| `bounce_if_on_edge` | Bounce off edges | `bounce_if_on_edge` |
+| `self.direction = degrees` | Set direction | `self.direction = 90` |
+| `self.x = value` | Set X coordinate | `self.x = 0` |
+| `self.y = value` | Set Y coordinate | `self.y = 0` |
+| `self.x += value` | Change X coordinate | `self.x += 10` |
+| `self.y += value` | Change Y coordinate | `self.y += -10` |
+| `self.rotation_style = "style"` | Set rotation style | `self.rotation_style = "left-right"` |
+| `x` | Get X coordinate | `x` |
+| `y` | Get Y coordinate | `y` |
+| `direction` | Get direction | `direction` |
+
+**Target names for go_to / point_towards**: `"_mouse_"` (mouse pointer), `"_random_"` (random position)
+
+**Rotation style values**: `"all around"`, `"left-right"`, `"don't rotate"`
+
+### Looks
+
+| Method | Description | Example |
+|---|---|---|
+| `say(message)` | Speech bubble | `say("hello")` |
+| `say(message, seconds)` | Speech bubble for seconds | `say("hi", 2)` |
+| `think(message)` | Thought bubble | `think("hmm")` |
+| `think(message, seconds)` | Thought bubble for seconds | `think("hmm", 2)` |
+| `switch_costume("name")` | Switch costume | `switch_costume("costume2")` |
+| `next_costume` | Next costume | `next_costume` |
+| `switch_backdrop("name")` | Switch backdrop | `switch_backdrop("backdrop2")` |
+| `switch_backdrop_and_wait("name")` | Switch backdrop and wait | `switch_backdrop_and_wait("backdrop2")` |
+| `next_backdrop` | Next backdrop | `next_backdrop` |
+| `self.size = percent` | Set size | `self.size = 200` |
+| `self.size += amount` | Change size | `self.size += 10` |
+| `set_effect("effect", value)` | Set graphic effect | `set_effect("color", 25)` |
+| `change_effect_by("effect", amount)` | Change graphic effect | `change_effect_by("color", 10)` |
+| `clear_graphic_effects` | Clear all graphic effects | `clear_graphic_effects` |
+| `show` | Show sprite | `show` |
+| `hide` | Hide sprite | `hide` |
+| `go_to_layer("front")` | Go to front layer | `go_to_layer("front")` |
+| `go_to_layer("back")` | Go to back layer | `go_to_layer("back")` |
+| `go_layers(n, "forward")` | Go forward n layers | `go_layers(1, "forward")` |
+| `go_layers(n, "backward")` | Go backward n layers | `go_layers(1, "backward")` |
+| `costume_number` | Get costume number | `costume_number` |
+| `costume_name` | Get costume name | `costume_name` |
+| `backdrop_number` | Get backdrop number | `backdrop_number` |
+| `backdrop_name` | Get backdrop name | `backdrop_name` |
+| `size` | Get size (%) | `size` |
+
+**Graphic effect names**: `"color"`, `"fisheye"`, `"whirl"`, `"pixelate"`, `"mosaic"`, `"brightness"`, `"ghost"`
+
+### Sound
+
+| Method | Description | Example |
+|---|---|---|
+| `play("sound name")` | Play sound (non-blocking) | `play("Meow")` |
+| `play_until_done("sound name")` | Play sound until done | `play_until_done("Meow")` |
+| `stop_all_sounds` | Stop all sounds | `stop_all_sounds` |
+| `change_sound_effect_by("effect", amount)` | Change sound effect | `change_sound_effect_by("PITCH", 10)` |
+| `set_sound_effect("effect", value)` | Set sound effect | `set_sound_effect("PITCH", 100)` |
+| `clear_sound_effects` | Clear sound effects | `clear_sound_effects` |
+| `self.volume = value` | Set volume | `self.volume = 50` |
+| `self.volume += amount` | Change volume | `self.volume += -10` |
+| `volume` | Get volume | `volume` |
+
+**Sound effect names**: `"PITCH"`, `"PAN"`
+
+### Events
+
+| Method | Description | Example |
+|---|---|---|
+| `when_flag_clicked do...end` | When green flag clicked | `when_flag_clicked do ... end` |
+| `when_key_pressed("key") do...end` | When key pressed | `when_key_pressed("space") do ... end` |
+| `when_clicked do...end` | When sprite clicked | `when_clicked do ... end` |
+| `when_backdrop_switches("name") do...end` | When backdrop switches | `when_backdrop_switches("backdrop2") do ... end` |
+| `when_greater_than("type", value) do...end` | When value exceeded | `when_greater_than("LOUDNESS", 10) do ... end` |
+| `when_receive("message") do...end` | When message received | `when_receive("start") do ... end` |
+| `broadcast("message")` | Broadcast message | `broadcast("start")` |
+| `broadcast_and_wait("message")` | Broadcast and wait | `broadcast_and_wait("start")` |
+
+**Key names**: `"space"`, `"left arrow"`, `"right arrow"`, `"up arrow"`, `"down arrow"`, `"any"`, `"a"`–`"z"`, `"0"`–`"9"`
+
+**when_greater_than types**: `"LOUDNESS"`, `"TIMER"`
+
+### Control
+
+| Method | Description | Example |
+|---|---|---|
+| `sleep(seconds)` | Wait | `sleep(1)` |
+| `loop do...end` | Repeat forever | `loop do ... end` |
+| `N.times do...end` | Repeat N times | `10.times do ... end` |
+| `if condition...end` | If then | `if x > 0 ... end` |
+| `if condition...else...end` | If then else | `if x > 0 ... else ... end` |
+| `until condition do...end` | Repeat until | `until touching?("_edge_") do ... end` |
+| `while condition do...end` | Repeat while | `while @score < 100 ... end` |
+| `stop("target")` | Stop execution | `stop("all")` |
+| `create_clone("target")` | Create clone | `create_clone("_myself_")` |
+| `delete_this_clone` | Delete this clone | `delete_this_clone` |
+| `when_start_as_a_clone do...end` | When cloned | `when_start_as_a_clone do ... end` |
+
+**Stop targets**: `"all"`, `"this script"`, `"other scripts in sprite"`
+
+**Clone targets**: `"_myself_"`, sprite name
+
+### Sensing
+
+| Method | Description | Example |
+|---|---|---|
+| `touching?("target")` | Touching target? | `touching?("_mouse_")`, `touching?("_edge_")` |
+| `touching_color?("color")` | Touching color? | `touching_color?("#ff0000")` |
+| `color_is_touching_color?("c1", "c2")` | Color touching color? | `color_is_touching_color?("#ff0000", "#00ff00")` |
+| `distance("target")` | Distance to target | `distance("_mouse_")` |
+| `ask("question")` | Ask and wait | `ask("What's your name?")` |
+| `answer` | Get answer | `answer` |
+| `Keyboard.pressed?("key")` | Key pressed? | `Keyboard.pressed?("space")` |
+| `Mouse.down?` | Mouse down? | `Mouse.down?` |
+| `Mouse.x` | Mouse X | `Mouse.x` |
+| `Mouse.y` | Mouse Y | `Mouse.y` |
+| `self.drag_mode = "mode"` | Set drag mode | `self.drag_mode = "draggable"` |
+| `loudness` | Microphone loudness | `loudness` |
+| `Timer.value` | Timer value | `Timer.value` |
+| `Timer.reset` | Reset timer | `Timer.reset` |
+| `Time.now.year` | Current year | `Time.now.year` |
+| `Time.now.month` | Current month | `Time.now.month` |
+| `Time.now.day` | Current day | `Time.now.day` |
+| `Time.now.hour` | Current hour | `Time.now.hour` |
+| `Time.now.min` | Current minute | `Time.now.min` |
+| `Time.now.sec` | Current second | `Time.now.sec` |
+| `Time.now.wday + 1` | Day of week (1=Sun–7=Sat) | `Time.now.wday + 1` |
+| `days_since_2000` | Days since 2000 | `days_since_2000` |
+| `user_name` | Username | `user_name` |
+
+**Touching targets**: `"_mouse_"` (mouse), `"_edge_"` (edge), sprite name
+
+**Getting other sprite/stage info**:
+
+```ruby
+sprite("Sprite2").x
+sprite("Sprite2").direction
+sprite("Sprite2").costume_number
+sprite("Sprite2").variable("@score")
+
+stage.backdrop_number
+stage.backdrop_name
+stage.variable("$var")
+```
+
+### Operators
+
+| Method | Description | Example |
+|---|---|---|
+| `rand(range)` | Random number | `rand(1..10)` |
+| `value.round` | Round | `3.7.round` |
+| `value.abs` | Absolute value | `(-5).abs` |
+| `value.floor` | Floor | `3.7.floor` |
+| `value.ceil` | Ceiling | `3.2.ceil` |
+| `Math.sqrt(value)` | Square root | `Math.sqrt(9)` |
+| `Math.sin(value)` | Sine | `Math.sin(90)` |
+| `Math.cos(value)` | Cosine | `Math.cos(0)` |
+| `Math.tan(value)` | Tangent | `Math.tan(45)` |
+| `Math.asin(value)` | Arcsine | `Math.asin(1)` |
+| `Math.acos(value)` | Arccosine | `Math.acos(0)` |
+| `Math.atan(value)` | Arctangent | `Math.atan(1)` |
+| `Math.log(value)` | Natural log | `Math.log(10)` |
+| `Math.log10(value)` | Common log | `Math.log10(100)` |
+| `Math::E ** value` | e to the power | `Math::E ** 2` |
+| `10 ** value` | 10 to the power | `10 ** 3` |
+| `string.length` | String length | `"hello".length` |
+| `string.include?(substring)` | String contains? | `"hello".include?("ell")` |
+| `string[index]` | Character at index | `"hello"[0]` |
+| `string1 + string2` | String concatenation | `"hello" + " world"` |
+| `string =~ /regexp/` | Regex match | `"hello" =~ /^he/` |
+| `/regexp/ =~ string` | Regex match (reversed) | `/^he/ =~ "hello"` |
+| `string !~ /regexp/` | Regex not match | `"hello" !~ /world/` |
+| `/regexp/ !~ string` | Regex not match (reversed) | `/world/ !~ "hello"` |
+
+### Variables / Lists (Data)
+
+#### Variables
+
+```ruby
+# Sprite variable (instance variable)
+@score = 0
+@score += 1      # Increment
+@score -= 1      # Decrement
+@score *= 2      # Multiply
+@score /= 2      # Divide
+@score %= 3      # Modulo
+
+# Stage variable (global variable)
 $high_score = 100
 
-# ローカル変数
+# Local variable
 count = 0
 
-# 文字列変数の結合
+# String concatenation
 @greeting = "He"
-@greeting += "llo"  # "Hello" になる
+@greeting += "llo"  # Becomes "Hello"
 
-# 変数の表示/非表示
+# Show/hide variables
 show_variable("@score")
 hide_variable("@score")
 ```
 
-#### リストの使用
+#### Lists
 
 ```ruby
-# リストの操作
-list("@items").push("りんご")          # 追加
-list("@items").delete_at(1)             # 削除
-list("@items").clear                    # 全削除
-list("@items").insert(1, "バナナ")      # 挿入
-list("@items")[1] = "みかん"            # 置換
-list("@items")[1]                       # 取得
-list("@items").index("りんご")          # 検索
-list("@items").length                   # 長さ
-list("@items").include?("りんご")       # 含むか
-show_list("@items")                     # リストの表示
-hide_list("@items")                     # リストの非表示
+list("@items").push("apple")           # Add
+list("@items").delete_at(1)             # Delete
+list("@items").clear                    # Delete all
+list("@items").insert(1, "banana")      # Insert
+list("@items")[1] = "orange"            # Replace
+list("@items")[1]                       # Get
+list("@items").index("apple")           # Search
+list("@items").length                   # Length
+list("@items").include?("apple")        # Contains?
+show_list("@items")                     # Show list
+hide_list("@items")                     # Hide list
 ```
 
-### ペン（Pen拡張機能）
+### Pen (Extension)
 
-| メソッド | 説明 | 例 |
+| Method | Description | Example |
 |---|---|---|
-| `Pen.clear` | 全消去 | `Pen.clear` |
-| `pen.stamp` | スタンプ | `pen.stamp` |
-| `pen.down` | ペンを下ろす | `pen.down` |
-| `pen.up` | ペンを上げる | `pen.up` |
-| `pen.color = 色` | ペンの色を設定 | `pen.color = "#ff0000"` |
-| `pen.color = 数値` | ペンの色パラメータを設定 | `pen.color = 50` |
-| `pen.saturation = 数値` | 彩度を設定 | `pen.saturation = 100` |
-| `pen.brightness = 数値` | 明るさを設定 | `pen.brightness = 100` |
-| `pen.transparency = 数値` | 透明度を設定 | `pen.transparency = 50` |
-| `pen.size = 数値` | ペンの太さを設定 | `pen.size = 3` |
-| `pen.size += 数値` | ペンの太さを変化させる | `pen.size += 1` |
-| `pen.color += 数値` | ペンの色パラメータを変化させる | `pen.color += 10` |
+| `Pen.clear` | Erase all | `Pen.clear` |
+| `pen.stamp` | Stamp | `pen.stamp` |
+| `pen.down` | Pen down | `pen.down` |
+| `pen.up` | Pen up | `pen.up` |
+| `pen.color = color` | Set pen color | `pen.color = "#ff0000"` |
+| `pen.color = value` | Set pen color parameter | `pen.color = 50` |
+| `pen.saturation = value` | Set saturation | `pen.saturation = 100` |
+| `pen.brightness = value` | Set brightness | `pen.brightness = 100` |
+| `pen.transparency = value` | Set transparency | `pen.transparency = 50` |
+| `pen.size = value` | Set pen size | `pen.size = 3` |
+| `pen.size += value` | Change pen size | `pen.size += 1` |
+| `pen.color += value` | Change pen color parameter | `pen.color += 10` |
 
-### 音楽（Music拡張機能）
+### Music (Extension)
 
-| メソッド | 説明 | 例 |
+| Method | Description | Example |
 |---|---|---|
-| `play_drum(drum: 番号, beats: 拍数)` | ドラムを鳴らす | `play_drum(drum: 1, beats: 0.25)` |
-| `rest(拍数)` | 休符 | `rest(0.25)` |
-| `play_note(note: 番号, beats: 拍数)` | 音符を鳴らす | `play_note(note: 60, beats: 0.25)` |
-| `self.instrument = 番号` | 楽器を設定 | `self.instrument = 1` |
-| `self.tempo = 値` | テンポを設定 | `self.tempo = 120` |
-| `self.tempo += 変化量` | テンポを変化させる | `self.tempo += 20` |
-| `tempo` | テンポを取得 | `tempo` |
+| `play_drum(drum: n, beats: n)` | Play drum | `play_drum(drum: 1, beats: 0.25)` |
+| `rest(beats)` | Rest | `rest(0.25)` |
+| `play_note(note: n, beats: n)` | Play note | `play_note(note: 60, beats: 0.25)` |
+| `self.instrument = value` | Set instrument | `self.instrument = 1` |
+| `self.tempo = value` | Set tempo | `self.tempo = 120` |
+| `self.tempo += amount` | Change tempo | `self.tempo += 20` |
+| `tempo` | Get tempo | `tempo` |
 
-## 5. サポートされていないRuby構文
+## 5. Unsupported Ruby Syntax
 
-以下のRuby構文はsmalrubyでは**使用できません**:
+The following Ruby syntax is **NOT supported** in Smalruby:
 
-- `for` ループ
-- `each` メソッド
-- `begin`/`rescue`/`ensure`（例外処理）
-- `module_function`, `extend`（`module` と `include` は Version 2 でサポート）
+- `for` loops
+- `each` method
+- `begin`/`rescue`/`ensure` (exception handling)
+- `module_function`, `extend` (`module` and `include` are supported in Version 2)
 - `require` / `require_relative`
-- 文字列の式展開 (`"Hello #{name}"`)
-- 多重代入 (`a, b = 1, 2`)
-- スプラット引数 (`*args`)
-- ブロック引数付きのイテレータ（`each { |x| ... }` など）
-- プロック / ラムダ
+- String interpolation (`"Hello #{name}"`)
+- Multiple assignment (`a, b = 1, 2`)
+- Splat arguments (`*args`)
+- Block-argument iterators (`each { |x| ... }`)
+- Procs / Lambdas
 - `yield`
-- `open` / ファイルI/O
-- `puts` / `print` / `p`（直接は使えません。代わりに `say()` を使ってください）
+- `open` / File I/O
+- `puts` / `print` / `p` (use `say()` instead)
 
-## 6. よくある間違い
-
-以下は正しくないコードと、正しい書き方の対比です。
+## 6. Common Mistakes
 
 ```ruby
-# ❌ set_x / change_x は使えません
+# ❌ set_x / change_x do not exist
 set_x(100)
 change_x(10)
 
-# ✅ self.x = / self.x += を使います
+# ✅ Use self.x = / self.x +=
 self.x = 100
 self.x += 10
 ```
 
 ```ruby
-# ❌ mouse_x / mouse_y は使えません
+# ❌ Wrong method names
 mouse_x
 key_pressed?("space")
 timer
 reset_timer
 
-# ✅ 正しいクラスメソッド名を使います
+# ✅ Correct class method names
 Mouse.x
 Keyboard.pressed?("space")
 Timer.value
@@ -692,48 +711,48 @@ Timer.reset
 ```
 
 ```ruby
-# ❌ "_mouse_pointer_" は正しくありません
+# ❌ Wrong target name
 touching?("_mouse_pointer_")
 
-# ✅ "_mouse_" を使います
+# ✅ Use "_mouse_"
 touching?("_mouse_")
 ```
 
 ```ruby
-# ❌ glide の引数の順序が違います
+# ❌ Wrong argument order for glide
 glide(1, 100, 50)
 
-# ✅ 座標を配列で、秒数をキーワード引数で渡します
+# ✅ Array for coordinates, keyword for seconds
 glide([100, 50], secs: 1)
 ```
 
 ```ruby
-# ❌ play_sound / stop_sounds は正しくありません
-play_sound("ニャー")
+# ❌ Wrong method names
+play_sound("Meow")
 stop_sounds
 
-# ✅ 正しいメソッド名を使います
-play("ニャー")
+# ✅ Correct method names
+play("Meow")
 stop_all_sounds
 ```
 
 ```ruby
-# ❌ set_size / change_size は使えません（class定義外）
+# ❌ set_size / change_size do not exist (outside class definition)
 set_size(200)
 change_size(10)
 
-# ✅ self.size = / self.size += を使います
+# ✅ Use self.size = / self.size +=
 self.size = 200
 self.size += 10
 ```
 
 ```ruby
-# ❌ each は使えません
+# ❌ each is not supported
 [1, 2, 3].each do |n|
   say(n)
 end
 
-# ✅ times を使います
+# ✅ Use times
 3.times do
   say("hello")
 end
