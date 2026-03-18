@@ -638,11 +638,13 @@ class RubyToBlocksConverter extends Visitor {
                 // Preceding comment: attach to block on the next code line
                 const nextCodeLine = group.endLine + 1;
 
-                // Check if next line is a class/module/def start
+                // Check if next line is a class/module start
                 // In that case, create a target-level comment (describes the definition, not a block)
+                // DefNode is excluded: comments before def are attached to the
+                // procedures_definition block so they appear inside the class.
                 const isBeforeContainer = this._context.containerNodeRanges.some(
                     r => r.startLine === nextCodeLine &&
-                        (r.type === 'ClassNode' || r.type === 'ModuleNode' || r.type === 'DefNode')
+                        (r.type === 'ClassNode' || r.type === 'ModuleNode')
                 );
                 if (isBeforeContainer) {
                     this._createComment(text, null);

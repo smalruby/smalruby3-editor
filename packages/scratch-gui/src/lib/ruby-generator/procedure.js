@@ -71,7 +71,7 @@ export default function (Generator) {
         // Check for @ruby:module_source:ModuleName comment
         // Extended format: @ruby:module_source:Mod:super_of:originalName
         const comment = Generator.getCommentText(block);
-        const moduleSourceMatch = comment && comment.match(/^@ruby:module_source:(.+)$/);
+        const moduleSourceMatch = comment && comment.match(/^@ruby:module_source:(.+)$/m);
 
         // Check for super_of: extract original method name for renamed module methods
         let superOfOriginalName = null;
