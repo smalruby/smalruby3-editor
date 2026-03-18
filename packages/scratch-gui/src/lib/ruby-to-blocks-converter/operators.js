@@ -224,6 +224,80 @@ const OperatorsConverter = {
             });
         });
 
+        // === Smalruby: Start of regex match operators ===
+        converter.registerOnSend('any', '=~', 1, params => {
+            const {receiver, args, name} = params;
+
+            const index = (converter._context.methodCallIndices[name] || 0) + 1;
+            converter._context.methodCallIndices[name] = index;
+
+            let str;
+            let regexp;
+            let commentSuffix = '';
+
+            if (converter._isRegexp(receiver)) {
+                // /pattern/ =~ string
+                str = args[0];
+                regexp = receiver;
+                commentSuffix = ':receiver';
+            } else {
+                // string =~ /pattern/
+                str = receiver;
+                regexp = args[0];
+            }
+
+            if (!converter._isStringOrBlock(str) && !converter._isRegexpOrBlock(regexp)) return null;
+
+            const block = converter._createBlock('operator_contains', 'value_boolean');
+            converter._addTextInput(block, 'STRING1', str, 'apple');
+            converter._addTextInput(
+                block, 'STRING2', converter._isRegexp(regexp) ? regexp.toString() : regexp, 'a'
+            );
+
+            const commentText = `@ruby:operator:${name}:${index}${commentSuffix}`;
+            block.comment = converter._createComment(commentText, block.id);
+            return block;
+        });
+
+        converter.registerOnSend('any', '!~', 1, params => {
+            const {receiver, args, name} = params;
+
+            const index = (converter._context.methodCallIndices[name] || 0) + 1;
+            converter._context.methodCallIndices[name] = index;
+
+            let str;
+            let regexp;
+            let commentSuffix = '';
+
+            if (converter._isRegexp(receiver)) {
+                // /pattern/ !~ string
+                str = args[0];
+                regexp = receiver;
+                commentSuffix = ':receiver';
+            } else {
+                // string !~ /pattern/
+                str = receiver;
+                regexp = args[0];
+            }
+
+            if (!converter._isStringOrBlock(str) && !converter._isRegexpOrBlock(regexp)) return null;
+
+            const commentText = `@ruby:operator:${name}:${index}${commentSuffix}`;
+
+            const containsBlock = converter._createBlock('operator_contains', 'value_boolean');
+            converter._addTextInput(containsBlock, 'STRING1', str, 'apple');
+            converter._addTextInput(
+                containsBlock, 'STRING2', converter._isRegexp(regexp) ? regexp.toString() : regexp, 'a'
+            );
+            containsBlock.comment = converter._createComment(commentText, containsBlock.id);
+
+            const block = converter._createBlock('operator_not', 'value_boolean');
+            converter._addInput(block, 'OPERAND', containsBlock);
+            block.comment = converter._createComment(commentText, block.id);
+            return block;
+        });
+        // === Smalruby: End of regex match operators ===
+
         ['>', '<', '=='].forEach(operator => {
             converter.registerOnSend('any', operator, 1, params => {
                 const {receiver, args, node} = params;

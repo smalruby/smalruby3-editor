@@ -193,6 +193,12 @@ const ContextUtils = {
             return 'symbol';
         }
 
+        // === Smalruby: Start of regex receiver support ===
+        if (this._isRegexp(receiver)) {
+            return 'regexp';
+        }
+        // === Smalruby: End of regex receiver support ===
+
         if (this._isConst(receiver)) {
             return receiver.toString();
         }
@@ -218,7 +224,9 @@ const ContextUtils = {
     },
 
     _anyReceiverNames () {
-        return ['sprite', 'stage', 'variable', 'string', 'number', 'array', 'hash', 'boolean', 'nil', 'block'];
+        // === Smalruby: 'regexp' added for regex match operators ===
+        return ['sprite', 'stage', 'variable', 'string', 'number', 'array', 'hash', 'boolean', 'nil', 'block',
+            'regexp'];
     },
 
     _getSpriteCallName (receiver) {

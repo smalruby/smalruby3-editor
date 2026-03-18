@@ -110,6 +110,19 @@ const NodeUtils = {
         return value && value.constructor.name === 'HashNode';
     },
 
+    // === Smalruby: Start of regex type support ===
+    _isRegexp (value) {
+        if (this._isPrimitive(value)) {
+            return value.type === 'regexp';
+        }
+        return value && value.constructor.name === 'RegularExpressionNode';
+    },
+
+    _isRegexpOrBlock (regexpOrBlock) {
+        return this._isRegexp(regexpOrBlock) || this._isValueBlock(regexpOrBlock);
+    },
+    // === Smalruby: End of regex type support ===
+
     _isConst (value) {
         if (this._isPrimitive(value)) {
             return value.type === 'const';
@@ -282,6 +295,9 @@ const NodeUtils = {
         if (this._isNumber(value)) return 'number';
         if (this._isTrue(value) || this._isFalse(value)) return 'boolean';
         if (this._isSymbol(value)) return 'symbol';
+        // === Smalruby: Start of regex type inference ===
+        if (this._isRegexp(value)) return 'regexp';
+        // === Smalruby: End of regex type inference ===
         if (this._isBlock(value)) return this._getBlockDataType(value);
         return null;
     },
