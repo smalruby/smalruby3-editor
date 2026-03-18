@@ -2,13 +2,23 @@
 paths:
   - "infra/"
   - "infra/*"
-  - "infra/**"
-  - "infra/**/*"
+  - "infra/Dockerfile"
 ---
 
 # Infrastructure Development (infra/)
 
 AWS CDK infrastructure projects live in `infra/`. Each project is independent from npm workspaces.
+
+## Projects
+
+| Project | Path | Description |
+|---------|------|-------------|
+| smalruby-mesh-v2 | `infra/smalruby-mesh-v2/` | Mesh v2 networking service (AppSync + DynamoDB) |
+| smalruby-gemini-relay | `infra/smalruby-gemini-relay/` | Smalruby Teacher AI relay (API Gateway + Lambda + DynamoDB) |
+
+See project-specific rules for details:
+- `.claude/rules/infra/smalruby-mesh-v2.md`
+- `.claude/rules/infra/smalruby-gemini-relay.md`
 
 ## Docker Service
 
@@ -17,6 +27,12 @@ Use the `infra` service for all CDK operations:
 - Service name: `infra`
 - Default working directory: `/app/infra/smalruby-mesh-v2`
 - Includes: Node.js 24 + AWS CLI v2
+
+For projects other than mesh-v2, override the working directory with `-w`:
+
+```bash
+docker compose run --rm -w /app/infra/<project-name> infra <command>
+```
 
 ## AWS Credentials
 
@@ -30,49 +46,21 @@ export AWS_DEFAULT_REGION=ap-northeast-1
 export AWS_PROFILE=your-profile
 ```
 
-## smalruby-mesh-v2
+## Stage Switching via `.env` Symlink
 
-CDK project for the Mesh v2 networking service (AppSync + DynamoDB).
-
-### Commands
+Both projects use the same pattern: per-stage `.env` files (`.env.stg`, `.env.stg2`, `.env.prod`) with a `.env` symlink pointing to the active stage.
 
 ```bash
-# Install dependencies
-docker compose run --rm infra npm install
+cd infra/<project-name>
 
-# Synthesize CloudFormation template
-docker compose run --rm infra npx cdk synth
+# Switch to staging
+rm .env && ln -s .env.stg .env
 
-# Show diff against deployed stack
-docker compose run --rm infra npx cdk diff --context stage=stg
+# Switch to production
+rm .env && ln -s .env.prod .env
 
-# Deploy to staging
-docker compose run --rm infra npx cdk deploy --context stage=stg
-
-# Deploy to production
-docker compose run --rm infra npx cdk deploy --context stage=prod
+# Verify current stage
+ls -la .env
 ```
 
-### Root-level shortcuts
-
-```bash
-docker compose run --rm infra npm run -w /app infra:mesh-v2:synth
-docker compose run --rm infra npm run -w /app infra:mesh-v2:diff
-docker compose run --rm infra npm run -w /app infra:mesh-v2:deploy
-```
-
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `STAGE` | Deployment stage (`stg` or `prod`) |
-| `MESH_SECRET_KEY` | Secret key for domain validation |
-| `MESH_HOST_HEARTBEAT_INTERVAL_SECONDS` | Host heartbeat interval |
-| `MESH_HOST_HEARTBEAT_TTL_SECONDS` | Host group TTL |
-| `MESH_MEMBER_HEARTBEAT_INTERVAL_SECONDS` | Member heartbeat interval |
-| `MESH_MEMBER_HEARTBEAT_TTL_SECONDS` | Member node TTL |
-| `MESH_MAX_CONNECTION_TIME_SECONDS` | Max connection time per group |
-
-Copy `.env.example` to `.env` inside `infra/smalruby-mesh-v2/` for local values.
-
-See `infra/smalruby-mesh-v2/CLAUDE.md` for detailed TDD workflow, architecture, and troubleshooting.
+The `STAGE` value in the linked `.env` file determines the deployment target. It can also be overridden with `--context stage=...`.
