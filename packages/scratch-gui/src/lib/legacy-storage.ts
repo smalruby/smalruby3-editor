@@ -115,7 +115,7 @@ export class LegacyStorage implements GUIStorage {
         // === Smalruby: Start of local sprite assets ===
         storage.addWebStore(
             [storage.AssetType.ImageVector, storage.AssetType.ImageBitmap],
-            asset => `/static/smalruby-assets/${asset.assetId}.${asset.dataFormat}`
+            asset => `static/smalruby-assets/${asset.assetId}.${asset.dataFormat}`
         );
         // === Smalruby: End of local sprite assets ===
     }
