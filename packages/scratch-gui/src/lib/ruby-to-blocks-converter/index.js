@@ -418,12 +418,17 @@ class RubyToBlocksConverter extends Visitor {
                 node instanceof ModuleNode;
 
             if (isContainerNode) {
-                this._context.containerNodeRanges.push({
+                const rangeEntry = {
                     type: node.constructor.name,
                     startLine,
                     endLine,
                     depth
-                });
+                };
+                // Store module name for comment association
+                if (node instanceof ModuleNode) {
+                    rangeEntry.moduleName = node.name;
+                }
+                this._context.containerNodeRanges.push(rangeEntry);
             } else {
                 for (let line = startLine; line <= endLine; line++) {
                     const existingEntry = this._context.lineToNodeMap.get(line);
@@ -572,15 +577,29 @@ class RubyToBlocksConverter extends Visitor {
         // Unlike lineToNodeMap (which uses a range/shallowest strategy), this maps only
         // lines where a node actually STARTS, preferring the most specific (smallest range) node.
         // This ensures "# comment\nloop do" attaches to the loop block, not a parent block.
+        // Among blocks with equal range, prefer statement blocks over input (value) blocks,
+        // so that "# comment\ngreet(name)" attaches to the procedures_call, not data_variable.
+        const inputBlockIds = new Set();
+        for (const block of Object.values(this._context.blocks)) {
+            if (block.inputs) {
+                for (const input of Object.values(block.inputs)) {
+                    if (input.block) inputBlockIds.add(input.block);
+                }
+            }
+        }
+
         const lineStartBlockMap = new Map();
         for (const [node, blockId] of this._context.nodeToBlockMap.entries()) {
             const startLine = this._getNodeStartLine(node);
             if (startLine === null) continue;
             const endLine = this._getNodeEndLine(node) || startLine;
             const range = endLine - startLine;
+            const isInput = inputBlockIds.has(blockId);
             const existing = lineStartBlockMap.get(startLine);
-            if (!existing || range < existing.range) {
-                lineStartBlockMap.set(startLine, {blockId, range});
+            if (!existing ||
+                range < existing.range ||
+                (range === existing.range && !isInput && existing.isInput)) {
+                lineStartBlockMap.set(startLine, {blockId, range, isInput});
             }
         }
 
@@ -624,14 +643,24 @@ class RubyToBlocksConverter extends Visitor {
                 // Preceding comment: attach to block on the next code line
                 const nextCodeLine = group.endLine + 1;
 
-                // Check if next line is a class/module/def start
+                // Check if next line is a class/module start
                 // In that case, create a target-level comment (describes the definition, not a block)
-                const isBeforeContainer = this._context.containerNodeRanges.some(
+                // DefNode is excluded: comments before def are attached to the
+                // procedures_definition block so they appear inside the class.
+                const containerRange = this._context.containerNodeRanges.find(
                     r => r.startLine === nextCodeLine &&
-                        (r.type === 'ClassNode' || r.type === 'ModuleNode' || r.type === 'DefNode')
+                        (r.type === 'ClassNode' || r.type === 'ModuleNode')
                 );
-                if (isBeforeContainer) {
-                    this._createComment(text, null);
+                if (containerRange) {
+                    // For modules, include @ruby:module:Name metadata so
+                    // the generator can place the comment before the module code
+                    if (containerRange.type === 'ModuleNode' && containerRange.moduleName) {
+                        this._createComment(
+                            `${text}\n@ruby:module:${containerRange.moduleName}`, null
+                        );
+                    } else {
+                        this._createComment(text, null);
+                    }
                 } else {
                     const blockId = findBlockForLine(nextCodeLine);
                     if (blockId) {

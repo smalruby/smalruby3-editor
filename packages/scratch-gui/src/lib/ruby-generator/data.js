@@ -8,12 +8,11 @@ export default function (Generator) {
         let variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
         const comment = Generator.getCommentText(block);
 
-        // Check for local variable metadata
-        if (comment && comment.startsWith('@ruby:lvar:')) {
-            const parts = comment.split(':');
-            if (parts.length === 4) {
-                const originalName = parts[2];
-                return [originalName, Generator.ORDER_ATOMIC];
+        // Check for local variable metadata (may be mixed with user comments)
+        if (comment) {
+            const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+):\d+/);
+            if (lvarMatch && !comment.includes('@ruby:return:')) {
+                return [lvarMatch[1], Generator.ORDER_ATOMIC];
             }
         }
 
