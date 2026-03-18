@@ -219,4 +219,50 @@ describe('RubyToBlocksConverter/Operators/Regexp', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
     });
+
+    describe('regex variable assignment', () => {
+        test('global variable: $r = /^hello/i', async () => {
+            code = '$r = /^hello/i';
+            expected = [
+                {
+                    opcode: 'data_setvariableto',
+                    fields: [{name: 'VARIABLE', variable: '$r'}],
+                    inputs: [{name: 'VALUE', block: expectedInfo.makeText('/^hello/i')}],
+                    comment: {
+                        text: '@ruby:regexp:literal',
+                        minimized: true
+                    }
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+            expect(converter.variables.r.dataType).toBe('regexp');
+        });
+
+        test('instance variable: @r = /\\d+/', async () => {
+            code = '@r = /\\d+/';
+            expected = [
+                {
+                    opcode: 'data_setvariableto',
+                    fields: [{name: 'VARIABLE', variable: '@r'}],
+                    inputs: [{name: 'VALUE', block: expectedInfo.makeText('/\\d+/')}],
+                    comment: {
+                        text: '@ruby:regexp:literal',
+                        minimized: true
+                    }
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+            expect(converter.variables.r.dataType).toBe('regexp');
+        });
+
+        test('local variable: r = /^hello/', async () => {
+            code = 'r = /^hello/';
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            const localVars = converter._context.localVariables;
+            const varName = Object.keys(localVars).find(k => localVars[k].originalName === 'r');
+            expect(varName).toBeTruthy();
+            expect(localVars[varName].dataType).toBe('regexp');
+        });
+    });
 });
