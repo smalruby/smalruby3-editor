@@ -1384,4 +1384,63 @@ describe('FuriganaAnnotator', () => {
         });
     });
     // === Smalruby: End of regex furigana tests ===
+
+    // === Smalruby: Start of array/hash/super furigana tests ===
+    describe('array literals', () => {
+        test('[1, 2, 3] annotates array with 配列', () => {
+            const anns = annotate('[1, 2, 3]');
+            expect(labelsAt(anns, 1)).toContain('配列');
+        });
+        test('array elements get their own annotations', () => {
+            const anns = annotate('[1, 2]');
+            expect(labelsAt(anns, 1)).toContain('配列');
+            expect(labelsAt(anns, 1)).toContain('数値1');
+            expect(labelsAt(anns, 1)).toContain('数値2');
+        });
+        test('empty array [] annotates as 配列', () => {
+            const anns = annotate('[]');
+            expect(labelsAt(anns, 1)).toContain('配列');
+        });
+        test('array in variable assignment', () => {
+            const anns = annotate('a = [1, 2]');
+            expect(labelsAt(anns, 1)).toContain('変数a');
+            expect(labelsAt(anns, 1)).toContain('紐付ける');
+            expect(labelsAt(anns, 1)).toContain('配列');
+        });
+    });
+
+    describe('hash literals', () => {
+        test('{a: 1} annotates hash with ハッシュ', () => {
+            const anns = annotate('{a: 1}');
+            expect(labelsAt(anns, 1)).toContain('ハッシュ');
+        });
+        test('hash elements get their own annotations', () => {
+            const anns = annotate('{a: 1, b: 2}');
+            expect(labelsAt(anns, 1)).toContain('ハッシュ');
+            expect(labelsAt(anns, 1)).toContain('数値1');
+            expect(labelsAt(anns, 1)).toContain('数値2');
+        });
+        test('empty hash {} annotates as ハッシュ', () => {
+            const anns = annotate('{}');
+            expect(labelsAt(anns, 1)).toContain('ハッシュ');
+        });
+        test('hash in variable assignment', () => {
+            const anns = annotate('h = {x: 10}');
+            expect(labelsAt(anns, 1)).toContain('変数h');
+            expect(labelsAt(anns, 1)).toContain('紐付ける');
+            expect(labelsAt(anns, 1)).toContain('ハッシュ');
+        });
+    });
+
+    describe('super keyword', () => {
+        test('bare super annotates as オーバーライドしているメソッドを呼ぶ', () => {
+            const anns = annotate('def greet\n  super\nend');
+            expect(labelsAt(anns, 2)).toContain('オーバーライドしているメソッドを呼ぶ');
+        });
+        test('super(a, b) annotates as オーバーライドしているメソッドを呼ぶ', () => {
+            const anns = annotate('def add(a, b)\n  super(a, b)\nend');
+            expect(labelsAt(anns, 2)).toContain('オーバーライドしているメソッドを呼ぶ');
+        });
+    });
+    // === Smalruby: End of array/hash/super furigana tests ===
 });
