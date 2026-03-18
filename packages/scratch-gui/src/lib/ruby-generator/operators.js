@@ -303,7 +303,18 @@ export default function (Generator) {
      */
     Generator.unquoteRegex_ = function (quotedValue) {
         const m = /^"(\/(?:.+)\/[gimsuy]*)"$/.exec(quotedValue);
-        return m ? m[1] : null;
+        if (!m) return null;
+        // Unescape Ruby string escapes back to literal characters
+        const unescapes = {
+            'n': '\n',
+            't': '\t',
+            'r': '\r',
+            '\\': '\\',
+            '"': '"'
+        };
+        return m[1].replace(/\\(.)/g, (_, ch) =>
+            unescapes[ch] || `\\${ch}`
+        );
     };
 
     Generator.operator_contains = function (block) {
