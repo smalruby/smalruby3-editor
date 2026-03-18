@@ -218,6 +218,24 @@ export default function (Generator) {
                         return [`${lhs} != ${rhs}`, Generator.ORDER_EQUALS];
                     }
                 }
+                // === Smalruby: Start of !~ operator generation ===
+                const matchNotMatch = part.match(
+                    /^@ruby:operator:!~:(\d+)(:receiver)?$/
+                );
+                if (matchNotMatch) {
+                    const cacheKey = `${matchNotMatch[1]}${matchNotMatch[2] || ''}`;
+                    const order = Generator.ORDER_NONE;
+                    const operand = Generator.valueToCode(block, 'OPERAND', order);
+                    if (operand === `@ruby:operator:!~:${cacheKey}`) {
+                        const cached = Generator.regexNotMatchCallCache_[cacheKey];
+                        delete Generator.regexNotMatchCallCache_[cacheKey];
+                        if (cached.receiverFlag) {
+                            return [`${cached.regex} !~ ${cached.str}`, Generator.ORDER_EQUALS];
+                        }
+                        return [`${cached.str} !~ ${cached.regex}`, Generator.ORDER_EQUALS];
+                    }
+                }
+                // === Smalruby: End of !~ operator generation ===
             }
         }
 
@@ -276,11 +294,64 @@ export default function (Generator) {
         return [`${str}.length`, order];
     };
 
+    // === Smalruby: Start of regex-aware operator_contains ===
+    /**
+     * Convert a quoted regex string like "/^hello/i" to a regex literal /^hello/i.
+     * Returns null if the value doesn't look like a regex string.
+     * @param {string} quotedValue - The quoted string from valueToCode
+     * @returns {string|null} The regex literal, or null
+     */
+    Generator.unquoteRegex_ = function (quotedValue) {
+        const m = /^"(\/(?:.+)\/[gimsuy]*)"$/.exec(quotedValue);
+        return m ? m[1] : null;
+    };
+
     Generator.operator_contains = function (block) {
-        const str1 = Generator.valueToCode(block, 'STRING1', Generator.ORDER_NONE) || Generator.quote_('');
-        const str2 = Generator.valueToCode(block, 'STRING2', Generator.ORDER_NONE) || Generator.quote_('');
+        const comment = Generator.getCommentText(block);
+        if (comment) {
+            const commentParts = comment.split(/,(?=@ruby:)/);
+            for (const part of commentParts) {
+                const matchOp = part.match(
+                    /^@ruby:operator:(=~|!~):(\d+)(:receiver)?$/
+                );
+                if (matchOp) {
+                    const [, op, index, receiverFlag] = matchOp;
+                    const order = Generator.ORDER_EQUALS;
+                    const str1 = Generator.valueToCode(
+                        block, 'STRING1', order
+                    ) || Generator.quote_('');
+                    const str2 = Generator.valueToCode(
+                        block, 'STRING2', order
+                    ) || Generator.quote_('');
+                    const regexStr = Generator.unquoteRegex_(str2) || str2;
+
+                    if (op === '!~') {
+                        Generator.regexNotMatchCallCache_[
+                            `${index}${receiverFlag || ''}`
+                        ] = {str: str1, regex: regexStr, receiverFlag};
+                        return [
+                            `@ruby:operator:!~:${index}${receiverFlag || ''}`,
+                            order
+                        ];
+                    }
+                    // =~ operator
+                    if (receiverFlag) {
+                        return [`${regexStr} =~ ${str1}`, order];
+                    }
+                    return [`${str1} =~ ${regexStr}`, order];
+                }
+            }
+        }
+
+        const str1 = Generator.valueToCode(
+            block, 'STRING1', Generator.ORDER_NONE
+        ) || Generator.quote_('');
+        const str2 = Generator.valueToCode(
+            block, 'STRING2', Generator.ORDER_NONE
+        ) || Generator.quote_('');
         return [`${str1}.include?(${str2})`, Generator.ORDER_ATOMIC];
     };
+    // === Smalruby: End of regex-aware operator_contains ===
 
     Generator.operator_mod = function (block) {
         const order = Generator.ORDER_MULTIPLICATIVE;
