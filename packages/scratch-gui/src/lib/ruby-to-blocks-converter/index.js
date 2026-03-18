@@ -572,15 +572,29 @@ class RubyToBlocksConverter extends Visitor {
         // Unlike lineToNodeMap (which uses a range/shallowest strategy), this maps only
         // lines where a node actually STARTS, preferring the most specific (smallest range) node.
         // This ensures "# comment\nloop do" attaches to the loop block, not a parent block.
+        // Among blocks with equal range, prefer statement blocks over input (value) blocks,
+        // so that "# comment\ngreet(name)" attaches to the procedures_call, not data_variable.
+        const inputBlockIds = new Set();
+        for (const block of Object.values(this._context.blocks)) {
+            if (block.inputs) {
+                for (const input of Object.values(block.inputs)) {
+                    if (input.block) inputBlockIds.add(input.block);
+                }
+            }
+        }
+
         const lineStartBlockMap = new Map();
         for (const [node, blockId] of this._context.nodeToBlockMap.entries()) {
             const startLine = this._getNodeStartLine(node);
             if (startLine === null) continue;
             const endLine = this._getNodeEndLine(node) || startLine;
             const range = endLine - startLine;
+            const isInput = inputBlockIds.has(blockId);
             const existing = lineStartBlockMap.get(startLine);
-            if (!existing || range < existing.range) {
-                lineStartBlockMap.set(startLine, {blockId, range});
+            if (!existing ||
+                range < existing.range ||
+                (range === existing.range && !isInput && existing.isInput)) {
+                lineStartBlockMap.set(startLine, {blockId, range, isInput});
             }
         }
 
