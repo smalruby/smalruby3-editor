@@ -418,12 +418,17 @@ class RubyToBlocksConverter extends Visitor {
                 node instanceof ModuleNode;
 
             if (isContainerNode) {
-                this._context.containerNodeRanges.push({
+                const rangeEntry = {
                     type: node.constructor.name,
                     startLine,
                     endLine,
                     depth
-                });
+                };
+                // Store module name for comment association
+                if (node instanceof ModuleNode) {
+                    rangeEntry.moduleName = node.name;
+                }
+                this._context.containerNodeRanges.push(rangeEntry);
             } else {
                 for (let line = startLine; line <= endLine; line++) {
                     const existingEntry = this._context.lineToNodeMap.get(line);
@@ -642,12 +647,20 @@ class RubyToBlocksConverter extends Visitor {
                 // In that case, create a target-level comment (describes the definition, not a block)
                 // DefNode is excluded: comments before def are attached to the
                 // procedures_definition block so they appear inside the class.
-                const isBeforeContainer = this._context.containerNodeRanges.some(
+                const containerRange = this._context.containerNodeRanges.find(
                     r => r.startLine === nextCodeLine &&
                         (r.type === 'ClassNode' || r.type === 'ModuleNode')
                 );
-                if (isBeforeContainer) {
-                    this._createComment(text, null);
+                if (containerRange) {
+                    // For modules, include @ruby:module:Name metadata so
+                    // the generator can place the comment before the module code
+                    if (containerRange.type === 'ModuleNode' && containerRange.moduleName) {
+                        this._createComment(
+                            `${text}\n@ruby:module:${containerRange.moduleName}`, null
+                        );
+                    } else {
+                        this._createComment(text, null);
+                    }
                 } else {
                     const blockId = findBlockForLine(nextCodeLine);
                     if (blockId) {

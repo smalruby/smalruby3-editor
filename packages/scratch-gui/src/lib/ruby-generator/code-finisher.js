@@ -24,14 +24,27 @@ export default function (Generator) {
 
         const comments = Generator.getTargetCommentTexts();
 
-        // Detect @ruby:class comments
+        // Detect @ruby:class and @ruby:module comments
         let classComment = null;
+        const moduleComments = {}; // moduleName -> user comment text
         const otherComments = [];
         for (const comment of comments) {
             if (comment === '@ruby:class' || comment.startsWith('@ruby:class:')) {
                 classComment = comment;
             } else {
-                otherComments.push(comment);
+                // Check for module comment: "user text\n@ruby:module:ModuleName"
+                const moduleMatch = comment.match(/@ruby:module:(\S+)/);
+                if (moduleMatch) {
+                    const moduleName = moduleMatch[1];
+                    const userText = comment.split('\n')
+                        .filter(line => !line.startsWith('@ruby:'))
+                        .join('\n');
+                    if (userText.trim().length > 0) {
+                        moduleComments[moduleName] = userText;
+                    }
+                } else {
+                    otherComments.push(comment);
+                }
             }
         }
 
@@ -56,6 +69,10 @@ export default function (Generator) {
                 const methods = this._moduleMethodCodes[moduleName];
                 if (methods && methods.length > 0) {
                     const methodsCode = methods.join('\n');
+                    // Prepend user comment if present
+                    if (moduleComments[moduleName]) {
+                        moduleCode += `${this.prefixLines(moduleComments[moduleName], '# ')}\n`;
+                    }
                     moduleCode += `module ${moduleName}\n`;
                     moduleCode += this.prefixLines(methodsCode, this.INDENT);
                     moduleCode += `end\n\n`;
@@ -127,8 +144,9 @@ export default function (Generator) {
         }
 
         // Deduplicate module definitions in multi-target output.
-        // Extract all module...end blocks, keep unique ones, place them before class definitions.
-        const moduleRegex = /^module (\w+)\n[\s\S]*?^end\n/gm;
+        // Extract all module...end blocks (with optional preceding comment lines),
+        // keep unique ones, place them before class definitions.
+        const moduleRegex = /^(?:#[^\n]*\n)*module (\w+)\n[\s\S]*?^end\n/gm;
         const seenModules = new Set();
         const uniqueModules = [];
         let match;
