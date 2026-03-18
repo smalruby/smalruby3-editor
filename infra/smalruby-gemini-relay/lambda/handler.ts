@@ -240,6 +240,9 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 - Compound assignment operators \`+=\`, \`-=\`, \`*=\`, \`/=\`, \`%=\` ARE supported
 - \`+=\` increments numeric variables, concatenates string variables
 - Recursion is NOT supported
+- **Literals**: integers, floats, strings (double-quote only), symbols (\`:foo\`), arrays (\`[1, 2, 3]\`), hashes (\`{key: val}\`), ranges (\`1..10\`), regexps (\`/pattern/flags\`), \`true\`/\`false\`/\`nil\`
+- **Regex match operators**: \`=~\` (match) and \`!~\` (not match) — e.g., \`"hello" =~ /^he/\`, \`@name !~ /world/\`
+- **\`super\` IS supported** (Version 2 only) — calls the overridden method in an included module. Only works inside \`def\` methods that override a same-named module method.
 
 ## Available Methods
 
@@ -352,6 +355,32 @@ class Sprite1
 end
 \`\`\`
 
+### super (Version 2 only)
+- \`super\` calls the overridden method in an included module (forwards all arguments)
+- \`super(args)\` calls the overridden method with explicit arguments
+- Only works inside \`def\` methods that override a same-named module method
+- Not available on Stage or in Version 1
+\`\`\`ruby
+module Utils
+  def greet
+    say("hello")
+  end
+end
+
+class Sprite1
+  include Utils
+
+  def greet
+    super        # calls Utils' greet
+    say("goodbye")
+  end
+
+  when_flag_clicked do
+    greet
+  end
+end
+\`\`\`
+
 ### Pen (extension)
 - \`Pen.clear\`
 - \`pen.down\` / \`pen.up\`
@@ -379,6 +408,8 @@ Do NOT use these — they do not exist:
 - ❌ \`sleep(0.05)\`, \`sleep(0.1)\` for animation FPS → ✅ loops auto-wait; only use sleep() for 0.5s+ delays
 - ❌ \`puts\`, \`print\`, \`p\` → ✅ \`say()\`
 - ❌ \`when_backdrop_changes()\` → ✅ \`when_backdrop_switches()\`
+- ❌ \`super\` outside a \`def\` method → ✅ \`super\` only inside \`def\` that overrides a module method
+- ❌ \`super\` without \`include\` → ✅ first \`include ModuleName\`, then override the method with \`super\`
 
 ## Sample Programs
 

@@ -125,6 +125,29 @@ const nodeHandlers = {
     },
     // === Smalruby: End of regex literal furigana ===
 
+    // === Smalruby: Start of array/hash/super furigana ===
+    _handleArrayNode (node) {
+        this._addAnnotation(node.location, '配列');
+        if (node.elements) {
+            node.elements.forEach(el => this._walkNode(el));
+        }
+    },
+
+    _handleHashNode (node) {
+        this._addAnnotation(node.location, 'ハッシュ');
+        this._walkChildren(node);
+    },
+
+    _handleForwardingSuperNode (node) {
+        this._addAnnotation(node.location, 'オーバーライドしているメソッドを呼ぶ');
+    },
+
+    _handleSuperNode (node) {
+        this._addAnnotation(node.keywordLoc, 'オーバーライドしているメソッドを呼ぶ');
+        this._walkChildren(node);
+    },
+    // === Smalruby: End of array/hash/super furigana ===
+
     _handleStringNode (node) {
         const unescaped = node.unescaped;
         const content = (unescaped && typeof unescaped === 'object') ?
