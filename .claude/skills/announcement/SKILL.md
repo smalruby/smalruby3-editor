@@ -96,6 +96,14 @@ disable-model-invocation: true
 
 ---
 
+## 🔗 スモウルビーを試してみよう
+
+<新機能を試すための誘導文。内容に合わせて変える>
+
+**👉 [https://smalruby.app](https://smalruby.app)**
+
+---
+
 ## 📚 詳細情報
 
 実装の詳細や技術的な議論については、以下のIssueをご覧ください：
@@ -163,6 +171,14 @@ disable-model-invocation: true
 # 本文案
 
 <本文>
+
+---
+
+## 🔗 スモウルビーを試してみよう
+
+<新機能についての誘導文>
+
+**👉 [https://smalruby.app](https://smalruby.app)**
 
 ---
 
