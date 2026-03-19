@@ -507,7 +507,7 @@
 
 /* === Smalruby: Start of meshV2 name search === */
 .name-search-section {
-    padding: 0.5rem;
+    padding: 0.5rem 0.5rem 0 0.5rem;
     border-top: 1px solid $ui-black-transparent;
 }
 
