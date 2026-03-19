@@ -40,13 +40,6 @@ HiraganaButton.propTypes = {
 
 const HiraganaNameSearch = props => (
     <div className={styles.nameSearchSection}>
-        <div className={styles.nameSearchLabel}>
-            <FormattedMessage
-                defaultMessage="Search by name"
-                description="Label for hiragana name search section in mesh v2"
-                id="gui.connection.meshV2Scanning.nameSearchLabel"
-            />
-        </div>
         <div className={styles.hiraganaButtonGrid}>
             {[HIRAGANA_BUTTONS_ROW1, HIRAGANA_BUTTONS_ROW2].map((row, rowIdx) => (
                 <div
@@ -179,15 +172,6 @@ const MeshV2ScanningStep = props => (
                         id="gui.connection.meshV2Scanning.noHostsFound"
                     />
                 </Box>
-            )}
-        </Box>
-        <Box className={classNames(styles.bottomAreaItem, styles.instructions)}>
-            {(props.scanning || props.peripheralList.length > 0) && (
-                <FormattedMessage
-                    defaultMessage="Select a host in the list above."
-                    description="Prompt for choosing a mesh host to connect to"
-                    id="gui.connection.meshV2Scanning.instructions"
-                />
             )}
         </Box>
         <HiraganaNameSearch
