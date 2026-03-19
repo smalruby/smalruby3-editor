@@ -119,9 +119,19 @@ class ScanningStep extends React.Component {
         if (this.props.extensionId === 'meshV2') {
             // Merge name search results into peripheralList (avoid duplicates)
             const existingIds = new Set(this.state.peripheralList.map(p => p.peripheralId));
-            const mergedList = this.state.peripheralList.concat(
+            let mergedList = this.state.peripheralList.concat(
                 this.state.nameSearchResults.filter(p => !existingIds.has(p.peripheralId))
             );
+            // Incremental filter: forward-match by hiragana input
+            if (this.state.hiraganaInput.length > 0) {
+                const input = this.state.hiraganaInput;
+                mergedList = mergedList.filter(p => {
+                    // Name format: 【とんいううう】 — extract hiragana inside brackets
+                    const match = p.name && p.name.match(/【(.+)】/);
+                    if (!match) return false;
+                    return match[1].startsWith(input);
+                });
+            }
             return (
                 <MeshV2ScanningStepComponent
                     connectionSmallIconURL={this.props.connectionSmallIconURL}
