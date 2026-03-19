@@ -88,6 +88,20 @@ export class MeshV2Stack extends cdk.Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
+    // GSI2: GroupNameIndex for cross-domain name prefix search
+    this.table.addGlobalSecondaryIndex({
+      indexName: 'GroupNameIndex',
+      partitionKey: {
+        name: 'gsi2_pk',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'gsi2_sk',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     // Output table name
     new cdk.CfnOutput(this, 'TableName', {
       value: this.table.tableName,
@@ -209,6 +223,14 @@ export class MeshV2Stack extends cdk.Stack {
       fieldName: 'listGroupsByDomain',
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       code: appsync.Code.fromAsset(path.join(__dirname, '../js/resolvers/Query.listGroupsByDomain.js'))
+    });
+
+    // Query: searchGroupsByNamePrefix (cross-domain name prefix search)
+    dynamoDbDataSource.createResolver('SearchGroupsByNamePrefixResolver', {
+      typeName: 'Query',
+      fieldName: 'searchGroupsByNamePrefix',
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+      code: appsync.Code.fromAsset(path.join(__dirname, '../js/resolvers/Query.searchGroupsByNamePrefix.js'))
     });
 
     // Query: listGroupStatuses

@@ -57,7 +57,9 @@ class DynamoDBRepository
         "useWebSocket" => group.use_websocket,
         "pollingIntervalSeconds" => group.polling_interval_seconds,
         "gsi_pk" => "GROUP##{group.id}",
-        "gsi_sk" => "DOMAIN##{group.domain}"
+        "gsi_sk" => "DOMAIN##{group.domain}",
+        "gsi2_pk" => "ALL_GROUPS",
+        "gsi2_sk" => group.name
       }
     )
     true

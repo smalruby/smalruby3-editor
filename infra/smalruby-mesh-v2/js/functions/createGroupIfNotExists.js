@@ -72,7 +72,10 @@ export function request(ctx) {
       pollingIntervalSeconds: pollingInterval,
       // GSI用（groupId -> domain の逆引き検索）
       gsi_pk: `GROUP#${groupId}`,
-      gsi_sk: `DOMAIN#${domain}`
+      gsi_sk: `DOMAIN#${domain}`,
+      // GSI2用（name prefix -> 全ドメイン横断検索）
+      gsi2_pk: 'ALL_GROUPS',
+      gsi2_sk: name
     })
   };
 }

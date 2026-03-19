@@ -131,6 +131,10 @@ type Query {
   # グループ内の全Node取得
   listNodesInGroup(groupId: ID!, domain: String!): [Node!]!
 
+  # グループ名のプレフィックスで全ドメイン横断検索
+  # namePrefix: hostIdの先頭数文字（16進数小文字）
+  searchGroupsByNamePrefix(namePrefix: String!, limit: Int): [Group!]!
+
   # NEW: 前回取得日時以降のイベントを取得（ポーリング用）
   # since: 前回の nextSince または Event.cursor を指定
   getEventsSince(
