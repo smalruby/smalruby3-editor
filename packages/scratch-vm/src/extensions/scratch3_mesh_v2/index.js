@@ -225,11 +225,7 @@ class Scratch3MeshV2Blocks {
 
             const peripherals = validGroups.map(group => ({
                 peripheralId: group.id,
-                name: formatMessage({
-                    id: 'mesh.clientPeripheralName',
-                    default: 'Join Mesh [{ MESH_ID }]',
-                    description: 'label for "Join Mesh" in connect modal for Mesh extension'
-                }, {MESH_ID: this.makeMeshIdLabel(group.name)}),
+                name: `【${this.makeMeshIdLabel(group.name)}】`,
                 rssi: this.calculateRssi(group),
                 domain: group.domain
             }));
@@ -284,11 +280,7 @@ class Scratch3MeshV2Blocks {
 
             const peripherals = validGroups.map(group => ({
                 peripheralId: group.id,
-                name: formatMessage({
-                    id: 'mesh.clientPeripheralName',
-                    default: 'Join Mesh [{ MESH_ID }]',
-                    description: 'label for "Join Mesh" in connect modal for Mesh extension'
-                }, {MESH_ID: this.makeMeshIdLabel(group.name)}),
+                name: `【${this.makeMeshIdLabel(group.name)}】`,
                 rssi: this.calculateRssi(group),
                 domain: group.domain
             }));

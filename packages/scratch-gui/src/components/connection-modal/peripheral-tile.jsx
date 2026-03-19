@@ -27,11 +27,15 @@ class PeripheralTile extends React.Component {
                     />
                     <Box className={styles.peripheralTileNameWrapper}>
                         <Box className={styles.peripheralTileNameLabel}>
-                            <FormattedMessage
-                                defaultMessage="Device name"
-                                description="Label for field showing the device name"
-                                id="gui.connection.peripheral-name-label"
-                            />
+                            {/* === Smalruby: Start of customizable name label === */}
+                            {this.props.nameLabel || (
+                                <FormattedMessage
+                                    defaultMessage="Device name"
+                                    description="Label for field showing the device name"
+                                    id="gui.connection.peripheral-name-label"
+                                />
+                            )}
+                            {/* === Smalruby: End of customizable name label === */}
                         </Box>
                         <Box className={styles.peripheralTileNameText}>
                             {this.props.name}
@@ -79,6 +83,9 @@ class PeripheralTile extends React.Component {
 PeripheralTile.propTypes = {
     connectionSmallIconURL: PropTypes.string,
     name: PropTypes.string,
+    // === Smalruby: Start of customizable name label ===
+    nameLabel: PropTypes.string,
+    // === Smalruby: End of customizable name label ===
     onConnecting: PropTypes.func,
     peripheralId: PropTypes.string,
     rssi: PropTypes.number

@@ -14,6 +14,8 @@ import warningIcon from './icons/warning.svg';
 
 import styles from './connection-modal.css';
 
+const MESH_V2_NAME_LABEL = 'メッシュに参加する';
+
 const HIRAGANA_BUTTONS_ROW1 = ['い', 'し', 'か', 'た', 'う', 'ん', 'て', 'と'];
 const HIRAGANA_BUTTONS_ROW2 = ['の', 'つ', 'は', 'こ', 'に', 'な', 'く', 'き'];
 
@@ -96,6 +98,7 @@ const HiraganaNameSearch = props => (
                         connectionSmallIconURL={props.connectionSmallIconURL}
                         key={peripheral.peripheralId}
                         name={peripheral.name}
+                        nameLabel={MESH_V2_NAME_LABEL}
                         peripheralId={peripheral.peripheralId}
                         rssi={peripheral.rssi}
                         onConnecting={props.onConnecting}
@@ -142,9 +145,9 @@ const MeshV2ScanningStep = props => (
                                 src={radarIcon}
                             />
                             <FormattedMessage
-                                defaultMessage="Looking for devices"
-                                description="Text shown while scanning for devices"
-                                id="gui.connection.scanning.lookingforperipherals"
+                                defaultMessage="Looking for hosts"
+                                description="Text shown while scanning for mesh hosts"
+                                id="gui.connection.meshV2Scanning.lookingForHosts"
                             />
                         </div>
                     </div>
@@ -155,6 +158,7 @@ const MeshV2ScanningStep = props => (
                                 connectionSmallIconURL={props.connectionSmallIconURL}
                                 key={peripheral.peripheralId}
                                 name={peripheral.name}
+                                nameLabel={MESH_V2_NAME_LABEL}
                                 peripheralId={peripheral.peripheralId}
                                 rssi={peripheral.rssi}
                                 onConnecting={props.onConnecting}
@@ -170,9 +174,9 @@ const MeshV2ScanningStep = props => (
                     />
                     <FormattedMessage
                         className={styles.helpStepText}
-                        defaultMessage="No devices found"
-                        description="Text shown when no devices could be found"
-                        id="gui.connection.scanning.noPeripheralsFound"
+                        defaultMessage="No hosts found"
+                        description="Text shown when no mesh hosts could be found"
+                        id="gui.connection.meshV2Scanning.noHostsFound"
                     />
                 </Box>
             )}
@@ -190,9 +194,9 @@ const MeshV2ScanningStep = props => (
             <Box className={classNames(styles.bottomAreaItem, styles.instructions)}>
                 {(props.scanning || props.peripheralList.length > 0) && (
                     <FormattedMessage
-                        defaultMessage="Select your device in the list above."
-                        description="Prompt for choosing a device to connect to"
-                        id="gui.connection.scanning.instructions"
+                        defaultMessage="Select a host in the list above."
+                        description="Prompt for choosing a mesh host to connect to"
+                        id="gui.connection.meshV2Scanning.instructions"
                     />
                 )}
             </Box>
