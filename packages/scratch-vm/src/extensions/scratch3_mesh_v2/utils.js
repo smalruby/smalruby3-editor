@@ -51,7 +51,16 @@ const saveDomainToLocalStorage = domain => {
 };
 
 /* istanbul ignore next */
-const getDomain = () => getDomainFromUrl() || getDomainFromLocalStorage();
+const getDomain = () => {
+    // URL parameter (?mesh=...) is a one-time seed: save it to localStorage
+    // on first access, then never reference the URL again. This lets the URL
+    // set the modal's initial value while allowing the user to override it.
+    const urlDomain = getDomainFromUrl();
+    if (urlDomain) {
+        saveDomainToLocalStorage(urlDomain);
+    }
+    return getDomainFromLocalStorage();
+};
 
 /* istanbul ignore next */
 const getForcePollingFromUrl = () => {

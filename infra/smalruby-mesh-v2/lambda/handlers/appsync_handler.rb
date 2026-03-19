@@ -130,8 +130,9 @@ def handle_create_domain(event)
     event.dig("identity", "sourceIp")&.first
   end
 
-  use_case = CreateDomainUseCase.new
-  use_case.execute(source_ip: source_ip)
+  domain = CreateDomainUseCase.new.execute(source_ip: source_ip)
+  puts "[createDomain] source_ip=#{source_ip.inspect} x_forwarded_for=#{x_forwarded_for.inspect} domain=#{domain}"
+  domain
 end
 
 def format_group_response(group)
