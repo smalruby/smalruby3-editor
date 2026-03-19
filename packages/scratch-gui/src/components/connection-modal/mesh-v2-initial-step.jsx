@@ -62,6 +62,7 @@ const MeshV2InitialStep = props => {
                 <Box className={classNames(styles.bottomAreaItem, initialStepStyles.buttonContainer)}>
                     <button
                         className={initialStepStyles.actionButton}
+                        data-testid="meshV2-create-group"
                         onClick={props.onCreateGroup}
                     >
                         <img
@@ -88,6 +89,7 @@ const MeshV2InitialStep = props => {
                     </button>
                     <button
                         className={initialStepStyles.actionButton}
+                        data-testid="meshV2-join-group"
                         onClick={props.onJoinGroup}
                     >
                         <img
@@ -119,6 +121,7 @@ const MeshV2InitialStep = props => {
                         className={classNames(initialStepStyles.domainInput, {
                             [initialStepStyles.inputError]: error
                         })}
+                        data-testid="meshV2-domain-input"
                         type="text"
                         value={domain}
                         placeholder={intl.formatMessage(messages.domainPlaceholder)}
