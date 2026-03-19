@@ -394,7 +394,7 @@ export default {
     'gui.connection.meshV2Scanning.lookingForHosts': 'ホストを探索中',
     'gui.connection.meshV2Scanning.noHostsFound': 'ホストが見つかりませんでした',
     'gui.connection.meshV2Scanning.instructions': '上のリストからホストを選んでください。',
-    'gui.connection.scanning.nameSearchLabel': 'なまえでさがす',
+    'gui.connection.meshV2Scanning.nameSearchLabel': '名前で探す',
     'gui.connection.scanning.nameSearching': 'けんさくちゅう...',
     'gui.connection.scanning.nameSearchNoResults': 'グループが見つかりませんでした',
 

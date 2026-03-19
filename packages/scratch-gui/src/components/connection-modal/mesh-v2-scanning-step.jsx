@@ -44,7 +44,7 @@ const HiraganaNameSearch = props => (
             <FormattedMessage
                 defaultMessage="Search by name"
                 description="Label for hiragana name search section in mesh v2"
-                id="gui.connection.scanning.nameSearchLabel"
+                id="gui.connection.meshV2Scanning.nameSearchLabel"
             />
         </div>
         <div className={styles.hiraganaButtonGrid}>
@@ -181,6 +181,15 @@ const MeshV2ScanningStep = props => (
                 </Box>
             )}
         </Box>
+        <Box className={classNames(styles.bottomAreaItem, styles.instructions)}>
+            {(props.scanning || props.peripheralList.length > 0) && (
+                <FormattedMessage
+                    defaultMessage="Select a host in the list above."
+                    description="Prompt for choosing a mesh host to connect to"
+                    id="gui.connection.meshV2Scanning.instructions"
+                />
+            )}
+        </Box>
         <HiraganaNameSearch
             connectionSmallIconURL={props.connectionSmallIconURL}
             hiraganaInput={props.hiraganaInput}
@@ -191,15 +200,6 @@ const MeshV2ScanningStep = props => (
             onHiraganaInput={props.onHiraganaInput}
         />
         <Box className={styles.bottomArea}>
-            <Box className={classNames(styles.bottomAreaItem, styles.instructions)}>
-                {(props.scanning || props.peripheralList.length > 0) && (
-                    <FormattedMessage
-                        defaultMessage="Select a host in the list above."
-                        description="Prompt for choosing a mesh host to connect to"
-                        id="gui.connection.meshV2Scanning.instructions"
-                    />
-                )}
-            </Box>
             <Dots
                 className={styles.bottomAreaItem}
                 counter={0}
