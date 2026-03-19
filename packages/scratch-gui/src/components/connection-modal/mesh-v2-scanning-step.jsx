@@ -70,58 +70,11 @@ const HiraganaNameSearch = props => (
                 </button>
             </div>
         )}
-        {props.nameSearching && (
-            <div className={styles.nameSearchStatus}>
-                <img
-                    className={classNames(styles.radarSmall, styles.radarSpin)}
-                    src={radarIcon}
-                />
-                <FormattedMessage
-                    defaultMessage="Searching..."
-                    description="Text shown while searching by name"
-                    id="gui.connection.scanning.nameSearching"
-                />
-            </div>
-        )}
-        {!props.nameSearching && props.hiraganaInput.length >= 6 &&
-            props.nameSearchResults.length > 0 && (
-            <div className={styles.peripheralTilePane}>
-                {props.nameSearchResults.map(peripheral => (
-                    <PeripheralTile
-                        connectionSmallIconURL={props.connectionSmallIconURL}
-                        key={peripheral.peripheralId}
-                        name={peripheral.name}
-                        nameLabel={MESH_V2_NAME_LABEL}
-                        peripheralId={peripheral.peripheralId}
-                        rssi={peripheral.rssi}
-                        onConnecting={props.onConnecting}
-                    />
-                ))}
-            </div>
-        )}
-        {!props.nameSearching && props.hiraganaInput.length >= 6 &&
-            props.nameSearchResults.length === 0 && (
-            <div className={styles.nameSearchStatus}>
-                <FormattedMessage
-                    defaultMessage="No groups found"
-                    description="Text shown when name search returns no results"
-                    id="gui.connection.scanning.nameSearchNoResults"
-                />
-            </div>
-        )}
     </div>
 );
 
 HiraganaNameSearch.propTypes = {
-    connectionSmallIconURL: PropTypes.string,
     hiraganaInput: PropTypes.string.isRequired,
-    nameSearchResults: PropTypes.arrayOf(PropTypes.shape({
-        name: PropTypes.string,
-        rssi: PropTypes.number,
-        peripheralId: PropTypes.string
-    })),
-    nameSearching: PropTypes.bool.isRequired,
-    onConnecting: PropTypes.func,
     onHiraganaClear: PropTypes.func.isRequired,
     onHiraganaInput: PropTypes.func.isRequired
 };
@@ -175,11 +128,7 @@ const MeshV2ScanningStep = props => (
             )}
         </Box>
         <HiraganaNameSearch
-            connectionSmallIconURL={props.connectionSmallIconURL}
             hiraganaInput={props.hiraganaInput}
-            nameSearchResults={props.nameSearchResults}
-            nameSearching={props.nameSearching}
-            onConnecting={props.onConnecting}
             onHiraganaClear={props.onHiraganaClear}
             onHiraganaInput={props.onHiraganaInput}
         />
@@ -224,12 +173,6 @@ const MeshV2ScanningStep = props => (
 MeshV2ScanningStep.propTypes = {
     connectionSmallIconURL: PropTypes.string,
     hiraganaInput: PropTypes.string.isRequired,
-    nameSearchResults: PropTypes.arrayOf(PropTypes.shape({
-        name: PropTypes.string,
-        rssi: PropTypes.number,
-        peripheralId: PropTypes.string
-    })),
-    nameSearching: PropTypes.bool.isRequired,
     onBack: PropTypes.func,
     onConnecting: PropTypes.func,
     onHiraganaClear: PropTypes.func.isRequired,
@@ -246,9 +189,7 @@ MeshV2ScanningStep.propTypes = {
 MeshV2ScanningStep.defaultProps = {
     peripheralList: [],
     scanning: true,
-    hiraganaInput: '',
-    nameSearching: false,
-    nameSearchResults: []
+    hiraganaInput: ''
 };
 
 export default MeshV2ScanningStep;

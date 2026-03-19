@@ -96,15 +96,21 @@ describe('MeshV2ScanningStep hiragana name search', () => {
         expect(onHiraganaClear).toHaveBeenCalled();
     });
 
-    test('shows no results message when search returns empty after 6 chars', () => {
-        const {getByText} = renderWithIntl(
+    test('renders without search results section (results shown in main list)', () => {
+        const {container} = renderWithIntl(
             <MeshV2ScanningStep
                 {...defaultProps}
                 hiraganaInput={'しかたうんて'}
-                nameSearchResults={[]}
             />
         );
 
-        expect(getByText('No groups found')).toBeInTheDocument();
+        // All buttons should be disabled after 6 chars
+        const allButtons = container.querySelectorAll('button');
+        const hiraganaButtons = [...allButtons].filter(btn =>
+            HIRAGANA_CHARS.includes(btn.textContent)
+        );
+        hiraganaButtons.forEach(button => {
+            expect(button).toBeDisabled();
+        });
     });
 });

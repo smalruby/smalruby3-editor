@@ -117,18 +117,21 @@ class ScanningStep extends React.Component {
     render () {
         // === Smalruby: Start of meshV2 scanning step ===
         if (this.props.extensionId === 'meshV2') {
+            // Merge name search results into peripheralList (avoid duplicates)
+            const existingIds = new Set(this.state.peripheralList.map(p => p.peripheralId));
+            const mergedList = this.state.peripheralList.concat(
+                this.state.nameSearchResults.filter(p => !existingIds.has(p.peripheralId))
+            );
             return (
                 <MeshV2ScanningStepComponent
                     connectionSmallIconURL={this.props.connectionSmallIconURL}
-                    peripheralList={this.state.peripheralList}
-                    scanning={this.state.scanning}
+                    peripheralList={mergedList}
+                    scanning={this.state.scanning || this.state.nameSearching}
                     onBack={this.props.onBack}
                     onConnected={this.props.onConnected}
                     onConnecting={this.props.onConnecting}
                     onRefresh={this.handleRefresh}
                     hiraganaInput={this.state.hiraganaInput}
-                    nameSearching={this.state.nameSearching}
-                    nameSearchResults={this.state.nameSearchResults}
                     onHiraganaInput={this.handleHiraganaInput}
                     onHiraganaClear={this.handleHiraganaClear}
                 />
