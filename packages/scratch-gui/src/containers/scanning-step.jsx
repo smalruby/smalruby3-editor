@@ -15,11 +15,20 @@ class ScanningStep extends React.Component {
             'handlePeripheralListUpdate',
             'handlePeripheralScanTimeout',
             'handleUserPickedPeripheral',
-            'handleRefresh'
+            'handleRefresh',
+            // === Smalruby: Start of meshV2 name search ===
+            'handleHiraganaInput',
+            'handleHiraganaClear'
+            // === Smalruby: End of meshV2 name search ===
         ]);
         this.state = {
             scanning: true,
-            peripheralList: []
+            peripheralList: [],
+            // === Smalruby: Start of meshV2 name search ===
+            hiraganaInput: '',
+            nameSearching: false,
+            nameSearchResults: []
+            // === Smalruby: End of meshV2 name search ===
         };
     }
     componentDidMount () {
@@ -69,6 +78,39 @@ class ScanningStep extends React.Component {
             peripheralList: []
         });
     }
+    // === Smalruby: Start of meshV2 name search ===
+    handleHiraganaInput (char) {
+        const newInput = this.state.hiraganaInput + char;
+        this.setState({hiraganaInput: newInput});
+
+        if (newInput.length >= 6) {
+            this.setState({nameSearching: true, nameSearchResults: []});
+            const extension = this.props.vm.runtime.peripheralExtensions.meshV2;
+            if (extension && extension.searchByName) {
+                extension.searchByName(newInput.slice(0, 6))
+                    .then(results => {
+                        this.setState({
+                            nameSearching: false,
+                            nameSearchResults: results
+                        });
+                    })
+                    .catch(() => {
+                        this.setState({
+                            nameSearching: false,
+                            nameSearchResults: []
+                        });
+                    });
+            }
+        }
+    }
+    handleHiraganaClear () {
+        this.setState({
+            hiraganaInput: '',
+            nameSearching: false,
+            nameSearchResults: []
+        });
+    }
+    // === Smalruby: End of meshV2 name search ===
     render () {
         return (
             <ScanningStepComponent
@@ -83,6 +125,13 @@ class ScanningStep extends React.Component {
                 onConnecting={this.props.onConnecting}
                 onRefresh={this.handleRefresh}
                 onUpdatePeripheral={this.props.onUpdatePeripheral}
+                /* === Smalruby: Start of meshV2 name search === */
+                hiraganaInput={this.state.hiraganaInput}
+                nameSearching={this.state.nameSearching}
+                nameSearchResults={this.state.nameSearchResults}
+                onHiraganaInput={this.handleHiraganaInput}
+                onHiraganaClear={this.handleHiraganaClear}
+                /* === Smalruby: End of meshV2 name search === */
             />
         );
     }
