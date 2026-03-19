@@ -229,10 +229,11 @@ class ConnectionModal extends React.Component {
         });
     }
     clearMeshV2DomainIfEmpty () {
-        // If user did not explicitly change the domain input in this modal
-        // session, clear any cached domain from localStorage so that
-        // createDomain() will auto-detect from source IP.
-        if (!this.userChangedDomain) {
+        // Only clear the cached domain when both:
+        // 1. User did not explicitly change the domain input in this modal session
+        // 2. The domain input field is currently empty (no value from localStorage/Redux)
+        // This preserves domains loaded from localStorage on modal reopen.
+        if (!this.userChangedDomain && !this.props.meshV2Domain) {
             const extension = this.props.vm.runtime.peripheralExtensions.meshV2;
             if (extension && extension.setDomain) {
                 extension.setDomain(null);

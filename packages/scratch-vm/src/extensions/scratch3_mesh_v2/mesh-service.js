@@ -20,7 +20,8 @@ const {
     RECORD_EVENTS,
     GET_EVENTS_SINCE,
     ON_MESSAGE_IN_GROUP,
-    LIST_GROUP_STATUSES
+    LIST_GROUP_STATUSES,
+    SEARCH_GROUPS_BY_NAME_PREFIX
 } = require('./gql-operations');
 
 const {getForcePollingFromUrl} = require('./utils');
@@ -449,6 +450,24 @@ class MeshV2Service {
             log.error(`Mesh V2: Failed to list groups: ${error}`);
             // Store error for network filter detection
             this.lastError = error;
+            throw error;
+        }
+    }
+
+    async searchGroupsByNamePrefix (namePrefix) {
+        if (!this.client) throw new Error('Client not initialized');
+
+        try {
+            this.costTracking.queryCount++;
+            const result = await this.client.query({
+                query: SEARCH_GROUPS_BY_NAME_PREFIX,
+                variables: {namePrefix, limit: 10},
+                fetchPolicy: 'network-only'
+            });
+
+            return result.data.searchGroupsByNamePrefix;
+        } catch (error) {
+            log.error(`Mesh V2: Failed to search groups by name: ${error}`);
             throw error;
         }
     }

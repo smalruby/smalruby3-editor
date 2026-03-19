@@ -390,6 +390,14 @@ export default {
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメインめいにむこうなもじがふくまれています。',
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメインめいがながすぎます（さいだい256もじ）。',
 
+    // MeshV2 Scanning Step messages
+    'gui.connection.meshV2Scanning.lookingForHosts': 'ホストをたんさくちゅう',
+    'gui.connection.meshV2Scanning.noHostsFound': 'ホストがみつかりませんでした',
+    'gui.connection.meshV2Scanning.instructions': 'うえのリストからホストをえらんでください。',
+    'gui.connection.meshV2Scanning.nameSearchLabel': 'なまえでさがす',
+    'gui.connection.scanning.nameSearching': 'けんさくちゅう...',
+    'gui.connection.scanning.nameSearchNoResults': 'グループがみつかりませんでした',
+
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソルぎょうをじっこう',
     'gui.rubyToolbar.stopExecution': 'じっこうをていし',

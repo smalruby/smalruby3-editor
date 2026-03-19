@@ -390,6 +390,14 @@ export default {
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメイン名に無効な文字が含まれています。',
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。',
 
+    // MeshV2 Scanning Step messages
+    'gui.connection.meshV2Scanning.lookingForHosts': 'ホストを探索中',
+    'gui.connection.meshV2Scanning.noHostsFound': 'ホストが見つかりませんでした',
+    'gui.connection.meshV2Scanning.instructions': '上のリストからホストを選んでください。',
+    'gui.connection.meshV2Scanning.nameSearchLabel': '名前で探す',
+    'gui.connection.scanning.nameSearching': 'けんさくちゅう...',
+    'gui.connection.scanning.nameSearchNoResults': 'グループが見つかりませんでした',
+
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソル行を実行',
     'gui.rubyToolbar.stopExecution': '実行を停止',

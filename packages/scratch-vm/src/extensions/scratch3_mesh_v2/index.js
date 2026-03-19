@@ -8,6 +8,7 @@ const debug = debugLogger(process.env.DEBUG);
 const {v4: uuidv4} = require('uuid');
 const Variable = require('../../engine/variable');
 const {getDomain, saveDomainToLocalStorage} = require('./utils');
+const {hiraganaToHex} = require('./name-search-utils');
 const {createClient} = require('./mesh-client');
 const MeshV2Service = require('./mesh-service');
 
@@ -224,11 +225,7 @@ class Scratch3MeshV2Blocks {
 
             const peripherals = validGroups.map(group => ({
                 peripheralId: group.id,
-                name: formatMessage({
-                    id: 'mesh.clientPeripheralName',
-                    default: 'Join Mesh [{ MESH_ID }]',
-                    description: 'label for "Join Mesh" in connect modal for Mesh extension'
-                }, {MESH_ID: this.makeMeshIdLabel(group.name)}),
+                name: `【${this.makeMeshIdLabel(group.name)}】`,
                 rssi: this.calculateRssi(group),
                 domain: group.domain
             }));
@@ -249,6 +246,47 @@ class Scratch3MeshV2Blocks {
                 // Set error state to trigger error UI
                 this.setConnectionState('error', errorType);
             });
+    }
+
+    /**
+     * Search groups by hiragana name prefix across all domains.
+     * @param {string} hiraganaStr - Hiragana string (6 chars).
+     * @returns {Promise} Resolves when search results are emitted.
+     */
+    /* istanbul ignore next */
+    searchByName (hiraganaStr) {
+        if (!this.meshService) return Promise.reject(new Error('No mesh service'));
+
+        const hexPrefix = hiraganaToHex(hiraganaStr);
+        if (!hexPrefix) return Promise.reject(new Error('Invalid hiragana input'));
+
+        return this.meshService.searchGroupsByNamePrefix(hexPrefix).then(groups => {
+            debug(() => `Mesh V2: Name search found ${groups.length} groups for prefix ${hexPrefix}`);
+
+            // Merge into discoveredGroups (avoid duplicates)
+            const existingIds = new Set((this.discoveredGroups || []).map(g => g.id));
+            groups.forEach(group => {
+                if (!existingIds.has(group.id)) {
+                    this.discoveredGroups = (this.discoveredGroups || []).concat([group]);
+                }
+            });
+
+            // Filter expired and emit
+            const now = Date.now();
+            const validGroups = groups.filter(group => {
+                if (!group.expiresAt) return true;
+                return new Date(group.expiresAt).getTime() > now;
+            });
+
+            const peripherals = validGroups.map(group => ({
+                peripheralId: group.id,
+                name: `【${this.makeMeshIdLabel(group.name)}】`,
+                rssi: this.calculateRssi(group),
+                domain: group.domain
+            }));
+
+            return peripherals;
+        });
     }
 
     /* istanbul ignore next */

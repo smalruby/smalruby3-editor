@@ -504,3 +504,94 @@
     font-weight: bold;
     color: $ui-red;
 }
+
+/* === Smalruby: Start of meshV2 name search === */
+.name-search-section {
+    padding: 0.5rem 0.5rem 0 0.5rem;
+    border-top: 1px solid $ui-black-transparent;
+}
+
+.name-search-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 0.25rem;
+    text-align: center;
+}
+
+.hiragana-button-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.hiragana-button-row {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.hiragana-button {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid $looks-secondary;
+    border-radius: 0.3rem;
+    background: $ui-white;
+    color: $looks-secondary;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.hiragana-button:hover:not(:disabled) {
+    background: $looks-light-transparent;
+}
+
+.hiragana-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.hiragana-input-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.3rem;
+}
+
+.hiragana-input-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $looks-secondary;
+    letter-spacing: 0.15em;
+}
+
+.hiragana-clear-button {
+    background: none;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.3rem;
+    color: $text-primary;
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.4rem;
+}
+
+.hiragana-clear-button:hover {
+    background: $ui-black-transparent;
+}
+
+.name-search-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    color: $text-primary;
+}
+/* === Smalruby: End of meshV2 name search === */

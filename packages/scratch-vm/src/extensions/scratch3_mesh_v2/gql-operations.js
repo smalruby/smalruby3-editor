@@ -226,8 +226,22 @@ const LIST_GROUP_STATUSES = gql`
   }
 `;
 
+const SEARCH_GROUPS_BY_NAME_PREFIX = gql`
+  query SearchGroupsByNamePrefix($namePrefix: String!, $limit: Int) {
+    searchGroupsByNamePrefix(namePrefix: $namePrefix, limit: $limit) {
+      id
+      domain
+      fullId
+      name
+      hostId
+      expiresAt
+    }
+  }
+`;
+
 module.exports = {
     LIST_GROUPS_BY_DOMAIN,
+    SEARCH_GROUPS_BY_NAME_PREFIX,
     CREATE_DOMAIN,
     CREATE_GROUP,
     JOIN_GROUP,

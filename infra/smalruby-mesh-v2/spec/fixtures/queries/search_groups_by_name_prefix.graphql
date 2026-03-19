@@ -1,0 +1,10 @@
+query SearchGroupsByNamePrefix($namePrefix: String!, $limit: Int) {
+  searchGroupsByNamePrefix(namePrefix: $namePrefix, limit: $limit) {
+    id
+    domain
+    fullId
+    name
+    hostId
+    expiresAt
+  }
+}

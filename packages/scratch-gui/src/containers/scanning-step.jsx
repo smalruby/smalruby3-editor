@@ -2,6 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import bindAll from 'lodash.bindall';
 import ScanningStepComponent from '../components/connection-modal/scanning-step.jsx';
+// === Smalruby: Start of meshV2 scanning step ===
+import MeshV2ScanningStepComponent from '../components/connection-modal/mesh-v2-scanning-step.jsx';
+// === Smalruby: End of meshV2 scanning step ===
 import VM from '@smalruby/scratch-vm';
 
 /**
@@ -15,11 +18,20 @@ class ScanningStep extends React.Component {
             'handlePeripheralListUpdate',
             'handlePeripheralScanTimeout',
             'handleUserPickedPeripheral',
-            'handleRefresh'
+            'handleRefresh',
+            // === Smalruby: Start of meshV2 name search ===
+            'handleHiraganaInput',
+            'handleHiraganaClear'
+            // === Smalruby: End of meshV2 name search ===
         ]);
         this.state = {
             scanning: true,
-            peripheralList: []
+            peripheralList: [],
+            // === Smalruby: Start of meshV2 name search ===
+            hiraganaInput: '',
+            nameSearching: false,
+            nameSearchResults: []
+            // === Smalruby: End of meshV2 name search ===
         };
     }
     componentDidMount () {
@@ -69,16 +81,78 @@ class ScanningStep extends React.Component {
             peripheralList: []
         });
     }
+    // === Smalruby: Start of meshV2 name search ===
+    handleHiraganaInput (char) {
+        const newInput = this.state.hiraganaInput + char;
+        this.setState({hiraganaInput: newInput});
+
+        if (newInput.length >= 6) {
+            this.setState({nameSearching: true, nameSearchResults: []});
+            const extension = this.props.vm.runtime.peripheralExtensions.meshV2;
+            if (extension && extension.searchByName) {
+                extension.searchByName(newInput.slice(0, 6))
+                    .then(results => {
+                        this.setState({
+                            nameSearching: false,
+                            nameSearchResults: results
+                        });
+                    })
+                    .catch(() => {
+                        this.setState({
+                            nameSearching: false,
+                            nameSearchResults: []
+                        });
+                    });
+            }
+        }
+    }
+    handleHiraganaClear () {
+        this.setState({
+            hiraganaInput: '',
+            nameSearching: false,
+            nameSearchResults: []
+        });
+    }
+    // === Smalruby: End of meshV2 name search ===
     render () {
+        // === Smalruby: Start of meshV2 scanning step ===
+        if (this.props.extensionId === 'meshV2') {
+            // Merge name search results into peripheralList (avoid duplicates)
+            const existingIds = new Set(this.state.peripheralList.map(p => p.peripheralId));
+            let mergedList = this.state.peripheralList.concat(
+                this.state.nameSearchResults.filter(p => !existingIds.has(p.peripheralId))
+            );
+            // Incremental filter: forward-match by hiragana input
+            if (this.state.hiraganaInput.length > 0) {
+                const input = this.state.hiraganaInput;
+                mergedList = mergedList.filter(p => {
+                    // Name format: 【とんいううう】 — extract hiragana inside brackets
+                    const match = p.name && p.name.match(/【(.+)】/);
+                    if (!match) return false;
+                    return match[1].startsWith(input);
+                });
+            }
+            return (
+                <MeshV2ScanningStepComponent
+                    connectionSmallIconURL={this.props.connectionSmallIconURL}
+                    peripheralList={mergedList}
+                    scanning={this.state.scanning || this.state.nameSearching}
+                    onBack={this.props.onBack}
+                    onConnected={this.props.onConnected}
+                    onConnecting={this.props.onConnecting}
+                    onRefresh={this.handleRefresh}
+                    hiraganaInput={this.state.hiraganaInput}
+                    onHiraganaInput={this.handleHiraganaInput}
+                    onHiraganaClear={this.handleHiraganaClear}
+                />
+            );
+        }
+        // === Smalruby: End of meshV2 scanning step ===
         return (
             <ScanningStepComponent
                 connectionSmallIconURL={this.props.connectionSmallIconURL}
-                extensionId={this.props.extensionId}
                 peripheralList={this.state.peripheralList}
-                phase={this.state.phase}
                 scanning={this.state.scanning}
-                title={this.props.extensionId}
-                onBack={this.props.onBack}
                 onConnected={this.props.onConnected}
                 onConnecting={this.props.onConnecting}
                 onRefresh={this.handleRefresh}

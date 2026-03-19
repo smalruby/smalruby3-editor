@@ -52,4 +52,16 @@ docker compose run --rm infra npm run -w /app infra:mesh-v2:deploy
 
 Copy `.env.example` to `.env` inside `infra/smalruby-mesh-v2/` for local values.
 
+## Custom Domains
+
+Each stage has a custom domain for the AppSync GraphQL API:
+
+| Stage | Custom Domain |
+|-------|--------------|
+| `prod` | `graphql.api.smalruby.app` |
+| `stg` | `stg.graphql.api.smalruby.app` |
+| `stg2` | `stg2.graphql.api.smalruby.app` |
+
+**CRITICAL**: The local dev server (`localhost:8601`) connects to the **stg** endpoint. If `stg.graphql.api.smalruby.app` is broken, mesh v2 will not work locally. After every stg/prod deploy, verify custom domains exist (see `development.md` Post-Deploy Verification).
+
 See `infra/smalruby-mesh-v2/CLAUDE.md` for detailed TDD workflow, architecture, and troubleshooting.

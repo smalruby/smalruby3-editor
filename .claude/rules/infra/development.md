@@ -64,3 +64,25 @@ ls -la .env
 ```
 
 The `STAGE` value in the linked `.env` file determines the deployment target. It can also be overridden with `--context stage=...`.
+
+**CRITICAL**: Always use `.env` symlink switching for deployments. Never override environment variables (e.g., `APPSYNC_CUSTOM_DOMAIN=false`) directly on the command line — this can delete custom domains or other critical resources from the stack.
+
+## Post-Deploy Verification
+
+After deploying to `stg` or `prod`, verify that custom domains are intact:
+
+```bash
+# Check all AppSync custom domains
+aws appsync list-domain-names --query "domainNameConfigs[].domainName" --output table
+
+# Expected domains:
+#   graphql.api.smalruby.app        (prod)
+#   stg.graphql.api.smalruby.app    (stg)
+#   stg2.graphql.api.smalruby.app   (stg2)
+
+# Verify DNS resolution
+dig stg.graphql.api.smalruby.app A +short
+dig graphql.api.smalruby.app A +short
+```
+
+If a custom domain is missing, redeploy the affected stage with the correct `.env` symlink.
