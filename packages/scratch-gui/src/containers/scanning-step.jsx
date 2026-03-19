@@ -2,6 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import bindAll from 'lodash.bindall';
 import ScanningStepComponent from '../components/connection-modal/scanning-step.jsx';
+// === Smalruby: Start of meshV2 scanning step ===
+import MeshV2ScanningStepComponent from '../components/connection-modal/mesh-v2-scanning-step.jsx';
+// === Smalruby: End of meshV2 scanning step ===
 import VM from '@smalruby/scratch-vm';
 
 /**
@@ -112,26 +115,35 @@ class ScanningStep extends React.Component {
     }
     // === Smalruby: End of meshV2 name search ===
     render () {
+        // === Smalruby: Start of meshV2 scanning step ===
+        if (this.props.extensionId === 'meshV2') {
+            return (
+                <MeshV2ScanningStepComponent
+                    connectionSmallIconURL={this.props.connectionSmallIconURL}
+                    peripheralList={this.state.peripheralList}
+                    scanning={this.state.scanning}
+                    onBack={this.props.onBack}
+                    onConnected={this.props.onConnected}
+                    onConnecting={this.props.onConnecting}
+                    onRefresh={this.handleRefresh}
+                    hiraganaInput={this.state.hiraganaInput}
+                    nameSearching={this.state.nameSearching}
+                    nameSearchResults={this.state.nameSearchResults}
+                    onHiraganaInput={this.handleHiraganaInput}
+                    onHiraganaClear={this.handleHiraganaClear}
+                />
+            );
+        }
+        // === Smalruby: End of meshV2 scanning step ===
         return (
             <ScanningStepComponent
                 connectionSmallIconURL={this.props.connectionSmallIconURL}
-                extensionId={this.props.extensionId}
                 peripheralList={this.state.peripheralList}
-                phase={this.state.phase}
                 scanning={this.state.scanning}
-                title={this.props.extensionId}
-                onBack={this.props.onBack}
                 onConnected={this.props.onConnected}
                 onConnecting={this.props.onConnecting}
                 onRefresh={this.handleRefresh}
                 onUpdatePeripheral={this.props.onUpdatePeripheral}
-                /* === Smalruby: Start of meshV2 name search === */
-                hiraganaInput={this.state.hiraganaInput}
-                nameSearching={this.state.nameSearching}
-                nameSearchResults={this.state.nameSearchResults}
-                onHiraganaInput={this.handleHiraganaInput}
-                onHiraganaClear={this.handleHiraganaClear}
-                /* === Smalruby: End of meshV2 name search === */
             />
         );
     }

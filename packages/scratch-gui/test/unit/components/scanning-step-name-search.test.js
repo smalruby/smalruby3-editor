@@ -2,7 +2,7 @@ import React from 'react';
 import {render, fireEvent} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {IntlProvider} from 'react-intl';
-import ScanningStep from '../../../src/components/connection-modal/scanning-step.jsx';
+import MeshV2ScanningStep from '../../../src/components/connection-modal/mesh-v2-scanning-step.jsx';
 
 const renderWithIntl = (ui, locale = 'en') => render(
     <IntlProvider locale={locale}>
@@ -13,11 +13,10 @@ const renderWithIntl = (ui, locale = 'en') => render(
 const HIRAGANA_CHARS = ['い', 'し', 'か', 'た', 'う', 'ん', 'て', 'と',
     'の', 'つ', 'は', 'こ', 'に', 'な', 'く', 'き'];
 
-describe('ScanningStep hiragana name search', () => {
+describe('MeshV2ScanningStep hiragana name search', () => {
     const defaultProps = {
         scanning: true,
         peripheralList: [],
-        extensionId: 'meshV2',
         hiraganaInput: '',
         nameSearching: false,
         nameSearchResults: [],
@@ -27,12 +26,11 @@ describe('ScanningStep hiragana name search', () => {
         onRefresh: jest.fn()
     };
 
-    test('renders 16 hiragana buttons for meshV2 extension', () => {
+    test('renders 16 hiragana buttons', () => {
         const {getAllByRole} = renderWithIntl(
-            <ScanningStep {...defaultProps} />
+            <MeshV2ScanningStep {...defaultProps} />
         );
 
-        // All 16 hiragana buttons + Refresh button + (no Back because onBack not provided)
         const allButtons = getAllByRole('button');
         const hiraganaButtons = allButtons.filter(btn =>
             HIRAGANA_CHARS.includes(btn.textContent)
@@ -40,26 +38,10 @@ describe('ScanningStep hiragana name search', () => {
         expect(hiraganaButtons.length).toBe(16);
     });
 
-    test('does not render hiragana buttons for non-meshV2 extension', () => {
-        const {getAllByRole} = renderWithIntl(
-            <ScanningStep
-                {...defaultProps}
-                extensionId="microbit"
-                onHiraganaInput={undefined}
-            />
-        );
-
-        const allButtons = getAllByRole('button');
-        const hiraganaButtons = allButtons.filter(btn =>
-            HIRAGANA_CHARS.includes(btn.textContent)
-        );
-        expect(hiraganaButtons.length).toBe(0);
-    });
-
     test('calls onHiraganaInput with correct character when button is clicked', () => {
         const onHiraganaInput = jest.fn();
         const {getAllByRole} = renderWithIntl(
-            <ScanningStep
+            <MeshV2ScanningStep
                 {...defaultProps}
                 onHiraganaInput={onHiraganaInput}
             />
@@ -73,7 +55,7 @@ describe('ScanningStep hiragana name search', () => {
 
     test('disables hiragana buttons when 6 characters are entered', () => {
         const {getAllByRole} = renderWithIntl(
-            <ScanningStep
+            <MeshV2ScanningStep
                 {...defaultProps}
                 hiraganaInput={'しかたうんて'}
             />
@@ -90,7 +72,7 @@ describe('ScanningStep hiragana name search', () => {
 
     test('shows entered hiragana text when input is not empty', () => {
         const {getByText} = renderWithIntl(
-            <ScanningStep
+            <MeshV2ScanningStep
                 {...defaultProps}
                 hiraganaInput={'しか'}
             />
@@ -102,7 +84,7 @@ describe('ScanningStep hiragana name search', () => {
     test('shows clear button and calls onHiraganaClear when clicked', () => {
         const onHiraganaClear = jest.fn();
         const {getByText} = renderWithIntl(
-            <ScanningStep
+            <MeshV2ScanningStep
                 {...defaultProps}
                 hiraganaInput={'しか'}
                 onHiraganaClear={onHiraganaClear}
@@ -116,7 +98,7 @@ describe('ScanningStep hiragana name search', () => {
 
     test('shows no results message when search returns empty after 6 chars', () => {
         const {getByText} = renderWithIntl(
-            <ScanningStep
+            <MeshV2ScanningStep
                 {...defaultProps}
                 hiraganaInput={'しかたうんて'}
                 nameSearchResults={[]}
