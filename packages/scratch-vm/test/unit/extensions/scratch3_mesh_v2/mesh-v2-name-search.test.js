@@ -4,15 +4,11 @@ const tap = require('tap');
 // The mapping: い→0, し→1, か→2, た→3, う→4, ん→5, て→6, と→7
 //              の→8, つ→9, は→a, こ→b, に→c, な→d, く→e, き→f
 
-// Import will be added after implementation
-let hiraganaToHex, MESH_ID_LABEL_CHARACTERS, MESH_ID_LABEL_REVERSE;
-
-tap.before(() => {
-    const meshV2 = require('../../../../src/extensions/scratch3_mesh_v2/name-search-utils');
-    hiraganaToHex = meshV2.hiraganaToHex;
-    MESH_ID_LABEL_CHARACTERS = meshV2.MESH_ID_LABEL_CHARACTERS;
-    MESH_ID_LABEL_REVERSE = meshV2.MESH_ID_LABEL_REVERSE;
-});
+const {
+    hiraganaToHex,
+    MESH_ID_LABEL_CHARACTERS,
+    MESH_ID_LABEL_REVERSE
+} = require('../../../../src/extensions/scratch3_mesh_v2/name-search-utils');
 
 tap.test('MESH_ID_LABEL_REVERSE has all 16 hiragana characters', t => {
     const expectedChars = ['い', 'し', 'か', 'た', 'う', 'ん', 'て', 'と',
