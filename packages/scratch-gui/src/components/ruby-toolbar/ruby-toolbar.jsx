@@ -13,7 +13,6 @@ import iconSearch from './icon--search.svg';
 import iconUndo from './icon--undo.svg';
 import iconRedo from './icon--redo.svg';
 import iconDownload from './icon--download.svg';
-import iconAI from './icon--ai.svg';
 import iconFurigana from './icon--furigana.svg';
 import iconAutoCorrect from './icon--auto-correct.svg';
 
@@ -62,11 +61,6 @@ const RubyToolbar = props => {
         setShowMoreMenu(false);
         if (props.onDismissBubble) props.onDismissBubble();
         if (props.onDownload) props.onDownload();
-    }, [props]);
-
-    const handleOpenAI = useCallback(() => {
-        if (props.onDismissBubble) props.onDismissBubble();
-        if (props.onOpenGeminiModal) props.onOpenGeminiModal();
     }, [props]);
 
     const handleToggleFurigana = useCallback(() => {
@@ -218,17 +212,6 @@ const RubyToolbar = props => {
                     onSelectTarget={props.onSelectTarget}
                     onDismissBubble={props.onDismissBubble}
                 />
-                <button
-                    className={styles.iconButton}
-                    onClick={handleOpenAI}
-                    aria-label={intl.formatMessage(messages.aiAssistant)}
-                    title={intl.formatMessage(messages.aiAssistant)}
-                >
-                    <img
-                        src={iconAI}
-                        alt=""
-                    />
-                </button>
             </div>
 
             {/* More Menu Part */}
@@ -300,7 +283,6 @@ RubyToolbar.propTypes = {
     onInsertClass: PropTypes.func,
     onExecuteLine: PropTypes.func,
     onDismissBubble: PropTypes.func,
-    onOpenGeminiModal: PropTypes.func,
     isRunning: PropTypes.bool,
     canUndo: PropTypes.bool,
     canRedo: PropTypes.bool,
