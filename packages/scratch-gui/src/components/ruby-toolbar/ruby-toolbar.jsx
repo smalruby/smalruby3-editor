@@ -15,6 +15,7 @@ import iconRedo from './icon--redo.svg';
 import iconDownload from './icon--download.svg';
 import iconFurigana from './icon--furigana.svg';
 import iconAutoCorrect from './icon--auto-correct.svg';
+import iconAi from './icon--ai.svg';
 
 const RubyToolbar = props => {
     const intl = useIntl();
@@ -204,6 +205,23 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
+            {/* Rubytee AI Assistant */}
+            {props.onOpenRubyteeModal && (
+                <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
+                    <button
+                        className={styles.iconButton}
+                        onClick={props.onOpenRubyteeModal}
+                        aria-label={intl.formatMessage(messages.aiAssistant)}
+                        title={intl.formatMessage(messages.aiAssistant)}
+                    >
+                        <img
+                            src={iconAi}
+                            alt=""
+                        />
+                    </button>
+                </div>
+            )}
+
             {/* Navigation & Command Part */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
                 <TargetSelector
@@ -291,7 +309,8 @@ RubyToolbar.propTypes = {
     autoCorrectEnabled: PropTypes.bool,
     onToggleAutoCorrect: PropTypes.func,
     onOpenAutoCorrectSettings: PropTypes.func,
-    onPreviewRubyScript: PropTypes.func
+    onPreviewRubyScript: PropTypes.func,
+    onOpenRubyteeModal: PropTypes.func
 };
 
 export default RubyToolbar;

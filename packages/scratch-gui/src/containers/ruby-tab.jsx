@@ -38,7 +38,7 @@ import RubyDownloader from './ruby-downloader.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import FuriganaRenderer from './ruby-tab/furigana-renderer';
-// RubyteeModalHOC disabled — Rubytee feature suspended
+import RubyteeModalHOC from './rubytee-modal-hoc.jsx';
 import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
 import {wrapCurrentCodeWithClass} from '../lib/insert-class';
@@ -1078,9 +1078,9 @@ const mapDispatchToProps = dispatch => ({
     onMarkRubyTabUsed: () => dispatch(markRubyTabUsed())
 });
 
-const ConnectedRubyTab = RubyToBlocksConverterHOC(injectIntl(connect(
+const ConnectedRubyTab = RubyteeModalHOC(RubyToBlocksConverterHOC(injectIntl(connect(
     mapStateToProps,
     mapDispatchToProps
-)(RubyTab)));
+)(RubyTab))));
 
 export default ConnectedRubyTab;
