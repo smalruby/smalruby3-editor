@@ -7,6 +7,9 @@ import VM from '@smalruby/scratch-vm';
 
 import RubyteeAPI, {RateLimitError} from '../lib/rubytee-api';
 import RubyteeModal from '../components/rubytee-modal/rubytee-modal.jsx';
+import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
+
+const RUBYTEE_CONSENT_KEY = 'smalruby:rubyteeConsent';
 
 /**
  * Replace invalid resource references in Rubytee-generated Ruby code with valid ones.
@@ -209,7 +212,8 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 loadingSeconds: 0,
                 error: null,
                 latestCodes: [], // all code blocks from the last model response
-                inputValue: ''
+                inputValue: '',
+                isConsentOpen: false
             };
 
             this._timerInterval = null;
@@ -217,6 +221,9 @@ const RubyteeModalHOC = function (WrappedComponent) {
 
             this.handleOpenModal = this.handleOpenModal.bind(this);
             this.handleCloseModal = this.handleCloseModal.bind(this);
+            this.handleConsentAccept = this.handleConsentAccept.bind(this);
+            this.handleConsentCancel = this.handleConsentCancel.bind(this);
+            this.handleResetConsent = this.handleResetConsent.bind(this);
             this.handleSend = this.handleSend.bind(this);
             this.handleCancel = this.handleCancel.bind(this);
             this.handleApplyCode = this.handleApplyCode.bind(this);
@@ -261,8 +268,39 @@ const RubyteeModalHOC = function (WrappedComponent) {
             }
         }
 
+        /**
+         * Check consent before opening the modal.
+         * If consent not yet given, show consent dialog first.
+         */
         handleOpenModal () {
-            this.setState({isModalOpen: true, error: null});
+            const hasConsent = typeof window !== 'undefined' && window.localStorage &&
+                window.localStorage.getItem(RUBYTEE_CONSENT_KEY) === 'true';
+            if (hasConsent) {
+                this.setState({isModalOpen: true, error: null});
+            } else {
+                this.setState({isConsentOpen: true});
+            }
+        }
+
+        handleConsentAccept () {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem(RUBYTEE_CONSENT_KEY, 'true');
+            }
+            this.setState({isConsentOpen: false, isModalOpen: true, error: null});
+        }
+
+        handleConsentCancel () {
+            this.setState({isConsentOpen: false});
+        }
+
+        /**
+         * Reset consent — removes localStorage key and closes the modal.
+         */
+        handleResetConsent () {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.removeItem(RUBYTEE_CONSENT_KEY);
+            }
+            this.setState({isModalOpen: false});
         }
 
         handleCloseModal () {
@@ -423,6 +461,12 @@ const RubyteeModalHOC = function (WrappedComponent) {
                         onRegisterRubyteeApply={this.handleRegisterApplyCallback}
                         {...passThroughProps}
                     />
+                    {this.state.isConsentOpen && (
+                        <RubyteeConsent
+                            onAccept={this.handleConsentAccept}
+                            onCancel={this.handleConsentCancel}
+                        />
+                    )}
                     {this.state.isModalOpen && (
                         <RubyteeModal
                             isVisible={this.state.isModalOpen}
@@ -439,6 +483,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
                             onClearHistory={this.handleClearHistory}
                             onInputChange={this.handleInputChange}
                             onInputKeyDown={this.handleInputKeyDown}
+                            onResetConsent={this.handleResetConsent}
                         />
                     )}
                 </React.Fragment>

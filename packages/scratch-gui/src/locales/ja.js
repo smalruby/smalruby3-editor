@@ -432,6 +432,21 @@ export default {
     'gui.autoCorrectModal.fullwidthSpace': '全角スペース → 半角スペース',
     'gui.autoCorrectModal.replaceInStrings': '文字列も置き換える',
 
+    // Rubytee consent dialog
+    'gui.rubyteeConsent.title': 'ルビティーをつかうまえに',
+    'gui.rubyteeConsent.aiDisclosure': 'ルビティーは AI（人工知能）です。人間ではありません。',
+    'gui.rubyteeConsent.warningIncorrect': '答えがまちがっていることがあります',
+    'gui.rubyteeConsent.warningPersonalInfo': '名前や住所などの個人情報を入力しないでください',
+    'gui.rubyteeConsent.warningAskAdult': 'こまったら大人に相談してください',
+    'gui.rubyteeConsent.detailsToggle': 'くわしい説明（保護者の方へ）',
+    'gui.rubyteeConsent.detailsText': 'ルビティーは Anthropic 社の Claude API を利用した AI コード生成支援機能です。入力内容は当法人の中継サービスを経由して Anthropic 社に送信されます。個人情報は保存されません。',
+    'gui.rubyteeConsent.termsLink': '利用規約',
+    'gui.rubyteeConsent.privacyLink': 'プライバシーポリシー',
+    'gui.rubyteeConsent.consentCheckbox': '18歳以上です、または保護者の許可をもらいました',
+    'gui.rubyteeConsent.cancel': 'つかわない',
+    'gui.rubyteeConsent.accept': 'OK、つかう！',
+    'gui.rubyteeModal.resetConsent': '同意をリセット',
+
     // Rubytee modal
     'gui.rubyteeModal.title': 'ルビティー',
     'gui.rubyteeModal.clearHistory': '会話をリセット',

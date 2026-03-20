@@ -48,6 +48,11 @@ const messages = defineMessages({
         defaultMessage: 'Clear history',
         description: 'Clear chat history button label'
     },
+    resetConsent: {
+        id: 'gui.rubyteeModal.resetConsent',
+        defaultMessage: 'Reset consent',
+        description: 'Button to reset the consent agreement and close the modal'
+    },
     inputPlaceholder: {
         id: 'gui.rubyteeModal.inputPlaceholder',
         defaultMessage: 'Tell me what you want to create (between {min} and {max} characters)...',
@@ -244,7 +249,8 @@ const RubyteeModal = ({
     onApplyCode,
     onClearHistory,
     onInputChange,
-    onInputKeyDown
+    onInputKeyDown,
+    onResetConsent
 }) => {
     const intl = useIntl();
     const chatHistoryRef = useRef(null);
@@ -443,6 +449,14 @@ const RubyteeModal = ({
                             >
                                 {intl.formatMessage(messages.clearHistory)}
                             </button>
+                            {onResetConsent && (
+                                <button
+                                    className={styles.clearButton}
+                                    onClick={onResetConsent}
+                                >
+                                    {intl.formatMessage(messages.resetConsent)}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -468,7 +482,8 @@ RubyteeModal.propTypes = {
     onApplyCode: PropTypes.func.isRequired,
     onClearHistory: PropTypes.func.isRequired,
     onInputChange: PropTypes.func.isRequired,
-    onInputKeyDown: PropTypes.func.isRequired
+    onInputKeyDown: PropTypes.func.isRequired,
+    onResetConsent: PropTypes.func
 };
 
 RubyteeModal.defaultProps = {

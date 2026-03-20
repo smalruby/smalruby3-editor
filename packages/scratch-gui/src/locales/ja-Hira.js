@@ -432,6 +432,21 @@ export default {
     'gui.autoCorrectModal.fullwidthSpace': 'ぜんかくスペース → はんかくスペース',
     'gui.autoCorrectModal.replaceInStrings': 'もじれつもおきかえる',
 
+    // Rubytee consent dialog
+    'gui.rubyteeConsent.title': 'ルビティーをつかうまえに',
+    'gui.rubyteeConsent.aiDisclosure': 'ルビティーは AI（じんこうちのう）です。にんげんではありません。',
+    'gui.rubyteeConsent.warningIncorrect': 'こたえがまちがっていることがあります',
+    'gui.rubyteeConsent.warningPersonalInfo': 'なまえやじゅうしょなどのこじんじょうほうをにゅうりょくしないでください',
+    'gui.rubyteeConsent.warningAskAdult': 'こまったらおとなにそうだんしてください',
+    'gui.rubyteeConsent.detailsToggle': 'くわしいせつめい（ほごしゃのかたへ）',
+    'gui.rubyteeConsent.detailsText': 'ルビティーは Anthropic しゃの Claude API をりようした AI コードせいせいしえんきのうです。にゅうりょくないようはとうほうじんのちゅうけいサービスをけいゆして Anthropic しゃにそうしんされます。こじんじょうほうはほぞんされません。',
+    'gui.rubyteeConsent.termsLink': 'りようきやく',
+    'gui.rubyteeConsent.privacyLink': 'プライバシーポリシー',
+    'gui.rubyteeConsent.consentCheckbox': '18さいいじょうです、またはほごしゃのきょかをもらいました',
+    'gui.rubyteeConsent.cancel': 'つかわない',
+    'gui.rubyteeConsent.accept': 'OK、つかう！',
+    'gui.rubyteeModal.resetConsent': 'どういをリセット',
+
     // Rubytee modal
     'gui.rubyteeModal.title': 'ルビティー',
     'gui.rubyteeModal.clearHistory': 'かいわをリセット',
