@@ -50,7 +50,7 @@ const messages = defineMessages({
     },
     aiAssistant: {
         id: 'gui.rubyToolbar.aiAssistant',
-        defaultMessage: 'Smalruby Teacher (Gemini)',
+        defaultMessage: 'Rubytee',
         description: 'Tooltip for AI assistant button'
     },
     furiganaOn: {

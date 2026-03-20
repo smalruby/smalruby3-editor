@@ -134,7 +134,7 @@
     color: white;
 }
 
-/* Gemini (model) response: no bubble, full width, markdown rendered */
+/* Rubytee (model) response: no bubble, full width, markdown rendered */
 .chat-bubble-model {
     width: 100%;
     font-size: 0.9rem;
@@ -261,7 +261,7 @@
     color: #d7ba7d;
 }
 
-/* Apply code button - centered below the last Gemini message, glowing */
+/* Apply code button - centered below the last Rubytee message, glowing */
 .apply-button-container {
     display: flex;
     flex-direction: column;

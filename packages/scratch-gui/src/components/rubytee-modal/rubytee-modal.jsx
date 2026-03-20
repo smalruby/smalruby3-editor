@@ -5,7 +5,7 @@ import {defineMessages, useIntl} from 'react-intl';
 import {marked} from 'marked';
 import hljs from 'highlight.js/lib/core';
 import rubyLang from 'highlight.js/lib/languages/ruby';
-import styles from './gemini-modal.css';
+import styles from './rubytee-modal.css';
 
 import closeIcon from '../debug-modal/icons/icon--close.svg';
 import iconAI from '../ruby-toolbar/icon--ai.svg';
@@ -39,63 +39,63 @@ const SURPRISE_PROMPTS = [
 
 const messages = defineMessages({
     title: {
-        id: 'gui.geminiModal.title',
-        defaultMessage: 'Smalruby Teacher (Gemini)',
-        description: 'Title for the Gemini AI assistant modal'
+        id: 'gui.rubyteeModal.title',
+        defaultMessage: 'Smalruby Teacher (Rubytee)',
+        description: 'Title for the Rubytee AI assistant modal'
     },
     clearHistory: {
-        id: 'gui.geminiModal.clearHistory',
+        id: 'gui.rubyteeModal.clearHistory',
         defaultMessage: 'Clear history',
         description: 'Clear chat history button label'
     },
     inputPlaceholder: {
-        id: 'gui.geminiModal.inputPlaceholder',
+        id: 'gui.rubyteeModal.inputPlaceholder',
         defaultMessage: 'Tell me what you want to create (between {min} and {max} characters)...',
         description: 'Placeholder text for message input'
     },
     send: {
-        id: 'gui.geminiModal.send',
+        id: 'gui.rubyteeModal.send',
         defaultMessage: 'Send',
         description: 'Send button label'
     },
     cancel: {
-        id: 'gui.geminiModal.cancel',
+        id: 'gui.rubyteeModal.cancel',
         defaultMessage: 'Cancel',
-        description: 'Cancel button label shown while Gemini is generating'
+        description: 'Cancel button label shown while Rubytee is generating'
     },
     thinking: {
-        id: 'gui.geminiModal.thinking',
-        defaultMessage: 'Gemini is thinking... ({seconds}s)',
+        id: 'gui.rubyteeModal.thinking',
+        defaultMessage: 'Rubytee is thinking... ({seconds}s)',
         description: 'Loading indicator text with elapsed seconds'
     },
     applyCode: {
-        id: 'gui.geminiModal.applyCode',
+        id: 'gui.rubyteeModal.applyCode',
         defaultMessage: 'Insert This Code',
         description: 'Button to apply generated code to editor'
     },
     applyCodeNote: {
-        id: 'gui.geminiModal.applyCodeNote',
+        id: 'gui.rubyteeModal.applyCodeNote',
         // eslint-disable-next-line max-len
         defaultMessage: 'AI-generated programs may not always work correctly. When that happens, enjoy debugging — finding and fixing problems in your program!',
         description: 'Disclaimer note shown below the apply code button'
     },
     emptyHistory: {
-        id: 'gui.geminiModal.emptyHistory',
+        id: 'gui.rubyteeModal.emptyHistory',
         defaultMessage: "Let's have fun programming together with Smalruby Teacher! Tell me what you want to create!",
         description: 'Placeholder shown when chat history is empty'
     },
     you: {
-        id: 'gui.geminiModal.you',
+        id: 'gui.rubyteeModal.you',
         defaultMessage: 'You',
         description: 'Label for user messages'
     },
-    gemini: {
-        id: 'gui.geminiModal.gemini',
+    rubytee: {
+        id: 'gui.rubyteeModal.rubytee',
         defaultMessage: 'Smalruby Teacher',
-        description: 'Label for Gemini messages'
+        description: 'Label for Rubytee messages'
     },
     surprise: {
-        id: 'gui.geminiModal.surprise',
+        id: 'gui.rubyteeModal.surprise',
         defaultMessage: 'Surprise me!',
         description: 'Tooltip for surprise prompt button'
     }
@@ -129,9 +129,9 @@ marked.use({renderer: markdownRenderer, ...markedOptions});
 const renderMarkdownText = text => marked.parse(text);
 
 /**
- * Split a Gemini response into alternating text/code segments.
+ * Split a Rubytee response into alternating text/code segments.
  * Returns an array like: [{type:'text', content:'...'}, {type:'code', content:'...'}, ...]
- * @param {string} text - Raw markdown text from Gemini
+ * @param {string} text - Raw markdown text from Rubytee
  * @returns {Array<{type:string, content:string}>} Segments
  */
 const splitIntoSegments = text => {
@@ -164,9 +164,9 @@ const splitIntoSegments = text => {
 };
 
 /**
- * Renders one model (Gemini) response bubble with per-code-block apply buttons.
+ * Renders one model (Rubytee) response bubble with per-code-block apply buttons.
  * @param {object} props - Component props
- * @param {string} props.text - Raw markdown text from Gemini
+ * @param {string} props.text - Raw markdown text from Rubytee
  * @param {boolean} props.isLast - Whether this is the last model message
  * @param {boolean} props.isLoading - Whether a request is in progress
  * @param {string[]} props.latestCodes - Code blocks extracted from the last response
@@ -230,7 +230,7 @@ ModelMessageContent.propTypes = {
     applyNoteLabel: PropTypes.string.isRequired
 };
 
-const GeminiModal = ({
+const RubyteeModal = ({
     isVisible,
     history,
     isLoading,
@@ -342,7 +342,7 @@ const GeminiModal = ({
                                             <span className={styles.chatLabel}>
                                                 {msg.role === 'user' ?
                                                     intl.formatMessage(messages.you) :
-                                                    intl.formatMessage(messages.gemini)
+                                                    intl.formatMessage(messages.rubytee)
                                                 }
                                             </span>
                                             {msg.role === 'user' ? (
@@ -451,7 +451,7 @@ const GeminiModal = ({
     );
 };
 
-GeminiModal.propTypes = {
+RubyteeModal.propTypes = {
     isVisible: PropTypes.bool.isRequired,
     history: PropTypes.arrayOf(PropTypes.shape({
         role: PropTypes.oneOf(['user', 'model']).isRequired,
@@ -471,10 +471,10 @@ GeminiModal.propTypes = {
     onInputKeyDown: PropTypes.func.isRequired
 };
 
-GeminiModal.defaultProps = {
+RubyteeModal.defaultProps = {
     loadingSeconds: 0,
     error: null,
     latestCodes: []
 };
 
-export default GeminiModal;
+export default RubyteeModal;

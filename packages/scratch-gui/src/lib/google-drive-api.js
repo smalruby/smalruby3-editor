@@ -13,9 +13,8 @@ import {loadAllGoogleScripts} from './google-script-loader';
 // Using 'drive.file' scope to allow:
 // - Reading files selected by the user via Picker
 // - Uploading new files to Google Drive
-// Note: 'generative-language' scope for Gemini AI (スモウルビー先生) is temporarily
-//       excluded until the OAuth consent screen is approved by Google.
-//       To re-enable, add: 'https://www.googleapis.com/auth/generative-language.peruserquota'
+// Note: 'generative-language' scope for Gemini AI was previously planned but is no longer
+//       needed. Rubytee (AI assistant) now uses Anthropic Claude via a relay server.
 const SCOPES = [
     'https://www.googleapis.com/auth/drive.file'
 ].join(' ');

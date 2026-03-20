@@ -1,15 +1,15 @@
 /* eslint-disable no-console */
 /**
- * Gemini Relay API Client
+ * Rubytee Relay API Client
  *
- * Communicates with smalruby-gemini-relay (AWS Lambda) instead of calling
- * the Gemini API directly. The relay manages the API key, system prompt,
+ * Communicates with smalruby-rubytee-relay (AWS Lambda) instead of calling
+ * the AI API directly. The relay manages the API key, system prompt,
  * input validation, and rate limiting.
  *
- * API: POST <GEMINI_RELAY_ENDPOINT>/generate
+ * API: POST <RUBYTEE_RELAY_ENDPOINT>/generate
  */
 
-const GEMINI_RELAY_ENDPOINT = process.env.GEMINI_RELAY_ENDPOINT || '';
+const RUBYTEE_RELAY_ENDPOINT = process.env.RUBYTEE_RELAY_ENDPOINT || '';
 
 /**
  * Error thrown when the relay returns 429 (rate limit exceeded)
@@ -23,23 +23,23 @@ class RateLimitError extends Error {
 }
 
 /**
- * GeminiAPI class
- * Manages chat history and communication with the smalruby-gemini-relay
+ * RubyteeAPI class
+ * Manages chat history and communication with the smalruby-rubytee-relay
  */
-class GeminiAPI {
+class RubyteeAPI {
     constructor () {
         this.history = [];
         this._abortController = null;
     }
 
     /**
-     * Send a message to the Gemini relay and return the response text.
+     * Send a message to the Rubytee relay and return the response text.
      * @param {string} userMessage - The user's message
      * @param {object} stateContext - Current vm/sprite/stage state
      * @param {object} stateContext.sprite - Current sprite state
      * @param {object} stateContext.stage - Stage state
      * @param {object} stateContext.vm - VM state (extensions)
-     * @returns {Promise<string>} The response text from Gemini
+     * @returns {Promise<string>} The response text from the AI
      */
     async sendMessage (userMessage, stateContext) {
         // Abort any in-flight request before starting a new one
@@ -58,7 +58,7 @@ class GeminiAPI {
             stateContext: stateContext || {}
         };
 
-        const url = `${GEMINI_RELAY_ENDPOINT}/generate`;
+        const url = `${RUBYTEE_RELAY_ENDPOINT}/generate`;
         const startTime = Date.now();
 
         try {
@@ -77,7 +77,7 @@ class GeminiAPI {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Gemini relay error ${response.status}: ${errorText}`);
+                throw new Error(`Rubytee relay error ${response.status}: ${errorText}`);
             }
 
             // Check if aborted after fetch completed
@@ -102,16 +102,16 @@ class GeminiAPI {
             // Record to window.smalruby for debugging via browser console
             if (typeof window !== 'undefined') {
                 window.smalruby = window.smalruby || {};
-                window.smalruby.gemini = window.smalruby.gemini || {exchanges: []};
-                window.smalruby.gemini.exchanges.push({
+                window.smalruby.rubytee = window.smalruby.rubytee || {exchanges: []};
+                window.smalruby.rubytee.exchanges.push({
                     userMessage,
                     responseText,
-                    codeBlocks: GeminiAPI.extractAllCodeBlocks(responseText),
+                    codeBlocks: RubyteeAPI.extractAllCodeBlocks(responseText),
                     elapsedMs,
                     outputTokens,
                     timestamp: new Date().toISOString()
                 });
-                window.smalruby.gemini.lastElapsedMs = elapsedMs;
+                window.smalruby.rubytee.lastElapsedMs = elapsedMs;
             }
 
             this._abortController = null;
@@ -121,7 +121,7 @@ class GeminiAPI {
             if (error.name === 'AbortError' || error.name === 'RateLimitError') {
                 throw error;
             }
-            console.error('[GeminiAPI] Failed to send message:', error);
+            console.error('[RubyteeAPI] Failed to send message:', error);
             throw error;
         }
     }
@@ -144,18 +144,18 @@ class GeminiAPI {
     }
 
     /**
-     * Extract a Ruby code block from Gemini's markdown response (first match only)
-     * @param {string} text - Response text from Gemini
+     * Extract a Ruby code block from the AI's markdown response (first match only).
+     * @param {string} text - Response text from the AI
      * @returns {string|null} Extracted code or null if not found
      */
     static extractCodeBlock (text) {
-        const blocks = GeminiAPI.extractAllCodeBlocks(text);
+        const blocks = RubyteeAPI.extractAllCodeBlocks(text);
         return blocks.length > 0 ? blocks[0] : null;
     }
 
     /**
-     * Extract all Ruby code blocks from Gemini's markdown response
-     * @param {string} text - Response text from Gemini
+     * Extract all Ruby code blocks from the AI's markdown response.
+     * @param {string} text - Response text from the AI
      * @returns {string[]} Array of extracted code blocks (may be empty)
      */
     static extractAllCodeBlocks (text) {
@@ -175,4 +175,4 @@ class GeminiAPI {
 }
 
 export {RateLimitError};
-export default GeminiAPI;
+export default RubyteeAPI;

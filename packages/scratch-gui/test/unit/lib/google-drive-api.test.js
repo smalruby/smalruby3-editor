@@ -4,7 +4,7 @@
  * Tests focus on OAuth token management improvements (Phase 1):
  * - Token expiry detection
  * - Re-authentication flow
- * - Gemini scope inclusion
+ * - OAuth scope management
  */
 
 // Mock google-script-loader before importing google-drive-api

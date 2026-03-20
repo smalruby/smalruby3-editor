@@ -1,12 +1,12 @@
 /**
- * Smalruby state context for Gemini AI assistant
+ * Smalruby state context for Rubytee AI assistant
  *
  * Provides helper to build the state context section describing the current
- * sprite/stage state. This is sent to smalruby-gemini-relay as structured JSON
+ * sprite/stage state. This is sent to smalruby-rubytee-relay as structured JSON
  * (stateContext), where the relay builds the full system prompt (in English).
  *
  * Note: The full system instruction (Smalruby language spec, guidelines, etc.)
- * is managed by infra/smalruby-gemini-relay, not here. This file only manages
+ * is managed by infra/smalruby-rubytee-relay, not here. This file only manages
  * the state context format for the current sprite/stage/vm state.
  */
 

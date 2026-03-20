@@ -16,7 +16,7 @@ jest.mock('@monaco-editor/react', () => {
     return {__esModule: true, default: MockEditor};
 });
 jest.mock('../../../src/lib/ruby-to-blocks-converter-hoc.jsx', () => C => C);
-jest.mock('../../../src/containers/gemini-modal-hoc.jsx', () => C => C);
+jest.mock('../../../src/containers/rubytee-modal-hoc.jsx', () => C => C);
 jest.mock('../../../src/components/ruby-toolbar/ruby-toolbar.jsx', () => {
     const Mock = () => null;
     return {__esModule: true, default: Mock};
