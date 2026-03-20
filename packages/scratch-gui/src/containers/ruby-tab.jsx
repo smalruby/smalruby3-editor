@@ -38,7 +38,7 @@ import RubyDownloader from './ruby-downloader.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import FuriganaRenderer from './ruby-tab/furigana-renderer';
-import GeminiModalHOC from './gemini-modal-hoc.jsx';
+// GeminiModalHOC disabled — Smalruby Sensei feature suspended (Gemini API ToS)
 import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
 import {wrapCurrentCodeWithClass} from '../lib/insert-class';
@@ -98,8 +98,7 @@ const RubyTab = props => {
         onRevertRubyVersion, onShowAlert, onDismissAlert,
         onRequestCloseFile, onProjectTelemetryEvent,
         onSetAiSaveStatus, onClearAiSaveStatus,
-        onFontSizeChange, onMarkRubyTabUsed,
-        onOpenGeminiModal, onRegisterGeminiApply
+        onFontSizeChange, onMarkRubyTabUsed
     } = props;
 
     // --- State ---
@@ -162,9 +161,6 @@ const RubyTab = props => {
     intlRef.current = intl;
     const vmRef = useRef(vm);
     vmRef.current = vm;
-    const onRegisterGeminiApplyRef = useRef(onRegisterGeminiApply);
-    onRegisterGeminiApplyRef.current = onRegisterGeminiApply;
-
     // Load Monaco locale synchronously before first render
     const localeLoadedRef = useRef(false);
     if (!localeLoadedRef.current) {
@@ -307,10 +303,6 @@ const RubyTab = props => {
         dismissBubble(bubbleElRef.current);
     }, []);
 
-    const handleApplyGeminiCode = useCallback(code => {
-        onChangeRef.current(code);
-    }, []);
-
     // --- Stable Editor callbacks ---
 
     const handleEditorChange = useCallback(value => {
@@ -400,10 +392,7 @@ const RubyTab = props => {
 
         updateUndoRedoState();
 
-        if (onRegisterGeminiApplyRef.current) {
-            onRegisterGeminiApplyRef.current(handleApplyGeminiCode);
-        }
-    }, [handleApplyGeminiCode]);
+    }, []);
 
     // --- UI event handlers (useCallback for react/jsx-no-bind) ---
 
@@ -930,7 +919,6 @@ const RubyTab = props => {
                     onInsertClass={handleInsertClass}
                     onExecuteLine={handleExecuteLine}
                     onDismissBubble={handleDismissBubbleStable}
-                    onOpenGeminiModal={onOpenGeminiModal}
                     isRunning={!!runningBlockId}
                     canUndo={canUndo}
                     canRedo={canRedo}
@@ -1042,8 +1030,6 @@ RubyTab.propTypes = {
     intl: intlShape.isRequired,
     isVisible: PropTypes.bool,
     onChange: PropTypes.func,
-    onOpenGeminiModal: PropTypes.func,
-    onRegisterGeminiApply: PropTypes.func,
     onRequestCloseFile: PropTypes.func,
     onProjectTelemetryEvent: PropTypes.func,
     onSetAiSaveStatus: PropTypes.func,
@@ -1097,4 +1083,4 @@ const ConnectedRubyTab = RubyToBlocksConverterHOC(injectIntl(connect(
     mapDispatchToProps
 )(RubyTab)));
 
-export default GeminiModalHOC(ConnectedRubyTab);
+export default ConnectedRubyTab;
