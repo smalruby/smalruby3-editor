@@ -1,8 +1,8 @@
 {
-  "name": "smalruby-gemini-relay",
+  "name": "smalruby-rubytee-relay",
   "version": "0.1.0",
   "bin": {
-    "smalruby-gemini-relay": "bin/gemini-relay.js"
+    "smalruby-rubytee-relay": "bin/rubytee-relay.js"
   },
   "scripts": {
     "build": "tsc",

@@ -8,7 +8,7 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as path from 'path';
 import { Construct } from 'constructs';
 
-export class GeminiRelayStack extends cdk.Stack {
+export class RubyteeRelayStack extends cdk.Stack {
   public readonly table: dynamodb.Table;
   public readonly api: apigatewayv2.HttpApi;
 
@@ -31,14 +31,14 @@ export class GeminiRelayStack extends cdk.Stack {
     const minUserMessageLength = parseInt(process.env.MIN_USER_MESSAGE_LENGTH || '10', 10);
 
     // Stack全体にタグ付与
-    cdk.Tags.of(this).add('Project', 'GeminiRelay');
+    cdk.Tags.of(this).add('Project', 'RubyteeRelay');
     cdk.Tags.of(this).add('Stage', stage);
     cdk.Tags.of(this).add('Service', 'Lambda');
     cdk.Tags.of(this).add('ManagedBy', 'CDK');
 
     // DynamoDB Table for rate limiting
     this.table = new dynamodb.Table(this, 'RateLimitTable', {
-      tableName: `GeminiRelayRateLimit${stageSuffix}`,
+      tableName: `RubyteeRelayRateLimit${stageSuffix}`,
       partitionKey: {
         name: 'sourceIp',
         type: dynamodb.AttributeType.STRING,
@@ -58,15 +58,15 @@ export class GeminiRelayStack extends cdk.Stack {
     cdk.Tags.of(this.table).add('ResourceType', 'DynamoDB');
 
     // CloudWatch Log Group (explicit, for retention control)
-    const logGroup = new logs.LogGroup(this, 'GeminiRelayHandlerLogGroup', {
-      logGroupName: `/aws/lambda/GeminiRelayHandler${stageSuffix}`,
+    const logGroup = new logs.LogGroup(this, 'RubyteeRelayHandlerLogGroup', {
+      logGroupName: `/aws/lambda/RubyteeRelayHandler${stageSuffix}`,
       retention: stage === 'prod' ? logs.RetentionDays.ONE_MONTH : logs.RetentionDays.ONE_WEEK,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     // Lambda function (esbuild bundling)
-    const handlerFn = new lambdaNodejs.NodejsFunction(this, 'GeminiRelayHandler', {
-      functionName: `GeminiRelayHandler${stageSuffix}`,
+    const handlerFn = new lambdaNodejs.NodejsFunction(this, 'RubyteeRelayHandler', {
+      functionName: `RubyteeRelayHandler${stageSuffix}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       entry: path.join(__dirname, '../lambda/handler.ts'),
       handler: 'handler',
@@ -75,7 +75,8 @@ export class GeminiRelayStack extends cdk.Stack {
       logGroup,
       environment: {
         RATE_LIMIT_TABLE_NAME: this.table.tableName,
-        GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-3-5-haiku-20241022',
         RATE_LIMIT_WINDOW_MINUTES: String(rateLimitWindowMinutes),
         RATE_LIMIT_MAX_REQUESTS: String(rateLimitMaxRequests),
         MAX_USER_MESSAGE_LENGTH: String(maxUserMessageLength),
@@ -94,8 +95,8 @@ export class GeminiRelayStack extends cdk.Stack {
     this.table.grantReadWriteData(handlerFn);
 
     // API Gateway HTTP API
-    this.api = new apigatewayv2.HttpApi(this, 'GeminiRelayApi', {
-      apiName: `GeminiRelayApi${stageSuffix}`,
+    this.api = new apigatewayv2.HttpApi(this, 'RubyteeRelayApi', {
+      apiName: `RubyteeRelayApi${stageSuffix}`,
       corsPreflight: {
         allowOrigins: corsAllowOrigins,
         allowMethods: [apigatewayv2.CorsHttpMethod.POST, apigatewayv2.CorsHttpMethod.OPTIONS],
@@ -109,7 +110,7 @@ export class GeminiRelayStack extends cdk.Stack {
       path: '/generate',
       methods: [apigatewayv2.HttpMethod.POST],
       integration: new apigatewayv2Integrations.HttpLambdaIntegration(
-        'GeminiRelayIntegration',
+        'RubyteeRelayIntegration',
         handlerFn
       ),
     });
@@ -129,7 +130,7 @@ export class GeminiRelayStack extends cdk.Stack {
     // Outputs
     new cdk.CfnOutput(this, 'ApiEndpoint', {
       value: this.api.apiEndpoint,
-      description: 'Gemini Relay API endpoint (append /generate)',
+      description: 'Rubytee Relay API endpoint (append /generate)',
     });
 
     new cdk.CfnOutput(this, 'RateLimitTableName', {

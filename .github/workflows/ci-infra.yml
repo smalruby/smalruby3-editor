@@ -86,61 +86,61 @@ jobs:
         continue-on-error: true
 
   # ---------------------------------------------------------------------------
-  # smalruby-gemini-relay
+  # smalruby-rubytee-relay
   # ---------------------------------------------------------------------------
-  gemini-relay-unit-tests:
-    name: "[gemini-relay] Unit Tests"
+  rubytee-relay-unit-tests:
+    name: "[rubytee-relay] Unit Tests"
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: infra/smalruby-gemini-relay
+        working-directory: infra/smalruby-rubytee-relay
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
       - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
-          node-version-file: infra/smalruby-gemini-relay/.node-version
+          node-version-file: infra/smalruby-rubytee-relay/.node-version
           cache: npm
-          cache-dependency-path: infra/smalruby-gemini-relay/package-lock.json
+          cache-dependency-path: infra/smalruby-rubytee-relay/package-lock.json
       - name: Install dependencies
         run: npm ci
       - name: Run unit tests
         run: npm test
 
-  gemini-relay-cdk-build:
-    name: "[gemini-relay] CDK Build & Synth"
+  rubytee-relay-cdk-build:
+    name: "[rubytee-relay] CDK Build & Synth"
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: infra/smalruby-gemini-relay
+        working-directory: infra/smalruby-rubytee-relay
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
       - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
-          node-version-file: infra/smalruby-gemini-relay/.node-version
+          node-version-file: infra/smalruby-rubytee-relay/.node-version
           cache: npm
-          cache-dependency-path: infra/smalruby-gemini-relay/package-lock.json
+          cache-dependency-path: infra/smalruby-rubytee-relay/package-lock.json
       - name: Install dependencies
         run: npm ci
       - name: Build TypeScript
         run: npm run build
       - name: Synthesize CDK stack
         env:
-          GEMINI_API_KEY: 'dummy-key-for-synth'
+          ANTHROPIC_API_KEY: 'dummy-key-for-synth'
         run: npx cdk synth --context stage=stg
 
-  gemini-relay-security:
-    name: "[gemini-relay] Security Audit"
+  rubytee-relay-security:
+    name: "[rubytee-relay] Security Audit"
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: infra/smalruby-gemini-relay
+        working-directory: infra/smalruby-rubytee-relay
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
       - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
         with:
-          node-version-file: infra/smalruby-gemini-relay/.node-version
+          node-version-file: infra/smalruby-rubytee-relay/.node-version
           cache: npm
-          cache-dependency-path: infra/smalruby-gemini-relay/package-lock.json
+          cache-dependency-path: infra/smalruby-rubytee-relay/package-lock.json
       - name: Install dependencies
         run: npm ci
       - name: Run npm audit

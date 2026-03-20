@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/gemini-relay.ts",
+  "app": "npx ts-node --prefer-ts-exts bin/rubytee-relay.ts",
   "watch": {
     "include": ["**"],
     "exclude": [

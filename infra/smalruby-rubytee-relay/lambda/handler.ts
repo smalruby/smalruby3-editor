@@ -7,7 +7,8 @@ import { DynamoDBDocumentClient, UpdateCommand, GetCommand } from '@aws-sdk/lib-
 // Configuration (from environment variables)
 // ---------------------------------------------------------------------------
 const RATE_LIMIT_TABLE_NAME = process.env.RATE_LIMIT_TABLE_NAME || '';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-3-5-haiku-20241022';
 const RATE_LIMIT_WINDOW_MINUTES = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES || '35', 10);
 const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '40', 10);
 const MAX_USER_MESSAGE_LENGTH = parseInt(process.env.MAX_USER_MESSAGE_LENGTH || '250', 10);
@@ -18,9 +19,9 @@ const MAX_CURRENT_CODE_LENGTH = 1000;    // currentCode in stateContext
 const MAX_HISTORY_TURNS = 20;            // conversation turns
 const MAX_HISTORY_TURN_TEXT_LENGTH = 1000; // chars per history turn
 
-// Gemini model
-const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+// Anthropic API
+const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_VERSION = '2023-06-01';
 
 // ---------------------------------------------------------------------------
 // DynamoDB client
@@ -632,64 +633,89 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     };
   }
 
-  // Build Gemini request
+  // Build Claude request
   const systemInstruction = buildSystemInstruction(body.stateContext);
-  const newUserTurn: HistoryTurn = {
-    role: 'user',
-    parts: [{ text: body.userMessage }],
+
+  // Convert history to Claude messages format
+  // Input: { role: 'user'|'model', parts: [{ text }] }
+  // Claude: { role: 'user'|'assistant', content: string }
+  const claudeMessages = (body.history || []).map((turn: HistoryTurn) => ({
+    role: turn.role === 'model' ? 'assistant' as const : 'user' as const,
+    content: turn.parts[0].text,
+  }));
+  claudeMessages.push({ role: 'user' as const, content: body.userMessage });
+
+  const claudeRequestBody = {
+    model: CLAUDE_MODEL,
+    max_tokens: 1024,
+    system: [
+      {
+        type: 'text',
+        text: systemInstruction,
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages: claudeMessages,
   };
-  const contents = [...(body.history || []), newUserTurn];
 
-  const geminiRequestBody = {
-    system_instruction: {
-      parts: [{ text: systemInstruction }],
-    },
-    contents,
-    generationConfig: {
-      temperature: 0.7,
-    },
-  };
-
-  // Call Gemini API
-  const geminiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-
+  // Call Anthropic Claude API
   try {
-    const geminiResponse = await fetch(geminiUrl, {
+    const claudeResponse = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(geminiRequestBody),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': ANTHROPIC_VERSION,
+        'anthropic-beta': 'prompt-caching-2024-07-31',
+      },
+      body: JSON.stringify(claudeRequestBody),
     });
 
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text();
-      console.error(`[Gemini] API error ${geminiResponse.status}: ${errText}`);
+    if (!claudeResponse.ok) {
+      const errText = await claudeResponse.text();
+      console.error(`[Claude] API error ${claudeResponse.status}: ${errText}`);
+
+      // Map Anthropic error codes to appropriate relay responses
+      if (claudeResponse.status === 529) {
+        // Anthropic overloaded
+        return {
+          statusCode: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'AI_OVERLOADED' }),
+        };
+      }
+
       return {
         statusCode: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'GEMINI_API_ERROR', status: geminiResponse.status }),
+        body: JSON.stringify({ error: 'AI_API_ERROR', status: claudeResponse.status }),
       };
     }
 
-    const geminiData = await geminiResponse.json() as {
-      candidates: Array<{
-        content: { parts: Array<{ text: string }> };
-        finishReason?: string;
-      }>;
-      usageMetadata?: {
-        candidatesTokenCount?: number;
-        totalTokenCount?: number;
+    const claudeData = await claudeResponse.json() as {
+      content: Array<{ type: string; text: string }>;
+      usage?: {
+        input_tokens?: number;
+        output_tokens?: number;
+        cache_creation_input_tokens?: number;
+        cache_read_input_tokens?: number;
       };
     };
 
-    const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const outputTokens = geminiData.usageMetadata?.candidatesTokenCount || 0;
-    const totalTokens = geminiData.usageMetadata?.totalTokenCount || 0;
+    const responseText = claudeData.content?.[0]?.text || '';
+    const outputTokens = claudeData.usage?.output_tokens || 0;
+    const inputTokens = claudeData.usage?.input_tokens || 0;
+    const cacheCreationTokens = claudeData.usage?.cache_creation_input_tokens || 0;
+    const cacheReadTokens = claudeData.usage?.cache_read_input_tokens || 0;
 
     // Log token usage to CloudWatch (omit sourceIp in prod for cost/privacy)
     const logData: Record<string, unknown> = {
-      event: 'gemini_response',
+      event: 'rubytee_response',
+      model: CLAUDE_MODEL,
       outputTokens,
-      totalTokens,
+      inputTokens,
+      cacheCreationTokens,
+      cacheReadTokens,
       userMessageLength: body.userMessage.length,
     };
     if (process.env.STAGE !== 'prod') {
@@ -703,7 +729,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       body: JSON.stringify({ text: responseText, outputTokens }),
     };
   } catch (err) {
-    console.error('[Gemini] Unexpected error:', err);
+    console.error('[Claude] Unexpected error:', err);
     return {
       statusCode: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
