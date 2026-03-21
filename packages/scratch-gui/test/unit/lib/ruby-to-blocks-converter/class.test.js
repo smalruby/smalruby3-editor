@@ -2056,6 +2056,113 @@ describe('RubyToBlocksConverter/Class', () => {
             // List should be registered in context
             expect(converter._context.lists.items).toBeDefined();
         });
+
+        describe('applyTargetBlocks applies initialize values', () => {
+            let spriteTarget, stageTarget, runtime, vmConverter;
+
+            beforeEach(() => {
+                ({target: spriteTarget, stage: stageTarget, runtime} = makeSpriteTarget());
+                spriteTarget.sprite = {name: 'Sprite1', costumes: []};
+                stageTarget.sprite = {name: 'Stage', costumes: []};
+            });
+
+            test('sprite: variable values are applied to target', async () => {
+                vmConverter = makeConverter(spriteTarget, runtime, {version: '2'});
+                code = `
+                    class Sprite1
+                      def initialize
+                        @x = 10
+                        @name = "hello"
+                      end
+
+                      when_flag_clicked do
+                        move(10)
+                      end
+                    end
+                `;
+                const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+                expect(vmConverter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+                await vmConverter.applyTargetBlocks(spriteTarget);
+
+                // Find instance variables on the sprite target
+                const xVar = spriteTarget.lookupVariableByNameAndType('x', '');
+                const nameVar = spriteTarget.lookupVariableByNameAndType('name', '');
+                expect(xVar).not.toBeNull();
+                expect(nameVar).not.toBeNull();
+                expect(xVar.value).toEqual(10);
+                expect(nameVar.value).toEqual('hello');
+            });
+
+            test('sprite: list values are applied to target', async () => {
+                vmConverter = makeConverter(spriteTarget, runtime, {version: '2'});
+                code = `
+                    class Sprite1
+                      def initialize
+                        @items = ["a", "b", "c"]
+                      end
+
+                      when_flag_clicked do
+                        move(10)
+                      end
+                    end
+                `;
+                const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+                expect(vmConverter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+                await vmConverter.applyTargetBlocks(spriteTarget);
+
+                const itemsList = spriteTarget.lookupVariableByNameAndType('items', 'list');
+                expect(itemsList).not.toBeNull();
+                expect(itemsList.value).toEqual(['a', 'b', 'c']);
+            });
+
+            test('stage: global variable values are applied', async () => {
+                vmConverter = makeConverter(stageTarget, runtime, {version: '2'});
+                code = `
+                    class Stage
+                      def initialize
+                        $score = 100
+                      end
+
+                      when_flag_clicked do
+                        switch_backdrop("Arctic")
+                      end
+                    end
+                `;
+                const res = await vmConverter.targetCodeToBlocks(stageTarget, code);
+                expect(vmConverter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+                await vmConverter.applyTargetBlocks(stageTarget);
+
+                const scoreVar = stageTarget.lookupVariableByNameAndType('score', '');
+                expect(scoreVar).not.toBeNull();
+                expect(scoreVar.value).toEqual(100);
+            });
+
+            test('empty list is applied correctly', async () => {
+                vmConverter = makeConverter(spriteTarget, runtime, {version: '2'});
+                code = `
+                    class Sprite1
+                      def initialize
+                        @items = []
+                      end
+
+                      when_flag_clicked do
+                        move(10)
+                      end
+                    end
+                `;
+                const res = await vmConverter.targetCodeToBlocks(spriteTarget, code);
+                expect(vmConverter.errors).toHaveLength(0);
+                expect(res).toBeTruthy();
+                await vmConverter.applyTargetBlocks(spriteTarget);
+
+                const itemsList = spriteTarget.lookupVariableByNameAndType('items', 'list');
+                expect(itemsList).not.toBeNull();
+                expect(itemsList.value).toEqual([]);
+            });
+        });
     });
 
     describe('set_variables/set_lists rejected in V2', () => {

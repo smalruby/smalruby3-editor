@@ -96,6 +96,20 @@ const TargetApplier = {
             });
         });
 
+        // Apply initialize values to variables/lists
+        if (this._context.initializeValues) {
+            Object.keys(this._context.initializeValues).forEach(varName => {
+                const {value, type} = this._context.initializeValues[varName];
+                // Find the variable on the appropriate target
+                const varType = type === 'list' ? Variable.LIST_TYPE : Variable.SCALAR_TYPE;
+                const owner = target.isStage ? stage : target;
+                const existingVar = owner.lookupVariableByNameAndType(varName, varType, !target.isStage);
+                if (existingVar) {
+                    existingVar.value = value;
+                }
+            });
+        }
+
         // Update variable IDs in blocks
         Object.keys(this._context.blocks).forEach(blockId => {
             const block = this._context.blocks[blockId];
