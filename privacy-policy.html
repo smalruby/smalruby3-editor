@@ -83,14 +83,15 @@
     Google API から取得した情報の使用は、<a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API サービスのユーザーデータポリシー</a>に準拠します。これには、限定的な使用の要件が含まれます。
   </p>
 
-  <h2>2.3 AI コード生成支援（スモウルビー先生）について</h2>
+  <h2>2.3 AI コード生成支援（ルビティー）について</h2>
   <p>
-    本サービスでは、AI による Ruby コード生成支援機能「スモウルビー先生」をご利用いただけます。この機能は、当法人が運営する中継サービス（smalruby-gemini-relay）を経由して Google の Gemini API に接続します。<strong>Google アカウントへのログインは不要です。</strong>
+    本サービスでは、AI による Ruby コード生成支援機能「ルビティー」をご利用いただけます。この機能は、当法人が運営する中継サービス（smalruby-rubytee-relay）を経由して Anthropic 社の Claude API に接続します。<strong>Google アカウントへのログインは不要です。</strong>
   </p>
   <ul>
-    <li>この機能をご利用の場合、入力されたコードの文脈情報が当法人の中継サービス（AWS Lambda）を経由して Gemini API に送信されます。</li>
-    <li>中継サービスはリクエストを転送するのみで、コードの内容を保存しません。</li>
-    <li>Gemini API の利用は <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Google Gemini API 利用規約</a> に従います。</li>
+    <li>この機能をご利用の場合、入力されたコードの文脈情報が当法人の中継サービス（AWS Lambda）を経由して Anthropic 社に送信されます。</li>
+    <li>中継サービスはリクエストを転送するのみで、コードの内容を保存しません。ただし、安全性の監視を目的として、匿名化されたリクエストログを一定期間保持します。</li>
+    <li>Anthropic 社の利用規約: <a href="https://www.anthropic.com/legal/aup" target="_blank" rel="noopener">Anthropic Usage Policy</a></li>
+    <li>Anthropic 社のプライバシーポリシー: <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic Privacy Policy</a></li>
   </ul>
 
   <h2>2.4 アクセス解析（Google タグマネージャー / Google Analytics）</h2>
@@ -127,7 +128,8 @@
   <p>本サービスでは以下の外部サービスを利用しています。各サービスのプライバシーポリシーについては、各社のウェブサイトをご参照ください。</p>
   <ul>
     <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google プライバシーポリシー</a>（Google Drive、Google Analytics、Google タグマネージャー）</li>
-    <li><a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener">Google Gemini API 利用規約</a>（AI コード生成支援機能）</li>
+    <li><a href="https://www.anthropic.com/legal/aup" target="_blank" rel="noopener">Anthropic Usage Policy</a>（AI コード生成支援機能「ルビティー」）</li>
+    <li><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic Privacy Policy</a>（AI コード生成支援機能「ルビティー」）</li>
   </ul>
 
   <h2>6. Cookie について</h2>
