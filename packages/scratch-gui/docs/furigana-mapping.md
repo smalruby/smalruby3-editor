@@ -173,9 +173,10 @@ Ruby tab のふりがな機能（「ふ」ボタン）で表示されるふり�
 | `end`（loop/times の do...end） | `繰り返し終了` | |
 | `end`（その他の do...end） | `ブロック終了` | イベントハンドラなど |
 | `def` | `メソッド作成` | |
+| `initialize`（メソッド名） | `初期設定` | def initialize の initialize |
 | `case` | `状態分岐` | |
 | `when` | `のとき` | |
-| `def メソッド名` | `メソッド名という名前` | def のあとの「メソッド名」 |
+| `def メソッド名` | `メソッド名という名前` | def のあとの「メソッド名」（initialize 以外） |
 | `def メソッド名(arg1, arg2)` | `引数arg1`, `引数arg2` | def メソッド名(...)の引数 |
 | `end`（def） | `作成終了` | def に対応する end |
 | `return` | `呼び出し元に返す` | |

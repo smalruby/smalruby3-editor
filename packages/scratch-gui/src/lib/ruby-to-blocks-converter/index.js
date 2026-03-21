@@ -107,6 +107,24 @@ const messages = defineMessages({
         description: 'Error message when Stage class has invalid superclass',
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidStageSuperclass'
     },
+    setVariablesListsNotSupported: {
+        defaultMessage: '"{ METHOD }" is not supported in Ruby version 2.' +
+            '\nUse def initialize to set variable and list values instead.',
+        description: 'Error message when set_variables/set_lists is used in V2 class',
+        id: 'gui.smalruby3.rubyToBlocksConverter.setVariablesListsNotSupported'
+    },
+    invalidInitializeBody: {
+        defaultMessage: '"{ SOURCE }" cannot be placed inside def initialize.' +
+            '\nOnly variable and list assignments are allowed.',
+        description: 'Error message when invalid code is in def initialize',
+        id: 'gui.smalruby3.rubyToBlocksConverter.invalidInitializeBody'
+    },
+    wrongVariableScopeInInitialize: {
+        defaultMessage: '"{ SOURCE }" uses the wrong variable scope for this class.' +
+            '\nUse { PREFIX } variables in { CLASS_TYPE } classes.',
+        description: 'Error message when wrong variable scope is used in initialize',
+        id: 'gui.smalruby3.rubyToBlocksConverter.wrongVariableScopeInInitialize'
+    },
     moduleNotSupportedInV1: {
         defaultMessage: 'module is only available in Ruby version 2.' +
             '\nPlease switch to Ruby version 2 from the settings menu.',
@@ -914,9 +932,7 @@ class RubyToBlocksConverter extends Visitor {
             set_current_costume: 'current_costume',
             set_rotation_style: 'rotation_style',
             set_costumes: 'costumes',
-            set_sounds: 'sounds',
-            set_variables: 'variables',
-            set_lists: 'lists'
+            set_sounds: 'sounds'
         };
 
         // Set of recognized set_xxx class methods (stage-specific)
@@ -924,10 +940,11 @@ class RubyToBlocksConverter extends Visitor {
             set_name: 'name',
             set_current_backdrop: 'current_backdrop',
             set_backdrops: 'backdrops',
-            set_sounds: 'sounds',
-            set_variables: 'variables',
-            set_lists: 'lists'
+            set_sounds: 'sounds'
         };
+
+        // Methods rejected in V2 (use def initialize instead)
+        const REJECTED_SET_METHODS = new Set(['set_variables', 'set_lists']);
 
         // Methods only allowed in sprite classes (forbidden in Stage)
         const SPRITE_ONLY_METHODS = new Set([
@@ -945,10 +962,10 @@ class RubyToBlocksConverter extends Visitor {
         // Canonical attribute order for comment text
         const SPRITE_ATTR_ORDER = [
             'sprite', 'name', 'x', 'y', 'direction', 'visible', 'size',
-            'current_costume', 'rotation_style', 'costumes', 'sounds', 'variables', 'lists'
+            'current_costume', 'rotation_style', 'costumes', 'sounds'
         ];
         const STAGE_ATTR_ORDER = [
-            'name', 'current_backdrop', 'backdrops', 'sounds', 'variables', 'lists'
+            'name', 'current_backdrop', 'backdrops', 'sounds'
         ];
         const ATTR_ORDER = isStageClass ? STAGE_ATTR_ORDER : SPRITE_ATTR_ORDER;
 
@@ -973,6 +990,14 @@ class RubyToBlocksConverter extends Visitor {
                         throw new RubyToBlocksConverterError(
                             stmt,
                             this._translator(messages.stageMethodInSpriteClass, {METHOD: stmt.name})
+                        );
+                    }
+
+                    // Reject set_variables/set_lists in V2
+                    if (REJECTED_SET_METHODS.has(stmt.name)) {
+                        throw new RubyToBlocksConverterError(
+                            stmt,
+                            this._translator(messages.setVariablesListsNotSupported, {METHOD: stmt.name})
                         );
                     }
 
@@ -1208,7 +1233,18 @@ class RubyToBlocksConverter extends Visitor {
             this._context.currentModuleName = null;
         }
 
-        // Visit class body, filtering out set_xxx calls and include statements
+        // Pre-scan for def initialize and process it
+        const initializeNodes = new Set();
+        if (node.body && node.body.body) {
+            for (const stmt of node.body.body) {
+                if (this._getNodeTypeName(stmt) === 'DefNode' && stmt.name === 'initialize') {
+                    initializeNodes.add(stmt);
+                    this._processInitialize(stmt, isStageClass);
+                }
+            }
+        }
+
+        // Visit class body, filtering out set_xxx calls, include statements, and def initialize
         if (node.body && node.body.body) {
             const filteredStatements = node.body.body.filter(stmt => {
                 if (this._getNodeTypeName(stmt) === 'CallNode' &&
@@ -1218,6 +1254,10 @@ class RubyToBlocksConverter extends Visitor {
                 }
                 // Filter out include statements (already processed above)
                 if (includeStatements.has(stmt)) {
+                    return false;
+                }
+                // Filter out def initialize (already processed above)
+                if (initializeNodes.has(stmt)) {
                     return false;
                 }
                 return true;
@@ -1264,6 +1304,178 @@ class RubyToBlocksConverter extends Visitor {
             return [...moduleBlocks, ...blocks];
         }
         return moduleBlocks;
+    }
+
+    /**
+     * Process def initialize in a class body.
+     * Extracts variable/list assignments and stores them in context.
+     * @param {object} defNode - The DefNode for initialize
+     * @param {boolean} isStageClass - Whether this is a Stage class
+     */
+    _processInitialize (defNode, isStageClass) {
+        const commentParts = [];
+
+        // Save arguments if present
+        if (defNode.parameters) {
+            let params = this._getSource(defNode.parameters);
+            if (params) {
+                // Ensure params are wrapped in parentheses for unambiguous round-trip
+                if (!params.startsWith('(')) {
+                    params = `(${params})`;
+                }
+                commentParts.push(`args=${params}`);
+            }
+        }
+
+        // Get body statements
+        let bodyStmts = [];
+        if (defNode.body && defNode.body.body) {
+            bodyStmts = Array.isArray(defNode.body.body) ?
+                defNode.body.body :
+                [defNode.body.body];
+        }
+
+        // Check for super at the beginning
+        let startIndex = 0;
+        if (bodyStmts.length > 0) {
+            const firstType = this._getNodeTypeName(bodyStmts[0]);
+            if (firstType === 'SuperNode') {
+                const superArgs = bodyStmts[0].arguments_;
+                if (superArgs && superArgs.arguments_ && superArgs.arguments_.length > 0) {
+                    const argsSource = superArgs.arguments_.map(a => this._getSource(a)).join(', ');
+                    commentParts.push(`super=(${argsSource})`);
+                } else {
+                    commentParts.push('super');
+                }
+                startIndex = 1;
+            } else if (firstType === 'ForwardingSuperNode') {
+                commentParts.push('super');
+                startIndex = 1;
+            }
+        }
+
+        // Process body statements (variable/list assignments only)
+        const initializeValues = {};
+        for (let i = startIndex; i < bodyStmts.length; i++) {
+            const stmt = bodyStmts[i];
+            const stmtType = this._getNodeTypeName(stmt);
+
+            if (stmtType === 'InstanceVariableWriteNode') {
+                if (isStageClass) {
+                    throw new RubyToBlocksConverterError(
+                        stmt,
+                        this._translator(messages.wrongVariableScopeInInitialize, {
+                            SOURCE: this._getSource(stmt),
+                            PREFIX: '$',
+                            CLASS_TYPE: 'Stage'
+                        })
+                    );
+                }
+                const varName = stmt.name.replace(/^@/, '');
+                const value = this._extractInitializeValue(stmt.value);
+                if (value === null) {
+                    throw new RubyToBlocksConverterError(
+                        stmt,
+                        this._translator(messages.invalidInitializeBody, {
+                            SOURCE: this._truncateSource(this._getSource(stmt))
+                        })
+                    );
+                }
+                if (Array.isArray(value)) {
+                    initializeValues[varName] = {value, type: 'list'};
+                    this._lookupOrCreateList(`@${varName}`);
+                } else {
+                    initializeValues[varName] = {value, type: ''};
+                    this._lookupOrCreateVariable(`@${varName}`);
+                }
+            } else if (stmtType === 'GlobalVariableWriteNode') {
+                if (!isStageClass) {
+                    throw new RubyToBlocksConverterError(
+                        stmt,
+                        this._translator(messages.wrongVariableScopeInInitialize, {
+                            SOURCE: this._getSource(stmt),
+                            PREFIX: '@',
+                            CLASS_TYPE: 'sprite'
+                        })
+                    );
+                }
+                const varName = stmt.name.replace(/^\$/, '');
+                const value = this._extractInitializeValue(stmt.value);
+                if (value === null) {
+                    throw new RubyToBlocksConverterError(
+                        stmt,
+                        this._translator(messages.invalidInitializeBody, {
+                            SOURCE: this._truncateSource(this._getSource(stmt))
+                        })
+                    );
+                }
+                if (Array.isArray(value)) {
+                    initializeValues[varName] = {value, type: 'list'};
+                    this._lookupOrCreateList(`$${varName}`);
+                } else {
+                    initializeValues[varName] = {value, type: ''};
+                    this._lookupOrCreateVariable(`$${varName}`);
+                }
+            } else {
+                const src = this._truncateSource(this._getSource(stmt));
+                throw new RubyToBlocksConverterError(
+                    stmt,
+                    this._translator(messages.invalidInitializeBody, {SOURCE: src})
+                );
+            }
+        }
+
+        this._context.initializeValues = initializeValues;
+
+        // Create comment for round-trip
+        if (commentParts.length > 0) {
+            this._createComment(`@ruby:initialize:${commentParts.join(',')}`, null);
+        }
+    }
+
+    /**
+     * Extract a scalar or array value from an AST node for def initialize.
+     * @param {object} valueNode - AST node representing the value
+     * @returns {number|string|boolean|Array|null} The extracted value, or null if not supported
+     */
+    _extractInitializeValue (valueNode) {
+        const type = this._getNodeTypeName(valueNode);
+        switch (type) {
+        case 'IntegerNode':
+            return valueNode.value;
+        case 'FloatNode':
+            return valueNode.value;
+        case 'StringNode': {
+            const unescaped = valueNode.unescaped;
+            return typeof unescaped === 'object' ? unescaped.value : unescaped;
+        }
+        case 'TrueNode':
+            return true;
+        case 'FalseNode':
+            return false;
+        case 'NilNode':
+            return '';
+        case 'CallNode':
+            // Handle negative numbers: -10 (parsed as CallNode with name '-@')
+            if (valueNode.name === '-@') {
+                const inner = this._extractInitializeValue(valueNode.receiver);
+                if (typeof inner === 'number') return -inner;
+            }
+            return null;
+        case 'ArrayNode': {
+            const elements = valueNode.elements || [];
+            const result = [];
+            for (const elem of elements) {
+                const val = this._extractInitializeValue(elem);
+                if (val === null) return null;
+                if (Array.isArray(val)) return null; // No nested arrays
+                result.push(val);
+            }
+            return result;
+        }
+        default:
+            return null;
+        }
     }
 
     /**

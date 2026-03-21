@@ -218,7 +218,11 @@ const nodeHandlers = {
     _handleDefNode (node) {
         this._addAnnotation(node.defKeywordLoc, 'メソッド作成');
         if (node.nameLoc) {
-            this._addAnnotation(node.nameLoc, `${node.name}という名前`);
+            if (node.name === 'initialize') {
+                this._addAnnotation(node.nameLoc, '初期設定');
+            } else {
+                this._addAnnotation(node.nameLoc, `${node.name}という名前`);
+            }
         }
         if (node.endKeywordLoc) {
             this._addAnnotation(node.endKeywordLoc, '作成終了');
