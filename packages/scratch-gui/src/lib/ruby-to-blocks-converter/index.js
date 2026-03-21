@@ -107,6 +107,12 @@ const messages = defineMessages({
         description: 'Error message when Stage class has invalid superclass',
         id: 'gui.smalruby3.rubyToBlocksConverter.invalidStageSuperclass'
     },
+    setVariablesListsNotSupported: {
+        defaultMessage: '"{ METHOD }" is not supported in Ruby version 2.' +
+            '\nUse def initialize to set variable and list values instead.',
+        description: 'Error message when set_variables/set_lists is used in V2 class',
+        id: 'gui.smalruby3.rubyToBlocksConverter.setVariablesListsNotSupported'
+    },
     moduleNotSupportedInV1: {
         defaultMessage: 'module is only available in Ruby version 2.' +
             '\nPlease switch to Ruby version 2 from the settings menu.',
@@ -914,9 +920,7 @@ class RubyToBlocksConverter extends Visitor {
             set_current_costume: 'current_costume',
             set_rotation_style: 'rotation_style',
             set_costumes: 'costumes',
-            set_sounds: 'sounds',
-            set_variables: 'variables',
-            set_lists: 'lists'
+            set_sounds: 'sounds'
         };
 
         // Set of recognized set_xxx class methods (stage-specific)
@@ -924,10 +928,11 @@ class RubyToBlocksConverter extends Visitor {
             set_name: 'name',
             set_current_backdrop: 'current_backdrop',
             set_backdrops: 'backdrops',
-            set_sounds: 'sounds',
-            set_variables: 'variables',
-            set_lists: 'lists'
+            set_sounds: 'sounds'
         };
+
+        // Methods rejected in V2 (use def initialize instead)
+        const REJECTED_SET_METHODS = new Set(['set_variables', 'set_lists']);
 
         // Methods only allowed in sprite classes (forbidden in Stage)
         const SPRITE_ONLY_METHODS = new Set([
@@ -945,10 +950,10 @@ class RubyToBlocksConverter extends Visitor {
         // Canonical attribute order for comment text
         const SPRITE_ATTR_ORDER = [
             'sprite', 'name', 'x', 'y', 'direction', 'visible', 'size',
-            'current_costume', 'rotation_style', 'costumes', 'sounds', 'variables', 'lists'
+            'current_costume', 'rotation_style', 'costumes', 'sounds'
         ];
         const STAGE_ATTR_ORDER = [
-            'name', 'current_backdrop', 'backdrops', 'sounds', 'variables', 'lists'
+            'name', 'current_backdrop', 'backdrops', 'sounds'
         ];
         const ATTR_ORDER = isStageClass ? STAGE_ATTR_ORDER : SPRITE_ATTR_ORDER;
 
@@ -973,6 +978,14 @@ class RubyToBlocksConverter extends Visitor {
                         throw new RubyToBlocksConverterError(
                             stmt,
                             this._translator(messages.stageMethodInSpriteClass, {METHOD: stmt.name})
+                        );
+                    }
+
+                    // Reject set_variables/set_lists in V2
+                    if (REJECTED_SET_METHODS.has(stmt.name)) {
+                        throw new RubyToBlocksConverterError(
+                            stmt,
+                            this._translator(messages.setVariablesListsNotSupported, {METHOD: stmt.name})
                         );
                     }
 

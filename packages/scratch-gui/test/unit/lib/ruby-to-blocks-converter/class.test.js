@@ -1744,4 +1744,66 @@ describe('RubyToBlocksConverter/Class', () => {
             });
         });
     });
+
+    describe('set_variables/set_lists rejected in V2', () => {
+        test('set_variables in sprite class is an error in V2', async () => {
+            code = `
+                class Sprite1
+                  set_variables ["x", "y"]
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+            expect(converter.errors[0].text).toMatch(/set_variables/);
+        });
+
+        test('set_lists in sprite class is an error in V2', async () => {
+            code = `
+                class Sprite1
+                  set_lists ["items"]
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+            expect(converter.errors[0].text).toMatch(/set_lists/);
+        });
+
+        test('set_variables in stage class is an error in V2', async () => {
+            code = `
+                class Stage
+                  set_variables ["score"]
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+            expect(converter.errors[0].text).toMatch(/set_variables/);
+        });
+
+        test('set_lists in stage class is an error in V2', async () => {
+            code = `
+                class Stage
+                  set_lists ["items"]
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+            expect(converter.errors[0].text).toMatch(/set_lists/);
+        });
+    });
 });
