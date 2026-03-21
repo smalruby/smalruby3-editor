@@ -126,6 +126,7 @@ jobs:
       - name: Synthesize CDK stack
         env:
           ANTHROPIC_API_KEY: 'dummy-key-for-synth'
+          RUBYTEE_CUSTOM_DOMAIN: 'false'
         run: npx cdk synth --context stage=stg
 
   rubytee-relay-security:
