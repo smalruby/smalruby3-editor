@@ -102,6 +102,8 @@ export default {
     'gui.menuBar.tutorials': 'Tutorials',
     'gui.menuBar.koshienEntryForm': 'Entry Form',
     'gui.menuBar.koshienCannotChangeRubyVersion': 'The Ruby version cannot be changed when the Koshien extension is loaded.',
+    'gui.rubyVersion.v1': 'v1',
+    'gui.rubyVersion.v2': 'v2 (default)',
 
     'gui.smalruby3.gui.privacyPolicy': 'Privacy Policy',
     'gui.smalruby3.gui.feedback': 'Send feedback',

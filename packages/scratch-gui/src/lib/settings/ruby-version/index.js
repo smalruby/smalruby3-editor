@@ -6,12 +6,12 @@ const VERSION_2 = '2';
 const messages = defineMessages({
     [VERSION_1]: {
         id: 'gui.rubyVersion.v1',
-        defaultMessage: 'v1 (default)',
+        defaultMessage: 'v1',
         description: 'label for legacy Ruby version (v1)'
     },
     [VERSION_2]: {
         id: 'gui.rubyVersion.v2',
-        defaultMessage: 'v2',
+        defaultMessage: 'v2 (default)',
         description: 'label for standard Ruby version (v2)'
     },
     rubyMenu: {

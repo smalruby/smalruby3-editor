@@ -1,26 +1,29 @@
 import {VERSION_1, VERSION_2} from '.';
 
 const STORAGE_KEY = 'smalruby:rubyVersion';
-const VERSION_SWITCH_DATE = new Date('2026-04-01T00:00:00Z');
+const MIGRATION_KEY = 'smalruby:rubyVersionMigratedToV2';
 
 const isValidRubyVersion = version => [VERSION_1, VERSION_2].includes(version);
 
-const getDefaultVersion = () => {
-    const now = new Date();
-    return now >= VERSION_SWITCH_DATE ? VERSION_2 : VERSION_1;
-};
-
 const detectRubyVersion = () => {
     if (typeof window === 'undefined' || !window.localStorage) {
-        return getDefaultVersion();
+        return VERSION_2;
     }
 
-    const rubyVersion = window.localStorage.getItem(STORAGE_KEY);
+    const migrated = window.localStorage.getItem(MIGRATION_KEY);
 
+    if (migrated !== 'true') {
+        // One-time migration: set version to V2 and mark as migrated
+        window.localStorage.setItem(STORAGE_KEY, VERSION_2);
+        window.localStorage.setItem(MIGRATION_KEY, 'true');
+        return VERSION_2;
+    }
+
+    // Already migrated: respect user's stored preference
+    const rubyVersion = window.localStorage.getItem(STORAGE_KEY);
     if (isValidRubyVersion(rubyVersion)) return rubyVersion;
 
-    // No preference set. Fall back to date-based default
-    return getDefaultVersion();
+    return VERSION_2;
 };
 
 const persistRubyVersion = version => {
