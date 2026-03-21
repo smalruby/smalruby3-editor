@@ -216,12 +216,22 @@ const nodeHandlers = {
     // ---- Method definition ----
 
     _handleDefNode (node) {
-        this._addAnnotation(node.defKeywordLoc, 'メソッド作成');
-        if (node.nameLoc) {
-            this._addAnnotation(node.nameLoc, `${node.name}という名前`);
-        }
-        if (node.endKeywordLoc) {
-            this._addAnnotation(node.endKeywordLoc, '作成終了');
+        if (node.name === 'initialize') {
+            this._addAnnotation(node.defKeywordLoc, '初期設定');
+            if (node.nameLoc) {
+                this._addAnnotation(node.nameLoc, 'しょきせってい');
+            }
+            if (node.endKeywordLoc) {
+                this._addAnnotation(node.endKeywordLoc, '設定終了');
+            }
+        } else {
+            this._addAnnotation(node.defKeywordLoc, 'メソッド作成');
+            if (node.nameLoc) {
+                this._addAnnotation(node.nameLoc, `${node.name}という名前`);
+            }
+            if (node.endKeywordLoc) {
+                this._addAnnotation(node.endKeywordLoc, '作成終了');
+            }
         }
         if (node.parameters) this._walkNode(node.parameters);
         if (node.body) this._walkNode(node.body);
