@@ -177,6 +177,37 @@ Claude Haiku 4.5 の料金で概算する:
 
 ---
 
+## Phase 4: レポートの蓄積
+
+### 4a. Secret Gist に保存
+
+レポートを `/tmp/rubytee-monitor-report-YYYY-MM-DD.md` に書き出し、Secret Gist として作成する:
+
+```bash
+gh gist create /tmp/rubytee-monitor-report-YYYY-MM-DD.md \
+  -d "Rubytee monitoring report - <stage> - YYYY-MM-DD"
+rm /tmp/rubytee-monitor-report-YYYY-MM-DD.md
+```
+
+### 4b. Claude プロジェクトメモリを更新
+
+`reference_rubytee_monitoring.md` メモリの「レポート一覧」テーブルに新しい行を追加し、「前回チェック」セクションを更新する。
+
+これにより次回 `/rubytee-monitor` 実行時に前回チェック日とレポート URL を参照できる。
+
+---
+
+## Phase 5: 前回チェックからの差分（オプション）
+
+Claude メモリ `reference_rubytee_monitoring` から前回チェック情報を読み取り、前回からの変化をハイライトする:
+
+- リクエスト数の増減
+- コストの推移
+- 新しいアラートの有無
+- キャッシュ効率の変化
+
+---
+
 ## エラーハンドリング
 
 - **AWS 認証エラー**: `AWS_PROFILE` や `AWS_ACCESS_KEY_ID` が設定されているか確認を促す
