@@ -45,7 +45,7 @@ docker compose run --rm -w /app/infra/smalruby-rubytee-relay infra npx cdk deplo
 |----------|-------------|
 | `STAGE` | Deployment stage (`stg`, `stg2`, or `prod`) |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
-| `CLAUDE_MODEL` | Claude model ID (default: `claude-3-5-haiku-20241022`) |
+| `CLAUDE_MODEL` | Claude model ID (default: `claude-haiku-4-5-20251001`) |
 | `RATE_LIMIT_WINDOW_MINUTES` | Rate limit window in minutes (default: 35) |
 | `RATE_LIMIT_MAX_REQUESTS` | Max requests per window (default: 40) |
 | `MAX_USER_MESSAGE_LENGTH` | Max user message length (default: 250) |

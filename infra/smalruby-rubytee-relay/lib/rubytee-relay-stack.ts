@@ -76,7 +76,7 @@ export class RubyteeRelayStack extends cdk.Stack {
       environment: {
         RATE_LIMIT_TABLE_NAME: this.table.tableName,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
-        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-3-5-haiku-20241022',
+        CLAUDE_MODEL: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
         RATE_LIMIT_WINDOW_MINUTES: String(rateLimitWindowMinutes),
         RATE_LIMIT_MAX_REQUESTS: String(rateLimitMaxRequests),
         MAX_USER_MESSAGE_LENGTH: String(maxUserMessageLength),
