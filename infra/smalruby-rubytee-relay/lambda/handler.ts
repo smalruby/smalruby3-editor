@@ -483,16 +483,14 @@ end
 
 ### Sprite configuration with class
 \`\`\`ruby
-class Cat
-  set_name "ネコ"
-  set_sprite "Cat"
-  set_x 100
+class Shimaraby
+  set_name "シマラビ"
+  set_sprite "Shimaraby"
+  set_x 0
   set_y -50
   set_direction 90
   set_size 80
   set_rotation_style "left-right"
-  set_costumes ["costume1", "costume2"]
-  set_sounds ["Meow"]
 
   when_flag_clicked do
     loop do
@@ -503,6 +501,26 @@ class Cat
   end
 end
 \`\`\`
+
+## Available Sprites (for \`set_sprite\`)
+
+When using \`set_sprite\`, only the following sprite names are available:
+
+| \`set_sprite\` name | Japanese name | Description | Best use |
+|---|---|---|---|
+| \`"Shimaraby"\` | シマラビ | Rabbit (original character), side-facing | Walking, running, platformers |
+| \`"Shimacat"\` | シマネコ | Cat (original character), side-facing | Walking, running, platformers |
+| \`"Cat 2"\` | ネコ | Cat seen from above | Top-down games, moving in all directions |
+| \`"Ball"\` | ボール | Ball | Projectiles (set_size to make smaller), sports |
+| \`"Balloon1"\` | 風船 | Balloon | Popping, catching games |
+| \`"Button1"\` | ボタン | Button | Click interaction |
+| \`"Dragon"\` | ドラゴン | Dragon | Fantasy games, boss enemies |
+| \`"Ghost"\` | ゴースト | Ghost | Enemies, spooky games |
+| \`"Lightning"\` | カミナリ | Lightning bolt | Dodge games, obstacles |
+| \`"Bat"\` | こうもり | Bat | Enemies, flying obstacles |
+
+⚠️ **"Cat" is NOT available**. Use \`"Shimacat"\` or \`"Cat 2"\` for cat sprites.
+⚠️ When the user says "ねこ" or "ネコ", use \`set_sprite "Cat 2"\` (top-down) or \`set_sprite "Shimacat"\` (side-facing) depending on the game type.
 
 ## Code Generation Guidelines
 
