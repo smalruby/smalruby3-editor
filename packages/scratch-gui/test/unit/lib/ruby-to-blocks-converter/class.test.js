@@ -1745,6 +1745,319 @@ describe('RubyToBlocksConverter/Class', () => {
         });
     });
 
+    describe('def initialize', () => {
+        test('sprite: parses @var = value assignments', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                    @x = 10
+                    @name = "hello"
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const iv = converter._context.initializeValues;
+            expect(iv).toBeDefined();
+            expect(iv.x).toEqual({value: 10, type: ''});
+            expect(iv.name).toEqual({value: 'hello', type: ''});
+        });
+
+        test('sprite: parses @list = [...] assignments', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                    @items = ["a", "b", "c"]
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const iv = converter._context.initializeValues;
+            expect(iv).toBeDefined();
+            expect(iv.items).toEqual({value: ['a', 'b', 'c'], type: 'list'});
+        });
+
+        test('sprite: parses empty list @list = []', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                    @items = []
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const iv = converter._context.initializeValues;
+            expect(iv).toBeDefined();
+            expect(iv.items).toEqual({value: [], type: 'list'});
+        });
+
+        test('stage: parses $var = value assignments', async () => {
+            code = `
+                class Stage
+                  def initialize
+                    $score = 100
+                    $title = "game"
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const iv = converter._context.initializeValues;
+            expect(iv).toBeDefined();
+            expect(iv.score).toEqual({value: 100, type: ''});
+            expect(iv.title).toEqual({value: 'game', type: ''});
+        });
+
+        test('stage: parses $list = [...] assignments', async () => {
+            code = `
+                class Stage
+                  def initialize
+                    $items = [1, 2, 3]
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const iv = converter._context.initializeValues;
+            expect(iv).toBeDefined();
+            expect(iv.items).toEqual({value: [1, 2, 3], type: 'list'});
+        });
+
+        test('sprite: @var in stage class is an error', async () => {
+            code = `
+                class Stage
+                  def initialize
+                    @var = 10
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('stage: $var in sprite class is an error', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                    $var = 10
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('invalid statement in initialize is an error', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                    say("hello")
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+
+        test('arguments are preserved in comment', async () => {
+            code = `
+                class Sprite1
+                  def initialize(x, y)
+                    @x = 10
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const comments = converter._context.comments;
+            const initComments = Object.values(comments).filter(c =>
+                c.text && c.text.startsWith('@ruby:initialize')
+            );
+            expect(initComments).toHaveLength(1);
+            expect(initComments[0].text).toMatch(/args=/);
+            expect(initComments[0].text).toMatch(/x, y/);
+        });
+
+        test('super is preserved in comment', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                    super
+                    @x = 10
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const comments = converter._context.comments;
+            const initComments = Object.values(comments).filter(c =>
+                c.text && c.text.startsWith('@ruby:initialize')
+            );
+            expect(initComments).toHaveLength(1);
+            expect(initComments[0].text).toMatch(/super/);
+        });
+
+        test('super with args is preserved in comment', async () => {
+            code = `
+                class Sprite1
+                  def initialize(a)
+                    super(a)
+                    @x = 10
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            const comments = converter._context.comments;
+            const initComments = Object.values(comments).filter(c =>
+                c.text && c.text.startsWith('@ruby:initialize')
+            );
+            expect(initComments).toHaveLength(1);
+            expect(initComments[0].text).toMatch(/args=a/);
+            expect(initComments[0].text).toMatch(/super=\(a\)/);
+        });
+
+        test('def initialize is not converted to blocks', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                    @x = 10
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            // def initialize should not create procedures_definition blocks
+            const blocks = converter.blocks;
+            const blockOpcodes = Object.values(blocks).map(b => b.opcode);
+            expect(blockOpcodes).not.toContain('procedures_definition');
+        });
+
+        test('empty def initialize is allowed', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+        });
+
+        test('variables in initialize are registered in context', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                    @x = 10
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            // Variable should be registered in context
+            expect(converter._context.variables.x).toBeDefined();
+        });
+
+        test('lists in initialize are registered in context', async () => {
+            code = `
+                class Sprite1
+                  def initialize
+                    @items = ["a", "b"]
+                  end
+
+                  when_flag_clicked do
+                    move(10)
+                  end
+                end
+            `;
+            const res = await converter.targetCodeToBlocks(target, code);
+            expect(converter.errors).toHaveLength(0);
+            expect(res).toBeTruthy();
+
+            // List should be registered in context
+            expect(converter._context.lists.items).toBeDefined();
+        });
+    });
+
     describe('set_variables/set_lists rejected in V2', () => {
         test('set_variables in sprite class is an error in V2', async () => {
             code = `
