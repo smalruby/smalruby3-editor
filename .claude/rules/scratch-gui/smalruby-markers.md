@@ -78,6 +78,13 @@ upstream merge 時にコンフリクトを解決しやすくするための仕�
 | `src/lib/blocks-gesture-recovery.js` | ジェスチャー復旧ハンドラー（ブロックドラッグのスタック防止） |
 | `src/lib/url-params.js` | Playwright テスト用 URL パラメーター解析ユーティリティ |
 | `src/containers/ruby-tab/debug-globals.js` | Playwright MCP 用デバッググローバル変数 |
+| `src/lib/rubytee-api.js` | Rubytee Relay API クライアント |
+| `src/lib/rubytee-context.js` | Rubytee 状態コンテキスト構築 |
+| `src/containers/rubytee-modal-hoc.jsx` | Rubytee モーダル HOC（同意フロー + チャット） |
+| `src/components/rubytee-modal/rubytee-modal.jsx` | Rubytee チャット UI |
+| `src/components/rubytee-modal/rubytee-modal.css` | Rubytee チャット CSS |
+| `src/components/rubytee-consent/rubytee-consent.jsx` | Rubytee 同意確認ダイアログ |
+| `src/components/rubytee-consent/rubytee-consent.css` | Rubytee 同意確認 CSS |
 
 ## 関連ファイル
 
