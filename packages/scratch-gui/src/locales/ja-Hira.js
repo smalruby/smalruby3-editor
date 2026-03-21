@@ -448,7 +448,7 @@ export default {
     'gui.rubyteeModal.resetConsent': 'どういをリセット',
 
     // Rubytee modal
-    'gui.rubyteeModal.title': 'ルビティー',
+    'gui.rubyteeModal.title': 'ルビティー（スモウルビーせんせい）',
     'gui.rubyteeModal.clearHistory': 'かいわをリセット',
     'gui.rubyteeModal.inputPlaceholder': 'つくりたいものを{min}もじから{max}もじでおしえてください...',
     'gui.rubyteeModal.send': 'そうしん',

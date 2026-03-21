@@ -442,6 +442,18 @@ const RubyteeModal = ({
 
                         {/* Footer */}
                         <div className={styles.footer}>
+                            <div className={styles.footerLeft}>
+                                {onResetConsent && (
+                                    <a
+                                        className={styles.resetConsentLink}
+                                        onClick={onResetConsent}
+                                        role="button"
+                                        tabIndex={0}
+                                    >
+                                        {intl.formatMessage(messages.resetConsent)}
+                                    </a>
+                                )}
+                            </div>
                             <button
                                 className={styles.clearButton}
                                 onClick={onClearHistory}
@@ -449,14 +461,6 @@ const RubyteeModal = ({
                             >
                                 {intl.formatMessage(messages.clearHistory)}
                             </button>
-                            {onResetConsent && (
-                                <button
-                                    className={styles.clearButton}
-                                    onClick={onResetConsent}
-                                >
-                                    {intl.formatMessage(messages.resetConsent)}
-                                </button>
-                            )}
                         </div>
                     </div>
                 </div>

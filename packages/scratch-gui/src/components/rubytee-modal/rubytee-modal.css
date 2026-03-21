@@ -466,10 +466,27 @@
 /* Footer */
 .footer {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     padding-top: 8px;
     border-top: 1px solid $ui-black-transparent;
     margin-top: 4px;
+}
+
+.footer-left {
+    display: flex;
+    align-items: center;
+}
+
+.reset-consent-link {
+    font-size: 0.75rem;
+    color: #888;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.reset-consent-link:hover {
+    color: #555;
 }
 
 .clear-button {

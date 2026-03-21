@@ -448,7 +448,7 @@ export default {
     'gui.rubyteeModal.resetConsent': '同意をリセット',
 
     // Rubytee modal
-    'gui.rubyteeModal.title': 'ルビティー',
+    'gui.rubyteeModal.title': 'ルビティー（スモウルビー先生）',
     'gui.rubyteeModal.clearHistory': '会話をリセット',
     'gui.rubyteeModal.inputPlaceholder': '作りたいものを{min}文字から{max}文字で教えてください...',
     'gui.rubyteeModal.send': '送信',
