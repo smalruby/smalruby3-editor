@@ -44,6 +44,23 @@ describe('Class error message', () => {
         expect(converter.errors[0].source).toMatch(/\.\.\.$/);
     });
 
+    test('def initialize at top level is an error', async () => {
+        const converter = new RubyToBlocksConverter(null, {version: '2'});
+        const code = 'def initialize\n  @x = 0\nend';
+        await converter.targetCodeToBlocks(target, code);
+        expect(converter.errors.length).toBeGreaterThan(0);
+        expect(converter.errors[0].text).toMatch(/initialize/);
+        expect(converter.errors[0].text).toMatch(/class/);
+    });
+
+    test('def initialize at top level with other code is an error', async () => {
+        const converter = new RubyToBlocksConverter(null, {version: '2'});
+        const code = 'def initialize\n  @x = 0\nend\n\nwhen_flag_clicked do\n  move(10)\nend';
+        await converter.targetCodeToBlocks(target, code);
+        expect(converter.errors.length).toBeGreaterThan(0);
+        expect(converter.errors[0].text).toMatch(/initialize/);
+    });
+
     test('top-level wrongInstruction error has SOURCE expanded', async () => {
         const converter = new RubyToBlocksConverter(null, {version: '2'});
         const code = 'when_key_pressed("invalid") do\nend';
