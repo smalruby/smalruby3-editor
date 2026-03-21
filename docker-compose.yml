@@ -16,6 +16,9 @@ services:
       - MESH_DATA_UPDATE_INTERVAL_MS
       - MESH_EVENT_BATCH_INTERVAL_MS
       - MESH_NETWORK_FILTER
+      - RUBYTEE_RELAY_ENDPOINT
+      - MAX_USER_MESSAGE_LENGTH
+      - MIN_USER_MESSAGE_LENGTH
     working_dir: /app
     shm_size: '4gb'
     command: npm start
