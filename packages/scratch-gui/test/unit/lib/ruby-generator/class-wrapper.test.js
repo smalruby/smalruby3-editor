@@ -217,7 +217,7 @@ describe('RubyGenerator class-wrapper helpers', () => {
                     v1: {name: 'x', type: '', value: 10}
                 }
             };
-            const commentTexts = ['@ruby:initialize:args=a,super=(a)'];
+            const commentTexts = ['@ruby:initialize:args=(a),super=(a)'];
             const lines = RubyGenerator._generateInitialize(target, commentTexts);
             expect(lines[0]).toBe('def initialize(a)');
             expect(lines).toContain('  super(a)');

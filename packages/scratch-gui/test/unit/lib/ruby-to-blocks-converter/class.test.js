@@ -1975,7 +1975,7 @@ describe('RubyToBlocksConverter/Class', () => {
                 c.text && c.text.startsWith('@ruby:initialize')
             );
             expect(initComments).toHaveLength(1);
-            expect(initComments[0].text).toMatch(/args=a/);
+            expect(initComments[0].text).toMatch(/args=\(a\)/);
             expect(initComments[0].text).toMatch(/super=\(a\)/);
         });
 

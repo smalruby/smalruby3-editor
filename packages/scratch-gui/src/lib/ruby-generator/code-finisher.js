@@ -24,13 +24,15 @@ export default function (Generator) {
 
         const comments = Generator.getTargetCommentTexts();
 
-        // Detect @ruby:class and @ruby:module comments
+        // Detect @ruby:class, @ruby:initialize, and @ruby:module comments
         let classComment = null;
         const moduleComments = {}; // moduleName -> user comment text
         const otherComments = [];
         for (const comment of comments) {
             if (comment === '@ruby:class' || comment.startsWith('@ruby:class:')) {
                 classComment = comment;
+            } else if (comment.startsWith('@ruby:initialize')) {
+                // Consumed by _generateInitialize in class-wrapper — skip
             } else {
                 // Check for module comment: "user text\n@ruby:module:ModuleName"
                 const moduleMatch = comment.match(/@ruby:module:(\S+)/);

@@ -1317,8 +1317,12 @@ class RubyToBlocksConverter extends Visitor {
 
         // Save arguments if present
         if (defNode.parameters) {
-            const params = this._getSource(defNode.parameters);
+            let params = this._getSource(defNode.parameters);
             if (params) {
+                // Ensure params are wrapped in parentheses for unambiguous round-trip
+                if (!params.startsWith('(')) {
+                    params = `(${params})`;
+                }
                 commentParts.push(`args=${params}`);
             }
         }
