@@ -125,6 +125,16 @@ export default function (Generator) {
             setCode = setLines.map(line => `${this.INDENT}${line}\n`).join('');
         }
 
+        // Generate def initialize from target variables/lists
+        let initCode = '';
+        if (target) {
+            const commentTexts = this.getTargetCommentTexts ? this.getTargetCommentTexts() || [] : [];
+            const initLines = this._generateInitialize(target, commentTexts);
+            if (initLines.length > 0) {
+                initCode = initLines.map(line => `${this.INDENT}${line}\n`).join('');
+            }
+        }
+
         // Generate include statements for modules
         let includeCode = '';
         if (includeNames.length > 0) {
@@ -168,7 +178,7 @@ export default function (Generator) {
             code = this.prefixLines(code, this.INDENT);
         }
         // Build the inner class content with separators
-        const innerParts = [setCode, includeCode, code].filter(p => p.length > 0);
+        const innerParts = [setCode, initCode, includeCode, code].filter(p => p.length > 0);
         const innerCode = innerParts.join('\n');
         let inheritance = '';
         if (superclassPath) {
@@ -216,6 +226,81 @@ export default function (Generator) {
             const soundNames = target.sprite.sounds.map(s => this.quote_(s.name));
             setLines.push(`set_sounds [${soundNames.join(', ')}]`);
         }
+    };
+
+    /**
+     * Generate def initialize lines from target's variables and lists.
+     * @param {object} target - VM target
+     * @param {Array<string>} commentTexts - Target comment texts for round-trip
+     * @returns {Array<string>} Lines of the initialize method, or empty array
+     */
+    Generator._generateInitialize = function (target, commentTexts) {
+        const isStage = target.isStage;
+        const prefix = isStage ? '$' : '@';
+
+        // Pattern to match internal variables
+        const LOCAL_PATTERN = /^_(?![A-Z])[\p{L}_][\p{L}\p{N}_]*_\d+_$/u;
+        const RETURN_PATTERN = /^_return_/;
+
+        // Collect variable/list assignments
+        const assignments = [];
+        for (const varId in target.variables) {
+            const variable = target.variables[varId];
+
+            // Skip broadcast messages
+            if (variable.type === 'broadcast_msg') continue;
+
+            // Skip internal variables
+            if (RETURN_PATTERN.test(variable.name)) continue;
+            if (LOCAL_PATTERN.test(variable.name)) continue;
+
+            const isList = variable.type === 'list';
+            let valueCode;
+            if (isList) {
+                valueCode = this.listToCode(variable.value);
+            } else {
+                valueCode = this.scalarToCode(variable.value);
+            }
+            assignments.push({
+                name: variable.name,
+                code: `  ${prefix}${variable.name} = ${valueCode}`
+            });
+        }
+
+        if (assignments.length === 0) {
+            // Check if there's an @ruby:initialize comment (args/super without variables)
+            const initComment = commentTexts.find(c => c.startsWith('@ruby:initialize'));
+            if (!initComment) return [];
+        }
+
+        // Sort alphabetically
+        assignments.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Parse @ruby:initialize comment for args and super
+        let args = '';
+        let superCall = '';
+        const initComment = commentTexts.find(c => c.startsWith('@ruby:initialize:'));
+        if (initComment) {
+            const parts = initComment.slice('@ruby:initialize:'.length);
+            // Parse comma-separated key=value pairs, but handle super=(...)
+            const argsMatch = parts.match(/args=(\([^)]*\)|[^,]*)/);
+            if (argsMatch) {
+                const argsValue = argsMatch[1];
+                args = argsValue.startsWith('(') ? argsValue : `(${argsValue})`;
+            }
+            const superMatch = parts.match(/super(?:=(\([^)]*\)))?/);
+            if (superMatch) {
+                superCall = superMatch[1] ? `  super${superMatch[1]}` : '  super';
+            }
+        }
+
+        const lines = [`def initialize${args}`];
+        if (superCall) {
+            lines.push(superCall);
+        }
+        assignments.forEach(a => lines.push(a.code));
+        lines.push('end');
+        return lines;
     };
 
     Generator._generateStageSetXxx = function (target, setLines, allowedAttributes, autoAll) {
