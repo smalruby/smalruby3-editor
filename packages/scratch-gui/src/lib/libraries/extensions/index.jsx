@@ -457,6 +457,7 @@ export default [
             />
         ),
         featured: true,
+        defaultHidden: true,
         bluetoothRequired: false,
         internetConnectionRequired: true,
         launchPeripheralConnectionFlow: true,
