@@ -160,4 +160,131 @@ describe('RubyToBlocksConverter/Control/unless', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
     });
+
+    describe('if !variable (not operator on variable)', () => {
+        test('if !$global; A; end => control_if(not(variable), branch=A)', async () => {
+            const code = `
+                if !$global
+                  move(10)
+                end
+            `;
+            const moveBlock = (await rubyToExpected(converter, target, 'move(10)'))[0];
+            const expected = [
+                {
+                    opcode: 'control_if',
+                    inputs: [
+                        {
+                            name: 'CONDITION',
+                            block: {
+                                opcode: 'operator_not',
+                                inputs: [
+                                    {
+                                        name: 'OPERAND',
+                                        block: {
+                                            opcode: 'data_variable',
+                                            fields: [
+                                                {
+                                                    name: 'VARIABLE',
+                                                    variable: '$global'
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    branches: [
+                        moveBlock
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('if !@ivar; A; end => control_if(not(variable), branch=A)', async () => {
+            const code = `
+                if !@ivar
+                  move(10)
+                end
+            `;
+            const moveBlock = (await rubyToExpected(converter, target, 'move(10)'))[0];
+            const expected = [
+                {
+                    opcode: 'control_if',
+                    inputs: [
+                        {
+                            name: 'CONDITION',
+                            block: {
+                                opcode: 'operator_not',
+                                inputs: [
+                                    {
+                                        name: 'OPERAND',
+                                        block: {
+                                            opcode: 'data_variable',
+                                            fields: [
+                                                {
+                                                    name: 'VARIABLE',
+                                                    variable: '@ivar'
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    branches: [
+                        moveBlock
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('if !local_var; A; end => control_if(not(variable), branch=A)', async () => {
+            const code = `
+                bool = true
+                if !bool
+                  say("ok")
+                end
+            `;
+            const assignBlock = (await rubyToExpected(converter, target, 'bool = true'))[0];
+            const sayBlock = (await rubyToExpected(converter, target, 'say("ok")'))[0];
+            const expected = [
+                {
+                    ...assignBlock,
+                    next: {
+                        opcode: 'control_if',
+                        inputs: [
+                            {
+                                name: 'CONDITION',
+                                block: {
+                                    opcode: 'operator_not',
+                                    inputs: [
+                                        {
+                                            name: 'OPERAND',
+                                            block: {
+                                                opcode: 'data_variable',
+                                                fields: [
+                                                    {
+                                                        name: 'VARIABLE',
+                                                        variable: '_bool_1_'
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ],
+                        branches: [
+                            sayBlock
+                        ]
+                    }
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+    });
 });

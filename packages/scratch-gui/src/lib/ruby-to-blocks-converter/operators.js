@@ -392,7 +392,8 @@ const OperatorsConverter = {
 
         converter.registerOnSend(['variable', 'boolean', 'block'], '!', 0, params => {
             const {receiver} = params;
-            if (!converter._isFalseOrBooleanBlock(receiver)) return null;
+            if (!converter._isFalseOrBooleanBlock(receiver) &&
+                !(converter._isBlock(receiver) && receiver.opcode === 'data_variable')) return null;
 
             const block = converter._createBlock('operator_not', 'value_boolean');
             converter._addInput(
