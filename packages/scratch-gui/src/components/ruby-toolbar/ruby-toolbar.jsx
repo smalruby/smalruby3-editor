@@ -205,9 +205,15 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* Rubytee AI Assistant */}
-            {props.onOpenRubyteeModal && (
-                <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
+            {/* Navigation & Command Part + Rubytee AI Assistant */}
+            <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
+                <TargetSelector
+                    editingTarget={props.editingTarget}
+                    vm={props.vm}
+                    onSelectTarget={props.onSelectTarget}
+                    onDismissBubble={props.onDismissBubble}
+                />
+                {props.onOpenRubyteeModal && (
                     <button
                         className={styles.iconButton}
                         onClick={props.onOpenRubyteeModal}
@@ -219,17 +225,7 @@ const RubyToolbar = props => {
                             alt=""
                         />
                     </button>
-                </div>
-            )}
-
-            {/* Navigation & Command Part */}
-            <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
-                <TargetSelector
-                    editingTarget={props.editingTarget}
-                    vm={props.vm}
-                    onSelectTarget={props.onSelectTarget}
-                    onDismissBubble={props.onDismissBubble}
-                />
+                )}
             </div>
 
             {/* More Menu Part */}
