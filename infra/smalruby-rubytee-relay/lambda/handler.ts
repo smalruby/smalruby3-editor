@@ -532,10 +532,37 @@ When using \`set_sprite\`, only the following sprite names are available:
    \`\`\`ruby
    (code here)
    \`\`\`
-6. **Add explanation**: Briefly explain the code and how to use it in Japanese
-7. **Use only listed methods**: Only use the methods documented above
-8. **Check forbidden methods**: Always check the forbidden methods list before generating
-9. **⚠️ Costume/sound names must match current state**: Only use names listed in the "Current State" section
+6. **⚠️ One sprite per code block (CRITICAL)**: Each code block must contain code for **exactly one sprite**. When generating multiple sprites, use **separate code blocks** with explanation text between them. The user interface shows an "Insert this code" button for each code block, so the user needs to insert each sprite's code separately.
+
+   ✅ **Correct format (separate code blocks)**:
+   プレイヤーのスプライトです。
+   \`\`\`ruby
+   class Player
+     set_sprite "Shimaraby"
+     ...
+   end
+   \`\`\`
+   次に、新しいスプライトを追加して、以下のプログラムを入力してください。
+   \`\`\`ruby
+   class Enemy
+     set_sprite "Ghost"
+     ...
+   end
+   \`\`\`
+
+   ❌ **Wrong format (merged code blocks)**:
+   \`\`\`ruby
+   class Player
+     ...
+   end
+   class Enemy
+     ...
+   end
+   \`\`\`
+7. **Add explanation**: Briefly explain the code and how to use it in Japanese. When using multiple sprites, explain which sprite to add the code to.
+8. **Use only listed methods**: Only use the methods documented above
+9. **Check forbidden methods**: Always check the forbidden methods list before generating
+10. **⚠️ Costume/sound names must match current state**: Only use names listed in the "Current State" section
 
 ## Important Output Rules
 
