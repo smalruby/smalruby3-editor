@@ -15,7 +15,7 @@ import iconRedo from './icon--redo.svg';
 import iconDownload from './icon--download.svg';
 import iconFurigana from './icon--furigana.svg';
 import iconAutoCorrect from './icon--auto-correct.svg';
-import iconAi from './icon--ai.svg';
+import iconRubytee from './icon--rubytee.svg';
 
 const RubyToolbar = props => {
     const intl = useIntl();
@@ -221,7 +221,7 @@ const RubyToolbar = props => {
                         title={intl.formatMessage(messages.aiAssistant)}
                     >
                         <img
-                            src={iconAi}
+                            src={iconRubytee}
                             alt=""
                         />
                     </button>

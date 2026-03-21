@@ -310,9 +310,17 @@
 }
 
 .chat-label {
+    display: flex;
+    align-items: center;
+    gap: 2px;
     font-size: 0.7rem;
     color: $text-primary-transparent;
     padding: 0 4px;
+}
+
+.chat-label-icon {
+    width: 14px;
+    height: 14px;
 }
 
 /* Input area */

@@ -8,7 +8,7 @@ import rubyLang from 'highlight.js/lib/languages/ruby';
 import styles from './rubytee-modal.css';
 
 import closeIcon from '../debug-modal/icons/icon--close.svg';
-import iconAI from '../ruby-toolbar/icon--ai.svg';
+import iconRubytee from '../ruby-toolbar/icon--rubytee.svg';
 import iconSurprise from '../action-menu/icon--surprise.svg';
 
 // Register only Ruby language for highlight.js (keep bundle small)
@@ -305,7 +305,7 @@ const RubyteeModal = ({
                         <div className={styles.headerTitle}>
                             <img
                                 className={styles.aiIcon}
-                                src={iconAI}
+                                src={iconRubytee}
                                 alt=""
                             />
                             {intl.formatMessage(messages.title)}
@@ -347,8 +347,16 @@ const RubyteeModal = ({
                                         >
                                             <span className={styles.chatLabel}>
                                                 {msg.role === 'user' ?
-                                                    intl.formatMessage(messages.you) :
-                                                    intl.formatMessage(messages.rubytee)
+                                                    intl.formatMessage(messages.you) : (
+                                                        <React.Fragment>
+                                                            <img
+                                                                className={styles.chatLabelIcon}
+                                                                src={iconRubytee}
+                                                                alt=""
+                                                            />
+                                                            {intl.formatMessage(messages.rubytee)}
+                                                        </React.Fragment>
+                                                    )
                                                 }
                                             </span>
                                             {msg.role === 'user' ? (

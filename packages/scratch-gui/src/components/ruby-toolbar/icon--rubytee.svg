@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20" fill="none">
+  <defs>
+    <linearGradient id="rainbow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff4444"/>
+      <stop offset="20%" stop-color="#ff9900"/>
+      <stop offset="35%" stop-color="#4488ff"/>
+      <stop offset="55%" stop-color="#8844dd"/>
+      <stop offset="75%" stop-color="#9933cc"/>
+      <stop offset="100%" stop-color="#7722bb"/>
+    </linearGradient>
+  </defs>
+  <!-- A (bold rounded text) -->
+  <text x="0.5" y="16" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="17" fill="url(#rainbow)">A</text>
+  <!-- I (bold rounded text) -->
+  <text x="11" y="16" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="17" fill="url(#rainbow)">I</text>
+  <!-- Sparkle large top-right -->
+  <path d="M17 1l.7 1.5 1.5.7-1.5.7-.7 1.5-.7-1.5-1.5-.7 1.5-.7z" fill="#ffcc00"/>
+  <!-- Sparkle medium right -->
+  <path d="M18.5 8l.5 1 1 .5-1 .5-.5 1-.5-1-1-.5 1-.5z" fill="#ffcc00"/>
+  <!-- Sparkle small top -->
+  <path d="M12 0l.3.7.7.3-.7.3-.3.7-.3-.7-.7-.3.7-.3z" fill="#ffcc00"/>
+  <!-- Sparkle tiny right-bottom -->
+  <path d="M17.5 14l.35.75.75.35-.75.35-.35.75-.35-.75-.75-.35.75-.35z" fill="#ffcc00"/>
+  <!-- Sparkle tiny left-bottom -->
+  <path d="M0.5 14.5l.25.55.55.25-.55.25-.25.55-.25-.55-.55-.25.55-.25z" fill="#ffcc00"/>
+  <!-- Sparkle micro top-left -->
+  <path d="M2 0.5l.2.45.45.2-.45.2-.2.45-.2-.45-.45-.2.45-.2z" fill="#ffcc00" opacity="0.7"/>
+  <!-- Sparkle micro mid-right -->
+  <path d="M19 5.5l.2.45.45.2-.45.2-.2.45-.2-.45-.45-.2.45-.2z" fill="#ffcc00" opacity="0.7"/>
+</svg>
