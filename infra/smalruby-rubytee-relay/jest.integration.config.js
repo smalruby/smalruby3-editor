@@ -5,8 +5,8 @@ module.exports = {
   transform: {
     '^.+\\.tsx?$': 'ts-jest'
   },
-  // Gemini APIへのリクエストがあるため、タイムアウトを30秒に設定
+  // Anthropic Claude APIへのリクエストがあるため、タイムアウトを30秒に設定
   testTimeout: 30000,
-  // .env から GEMINI_RELAY_ENDPOINT などを読み込む
+  // .env から RUBYTEE_RELAY_ENDPOINT などを読み込む
   setupFiles: ['dotenv/config']
 };

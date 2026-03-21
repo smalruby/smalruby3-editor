@@ -1,14 +1,14 @@
 /**
- * Unit tests for gemini-context.js
+ * Unit tests for rubytee-context.js
  *
- * Note: buildSystemInstruction was moved to infra/smalruby-gemini-relay.
+ * Note: buildSystemInstruction was moved to infra/smalruby-rubytee-relay.
  * This file tests only buildStateSection, which builds the sprite/stage/vm
  * state JSON passed to the relay as stateContext.
  */
 
-import {buildStateSection} from '../../../src/lib/gemini-context';
+import {buildStateSection} from '../../../src/lib/rubytee-context';
 
-describe('gemini-context', () => {
+describe('rubytee-context', () => {
     describe('buildStateSection', () => {
         test('should return empty string when all args are undefined', () => {
             const section = buildStateSection(undefined, undefined, undefined);

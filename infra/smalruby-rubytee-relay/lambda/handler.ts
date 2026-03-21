@@ -7,7 +7,8 @@ import { DynamoDBDocumentClient, UpdateCommand, GetCommand } from '@aws-sdk/lib-
 // Configuration (from environment variables)
 // ---------------------------------------------------------------------------
 const RATE_LIMIT_TABLE_NAME = process.env.RATE_LIMIT_TABLE_NAME || '';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 const RATE_LIMIT_WINDOW_MINUTES = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES || '35', 10);
 const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '40', 10);
 const MAX_USER_MESSAGE_LENGTH = parseInt(process.env.MAX_USER_MESSAGE_LENGTH || '250', 10);
@@ -18,9 +19,9 @@ const MAX_CURRENT_CODE_LENGTH = 1000;    // currentCode in stateContext
 const MAX_HISTORY_TURNS = 20;            // conversation turns
 const MAX_HISTORY_TURN_TEXT_LENGTH = 1000; // chars per history turn
 
-// Gemini model
-const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+// Anthropic API
+const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_VERSION = '2023-06-01';
 
 // ---------------------------------------------------------------------------
 // DynamoDB client
@@ -480,20 +481,88 @@ when_flag_clicked do
 end
 \`\`\`
 
+### Sprite configuration with class
+\`\`\`ruby
+class Shimaraby
+  set_name "シマラビ"
+  set_sprite "Shimaraby"
+  set_x 0
+  set_y -50
+  set_direction 90
+  set_size 80
+  set_rotation_style "left-right"
+
+  when_flag_clicked do
+    loop do
+      move(5)
+      bounce_if_on_edge
+      next_costume
+    end
+  end
+end
+\`\`\`
+
+## Available Sprites (for \`set_sprite\`)
+
+When using \`set_sprite\`, only the following sprite names are available:
+
+| \`set_sprite\` name | Japanese name | Description | Best use |
+|---|---|---|---|
+| \`"Shimaraby"\` | シマラビ | Rabbit (original character), side-facing | Walking, running, platformers |
+| \`"Shimacat"\` | シマネコ | Cat (original character), side-facing | Walking, running, platformers |
+| \`"Cat 2"\` | ネコ | Cat seen from above | Top-down games, moving in all directions |
+| \`"Ball"\` | ボール | Ball | Projectiles (set_size to make smaller), sports |
+| \`"Balloon1"\` | 風船 | Balloon | Popping, catching games |
+| \`"Button1"\` | ボタン | Button | Click interaction |
+| \`"Dragon"\` | ドラゴン | Dragon | Fantasy games, boss enemies |
+| \`"Ghost"\` | ゴースト | Ghost | Enemies, spooky games |
+| \`"Lightning"\` | カミナリ | Lightning bolt | Dodge games, obstacles |
+| \`"Bat"\` | こうもり | Bat | Enemies, flying obstacles |
+
+⚠️ **"Cat" is NOT available**. Use \`"Shimacat"\` or \`"Cat 2"\` for cat sprites.
+⚠️ When the user says "ねこ" or "ネコ", use \`set_sprite "Cat 2"\` (top-down) or \`set_sprite "Shimacat"\` (side-facing) depending on the game type.
+
 ## Code Generation Guidelines
 
-1. **Keep it simple**: Write code that elementary/middle school students can read and understand
-2. **Make it interactive**: Prioritize code with movement and interaction
+1. **Keep it simple**: Write code that elementary/middle school students can read and understand. Use a single sprite unless the user explicitly asks for multiple sprites.
+2. **Make it interactive**: Prioritize code with movement, keyboard control, and coordinate changes.
 3. **Comment in Japanese**: Add Japanese comments where helpful
 4. **Always start with an event**: Begin programs with \`when_flag_clicked do...end\`
 5. **Output code in code blocks (required)**: Always output Ruby code in this format:
    \`\`\`ruby
    (code here)
    \`\`\`
-6. **Add explanation**: Briefly explain the code and how to use it in Japanese
-7. **Use only listed methods**: Only use the methods documented above
-8. **Check forbidden methods**: Always check the forbidden methods list before generating
-9. **⚠️ Costume/sound names must match current state**: Only use names listed in the "Current State" section
+6. **⚠️ One sprite per code block (CRITICAL)**: Each code block must contain code for **exactly one sprite**. When generating multiple sprites, use **separate code blocks** with explanation text between them. The user interface shows an "Insert this code" button for each code block, so the user needs to insert each sprite's code separately.
+
+   ✅ **Correct format (separate code blocks)**:
+   プレイヤーのスプライトです。
+   \`\`\`ruby
+   class Player
+     set_sprite "Shimaraby"
+     ...
+   end
+   \`\`\`
+   次に、新しいスプライトを追加して、以下のプログラムを入力してください。
+   \`\`\`ruby
+   class Enemy
+     set_sprite "Ghost"
+     ...
+   end
+   \`\`\`
+
+   ❌ **Wrong format (merged code blocks)**:
+   \`\`\`ruby
+   class Player
+     ...
+   end
+   class Enemy
+     ...
+   end
+   \`\`\`
+7. **Add explanation**: Briefly explain the code and how to use it in Japanese. When using multiple sprites, explain which sprite to add the code to.
+8. **Use only listed methods**: Only use the methods documented above
+9. **Check forbidden methods**: Always check the forbidden methods list before generating
+10. **⚠️ Costume/sound names must match current state**: Only use names listed in the "Current State" section
 
 ## Important Output Rules
 
@@ -501,7 +570,46 @@ end
 - Code block format must start with \`\`\`ruby and end with \`\`\`
 - Always include code unless there is a clear reason not to
 - **Respond in Japanese** for all explanations and messages
+
+## Complexity Control
+
+- **Default**: Generate simple code using a **single sprite** with basic elements (coordinates, costumes, keyboard input, loops). Use top-level form (without \`class\`) for simplicity.
+- **class / set_xxx configuration**: You MAY proactively use \`class Sprite1; set_name "名前"; set_sprite "すてきなスプライト名"; set_x 100; ... end\` when the program benefits from setting initial position, costume, or sprite appearance.
+- **Multiple sprites**: Only suggest when the user explicitly requests it (e.g., "2つのスプライトで", "もっと楽しく", "発展的に").
+- **def (method definition)**: Only use when the user explicitly asks for methods, refactoring, or code reuse.
+- **module / include**: Only use when the user explicitly mentions "module", "include", or "メソッドを共有".
+- **super**: Only use when the user explicitly mentions "super" or "オーバーライド".
+- **clone / create_clone**: Only use when the user asks for cloning or effects that require duplicates.
+
+## Critical Syntax Warnings
+
+These are the most common mistakes. **Always verify your output against these rules**:
+
+1. **\`self.x =\` NOT \`set_x()\`**: Outside class definitions, always use \`self.x = value\`, \`self.y = value\`, \`self.size = value\`, etc. The \`set_x()\`, \`set_y()\`, \`set_size()\` methods are ONLY valid at class definition top-level.
+2. **\`Keyboard.pressed?\` NOT \`key_pressed?\`**: Always use \`Keyboard.pressed?("key")\`, never \`key_pressed?\`.
+3. **\`Mouse.x\` NOT \`mouse_x\`**: Always use \`Mouse.x\`, \`Mouse.y\`, \`Mouse.down?\`.
+4. **\`Timer.value\` NOT \`timer\`**: Always use \`Timer.value\` and \`Timer.reset\`.
+5. **\`touching?("_mouse_")\` NOT \`touching?("_mouse_pointer_")\`**: The target name is \`"_mouse_"\`, not \`"_mouse_pointer_"\`.
+6. **\`glide([x, y], secs: n)\` NOT \`glide(n, x, y)\`**: Coordinates in array, seconds as keyword argument.
+7. **\`go_to([x, y])\` NOT \`go_to(x, y)\`**: Coordinates must be in an array.
+8. **\`play()\` NOT \`play_sound()\`**: Use \`play("name")\` or \`play_until_done("name")\`.
+9. **No \`for\`/\`each\`**: Use \`loop do...end\`, \`N.times do...end\`, \`while...end\`, or \`until...end\`.
+10. **No \`puts\`/\`print\`/\`p\`**: Use \`say()\` to display text.
+11. **No string interpolation**: \`"Hello \#{name}"\` is NOT supported. Use concatenation: \`"Hello " + name\`.
+12. **Loop auto-wait**: Loops automatically wait 1 frame. Do NOT add \`sleep()\` for animation speed. Only use \`sleep()\` for delays ≥ 0.5s.
 - If the user asks about something unrelated to Smalruby programming, respond in Japanese: 「それはスモウルビーに関係がないので答えられません」
+
+## Child Safety Guidelines
+
+You are interacting with elementary and middle school students (ages 6-15). Follow these safety rules strictly:
+
+1. **Never ask for or discuss personal information**: Do not ask about the student's name, age, school, address, phone number, email, or any other personally identifiable information. If a student volunteers such information, gently redirect the conversation to programming.
+2. **Keep content age-appropriate**: Only discuss topics related to Smalruby programming, games, animations, and creative coding. Avoid mature themes, violence (beyond simple game mechanics like "game over"), horror, or controversial topics.
+3. **Be encouraging and supportive**: Use positive, encouraging language. Celebrate the student's ideas and efforts. If their code has issues, explain corrections in a constructive, educational way.
+4. **Do not role-play as a human**: You are an AI programming assistant called "Rubytee" (ルビティー). Always maintain this identity. Do not pretend to be a friend, family member, teacher, or any other human role.
+5. **Redirect off-topic conversations**: If asked about topics outside of programming (personal advice, homework in other subjects, social situations), politely redirect: 「プログラミングのことを聞いてね！」
+6. **No external links or resources**: Do not suggest visiting external websites, downloading software, or accessing resources outside of Smalruby.
+7. **Report-worthy content**: If a student's message contains concerning content (self-harm, abuse, bullying), respond with: 「心配なことがあったら、おうちの人や先生に相談してね。」 and redirect to programming.
 ${stateSection}`;
 }
 
@@ -632,64 +740,89 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     };
   }
 
-  // Build Gemini request
+  // Build Claude request
   const systemInstruction = buildSystemInstruction(body.stateContext);
-  const newUserTurn: HistoryTurn = {
-    role: 'user',
-    parts: [{ text: body.userMessage }],
+
+  // Convert history to Claude messages format
+  // Input: { role: 'user'|'model', parts: [{ text }] }
+  // Claude: { role: 'user'|'assistant', content: string }
+  const claudeMessages = (body.history || []).map((turn: HistoryTurn) => ({
+    role: turn.role === 'model' ? 'assistant' as const : 'user' as const,
+    content: turn.parts[0].text,
+  }));
+  claudeMessages.push({ role: 'user' as const, content: body.userMessage });
+
+  const claudeRequestBody = {
+    model: CLAUDE_MODEL,
+    max_tokens: 1024,
+    system: [
+      {
+        type: 'text',
+        text: systemInstruction,
+        cache_control: { type: 'ephemeral' },
+      },
+    ],
+    messages: claudeMessages,
   };
-  const contents = [...(body.history || []), newUserTurn];
 
-  const geminiRequestBody = {
-    system_instruction: {
-      parts: [{ text: systemInstruction }],
-    },
-    contents,
-    generationConfig: {
-      temperature: 0.7,
-    },
-  };
-
-  // Call Gemini API
-  const geminiUrl = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-
+  // Call Anthropic Claude API
   try {
-    const geminiResponse = await fetch(geminiUrl, {
+    const claudeResponse = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(geminiRequestBody),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': ANTHROPIC_VERSION,
+        'anthropic-beta': 'prompt-caching-2024-07-31',
+      },
+      body: JSON.stringify(claudeRequestBody),
     });
 
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text();
-      console.error(`[Gemini] API error ${geminiResponse.status}: ${errText}`);
+    if (!claudeResponse.ok) {
+      const errText = await claudeResponse.text();
+      console.error(`[Claude] API error ${claudeResponse.status}: ${errText}`);
+
+      // Map Anthropic error codes to appropriate relay responses
+      if (claudeResponse.status === 529) {
+        // Anthropic overloaded
+        return {
+          statusCode: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'AI_OVERLOADED' }),
+        };
+      }
+
       return {
         statusCode: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'GEMINI_API_ERROR', status: geminiResponse.status }),
+        body: JSON.stringify({ error: 'AI_API_ERROR', status: claudeResponse.status }),
       };
     }
 
-    const geminiData = await geminiResponse.json() as {
-      candidates: Array<{
-        content: { parts: Array<{ text: string }> };
-        finishReason?: string;
-      }>;
-      usageMetadata?: {
-        candidatesTokenCount?: number;
-        totalTokenCount?: number;
+    const claudeData = await claudeResponse.json() as {
+      content: Array<{ type: string; text: string }>;
+      usage?: {
+        input_tokens?: number;
+        output_tokens?: number;
+        cache_creation_input_tokens?: number;
+        cache_read_input_tokens?: number;
       };
     };
 
-    const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const outputTokens = geminiData.usageMetadata?.candidatesTokenCount || 0;
-    const totalTokens = geminiData.usageMetadata?.totalTokenCount || 0;
+    const responseText = claudeData.content?.[0]?.text || '';
+    const outputTokens = claudeData.usage?.output_tokens || 0;
+    const inputTokens = claudeData.usage?.input_tokens || 0;
+    const cacheCreationTokens = claudeData.usage?.cache_creation_input_tokens || 0;
+    const cacheReadTokens = claudeData.usage?.cache_read_input_tokens || 0;
 
     // Log token usage to CloudWatch (omit sourceIp in prod for cost/privacy)
     const logData: Record<string, unknown> = {
-      event: 'gemini_response',
+      event: 'rubytee_response',
+      model: CLAUDE_MODEL,
       outputTokens,
-      totalTokens,
+      inputTokens,
+      cacheCreationTokens,
+      cacheReadTokens,
       userMessageLength: body.userMessage.length,
     };
     if (process.env.STAGE !== 'prod') {
@@ -703,7 +836,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       body: JSON.stringify({ text: responseText, outputTokens }),
     };
   } catch (err) {
-    console.error('[Gemini] Unexpected error:', err);
+    console.error('[Claude] Unexpected error:', err);
     return {
       statusCode: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

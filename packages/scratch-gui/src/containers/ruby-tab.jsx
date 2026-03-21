@@ -38,7 +38,7 @@ import RubyDownloader from './ruby-downloader.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import FuriganaRenderer from './ruby-tab/furigana-renderer';
-// GeminiModalHOC disabled — Smalruby Sensei feature suspended (Gemini API ToS)
+import RubyteeModalHOC from './rubytee-modal-hoc.jsx';
 import collectMetadata from '../lib/collect-metadata.js';
 import {closeFileMenu} from '../reducers/menus.js';
 import {wrapCurrentCodeWithClass} from '../lib/insert-class';
@@ -98,7 +98,8 @@ const RubyTab = props => {
         onRevertRubyVersion, onShowAlert, onDismissAlert,
         onRequestCloseFile, onProjectTelemetryEvent,
         onSetAiSaveStatus, onClearAiSaveStatus,
-        onFontSizeChange, onMarkRubyTabUsed
+        onFontSizeChange, onMarkRubyTabUsed,
+        onOpenRubyteeModal, onRegisterRubyteeApply
     } = props;
 
     // --- State ---
@@ -391,6 +392,13 @@ const RubyTab = props => {
         });
 
         updateUndoRedoState();
+
+        // Register callback for Rubytee (AI assistant) to insert code into the editor
+        if (onRegisterRubyteeApply) {
+            onRegisterRubyteeApply(code => {
+                onChangeRef.current(code);
+            });
+        }
 
     }, []);
 
@@ -928,6 +936,7 @@ const RubyTab = props => {
                     onToggleAutoCorrect={handleToggleAutoCorrect}
                     onOpenAutoCorrectSettings={handleOpenAutoCorrectSettings}
                     onPreviewRubyScript={handlePreviewRubyScript}
+                    onOpenRubyteeModal={onOpenRubyteeModal}
                 />
                 <div className={styles.editorWrapper}>
                     <Editor
@@ -1047,7 +1056,9 @@ RubyTab.propTypes = {
     vm: PropTypes.instanceOf(VM).isRequired,
     projectTitle: PropTypes.string,
     locale: PropTypes.string,
-    activeTabIndex: PropTypes.number
+    activeTabIndex: PropTypes.number,
+    onOpenRubyteeModal: PropTypes.func,
+    onRegisterRubyteeApply: PropTypes.func
 };
 
 const mapStateToProps = state => ({
@@ -1078,9 +1089,9 @@ const mapDispatchToProps = dispatch => ({
     onMarkRubyTabUsed: () => dispatch(markRubyTabUsed())
 });
 
-const ConnectedRubyTab = RubyToBlocksConverterHOC(injectIntl(connect(
+const ConnectedRubyTab = RubyteeModalHOC(RubyToBlocksConverterHOC(injectIntl(connect(
     mapStateToProps,
     mapDispatchToProps
-)(RubyTab)));
+)(RubyTab))));
 
 export default ConnectedRubyTab;

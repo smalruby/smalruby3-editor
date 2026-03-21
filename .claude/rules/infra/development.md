@@ -14,11 +14,11 @@ AWS CDK infrastructure projects live in `infra/`. Each project is independent fr
 | Project | Path | Description |
 |---------|------|-------------|
 | smalruby-mesh-v2 | `infra/smalruby-mesh-v2/` | Mesh v2 networking service (AppSync + DynamoDB) |
-| smalruby-gemini-relay | `infra/smalruby-gemini-relay/` | Smalruby Teacher AI relay (API Gateway + Lambda + DynamoDB) |
+| smalruby-rubytee-relay | `infra/smalruby-rubytee-relay/` | Rubytee AI relay (API Gateway + Lambda + DynamoDB) |
 
 See project-specific rules for details:
 - `.claude/rules/infra/smalruby-mesh-v2.md`
-- `.claude/rules/infra/smalruby-gemini-relay.md`
+- `.claude/rules/infra/smalruby-rubytee-relay.md`
 
 ## Docker Service
 

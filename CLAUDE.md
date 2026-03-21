@@ -19,6 +19,12 @@ This project uses npm workspaces with the following packages:
 The `infra/` directory contains AWS CDK infrastructure projects (independent from npm workspaces):
 
 - **`infra/smalruby-mesh-v2`**: AWS CDK project for the Mesh v2 networking service (AppSync + DynamoDB)
+- **`infra/smalruby-rubytee-relay`**: AWS CDK project for the Rubytee AI relay service (Anthropic Claude API + DynamoDB)
+
+**CRITICAL**: Before making changes to `infra/` projects, always read the corresponding rules in `.claude/rules/infra/`. In particular:
+- `.claude/rules/infra/development.md` — Stage switching via `.env` symlink (MUST use symlink, never override env vars on command line)
+- `.claude/rules/infra/smalruby-rubytee-relay.md` — Rubytee relay deployment, prompt tuning, caching, Anthropic compliance
+- `.claude/rules/infra/smalruby-mesh-v2.md` — Mesh v2 deployment
 
 ## Build & Test Commands
 
@@ -282,6 +288,7 @@ Follow TDD (Test-Driven Development) approach:
 - `packages/`: All workspace packages (npm workspaces)
 - `infra/`: AWS CDK infrastructure projects (independent projects, not workspaces)
   - `infra/smalruby-mesh-v2/`: Mesh v2 networking service (AppSync + DynamoDB)
+  - `infra/smalruby-rubytee-relay/`: Rubytee AI relay service (Anthropic Claude + DynamoDB)
 - `scripts/`: Monorepo-level build scripts
 - `.github/workflows/`: CI/CD configuration
 - `.claude/rules/`: Package-specific development rules

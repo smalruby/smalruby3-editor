@@ -1,21 +1,21 @@
 /**
- * smalruby-gemini-relay 結合テスト
+ * smalruby-rubytee-relay 結合テスト
  *
  * 実際にデプロイされたエンドポイントに対してHTTPリクエストを送信し、
- * バリデーションおよびGemini API連携の動作を検証します。
+ * バリデーションおよびAnthropic Claude API連携の動作を検証します。
  *
  * ⚠️ 注意: このテストはAWSにデプロイされたリソースへリクエストを送信するため、
- * AWSおよびGemini APIの費用が発生します。CIでは実行しないでください。
+ * AWSおよびAnthropic APIの費用が発生します。CIでは実行しないでください。
  *
  * 実行方法:
  *   npm run test:integration
- *   （.env.stg に GEMINI_RELAY_ENDPOINT が設定されている必要があります）
+ *   （.env.stg に RUBYTEE_RELAY_ENDPOINT が設定されている必要があります）
  *
  *   または環境変数で直接指定:
- *   GEMINI_RELAY_ENDPOINT=https://xxx.execute-api.ap-northeast-1.amazonaws.com npm run test:integration
+ *   RUBYTEE_RELAY_ENDPOINT=https://xxx.execute-api.ap-northeast-1.amazonaws.com npm run test:integration
  */
 
-const ENDPOINT = process.env.GEMINI_RELAY_ENDPOINT || '';
+const ENDPOINT = process.env.RUBYTEE_RELAY_ENDPOINT || '';
 const GENERATE_URL = `${ENDPOINT}/generate`;
 
 /** POST /generate へリクエストを送信するヘルパー */
@@ -32,18 +32,18 @@ async function post(body: unknown): Promise<{ status: number; data: Record<strin
 beforeAll(() => {
   if (!ENDPOINT) {
     throw new Error(
-      'GEMINI_RELAY_ENDPOINT が設定されていません。\n' +
+      'RUBYTEE_RELAY_ENDPOINT が設定されていません。\n' +
       '.env.stg に以下の行を追加してください:\n' +
-      '  GEMINI_RELAY_ENDPOINT=https://xxxx.execute-api.ap-northeast-1.amazonaws.com\n' +
+      '  RUBYTEE_RELAY_ENDPOINT=https://xxxx.execute-api.ap-northeast-1.amazonaws.com\n' +
       'その後 .env を .env.stg へのシンボリックリンクにしてから実行してください。'
     );
   }
 });
 
 // ---------------------------------------------------------------------------
-// バリデーションエラー（Gemini APIを呼び出さない）
+// バリデーションエラー（AI APIを呼び出さない）
 // ---------------------------------------------------------------------------
-describe('バリデーションエラー（Gemini APIを呼び出さない）', () => {
+describe('バリデーションエラー（AI APIを呼び出さない）', () => {
   test('空文字を送信すると INPUT_MISSING エラーが返る', async () => {
     const { status, data } = await post({ userMessage: '' });
     expect(status).toBe(400);
@@ -84,9 +84,9 @@ describe('バリデーションエラー（Gemini APIを呼び出さない）', 
 });
 
 // ---------------------------------------------------------------------------
-// 正常系（Gemini APIを呼び出す）
+// 正常系（AI APIを呼び出す）
 // ---------------------------------------------------------------------------
-describe('正常系（Gemini APIを呼び出す）', () => {
+describe('正常系（AI APIを呼び出す）', () => {
   test('あいさつ（10文字以上）を送ると応答が返る', async () => {
     const message = 'こんにちは！よろしく'; // 10文字
     expect(message.length).toBe(10);

@@ -1,4 +1,4 @@
-import {sanitizeResourceReferences} from '../../../src/containers/gemini-modal-hoc';
+import {sanitizeResourceReferences} from '../../../src/containers/rubytee-modal-hoc';
 
 describe('sanitizeResourceReferences', () => {
     // --- Sound ---

@@ -5,11 +5,14 @@ import {defineMessages, injectIntl} from 'react-intl';
 import intlShape from '../lib/intlShape.js';
 import VM from '@smalruby/scratch-vm';
 
-import GeminiAPI, {RateLimitError} from '../lib/gemini-api';
-import GeminiModal from '../components/gemini-modal/gemini-modal.jsx';
+import RubyteeAPI, {RateLimitError} from '../lib/rubytee-api';
+import RubyteeModal from '../components/rubytee-modal/rubytee-modal.jsx';
+import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
+
+const RUBYTEE_CONSENT_KEY = 'smalruby:rubyteeConsent';
 
 /**
- * Replace invalid resource references in Gemini-generated Ruby code with valid ones.
+ * Replace invalid resource references in Rubytee-generated Ruby code with valid ones.
  * - Sounds: replace with first valid sound; comment out if no sounds exist
  * - Costumes: replace with first valid costume; skip if no costumes exist
  * - Backdrops: replace with first valid backdrop; skip if no backdrops exist
@@ -82,33 +85,33 @@ const TIMEOUT_SECONDS = 120;
 
 const messages = defineMessages({
     apiError: {
-        id: 'gui.geminiModal.apiError',
-        defaultMessage: 'Gemini API error. Please try again.',
-        description: 'Error shown when Gemini API call fails'
+        id: 'gui.rubyteeModal.apiError',
+        defaultMessage: 'Rubytee API error. Please try again.',
+        description: 'Error shown when Rubytee API call fails'
     },
     timeoutError: {
-        id: 'gui.geminiModal.timeoutError',
+        id: 'gui.rubyteeModal.timeoutError',
         defaultMessage: 'Request timed out (2 minutes). Please try again.',
-        description: 'Error shown when Gemini API request times out'
+        description: 'Error shown when Rubytee API request times out'
     },
     overloadedError: {
-        id: 'gui.geminiModal.overloadedError',
+        id: 'gui.rubyteeModal.overloadedError',
         // eslint-disable-next-line max-len
-        defaultMessage: 'Gemini is currently experiencing high demand and is temporarily unavailable. Please wait about 5 minutes and try again.',
-        description: 'Error shown when Gemini API returns 503 due to high demand'
+        defaultMessage: 'Rubytee is currently experiencing high demand and is temporarily unavailable. Please wait about 5 minutes and try again.',
+        description: 'Error shown when Rubytee API returns 503 due to high demand'
     },
     rateLimitError: {
-        id: 'gui.geminiModal.rateLimitError',
+        id: 'gui.rubyteeModal.rateLimitError',
         defaultMessage: 'You have reached the usage limit. Please try again in {minutes} minutes.',
         description: 'Error shown when the relay rate limit is exceeded'
     }
 });
 
 /**
- * Collect current sprite/stage/vm state from window.smalruby for Gemini context
+ * Collect current sprite/stage/vm state from window.smalruby for Rubytee context
  * @param {object} vm - Scratch VM instance
  * @param {object} editingTarget - Currently editing target
- * @returns {object} State context for Gemini
+ * @returns {object} State context for Rubytee
  */
 const collectStateContext = (vm, editingTarget) => {
     const context = {};
@@ -191,16 +194,16 @@ const collectStateContext = (vm, editingTarget) => {
 };
 
 /**
- * Higher Order Component that wraps a component with Gemini AI modal functionality
- * @param {React.Component} WrappedComponent the component to add Gemini functionality to
- * @returns {React.Component} WrappedComponent with Gemini modal functionality added
+ * Higher Order Component that wraps a component with Rubytee AI modal functionality
+ * @param {React.Component} WrappedComponent the component to add Rubytee functionality to
+ * @returns {React.Component} WrappedComponent with Rubytee modal functionality added
  */
-const GeminiModalHOC = function (WrappedComponent) {
-    class GeminiModalComponent extends React.Component {
+const RubyteeModalHOC = function (WrappedComponent) {
+    class RubyteeModalComponent extends React.Component {
         constructor (props) {
             super(props);
 
-            this.geminiAPI = new GeminiAPI();
+            this.rubyteeAPI = new RubyteeAPI();
 
             this.state = {
                 isModalOpen: false,
@@ -209,7 +212,8 @@ const GeminiModalHOC = function (WrappedComponent) {
                 loadingSeconds: 0,
                 error: null,
                 latestCodes: [], // all code blocks from the last model response
-                inputValue: ''
+                inputValue: '',
+                isConsentOpen: false
             };
 
             this._timerInterval = null;
@@ -217,6 +221,9 @@ const GeminiModalHOC = function (WrappedComponent) {
 
             this.handleOpenModal = this.handleOpenModal.bind(this);
             this.handleCloseModal = this.handleCloseModal.bind(this);
+            this.handleConsentAccept = this.handleConsentAccept.bind(this);
+            this.handleConsentCancel = this.handleConsentCancel.bind(this);
+            this.handleResetConsent = this.handleResetConsent.bind(this);
             this.handleSend = this.handleSend.bind(this);
             this.handleCancel = this.handleCancel.bind(this);
             this.handleApplyCode = this.handleApplyCode.bind(this);
@@ -224,12 +231,12 @@ const GeminiModalHOC = function (WrappedComponent) {
             this.handleInputChange = this.handleInputChange.bind(this);
             this.handleInputKeyDown = this.handleInputKeyDown.bind(this);
             this.handleRegisterApplyCallback = this.handleRegisterApplyCallback.bind(this);
-            this._applyGeminiCode = null;
+            this._applyRubyteeCode = null;
         }
 
         componentWillUnmount () {
             this._clearTimers();
-            this.geminiAPI.cancelRequest();
+            this.rubyteeAPI.cancelRequest();
         }
 
         _startTimers () {
@@ -240,7 +247,7 @@ const GeminiModalHOC = function (WrappedComponent) {
             this._timeoutTimer = setTimeout(() => {
                 this._clearTimers();
                 // Cancel the in-flight request on timeout
-                this.geminiAPI.cancelRequest();
+                this.rubyteeAPI.cancelRequest();
                 // Remove the pending user message from history (last entry)
                 this.setState(prevState => ({
                     isLoading: false,
@@ -261,8 +268,39 @@ const GeminiModalHOC = function (WrappedComponent) {
             }
         }
 
+        /**
+         * Check consent before opening the modal.
+         * If consent not yet given, show consent dialog first.
+         */
         handleOpenModal () {
-            this.setState({isModalOpen: true, error: null});
+            const hasConsent = typeof window !== 'undefined' && window.localStorage &&
+                window.localStorage.getItem(RUBYTEE_CONSENT_KEY) === 'true';
+            if (hasConsent) {
+                this.setState({isModalOpen: true, error: null});
+            } else {
+                this.setState({isConsentOpen: true});
+            }
+        }
+
+        handleConsentAccept () {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem(RUBYTEE_CONSENT_KEY, 'true');
+            }
+            this.setState({isConsentOpen: false, isModalOpen: true, error: null});
+        }
+
+        handleConsentCancel () {
+            this.setState({isConsentOpen: false});
+        }
+
+        /**
+         * Reset consent — removes localStorage key and closes the modal.
+         */
+        handleResetConsent () {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.removeItem(RUBYTEE_CONSENT_KEY);
+            }
+            this.setState({isModalOpen: false});
         }
 
         handleCloseModal () {
@@ -275,7 +313,7 @@ const GeminiModalHOC = function (WrappedComponent) {
          * @param {function} callback - Function that accepts a code string
          */
         handleRegisterApplyCallback (callback) {
-            this._applyGeminiCode = callback;
+            this._applyRubyteeCode = callback;
         }
 
         async handleSend () {
@@ -304,14 +342,14 @@ const GeminiModalHOC = function (WrappedComponent) {
                     this.props.vm && this.props.vm.editingTarget
                 );
 
-                // Call Gemini API
-                const responseText = await this.geminiAPI.sendMessage(
+                // Call Rubytee API
+                const responseText = await this.rubyteeAPI.sendMessage(
                     inputValue.trim(),
                     stateContext
                 );
 
                 const modelMessage = {role: 'model', text: responseText};
-                const latestCodes = GeminiAPI.extractAllCodeBlocks(responseText);
+                const latestCodes = RubyteeAPI.extractAllCodeBlocks(responseText);
 
                 this._clearTimers();
                 this.setState(prevState => ({
@@ -331,7 +369,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                     return;
                 }
 
-                console.error('[GeminiModalHOC] Error calling Gemini API:', error);
+                console.error('[RubyteeModalHOC] Error calling Rubytee API:', error);
 
                 let errorMessage;
                 if (error instanceof RateLimitError) {
@@ -356,7 +394,7 @@ const GeminiModalHOC = function (WrappedComponent) {
         }
 
         /**
-         * Cancel the current in-flight Gemini request.
+         * Cancel the current in-flight Rubytee request.
          * Stops the timers, aborts the fetch, and removes the pending user message.
          */
         handleCancel () {
@@ -364,7 +402,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                 return;
             }
             this._clearTimers();
-            this.geminiAPI.cancelRequest();
+            this.rubyteeAPI.cancelRequest();
             // Remove the pending user message (the last entry added optimistically)
             this.setState(prevState => ({
                 isLoading: false,
@@ -375,7 +413,7 @@ const GeminiModalHOC = function (WrappedComponent) {
         handleApplyCode (index) {
             const {latestCodes} = this.state;
             let code = latestCodes[index];
-            if (code && this._applyGeminiCode) {
+            if (code && this._applyRubyteeCode) {
                 const target = this.props.vm && this.props.vm.editingTarget;
                 const validSounds = target && target.sprite && target.sprite.sounds ?
                     target.sprite.sounds.map(s => s.name) : [];
@@ -387,12 +425,12 @@ const GeminiModalHOC = function (WrappedComponent) {
                 const validBackdrops = stage && stage.sprite && stage.sprite.costumes ?
                     stage.sprite.costumes.map(c => c.name) : [];
                 code = sanitizeResourceReferences(code, validSounds, validCostumes, validBackdrops);
-                this._applyGeminiCode(code);
+                this._applyRubyteeCode(code);
             }
         }
 
         handleClearHistory () {
-            this.geminiAPI.clearHistory();
+            this.rubyteeAPI.clearHistory();
             this.setState({
                 chatHistory: [],
                 latestCodes: [],
@@ -419,12 +457,18 @@ const GeminiModalHOC = function (WrappedComponent) {
             return (
                 <React.Fragment>
                     <WrappedComponent
-                        onOpenGeminiModal={this.handleOpenModal}
-                        onRegisterGeminiApply={this.handleRegisterApplyCallback}
+                        onOpenRubyteeModal={this.handleOpenModal}
+                        onRegisterRubyteeApply={this.handleRegisterApplyCallback}
                         {...passThroughProps}
                     />
+                    {this.state.isConsentOpen && (
+                        <RubyteeConsent
+                            onAccept={this.handleConsentAccept}
+                            onCancel={this.handleConsentCancel}
+                        />
+                    )}
                     {this.state.isModalOpen && (
-                        <GeminiModal
+                        <RubyteeModal
                             isVisible={this.state.isModalOpen}
                             history={this.state.chatHistory}
                             isLoading={this.state.isLoading}
@@ -439,6 +483,7 @@ const GeminiModalHOC = function (WrappedComponent) {
                             onClearHistory={this.handleClearHistory}
                             onInputChange={this.handleInputChange}
                             onInputKeyDown={this.handleInputKeyDown}
+                            onResetConsent={this.handleResetConsent}
                         />
                     )}
                 </React.Fragment>
@@ -446,12 +491,12 @@ const GeminiModalHOC = function (WrappedComponent) {
         }
     }
 
-    GeminiModalComponent.propTypes = {
+    RubyteeModalComponent.propTypes = {
         intl: intlShape.isRequired,
         vm: PropTypes.instanceOf(VM).isRequired
     };
 
-    return injectIntl(GeminiModalComponent);
+    return injectIntl(RubyteeModalComponent);
 };
 
-export default GeminiModalHOC;
+export default RubyteeModalHOC;
