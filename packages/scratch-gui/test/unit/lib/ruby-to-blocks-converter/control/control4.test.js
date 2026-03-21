@@ -202,6 +202,46 @@ describe('RubyToBlocksConverter/Control/unless', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
+        test('if !@ivar; A; end => control_if(not(variable), branch=A)', async () => {
+            const code = `
+                if !@ivar
+                  move(10)
+                end
+            `;
+            const moveBlock = (await rubyToExpected(converter, target, 'move(10)'))[0];
+            const expected = [
+                {
+                    opcode: 'control_if',
+                    inputs: [
+                        {
+                            name: 'CONDITION',
+                            block: {
+                                opcode: 'operator_not',
+                                inputs: [
+                                    {
+                                        name: 'OPERAND',
+                                        block: {
+                                            opcode: 'data_variable',
+                                            fields: [
+                                                {
+                                                    name: 'VARIABLE',
+                                                    variable: '@ivar'
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    branches: [
+                        moveBlock
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
         test('if !local_var; A; end => control_if(not(variable), branch=A)', async () => {
             const code = `
                 bool = true
