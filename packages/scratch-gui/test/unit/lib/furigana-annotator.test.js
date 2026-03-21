@@ -193,14 +193,14 @@ describe('FuriganaAnnotator', () => {
             expect(labelsAt(anns, 1)).toContain('引数a');
             expect(labelsAt(anns, 1)).toContain('引数b');
         });
-        test('def initialize annotates as 初期設定 / しょきせってい', () => {
+        test('def initialize: def annotates as メソッド作成, name as 初期設定', () => {
             const anns = annotate('def initialize\n  @x = 0\nend');
+            expect(labelsAt(anns, 1)).toContain('メソッド作成');
             expect(labelsAt(anns, 1)).toContain('初期設定');
-            expect(labelsAt(anns, 1)).toContain('しょきせってい');
         });
-        test('end of def initialize annotates as 設定終了', () => {
+        test('end of def initialize annotates as 作成終了', () => {
             const anns = annotate('def initialize\n  @x = 0\nend');
-            expect(labelsAt(anns, 3)).toContain('設定終了');
+            expect(labelsAt(anns, 3)).toContain('作成終了');
         });
         test('def initialize with parameters still annotates 引数N', () => {
             const anns = annotate('def initialize(a)\n  @x = a\nend');
