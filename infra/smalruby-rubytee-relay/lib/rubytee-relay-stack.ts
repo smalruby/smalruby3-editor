@@ -5,6 +5,9 @@ import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as path from 'path';
 import { Construct } from 'constructs';
 
@@ -18,6 +21,15 @@ export class RubyteeRelayStack extends cdk.Stack {
     // Stage取得（優先順位: --context stage=..., .envのSTAGE, デフォルト: stg）
     const stage = this.node.tryGetContext('stage') || process.env.STAGE || 'stg';
     const stageSuffix = stage === 'prod' ? '' : `-${stage}`;
+
+    // Custom Domain configuration
+    const parentZoneName = process.env.ROUTE53_PARENT_ZONE_NAME || 'api.smalruby.app';
+    const defaultCustomDomain = stage === 'prod'
+      ? `rubytee.${parentZoneName}`
+      : `${stage}.rubytee.${parentZoneName}`;
+    const customDomain = process.env.RUBYTEE_CUSTOM_DOMAIN === 'false'
+      ? undefined
+      : (process.env.RUBYTEE_CUSTOM_DOMAIN || defaultCustomDomain);
 
     // CORS設定（カンマ区切り環境変数 or デフォルト）
     const corsOriginsEnv = process.env.CORS_ALLOWED_ORIGINS ||
@@ -94,6 +106,26 @@ export class RubyteeRelayStack extends cdk.Stack {
     // DynamoDB read/write permission for the Lambda
     this.table.grantReadWriteData(handlerFn);
 
+    // --- Custom Domain for API Gateway HTTP API ---
+    let domainName: apigatewayv2.DomainName | undefined;
+    let zone: route53.IHostedZone | undefined;
+
+    if (customDomain) {
+      zone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+        domainName: parentZoneName,
+      });
+
+      const certificate = new acm.Certificate(this, 'ApiCertificate', {
+        domainName: customDomain,
+        validation: acm.CertificateValidation.fromDns(zone),
+      });
+
+      domainName = new apigatewayv2.DomainName(this, 'ApiDomainName', {
+        domainName: customDomain,
+        certificate,
+      });
+    }
+
     // API Gateway HTTP API
     this.api = new apigatewayv2.HttpApi(this, 'RubyteeRelayApi', {
       apiName: `RubyteeRelayApi${stageSuffix}`,
@@ -103,6 +135,10 @@ export class RubyteeRelayStack extends cdk.Stack {
         allowHeaders: ['Content-Type'],
         maxAge: cdk.Duration.hours(24),
       },
+      // Map custom domain to the default stage
+      defaultDomainMapping: domainName ? {
+        domainName,
+      } : undefined,
     });
 
     // POST /generate route
@@ -127,10 +163,33 @@ export class RubyteeRelayStack extends cdk.Stack {
 
     cdk.Tags.of(this.api).add('ResourceType', 'APIGatewayHTTPAPI');
 
+    // Route53 Alias record for Custom Domain
+    if (customDomain && zone && domainName) {
+      const subdomain = customDomain.replace(`.${parentZoneName}`, '');
+
+      new route53.ARecord(this, 'ApiAliasRecord', {
+        zone,
+        recordName: subdomain,
+        target: route53.RecordTarget.fromAlias(
+          new route53Targets.ApiGatewayv2DomainProperties(
+            domainName.regionalDomainName,
+            domainName.regionalHostedZoneId,
+          )
+        ),
+      });
+    }
+
     // Outputs
+    if (customDomain) {
+      new cdk.CfnOutput(this, 'CustomDomainUrl', {
+        value: `https://${customDomain}`,
+        description: 'Rubytee Relay custom domain URL (append /generate)',
+      });
+    }
+
     new cdk.CfnOutput(this, 'ApiEndpoint', {
       value: this.api.apiEndpoint,
-      description: 'Rubytee Relay API endpoint (append /generate)',
+      description: 'Rubytee Relay API Gateway endpoint (append /generate)',
     });
 
     new cdk.CfnOutput(this, 'RateLimitTableName', {
