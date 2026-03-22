@@ -3,6 +3,20 @@
 const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const formatMessage = require('format-message');
+const translations = require('./translations.json');
+
+/**
+ * Setup format-message for this extension.
+ */
+const setupTranslations = () => {
+    const localeSetup = formatMessage.setup();
+    if (localeSetup && localeSetup.translations[localeSetup.locale]) {
+        Object.assign(
+            localeSetup.translations[localeSetup.locale],
+            translations[localeSetup.locale]
+        );
+    }
+};
 
 class SmalrubyRubyBlocks {
     static get EXTENSION_NAME () {
@@ -15,9 +29,11 @@ class SmalrubyRubyBlocks {
 
     constructor (runtime) {
         this.runtime = runtime;
+        if (formatMessage) setupTranslations();
     }
 
     getInfo () {
+        setupTranslations();
         return {
             id: SmalrubyRubyBlocks.EXTENSION_ID,
             name: formatMessage({
@@ -132,7 +148,8 @@ class SmalrubyRubyBlocks {
                         {text: 'delete!', value: 'delete!'}
                     ]
                 }
-            }
+            },
+            translationMap: translations
         };
     }
 
