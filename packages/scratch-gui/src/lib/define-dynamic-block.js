@@ -107,8 +107,9 @@ const removeAllInputs = function (block) {
  * @param {object} blockInfo - parsed blockInfo with text, arguments, menuItems.
  * @param {object} connectionMap - saved connections from disconnectOldBlocks.
  * @param {object} ScratchBlocks - the ScratchBlocks namespace (for FieldDropdown).
+ * @param {boolean} skipShadows - if true, skip creating shadow blocks (XML parser will handle them).
  */
-const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks) {
+const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks, skipShadows) {
     const components = parseBlockText(blockInfo.text);
     let pendingLabels = [];
     let inputIndex = 0;
@@ -155,8 +156,9 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                         input.connection.setShadowDom(saveInfo.shadow);
                     }
                     connectionMap[argName] = null;
-                } else if (typeof arg.defaultValue !== 'undefined' && input.connection) {
-                    // Create shadow block with default value for new inputs
+                } else if (!skipShadows && typeof arg.defaultValue !== 'undefined' && input.connection) {
+                    // Create shadow block with default value for new inputs.
+                    // Skip on initial domToMutation — the XML parser will create shadows from toolbox XML.
                     const shadowDom = document.createElement('shadow');
                     shadowDom.setAttribute('type', 'text');
                     const fieldDom = document.createElement('field');
@@ -164,7 +166,6 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                     fieldDom.textContent = String(arg.defaultValue);
                     shadowDom.appendChild(fieldDom);
                     input.connection.setShadowDom(shadowDom);
-                    // Respawn the shadow block so it becomes visible
                     input.connection.respawnShadow_();
                 }
                 inputIndex++;
@@ -192,14 +193,15 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
  * @param {object} block - the scratch-blocks Block instance.
  * @param {object} newBlockInfo - the new blockInfo to build from.
  * @param {object} ScratchBlocks - the ScratchBlocks namespace.
+ * @param {boolean} skipShadows - if true, skip creating shadow blocks.
  */
-const updateBlockDisplay = function (block, newBlockInfo, ScratchBlocks) {
+const updateBlockDisplay = function (block, newBlockInfo, ScratchBlocks, skipShadows) {
     const wasRendered = block.rendered;
     block.rendered = false;
 
     const connectionMap = disconnectOldBlocks(block);
     removeAllInputs(block);
-    createAllInputs(block, newBlockInfo, connectionMap, ScratchBlocks);
+    createAllInputs(block, newBlockInfo, connectionMap, ScratchBlocks, skipShadows);
 
     // Clean up orphaned shadow blocks
     if (connectionMap) {
@@ -336,6 +338,7 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
         if (!this.needsBlockInfoUpdate && !hasArgumentsByMethod) {
             throw new Error('Attempted to update block info twice');
         }
+        const isFirstCall = !!this.needsBlockInfoUpdate;
         // === Smalruby: End of argumentsByMethod support ===
 
         delete this.needsBlockInfoUpdate;
@@ -376,8 +379,10 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
         // === Smalruby: Start of argumentsByMethod layout ===
         if (blockInfo.argumentsByMethod) {
             // Use manual input construction (procedures_call pattern)
-            // for blocks with dynamic arguments
-            updateBlockDisplay(this, blockInfo, ScratchBlocks);
+            // for blocks with dynamic arguments.
+            // On first call (from XML parser), skip shadow creation —
+            // the XML parser will create shadows from the toolbox XML.
+            updateBlockDisplay(this, blockInfo, ScratchBlocks, isFirstCall);
             setupMethodValidator(this, blockInfo, ScratchBlocks);
         } else {
             // Original interpolate_ path for standard dynamic blocks
