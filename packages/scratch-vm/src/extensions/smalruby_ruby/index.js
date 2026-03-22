@@ -100,7 +100,7 @@ class SmalrubyRubyBlocks {
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'hello world'
+                            defaultValue: ''
                         },
                         METHOD: {
                             type: ArgumentType.STRING,
@@ -120,7 +120,7 @@ class SmalrubyRubyBlocks {
                                 description: 'String method that does not return a value'
                             }),
                             arguments: {
-                                STRING: {type: ArgumentType.STRING, defaultValue: 'hello world'},
+                                STRING: {type: ArgumentType.STRING, defaultValue: ''},
                                 METHOD: {
                                     type: ArgumentType.STRING,
                                     menu: 'stringMethodCMenu',

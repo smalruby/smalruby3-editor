@@ -45,7 +45,7 @@ const stringMethodCArgs = {
     'delete!': {
         text: '文字列 [STRING] . [METHOD] ( [ARG1] )',
         arguments: {
-            STRING: {type: 'string', defaultValue: 'hello world'},
+            STRING: {type: 'string', defaultValue: ''},
             METHOD: {type: 'string', menu: 'stringMethodCMenu', defaultValue: 'delete!'},
             ARG1: {type: 'string', defaultValue: 'l'}
         }
@@ -87,7 +87,7 @@ const SmalrubyRubyConverter = {
                 stringMethodCArgs, stringMethodCMenuItems
             );
             const block = converter._createBlock('ruby_stringMethodC', 'statement', {mutation});
-            converter._addTextInput(block, 'STRING', receiver, 'hello world');
+            converter._addTextInput(block, 'STRING', receiver, '');
             converter._addField(block, 'METHOD', 'delete!');
             converter._addTextInput(block, 'ARG1', args[0], 'l');
             return block;

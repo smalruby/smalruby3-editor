@@ -1,5 +1,5 @@
 const ArgumentType = require('../../extension-support/argument-type');
-const BlockType = require('../../extension-support/block-type');
+getInconst BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
 
@@ -784,7 +784,7 @@ class KoshienBlocks {
      * @param {string} args.NAME - name of the player.
      * @returns {boolean} - true if the event raised.
      */
-     
+
     connectGame (args) {
         if (this._client.isConnected()) {
             return false;
@@ -832,7 +832,7 @@ class KoshienBlocks {
      * @param {string} args.RESULT - result.
      * @returns {Promise} - promise
      */
-     
+
     calcGoalRoute (args) {
         return this._client.calcRoute({result: args.RESULT});
     }
@@ -846,7 +846,7 @@ class KoshienBlocks {
      * @param {string} args.RESULT - result.
      * @returns {Promise} - promise
      */
-     
+
     calcRoute (args) {
         return this._client.calcRoute(
             {src: args.SRC, dst: args.DST, exceptCells: args.EXCEPT_CELLS, result: args.RESULT}
@@ -924,7 +924,7 @@ class KoshienBlocks {
      * @param {number} args.Y - y.
      * @returns {string} - position
      */
-     
+
     position (args) {
         return `${args.X}:${args.Y}`;
     }
@@ -991,7 +991,7 @@ class KoshienBlocks {
      * @param {object} args - the block's arguments.
      * @param {string} args.MESSAGE - message.
      */
-     
+
     setMessage (args) {
         return this._client.setMessage(args.MESSAGE);
     }
