@@ -21,7 +21,8 @@ export default function (Generator) {
 
     Generator.ruby_stringMethodC = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const string = Generator.valueToCode(block, 'STRING', order) || Generator.quote_('');
+        const varName = Generator.getFieldValue(block, 'STRING') || '';
+        const string = Generator.variableNameByName(varName) || 'nil';
         const method = Generator.getFieldValue(block, 'METHOD') || 'delete!';
         const arg1 = Generator.valueToCode(block, 'ARG1', order) || Generator.quote_('');
         const arg2 = Generator.valueToCode(block, 'ARG2', order);

@@ -3,6 +3,7 @@
 const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const formatMessage = require('format-message');
+const Variable = require('../../engine/variable');
 const translations = require('./translations.json');
 
 /**
@@ -100,7 +101,8 @@ class SmalrubyRubyBlocks {
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: ''
+                            menu: 'variableNames',
+                            defaultValue: ' '
                         },
                         METHOD: {
                             type: ArgumentType.STRING,
@@ -120,7 +122,7 @@ class SmalrubyRubyBlocks {
                                 description: 'String method that does not return a value'
                             }),
                             arguments: {
-                                STRING: {type: ArgumentType.STRING, defaultValue: ''},
+                                STRING: {type: ArgumentType.STRING, menu: 'variableNames', defaultValue: ' '},
                                 METHOD: {
                                     type: ArgumentType.STRING,
                                     menu: 'stringMethodCMenu',
@@ -147,6 +149,10 @@ class SmalrubyRubyBlocks {
                     items: [
                         {text: 'delete!', value: 'delete!'}
                     ]
+                },
+                variableNames: {
+                    acceptReporters: false,
+                    items: 'getVariableNamesMenuItems'
                 }
             },
             translationMap: translations
@@ -176,17 +182,44 @@ class SmalrubyRubyBlocks {
     }
 
     /**
-     * Execute string method that does not return a value (COMMAND).
+     * Execute string method that modifies a variable in place (COMMAND).
+     * STRING is a variable name (from the variableNames menu).
      * @param {object} args - block arguments.
-     * @param {string} args.STRING - the target string.
+     * @param {string} args.STRING - the variable name.
      * @param {string} args.METHOD - the method name.
      * @param {string} args.ARG1 - the first argument.
+     * @param {object} util - block utility object.
      */
-    stringMethodC (args) {
-        // Command blocks don't return values in Scratch
-        // The actual mutation (delete!) would modify the variable in Ruby
-        // In Scratch VM, we just execute the operation
-        this.stringMethodR(args);
+    stringMethodC (args, util) {
+        const variableName = args.STRING;
+        const target = util.target;
+        const variable = target.lookupVariableByNameAndType(variableName, Variable.SCALAR_TYPE);
+        if (!variable) return;
+
+        const string = String(variable.value || '');
+        const method = args.METHOD;
+        const arg1 = String(args.ARG1 || '');
+        let result;
+        switch (method) {
+        case 'delete!':
+            result = string.split('')
+                .filter(c => !arg1.includes(c))
+                .join('');
+            break;
+        default:
+            result = string;
+        }
+        variable.value = result;
+    }
+
+    /**
+     * Get variable names for the variableNames menu.
+     * @returns {Array<string>} list of variable names.
+     */
+    getVariableNamesMenuItems () {
+        const sprite = this.runtime.getEditingTarget();
+        if (!sprite) return [' '];
+        return [' '].concat(sprite.getAllVariableNamesInScopeByType(Variable.SCALAR_TYPE));
     }
 }
 
