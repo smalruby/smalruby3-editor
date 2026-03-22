@@ -30,6 +30,9 @@ upstream scratch-editor の変更を Smalruby fork に取り込む半自動ワ�
   "lastMerge": {
     "date": "YYYY-MM-DD",
     "upstreamCommit": "<upstream commit hash>",
+    "targetRelease": "vX.Y.Z",
+    "scratchWwwProductionSha": "<scratch-www production deploy commit>",
+    "scratchGuiVersion": "X.Y.Z",
     "smalrubyCommit": "<smalruby commit hash before merge>",
     "mergeCommit": "<merge commit hash>",
     "notes": "description"

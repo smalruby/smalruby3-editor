@@ -47,26 +47,149 @@ git remote add upstream https://github.com/scratchfoundation/scratch-editor.git
 
 選択された方針を Phase 2 で使用する。
 
-### 1.4 Upstream差分確認
+### 1.4 リリースバージョン特定（Safety Gate）
+
+**目的**: upstream/develop HEAD ではなく、scratch.mit.edu で実際にリリースされているバージョンまでマージする。
+未リリースの機能（例: scratch-blocks v2.0.x）を誤って取り込むことを防止する。
+
+#### 1.4.1 Production デプロイのコミットを取得
+
+GitHub Deployments API で scratch-www の production デプロイを確認する:
+
+```bash
+PROD_SHA=$(gh api "repos/scratchfoundation/scratch-www/deployments?environment=production&per_page=1" \
+  --jq '.[0].sha')
+PROD_DATE=$(gh api "repos/scratchfoundation/scratch-www/deployments?environment=production&per_page=1" \
+  --jq '.[0].created_at')
+echo "Production deploy: ${PROD_SHA} (${PROD_DATE})"
+```
+
+#### 1.4.2 Production の scratch-gui バージョンを特定
+
+scratch-www リポジトリが clone 済みの場合（推奨）:
+
+```bash
+SCRATCH_WWW_DIR="/Users/kouji/ghq/github.com/scratchfoundation/scratch-www"
+if [ -d "$SCRATCH_WWW_DIR" ]; then
+  cd "$SCRATCH_WWW_DIR" && git fetch origin 2>/dev/null
+  SCRATCH_GUI_VERSION=$(git show ${PROD_SHA}:package.json | grep '"@scratch/scratch-gui"' | grep -o '[0-9][0-9.]*')
+else
+  # Fallback: GitHub API で取得
+  SCRATCH_GUI_VERSION=$(gh api "repos/scratchfoundation/scratch-www/contents/package.json?ref=${PROD_SHA}" \
+    --jq '.content' | base64 -d | grep '"@scratch/scratch-gui"' | grep -o '[0-9][0-9.]*')
+fi
+echo "Production scratch-gui version: ${SCRATCH_GUI_VERSION}"
+```
+
+#### 1.4.3 upstream scratch-editor のリリースタグとマッチング
+
+```bash
+# タグを fetch（特定タグのみ取得）
+git fetch upstream tag v${SCRATCH_GUI_VERSION} --no-tags 2>/dev/null
+
+# タグが存在するか確認
+if git rev-parse "v${SCRATCH_GUI_VERSION}" >/dev/null 2>&1; then
+  TARGET_COMMIT=$(git rev-parse "v${SCRATCH_GUI_VERSION}")
+  echo "Release tag v${SCRATCH_GUI_VERSION} -> ${TARGET_COMMIT}"
+else
+  # Fallback: npm registry の gitHead フィールドから取得
+  TARGET_COMMIT=$(npm view "@scratch/scratch-gui@${SCRATCH_GUI_VERSION}" gitHead 2>/dev/null)
+  echo "npm gitHead for ${SCRATCH_GUI_VERSION} -> ${TARGET_COMMIT}"
+fi
+```
+
+タグも npm gitHead も見つからない場合は **エラーとしてユーザーに報告し、手動でマージ対象を指定してもらう**。
+
+#### 1.4.4 既にマージ済みかチェック
+
+前回マージしたコミット (`lastMerge.upstreamCommit`) とリリースタグの関係を確認する:
+
+```bash
+LAST_MERGE_COMMIT=<lastMerge.upstreamCommit>
+
+# リリースタグが前回マージの祖先かチェック
+if git merge-base --is-ancestor ${TARGET_COMMIT} ${LAST_MERGE_COMMIT}; then
+  echo "✅ v${SCRATCH_GUI_VERSION} は前回マージ (${LAST_MERGE_COMMIT}) に含まれています"
+  ALREADY_MERGED=true
+else
+  ALREADY_MERGED=false
+fi
+```
+
+**`ALREADY_MERGED=true` の場合**:
+
+前回のマージで production リリースよりも先に進んでいる。以下をユーザーに報告する:
+
+```
+⚠️  リリースバージョン検証結果:
+  scratch.mit.edu production: @scratch/scratch-gui v${SCRATCH_GUI_VERSION}
+  前回マージ済み upstream commit: ${LAST_MERGE_COMMIT}
+
+  Production リリース (v${SCRATCH_GUI_VERSION}) は既にマージ済みです。
+  前回のマージで production より先の変更を取り込んでいます。
+
+  upstream/develop HEAD にはさらに未リリースの変更があります:
+  $(git log --oneline ${LAST_MERGE_COMMIT}..upstream/develop)
+
+  推奨: production で新しいバージョンがリリースされるまでマージを待つ。
+
+  (A) マージを中止する（推奨）
+  (B) upstream/develop HEAD までマージする（未リリース変更を含む — 要注意）
+```
+
+選択 (A) の場合は **ワークフローを終了**する。
+
+#### 1.4.5 develop HEAD との差分を確認
+
+`ALREADY_MERGED=false` の場合のみ実行:
+
+```bash
+git fetch -p upstream develop
+UNRELEASED_COUNT=$(git log --oneline ${TARGET_COMMIT}..upstream/develop | wc -l | tr -d ' ')
+echo "upstream/develop is ${UNRELEASED_COUNT} commits ahead of release v${SCRATCH_GUI_VERSION}"
+```
+
+#### 1.4.6 ユーザーへの報告と選択
+
+```
+📋 リリースバージョン検証結果:
+  scratch-www production deploy: ${PROD_SHA} (${PROD_DATE})
+  Production の @scratch/scratch-gui: ${SCRATCH_GUI_VERSION}
+  upstream scratch-editor タグ: v${SCRATCH_GUI_VERSION} (${TARGET_COMMIT})
+  upstream/develop HEAD: $(git rev-parse --short upstream/develop) (リリースより ${UNRELEASED_COUNT} commits 先)
+
+⚠️  upstream/develop には未リリースの変更が ${UNRELEASED_COUNT} commits あります:
+$(git log --oneline ${TARGET_COMMIT}..upstream/develop)
+
+マージ対象を選択してください:
+  (A) v${SCRATCH_GUI_VERSION} までマージする（推奨 — production リリース済み）
+  (B) upstream/develop HEAD までマージする（未リリース変更を含む — 要注意）
+  (C) 中止する
+```
+
+選択結果を `$MERGE_TARGET` に保存する（`v${SCRATCH_GUI_VERSION}` または `upstream/develop`）。
+
+**`$UNRELEASED_COUNT` が 0 の場合**: 選択肢を表示せず、自動的に upstream/develop をマージ対象とする。
+
+### 1.7 Upstream差分確認
 
 **重要**: `git fetch upstream` は絶対に使わない（gh-pages を含む全ブランチを取得してしまう）。
 
 ```bash
-git fetch -p upstream develop
-git log <lastMerge.upstreamCommit>..upstream/develop --oneline --format="%h %s"
+git log <lastMerge.upstreamCommit>..<MERGE_TARGET> --oneline --format="%h %s"
 ```
 
 - 新しい commit 数を表示
 - 最新10件の commit message を表示
 - `postMergeReverts` がある場合、upstream の diff に revert 対象のファイル変更が含まれるか確認:
   ```bash
-  git diff --name-only <lastMerge.upstreamCommit>..upstream/develop
+  git diff --name-only <lastMerge.upstreamCommit>..<MERGE_TARGET>
   ```
   `affectedAreas` のファイルと重複があれば報告する
 
-### 1.5 ユーザー確認
+### 1.8 ユーザー確認
 
-- "X commits を merge します。続行しますか？"
+- "X commits を merge します（target: `<MERGE_TARGET>`）。続行しますか？"
 - Yes / No / View all commits の選択肢
 
 ---
@@ -82,8 +205,10 @@ git checkout -b feat/upstream-merge-$DATE
 
 ## Step 3: Merge Execution
 
+`$MERGE_TARGET` は Step 1.4 で決定したマージ対象（例: `v12.7.0` または `upstream/develop`）。
+
 ```bash
-git merge upstream/develop --no-commit --no-ff
+git merge <MERGE_TARGET> --no-commit --no-ff
 ```
 
 ### Conflict検出
