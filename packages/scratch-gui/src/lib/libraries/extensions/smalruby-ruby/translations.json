@@ -1,0 +1,14 @@
+{
+    "ja": {
+        "smalrubyRuby.entry.name": "ルビー",
+        "smalrubyRuby.entry.description": "Rubyの文字列操作メソッドを使う。"
+    },
+    "ja-Hira": {
+        "smalrubyRuby.entry.name": "るびー",
+        "smalrubyRuby.entry.description": "るびーのもじれつそうさめそっどをつかう。"
+    },
+    "en": {
+        "smalrubyRuby.entry.name": "Ruby",
+        "smalrubyRuby.entry.description": "Use Ruby string manipulation methods."
+    }
+}

@@ -51,33 +51,8 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
     });
 
     describe('String#delete! (COMMAND)', () => {
-        test('should convert string literal receiver with string arg', async () => {
-            const code = '"hello world".delete!("l")';
-            const expected = [
-                {
-                    opcode: 'smalrubyRuby_stringMethodC',
-                    fields: [
-                        {
-                            name: 'METHOD',
-                            value: 'delete!'
-                        }
-                    ],
-                    inputs: [
-                        {
-                            name: 'STRING',
-                            block: expectedInfo.makeText('hello world')
-                        },
-                        {
-                            name: 'ARG1',
-                            block: expectedInfo.makeText('l')
-                        }
-                    ],
-                    mutation: {
-                        blockInfo: expect.any(Object)
-                    }
-                }
-            ];
-            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        test('should reject string literal receiver', async () => {
+            await convertAndExpectRubyBlockError(converter, target, '"hello".delete!("l")');
         });
 
         test('should reject wrong number of arguments', async () => {

@@ -77,7 +77,8 @@ const SmalrubyRubyConverter = {
         });
 
         // String#delete! (mutates in place - COMMAND)
-        converter.registerOnSend(['string', 'block', 'variable'], 'delete!', 1, params => {
+        // Only variables are valid receivers for bang methods (they modify in place)
+        converter.registerOnSend(['variable'], 'delete!', 1, params => {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0])) return null;
 
