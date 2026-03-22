@@ -139,10 +139,11 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                     }
                     // Normalize items to [text, value] pairs
                     if (options && options.length > 0 && !Array.isArray(options[0])) {
-                        options = options.map(item =>
+                        options = options.map(item => (
                             (typeof item === 'object' && item.text) ?
                                 [item.text, item.value] :
                                 [String(item), String(item)]
+                        )
                         );
                     }
                 }
