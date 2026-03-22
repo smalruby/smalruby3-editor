@@ -69,11 +69,7 @@ class SmalrubyRubyBlocks {
                     },
                     argumentsByMethod: {
                         delete: {
-                            text: formatMessage({
-                                id: 'ruby.stringMethodR',
-                                default: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
-                                description: 'String method that returns a value'
-                            }),
+                            text: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
                             arguments: {
                                 STRING: {type: ArgumentType.STRING, defaultValue: 'hello world'},
                                 METHOD: {
@@ -83,10 +79,23 @@ class SmalrubyRubyBlocks {
                                 },
                                 ARG1: {type: ArgumentType.STRING, defaultValue: 'l'}
                             }
+                        },
+                        gsub: {
+                            text: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] [ARG2] )',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'hello world'},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'stringMethodRMenu',
+                                    defaultValue: 'gsub'
+                                },
+                                ARG1: {type: ArgumentType.STRING, defaultValue: '/l/'},
+                                ARG2: {type: ArgumentType.STRING, defaultValue: 'r'}
+                            }
                         }
                     },
                     menuItems: {
-                        stringMethodRMenu: [['delete', 'delete']]
+                        stringMethodRMenu: [['delete', 'delete'], ['gsub', 'gsub']]
                     }
                 },
                 {
@@ -116,11 +125,7 @@ class SmalrubyRubyBlocks {
                     },
                     argumentsByMethod: {
                         'delete!': {
-                            text: formatMessage({
-                                id: 'ruby.stringMethodC',
-                                default: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
-                                description: 'String method that does not return a value'
-                            }),
+                            text: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
                             arguments: {
                                 STRING: {type: ArgumentType.STRING, menu: 'variableNames', defaultValue: ' '},
                                 METHOD: {
@@ -130,10 +135,23 @@ class SmalrubyRubyBlocks {
                                 },
                                 ARG1: {type: ArgumentType.STRING, defaultValue: 'l'}
                             }
+                        },
+                        'gsub!': {
+                            text: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] [ARG2] )',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, menu: 'variableNames', defaultValue: ' '},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'stringMethodCMenu',
+                                    defaultValue: 'gsub!'
+                                },
+                                ARG1: {type: ArgumentType.STRING, defaultValue: '/l/'},
+                                ARG2: {type: ArgumentType.STRING, defaultValue: 'r'}
+                            }
                         }
                     },
                     menuItems: {
-                        stringMethodCMenu: [['delete!', 'delete!']]
+                        stringMethodCMenu: [['delete!', 'delete!'], ['gsub!', 'gsub!']]
                     }
                 }
             ],
@@ -141,13 +159,15 @@ class SmalrubyRubyBlocks {
                 stringMethodRMenu: {
                     acceptReporters: false,
                     items: [
-                        {text: 'delete', value: 'delete'}
+                        {text: 'delete', value: 'delete'},
+                        {text: 'gsub', value: 'gsub'}
                     ]
                 },
                 stringMethodCMenu: {
                     acceptReporters: false,
                     items: [
-                        {text: 'delete!', value: 'delete!'}
+                        {text: 'delete!', value: 'delete!'},
+                        {text: 'gsub!', value: 'gsub!'}
                     ]
                 },
                 variableNames: {
@@ -171,11 +191,15 @@ class SmalrubyRubyBlocks {
         const string = String(args.STRING || '');
         const method = args.METHOD;
         const arg1 = String(args.ARG1 || '');
+        const arg2 = args.ARG2 !== undefined ? String(args.ARG2) : undefined;
         switch (method) {
         case 'delete':
             return string.split('')
                 .filter(c => !arg1.includes(c))
                 .join('');
+        case 'gsub':
+            if (arg2 === undefined) return string;
+            return string.replaceAll(arg1, arg2);
         default:
             return string;
         }
@@ -199,12 +223,16 @@ class SmalrubyRubyBlocks {
         const string = String(variable.value || '');
         const method = args.METHOD;
         const arg1 = String(args.ARG1 || '');
+        const arg2 = args.ARG2 !== undefined ? String(args.ARG2) : undefined;
         let result;
         switch (method) {
         case 'delete!':
             result = string.split('')
                 .filter(c => !arg1.includes(c))
                 .join('');
+            break;
+        case 'gsub!':
+            result = arg2 !== undefined ? string.replaceAll(arg1, arg2) : string;
             break;
         default:
             result = string;

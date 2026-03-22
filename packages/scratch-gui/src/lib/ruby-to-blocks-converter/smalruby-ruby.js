@@ -38,6 +38,15 @@ const stringMethodRArgs = {
             METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'delete'},
             ARG1: {type: 'string', defaultValue: 'l'}
         }
+    },
+    gsub: {
+        text: '文字列 [STRING] . [METHOD] ( [ARG1] [ARG2] )',
+        arguments: {
+            STRING: {type: 'string', defaultValue: 'hello world'},
+            METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'gsub'},
+            ARG1: {type: 'string', defaultValue: '/l/'},
+            ARG2: {type: 'string', defaultValue: 'r'}
+        }
     }
 };
 
@@ -49,11 +58,20 @@ const stringMethodCArgs = {
             METHOD: {type: 'string', menu: 'stringMethodCMenu', defaultValue: 'delete!'},
             ARG1: {type: 'string', defaultValue: 'l'}
         }
+    },
+    'gsub!': {
+        text: '文字列 [STRING] . [METHOD] ( [ARG1] [ARG2] )',
+        arguments: {
+            STRING: {type: 'string', menu: 'variableNames', defaultValue: ' '},
+            METHOD: {type: 'string', menu: 'stringMethodCMenu', defaultValue: 'gsub!'},
+            ARG1: {type: 'string', defaultValue: '/l/'},
+            ARG2: {type: 'string', defaultValue: 'r'}
+        }
     }
 };
 
-const stringMethodRMenuItems = {stringMethodRMenu: [['delete', 'delete']]};
-const stringMethodCMenuItems = {stringMethodCMenu: [['delete!', 'delete!']]};
+const stringMethodRMenuItems = {stringMethodRMenu: [['delete', 'delete'], ['gsub', 'gsub']]};
+const stringMethodCMenuItems = {stringMethodCMenu: [['delete!', 'delete!'], ['gsub!', 'gsub!']]};
 
 /**
  * Converter for Smalruby Ruby String extension blocks.
@@ -93,6 +111,45 @@ const SmalrubyRubyConverter = {
             converter._addField(block, 'STRING', varInfo.name);
             converter._addField(block, 'METHOD', 'delete!');
             converter._addTextInput(block, 'ARG1', args[0], 'l');
+            return block;
+        });
+
+        // String#gsub (returns value - REPORTER, 2 args)
+        converter.registerOnSend(['string', 'block', 'variable'], 'gsub', 2, params => {
+            const {receiver, args} = params;
+            if (!converter._isStringOrBlock(args[0])) return null;
+            if (!converter._isStringOrBlock(args[1])) return null;
+
+            const mutation = buildMutation(
+                'reporter', 'gsub', 'stringMethodRMenu',
+                stringMethodRArgs, stringMethodRMenuItems
+            );
+            const block = converter._createBlock('ruby_stringMethodR', 'value', {mutation});
+            converter._addTextInput(block, 'STRING', receiver, 'hello world');
+            converter._addField(block, 'METHOD', 'gsub');
+            converter._addTextInput(block, 'ARG1', args[0], '/l/');
+            converter._addTextInput(block, 'ARG2', args[1], 'r');
+            return block;
+        });
+
+        // String#gsub! (mutates in place - COMMAND, 2 args)
+        converter.registerOnSend(['variable'], 'gsub!', 2, params => {
+            const {receiver, args} = params;
+            if (!converter._isStringOrBlock(args[0])) return null;
+            if (!converter._isStringOrBlock(args[1])) return null;
+
+            const varInfo = converter.lookupVariableFromVariableBlock(receiver);
+            if (!varInfo) return null;
+
+            const mutation = buildMutation(
+                'command', 'gsub!', 'stringMethodCMenu',
+                stringMethodCArgs, stringMethodCMenuItems
+            );
+            const block = converter._createBlock('ruby_stringMethodC', 'statement', {mutation});
+            converter._addField(block, 'STRING', varInfo.name);
+            converter._addField(block, 'METHOD', 'gsub!');
+            converter._addTextInput(block, 'ARG1', args[0], '/l/');
+            converter._addTextInput(block, 'ARG2', args[1], 'r');
             return block;
         });
     }

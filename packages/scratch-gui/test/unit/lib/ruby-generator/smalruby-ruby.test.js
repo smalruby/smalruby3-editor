@@ -62,6 +62,19 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             const result = RubyGenerator.ruby_stringMethodR(block);
             expect(result[0]).toEqual('"hello".delete("l", "o")');
         });
+
+        test('should generate gsub with 2 args', () => {
+            RubyGenerator.valueToCode = (block, name, _order) => {
+                const map = {STRING: '"hello"', ARG1: '"l"', ARG2: '"r"'};
+                return map[name] || '';
+            };
+            const block = {
+                opcode: 'ruby_stringMethodR',
+                fields: {METHOD: {value: 'gsub'}}
+            };
+            const result = RubyGenerator.ruby_stringMethodR(block);
+            expect(result[0]).toEqual('"hello".gsub("l", "r")');
+        });
     });
 
     describe('ruby_stringMethodC', () => {
