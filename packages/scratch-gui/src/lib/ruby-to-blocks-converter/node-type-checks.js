@@ -260,13 +260,9 @@ const NodeTypeChecks = {
         return this._isBlock(block) && block.opcode === 'ruby_statement';
     },
 
-    // === Smalruby: Start of Ruby extension opcode fix ===
-    // Match only fallback ruby blocks, not Ruby extension blocks (ruby_stringMethodR, etc.)
     _isRubyBlock (block) {
-        return this._isBlock(block) &&
-            block.opcode.match(/^ruby_(statement|statement_with_block|expression|range|exclude_range)$/);
+        return this._isBlock(block) && block.opcode.match(/^ruby_/);
     }
-    // === Smalruby: End of Ruby extension opcode fix ===
 };
 
 export default NodeTypeChecks;

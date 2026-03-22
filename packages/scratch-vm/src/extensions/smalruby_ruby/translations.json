@@ -1,12 +1,12 @@
 {
     "ja": {
-        "ruby.categoryName": "ルビー",
-        "ruby.stringMethodR": "文字列 [STRING] . [METHOD] ( [ARG1] )",
-        "ruby.stringMethodC": "文字列 [STRING] . [METHOD] ( [ARG1] )"
+        "smalrubyRuby.categoryName": "ルビー",
+        "smalrubyRuby.stringMethodR": "文字列 [STRING] . [METHOD] ( [ARG1] )",
+        "smalrubyRuby.stringMethodC": "文字列 [STRING] . [METHOD] ( [ARG1] )"
     },
     "ja-Hira": {
-        "ruby.categoryName": "るびー",
-        "ruby.stringMethodR": "もじれつ [STRING] . [METHOD] ( [ARG1] )",
-        "ruby.stringMethodC": "もじれつ [STRING] . [METHOD] ( [ARG1] )"
+        "smalrubyRuby.categoryName": "るびー",
+        "smalrubyRuby.stringMethodR": "もじれつ [STRING] . [METHOD] ( [ARG1] )",
+        "smalrubyRuby.stringMethodC": "もじれつ [STRING] . [METHOD] ( [ARG1] )"
     }
 }

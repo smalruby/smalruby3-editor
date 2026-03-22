@@ -13,17 +13,17 @@ const entry = {
         return formatMessage({
             defaultMessage: 'Ruby',
             description: "Name for the 'ruby' extension",
-            id: 'ruby.entry.name'
+            id: 'smalrubyRuby.entry.name'
         });
     },
-    extensionId: 'ruby',
+    extensionId: 'smalrubyRuby',
     iconURL: rubyIconURL,
     insetIconURL: rubyInsetIconURL,
     get description () {
         return formatMessage({
             defaultMessage: 'Use Ruby string manipulation methods.',
             description: "Description for the 'ruby' extension",
-            id: 'ruby.entry.description'
+            id: 'smalrubyRuby.entry.description'
         });
     },
     featured: true,
