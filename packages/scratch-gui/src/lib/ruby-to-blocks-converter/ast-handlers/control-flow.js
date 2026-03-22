@@ -1,21 +1,13 @@
 import _ from 'lodash';
-import {defineMessages} from 'react-intl';
-import {RubyToBlocksConverterError} from '../errors';
-
-const messages = defineMessages({
-    initializeOutsideClass: {
-        defaultMessage: 'def initialize can only be used inside a class definition.' +
-            '\nWrap it in a class (e.g. class Sprite1 ... end).',
-        description: 'Error message when def initialize is used outside a class',
-        id: 'gui.smalruby3.rubyToBlocksConverter.initializeOutsideClass'
-    }
-});
+import ControlFlowDef from './control-flow-def';
 
 /**
  * Control flow AST handlers for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
  */
 const ControlFlowHandlers = {
+    ...ControlFlowDef,
+
     visitIfNode (node) {
         const saved = this._saveContext();
 
@@ -295,23 +287,23 @@ const ControlFlowHandlers = {
         // Attach @ruby:syntax:unless* comment to preserve round-trip fidelity
         if (this._isBlock(block)) {
             const isModifier = node.endKeywordLoc === null;
-            let commentText;
+            let commentText2;
             if (isModifier) {
-                commentText = '@ruby:syntax:unless_modifier';
+                commentText2 = '@ruby:syntax:unless_modifier';
             } else if (hasElseClause) {
-                commentText = '@ruby:syntax:unless_else';
+                commentText2 = '@ruby:syntax:unless_else';
             } else {
-                commentText = '@ruby:syntax:unless';
+                commentText2 = '@ruby:syntax:unless';
             }
-            if (variableHint) commentText += `,@ruby:variable:${variableHint}`;
+            if (variableHint) commentText2 += `,@ruby:variable:${variableHint}`;
             if (block.comment) {
                 const comment = this._context.comments[block.comment];
                 if (comment) {
-                    comment.text = commentText;
+                    comment.text = commentText2;
                     comment.minimized = true;
                 }
             } else {
-                const commentId = this._createComment(commentText, block.id, 0, 0, true);
+                const commentId = this._createComment(commentText2, block.id, 0, 0, true);
                 block.comment = commentId;
             }
         }
@@ -408,30 +400,6 @@ const ControlFlowHandlers = {
             }
             return [...preBlocks, block];
         }
-        return block;
-    },
-
-    visitDefNode (node) {
-        // Reject def initialize outside a class — it must be inside a class definition
-        if (node.name === 'initialize') {
-            throw new RubyToBlocksConverterError(
-                node,
-                this._translator(messages.initializeOutsideClass)
-            );
-        }
-
-        const saved = this._saveContext();
-
-        // Convert DefNode to a format compatible with onDefs handler
-        // In Prism, DefNode has receiver, name, parameters, body.
-
-        let block = this._callConvertersHandler('onDefs', node, saved);
-        if (!block) {
-            this._restoreContext(saved);
-
-            block = this._createRubyStatementBlock(this._getSource(node), node);
-        }
-
         return block;
     }
 };
