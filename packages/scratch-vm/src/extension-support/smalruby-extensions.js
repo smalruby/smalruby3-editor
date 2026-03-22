@@ -27,6 +27,14 @@ const registerSmalrubyExtensions = builtinExtensions => {
         blockClass.formatMessage = formatMessage;
         return blockClass;
     };
+
+    // ruby extension - Ruby String methods support
+    builtinExtensions.ruby = () => {
+        const formatMessage = require('format-message');
+        const blockClass = require('../extensions/smalruby_ruby/index.js');
+        blockClass.formatMessage = formatMessage;
+        return blockClass;
+    };
 };
 
 module.exports = registerSmalrubyExtensions;
