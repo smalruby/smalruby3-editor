@@ -35,7 +35,10 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
                             name: 'ARG1',
                             block: expectedInfo.makeText('l')
                         }
-                    ]
+                    ],
+                    mutation: {
+                        blockInfo: expect.any(String)
+                    }
                 }
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
@@ -68,7 +71,10 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
                             name: 'ARG1',
                             block: expectedInfo.makeText('l')
                         }
-                    ]
+                    ],
+                    mutation: {
+                        blockInfo: expect.any(String)
+                    }
                 }
             ];
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
