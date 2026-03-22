@@ -6,7 +6,7 @@
  * @returns {object} same as param.
  */
 export default function (Generator) {
-    Generator.smalrubyRuby_stringMethodR = function (block) {
+    Generator.ruby_stringMethodR = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
         const string = Generator.valueToCode(block, 'STRING', order) || Generator.quote_('');
         const method = Generator.getFieldValue(block, 'METHOD') || 'delete';
@@ -19,7 +19,7 @@ export default function (Generator) {
         return [`${string}.${method}(${args.join(', ')})`, order];
     };
 
-    Generator.smalrubyRuby_stringMethodC = function (block) {
+    Generator.ruby_stringMethodC = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
         const string = Generator.valueToCode(block, 'STRING', order) || Generator.quote_('');
         const method = Generator.getFieldValue(block, 'METHOD') || 'delete!';

@@ -69,7 +69,7 @@ const SmalrubyRubyConverter = {
                 'reporter', 'delete', 'stringMethodRMenu',
                 stringMethodRArgs, stringMethodRMenuItems
             );
-            const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value', {mutation});
+            const block = converter._createBlock('ruby_stringMethodR', 'value', {mutation});
             converter._addTextInput(block, 'STRING', receiver, 'hello world');
             converter._addField(block, 'METHOD', 'delete');
             converter._addTextInput(block, 'ARG1', args[0], 'l');
@@ -86,7 +86,7 @@ const SmalrubyRubyConverter = {
                 'command', 'delete!', 'stringMethodCMenu',
                 stringMethodCArgs, stringMethodCMenuItems
             );
-            const block = converter._createBlock('smalrubyRuby_stringMethodC', 'statement', {mutation});
+            const block = converter._createBlock('ruby_stringMethodC', 'statement', {mutation});
             converter._addTextInput(block, 'STRING', receiver, 'hello world');
             converter._addField(block, 'METHOD', 'delete!');
             converter._addTextInput(block, 'ARG1', args[0], 'l');

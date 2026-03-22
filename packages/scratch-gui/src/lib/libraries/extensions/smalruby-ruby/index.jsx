@@ -4,26 +4,26 @@ let formatMessage = messageData => messageData.defaultMessage;
  * Smalruby Ruby extension - Ruby string manipulation methods
  */
 
-import smalrubyRubyIconURL from './smalruby-ruby.svg';
-import smalrubyRubyInsetIconURL from './smalruby-ruby-small.svg';
+import rubyIconURL from './smalruby-ruby.svg';
+import rubyInsetIconURL from './smalruby-ruby-small.svg';
 import translations from './translations.json';
 
 const entry = {
     get name () {
         return formatMessage({
             defaultMessage: 'Ruby',
-            description: "Name for the 'smalrubyRuby' extension",
-            id: 'smalrubyRuby.entry.name'
+            description: "Name for the 'ruby' extension",
+            id: 'ruby.entry.name'
         });
     },
-    extensionId: 'smalrubyRuby',
-    iconURL: smalrubyRubyIconURL,
-    insetIconURL: smalrubyRubyInsetIconURL,
+    extensionId: 'ruby',
+    iconURL: rubyIconURL,
+    insetIconURL: rubyInsetIconURL,
     get description () {
         return formatMessage({
             defaultMessage: 'Use Ruby string manipulation methods.',
-            description: "Description for the 'smalrubyRuby' extension",
-            id: 'smalrubyRuby.entry.description'
+            description: "Description for the 'ruby' extension",
+            id: 'ruby.entry.description'
         });
     },
     featured: true,

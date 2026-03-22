@@ -24,7 +24,7 @@ class SmalrubyRubyBlocks {
     }
 
     static get EXTENSION_ID () {
-        return 'smalrubyRuby';
+        return 'ruby';
     }
 
     constructor (runtime) {

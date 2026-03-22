@@ -67,7 +67,7 @@ import meshV2ConnectionSmallIconURL from './mesh_v2/mesh-small.png';
 import microbitMore from './microbitMore/index.jsx';
 import koshien from './koshien/index.jsx';
 // === Smalruby: Start of Ruby String extension ===
-import smalrubyRuby from './smalruby-ruby/index.jsx';
+import ruby from './smalruby-ruby/index.jsx';
 // === Smalruby: End of Ruby String extension ===
 
 export default [
@@ -547,6 +547,6 @@ export default [
     },
     koshien,
     // === Smalruby: Start of Ruby String extension ===
-    smalrubyRuby
+    ruby
     // === Smalruby: End of Ruby String extension ===
 ];

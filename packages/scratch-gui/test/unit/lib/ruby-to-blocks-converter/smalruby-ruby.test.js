@@ -19,7 +19,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const code = '"hello world".delete("l")';
             const expected = [
                 {
-                    opcode: 'smalrubyRuby_stringMethodR',
+                    opcode: 'ruby_stringMethodR',
                     fields: [
                         {
                             name: 'METHOD',
