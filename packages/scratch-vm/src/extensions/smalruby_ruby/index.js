@@ -191,7 +191,7 @@ class SmalrubyRubyBlocks {
         const string = String(args.STRING || '');
         const method = args.METHOD;
         const arg1 = String(args.ARG1 || '');
-        const arg2 = args.ARG2 !== undefined ? String(args.ARG2) : undefined;
+        const arg2 = (args.ARG2 === undefined) ? undefined : String(args.ARG2);
         switch (method) {
         case 'delete':
             return string.split('')
@@ -223,7 +223,7 @@ class SmalrubyRubyBlocks {
         const string = String(variable.value || '');
         const method = args.METHOD;
         const arg1 = String(args.ARG1 || '');
-        const arg2 = args.ARG2 !== undefined ? String(args.ARG2) : undefined;
+        const arg2 = (args.ARG2 === undefined) ? undefined : String(args.ARG2);
         let result;
         switch (method) {
         case 'delete!':
@@ -232,7 +232,7 @@ class SmalrubyRubyBlocks {
                 .join('');
             break;
         case 'gsub!':
-            result = arg2 !== undefined ? string.replaceAll(arg1, arg2) : string;
+            result = (arg2 === undefined) ? string : string.replaceAll(arg1, arg2);
             break;
         default:
             result = string;
