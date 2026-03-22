@@ -19,7 +19,7 @@ describe('RubyGenerator/SmalrubyRuby', () => {
         RubyGenerator.valueToCode = originalValueToCode;
     });
 
-    describe('ruby_stringMethodR', () => {
+    describe('smalrubyRuby_stringMethodR', () => {
         test('should generate delete method call', () => {
             RubyGenerator.valueToCode = (block, name, _order) => {
                 const map = {
@@ -30,12 +30,12 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             };
 
             const block = {
-                opcode: 'ruby_stringMethodR',
+                opcode: 'smalrubyRuby_stringMethodR',
                 fields: {
                     METHOD: {value: 'delete'}
                 }
             };
-            const result = RubyGenerator.ruby_stringMethodR(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethodR(block);
             expect(result[0]).toEqual('"hello world".delete("l")');
             expect(result[1]).toEqual(RubyGenerator.ORDER_FUNCTION_CALL);
         });
@@ -44,12 +44,12 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             RubyGenerator.valueToCode = () => '';
 
             const block = {
-                opcode: 'ruby_stringMethodR',
+                opcode: 'smalrubyRuby_stringMethodR',
                 fields: {
                     METHOD: {value: 'delete'}
                 }
             };
-            const result = RubyGenerator.ruby_stringMethodR(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethodR(block);
             expect(result[0]).toEqual('"".delete("")');
         });
 
@@ -64,17 +64,17 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             };
 
             const block = {
-                opcode: 'ruby_stringMethodR',
+                opcode: 'smalrubyRuby_stringMethodR',
                 fields: {
                     METHOD: {value: 'delete'}
                 }
             };
-            const result = RubyGenerator.ruby_stringMethodR(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethodR(block);
             expect(result[0]).toEqual('"hello".delete("l", "o")');
         });
     });
 
-    describe('ruby_stringMethodC', () => {
+    describe('smalrubyRuby_stringMethodC', () => {
         test('should generate delete! method call', () => {
             RubyGenerator.valueToCode = (block, name, _order) => {
                 const map = {
@@ -85,12 +85,12 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             };
 
             const block = {
-                opcode: 'ruby_stringMethodC',
+                opcode: 'smalrubyRuby_stringMethodC',
                 fields: {
                     METHOD: {value: 'delete!'}
                 }
             };
-            const result = RubyGenerator.ruby_stringMethodC(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethodC(block);
             expect(result).toEqual('"hello world".delete!("l")\n');
         });
 
@@ -98,12 +98,12 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             RubyGenerator.valueToCode = () => '';
 
             const block = {
-                opcode: 'ruby_stringMethodC',
+                opcode: 'smalrubyRuby_stringMethodC',
                 fields: {
                     METHOD: {value: 'delete!'}
                 }
             };
-            const result = RubyGenerator.ruby_stringMethodC(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethodC(block);
             expect(result).toEqual('"".delete!("")\n');
         });
 
@@ -118,12 +118,12 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             };
 
             const block = {
-                opcode: 'ruby_stringMethodC',
+                opcode: 'smalrubyRuby_stringMethodC',
                 fields: {
                     METHOD: {value: 'delete!'}
                 }
             };
-            const result = RubyGenerator.ruby_stringMethodC(block);
+            const result = RubyGenerator.smalrubyRuby_stringMethodC(block);
             expect(result).toEqual('"hello".delete!("l", "o")\n');
         });
     });

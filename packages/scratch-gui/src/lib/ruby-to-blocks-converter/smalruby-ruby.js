@@ -10,7 +10,7 @@ const SmalrubyRubyConverter = {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0])) return null;
 
-            const block = converter._createBlock('ruby_stringMethodR', 'value');
+            const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value');
             converter._addTextInput(block, 'STRING', receiver, 'hello world');
             converter._addField(block, 'METHOD', 'delete');
             converter._addTextInput(block, 'ARG1', args[0], 'l');
@@ -22,7 +22,7 @@ const SmalrubyRubyConverter = {
             const {receiver, args} = params;
             if (!converter._isStringOrBlock(args[0])) return null;
 
-            const block = converter._createBlock('ruby_stringMethodC', 'statement');
+            const block = converter._createBlock('smalrubyRuby_stringMethodC', 'statement');
             converter._addTextInput(block, 'STRING', receiver, 'hello world');
             converter._addField(block, 'METHOD', 'delete!');
             converter._addTextInput(block, 'ARG1', args[0], 'l');

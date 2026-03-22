@@ -136,7 +136,7 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                     if (typeof label === 'string') {
                         input.appendField(label);
                     } else if (label.fieldDropdown) {
-                                input.appendField(new ScratchBlocks.FieldDropdown(label.options), label.name);
+                        input.appendField(new ScratchBlocks.FieldDropdown(label.options), label.name);
                     }
                 }
                 pendingLabels = [];
@@ -151,7 +151,7 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                         input.connection.setShadowDom(saveInfo.shadow);
                     }
                     connectionMap[argName] = null;
-                } else if (arg.defaultValue !== undefined && input.connection) {
+                } else if (typeof arg.defaultValue !== 'undefined' && input.connection) {
                     // Create shadow block with default value for new inputs
                     const shadowDom = document.createElement('shadow');
                     shadowDom.setAttribute('type', 'text');
@@ -229,7 +229,7 @@ const setupMethodValidator = function (block, blockInfo, ScratchBlocks) {
 
     const argumentsByMethod = blockInfo.argumentsByMethod;
 
-    methodField.setValidator(function (newValue) {
+    methodField.setValidator(newValue => {
         if (!argumentsByMethod[newValue]) return newValue;
 
         const newConfig = argumentsByMethod[newValue];

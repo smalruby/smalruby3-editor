@@ -28,8 +28,8 @@ const registerSmalrubyExtensions = builtinExtensions => {
         return blockClass;
     };
 
-    // ruby extension - Ruby String methods support
-    builtinExtensions.ruby = () => {
+    // smalrubyRuby extension - Ruby String methods support
+    builtinExtensions.smalrubyRuby = () => {
         const formatMessage = require('format-message');
         const blockClass = require('../extensions/smalruby_ruby/index.js');
         blockClass.formatMessage = formatMessage;
