@@ -3,6 +3,284 @@
 import {ArgumentType, BlockType} from '@smalruby/scratch-vm';
 
 /**
+ * Build the scratch-blocks argument list from blockInfo text and arguments.
+ * Handles input_value (STRING, BOOLEAN) and field_dropdown (menu with menuItems).
+ * @param {object} blockInfo - parsed blockInfo containing text, arguments, and optional menuItems.
+ * @returns {{scratchBlocksStyleText: string, args: Array}} - the interpolation text and args array.
+ */
+const buildInterpolationArgs = function (blockInfo) {
+    const args = [];
+    let argCount = 0;
+    const scratchBlocksStyleText = blockInfo.text.replace(/\[(.+?)]/g, (match, argName) => {
+        const arg = blockInfo.arguments[argName];
+        // === Smalruby: Start of menu field support ===
+        if (arg.menu && blockInfo.menuItems && blockInfo.menuItems[arg.menu]) {
+            args.push({
+                type: 'field_dropdown',
+                name: argName,
+                options: blockInfo.menuItems[arg.menu]
+            });
+            return `%${++argCount}`;
+        }
+        // === Smalruby: End of menu field support ===
+        switch (arg.type) {
+        case ArgumentType.STRING:
+            args.push({type: 'input_value', name: argName});
+            break;
+        case ArgumentType.BOOLEAN:
+            args.push({type: 'input_value', name: argName, check: 'Boolean'});
+            break;
+        }
+        return `%${++argCount}`;
+    });
+    return {scratchBlocksStyleText, args};
+};
+
+// === Smalruby: Start of argumentsByMethod support ===
+
+/**
+ * Parse block text template into an array of components.
+ * Each component is either {type: 'label', text} or {type: 'arg', name}.
+ * @param {string} text - block text with [ARG_NAME] placeholders.
+ * @returns {Array<object>} parsed components.
+ */
+const parseBlockText = function (text) {
+    const components = [];
+    let lastIndex = 0;
+    const regex = /\[(.+?)]/g;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            components.push({type: 'label', text: text.substring(lastIndex, match.index)});
+        }
+        components.push({type: 'arg', name: match[1]});
+        lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+        components.push({type: 'label', text: text.substring(lastIndex)});
+    }
+    return components;
+};
+
+/**
+ * Disconnect all blocks from inputs and save connection info.
+ * Follows the procedures_call disconnectOldBlocks_ pattern.
+ * @param {object} block - the scratch-blocks Block instance.
+ * @returns {object} connectionMap keyed by input name.
+ */
+const disconnectOldBlocks = function (block) {
+    const connectionMap = {};
+    for (let i = 0; i < block.inputList.length; i++) {
+        const input = block.inputList[i];
+        if (input.connection) {
+            const target = input.connection.targetBlock();
+            connectionMap[input.name] = {
+                shadow: input.connection.getShadowDom(),
+                block: target
+            };
+            input.connection.setShadowDom(null);
+            if (target) {
+                input.connection.disconnect();
+            }
+        }
+    }
+    return connectionMap;
+};
+
+/**
+ * Remove all inputs by disposing them directly.
+ * Follows the procedures_call removeAllInputs_ pattern.
+ * @param {object} block - the scratch-blocks Block instance.
+ */
+const removeAllInputs = function (block) {
+    for (let i = 0; i < block.inputList.length; i++) {
+        block.inputList[i].dispose();
+    }
+    block.inputList = [];
+};
+
+/**
+ * Create all inputs from blockInfo text and arguments.
+ * Uses appendValueInput/appendDummyInput instead of interpolate_.
+ * Follows the procedures_call createAllInputs_ pattern.
+ * @param {object} block - the scratch-blocks Block instance.
+ * @param {object} blockInfo - parsed blockInfo with text, arguments, menuItems.
+ * @param {object} connectionMap - saved connections from disconnectOldBlocks.
+ * @param {object} ScratchBlocks - the ScratchBlocks namespace (for FieldDropdown).
+ */
+const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks) {
+    const components = parseBlockText(blockInfo.text);
+    let pendingLabels = [];
+    let inputIndex = 0;
+
+    for (const component of components) {
+        if (component.type === 'label') {
+            pendingLabels.push(component.text);
+        } else {
+            // component.type === 'arg'
+            const argName = component.name;
+            const arg = blockInfo.arguments[argName];
+
+            if (arg.menu && blockInfo.menuItems && blockInfo.menuItems[arg.menu]) {
+                // Menu field (dropdown) — attach to pending labels, don't create a value input
+                pendingLabels.push({fieldDropdown: true, name: argName, options: blockInfo.menuItems[arg.menu]});
+            } else {
+                // Value input
+                const input = block.appendValueInput(argName);
+                if (arg.type === ArgumentType.BOOLEAN) {
+                    input.setCheck('Boolean');
+                }
+
+                // Add pending labels and fields to this input
+                for (const label of pendingLabels) {
+                    if (typeof label === 'string') {
+                        input.appendField(label);
+                    } else if (label.fieldDropdown) {
+                                input.appendField(new ScratchBlocks.FieldDropdown(label.options), label.name);
+                    }
+                }
+                pendingLabels = [];
+
+                // Reconnect saved block or create default shadow
+                if (connectionMap && connectionMap[argName]) {
+                    const saveInfo = connectionMap[argName];
+                    if (saveInfo.block) {
+                        saveInfo.block.outputConnection.connect(input.connection);
+                    }
+                    if (saveInfo.shadow) {
+                        input.connection.setShadowDom(saveInfo.shadow);
+                    }
+                    connectionMap[argName] = null;
+                } else if (arg.defaultValue !== undefined && input.connection) {
+                    // Create shadow block with default value for new inputs
+                    const shadowDom = document.createElement('shadow');
+                    shadowDom.setAttribute('type', 'text');
+                    const fieldDom = document.createElement('field');
+                    fieldDom.setAttribute('name', 'TEXT');
+                    fieldDom.textContent = String(arg.defaultValue);
+                    shadowDom.appendChild(fieldDom);
+                    input.connection.setShadowDom(shadowDom);
+                    // Respawn the shadow block so it becomes visible
+                    input.connection.respawnShadow_();
+                }
+                inputIndex++;
+            }
+        }
+    }
+
+    // Any remaining labels go into a dummy input
+    if (pendingLabels.length > 0) {
+        const dummyInput = block.appendDummyInput();
+        for (const label of pendingLabels) {
+            if (typeof label === 'string') {
+                dummyInput.appendField(label);
+            } else if (label.fieldDropdown) {
+                dummyInput.appendField(new ScratchBlocks.FieldDropdown(label.options), label.name);
+            }
+        }
+    }
+};
+
+/**
+ * Rebuild the block's inputs based on new blockInfo.
+ * Follows the procedures_call updateDisplay_ pattern:
+ * pause rendering → disconnect → remove → create → render.
+ * @param {object} block - the scratch-blocks Block instance.
+ * @param {object} newBlockInfo - the new blockInfo to build from.
+ * @param {object} ScratchBlocks - the ScratchBlocks namespace.
+ */
+const updateBlockDisplay = function (block, newBlockInfo, ScratchBlocks) {
+    const wasRendered = block.rendered;
+    block.rendered = false;
+
+    const connectionMap = disconnectOldBlocks(block);
+    removeAllInputs(block);
+    createAllInputs(block, newBlockInfo, connectionMap, ScratchBlocks);
+
+    // Clean up orphaned shadow blocks
+    if (connectionMap) {
+        for (const id in connectionMap) {
+            const saveInfo = connectionMap[id];
+            if (saveInfo && saveInfo.block && saveInfo.block.isShadow()) {
+                saveInfo.block.dispose();
+            }
+        }
+    }
+
+    block.rendered = wasRendered;
+    if (wasRendered && !block.isInsertionMarker()) {
+        block.initSvg();
+        block.render();
+    }
+};
+
+/**
+ * Set up a validator on the METHOD dropdown field that dynamically rebuilds
+ * the block's inputs when a different method is selected.
+ * Uses the procedures_call updateDisplay_ pattern for reliable input reconstruction.
+ * @param {object} block - the scratch-blocks Block instance.
+ * @param {object} blockInfo - the current parsed blockInfo.
+ * @param {object} ScratchBlocks - the ScratchBlocks namespace.
+ */
+const setupMethodValidator = function (block, blockInfo, ScratchBlocks) {
+    const methodFieldName = blockInfo.methodFieldName || 'METHOD';
+    const methodField = block.getField(methodFieldName);
+    if (!methodField) return;
+
+    const argumentsByMethod = blockInfo.argumentsByMethod;
+
+    methodField.setValidator(function (newValue) {
+        if (!argumentsByMethod[newValue]) return newValue;
+
+        const newConfig = argumentsByMethod[newValue];
+        const currentBlockInfo = JSON.parse(block.blockInfoText);
+
+        // If text hasn't changed, no rebuild needed
+        if (currentBlockInfo.text === newConfig.text) return newValue;
+
+        ScratchBlocks.Events.setGroup(true);
+        const oldMutation = ScratchBlocks.Xml.domToText(block.mutationToDom());
+
+        // Build new blockInfo with the selected method's config
+        const newBlockInfo = Object.assign({}, currentBlockInfo, {
+            text: newConfig.text,
+            arguments: newConfig.arguments
+        });
+        block.blockInfoText = JSON.stringify(newBlockInfo);
+
+        // Rebuild block display using procedures_call pattern
+        updateBlockDisplay(block, newBlockInfo, ScratchBlocks);
+
+        // Set the dropdown value on the newly created field
+        const oldMethodValue = currentBlockInfo.arguments[methodFieldName]?.defaultValue || '';
+        const newMethodField = block.getField(methodFieldName);
+        if (newMethodField) {
+            newMethodField.setValue(newValue);
+        }
+
+        // Re-attach the validator to the new dropdown field
+        setupMethodValidator(block, newBlockInfo, ScratchBlocks);
+
+        // Fire field change event so the VM updates its blocks model
+        ScratchBlocks.Events.fire(new ScratchBlocks.Events.BlockChange(
+            block, 'field', methodFieldName, oldMethodValue, newValue
+        ));
+
+        // Fire mutation change event for undo/redo
+        const newMutation = ScratchBlocks.Xml.domToText(block.mutationToDom());
+        ScratchBlocks.Events.fire(new ScratchBlocks.Events.BlockChange(
+            block, 'mutation', null, oldMutation, newMutation
+        ));
+
+        ScratchBlocks.Events.setGroup(false);
+
+        // Return null to prevent default setValue (we already set it above)
+        return null;
+    });
+};
+// === Smalruby: End of argumentsByMethod support ===
+
+/**
  * Define a block using extension info which has the ability to dynamically determine (and update) its layout.
  * This functionality is used for extension blocks which can change its properties based on different state
  * information. For example, the `control_stop` block changes its shape based on which menu item is selected
@@ -45,9 +323,17 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
     domToMutation: function (xmlElement) {
         const blockInfoText = xmlElement.getAttribute('blockInfo');
         if (!blockInfoText) return;
-        if (!this.needsBlockInfoUpdate) {
+
+        // === Smalruby: Start of argumentsByMethod support ===
+        // For blocks with argumentsByMethod, allow multiple domToMutation calls
+        // (needed for undo/redo and project load).
+        // For other blocks, preserve the original one-time guard.
+        const hasArgumentsByMethod = JSON.parse(blockInfoText).argumentsByMethod;
+        if (!this.needsBlockInfoUpdate && !hasArgumentsByMethod) {
             throw new Error('Attempted to update block info twice');
         }
+        // === Smalruby: End of argumentsByMethod support ===
+
         delete this.needsBlockInfoUpdate;
         this.blockInfoText = blockInfoText;
         const blockInfo = JSON.parse(blockInfoText);
@@ -83,24 +369,18 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
             this.setColour(blockInfo.color1, blockInfo.color2, blockInfo.color3);
         }
 
-        // Layout block arguments
-        // TODO handle E/C Blocks
-        const blockText = blockInfo.text;
-        const args = [];
-        let argCount = 0;
-        const scratchBlocksStyleText = blockText.replace(/\[(.+?)]/g, (match, argName) => {
-            const arg = blockInfo.arguments[argName];
-            switch (arg.type) {
-            case ArgumentType.STRING:
-                args.push({type: 'input_value', name: argName});
-                break;
-            case ArgumentType.BOOLEAN:
-                args.push({type: 'input_value', name: argName, check: 'Boolean'});
-                break;
-            }
-            return `%${++argCount}`;
-        });
-        this.interpolate_(scratchBlocksStyleText, args);
+        // === Smalruby: Start of argumentsByMethod layout ===
+        if (blockInfo.argumentsByMethod) {
+            // Use manual input construction (procedures_call pattern)
+            // for blocks with dynamic arguments
+            updateBlockDisplay(this, blockInfo, ScratchBlocks);
+            setupMethodValidator(this, blockInfo, ScratchBlocks);
+        } else {
+            // Original interpolate_ path for standard dynamic blocks
+            const {scratchBlocksStyleText, args} = buildInterpolationArgs(blockInfo);
+            this.interpolate_(scratchBlocksStyleText, args);
+        }
+        // === Smalruby: End of argumentsByMethod layout ===
     }
 });
 
