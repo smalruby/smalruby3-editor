@@ -150,7 +150,9 @@ class SmalrubyRubyBlocks {
         const arg1 = String(args.ARG1 || '');
         switch (method) {
         case 'delete':
-            return string.split('').filter(c => !arg1.includes(c)).join('');
+            return string.split('')
+                .filter(c => !arg1.includes(c))
+                .join('');
         default:
             return string;
         }
