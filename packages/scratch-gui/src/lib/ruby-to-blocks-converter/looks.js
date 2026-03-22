@@ -1,30 +1,7 @@
-import {defineMessages} from 'react-intl';
 import _ from 'lodash';
-import {RubyToBlocksConverterError} from './errors';
+import LooksValidation from './looks-validation';
 
-const messages = defineMessages({
-    costumeDoesNotExist: {
-        defaultMessage: 'costume "{NAME}" does not exist.' +
-            '\nCheck the name or add the costume first.',
-        description: 'Error message when switching to a costume that does not exist',
-        id: 'gui.smalruby3.rubyToBlocksConverter.costumeDoesNotExist'
-    },
-    backdropDoesNotExist: {
-        defaultMessage: 'backdrop "{NAME}" does not exist.' +
-            '\nCheck the name or add the backdrop first.',
-        description: 'Error message when switching to a backdrop that does not exist',
-        id: 'gui.smalruby3.rubyToBlocksConverter.backdropDoesNotExist'
-    }
-});
-
- 
-const createBlockWithMessage = function (converter, opcode, message, defaultMessage) {
-    const block = converter._createBlock(opcode, 'statement');
-    converter._addTextInput(
-        block, 'MESSAGE', converter._isNumber(message) ? message.toString() : message, defaultMessage
-    );
-    return block;
-};
+const {validateCostume, validateBackdrop, resolveSymbolArg, createBlockWithMessage} = LooksValidation;
 
 const Effects = [
     'COLOR',
@@ -46,71 +23,9 @@ const ForwardBackward = [
     'backward'
 ];
 
- 
-const validateCostume = function (converter, costumeName, args) {
-    // Skip validation if no target context (e.g., in tests)
-    if (!converter._context.target || !converter._context.target.getCostumes) {
-        return;
-    }
-
-    const specialCostumes = ['next costume', 'previous costume', 'random costume'];
-    if (specialCostumes.indexOf(costumeName) >= 0) {
-        return;
-    }
-
-    const costumes = converter._context.target.getCostumes();
-    const costumeExists = costumes.some(costume => costume.name === costumeName);
-    if (!costumeExists) {
-        throw new RubyToBlocksConverterError(
-            args[0].node,
-            converter._translator(messages.costumeDoesNotExist, {NAME: costumeName})
-        );
-    }
-};
-
-const validateBackdrop = function (converter, backdropName, args) {
-    // Skip validation if no vm/stage target (e.g., in tests)
-    if (!converter.vm || !converter.vm.runtime) {
-        return;
-    }
-
-    const specialBackdrops = ['next backdrop', 'previous backdrop', 'random backdrop'];
-    if (specialBackdrops.indexOf(backdropName) >= 0) {
-        return;
-    }
-
-    const stage = converter.vm.runtime.getTargetForStage();
-    if (!stage || !stage.getCostumes) {
-        return;
-    }
-
-    const backdrops = stage.getCostumes();
-    const backdropExists = backdrops.some(backdrop => backdrop.name === backdropName);
-    if (!backdropExists) {
-        throw new RubyToBlocksConverterError(
-            args[0].node,
-            converter._translator(messages.backdropDoesNotExist, {NAME: backdropName})
-        );
-    }
-};
-
 /**
  * Looks converter
  */
-/**
- * Convert a symbol Primitive to its string name and collect it.
- * Returns the symbol name (without colon) or null if not a symbol.
- * @param {object} converter - The Ruby-to-blocks converter instance.
- * @param {object} arg - The argument to check for symbol type.
- */
-const resolveSymbolArg = function (converter, arg) {
-    if (converter._isPrimitive(arg) && arg.type === 'sym') {
-        converter._collectSymbol(arg.value);
-        return arg.value;
-    }
-    return null;
-};
-
 const LooksConverter = {
     register: function (converter) {
         // say/think with symbol argument - sprite-only
@@ -185,12 +100,12 @@ const LooksConverter = {
 
                 args.forEach(arg => {
                     const block = converter._createBlock('looks_sayforsecs', 'statement');
-                    const symbolName = resolveSymbolArg(converter, arg);
-                    const symbolVar = symbolName ? null : converter._resolveSymbolVariable(arg);
-                    if (symbolName) {
-                        converter._addTextInput(block, 'MESSAGE', symbolName, 'Hello!');
+                    const symbolName2 = resolveSymbolArg(converter, arg);
+                    const symbolVar = symbolName2 ? null : converter._resolveSymbolVariable(arg);
+                    if (symbolName2) {
+                        converter._addTextInput(block, 'MESSAGE', symbolName2, 'Hello!');
                         block.comment = converter._createComment(
-                            `@ruby:symbol:${symbolName},@ruby:method:${methodName}`, block.id
+                            `@ruby:symbol:${symbolName2},@ruby:method:${methodName}`, block.id
                         );
                     } else if (symbolVar) {
                         converter._addTextInput(block, 'MESSAGE', symbolVar, 'Hello!');
