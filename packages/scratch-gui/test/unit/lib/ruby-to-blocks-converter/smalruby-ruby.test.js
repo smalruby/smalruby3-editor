@@ -37,7 +37,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
                         }
                     ],
                     mutation: {
-                        blockInfo: expect.any(String)
+                        blockInfo: expect.any(Object)
                     }
                 }
             ];
@@ -73,7 +73,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
                         }
                     ],
                     mutation: {
-                        blockInfo: expect.any(String)
+                        blockInfo: expect.any(Object)
                     }
                 }
             ];

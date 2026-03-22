@@ -24,7 +24,7 @@ const buildMutation = function (blockType, method, menuName, argumentsByMethod, 
     return {
         tagName: 'mutation',
         children: [],
-        blockInfo: JSON.stringify(blockInfo),
+        blockInfo: blockInfo,
         warp: 'false'
     };
 };
