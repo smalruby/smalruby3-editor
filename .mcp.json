@@ -26,7 +26,7 @@
         "git+https://github.com/oraios/serena",
         "serena-mcp-server",
         "--context",
-        "ide-assistant",
+        "claude-code",
         "--project",
         "smalruby3-editor"
       ]
