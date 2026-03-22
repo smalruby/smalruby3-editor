@@ -108,8 +108,9 @@ const removeAllInputs = function (block) {
  * @param {object} connectionMap - saved connections from disconnectOldBlocks.
  * @param {object} ScratchBlocks - the ScratchBlocks namespace (for FieldDropdown).
  * @param {boolean} skipShadows - if true, skip creating shadow blocks (XML parser will handle them).
+ * @param {object} categoryInfo - extension category info (for resolving dynamic menus).
  */
-const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks, skipShadows) {
+const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks, skipShadows, categoryInfo) {
     const components = parseBlockText(blockInfo.text);
     let pendingLabels = [];
     let inputIndex = 0;
@@ -123,11 +124,31 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
             const arg = blockInfo.arguments[argName];
 
             if (arg.menu) {
-                // Menu field (dropdown) — attach to pending labels, don't create a value input
-                // Use static menuItems if available, otherwise create a single-option dropdown
-                // with the default value (for dynamic menus like variableNames)
-                const options = (blockInfo.menuItems && blockInfo.menuItems[arg.menu]) ||
-                    [[String(arg.defaultValue || ' '), String(arg.defaultValue || ' ')]];
+                // Menu field (dropdown) — attach to pending labels, don't create a value input.
+                // Resolution order:
+                // 1. Static menuItems embedded in blockInfo (for argumentsByMethod menus)
+                // 2. Dynamic menu from categoryInfo.menuInfo (for runtime-resolved menus like variableNames)
+                // 3. Fallback: single option with defaultValue
+                let options = blockInfo.menuItems && blockInfo.menuItems[arg.menu];
+                if (!options && categoryInfo && categoryInfo.menuInfo && categoryInfo.menuInfo[arg.menu]) {
+                    const menuInfo = categoryInfo.menuInfo[arg.menu];
+                    if (typeof menuInfo.items === 'function') {
+                        options = menuInfo.items();
+                    } else if (Array.isArray(menuInfo.items)) {
+                        options = menuInfo.items;
+                    }
+                    // Normalize items to [text, value] pairs
+                    if (options && options.length > 0 && !Array.isArray(options[0])) {
+                        options = options.map(item =>
+                            (typeof item === 'object' && item.text) ?
+                                [item.text, item.value] :
+                                [String(item), String(item)]
+                        );
+                    }
+                }
+                if (!options) {
+                    options = [[String(arg.defaultValue || ' '), String(arg.defaultValue || ' ')]];
+                }
                 pendingLabels.push({fieldDropdown: true, name: argName, options: options});
             } else {
                 // Value input
@@ -194,14 +215,15 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
  * @param {object} newBlockInfo - the new blockInfo to build from.
  * @param {object} ScratchBlocks - the ScratchBlocks namespace.
  * @param {boolean} skipShadows - if true, skip creating shadow blocks.
+ * @param {object} categoryInfo - extension category info (for resolving dynamic menus).
  */
-const updateBlockDisplay = function (block, newBlockInfo, ScratchBlocks, skipShadows) {
+const updateBlockDisplay = function (block, newBlockInfo, ScratchBlocks, skipShadows, categoryInfo) {
     const wasRendered = block.rendered;
     block.rendered = false;
 
     const connectionMap = disconnectOldBlocks(block);
     removeAllInputs(block);
-    createAllInputs(block, newBlockInfo, connectionMap, ScratchBlocks, skipShadows);
+    createAllInputs(block, newBlockInfo, connectionMap, ScratchBlocks, skipShadows, categoryInfo);
 
     // Clean up orphaned shadow blocks
     if (connectionMap) {
@@ -227,8 +249,9 @@ const updateBlockDisplay = function (block, newBlockInfo, ScratchBlocks, skipSha
  * @param {object} block - the scratch-blocks Block instance.
  * @param {object} blockInfo - the current parsed blockInfo.
  * @param {object} ScratchBlocks - the ScratchBlocks namespace.
+ * @param {object} categoryInfo - extension category info (for resolving dynamic menus).
  */
-const setupMethodValidator = function (block, blockInfo, ScratchBlocks) {
+const setupMethodValidator = function (block, blockInfo, ScratchBlocks, categoryInfo) {
     const methodFieldName = blockInfo.methodFieldName || 'METHOD';
     const methodField = block.getField(methodFieldName);
     if (!methodField) return;
@@ -255,7 +278,7 @@ const setupMethodValidator = function (block, blockInfo, ScratchBlocks) {
         block.blockInfoText = JSON.stringify(newBlockInfo);
 
         // Rebuild block display using procedures_call pattern
-        updateBlockDisplay(block, newBlockInfo, ScratchBlocks);
+        updateBlockDisplay(block, newBlockInfo, ScratchBlocks, false, categoryInfo);
 
         // Set the dropdown value on the newly created field
         const oldMethodValue = currentBlockInfo.arguments[methodFieldName]?.defaultValue || '';
@@ -265,7 +288,7 @@ const setupMethodValidator = function (block, blockInfo, ScratchBlocks) {
         }
 
         // Re-attach the validator to the new dropdown field
-        setupMethodValidator(block, newBlockInfo, ScratchBlocks);
+        setupMethodValidator(block, newBlockInfo, ScratchBlocks, categoryInfo);
 
         // Fire field change event so the VM updates its blocks model
         ScratchBlocks.Events.fire(new ScratchBlocks.Events.BlockChange(
@@ -382,8 +405,8 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
             // for blocks with dynamic arguments.
             // On first call (from XML parser), skip shadow creation —
             // the XML parser will create shadows from the toolbox XML.
-            updateBlockDisplay(this, blockInfo, ScratchBlocks, isFirstCall);
-            setupMethodValidator(this, blockInfo, ScratchBlocks);
+            updateBlockDisplay(this, blockInfo, ScratchBlocks, isFirstCall, categoryInfo);
+            setupMethodValidator(this, blockInfo, ScratchBlocks, categoryInfo);
         } else {
             // Original interpolate_ path for standard dynamic blocks
             const {scratchBlocksStyleText, args} = buildInterpolationArgs(blockInfo);
