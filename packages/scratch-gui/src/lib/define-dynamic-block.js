@@ -121,9 +121,13 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
             const argName = component.name;
             const arg = blockInfo.arguments[argName];
 
-            if (arg.menu && blockInfo.menuItems && blockInfo.menuItems[arg.menu]) {
+            if (arg.menu) {
                 // Menu field (dropdown) — attach to pending labels, don't create a value input
-                pendingLabels.push({fieldDropdown: true, name: argName, options: blockInfo.menuItems[arg.menu]});
+                // Use static menuItems if available, otherwise create a single-option dropdown
+                // with the default value (for dynamic menus like variableNames)
+                const options = (blockInfo.menuItems && blockInfo.menuItems[arg.menu]) ||
+                    [[String(arg.defaultValue || ' '), String(arg.defaultValue || ' ')]];
+                pendingLabels.push({fieldDropdown: true, name: argName, options: options});
             } else {
                 // Value input
                 const input = block.appendValueInput(argName);
