@@ -38,7 +38,7 @@ class SmalrubyRubyBlocks {
         return {
             id: SmalrubyRubyBlocks.EXTENSION_ID,
             name: formatMessage({
-                id: 'ruby.categoryName',
+                id: 'smalrubyRuby.categoryName',
                 default: 'Ruby',
                 description: 'Label for the ruby extension category'
             }),
@@ -46,7 +46,7 @@ class SmalrubyRubyBlocks {
                 {
                     opcode: 'stringMethodR',
                     text: formatMessage({
-                        id: 'ruby.stringMethodR',
+                        id: 'smalrubyRuby.stringMethodR',
                         default: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
                         description: 'String method that returns a value'
                     }),
@@ -101,7 +101,7 @@ class SmalrubyRubyBlocks {
                 {
                     opcode: 'stringMethodC',
                     text: formatMessage({
-                        id: 'ruby.stringMethodC',
+                        id: 'smalrubyRuby.stringMethodC',
                         default: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
                         description: 'String method that does not return a value'
                     }),
