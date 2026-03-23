@@ -19,7 +19,13 @@ const EXTENSION_HANDLER_MAP = {
     mesh_v1: '_annotateMeshV1Method',
     mesh: '_annotateMeshV2Method',
     smalrubot_s1: '_annotateSmalrubotS1Method',
-    koshien: '_annotateKoshienMethod'
+    koshien: '_annotateKoshienMethod',
+    // v2 API receivers
+    music: '_annotateMusicMethod',
+    keyboard: '_annotateKeyboardMethod',
+    mouse: '_annotateMouseMethod',
+    timer: '_annotateTimerMethod',
+    translate: '_annotateTranslateMethod'
 };
 
 /**
@@ -34,7 +40,13 @@ const EXTENSION_RECEIVER_LABELS = {
     mesh_v1: 'メッシュ(従来)',
     mesh: 'メッシュ',
     smalrubot_s1: 'スモウルボットS1',
-    koshien: 'スモウルビー甲子園'
+    koshien: 'スモウルビー甲子園',
+    // v2 API receivers
+    music: '音楽',
+    keyboard: 'キーボード',
+    mouse: 'マウス',
+    timer: 'タイマー',
+    translate: '翻訳'
 };
 
 // ---- Extension-specific string label maps ----
@@ -218,6 +230,57 @@ const extensionHandlers = {
             'sensor_value': 'センサーの値',
             'get_motor_speed': 'モーター速度',
             'arm_calibration=': 'アーム調整'
+        };
+        const label = labels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    },
+
+    // v2 API handlers
+
+    _annotateMusicMethod (node, name) {
+        const labels = {
+            'play_drum': 'ドラムを鳴らす',
+            'rest': '休む',
+            'play_note': '音符を鳴らす',
+            'instrument=': '楽器を設定',
+            'tempo=': 'テンポを設定',
+            'tempo': 'テンポ'
+        };
+        const label = labels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    },
+
+    _annotateKeyboardMethod (node, name) {
+        const labels = {
+            'pressed?': 'キーが押されたか'
+        };
+        const label = labels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    },
+
+    _annotateMouseMethod (node, name) {
+        const labels = {
+            'x': 'X座標',
+            'y': 'Y座標',
+            'down?': '押されたか'
+        };
+        const label = labels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    },
+
+    _annotateTimerMethod (node, name) {
+        const labels = {
+            value: '値',
+            reset: 'リセット'
+        };
+        const label = labels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    },
+
+    _annotateTranslateMethod (node, name) {
+        const labels = {
+            call: '翻訳する',
+            language: '言語'
         };
         const label = labels[name];
         if (label) this._addAnnotation(node.messageLoc, label);

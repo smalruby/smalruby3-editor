@@ -211,7 +211,7 @@ const registerModernHandlers = function (converter) {
         return block;
     });
 
-    converter.registerOnSend(MicrobitMore, 'display_pattern', 5, params => {
+    const displayPatternHandler5 = params => {
         const {receiver, args} = params;
 
         if (!args.every(x => converter.isString(x))) return null;
@@ -225,7 +225,12 @@ const registerModernHandlers = function (converter) {
         matrix = matrix.replace(/[1-9]/g, '1').replace(/[^1-9]/g, '0');
         converter.addFieldInput(block, 'MATRIX', 'matrix', 'MATRIX', matrix, null);
         return block;
-    });
+    };
+
+    converter.registerOnSend(MicrobitMore, 'display_pattern', 5, displayPatternHandler5);
+
+    // backward compatibility: microbit.display(...) was renamed to display_pattern
+    converter.registerOnSend(MicrobitMore, 'display', 5, displayPatternHandler5);
 
     converter.registerOnSend(MicrobitMore, 'display_pattern', 1, params => {
         const {receiver, args} = params;

@@ -9,15 +9,22 @@ export default function (Generator) {
         return `sleep(${secs})\n`;
     };
 
+    const hasWaitComment = function (block) {
+        const comment = Generator.getCommentText(block);
+        return comment && comment.includes('@ruby:method:wait');
+    };
+
     Generator.control_repeat = function (block) {
         const times = Generator.valueToCode(block, 'TIMES', Generator.ORDER_ATOMIC) || 0;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-        return `${times}.times do\n${branch}end\n`;
+        const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
+        return `${times}.times do\n${branch}${wait}end\n`;
     };
 
     Generator.control_forever = function (block) {
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-        return `loop do\n${branch}end\n`;
+        const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
+        return `loop do\n${branch}${wait}end\n`;
     };
 
     const getCaseInfo = function (block) {
@@ -235,22 +242,23 @@ export default function (Generator) {
 
     Generator.control_repeat_until = function (block) {
         const comment = Generator.getCommentText(block);
+        const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
         const varName = getVariableHint(block);
         if (varName) {
             const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
             if (comment.includes('@ruby:syntax:while')) {
-                return `while ${varName}\n${branch}end\n`;
+                return `while ${varName}\n${branch}${wait}end\n`;
             }
-            return `until ${varName}\n${branch}end\n`;
+            return `until ${varName}\n${branch}${wait}end\n`;
         }
-        if (comment === '@ruby:syntax:while') {
+        if (comment && comment.includes('@ruby:syntax:while')) {
             const operator = getWhileCondition(block);
             const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-            return `while ${operator}\n${branch}end\n`;
+            return `while ${operator}\n${branch}${wait}end\n`;
         }
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-        return `until ${operator}\n${branch}end\n`;
+        return `until ${operator}\n${branch}${wait}end\n`;
     };
 
     Generator.control_stop = function (block) {
@@ -264,6 +272,9 @@ export default function (Generator) {
 
     Generator.control_start_as_clone = function (block) {
         block.isStatement = true;
+        if (String(Generator.version) === '1') {
+            return `self.when(:start_as_a_clone) do\n`;
+        }
         return `when_start_as_a_clone do\n`;
     };
 

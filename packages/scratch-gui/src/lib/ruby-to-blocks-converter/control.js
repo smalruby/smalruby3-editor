@@ -37,7 +37,11 @@ const ControlConverter = {
             if (!converter._isNumberOrBlock(args[0])) return null;
 
             const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
-            return createControlRepeatBlock(converter, args[0], cleanedRubyBlock);
+            const block = createControlRepeatBlock(converter, args[0], cleanedRubyBlock);
+            if (converter._hadWaitInLastRemove) {
+                block.comment = converter._createComment('@ruby:method:wait', block.id);
+            }
+            return block;
         });
 
         // loop { block } and forever { block } - control_forever
@@ -49,6 +53,9 @@ const ControlConverter = {
                 const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
                 const block = converter._createBlock('control_forever', 'terminate');
                 converter._addSubstack(block, cleanedRubyBlock);
+                if (converter._hadWaitInLastRemove) {
+                    block.comment = converter._createComment('@ruby:method:wait', block.id);
+                }
                 return block;
             });
         });
@@ -83,7 +90,11 @@ const ControlConverter = {
             if (!rubyBlock || !converter._isNumberOrBlock(receiver)) return null;
 
             const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
-            return createControlRepeatBlock(converter, receiver, cleanedRubyBlock);
+            const block = createControlRepeatBlock(converter, receiver, cleanedRubyBlock);
+            if (converter._hadWaitInLastRemove) {
+                block.comment = converter._createComment('@ruby:method:wait', block.id);
+            }
+            return block;
         });
 
         // when_start_as_a_clone { block } (sprite only)
@@ -132,6 +143,7 @@ const ControlConverter = {
 
         converter.registerOnUntil((cond, statement) => {
             statement = converter._removeWaitBlocks(statement);
+            const hadWait = converter._hadWaitInLastRemove;
 
             let opcode;
             if (statement === null) {
@@ -144,6 +156,9 @@ const ControlConverter = {
                 converter._addInput(block, 'CONDITION', cond);
             }
             converter._addSubstack(block, statement);
+            if (hadWait && opcode === 'control_repeat_until') {
+                block.comment = converter._createComment('@ruby:method:wait', block.id);
+            }
             return block;
         });
     }

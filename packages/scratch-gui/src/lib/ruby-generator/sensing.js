@@ -59,7 +59,8 @@ export default function (Generator) {
     Generator.sensing_keypressed = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
         const key = Generator.valueToCode(block, 'KEY_OPTION', order) || null;
-        return [`Keyboard.pressed?(${key})`, order];
+        const receiver = String(Generator.version) === '2' ? 'keyboard' : 'Keyboard';
+        return [`${receiver}.pressed?(${key})`, order];
     };
 
     Generator.sensing_keyoptions = function (block) {
@@ -68,15 +69,18 @@ export default function (Generator) {
     };
 
     Generator.sensing_mousedown = function () {
-        return ['Mouse.down?', Generator.ORDER_ATOMIC];
+        const receiver = String(Generator.version) === '2' ? 'mouse' : 'Mouse';
+        return [`${receiver}.down?`, Generator.ORDER_ATOMIC];
     };
 
     Generator.sensing_mousex = function () {
-        return ['Mouse.x', Generator.ORDER_ATOMIC];
+        const receiver = String(Generator.version) === '2' ? 'mouse' : 'Mouse';
+        return [`${receiver}.x`, Generator.ORDER_ATOMIC];
     };
 
     Generator.sensing_mousey = function () {
-        return ['Mouse.y', Generator.ORDER_ATOMIC];
+        const receiver = String(Generator.version) === '2' ? 'mouse' : 'Mouse';
+        return [`${receiver}.y`, Generator.ORDER_ATOMIC];
     };
 
     Generator.sensing_setdragmode = function (block) {
@@ -89,11 +93,13 @@ export default function (Generator) {
     };
 
     Generator.sensing_timer = function () {
-        return ['Timer.value', Generator.ORDER_ATOMIC];
+        const receiver = String(Generator.version) === '2' ? 'timer' : 'Timer';
+        return [`${receiver}.value`, Generator.ORDER_ATOMIC];
     };
 
     Generator.sensing_resettimer = function () {
-        return 'Timer.reset\n';
+        const receiver = String(Generator.version) === '2' ? 'timer' : 'Timer';
+        return `${receiver}.reset\n`;
     };
 
     Generator.sensing_of_object_menu = function (block) {

@@ -18,6 +18,9 @@ export default function (Generator) {
     Generator.microbit_whenGesture = function (block) {
         block.isStatement = true;
         const gesture = Generator.valueToCode(block, 'GESTURE', Generator.ORDER_NONE) || null;
+        if (String(Generator.version) === '1') {
+            return `self.when(:microbit_gesture, ${gesture}) do\n`;
+        }
         return `microbit_v1.when(${gesture}) do\n`;
     };
 

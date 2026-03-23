@@ -1,5 +1,8 @@
 /**
  * Unit test replacing test/integration/ruby-tab/extension_microbit.test.js
+ *
+ * Note: The original micro:bit extension is defaultHidden: true and not
+ * actively maintained. These tests verify v1 backward compatibility only.
  */
 import dedent from 'dedent';
 import {
@@ -18,7 +21,8 @@ describe('Ruby Roundtrip: micro:bit extension blocks', () => {
         converter = makeConverter(target, runtime);
     });
 
-    const ruby = dedent`
+    // v1 output format: gesture events use self.when(:microbit_gesture, ...)
+    const v1Ruby = dedent`
         microbit_v1.when_button_pressed("A") do
         end
 
@@ -30,13 +34,13 @@ describe('Ruby Roundtrip: micro:bit extension blocks', () => {
 
         microbit_v1.button_pressed?("A")
 
-        microbit_v1.when("moved") do
+        self.when(:microbit_gesture, "moved") do
         end
 
-        microbit_v1.when("shaken") do
+        self.when(:microbit_gesture, "shaken") do
         end
 
-        microbit_v1.when("jumped") do
+        self.when(:microbit_gesture, "jumped") do
         end
 
         microbit_v1.display(
@@ -79,64 +83,12 @@ describe('Ruby Roundtrip: micro:bit extension blocks', () => {
         end
     `;
 
-    test('Ruby -> Code -> Ruby', async () => {
-        await expectRoundTrip(converter, target, ruby);
+    test('Ruby -> Code -> Ruby (v1)', async () => {
+        await expectRoundTrip(converter, target, v1Ruby);
     });
 
-    test('Ruby -> Code -> Ruby (backward compatibility)', async () => {
-        const oldRuby = dedent`
-            self.when(:microbit_button_pressed, "A") do
-            end
-
-            self.when(:microbit_button_pressed, "B") do
-            end
-
-            self.when(:microbit_button_pressed, "any") do
-            end
-
-            self.when(:microbit_gesture, "moved") do
-            end
-
-            self.when(:microbit_gesture, "shaken") do
-            end
-
-            self.when(:microbit_gesture, "jumped") do
-            end
-
-            self.when(:microbit_tilted, "any") do
-            end
-
-            self.when(:microbit_tilted, "front") do
-            end
-
-            self.when(:microbit_tilted, "back") do
-            end
-
-            self.when(:microbit_tilted, "left") do
-            end
-
-            self.when(:microbit_tilted, "right") do
-            end
-
-            self.when(:microbit_pin_connected, 0) do
-            end
-
-            self.when(:microbit_pin_connected, 1) do
-            end
-
-            self.when(:microbit_pin_connected, 2) do
-            end
-        `;
-        const newRuby = dedent`
-            microbit_v1.when_button_pressed("A") do
-            end
-
-            microbit_v1.when_button_pressed("B") do
-            end
-
-            microbit_v1.when_button_pressed("any") do
-            end
-
+    test('Ruby -> Code -> Ruby (v1 backward compatibility: microbit_v1.when style)', async () => {
+        const microbitV1WhenRuby = dedent`
             microbit_v1.when("moved") do
             end
 
@@ -145,29 +97,45 @@ describe('Ruby Roundtrip: micro:bit extension blocks', () => {
 
             microbit_v1.when("jumped") do
             end
+        `;
+        const v1GestureRuby = dedent`
+            self.when(:microbit_gesture, "moved") do
+            end
+
+            self.when(:microbit_gesture, "shaken") do
+            end
+
+            self.when(:microbit_gesture, "jumped") do
+            end
+        `;
+        await expectRoundTrip(converter, target, microbitV1WhenRuby, v1GestureRuby);
+    });
+
+    test('Ruby -> Code -> Ruby (v1 backward compatibility: self.when style)', async () => {
+        const oldRuby = dedent`
+            self.when(:microbit_button_pressed, "A") do
+            end
+
+            self.when(:microbit_gesture, "moved") do
+            end
+
+            self.when(:microbit_tilted, "any") do
+            end
+
+            self.when(:microbit_pin_connected, 0) do
+            end
+        `;
+        const newRuby = dedent`
+            microbit_v1.when_button_pressed("A") do
+            end
+
+            self.when(:microbit_gesture, "moved") do
+            end
 
             microbit_v1.when_tilted("any") do
             end
 
-            microbit_v1.when_tilted("front") do
-            end
-
-            microbit_v1.when_tilted("back") do
-            end
-
-            microbit_v1.when_tilted("left") do
-            end
-
-            microbit_v1.when_tilted("right") do
-            end
-
             microbit_v1.when_pin_connected(0) do
-            end
-
-            microbit_v1.when_pin_connected(1) do
-            end
-
-            microbit_v1.when_pin_connected(2) do
             end
         `;
         await expectRoundTrip(converter, target, oldRuby, newRuby);

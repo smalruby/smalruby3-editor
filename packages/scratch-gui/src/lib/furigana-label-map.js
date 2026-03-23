@@ -112,6 +112,11 @@ const TOPLEVEL_METHOD_LABELS = {
     // Music
     'play_drum': 'ドラムを鳴らす',
     'play_note': '音符を鳴らす',
+    // Pen (v1 top-level)
+    'pen_down': 'ペンを下ろす',
+    'pen_up': 'ペンを上げる',
+    'pen_clear': '全部消す',
+    'pen_stamp': 'スタンプ',
     // Translate
     'translate': '翻訳する',
     // Class configuration (set_xxx) — sprite

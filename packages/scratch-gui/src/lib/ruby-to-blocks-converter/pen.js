@@ -11,6 +11,12 @@ const PenConverter = {
             converter.createBlock('pen_clear', 'statement')
         );
 
+        // v2: pen.clear
+        converter.registerOnSend(Pen, 'clear', 0, params => {
+            const {receiver} = params;
+            return converter.changeRubyExpressionBlock(receiver, 'pen_clear', 'statement');
+        });
+
         // backward compatibility
         converter.registerOnSend('self', 'pen_clear', 0, () =>
             converter.createBlock('pen_clear', 'statement')
@@ -198,6 +204,14 @@ const PenConverter = {
             });
         });
 
+        // backward compatibility getters for v1 book code: self.color += 10
+        ['color', 'saturation', 'brightness', 'transparency'].forEach(methodName => {
+            converter.registerOnSend('self', methodName, 0, params => {
+                const {node} = params;
+                return converter.createRubyStatementBlock(`self.${methodName}`, node);
+            });
+        });
+
         // for +=
         ['color', 'saturation', 'brightness', 'transparency', 'size'].forEach(methodName => {
             converter.registerOnSend(Pen, methodName, 0, params => {
@@ -257,6 +271,21 @@ const PenConverter = {
                 this._addFieldInput(
                     block, 'COLOR_PARAM', 'pen_menu_colorParam', 'colorParam',
                     code.replace('self.pen_', ''), 'color'
+                );
+                this._addNumberInput(block, 'VALUE', 'math_number', rh, 10);
+                break;
+            // backward compatibility for v1 book code: self.color += 10
+            case 'self.color':
+            case 'self.saturation':
+            case 'self.brightness':
+            case 'self.transparency':
+                block = this._changeBlock(lh, 'pen_changePenColorParamBy', 'statement');
+                delete this._context.blocks[block.inputs.STATEMENT.block];
+                delete block.inputs.STATEMENT;
+
+                this._addFieldInput(
+                    block, 'COLOR_PARAM', 'pen_menu_colorParam', 'colorParam',
+                    code.replace('self.', ''), 'color'
                 );
                 this._addNumberInput(block, 'VALUE', 'math_number', rh, 10);
                 break;

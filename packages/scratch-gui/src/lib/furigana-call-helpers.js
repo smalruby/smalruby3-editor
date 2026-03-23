@@ -142,6 +142,7 @@ const callHelpers = {
 
     _annotatePenMethod (node, name) {
         const penLabels = {
+            'clear': '全削除する',
             'stamp': 'スタンプ',
             'down': 'ペンを下ろす',
             'up': 'ペンを上げる',

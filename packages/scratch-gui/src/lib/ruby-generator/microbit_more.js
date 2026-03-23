@@ -108,7 +108,8 @@ export default function (Generator) {
         if (matrix.indexOf('\n') >= 0) {
             matrix = `\n${Generator.prefixLines(matrix, Generator.INDENT)}\n`;
         }
-        return `microbit.display_pattern(${matrix})\n`;
+        const methodName = String(Generator.version) === '1' ? 'display' : 'display_pattern';
+        return `microbit.${methodName}(${matrix})\n`;
     };
 
     Generator.microbitMore_display = function (block) {
