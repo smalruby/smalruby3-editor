@@ -107,14 +107,14 @@ describe('Ruby Roundtrip: Microbit More v2 extension blocks', () => {
 
             microbit.tilted?("right")
 
-            microbit.display_pattern(
+            microbit.display(
               ".1.1.",
               "1.1.1",
               "1...1",
               ".1.1.",
               "..1.."
             )
-            microbit.display_pattern(
+            microbit.display(
               "1...1",
               ".1.1.",
               "..1..",

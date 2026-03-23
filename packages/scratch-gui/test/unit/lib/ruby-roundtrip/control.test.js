@@ -71,7 +71,7 @@ describe('Ruby Roundtrip: Control category blocks', () => {
 
             stop("other scripts in sprite")
 
-            when_start_as_a_clone do
+            self.when(:start_as_a_clone) do
             end
 
             create_clone("_myself_")
@@ -80,16 +80,20 @@ describe('Ruby Roundtrip: Control category blocks', () => {
         `);
     });
 
-    test('Ruby -> Code -> Ruby (backward compatibility)', async () => {
-        const oldRuby = dedent`
-            self.when(:start_as_a_clone) do
-            end
-        `;
-        const newRuby = dedent`
+    test('Ruby -> Code -> Ruby (v2)', async () => {
+        const converter2 = makeConverter(target, runtime, {version: 2});
+        await expectRoundTrip(converter2, target, dedent`
             when_start_as_a_clone do
             end
-        `;
-        await expectRoundTrip(converter, target, oldRuby, newRuby);
+        `, null, {version: 2});
+    });
+
+    test('Ruby -> Code -> Ruby (backward compatibility)', async () => {
+        // In v1, self.when(:start_as_a_clone) round-trips to itself
+        await expectRoundTrip(converter, target, dedent`
+            self.when(:start_as_a_clone) do
+            end
+        `);
     });
 
     test('Ruby -> Code -> Ruby (alias)', async () => {
@@ -102,6 +106,7 @@ describe('Ruby Roundtrip: Control category blocks', () => {
         const afterRuby = dedent`
             10.times do
               move(10)
+              wait
             end
             x.times do
               move(10)
@@ -111,6 +116,7 @@ describe('Ruby Roundtrip: Control category blocks', () => {
             end
             loop do
               move(10)
+              wait
             end
         `;
         await expectRoundTrip(converter, target, beforeRuby, afterRuby);

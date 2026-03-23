@@ -173,10 +173,12 @@ const BlockUtils = {
 
     _removeWaitBlocks (block) {
         if (!block) {
+            this._hadWaitInLastRemove = false;
             return null;
         }
 
         let firstBlock = null;
+        let hadWait = false;
         let b = block;
         let prev = b.parent;
         while (b) {
@@ -188,6 +190,7 @@ const BlockUtils = {
                 }
             }
             if (isWaitBlock) {
+                hadWait = true;
                 delete this._context.blocks[b.id];
                 if (prev) {
                     this._context.blocks[prev].next = null;
@@ -204,6 +207,7 @@ const BlockUtils = {
             }
             b = this._context.blocks[b.next];
         }
+        this._hadWaitInLastRemove = hadWait;
         return firstBlock;
     },
 
