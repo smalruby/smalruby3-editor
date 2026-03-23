@@ -49,6 +49,18 @@ const SensingConverter = {
             );
         });
 
+        // v2: mouse.xxx (lowercase receiver)
+        converter.registerOnSend('sprite', 'mouse', 0, params => {
+            const {node} = params;
+            return converter.createRubyExpressionBlock('mouse', node);
+        });
+        mouseGetters.forEach(({method, opcode, blockType}) => {
+            converter.registerOnSend('mouse', method, 0, params => {
+                const {receiver} = params;
+                return converter.changeRubyExpressionBlock(receiver, opcode, blockType);
+            });
+        });
+
         // Timer methods
         const timerMethods = [
             {method: 'value', opcode: 'sensing_timer', blockType: 'value'},
@@ -59,6 +71,18 @@ const SensingConverter = {
             converter.registerOnSend('::Timer', method, 0, () =>
                 converter.createBlock(opcode, blockType)
             );
+        });
+
+        // v2: timer.xxx (lowercase receiver)
+        converter.registerOnSend('sprite', 'timer', 0, params => {
+            const {node} = params;
+            return converter.createRubyExpressionBlock('timer', node);
+        });
+        timerMethods.forEach(({method, opcode, blockType}) => {
+            converter.registerOnSend('timer', method, 0, params => {
+                const {receiver} = params;
+                return converter.changeRubyExpressionBlock(receiver, opcode, blockType);
+            });
         });
 
         // stage - returns Ruby expression
@@ -185,7 +209,7 @@ const SensingConverter = {
             return block;
         });
 
-        converter.registerOnSend('::Keyboard', 'pressed?', 1, params => {
+        const keyPressedHandler = params => {
             const {args} = params;
 
             const validKey = converter.isString(args[0]) && KeyOptions.indexOf(args[0].toString()) >= 0;
@@ -194,6 +218,26 @@ const SensingConverter = {
             if (!validKey && !isBlockArg) return null;
 
             const block = converter.createBlock('sensing_keypressed', 'value_boolean');
+            converter.addFieldInput(block, 'KEY_OPTION', 'sensing_keyoptions', 'KEY_OPTION', args[0], 'space');
+            return block;
+        };
+
+        converter.registerOnSend('::Keyboard', 'pressed?', 1, keyPressedHandler);
+
+        // v2: keyboard.pressed?(key) (lowercase receiver)
+        converter.registerOnSend('sprite', 'keyboard', 0, params => {
+            const {node} = params;
+            return converter.createRubyExpressionBlock('keyboard', node);
+        });
+        converter.registerOnSend('keyboard', 'pressed?', 1, params => {
+            const {receiver, args} = params;
+
+            const validKey = converter.isString(args[0]) && KeyOptions.indexOf(args[0].toString()) >= 0;
+            const isBlockArg = converter.isBlock(args[0]);
+
+            if (!validKey && !isBlockArg) return null;
+
+            const block = converter.changeRubyExpressionBlock(receiver, 'sensing_keypressed', 'value_boolean');
             converter.addFieldInput(block, 'KEY_OPTION', 'sensing_keyoptions', 'KEY_OPTION', args[0], 'space');
             return block;
         });
