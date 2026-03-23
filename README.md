@@ -81,6 +81,14 @@ npm run test:integration
 
 ## Smalruby Specific Features
 
+### Language Specification
+
+Smalruby supports a subset of Ruby syntax. See the language specification for details:
+
+- **[Language Specification](docs/smalruby-language-spec.md)** ([Japanese](docs/smalruby-language-spec.ja.md)) — Core syntax and built-in methods
+- **[Extension Methods](docs/smalruby-language-spec-extensions.md)** ([Japanese](docs/smalruby-language-spec-extensions.ja.md)) — Pen, Music, Translate, micro:bit, and more
+- **[Version 1 API Differences](docs/smalruby-language-spec-v1-diff.md)** ([Japanese](docs/smalruby-language-spec-v1-diff.ja.md)) — Changes from v1 to v2
+
 ### Ruby Mode
 Smalruby 3 integrates [Opal](https://opalrb.com/) to convert Ruby code into JavaScript that runs within the Scratch VM. The `scratch-vm` package handles this execution logic, while `scratch-gui` provides the Ruby code editor (using Ace Editor) and UI toggles.
 

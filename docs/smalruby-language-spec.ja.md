@@ -1,13 +1,30 @@
 # Smalruby 言語仕様
 
 このドキュメントは、smalrubyで対応しているRuby構文とメソッドを定義します。
-ソースコードの `src/lib/ruby-to-blocks-converter/`（Ruby→ブロック変換）と `src/lib/ruby-generator/`（ブロック→Ruby生成）に基づいています。
+ソースコードの `packages/scratch-gui/src/lib/ruby-to-blocks-converter/`（Ruby→ブロック変換）と `packages/scratch-gui/src/lib/ruby-generator/`（ブロック→Ruby生成）に基づいています。
+
+- English version: [smalruby-language-spec.md](./smalruby-language-spec.md)
+- 拡張機能メソッド: [smalruby-language-spec-extensions.ja.md](./smalruby-language-spec-extensions.ja.md)
+- Version 1 API との差分: [smalruby-language-spec-v1-diff.ja.md](./smalruby-language-spec-v1-diff.ja.md)
+
+> **注意**: このドキュメントは **Version 2** API をベースに記載しています。Version 1 との差分は [v1 差分](./smalruby-language-spec-v1-diff.ja.md) を参照してください。
 
 ## 1. 概要
 
 smalrubyはRubyのサブセットで、MIT Scratch 3.0のビジュアルプログラミングブロックに対応したメソッドを持つ言語です。
 
 **重要**: smalrubyのRubyコードは内部的にScratchブロックに変換されて実行されます。そのため、対応していないRuby構文やメソッドは使用できません。
+
+### 標準Rubyとの主な違い
+
+- クラス定義は限定的（スプライトの設定にのみ使用）
+- **`module` と `include` に対応** — `def` メソッドを複数のスプライトで共有可能
+- ループは `loop do...end`、`N.times do...end`、`while...end`、`until...end`（`for`/`each` は不可）
+- 変数: インスタンス変数（`@score`）、グローバル変数（`$score`）、ローカル変数（`score`）
+- 文字列の式展開（`"#{var}"`）は不可
+- `require`、`puts`/`print`/`p`、例外処理（`begin/rescue`）は不可
+- 複合代入演算子 `+=`, `-=`, `*=`, `/=`, `%=` に対応
+- 再帰呼び出しは不可
 
 ## 2. プログラム構造
 
@@ -56,7 +73,7 @@ end
 - クラス継承 (`class Foo < Bar`) は構文上は許容されますが、親クラスは無視されます
 - class定義のトップレベルに置けるのは、**イベントハンドラ**（`when_xxx`）、**メソッド定義**（`def`）、**`include`** のみです
 
-### module定義とinclude（Version 2のみ）
+### module定義とinclude
 
 `module` を定義し、`include` でクラスに取り込むことで、メソッドを複数のスプライトで共有できます。
 
@@ -96,7 +113,6 @@ end
 - `module` 内に置けるのは **メソッド定義（`def`）のみ** です（変数代入やネストした `module` は不可）
 - `module_function` や `extend` は使用できません
 - ステージ（`class Stage`）では `module` 定義や `include` は使用できません
-- Version 1 では `module` は使用できません
 
 ### class定義のみで使えるメソッド
 
@@ -128,7 +144,7 @@ end
 | `set_sounds ["名前1", "名前2"]` | 音をライブラリから設定 | - |
 
 **注意**:
-- スプライト用メソッド（`set_x`, `set_y`, `set_direction`, `set_visible`, `set_size`, `set_rotation_style`, `set_sprite`, `set_costumes`, `set_current_costume`）は `class Stage` では使えません。
+- スプライト用メソッド（`set_x`, `set_y` など）は `class Stage` では使えません。
 - ステージ用メソッド（`set_current_backdrop`, `set_backdrops`）はスプライトクラスでは使えません。
 - トップレベル（classなし形式）では `set_xxx` は使えませんが、代わりに `self.属性 = 値` 形式で設定を変更できます（例: `self.rotation_style = "left-right"`）。
 
@@ -148,7 +164,7 @@ class Stage
 end
 ```
 
-**注意**: Version 2（Ruby version 2）では、ステージの `class Stage` が省略された場合、ファイル保存時に自動的に `class Stage ... end` で補完されます。
+**注意**: ステージの `class Stage` が省略された場合、ファイル保存時に自動的に `class Stage ... end` で補完されます。
 
 ## 3. 対応しているRuby構文
 
@@ -159,9 +175,9 @@ end
 | 整数 | `42`, `-5`, `0` | |
 | 浮動小数点数 | `3.14`, `1.0` | |
 | 文字列 | `"hello"`, `"ネコ"` | **ダブルクォートのみ**。式展開(`#{}`)は不可 |
-| シンボル | `:symbol` | 限定的な用途 |
-| 配列 | `[1, 2, 3]`, `[x, y]` | `go_to` の座標指定等に使用 |
-| ハッシュ | `{key: val}` | キーワード引数として使用 |
+| シンボル | `:symbol` | 限定的な用途（ハッシュのキー等） |
+| 配列 | `[1, 2, 3]`, `[x, y]` | `go_to` の座標指定、変数への格納に使用 |
+| ハッシュ | `{key: val}` | キーワード引数、ハッシュ変数の格納に使用 |
 | 範囲 | `1..10`, `1...10` | `rand()` の引数等に使用 |
 | true / false | `true`, `false` | |
 | nil | `nil` | |
@@ -207,8 +223,6 @@ count += 1
 | `/=` | `@score /= 2` | 変数の値を除算 |
 | `%=` | `@score %= 3` | 変数の値の剰余 |
 
-**備考**: `+=` は数値変数に対しては `data_changevariableby` ブロック（変数をNずつ変える）に、文字列変数に対しては `data_setvariableto` + `operator_join` ブロック（文字列結合）に変換されます。`-=`, `*=`, `/=`, `%=` は `data_setvariableto` + 対応する算術演算子ブロックに変換されます。
-
 ### 条件分岐
 
 ```ruby
@@ -249,7 +263,7 @@ else
 end
 
 # 修飾子if / unless
-move(10) if Keyboard.pressed?("space")
+move(10) if keyboard.pressed?("space")
 say("セーフ") unless touching?("_edge_")
 ```
 
@@ -326,7 +340,7 @@ end
 | `>` | `x > 100` |
 | `<` | `x < -100` |
 | `>=` | `@score >= 100` |
-| `<=` | `Timer.value <= 0` |
+| `<=` | `timer.value <= 0` |
 
 ### 算術演算子
 
@@ -371,7 +385,7 @@ def check(x)
 end
 ```
 
-### super（Version 2のみ）
+### super
 
 `module` で定義したメソッドを `class` で `include` し、同名のメソッドでオーバーライドしている場合、`super` でモジュール側のメソッドを呼び出せます。
 
@@ -418,7 +432,6 @@ end
 **制限事項**:
 - `super` は `def` メソッド内でのみ使用できます
 - `include` したモジュールに同名メソッドが存在する必要があります
-- Version 1 では使用できません
 - ステージ（`class Stage`）では使用できません
 
 ## 4. 対応しているメソッド一覧
@@ -550,14 +563,14 @@ end
 | `distance("対象")` | 対象までの距離 | `distance("_mouse_")` |
 | `ask("質問")` | 質問して答えを待つ | `ask("名前は?")` |
 | `answer` | 答えを取得 | `answer` |
-| `Keyboard.pressed?("キー")` | キーが押されているか | `Keyboard.pressed?("space")` |
-| `Mouse.down?` | マウスが押されているか | `Mouse.down?` |
-| `Mouse.x` | マウスのX座標 | `Mouse.x` |
-| `Mouse.y` | マウスのY座標 | `Mouse.y` |
+| `keyboard.pressed?("キー")` | キーが押されているか | `keyboard.pressed?("space")` |
+| `mouse.down?` | マウスが押されているか | `mouse.down?` |
+| `mouse.x` | マウスのX座標 | `mouse.x` |
+| `mouse.y` | マウスのY座標 | `mouse.y` |
 | `self.drag_mode = "モード"` | ドラッグモードを設定 | `self.drag_mode = "draggable"` |
 | `loudness` | マイクの音量 | `loudness` |
-| `Timer.value` | タイマーの値 | `Timer.value` |
-| `Timer.reset` | タイマーをリセット | `Timer.reset` |
+| `timer.value` | タイマーの値 | `timer.value` |
+| `timer.reset` | タイマーをリセット | `timer.reset` |
 | `Time.now.year` | 現在の年 | `Time.now.year` |
 | `Time.now.month` | 現在の月 | `Time.now.month` |
 | `Time.now.day` | 現在の日 | `Time.now.day` |
@@ -615,7 +628,6 @@ stage.variable("$var")  # ステージの変数の値
 | `文字列.include?(部分文字列)` | 文字列を含むか | `"hello".include?("ell")` |
 | `文字列[位置]` | 文字列の文字を取得 | `"hello"[0]` |
 | `文字列1 + 文字列2` | 文字列の結合 | `"hello" + " world"` |
-| `文字列変数 + 値` | 文字列変数の結合 | `@name + "さん"`（`@name`が文字列型の場合） |
 | `文字列 =~ /正規表現/` | 正規表現にマッチするか | `"hello" =~ /^he/` |
 | `/正規表現/ =~ 文字列` | 正規表現にマッチするか（逆順） | `/^he/ =~ "hello"` |
 | `文字列 !~ /正規表現/` | 正規表現にマッチしないか | `"hello" !~ /world/` |
@@ -652,7 +664,6 @@ hide_variable("@score")
 #### リストの使用
 
 ```ruby
-# リストの操作
 list("@items").push("りんご")          # 追加
 list("@items").delete_at(1)             # 削除
 list("@items").clear                    # 全削除
@@ -666,35 +677,6 @@ show_list("@items")                     # リストの表示
 hide_list("@items")                     # リストの非表示
 ```
 
-### ペン（Pen拡張機能）
-
-| メソッド | 説明 | 例 |
-|---|---|---|
-| `Pen.clear` | 全消去 | `Pen.clear` |
-| `pen.stamp` | スタンプ | `pen.stamp` |
-| `pen.down` | ペンを下ろす | `pen.down` |
-| `pen.up` | ペンを上げる | `pen.up` |
-| `pen.color = 色` | ペンの色を設定 | `pen.color = "#ff0000"` |
-| `pen.color = 数値` | ペンの色パラメータを設定 | `pen.color = 50` |
-| `pen.saturation = 数値` | 彩度を設定 | `pen.saturation = 100` |
-| `pen.brightness = 数値` | 明るさを設定 | `pen.brightness = 100` |
-| `pen.transparency = 数値` | 透明度を設定 | `pen.transparency = 50` |
-| `pen.size = 数値` | ペンの太さを設定 | `pen.size = 3` |
-| `pen.size += 数値` | ペンの太さを変化させる | `pen.size += 1` |
-| `pen.color += 数値` | ペンの色パラメータを変化させる | `pen.color += 10` |
-
-### 音楽（Music拡張機能）
-
-| メソッド | 説明 | 例 |
-|---|---|---|
-| `play_drum(drum: 番号, beats: 拍数)` | ドラムを鳴らす | `play_drum(drum: 1, beats: 0.25)` |
-| `rest(拍数)` | 休符 | `rest(0.25)` |
-| `play_note(note: 番号, beats: 拍数)` | 音符を鳴らす | `play_note(note: 60, beats: 0.25)` |
-| `self.instrument = 番号` | 楽器を設定 | `self.instrument = 1` |
-| `self.tempo = 値` | テンポを設定 | `self.tempo = 120` |
-| `self.tempo += 変化量` | テンポを変化させる | `self.tempo += 20` |
-| `tempo` | テンポを取得 | `tempo` |
-
 ## 5. サポートされていないRuby構文
 
 以下のRuby構文はsmalrubyでは**使用できません**:
@@ -702,7 +684,7 @@ hide_list("@items")                     # リストの非表示
 - `for` ループ
 - `each` メソッド
 - `begin`/`rescue`/`ensure`（例外処理）
-- `module_function`, `extend`（`module` と `include` は Version 2 でサポート）
+- `module_function`, `extend`（`module` と `include` はサポート）
 - `require` / `require_relative`
 - 文字列の式展開 (`"Hello #{name}"`)
 - 多重代入 (`a, b = 1, 2`)
@@ -714,8 +696,6 @@ hide_list("@items")                     # リストの非表示
 - `puts` / `print` / `p`（直接は使えません。代わりに `say()` を使ってください）
 
 ## 6. よくある間違い
-
-以下は正しくないコードと、正しい書き方の対比です。
 
 ```ruby
 # ❌ set_x / change_x は使えません
@@ -734,11 +714,11 @@ key_pressed?("space")
 timer
 reset_timer
 
-# ✅ 正しいクラスメソッド名を使います
-Mouse.x
-Keyboard.pressed?("space")
-Timer.value
-Timer.reset
+# ✅ 正しいメソッド名を使います
+mouse.x
+keyboard.pressed?("space")
+timer.value
+timer.reset
 ```
 
 ```ruby

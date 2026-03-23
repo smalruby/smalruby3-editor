@@ -1,9 +1,13 @@
 # Smalruby Language Specification
 
 This document defines the Ruby syntax and methods supported by Smalruby.
-Based on `src/lib/ruby-to-blocks-converter/` (Ruby → Blocks) and `src/lib/ruby-generator/` (Blocks → Ruby).
+Based on `packages/scratch-gui/src/lib/ruby-to-blocks-converter/` (Ruby → Blocks) and `packages/scratch-gui/src/lib/ruby-generator/` (Blocks → Ruby).
 
-Japanese version: [smalruby-language-spec.ja.md](./smalruby-language-spec.ja.md)
+- Japanese version: [smalruby-language-spec.ja.md](./smalruby-language-spec.ja.md)
+- Extension methods: [smalruby-language-spec-extensions.md](./smalruby-language-spec-extensions.md)
+- Version 1 API differences: [smalruby-language-spec-v1-diff.md](./smalruby-language-spec-v1-diff.md)
+
+> **Note**: This document describes the **Version 2** API. For Version 1 differences, see the [v1 diff](./smalruby-language-spec-v1-diff.md).
 
 ## 1. Overview
 
@@ -12,7 +16,7 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 ### Key Differences from Standard Ruby
 
 - Class definitions are limited (only for sprite configuration)
-- **`module` and `include` ARE supported** (Version 2 only) — use to share `def` methods across sprites
+- **`module` and `include` ARE supported** — use to share `def` methods across sprites
 - Loops use `loop do...end`, `N.times do...end`, `while...end`, `until...end` (no `for`/`each`)
 - Variables: instance (`@score`), global (`$score`), local (`score`)
 - String interpolation (`"#{var}"`) is NOT supported
@@ -66,7 +70,7 @@ end
 - Class inheritance (`class Foo < Bar`) is syntactically accepted but the superclass is ignored
 - Only **event handlers** (`when_xxx`), **method definitions** (`def`), and **`include`** are allowed at the class top-level
 
-### Module and Include (Version 2 only)
+### Module and Include
 
 Define a `module` and `include` it in a class to share methods across sprites.
 
@@ -89,7 +93,7 @@ end
 **Restrictions**:
 - Only `def` methods are allowed inside `module` (no variables, no nested modules)
 - `module_function` and `extend` are not supported
-- `module` and `include` are not available on Stage or in Version 1
+- `module` and `include` are not available on Stage
 
 ### Class-Only Configuration Methods
 
@@ -141,7 +145,7 @@ class Stage
 end
 ```
 
-**Note**: In Version 2, if `class Stage` is omitted, it is automatically added on file save.
+**Note**: If `class Stage` is omitted, it is automatically added on file save.
 
 ## 3. Supported Ruby Syntax
 
@@ -240,7 +244,7 @@ else
 end
 
 # Modifier if / unless
-move(10) if Keyboard.pressed?("space")
+move(10) if keyboard.pressed?("space")
 say("safe") unless touching?("_edge_")
 ```
 
@@ -312,7 +316,7 @@ end
 | `>` | `x > 100` |
 | `<` | `x < -100` |
 | `>=` | `@score >= 100` |
-| `<=` | `Timer.value <= 0` |
+| `<=` | `timer.value <= 0` |
 
 ### Arithmetic Operators
 
@@ -357,7 +361,7 @@ def check(x)
 end
 ```
 
-### super (Version 2 only)
+### super
 
 When a class `include`s a module and overrides a same-named method, `super` calls the module's version of that method.
 
@@ -404,7 +408,6 @@ end
 **Restrictions**:
 - `super` can only be used inside a `def` method
 - A same-named method must exist in an included module
-- Not available in Version 1
 - Not available on Stage (`class Stage`)
 
 ## 4. Available Methods
@@ -531,14 +534,14 @@ end
 | `distance("target")` | Distance to target | `distance("_mouse_")` |
 | `ask("question")` | Ask and wait | `ask("What's your name?")` |
 | `answer` | Get answer | `answer` |
-| `Keyboard.pressed?("key")` | Key pressed? | `Keyboard.pressed?("space")` |
-| `Mouse.down?` | Mouse down? | `Mouse.down?` |
-| `Mouse.x` | Mouse X | `Mouse.x` |
-| `Mouse.y` | Mouse Y | `Mouse.y` |
+| `keyboard.pressed?("key")` | Key pressed? | `keyboard.pressed?("space")` |
+| `mouse.down?` | Mouse down? | `mouse.down?` |
+| `mouse.x` | Mouse X | `mouse.x` |
+| `mouse.y` | Mouse Y | `mouse.y` |
 | `self.drag_mode = "mode"` | Set drag mode | `self.drag_mode = "draggable"` |
 | `loudness` | Microphone loudness | `loudness` |
-| `Timer.value` | Timer value | `Timer.value` |
-| `Timer.reset` | Reset timer | `Timer.reset` |
+| `timer.value` | Timer value | `timer.value` |
+| `timer.reset` | Reset timer | `timer.reset` |
 | `Time.now.year` | Current year | `Time.now.year` |
 | `Time.now.month` | Current month | `Time.now.month` |
 | `Time.now.day` | Current day | `Time.now.day` |
@@ -637,35 +640,6 @@ show_list("@items")                     # Show list
 hide_list("@items")                     # Hide list
 ```
 
-### Pen (Extension)
-
-| Method | Description | Example |
-|---|---|---|
-| `Pen.clear` | Erase all | `Pen.clear` |
-| `pen.stamp` | Stamp | `pen.stamp` |
-| `pen.down` | Pen down | `pen.down` |
-| `pen.up` | Pen up | `pen.up` |
-| `pen.color = color` | Set pen color | `pen.color = "#ff0000"` |
-| `pen.color = value` | Set pen color parameter | `pen.color = 50` |
-| `pen.saturation = value` | Set saturation | `pen.saturation = 100` |
-| `pen.brightness = value` | Set brightness | `pen.brightness = 100` |
-| `pen.transparency = value` | Set transparency | `pen.transparency = 50` |
-| `pen.size = value` | Set pen size | `pen.size = 3` |
-| `pen.size += value` | Change pen size | `pen.size += 1` |
-| `pen.color += value` | Change pen color parameter | `pen.color += 10` |
-
-### Music (Extension)
-
-| Method | Description | Example |
-|---|---|---|
-| `play_drum(drum: n, beats: n)` | Play drum | `play_drum(drum: 1, beats: 0.25)` |
-| `rest(beats)` | Rest | `rest(0.25)` |
-| `play_note(note: n, beats: n)` | Play note | `play_note(note: 60, beats: 0.25)` |
-| `self.instrument = value` | Set instrument | `self.instrument = 1` |
-| `self.tempo = value` | Set tempo | `self.tempo = 120` |
-| `self.tempo += amount` | Change tempo | `self.tempo += 20` |
-| `tempo` | Get tempo | `tempo` |
-
 ## 5. Unsupported Ruby Syntax
 
 The following Ruby syntax is **NOT supported** in Smalruby:
@@ -673,7 +647,7 @@ The following Ruby syntax is **NOT supported** in Smalruby:
 - `for` loops
 - `each` method
 - `begin`/`rescue`/`ensure` (exception handling)
-- `module_function`, `extend` (`module` and `include` are supported in Version 2)
+- `module_function`, `extend` (`module` and `include` are supported)
 - `require` / `require_relative`
 - String interpolation (`"Hello #{name}"`)
 - Multiple assignment (`a, b = 1, 2`)
@@ -703,11 +677,11 @@ key_pressed?("space")
 timer
 reset_timer
 
-# ✅ Correct class method names
-Mouse.x
-Keyboard.pressed?("space")
-Timer.value
-Timer.reset
+# ✅ Correct method names
+mouse.x
+keyboard.pressed?("space")
+timer.value
+timer.reset
 ```
 
 ```ruby
