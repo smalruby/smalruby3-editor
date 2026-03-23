@@ -11,7 +11,7 @@ import {
     updateRubyCodeTarget,
     updateRubyFontSize
 } from '../reducers/ruby-code';
-import {setRubyVersion} from '../reducers/settings';
+import {setRubyVersion, dismissV1Prompt} from '../reducers/settings';
 import {setProjectChanged} from '../reducers/project-changed';
 import {showAlertWithTimeout, closeAlertWithId} from '../reducers/alerts';
 import {markRubyTabUsed} from '../reducers/tutorial-onboarding';
@@ -20,6 +20,7 @@ import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
+import {containsV1Code} from '../lib/ruby-to-blocks-converter/v1-detection';
 // === Smalruby: Start of module editor update ===
 import RubyGenerator from '../lib/ruby-generator';
 // === Smalruby: End of module editor update ===
@@ -99,7 +100,9 @@ const RubyTab = props => {
         onRequestCloseFile, onProjectTelemetryEvent,
         onSetAiSaveStatus, onClearAiSaveStatus,
         onFontSizeChange, onMarkRubyTabUsed,
-        onOpenRubyteeModal, onRegisterRubyteeApply
+        onOpenRubyteeModal, onRegisterRubyteeApply,
+        v1PromptDismissed,
+        onDismissV1Prompt
     } = props;
 
     // --- State ---
@@ -845,6 +848,21 @@ const RubyTab = props => {
             const changedTarget = vm.editingTarget && rubyCode.target &&
                 vm.editingTarget.id !== targetId;
             if (changedTarget || blocksTabVisible) {
+                if (String(rubyVersion) === '2' &&
+                    !v1PromptDismissed &&
+                    containsV1Code(rubyCode.code)) {
+                    const message = intlRef.current.formatMessage({
+                        id: 'gui.rubyTab.v1CodeDetected',
+                        // eslint-disable-next-line max-len
+                        defaultMessage: 'Switch Ruby version to "v1"?\n\nThe code you entered uses the "v1" syntax found in textbooks. Switching to "v1" lets you program with the same syntax as the textbook.'
+                    });
+                    // eslint-disable-next-line no-alert
+                    if (window.confirm(message)) {
+                        onRevertRubyVersion('1');
+                        return;
+                    }
+                    onDismissV1Prompt();
+                }
                 targetCodeToBlocksHOC(intl).then(converter => {
                     if (converter.result) {
                         converter.apply().then(async () => {
@@ -1058,7 +1076,9 @@ RubyTab.propTypes = {
     locale: PropTypes.string,
     activeTabIndex: PropTypes.number,
     onOpenRubyteeModal: PropTypes.func,
-    onRegisterRubyteeApply: PropTypes.func
+    onRegisterRubyteeApply: PropTypes.func,
+    v1PromptDismissed: PropTypes.bool,
+    onDismissV1Prompt: PropTypes.func
 };
 
 const mapStateToProps = state => ({
@@ -1069,7 +1089,8 @@ const mapStateToProps = state => ({
     vm: state.scratchGui.vm,
     projectTitle: state.scratchGui.projectTitle,
     locale: state.locales.locale,
-    activeTabIndex: state.scratchGui.editorTab.activeTabIndex
+    activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
+    v1PromptDismissed: state.scratchGui.settings.v1PromptDismissed
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -1086,7 +1107,8 @@ const mapDispatchToProps = dispatch => ({
     onSetAiSaveStatus: status => dispatch(setAiSaveStatus(status)),
     onClearAiSaveStatus: () => dispatch(clearAiSaveStatus()),
     onFontSizeChange: fontSize => dispatch(updateRubyFontSize(fontSize)),
-    onMarkRubyTabUsed: () => dispatch(markRubyTabUsed())
+    onMarkRubyTabUsed: () => dispatch(markRubyTabUsed()),
+    onDismissV1Prompt: () => dispatch(dismissV1Prompt())
 });
 
 const ConnectedRubyTab = RubyteeModalHOC(RubyToBlocksConverterHOC(injectIntl(connect(

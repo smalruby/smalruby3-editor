@@ -5,6 +5,11 @@ export default {
     'gui.menuBar.colorMode': 'カラーモード',
     'gui.menuBar.rubyVersion': 'ルビー',
     'gui.rubyTab.paste': '貼り付け',
+    'gui.rubyTab.v1CodeDetected':
+        'Rubyのバージョンを「v1」に変えますか？\n\n' +
+        '入力されたコードは、書籍（教科書）で使われている' +
+        '「v1」の書き方です。「v1」に変えると、' +
+        '書籍と同じ書き方でプログラミングできます。',
     'gui.rubyVersion.v1': 'バージョン1',
     'gui.rubyVersion.v2': 'バージョン2 (初期設定)',
     'gui.menuBar.meshV2': 'メッシュ',

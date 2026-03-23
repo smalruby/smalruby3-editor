@@ -8,6 +8,9 @@ import {getUrlParams} from '../lib/url-params';
 const SET_COLOR_MODE = 'scratch-gui/settings/SET_COLOR_MODE';
 const SET_THEME = 'scratch-gui/settings/SET_THEME';
 const SET_RUBY_VERSION = 'scratch-gui/settings/SET_RUBY_VERSION';
+// === Smalruby: Start of v1 code detection prompt ===
+const DISMISS_V1_PROMPT = 'scratch-gui/settings/DISMISS_V1_PROMPT';
+// === Smalruby: End of v1 code detection prompt ===
 
 // === Smalruby: Start of ruby_version URL param ===
 const detectInitialRubyVersion = () => {
@@ -19,7 +22,10 @@ const detectInitialRubyVersion = () => {
 const initialState = {
     colorMode: detectColorMode(),
     theme: detectTheme(),
-    rubyVersion: detectInitialRubyVersion()
+    rubyVersion: detectInitialRubyVersion(),
+    // === Smalruby: Start of v1 code detection prompt ===
+    v1PromptDismissed: false
+    // === Smalruby: End of v1 code detection prompt ===
 };
 // === Smalruby: End of ruby_version URL param ===
 
@@ -31,6 +37,10 @@ const reducer = (state = initialState, action) => {
         return {...state, theme: action.theme};
     case SET_RUBY_VERSION:
         return {...state, rubyVersion: action.rubyVersion};
+    // === Smalruby: Start of v1 code detection prompt ===
+    case DISMISS_V1_PROMPT:
+        return {...state, v1PromptDismissed: true};
+    // === Smalruby: End of v1 code detection prompt ===
     default:
         return state;
     }
@@ -51,10 +61,17 @@ const setRubyVersion = rubyVersion => ({
     rubyVersion
 });
 
+// === Smalruby: Start of v1 code detection prompt ===
+const dismissV1Prompt = () => ({
+    type: DISMISS_V1_PROMPT
+});
+// === Smalruby: End of v1 code detection prompt ===
+
 export {
     reducer as default,
     initialState as settingsInitialState,
     setColorMode,
     setTheme,
-    setRubyVersion
+    setRubyVersion,
+    dismissV1Prompt
 };
