@@ -115,6 +115,18 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
     let pendingLabels = [];
     let inputIndex = 0;
 
+    // Add extension icon at the start of the block (matching runtime._convertBlockForScratchBlocks)
+    const iconURI = (blockInfo.blockIconURI || (categoryInfo && categoryInfo.blockIconURI));
+    if (iconURI) {
+        pendingLabels.push({
+            fieldImage: true,
+            src: iconURI,
+            width: 40,
+            height: 40
+        });
+        pendingLabels.push({fieldVerticalSeparator: true});
+    }
+
     for (const component of components) {
         if (component.type === 'label') {
             pendingLabels.push(component.text);
@@ -164,6 +176,12 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                         input.appendField(label);
                     } else if (label.fieldDropdown) {
                         input.appendField(new ScratchBlocks.FieldDropdown(label.options), label.name);
+                    } else if (label.fieldImage) {
+                        input.appendField(new ScratchBlocks.FieldImage(
+                            label.src, label.width, label.height
+                        ));
+                    } else if (label.fieldVerticalSeparator) {
+                        input.appendField(new ScratchBlocks.FieldVerticalSeparator());
                     }
                 }
                 pendingLabels = [];
@@ -203,6 +221,12 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                 dummyInput.appendField(label);
             } else if (label.fieldDropdown) {
                 dummyInput.appendField(new ScratchBlocks.FieldDropdown(label.options), label.name);
+            } else if (label.fieldImage) {
+                dummyInput.appendField(new ScratchBlocks.FieldImage(
+                    label.src, label.width, label.height
+                ));
+            } else if (label.fieldVerticalSeparator) {
+                dummyInput.appendField(new ScratchBlocks.FieldVerticalSeparator());
             }
         }
     }
