@@ -853,6 +853,7 @@ const RubyTab = props => {
                     containsV1Code(rubyCode.code)) {
                     const message = intlRef.current.formatMessage({
                         id: 'gui.rubyTab.v1CodeDetected',
+                        // eslint-disable-next-line max-len
                         defaultMessage: 'Switch Ruby version to "v1"?\n\nThe code you entered uses the "v1" syntax found in textbooks. Switching to "v1" lets you program with the same syntax as the textbook.'
                     });
                     // eslint-disable-next-line no-alert
