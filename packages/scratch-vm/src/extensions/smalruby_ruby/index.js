@@ -64,10 +64,11 @@ class SmalrubyRubyBlocks {
                     }),
                     blockType: BlockType.REPORTER,
                     isDynamic: true,
+                    disableMonitor: true,
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'hello world'
+                            defaultValue: ''
                         },
                         METHOD: {
                             type: ArgumentType.STRING,
@@ -83,7 +84,7 @@ class SmalrubyRubyBlocks {
                         delete: {
                             text: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
                             arguments: {
-                                STRING: {type: ArgumentType.STRING, defaultValue: 'hello world'},
+                                STRING: {type: ArgumentType.STRING, defaultValue: ''},
                                 METHOD: {
                                     type: ArgumentType.STRING,
                                     menu: 'stringMethodRMenu',
@@ -95,7 +96,7 @@ class SmalrubyRubyBlocks {
                         gsub: {
                             text: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] [ARG2] )',
                             arguments: {
-                                STRING: {type: ArgumentType.STRING, defaultValue: 'hello world'},
+                                STRING: {type: ArgumentType.STRING, defaultValue: ''},
                                 METHOD: {
                                     type: ArgumentType.STRING,
                                     menu: 'stringMethodRMenu',

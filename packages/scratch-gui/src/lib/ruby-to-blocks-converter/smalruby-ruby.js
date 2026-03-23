@@ -34,7 +34,7 @@ const stringMethodRArgs = {
     delete: {
         text: '文字列 [STRING] . [METHOD] ( [ARG1] )',
         arguments: {
-            STRING: {type: 'string', defaultValue: 'hello world'},
+            STRING: {type: 'string', defaultValue: ''},
             METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'delete'},
             ARG1: {type: 'string', defaultValue: 'l'}
         }
@@ -42,7 +42,7 @@ const stringMethodRArgs = {
     gsub: {
         text: '文字列 [STRING] . [METHOD] ( [ARG1] [ARG2] )',
         arguments: {
-            STRING: {type: 'string', defaultValue: 'hello world'},
+            STRING: {type: 'string', defaultValue: ''},
             METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'gsub'},
             ARG1: {type: 'string', defaultValue: '/l/'},
             ARG2: {type: 'string', defaultValue: 'r'}
@@ -88,7 +88,7 @@ const SmalrubyRubyConverter = {
                 stringMethodRArgs, stringMethodRMenuItems
             );
             const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value', {mutation});
-            converter._addTextInput(block, 'STRING', receiver, 'hello world');
+            converter._addTextInput(block, 'STRING', receiver, '');
             converter._addField(block, 'METHOD', 'delete');
             converter._addTextInput(block, 'ARG1', args[0], 'l');
             return block;
@@ -125,7 +125,7 @@ const SmalrubyRubyConverter = {
                 stringMethodRArgs, stringMethodRMenuItems
             );
             const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value', {mutation});
-            converter._addTextInput(block, 'STRING', receiver, 'hello world');
+            converter._addTextInput(block, 'STRING', receiver, '');
             converter._addField(block, 'METHOD', 'gsub');
             converter._addTextInput(block, 'ARG1', args[0], '/l/');
             converter._addTextInput(block, 'ARG2', args[1], 'r');
