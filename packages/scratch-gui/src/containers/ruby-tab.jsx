@@ -11,7 +11,7 @@ import {
     updateRubyCodeTarget,
     updateRubyFontSize
 } from '../reducers/ruby-code';
-import {setRubyVersion} from '../reducers/settings';
+import {setRubyVersion, dismissV1Prompt} from '../reducers/settings';
 import {setProjectChanged} from '../reducers/project-changed';
 import {showAlertWithTimeout, closeAlertWithId} from '../reducers/alerts';
 import {markRubyTabUsed} from '../reducers/tutorial-onboarding';
@@ -20,6 +20,9 @@ import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
 
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
+// === Smalruby: Start of v1 code detection prompt ===
+import {containsV1Code} from '../lib/ruby-to-blocks-converter/v1-detection';
+// === Smalruby: End of v1 code detection prompt ===
 // === Smalruby: Start of module editor update ===
 import RubyGenerator from '../lib/ruby-generator';
 // === Smalruby: End of module editor update ===
@@ -99,7 +102,11 @@ const RubyTab = props => {
         onRequestCloseFile, onProjectTelemetryEvent,
         onSetAiSaveStatus, onClearAiSaveStatus,
         onFontSizeChange, onMarkRubyTabUsed,
-        onOpenRubyteeModal, onRegisterRubyteeApply
+        onOpenRubyteeModal, onRegisterRubyteeApply,
+        // === Smalruby: Start of v1 code detection prompt ===
+        v1PromptDismissed,
+        onDismissV1Prompt
+        // === Smalruby: End of v1 code detection prompt ===
     } = props;
 
     // --- State ---
@@ -845,6 +852,23 @@ const RubyTab = props => {
             const changedTarget = vm.editingTarget && rubyCode.target &&
                 vm.editingTarget.id !== targetId;
             if (changedTarget || blocksTabVisible) {
+                // === Smalruby: Start of v1 code detection prompt ===
+                if (String(rubyVersion) === '2' &&
+                    !v1PromptDismissed &&
+                    containsV1Code(rubyCode.code)) {
+                    const message =
+                        'Rubyのバージョンを「v1」に変えますか？\n\n' +
+                        '入力されたコードは、書籍（教科書）で使われている' +
+                        '「v1」の書き方です。「v1」に変えると、書籍と同じ' +
+                        '書き方でプログラミングできます。';
+                    // eslint-disable-next-line no-alert
+                    if (window.confirm(message)) {
+                        onRevertRubyVersion('1');
+                        return;
+                    }
+                    onDismissV1Prompt();
+                }
+                // === Smalruby: End of v1 code detection prompt ===
                 targetCodeToBlocksHOC(intl).then(converter => {
                     if (converter.result) {
                         converter.apply().then(async () => {
@@ -1058,7 +1082,11 @@ RubyTab.propTypes = {
     locale: PropTypes.string,
     activeTabIndex: PropTypes.number,
     onOpenRubyteeModal: PropTypes.func,
-    onRegisterRubyteeApply: PropTypes.func
+    onRegisterRubyteeApply: PropTypes.func,
+    // === Smalruby: Start of v1 code detection prompt ===
+    v1PromptDismissed: PropTypes.bool,
+    onDismissV1Prompt: PropTypes.func
+    // === Smalruby: End of v1 code detection prompt ===
 };
 
 const mapStateToProps = state => ({
@@ -1069,7 +1097,10 @@ const mapStateToProps = state => ({
     vm: state.scratchGui.vm,
     projectTitle: state.scratchGui.projectTitle,
     locale: state.locales.locale,
-    activeTabIndex: state.scratchGui.editorTab.activeTabIndex
+    activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
+    // === Smalruby: Start of v1 code detection prompt ===
+    v1PromptDismissed: state.scratchGui.settings.v1PromptDismissed
+    // === Smalruby: End of v1 code detection prompt ===
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -1086,7 +1117,10 @@ const mapDispatchToProps = dispatch => ({
     onSetAiSaveStatus: status => dispatch(setAiSaveStatus(status)),
     onClearAiSaveStatus: () => dispatch(clearAiSaveStatus()),
     onFontSizeChange: fontSize => dispatch(updateRubyFontSize(fontSize)),
-    onMarkRubyTabUsed: () => dispatch(markRubyTabUsed())
+    onMarkRubyTabUsed: () => dispatch(markRubyTabUsed()),
+    // === Smalruby: Start of v1 code detection prompt ===
+    onDismissV1Prompt: () => dispatch(dismissV1Prompt())
+    // === Smalruby: End of v1 code detection prompt ===
 });
 
 const ConnectedRubyTab = RubyteeModalHOC(RubyToBlocksConverterHOC(injectIntl(connect(
