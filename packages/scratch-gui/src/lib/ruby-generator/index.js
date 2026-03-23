@@ -37,6 +37,9 @@ import MeshV2Blocks from './mesh_v2.js';
 import SmalrubotS1Blocks from './smalrubot_s1.js';
 import KoshienBlocks from './koshien.js';
 import FaceSensingBlocks from './face_sensing.js';
+// === Smalruby: Start of Ruby String extension ===
+import SmalrubyRubyBlocks from './smalruby-ruby.js';
+// === Smalruby: End of Ruby String extension ===
 
 const RubyGenerator = new Generator('Ruby');
 
@@ -177,5 +180,8 @@ MeshV2Blocks(RubyGenerator);
 SmalrubotS1Blocks(RubyGenerator);
 KoshienBlocks(RubyGenerator);
 FaceSensingBlocks(RubyGenerator);
+// === Smalruby: Start of Ruby String extension ===
+SmalrubyRubyBlocks(RubyGenerator);
+// === Smalruby: End of Ruby String extension ===
 
 export default RubyGenerator;

@@ -1,0 +1,14 @@
+{
+    "ja": {
+        "smalrubyRuby.entry.name": "ルビー",
+        "smalrubyRuby.entry.description": "Rubyのメソッドを使う。"
+    },
+    "ja-Hira": {
+        "smalrubyRuby.entry.name": "るびー",
+        "smalrubyRuby.entry.description": "るびーのめそっどをつかう。"
+    },
+    "en": {
+        "smalrubyRuby.entry.name": "Ruby",
+        "smalrubyRuby.entry.description": "Use Ruby methods."
+    }
+}
