@@ -5,7 +5,11 @@ export default {
     'gui.menuBar.colorMode': 'カラーモード',
     'gui.menuBar.rubyVersion': 'ルビー',
     'gui.rubyTab.paste': 'はりつけ',
-    'gui.rubyTab.v1CodeDetected': 'Rubyのバージョンを「v1」にかえますか？\n\nにゅうりょくされたコードは、しょせき（きょうかしょ）でつかわれている「v1」のかきかたです。「v1」にかえると、しょせきとおなじかきかたでプログラミングできます。',
+    'gui.rubyTab.v1CodeDetected':
+        'Rubyのバージョンを「v1」にかえますか？\n\n' +
+        'にゅうりょくされたコードは、しょせき（きょうかしょ）で' +
+        'つかわれている「v1」のかきかたです。「v1」にかえると、' +
+        'しょせきとおなじかきかたでプログラミングできます。',
     'gui.rubyVersion.v1': 'バージョン1',
     'gui.rubyVersion.v2': 'バージョン2 (しょきせってい)',
     'gui.menuBar.meshV2': 'メッシュ',
