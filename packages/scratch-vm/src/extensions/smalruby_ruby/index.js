@@ -68,7 +68,7 @@ class SmalrubyRubyBlocks {
                     arguments: {
                         STRING: {
                             type: ArgumentType.STRING,
-                            defaultValue: ''
+                            defaultValue: 'string'
                         },
                         METHOD: {
                             type: ArgumentType.STRING,
@@ -77,33 +77,33 @@ class SmalrubyRubyBlocks {
                         },
                         ARG1: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'l'
+                            defaultValue: 'arg1'
                         }
                     },
                     argumentsByMethod: {
                         delete: {
                             text: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
                             arguments: {
-                                STRING: {type: ArgumentType.STRING, defaultValue: ''},
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'string'},
                                 METHOD: {
                                     type: ArgumentType.STRING,
                                     menu: 'stringMethodRMenu',
                                     defaultValue: 'delete'
                                 },
-                                ARG1: {type: ArgumentType.STRING, defaultValue: 'l'}
+                                ARG1: {type: ArgumentType.STRING, defaultValue: 'arg1'}
                             }
                         },
                         gsub: {
                             text: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] [ARG2] )',
                             arguments: {
-                                STRING: {type: ArgumentType.STRING, defaultValue: ''},
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'string'},
                                 METHOD: {
                                     type: ArgumentType.STRING,
                                     menu: 'stringMethodRMenu',
                                     defaultValue: 'gsub'
                                 },
-                                ARG1: {type: ArgumentType.STRING, defaultValue: '/l/'},
-                                ARG2: {type: ArgumentType.STRING, defaultValue: 'r'}
+                                ARG1: {type: ArgumentType.STRING, defaultValue: 'arg1'},
+                                ARG2: {type: ArgumentType.STRING, defaultValue: 'arg2'}
                             }
                         }
                     },
@@ -133,7 +133,7 @@ class SmalrubyRubyBlocks {
                         },
                         ARG1: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'l'
+                            defaultValue: 'arg1'
                         }
                     },
                     argumentsByMethod: {
@@ -146,7 +146,7 @@ class SmalrubyRubyBlocks {
                                     menu: 'stringMethodCMenu',
                                     defaultValue: 'delete!'
                                 },
-                                ARG1: {type: ArgumentType.STRING, defaultValue: 'l'}
+                                ARG1: {type: ArgumentType.STRING, defaultValue: 'arg1'}
                             }
                         },
                         'gsub!': {
@@ -158,8 +158,8 @@ class SmalrubyRubyBlocks {
                                     menu: 'stringMethodCMenu',
                                     defaultValue: 'gsub!'
                                 },
-                                ARG1: {type: ArgumentType.STRING, defaultValue: '/l/'},
-                                ARG2: {type: ArgumentType.STRING, defaultValue: 'r'}
+                                ARG1: {type: ArgumentType.STRING, defaultValue: 'arg1'},
+                                ARG2: {type: ArgumentType.STRING, defaultValue: 'arg2'}
                             }
                         }
                     },

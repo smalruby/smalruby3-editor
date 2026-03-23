@@ -36,7 +36,7 @@ const stringMethodRArgs = {
         arguments: {
             STRING: {type: 'string', defaultValue: ''},
             METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'delete'},
-            ARG1: {type: 'string', defaultValue: 'l'}
+            ARG1: {type: 'string', defaultValue: 'arg1'}
         }
     },
     gsub: {
@@ -44,8 +44,8 @@ const stringMethodRArgs = {
         arguments: {
             STRING: {type: 'string', defaultValue: ''},
             METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'gsub'},
-            ARG1: {type: 'string', defaultValue: '/l/'},
-            ARG2: {type: 'string', defaultValue: 'r'}
+            ARG1: {type: 'string', defaultValue: 'arg1'},
+            ARG2: {type: 'string', defaultValue: 'arg2'}
         }
     }
 };
@@ -56,7 +56,7 @@ const stringMethodCArgs = {
         arguments: {
             STRING: {type: 'string', menu: 'variableNames', defaultValue: ' '},
             METHOD: {type: 'string', menu: 'stringMethodCMenu', defaultValue: 'delete!'},
-            ARG1: {type: 'string', defaultValue: 'l'}
+            ARG1: {type: 'string', defaultValue: 'arg1'}
         }
     },
     'gsub!': {
@@ -64,8 +64,8 @@ const stringMethodCArgs = {
         arguments: {
             STRING: {type: 'string', menu: 'variableNames', defaultValue: ' '},
             METHOD: {type: 'string', menu: 'stringMethodCMenu', defaultValue: 'gsub!'},
-            ARG1: {type: 'string', defaultValue: '/l/'},
-            ARG2: {type: 'string', defaultValue: 'r'}
+            ARG1: {type: 'string', defaultValue: 'arg1'},
+            ARG2: {type: 'string', defaultValue: 'arg2'}
         }
     }
 };
@@ -88,9 +88,9 @@ const SmalrubyRubyConverter = {
                 stringMethodRArgs, stringMethodRMenuItems
             );
             const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value', {mutation});
-            converter._addTextInput(block, 'STRING', receiver, '');
+            converter._addTextInput(block, 'STRING', receiver, 'string');
             converter._addField(block, 'METHOD', 'delete');
-            converter._addTextInput(block, 'ARG1', args[0], 'l');
+            converter._addTextInput(block, 'ARG1', args[0], 'arg1');
             return block;
         });
 
@@ -110,7 +110,7 @@ const SmalrubyRubyConverter = {
             const block = converter._createBlock('smalrubyRuby_stringMethodC', 'statement', {mutation});
             converter._addField(block, 'STRING', varInfo.name);
             converter._addField(block, 'METHOD', 'delete!');
-            converter._addTextInput(block, 'ARG1', args[0], 'l');
+            converter._addTextInput(block, 'ARG1', args[0], 'arg1');
             return block;
         });
 
@@ -125,10 +125,10 @@ const SmalrubyRubyConverter = {
                 stringMethodRArgs, stringMethodRMenuItems
             );
             const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value', {mutation});
-            converter._addTextInput(block, 'STRING', receiver, '');
+            converter._addTextInput(block, 'STRING', receiver, 'string');
             converter._addField(block, 'METHOD', 'gsub');
-            converter._addTextInput(block, 'ARG1', args[0], '/l/');
-            converter._addTextInput(block, 'ARG2', args[1], 'r');
+            converter._addTextInput(block, 'ARG1', args[0], 'arg1');
+            converter._addTextInput(block, 'ARG2', args[1], 'arg2');
             return block;
         });
 
@@ -148,8 +148,8 @@ const SmalrubyRubyConverter = {
             const block = converter._createBlock('smalrubyRuby_stringMethodC', 'statement', {mutation});
             converter._addField(block, 'STRING', varInfo.name);
             converter._addField(block, 'METHOD', 'gsub!');
-            converter._addTextInput(block, 'ARG1', args[0], '/l/');
-            converter._addTextInput(block, 'ARG2', args[1], 'r');
+            converter._addTextInput(block, 'ARG1', args[0], 'arg1');
+            converter._addTextInput(block, 'ARG2', args[1], 'arg2');
             return block;
         });
     }
