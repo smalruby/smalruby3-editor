@@ -21,7 +21,7 @@ const entry = {
     insetIconURL: rubyInsetIconURL,
     get description () {
         return formatMessage({
-            defaultMessage: 'Use Ruby string manipulation methods.',
+            defaultMessage: 'Use Ruby methods.',
             description: "Description for the 'ruby' extension",
             id: 'smalrubyRuby.entry.description'
         });
