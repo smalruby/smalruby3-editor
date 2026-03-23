@@ -11,6 +11,12 @@ const PenConverter = {
             converter.createBlock('pen_clear', 'statement')
         );
 
+        // v2: pen.clear
+        converter.registerOnSend(Pen, 'clear', 0, params => {
+            const {receiver} = params;
+            return converter.changeRubyExpressionBlock(receiver, 'pen_clear', 'statement');
+        });
+
         // backward compatibility
         converter.registerOnSend('self', 'pen_clear', 0, () =>
             converter.createBlock('pen_clear', 'statement')

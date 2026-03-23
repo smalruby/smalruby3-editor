@@ -10,7 +10,7 @@ export default function (Generator) {
         if (isV1()) {
             return 'pen_clear\n';
         }
-        return 'Pen.clear\n';
+        return 'pen.clear\n';
     };
 
     Generator.pen_stamp = function () {

@@ -82,4 +82,26 @@ describe('Ruby Roundtrip: Pen extension blocks', () => {
         `;
         await expectRoundTrip(converter, target, oldCode, v1Code);
     });
+
+    test('Ruby -> Code -> Ruby (v2)', async () => {
+        const converter2 = makeConverter(target, runtime, {version: 2});
+        const v2Code = dedent`
+            pen.clear
+            pen.stamp
+            pen.down
+            pen.up
+            pen.color = "#c11318"
+            pen.color += 10
+            pen.saturation += 10
+            pen.brightness += 10
+            pen.transparency += 10
+            pen.color = 50
+            pen.saturation = 50
+            pen.brightness = 50
+            pen.transparency = 50
+            pen.size += 1
+            pen.size = 1
+        `;
+        await expectRoundTrip(converter2, target, v2Code, null, {version: 2});
+    });
 });
