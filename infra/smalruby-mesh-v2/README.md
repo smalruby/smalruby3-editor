@@ -113,65 +113,100 @@ subscription.subscribe({
 
 ## Setup
 
+This project is part of the [smalruby3-editor](https://github.com/smalruby/smalruby3-editor) monorepo. All commands run inside the `infra` Docker service.
+
 ### Prerequisites
 
-- Node.js 18+ and npm
-- AWS CLI configured with credentials
-- AWS CDK CLI: `npm install -g aws-cdk`
+- Docker and Docker Compose
+- AWS CLI credentials configured on the host (passed through to Docker)
 
 ### Installation
 
 ```bash
-npm install
+# Install Node.js dependencies
+docker compose run --rm infra npm install
+
+# Install Ruby dependencies (for RSpec tests)
+docker compose run --rm infra bundle install
 ```
 
-### Build
+### Stage Switching via `.env` Symlink
+
+Per-stage `.env` files (`.env.stg`, `.env.stg2`, `.env.production`) are provided. The `.env` symlink points to the active stage:
 
 ```bash
-npm run build
+cd infra/smalruby-mesh-v2
+
+# Switch to staging
+rm .env && ln -s .env.stg .env
+
+# Switch to production
+rm .env && ln -s .env.production .env
+
+# Verify current stage
+ls -la .env
 ```
 
-### Deploy
+**CRITICAL**: Always use `.env` symlink switching for deployments. Never override environment variables directly on the command line — this can delete custom domains or other critical resources from the stack.
+
+### Build & Deploy
 
 ```bash
+# Compile TypeScript
+docker compose run --rm infra npm run build
+
 # Bootstrap CDK (first time only)
-cdk bootstrap
+docker compose run --rm infra npx cdk bootstrap
 
-# Deploy stack
-cdk deploy
+# Synthesize CloudFormation template
+docker compose run --rm infra npx cdk synth
+
+# Show diff against deployed stack
+docker compose run --rm infra npx cdk diff
+
+# Deploy (uses STAGE from .env symlink)
+docker compose run --rm infra npx cdk deploy
 ```
-
-## Useful Commands
-
-- `npm run build` - Compile TypeScript to JavaScript
-- `npm run watch` - Watch for changes and compile
-- `npm run test` - Perform Jest unit tests
-- `npx cdk deploy` - Deploy this stack to your AWS account/region
-- `npx cdk diff` - Compare deployed stack with current state
-- `npx cdk synth` - Emits the synthesized CloudFormation template
 
 ## Project Structure
 
 ```
-mesh-v2/
+smalruby-mesh-v2/
 ├── bin/
-│   └── mesh-v2.ts          # CDK app entry point
+│   └── mesh-v2.ts              # CDK app entry point
 ├── lib/
-│   └── mesh-v2-stack.ts    # Main stack definition
+│   └── mesh-v2-stack.ts        # CDK stack definition (AppSync, DynamoDB)
 ├── graphql/
-│   └── schema.graphql      # GraphQL schema
+│   └── schema.graphql          # GraphQL schema
 ├── js/
-│   └── resolvers/          # AppSync JavaScript resolvers
-├── lambda/
-│   └── leave_group_logic/  # Lambda functions
-└── test/
-    └── mesh-v2.test.ts     # Unit tests
+│   ├── resolvers/              # AppSync JavaScript resolvers (Query/Mutation)
+│   └── functions/              # AppSync Pipeline functions
+├── lambda/                     # Ruby Lambda functions (Hexagonal Architecture)
+│   ├── handlers/               # Adapter: AppSync event handling
+│   ├── domain/                 # Domain: Entities and validation
+│   ├── use_cases/              # Application: Business logic
+│   └── repositories/           # Infrastructure: Data access
+├── spec/
+│   ├── unit/                   # RSpec unit tests (pure Ruby)
+│   ├── requests/               # RSpec integration tests (E2E against AppSync)
+│   └── fixtures/               # GraphQL query/mutation files for tests
+├── test/
+│   └── mesh-v2.test.ts         # Jest CDK infrastructure tests
+├── docs/                       # Documentation
+├── examples/                   # JavaScript client example
+├── .env.stg                    # Staging environment variables
+├── .env.stg2                   # Staging 2 environment variables
+├── .env.production             # Production environment variables
+├── .env.example                # Environment variables template
+├── .env -> .env.production     # Symlink to active stage
+├── Gemfile                     # Ruby dependencies
+└── package.json                # Node.js dependencies
 ```
 
 ## Related
 
-- EPIC Issue: [smalruby/smalruby3-gui#444](https://github.com/smalruby/smalruby3-gui/issues/444)
-- Phase 1-1: [smalruby/smalruby3-gui#446](https://github.com/smalruby/smalruby3-gui/issues/446)
+- Repository: [smalruby/smalruby3-editor](https://github.com/smalruby/smalruby3-editor) (monorepo)
+- Client extension: `packages/scratch-vm/src/extensions/scratch3_mesh_v2/`
 
 ## License
 
