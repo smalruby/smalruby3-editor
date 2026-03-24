@@ -64,4 +64,86 @@ Each stage has a custom domain for the AppSync GraphQL API:
 
 **CRITICAL**: The local dev server (`localhost:8601`) connects to the **stg** endpoint. If `stg.graphql.api.smalruby.app` is broken, mesh v2 will not work locally. After every stg/prod deploy, verify custom domains exist (see `development.md` Post-Deploy Verification).
 
-See `infra/smalruby-mesh-v2/CLAUDE.md` for detailed TDD workflow, architecture, and troubleshooting.
+## Architecture
+
+Hexagonal Architecture (Ports & Adapters) with four layers:
+
+| Layer | Directory | Role |
+|-------|-----------|------|
+| Domain | `lambda/domain/` | Entities and validation (pure Ruby, no external deps) |
+| Application | `lambda/use_cases/` | Business logic orchestration |
+| Infrastructure | `lambda/repositories/` | DynamoDB data access |
+| Adapter | `lambda/handlers/` | AppSync event handling (entry point) |
+
+AppSync JavaScript resolvers (`js/resolvers/`, `js/functions/`) handle most operations directly. Ruby Lambda is used for complex business logic (e.g., group dissolution, domain creation).
+
+## TDD Workflow
+
+Follow RED → GREEN → REFACTOR cycle:
+
+1. **RED**: Write a failing RSpec test in `spec/unit/` or `spec/requests/`
+2. **GREEN**: Implement minimal code to make the test pass
+3. **REFACTOR**: Improve code while keeping tests green
+
+## Testing
+
+### Ruby Tests (RSpec)
+
+```bash
+# Unit tests (pure Ruby, no AWS calls)
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/"
+
+# Integration tests (requires deployed stg stack + env vars)
+docker compose run --rm infra bash -c "
+  export APPSYNC_ENDPOINT=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiEndpoint\`].OutputValue' \
+    --output text)
+  export APPSYNC_API_KEY=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiKey\`].OutputValue' \
+    --output text)
+  bundle exec rspec spec/requests/
+"
+
+# Run a specific test file
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/domain/group_spec.rb"
+
+# Ruby linting
+docker compose run --rm infra bash -c "bundle exec standardrb"
+```
+
+### CDK Tests (Jest)
+
+```bash
+docker compose run --rm infra npx jest
+```
+
+## Troubleshooting
+
+### CDK Deploy Issues
+
+- **"No credentials found"**: Set `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` or `AWS_PROFILE` env vars
+- **"Toolkit stack must be deployed"**: Run `docker compose run --rm infra npx cdk bootstrap`
+- **"MeshV2Table already exists"**: Delete existing stack or change table name
+- **"Cannot find module"**: Run `docker compose run --rm infra npm run build` before deploy
+
+### AppSync Issues
+
+- **Custom domain missing after deploy**: Verify `.env` symlink points to correct stage, redeploy
+- **Subscription not receiving data**: Check `groupId` and `domain` match between mutation and subscription
+- **API Key expired**: Check key expiration in AppSync console, redeploy to rotate
+
+### Ruby Lambda Issues
+
+- **Lambda timeout**: Check DynamoDB table name matches stage (e.g., `MeshV2Table-stg` vs `MeshV2Table`)
+- **Permission denied**: Verify Lambda execution role has DynamoDB access
+
+## Documentation
+
+For detailed documentation, see `infra/smalruby-mesh-v2/docs/`:
+- `api-reference.md` — Complete GraphQL API reference
+- `architecture.md` — System architecture and data flows
+- `development.md` — Development workflow and TDD guide
+- `deployment.md` — Deployment procedures
+- `operations.md` — Monitoring, alerting, cost management

@@ -4,17 +4,15 @@
 
 ## 前提条件
 
-- Node.js 18+ がインストール済み
-- AWS CLI がインストール・設定済み
-- AWS CDK CLI がインストール済み (`npm install -g aws-cdk`)
-- AWSアカウントの認証情報が設定済み
+- Docker および Docker Compose がインストール済み
+- AWS CLI の認証情報がホスト上で設定済み（Docker に渡される）
+- [smalruby3-editor](https://github.com/smalruby/smalruby3-editor) モノレポがクローン済み
 
 ## 1. AWS認証情報の確認
 
 デプロイ前に、AWS CLIが正しく設定されているか確認します。
 
 ```bash
-# AWS認証情報の確認
 aws sts get-caller-identity
 ```
 
@@ -42,71 +40,59 @@ aws configure
 
 ## 2. 依存関係のインストール
 
-```bash
-cd /Users/kouji/work/smalruby/smalruby3-develop/infra/mesh-v2
+モノレポのルートディレクトリから実行します:
 
+```bash
 # npm依存関係のインストール
-npm install
+docker compose run --rm infra npm install
 
 # Ruby依存関係のインストール（テスト実行に必要）
-bundle install
+docker compose run --rm infra bundle install
 
 # TypeScriptのビルド
-npm run build
+docker compose run --rm infra npm run build
 ```
 
-## 3. 環境変数の設定
+## 3. ステージの選択（`.env` Symlink）
 
-Mesh v2では、ハートビート間隔やTTL設定を環境変数で管理します。
+Mesh v2では、ステージごとに環境変数ファイルが用意されています。`.env` シンボリックリンクを切り替えることでデプロイ先を制御します。
 
-### 3.1 環境変数ファイルの作成
+### ステージ一覧
+
+| ステージ | `.env` ファイル | 用途 |
+|---------|---------------|------|
+| `stg` | `.env.stg` | ステージング（開発用、高速な間隔） |
+| `stg2` | `.env.stg2` | ステージング2（並行テスト用） |
+| `prod` | `.env.production` | 本番環境（コスト最適化） |
+
+### ステージの切り替え
 
 ```bash
-# .env.example をコピーして .env を作成
-cp .env.example .env
+cd infra/smalruby-mesh-v2
 
-# .env ファイルを編集（任意）
-# デフォルトでは開発環境向けの設定がコメントアウトされています
+# ステージングに切り替え
+rm .env && ln -s .env.stg .env
+
+# 本番環境に切り替え
+rm .env && ln -s .env.production .env
+
+# 現在のステージを確認
+ls -la .env
 ```
 
-### 3.2 環境変数の説明
+**CRITICAL**: 常に `.env` シンボリックリンクの切り替えでステージを指定してください。コマンドラインで環境変数を直接上書きすると、カスタムドメインなどの重要なリソースが削除される可能性があります。
+
+### 環境変数の説明
 
 | 変数名 | 開発環境推奨値 | 本番環境推奨値 | 説明 |
 |--------|--------------|--------------|------|
+| `STAGE` | `stg` | `prod` | デプロイステージ |
 | `MESH_SECRET_KEY` | `dev-secret-key-for-testing` | （GitHub Secretsで設定） | ドメイン検証用の秘密鍵 |
 | `MESH_HOST_HEARTBEAT_INTERVAL_SECONDS` | `15` | `60` | ホストのハートビート送信間隔（秒） |
 | `MESH_HOST_HEARTBEAT_TTL_SECONDS` | `60` | `150` | ホストグループの有効期限（秒） |
 | `MESH_MEMBER_HEARTBEAT_INTERVAL_SECONDS` | `15` | `120` | メンバーのハートビート送信間隔（秒） |
 | `MESH_MEMBER_HEARTBEAT_TTL_SECONDS` | `60` | `600` | メンバーノードの有効期限（秒） |
 | `MESH_MAX_CONNECTION_TIME_SECONDS` | `300` | `1500` | グループの最大接続時間（秒） |
-
-### 3.3 開発環境用の設定（stg）
-
-迅速なデバッグのため、短い間隔を使用します:
-
-```bash
-# .env ファイルの内容（開発環境用）
-MESH_SECRET_KEY=dev-secret-key-for-testing
-MESH_HOST_HEARTBEAT_INTERVAL_SECONDS=15
-MESH_HOST_HEARTBEAT_TTL_SECONDS=60
-MESH_MEMBER_HEARTBEAT_INTERVAL_SECONDS=15
-MESH_MEMBER_HEARTBEAT_TTL_SECONDS=60
-MESH_MAX_CONNECTION_TIME_SECONDS=300
-```
-
-### 3.4 本番環境用の設定（prod）
-
-コスト最適化のため、長い間隔を使用します（約70%コスト削減）:
-
-```bash
-# 本番環境ではGitHub Secretsまたは環境変数で設定
-MESH_SECRET_KEY=<本番用の秘密鍵>
-MESH_HOST_HEARTBEAT_INTERVAL_SECONDS=60
-MESH_HOST_HEARTBEAT_TTL_SECONDS=150
-MESH_MEMBER_HEARTBEAT_INTERVAL_SECONDS=120
-MESH_MEMBER_HEARTBEAT_TTL_SECONDS=600
-MESH_MAX_CONNECTION_TIME_SECONDS=1500
-```
 
 **重要**:
 - TTLはハートビート間隔の約5倍に設定することで、ネットワーク遅延やタイムアウトに対する耐性を確保
@@ -118,11 +104,7 @@ MESH_MAX_CONNECTION_TIME_SECONDS=1500
 AWS環境でCDKを初めて使用する場合、bootstrapが必要です。
 
 ```bash
-# 現在のAWSアカウント・リージョンでbootstrap
-cdk bootstrap
-
-# 特定のアカウント・リージョンを指定する場合
-# cdk bootstrap aws://ACCOUNT-NUMBER/REGION
+docker compose run --rm infra npx cdk bootstrap
 ```
 
 Bootstrap完了後の出力例:
@@ -133,7 +115,6 @@ Bootstrap完了後の出力例:
 ### Bootstrap済みか確認する方法
 
 ```bash
-# CloudFormationスタックの確認
 aws cloudformation describe-stacks --stack-name CDKToolkit
 ```
 
@@ -145,57 +126,32 @@ CloudFormationテンプレートを生成して、デプロイ内容を確認し
 
 ```bash
 # CloudFormationテンプレートの生成
-npx cdk synth
+docker compose run --rm infra npx cdk synth
 
 # デプロイ差分の確認
-npx cdk diff
+docker compose run --rm infra npx cdk diff
 ```
 
 ## 6. デプロイ実行
 
-### 6.1 ステージング環境と本番環境
-
-Mesh v2では、ステージング環境（stg）と本番環境（prod）を分離して管理します。
-
-**ステージング環境へのデプロイ（開発用設定）:**
+`.env` シンボリックリンクが正しいステージを指していることを確認してからデプロイします:
 
 ```bash
-# 1. .env ファイルで開発環境用の設定を確認
-cat .env
+# 現在のステージを確認
+ls -la infra/smalruby-mesh-v2/.env
 
-# 2. ステージング環境へデプロイ
-npx cdk deploy --context stage=stg
-
-# または --context を省略（cdk.jsonのデフォルト値 "stg" が使用される）
-npx cdk deploy
+# デプロイ（STAGE は .env symlink から読み取られる）
+docker compose run --rm infra npx cdk deploy
 ```
 
-**本番環境へのデプロイ（本番用設定）:**
-
-```bash
-# 環境変数を直接指定してデプロイ
-MESH_SECRET_KEY="<本番用秘密鍵>" \
-MESH_HOST_HEARTBEAT_INTERVAL_SECONDS=60 \
-MESH_HOST_HEARTBEAT_TTL_SECONDS=150 \
-MESH_MEMBER_HEARTBEAT_INTERVAL_SECONDS=120 \
-MESH_MEMBER_HEARTBEAT_TTL_SECONDS=600 \
-MESH_MAX_CONNECTION_TIME_SECONDS=1500 \
-npx cdk deploy --context stage=prod
-```
-
-**注意**: 環境変数は以下の優先順位で解決されます:
-1. コマンドライン環境変数（上記の方法）
-2. `.env` ファイル
-3. CDK stackのデフォルト値（fallback）
-
-### 6.2 デプロイされるリソース名
+### 6.1 デプロイされるリソース名
 
 | Stage | Stack名 | DynamoDB Table名 | AppSync API名 |
 |-------|---------|------------------|---------------|
 | stg | MeshV2Stack-stg | MeshV2Table-stg | MeshV2Api-stg |
 | prod | MeshV2Stack | MeshV2Table | MeshV2Api |
 
-### 6.3 リソースタグ
+### 6.2 リソースタグ
 
 すべてのリソースには以下のタグが自動的に付与されます:
 
@@ -233,6 +189,26 @@ arn:aws:cloudformation:ap-northeast-1:123456789012:stack/MeshV2Stack/xxxxxxxx-xx
 
 **重要**: `GraphQLApiEndpoint` と `GraphQLApiKey` の値を控えてください。動作確認で使用します。
 
+### 6.3 デプロイ後のカスタムドメイン確認
+
+デプロイ後、カスタムドメインが正しく設定されていることを確認します:
+
+```bash
+# すべてのAppSyncカスタムドメインを確認
+aws appsync list-domain-names --query "domainNameConfigs[].domainName" --output table
+
+# 期待されるドメイン:
+#   graphql.api.smalruby.app        (prod)
+#   stg.graphql.api.smalruby.app    (stg)
+#   stg2.graphql.api.smalruby.app   (stg2)
+
+# DNS解決の確認
+dig stg.graphql.api.smalruby.app A +short
+dig graphql.api.smalruby.app A +short
+```
+
+カスタムドメインが欠けている場合は、正しい `.env` シンボリックリンクで再デプロイしてください。
+
 ## 7. 動作確認
 
 ### 7.1 AWS Management Consoleでの確認
@@ -262,18 +238,18 @@ mutation CreateGroup {
     name: "テストグループ1"
     hostId: "host-001"
     domain: "test-domain"
+    useWebSocket: true
   ) {
     id
     domain
     fullId
     name
     hostId
-    createdAt
+    expiresAt
+    useWebSocket
   }
 }
 ```
-
-**注意**: 現時点ではResolverが未実装のため、このMutationは失敗します。これは正常です。Phase 2でResolverを実装します。
 
 #### テスト2: グループ一覧の取得 (listGroupsByDomain)
 
@@ -285,7 +261,7 @@ query ListGroups {
     fullId
     name
     hostId
-    createdAt
+    expiresAt
   }
 }
 ```
@@ -455,30 +431,13 @@ aws dynamodb describe-table --table-name MeshV2Table-stg
 # 本番環境のテーブル詳細を確認
 aws dynamodb describe-table --table-name MeshV2Table
 
-# GSIの確認（オプション1: JSON形式で詳細表示 - 推奨）
-# ステージング環境
+# GSIの確認（JSON形式で詳細表示）
 aws dynamodb describe-table --table-name MeshV2Table-stg \
   --query 'Table.GlobalSecondaryIndexes[*].{IndexName:IndexName,KeySchema:KeySchema}' \
   --output json
-
-# 本番環境
-aws dynamodb describe-table --table-name MeshV2Table \
-  --query 'Table.GlobalSecondaryIndexes[*].{IndexName:IndexName,KeySchema:KeySchema}' \
-  --output json
-
-# GSIの確認（オプション2: テーブル形式でインデックス名のみ）
-# ステージング環境
-aws dynamodb describe-table --table-name MeshV2Table-stg \
-  --query 'Table.GlobalSecondaryIndexes[*].IndexName' \
-  --output table
-
-# 本番環境
-aws dynamodb describe-table --table-name MeshV2Table \
-  --query 'Table.GlobalSecondaryIndexes[*].IndexName' \
-  --output table
 ```
 
-期待される出力（オプション1: JSON形式）:
+期待される出力:
 ```json
 [
   {
@@ -497,58 +456,24 @@ aws dynamodb describe-table --table-name MeshV2Table \
 ]
 ```
 
-期待される出力（オプション2: テーブル形式）:
-```
------------------
-|DescribeTable  |
-+---------------+
-|  GroupIdIndex |
-+---------------+
-```
-
 ### 7.6 Integration Tests の実行
 
 デプロイ後、integration testsを実行して動作を検証します。
 
 ```bash
-# 環境変数の設定
-export APPSYNC_ENDPOINT=$(aws cloudformation describe-stacks \
-  --stack-name MeshV2Stack-stg \
-  --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiEndpoint`].OutputValue' \
-  --output text)
-
-export APPSYNC_API_KEY=$(aws cloudformation describe-stacks \
-  --stack-name MeshV2Stack-stg \
-  --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiKey`].OutputValue' \
-  --output text)
-
-# 環境変数の確認
-echo "APPSYNC_ENDPOINT: $APPSYNC_ENDPOINT"
-echo "APPSYNC_API_KEY: $APPSYNC_API_KEY"
-
-# すべてのintegration testsを実行
-bundle exec rspec spec/requests/
-
-# 特定のテストファイルのみ実行
-bundle exec rspec spec/requests/heartbeat_spec.rb --format documentation
-bundle exec rspec spec/requests/member_heartbeat_spec.rb --format documentation
-```
-
-テスト実行結果の例:
-```
-Heartbeat API
-  renewHeartbeat mutation
-    ホストがハートビートを更新できる
-    ホスト以外のノードがハートビートを更新しようとするとエラー
-
-Member Heartbeat API
-  sendMemberHeartbeat mutation
-    メンバーがハートビートを更新できる
-    存在しないグループに対してメンバーハートビートを送るとエラー
-    存在しないノードに対してメンバーハートビートを送るとエラー
-
-Finished in 2.5 seconds (files took 0.8 seconds to load)
-5 examples, 0 failures
+docker compose run --rm infra bash -c "
+  export APPSYNC_ENDPOINT=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiEndpoint\`].OutputValue' \
+    --output text)
+  export APPSYNC_API_KEY=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiKey\`].OutputValue' \
+    --output text)
+  echo \"APPSYNC_ENDPOINT: \$APPSYNC_ENDPOINT\"
+  echo \"APPSYNC_API_KEY: \$APPSYNC_API_KEY\"
+  bundle exec rspec spec/requests/ --format documentation
+"
 ```
 
 ## 8. CloudWatch Logsの確認
@@ -623,9 +548,8 @@ aws resource-groups list-group-resources --group-name MeshV2-stg
 
 AWS Cost Explorerでタグを使ったコスト分析が可能です。
 
-**ステージング環境のコスト:**
-
 ```bash
+# ステージング環境のコスト
 aws ce get-cost-and-usage \
   --time-period Start=2025-01-01,End=2025-01-31 \
   --granularity MONTHLY \
@@ -638,34 +562,16 @@ aws ce get-cost-and-usage \
   }'
 ```
 
-**リソースタイプ別コスト:**
-
-```bash
-aws ce get-cost-and-usage \
-  --time-period Start=2025-01-01,End=2025-01-31 \
-  --granularity MONTHLY \
-  --metrics "UnblendedCost" \
-  --group-by Type=TAG,Key=ResourceType \
-  --filter '{
-    "Tags": {
-      "Key": "Project",
-      "Values": ["MeshV2"]
-    }
-  }'
-```
-
 ## 11. リソースの削除（必要な場合）
 
 開発環境のリソースを削除する場合:
 
 ```bash
-# ステージング環境のスタック削除
-npx cdk destroy --context stage=stg
+# .env symlink が正しいステージを指していることを確認
+ls -la infra/smalruby-mesh-v2/.env
 
-# 本番環境のスタック削除（慎重に）
-npx cdk destroy --context stage=prod
-
-# 確認プロンプトで y を入力
+# スタック削除
+docker compose run --rm infra npx cdk destroy
 ```
 
 **警告**: この操作でDynamoDBテーブルとデータが完全に削除されます（`RemovalPolicy: DESTROY`設定のため）。
@@ -693,7 +599,7 @@ Error: This stack uses assets, so the toolkit stack must be deployed to the envi
 
 **解決策**: CDK Bootstrapを実行してください。
 ```bash
-cdk bootstrap
+docker compose run --rm infra npx cdk bootstrap
 ```
 
 #### 3. リソース名の競合
@@ -710,17 +616,6 @@ Error: MeshV2Table already exists
 2. API Keyが正しいか確認
 3. エンドポイントURLが正しいか確認
 4. IAM権限が正しく設定されているか確認
-
-## 次のステップ
-
-Phase 1のデプロイが完了したら、Phase 2でAppSync Resolverを実装します:
-
-- JavaScript Resolverの実装
-- DynamoDB CRUD操作の実装
-- Domain自動取得ロジックの実装
-- Subscriptionの動作確認
-
-詳細は Issue #449 を参照してください。
 
 ## 参考リンク
 

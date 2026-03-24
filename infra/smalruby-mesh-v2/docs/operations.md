@@ -476,7 +476,7 @@ aws dynamodb restore-table-to-point-in-time \
 デプロイ前のテンプレート保存:
 
 ```bash
-npx cdk synth > mesh-v2-stack-$(date +%Y%m%d).yaml
+docker compose run --rm infra bash -c "npx cdk synth" > mesh-v2-stack-$(date +%Y%m%d).yaml
 ```
 
 #### スタックのロールバック
@@ -484,7 +484,7 @@ npx cdk synth > mesh-v2-stack-$(date +%Y%m%d).yaml
 デプロイ失敗時の自動ロールバック:
 
 ```bash
-npx cdk deploy --rollback
+docker compose run --rm infra npx cdk deploy --rollback
 ```
 
 ---
@@ -678,10 +678,10 @@ aws logs filter-log-events \
 # 1. 前回の変更セットを確認
 aws cloudformation list-change-sets --stack-name MeshV2Stack-stg
 
-# 2. スタックを削除して再デプロイ（注意: データ損失の可能性）
-npx cdk destroy --context stage=stg
+# 2. .env symlink を stg に設定してスタックを削除・再デプロイ（注意: データ損失の可能性）
+docker compose run --rm infra npx cdk destroy
 git checkout <previous-commit>
-npx cdk deploy --context stage=stg
+docker compose run --rm infra npx cdk deploy
 
 # 3. または、手動で前の状態にロールバック
 # (DynamoDB のポイントインタイムリカバリを使用)

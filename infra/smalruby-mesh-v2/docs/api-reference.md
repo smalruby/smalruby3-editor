@@ -104,6 +104,63 @@ type GroupDissolvePayload {
 }
 ```
 
+#### MeshMessage
+
+```graphql
+type MeshMessage {
+  groupId: ID!
+  domain: String!
+  nodeStatus: NodeStatus
+  batchEvent: BatchEvent
+  groupDissolve: GroupDissolvePayload
+}
+```
+
+#### RecordEventsPayload
+
+```graphql
+type RecordEventsPayload {
+  groupId: ID!
+  domain: String!
+  recordedCount: Int!
+  nextSince: String!
+}
+```
+
+#### HeartbeatPayload
+
+```graphql
+type HeartbeatPayload {
+  groupId: ID!
+  domain: String!
+  expiresAt: AWSDateTime!
+  heartbeatIntervalSeconds: Int
+}
+```
+
+#### MemberHeartbeatPayload
+
+```graphql
+type MemberHeartbeatPayload {
+  nodeId: ID!
+  groupId: ID!
+  domain: String!
+  expiresAt: AWSDateTime!
+  heartbeatIntervalSeconds: Int
+}
+```
+
+#### LeaveGroupPayload
+
+```graphql
+type LeaveGroupPayload {
+  peerId: ID!
+  groupId: ID!
+  domain: String!
+  message: String!
+}
+```
+
 ## Queries
 
 ### listGroupsByDomain
@@ -118,9 +175,10 @@ query ListGroupsByDomain($domain: String!) {
     fullId
     name
     hostId
-    createdAt
     expiresAt
     heartbeatIntervalSeconds
+    useWebSocket
+    pollingIntervalSeconds
   }
 }
 ```
@@ -185,6 +243,30 @@ query ListNodesInGroup($groupId: ID!, $domain: String!) {
 
 **用途**: グループメンバーの一覧取得。
 
+### searchGroupsByNamePrefix
+
+グループ名のプレフィックスで全ドメイン横断検索します。
+
+```graphql
+query SearchGroupsByNamePrefix($namePrefix: String!, $limit: Int) {
+  searchGroupsByNamePrefix(namePrefix: $namePrefix, limit: $limit) {
+    id
+    domain
+    fullId
+    name
+    hostId
+    expiresAt
+    useWebSocket
+  }
+}
+```
+
+**パラメータ**:
+- `namePrefix: String!` - hostId の先頭数文字（16進数小文字）
+- `limit: Int` - 取得件数の上限（オプション）
+
+**用途**: hostId のプレフィックスを使ったグループ検索。ドメインをまたいで検索可能。
+
 ### getEventsSince
 
 前回取得日時以降のイベントを取得します（ポーリング用）。
@@ -231,19 +313,36 @@ mutation CreateDomain {
 新しいグループを作成します（冪等性あり）。
 
 ```graphql
-mutation CreateGroup($name: String!, $hostId: ID!, $domain: String!) {
-  createGroup(name: $name, hostId: $hostId, domain: $domain) {
+mutation CreateGroup(
+  $name: String!
+  $hostId: ID!
+  $domain: String!
+  $useWebSocket: Boolean!
+  $maxConnectionTimeSeconds: Int
+) {
+  createGroup(
+    name: $name
+    hostId: $hostId
+    domain: $domain
+    useWebSocket: $useWebSocket
+    maxConnectionTimeSeconds: $maxConnectionTimeSeconds
+  ) {
     id
     domain
     fullId
     name
     hostId
-    createdAt
     expiresAt
     heartbeatIntervalSeconds
+    useWebSocket
+    pollingIntervalSeconds
   }
 }
 ```
+
+**パラメータ**:
+- `useWebSocket: Boolean!` - WebSocket 使用フラグ。`false` の場合、ポーリングプロトコルを使用
+- `maxConnectionTimeSeconds: Int` - グループの最大接続時間（オプション、1以上、環境変数の値以下）
 
 **冪等性**: 同じ `hostId` + `domain` で呼び出すと、既存のグループを返します。
 
@@ -281,17 +380,23 @@ mutation ReportDataByNode(
     domain: $domain
     data: $data
   ) {
-    nodeId
     groupId
     domain
-    data {
-      key
-      value
+    nodeStatus {
+      nodeId
+      groupId
+      domain
+      data {
+        key
+        value
+      }
+      timestamp
     }
-    timestamp
   }
 }
 ```
+
+**戻り値**: `MeshMessage` — `nodeStatus` フィールドにデータ更新が含まれます。この mutation は `onMessageInGroup` subscription をトリガーします。
 
 ### fireEventsByNode
 
@@ -310,19 +415,25 @@ mutation FireEventsByNode(
     domain: $domain
     events: $events
   ) {
-    events {
-      name
-      firedByNodeId
-      payload
-      timestamp
-    }
-    firedByNodeId
     groupId
     domain
-    timestamp
+    batchEvent {
+      events {
+        name
+        firedByNodeId
+        payload
+        timestamp
+      }
+      firedByNodeId
+      groupId
+      domain
+      timestamp
+    }
   }
 }
 ```
+
+**戻り値**: `MeshMessage` — `batchEvent` フィールドにイベントデータが含まれます。この mutation は `onMessageInGroup` subscription をトリガーします。
 
 ### recordEventsByNode
 
@@ -381,7 +492,11 @@ mutation DissolveGroup($groupId: ID!, $domain: String!, $hostId: ID!) {
   dissolveGroup(groupId: $groupId, domain: $domain, hostId: $hostId) {
     groupId
     domain
-    message
+    groupDissolve {
+      groupId
+      domain
+      message
+    }
   }
 }
 ```
@@ -766,8 +881,3 @@ AWS AppSync のデフォルトのレート制限が適用されます:
 - [AppSync @aws_subscribe Directive](https://docs.aws.amazon.com/appsync/latest/devguide/aws-appsync-directives.html#aws-appsync-subscribe)
 - [AWS AppSync Quotas](https://docs.aws.amazon.com/appsync/latest/devguide/quotas.html)
 
----
-
-**Last Updated**: 2026-01-03
-**Phase**: 3 - Documentation Consolidation
-**Status**: ✅ Subscription を `onMessageInGroup` に統合（Issue smalruby/smalruby3-gui#500 関連）
