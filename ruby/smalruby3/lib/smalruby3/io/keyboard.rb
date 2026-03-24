@@ -35,6 +35,19 @@ module Smalruby3
         !@pressed.empty?
       end
 
+      def scancode_to_scratch_name(scancode)
+        REVERSE_MAP[scancode]
+      end
+
+      REVERSE_MAP = {}.tap do |m|
+        SCRATCH_KEY_MAP.each { |name, code| m[code] = name }
+        # a-z
+        ("a".."z").each { |ch| m[4 + (ch.ord - "a".ord)] = ch }
+        # 0-9
+        m[39] = "0"
+        ("1".."9").each { |ch| m[30 + (ch.ord - "1".ord)] = ch }
+      end.freeze
+
       private
 
       def resolve_scancode(key_name)

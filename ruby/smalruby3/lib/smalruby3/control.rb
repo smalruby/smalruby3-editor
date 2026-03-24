@@ -1,12 +1,20 @@
 # frozen_string_literal: true
 
 module Smalruby3
-  # Override loop to auto-yield each iteration (Scratch behavior).
-  # This module is included in Target so it's available in sprite scripts.
+  # Override loop and times to auto-yield each iteration (Scratch behavior).
+  # Scratch loops automatically wait 1 frame (~33ms at 30fps) at each iteration end.
   module Control
     def loop(&block)
       Kernel.loop do
         block.call
+        Fiber.yield
+      end
+    end
+
+    # Override Integer#times in sprite context
+    def smalruby_times(n, &block)
+      n.to_i.times do |i|
+        block.call(i)
         Fiber.yield
       end
     end
