@@ -71,42 +71,51 @@ mesh-v2/
 ├── .rspec                      # RSpec settings
 ├── cdk.json                    # CDK configuration (stage context)
 ├── package.json                # Node.js dependencies
+├── .env.stg                    # Staging environment variables
+├── .env.stg2                   # Staging 2 environment variables
+├── .env.production             # Production environment variables
 ├── .env.example                # Environment variables template
-└── .env                        # Local environment variables (git-ignored)
+└── .env -> .env.production     # Symlink to active stage
 ```
 
 ## 開発環境セットアップ
 
 ### 前提条件
 
-- Node.js 18+
-- Ruby 3.4.1 (`.ruby-version` で管理)
-- AWS CLI が設定済み
-- AWS CDK CLI
+- Docker および Docker Compose がインストール済み
+- AWS CLI の認証情報がホスト上で設定済み
+- [smalruby3-editor](https://github.com/smalruby/smalruby3-editor) モノレポがクローン済み
 
 ### インストール
 
-#### 1. Node.js 依存関係
+モノレポのルートディレクトリから実行します:
 
 ```bash
-npm install
+# Node.js 依存関係
+docker compose run --rm infra npm install
+
+# Ruby 依存関係
+docker compose run --rm infra bundle install
 ```
 
-#### 2. Ruby 依存関係
+### ステージの選択（`.env` Symlink）
+
+ステージごとに `.env` ファイルが用意されています。`.env` シンボリックリンクを切り替えてステージを選択します:
 
 ```bash
-bundle install
+cd infra/smalruby-mesh-v2
+
+# ステージングに切り替え（開発用）
+rm .env && ln -s .env.stg .env
+
+# 本番に切り替え
+rm .env && ln -s .env.production .env
+
+# 現在のステージを確認
+ls -la .env
 ```
 
-#### 3. 環境変数の設定
-
-```bash
-# テンプレートからローカル .env ファイルを作成
-cp .env.example .env
-
-# .env を開発用の値で編集（デフォルトで開発用の値が設定されています）
-# 開発環境では、デバッグを容易にするために高速な間隔を使用します
-```
+**CRITICAL**: 常に `.env` シンボリックリンクの切り替えでステージを指定してください。コマンドラインで環境変数を直接上書きしないでください。
 
 ## 環境変数
 
@@ -114,8 +123,11 @@ Mesh v2 は環境変数を使用して設定を管理し、開発環境と本番
 
 ### 設定ファイル
 
-- **`.env.example`**: 本番環境のデフォルト値を持つテンプレートファイル（git にコミット）
-- **`.env`**: ローカル設定ファイル（git-ignored、`.env.example` から作成）
+- **`.env.stg`**: ステージング環境用（高速な間隔、デバッグ向け）
+- **`.env.stg2`**: ステージング2環境用（並行テスト向け）
+- **`.env.production`**: 本番環境用（コスト最適化）
+- **`.env.example`**: テンプレートファイル（変数の説明付き）
+- **`.env`**: アクティブなステージへのシンボリックリンク
 
 ### 変数一覧
 
@@ -184,7 +196,7 @@ end
 
 テストを実行（失敗するはず）:
 ```bash
-bundle exec rspec spec/unit/use_cases/create_group_spec.rb
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/use_cases/create_group_spec.rb"
 ```
 
 #### Phase 2: GREEN (最小限のコードを実装)
@@ -218,7 +230,7 @@ end
 
 テストを実行（成功するはず）:
 ```bash
-bundle exec rspec spec/unit/use_cases/create_group_spec.rb
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/use_cases/create_group_spec.rb"
 ```
 
 #### Phase 3: REFACTOR (コード品質の改善)
@@ -227,7 +239,7 @@ bundle exec rspec spec/unit/use_cases/create_group_spec.rb
 
 テストを実行（成功し続けるはず）:
 ```bash
-bundle exec rspec spec/unit/
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/"
 ```
 
 ### 2. 統合テストフロー
@@ -255,12 +267,17 @@ end
 
 統合テストを実行:
 ```bash
-# 環境変数を設定
-export APPSYNC_ENDPOINT=$(aws cloudformation describe-stacks --stack-name MeshV2Stack-stg --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiEndpoint`].OutputValue' --output text)
-export APPSYNC_API_KEY=$(aws cloudformation describe-stacks --stack-name MeshV2Stack-stg --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiKey`].OutputValue' --output text)
-
-# 統合テストを実行
-bundle exec rspec spec/requests/
+docker compose run --rm infra bash -c "
+  export APPSYNC_ENDPOINT=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiEndpoint\`].OutputValue' \
+    --output text)
+  export APPSYNC_API_KEY=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiKey\`].OutputValue' \
+    --output text)
+  bundle exec rspec spec/requests/
+"
 ```
 
 ### 3. 完全な TDD ワークフロー
@@ -272,11 +289,11 @@ bundle exec rspec spec/requests/
    ↓
 3. リファクタリング (GREEN)
    ↓
-4. stg にデプロイ
-   npx cdk deploy --context stage=stg
+4. .env symlink を stg に設定してデプロイ
+   docker compose run --rm infra npx cdk deploy
    ↓
 5. 統合テストを実行
-   bundle exec rspec spec/requests/
+   docker compose run --rm infra bash -c "... bundle exec rspec spec/requests/"
    ↓
 6. テストが通過 → commit & push
    テストが失敗 → 修正して step 4 から繰り返し
@@ -308,7 +325,7 @@ bundle exec rspec spec/requests/
 
 **実行コマンド**:
 ```bash
-bundle exec rspec spec/unit/
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/"
 ```
 
 ### 統合テスト (spec/requests/)
@@ -329,11 +346,17 @@ bundle exec rspec spec/unit/
 
 **実行コマンド**:
 ```bash
-# 最初に環境変数を設定
-export APPSYNC_ENDPOINT=$(aws cloudformation describe-stacks --stack-name MeshV2Stack-stg --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiEndpoint`].OutputValue' --output text)
-export APPSYNC_API_KEY=$(aws cloudformation describe-stacks --stack-name MeshV2Stack-stg --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiKey`].OutputValue' --output text)
-
-bundle exec rspec spec/requests/
+docker compose run --rm infra bash -c "
+  export APPSYNC_ENDPOINT=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiEndpoint\`].OutputValue' \
+    --output text)
+  export APPSYNC_API_KEY=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiKey\`].OutputValue' \
+    --output text)
+  bundle exec rspec spec/requests/
+"
 ```
 
 ### インフラストラクチャテスト (test/)
@@ -347,7 +370,7 @@ bundle exec rspec spec/requests/
 
 **実行コマンド**:
 ```bash
-npm test
+docker compose run --rm infra npx jest
 ```
 
 ### テストフィクスチャ (spec/fixtures/)
@@ -356,14 +379,15 @@ npm test
 
 ```graphql
 # spec/fixtures/mutations/create_group.graphql
-mutation CreateGroup($name: String!, $hostId: ID!, $domain: String!) {
-  createGroup(name: $name, hostId: $hostId, domain: $domain) {
+mutation CreateGroup($name: String!, $hostId: ID!, $domain: String!, $useWebSocket: Boolean!) {
+  createGroup(name: $name, hostId: $hostId, domain: $domain, useWebSocket: $useWebSocket) {
     id
     domain
     fullId
     name
     hostId
-    createdAt
+    expiresAt
+    useWebSocket
   }
 }
 ```
@@ -485,60 +509,58 @@ end
 
 TypeScript を JavaScript にコンパイル:
 ```bash
-npm run build
+docker compose run --rm infra npm run build
 ```
 
 ### テスト
 
 ```bash
 # すべてのテストを実行
-bundle exec rspec
+docker compose run --rm infra bash -c "bundle exec rspec"
 
 # 単体テストのみ
-bundle exec rspec spec/unit/
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/"
 
-# 統合テストのみ
-bundle exec rspec spec/requests/
+# 統合テストのみ（環境変数設定が必要、上記セクション参照）
 
 # 特定のテストファイル
-bundle exec rspec spec/unit/domain/group_spec.rb
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/domain/group_spec.rb"
 
 # 特定のテストケース（行番号で指定）
-bundle exec rspec spec/unit/domain/group_spec.rb:10
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/domain/group_spec.rb:10"
 
 # ドキュメントフォーマットで実行
-bundle exec rspec --format documentation
+docker compose run --rm infra bash -c "bundle exec rspec --format documentation"
 
 # インフラストラクチャテスト (Jest)
-npm test
+docker compose run --rm infra npx jest
 
 # Linting (StandardRB)
-bundle exec standardrb
+docker compose run --rm infra bash -c "bundle exec standardrb"
 
 # Linting 自動修正
-bundle exec standardrb --fix
+docker compose run --rm infra bash -c "bundle exec standardrb --fix"
 ```
 
 ### CDK コマンド
 
+すべてのコマンドは `.env` シンボリックリンクで指定されたステージに対して実行されます:
+
 ```bash
 # CloudFormation テンプレートを生成
-npx cdk synth
+docker compose run --rm infra npx cdk synth
 
 # デプロイの差分を表示
-npx cdk diff --context stage=stg
+docker compose run --rm infra npx cdk diff
 
-# デプロイ（ステージング）
-npx cdk deploy --context stage=stg
-
-# デプロイ（本番）
-npx cdk deploy --context stage=prod
+# デプロイ（.env symlink のステージ）
+docker compose run --rm infra npx cdk deploy
 
 # 破棄
-npx cdk destroy --context stage=stg
+docker compose run --rm infra npx cdk destroy
 
 # スタック一覧
-npx cdk list
+docker compose run --rm infra npx cdk list
 ```
 
 ### AWS コマンド
@@ -574,32 +596,36 @@ aws dynamodb query --table-name MeshV2Table-stg \
 
 ```bash
 # 1. 依存関係をインストール
-npm install
-bundle install
+docker compose run --rm infra npm install
+docker compose run --rm infra bundle install
 
 # 2. 単体テストを実行（高速）
-bundle exec rspec spec/unit/
+docker compose run --rm infra bash -c "bundle exec rspec spec/unit/"
 
 # 3. CDK をコンパイル
-npm run build
+docker compose run --rm infra npm run build
 
-# 4. ステージングにデプロイ
-npx cdk deploy --context stage=stg
+# 4. .env symlink を stg に設定してデプロイ
+cd infra/smalruby-mesh-v2 && rm .env && ln -s .env.stg .env && cd ../..
+docker compose run --rm infra npx cdk deploy
 
-# 5. 統合テスト用の環境変数を設定
-export APPSYNC_ENDPOINT=$(aws cloudformation describe-stacks --stack-name MeshV2Stack-stg --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiEndpoint`].OutputValue' --output text)
-export APPSYNC_API_KEY=$(aws cloudformation describe-stacks --stack-name MeshV2Stack-stg --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiKey`].OutputValue' --output text)
+# 5. 統合テストを実行（環境変数を自動設定）
+docker compose run --rm infra bash -c "
+  export APPSYNC_ENDPOINT=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiEndpoint\`].OutputValue' \
+    --output text)
+  export APPSYNC_API_KEY=\$(aws cloudformation describe-stacks \
+    --stack-name MeshV2Stack-stg \
+    --query 'Stacks[0].Outputs[?OutputKey==\`GraphQLApiKey\`].OutputValue' \
+    --output text)
+  bundle exec rspec spec/requests/
+"
 
-# 6. 統合テストを実行
-bundle exec rspec spec/requests/
-
-# 7. すべてのテストを実行
-bundle exec rspec
-
-# 8. コミットしてプッシュ
+# 6. コミットしてプッシュ
 git add .
 git commit -m "feat: add new feature"
-git push origin main
+git push origin feature/branch-name
 ```
 
 ## トラブルシューティング
@@ -615,11 +641,7 @@ http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
 **問題**: 環境変数が設定されていない
 
-**解決策**: 統合テスト前に実行:
-```bash
-export APPSYNC_ENDPOINT=$(aws cloudformation describe-stacks --stack-name MeshV2Stack-stg --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiEndpoint`].OutputValue' --output text)
-export APPSYNC_API_KEY=$(aws cloudformation describe-stacks --stack-name MeshV2Stack-stg --query 'Stacks[0].Outputs[?OutputKey==`GraphQLApiKey`].OutputValue' --output text)
-```
+**解決策**: 統合テストを Docker 内で環境変数とともに実行（上記「統合テスト」セクション参照）。
 
 **問題**: GraphQL 型の不一致（String! vs ID!）
 
@@ -635,14 +657,14 @@ export APPSYNC_API_KEY=$(aws cloudformation describe-stacks --stack-name MeshV2S
 
 **解決策**:
 ```bash
-cdk bootstrap
+docker compose run --rm infra npx cdk bootstrap
 ```
 
 **問題**: リソース名の競合
 
 **解決策**: 異なるステージを使用するか、古いスタックを破棄:
 ```bash
-npx cdk destroy --context stage=old-stage
+docker compose run --rm infra npx cdk destroy
 ```
 
 ### よくあるエラー
@@ -727,7 +749,3 @@ message = 'Hello, world!'
 - [API リファレンス](api-reference.md) - GraphQL API の完全リファレンス
 - [README.md](../README.md) - プロジェクト概要
 
----
-
-**Last Updated**: 2026-01-01
-**Phase**: 3 - Documentation Consolidation
