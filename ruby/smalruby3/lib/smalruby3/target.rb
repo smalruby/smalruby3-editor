@@ -13,7 +13,15 @@ module Smalruby3
                 self.class.name&.split("::")&.last || "unnamed"
               end
       @visible = self.class.respond_to?(:_initial_visible) ? self.class._initial_visible : true
+      @say_text = nil
+      @think_text = nil
+      @effects = {}
+      @volume = 100
+      @sounds = []
+      @monitors = {}
     end
+
+    # --- IO Accessors ---
 
     def keyboard
       @runtime.keyboard
@@ -35,6 +43,22 @@ module Smalruby3
       @runtime.stage
     end
 
+    def answer
+      @runtime.answer
+    end
+
+    # --- Events ---
+
+    def broadcast(message)
+      @runtime.broadcast(message)
+    end
+
+    def broadcast_and_wait(message)
+      @runtime.broadcast_and_wait(message)
+    end
+
+    # --- Control ---
+
     def stop(target)
       case target
       when "all"
@@ -43,14 +67,135 @@ module Smalruby3
       when "this script"
         raise StopThisScript
       when "other scripts in sprite"
-        current_fiber = Fiber.current
-        @runtime.sequencer.stop_target_scripts(self, except: current_fiber)
+        @runtime.sequencer.stop_target_scripts(self)
       end
     end
 
     def sleep(seconds)
       frames = (seconds.to_f * Runtime::FPS).ceil
       frames.times { Fiber.yield }
+    end
+
+    # --- Looks ---
+
+    def say(message, seconds = nil)
+      @say_text = message.to_s
+      @think_text = nil
+      if seconds
+        sleep(seconds)
+        @say_text = nil
+      end
+    end
+
+    def think(message, seconds = nil)
+      @think_text = message.to_s
+      @say_text = nil
+      if seconds
+        sleep(seconds)
+        @think_text = nil
+      end
+    end
+
+    attr_reader :say_text, :think_text
+
+    def set_effect(effect, value)
+      @effects[effect] = value
+    end
+
+    def change_effect_by(effect, amount)
+      @effects[effect] = (@effects[effect] || 0) + amount
+    end
+
+    def clear_graphic_effects
+      @effects.clear
+    end
+
+    attr_reader :effects, :volume
+
+    def volume=(value)
+      @volume = [[value, 0].max, 100].min
+    end
+
+    # --- Sound ---
+
+    def play(sound_name)
+      sound = find_sound(sound_name)
+      @runtime.renderer&.play_sound(sound) if sound
+    end
+
+    def play_until_done(sound_name)
+      sound = find_sound(sound_name)
+      return unless sound
+      channel = @runtime.renderer&.play_sound(sound)
+      # Wait for sound to finish (simplified)
+      sleep(1) if channel
+    end
+
+    def stop_all_sounds
+      @runtime.renderer&.stop_all_sounds
+    end
+
+    def change_sound_effect_by(_effect, _amount)
+      # Stub — PITCH/PAN effects not yet implemented
+    end
+
+    def set_sound_effect(_effect, _value)
+      # Stub
+    end
+
+    def clear_sound_effects
+      # Stub
+    end
+
+    # --- Data ---
+
+    def list(name)
+      var = instance_variable_get(name.to_s.start_with?("@") ? name.to_sym : :"@#{name}")
+      var.is_a?(List) ? var : List.new
+    end
+
+    def show_variable(name)
+      @monitors[name] = :visible
+    end
+
+    def hide_variable(name)
+      @monitors[name] = :hidden
+    end
+
+    def show_list(name)
+      @monitors["list:#{name}"] = :visible
+    end
+
+    def hide_list(name)
+      @monitors["list:#{name}"] = :hidden
+    end
+
+    # --- Sensing ---
+
+    def ask(question)
+      say(question)
+      # Simplified: just set answer to empty string
+      # Full implementation would need SDL2 text input
+      @runtime.answer = ""
+      @say_text = nil
+    end
+
+    def loudness
+      0 # Not implemented
+    end
+
+    def user_name
+      ""
+    end
+
+    def days_since_2000
+      (Time.now - Time.new(2000, 1, 1)) / 86400.0
+    end
+
+    private
+
+    def find_sound(name)
+      @sounds.find { |s| s.name == name }
     end
   end
 end
