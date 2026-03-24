@@ -1,6 +1,7 @@
 /**
  * Mesh v2 Client Application Logic
  * Handles UI interactions and state management
+ * Supports both WebSocket and Polling protocols
  */
 
 import { MeshClient, RateLimiter, ChangeDetector } from './mesh-client.bundle.js';
@@ -15,8 +16,13 @@ const state = {
   sessionStartTime: null,
   sessionTimerId: null,
   heartbeatTimerId: null,
-  heartbeatIntervalSeconds: 60, // Default 60 seconds
+  heartbeatIntervalSeconds: 15, // Default fallback (stg value)
   messageSubscriptionId: null,
+  // Polling protocol state
+  pollingTimerId: null,
+  pollingIntervalSeconds: 2, // Default fallback
+  pollingSince: null, // Cursor for getEventsSince
+  sensorPollingTimerId: null, // Polling timer for sensor data updates
   sensorData: {
     temperature: 20,
     brightness: 50,
@@ -125,43 +131,29 @@ function setupEventListeners() {
  * Setup sensor input listeners
  */
 function setupSensorListeners() {
-  // Temperature
-  const tempSlider = document.getElementById('temperature');
-  const tempValue = document.getElementById('tempValue');
-  tempSlider.addEventListener('input', (e) => {
-    tempValue.textContent = e.target.value;
-    state.sensorData.temperature = parseInt(e.target.value);
-    handleSensorChange('temperature', state.sensorData.temperature);
-  });
+  const sensors = [
+    { id: 'temperature', valueId: 'tempValue', key: 'temperature' },
+    { id: 'brightness', valueId: 'brightnessValue', key: 'brightness' },
+    { id: 'distance', valueId: 'distanceValue', key: 'distance' }
+  ];
 
-  // Brightness
-  const brightnessSlider = document.getElementById('brightness');
-  const brightnessValue = document.getElementById('brightnessValue');
-  brightnessSlider.addEventListener('input', (e) => {
-    brightnessValue.textContent = e.target.value;
-    state.sensorData.brightness = parseInt(e.target.value);
-    handleSensorChange('brightness', state.sensorData.brightness);
-  });
-
-  // Distance
-  const distanceSlider = document.getElementById('distance');
-  const distanceValue = document.getElementById('distanceValue');
-  distanceSlider.addEventListener('input', (e) => {
-    distanceValue.textContent = e.target.value;
-    state.sensorData.distance = parseInt(e.target.value);
-    handleSensorChange('distance', state.sensorData.distance);
+  sensors.forEach(({ id, valueId, key }) => {
+    const slider = document.getElementById(id);
+    const display = document.getElementById(valueId);
+    slider.addEventListener('input', (e) => {
+      display.textContent = e.target.value;
+      state.sensorData[key] = parseInt(e.target.value);
+      handleSensorChange(key, state.sensorData[key]);
+    });
   });
 }
 
 /**
  * Check if the error indicates the group/node is no longer valid
- * @param {Error} error - The error to check
- * @returns {boolean} true if should disconnect
  */
 function shouldDisconnectOnError(error) {
   if (!error) return false;
 
-  // Check GraphQL errorType if available
   if (error.graphQLErrors && error.graphQLErrors.length > 0) {
     const errorType = error.graphQLErrors[0].errorType;
     if (['GroupNotFound', 'Unauthorized', 'NodeNotFound'].includes(errorType)) {
@@ -169,15 +161,21 @@ function shouldDisconnectOnError(error) {
     }
   }
 
-  // Fallback: check message string
   if (error.message) {
     const message = error.message.toLowerCase();
-    return message.includes('not found') || 
-           message.includes('expired') || 
+    return message.includes('not found') ||
+           message.includes('expired') ||
            message.includes('unauthorized');
   }
 
   return false;
+}
+
+/**
+ * Whether the current group uses WebSocket protocol
+ */
+function isWebSocketMode() {
+  return state.currentGroup && state.currentGroup.useWebSocket !== false;
 }
 
 /**
@@ -194,17 +192,14 @@ async function handleConnect() {
   }
 
   try {
-    // Save configuration
     saveConfiguration(endpoint, apiKey);
 
-    // Create client
     state.client = new MeshClient({
       endpoint,
       apiKey,
       domain: domain || null
     });
 
-    // Generate node ID
     state.currentNodeId = 'node-' + Math.random().toString(36).substr(2, 9);
 
     let actualDomain = domain;
@@ -214,20 +209,16 @@ async function handleConnect() {
       document.getElementById('domain').value = actualDomain;
     }
 
-    // Mark as connected
     state.connected = true;
     state.sessionStartTime = Date.now();
 
-    // Start session timer
     startSessionTimer();
 
-    // Update UI
     updateUI();
     document.getElementById('currentDomain').textContent = actualDomain;
     document.getElementById('currentNodeId').textContent = state.currentNodeId;
 
     showSuccess('configError', 'Connected to Mesh v2!');
-
     console.log('Connected:', { endpoint, domain: actualDomain, nodeId: state.currentNodeId });
   } catch (error) {
     showError('configError', 'Connection failed: ' + error.message);
@@ -241,6 +232,7 @@ async function handleConnect() {
 async function handleCreateGroup() {
   const groupName = document.getElementById('groupName').value.trim();
   const domain = document.getElementById('domain').value.trim();
+  const useWebSocket = document.getElementById('protocolWebSocket').checked;
 
   if (!groupName) {
     showError('groupError', 'Please enter a group name');
@@ -251,19 +243,21 @@ async function handleCreateGroup() {
     const group = await state.client.createGroup(
       groupName,
       state.currentNodeId,
-      domain || null
+      domain || null,
+      useWebSocket
     );
 
     console.log('Group created:', group);
 
-    // Join the created group automatically
     state.currentGroup = group;
     if (group.heartbeatIntervalSeconds) {
       state.heartbeatIntervalSeconds = group.heartbeatIntervalSeconds;
     }
+    if (group.pollingIntervalSeconds) {
+      state.pollingIntervalSeconds = group.pollingIntervalSeconds;
+    }
 
     // Initialize sensor data for this node
-    // This immediately shares current sensor state with other group members
     const initialData = [
       { key: 'temperature', value: state.sensorData.temperature.toString() },
       { key: 'brightness', value: state.sensorData.brightness.toString() },
@@ -277,29 +271,129 @@ async function handleCreateGroup() {
       initialData
     );
 
-    // Subscribe to all group messages via unified subscription
-    state.messageSubscriptionId = state.client.subscribeToMessageInGroup(
-      state.currentGroup.id,
-      state.currentGroup.domain,
-      {
-        onDataUpdate: displayOtherNodesData,
-        onBatchEvent: handleBatchEventReceived,
-        onGroupDissolve: handleGroupDissolved
-      }
-    );
+    // Start communication based on protocol
+    if (isWebSocketMode()) {
+      startWebSocketMode();
+    } else {
+      startPollingMode();
+    }
 
-    // Start heartbeat for host
     startHeartbeat();
 
-    showSuccess('groupSuccess', `Group created: ${group.fullId}`);
+    showSuccess('groupSuccess', `Group created: ${group.fullId} (${isWebSocketMode() ? 'WebSocket' : 'Polling'})`);
     updateCurrentGroupUI();
 
-    // Refresh group list
     await handleListGroups();
   } catch (error) {
     showError('groupError', 'Failed to create group: ' + error.message);
     console.error('Create group error:', error);
   }
+}
+
+/**
+ * Start WebSocket mode (subscription-based)
+ */
+function startWebSocketMode() {
+  state.messageSubscriptionId = state.client.subscribeToMessageInGroup(
+    state.currentGroup.id,
+    state.currentGroup.domain,
+    {
+      onDataUpdate: displayOtherNodesData,
+      onBatchEvent: handleBatchEventReceived,
+      onGroupDissolve: handleGroupDissolved
+    }
+  );
+  console.log('WebSocket mode started');
+}
+
+/**
+ * Start Polling mode (getEventsSince + listGroupStatuses polling)
+ */
+function startPollingMode() {
+  state.pollingSince = new Date().toISOString();
+
+  const intervalMs = state.pollingIntervalSeconds * 1000;
+
+  // Poll for events
+  state.pollingTimerId = setInterval(async () => {
+    if (!state.currentGroup || !state.connected) {
+      stopPolling();
+      return;
+    }
+
+    try {
+      const events = await state.client.getEventsSince(
+        state.currentGroup.id,
+        state.currentGroup.domain,
+        state.pollingSince
+      );
+
+      if (events && events.length > 0) {
+        const lastEvent = events[events.length - 1];
+        if (lastEvent.cursor) {
+          state.pollingSince = lastEvent.cursor;
+        }
+
+        events.forEach(event => addEventToHistory(event));
+
+        const nodeIds = [...new Set(events.map(e => e.firedByNodeId))];
+        showSuccess('eventSuccess', `Polled ${events.length} events from ${nodeIds.join(', ')}`);
+      }
+
+      document.getElementById('lastPollTime').textContent = new Date().toLocaleTimeString();
+    } catch (error) {
+      console.error('Polling error:', error);
+      if (shouldDisconnectOnError(error)) {
+        handleGroupDissolved({ message: 'Connection lost (polling)' });
+      }
+    }
+  }, intervalMs);
+
+  // Also poll for sensor data updates
+  state.sensorPollingTimerId = setInterval(async () => {
+    if (!state.currentGroup || !state.connected) return;
+
+    try {
+      const statuses = await state.client.listGroupStatuses(
+        state.currentGroup.id,
+        state.currentGroup.domain
+      );
+      displayOtherNodesData(statuses);
+    } catch (error) {
+      console.error('Sensor polling error:', error);
+      if (shouldDisconnectOnError(error)) {
+        handleGroupDissolved({ message: 'Connection lost (polling)' });
+      }
+    }
+  }, intervalMs);
+
+  console.log(`Polling mode started (interval: ${state.pollingIntervalSeconds}s)`);
+}
+
+/**
+ * Stop polling timers
+ */
+function stopPolling() {
+  if (state.pollingTimerId) {
+    clearInterval(state.pollingTimerId);
+    state.pollingTimerId = null;
+  }
+  if (state.sensorPollingTimerId) {
+    clearInterval(state.sensorPollingTimerId);
+    state.sensorPollingTimerId = null;
+  }
+  state.pollingSince = null;
+}
+
+/**
+ * Stop all communication (subscription + polling)
+ */
+function stopCommunication() {
+  if (state.messageSubscriptionId) {
+    state.client.unsubscribe(state.messageSubscriptionId);
+    state.messageSubscriptionId = null;
+  }
+  stopPolling();
 }
 
 /**
@@ -310,9 +404,7 @@ async function handleListGroups() {
 
   try {
     const groups = await state.client.listGroupsByDomain(domain || null);
-
     console.log('Groups:', groups);
-
     displayGroupList(groups);
   } catch (error) {
     showError('groupError', 'Failed to list groups: ' + error.message);
@@ -337,22 +429,29 @@ function displayGroupList(groups) {
          data-group-name="${group.name}"
          data-group-domain="${group.domain}"
          data-host-id="${group.hostId}"
-         data-expires-at="${group.expiresAt || ''}">
-      <strong>${group.name}</strong><br>
+         data-expires-at="${group.expiresAt || ''}"
+         data-use-websocket="${group.useWebSocket}"
+         data-polling-interval="${group.pollingIntervalSeconds || ''}">
+      <strong>${group.name}</strong>
+      <span class="status ${group.useWebSocket ? 'connected' : 'member'}" style="float: right; font-size: 11px;">
+        ${group.useWebSocket ? 'WS' : 'Poll'}
+      </span><br>
       <small>ID: ${group.id} | Host: ${group.hostId}</small>
       ${group.expiresAt ? `<br><small style="color: #666;">Expires: ${new Date(group.expiresAt).toLocaleTimeString()}</small>` : ''}
     </div>
   `).join('');
 
-  // Add click listeners to all group items
   groupList.querySelectorAll('.group-item').forEach(item => {
     item.addEventListener('click', () => {
-      const groupId = item.dataset.groupId;
-      const groupName = item.dataset.groupName;
-      const domain = item.dataset.groupDomain;
-      const hostId = item.dataset.hostId;
-      const expiresAt = item.dataset.expiresAt;
-      selectGroup(groupId, groupName, domain, hostId, expiresAt);
+      selectGroup(
+        item.dataset.groupId,
+        item.dataset.groupName,
+        item.dataset.groupDomain,
+        item.dataset.hostId,
+        item.dataset.expiresAt,
+        item.dataset.useWebsocket === 'true',
+        parseInt(item.dataset.pollingInterval) || null
+      );
     });
   });
 }
@@ -360,22 +459,15 @@ function displayGroupList(groups) {
 /**
  * Select a group from the list
  */
-function selectGroup(groupId, groupName, domain, hostId, expiresAt) {
+function selectGroup(groupId, groupName, domain, hostId, expiresAt, useWebSocket, pollingIntervalSeconds) {
   state.selectedGroupId = groupId;
-  state.selectedGroup = { id: groupId, name: groupName, domain, hostId, expiresAt };
+  state.selectedGroup = { id: groupId, name: groupName, domain, hostId, expiresAt, useWebSocket, pollingIntervalSeconds };
 
-  // Update UI - remove selected from all, add to clicked item
   document.querySelectorAll('.group-item').forEach(item => {
-    if (item.dataset.groupId === groupId) {
-      item.classList.add('selected');
-    } else {
-      item.classList.remove('selected');
-    }
+    item.classList.toggle('selected', item.dataset.groupId === groupId);
   });
 
   console.log('Selected group:', state.selectedGroup);
-
-  // Update button states
   updateUI();
 }
 
@@ -397,22 +489,25 @@ async function handleJoinGroup() {
 
     console.log('Joined group:', result);
 
-    // Use selected group info and join result (expiresAt) to set current group
     state.currentGroup = {
       id: state.selectedGroup.id,
       name: state.selectedGroup.name,
       domain: state.selectedGroup.domain,
       hostId: state.selectedGroup.hostId,
       fullId: `${state.selectedGroup.id}@${state.selectedGroup.domain}`,
-      expiresAt: result.expiresAt
+      expiresAt: result.expiresAt,
+      useWebSocket: result.useWebSocket !== undefined ? result.useWebSocket : state.selectedGroup.useWebSocket,
+      pollingIntervalSeconds: result.pollingIntervalSeconds || state.selectedGroup.pollingIntervalSeconds
     };
 
     if (result.heartbeatIntervalSeconds) {
       state.heartbeatIntervalSeconds = result.heartbeatIntervalSeconds;
     }
+    if (state.currentGroup.pollingIntervalSeconds) {
+      state.pollingIntervalSeconds = state.currentGroup.pollingIntervalSeconds;
+    }
 
-    // Initialize sensor data for this node
-    // This immediately shares current sensor state with other group members
+    // Initialize sensor data
     const initialData = [
       { key: 'temperature', value: state.sensorData.temperature.toString() },
       { key: 'brightness', value: state.sensorData.brightness.toString() },
@@ -426,22 +521,16 @@ async function handleJoinGroup() {
       initialData
     );
 
-    // Subscribe to all group messages via unified subscription
-    state.messageSubscriptionId = state.client.subscribeToMessageInGroup(
-      state.currentGroup.id,
-      state.currentGroup.domain,
-      {
-        onDataUpdate: displayOtherNodesData,
-        onBatchEvent: handleBatchEventReceived,
-        onGroupDissolve: handleGroupDissolved
-      }
-    );
+    if (isWebSocketMode()) {
+      startWebSocketMode();
+    } else {
+      startPollingMode();
+    }
 
-    // Stop heartbeat if it was running (e.g. from a previously created group)
     stopHeartbeat();
     startHeartbeat();
 
-    showSuccess('groupSuccess', `Joined group: ${state.selectedGroup.name}`);
+    showSuccess('groupSuccess', `Joined group: ${state.selectedGroup.name} (${isWebSocketMode() ? 'WebSocket' : 'Polling'})`);
     updateCurrentGroupUI();
   } catch (error) {
     showError('groupError', 'Failed to join group: ' + error.message);
@@ -459,32 +548,21 @@ async function handleLeaveGroup() {
   }
 
   try {
-    const result = await state.client.leaveGroup(
+    await state.client.leaveGroup(
       state.currentGroup.id,
       state.currentNodeId,
       state.currentGroup.domain
     );
 
-    console.log('Left group:', result);
-
-    // Unsubscribe from all group messages
-    if (state.messageSubscriptionId) {
-      state.client.unsubscribe(state.messageSubscriptionId);
-      state.messageSubscriptionId = null;
-    }
-
+    stopCommunication();
     stopHeartbeat();
 
     state.currentGroup = null;
     state.selectedGroupId = null;
-
-    // Clear other nodes display
     displayOtherNodesData(null);
 
     showSuccess('groupSuccess', 'Left group successfully');
     updateCurrentGroupUI();
-
-    // Refresh group list
     await handleListGroups();
   } catch (error) {
     showError('groupError', 'Failed to leave group: ' + error.message);
@@ -501,7 +579,6 @@ async function handleDissolveGroup() {
     return;
   }
 
-  // Check if current node is host
   const isHost = state.currentGroup.hostId === state.currentNodeId;
   if (!isHost) {
     showError('groupError', 'Only the host can dissolve the group');
@@ -519,26 +596,15 @@ async function handleDissolveGroup() {
       state.currentGroup.domain
     );
 
-    console.log('Group dissolved');
-
-    // Unsubscribe from all group messages
-    if (state.messageSubscriptionId) {
-      state.client.unsubscribe(state.messageSubscriptionId);
-      state.messageSubscriptionId = null;
-    }
-
+    stopCommunication();
     stopHeartbeat();
 
     state.currentGroup = null;
     state.selectedGroupId = null;
-
-    // Clear other nodes display
     displayOtherNodesData(null);
 
     showSuccess('groupSuccess', 'Group dissolved successfully');
     updateCurrentGroupUI();
-
-    // Refresh group list
     await handleListGroups();
   } catch (error) {
     showError('groupError', 'Failed to dissolve group: ' + error.message);
@@ -548,77 +614,45 @@ async function handleDissolveGroup() {
 
 /**
  * Handle disconnect
- * Disconnects from the mesh network and cleans up subscriptions
  */
 async function handleDisconnect() {
-  if (!state.connected) {
-    return;
-  }
+  if (!state.connected) return;
 
-  if (!confirm('Are you sure you want to disconnect? You will leave the current group.')) {
-    return;
-  }
+  if (!confirm('Are you sure you want to disconnect? You will leave the current group.')) return;
 
   try {
-    // Check if current node is host
     const isHost = state.currentGroup && state.currentGroup.hostId === state.currentNodeId;
 
     if (isHost) {
-      // Host: dissolve the group
-      await state.client.dissolveGroup(
-        state.currentGroup.id,
-        state.currentNodeId,
-        state.currentGroup.domain
-      );
-      console.log('Group dissolved by disconnect');
+      await state.client.dissolveGroup(state.currentGroup.id, state.currentNodeId, state.currentGroup.domain);
     } else if (state.currentGroup) {
-      // Member: leave the group
-      await state.client.leaveGroup(
-        state.currentGroup.id,
-        state.currentNodeId,
-        state.currentGroup.domain
-      );
-      console.log('Left group by disconnect');
+      await state.client.leaveGroup(state.currentGroup.id, state.currentNodeId, state.currentGroup.domain);
     }
 
-    // Unsubscribe from all group messages
-    if (state.messageSubscriptionId) {
-      state.client.unsubscribe(state.messageSubscriptionId);
-      state.messageSubscriptionId = null;
-    }
-
-    // Stop session timer
+    stopCommunication();
     if (state.sessionTimerId) {
       clearInterval(state.sessionTimerId);
       state.sessionTimerId = null;
     }
-
     stopHeartbeat();
 
-    // Clear state
     state.currentGroup = null;
     state.selectedGroupId = null;
     state.connected = false;
     state.currentNodeId = null;
-    state.currentDomain = null;
     state.sessionStartTime = null;
 
-    // Reset session timer display
     const timerEl = document.getElementById('sessionTimer');
     timerEl.textContent = 'Session: --:--';
     timerEl.classList.remove('warning');
 
-    // Clear other nodes display
     displayOtherNodesData(null);
-
-    // Clear group list
     document.getElementById('groupList').innerHTML =
       '<p style="color: #999; text-align: center;">No groups available</p>';
 
     showSuccess('groupSuccess', 'Disconnected successfully');
     updateCurrentGroupUI();
     updateUI();
-
   } catch (error) {
     showError('groupError', 'Failed to disconnect: ' + error.message);
     console.error('Disconnect error:', error);
@@ -633,18 +667,24 @@ function updateCurrentGroupUI() {
 
   if (!state.currentGroup) {
     currentGroupInfo.innerHTML = '<p><strong>Status:</strong> Not in a group</p>';
+    document.getElementById('pollingStatus').style.display = 'none';
     updateUI();
     return;
   }
 
   const isHost = state.currentGroup.hostId === state.currentNodeId;
+  const protocol = isWebSocketMode() ? 'WebSocket' : 'Polling';
 
   currentGroupInfo.innerHTML = `
     <p><strong>Group:</strong> ${state.currentGroup.name}</p>
     <p><strong>Full ID:</strong> ${state.currentGroup.fullId || state.currentGroup.id}</p>
     <p><strong>Role:</strong> <span class="status ${isHost ? 'host' : 'member'}">${isHost ? 'Host' : 'Member'}</span></p>
+    <p><strong>Protocol:</strong> <span class="status ${isWebSocketMode() ? 'connected' : 'member'}">${protocol}</span></p>
+    ${!isWebSocketMode() ? `<p><strong>Polling Interval:</strong> ${state.pollingIntervalSeconds}s</p>` : ''}
     ${state.currentGroup.expiresAt ? `<p><strong>Expires At:</strong> ${new Date(state.currentGroup.expiresAt).toLocaleString()}</p>` : ''}
   `;
+
+  document.getElementById('pollingStatus').style.display = isWebSocketMode() ? 'none' : 'block';
 
   updateUI();
 }
@@ -653,41 +693,24 @@ function updateCurrentGroupUI() {
  * Handle sensor change
  */
 async function handleSensorChange(sensorName, value) {
-  if (!state.connected || !state.currentGroup) {
-    return;
-  }
-
-  // Check if value actually changed
-  if (!sensorChangeDetector.hasChanged(sensorName, value)) {
-    return;
-  }
-
-  // Check rate limit
+  if (!state.connected || !state.currentGroup) return;
+  if (!sensorChangeDetector.hasChanged(sensorName, value)) return;
   if (!sensorRateLimiter.canMakeCall()) {
     console.warn('Sensor data rate limit exceeded');
     return;
   }
 
   try {
-    // Send sensor data
-    const data = [
-      { key: sensorName, value: value.toString() }
-    ];
-
     await state.client.reportDataByNode(
       state.currentNodeId,
       state.currentGroup.id,
       state.currentGroup.domain,
-      data
+      [{ key: sensorName, value: value.toString() }]
     );
-
     console.log('Sensor data sent:', { sensorName, value });
-
-    // Update rate status
     updateRateStatus();
   } catch (error) {
     showError('sensorError', 'Failed to send sensor data: ' + error.message);
-    console.error('Sensor data error:', error);
     if (shouldDisconnectOnError(error)) {
       handleGroupDissolved({ message: 'Connection lost' });
     }
@@ -711,7 +734,6 @@ async function handleSendEvent() {
     return;
   }
 
-  // Check rate limit
   if (!eventRateLimiter.canMakeCall()) {
     showError('eventError', 'Event rate limit exceeded (2 per second)');
     return;
@@ -722,46 +744,38 @@ async function handleSendEvent() {
   ];
 
   try {
-    const result = await state.client.fireEventsByNode(
-      state.currentNodeId,
-      state.currentGroup.id,
-      state.currentGroup.domain,
-      events
-    );
+    if (isWebSocketMode()) {
+      await state.client.fireEventsByNode(
+        state.currentNodeId, state.currentGroup.id, state.currentGroup.domain, events
+      );
+    } else {
+      const result = await state.client.recordEventsByNode(
+        state.currentNodeId, state.currentGroup.id, state.currentGroup.domain, events
+      );
+      if (result.nextSince) {
+        state.pollingSince = result.nextSince;
+      }
+    }
 
-    console.log('Event sent:', result);
-    showSuccess('eventSuccess', `Sent event: ${name}`);
-    
-    // Clear inputs
+    showSuccess('eventSuccess', `Sent event: ${name} (${isWebSocketMode() ? 'WS' : 'Poll'})`);
     document.getElementById('eventName').value = '';
     document.getElementById('eventPayload').value = '';
   } catch (error) {
-    console.error('Failed to send event:', error);
     showError('eventError', `Failed to send event: ${error.message}`);
-    
     if (shouldDisconnectOnError(error)) {
       handleGroupDissolved({ message: 'Connection lost' });
     }
   }
 }
 
-/**
- * Add event to history
- */
 function addEventToHistory(event) {
   state.eventHistory.unshift(event);
-
-  // Keep only last 20 events
   if (state.eventHistory.length > 20) {
     state.eventHistory = state.eventHistory.slice(0, 20);
   }
-
   displayEventHistory();
 }
 
-/**
- * Display event history
- */
 function displayEventHistory() {
   const eventHistory = document.getElementById('eventHistory');
 
@@ -780,58 +794,32 @@ function displayEventHistory() {
   `).join('');
 }
 
-/**
- * Handle clear events
- */
 function handleClearEvents() {
   state.eventHistory = [];
   displayEventHistory();
 }
 
-/**
- * Handle batch event received from subscription
- */
 function handleBatchEventReceived(batchEvent) {
-  console.log('Batch event received from subscription:', batchEvent);
-
   if (!batchEvent || !batchEvent.events) return;
-
-  // Add each event to history
-  batchEvent.events.forEach(event => {
-    addEventToHistory(event);
-  });
-
+  batchEvent.events.forEach(event => addEventToHistory(event));
   showSuccess('eventSuccess', `Received batch of ${batchEvent.events.length} events from ${batchEvent.firedByNodeId}`);
 }
 
-/**
- * Handle group dissolution notification
- */
 function handleGroupDissolved(dissolveData) {
   console.log('Group has been dissolved:', dissolveData);
 
-  // Unsubscribe from all group messages
-  if (state.messageSubscriptionId) {
-    state.client.unsubscribe(state.messageSubscriptionId);
-    state.messageSubscriptionId = null;
-  }
-
+  stopCommunication();
   stopHeartbeat();
-  
-      // Clear group state
-      state.currentGroup = null;
-      state.selectedGroupId = null;
-    // Clear UI
+
+  state.currentGroup = null;
+  state.selectedGroupId = null;
+
   displayOtherNodesData(null);
   updateCurrentGroupUI();
 
-  // Show notification
   showError('groupError', `Group has been dissolved: ${dissolveData.message}`);
 }
 
-/**
- * Display other nodes' sensor data
- */
 function displayOtherNodesData(statuses) {
   const otherNodesData = document.getElementById('otherNodesData');
 
@@ -840,7 +828,6 @@ function displayOtherNodesData(statuses) {
     return;
   }
 
-  // Filter out current node
   const otherNodes = statuses.filter(status => status.nodeId !== state.currentNodeId);
 
   if (otherNodes.length === 0) {
@@ -861,22 +848,13 @@ function displayOtherNodesData(statuses) {
   `).join('');
 }
 
-/**
- * Update rate limit status displays
- */
 function updateRateStatus() {
   document.getElementById('sensorRateStatus').textContent =
     `${sensorRateLimiter.getCallCount()}/4 per second`;
 }
 
-/**
- * Start heartbeat timer
- * Renews the group heartbeat periodically using server-provided interval
- */
 function startHeartbeat() {
-  if (state.heartbeatTimerId) {
-    clearInterval(state.heartbeatTimerId);
-  }
+  if (state.heartbeatTimerId) clearInterval(state.heartbeatTimerId);
 
   console.log(`Starting heartbeat timer (${state.heartbeatIntervalSeconds}s)...`);
   document.getElementById('heartbeatStatus').style.display = 'block';
@@ -890,35 +868,20 @@ function startHeartbeat() {
     const isHost = state.currentGroup.hostId === state.currentNodeId;
 
     try {
-      let result;
-      if (isHost) {
-        result = await state.client.renewHeartbeat(
-          state.currentGroup.id,
-          state.currentNodeId,
-          state.currentGroup.domain
-        );
-        console.log('Host heartbeat renewed, expires at:', result.expiresAt);
-      } else {
-        result = await state.client.sendMemberHeartbeat(
-          state.currentGroup.id,
-          state.currentNodeId,
-          state.currentGroup.domain
-        );
-        console.log('Member heartbeat sent, expires at:', result.expiresAt);
-      }
+      const result = isHost
+        ? await state.client.renewHeartbeat(state.currentGroup.id, state.currentNodeId, state.currentGroup.domain)
+        : await state.client.sendMemberHeartbeat(state.currentGroup.id, state.currentNodeId, state.currentGroup.domain);
 
       document.getElementById('lastHeartbeatTime').textContent = new Date().toLocaleTimeString();
 
-      // Update session timer with new expiration if possible
       if (result.expiresAt) {
         state.currentGroup.expiresAt = result.expiresAt;
       }
 
-      // Check if interval has changed
       if (result.heartbeatIntervalSeconds && result.heartbeatIntervalSeconds !== state.heartbeatIntervalSeconds) {
         console.log(`Heartbeat interval changed: ${state.heartbeatIntervalSeconds}s -> ${result.heartbeatIntervalSeconds}s`);
         state.heartbeatIntervalSeconds = result.heartbeatIntervalSeconds;
-        startHeartbeat(); // Restart with new interval
+        startHeartbeat();
       }
     } catch (error) {
       console.error('Heartbeat failed:', error);
@@ -929,40 +892,25 @@ function startHeartbeat() {
   }, state.heartbeatIntervalSeconds * 1000);
 }
 
-/**
- * Stop heartbeat timer
- */
 function stopHeartbeat() {
   if (state.heartbeatTimerId) {
-    console.log('Stopping heartbeat timer');
     clearInterval(state.heartbeatTimerId);
     state.heartbeatTimerId = null;
     document.getElementById('heartbeatStatus').style.display = 'none';
   }
 }
 
-/**
- * Start session timer
- * If in a group, uses expiresAt from the group.
- * Otherwise uses a default 10 minute limit from connection.
- */
 function startSessionTimer() {
-  // Prevent multiple timers
-  if (state.sessionTimerId) {
-    clearInterval(state.sessionTimerId);
-  }
+  if (state.sessionTimerId) clearInterval(state.sessionTimerId);
 
   state.sessionTimerId = setInterval(() => {
     let remaining;
 
     if (state.currentGroup && state.currentGroup.expiresAt) {
-      // Use expiration from group (ISO string)
-      const expiresAt = new Date(state.currentGroup.expiresAt).getTime();
-      remaining = expiresAt - Date.now();
+      remaining = new Date(state.currentGroup.expiresAt).getTime() - Date.now();
     } else if (state.sessionStartTime) {
-      // Fallback to connection-based timer
-      const elapsed = Date.now() - state.sessionStartTime;
-      remaining = (10 * 60 * 1000) - elapsed;
+      // Fallback: 35 minutes (matches prod MESH_MAX_CONNECTION_TIME_SECONDS=2100)
+      remaining = (35 * 60 * 1000) - (Date.now() - state.sessionStartTime);
     } else {
       return;
     }
@@ -977,118 +925,67 @@ function startSessionTimer() {
 
     const timerEl = document.getElementById('sessionTimer');
     timerEl.textContent = `Session: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-    // Warning at 5 minutes remaining
-    if (remaining <= 5 * 60 * 1000) {
-      timerEl.classList.add('warning');
-    } else {
-      timerEl.classList.remove('warning');
-    }
+    timerEl.classList.toggle('warning', remaining <= 5 * 60 * 1000);
   }, 1000);
 }
 
-/**
- * Handle session timeout
- */
 function handleSessionTimeout() {
   alert('Session timeout. Please reconnect.');
 
-  // Dissolve group if host, otherwise just clear state
   if (state.currentGroup) {
     const isHost = state.currentGroup.hostId === state.currentNodeId;
     if (isHost) {
-      // Try to dissolve group before timeout
       handleDissolveGroup().catch(console.error);
     } else {
-      // Member: just clear local state
       state.currentGroup = null;
     }
   }
 
-  // Stop heartbeat
   stopHeartbeat();
+  stopCommunication();
 
-  // Disconnect
-  if (state.client) {
-    state.client.disconnect();
-  }
+  if (state.client) state.client.disconnect();
 
   state.connected = false;
   state.sessionStartTime = null;
-
   updateUI();
 }
 
-/**
- * Update UI based on state
- */
 function updateUI() {
   const connected = state.connected;
-  const inGroup = state.connected && state.currentGroup;
+  const inGroup = connected && state.currentGroup;
 
-  // Connection status
   const statusEl = document.getElementById('connectionStatus');
-  if (connected) {
-    statusEl.textContent = 'Connected';
-    statusEl.className = 'status connected';
-  } else {
-    statusEl.textContent = 'Disconnected';
-    statusEl.className = 'status disconnected';
-  }
+  statusEl.textContent = connected ? 'Connected' : 'Disconnected';
+  statusEl.className = `status ${connected ? 'connected' : 'disconnected'}`;
 
-  // Show/hide disconnect button
-  const disconnectBtn = document.getElementById('disconnectBtn');
-  if (connected) {
-    disconnectBtn.style.display = 'block';
-  } else {
-    disconnectBtn.style.display = 'none';
-  }
+  document.getElementById('disconnectBtn').style.display = connected ? 'block' : 'none';
 
-  // Enable/disable buttons
   document.getElementById('createGroupBtn').disabled = !connected;
   document.getElementById('listGroupsBtn').disabled = !connected;
   document.getElementById('joinGroupBtn').disabled = !connected || !state.selectedGroupId;
 
-  // Dissolve button only enabled when user is host
-  const isHost = inGroup && state.currentGroup && state.currentGroup.hostId === state.currentNodeId;
+  const isHost = inGroup && state.currentGroup.hostId === state.currentNodeId;
   document.getElementById('dissolveGroupBtn').disabled = !isHost;
 
-  // Leave button shown when in group and not host
   const leaveBtn = document.getElementById('leaveGroupBtn');
-  if (inGroup && !isHost) {
-    leaveBtn.style.display = 'inline-block';
-  } else {
-    leaveBtn.style.display = 'none';
-  }
+  leaveBtn.style.display = (inGroup && !isHost) ? 'inline-block' : 'none';
 
   document.getElementById('sendEventBtn').disabled = !inGroup;
 
-  // Update rate status
   updateRateStatus();
 }
 
-/**
- * Show error message
- */
 function showError(elementId, message) {
   const el = document.getElementById(elementId);
   el.textContent = message;
   el.style.display = 'block';
-
-  setTimeout(() => {
-    el.style.display = 'none';
-  }, 5000);
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
 }
 
-/**
- * Show success message
- */
 function showSuccess(elementId, message) {
   const el = document.getElementById(elementId);
   el.textContent = message;
   el.style.display = 'block';
-
-  setTimeout(() => {
-    el.style.display = 'none';
-  }, 3000);
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
 }
