@@ -9,10 +9,11 @@ This prototype serves as a reference implementation for integrating Mesh v2 func
 - Domain-based group management (up to 256 characters)
 - Mandatory domain for all operations
 - Domain generation from source IP via `createDomain` mutation
+- **Dual protocol support**: WebSocket (real-time) and Polling (HTTPS-only fallback)
 - Real-time sensor data transmission with rate limiting
 - Event system with pub/sub capabilities
-- 10-minute session management
-- Pure JavaScript implementation (no TypeScript, no build tools)
+- Session management (up to 35 minutes, configurable per environment)
+- JavaScript with esbuild bundling (AWS Amplify for WebSocket subscriptions)
 
 **Related Issues:**
 - [smalruby/smalruby3-gui#453](https://github.com/smalruby/smalruby3-gui/issues/453) - Phase 3: Mesh v2 Frontend Extension
@@ -84,9 +85,14 @@ http://localhost:3000?mesh=custom-domain
 2. (Optional) Set custom domain
 3. Click "Connect to Mesh v2"
 4. Enter group name
-5. Click "Create Group"
+5. Select protocol: **WebSocket** (real-time) or **Polling** (HTTPS only)
+6. Click "Create Group"
 
 You automatically become the **host** of the created group.
+
+**Protocol Selection:**
+- **WebSocket (default)**: Uses AppSync Subscriptions for real-time event delivery. Requires `wss://` protocol support.
+- **Polling**: Uses `recordEventsByNode` + `getEventsSince` for HTTPS-only event delivery. Works behind strict firewalls that block WebSocket. Events are polled at the server-configured interval (stg: 1s, prod: 2s).
 
 #### List Groups
 - Click "Refresh Group List" to see all groups in your domain
@@ -101,7 +107,7 @@ You automatically become the **host** of the created group.
 - Click "Dissolve Group" to exit and dissolve the group (host only)
 - Only the group host can dissolve groups
 - Dissolving removes all members and deletes the group
-- **Group Dissolution Detection**: When a host dissolves a group, all member nodes automatically detect the dissolution via WebSocket subscription and are disconnected from the group
+- **Group Dissolution Detection**: When a host dissolves a group, all member nodes automatically detect the dissolution via WebSocket subscription (or polling) and are disconnected from the group
 
 ### 3. Sensor Data
 

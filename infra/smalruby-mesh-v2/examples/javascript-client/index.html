@@ -325,6 +325,20 @@
           <label for="groupName">Group Name</label>
           <input type="text" id="groupName" placeholder="Enter group name">
         </div>
+        <div class="form-group">
+          <label>Protocol</label>
+          <div style="display: flex; gap: 15px; margin-top: 5px;">
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+              <input type="radio" name="protocol" id="protocolWebSocket" value="websocket" checked>
+              WebSocket (real-time)
+            </label>
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+              <input type="radio" name="protocol" id="protocolPolling" value="polling">
+              Polling (HTTPS only)
+            </label>
+          </div>
+          <small style="color: #999;">Polling works behind strict firewalls that block WebSocket.</small>
+        </div>
         <button id="createGroupBtn" disabled>Create Group</button>
         <button id="listGroupsBtn" class="secondary" disabled>Refresh Group List</button>
 
@@ -345,6 +359,9 @@
         </div>
         <div id="heartbeatStatus" style="display: none; margin-top: 10px; font-size: 12px; color: #666;">
           <p><strong>Last Heartbeat:</strong> <span id="lastHeartbeatTime">-</span></p>
+        </div>
+        <div id="pollingStatus" style="display: none; margin-top: 10px; font-size: 12px; color: #666;">
+          <p><strong>Last Poll:</strong> <span id="lastPollTime">-</span></p>
         </div>
       </div>
 
