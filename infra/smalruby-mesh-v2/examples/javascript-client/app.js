@@ -433,8 +433,8 @@ function displayGroupList(groups) {
          data-use-websocket="${group.useWebSocket}"
          data-polling-interval="${group.pollingIntervalSeconds || ''}">
       <strong>${group.name}</strong>
-      <span class="status ${group.useWebSocket ? 'connected' : 'member'}" style="float: right; font-size: 11px;">
-        ${group.useWebSocket ? 'WS' : 'Poll'}
+      <span class="status ${group.useWebSocket !== false ? 'connected' : 'member'}" style="float: right; font-size: 11px;">
+        ${group.useWebSocket !== false ? 'WS' : 'Poll'}
       </span><br>
       <small>ID: ${group.id} | Host: ${group.hostId}</small>
       ${group.expiresAt ? `<br><small style="color: #666;">Expires: ${new Date(group.expiresAt).toLocaleTimeString()}</small>` : ''}

@@ -162,8 +162,6 @@ class MeshClient {
           hostId
           expiresAt
           heartbeatIntervalSeconds
-          useWebSocket
-          pollingIntervalSeconds
         }
       }
     `;
@@ -238,8 +236,6 @@ class MeshClient {
           domain
           expiresAt
           heartbeatIntervalSeconds
-          useWebSocket
-          pollingIntervalSeconds
         }
       }
     `;
