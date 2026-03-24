@@ -71,6 +71,16 @@ module Smalruby3
         center = SDL2::Point.new((cx * scale).to_i, (cy * scale).to_i)
         angle = sprite.direction - 90  # Scratch: 90=right=0deg in SDL
 
+        # Apply ghost effect via alpha modulation
+        effects = sprite.effects
+        if effects["ghost"] && effects["ghost"] != 0
+          ghost_val = EffectTransform.convert_effect("ghost", effects["ghost"])
+          texture.alpha_mod = (ghost_val * 255).round.clamp(0, 255)
+        else
+          texture.alpha_mod = 255
+        end
+
+        texture.blend_mode = SDL2::BlendMode::BLEND
         @sdl_renderer.copy_ex(texture, nil, dst, angle, center, SDL2::Renderer::FLIP_NONE)
       end
 

@@ -132,6 +132,14 @@ module Smalruby3
         ty = local_y / costume.height.to_f
 
         return nil if tx < 0 || tx > 1 || ty < 0 || ty > 1
+
+        # Apply shape-changing effects (fisheye, whirl, pixelate, mosaic)
+        effects = sprite.respond_to?(:effects) ? sprite.effects : {}
+        if EffectTransform.has_shape_effects?(effects)
+          tx, ty = EffectTransform.transform_point(effects, tx, ty, costume.width, costume.height)
+          return nil if tx < 0 || tx > 1 || ty < 0 || ty > 1
+        end
+
         [tx, ty]
       end
 
@@ -170,6 +178,11 @@ module Smalruby3
           tx, ty = world_to_texture(wx, wy, s)
           next unless tx
           color = sil.color_at(tx, ty)
+          # Apply color-changing effects
+          effects = s.respond_to?(:effects) ? s.effects : {}
+          if color[3] > 0 && EffectTransform.has_color_effects?(effects)
+            color = EffectTransform.transform_color(effects, *color)
+          end
           colors << color if color[3] > 0
         end
         ColorUtil.blend_colors(colors)
