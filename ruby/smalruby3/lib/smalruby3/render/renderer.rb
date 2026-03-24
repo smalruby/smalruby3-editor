@@ -18,6 +18,38 @@ module Smalruby3
         )
         @sdl_renderer = @window.create_renderer(-1, SDL2::Renderer::Flags::ACCELERATED)
         @textures = {}
+        @pen_skin = nil
+      end
+
+      def pen_skin
+        @pen_skin ||= PenSkin.new(@sdl_renderer, @width, @height)
+      end
+
+      def pen_draw_line(x1, y1, x2, y2, color, size)
+        pen_skin.draw_line(x1, y1, x2, y2, color, size)
+      end
+
+      def stamp_sprite(sprite)
+        costume = sprite.current_costume_obj
+        return unless costume
+        texture = get_texture(costume)
+        return unless texture
+
+        scale = sprite.size / 100.0
+        w = (costume.width * scale).to_i
+        h = (costume.height * scale).to_i
+        cx = costume.rotation_center_x || costume.width / 2
+        cy = costume.rotation_center_y || costume.height / 2
+        screen_x = (@width / 2 + sprite.x - cx * scale).to_i
+        screen_y = (@height / 2 - sprite.y - cy * scale).to_i
+        dst = SDL2::Rect.new(screen_x, screen_y, w, h)
+        center = SDL2::Point.new((cx * scale).to_i, (cy * scale).to_i)
+        angle = sprite.direction - 90
+        pen_skin.stamp(texture, dst, angle, center)
+      end
+
+      def remove_sprite(_sprite)
+        # Cleanup if needed
       end
 
       def poll_events
