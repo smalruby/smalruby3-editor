@@ -198,12 +198,15 @@ module Smalruby3
       end
     end
 
-    def touching_color?(_color)
-      false # Pixel-level — implemented in #376
+    def touching_color?(color)
+      rgb = Render::ColorUtil.hex_to_rgb(color)
+      Render::Collision.sprite_touching_color?(self, rgb, @runtime.sprites, @runtime.stage)
     end
 
-    def color_is_touching_color?(_color1, _color2)
-      false # Pixel-level — implemented in #376
+    def color_is_touching_color?(color1, color2)
+      mask_rgb = Render::ColorUtil.hex_to_rgb(color1)
+      target_rgb = Render::ColorUtil.hex_to_rgb(color2)
+      Render::Collision.color_touching_color?(self, mask_rgb, target_rgb, @runtime.sprites, @runtime.stage)
     end
 
     def distance(target)
@@ -288,30 +291,11 @@ module Smalruby3
     end
 
     def touching_point?(px, py)
-      costume = current_costume_obj
-      return false unless costume
-      scale = @size / 100.0
-      w = costume.width * scale / 2.0
-      h = costume.height * scale / 2.0
-      px >= @x - w && px <= @x + w && py >= @y - h && py <= @y + h
+      Render::Collision.point_touching_sprite?(px, py, self)
     end
 
     def touching_sprite?(other)
-      costume_a = current_costume_obj
-      costume_b = other.current_costume_obj
-      return false unless costume_a && costume_b
-
-      scale_a = @size / 100.0
-      wa = costume_a.width * scale_a / 2.0
-      ha = costume_a.height * scale_a / 2.0
-
-      scale_b = other.size / 100.0
-      wb = costume_b.width * scale_b / 2.0
-      hb = costume_b.height * scale_b / 2.0
-
-      # AABB intersection
-      !(@x + wa < other.x - wb || @x - wa > other.x + wb ||
-        @y + ha < other.y - hb || @y - ha > other.y + hb)
+      Render::Collision.sprites_touching?(self, other)
     end
   end
 end

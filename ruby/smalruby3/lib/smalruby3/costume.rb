@@ -10,6 +10,7 @@ module Smalruby3
       @rotation_center_x = rotation_center_x
       @rotation_center_y = rotation_center_y
       @surface = nil
+      @silhouette = nil
     end
 
     def surface
@@ -22,6 +23,13 @@ module Smalruby3
 
     def height
       surface&.h || 0
+    end
+
+    def silhouette
+      @silhouette ||= begin
+        s = surface
+        s ? Render::Silhouette.new(s) : nil
+      end
     end
 
     # Load costumes for a sprite from asset directories
