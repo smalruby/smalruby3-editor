@@ -4,8 +4,18 @@ module Smalruby3
   class Sprite < Target
     extend DSL::SpriteClassMethods
 
-    attr_accessor :x, :y, :direction, :size, :rotation_style
-    attr_reader :costumes
+    attr_reader :x, :y, :costumes
+    attr_accessor :direction, :size, :rotation_style
+
+    def x=(value)
+      @x = value.to_f
+      @pen&.on_move
+    end
+
+    def y=(value)
+      @y = value.to_f
+      @pen&.on_move
+    end
 
     def self.inherited(subclass)
       super
@@ -179,6 +189,16 @@ module Smalruby3
       when "backward"
         @runtime.move_sprite_backward(self, n)
       end
+    end
+
+    # --- Extensions ---
+
+    def pen
+      @pen ||= Extension::Pen.new(self)
+    end
+
+    def music
+      @music ||= Extension::Music.new(self)
     end
 
     # --- Sensing ---
