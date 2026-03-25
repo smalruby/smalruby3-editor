@@ -59,9 +59,11 @@ class DSLTest < Minitest::Test
   end
 
   def test_stage_set_backdrops
+    Smalruby3::Runtime.instance.reset_stage_class!
     klass = Class.new(Smalruby3::Stage) do
       set_backdrops ["Arctic", "Blue Sky"]
     end
     assert_equal ["Arctic", "Blue Sky"], klass._backdrop_names
+    Smalruby3::Runtime.instance.reset_stage_class!
   end
 end

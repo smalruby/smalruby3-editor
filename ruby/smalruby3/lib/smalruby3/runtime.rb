@@ -37,7 +37,15 @@ module Smalruby3
     end
 
     def register_stage(klass)
+      if @stage_class && @stage_class != klass
+        raise "Only one Stage class can be defined (already registered: #{@stage_class})"
+      end
       @stage_class = klass
+    end
+
+    # For testing: reset stage registration
+    def reset_stage_class!
+      @stage_class = nil
     end
 
     def find_target(name)
