@@ -141,6 +141,74 @@ ruby/smalruby3/
 - 依存 gem は最小限に保つ（ruby-sdl2 + rsvg2）
 - ネイティブ拡張（SDL2）はシステムライブラリに依存 — バージョン互換性に注意
 
+## Debugging with Screenshots
+
+### SDL2 スクリーンショットキャプチャ
+
+rsdl で起動した SDL2 ウィンドウの描画結果を BMP ファイルとしてキャプチャできる。
+**デバッグ時は必ずこの機能を使って画面の状態を確認すること。**
+
+```bash
+# N フレーム目のスクリーンショットを保存
+SMALRUBY3_SCREENSHOT=3 rsdl -Ilib examples/01_move.rb
+# → /tmp/smalruby3_screenshot.bmp
+
+# 保存先を指定
+SMALRUBY3_SCREENSHOT=5 SMALRUBY3_SCREENSHOT_PATH=/tmp/debug.bmp rsdl -Ilib examples/01_move.rb
+```
+
+### BMP → PNG 変換（Claude Code で確認するため）
+
+Claude Code の Read ツールは BMP を直接表示できないため、PNG に変換する。
+
+```bash
+ruby -e '
+require "zlib"
+bmp = File.binread("/tmp/smalruby3_screenshot.bmp")
+offset = bmp[10..13].unpack1("V")
+width = bmp[18..21].unpack1("V")
+height = bmp[22..25].unpack1("V")
+bpp = bmp[28..29].unpack1("v")
+row_size = ((bpp * width + 31) / 32) * 4
+raw = String.new(encoding: "ASCII-8BIT")
+(height - 1).downto(0) do |y|
+  raw << "\x00".b
+  width.times do |x|
+    pos = offset + y * row_size + x * (bpp / 8)
+    b = bmp.getbyte(pos); g = bmp.getbyte(pos + 1); r = bmp.getbyte(pos + 2)
+    a = bpp == 32 ? bmp.getbyte(pos + 3) : 255
+    raw << [r, g, b, a].pack("C4")
+  end
+end
+def png_chunk(type, data)
+  [data.length].pack("N") + type.b + data + [Zlib.crc32(type.b + data)].pack("N")
+end
+ihdr = [width, height, 8, 6, 0, 0, 0].pack("NNCCCCC")
+idat = Zlib::Deflate.deflate(raw)
+png = "\x89PNG\r\n\x1A\n".b
+png << png_chunk("IHDR", ihdr)
+png << png_chunk("IDAT", idat)
+png << png_chunk("IEND", "".b)
+File.binwrite("/tmp/smalruby3_screenshot.png", png)
+'
+```
+
+その後 Read ツールで `/tmp/smalruby3_screenshot.png` を開いて確認する。
+
+### 実装の注意点
+
+- `Surface.pixels` は**毎回コピーを返す**ため、書き込みに使えない
+- Surface への描画は `Surface.blit(src, srcrect, dst, dstrect)` を使う
+- 白い Surface の生成は `Surface.from_string(white_data, w, h, 32)` を使う
+- `Surface.save_bmp(surface, path)` はクラスメソッド
+
+### デバッグ手順
+
+1. `SMALRUBY3_SCREENSHOT=N` でスクリーンショットを取得
+2. BMP → PNG 変換
+3. Read ツールで PNG を確認
+4. 問題があればコードを修正して再度スクリーンショット
+
 ## Architecture Notes
 
 ### Scratch Coordinate System
