@@ -29,9 +29,8 @@ class Shooter < Smalruby3::Sprite
     self.y = -100
     self.size = 100
     point_towards("_mouse_")
-    20.times do |_i|
+    20.times(screen_refresh: true) do
       move(8)
-      Fiber.yield
     end
     delete_this_clone
   end

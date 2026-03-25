@@ -18,7 +18,9 @@ export default function (Generator) {
         const times = Generator.valueToCode(block, 'TIMES', Generator.ORDER_ATOMIC) || 0;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
-        return `${times}.times do\n${branch}${wait}end\n`;
+        const screenRefresh = Generator._options && Generator._options.forSave ?
+            '(screen_refresh: true) ' : ' ';
+        return `${times}.times${screenRefresh}do\n${branch}${wait}end\n`;
     };
 
     Generator.control_forever = function (block) {
