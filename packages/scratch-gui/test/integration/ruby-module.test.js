@@ -21,6 +21,14 @@ const uri = `${path.resolve(__dirname, '../../build/index.html')}?ruby_version=2
 
 let driver;
 
+/**
+ * Stub window.confirm to return false, preventing the v1 detection
+ * prompt from blocking Selenium. The test code uses v1 syntax
+ * (self.when(:flag_clicked)) which triggers a native confirm dialog
+ * in v2 mode; declining it allows conversion to proceed in v2 mode.
+ */
+const stubConfirmToDecline = () => driver.executeScript('window.confirm = () => false;');
+
 describe('Ruby module/include round-trip', () => {
     beforeAll(() => {
         driver = getDriver();
@@ -32,6 +40,7 @@ describe('Ruby module/include round-trip', () => {
 
     test('module with single method', async () => {
         await loadUri(uri);
+        await stubConfirmToDecline();
         await expectInterconvertBetweenCodeAndRuby(
             'module Utils\n' +
             '  def add(a, b)\n' +
@@ -65,6 +74,7 @@ describe('Ruby module/include round-trip', () => {
 
     test('module with multiple methods', async () => {
         await loadUri(uri);
+        await stubConfirmToDecline();
         await expectInterconvertBetweenCodeAndRuby(
             'module Utils\n' +
             '  def add(a, b)\n' +
@@ -105,6 +115,7 @@ describe('Ruby module/include round-trip', () => {
 
     test('multiple modules with include', async () => {
         await loadUri(uri);
+        await stubConfirmToDecline();
         await expectInterconvertBetweenCodeAndRuby(
             'module Utils\n' +
             '  def add(a, b)\n' +
@@ -151,6 +162,7 @@ describe('Ruby module/include round-trip', () => {
 
     test('module method with no arguments', async () => {
         await loadUri(uri);
+        await stubConfirmToDecline();
         await expectInterconvertBetweenCodeAndRuby(
             'module Utils\n' +
             '  def greet\n' +
@@ -166,6 +178,7 @@ describe('Ruby module/include round-trip', () => {
 
     test('module sync: adding sprite with same module gets synced definition', async () => {
         await loadUri(uri);
+        await stubConfirmToDecline();
 
         // Set module code on Sprite1 and convert
         await clickText('Ruby', '*[@role="tab"]');
