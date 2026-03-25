@@ -123,6 +123,7 @@ export default function (Generator) {
     };
 
     Generator.initTargets = function (options) {
+        this._options = options || {};
         this.requires_ = {};
         this.prepares_ = {};
 

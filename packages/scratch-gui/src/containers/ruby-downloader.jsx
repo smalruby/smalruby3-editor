@@ -75,7 +75,8 @@ class RubyDownloader extends React.Component {
         const options = {
             requires: ['smalruby3'],
             withSpriteNew: true,
-            version: this.props.rubyVersion
+            version: this.props.rubyVersion,
+            forSave: true
         };
         // After validateAndConvert, blocks are already applied and
         // rubyCode.modified is reset, so targetsCode is not needed.
