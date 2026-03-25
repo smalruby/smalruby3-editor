@@ -61,10 +61,40 @@ bundle exec standardrb --fix  # 自動修正
 ### Style: Standard Ruby (standardrb)
 
 - **Linter**: [Standard Ruby](https://github.com/standardrb/standard) に従う
-- ダブルクォート `"string"` を使用
+- **CI**: `.github/workflows/ci-ruby.yml` で `ruby/**` 変更時に自動実行
+- **コミット前に必ず `bundle exec standardrb` を実行して 0 violations であること**
+- 自動修正: `bundle exec standardrb --fix`（安全な修正のみ）
+- 強制修正: `bundle exec standardrb --fix-unsafely`（動作確認が必要）
+
+### 主要なルール
+
+- ダブルクォート `"string"` を使用（シングルクォート不可）
 - セミコロン不使用
 - 末尾カンマなし
 - `frozen_string_literal: true` を各ファイル先頭に記載
+- インデント: 2 スペース
+- 1 行の最大長: 120 文字（Standard Ruby デフォルト）
+- `rescue` modifier は使わない → `begin ... rescue ... end` を使う
+- `$stderr.puts` は使わない → `warn` を使う
+- `[[val, min].max, max_val].min` は使わない → `val.clamp(min, max_val)` を使う
+- `a >= min && a <= max` は使わない → `a.between?(min, max)` を使う
+- float の `==` / `!=` 比較は使わない → `(a - b).abs < Float::EPSILON` を使う
+- trivial な getter は `def foo; @foo; end` ではなく `attr_reader :foo` を使う
+- 三項演算子の複雑な条件にはカッコを付ける
+- `case ... end` の `end` は `case` の行頭に揃える（代入時も同様）
+- `if ... end` の代入: `x = if cond` の `else`/`end` は `x` ではなく `if` に揃える
+
+### 負の数リテラルの注意
+
+メソッド引数に負の数リテラルを渡す場合、カッコが必要:
+
+```ruby
+# NG: Lint/AmbiguousOperator
+set_y -50
+
+# OK
+set_y(-50)
+```
 
 ### Naming
 
