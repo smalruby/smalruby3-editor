@@ -7,6 +7,7 @@ describe('control blocks with_screen_refresh for save', () => {
         RubyGenerator.functionNames_ = {};
         RubyGenerator.currentTarget = null;
         RubyGenerator._options = null;
+        RubyGenerator.version = '2';
     });
 
     const mockGeneratorMethods = () => {
@@ -116,6 +117,54 @@ describe('control blocks with_screen_refresh for save', () => {
                 '  end\n' +
                 'end\n'
             );
+
+            restoreGeneratorMethods(orig);
+        });
+    });
+
+    // --- version 1: no with_screen_refresh even with forSave ---
+
+    describe('version 1 with forSave', () => {
+        test('control_repeat: no with_screen_refresh for version 1', () => {
+            const orig = mockGeneratorMethods();
+            RubyGenerator.valueToCode = () => '10';
+            RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(10)\n`;
+            RubyGenerator.getCommentText = () => null;
+            RubyGenerator._options = {forSave: true};
+            RubyGenerator.version = '1';
+
+            const result = RubyGenerator.control_repeat({});
+            expect(result).toBe('10.times do\n  move(10)\nend\n');
+            expect(result).not.toContain('with_screen_refresh');
+
+            restoreGeneratorMethods(orig);
+        });
+
+        test('control_forever: no with_screen_refresh for version 1', () => {
+            const orig = mockGeneratorMethods();
+            RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(2)\n`;
+            RubyGenerator.getCommentText = () => null;
+            RubyGenerator._options = {forSave: true};
+            RubyGenerator.version = '1';
+
+            const result = RubyGenerator.control_forever({});
+            expect(result).toBe('loop do\n  move(2)\nend\n');
+            expect(result).not.toContain('with_screen_refresh');
+
+            restoreGeneratorMethods(orig);
+        });
+
+        test('control_repeat_until: no with_screen_refresh for version 1', () => {
+            const orig = mockGeneratorMethods();
+            RubyGenerator.valueToCode = () => 'touching?("goal")';
+            RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(10)\n`;
+            RubyGenerator.getCommentText = () => null;
+            RubyGenerator._options = {forSave: true};
+            RubyGenerator.version = '1';
+
+            const result = RubyGenerator.control_repeat_until({});
+            expect(result).toBe('until touching?("goal")\n  move(10)\nend\n');
+            expect(result).not.toContain('with_screen_refresh');
 
             restoreGeneratorMethods(orig);
         });

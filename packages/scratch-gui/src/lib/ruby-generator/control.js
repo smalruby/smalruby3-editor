@@ -15,7 +15,8 @@ export default function (Generator) {
     };
 
     const forSave = function () {
-        return Generator._options && Generator._options.forSave;
+        return Generator._options && Generator._options.forSave &&
+            String(Generator.version) !== '1';
     };
 
     Generator.control_repeat = function (block) {
