@@ -57,6 +57,11 @@ const ControlConverter = {
             return block;
         });
 
+        // loop (without block) - returns control_forever for chaining with with_screen_refresh
+        converter.registerOnSend('self', 'loop', 0, () =>
+            converter._createBlock('control_forever', 'terminate')
+        );
+
         // loop { block } and forever { block } - control_forever
         ['loop', 'forever'].forEach(methodName => {
             converter.registerOnSendWithBlock('self', methodName, 0, 0, params => {
@@ -95,6 +100,13 @@ const ControlConverter = {
             converter._addField(optionBlock, 'CLONE_OPTION', args[0]);
             converter._addInput(block, 'CLONE_OPTION', optionBlock, optionBlock);
             return block;
+        });
+
+        // number.times (without block) - returns control_repeat for chaining with with_screen_refresh
+        converter.registerOnSend('any', 'times', 0, params => {
+            const {receiver} = params;
+            if (!converter._isNumberOrBlock(receiver)) return null;
+            return createControlRepeatBlock(converter, receiver, null);
         });
 
         // number.times { block } and variable.times { block } - control_repeat
