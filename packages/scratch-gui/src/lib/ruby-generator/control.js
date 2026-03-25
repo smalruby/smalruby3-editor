@@ -9,9 +9,16 @@ export default function (Generator) {
         return `sleep(${secs})\n`;
     };
 
+    const getComment = function (block) {
+        return Generator.getCommentText(block) || '';
+    };
+
     const hasWaitComment = function (block) {
-        const comment = Generator.getCommentText(block);
-        return comment && comment.includes('@ruby:method:wait');
+        return getComment(block).includes('@ruby:method:wait');
+    };
+
+    const hasWithScreenRefreshComment = function (block) {
+        return getComment(block).includes('@ruby:method:with_screen_refresh');
     };
 
     const forSave = function () {
@@ -19,18 +26,25 @@ export default function (Generator) {
             String(Generator.version) !== '1';
     };
 
+    const needsWithScreenRefresh = function (block) {
+        // Comment takes priority (round-trip preservation)
+        if (hasWithScreenRefreshComment(block)) return true;
+        // Otherwise, forSave auto-adds it
+        return forSave();
+    };
+
     Generator.control_repeat = function (block) {
         const times = Generator.valueToCode(block, 'TIMES', Generator.ORDER_ATOMIC) || 0;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
-        const suffix = forSave() ? '.with_screen_refresh' : '';
+        const suffix = needsWithScreenRefresh(block) ? '.with_screen_refresh' : '';
         return `${times}.times${suffix} do\n${branch}${wait}end\n`;
     };
 
     Generator.control_forever = function (block) {
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
-        const suffix = forSave() ? '.with_screen_refresh' : '';
+        const suffix = needsWithScreenRefresh(block) ? '.with_screen_refresh' : '';
         return `loop${suffix} do\n${branch}${wait}end\n`;
     };
 
@@ -248,21 +262,20 @@ export default function (Generator) {
     };
 
     const wrapWithScreenRefresh = function (branch) {
-        if (!forSave()) return branch;
         // Indent the branch body one extra level inside with_screen_refresh.
         // branch is already indented one level (e.g. "  move(10)\n").
-        // We need to add one more indent level for the with_screen_refresh block body.
         const indented = branch.replace(/^(?=.)/gm, Generator.INDENT);
         return `${Generator.INDENT}with_screen_refresh do\n${indented}${Generator.INDENT}end\n`;
     };
 
     Generator.control_repeat_until = function (block) {
         const comment = Generator.getCommentText(block);
+        const useScreenRefresh = needsWithScreenRefresh(block);
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
         const varName = getVariableHint(block);
         if (varName) {
             const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-            const body = forSave() ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
+            const body = useScreenRefresh ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
             if (comment.includes('@ruby:syntax:while')) {
                 return `while ${varName}\n${body}end\n`;
             }
@@ -271,12 +284,12 @@ export default function (Generator) {
         if (comment && comment.includes('@ruby:syntax:while')) {
             const operator = getWhileCondition(block);
             const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-            const body = forSave() ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
+            const body = useScreenRefresh ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
             return `while ${operator}\n${body}end\n`;
         }
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-        const body = forSave() ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
+        const body = useScreenRefresh ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
         return `until ${operator}\n${body}end\n`;
     };
 

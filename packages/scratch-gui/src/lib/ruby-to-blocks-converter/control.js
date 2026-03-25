@@ -13,6 +13,19 @@ const StopOptions = [
     'this script',
     'other scripts in sprite'
 ];
+
+const WITH_SCREEN_REFRESH_COMMENT = '@ruby:method:with_screen_refresh';
+
+const addWithScreenRefreshComment = function (converter, block) {
+    if (block.comment) {
+        const existingComment = converter._context.comments[block.comment];
+        if (existingComment && !existingComment.text.includes(WITH_SCREEN_REFRESH_COMMENT)) {
+            existingComment.text += `,${WITH_SCREEN_REFRESH_COMMENT}`;
+        }
+    } else {
+        block.comment = converter._createComment(WITH_SCREEN_REFRESH_COMMENT, block.id);
+    }
+};
  
 
 /**
@@ -97,6 +110,32 @@ const ControlConverter = {
             return block;
         });
 
+        // number.times.with_screen_refresh { block } - control_repeat + comment
+        converter.registerOnSendWithBlock('any', 'with_screen_refresh', 0, 0, params => {
+            const {receiver, rubyBlock} = params;
+            if (!rubyBlock) return null;
+
+            // receiver should be the result of N.times or loop (an Enumerator-like call)
+            // Check if receiver is a control_repeat block (from N.times)
+            if (converter._isBlock(receiver) && receiver.opcode === 'control_repeat') {
+                // Replace the empty substack with our rubyBlock
+                const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
+                converter._addSubstack(receiver, cleanedRubyBlock);
+                addWithScreenRefreshComment(converter, receiver);
+                return receiver;
+            }
+
+            // Check if receiver is a control_forever block (from loop)
+            if (converter._isBlock(receiver) && receiver.opcode === 'control_forever') {
+                const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
+                converter._addSubstack(receiver, cleanedRubyBlock);
+                addWithScreenRefreshComment(converter, receiver);
+                return receiver;
+            }
+
+            return null;
+        });
+
         // when_start_as_a_clone { block } (sprite only)
         converter.registerOnSendWithBlock('sprite', 'when_start_as_a_clone', 0, 0, params => {
             const {rubyBlock} = params;
@@ -141,7 +180,22 @@ const ControlConverter = {
             return block;
         });
 
+        // with_screen_refresh { block } - unwrap for until/while body
+        // When with_screen_refresh do...end appears as the sole statement in until/while,
+        // register it so it returns its inner block with a flag.
+        converter.registerOnSendWithBlock('self', 'with_screen_refresh', 0, 0, params => {
+            const {rubyBlock} = params;
+            if (!rubyBlock) return null;
+
+            // Mark that this came from with_screen_refresh so the parent until/while knows
+            converter._hadWithScreenRefreshWrapper = true;
+            return rubyBlock;
+        });
+
         converter.registerOnUntil((cond, statement) => {
+            const hadWithScreenRefresh = converter._hadWithScreenRefreshWrapper;
+            converter._hadWithScreenRefreshWrapper = false;
+
             statement = converter._removeWaitBlocks(statement);
             const hadWait = converter._hadWaitInLastRemove;
 
@@ -156,7 +210,9 @@ const ControlConverter = {
                 converter._addInput(block, 'CONDITION', cond);
             }
             converter._addSubstack(block, statement);
-            if (hadWait && opcode === 'control_repeat_until') {
+            if (hadWithScreenRefresh && opcode === 'control_repeat_until') {
+                addWithScreenRefreshComment(converter, block);
+            } else if (hadWait && opcode === 'control_repeat_until') {
                 block.comment = converter._createComment('@ruby:method:wait', block.id);
             }
             return block;

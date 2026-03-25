@@ -169,4 +169,52 @@ describe('control blocks with_screen_refresh for save', () => {
             restoreGeneratorMethods(orig);
         });
     });
+
+    // --- @ruby:method:with_screen_refresh comment (round-trip) ---
+
+    describe('with_screen_refresh comment', () => {
+        test('control_repeat: comment triggers with_screen_refresh even without forSave', () => {
+            const orig = mockGeneratorMethods();
+            RubyGenerator.valueToCode = () => '10';
+            RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(10)\n`;
+            RubyGenerator.getCommentText = () => '@ruby:method:with_screen_refresh';
+            RubyGenerator._options = {};
+
+            const result = RubyGenerator.control_repeat({});
+            expect(result).toBe('10.times.with_screen_refresh do\n  move(10)\nend\n');
+
+            restoreGeneratorMethods(orig);
+        });
+
+        test('control_forever: comment triggers with_screen_refresh even without forSave', () => {
+            const orig = mockGeneratorMethods();
+            RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(2)\n`;
+            RubyGenerator.getCommentText = () => '@ruby:method:with_screen_refresh';
+            RubyGenerator._options = {};
+
+            const result = RubyGenerator.control_forever({});
+            expect(result).toBe('loop.with_screen_refresh do\n  move(2)\nend\n');
+
+            restoreGeneratorMethods(orig);
+        });
+
+        test('control_repeat_until: comment triggers with_screen_refresh even without forSave', () => {
+            const orig = mockGeneratorMethods();
+            RubyGenerator.valueToCode = () => 'touching?("goal")';
+            RubyGenerator.statementToCode = () => `${RubyGenerator.INDENT}move(10)\n`;
+            RubyGenerator.getCommentText = () => '@ruby:method:with_screen_refresh';
+            RubyGenerator._options = {};
+
+            const result = RubyGenerator.control_repeat_until({});
+            expect(result).toBe(
+                'until touching?("goal")\n' +
+                '  with_screen_refresh do\n' +
+                '    move(10)\n' +
+                '  end\n' +
+                'end\n'
+            );
+
+            restoreGeneratorMethods(orig);
+        });
+    });
 });
