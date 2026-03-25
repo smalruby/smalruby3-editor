@@ -7,7 +7,7 @@ class Player < Smalruby3::Sprite
 
   when_flag_clicked do
     say("Arrow keys to move, space to clone!")
-    loop do
+    loop.with_screen_refresh do
       if keyboard.pressed?("right arrow")
         self.x += 5
       end

@@ -11,7 +11,7 @@ class Shooter < Smalruby3::Sprite
 
   when_flag_clicked do
     say("スペースキーで発射！")
-    loop do
+    loop.with_screen_refresh do
       if keyboard.pressed?("left arrow")
         self.x -= 5
       end

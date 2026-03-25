@@ -10,6 +10,9 @@ module Smalruby3
       def initialize(width, height)
         @width = width
         @height = height
+        @frame_count = 0
+        @screenshot_at_frame = ENV["SMALRUBY3_SCREENSHOT"]&.to_i
+        @screenshot_path = ENV.fetch("SMALRUBY3_SCREENSHOT_PATH", "/tmp/smalruby3_screenshot.bmp")
         SDL2.init(SDL2::INIT_VIDEO)
         @window = SDL2::Window.create(
           "Smalruby3",
@@ -19,6 +22,7 @@ module Smalruby3
         @sdl_renderer = @window.create_renderer(-1, SDL2::Renderer::Flags::ACCELERATED)
         @textures = {}
         @pen_skin = nil
+        @capture_surface = nil
       end
 
       def pen_skin
@@ -74,16 +78,18 @@ module Smalruby3
       def begin_frame
         @sdl_renderer.draw_color = [255, 255, 255, 255]
         @sdl_renderer.clear
+
+        if capturing?
+          init_capture_surface
+        end
       end
 
-      def draw_stage(stage)
-        # TODO: Draw backdrop
+      def draw_stage(_stage)
+        # Stage background is white (already cleared to white in begin_frame)
       end
 
       def draw_sprite(sprite)
-        costume = sprite.instance_variable_get(:@costumes)&.dig(
-          sprite.instance_variable_get(:@current_costume)
-        )
+        costume = sprite.current_costume_obj
         return unless costume
 
         texture = get_texture(costume)
@@ -101,7 +107,7 @@ module Smalruby3
 
         dst = SDL2::Rect.new(screen_x, screen_y, w, h)
         center = SDL2::Point.new((cx * scale).to_i, (cy * scale).to_i)
-        angle = sprite.direction - 90  # Scratch: 90=right=0deg in SDL
+        angle = sprite.direction - 90 # Scratch: 90=right=0deg in SDL
 
         # Apply ghost effect via alpha modulation
         effects = sprite.effects
@@ -114,15 +120,23 @@ module Smalruby3
 
         texture.blend_mode = SDL2::BlendMode::BLEND
         @sdl_renderer.copy_ex(texture, nil, dst, angle, center, SDL2::Renderer::FLIP_NONE)
+
+        # Also blit to capture surface for screenshot
+        if capturing? && @capture_surface
+          blit_to_capture(costume.surface, screen_x, screen_y, w, h)
+        end
       end
 
       def end_frame
         @sdl_renderer.present
+        @frame_count += 1
+        maybe_save_screenshot
       end
 
       def destroy
         @textures.each_value { |t| t.destroy rescue nil }
         @textures.clear
+        @capture_surface&.destroy
         @window&.destroy
       end
 
@@ -134,6 +148,40 @@ module Smalruby3
           return nil unless surface
           @sdl_renderer.create_texture_from(surface)
         end
+      end
+
+      # --- Screenshot capture ---
+
+      def capturing?
+        @screenshot_at_frame && @frame_count == @screenshot_at_frame - 1
+      end
+
+      def maybe_save_screenshot
+        return unless @screenshot_at_frame
+        return unless @frame_count == @screenshot_at_frame
+
+        if @capture_surface
+          SDL2::Surface.save_bmp(@capture_surface, @screenshot_path)
+          $stderr.puts "[Smalruby3] Screenshot saved to #{@screenshot_path} (frame #{@frame_count})"
+          @capture_surface.destroy
+          @capture_surface = nil
+        end
+        @screenshot_at_frame = nil
+      end
+
+      def init_capture_surface
+        @capture_surface&.destroy
+        # Create white surface using from_string
+        white_pixel = "\xFF\xFF\xFF\xFF".b
+        white_data = (white_pixel * @width * @height)
+        @capture_surface = SDL2::Surface.from_string(white_data, @width, @height, 32)
+      end
+
+      def blit_to_capture(src_surface, screen_x, screen_y, w, h)
+        return unless src_surface && @capture_surface
+        src_rect = SDL2::Rect.new(0, 0, src_surface.w, src_surface.h)
+        dst_rect = SDL2::Rect.new(screen_x, screen_y, w, h)
+        SDL2::Surface.blit(src_surface, src_rect, @capture_surface, dst_rect)
       end
     end
   end

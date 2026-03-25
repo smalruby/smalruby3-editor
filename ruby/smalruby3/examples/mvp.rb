@@ -5,7 +5,7 @@ class Player < Smalruby3::Sprite
   set_x -150
 
   when_flag_clicked do
-    loop do
+    loop.with_screen_refresh do
       if keyboard.pressed?("right arrow")
         self.x += 5
       end

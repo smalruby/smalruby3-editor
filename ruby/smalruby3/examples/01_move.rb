@@ -11,7 +11,7 @@ class Player < Smalruby3::Sprite
 
   when_flag_clicked do
     say("矢印キーで動かしてね！")
-    loop do
+    loop.with_screen_refresh do
       if keyboard.pressed?("right arrow")
         self.x += 5
       end

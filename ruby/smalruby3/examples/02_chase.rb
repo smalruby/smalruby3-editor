@@ -10,7 +10,7 @@ class Cat < Smalruby3::Sprite
   set_size 200
 
   when_flag_clicked do
-    loop do
+    loop.with_screen_refresh do
       point_towards("_mouse_")
       move(3)
       if touching?("Ball")
@@ -28,7 +28,7 @@ class Ball < Smalruby3::Sprite
   set_size 200
 
   when_flag_clicked do
-    loop do
+    loop.with_screen_refresh do
       move(2)
       turn_right(rand(-30..30))
       bounce_if_on_edge

@@ -13,7 +13,7 @@ class Player < Smalruby3::Sprite
     @score = 0
     timer.reset
     say("星を集めよう！ スコア: 0")
-    loop do
+    loop.with_screen_refresh do
       if keyboard.pressed?("right arrow")
         self.x += 5
       end

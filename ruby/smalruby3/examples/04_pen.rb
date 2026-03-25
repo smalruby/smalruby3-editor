@@ -13,7 +13,7 @@ class Painter < Smalruby3::Sprite
     pen.size = 3
     pen.color = "#0000ff"
     say("Space=ペン切替 C=消去")
-    loop do
+    loop.with_screen_refresh do
       if keyboard.pressed?("right arrow")
         self.x += 3
       end
