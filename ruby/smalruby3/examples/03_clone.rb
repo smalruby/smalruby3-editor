@@ -29,7 +29,7 @@ class Shooter < Smalruby3::Sprite
     self.y = -100
     self.size = 100
     point_towards("_mouse_")
-    20.times(screen_refresh: true) do
+    20.times.with_screen_refresh do
       move(8)
     end
     delete_this_clone

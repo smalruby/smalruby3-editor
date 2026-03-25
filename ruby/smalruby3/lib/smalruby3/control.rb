@@ -1,14 +1,23 @@
 # frozen_string_literal: true
 
 module Smalruby3
-  # Override loop to auto-yield each iteration (Scratch behavior).
-  # Scratch loops automatically wait 1 frame (~33ms at 30fps) at each iteration end.
+  # Provides with_screen_refresh for Scratch-compatible frame-based iteration.
+  # In Scratch, every loop iteration yields to the scheduler for a screen update.
   module Control
-    def loop(&block)
-      Kernel.loop do
-        block.call
-        Fiber.yield
-      end
+    # Wrap a block of code with a screen refresh (Fiber.yield) at the end.
+    # Used inside while/until loops to ensure each iteration yields.
+    #
+    #   until touching?("goal")
+    #     with_screen_refresh do
+    #       next if keyboard.pressed?("space")
+    #       move(10)
+    #     end
+    #   end
+    #
+    def with_screen_refresh
+      yield
+    ensure
+      Fiber.yield
     end
   end
 end
@@ -20,25 +29,22 @@ module Smalruby3
   end
 end
 
-# Extend Integer#times to support screen_refresh: keyword argument.
-# When screen_refresh: true, Fiber.yield is called after each iteration
-# to allow screen updates (Scratch repeat block behavior).
-# Without screen_refresh: true, times behaves normally.
-class Integer
-  alias_method :__smalruby3_original_times, :times
-
-  def times(screen_refresh: false, &block)
-    if block
-      if screen_refresh
-        __smalruby3_original_times do |i|
-          block.call(i)
-          Fiber.yield
-        end
-      else
-        __smalruby3_original_times(&block)
-      end
-    else
-      __smalruby3_original_times
+# Add with_screen_refresh to Enumerator for times/loop support.
+#
+#   10.times.with_screen_refresh do |i|
+#     move(10)
+#   end
+#
+#   loop.with_screen_refresh do
+#     move(2)
+#     bounce_if_on_edge
+#   end
+#
+class Enumerator
+  def with_screen_refresh(&block)
+    each do |*args|
+      block.call(*args)
+      Fiber.yield
     end
   end
 end

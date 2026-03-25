@@ -14,19 +14,23 @@ export default function (Generator) {
         return comment && comment.includes('@ruby:method:wait');
     };
 
+    const forSave = function () {
+        return Generator._options && Generator._options.forSave;
+    };
+
     Generator.control_repeat = function (block) {
         const times = Generator.valueToCode(block, 'TIMES', Generator.ORDER_ATOMIC) || 0;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
-        const screenRefresh = Generator._options && Generator._options.forSave ?
-            '(screen_refresh: true) ' : ' ';
-        return `${times}.times${screenRefresh}do\n${branch}${wait}end\n`;
+        const suffix = forSave() ? '.with_screen_refresh' : '';
+        return `${times}.times${suffix} do\n${branch}${wait}end\n`;
     };
 
     Generator.control_forever = function (block) {
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
-        return `loop do\n${branch}${wait}end\n`;
+        const suffix = forSave() ? '.with_screen_refresh' : '';
+        return `loop${suffix} do\n${branch}${wait}end\n`;
     };
 
     const getCaseInfo = function (block) {
@@ -242,25 +246,37 @@ export default function (Generator) {
         return Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
     };
 
+    const wrapWithScreenRefresh = function (branch) {
+        if (!forSave()) return branch;
+        // Indent the branch body one extra level inside with_screen_refresh.
+        // branch is already indented one level (e.g. "  move(10)\n").
+        // We need to add one more indent level for the with_screen_refresh block body.
+        const indented = branch.replace(/^(?=.)/gm, Generator.INDENT);
+        return `${Generator.INDENT}with_screen_refresh do\n${indented}${Generator.INDENT}end\n`;
+    };
+
     Generator.control_repeat_until = function (block) {
         const comment = Generator.getCommentText(block);
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
         const varName = getVariableHint(block);
         if (varName) {
             const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+            const body = forSave() ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
             if (comment.includes('@ruby:syntax:while')) {
-                return `while ${varName}\n${branch}${wait}end\n`;
+                return `while ${varName}\n${body}end\n`;
             }
-            return `until ${varName}\n${branch}${wait}end\n`;
+            return `until ${varName}\n${body}end\n`;
         }
         if (comment && comment.includes('@ruby:syntax:while')) {
             const operator = getWhileCondition(block);
             const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-            return `while ${operator}\n${branch}${wait}end\n`;
+            const body = forSave() ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
+            return `while ${operator}\n${body}end\n`;
         }
         const operator = Generator.valueToCode(block, 'CONDITION', Generator.ORDER_NONE) || false;
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-        return `until ${operator}\n${branch}${wait}end\n`;
+        const body = forSave() ? wrapWithScreenRefresh(branch) : `${branch}${wait}`;
+        return `until ${operator}\n${body}end\n`;
     };
 
     Generator.control_stop = function (block) {
