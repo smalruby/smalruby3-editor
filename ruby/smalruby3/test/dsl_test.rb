@@ -6,7 +6,7 @@ class DSLTest < Minitest::Test
   def test_sprite_set_x
     klass = Class.new(Smalruby3::Sprite) do
       set_x 100
-      set_y -50
+      set_y(-50)
     end
     assert_equal 100, klass._initial_x
     assert_equal(-50, klass._initial_y)

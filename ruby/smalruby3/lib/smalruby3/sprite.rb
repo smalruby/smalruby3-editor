@@ -35,10 +35,10 @@ module Smalruby3
 
       sprite_name = self.class._sprite_name
       @costumes = if sprite_name
-                    Costume.load_for_sprite(sprite_name)
-                  else
-                    []
-                  end
+        Costume.load_for_sprite(sprite_name)
+      else
+        []
+      end
     end
 
     # --- Motion ---

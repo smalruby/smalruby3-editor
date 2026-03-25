@@ -10,7 +10,7 @@ module Smalruby3
         "right arrow" => 79, # SDL2::Key::Scan::RIGHT
         "up arrow" => 82,    # SDL2::Key::Scan::UP
         "down arrow" => 81,  # SDL2::Key::Scan::DOWN
-        "enter" => 40,       # SDL2::Key::Scan::RETURN
+        "enter" => 40       # SDL2::Key::Scan::RETURN
       }.freeze
 
       def initialize
@@ -55,12 +55,12 @@ module Smalruby3
 
         if key_name.length == 1
           ch = key_name.downcase
-          if ch >= "a" && ch <= "z"
+          if ch.between?("a", "z")
             # SDL2 scancodes for a-z: 4-29
             return 4 + (ch.ord - "a".ord)
-          elsif ch >= "0" && ch <= "9"
+          elsif ch.between?("0", "9")
             # SDL2 scancodes for 0: 39, 1-9: 30-38
-            return ch == "0" ? 39 : 30 + (ch.ord - "1".ord)
+            return (ch == "0") ? 39 : 30 + (ch.ord - "1".ord)
           end
         end
 

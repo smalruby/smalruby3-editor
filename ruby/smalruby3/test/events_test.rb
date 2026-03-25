@@ -15,7 +15,7 @@ class EventsTest < Minitest::Test
         received = true
       end
     end
-    target = klass.new(@runtime)
+    klass.new(@runtime)
 
     # Simulate broadcast by starting hats
     handlers = klass._event_handlers[:broadcast_received]
@@ -25,8 +25,8 @@ class EventsTest < Minitest::Test
 
   def test_when_key_pressed_registration
     klass = Class.new(Smalruby3::Sprite) do
-      when_key_pressed("space") { }
-      when_key_pressed("a") { }
+      when_key_pressed("space") {}
+      when_key_pressed("a") {}
     end
     handlers = klass._event_handlers[:key_pressed]
     assert_equal 2, handlers.size

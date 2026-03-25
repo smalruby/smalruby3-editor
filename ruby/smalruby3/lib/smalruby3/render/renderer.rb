@@ -134,7 +134,13 @@ module Smalruby3
       end
 
       def destroy
-        @textures.each_value { |t| t.destroy rescue nil }
+        @textures.each_value { |t|
+          begin
+            t.destroy
+          rescue
+            nil
+          end
+        }
         @textures.clear
         @capture_surface&.destroy
         @window&.destroy
@@ -162,7 +168,7 @@ module Smalruby3
 
         if @capture_surface
           SDL2::Surface.save_bmp(@capture_surface, @screenshot_path)
-          $stderr.puts "[Smalruby3] Screenshot saved to #{@screenshot_path} (frame #{@frame_count})"
+          warn "[Smalruby3] Screenshot saved to #{@screenshot_path} (frame #{@frame_count})"
           @capture_surface.destroy
           @capture_surface = nil
         end

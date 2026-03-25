@@ -8,10 +8,10 @@ module Smalruby3
     def initialize(runtime)
       @runtime = runtime
       @name = if self.class.respond_to?(:_name)
-                self.class._name || self.class.name&.split("::")&.last || "unnamed"
-              else
-                self.class.name&.split("::")&.last || "unnamed"
-              end
+        self.class._name || self.class.name&.split("::")&.last || "unnamed"
+      else
+        self.class.name&.split("::")&.last || "unnamed"
+      end
       @visible = self.class.respond_to?(:_initial_visible) ? self.class._initial_visible : true
       @say_text = nil
       @think_text = nil
@@ -113,7 +113,7 @@ module Smalruby3
     attr_reader :effects, :volume
 
     def volume=(value)
-      @volume = [[value, 0].max, 100].min
+      @volume = value.clamp(0, 100)
     end
 
     # --- Sound ---

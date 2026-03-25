@@ -54,8 +54,14 @@ class SequencerTest < Minitest::Test
 
   def test_stop_all
     target = Smalruby3::Target.new(@runtime)
-    @sequencer.start_script(target) { Fiber.yield; "never" }
-    @sequencer.start_script(target) { Fiber.yield; "never" }
+    @sequencer.start_script(target) {
+      Fiber.yield
+      "never"
+    }
+    @sequencer.start_script(target) {
+      Fiber.yield
+      "never"
+    }
     @sequencer.step_fibers
     assert_equal 2, @sequencer.active_count
     @sequencer.stop_all

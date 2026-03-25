@@ -116,10 +116,10 @@ module Smalruby3
 
       # Find source
       source = if source_sprite == "_myself_"
-                 requester
-               else
-                 find_target(source_sprite)
-               end
+        requester
+      else
+        find_target(source_sprite)
+      end
       return nil unless source.is_a?(Sprite)
 
       clone = source.make_clone(self)
@@ -171,10 +171,10 @@ module Smalruby3
 
     def init_targets
       @stage = if @stage_class
-                 @stage_class.new(self)
-               else
-                 Stage.new(self)
-               end
+        @stage_class.new(self)
+      else
+        Stage.new(self)
+      end
 
       @sprite_classes.each do |klass|
         sprite = klass.new(self)
@@ -267,7 +267,7 @@ module Smalruby3
 
       mx = @mouse.x
       my = @mouse.y
-      mx >= left && mx <= right && my >= bottom && my <= top
+      mx.between?(left, right) && my >= bottom && my <= top
     end
 
     def check_edge_activated_hats
@@ -277,10 +277,10 @@ module Smalruby3
 
         handlers.each do |type, threshold, block|
           current_value = case type
-                          when "LOUDNESS" then 0 # Not implemented
-                          when "TIMER" then @clock.value
-                          else 0
-                          end
+          when "LOUDNESS" then 0 # Not implemented
+          when "TIMER" then @clock.value
+          else 0
+          end
           key = [target.object_id, type]
           old_value = @edge_activated_values[key]
           @edge_activated_values[key] = current_value

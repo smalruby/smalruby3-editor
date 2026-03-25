@@ -27,7 +27,7 @@ class CollisionTest < Minitest::Test
   def test_world_to_texture_scaled
     sprite = make_sprite(x: 0, y: 0, direction: 90, size: 200, width: 32, height: 32)
     # At 200% scale, the sprite covers a larger area
-    tx, ty = Smalruby3::Render::Collision.world_to_texture(16, 0, sprite)
+    tx, _ = Smalruby3::Render::Collision.world_to_texture(16, 0, sprite)
     assert tx, "Should be within bounds at 200% scale"
     assert_in_delta 0.75, tx, 0.05
   end

@@ -104,17 +104,13 @@ module Smalruby3
         @transparency = value.to_f.clamp(0, 100)
       end
 
-      def transparency
-        @transparency
-      end
+      attr_reader :transparency
 
       def size=(value)
         @size = [value.to_f, 1.0].max
       end
 
-      def size
-        @size
-      end
+      attr_reader :size
 
       private
 

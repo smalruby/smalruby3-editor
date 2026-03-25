@@ -52,17 +52,17 @@ class EffectTransformTest < Minitest::Test
   # --- transform_color ---
 
   def test_ghost_effect_full
-    r, g, b, a = ET.transform_color({"ghost" => 100}, 255, 0, 0, 255)
+    _, _, _, a = ET.transform_color({"ghost" => 100}, 255, 0, 0, 255)
     assert_equal 0, a
   end
 
   def test_ghost_effect_half
-    r, g, b, a = ET.transform_color({"ghost" => 50}, 255, 0, 0, 255)
+    _, _, _, a = ET.transform_color({"ghost" => 50}, 255, 0, 0, 255)
     assert_in_delta 128, a, 2
   end
 
   def test_ghost_no_effect_on_transparent
-    r, g, b, a = ET.transform_color({"ghost" => 50}, 0, 0, 0, 0)
+    _, _, _, a = ET.transform_color({"ghost" => 50}, 0, 0, 0, 0)
     assert_equal 0, a
   end
 
@@ -75,7 +75,7 @@ class EffectTransformTest < Minitest::Test
   end
 
   def test_brightness_negative
-    r, g, b, a = ET.transform_color({"brightness" => -100}, 100, 100, 100, 255)
+    r, g, b, _ = ET.transform_color({"brightness" => -100}, 100, 100, 100, 255)
     assert_equal 0, r
     assert_equal 0, g
     assert_equal 0, b
@@ -105,7 +105,7 @@ class EffectTransformTest < Minitest::Test
   end
 
   def test_pixelate_effect
-    x, y = ET.transform_point({"pixelate" => 50}, 0.33, 0.67, 100, 100)
+    x, _ = ET.transform_point({"pixelate" => 50}, 0.33, 0.67, 100, 100)
     # pixelate=50 → converter → 5.0
     # texel_x = 100 / 5 = 20
     # x = (floor(0.33 * 20) + 0.5) / 20 = (6 + 0.5) / 20 = 0.325

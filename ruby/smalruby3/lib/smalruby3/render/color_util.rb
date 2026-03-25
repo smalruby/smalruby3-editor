@@ -89,13 +89,13 @@ module Smalruby3
         t = v * (1 - s * (1 - f))
 
         r, g, b = case i % 6
-                  when 0 then [v, t, p]
-                  when 1 then [q, v, p]
-                  when 2 then [p, v, t]
-                  when 3 then [p, q, v]
-                  when 4 then [t, p, v]
-                  when 5 then [v, p, q]
-                  end
+        when 0 then [v, t, p]
+        when 1 then [q, v, p]
+        when 2 then [p, v, t]
+        when 3 then [p, q, v]
+        when 4 then [t, p, v]
+        when 5 then [v, p, q]
+        end
 
         [(r * 255 + 0.5).to_i, (g * 255 + 0.5).to_i, (b * 255 + 0.5).to_i]
       end

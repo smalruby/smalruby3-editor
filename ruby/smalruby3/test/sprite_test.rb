@@ -27,7 +27,7 @@ class SpriteTest < Minitest::Test
 
   def test_point_towards_right
     klass = Class.new(Smalruby3::Sprite)
-    s = klass.new(@runtime)
+    klass.new(@runtime)
     # Point towards a position to the right
     other = klass.new(@runtime)
     other.instance_variable_set(:@name, "Target")

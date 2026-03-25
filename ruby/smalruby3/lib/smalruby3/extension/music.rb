@@ -37,17 +37,13 @@ module Smalruby3
         @instrument = value.to_i.clamp(1, 21)
       end
 
-      def instrument
-        @instrument
-      end
+      attr_reader :instrument
 
       def tempo=(value)
         @tempo = [value.to_f, 20].max
       end
 
-      def tempo
-        @tempo
-      end
+      attr_reader :tempo
 
       private
 

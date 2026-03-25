@@ -5,7 +5,7 @@ require "smalruby3"
 
 class Cat < Smalruby3::Sprite
   set_sprite "Shimaraby"
-  set_x -100
+  set_x(-100)
   set_y 0
   set_size 200
 

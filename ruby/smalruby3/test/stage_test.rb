@@ -40,7 +40,7 @@ class StageTest < Minitest::Test
   end
 
   def test_only_one_stage_class_allowed
-    stage1 = Class.new(Smalruby3::Stage)
+    Class.new(Smalruby3::Stage)
     # stage1 is auto-registered via inherited hook
 
     assert_raises(RuntimeError) do

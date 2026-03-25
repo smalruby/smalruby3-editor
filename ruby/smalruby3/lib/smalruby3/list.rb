@@ -37,7 +37,7 @@ module Smalruby3
         @items.insert(pos, value)
       else
         i = index.to_i - 1
-        i = [[i, 0].max, @items.size].min
+        i = i.clamp(0, @items.size)
         @items.insert(i, value)
       end
     end

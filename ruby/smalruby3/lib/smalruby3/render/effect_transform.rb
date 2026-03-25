@@ -10,7 +10,7 @@ module Smalruby3
         "fisheye" => ->(x) { [0, (x + 100) / 100.0].max },
         "whirl" => ->(x) { -x * Math::PI / 180.0 },
         "pixelate" => ->(x) { x.abs / 10.0 },
-        "mosaic" => ->(x) { [[((x.abs + 10) / 10.0).round, 1].max, 512].min },
+        "mosaic" => ->(x) { ((x.abs + 10) / 10.0).round.clamp(1, 512) },
         "brightness" => ->(x) { x.clamp(-100, 100) / 100.0 },
         "ghost" => ->(x) { 1.0 - x.clamp(0, 100) / 100.0 }
       }.freeze
@@ -70,7 +70,7 @@ module Smalruby3
         # Fisheye
         if effects["fisheye"] && effects["fisheye"] != 0
           fisheye = convert_effect("fisheye", effects["fisheye"])
-          if fisheye != 1.0
+          unless (fisheye - 1.0).abs < Float::EPSILON
             vx = (x - 0.5) / 0.5
             vy = (y - 0.5) / 0.5
             v_len = Math.sqrt(vx * vx + vy * vy)
@@ -101,9 +101,9 @@ module Smalruby3
         if has_color || has_brightness
           # Un-premultiply alpha
           alpha = a / 255.0
-          ur = alpha > 0 ? (r / alpha).clamp(0, 255) : 0
-          ug = alpha > 0 ? (g / alpha).clamp(0, 255) : 0
-          ub = alpha > 0 ? (b / alpha).clamp(0, 255) : 0
+          ur = (alpha > 0) ? (r / alpha).clamp(0, 255) : 0
+          ug = (alpha > 0) ? (g / alpha).clamp(0, 255) : 0
+          ub = (alpha > 0) ? (b / alpha).clamp(0, 255) : 0
 
           if has_color
             color_val = convert_effect("color", effects["color"])

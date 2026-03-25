@@ -55,10 +55,8 @@ module Smalruby3
       dirs = []
 
       # 1. Environment variable
-      if ENV["SMALRUBY3_ASSETS_PATH"]
-        ENV["SMALRUBY3_ASSETS_PATH"].split(File::PATH_SEPARATOR).each do |d|
-          dirs << d if File.directory?(d)
-        end
+      ENV["SMALRUBY3_ASSETS_PATH"]&.split(File::PATH_SEPARATOR)&.each do |d|
+        dirs << d if File.directory?(d)
       end
 
       # 2. Script directory (caller's $0)

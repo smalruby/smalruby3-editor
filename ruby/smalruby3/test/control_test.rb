@@ -23,7 +23,11 @@ class ControlTest < Minitest::Test
     assert_equal 3, yields
 
     # Fiber should finish after one more resume
-    fiber.resume rescue nil
+    begin
+      fiber.resume
+    rescue
+      nil
+    end
     refute fiber.alive?
   end
 
@@ -35,7 +39,11 @@ class ControlTest < Minitest::Test
       end
     end
     3.times { fiber.resume }
-    fiber.resume rescue nil
+    begin
+      fiber.resume
+    rescue
+      nil
+    end
     assert_equal [0, 1, 2], indices
   end
 
@@ -102,7 +110,11 @@ class ControlTest < Minitest::Test
     assert_equal [0, 1, 2], steps
 
     # Loop condition met, fiber finishes
-    fiber.resume rescue nil
+    begin
+      fiber.resume
+    rescue
+      nil
+    end
     refute fiber.alive?
   end
 
@@ -136,7 +148,11 @@ class ControlTest < Minitest::Test
     fiber.resume # count=4, steps=[1, 3, 4]
     assert_equal [1, 3, 4], steps
 
-    fiber.resume rescue nil
+    begin
+      fiber.resume
+    rescue
+      nil
+    end
     refute fiber.alive?
   end
 
@@ -163,7 +179,11 @@ class ControlTest < Minitest::Test
     fiber.resume
     assert_equal [0, 1], steps
 
-    fiber.resume rescue nil
+    begin
+      fiber.resume
+    rescue
+      nil
+    end
     refute fiber.alive?
   end
 end

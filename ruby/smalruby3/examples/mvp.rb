@@ -2,7 +2,7 @@ require "smalruby3"
 
 class Player < Smalruby3::Sprite
   set_sprite "Shimaraby"
-  set_x -150
+  set_x(-150)
 
   when_flag_clicked do
     loop.with_screen_refresh do

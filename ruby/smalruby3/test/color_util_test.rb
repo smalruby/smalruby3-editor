@@ -71,7 +71,7 @@ class ColorUtilTest < Minitest::Test
   end
 
   def test_rgb_to_hsv_white
-    h, s, v = CU.rgb_to_hsv(255, 255, 255)
+    _, s, v = CU.rgb_to_hsv(255, 255, 255)
     assert_in_delta 0.0, s, 0.01
     assert_in_delta 1.0, v, 0.01
   end
