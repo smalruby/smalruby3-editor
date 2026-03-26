@@ -49,7 +49,7 @@ class SecurityTest < Minitest::Test
   # --- Symlink protection in cache ---
 
   def test_cache_rejects_symlinks
-    cache_dir = Smalruby3::AssetManager::CACHE_DIR
+    cache_dir = File.join(Smalruby3.home, "cache", "assets")
     FileUtils.mkdir_p(cache_dir)
     symlink_path = File.join(cache_dir, "test_symlink.png")
 

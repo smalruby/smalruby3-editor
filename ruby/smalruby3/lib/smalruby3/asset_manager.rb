@@ -8,7 +8,6 @@ require "tempfile"
 
 module Smalruby3
   class AssetManager
-    CACHE_DIR = File.join(Dir.home, ".cache", "smalruby3", "assets")
     SCRATCH_ASSET_URL = "https://assets.scratch.mit.edu/internalapi/asset/%{md5ext}/get/"
     SMALRUBY_ASSET_BASE_URL = "https://smalruby.app/"
 
@@ -19,8 +18,9 @@ module Smalruby3
     MAX_ASSET_SIZE = 10 * 1024 * 1024
 
     def initialize
+      @cache_dir = File.join(Smalruby3.home, "cache", "assets")
       @catalog = load_catalog
-      FileUtils.mkdir_p(CACHE_DIR)
+      FileUtils.mkdir_p(@cache_dir)
     end
 
     # Resolve costumes for a sprite by sprite library name.
@@ -148,11 +148,11 @@ module Smalruby3
       md5ext.is_a?(String) && md5ext.match?(SAFE_MD5EXT)
     end
 
-    # Build a safe cache path and verify it stays within CACHE_DIR.
+    # Build a safe cache path and verify it stays within the cache directory.
     def safe_cache_path(md5ext)
-      path = File.join(CACHE_DIR, md5ext)
+      path = File.join(@cache_dir, md5ext)
       resolved = File.expand_path(path)
-      return nil unless resolved.start_with?("#{File.expand_path(CACHE_DIR)}/")
+      return nil unless resolved.start_with?("#{File.expand_path(@cache_dir)}/")
       resolved
     end
 
