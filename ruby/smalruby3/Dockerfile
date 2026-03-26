@@ -20,6 +20,10 @@ RUN set -eux \
     libsdl2-ttf-dev \
     libclang-dev \
     xvfb \
+    libgl1-mesa-dri \
+    libgl1-mesa-glx \
+    libegl-mesa0 \
+    x11vnc \
     fonts-ipafont-gothic \
   && rm -rf /var/lib/apt/lists/*
 

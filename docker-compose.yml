@@ -70,6 +70,18 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # GUI display via VNC (Xvfb + x11vnc)
+  # Connect with: open vnc://localhost:5900
+  smalruby3-gui:
+    extends:
+      service: smalruby3
+    environment:
+      - VNC_ENABLED=1
+      - SMALRUBY3_SCREENSHOT=${SMALRUBY3_SCREENSHOT:-}
+      - SMALRUBY3_SCREENSHOT_PATH=${SMALRUBY3_SCREENSHOT_PATH:-/tmp/smalruby3_screenshot.png}
+    ports:
+      - 0.0.0.0:15900:5900
+
   infra:
     build:
       context: .
