@@ -227,6 +227,7 @@ module Smalruby3
       @renderer.pen_skin&.render_to(@renderer.instance_variable_get(:@sdl_renderer))
       @sprites.each { |s| @renderer.draw_sprite(s) if s.visible }
       @renderer.draw_bubbles(@sprites)
+      @renderer.draw_monitors(all_targets)
       @renderer.end_frame
     end
 

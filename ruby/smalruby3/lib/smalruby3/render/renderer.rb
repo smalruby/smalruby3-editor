@@ -25,6 +25,7 @@ module Smalruby3
         @textures = {}
         @pen_skin = nil
         @text_bubble = nil
+        @monitor_renderer = nil
         @window.show
         @window.raise
       end
@@ -151,6 +152,10 @@ module Smalruby3
         end
       end
 
+      def draw_monitors(targets)
+        monitor_renderer.draw(targets)
+      end
+
       def end_frame
         maybe_save_screenshot
         @sdl_renderer.present
@@ -167,6 +172,7 @@ module Smalruby3
         }
         @textures.clear
         @text_bubble&.destroy
+        @monitor_renderer&.destroy
         @window&.destroy
       end
 
@@ -176,11 +182,14 @@ module Smalruby3
         @text_bubble ||= TextBubble.new(@sdl_renderer)
       end
 
+      def monitor_renderer
+        @monitor_renderer ||= MonitorRenderer.new(@sdl_renderer)
+      end
+
       def get_effect_texture(sprite, costume)
         if EffectSurface.needs_effects?(sprite.effects)
           surface = EffectSurface.apply(sprite)
           return nil unless surface
-          # Effect textures use a per-sprite cache key
           cache_key = :"_effect_tex_#{sprite.object_id}"
           cache = @textures[cache_key]
           effects_hash = sprite.effects.hash ^ costume.path.hash
