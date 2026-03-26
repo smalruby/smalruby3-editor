@@ -33,9 +33,20 @@ module Smalruby3
       @is_clone = false
       @drag_mode = "not draggable"
 
+      am = @runtime.asset_manager
       sprite_name = self.class._sprite_name
       @costumes = if sprite_name
-        Costume.load_for_sprite(sprite_name)
+        am.resolve_costumes(sprite_name)
+      elsif self.class._costume_names.any?
+        am.resolve_costumes_by_name(self.class._costume_names)
+      else
+        []
+      end
+
+      @sounds = if sprite_name
+        am.resolve_sounds(sprite_name)
+      elsif self.class._sound_names.any?
+        am.resolve_sounds_by_name(self.class._sound_names)
       else
         []
       end
@@ -117,8 +128,8 @@ module Smalruby3
       return unless costume
 
       scale = @size / 100.0
-      w = costume.width * scale / 2.0
-      h = costume.height * scale / 2.0
+      w = costume.display_width * scale / 2.0
+      h = costume.display_height * scale / 2.0
 
       bounced = false
       if @x + w > 240
@@ -189,6 +200,28 @@ module Smalruby3
       when "backward"
         @runtime.move_sprite_backward(self, n)
       end
+    end
+
+    # --- Looks (backdrop delegation to Stage) ---
+
+    def backdrop_number
+      stage.backdrop_number
+    end
+
+    def backdrop_name
+      stage.backdrop_name
+    end
+
+    def switch_backdrop(name)
+      stage.switch_backdrop(name)
+    end
+
+    def switch_backdrop_and_wait(name)
+      stage.switch_backdrop_and_wait(name)
+    end
+
+    def next_backdrop
+      stage.next_backdrop
     end
 
     # --- Extensions ---
@@ -305,8 +338,8 @@ module Smalruby3
       costume = current_costume_obj
       return false unless costume
       scale = @size / 100.0
-      w = costume.width * scale / 2.0
-      h = costume.height * scale / 2.0
+      w = costume.display_width * scale / 2.0
+      h = costume.display_height * scale / 2.0
       @x + w > 240 || @x - w < -240 || @y + h > 180 || @y - h < -180
     end
 

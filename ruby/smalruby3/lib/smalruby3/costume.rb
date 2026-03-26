@@ -2,13 +2,14 @@
 
 module Smalruby3
   class Costume
-    attr_reader :name, :path, :rotation_center_x, :rotation_center_y
+    attr_reader :name, :path, :rotation_center_x, :rotation_center_y, :bitmap_resolution
 
-    def initialize(name:, path:, rotation_center_x: nil, rotation_center_y: nil)
+    def initialize(name:, path:, rotation_center_x: nil, rotation_center_y: nil, bitmap_resolution: 1)
       @name = name
       @path = path
       @rotation_center_x = rotation_center_x
       @rotation_center_y = rotation_center_y
+      @bitmap_resolution = bitmap_resolution || 1
       @surface = nil
       @silhouette = nil
     end
@@ -23,6 +24,15 @@ module Smalruby3
 
     def height
       surface&.h || 0
+    end
+
+    # Display size accounts for bitmap resolution (2x assets are half size on screen)
+    def display_width
+      width / @bitmap_resolution
+    end
+
+    def display_height
+      height / @bitmap_resolution
     end
 
     def silhouette

@@ -41,11 +41,12 @@ module Smalruby3
         texture = get_texture(costume)
         return unless texture
 
+        br = costume.bitmap_resolution || 1
         scale = sprite.size / 100.0
-        w = (costume.width * scale).to_i
-        h = (costume.height * scale).to_i
-        cx = costume.rotation_center_x || costume.width / 2
-        cy = costume.rotation_center_y || costume.height / 2
+        w = (costume.display_width * scale).to_i
+        h = (costume.display_height * scale).to_i
+        cx = (costume.rotation_center_x || costume.width / 2).to_f / br
+        cy = (costume.rotation_center_y || costume.height / 2).to_f / br
         screen_x = (@width / 2 + sprite.x - cx * scale).to_i
         screen_y = (@height / 2 - sprite.y - cy * scale).to_i
         dst = SDL2::Rect.new(screen_x, screen_y, w, h)
@@ -98,11 +99,12 @@ module Smalruby3
         return unless texture
 
         # Convert Scratch coords (center origin, +Y up) to SDL2 coords (top-left, +Y down)
+        br = costume.bitmap_resolution || 1
         scale = sprite.size / 100.0
-        w = (costume.width * scale).to_i
-        h = (costume.height * scale).to_i
-        cx = costume.rotation_center_x || costume.width / 2
-        cy = costume.rotation_center_y || costume.height / 2
+        w = (costume.display_width * scale).to_i
+        h = (costume.display_height * scale).to_i
+        cx = (costume.rotation_center_x || costume.width / 2).to_f / br
+        cy = (costume.rotation_center_y || costume.height / 2).to_f / br
 
         screen_x = (@width / 2 + sprite.x - cx * scale).to_i
         screen_y = (@height / 2 - sprite.y - cy * scale).to_i

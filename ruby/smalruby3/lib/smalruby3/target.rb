@@ -120,19 +120,32 @@ module Smalruby3
 
     def play(sound_name)
       sound = find_sound(sound_name)
-      @runtime.renderer&.play_sound(sound) if sound
+      return unless sound
+      chunk = sound.chunk
+      return unless chunk
+      SDL2::Mixer::Channels.play(-1, chunk, 0)
+    rescue => e
+      warn "[Smalruby3] play error: #{e.message}"
     end
 
     def play_until_done(sound_name)
       sound = find_sound(sound_name)
       return unless sound
-      channel = @runtime.renderer&.play_sound(sound)
-      # Wait for sound to finish (simplified)
-      sleep(1) if channel
+      chunk = sound.chunk
+      return unless chunk
+      channel = SDL2::Mixer::Channels.play(-1, chunk, 0)
+      # Wait for sound to finish
+      while SDL2::Mixer::Channels.play?(channel)
+        Fiber.yield
+      end
+    rescue => e
+      warn "[Smalruby3] play_until_done error: #{e.message}"
     end
 
     def stop_all_sounds
-      @runtime.renderer&.stop_all_sounds
+      SDL2::Mixer::Channels.halt(-1)
+    rescue => e
+      warn "[Smalruby3] stop_all_sounds error: #{e.message}"
     end
 
     def change_sound_effect_by(_effect, _amount)
@@ -192,10 +205,20 @@ module Smalruby3
       (Time.now - Time.new(2000, 1, 1)) / 86400.0
     end
 
+    # Read a variable from this target by name.
+    # Used by sprite("Sprite2").variable("@score") and stage.variable("$var").
+    def variable(name)
+      ivar_name = name.to_s
+      ivar_name = "@#{ivar_name}" unless ivar_name.start_with?("@", "$")
+      instance_variable_get(ivar_name.to_sym)
+    rescue NameError
+      nil
+    end
+
     private
 
     def find_sound(name)
-      @sounds.find { |s| s.name == name }
+      @sounds&.find { |s| s.name == name }
     end
   end
 end

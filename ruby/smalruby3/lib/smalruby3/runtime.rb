@@ -12,7 +12,7 @@ module Smalruby3
     FRAME_TIME = 1.0 / FPS
     MAX_CLONES = 300
 
-    attr_reader :keyboard, :mouse, :clock, :renderer, :sequencer
+    attr_reader :keyboard, :mouse, :clock, :renderer, :sequencer, :asset_manager
     attr_reader :stage, :sprites
     attr_accessor :answer
 
@@ -25,6 +25,7 @@ module Smalruby3
       @keyboard = IO::Keyboard.new
       @mouse = IO::Mouse.new
       @clock = IO::Clock.new
+      @asset_manager = AssetManager.new
       @renderer = nil
       @running = false
       @answer = ""
@@ -54,8 +55,10 @@ module Smalruby3
     end
 
     def run
+      prefetch_assets
       init_targets
       init_renderer
+      init_mixer
       start_flag_clicked
       main_loop
     ensure
@@ -168,6 +171,18 @@ module Smalruby3
     end
 
     private
+
+    def prefetch_assets
+      @asset_manager.prefetch_all(@sprite_classes, @stage_class)
+    end
+
+    def init_mixer
+      SDL2::Mixer.init(SDL2::Mixer::INIT_FLAC | SDL2::Mixer::INIT_MP3 |
+                        SDL2::Mixer::INIT_OGG)
+      SDL2::Mixer.open(44100, SDL2::Mixer::DEFAULT_FORMAT, 2, 1024)
+    rescue => e
+      warn "[Smalruby3] SDL2::Mixer init failed: #{e.message}"
+    end
 
     def init_targets
       @stage = if @stage_class
