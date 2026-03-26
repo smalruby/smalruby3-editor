@@ -8,8 +8,6 @@ class AssetManagerSvgTest < Minitest::Test
   end
 
   def test_resolve_costumes_for_cat_2_returns_png_path
-    skip "rsvg-convert not installed" unless Smalruby3::AssetManager::SvgConverter.available?
-
     costumes = @am.resolve_costumes("Cat 2")
     assert_equal 1, costumes.size
     costume = costumes[0]
@@ -20,8 +18,6 @@ class AssetManagerSvgTest < Minitest::Test
   end
 
   def test_svg_costume_surface_loads_successfully
-    skip "rsvg-convert not installed" unless Smalruby3::AssetManager::SvgConverter.available?
-
     costumes = @am.resolve_costumes("Cat 2")
     costume = costumes[0]
     surface = costume.surface
@@ -31,8 +27,6 @@ class AssetManagerSvgTest < Minitest::Test
   end
 
   def test_svg_conversion_is_cached
-    skip "rsvg-convert not installed" unless Smalruby3::AssetManager::SvgConverter.available?
-
     # First resolve
     costumes1 = @am.resolve_costumes("Cat 2")
     path1 = costumes1[0].path
@@ -46,8 +40,6 @@ class AssetManagerSvgTest < Minitest::Test
   end
 
   def test_resolve_costumes_by_name_svg
-    skip "rsvg-convert not installed" unless Smalruby3::AssetManager::SvgConverter.available?
-
     costumes = @am.resolve_costumes_by_name(["cat 2"])
     assert_equal 1, costumes.size
     assert costumes[0].path.end_with?(".png"), "SVG costume resolved by name should be PNG"

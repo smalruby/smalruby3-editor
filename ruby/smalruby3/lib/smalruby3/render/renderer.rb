@@ -200,10 +200,11 @@ module Smalruby3
         require "smalruby3/smalruby3_resvg"
         # Extract RGBA pixel data from the SDL2 surface
         rgba_data = surface.pixels
-        Smalruby3::Resvg.save_png(rgba_data, surface.w, surface.h, path)
+        Smalruby3::ImageUtil.save_png(rgba_data, surface.w, surface.h, path)
       rescue => e
         warn "[Smalruby3] PNG save failed (#{e.message}), falling back to BMP"
-        SDL2::Surface.save_bmp(surface, path.sub(/\.png\z/, ".bmp"))
+        bmp_path = "#{path.delete_suffix(".png")}.bmp"
+        SDL2::Surface.save_bmp(surface, bmp_path)
       end
 
       # Validate screenshot path: must not be a symlink or point outside /tmp

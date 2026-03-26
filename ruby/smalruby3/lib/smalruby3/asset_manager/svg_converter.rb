@@ -15,7 +15,7 @@ module Smalruby3
       def self.convert(svg_path, png_path)
         return nil unless File.exist?(svg_path)
 
-        Smalruby3::Resvg.convert_file(svg_path, png_path)
+        Smalruby3::ImageUtil.convert_svg_to_png(svg_path, png_path)
         return nil unless File.exist?(png_path) && File.size(png_path) > 0
 
         png_path

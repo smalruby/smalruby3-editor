@@ -72,7 +72,7 @@ class SvgConverterTest < Minitest::Test
   def test_save_png_from_rgba
     rgba = ([255, 0, 0, 255] * 4).pack("C*") # 2x2 red image
     png_path = File.join(@tmpdir, "red.png")
-    Smalruby3::Resvg.save_png(rgba, 2, 2, png_path)
+    Smalruby3::ImageUtil.save_png(rgba, 2, 2, png_path)
     assert File.exist?(png_path), "PNG file should be created"
     magic = File.binread(png_path, 4)
     assert_equal "\x89PNG".b, magic
@@ -86,14 +86,14 @@ class SvgConverterTest < Minitest::Test
   def test_save_png_rejects_wrong_size
     rgba = "short".b
     assert_raises(ArgumentError) do
-      Smalruby3::Resvg.save_png(rgba, 2, 2, File.join(@tmpdir, "bad.png"))
+      Smalruby3::ImageUtil.save_png(rgba, 2, 2, File.join(@tmpdir, "bad.png"))
     end
   end
 
-  def test_resvg_convert_bytes
+  def test_convert_svg_to_png_bytes
     svg_data = File.binread(@svg_path)
-    png_data = Smalruby3::Resvg.convert_bytes(svg_data)
-    assert png_data.is_a?(String), "convert_bytes should return a String"
+    png_data = Smalruby3::ImageUtil.svg_to_png_bytes(svg_data)
+    assert png_data.is_a?(String), "svg_to_png_bytes should return a String"
     assert png_data.bytesize > 0, "PNG data should not be empty"
     assert_equal "\x89PNG".b, png_data.byteslice(0, 4), "Output should be valid PNG"
   end

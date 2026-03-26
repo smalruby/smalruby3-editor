@@ -1,8 +1,19 @@
+//! Smalruby3 ImageUtil — Rust native extension for image processing.
+//!
+//! Provides `Smalruby3::ImageUtil` Ruby module with:
+//! - `convert_svg_to_png(svg_path, png_path)` — SVG file to PNG file conversion
+//! - `svg_to_png_bytes(svg_data)` — SVG bytes to PNG bytes (in-memory)
+//! - `save_png(rgba_data, width, height, png_path)` — raw RGBA pixels to PNG file
+//!
+//! SVG rendering is powered by [resvg](https://github.com/linebender/resvg)
+//! (dual-licensed Apache-2.0/MIT). PNG encoding uses the `png` crate.
+
 use magnus::{function, prelude::*, Error, RString, Ruby};
 use std::fs;
+use std::io::Write;
 
 /// Convert an SVG file to a PNG file.
-/// Returns true on success, raises on error.
+/// Writes to a temp file first, then renames for atomic write.
 fn convert_file(svg_path: String, png_path: String) -> Result<bool, Error> {
     let svg_data = fs::read(&svg_path).map_err(|e| {
         Error::new(
@@ -18,7 +29,7 @@ fn convert_file(svg_path: String, png_path: String) -> Result<bool, Error> {
         )
     })?;
 
-    fs::write(&png_path, &png_data).map_err(|e| {
+    write_atomically(&png_path, &png_data).map_err(|e| {
         Error::new(
             magnus::exception::runtime_error(),
             format!("Failed to write PNG file '{}': {}", png_path, e),
@@ -30,16 +41,15 @@ fn convert_file(svg_path: String, png_path: String) -> Result<bool, Error> {
 
 /// Convert SVG bytes (Ruby String) to PNG bytes (Ruby String).
 fn convert_bytes(svg_data: RString) -> Result<RString, Error> {
-    // Safety: we only read the string bytes within this block
-    let png_data = unsafe {
-        let bytes = svg_data.as_slice();
-        render_svg(bytes).map_err(|e| {
-            Error::new(
-                magnus::exception::runtime_error(),
-                format!("Failed to render SVG: {}", e),
-            )
-        })?
-    };
+    // Copy data out of Ruby heap before calling into render_svg,
+    // which allocates and could trigger GC (invalidating the slice).
+    let owned: Vec<u8> = unsafe { svg_data.as_slice().to_vec() };
+    let png_data = render_svg(&owned).map_err(|e| {
+        Error::new(
+            magnus::exception::runtime_error(),
+            format!("Failed to render SVG: {}", e),
+        )
+    })?;
 
     Ok(RString::from_slice(&png_data))
 }
@@ -49,25 +59,27 @@ fn convert_bytes(svg_data: RString) -> Result<RString, Error> {
 /// width, height: image dimensions
 /// png_path: output file path
 fn save_png(rgba_data: RString, width: u32, height: u32, png_path: String) -> Result<bool, Error> {
-    unsafe {
-        let bytes = rgba_data.as_slice();
-        let expected = (width as usize) * (height as usize) * 4;
-        if bytes.len() != expected {
-            return Err(Error::new(
-                magnus::exception::arg_error(),
-                format!(
-                    "RGBA data size mismatch: expected {} bytes ({}x{}x4), got {}",
-                    expected, width, height, bytes.len()
-                ),
-            ));
-        }
-        encode_rgba_png(bytes, width, height, &png_path).map_err(|e| {
-            Error::new(
-                magnus::exception::runtime_error(),
-                format!("Failed to save PNG '{}': {}", png_path, e),
-            )
-        })?;
+    // Copy data out of Ruby heap before allocating (GC safety).
+    let owned: Vec<u8> = unsafe { rgba_data.as_slice().to_vec() };
+    let expected = (width as usize) * (height as usize) * 4;
+    if owned.len() != expected {
+        return Err(Error::new(
+            magnus::exception::arg_error(),
+            format!(
+                "RGBA data size mismatch: expected {} bytes ({}x{}x4), got {}",
+                expected,
+                width,
+                height,
+                owned.len()
+            ),
+        ));
     }
+    encode_rgba_png(&owned, width, height, &png_path).map_err(|e| {
+        Error::new(
+            magnus::exception::runtime_error(),
+            format!("Failed to save PNG '{}': {}", png_path, e),
+        )
+    })?;
     Ok(true)
 }
 
@@ -103,12 +115,24 @@ fn render_svg(svg_data: &[u8]) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("PNG encode error: {}", e))
 }
 
+/// Write data to a file atomically: write to a temp file in the same directory,
+/// then rename. This prevents partial writes on crash or disk-full.
+fn write_atomically(path: &str, data: &[u8]) -> std::io::Result<()> {
+    let parent = std::path::Path::new(path)
+        .parent()
+        .unwrap_or(std::path::Path::new("."));
+    let mut tmp = tempfile::NamedTempFile::new_in(parent)?;
+    tmp.write_all(data)?;
+    tmp.persist(path)?;
+    Ok(())
+}
+
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
     let module = ruby.define_module("Smalruby3")?;
-    let resvg = module.define_module("Resvg")?;
-    resvg.define_singleton_method("convert_file", function!(convert_file, 2))?;
-    resvg.define_singleton_method("convert_bytes", function!(convert_bytes, 1))?;
-    resvg.define_singleton_method("save_png", function!(save_png, 4))?;
+    let image_util = module.define_module("ImageUtil")?;
+    image_util.define_singleton_method("convert_svg_to_png", function!(convert_file, 2))?;
+    image_util.define_singleton_method("svg_to_png_bytes", function!(convert_bytes, 1))?;
+    image_util.define_singleton_method("save_png", function!(save_png, 4))?;
     Ok(())
 }
