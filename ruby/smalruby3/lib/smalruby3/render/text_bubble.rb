@@ -24,6 +24,7 @@ module Smalruby3
       def initialize(sdl_renderer)
         @sdl_renderer = sdl_renderer
         @font = nil
+        @on_right = {} # sprite.object_id => bool
       end
 
       def draw(sprite, stage_width, stage_height)
@@ -78,7 +79,7 @@ module Smalruby3
         ].find { |p| File.exist?(p) }
       end
 
-      # --- Text wrapping ---
+      # --- Text wrapping (character-by-character for CJK support) ---
 
       def wrap_text(text)
         return [""] if text.empty?
@@ -96,68 +97,36 @@ module Smalruby3
 
       def wrap_paragraph(para, lines)
         current = ""
-        i = 0
-        chars = para.chars
+        buf = "" # word buffer for non-CJK
 
-        while i < chars.length
-          ch = chars[i]
-          if cjk?(ch)
-            i = try_append_char(ch, current, lines, i)
-            current = (lines.last == current) ? ch : (current + ch)
-            # Re-read current after potential push
-            current = recompute_current(current, ch, lines)
-          elsif ch == " "
-            word, i = collect_word(chars, i)
-            current = try_append_word(word, current, lines)
+        para.each_char do |ch|
+          if ch == " "
+            # Flush buffer + space
+            buf += ch
+          elsif cjk?(ch)
+            # Flush any buffered word first
+            current = flush_word(buf, current, lines) unless buf.empty?
+            buf = ""
+            # Try adding CJK char
+            test = current + ch
+            w, = @font.size_text(test)
+            if w <= MAX_LINE_WIDTH
+              current = test
+            else
+              lines << current unless current.empty?
+              current = ch
+            end
           else
-            word, i = collect_non_space(chars, i)
-            current = try_append_word(word, current, lines)
+            buf += ch
           end
         end
+
+        # Flush remaining buffer
+        current = flush_word(buf, current, lines) unless buf.empty?
         lines << current unless current.empty?
       end
 
-      def try_append_char(ch, current, lines, i)
-        test = current + ch
-        w, = @font.size_text(test)
-        if w <= MAX_LINE_WIDTH
-          # Will be appended by caller
-        else
-          lines << current unless current.empty?
-        end
-        i + 1
-      end
-
-      def recompute_current(old_current, ch, lines)
-        test = old_current + ch
-        w, = @font.size_text(test)
-        if w <= MAX_LINE_WIDTH
-          test
-        else
-          ch
-        end
-      end
-
-      def collect_word(chars, i)
-        word = " "
-        i += 1
-        while i < chars.length && chars[i] != " " && !cjk?(chars[i])
-          word += chars[i]
-          i += 1
-        end
-        [word, i]
-      end
-
-      def collect_non_space(chars, i)
-        word = ""
-        while i < chars.length && chars[i] != " " && !cjk?(chars[i])
-          word += chars[i]
-          i += 1
-        end
-        [word, i]
-      end
-
-      def try_append_word(word, current, lines)
+      def flush_word(word, current, lines)
         test = current + word
         w, = @font.size_text(test)
         if w <= MAX_LINE_WIDTH
@@ -180,7 +149,7 @@ module Smalruby3
       def draw_bubble(x, y, w, h, type, on_right)
         @sdl_renderer.draw_blend_mode = SDL2::BlendMode::BLEND
 
-        # Stroke first (behind fill, matching Scratch order)
+        # Stroke first (behind fill, matching Scratch's stroke→fill order)
         @sdl_renderer.draw_color = STROKE_COLOR
         draw_rounded_rect(x, y, w, h, CORNER_RADIUS)
 
@@ -191,18 +160,18 @@ module Smalruby3
           w - STROKE_WIDTH, h - STROKE_WIDTH,
           [CORNER_RADIUS - inset, 1].max)
 
-        # Tail below bubble
+        # Tail below bubble, on the side facing the sprite
+        # In Scratch: tail is at bottom, pointing toward sprite
+        # on_right=true means bubble is right of sprite → tail points left (toward sprite)
+        # on_right=false means bubble is left of sprite → tail points right (toward sprite)
         draw_tail(x, y, w, h, type, on_right)
       end
 
       def draw_rounded_rect(x, y, w, h, r)
         r = [r, w / 2, h / 2].min
-        # Horizontal center
         @sdl_renderer.fill_rect(SDL2::Rect.new(x + r, y, w - 2 * r, h))
-        # Vertical sides
         @sdl_renderer.fill_rect(SDL2::Rect.new(x, y + r, r, h - 2 * r))
         @sdl_renderer.fill_rect(SDL2::Rect.new(x + w - r, y + r, r, h - 2 * r))
-        # 4 corner quarter-circles
         fill_circle(x + r, y + r, r)
         fill_circle(x + w - r - 1, y + r, r)
         fill_circle(x + r, y + h - r - 1, r)
@@ -218,8 +187,15 @@ module Smalruby3
       end
 
       def draw_tail(x, y, w, h, type, on_right)
-        tail_x = on_right ? (x + CORNER_RADIUS + 4) : (x + w - CORNER_RADIUS - 4)
-        tail_y = y + h
+        # Scratch's tail origin is at bottom of bubble, near the corner facing the sprite
+        # on_right: bubble is right of sprite → tail at LEFT side of bubble bottom
+        # !on_right: bubble is left of sprite → tail at RIGHT side of bubble bottom
+        tail_x = if on_right
+          x + CORNER_RADIUS
+        else
+          x + w - CORNER_RADIUS
+        end
+        tail_y = y + h - 1
 
         if type == :say
           draw_say_tail(tail_x, tail_y, on_right)
@@ -229,13 +205,14 @@ module Smalruby3
       end
 
       def draw_say_tail(tx, ty, on_right)
-        dir = on_right ? 1 : -1
+        # Tail points toward the sprite (left if on_right, right if !on_right)
+        dir = on_right ? -1 : 1
         # Fill
         @sdl_renderer.draw_color = FILL_COLOR
         (0...TAIL_HEIGHT).each do |dy|
           t = dy.to_f / TAIL_HEIGHT
-          x1 = tx + (dir * (-16 * t)).to_i
-          x2 = tx + (dir * (4 * (1 - t))).to_i
+          x1 = tx + (dir * 16 * t).to_i
+          x2 = tx - (dir * 4 * (1 - t)).to_i
           x1, x2 = x2, x1 if x1 > x2
           @sdl_renderer.draw_line(x1, ty + dy, x2, ty + dy)
         end
@@ -243,17 +220,17 @@ module Smalruby3
         @sdl_renderer.draw_color = STROKE_COLOR
         (0...TAIL_HEIGHT).each do |dy|
           t = dy.to_f / TAIL_HEIGHT
-          @sdl_renderer.draw_point(tx + (dir * (-16 * t)).to_i, ty + dy)
-          @sdl_renderer.draw_point(tx + (dir * (4 * (1 - t))).to_i, ty + dy)
+          @sdl_renderer.draw_point(tx + (dir * 16 * t).to_i, ty + dy)
+          @sdl_renderer.draw_point(tx - (dir * 4 * (1 - t)).to_i, ty + dy)
         end
       end
 
       def draw_think_tail(tx, ty, on_right)
-        dir = on_right ? 1 : -1
+        dir = on_right ? -1 : 1
         bubbles = [
-          [tx + dir * -8, ty + 2, 4],
-          [tx + dir * -3, ty + 7, 2],
-          [tx + dir * 1, ty + 10, 1]
+          [tx + dir * 8, ty + 2, 4],
+          [tx + dir * 12, ty + 7, 2],
+          [tx + dir * 14, ty + 10, 1]
         ]
         bubbles.each do |cx, cy, r|
           @sdl_renderer.draw_color = STROKE_COLOR
@@ -293,7 +270,6 @@ module Smalruby3
 
         if costume
           cw = costume.display_width * scale
-          costume.display_height
           rcx = (costume.rotation_center_x || costume.width / 2).to_f / br
           rcy = (costume.rotation_center_y || costume.height / 2).to_f / br
         else
@@ -310,18 +286,26 @@ module Smalruby3
 
         total_h = bh + TAIL_HEIGHT
 
-        # Default: right side
-        on_right = true
-        bx = s_right
+        # Remember side preference per sprite (like Scratch's bubbleState.onSpriteRight)
+        sid = sprite.object_id
+        on_right = @on_right.fetch(sid, true)
 
-        # Flip to left if right overflows and left has space
-        if bx + bw > sw && s_left - bw >= 0
+        # Flip logic matching Scratch
+        if on_right && s_right + bw > sw && s_left - bw >= 0
           on_right = false
-          bx = s_left - bw
+        elsif !on_right && s_left - bw < 0 && s_right + bw <= sw
+          on_right = true
         end
-        bx = bx.clamp(0, [sw - bw, 0].max)
+        @on_right[sid] = on_right
 
-        # Y: above sprite
+        # X position
+        bx = if on_right
+          s_right.clamp(0, [sw - bw, 0].max)
+        else
+          (s_left - bw).clamp(0, [sw - bw, 0].max)
+        end
+
+        # Y: above sprite top
         by = s_top - total_h
         by = by.clamp(0, [sh - total_h, 0].max)
 
