@@ -1,0 +1,56 @@
+name: CI - Ruby
+
+on:
+  pull_request:
+    paths:
+      - 'ruby/**'
+  push:
+    branches: [main, master, develop, hotfix/*]
+    paths:
+      - 'ruby/**'
+  workflow_dispatch:
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: "[smalruby3] StandardRB Lint"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ruby/smalruby3
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Install SDL2 development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version-file: ruby/smalruby3/.ruby-version
+          bundler-cache: true
+          working-directory: ruby/smalruby3
+      - name: Run StandardRB linter
+        run: bundle exec standardrb
+
+  unit-test:
+    name: "[smalruby3] Unit Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ruby/smalruby3
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Install SDL2 development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version-file: ruby/smalruby3/.ruby-version
+          bundler-cache: true
+          working-directory: ruby/smalruby3
+      - name: Run unit tests
+        run: bundle exec rake test

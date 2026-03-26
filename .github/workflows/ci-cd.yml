@@ -19,6 +19,7 @@ on:
       - 'Release.md'
       - 'TRADEMARK'
       - 'infra/**'
+      - 'ruby/**'
   push:
     branches: [main, master, develop, hotfix/*]
     paths-ignore:
@@ -38,6 +39,7 @@ on:
       - 'Release.md'
       - 'TRADEMARK'
       - 'infra/**'
+      - 'ruby/**'
   workflow_dispatch:
 
 concurrency:
