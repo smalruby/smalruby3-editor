@@ -24,6 +24,7 @@ module Smalruby3
         @sdl_renderer = @window.create_renderer(-1, SDL2::Renderer::Flags::ACCELERATED)
         @textures = {}
         @pen_skin = nil
+        @text_bubble = nil
         @capture_surface = nil
         @window.show
         @window.raise
@@ -133,6 +134,14 @@ module Smalruby3
         end
       end
 
+      def draw_bubbles(sprites)
+        sprites.each do |sprite|
+          next unless sprite.visible
+          next unless sprite.say_text || sprite.think_text
+          text_bubble.draw(sprite, @width, @height)
+        end
+      end
+
       def end_frame
         @sdl_renderer.present
         @frame_count += 1
@@ -148,11 +157,16 @@ module Smalruby3
           end
         }
         @textures.clear
+        @text_bubble&.destroy
         @capture_surface&.destroy
         @window&.destroy
       end
 
       private
+
+      def text_bubble
+        @text_bubble ||= TextBubble.new(@sdl_renderer)
+      end
 
       def get_texture(costume)
         @textures[costume.path] ||= begin
