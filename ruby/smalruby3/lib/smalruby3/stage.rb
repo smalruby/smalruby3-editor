@@ -33,6 +33,10 @@ module Smalruby3
       end
     end
 
+    def current_backdrop_obj
+      @backdrops[@current_backdrop]
+    end
+
     def backdrop_number
       @current_backdrop + 1
     end

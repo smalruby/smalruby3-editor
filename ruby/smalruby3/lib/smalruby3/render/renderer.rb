@@ -89,8 +89,26 @@ module Smalruby3
         end
       end
 
-      def draw_stage(_stage)
-        # Stage background is white (already cleared to white in begin_frame)
+      def draw_stage(stage)
+        costume = stage.current_backdrop_obj
+        return unless costume
+
+        texture = get_texture(costume)
+        return unless texture
+
+        w = costume.display_width.to_i
+        h = costume.display_height.to_i
+
+        # Center the backdrop on stage
+        screen_x = ((@width - w) / 2).to_i
+        screen_y = ((@height - h) / 2).to_i
+
+        dst = SDL2::Rect.new(screen_x, screen_y, w, h)
+        @sdl_renderer.copy(texture, nil, dst)
+
+        if capturing? && @capture_surface
+          blit_to_capture(costume.surface, screen_x, screen_y, w, h)
+        end
       end
 
       def draw_sprite(sprite)

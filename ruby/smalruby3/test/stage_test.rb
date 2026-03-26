@@ -59,4 +59,18 @@ class StageTest < Minitest::Test
     stage = Smalruby3::Stage.new(@runtime)
     assert_equal "backdrop1", stage.backdrop_name
   end
+
+  def test_current_backdrop_obj
+    stage = Smalruby3::Stage.new(@runtime)
+    costume = stage.current_backdrop_obj
+    assert_instance_of Smalruby3::Costume, costume
+    assert_equal "backdrop1", costume.name
+  end
+
+  def test_current_backdrop_obj_after_switch
+    stage = Smalruby3::Stage.new(@runtime)
+    # Default stage has only one backdrop, so switch to same name
+    stage.switch_backdrop("backdrop1")
+    assert_equal "backdrop1", stage.current_backdrop_obj.name
+  end
 end
