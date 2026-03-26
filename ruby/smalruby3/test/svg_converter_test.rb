@@ -69,6 +69,27 @@ class SvgConverterTest < Minitest::Test
     assert_nil result
   end
 
+  def test_save_png_from_rgba
+    rgba = ([255, 0, 0, 255] * 4).pack("C*") # 2x2 red image
+    png_path = File.join(@tmpdir, "red.png")
+    Smalruby3::Resvg.save_png(rgba, 2, 2, png_path)
+    assert File.exist?(png_path), "PNG file should be created"
+    magic = File.binread(png_path, 4)
+    assert_equal "\x89PNG".b, magic
+
+    surface = SDL2::Surface.load(png_path)
+    assert_equal 2, surface.w
+    assert_equal 2, surface.h
+    surface.destroy
+  end
+
+  def test_save_png_rejects_wrong_size
+    rgba = "short".b
+    assert_raises(ArgumentError) do
+      Smalruby3::Resvg.save_png(rgba, 2, 2, File.join(@tmpdir, "bad.png"))
+    end
+  end
+
   def test_resvg_convert_bytes
     svg_data = File.binread(@svg_path)
     png_data = Smalruby3::Resvg.convert_bytes(svg_data)

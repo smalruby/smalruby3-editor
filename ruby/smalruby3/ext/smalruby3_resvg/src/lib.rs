@@ -44,6 +44,49 @@ fn convert_bytes(svg_data: RString) -> Result<RString, Error> {
     Ok(RString::from_slice(&png_data))
 }
 
+/// Encode RGBA pixel data to a PNG file.
+/// rgba_data: Ruby String containing raw RGBA bytes (4 bytes per pixel)
+/// width, height: image dimensions
+/// png_path: output file path
+fn save_png(rgba_data: RString, width: u32, height: u32, png_path: String) -> Result<bool, Error> {
+    unsafe {
+        let bytes = rgba_data.as_slice();
+        let expected = (width as usize) * (height as usize) * 4;
+        if bytes.len() != expected {
+            return Err(Error::new(
+                magnus::exception::arg_error(),
+                format!(
+                    "RGBA data size mismatch: expected {} bytes ({}x{}x4), got {}",
+                    expected, width, height, bytes.len()
+                ),
+            ));
+        }
+        encode_rgba_png(bytes, width, height, &png_path).map_err(|e| {
+            Error::new(
+                magnus::exception::runtime_error(),
+                format!("Failed to save PNG '{}': {}", png_path, e),
+            )
+        })?;
+    }
+    Ok(true)
+}
+
+fn encode_rgba_png(rgba: &[u8], width: u32, height: u32, path: &str) -> Result<(), String> {
+    let file =
+        std::fs::File::create(path).map_err(|e| format!("Failed to create file: {}", e))?;
+    let w = std::io::BufWriter::new(file);
+    let mut encoder = png::Encoder::new(w, width, height);
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    let mut writer = encoder
+        .write_header()
+        .map_err(|e| format!("PNG header error: {}", e))?;
+    writer
+        .write_image_data(rgba)
+        .map_err(|e| format!("PNG write error: {}", e))?;
+    Ok(())
+}
+
 fn render_svg(svg_data: &[u8]) -> Result<Vec<u8>, String> {
     let opt = usvg::Options::default();
     let tree =
@@ -66,5 +109,6 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     let resvg = module.define_module("Resvg")?;
     resvg.define_singleton_method("convert_file", function!(convert_file, 2))?;
     resvg.define_singleton_method("convert_bytes", function!(convert_bytes, 1))?;
+    resvg.define_singleton_method("save_png", function!(save_png, 4))?;
     Ok(())
 }

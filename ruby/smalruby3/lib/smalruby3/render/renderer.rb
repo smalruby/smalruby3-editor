@@ -13,7 +13,7 @@ module Smalruby3
         @frame_count = 0
         @screenshot_at_frame = ENV["SMALRUBY3_SCREENSHOT"]&.to_i
         @screenshot_path = validate_screenshot_path(
-          ENV.fetch("SMALRUBY3_SCREENSHOT_PATH", "/tmp/smalruby3_screenshot.bmp")
+          ENV.fetch("SMALRUBY3_SCREENSHOT_PATH", "/tmp/smalruby3_screenshot.png")
         )
         SDL2.init(SDL2::INIT_VIDEO)
         @window = SDL2::Window.create(
@@ -173,7 +173,7 @@ module Smalruby3
         return unless @frame_count == @screenshot_at_frame
 
         if @capture_surface && @screenshot_path && !File.symlink?(@screenshot_path)
-          SDL2::Surface.save_bmp(@capture_surface, @screenshot_path)
+          save_surface_as_png(@capture_surface, @screenshot_path)
           warn "[Smalruby3] Screenshot saved to #{@screenshot_path} (frame #{@frame_count})"
           @capture_surface.destroy
           @capture_surface = nil
@@ -194,6 +194,16 @@ module Smalruby3
         src_rect = SDL2::Rect.new(0, 0, src_surface.w, src_surface.h)
         dst_rect = SDL2::Rect.new(screen_x, screen_y, w, h)
         SDL2::Surface.blit(src_surface, src_rect, @capture_surface, dst_rect)
+      end
+
+      def save_surface_as_png(surface, path)
+        require "smalruby3/smalruby3_resvg"
+        # Extract RGBA pixel data from the SDL2 surface
+        rgba_data = surface.pixels
+        Smalruby3::Resvg.save_png(rgba_data, surface.w, surface.h, path)
+      rescue => e
+        warn "[Smalruby3] PNG save failed (#{e.message}), falling back to BMP"
+        SDL2::Surface.save_bmp(surface, path.sub(/\.png\z/, ".bmp"))
       end
 
       # Validate screenshot path: must not be a symlink or point outside /tmp
