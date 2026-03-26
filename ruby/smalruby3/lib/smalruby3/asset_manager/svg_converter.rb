@@ -1,41 +1,27 @@
 # frozen_string_literal: true
 
-require "tempfile"
-require "open3"
+require_relative "../smalruby3_resvg"
 
 module Smalruby3
   class AssetManager
-    # Converts SVG files to PNG using rsvg-convert CLI.
+    # Converts SVG files to PNG using the built-in Rust resvg extension.
     module SvgConverter
-      RSVG_CONVERT = "rsvg-convert"
-
-      # Check if rsvg-convert is installed and usable.
+      # Always available — the Rust extension is bundled with the gem.
       def self.available?
-        return @available unless @available.nil?
-        @available = begin
-          _out, status = Open3.capture2e(RSVG_CONVERT, "--version")
-          status.success?
-        rescue Errno::ENOENT
-          false
-        end
+        true
       end
 
       # Convert an SVG file to PNG. Returns the output path on success, nil on failure.
-      # Uses Array form of Open3 to prevent command injection.
       def self.convert(svg_path, png_path)
         return nil unless File.exist?(svg_path)
-        return nil unless available?
 
-        _out, status = Open3.capture2e(
-          RSVG_CONVERT,
-          "--format", "png",
-          "--output", png_path,
-          svg_path
-        )
-        return nil unless status.success?
+        Smalruby3::Resvg.convert_file(svg_path, png_path)
         return nil unless File.exist?(png_path) && File.size(png_path) > 0
 
         png_path
+      rescue => e
+        warn "[Smalruby3] SVG conversion failed: #{e.message}"
+        nil
       end
 
       # Return the PNG equivalent md5ext for an SVG md5ext.

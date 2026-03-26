@@ -1,0 +1,7 @@
+# Rust build artifacts
+ext/smalruby3_resvg/target/
+tmp/
+
+# Compiled native extension
+lib/smalruby3/smalruby3_resvg.bundle
+lib/smalruby3/smalruby3_resvg.so
