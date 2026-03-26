@@ -47,10 +47,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version-file: ruby/smalruby3/.ruby-version
           bundler-cache: true
           working-directory: ruby/smalruby3
+      - name: Compile native extension
+        run: bundle exec rake compile
       - name: Run unit tests
         run: bundle exec rake test

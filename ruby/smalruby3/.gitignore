@@ -1,0 +1,8 @@
+# Rust build artifacts
+ext/smalruby3_imageutil/target/
+tmp/
+
+# Compiled native extension
+lib/smalruby3/smalruby3_imageutil.bundle
+lib/smalruby3/smalruby3_imageutil.so
+*.gem
