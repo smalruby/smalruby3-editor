@@ -23,6 +23,10 @@ jobs:
         working-directory: ruby/smalruby3
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Install SDL2 development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version-file: ruby/smalruby3/.ruby-version
@@ -39,6 +43,10 @@ jobs:
         working-directory: ruby/smalruby3
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Install SDL2 development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version-file: ruby/smalruby3/.ruby-version

@@ -31,8 +31,8 @@ describe('RubyToBlocksConverter/Control', () => {
 
     describe('control_repeat', () => {
         test('invalid', async () => {
+            // '10.times' without block is valid (for with_screen_refresh chaining)
             const cases1 = [
-                '10.times',
                 '10.times(1)'
             ];
             for (const c of cases1) {
@@ -71,8 +71,8 @@ describe('RubyToBlocksConverter/Control', () => {
 
     describe('control_forever', () => {
         test('invalid', async () => {
+            // 'loop()' without block is valid (for with_screen_refresh chaining)
             const cases1 = [
-                'loop()',
                 'loop(1)',
                 'forever()',
                 'forever(1)'
