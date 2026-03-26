@@ -12,7 +12,9 @@ module Smalruby3
         @height = height
         @frame_count = 0
         @screenshot_at_frame = ENV["SMALRUBY3_SCREENSHOT"]&.to_i
-        @screenshot_path = ENV.fetch("SMALRUBY3_SCREENSHOT_PATH", "/tmp/smalruby3_screenshot.bmp")
+        @screenshot_path = validate_screenshot_path(
+          ENV.fetch("SMALRUBY3_SCREENSHOT_PATH", "/tmp/smalruby3_screenshot.bmp")
+        )
         SDL2.init(SDL2::INIT_VIDEO)
         @window = SDL2::Window.create(
           "Smalruby3",
@@ -41,11 +43,12 @@ module Smalruby3
         texture = get_texture(costume)
         return unless texture
 
+        br = costume.bitmap_resolution || 1
         scale = sprite.size / 100.0
-        w = (costume.width * scale).to_i
-        h = (costume.height * scale).to_i
-        cx = costume.rotation_center_x || costume.width / 2
-        cy = costume.rotation_center_y || costume.height / 2
+        w = (costume.display_width * scale).to_i
+        h = (costume.display_height * scale).to_i
+        cx = (costume.rotation_center_x || costume.width / 2).to_f / br
+        cy = (costume.rotation_center_y || costume.height / 2).to_f / br
         screen_x = (@width / 2 + sprite.x - cx * scale).to_i
         screen_y = (@height / 2 - sprite.y - cy * scale).to_i
         dst = SDL2::Rect.new(screen_x, screen_y, w, h)
@@ -98,11 +101,12 @@ module Smalruby3
         return unless texture
 
         # Convert Scratch coords (center origin, +Y up) to SDL2 coords (top-left, +Y down)
+        br = costume.bitmap_resolution || 1
         scale = sprite.size / 100.0
-        w = (costume.width * scale).to_i
-        h = (costume.height * scale).to_i
-        cx = costume.rotation_center_x || costume.width / 2
-        cy = costume.rotation_center_y || costume.height / 2
+        w = (costume.display_width * scale).to_i
+        h = (costume.display_height * scale).to_i
+        cx = (costume.rotation_center_x || costume.width / 2).to_f / br
+        cy = (costume.rotation_center_y || costume.height / 2).to_f / br
 
         screen_x = (@width / 2 + sprite.x - cx * scale).to_i
         screen_y = (@height / 2 - sprite.y - cy * scale).to_i
@@ -168,7 +172,7 @@ module Smalruby3
         return unless @screenshot_at_frame
         return unless @frame_count == @screenshot_at_frame
 
-        if @capture_surface
+        if @capture_surface && @screenshot_path && !File.symlink?(@screenshot_path)
           SDL2::Surface.save_bmp(@capture_surface, @screenshot_path)
           warn "[Smalruby3] Screenshot saved to #{@screenshot_path} (frame #{@frame_count})"
           @capture_surface.destroy
@@ -190,6 +194,17 @@ module Smalruby3
         src_rect = SDL2::Rect.new(0, 0, src_surface.w, src_surface.h)
         dst_rect = SDL2::Rect.new(screen_x, screen_y, w, h)
         SDL2::Surface.blit(src_surface, src_rect, @capture_surface, dst_rect)
+      end
+
+      # Validate screenshot path: must not be a symlink or point outside /tmp
+      def validate_screenshot_path(path)
+        return nil unless path
+        expanded = File.expand_path(path)
+        if File.symlink?(path)
+          warn "[Smalruby3] Refusing screenshot to symlink: #{path}"
+          return nil
+        end
+        expanded
       end
     end
   end

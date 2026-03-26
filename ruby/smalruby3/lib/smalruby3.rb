@@ -3,6 +3,12 @@
 require_relative "smalruby3/version"
 
 module Smalruby3
+  # Base directory for all smalruby3 data (cache, future config, etc.).
+  # Override with SMALRUBY3_HOME environment variable.
+  def self.home
+    File.expand_path(ENV.fetch("SMALRUBY3_HOME", File.join(Dir.home, ".smalruby3")))
+  end
+
   class << self
     def start
       @started = true
@@ -31,6 +37,8 @@ require_relative "smalruby3/dsl"
 require_relative "smalruby3/sprite"
 require_relative "smalruby3/stage"
 require_relative "smalruby3/costume"
+require_relative "smalruby3/sound"
+require_relative "smalruby3/asset_manager"
 require_relative "smalruby3/list"
 require_relative "smalruby3/control"
 require_relative "smalruby3/render/renderer"

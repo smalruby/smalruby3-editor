@@ -66,6 +66,12 @@ bundle exec standardrb --fix  # 自動修正
 - 自動修正: `bundle exec standardrb --fix`（安全な修正のみ）
 - 強制修正: `bundle exec standardrb --fix-unsafely`（動作確認が必要）
 
+### ファイルサイズ
+
+- **1 ファイルは 250 行以下** にすること
+- 超過する場合はクラス/モジュールを分割する
+- テストファイルも同様（テスト対象を分割してファイルを分ける）
+
 ### 主要なルール
 
 - ダブルクォート `"string"` を使用（シングルクォート不可）
@@ -151,14 +157,41 @@ ruby/smalruby3/
 
 ## Security Requirements
 
+新しいコードを書く際・レビューする際は、以下のチェックリストを必ず確認すること。
+
+### チェックリスト
+
+1. **Path traversal**: 外部由来の値（カタログ JSON、ユーザー DSL）からファイルパスを構築する箇所では:
+   - `File.expand_path` 後に期待ディレクトリ配下であることを検証する
+   - ファイル名は安全なパターン（`/\A[a-f0-9]+\.[a-z]+\z/` 等）で検証する
+   - `../` やスラッシュを含む値は拒否する
+
+2. **Symlink attack**: ファイルを読み書きする前に:
+   - `File.symlink?` で symlink でないことを確認する
+   - 書き込みは Tempfile + `File.rename` でアトミックに行う（TOCTOU 防止）
+   - `File.exist?` → `File.binwrite` のような check-then-act パターンを避ける
+
+3. **HTTP ダウンロード**:
+   - **HTTPS のみ** 許可する（`validate_uri!` で URI スキームを検証）
+   - リダイレクト先も HTTPS のみ許可する
+   - `rawURL` 等のカタログ由来値が絶対 URL の場合は拒否する（`URI.join` バイパス防止）
+   - ダウンロードサイズに上限を設ける（`MAX_ASSET_SIZE = 10MB`）
+   - タイムアウトを設定する（`open_timeout: 10`, `read_timeout: 30`）
+
+4. **内部状態の保護**:
+   - `Target#variable(name)` のように外部から変数名を指定できる API では、内部 ivar（`@runtime`, `@sounds` 等）をブロックリスト（`INTERNAL_IVARS`）で隠蔽する
+   - 新しい内部 ivar を追加したら `INTERNAL_IVARS` に追加すること
+
+5. **環境変数由来のパス**:
+   - `SMALRUBY3_HOME`, `SMALRUBY3_SCREENSHOT_PATH` 等の env 変数から得たパスに書き込む前に、symlink でないことを確認する
+
 ### Asset Loading
 
-- アセットは以下の順序で検索（信頼できるパスのみ）:
-  1. 環境変数 `SMALRUBY3_ASSETS_PATH`
-  2. スクリプトファイルと同じディレクトリ
-  3. gem 内蔵アセットディレクトリ
-- **パストラバーサル防止**: アセット名に `..` や絶対パスを含む場合は拒否すること
-- PNG/BMP のみ読み込み（SVG は rsvg2 経由で変換後に読み込み）
+- `Smalruby3.home` (デフォルト `~/.smalruby3/`、`SMALRUBY3_HOME` で変更可能) を起点とする
+- アセットキャッシュ: `$SMALRUBY3_HOME/cache/assets/` に保存
+- アセット解決順序: プリセット → キャッシュ → HTTP ダウンロード
+- `md5ext` の検証: `/\A[a-f0-9]+\.(png|svg|wav|mp3|jpg)\z/` のみ許可
+- `sprite_name` の検証: `/\A[\w\- ]+\z/` のみ許可
 
 ### User Input
 

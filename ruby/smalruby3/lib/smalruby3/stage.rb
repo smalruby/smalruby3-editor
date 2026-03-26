@@ -11,8 +11,26 @@ module Smalruby3
 
     def initialize(runtime)
       super
-      @backdrops = []
+      am = @runtime.asset_manager
+      @backdrops = if self.class._backdrop_names.any?
+        am.resolve_backdrops(self.class._backdrop_names)
+      else
+        # Default white backdrop
+        preset_path = File.expand_path("../../assets/preset/backdrop-white-2x2.png", __dir__)
+        if File.exist?(preset_path)
+          [Costume.new(name: "backdrop1", path: preset_path,
+            rotation_center_x: 240, rotation_center_y: 180)]
+        else
+          []
+        end
+      end
       @current_backdrop = self.class._initial_backdrop
+
+      @sounds = if self.class._sound_names.any?
+        am.resolve_sounds_by_name(self.class._sound_names)
+      else
+        []
+      end
     end
 
     def backdrop_number

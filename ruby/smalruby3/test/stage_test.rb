@@ -57,6 +57,6 @@ class StageTest < Minitest::Test
 
   def test_backdrop_name_default
     stage = Smalruby3::Stage.new(@runtime)
-    assert_equal "", stage.backdrop_name
+    assert_equal "backdrop1", stage.backdrop_name
   end
 end

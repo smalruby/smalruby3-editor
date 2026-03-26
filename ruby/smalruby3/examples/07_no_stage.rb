@@ -7,7 +7,7 @@ class Cat < Smalruby3::Sprite
   set_sprite "Shimaraby"
   set_x 0
   set_y 0
-  set_size 200
+  set_size 100
 
   when_flag_clicked do
     say("白い背景で動くよ！")
