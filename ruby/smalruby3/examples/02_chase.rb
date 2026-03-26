@@ -7,7 +7,7 @@ class Cat < Smalruby3::Sprite
   set_sprite "Shimaraby"
   set_x(-100)
   set_y 0
-  set_size 200
+  set_size 100
 
   when_flag_clicked do
     loop.with_screen_refresh do
@@ -25,7 +25,7 @@ class Ball < Smalruby3::Sprite
   set_sprite "Ball"
   set_x 100
   set_y 50
-  set_size 200
+  set_size 100
 
   when_flag_clicked do
     loop.with_screen_refresh do

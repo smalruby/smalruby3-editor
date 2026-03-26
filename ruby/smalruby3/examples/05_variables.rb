@@ -7,7 +7,7 @@ class Player < Smalruby3::Sprite
   set_sprite "Shimaraby"
   set_x 0
   set_y 0
-  set_size 200
+  set_size 100
 
   when_flag_clicked do
     @score = 0
@@ -41,7 +41,7 @@ end
 
 class Star < Smalruby3::Sprite
   set_sprite "Star"
-  set_size 200
+  set_size 100
 
   when_flag_clicked do
     go_to("_random_")

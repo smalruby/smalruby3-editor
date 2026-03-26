@@ -7,7 +7,7 @@ class Shooter < Smalruby3::Sprite
   set_sprite "Shimaraby"
   set_x 0
   set_y(-120)
-  set_size 200
+  set_size 100
 
   when_flag_clicked do
     say("スペースキーで発射！")

@@ -7,7 +7,7 @@ class Painter < Smalruby3::Sprite
   set_sprite "Shimaraby"
   set_x 0
   set_y 0
-  set_size 150
+  set_size 75
 
   when_flag_clicked do
     pen.size = 3
