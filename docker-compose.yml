@@ -43,6 +43,65 @@ services:
         max-size: "100m"
         max-file: "3"
 
+  smalruby3:
+    image: smalruby3-editor-smalruby3
+    build:
+      context: ruby/smalruby3
+      dockerfile: Dockerfile
+    working_dir: /app/ruby/smalruby3
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      - type: volume
+        source: smalruby3-editor_smalruby3_bundle
+        target: /usr/local/bundle
+      - type: volume
+        source: smalruby3-editor_smalruby3_cargo
+        target: /root/.cargo/registry
+      - type: volume
+        source: smalruby3-editor_smalruby3_target
+        target: /app/ruby/smalruby3/target
+    environment:
+      - SMALRUBY3_SCREENSHOT=${SMALRUBY3_SCREENSHOT:-}
+      - SMALRUBY3_SCREENSHOT_PATH=${SMALRUBY3_SCREENSHOT_PATH:-/tmp/smalruby3_screenshot.png}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # GUI display via VNC (Xvfb + x11vnc)
+  # Usage: docker compose run --rm smalruby3-gui ruby -Ilib examples/01_move.rb
+  # Connect with: open vnc://localhost:15900
+  smalruby3-gui:
+    image: smalruby3-editor-smalruby3
+    working_dir: /app/ruby/smalruby3
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      - type: volume
+        source: smalruby3-editor_smalruby3_bundle
+        target: /usr/local/bundle
+      - type: volume
+        source: smalruby3-editor_smalruby3_cargo
+        target: /root/.cargo/registry
+      - type: volume
+        source: smalruby3-editor_smalruby3_target
+        target: /app/ruby/smalruby3/target
+    environment:
+      - VNC_ENABLED=1
+      - SMALRUBY3_SCREENSHOT=${SMALRUBY3_SCREENSHOT:-}
+      - SMALRUBY3_SCREENSHOT_PATH=${SMALRUBY3_SCREENSHOT_PATH:-/tmp/smalruby3_screenshot.png}
+    ports:
+      - 0.0.0.0:15900:5900
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   infra:
     build:
       context: .
@@ -88,4 +147,7 @@ volumes:
   smalruby3-editor_root_cache:
   smalruby3-editor_node_modules:
   smalruby3-editor_infra_mesh_v2_node_modules:
+  smalruby3-editor_smalruby3_bundle:
+  smalruby3-editor_smalruby3_cargo:
+  smalruby3-editor_smalruby3_target:
   smalruby3-editor_infra_bundle:

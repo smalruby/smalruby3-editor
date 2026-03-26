@@ -6,3 +6,6 @@ tmp/
 lib/smalruby3/smalruby3_imageutil.bundle
 lib/smalruby3/smalruby3_imageutil.so
 *.gem
+
+# Docker marker
+.built
