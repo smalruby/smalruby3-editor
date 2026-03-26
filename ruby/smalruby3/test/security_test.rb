@@ -72,22 +72,22 @@ class SecurityTest < Minitest::Test
   # --- URL validation ---
 
   def test_rejects_absolute_raw_url
-    url = @am.send(:build_download_url, "abc123.png", "http://evil.com/payload.png")
+    url = Smalruby3::AssetManager::Downloader.build_download_url("abc123.png", "http://evil.com/payload.png")
     assert_nil url
   end
 
   def test_rejects_ftp_raw_url
-    url = @am.send(:build_download_url, "abc123.png", "ftp://evil.com/file.png")
+    url = Smalruby3::AssetManager::Downloader.build_download_url("abc123.png", "ftp://evil.com/file.png")
     assert_nil url
   end
 
   def test_accepts_relative_raw_url
-    url = @am.send(:build_download_url, "abc123.png", "static/smalruby-assets/abc123.png")
+    url = Smalruby3::AssetManager::Downloader.build_download_url("abc123.png", "static/smalruby-assets/abc123.png")
     assert_equal "https://smalruby.app/static/smalruby-assets/abc123.png", url
   end
 
   def test_scratch_url_uses_https
-    url = @am.send(:build_download_url, "abc123.png", nil)
+    url = Smalruby3::AssetManager::Downloader.build_download_url("abc123.png", nil)
     assert url.start_with?("https://")
   end
 

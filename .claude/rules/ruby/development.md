@@ -66,6 +66,12 @@ bundle exec standardrb --fix  # 自動修正
 - 自動修正: `bundle exec standardrb --fix`（安全な修正のみ）
 - 強制修正: `bundle exec standardrb --fix-unsafely`（動作確認が必要）
 
+### ファイルサイズ
+
+- **1 ファイルは 250 行以下** にすること
+- 超過する場合はクラス/モジュールを分割する
+- テストファイルも同様（テスト対象を分割してファイルを分ける）
+
 ### 主要なルール
 
 - ダブルクォート `"string"` を使用（シングルクォート不可）
