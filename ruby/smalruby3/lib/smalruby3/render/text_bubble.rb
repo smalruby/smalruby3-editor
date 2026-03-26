@@ -205,14 +205,15 @@ module Smalruby3
       end
 
       def draw_say_tail(tx, ty, on_right)
-        # Tail points toward the sprite (left if on_right, right if !on_right)
+        # Tail: wide at top (attached to bubble), narrows to a point at bottom
         dir = on_right ? -1 : 1
         # Fill
         @sdl_renderer.draw_color = FILL_COLOR
         (0...TAIL_HEIGHT).each do |dy|
           t = dy.to_f / TAIL_HEIGHT
-          x1 = tx + (dir * 16 * t).to_i
-          x2 = tx - (dir * 4 * (1 - t)).to_i
+          # Wide at top (t=0), narrow at bottom (t=1)
+          x1 = tx + (dir * 16 * (1 - t)).to_i
+          x2 = tx - (dir * 4 * t).to_i
           x1, x2 = x2, x1 if x1 > x2
           @sdl_renderer.draw_line(x1, ty + dy, x2, ty + dy)
         end
@@ -220,8 +221,8 @@ module Smalruby3
         @sdl_renderer.draw_color = STROKE_COLOR
         (0...TAIL_HEIGHT).each do |dy|
           t = dy.to_f / TAIL_HEIGHT
-          @sdl_renderer.draw_point(tx + (dir * 16 * t).to_i, ty + dy)
-          @sdl_renderer.draw_point(tx - (dir * 4 * (1 - t)).to_i, ty + dy)
+          @sdl_renderer.draw_point(tx + (dir * 16 * (1 - t)).to_i, ty + dy)
+          @sdl_renderer.draw_point(tx - (dir * 4 * t).to_i, ty + dy)
         end
       end
 
