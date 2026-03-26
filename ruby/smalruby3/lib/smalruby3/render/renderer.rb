@@ -23,6 +23,8 @@ module Smalruby3
         @textures = {}
         @pen_skin = nil
         @capture_surface = nil
+        @window.show
+        @window.raise
       end
 
       def pen_skin
