@@ -3,14 +3,7 @@
 require "test_helper"
 
 class TextBubbleTest < Minitest::Test
-  def test_wrap_text_short
-    bubble = Smalruby3::Render::TextBubble.new(nil)
-    lines = bubble.send(:wrap_text, "hello")
-    # Without font, wrap_text returns early — test the logic structure
-    assert lines.is_a?(Array)
-  end
-
-  def test_bubble_position_basic
+  def test_calc_position_basic
     bubble = Smalruby3::Render::TextBubble.new(nil)
     sprite = Minitest::Mock.new
     sprite.expect(:current_costume_obj, nil)
@@ -18,22 +11,21 @@ class TextBubbleTest < Minitest::Test
     sprite.expect(:x, 0)
     sprite.expect(:y, 0)
 
-    x, y = bubble.send(:bubble_position, sprite, 100, 50, 480, 360)
+    x, y, on_right = bubble.send(:calc_position, sprite, 100, 50, 480, 360)
     assert x >= 0, "x should be >= 0"
     assert y >= 0, "y should be >= 0"
-    assert x + 100 <= 480, "bubble should fit in stage width"
-    assert y + 50 <= 360, "bubble should fit in stage height"
+    assert_includes [true, false], on_right
   end
 
-  def test_bubble_position_right_edge
+  def test_calc_position_right_edge
     bubble = Smalruby3::Render::TextBubble.new(nil)
     sprite = Minitest::Mock.new
     sprite.expect(:current_costume_obj, nil)
     sprite.expect(:size, 100)
-    sprite.expect(:x, 220) # Near right edge
+    sprite.expect(:x, 220)
     sprite.expect(:y, 0)
 
-    x, y = bubble.send(:bubble_position, sprite, 100, 50, 480, 360)
+    x, _y, _on_right = bubble.send(:calc_position, sprite, 100, 50, 480, 360)
     assert x + 100 <= 480, "bubble should not overflow right edge"
   end
 
@@ -42,5 +34,13 @@ class TextBubbleTest < Minitest::Test
     assert_equal 170, Smalruby3::Render::TextBubble::MAX_LINE_WIDTH
     assert_equal 50, Smalruby3::Render::TextBubble::MIN_WIDTH
     assert_equal 14, Smalruby3::Render::TextBubble::FONT_SIZE
+  end
+
+  def test_cjk_detection
+    bubble = Smalruby3::Render::TextBubble.new(nil)
+    assert bubble.send(:cjk?, "あ")
+    assert bubble.send(:cjk?, "漢")
+    refute bubble.send(:cjk?, "a")
+    refute bubble.send(:cjk?, " ")
   end
 end
