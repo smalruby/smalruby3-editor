@@ -44,6 +44,7 @@ services:
         max-file: "3"
 
   smalruby3:
+    image: smalruby3-editor-smalruby3
     build:
       context: ruby/smalruby3
       dockerfile: Dockerfile
@@ -71,16 +72,35 @@ services:
         max-file: "3"
 
   # GUI display via VNC (Xvfb + x11vnc)
-  # Connect with: open vnc://localhost:5900
+  # Usage: docker compose run --rm smalruby3-gui ruby -Ilib examples/01_move.rb
+  # Connect with: open vnc://localhost:15900
   smalruby3-gui:
-    extends:
-      service: smalruby3
+    image: smalruby3-editor-smalruby3
+    working_dir: /app/ruby/smalruby3
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      - type: volume
+        source: smalruby3-editor_smalruby3_bundle
+        target: /usr/local/bundle
+      - type: volume
+        source: smalruby3-editor_smalruby3_cargo
+        target: /root/.cargo/registry
+      - type: volume
+        source: smalruby3-editor_smalruby3_target
+        target: /app/ruby/smalruby3/target
     environment:
       - VNC_ENABLED=1
       - SMALRUBY3_SCREENSHOT=${SMALRUBY3_SCREENSHOT:-}
       - SMALRUBY3_SCREENSHOT_PATH=${SMALRUBY3_SCREENSHOT_PATH:-/tmp/smalruby3_screenshot.png}
     ports:
       - 0.0.0.0:15900:5900
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   infra:
     build:
