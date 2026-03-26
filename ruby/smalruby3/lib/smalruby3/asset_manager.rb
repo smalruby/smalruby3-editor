@@ -4,12 +4,19 @@ require "json"
 require "net/http"
 require "uri"
 require "fileutils"
+require "tempfile"
 
 module Smalruby3
   class AssetManager
     CACHE_DIR = File.join(Dir.home, ".cache", "smalruby3", "assets")
     SCRATCH_ASSET_URL = "https://assets.scratch.mit.edu/internalapi/asset/%{md5ext}/get/"
     SMALRUBY_ASSET_BASE_URL = "https://smalruby.app/"
+
+    # md5ext must be hex hash + dot + lowercase extension
+    SAFE_MD5EXT = /\A[a-f0-9]+\.(png|svg|wav|mp3|jpg)\z/
+
+    # Maximum asset size: 10 MB
+    MAX_ASSET_SIZE = 10 * 1024 * 1024
 
     def initialize
       @catalog = load_catalog
@@ -113,13 +120,16 @@ module Smalruby3
     # Resolve a single asset: check preset → cache → download.
     # Returns the local file path, or nil if unavailable.
     def resolve_asset(md5ext, raw_url = nil)
+      return nil unless valid_md5ext?(md5ext)
+
       # 1. Check preset assets
       preset_path = find_preset(md5ext)
       return preset_path if preset_path
 
-      # 2. Check cache
-      cache_path = File.join(CACHE_DIR, md5ext)
-      return cache_path if File.exist?(cache_path)
+      # 2. Check cache (must be a regular file, not a symlink)
+      cache_path = safe_cache_path(md5ext)
+      return nil unless cache_path
+      return cache_path if regular_file?(cache_path)
 
       # 3. Download
       download_asset(md5ext, raw_url, cache_path)
@@ -128,40 +138,129 @@ module Smalruby3
     def find_preset(md5ext)
       preset_dir = File.expand_path("../../assets/preset", __dir__)
       path = File.join(preset_dir, md5ext)
-      File.exist?(path) ? path : nil
+      resolved = File.expand_path(path)
+      return nil unless resolved.start_with?("#{File.expand_path(preset_dir)}/")
+      regular_file?(resolved) ? resolved : nil
+    end
+
+    # Validate md5ext format to prevent path traversal.
+    def valid_md5ext?(md5ext)
+      md5ext.is_a?(String) && md5ext.match?(SAFE_MD5EXT)
+    end
+
+    # Build a safe cache path and verify it stays within CACHE_DIR.
+    def safe_cache_path(md5ext)
+      path = File.join(CACHE_DIR, md5ext)
+      resolved = File.expand_path(path)
+      return nil unless resolved.start_with?("#{File.expand_path(CACHE_DIR)}/")
+      resolved
+    end
+
+    # Check that path is a regular file (not a symlink, directory, etc.)
+    def regular_file?(path)
+      File.exist?(path) && !File.symlink?(path) && File.file?(path)
     end
 
     def download_asset(md5ext, raw_url, cache_path)
-      url = if raw_url
-        URI.join(SMALRUBY_ASSET_BASE_URL, raw_url).to_s
-      else
-        format(SCRATCH_ASSET_URL, md5ext: md5ext)
-      end
+      url = build_download_url(md5ext, raw_url)
+      return nil unless url
 
-      download_file(url, cache_path)
+      safe_download(url, cache_path)
     rescue => e
       warn "[Smalruby3] Failed to download asset #{md5ext}: #{e.message}"
       nil
     end
 
-    def download_file(url, dest_path)
-      uri = URI.parse(url)
-      response = Net::HTTP.get_response(uri)
+    # Build download URL, rejecting absolute rawURL values.
+    def build_download_url(md5ext, raw_url)
+      if raw_url
+        # Reject absolute URLs to prevent catalog-based URL override
+        if raw_url.match?(%r{\A[a-z]+://}i)
+          warn "[Smalruby3] Rejecting absolute rawURL: #{raw_url}"
+          return nil
+        end
+        URI.join(SMALRUBY_ASSET_BASE_URL, raw_url).to_s
+      else
+        format(SCRATCH_ASSET_URL, md5ext: md5ext)
+      end
+    end
 
-      # Follow redirects (up to 3)
-      3.times do
+    # Download file with security checks:
+    # - HTTPS only
+    # - Redirect validation (HTTPS only, max 3)
+    # - Size limit
+    # - Atomic write via temp file (prevents symlink attacks)
+    def safe_download(url, dest_path)
+      uri = URI.parse(url)
+      validate_uri!(uri)
+
+      body = fetch_with_redirects(uri)
+      return nil unless body
+
+      # Atomic write: write to temp file, then rename
+      # This prevents symlink TOCTOU attacks
+      write_atomically(dest_path, body)
+    end
+
+    def fetch_with_redirects(uri, redirects_remaining = 3)
+      response = https_get(uri)
+
+      redirects_remaining.times do
         break unless response.is_a?(Net::HTTPRedirection)
-        uri = URI.parse(response["location"])
-        response = Net::HTTP.get_response(uri)
+
+        location = response["location"]
+        uri = URI.parse(location)
+        validate_uri!(uri)
+        response = https_get(uri)
       end
 
       if response.is_a?(Net::HTTPSuccess)
-        File.binwrite(dest_path, response.body)
-        dest_path
+        body = response.body
+        if body.bytesize > MAX_ASSET_SIZE
+          warn "[Smalruby3] Asset too large (#{body.bytesize} bytes, max #{MAX_ASSET_SIZE})"
+          return nil
+        end
+        body
       else
-        warn "[Smalruby3] HTTP #{response.code} for #{url}"
+        warn "[Smalruby3] HTTP #{response.code} for #{uri}"
         nil
       end
+    end
+
+    def https_get(uri)
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.open_timeout = 10
+      http.read_timeout = 30
+      http.request(Net::HTTP::Get.new(uri))
+    end
+
+    # Validate URI: must be HTTPS
+    def validate_uri!(uri)
+      unless uri.is_a?(URI::HTTPS)
+        raise SecurityError, "Only HTTPS URLs are allowed (got #{uri.scheme})"
+      end
+    end
+
+    # Write content atomically to prevent symlink TOCTOU attacks.
+    # Creates a temp file in the same directory, then renames it.
+    def write_atomically(dest_path, content)
+      # Reject if destination is a symlink
+      if File.symlink?(dest_path)
+        warn "[Smalruby3] Refusing to write to symlink: #{dest_path}"
+        return nil
+      end
+
+      dir = File.dirname(dest_path)
+      tmp = Tempfile.new("smalruby3-", dir)
+      tmp.binmode
+      tmp.write(content)
+      tmp.close
+      File.rename(tmp.path, dest_path)
+      dest_path
+    rescue => e
+      tmp&.close!
+      raise e
     end
 
     def find_costume_in_catalog(name)

@@ -205,12 +205,22 @@ module Smalruby3
       (Time.now - Time.new(2000, 1, 1)) / 86400.0
     end
 
-    # Read a variable from this target by name.
+    # Read a user-defined variable from this target by name.
     # Used by sprite("Sprite2").variable("@score") and stage.variable("$var").
+    # Only exposes user variables (prefixed with @), not internal state.
+    INTERNAL_IVARS = %i[
+      @runtime @name @visible @say_text @think_text @effects @volume
+      @sounds @monitors @x @y @direction @size @rotation_style
+      @current_costume @costumes @is_clone @drag_mode @pen @music
+      @backdrops @current_backdrop
+    ].to_set.freeze
+
     def variable(name)
       ivar_name = name.to_s
-      ivar_name = "@#{ivar_name}" unless ivar_name.start_with?("@", "$")
-      instance_variable_get(ivar_name.to_sym)
+      ivar_name = "@#{ivar_name}" unless ivar_name.start_with?("@")
+      sym = ivar_name.to_sym
+      return nil if INTERNAL_IVARS.include?(sym)
+      instance_variable_get(sym)
     rescue NameError
       nil
     end

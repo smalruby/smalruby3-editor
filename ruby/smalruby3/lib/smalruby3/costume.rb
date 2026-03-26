@@ -44,12 +44,21 @@ module Smalruby3
 
     # Load costumes for a sprite from asset directories
     def self.load_for_sprite(sprite_name)
+      # Validate sprite_name to prevent path traversal
+      unless sprite_name.match?(/\A[\w\- ]+\z/)
+        warn "[Smalruby3] Invalid sprite name: #{sprite_name}"
+        return []
+      end
+
       asset_dirs = resolve_asset_dirs
       costumes = []
 
       asset_dirs.each do |base_dir|
         sprite_dir = File.join(base_dir, "costumes", sprite_name)
-        next unless File.directory?(sprite_dir)
+        # Verify resolved path stays within base_dir
+        resolved = File.expand_path(sprite_dir)
+        next unless resolved.start_with?("#{File.expand_path(base_dir)}/")
+        next unless File.directory?(resolved)
 
         Dir.glob(File.join(sprite_dir, "*.{png,PNG,bmp,BMP}")).sort.each do |path|
           name = File.basename(path, File.extname(path))

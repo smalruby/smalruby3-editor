@@ -12,7 +12,9 @@ module Smalruby3
         @height = height
         @frame_count = 0
         @screenshot_at_frame = ENV["SMALRUBY3_SCREENSHOT"]&.to_i
-        @screenshot_path = ENV.fetch("SMALRUBY3_SCREENSHOT_PATH", "/tmp/smalruby3_screenshot.bmp")
+        @screenshot_path = validate_screenshot_path(
+          ENV.fetch("SMALRUBY3_SCREENSHOT_PATH", "/tmp/smalruby3_screenshot.bmp")
+        )
         SDL2.init(SDL2::INIT_VIDEO)
         @window = SDL2::Window.create(
           "Smalruby3",
@@ -170,7 +172,7 @@ module Smalruby3
         return unless @screenshot_at_frame
         return unless @frame_count == @screenshot_at_frame
 
-        if @capture_surface
+        if @capture_surface && @screenshot_path && !File.symlink?(@screenshot_path)
           SDL2::Surface.save_bmp(@capture_surface, @screenshot_path)
           warn "[Smalruby3] Screenshot saved to #{@screenshot_path} (frame #{@frame_count})"
           @capture_surface.destroy
@@ -192,6 +194,17 @@ module Smalruby3
         src_rect = SDL2::Rect.new(0, 0, src_surface.w, src_surface.h)
         dst_rect = SDL2::Rect.new(screen_x, screen_y, w, h)
         SDL2::Surface.blit(src_surface, src_rect, @capture_surface, dst_rect)
+      end
+
+      # Validate screenshot path: must not be a symlink or point outside /tmp
+      def validate_screenshot_path(path)
+        return nil unless path
+        expanded = File.expand_path(path)
+        if File.symlink?(path)
+          warn "[Smalruby3] Refusing screenshot to symlink: #{path}"
+          return nil
+        end
+        expanded
       end
     end
   end
