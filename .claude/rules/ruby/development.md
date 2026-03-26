@@ -22,9 +22,47 @@ smalruby3 は scratch-vm の Ruby 実装。smalruby3-editor で生成した Ruby
   - `loop do...end` は自動 `Fiber.yield`（Scratch 互換）
   - `N.times(screen_refresh: true) do...end` で自動 `Fiber.yield`
 
+## Execution Environment
+
+### macOS ネイティブ（基本）
+
+**プログラムの実行は macOS ネイティブで行う。** Docker 上では SDL2 の GUI 表示ができないため。
+
+```bash
+cd ruby/smalruby3
+rsdl -Ilib examples/01_move.rb
+```
+
+**CRITICAL**: `ruby` コマンドでは SDL2 が segfault する。必ず `rsdl` を使うこと。
+
+### Docker（テスト・CI用）
+
+Docker 環境はテスト実行と CI 用。GUI 表示はできない（ヘッドレス）。
+
+```bash
+# テスト実行
+docker compose run --rm smalruby3 bundle exec rake test
+
+# lint
+docker compose run --rm smalruby3 bundle exec standardrb
+
+# ヘッドレス実行（スクリーンショットで結果確認）
+docker compose run --rm -e SMALRUBY3_SCREENSHOT=3 smalruby3 \
+  bash -c "timeout 15 ruby -Ilib examples/03_clone.rb"
+```
+
+VNC 経由で GUI 確認も可能（macOS の画面共有.app で接続）:
+
+```bash
+docker compose run --rm smalruby3-gui ruby -Ilib examples/01_move.rb
+# → open vnc://localhost:15900  (password: smalruby)
+```
+
 ## Commands
 
 ### Run Tests
+
+macOS ネイティブ:
 
 ```bash
 cd ruby/smalruby3
@@ -37,16 +75,18 @@ ruby -Ilib -Itest -e 'Dir["test/**/*_test.rb"].each { |f| require_relative f }'
 ruby -Ilib -Itest test/sprite_test.rb
 ```
 
-### Run Examples
+Docker:
 
-macOS では `rsdl` コマンド経由で実行する（GC/SDL2 メインスレッド問題の回避）:
+```bash
+docker compose run --rm smalruby3 bundle exec rake test
+```
+
+### Run Examples
 
 ```bash
 cd ruby/smalruby3
 rsdl -Ilib examples/01_move.rb
 ```
-
-**CRITICAL**: `ruby` コマンドでは SDL2 が segfault する。必ず `rsdl` を使うこと。
 
 ### Lint (Standard Ruby)
 
@@ -201,76 +241,43 @@ ruby/smalruby3/
 
 ### Dependencies
 
-- 依存 gem は最小限に保つ（ruby-sdl2 + rsvg2）
-- ネイティブ拡張（SDL2）はシステムライブラリに依存 — バージョン互換性に注意
+- 依存 gem は最小限に保つ（ruby-sdl2 + rb_sys）
+- ネイティブ拡張: SDL2（システムライブラリ）+ smalruby3_imageutil（Rust、resvg によるSVG→PNG変換 + PNG保存）
 
 ## Debugging with Screenshots
 
 ### SDL2 スクリーンショットキャプチャ
 
-rsdl で起動した SDL2 ウィンドウの描画結果を BMP ファイルとしてキャプチャできる。
+SDL2 ウィンドウの描画結果を PNG ファイルとしてキャプチャできる。
 **デバッグ時は必ずこの機能を使って画面の状態を確認すること。**
 
 ```bash
 # N フレーム目のスクリーンショットを保存
 SMALRUBY3_SCREENSHOT=3 rsdl -Ilib examples/01_move.rb
-# → /tmp/smalruby3_screenshot.bmp
+# → /tmp/smalruby3_screenshot.png
 
 # 保存先を指定
-SMALRUBY3_SCREENSHOT=5 SMALRUBY3_SCREENSHOT_PATH=/tmp/debug.bmp rsdl -Ilib examples/01_move.rb
+SMALRUBY3_SCREENSHOT=5 SMALRUBY3_SCREENSHOT_PATH=/tmp/debug.png rsdl -Ilib examples/01_move.rb
+
+# Docker でのヘッドレスキャプチャ
+docker compose run --rm -e SMALRUBY3_SCREENSHOT=3 smalruby3 \
+  bash -c "timeout 15 ruby -Ilib examples/01_move.rb"
 ```
 
-### BMP → PNG 変換（Claude Code で確認するため）
-
-Claude Code の Read ツールは BMP を直接表示できないため、PNG に変換する。
-
-```bash
-ruby -e '
-require "zlib"
-bmp = File.binread("/tmp/smalruby3_screenshot.bmp")
-offset = bmp[10..13].unpack1("V")
-width = bmp[18..21].unpack1("V")
-height = bmp[22..25].unpack1("V")
-bpp = bmp[28..29].unpack1("v")
-row_size = ((bpp * width + 31) / 32) * 4
-raw = String.new(encoding: "ASCII-8BIT")
-(height - 1).downto(0) do |y|
-  raw << "\x00".b
-  width.times do |x|
-    pos = offset + y * row_size + x * (bpp / 8)
-    b = bmp.getbyte(pos); g = bmp.getbyte(pos + 1); r = bmp.getbyte(pos + 2)
-    a = bpp == 32 ? bmp.getbyte(pos + 3) : 255
-    raw << [r, g, b, a].pack("C4")
-  end
-end
-def png_chunk(type, data)
-  [data.length].pack("N") + type.b + data + [Zlib.crc32(type.b + data)].pack("N")
-end
-ihdr = [width, height, 8, 6, 0, 0, 0].pack("NNCCCCC")
-idat = Zlib::Deflate.deflate(raw)
-png = "\x89PNG\r\n\x1A\n".b
-png << png_chunk("IHDR", ihdr)
-png << png_chunk("IDAT", idat)
-png << png_chunk("IEND", "".b)
-File.binwrite("/tmp/smalruby3_screenshot.png", png)
-'
-```
-
-その後 Read ツールで `/tmp/smalruby3_screenshot.png` を開いて確認する。
+Read ツールで `/tmp/smalruby3_screenshot.png` を開いて確認する。
 
 ### 実装の注意点
 
 - `Surface.pixels` は**毎回コピーを返す**ため、書き込みに使えない
 - Surface への描画は `Surface.blit(src, srcrect, dst, dstrect)` を使う
 - 白い Surface の生成は `Surface.from_string(white_data, w, h, 32)` を使う
-- `Surface.save_bmp(surface, path)` はクラスメソッド
+- PNG 保存は Rust 拡張 `Smalruby3::ImageUtil.save_png` を使用（BMP フォールバックあり）
 
 ### デバッグ手順
 
-1. `SMALRUBY3_SCREENSHOT=N` でスクリーンショットを取得
-2. BMP → PNG 変換
-3. Read ツールで PNG を確認
-4. 問題があればコードを修正して再度スクリーンショット
+1. `SMALRUBY3_SCREENSHOT=N` でスクリーンショットを取得（PNG 直接保存）
+2. Read ツールで PNG を確認
+3. 問題があればコードを修正して再度スクリーンショット
 
 ## Architecture Notes
 
