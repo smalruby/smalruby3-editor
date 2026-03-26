@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir["lib/**/*.rb", "lib/**/*.json", "ext/**/*.{rb,rs,toml}", "assets/**/*", "LICENSE", "README.md"]
   spec.require_paths = ["lib"]
-  spec.extensions = ["ext/smalruby3_resvg/extconf.rb"]
+  spec.extensions = ["ext/smalruby3_imageutil/extconf.rb"]
 
   spec.add_dependency "ruby-sdl2", "~> 0.3"
   spec.add_dependency "rb_sys", "~> 0.9"

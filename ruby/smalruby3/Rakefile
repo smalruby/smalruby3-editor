@@ -9,7 +9,7 @@ Rake::TestTask.new(:test) do |t|
   t.test_files = FileList["test/**/*_test.rb"]
 end
 
-Rake::ExtensionTask.new("smalruby3_resvg") do |ext|
+Rake::ExtensionTask.new("smalruby3_imageutil") do |ext|
   ext.lib_dir = "lib/smalruby3"
 end
 

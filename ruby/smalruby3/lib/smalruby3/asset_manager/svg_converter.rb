@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../smalruby3_resvg"
+require_relative "../smalruby3_imageutil"
 
 module Smalruby3
   class AssetManager

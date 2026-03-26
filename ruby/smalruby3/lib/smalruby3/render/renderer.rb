@@ -197,7 +197,7 @@ module Smalruby3
       end
 
       def save_surface_as_png(surface, path)
-        require "smalruby3/smalruby3_resvg"
+        require "smalruby3/smalruby3_imageutil"
         # Extract RGBA pixel data from the SDL2 surface
         rgba_data = surface.pixels
         Smalruby3::ImageUtil.save_png(rgba_data, surface.w, surface.h, path)
