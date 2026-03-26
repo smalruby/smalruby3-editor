@@ -97,13 +97,23 @@ module Smalruby3
       return nil unless valid_md5ext?(md5ext)
 
       preset_path = find_preset(md5ext)
-      return preset_path if preset_path
+      return maybe_convert_svg(preset_path, md5ext) if preset_path
 
       cache_path = safe_cache_path(md5ext)
       return nil unless cache_path
-      return cache_path if regular_file?(cache_path)
 
-      download_asset(md5ext, raw_url, cache_path)
+      # Check for already-converted PNG in cache
+      png_md5ext = SvgConverter.png_path_for(md5ext)
+      if png_md5ext
+        png_cache = safe_cache_path(png_md5ext)
+        return png_cache if png_cache && regular_file?(png_cache)
+      end
+
+      return maybe_convert_svg(cache_path, md5ext) if regular_file?(cache_path)
+
+      downloaded = download_asset(md5ext, raw_url, cache_path)
+      return nil unless downloaded
+      maybe_convert_svg(downloaded, md5ext)
     end
 
     def find_preset(md5ext)
@@ -136,6 +146,19 @@ module Smalruby3
     rescue => e
       warn "[Smalruby3] Failed to download asset #{md5ext}: #{e.message}"
       nil
+    end
+
+    # Convert SVG to PNG if needed, returning the PNG path. Falls back to original path.
+    def maybe_convert_svg(path, md5ext)
+      png_md5ext = SvgConverter.png_path_for(md5ext)
+      return path unless png_md5ext
+
+      png_cache = safe_cache_path(png_md5ext)
+      return path unless png_cache
+      return png_cache if regular_file?(png_cache)
+
+      converted = SvgConverter.convert(path, png_cache)
+      converted || path
     end
 
     def find_costume_in_catalog(name)
@@ -192,3 +215,4 @@ module Smalruby3
 end
 
 require_relative "asset_manager/downloader"
+require_relative "asset_manager/svg_converter"
