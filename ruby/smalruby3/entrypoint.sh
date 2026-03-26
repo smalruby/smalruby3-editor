@@ -19,8 +19,11 @@ if [ -z "$DISPLAY" ]; then
 
   # Start x11vnc if VNC_ENABLED is set (for GUI viewing via VNC client)
   if [ "$VNC_ENABLED" = "1" ]; then
-    x11vnc -display :99 -forever -nopw -shared -rfbport 5900 &
-    echo "[smalruby3] VNC server started on port 5900"
+    VNC_PASSWORD="${VNC_PASSWORD:-smalruby}"
+    mkdir -p /tmp/.vnc
+    x11vnc -storepasswd "$VNC_PASSWORD" /tmp/.vnc/passwd
+    x11vnc -display :99 -forever -shared -rfbport 5900 -rfbauth /tmp/.vnc/passwd &
+    echo "[smalruby3] VNC server started on port 5900 (password: $VNC_PASSWORD)"
     echo "[smalruby3] Connect with: open vnc://localhost:15900"
   fi
 fi
