@@ -68,7 +68,11 @@ module Smalruby3
           when SDL2::Event::Quit
             yield :quit
           when SDL2::Event::KeyDown
-            yield [:key_down, event.scancode] unless event.repeat
+            if event.scancode == SDL2::Key::Scan::ESCAPE
+              yield :quit
+            elsif !event.repeat
+              yield [:key_down, event.scancode]
+            end
           when SDL2::Event::KeyUp
             yield [:key_up, event.scancode]
           when SDL2::Event::MouseMotion
