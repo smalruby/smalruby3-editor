@@ -2,7 +2,7 @@
 
 module Smalruby3
   class Target
-    attr_reader :runtime, :name
+    attr_reader :runtime, :name, :monitors
     attr_accessor :visible
 
     def initialize(runtime)
@@ -164,7 +164,11 @@ module Smalruby3
 
     def list(name)
       var = instance_variable_get(name.to_s.start_with?("@") ? name.to_sym : :"@#{name}")
-      var.is_a?(List) ? var : List.new
+      case var
+      when List then var
+      when Array then var
+      else List.new
+      end
     end
 
     def show_variable(name)
