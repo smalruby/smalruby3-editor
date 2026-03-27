@@ -160,11 +160,12 @@ module Smalruby3
           w - STROKE_WIDTH, h - STROKE_WIDTH,
           [CORNER_RADIUS - inset, 1].max)
 
-        # Tail below bubble, on the side facing the sprite
-        # In Scratch: tail is at bottom, pointing toward sprite
-        # on_right=true means bubble is right of sprite → tail points left (toward sprite)
-        # on_right=false means bubble is left of sprite → tail points right (toward sprite)
+        # Tail below bubble
         draw_tail(x, y, w, h, type, on_right)
+
+        # Erase the border between bubble and tail by overdrawing
+        # the junction area with fill color
+        erase_tail_junction(x, y, w, h, on_right, type)
       end
 
       def draw_rounded_rect(x, y, w, h, r)
@@ -184,6 +185,24 @@ module Smalruby3
           dx = Math.sqrt([r2 - dy * dy, 0].max).to_i
           @sdl_renderer.draw_line(cx - dx, cy + dy, cx + dx, cy + dy)
         end
+      end
+
+      def erase_tail_junction(x, y, w, h, on_right, type)
+        return if type == :think # think has detached circles, no junction
+
+        # The say tail attaches at the bottom of the bubble.
+        # Overdraw the junction with white to hide the border line.
+        inset = STROKE_WIDTH / 2
+        jw = CORNER_RADIUS + 4
+        jx = if on_right
+          x + inset
+        else
+          x + w - CORNER_RADIUS - 4 - inset
+        end
+        @sdl_renderer.draw_color = FILL_COLOR
+        # Erase a small strip at the bottom of the bubble
+        @sdl_renderer.fill_rect(SDL2::Rect.new(jx, y + h - STROKE_WIDTH - 1,
+          jw, STROKE_WIDTH + 2))
       end
 
       def draw_tail(x, y, w, h, type, on_right)
