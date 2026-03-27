@@ -24,6 +24,7 @@ module Smalruby3
         @sdl_renderer = @window.create_renderer(-1, SDL2::Renderer::Flags::ACCELERATED)
         @textures = {}
         @pen_skin = nil
+        @text_bubble = nil
         @window.show
         @window.raise
       end
@@ -66,7 +67,11 @@ module Smalruby3
           when SDL2::Event::Quit
             yield :quit
           when SDL2::Event::KeyDown
-            yield [:key_down, event.scancode] unless event.repeat
+            if event.scancode == SDL2::Key::Scan::ESCAPE
+              yield :quit
+            elsif !event.repeat
+              yield [:key_down, event.scancode]
+            end
           when SDL2::Event::KeyUp
             yield [:key_up, event.scancode]
           when SDL2::Event::MouseMotion
@@ -137,6 +142,14 @@ module Smalruby3
         @sdl_renderer.copy_ex(texture, nil, dst, angle, center, SDL2::Renderer::FLIP_NONE)
       end
 
+      def draw_bubbles(sprites)
+        sprites.each do |sprite|
+          next unless sprite.visible
+          next unless sprite.say_text || sprite.think_text
+          text_bubble.draw(sprite, @width, @height)
+        end
+      end
+
       def end_frame
         maybe_save_screenshot
         @sdl_renderer.present
@@ -152,10 +165,15 @@ module Smalruby3
           end
         }
         @textures.clear
+        @text_bubble&.destroy
         @window&.destroy
       end
 
       private
+
+      def text_bubble
+        @text_bubble ||= TextBubble.new(@sdl_renderer)
+      end
 
       def get_texture(costume)
         @textures[costume.path] ||= begin

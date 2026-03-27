@@ -7,3 +7,4 @@ ENV["SMALRUBY3_TESTING"] = "1"
 
 require "smalruby3"
 require "minitest/autorun"
+require "minitest/mock"
