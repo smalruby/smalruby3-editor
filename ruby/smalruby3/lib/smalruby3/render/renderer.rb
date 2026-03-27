@@ -25,7 +25,6 @@ module Smalruby3
         @textures = {}
         @pen_skin = nil
         @text_bubble = nil
-        @capture_surface = nil
         @window.show
         @window.raise
       end
@@ -88,10 +87,6 @@ module Smalruby3
       def begin_frame
         @sdl_renderer.draw_color = [255, 255, 255, 255]
         @sdl_renderer.clear
-
-        if capturing?
-          init_capture_surface
-        end
       end
 
       def draw_stage(_stage)
@@ -131,11 +126,6 @@ module Smalruby3
 
         texture.blend_mode = SDL2::BlendMode::BLEND
         @sdl_renderer.copy_ex(texture, nil, dst, angle, center, SDL2::Renderer::FLIP_NONE)
-
-        # Also blit to capture surface for screenshot
-        if capturing? && @capture_surface
-          blit_to_capture(costume.surface, screen_x, screen_y, w, h)
-        end
       end
 
       def draw_bubbles(sprites)
@@ -147,9 +137,9 @@ module Smalruby3
       end
 
       def end_frame
+        maybe_save_screenshot
         @sdl_renderer.present
         @frame_count += 1
-        maybe_save_screenshot
       end
 
       def destroy
@@ -162,7 +152,6 @@ module Smalruby3
         }
         @textures.clear
         @text_bubble&.destroy
-        @capture_surface&.destroy
         @window&.destroy
       end
 
@@ -180,49 +169,26 @@ module Smalruby3
         end
       end
 
-      # --- Screenshot capture ---
-
-      def capturing?
-        @screenshot_at_frame && @frame_count == @screenshot_at_frame - 1
-      end
+      # --- Screenshot capture (read_pixels based) ---
 
       def maybe_save_screenshot
         return unless @screenshot_at_frame
         return unless @frame_count == @screenshot_at_frame
+        return unless @screenshot_path && !File.symlink?(@screenshot_path)
 
-        if @capture_surface && @screenshot_path && !File.symlink?(@screenshot_path)
-          save_surface_as_png(@capture_surface, @screenshot_path)
-          warn "[Smalruby3] Screenshot saved to #{@screenshot_path} (frame #{@frame_count})"
-          @capture_surface.destroy
-          @capture_surface = nil
-        end
+        save_rendered_frame(@screenshot_path)
+        warn "[Smalruby3] Screenshot saved to #{@screenshot_path} (frame #{@frame_count})"
         @screenshot_at_frame = nil
       end
 
-      def init_capture_surface
-        @capture_surface&.destroy
-        # Create white surface using from_string
-        white_pixel = "\xFF\xFF\xFF\xFF".b
-        white_data = (white_pixel * @width * @height)
-        @capture_surface = SDL2::Surface.from_string(white_data, @width, @height, 32)
-      end
-
-      def blit_to_capture(src_surface, screen_x, screen_y, w, h)
-        return unless src_surface && @capture_surface
-        src_rect = SDL2::Rect.new(0, 0, src_surface.w, src_surface.h)
-        dst_rect = SDL2::Rect.new(screen_x, screen_y, w, h)
-        SDL2::Surface.blit(src_surface, src_rect, @capture_surface, dst_rect)
-      end
-
-      def save_surface_as_png(surface, path)
+      def save_rendered_frame(path)
         require "smalruby3/smalruby3_imageutil"
-        # Extract RGBA pixel data from the SDL2 surface
-        rgba_data = surface.pixels
-        Smalruby3::ImageUtil.save_png(rgba_data, surface.w, surface.h, path)
+        # Read pixels directly from the SDL2 renderer (captures everything)
+        rgba_data = @sdl_renderer.read_pixels(SDL2::Rect.new(0, 0, @width, @height),
+          SDL2::PixelFormat::ABGR8888)
+        Smalruby3::ImageUtil.save_png(rgba_data, @width, @height, path)
       rescue => e
-        warn "[Smalruby3] PNG save failed (#{e.message}), falling back to BMP"
-        bmp_path = "#{path.delete_suffix(".png")}.bmp"
-        SDL2::Surface.save_bmp(surface, bmp_path)
+        warn "[Smalruby3] Screenshot failed: #{e.message}"
       end
 
       # Validate screenshot path: must not be a symlink or point outside /tmp

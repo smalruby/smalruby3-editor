@@ -1,0 +1,3 @@
+[submodule "ruby/ruby-sdl2"]
+	path = ruby/ruby-sdl2
+	url = https://github.com/ohai/ruby-sdl2.git
