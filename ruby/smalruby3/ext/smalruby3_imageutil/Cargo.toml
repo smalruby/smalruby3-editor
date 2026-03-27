@@ -7,7 +7,7 @@ publish = false
 description = "Rust native extension for smalruby3: SVG-to-PNG conversion (powered by resvg) and RGBA-to-PNG encoding"
 
 [dependencies]
-magnus = "0.7"
+magnus = "0.8"
 resvg = "0.44"
 usvg = "0.44"
 tiny-skia = "0.11"
