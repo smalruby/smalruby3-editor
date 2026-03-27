@@ -253,20 +253,24 @@ module Smalruby3
           left_edge[dy] = [left_edge[dy], right_edge[dy]].min
         end
 
-        # Fill
+        # Stroke first (behind fill, matching Scratch's stroke→fill order)
+        # Draw stroke with expanded edges so it shows around the fill
+        @sdl_renderer.draw_color = STROKE_COLOR
+        sw = STROKE_WIDTH / 2
+        (0..TAIL_HEIGHT).each do |dy|
+          x1 = tx + dir * (left_edge[dy] - sw)
+          x2 = tx + dir * (right_edge[dy] + sw)
+          x1, x2 = x2, x1 if x1 > x2
+          @sdl_renderer.draw_line(x1, ty + dy, x2, ty + dy) if x2 >= x1
+        end
+
+        # Fill over stroke
         @sdl_renderer.draw_color = FILL_COLOR
         (0..TAIL_HEIGHT).each do |dy|
           x1 = tx + dir * left_edge[dy]
           x2 = tx + dir * right_edge[dy]
           x1, x2 = x2, x1 if x1 > x2
           @sdl_renderer.draw_line(x1, ty + dy, x2, ty + dy) if x2 >= x1
-        end
-
-        # Outline
-        @sdl_renderer.draw_color = STROKE_COLOR
-        (0..TAIL_HEIGHT).each do |dy|
-          @sdl_renderer.draw_point(tx + dir * left_edge[dy], ty + dy)
-          @sdl_renderer.draw_point(tx + dir * right_edge[dy], ty + dy)
         end
       end
 
