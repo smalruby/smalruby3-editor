@@ -217,36 +217,57 @@ module Smalruby3
       end
 
       def draw_say_tail(tx, ty, dir)
-        # Scratch say tail path (relative to origin at bubble's bottom-right corner):
-        #   (0,0) → bezier to (4,10) → arc tip at ~(3,12) → bezier back to (-16,0)
+        # Scratch tail bezier path (origin = bubble's right-bottom corner area):
+        #   Start at (0, 0)
+        #   Bezier1: cp1=(0,4) cp2=(4,8) end=(4,10) → curves right then down
+        #   Arc tip: (4,10)→(4,12)→(2,12) r=2 → rounded tip
+        #   Bezier2: cp1=(-1,12) cp2=(-11,8) end=(-16,0) → curves back left-up
         #
-        # Shape: wide at top (y=0, spans -16..0), narrows to tip at bottom (y≈12).
-        # The RIGHT edge goes from x=0 out to x≈4 then back to x≈0 (the tip).
-        # The LEFT edge goes from x=-16 at top, curving to x≈-1 at bottom (the tip).
-        #
-        # Approximation: at each scanline dy, interpolate edges.
-        # Left edge: starts at -16 (top), curves to ~0 (bottom tip)
-        # Right edge: starts at 0 (top), bulges to ~4 mid-way, returns to ~0 at tip
+        # We sample the two bezier curves to get left/right edges at each Y.
+        # Right edge = bezier1, Left edge = bezier2 (reversed)
 
+        # Pre-compute edge X at each scanline by sampling the beziers
+        right_edge = Array.new(TAIL_HEIGHT + 1, 0)
+        left_edge = Array.new(TAIL_HEIGHT + 1, 0)
+
+        # Sample bezier1: (0,0)→(0,4)→(4,8)→(4,10) for right edge
+        # Sample bezier2: (-16,0)→(-11,8)→(-1,12)→(2,12) for left edge (reversed)
+        steps = TAIL_HEIGHT * 4
+        steps.times do |i|
+          t = i.to_f / steps
+          # Bezier1 right edge
+          rx = cubic_bezier(t, 0, 0, 4, 4)
+          ry = cubic_bezier(t, 0, 4, 8, 10)
+          yi = ry.round.clamp(0, TAIL_HEIGHT)
+          right_edge[yi] = [right_edge[yi], rx.round].max
+
+          # Bezier2 left edge (from (-16,0) to tip area)
+          lx = cubic_bezier(t, -16, -11, -1, 2)
+          ly = cubic_bezier(t, 0, 8, 12, 12)
+          yi = ly.round.clamp(0, TAIL_HEIGHT)
+          left_edge[yi] = [left_edge[yi], lx.round].min
+        end
+
+        # Fill
         @sdl_renderer.draw_color = FILL_COLOR
         (0..TAIL_HEIGHT).each do |dy|
-          t = dy.to_f / TAIL_HEIGHT
-          left_x = (-16.0 * (1 - t)).to_i
-          right_x = (4.0 * Math.sin((1 - t) * Math::PI * 0.6)).to_i
-          x1 = tx + dir * left_x
-          x2 = tx + dir * right_x
+          x1 = tx + dir * left_edge[dy]
+          x2 = tx + dir * right_edge[dy]
           x1, x2 = x2, x1 if x1 > x2
-          @sdl_renderer.draw_line(x1, ty + dy, x2, ty + dy)
+          @sdl_renderer.draw_line(x1, ty + dy, x2, ty + dy) if x2 >= x1
         end
 
+        # Outline
         @sdl_renderer.draw_color = STROKE_COLOR
         (0..TAIL_HEIGHT).each do |dy|
-          t = dy.to_f / TAIL_HEIGHT
-          left_x = (-16.0 * (1 - t)).to_i
-          right_x = (4.0 * Math.sin((1 - t) * Math::PI * 0.6)).to_i
-          @sdl_renderer.draw_point(tx + dir * left_x, ty + dy)
-          @sdl_renderer.draw_point(tx + dir * right_x, ty + dy)
+          @sdl_renderer.draw_point(tx + dir * left_edge[dy], ty + dy)
+          @sdl_renderer.draw_point(tx + dir * right_edge[dy], ty + dy)
         end
+      end
+
+      def cubic_bezier(t, p0, p1, p2, p3)
+        mt = 1 - t
+        mt * mt * mt * p0 + 3 * mt * mt * t * p1 + 3 * mt * t * t * p2 + t * t * t * p3
       end
 
       def draw_think_tail(tx, ty, dir)
