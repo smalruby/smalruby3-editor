@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+# smalruby3 launcher wrapper — exec's the native SDL2 binary.
+# The native binary (smalruby3-bin) is installed to Ruby's bindir
+# by ext/smalruby3_launcher during gem install.
+
+require "rbconfig"
+
+bindir = RbConfig::CONFIG["bindir"]
+binary = File.join(bindir, "smalruby3-bin")
+
+# Fallback: development mode (built locally in ext/)
+unless File.exist?(binary)
+  binary = File.join(File.dirname(__FILE__, 2),
+    "ext", "smalruby3_launcher", "smalruby3")
+end
+
+exec binary, *ARGV

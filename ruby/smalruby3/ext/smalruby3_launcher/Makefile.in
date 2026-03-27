@@ -1,0 +1,26 @@
+CC = <%= config['CC'] %>
+
+CFLAGS = <%= config['CFLAGS'] %>
+LIBS = <%= config['LIBS'] %>
+LDFLAGS = <%= config['LDFLAGS'] %>
+LIBPATH = <%= config['LIBPATH'] %>
+LIBRUBYARG = <%= config['LIBRUBYARG'] %>
+EXEEXT = <%= config['EXEEXT'] %>
+
+PROGRAM = smalruby3$(EXEEXT)
+
+OBJS = smalruby3_launcher.o
+
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
+all: $(PROGRAM)
+
+clean:
+	<%= config['RMALL'] %> $(PROGRAM) $(OBJS)
+
+install:
+	<%= config['INSTALL'] %> $(PROGRAM) <%= config['bindir'] %>/smalruby3-bin
+
+$(PROGRAM): $(OBJS)
+	$(CC) $(OBJS) $(LIBPATH) $(LDFLAGS) $(LIBRUBYARG) $(LIBS) -o $@

@@ -2,7 +2,3 @@
 	path = ruby/ruby-sdl2
 	url = https://github.com/smalruby/ruby-sdl2.git
 	branch = smalruby/add-read-pixels
-[submodule "ruby/rsdl"]
-	path = ruby/rsdl
-	url = https://github.com/smalruby/rsdl.git
-	branch = smalruby/ruby-4.0-support

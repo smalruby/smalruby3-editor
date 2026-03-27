@@ -7,5 +7,12 @@ lib/smalruby3/smalruby3_imageutil.bundle
 lib/smalruby3/smalruby3_imageutil.so
 *.gem
 
+# Launcher build artifacts
+ext/smalruby3_launcher/smalruby3
+ext/smalruby3_launcher/smalruby3_launcher.c
+ext/smalruby3_launcher/smalruby3_launcher.o
+ext/smalruby3_launcher/Makefile
+ext/smalruby3_launcher/mkmf.log
+
 # Docker marker
 .built
