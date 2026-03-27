@@ -111,7 +111,8 @@ module Smalruby3
         costume = sprite.current_costume_obj
         return unless costume
 
-        texture = get_texture(costume)
+        # Use effect-applied texture if non-ghost effects are active
+        texture = get_effect_texture(sprite, costume)
         return unless texture
 
         # Convert Scratch coords (center origin, +Y up) to SDL2 coords (top-left, +Y down)
@@ -173,6 +174,27 @@ module Smalruby3
 
       def text_bubble
         @text_bubble ||= TextBubble.new(@sdl_renderer)
+      end
+
+      def get_effect_texture(sprite, costume)
+        if EffectSurface.needs_effects?(sprite.effects)
+          surface = EffectSurface.apply(sprite)
+          return nil unless surface
+          # Effect textures use a per-sprite cache key
+          cache_key = :"_effect_tex_#{sprite.object_id}"
+          cache = @textures[cache_key]
+          effects_hash = sprite.effects.hash ^ costume.path.hash
+          if cache && cache[:hash] == effects_hash
+            cache[:texture]
+          else
+            cache&.dig(:texture)&.destroy rescue nil # rubocop:disable Style/RescueModifier
+            tex = @sdl_renderer.create_texture_from(surface)
+            @textures[cache_key] = {texture: tex, hash: effects_hash}
+            tex
+          end
+        else
+          get_texture(costume)
+        end
       end
 
       def get_texture(costume)
