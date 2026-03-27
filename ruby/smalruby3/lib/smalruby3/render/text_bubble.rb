@@ -228,11 +228,11 @@ module Smalruby3
 
         # Pre-compute edge X at each scanline by sampling the beziers
         right_edge = Array.new(TAIL_HEIGHT + 1, 0)
-        left_edge = Array.new(TAIL_HEIGHT + 1, 0)
+        left_edge = Array.new(TAIL_HEIGHT + 1, 999)
 
         # Sample bezier1: (0,0)→(0,4)→(4,8)→(4,10) for right edge
-        # Sample bezier2: (-16,0)→(-11,8)→(-1,12)→(2,12) for left edge (reversed)
-        steps = TAIL_HEIGHT * 4
+        # Sample bezier2: (-16,0)→(-11,8)→(-1,12)→(2,12) for left edge
+        steps = TAIL_HEIGHT * 8
         steps.times do |i|
           t = i.to_f / steps
           # Bezier1 right edge
@@ -246,6 +246,11 @@ module Smalruby3
           ly = cubic_bezier(t, 0, 8, 12, 12)
           yi = ly.round.clamp(0, TAIL_HEIGHT)
           left_edge[yi] = [left_edge[yi], lx.round].min
+        end
+
+        # Clamp unvisited rows
+        (0..TAIL_HEIGHT).each do |dy|
+          left_edge[dy] = [left_edge[dy], right_edge[dy]].min
         end
 
         # Fill
