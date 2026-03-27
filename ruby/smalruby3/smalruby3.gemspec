@@ -16,9 +16,11 @@ Gem::Specification.new do |spec|
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.3"
 
-  spec.files = Dir["lib/**/*.rb", "lib/**/*.json", "ext/**/*.{rb,rs,toml}", "assets/**/*", "LICENSE", "README.md"]
+  spec.files = Dir["lib/**/*.rb", "lib/**/*.json", "ext/**/*.{rb,rs,toml,in,c.in}", "exe/*", "assets/**/*", "LICENSE", "README.md"]
+  spec.bindir = "exe"
+  spec.executables = ["smalruby3"]
   spec.require_paths = ["lib"]
-  spec.extensions = ["ext/smalruby3_imageutil/extconf.rb"]
+  spec.extensions = ["ext/smalruby3_imageutil/extconf.rb", "ext/smalruby3_launcher/extconf.rb"]
 
   spec.add_dependency "ruby-sdl2", "~> 0.3"
   spec.add_dependency "rb_sys", "~> 0.9"
