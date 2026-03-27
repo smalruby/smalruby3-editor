@@ -190,19 +190,20 @@ module Smalruby3
       def erase_tail_junction(x, y, w, h, on_right, type)
         return if type == :think # think has detached circles, no junction
 
-        # The say tail attaches at the bottom of the bubble.
-        # Overdraw the junction with white to hide the border line.
-        inset = STROKE_WIDTH / 2
-        jw = CORNER_RADIUS + 4
+        # The say tail top edge (y=0) spans from x=-16 to x=0 relative to tail_x.
+        # With dir multiplier, calculate the screen-space range of the junction.
+        jw = 16
         jx = if on_right
-          x + inset
+          # dir=-1: tail_x to tail_x+16
+          x + CORNER_RADIUS
         else
-          x + w - CORNER_RADIUS - 4 - inset
+          # dir=1: tail_x-16 to tail_x
+          x + w - CORNER_RADIUS - 16
         end
         @sdl_renderer.draw_color = FILL_COLOR
-        # Erase a small strip at the bottom of the bubble
-        @sdl_renderer.fill_rect(SDL2::Rect.new(jx, y + h - STROKE_WIDTH - 1,
-          jw, STROKE_WIDTH + 2))
+        # Erase the border at the junction (bottom of bubble where tail attaches)
+        @sdl_renderer.fill_rect(SDL2::Rect.new(jx, y + h - STROKE_WIDTH,
+          jw, STROKE_WIDTH + 1))
       end
 
       def draw_tail(x, y, w, h, type, on_right)
