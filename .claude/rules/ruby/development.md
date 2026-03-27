@@ -281,12 +281,19 @@ Read ツールで `/tmp/smalruby3_screenshot.png` を開いて確認する。
 
 ## Architecture Notes
 
-### Scratch Coordinate System
+### Coordinate Systems
 
-- 原点: ステージ中央 (0, 0)
-- X: -240（左）〜 +240（右）
-- Y: -180（下）〜 +180（上）
-- SDL2 座標への変換: `screen_x = 240 + scratch_x`, `screen_y = 180 - scratch_y`
+**3つの座標系が関係する。scratch-render の描画コードを移植する際は特に注意。**
+
+| 座標系 | 原点 | X+ | Y+ | 用途 |
+|---|---|---|---|---|
+| Scratch | ステージ中央 | 右 | **上** | スプライト位置、ブロックの座標 |
+| SDL2 | 画面左上 | 右 | **下** | 実際の描画、テクスチャ配置 |
+| Canvas 2D (scratch-render) | 左上 | 右 | **下** | TextBubbleSkin 等の描画 |
+
+- **SDL2 と Canvas 2D は同じ方向**（Y+ = 下）。scratch-render のコードはそのまま Y 方向を保てる
+- **Scratch 座標 → SDL2**: `screen_x = 240 + scratch_x`, `screen_y = 180 - scratch_y`（Y 反転）
+- scratch-render の `TextBubbleSkin.js` で `(0, 4)` は「下に 4px」= SDL2 でも「下に 4px」
 
 ### Event System
 

@@ -217,46 +217,46 @@ module Smalruby3
       end
 
       def draw_say_tail(tx, ty, dir)
-        # Scratch's say tail: bezierCurveTo from (0,0) to (4,10), then back to (-16,0)
-        # This creates a swoopy shape: starts narrow at origin, goes right-down,
-        # then curves back left to create a pointed tail.
-        # We approximate with scanlines.
-        # The tail outline goes:
-        #   left edge: from (0,0) curving to (-16, 0) via (-11, 8) and (-1, 12)
-        #   right edge: from (0,0) curving to (4, 10) via (0, 4) and (4, 8)
-        # Overall shape: origin is at top, widens then narrows to a point at bottom.
+        # Scratch say tail path (relative to origin at bubble's bottom-right corner):
+        #   (0,0) → bezier to (4,10) → arc tip at ~(3,12) → bezier back to (-16,0)
+        #
+        # Shape: wide at top (y=0, spans -16..0), narrows to tip at bottom (y≈12).
+        # The RIGHT edge goes from x=0 out to x≈4 then back to x≈0 (the tip).
+        # The LEFT edge goes from x=-16 at top, curving to x≈-1 at bottom (the tip).
+        #
+        # Approximation: at each scanline dy, interpolate edges.
+        # Left edge: starts at -16 (top), curves to ~0 (bottom tip)
+        # Right edge: starts at 0 (top), bulges to ~4 mid-way, returns to ~0 at tip
 
-        # Fill
         @sdl_renderer.draw_color = FILL_COLOR
         (0..TAIL_HEIGHT).each do |dy|
           t = dy.to_f / TAIL_HEIGHT
-          # Right edge: curves from 0 to +4 and back (peak around t=0.8)
-          right_x = (4.0 * Math.sin(t * Math::PI * 0.8)).to_i
-          # Left edge: curves from 0 to -16 (reaches -16 at bottom)
-          left_x = (-16.0 * t).to_i
+          left_x = (-16.0 * (1 - t)).to_i
+          right_x = (4.0 * Math.sin((1 - t) * Math::PI * 0.6)).to_i
           x1 = tx + dir * left_x
           x2 = tx + dir * right_x
           x1, x2 = x2, x1 if x1 > x2
           @sdl_renderer.draw_line(x1, ty + dy, x2, ty + dy)
         end
 
-        # Outline
         @sdl_renderer.draw_color = STROKE_COLOR
         (0..TAIL_HEIGHT).each do |dy|
           t = dy.to_f / TAIL_HEIGHT
-          right_x = (4.0 * Math.sin(t * Math::PI * 0.8)).to_i
-          left_x = (-16.0 * t).to_i
+          left_x = (-16.0 * (1 - t)).to_i
+          right_x = (4.0 * Math.sin((1 - t) * Math::PI * 0.6)).to_i
           @sdl_renderer.draw_point(tx + dir * left_x, ty + dy)
           @sdl_renderer.draw_point(tx + dir * right_x, ty + dy)
         end
       end
 
       def draw_think_tail(tx, ty, dir)
-        # Scratch's think tail: half-circle at (-16, 0) r=4, then two circles
-        # at (-9.25, 7.25) r=2.25 and (-1.5, 9.5) r=1.5
-        # These go from the bubble edge outward toward the sprite.
+        # Scratch's think tail (coords relative to bubble bottom-right corner):
+        #   Half-circle at (-16, 0) r=4 — attached to bubble bottom
+        #   Circle at (-9.25, 7.25) r=2.25 — middle
+        #   Circle at (-1.5, 9.5) r=1.5 — smallest, furthest down
+        # Note: positive Y = downward (toward sprite)
         bubbles = [
-          [tx + dir * -16, ty + 2, 4],    # Largest, attached to bubble
+          [tx + dir * -16, ty + 1, 4],    # Largest, attached to bubble
           [tx + dir * -9, ty + 7, 2],     # Medium
           [tx + dir * -2, ty + 10, 1]     # Smallest, furthest from bubble
         ]
