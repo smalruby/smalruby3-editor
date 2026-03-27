@@ -94,7 +94,11 @@ module Smalruby3
           end
         end
 
-        SDL2::Surface.from_string(dst_data, w, h, 32)
+        # Must specify RGBA masks explicitly; without amask, alpha is ignored
+        SDL2::Surface.from_string(
+          dst_data, w, h, 32, w * 4,
+          0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000
+        )
       end
     end
   end
