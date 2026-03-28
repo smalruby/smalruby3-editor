@@ -15,6 +15,16 @@ The following features are **only available in Version 2**:
 - `super` — calling module methods from overriding class methods
 - Automatic `class Stage` completion on file save
 
+## Lists (Data)
+
+| Feature | Version 2 | Version 1 |
+|---|---|---|
+| List reference | `@items.push(...)` (direct array) | `list("@items").push(...)` (wrapper) |
+| Index | 0-indexed: `@items[0]` | 1-indexed: `list("@items")[1]` |
+| Initialization | `@items = [1, 2, 3]` (array literal) | Not available |
+| Hash | `$a[:key]`, `$a["key"]` | Not available |
+| Empty check | `@items.empty?` | Not available |
+
 ## Sensing
 
 | Feature | Version 2 | Version 1 |
