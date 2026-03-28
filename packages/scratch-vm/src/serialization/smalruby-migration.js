@@ -9,24 +9,24 @@
  * @returns {boolean} True if legacy mesh blocks are found.
  */
 const detectMeshV1Blocks = projectJSON => {
-    if (!projectJSON.targets) return false;
-    for (const target of projectJSON.targets) {
-        for (const blockId in target.blocks) {
-            const block = target.blocks[blockId];
-            if (block.opcode && block.opcode.startsWith('mesh_')) {
-                return true;
-            }
-        }
+  if (!projectJSON.targets) return false
+  for (const target of projectJSON.targets) {
+    for (const blockId in target.blocks) {
+      const block = target.blocks[blockId]
+      if (block.opcode && block.opcode.startsWith('mesh_')) {
+        return true
+      }
     }
-    return false;
-};
+  }
+  return false
+}
 
 const detectKoshien = projectJSON => {
-    if (Array.isArray(projectJSON.extensions)) {
-        return projectJSON.extensions.indexOf('koshien') !== -1;
-    }
-    return false;
-};
+  if (Array.isArray(projectJSON.extensions)) {
+    return projectJSON.extensions.indexOf('koshien') !== -1
+  }
+  return false
+}
 
 /**
  * Migrate the project JSON from legacy mesh to meshV2.
@@ -34,33 +34,33 @@ const detectKoshien = projectJSON => {
  * @returns {object} The migrated project JSON.
  */
 const migrateMeshV1Blocks = projectJSON => {
-    const newProjectJSON = JSON.parse(JSON.stringify(projectJSON));
+  const newProjectJSON = JSON.parse(JSON.stringify(projectJSON))
 
-    // Update extensions
-    if (Array.isArray(newProjectJSON.extensions)) {
-        newProjectJSON.extensions = newProjectJSON.extensions.map(ext => (ext === 'mesh' ? 'meshV2' : ext));
-        if (newProjectJSON.extensions.indexOf('meshV2') === -1) {
-            newProjectJSON.extensions.push('meshV2');
-        }
-    } else {
-        newProjectJSON.extensions = ['meshV2'];
+  // Update extensions
+  if (Array.isArray(newProjectJSON.extensions)) {
+    newProjectJSON.extensions = newProjectJSON.extensions.map(ext => (ext === 'mesh' ? 'meshV2' : ext))
+    if (newProjectJSON.extensions.indexOf('meshV2') === -1) {
+      newProjectJSON.extensions.push('meshV2')
     }
+  } else {
+    newProjectJSON.extensions = ['meshV2']
+  }
 
-    // Update opcodes
-    for (const target of newProjectJSON.targets) {
-        for (const blockId in target.blocks) {
-            const block = target.blocks[blockId];
-            if (block.opcode && block.opcode.startsWith('mesh_')) {
-                block.opcode = block.opcode.replace('mesh_', 'meshV2_');
-            }
-        }
+  // Update opcodes
+  for (const target of newProjectJSON.targets) {
+    for (const blockId in target.blocks) {
+      const block = target.blocks[blockId]
+      if (block.opcode && block.opcode.startsWith('mesh_')) {
+        block.opcode = block.opcode.replace('mesh_', 'meshV2_')
+      }
     }
+  }
 
-    return newProjectJSON;
-};
+  return newProjectJSON
+}
 
 module.exports = {
-    detectMeshV1Blocks,
-    detectKoshien,
-    migrateMeshV1Blocks
-};
+  detectMeshV1Blocks,
+  detectKoshien,
+  migrateMeshV1Blocks,
+}

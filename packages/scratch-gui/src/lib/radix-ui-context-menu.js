@@ -1,3 +1,3 @@
-import * as ContextMenu from '@radix-ui/react-context-menu';
+import * as ContextMenu from '@radix-ui/react-context-menu'
 
-export default ContextMenu;
+export default ContextMenu

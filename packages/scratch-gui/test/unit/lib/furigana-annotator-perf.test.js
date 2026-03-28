@@ -5,8 +5,8 @@
  * Run with:
  *   npm exec jest --no-coverage test/unit/lib/furigana-annotator-perf.test.js --verbose
  */
-import {loadPrism} from '../../../src/lib/prism-parser';
-import FuriganaAnnotator from '../../../src/lib/furigana-annotator';
+import FuriganaAnnotator from '../../../src/lib/furigana-annotator'
+import { loadPrism } from '../../../src/lib/prism-parser'
 
 // A representative 100-line smalruby program covering many method types
 const SAMPLE_100_LINES = `
@@ -119,57 +119,59 @@ Math.sqrt(9)
 Math.sin(90)
 Math.cos(0)
 Math.log(10)
-`.trim();
+`.trim()
 
 describe('FuriganaAnnotator performance benchmark', () => {
-    let prism;
-    let annotator;
+  let prism
+  let annotator
 
-    beforeAll(async () => {
-        prism = await loadPrism();
-        annotator = new FuriganaAnnotator();
-    });
+  beforeAll(async () => {
+    prism = await loadPrism()
+    annotator = new FuriganaAnnotator()
+  })
 
-    const measure = (label, code, iterations) => {
-        const parsed = prism.parse(code);
-        // Warm up
-        for (let i = 0; i < 3; i++) {
-            annotator.annotate(code, parsed);
-        }
-        const times = [];
-        for (let i = 0; i < iterations; i++) {
-            const start = performance.now();
-            annotator.annotate(code, parsed);
-            times.push(performance.now() - start);
-        }
-        const avg = times.reduce((a, b) => a + b, 0) / times.length;
-        const max = Math.max(...times);
-        const min = Math.min(...times);
-        console.log(`[PERF] ${label}: avg=${avg.toFixed(2)}ms min=${min.toFixed(2)}ms max=${max.toFixed(2)}ms (n=${iterations})`);
-        return {avg, max, min};
-    };
+  const measure = (label, code, iterations) => {
+    const parsed = prism.parse(code)
+    // Warm up
+    for (let i = 0; i < 3; i++) {
+      annotator.annotate(code, parsed)
+    }
+    const times = []
+    for (let i = 0; i < iterations; i++) {
+      const start = performance.now()
+      annotator.annotate(code, parsed)
+      times.push(performance.now() - start)
+    }
+    const avg = times.reduce((a, b) => a + b, 0) / times.length
+    const max = Math.max(...times)
+    const min = Math.min(...times)
+    console.log(
+      `[PERF] ${label}: avg=${avg.toFixed(2)}ms min=${min.toFixed(2)}ms max=${max.toFixed(2)}ms (n=${iterations})`,
+    )
+    return { avg, max, min }
+  }
 
-    test('100-line program: avg annotation time < 50ms', () => {
-        const {avg} = measure('100-line program', SAMPLE_100_LINES, 50);
-        // 50ms budget per annotation — should be well within adaptive debounce tolerance
-        expect(avg).toBeLessThan(50);
-    });
+  test('100-line program: avg annotation time < 50ms', () => {
+    const { avg } = measure('100-line program', SAMPLE_100_LINES, 50)
+    // 50ms budget per annotation — should be well within adaptive debounce tolerance
+    expect(avg).toBeLessThan(50)
+  })
 
-    test('repeated annotation is stable (no memory leak pattern)', () => {
-        const parsed = prism.parse(SAMPLE_100_LINES);
-        const first = [];
-        const last = [];
-        for (let i = 0; i < 100; i++) {
-            const start = performance.now();
-            annotator.annotate(SAMPLE_100_LINES, parsed);
-            const elapsed = performance.now() - start;
-            if (i < 10) first.push(elapsed);
-            if (i >= 90) last.push(elapsed);
-        }
-        const avgFirst = first.reduce((a, b) => a + b, 0) / first.length;
-        const avgLast = last.reduce((a, b) => a + b, 0) / last.length;
-        console.log(`[PERF] Stability: first10_avg=${avgFirst.toFixed(2)}ms last10_avg=${avgLast.toFixed(2)}ms`);
-        // Last 10 should not be more than 3x slower than first 10 (no degradation)
-        expect(avgLast).toBeLessThan(avgFirst * 3 + 10);
-    });
-});
+  test('repeated annotation is stable (no memory leak pattern)', () => {
+    const parsed = prism.parse(SAMPLE_100_LINES)
+    const first = []
+    const last = []
+    for (let i = 0; i < 100; i++) {
+      const start = performance.now()
+      annotator.annotate(SAMPLE_100_LINES, parsed)
+      const elapsed = performance.now() - start
+      if (i < 10) first.push(elapsed)
+      if (i >= 90) last.push(elapsed)
+    }
+    const avgFirst = first.reduce((a, b) => a + b, 0) / first.length
+    const avgLast = last.reduce((a, b) => a + b, 0) / last.length
+    console.log(`[PERF] Stability: first10_avg=${avgFirst.toFixed(2)}ms last10_avg=${avgLast.toFixed(2)}ms`)
+    // Last 10 should not be more than 3x slower than first 10 (no degradation)
+    expect(avgLast).toBeLessThan(avgFirst * 3 + 10)
+  })
+})

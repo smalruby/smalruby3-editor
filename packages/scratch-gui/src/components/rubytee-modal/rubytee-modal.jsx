@@ -80,7 +80,7 @@ const messages = defineMessages({
     },
     applyCodeNote: {
         id: 'gui.rubyteeModal.applyCodeNote',
-        // eslint-disable-next-line max-len
+         
         defaultMessage: 'AI-generated programs may not always work correctly. When that happens, enjoy debugging — finding and fixing problems in your program!',
         description: 'Disclaimer note shown below the apply code button'
     },

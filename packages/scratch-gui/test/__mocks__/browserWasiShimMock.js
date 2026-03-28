@@ -1,7 +1,7 @@
 export class WASI {
-    constructor () {}
-    get wasiImport () {
-        return {};
-    }
-    initialize () {}
+  constructor() {}
+  get wasiImport() {
+    return {}
+  }
+  initialize() {}
 }

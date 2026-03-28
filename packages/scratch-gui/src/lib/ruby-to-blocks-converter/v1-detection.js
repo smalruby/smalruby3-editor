@@ -4,7 +4,7 @@
  * Regular expression to detect v1-specific Ruby code patterns from published books.
  * These patterns are valid in v2 mode but produce different code after round-trip.
  */
-// eslint-disable-next-line max-len
+ 
 const V1_CODE_PATTERN = /self\.when\(\s*:|(?<!\.)(?:play_drum|rest)\(|self\.instrument\b|(?<!\.)pen_(?:down|clear)\b|self\.color\s*[+-]?=/;
 
 /**

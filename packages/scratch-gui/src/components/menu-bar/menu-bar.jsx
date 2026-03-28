@@ -163,7 +163,7 @@ const updateMessages = defineMessages({
     },
     updateConfirm: {
         id: 'gui.menuBar.updateConfirm',
-        // eslint-disable-next-line max-len
+         
         defaultMessage: 'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',
         description: 'confirm dialog text for version update notification'
     }
@@ -596,7 +596,7 @@ class MenuBar extends React.Component {
         default: {
             return (<FormattedMessage
                 defaultMessage="Restore"
-                description="Menu bar item for restoring the last deleted item in its disabled state." /* eslint-disable-line max-len */
+                description="Menu bar item for restoring the last deleted item in its disabled state."  
                 id="gui.menuBar.restore"
             />);
         }
@@ -821,7 +821,7 @@ class MenuBar extends React.Component {
                                             >
                                                 <FormattedMessage
                                                     defaultMessage="Save to your computer"
-                                                    description="Menu bar item for downloading a project to your computer" // eslint-disable-line max-len
+                                                    description="Menu bar item for downloading a project to your computer"  
                                                     id="gui.menuBar.downloadToComputer"
                                                 />
                                             </MenuItem>

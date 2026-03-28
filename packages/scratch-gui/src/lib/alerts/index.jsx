@@ -203,7 +203,7 @@ const alerts = [
         clearList: ['cloudInfo'],
         content: (
             <FormattedMessage
-                defaultMessage="Please note, cloud variables only support numbers, not letters or symbols. <a>{learnMoreLink}</a>" // eslint-disable-line max-len
+                defaultMessage="Please note, cloud variables only support numbers, not letters or symbols. <a>{learnMoreLink}</a>"  
                 description="Info about cloud variable limitations"
                 id="gui.alerts.cloudInfo"
                 values={{
