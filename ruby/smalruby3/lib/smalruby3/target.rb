@@ -162,15 +162,6 @@ module Smalruby3
 
     # --- Data ---
 
-    def list(name)
-      var = instance_variable_get(name.to_s.start_with?("@") ? name.to_sym : :"@#{name}")
-      case var
-      when List then var
-      when Array then var
-      else List.new
-      end
-    end
-
     def show_variable(name)
       @monitors[name] = :visible
     end
