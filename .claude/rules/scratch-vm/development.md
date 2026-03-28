@@ -234,6 +234,22 @@ upstream merge 時にコンフリクトを解決しやすくするための仕�
 - `src/extension-support/smalruby-extensions.js` — extension-manager.js のマーカーから参照
 - `test/unit/blocks_operators_regex.js` — scratch3_operators.js の regex support のテスト
 
+## Prettier (Code Formatting)
+
+Smalruby 固有ファイルのみに Prettier を適用。upstream ファイルは `.prettierignore` で除外。
+
+**新しい Smalruby 固有ファイルを追加した場合は、必ず以下を更新すること:**
+1. `packages/scratch-vm/.prettierignore` — ホワイトリストに追加
+2. `.claude/rules/scratch-vm/smalruby-prettier-files.md` — 一覧に追加
+
+```bash
+# フォーマット実行
+docker compose run --rm app bash -c "cd packages/scratch-vm && npm run format"
+
+# フォーマットチェック
+docker compose run --rm app bash -c "cd packages/scratch-vm && npm run format:check"
+```
+
 ## Development Notes
 
 - The VM exports both Node.js and browser builds

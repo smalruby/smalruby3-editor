@@ -9,6 +9,29 @@
 - Fix linting errors and warnings automatically when possible: `npm run lint -- --fix`
 - **JSDoc warnings count as failures**: Missing `@param`, `@returns`, unescaped inline tags (`@ruby` → `` `@ruby` ``), and incorrect types (`Object` → `object`) must all be fixed.
 
+### Prettier (Code Formatting)
+
+- **Formatter**: Prettier with `prettierConfigScratch.recommended` from `eslint-config-scratch`
+- **対象**: Smalruby 固有ファイルのみ（upstream ファイルは対象外）
+- **設定**: `tabWidth: 2`, `semi: false`, `singleQuote: true`, `trailingComma: 'all'`, import sorting 有効
+- **`.prettierignore`**: ホワイトリスト方式 — デフォルトで全ファイルを無視し、Smalruby 固有ファイルのみ対象に含める
+- **ファイル一覧**: `.claude/rules/scratch-gui/smalruby-prettier-files.md` / `.claude/rules/scratch-vm/smalruby-prettier-files.md`
+
+**新しい Smalruby 固有ファイルを追加する際は、必ず以下の 2 つを更新すること:**
+1. 該当パッケージの `.prettierignore`（ホワイトリストに追加）
+2. `.claude/rules/<package>/smalruby-prettier-files.md`（一覧に追加）
+
+```bash
+# フォーマット実行
+docker compose run --rm app npm run format
+
+# フォーマットチェック（lint に含まれる）
+docker compose run --rm app npm run format:check
+
+# パッケージ単位
+docker compose run --rm app bash -c "cd packages/scratch-gui && npm run format"
+```
+
 ### Code Style Guidelines
 
 1. **Follow existing patterns**: When modifying code, match the style of surrounding code

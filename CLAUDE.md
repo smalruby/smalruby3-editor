@@ -145,6 +145,20 @@ docker compose run --rm app npm run lint
 
 **IMPORTANT**: Lint must pass with **zero errors AND zero warnings**. The `scratch-gui` package uses `--max-warnings 0` to enforce this. Fix all warnings (including JSDoc issues) before committing.
 
+### Formatting (Prettier)
+
+Prettier is applied to **Smalruby-specific files only** (not upstream Scratch files). The `lint` script includes `prettier --check .` automatically.
+
+```bash
+# Format all Smalruby-specific files
+docker compose run --rm app npm run format
+
+# Check formatting without modifying files
+docker compose run --rm app npm run format:check
+```
+
+**When adding new Smalruby-specific files**, update the `.prettierignore` whitelist and `.claude/rules/<package>/smalruby-prettier-files.md`. See `.claude/rules/code-style.md` for details.
+
 ### Clean
 
 Remove build artifacts from all packages:
