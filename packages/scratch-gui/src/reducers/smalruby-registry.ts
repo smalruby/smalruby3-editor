@@ -12,38 +12,38 @@
  *
  * No changes needed in gui.ts - it imports this registry.
  */
-import cardsReducer, { cardsInitialState } from './cards'
-import googleDriveFileReducer, { googleDriveFileInitialState } from './google-drive-file'
-import koshienFileReducer, { koshienFileInitialState } from './koshien-file'
-import meshV2Reducer, { meshV2InitialState } from './mesh-v2'
-import paletteVisibilityReducer, { initialState as paletteVisibilityInitialState } from './palette-visibility'
-import rubyCodeReducer, { rubyCodeInitialState } from './ruby-code'
-import tutorialOnboardingReducer, { tutorialOnboardingInitialState } from './tutorial-onboarding'
+import cardsReducer, { cardsInitialState } from './cards';
+import googleDriveFileReducer, { googleDriveFileInitialState } from './google-drive-file';
+import koshienFileReducer, { koshienFileInitialState } from './koshien-file';
+import meshV2Reducer, { meshV2InitialState } from './mesh-v2';
+import paletteVisibilityReducer, { initialState as paletteVisibilityInitialState } from './palette-visibility';
+import rubyCodeReducer, { rubyCodeInitialState } from './ruby-code';
+import tutorialOnboardingReducer, { tutorialOnboardingInitialState } from './tutorial-onboarding';
 
 /**
  * All Smalruby reducers
  * These will be spread into combineReducers() in gui.ts
  */
 export const smalrubyReducers = {
-  meshV2: meshV2Reducer,
-  googleDriveFile: googleDriveFileReducer,
-  koshienFile: koshienFileReducer,
-  rubyCode: rubyCodeReducer,
-  cards: cardsReducer,
-  tutorialOnboarding: tutorialOnboardingReducer,
-  paletteVisibility: paletteVisibilityReducer,
-}
+    meshV2: meshV2Reducer,
+    googleDriveFile: googleDriveFileReducer,
+    koshienFile: koshienFileReducer,
+    rubyCode: rubyCodeReducer,
+    cards: cardsReducer,
+    tutorialOnboarding: tutorialOnboardingReducer,
+    paletteVisibility: paletteVisibilityReducer,
+};
 
 /**
  * All Smalruby initial state values
  * These will be spread into buildInitialState() in gui.ts
  */
 export const smalrubyInitialState = {
-  meshV2: meshV2InitialState,
-  googleDriveFile: googleDriveFileInitialState,
-  koshienFile: koshienFileInitialState,
-  rubyCode: rubyCodeInitialState,
-  cards: cardsInitialState,
-  tutorialOnboarding: tutorialOnboardingInitialState,
-  paletteVisibility: paletteVisibilityInitialState,
-}
+    meshV2: meshV2InitialState,
+    googleDriveFile: googleDriveFileInitialState,
+    koshienFile: koshienFileInitialState,
+    rubyCode: rubyCodeInitialState,
+    cards: cardsInitialState,
+    tutorialOnboarding: tutorialOnboardingInitialState,
+    paletteVisibility: paletteVisibilityInitialState,
+};

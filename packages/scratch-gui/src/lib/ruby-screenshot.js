@@ -1,6 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (Ruby tab screenshot export) ===
-import { toBlob } from 'html-to-image'
-import downloadBlob from './download-blob'
+import { toBlob } from 'html-to-image';
+import downloadBlob from './download-blob';
 
 /**
  * Builds the export filename for Ruby tab screenshots.
@@ -9,8 +9,8 @@ import downloadBlob from './download-blob'
  * @returns {string} PNG filename
  */
 const buildFilename = function (projectTitle, spriteName) {
-  return `${projectTitle}_${spriteName}_ruby.png`
-}
+    return `${projectTitle}_${spriteName}_ruby.png`;
+};
 
 /**
  * Measures the maximum rendered text width across all visible lines
@@ -22,22 +22,22 @@ const buildFilename = function (projectTitle, spriteName) {
  * @returns {number} maximum text right edge in CSS pixels, relative to editorDomNode
  */
 const measureTextWidth = function (editorDomNode) {
-  const viewLines = editorDomNode.querySelector('.view-lines')
-  if (!viewLines) return 0
+    const viewLines = editorDomNode.querySelector('.view-lines');
+    if (!viewLines) return 0;
 
-  const editorLeft = editorDomNode.getBoundingClientRect().left
-  let maxRight = 0
+    const editorLeft = editorDomNode.getBoundingClientRect().left;
+    let maxRight = 0;
 
-  for (const line of viewLines.children) {
-    const spans = line.querySelectorAll('span span')
-    for (const span of spans) {
-      const right = span.getBoundingClientRect().right
-      if (right > maxRight) maxRight = right
+    for (const line of viewLines.children) {
+        const spans = line.querySelectorAll('span span');
+        for (const span of spans) {
+            const right = span.getBoundingClientRect().right;
+            if (right > maxRight) maxRight = right;
+        }
     }
-  }
 
-  return maxRight > 0 ? maxRight - editorLeft : 0
-}
+    return maxRight > 0 ? maxRight - editorLeft : 0;
+};
 
 /**
  * Measures the maximum rendered furigana annotation width.
@@ -46,20 +46,20 @@ const measureTextWidth = function (editorDomNode) {
  * @returns {number} maximum furigana right edge in CSS pixels, relative to editorDomNode
  */
 const measureFuriganaWidth = function (editorDomNode) {
-  const viewZones = editorDomNode.querySelector('.view-zones')
-  if (!viewZones) return 0
+    const viewZones = editorDomNode.querySelector('.view-zones');
+    if (!viewZones) return 0;
 
-  const editorLeft = editorDomNode.getBoundingClientRect().left
-  let maxRight = 0
+    const editorLeft = editorDomNode.getBoundingClientRect().left;
+    let maxRight = 0;
 
-  const spans = viewZones.querySelectorAll('span')
-  for (const span of spans) {
-    const right = span.getBoundingClientRect().right
-    if (right > maxRight) maxRight = right
-  }
+    const spans = viewZones.querySelectorAll('span');
+    for (const span of spans) {
+        const right = span.getBoundingClientRect().right;
+        if (right > maxRight) maxRight = right;
+    }
 
-  return maxRight > 0 ? maxRight - editorLeft : 0
-}
+    return maxRight > 0 ? maxRight - editorLeft : 0;
+};
 
 /**
  * Crops a PNG blob to the specified width.
@@ -69,28 +69,28 @@ const measureFuriganaWidth = function (editorDomNode) {
  * @returns {Promise<Blob>} cropped (or original) PNG blob
  */
 const cropToWidth = async function (blob, cropWidth) {
-  const bitmap = await createImageBitmap(blob)
-  const { width, height } = bitmap
+    const bitmap = await createImageBitmap(blob);
+    const { width, height } = bitmap;
 
-  // No crop needed if target width >= image width
-  if (cropWidth >= width) {
-    bitmap.close()
-    return blob
-  }
+    // No crop needed if target width >= image width
+    if (cropWidth >= width) {
+        bitmap.close();
+        return blob;
+    }
 
-  const canvas = document.createElement('canvas')
-  canvas.width = cropWidth
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(bitmap, 0, 0, cropWidth, height, 0, 0, cropWidth, height)
-  bitmap.close()
+    const canvas = document.createElement('canvas');
+    canvas.width = cropWidth;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, cropWidth, height, 0, 0, cropWidth, height);
+    bitmap.close();
 
-  return new Promise(resolve => {
-    canvas.toBlob(croppedBlob => {
-      resolve(croppedBlob || blob)
-    }, 'image/png')
-  })
-}
+    return new Promise(resolve => {
+        canvas.toBlob(croppedBlob => {
+            resolve(croppedBlob || blob);
+        }, 'image/png');
+    });
+};
 
 /**
  * Captures the Monaco editor content as a PNG image and triggers a download.
@@ -105,76 +105,76 @@ const cropToWidth = async function (blob, cropWidth) {
  * @returns {Promise<void>}
  */
 const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
-  if (!editor) return
+    if (!editor) return;
 
-  const editorDomNode = editor.getDomNode()
-  if (!editorDomNode) return
+    const editorDomNode = editor.getDomNode();
+    if (!editorDomNode) return;
 
-  const model = editor.getModel()
-  if (!model || model.getLineCount() === 0) return
+    const model = editor.getModel();
+    if (!model || model.getLineCount() === 0) return;
 
-  // Save original state
-  const scrollTop = editor.getScrollTop()
-  const scrollLeft = editor.getScrollLeft()
-  const containerEl = editorDomNode.parentElement
-  const originalHeight = containerEl.style.height
-  const originalOverflow = containerEl.style.overflow
+    // Save original state
+    const scrollTop = editor.getScrollTop();
+    const scrollLeft = editor.getScrollLeft();
+    const containerEl = editorDomNode.parentElement;
+    const originalHeight = containerEl.style.height;
+    const originalOverflow = containerEl.style.overflow;
 
-  /** Extra pixels (CSS) added to the right of the content boundary. */
-  const CROP_PADDING = 16
-  const PIXEL_RATIO = 2
+    /** Extra pixels (CSS) added to the right of the content boundary. */
+    const CROP_PADDING = 16;
+    const PIXEL_RATIO = 2;
 
-  try {
-    // Disable scrollBeyondLastLine to get tight content height
-    editor.updateOptions({ scrollBeyondLastLine: false })
-    editor.layout()
+    try {
+        // Disable scrollBeyondLastLine to get tight content height
+        editor.updateOptions({ scrollBeyondLastLine: false });
+        editor.layout();
 
-    // Expand editor to full content height so all lines are in the DOM
-    const contentHeight = editor.getContentHeight()
-    containerEl.style.height = `${contentHeight}px`
-    containerEl.style.overflow = 'hidden'
+        // Expand editor to full content height so all lines are in the DOM
+        const contentHeight = editor.getContentHeight();
+        containerEl.style.height = `${contentHeight}px`;
+        containerEl.style.overflow = 'hidden';
 
-    // Force Monaco to re-layout at the new size
-    editor.layout()
+        // Force Monaco to re-layout at the new size
+        editor.layout();
 
-    // Wait for Monaco to render all lines
-    await new Promise(resolve => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(resolve)
-      })
-    })
+        // Wait for Monaco to render all lines
+        await new Promise(resolve => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            });
+        });
 
-    // Measure content width from rendered DOM before capture
-    const textWidth = measureTextWidth(editorDomNode)
-    const furiganaWidth = measureFuriganaWidth(editorDomNode)
-    const contentWidth = Math.max(textWidth, furiganaWidth)
+        // Measure content width from rendered DOM before capture
+        const textWidth = measureTextWidth(editorDomNode);
+        const furiganaWidth = measureFuriganaWidth(editorDomNode);
+        const contentWidth = Math.max(textWidth, furiganaWidth);
 
-    // Capture the editor DOM as a PNG blob.
-    // skipFonts avoids SecurityError when html-to-image tries to read
-    // cssRules from cross-origin stylesheets (Monaco's CDN CSS).
-    const blob = await toBlob(editorDomNode, {
-      backgroundColor: '#ffffff',
-      pixelRatio: PIXEL_RATIO,
-      skipFonts: true,
-    })
+        // Capture the editor DOM as a PNG blob.
+        // skipFonts avoids SecurityError when html-to-image tries to read
+        // cssRules from cross-origin stylesheets (Monaco's CDN CSS).
+        const blob = await toBlob(editorDomNode, {
+            backgroundColor: '#ffffff',
+            pixelRatio: PIXEL_RATIO,
+            skipFonts: true,
+        });
 
-    if (blob) {
-      let downloadableBlob = blob
-      if (contentWidth > 0) {
-        const cropWidthPx = Math.ceil((contentWidth + CROP_PADDING) * PIXEL_RATIO)
-        downloadableBlob = await cropToWidth(blob, cropWidthPx)
-      }
-      downloadBlob(buildFilename(projectTitle, spriteName), downloadableBlob)
+        if (blob) {
+            let downloadableBlob = blob;
+            if (contentWidth > 0) {
+                const cropWidthPx = Math.ceil((contentWidth + CROP_PADDING) * PIXEL_RATIO);
+                downloadableBlob = await cropToWidth(blob, cropWidthPx);
+            }
+            downloadBlob(buildFilename(projectTitle, spriteName), downloadableBlob);
+        }
+    } finally {
+        // Restore original state
+        editor.updateOptions({ scrollBeyondLastLine: true });
+        containerEl.style.height = originalHeight;
+        containerEl.style.overflow = originalOverflow;
+        editor.layout();
+        editor.setScrollTop(scrollTop);
+        editor.setScrollLeft(scrollLeft);
     }
-  } finally {
-    // Restore original state
-    editor.updateOptions({ scrollBeyondLastLine: true })
-    containerEl.style.height = originalHeight
-    containerEl.style.overflow = originalOverflow
-    editor.layout()
-    editor.setScrollTop(scrollTop)
-    editor.setScrollLeft(scrollLeft)
-  }
-}
+};
 
-export { buildFilename, cropToWidth, measureFuriganaWidth, measureTextWidth, downloadRubyAsImage }
+export { buildFilename, cropToWidth, measureFuriganaWidth, measureTextWidth, downloadRubyAsImage };

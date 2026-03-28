@@ -1,4 +1,4 @@
-import sharedMessages from './shared-messages'
+import sharedMessages from './shared-messages';
 
 /**
  * Load a project into the VM with Smalruby-specific checks (Mesh V1, Koshien).
@@ -10,25 +10,25 @@ import sharedMessages from './shared-messages'
  * @returns {Promise} A promise that resolves when the project is loaded.
  */
 const loadProjectWithChecks = (vm, intl, projectData, currentRubyVersion, onSetRubyVersion) =>
-  vm
-    .hasMeshV1Project(projectData)
-    .then(hasMeshV1 => {
-      let migrateMeshV1ToV2 = false
-      if (hasMeshV1) {
-        // eslint-disable-next-line no-alert
-        migrateMeshV1ToV2 = !confirm(intl.formatMessage(sharedMessages.migrateMeshV1Warning))
-      }
-      return vm.loadProject(projectData, { migrateMeshV1ToV2 })
-    })
-    .then(() => vm.hasKoshienProject(projectData))
-    .then(hasKoshien => {
-      if (hasKoshien) {
-        if (currentRubyVersion !== '1') {
-          // eslint-disable-next-line no-alert
-          alert(intl.formatMessage(sharedMessages.changedRubyVersionByKoshien))
-        }
-        onSetRubyVersion('1')
-      }
-    })
+    vm
+        .hasMeshV1Project(projectData)
+        .then(hasMeshV1 => {
+            let migrateMeshV1ToV2 = false;
+            if (hasMeshV1) {
+                // eslint-disable-next-line no-alert
+                migrateMeshV1ToV2 = !confirm(intl.formatMessage(sharedMessages.migrateMeshV1Warning));
+            }
+            return vm.loadProject(projectData, { migrateMeshV1ToV2 });
+        })
+        .then(() => vm.hasKoshienProject(projectData))
+        .then(hasKoshien => {
+            if (hasKoshien) {
+                if (currentRubyVersion !== '1') {
+                    // eslint-disable-next-line no-alert
+                    alert(intl.formatMessage(sharedMessages.changedRubyVersionByKoshien));
+                }
+                onSetRubyVersion('1');
+            }
+        });
 
-export { loadProjectWithChecks }
+export { loadProjectWithChecks };

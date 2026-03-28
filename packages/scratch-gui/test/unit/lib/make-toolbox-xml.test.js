@@ -1,8 +1,8 @@
-import { filterBlocks } from '../../../src/lib/make-toolbox-xml'
+import { filterBlocks } from '../../../src/lib/make-toolbox-xml';
 
 describe('make-toolbox-xml', () => {
-  describe('filterBlocks', () => {
-    const sampleCategoryXML = `<category name="Motion" colour="#4C97FF" secondaryColour="#3373CC">
+    describe('filterBlocks', () => {
+        const sampleCategoryXML = `<category name="Motion" colour="#4C97FF" secondaryColour="#3373CC">
         <block type="motion_movesteps">
             <value name="STEPS">
                 <shadow type="math_number">
@@ -34,86 +34,86 @@ describe('make-toolbox-xml', () => {
             </value>
         </block>
         <category-separator/>
-    </category>`
+    </category>`;
 
-    test('should preserve blockSeparator when filtering blocks', async () => {
-      const allowedPatterns = ['motion_movesteps', 'motion_turnright']
-      const result = filterBlocks(sampleCategoryXML, allowedPatterns)
+        test('should preserve blockSeparator when filtering blocks', async () => {
+            const allowedPatterns = ['motion_movesteps', 'motion_turnright'];
+            const result = filterBlocks(sampleCategoryXML, allowedPatterns);
 
-      // Should contain blockSeparator between allowed blocks
-      expect(result).toContain('<sep gap="36"/>')
+            // Should contain blockSeparator between allowed blocks
+            expect(result).toContain('<sep gap="36"/>');
 
-      // Should contain both allowed blocks
-      expect(result).toContain('motion_movesteps')
-      expect(result).toContain('motion_turnright')
+            // Should contain both allowed blocks
+            expect(result).toContain('motion_movesteps');
+            expect(result).toContain('motion_turnright');
 
-      // Should not contain filtered out blocks
-      expect(result).not.toContain('motion_turnleft')
-      expect(result).not.toContain('motion_goto')
-    })
+            // Should not contain filtered out blocks
+            expect(result).not.toContain('motion_turnleft');
+            expect(result).not.toContain('motion_goto');
+        });
 
-    test('should consolidate consecutive blockSeparators', async () => {
-      // Test case where filtering creates consecutive separators
-      const allowedPatterns = ['motion_movesteps', 'motion_goto'] // Skip middle blocks
-      const result = filterBlocks(sampleCategoryXML, allowedPatterns)
+        test('should consolidate consecutive blockSeparators', async () => {
+            // Test case where filtering creates consecutive separators
+            const allowedPatterns = ['motion_movesteps', 'motion_goto']; // Skip middle blocks
+            const result = filterBlocks(sampleCategoryXML, allowedPatterns);
 
-      // Should have one separator between blocks and one categorySeparator at the end
-      // Note: both blockSeparator and categorySeparator use the same XML format
-      const separatorMatches = result.match(/<sep gap="36"\/>/g) || []
-      expect(separatorMatches.length).toBe(2) // One between blocks, one at category end
+            // Should have one separator between blocks and one categorySeparator at the end
+            // Note: both blockSeparator and categorySeparator use the same XML format
+            const separatorMatches = result.match(/<sep gap="36"\/>/g) || [];
+            expect(separatorMatches.length).toBe(2); // One between blocks, one at category end
 
-      expect(result).toContain('motion_movesteps')
-      expect(result).toContain('motion_goto')
-      expect(result).not.toContain('motion_turnright')
-      expect(result).not.toContain('motion_turnleft')
-    })
+            expect(result).toContain('motion_movesteps');
+            expect(result).toContain('motion_goto');
+            expect(result).not.toContain('motion_turnright');
+            expect(result).not.toContain('motion_turnleft');
+        });
 
-    test('should remove separators at beginning and end', async () => {
-      const xmlWithLeadingSeparator = `<category name="Motion">
+        test('should remove separators at beginning and end', async () => {
+            const xmlWithLeadingSeparator = `<category name="Motion">
         <sep gap="36"/>
         <block type="motion_movesteps"></block>
         <sep gap="36"/>
         <block type="motion_turnright"></block>
         <sep gap="36"/>
         <category-separator/>
-    </category>`
+    </category>`;
 
-      const allowedPatterns = ['motion_movesteps']
-      const result = filterBlocks(xmlWithLeadingSeparator, allowedPatterns)
+            const allowedPatterns = ['motion_movesteps'];
+            const result = filterBlocks(xmlWithLeadingSeparator, allowedPatterns);
 
-      // Should not start or end with separator
-      expect(result).not.toMatch(/^\s*<category[^>]*>\s*<sep/)
-      expect(result).not.toMatch(/<sep[^>]*\/>\s*<category-separator/)
+            // Should not start or end with separator
+            expect(result).not.toMatch(/^\s*<category[^>]*>\s*<sep/);
+            expect(result).not.toMatch(/<sep[^>]*\/>\s*<category-separator/);
 
-      expect(result).toContain('motion_movesteps')
-      expect(result).not.toContain('motion_turnright')
-    })
+            expect(result).toContain('motion_movesteps');
+            expect(result).not.toContain('motion_turnright');
+        });
 
-    test('should return empty string when no blocks match', async () => {
-      const allowedPatterns = ['nonexistent_block']
-      const result = filterBlocks(sampleCategoryXML, allowedPatterns)
+        test('should return empty string when no blocks match', async () => {
+            const allowedPatterns = ['nonexistent_block'];
+            const result = filterBlocks(sampleCategoryXML, allowedPatterns);
 
-      expect(result).toBe('')
-    })
+            expect(result).toBe('');
+        });
 
-    test('should return original XML when no patterns provided', async () => {
-      const result = filterBlocks(sampleCategoryXML, [])
-      expect(result).toBe(sampleCategoryXML)
-    })
+        test('should return original XML when no patterns provided', async () => {
+            const result = filterBlocks(sampleCategoryXML, []);
+            expect(result).toBe(sampleCategoryXML);
+        });
 
-    test('should handle XML without separators', async () => {
-      const xmlWithoutSeparators = `<category name="Motion">
+        test('should handle XML without separators', async () => {
+            const xmlWithoutSeparators = `<category name="Motion">
         <block type="motion_movesteps"></block>
         <block type="motion_turnright"></block>
         <category-separator/>
-    </category>`
+    </category>`;
 
-      const allowedPatterns = ['motion_movesteps']
-      const result = filterBlocks(xmlWithoutSeparators, allowedPatterns)
+            const allowedPatterns = ['motion_movesteps'];
+            const result = filterBlocks(xmlWithoutSeparators, allowedPatterns);
 
-      expect(result).toContain('motion_movesteps')
-      expect(result).not.toContain('motion_turnright')
-      expect(result).not.toContain('<sep gap="36"/>')
-    })
-  })
-})
+            expect(result).toContain('motion_movesteps');
+            expect(result).not.toContain('motion_turnright');
+            expect(result).not.toContain('<sep gap="36"/>');
+        });
+    });
+});

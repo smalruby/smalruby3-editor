@@ -1,9 +1,9 @@
-import downloadBlob from './download-blob'
+import downloadBlob from './download-blob';
 
 /**
  * Padding around blocks in the exported image (in pixels, ~1rem).
  */
-const EXPORT_PADDING = 16
+const EXPORT_PADDING = 16;
 
 /**
  * Returns the blocks bounding box for the given workspace, or null if the
@@ -13,11 +13,11 @@ const EXPORT_PADDING = 16
  * @returns {{x: number, y: number, width: number, height: number}|null} Bounding box or null for empty workspace
  */
 const getBlocksBoundingBox = function (workspace) {
-  const bbox = workspace.getBlocksBoundingBox()
-  if (!bbox) return null
-  if (bbox.width === 0 && bbox.height === 0) return null
-  return bbox
-}
+    const bbox = workspace.getBlocksBoundingBox();
+    if (!bbox) return null;
+    if (bbox.width === 0 && bbox.height === 0) return null;
+    return bbox;
+};
 
 /**
  * Merges the blocks bounding box with the bubble canvas bounding box so that
@@ -27,20 +27,20 @@ const getBlocksBoundingBox = function (workspace) {
  * @returns {{x: number, y: number, width: number, height: number}} Merged bounding box
  */
 const mergeWithBubbleBBox = function (workspace, blockBbox) {
-  const bubbleCanvas = workspace.svgBubbleCanvas_
-  if (!bubbleCanvas || bubbleCanvas.children.length === 0) {
-    return blockBbox
-  }
-  const bubbleBbox = bubbleCanvas.getBBox()
-  if (!bubbleBbox || (bubbleBbox.width === 0 && bubbleBbox.height === 0)) {
-    return blockBbox
-  }
-  const minX = Math.min(blockBbox.x, bubbleBbox.x)
-  const minY = Math.min(blockBbox.y, bubbleBbox.y)
-  const maxX = Math.max(blockBbox.x + blockBbox.width, bubbleBbox.x + bubbleBbox.width)
-  const maxY = Math.max(blockBbox.y + blockBbox.height, bubbleBbox.y + bubbleBbox.height)
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
-}
+    const bubbleCanvas = workspace.svgBubbleCanvas_;
+    if (!bubbleCanvas || bubbleCanvas.children.length === 0) {
+        return blockBbox;
+    }
+    const bubbleBbox = bubbleCanvas.getBBox();
+    if (!bubbleBbox || (bubbleBbox.width === 0 && bubbleBbox.height === 0)) {
+        return blockBbox;
+    }
+    const minX = Math.min(blockBbox.x, bubbleBbox.x);
+    const minY = Math.min(blockBbox.y, bubbleBbox.y);
+    const maxX = Math.max(blockBbox.x + blockBbox.width, bubbleBbox.x + bubbleBbox.width);
+    const maxY = Math.max(blockBbox.y + blockBbox.height, bubbleBbox.y + bubbleBbox.height);
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+};
 
 /**
  * Calculates the canvas pixel dimensions needed to contain all blocks with padding.
@@ -50,13 +50,13 @@ const mergeWithBubbleBBox = function (workspace, blockBbox) {
  * @returns {{width: number, height: number}} Canvas dimensions in pixels
  */
 const calculateCanvasDimensions = function (bbox, scale, padding = EXPORT_PADDING) {
-  const blockWidth = bbox.width * scale
-  const blockHeight = bbox.height * scale
-  return {
-    width: Math.ceil(blockWidth + padding * 2),
-    height: Math.ceil(blockHeight + padding * 2),
-  }
-}
+    const blockWidth = bbox.width * scale;
+    const blockHeight = bbox.height * scale;
+    return {
+        width: Math.ceil(blockWidth + padding * 2),
+        height: Math.ceil(blockHeight + padding * 2),
+    };
+};
 
 /**
  * Builds the export filename from project title and sprite name.
@@ -65,8 +65,8 @@ const calculateCanvasDimensions = function (bbox, scale, padding = EXPORT_PADDIN
  * @returns {string} PNG filename
  */
 const buildFilename = function (projectTitle, spriteName) {
-  return `${projectTitle}_${spriteName}.png`
-}
+    return `${projectTitle}_${spriteName}.png`;
+};
 
 /**
  * Fetches an SVG file and returns it as a data URI string.
@@ -74,15 +74,15 @@ const buildFilename = function (projectTitle, spriteName) {
  * @param {string} url - Relative or absolute URL to an SVG file
  * @returns {Promise<string>} data URI (data:image/svg+xml;base64,...)
  */
-const svgDataUriCache = {}
+const svgDataUriCache = {};
 const fetchSvgAsDataUri = async function (url) {
-  if (svgDataUriCache[url]) return svgDataUriCache[url]
-  const response = await fetch(url)
-  const text = await response.text()
-  const dataUri = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(text)))}`
-  svgDataUriCache[url] = dataUri // eslint-disable-line require-atomic-updates
-  return dataUri
-}
+    if (svgDataUriCache[url]) return svgDataUriCache[url];
+    const response = await fetch(url);
+    const text = await response.text();
+    const dataUri = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(text)))}`;
+    svgDataUriCache[url] = dataUri; // eslint-disable-line require-atomic-updates
+    return dataUri;
+};
 
 /**
  * Replaces relative image hrefs in an SVG element with inlined data URIs.
@@ -92,25 +92,25 @@ const fetchSvgAsDataUri = async function (url) {
  * @returns {Promise<void>}
  */
 const inlineImageHrefs = async function (svgElement) {
-  const images = svgElement.querySelectorAll('image')
-  const xlinkNS = 'http://www.w3.org/1999/xlink'
-  const promises = []
-  for (const img of images) {
-    const href = img.getAttributeNS(xlinkNS, 'href') || img.getAttribute('href') || ''
-    if (href && !href.startsWith('data:')) {
-      promises.push(
-        fetchSvgAsDataUri(href).then(dataUri => {
-          if (img.getAttributeNS(xlinkNS, 'href')) {
-            img.setAttributeNS(xlinkNS, 'href', dataUri)
-          } else {
-            img.setAttribute('href', dataUri)
-          }
-        }),
-      )
+    const images = svgElement.querySelectorAll('image');
+    const xlinkNS = 'http://www.w3.org/1999/xlink';
+    const promises = [];
+    for (const img of images) {
+        const href = img.getAttributeNS(xlinkNS, 'href') || img.getAttribute('href') || '';
+        if (href && !href.startsWith('data:')) {
+            promises.push(
+                fetchSvgAsDataUri(href).then(dataUri => {
+                    if (img.getAttributeNS(xlinkNS, 'href')) {
+                        img.setAttributeNS(xlinkNS, 'href', dataUri);
+                    } else {
+                        img.setAttribute('href', dataUri);
+                    }
+                }),
+            );
+        }
     }
-  }
-  await Promise.all(promises)
-}
+    await Promise.all(promises);
+};
 
 /**
  * Builds an SVG string that contains only the blocks from the workspace,
@@ -126,67 +126,67 @@ const inlineImageHrefs = async function (svgElement) {
  * @returns {Promise<string>} Serialized SVG string
  */
 const buildExportSVG = async function (workspace, bbox, scale, width, height, padding = EXPORT_PADDING) {
-  const svgNS = 'http://www.w3.org/2000/svg'
+    const svgNS = 'http://www.w3.org/2000/svg';
 
-  const svg = document.createElementNS(svgNS, 'svg')
-  svg.setAttribute('xmlns', svgNS)
-  svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
-  svg.setAttribute('width', String(width))
-  svg.setAttribute('height', String(height))
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('xmlns', svgNS);
+    svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+    svg.setAttribute('width', String(width));
+    svg.setAttribute('height', String(height));
 
-  // Include <defs> and <style> from parent SVG (for block shapes, filters, etc.)
-  const blockCanvas = workspace.svgBlockCanvas_
-  const parentSvg = blockCanvas.ownerSVGElement || (blockCanvas.closest && blockCanvas.closest('svg'))
-  if (parentSvg) {
-    const defs = parentSvg.querySelector('defs')
-    if (defs) svg.appendChild(defs.cloneNode(true))
-    parentSvg.querySelectorAll('style').forEach(style => {
-      svg.appendChild(style.cloneNode(true))
-    })
-  }
-
-  // Include Scratch Blocks' injected styles from document head.
-  // These set fill colors for .blocklyText etc. and are not inside the SVG element.
-  document.querySelectorAll('style').forEach(style => {
-    if ((style.textContent || '').includes('blocklyText')) {
-      svg.appendChild(style.cloneNode(true))
+    // Include <defs> and <style> from parent SVG (for block shapes, filters, etc.)
+    const blockCanvas = workspace.svgBlockCanvas_;
+    const parentSvg = blockCanvas.ownerSVGElement || (blockCanvas.closest && blockCanvas.closest('svg'));
+    if (parentSvg) {
+        const defs = parentSvg.querySelector('defs');
+        if (defs) svg.appendChild(defs.cloneNode(true));
+        parentSvg.querySelectorAll('style').forEach(style => {
+            svg.appendChild(style.cloneNode(true));
+        });
     }
-  })
 
-  // White background
-  const bg = document.createElementNS(svgNS, 'rect')
-  bg.setAttribute('width', String(width))
-  bg.setAttribute('height', String(height))
-  bg.setAttribute('fill', '#ffffff')
-  svg.appendChild(bg)
+    // Include Scratch Blocks' injected styles from document head.
+    // These set fill colors for .blocklyText etc. and are not inside the SVG element.
+    document.querySelectorAll('style').forEach(style => {
+        if ((style.textContent || '').includes('blocklyText')) {
+            svg.appendChild(style.cloneNode(true));
+        }
+    });
 
-  // Clone block canvas and re-position so bbox top-left -> (padding, padding).
-  // bbox.x and bbox.y are workspace coordinates of the top-left of all blocks.
-  const tx = -bbox.x * scale + padding
-  const ty = -bbox.y * scale + padding
-  const canvasTransform = `translate(${tx}, ${ty}) scale(${scale})`
+    // White background
+    const bg = document.createElementNS(svgNS, 'rect');
+    bg.setAttribute('width', String(width));
+    bg.setAttribute('height', String(height));
+    bg.setAttribute('fill', '#ffffff');
+    svg.appendChild(bg);
 
-  const canvasClone = blockCanvas.cloneNode(true)
-  canvasClone.setAttribute('transform', canvasTransform)
-  svg.appendChild(canvasClone)
+    // Clone block canvas and re-position so bbox top-left -> (padding, padding).
+    // bbox.x and bbox.y are workspace coordinates of the top-left of all blocks.
+    const tx = -bbox.x * scale + padding;
+    const ty = -bbox.y * scale + padding;
+    const canvasTransform = `translate(${tx}, ${ty}) scale(${scale})`;
 
-  // Clone bubble canvas (comment bubbles) with the same transform.
-  // Remove <foreignObject> elements which contain HTML <textarea> for editing;
-  // they cause tainted canvas errors when the SVG is loaded via blob URL.
-  // The visible comment text is already in <text> elements, so nothing is lost.
-  const bubbleCanvas = workspace.svgBubbleCanvas_
-  if (bubbleCanvas && bubbleCanvas.children.length > 0) {
-    const bubbleClone = bubbleCanvas.cloneNode(true)
-    bubbleClone.querySelectorAll('foreignObject').forEach(fo => fo.remove())
-    bubbleClone.setAttribute('transform', canvasTransform)
-    svg.appendChild(bubbleClone)
-  }
+    const canvasClone = blockCanvas.cloneNode(true);
+    canvasClone.setAttribute('transform', canvasTransform);
+    svg.appendChild(canvasClone);
 
-  // Inline relative image hrefs as data URIs so they survive blob serialization
-  await inlineImageHrefs(svg)
+    // Clone bubble canvas (comment bubbles) with the same transform.
+    // Remove <foreignObject> elements which contain HTML <textarea> for editing;
+    // they cause tainted canvas errors when the SVG is loaded via blob URL.
+    // The visible comment text is already in <text> elements, so nothing is lost.
+    const bubbleCanvas = workspace.svgBubbleCanvas_;
+    if (bubbleCanvas && bubbleCanvas.children.length > 0) {
+        const bubbleClone = bubbleCanvas.cloneNode(true);
+        bubbleClone.querySelectorAll('foreignObject').forEach(fo => fo.remove());
+        bubbleClone.setAttribute('transform', canvasTransform);
+        svg.appendChild(bubbleClone);
+    }
 
-  return new XMLSerializer().serializeToString(svg)
-}
+    // Inline relative image hrefs as data URIs so they survive blob serialization
+    await inlineImageHrefs(svg);
+
+    return new XMLSerializer().serializeToString(svg);
+};
 
 /**
  * Renders an SVG string onto a canvas element and returns a Promise resolving
@@ -197,29 +197,29 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
  * @returns {Promise<HTMLCanvasElement>} Canvas with the rendered blocks
  */
 const renderSVGToCanvas = function (svgStr, width, height) {
-  return new Promise((resolve, reject) => {
-    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
+    return new Promise((resolve, reject) => {
+        const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
 
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, width, height)
-      ctx.drawImage(img, 0, 0)
-      URL.revokeObjectURL(url)
-      resolve(canvas)
-    }
-    img.onerror = err => {
-      URL.revokeObjectURL(url)
-      reject(err)
-    }
-    img.src = url
-  })
-}
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+            resolve(canvas);
+        };
+        img.onerror = err => {
+            URL.revokeObjectURL(url);
+            reject(err);
+        };
+        img.src = url;
+    });
+};
 
 /**
  * Downloads all blocks in the given workspace as a PNG image.
@@ -230,30 +230,30 @@ const renderSVGToCanvas = function (svgStr, width, height) {
  * @returns {Promise<void>}
  */
 const downloadBlocksAsImage = async function (workspace, projectTitle, spriteName) {
-  const blockBbox = getBlocksBoundingBox(workspace)
-  if (!blockBbox) return
+    const blockBbox = getBlocksBoundingBox(workspace);
+    if (!blockBbox) return;
 
-  const bbox = mergeWithBubbleBBox(workspace, blockBbox)
-  const scale = workspace.scale
-  const { width, height } = calculateCanvasDimensions(bbox, scale)
-  const svgStr = await buildExportSVG(workspace, bbox, scale, width, height)
-  const canvas = await renderSVGToCanvas(svgStr, width, height)
+    const bbox = mergeWithBubbleBBox(workspace, blockBbox);
+    const scale = workspace.scale;
+    const { width, height } = calculateCanvasDimensions(bbox, scale);
+    const svgStr = await buildExportSVG(workspace, bbox, scale, width, height);
+    const canvas = await renderSVGToCanvas(svgStr, width, height);
 
-  return new Promise(resolve => {
-    canvas.toBlob(blob => {
-      downloadBlob(buildFilename(projectTitle, spriteName), blob)
-      resolve()
-    }, 'image/png')
-  })
-}
+    return new Promise(resolve => {
+        canvas.toBlob(blob => {
+            downloadBlob(buildFilename(projectTitle, spriteName), blob);
+            resolve();
+        }, 'image/png');
+    });
+};
 
 export {
-  getBlocksBoundingBox,
-  mergeWithBubbleBBox,
-  calculateCanvasDimensions,
-  buildFilename,
-  buildExportSVG,
-  inlineImageHrefs,
-  downloadBlocksAsImage,
-  EXPORT_PADDING,
-}
+    getBlocksBoundingBox,
+    mergeWithBubbleBBox,
+    calculateCanvasDimensions,
+    buildFilename,
+    buildExportSVG,
+    inlineImageHrefs,
+    downloadBlocksAsImage,
+    EXPORT_PADDING,
+};
