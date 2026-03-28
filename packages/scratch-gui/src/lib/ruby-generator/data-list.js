@@ -162,12 +162,23 @@ export default function (Generator) {
         }
 
         const list = getListName(block);
+
+        // Check for round-trip comments first
+        if (comment && comment.includes('@ruby:array:delete_at:last')) {
+            return `${list}.delete_at(-1) # @ruby:array:delete_at:last\n`;
+        }
+        if (comment && comment.includes('@ruby:array:delete_at:random')) {
+            return `${list}.delete_at(rand(0...${list}.length))` +
+                ` # @ruby:array:delete_at:random\n`;
+        }
+
         const rawIndex = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE) || 1;
         if (rawIndex === 'last') {
             return `${list}.delete_at(-1) # @ruby:array:delete_at:last\n`;
         }
         if (rawIndex === 'random') {
-            return `${list}.delete_at(rand(0...${list}.length)) # @ruby:array:delete_at:random\n`;
+            return `${list}.delete_at(rand(0...${list}.length))` +
+                ` # @ruby:array:delete_at:random\n`;
         }
         const index = getListIndex(block);
         return `${list}.delete_at(${Generator.nosToCode(index)})\n`;
@@ -241,6 +252,20 @@ export default function (Generator) {
 
     Generator.data_insertatlist = function (block) {
         const list = getListName(block);
+        const comment = Generator.getCommentText(block);
+
+        // Check for round-trip comments first
+        if (comment && comment.includes('@ruby:array:insert:last')) {
+            const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
+            return `${list}.push(${Generator.nosToCode(item)}) # @ruby:array:insert:last\n`;
+        }
+        if (comment && comment.includes('@ruby:array:insert:random')) {
+            const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
+            const randExpr = `rand(0..${list}.length)`;
+            return `${list}.insert(${randExpr}, ${Generator.nosToCode(item)})` +
+                ` # @ruby:array:insert:random\n`;
+        }
+
         const rawIndex = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE) || 1;
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         if (rawIndex === 'last') {

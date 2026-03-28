@@ -507,6 +507,19 @@ end
             await expectRoundTrip('@items[0]');
             await expectRoundTrip('@items.length');
         });
+
+        test('delete_at(-1) round-trips as last', async () => {
+            await expectRoundTrip(
+                '$a.delete_at(-1)',
+                '$a.delete_at(-1) # @ruby:array:delete_at:last'
+            );
+        });
+
+        test('delete_at(-1) with comment round-trips', async () => {
+            await expectRoundTrip(
+                '$a.delete_at(-1) # @ruby:array:delete_at:last'
+            );
+        });
     });
 
     test('symbol .to_s round-trip', async () => {
