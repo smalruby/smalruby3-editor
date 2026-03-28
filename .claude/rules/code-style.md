@@ -13,7 +13,7 @@
 
 - **Formatter**: Prettier with `prettierConfigScratch.recommended` from `eslint-config-scratch`
 - **対象**: Smalruby 固有ファイルのみ（upstream ファイルは対象外）
-- **設定**: `tabWidth: 2`, `semi: false`, `singleQuote: true`, `trailingComma: 'all'`, import sorting 有効
+- **設定**: `tabWidth: 4`, `semi: true`, `singleQuote: true`, `trailingComma: 'all'`, import sorting 有効
 - **`.prettierignore`**: ホワイトリスト方式 — デフォルトで全ファイルを無視し、Smalruby 固有ファイルのみ対象に含める
 - **ファイル一覧**: `.claude/rules/scratch-gui/smalruby-prettier-files.md` / `.claude/rules/scratch-vm/smalruby-prettier-files.md`
 
