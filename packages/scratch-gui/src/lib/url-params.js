@@ -1,10 +1,9 @@
 // === Smalruby: This file is Smalruby-specific (URL parameters for Playwright testing) ===
-
-import {VERSION_1, VERSION_2} from './settings/ruby-version';
+import { VERSION_1, VERSION_2 } from './settings/ruby-version';
 
 // Inline tab index constants to avoid circular dependency with editor-tab reducer.
 // These must match the values in ../reducers/editor-tab.js.
-const TAB_INDICES = {code: 0, blocks: 0, costumes: 1, sounds: 2, ruby: 3};
+const TAB_INDICES = { code: 0, blocks: 0, costumes: 1, sounds: 2, ruby: 3 };
 
 const VALID_RUBY_VERSIONS = [VERSION_1, VERSION_2];
 
@@ -18,31 +17,28 @@ const VALID_RUBY_VERSIONS = [VERSION_1, VERSION_2];
  */
 const parseUrlParams = () => {
     if (typeof window === 'undefined') {
-        return {noBeforeUnload: false, initialTab: null, rubyVersion: null};
+        return { noBeforeUnload: false, initialTab: null, rubyVersion: null };
     }
 
     let params;
     try {
         params = new URL(window.location.href).searchParams;
     } catch {
-        return {noBeforeUnload: false, initialTab: null, rubyVersion: null};
+        return { noBeforeUnload: false, initialTab: null, rubyVersion: null };
     }
 
     // no_beforeunload: any truthy value disables the dialog
-    const noBeforeUnload = params.get('no_beforeunload') === '1' ||
-        params.get('no_beforeunload') === 'true';
+    const noBeforeUnload = params.get('no_beforeunload') === '1' || params.get('no_beforeunload') === 'true';
 
     // tab: map name to tab index, ignore invalid values
     const tabName = (params.get('tab') || '').toLowerCase();
-    const initialTab = Object.prototype.hasOwnProperty.call(TAB_INDICES, tabName) ?
-        TAB_INDICES[tabName] :
-        null;
+    const initialTab = Object.prototype.hasOwnProperty.call(TAB_INDICES, tabName) ? TAB_INDICES[tabName] : null;
 
     // ruby_version: only accept valid versions
     const rvParam = params.get('ruby_version');
     const rubyVersion = VALID_RUBY_VERSIONS.includes(rvParam) ? rvParam : null;
 
-    return {noBeforeUnload, initialTab, rubyVersion};
+    return { noBeforeUnload, initialTab, rubyVersion };
 };
 
 // Cache the result so it's only parsed once
@@ -54,5 +50,5 @@ const getUrlParams = () => {
     return _cached;
 };
 
-export {getUrlParams};
+export { getUrlParams };
 export default getUrlParams;

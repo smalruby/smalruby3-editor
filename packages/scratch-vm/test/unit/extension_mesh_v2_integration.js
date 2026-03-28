@@ -16,12 +16,12 @@ const createMockRuntime = () => {
         getOpcodeFunction: () => () => {},
         _primitives: {},
         extensionManager: {
-            isExtensionLoaded: () => false
-        }
+            isExtensionLoaded: () => false,
+        },
     };
     const stage = {
         variables: {},
-        getCustomVars: () => []
+        getCustomVars: () => [],
     };
     runtime.getTargetForStage = () => stage;
     return runtime;
@@ -31,8 +31,8 @@ test('Mesh and Mesh V2 Coexistence', t => {
     // Set up global window for utils
     global.window = {
         location: {
-            search: '?mesh=test-domain'
-        }
+            search: '?mesh=test-domain',
+        },
     };
     global.URLSearchParams = URLSearchParams;
 

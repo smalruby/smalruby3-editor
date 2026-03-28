@@ -1,0 +1,95 @@
+# Prettier whitelist for Smalruby-specific files only.
+# Upstream (Scratch) files are excluded by default.
+#
+# How it works: ignore everything, then re-include Smalruby directories/files
+# level by level (gitignore requires parent dirs to be un-ignored first).
+#
+# Canonical file list: .claude/rules/scratch-vm/smalruby-prettier-files.md
+# When adding new Smalruby-specific files, update both this file and the doc.
+
+# ============================================================
+# Level 0: Ignore everything at root
+# ============================================================
+*
+!src/
+!test/
+
+# ============================================================
+# Level 1: src/*
+# ============================================================
+src/*
+!src/extension-support/
+!src/extensions/
+!src/serialization/
+!src/util/
+
+# Level 2: src/extension-support/*
+src/extension-support/*
+!src/extension-support/smalruby-extensions.js
+
+# Level 2: src/extensions/*
+src/extensions/*
+# Smalruby-only directories
+!src/extensions/koshien/
+!src/extensions/microbitMore/
+!src/extensions/scratch3_mesh_v2/
+!src/extensions/scratch3_mesh/
+!src/extensions/scratch3_smalrubot_s1/
+!src/extensions/smalruby_ruby/
+
+# Level 2: src/serialization/*
+src/serialization/*
+!src/serialization/smalruby-migration.js
+
+# Level 2: src/util/*
+src/util/*
+!src/util/debug-logger.js
+
+# ============================================================
+# Level 1: test/*
+# ============================================================
+test/*
+!test/integration/
+!test/load-test/
+!test/unit/
+
+# Level 2: test/integration/*
+test/integration/*
+!test/integration/extensions/
+
+# Level 3: test/integration/extensions/*
+test/integration/extensions/*
+!test/integration/extensions/mesh-v1-migration.test.js
+!test/integration/extensions/mesh-v2-data-merge.test.js
+!test/integration/extensions/mesh-v2-variable-sync.test.js
+
+# Level 2: test/load-test/* — Smalruby-only, no filter needed
+
+# Level 2: test/unit/*
+test/unit/*
+!test/unit/extensions/
+!test/unit/blocks_operators_regex.js
+!test/unit/extension_koshien.js
+!test/unit/extension_mesh_v2_delta_repro.js
+!test/unit/extension_mesh_v2_delta.js
+!test/unit/extension_mesh_v2_domain.js
+!test/unit/extension_mesh_v2_integration.js
+!test/unit/extension_mesh_v2_issue66.js
+!test/unit/extension_mesh_v2_service.js
+!test/unit/extension_mesh_v2.js
+!test/unit/extension_smalrubot_s1.js
+!test/unit/mesh_service_v2_cost.js
+!test/unit/mesh_service_v2_global_vars.js
+!test/unit/mesh_service_v2_integration.js
+!test/unit/mesh_service_v2_order.js
+!test/unit/mesh_service_v2_polling.js
+!test/unit/mesh_service_v2_subscription.js
+!test/unit/mesh_service_v2_timestamp.js
+!test/unit/mesh_service_v2.js
+!test/unit/rate_limiter.js
+!test/unit/scratch3_mesh_v2_rate_limiter_repro.js
+!test/unit/smalruby_migration.js
+
+# Level 3: test/unit/extensions/*
+test/unit/extensions/*
+!test/unit/extensions/scratch3_mesh_v2/

@@ -1,4 +1,4 @@
-import {targetCodeToBlocks} from '../../../src/lib/ruby-to-blocks-converter';
+import { targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';
 
 describe('RubyToBlocksConverter Versioning', () => {
     let vm;
@@ -9,17 +9,17 @@ describe('RubyToBlocksConverter Versioning', () => {
             runtime: {
                 getTargetForStage: () => ({
                     variables: {},
-                    lookupVariableByNameAndType: () => null
-                })
-            }
+                    lookupVariableByNameAndType: () => null,
+                }),
+            },
         };
         target = {
             isStage: false,
             variables: {},
             lookupVariableByNameAndType: () => null,
             blocks: {
-                getProcedureParamNamesIdsAndDefaults: () => [[], [], []]
-            }
+                getProcedureParamNamesIdsAndDefaults: () => [[], [], []],
+            },
         };
     });
 
@@ -29,7 +29,7 @@ end`;
         const converter = await targetCodeToBlocks(vm, target, code);
         expect(converter.result).toBe(true);
         expect(converter.errors).toHaveLength(0);
-        
+
         const blocks = Object.values(converter.blocks);
         expect(blocks.some(b => b.opcode === 'procedures_definition')).toBe(true);
     });

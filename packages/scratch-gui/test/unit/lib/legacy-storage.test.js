@@ -1,4 +1,4 @@
-import {LegacyStorage} from '../../../src/lib/legacy-storage';
+import { LegacyStorage } from '../../../src/lib/legacy-storage';
 
 const STORAGE_KEY = 'smalrubyBackpack';
 
@@ -31,11 +31,13 @@ describe('LegacyStorage - setBackpackHost', () => {
     });
 
     test('getBackpackAssetURL returns data: URL from localStorage when host is localStorage', () => {
-        const items = [{
-            id: 'abc123',
-            mime: 'image/svg+xml',
-            body: 'PHN2Zy8+' // base64 of '<svg/>'
-        }];
+        const items = [
+            {
+                id: 'abc123',
+                mime: 'image/svg+xml',
+                body: 'PHN2Zy8+', // base64 of '<svg/>'
+            },
+        ];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 
         const storage = new LegacyStorage();
@@ -47,7 +49,7 @@ describe('LegacyStorage - setBackpackHost', () => {
         const registeredGetter = addWebStoreSpy.mock.calls[0][1];
 
         // The getter should return a data: URL for a known localStorage asset
-        const url = registeredGetter({assetId: 'abc123', dataFormat: 'svg'});
+        const url = registeredGetter({ assetId: 'abc123', dataFormat: 'svg' });
         expect(url).toBe('data:image/svg+xml;base64,PHN2Zy8+');
     });
 
@@ -60,7 +62,7 @@ describe('LegacyStorage - setBackpackHost', () => {
         storage.setBackpackHost('localStorage');
 
         const registeredGetter = addWebStoreSpy.mock.calls[0][1];
-        const url = registeredGetter({assetId: 'unknown', dataFormat: 'svg'});
+        const url = registeredGetter({ assetId: 'unknown', dataFormat: 'svg' });
         expect(url).toBe(false);
     });
 
@@ -71,7 +73,7 @@ describe('LegacyStorage - setBackpackHost', () => {
         storage.setBackpackHost('https://backpack.example.com');
 
         const registeredGetter = addWebStoreSpy.mock.calls[0][1];
-        const url = registeredGetter({assetId: 'abc123', dataFormat: 'svg'});
+        const url = registeredGetter({ assetId: 'abc123', dataFormat: 'svg' });
         expect(url).toBe('https://backpack.example.com/abc123.svg');
     });
 });

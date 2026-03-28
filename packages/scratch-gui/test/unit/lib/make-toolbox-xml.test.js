@@ -1,4 +1,4 @@
-import {filterBlocks} from '../../../src/lib/make-toolbox-xml';
+import { filterBlocks } from '../../../src/lib/make-toolbox-xml';
 
 describe('make-toolbox-xml', () => {
     describe('filterBlocks', () => {
@@ -42,11 +42,11 @@ describe('make-toolbox-xml', () => {
 
             // Should contain blockSeparator between allowed blocks
             expect(result).toContain('<sep gap="36"/>');
-            
+
             // Should contain both allowed blocks
             expect(result).toContain('motion_movesteps');
             expect(result).toContain('motion_turnright');
-            
+
             // Should not contain filtered out blocks
             expect(result).not.toContain('motion_turnleft');
             expect(result).not.toContain('motion_goto');
@@ -84,7 +84,7 @@ describe('make-toolbox-xml', () => {
             // Should not start or end with separator
             expect(result).not.toMatch(/^\s*<category[^>]*>\s*<sep/);
             expect(result).not.toMatch(/<sep[^>]*\/>\s*<category-separator/);
-            
+
             expect(result).toContain('motion_movesteps');
             expect(result).not.toContain('motion_turnright');
         });

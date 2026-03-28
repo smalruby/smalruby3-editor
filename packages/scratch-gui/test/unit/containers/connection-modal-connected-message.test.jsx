@@ -7,13 +7,12 @@
  * This is a regression test for issue #132:
  * "meshV2 connection modal does not show group name after connecting"
  */
-
 import React from 'react';
-import {render, act} from '@testing-library/react';
-import '@testing-library/jest-dom';
-import {Provider} from 'react-redux';
-import {IntlProvider} from 'react-intl';
+import { IntlProvider } from 'react-intl';
+import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
+import '@testing-library/jest-dom';
+import { render, act } from '@testing-library/react';
 import ConnectionModal from '../../../src/containers/connection-modal.jsx';
 
 // Use the real ConnectionModalComponent but mock sub-steps to avoid full render complexity
@@ -28,7 +27,7 @@ jest.mock('../../../src/components/connection-modal/connection-modal.jsx', () =>
         unavailable: 'unavailable',
         networkFiltered: 'networkFiltered',
         meshV2Initial: 'meshV2Initial',
-        updatePeripheral: 'updatePeripheral'
+        updatePeripheral: 'updatePeripheral',
     };
     const MockConnectionModalComponent = props => (
         <div data-testid="modal">
@@ -43,15 +42,15 @@ jest.mock('../../../src/components/connection-modal/connection-modal.jsx', () =>
         </div>
     );
     MockConnectionModalComponent.displayName = 'MockConnectionModalComponent';
-    MockConnectionModalComponent.defaultProps = {connectingMessage: 'Connecting'};
+    MockConnectionModalComponent.defaultProps = { connectingMessage: 'Connecting' };
     return {
         __esModule: true,
         default: MockConnectionModalComponent,
-        PHASES
+        PHASES,
     };
 });
 
-jest.mock('../../../src/lib/analytics', () => ({event: jest.fn()}));
+jest.mock('../../../src/lib/analytics', () => ({ event: jest.fn() }));
 
 jest.mock('../../../src/lib/libraries/extensions/index.jsx', () => [
     {
@@ -61,30 +60,30 @@ jest.mock('../../../src/lib/libraries/extensions/index.jsx', () => [
         connectionSmallIconURL: 'small-icon.png',
         connectionTipIconURL: 'tip-icon.png',
         connectingMessage: 'Connecting...',
-        useAutoScan: false
-    }
+        useAutoScan: false,
+    },
 ]);
 
 jest.mock('../../../src/reducers/modals', () => ({
-    closeConnectionModal: jest.fn(() => ({type: 'CLOSE_CONNECTION_MODAL'})),
-    setConnectionModalExtensionId: jest.fn(() => ({type: 'SET_EXTENSION_ID'})),
-    openConnectionModal: jest.fn(() => ({type: 'OPEN_CONNECTION_MODAL'}))
+    closeConnectionModal: jest.fn(() => ({ type: 'CLOSE_CONNECTION_MODAL' })),
+    setConnectionModalExtensionId: jest.fn(() => ({ type: 'SET_EXTENSION_ID' })),
+    openConnectionModal: jest.fn(() => ({ type: 'OPEN_CONNECTION_MODAL' })),
 }));
 jest.mock('../../../src/reducers/mesh-v2', () => ({
-    setDomain: jest.fn(() => ({type: 'SET_DOMAIN'}))
+    setDomain: jest.fn(() => ({ type: 'SET_DOMAIN' })),
 }));
 jest.mock('../../../src/lib/microbit-update', () => ({
     isMicroBitUpdateSupported: jest.fn(() => false),
-    selectAndUpdateMicroBit: jest.fn()
+    selectAndUpdateMicroBit: jest.fn(),
 }));
 jest.mock('../../../src/lib/microbit-more-update', () => ({
     isMicroBitUpdateSupported: jest.fn(() => false),
-    selectAndUpdateMicroBit: jest.fn()
+    selectAndUpdateMicroBit: jest.fn(),
 }));
 
 const mockStore = configureStore();
 
-const createMockVm = ({isConnected = false, connectedMessage = null} = {}) => {
+const createMockVm = ({ isConnected = false, connectedMessage = null } = {}) => {
     const listeners = {};
     const vm = {
         on: jest.fn((event, handler) => {
@@ -97,45 +96,42 @@ const createMockVm = ({isConnected = false, connectedMessage = null} = {}) => {
         disconnectPeripheral: jest.fn(),
         runtime: {
             peripheralExtensions: {
-                meshV2: {setDomain: jest.fn()}
-            }
+                meshV2: { setDomain: jest.fn() },
+            },
         },
         extensionManager: {
             isExtensionLoaded: jest.fn(() => false),
-            loadExtensionURL: jest.fn()
+            loadExtensionURL: jest.fn(),
         },
-        emit (event, ...args) {
+        emit(event, ...args) {
             if (listeners[event]) {
                 listeners[event](...args);
             }
-        }
+        },
     };
     return vm;
 };
 
-const renderModal = (vm) => {
+const renderModal = vm => {
     const store = mockStore({
         scratchGui: {
-            connectionModal: {extensionId: 'meshV2'},
-            meshV2: {domain: ''}
-        }
+            connectionModal: { extensionId: 'meshV2' },
+            meshV2: { domain: '' },
+        },
     });
     return render(
-        <IntlProvider
-            locale="en"
-            messages={{}}
-        >
+        <IntlProvider locale="en" messages={{}}>
             <Provider store={store}>
                 <ConnectionModal vm={vm} />
             </Provider>
-        </IntlProvider>
+        </IntlProvider>,
     );
 };
 
 describe('meshV2 connected message display (regression: issue #132)', () => {
     test('displays group name after creating a group (registeredHost)', () => {
-        const vm = createMockVm({isConnected: false, connectedMessage: null});
-        const {getByText, queryByText} = renderModal(vm);
+        const vm = createMockVm({ isConnected: false, connectedMessage: null });
+        const { getByText, queryByText } = renderModal(vm);
 
         // Initially not in connected phase, so "Connected" text is not shown
         expect(queryByText('Connected')).toBeNull();
@@ -152,8 +148,8 @@ describe('meshV2 connected message display (regression: issue #132)', () => {
     });
 
     test('displays group name after joining a group (joinedMesh)', () => {
-        const vm = createMockVm({isConnected: false, connectedMessage: null});
-        const {getByText, queryByText} = renderModal(vm);
+        const vm = createMockVm({ isConnected: false, connectedMessage: null });
+        const { getByText, queryByText } = renderModal(vm);
 
         // Simulate: user joins a group → VM connects → emits PERIPHERAL_CONNECTED
         vm.getPeripheralConnectedMessage.mockReturnValue('Joined Mesh [XYZ-789]');
@@ -168,8 +164,8 @@ describe('meshV2 connected message display (regression: issue #132)', () => {
 
     test('displays default "Connected" when already connected without a connectedMessage', () => {
         // When the modal opens while already connected but no message is available
-        const vm = createMockVm({isConnected: true, connectedMessage: null});
-        const {getByText} = renderModal(vm);
+        const vm = createMockVm({ isConnected: true, connectedMessage: null });
+        const { getByText } = renderModal(vm);
 
         // Should fall back to "Connected"
         expect(getByText('Connected')).toBeInTheDocument();
@@ -179,9 +175,9 @@ describe('meshV2 connected message display (regression: issue #132)', () => {
         // When the modal opens while already connected with an existing message
         const vm = createMockVm({
             isConnected: true,
-            connectedMessage: 'Registered Host Mesh [EXISTING]'
+            connectedMessage: 'Registered Host Mesh [EXISTING]',
         });
-        const {getByText, queryByText} = renderModal(vm);
+        const { getByText, queryByText } = renderModal(vm);
 
         expect(getByText('Registered Host Mesh [EXISTING]')).toBeInTheDocument();
         expect(queryByText('Connected')).toBeNull();

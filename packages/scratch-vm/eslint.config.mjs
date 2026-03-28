@@ -1,4 +1,5 @@
 import {eslintConfigScratch} from 'eslint-config-scratch';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import {globalIgnores} from 'eslint/config';
 import globals from 'globals';
 
@@ -109,5 +110,9 @@ export default eslintConfigScratch.defineConfig(
             'format-message/literal-pattern': 'off',
             'format-message/literal-locale': 'off'
         }
-    }
+    },
+    // === Smalruby: Start of prettier integration ===
+    // Must be last to disable formatting rules that conflict with prettier
+    eslintConfigPrettier
+    // === Smalruby: End of prettier integration ===
 );

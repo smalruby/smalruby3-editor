@@ -8,15 +8,15 @@ const defaultSettings = {
     fullwidthAlpha: true,
     fullwidthSymbols: true,
     fullwidthSpace: true,
-    replaceInStrings: true
+    replaceInStrings: true,
 };
 
 // Fullwidth ASCII symbols mapped to halfwidth equivalents.
 // Range U+FF01..U+FF5E corresponds to '!'(0x21)..'~'(0x7E).
 // Numbers (FF10-FF19) and letters (FF21-FF3A, FF41-FF5A) are handled separately.
 const FULLWIDTH_SYMBOL_MAP = {};
-for (let i = 0xFF01; i <= 0xFF5E; i++) {
-    const half = String.fromCharCode(i - 0xFF01 + 0x21);
+for (let i = 0xff01; i <= 0xff5e; i++) {
+    const half = String.fromCharCode(i - 0xff01 + 0x21);
     const full = String.fromCharCode(i);
     // Skip digits 0-9
     if (half >= '0' && half <= '9') continue;
@@ -33,7 +33,7 @@ const EXTRA_SYMBOL_MAP = {
     '\u201D': '"', // " right double quotation mark
     '\u2018': "'", // ' left single quotation mark
     '\u2019': "'", // ' right single quotation mark
-    '\u2212': '-' // − minus sign
+    '\u2212': '-', // − minus sign
 };
 
 /**
@@ -78,21 +78,21 @@ const replaceChar = (ch, settings) => {
     const code = ch.charCodeAt(0);
 
     // Fullwidth digits ０(FF10) - ９(FF19)
-    if (code >= 0xFF10 && code <= 0xFF19) {
+    if (code >= 0xff10 && code <= 0xff19) {
         if (!settings.fullwidthNumbers) return ch;
-        return String.fromCharCode(code - 0xFF10 + 0x30);
+        return String.fromCharCode(code - 0xff10 + 0x30);
     }
 
     // Fullwidth uppercase Ａ(FF21) - Ｚ(FF3A)
-    if (code >= 0xFF21 && code <= 0xFF3A) {
+    if (code >= 0xff21 && code <= 0xff3a) {
         if (!settings.fullwidthAlpha) return ch;
-        return String.fromCharCode(code - 0xFF21 + 0x41);
+        return String.fromCharCode(code - 0xff21 + 0x41);
     }
 
     // Fullwidth lowercase ａ(FF41) - ｚ(FF5A)
-    if (code >= 0xFF41 && code <= 0xFF5A) {
+    if (code >= 0xff41 && code <= 0xff5a) {
         if (!settings.fullwidthAlpha) return ch;
-        return String.fromCharCode(code - 0xFF41 + 0x61);
+        return String.fromCharCode(code - 0xff41 + 0x61);
     }
 
     // Ideographic space
@@ -128,8 +128,7 @@ const findStringRegions = code => {
         const ch = code[i];
         if (ch === '"' || ch === "'" || ch === '\u201C' || ch === '\u2018') {
             // Map opening smart quotes to their closing counterpart
-            const closeQuote = ch === '\u201C' ? '\u201D' :
-                ch === '\u2018' ? '\u2019' : ch;
+            const closeQuote = ch === '\u201C' ? '\u201D' : ch === '\u2018' ? '\u2019' : ch;
             const start = i;
             i++; // skip opening quote
             while (i < code.length) {
@@ -221,4 +220,4 @@ const autoCorrect = (code, settings) => {
     return result;
 };
 
-export {autoCorrect, defaultSettings};
+export { autoCorrect, defaultSettings };

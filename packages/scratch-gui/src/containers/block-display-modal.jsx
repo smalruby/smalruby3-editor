@@ -1,31 +1,26 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {connect} from 'react-redux';
-
-import {
-    setSelectedBlocks,
-    closeBlockDisplayModal
-} from '../reducers/block-display.js';
-import {setProjectChanged} from '../reducers/project-changed.js';
-import {CATEGORY_BLOCKS} from '../lib/block-utils';
-
+import { connect } from 'react-redux';
 import BlockDisplayModalComponent from '../components/block-display-modal/block-display-modal.jsx';
+import { CATEGORY_BLOCKS } from '../lib/block-utils';
+import { setSelectedBlocks, closeBlockDisplayModal } from '../reducers/block-display.js';
+import { setProjectChanged } from '../reducers/project-changed.js';
 
 class BlockDisplayModal extends React.Component {
-    constructor (props) {
+    constructor(props) {
         super(props);
         bindAll(this, [
             'handleCategoryToggle',
             'handleBlockChange',
             'handleSelectAll',
             'handleSelectNone',
-            'handleClose'
+            'handleClose',
         ]);
     }
 
-    handleCategoryToggle (categoryId, isSelected) {
-        const currentBlocks = {...this.props.selectedBlocks};
+    handleCategoryToggle(categoryId, isSelected) {
+        const currentBlocks = { ...this.props.selectedBlocks };
 
         if (isSelected) {
             // Select all blocks in this category
@@ -39,8 +34,8 @@ class BlockDisplayModal extends React.Component {
         this.props.onSetProjectChanged();
     }
 
-    handleBlockChange (categoryId, blockId, isSelected) {
-        const currentBlocks = {...this.props.selectedBlocks};
+    handleBlockChange(categoryId, blockId, isSelected) {
+        const currentBlocks = { ...this.props.selectedBlocks };
 
         // Update the specific block
         if (!currentBlocks[categoryId]) {
@@ -58,12 +53,12 @@ class BlockDisplayModal extends React.Component {
         this.props.onSetProjectChanged();
     }
 
-    handleSelectAll () {
+    handleSelectAll() {
         this.props.onSetSelectedBlocks(CATEGORY_BLOCKS);
         this.props.onSetProjectChanged();
     }
 
-    handleSelectNone () {
+    handleSelectNone() {
         const emptyBlocks = {
             motion: [],
             looks: [],
@@ -71,17 +66,17 @@ class BlockDisplayModal extends React.Component {
             event: [],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
         };
         this.props.onSetSelectedBlocks(emptyBlocks);
         this.props.onSetProjectChanged();
     }
 
-    handleClose () {
+    handleClose() {
         this.props.onRequestClose();
     }
 
-    render () {
+    render() {
         return (
             <BlockDisplayModalComponent
                 selectedBlocks={this.props.selectedBlocks}
@@ -101,22 +96,19 @@ BlockDisplayModal.propTypes = {
     scratchBlocks: PropTypes.instanceOf(Object),
     onSetSelectedBlocks: PropTypes.func.isRequired,
     onRequestClose: PropTypes.func.isRequired,
-    onSetProjectChanged: PropTypes.func.isRequired
+    onSetProjectChanged: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = state => ({
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
     scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,
-    vm: state.scratchGui.vm
+    vm: state.scratchGui.vm,
 });
 
 const mapDispatchToProps = dispatch => ({
     onSetSelectedBlocks: blocks => dispatch(setSelectedBlocks(blocks)),
     onRequestClose: () => dispatch(closeBlockDisplayModal()),
-    onSetProjectChanged: () => dispatch(setProjectChanged())
+    onSetProjectChanged: () => dispatch(setProjectChanged()),
 });
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(BlockDisplayModal);
+export default connect(mapStateToProps, mapDispatchToProps)(BlockDisplayModal);

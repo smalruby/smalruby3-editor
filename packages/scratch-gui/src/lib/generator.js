@@ -1,6 +1,6 @@
 import _ from 'lodash';
-import log from './log';
 import Blockly from 'scratch-blocks';
+import log from './log';
 
 /**
  * Class for a code generator that translates the blocks into a language.
@@ -10,7 +10,7 @@ import Blockly from 'scratch-blocks';
  */
 class Generator {
     // @param {string} name Language name of this generator.
-    constructor (name) {
+    constructor(name) {
         /**
          * Arbitrary code to inject into locations that risk causing infinite loops.
          * Any instances of '%1' will be replaced by the block ID that failed.
@@ -64,8 +64,7 @@ class Generator {
          */
         this.FUNCTION_NAME_PLACEHOLDER_ = '{leCUI8hutHZI4480Dc}';
 
-        this.FUNCTION_NAME_PLACEHOLDER_REGEXP_ =
-            new RegExp(this.FUNCTION_NAME_PLACEHOLDER_, 'g');
+        this.FUNCTION_NAME_PLACEHOLDER_REGEXP_ = new RegExp(this.FUNCTION_NAME_PLACEHOLDER_, 'g');
 
         this.name_ = name;
         this.cache_ = {};
@@ -79,7 +78,7 @@ class Generator {
      * Category to separate generated function names from variables and procedures.
      * @returns {string} Category name.
      */
-    static get NAME_TYPE () {
+    static get NAME_TYPE() {
         return Blockly.NAME_TYPE;
     }
 
@@ -89,15 +88,15 @@ class Generator {
      * procedure blocks.
      * @returns {string} Category name.
      */
-    static get PROCEDURE_CATEGORY_NAME () {
+    static get PROCEDURE_CATEGORY_NAME() {
         return Blockly.PROCEDURE_CATEGORY_NAME;
     }
 
-    set currentTarget (target) {
+    set currentTarget(target) {
         this.currentTarget_ = target;
 
-        const comments = this.cache_.comments = {};
-        const targetCommentTexts = this.cache_.targetCommentTexts = [];
+        const comments = (this.cache_.comments = {});
+        const targetCommentTexts = (this.cache_.targetCommentTexts = []);
         if (target) {
             Object.keys(target.comments).forEach(commentId => {
                 const comment = target.comments[commentId];
@@ -110,11 +109,11 @@ class Generator {
         }
     }
 
-    get currentTarget () {
+    get currentTarget() {
         return this.currentTarget_;
     }
 
-    getScripts () {
+    getScripts() {
         return this.currentTarget.blocks.getScripts().filter(blockId => !this.getBlock(blockId).shadow);
     }
 
@@ -124,14 +123,17 @@ class Generator {
      * @param {object} options Options to generate code.
      * @returns {string} Generated code.
      */
-    targetToCode_ (target, options) {
+    targetToCode_(target, options) {
         this.currentTarget = target;
 
         this.init(options);
 
         let code;
-        if (options && Object.prototype.hasOwnProperty.call(options, 'targetsCode') &&
-            Object.prototype.hasOwnProperty.call(options.targetsCode, target.id)) {
+        if (
+            options &&
+            Object.prototype.hasOwnProperty.call(options, 'targetsCode') &&
+            Object.prototype.hasOwnProperty.call(options.targetsCode, target.id)
+        ) {
             code = `${options.targetsCode[target.id]}\n`.replace(/\n\s+$/, '\n');
         } else {
             const codes = [];
@@ -182,7 +184,7 @@ class Generator {
      * @param {object} options Options to generate code.
      * @returns {string} Generated code.
      */
-    targetToCode (target, options) {
+    targetToCode(target, options) {
         this.initTargets(options);
         const code = this.targetToCode_(target, options);
         return this.finishTargets(code, options);
@@ -194,7 +196,7 @@ class Generator {
      * @param {object} options Options to generate code.
      * @returns {string} Generated code.
      */
-    targetsToCode (targets, options) {
+    targetsToCode(targets, options) {
         this.initTargets(options);
 
         const codes = [];
@@ -218,11 +220,11 @@ class Generator {
      * @param {string} prefix The common prefix.
      * @returns {string} The prefixed lines of code.
      */
-    prefixLines (text, prefix = this.INDENT) {
+    prefixLines(text, prefix = this.INDENT) {
         return prefix + text.replace(/(?!\n$)\n/g, `\n${prefix}`);
     }
 
-    getChildren (block) {
+    getChildren(block) {
         const blocks = [];
         for (const inputName in block.inputs) {
             const input = block.inputs[inputName];
@@ -237,7 +239,7 @@ class Generator {
         return blocks;
     }
 
-    getDescendants (block, ignoreShadows) {
+    getDescendants(block, ignoreShadows) {
         const blocks = [block];
         const childBlocks = this.getChildren(block);
         childBlocks.forEach(child => {
@@ -253,7 +255,7 @@ class Generator {
      * @param {!object} block The block from which to start spidering.
      * @returns {string} Concatenated list of comments.
      */
-    allNestedComments (block) {
+    allNestedComments(block) {
         const comments = [];
         const blocks = this.getDescendants(block);
         for (let i = 0; i < blocks.length; i++) {
@@ -276,7 +278,7 @@ class Generator {
      *     For value blocks, an array containing the generated code and an
      *     operator order value.  Returns '' if block is null.
      */
-    blockToCode (block) {
+    blockToCode(block) {
         try {
             if (!block) {
                 return '';
@@ -298,8 +300,7 @@ class Generator {
             } else if (_.isString(code)) {
                 const id = block.id.replace(/\$/g, '$$$$'); // Issue 251.
                 if (this.STATEMENT_PREFIX) {
-                    code = this.STATEMENT_PREFIX.replace(/%1/g, `'${id}'`) +
-                        code;
+                    code = this.STATEMENT_PREFIX.replace(/%1/g, `'${id}'`) + code;
                 }
                 return this.scrub_(block, code);
             } else if (code === null) {
@@ -309,7 +310,7 @@ class Generator {
             log.error(`Invalid code generated: ${code}`);
             return '';
         } catch (e) {
-            log.error('Error generating code: ', {opcode: block.opcode, error: e});
+            log.error('Error generating code: ', { opcode: block.opcode, error: e });
             return '';
         }
     }
@@ -323,7 +324,7 @@ class Generator {
      * @returns {string} Generated code or '' if no blocks are connected or the
      *     specified input does not exist.
      */
-    valueToCode (block, name, outerOrder) {
+    valueToCode(block, name, outerOrder) {
         if (isNaN(outerOrder)) {
             log.error(`Expecting valid order from block "${block.opcode}"`);
         }
@@ -359,8 +360,7 @@ class Generator {
         const outerOrderClass = Math.floor(outerOrder);
         const innerOrderClass = Math.floor(innerOrder);
         if (outerOrderClass <= innerOrderClass) {
-            if (outerOrderClass === innerOrderClass &&
-                (outerOrderClass === 0 || outerOrderClass === 99)) {
+            if (outerOrderClass === innerOrderClass && (outerOrderClass === 0 || outerOrderClass === 99)) {
                 // Don't generate parens around NONE-NONE and ATOMIC-ATOMIC pairs.
                 // 0 is the atomic order, 99 is the none order.  No parentheses needed.
                 // In all known languages multiple such code blocks are not order
@@ -372,8 +372,7 @@ class Generator {
                 parensNeeded = true;
                 // Check for special exceptions.
                 for (let i = 0; i < this.ORDER_OVERRIDES.length; i++) {
-                    if (this.ORDER_OVERRIDES[i][0] === outerOrder &&
-                        this.ORDER_OVERRIDES[i][1] === innerOrder) {
+                    if (this.ORDER_OVERRIDES[i][0] === outerOrder && this.ORDER_OVERRIDES[i][1] === innerOrder) {
                         parensNeeded = false;
                         break;
                     }
@@ -394,7 +393,7 @@ class Generator {
      * @param {string} name The name of the input.
      * @returns {string} Generated code or '' if no blocks are connected.
      */
-    statementToCode (block, name) {
+    statementToCode(block, name) {
         const branch = block.inputs[name];
         let targetBlock = null;
         if (branch) {
@@ -419,7 +418,7 @@ class Generator {
      * @param {string} id ID of enclosing block.
      * @returns {string} Loop contents, with infinite loop trap added.
      */
-    addLoopTrap (branch, id) {
+    addLoopTrap(branch, id) {
         id = id.replace(/\$/g, '$$$$');
         if (this.INFINITE_LOOP_TRAP) {
             branch = this.INFINITE_LOOP_TRAP.replace(/%1/g, `'${id}'`) + branch;
@@ -435,7 +434,7 @@ class Generator {
      * @param {string} words Comma-separated list of words to add to the list.
      *     No spaces.  Duplicates are ok.
      */
-    addReservedWords (words) {
+    addReservedWords(words) {
         this.RESERVED_WORDS_ += `${words},`;
     }
 
@@ -445,7 +444,7 @@ class Generator {
      * names.
      * @param {!object} _options Options to generate code.
      */
-    init (_options) {
+    init(_options) {
         // Optionally override
     }
 
@@ -457,7 +456,7 @@ class Generator {
      * @param {!object} _options Options to generate code.
      * @returns {string} Completed code.
      */
-    finish (code, _options) {
+    finish(code, _options) {
         // Optionally override
         return code;
     }
@@ -468,7 +467,7 @@ class Generator {
      * names.
      * @param {!object} _options Options to generate code.
      */
-    initTargets (_options) {
+    initTargets(_options) {
         // Optionally override
     }
 
@@ -480,7 +479,7 @@ class Generator {
      * @param {!object} _options Options to generate code.
      * @returns {string} Completed code.
      */
-    finishTargets (code, _options) {
+    finishTargets(code, _options) {
         // Optionally override
         return code;
     }
@@ -493,7 +492,7 @@ class Generator {
      * @param {string} line Line of generated code.
      * @returns {string} Legal line of code.
      */
-    scrubNakedValue (line) {
+    scrubNakedValue(line) {
         // Optionally override
         return line;
     }
@@ -509,7 +508,7 @@ class Generator {
      * @returns {string} JavaScript code with comments and subsequent blocks added.
      * @private
      */
-    scrub_ (_block, code) {
+    scrub_(_block, code) {
         // Optionally override
         return code;
     }
@@ -530,7 +529,7 @@ class Generator {
      *     from desiredName if the former has already been taken by the user.
      * @private
      */
-    provideFunction_ (desiredName, code) {
+    provideFunction_(desiredName, code) {
         if (!this.definitions_[desiredName]) {
             const functionName = this._variableDB.getDistinctName(desiredName, Generator.PROCEDURE_CATEGORY_NAME);
             this.functionNames_[desiredName] = functionName;
@@ -550,24 +549,24 @@ class Generator {
         return this.functionNames_[desiredName];
     }
 
-    getTargetCommentTexts () {
+    getTargetCommentTexts() {
         return this.cache_.targetCommentTexts;
     }
 
-    getCommentText (block) {
+    getCommentText(block) {
         const comment = this.cache_.comments[block.id];
         return comment ? comment.text : null;
     }
 
-    getBlock (blockId) {
+    getBlock(blockId) {
         return this.currentTarget.blocks.getBlock(blockId);
     }
 
-    getInputs (block) {
+    getInputs(block) {
         return this.currentTarget.blocks.getInputs(block);
     }
 
-    getInputTargetBlock (block, name) {
+    getInputTargetBlock(block, name) {
         const input = this.getInputs(block)[name];
         if (input) {
             return this.getBlock(input.block);
@@ -575,20 +574,20 @@ class Generator {
         return null;
     }
 
-    getField (block, name) {
+    getField(block, name) {
         return block.fields[name];
     }
 
-    getFieldId (block, name) {
+    getFieldId(block, name) {
         return this.getField(block, name).id;
     }
 
-    getFieldValue (block, name, defaultValue = null) {
+    getFieldValue(block, name, defaultValue = null) {
         const field = this.getField(block, name);
         return field ? field.value : defaultValue;
     }
 
-    isConnectedValue (block) {
+    isConnectedValue(block) {
         const parent = this.getBlock(block.parent);
         if (parent) {
             const inputs = this.getInputs(parent);

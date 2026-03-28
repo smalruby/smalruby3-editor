@@ -4,7 +4,7 @@ const {
     REPORT_DATA,
     CREATE_GROUP,
     JOIN_GROUP,
-    LIST_GROUP_STATUSES
+    LIST_GROUP_STATUSES,
 } = require('../../../src/extensions/scratch3_mesh_v2/gql-operations');
 const Variable = require('../../../src/engine/variable');
 
@@ -14,9 +14,9 @@ const mockClient = {
     query: null,
     subscribe: () => ({
         subscribe: () => ({
-            unsubscribe: () => {}
-        })
-    })
+            unsubscribe: () => {},
+        }),
+    }),
 };
 
 const createMockBlocks = () => ({
@@ -26,18 +26,18 @@ const createMockBlocks = () => ({
                 'var1-id': {
                     name: 'var1',
                     type: Variable.SCALAR_TYPE,
-                    value: 10
+                    value: 10,
                 },
                 'var2-id': {
                     name: 'var2',
                     type: Variable.SCALAR_TYPE,
-                    value: 'hello'
-                }
-            }
+                    value: 'hello',
+                },
+            },
         }),
         on: () => {},
-        off: () => {}
-    }
+        off: () => {},
+    },
 });
 
 const FAR_FUTURE = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
@@ -45,7 +45,7 @@ const FAR_FUTURE = new Date(Date.now() + 3600000).toISOString(); // 1 hour from 
 test('MeshV2Service Variable Sync Integration', async t => {
     let reportDataPayload = null;
 
-    mockClient.mutate = ({mutation, variables}) => {
+    mockClient.mutate = ({ mutation, variables }) => {
         if (mutation === CREATE_GROUP) {
             return Promise.resolve({
                 data: {
@@ -53,18 +53,18 @@ test('MeshV2Service Variable Sync Integration', async t => {
                         id: 'group1',
                         name: variables.name,
                         domain: variables.domain,
-                        expiresAt: FAR_FUTURE
-                    }
-                }
+                        expiresAt: FAR_FUTURE,
+                    },
+                },
             });
         }
         if (mutation === REPORT_DATA) {
             reportDataPayload = variables.data;
         }
-        return Promise.resolve({data: {}});
+        return Promise.resolve({ data: {} });
     };
 
-    mockClient.query = () => Promise.resolve({data: {listGroupStatuses: []}});
+    mockClient.query = () => Promise.resolve({ data: { listGroupStatuses: [] } });
 
     const blocks = createMockBlocks();
     const service = new MeshV2Service(blocks, 'node1', 'domain1');
@@ -79,8 +79,14 @@ test('MeshV2Service Variable Sync Integration', async t => {
 
     t.ok(reportDataPayload, 'REPORT_DATA should be called');
     t.equal(reportDataPayload.length, 2);
-    t.same(reportDataPayload.find(v => v.key === 'var1'), {key: 'var1', value: '10'});
-    t.same(reportDataPayload.find(v => v.key === 'var2'), {key: 'var2', value: 'hello'});
+    t.same(
+        reportDataPayload.find(v => v.key === 'var1'),
+        { key: 'var1', value: '10' },
+    );
+    t.same(
+        reportDataPayload.find(v => v.key === 'var2'),
+        { key: 'var2', value: 'hello' },
+    );
 
     // Cleanup for next test
     reportDataPayload = null;
@@ -91,22 +97,22 @@ test('MeshV2Service Variable Sync Integration', async t => {
     service2.client = mockClient;
     service2.forcePolling = true; // Skip WebSocket test in unit test environment
 
-    mockClient.mutate = ({mutation, variables}) => {
+    mockClient.mutate = ({ mutation, variables }) => {
         if (mutation === JOIN_GROUP) {
             return Promise.resolve({
                 data: {
                     joinGroup: {
                         domain: variables.domain,
                         heartbeatIntervalSeconds: 60,
-                        expiresAt: FAR_FUTURE
-                    }
-                }
+                        expiresAt: FAR_FUTURE,
+                    },
+                },
             });
         }
         if (mutation === REPORT_DATA) {
             reportDataPayload = variables.data;
         }
-        return Promise.resolve({data: {}});
+        return Promise.resolve({ data: {} });
     };
 
     await service2.joinGroup('group2', 'domain1', 'groupName');
@@ -123,28 +129,28 @@ test('MeshV2Service Variable Sync Integration', async t => {
 test('MeshV2Service fetch existing nodes data on joinGroup', async t => {
     const blocks = {
         runtime: {
-            getTargetForStage: () => ({variables: {}}),
+            getTargetForStage: () => ({ variables: {} }),
             on: () => {},
-            off: () => {}
-        }
+            off: () => {},
+        },
     };
 
-    mockClient.mutate = ({mutation}) => {
+    mockClient.mutate = ({ mutation }) => {
         if (mutation === JOIN_GROUP) {
             return Promise.resolve({
                 data: {
                     joinGroup: {
                         domain: 'domain1',
                         heartbeatIntervalSeconds: 60,
-                        expiresAt: FAR_FUTURE
-                    }
-                }
+                        expiresAt: FAR_FUTURE,
+                    },
+                },
             });
         }
-        return Promise.resolve({data: {}});
+        return Promise.resolve({ data: {} });
     };
 
-    mockClient.query = ({query, variables}) => {
+    mockClient.query = ({ query, variables }) => {
         if (query === LIST_GROUP_STATUSES) {
             return Promise.resolve({
                 data: {
@@ -153,16 +159,14 @@ test('MeshV2Service fetch existing nodes data on joinGroup', async t => {
                             nodeId: 'host-node',
                             groupId: variables.groupId,
                             domain: variables.domain,
-                            data: [
-                                {key: 'hostVar', value: '100'}
-                            ],
-                            timestamp: '2025-12-30T12:00:00Z'
-                        }
-                    ]
-                }
+                            data: [{ key: 'hostVar', value: '100' }],
+                            timestamp: '2025-12-30T12:00:00Z',
+                        },
+                    ],
+                },
             });
         }
-        return Promise.resolve({data: {}});
+        return Promise.resolve({ data: {} });
     };
 
     const service = new MeshV2Service(blocks, 'member-node', 'domain1');

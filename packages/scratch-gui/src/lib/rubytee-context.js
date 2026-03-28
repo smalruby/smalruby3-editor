@@ -29,15 +29,19 @@ const buildStateSection = (sprite, stage, vm) => {
         parts.push(`- 座標: (${sprite.x}, ${sprite.y}), 向き: ${sprite.direction}度, 大きさ: ${sprite.size}%`);
 
         const costumeNames = (sprite.costumes || []).map(c => c.name);
-        parts.push(`- コスチューム一覧: ${costumeNames.length > 0 ?
-            costumeNames.map(n => `"${n}"`).join(', ') :
-            '（なし）'}`);
+        parts.push(
+            `- コスチューム一覧: ${costumeNames.length > 0 ? costumeNames.map(n => `"${n}"`).join(', ') : '（なし）'}`,
+        );
         parts.push('  - **switch_costume() にはこの中の名前のみ指定可能です**');
 
         const soundNames = (sprite.sounds || []).map(s => s.name);
-        parts.push(`- サウンド一覧: ${soundNames.length > 0 ?
-            soundNames.map(n => `"${n}"`).join(', ') :
-            '（なし — play() / play_until_done() は使えません）'}`);
+        parts.push(
+            `- サウンド一覧: ${
+                soundNames.length > 0
+                    ? soundNames.map(n => `"${n}"`).join(', ')
+                    : '（なし — play() / play_until_done() は使えません）'
+            }`,
+        );
         if (soundNames.length > 0) {
             parts.push('  - **play() / play_until_done() にはこの中の名前のみ指定可能です**');
         }
@@ -53,9 +57,9 @@ const buildStateSection = (sprite, stage, vm) => {
         parts.push(`- サイズ: ${stage.width}x${stage.height}`);
 
         const stageCostumes = (stage.costumes || []).map(c => c.name);
-        parts.push(`- 背景一覧: ${stageCostumes.length > 0 ?
-            stageCostumes.map(n => `"${n}"`).join(', ') :
-            '（なし）'}`);
+        parts.push(
+            `- 背景一覧: ${stageCostumes.length > 0 ? stageCostumes.map(n => `"${n}"`).join(', ') : '（なし）'}`,
+        );
         parts.push('  - **switch_backdrop() / when_backdrop_switches() にはこの中の名前のみ指定可能です**');
 
         const stageSounds = (stage.sounds || []).map(s => s.name);
@@ -72,4 +76,4 @@ const buildStateSection = (sprite, stage, vm) => {
     return parts.join('\n');
 };
 
-export {buildStateSection};
+export { buildStateSection };

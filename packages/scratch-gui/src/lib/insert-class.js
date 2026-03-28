@@ -12,7 +12,7 @@ const quote = string => {
         '\\': '\\\\',
         '"': '\\"',
         '\n': '\\n',
-        '\t': '\\t'
+        '\t': '\\t',
     };
     const s = String(string);
     const sb = ['"'];
@@ -30,8 +30,7 @@ const quote = string => {
  * @param {string} prefix The common prefix.
  * @returns {string} The prefixed lines of code.
  */
-const prefixLines = (text, prefix = INDENT) =>
-    prefix + text.replace(/(?!\n$)\n/g, `\n${prefix}`);
+const prefixLines = (text, prefix = INDENT) => prefix + text.replace(/(?!\n$)\n/g, `\n${prefix}`);
 
 /**
  * Check if a string is a valid Ruby constant name (class name).
@@ -154,10 +153,12 @@ const wrapCurrentCodeWithClass = (code, target) => {
         for (const section of sections) {
             const trimmed = section.trim();
             if (trimmed.length === 0) continue;
-            if (/^self\.when\(/.test(trimmed) ||
+            if (
+                /^self\.when\(/.test(trimmed) ||
                 /^when_/.test(trimmed) ||
                 /^\w+\.when[\s_(]/.test(trimmed) ||
-                /^def /.test(trimmed)) {
+                /^def /.test(trimmed)
+            ) {
                 insideSections.push(section);
             } else {
                 outsideSections.push(section);
@@ -192,4 +193,4 @@ const wrapCurrentCodeWithClass = (code, target) => {
     return result;
 };
 
-export {wrapCurrentCodeWithClass, hasClassDefinition};
+export { wrapCurrentCodeWithClass, hasClassDefinition };

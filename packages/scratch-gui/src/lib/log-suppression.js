@@ -17,7 +17,7 @@ const ignoredWarnings = [
     'findDOMNode is deprecated',
     'The AudioContext was not allowed to start',
     'apple-mobile-web-app-capable',
-    'GenerateSW has been called multiple times'
+    'GenerateSW has been called multiple times',
 ];
 
 /**
@@ -28,9 +28,7 @@ const ignoredWarnings = [
  */
 const shouldIgnore = (message, ...args) => {
     const allStrings = [message, ...args].filter(arg => typeof arg === 'string');
-    return allStrings.some(str =>
-        ignoredWarnings.some(ignored => str.includes(ignored))
-    );
+    return allStrings.some(str => ignoredWarnings.some(ignored => str.includes(ignored)));
 };
 
 /* eslint-disable no-console */

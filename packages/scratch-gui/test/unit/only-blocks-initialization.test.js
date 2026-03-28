@@ -1,8 +1,7 @@
 /**
  * @fileoverview Test for only_blocks parameter initialization logic
  */
-
-import {CATEGORY_BLOCKS, initializeBlockSelectionFromOnlyBlocks} from '../../src/lib/block-utils.js';
+import { CATEGORY_BLOCKS, initializeBlockSelectionFromOnlyBlocks } from '../../src/lib/block-utils.js';
 
 describe('only_blocks parameter initialization', () => {
     test('should initialize with all blocks selected when no only_blocks parameter (default behavior)', () => {
@@ -14,7 +13,7 @@ describe('only_blocks parameter initialization', () => {
             event: CATEGORY_BLOCKS.event,
             control: CATEGORY_BLOCKS.control,
             sensing: CATEGORY_BLOCKS.sensing,
-            operators: CATEGORY_BLOCKS.operators
+            operators: CATEGORY_BLOCKS.operators,
         });
     });
 
@@ -27,7 +26,7 @@ describe('only_blocks parameter initialization', () => {
             event: [],
             control: [],
             sensing: [],
-            operators: []
+            operators: [],
         });
     });
 
@@ -80,7 +79,7 @@ describe('only_blocks parameter initialization', () => {
     // Hex format tests (TDD - failing first)
     describe('hex format parsing', () => {
         test('should recognize hex format starting with 0', () => {
-            // Simple hex case: select first motion block only  
+            // Simple hex case: select first motion block only
             // First bit should be 1: hex 8 = 1000, but we want 0001 = 1
             const result = initializeBlockSelectionFromOnlyBlocks('01000000000000000000000000000000');
             expect(result.motion).toEqual(['motion_movesteps']);
@@ -124,7 +123,7 @@ describe('only_blocks parameter initialization', () => {
                 event: [],
                 control: [],
                 sensing: [],
-                operators: []
+                operators: [],
             });
         });
 
@@ -246,9 +245,7 @@ describe('only_blocks parameter initialization', () => {
 
             test('should support mixed events_ and event_ in same parameter', () => {
                 // Support mixing old and new formats
-                const result = initializeBlockSelectionFromOnlyBlocks(
-                    'events_whenflagclicked,event_whenkeypressed'
-                );
+                const result = initializeBlockSelectionFromOnlyBlocks('events_whenflagclicked,event_whenkeypressed');
 
                 // Both blocks should be selected
                 expect(result.event).toContain('event_whenflagclicked');
@@ -257,9 +254,7 @@ describe('only_blocks parameter initialization', () => {
             });
 
             test('should support events_ with period separator', () => {
-                const result = initializeBlockSelectionFromOnlyBlocks(
-                    'motion_movesteps.events_whenflagclicked'
-                );
+                const result = initializeBlockSelectionFromOnlyBlocks('motion_movesteps.events_whenflagclicked');
 
                 expect(result.motion).toEqual(['motion_movesteps']);
                 expect(result.event).toEqual(['event_whenflagclicked']);

@@ -5,7 +5,7 @@ minilog.suggest.deny('vm', 'debug');
 minilog.suggest.deny('vm', 'info');
 
 const MeshV2Service = require('../../src/extensions/scratch3_mesh_v2/mesh-service');
-const {REPORT_DATA, FIRE_EVENTS} = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
+const { REPORT_DATA, FIRE_EVENTS } = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
 
 const createMockBlocks = () => ({
     runtime: {
@@ -14,12 +14,12 @@ const createMockBlocks = () => ({
         on: () => {},
         off: () => {},
         getTargetForStage: () => ({
-            variables: {}
-        })
+            variables: {},
+        }),
     },
     opcodeFunctions: {
-        event_broadcast: () => {}
-    }
+        event_broadcast: () => {},
+    },
 });
 
 test('MeshV2Service Data and Event Order', t => {
@@ -40,11 +40,15 @@ test('MeshV2Service Data and Event Order', t => {
                     return new Promise(resolve => {
                         setTimeout(() => {
                             dataMutationFinished = true;
-                            resolve({data: {reportDataByNode: {
-                                nodeId: 'node1',
-                                timestamp: new Date().toISOString(),
-                                data: []
-                            }}});
+                            resolve({
+                                data: {
+                                    reportDataByNode: {
+                                        nodeId: 'node1',
+                                        timestamp: new Date().toISOString(),
+                                        data: [],
+                                    },
+                                },
+                            });
                         }, 50); // Delay data mutation
                     });
                 }
@@ -52,21 +56,21 @@ test('MeshV2Service Data and Event Order', t => {
                     eventMutationStarted = true;
                     st.ok(dataMutationStarted, 'Data mutation should have started');
                     st.ok(dataMutationFinished, 'Data mutation should have finished before event mutation starts');
-                    return Promise.resolve({data: {fireEventsByNode: {}}});
+                    return Promise.resolve({ data: { fireEventsByNode: {} } });
                 }
                 return Promise.resolve({});
-            }
+            },
         };
 
         // 1. Send data
-        const dataPromise = service.sendData([{key: 'var1', value: '10'}]);
+        const dataPromise = service.sendData([{ key: 'var1', value: '10' }]);
         st.ok(service.lastDataSendPromise, 'lastDataSendPromise should be set');
-        
+
         // 2. Fire event batch immediately (should wait for dataPromise)
-        const eventPromise = service.fireEventsBatch([{eventName: 'msg1', payload: '', firedAt: 't1'}]);
+        const eventPromise = service.fireEventsBatch([{ eventName: 'msg1', payload: '', firedAt: 't1' }]);
 
         await Promise.all([dataPromise, eventPromise]);
-        
+
         st.ok(dataMutationFinished, 'Data mutation finished');
         st.ok(eventMutationStarted, 'Event mutation started');
 
@@ -76,23 +80,21 @@ test('MeshV2Service Data and Event Order', t => {
     t.test('handleDataUpdate uses server timestamp', st => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
-        
+
         const serverTimestamp = '2025-12-30T12:34:56.789Z';
         const expectedTime = new Date(serverTimestamp).getTime();
-        
+
         const nodeStatus = {
             nodeId: 'node2',
             timestamp: serverTimestamp,
-            data: [
-                {key: 'var1', value: '100'}
-            ]
+            data: [{ key: 'var1', value: '100' }],
         };
-        
+
         service.handleDataUpdate(nodeStatus);
-        
+
         st.equal(service.remoteData.node2.var1.value, '100');
         st.equal(service.remoteData.node2.var1.timestamp, expectedTime, 'Should use server timestamp');
-        
+
         st.end();
     });
 
@@ -108,15 +110,15 @@ test('MeshV2Service Data and Event Order', t => {
             mutate: options => {
                 if (options.mutation === FIRE_EVENTS) {
                     eventMutationStarted = true;
-                    return Promise.resolve({data: {fireEventsByNode: {}}});
+                    return Promise.resolve({ data: { fireEventsByNode: {} } });
                 }
                 return Promise.resolve({});
-            }
+            },
         };
 
         // fireEventsBatch should work even if lastDataSendPromise is just Promise.resolve()
-        await service.fireEventsBatch([{eventName: 'msg1', payload: '', firedAt: 't1'}]);
-        
+        await service.fireEventsBatch([{ eventName: 'msg1', payload: '', firedAt: 't1' }]);
+
         st.ok(eventMutationStarted, 'Event mutation started without data send');
 
         st.end();

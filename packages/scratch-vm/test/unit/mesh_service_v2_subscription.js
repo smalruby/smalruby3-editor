@@ -5,18 +5,18 @@ minilog.suggest.deny('vm', 'debug');
 minilog.suggest.deny('vm', 'info');
 
 const MeshV2Service = require('../../src/extensions/scratch3_mesh_v2/mesh-service');
-const {ON_MESSAGE_IN_GROUP} = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
+const { ON_MESSAGE_IN_GROUP } = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
 
 const createMockBlocks = () => ({
     runtime: {
         sequencer: {},
         emit: () => {},
         on: () => {},
-        off: () => {}
+        off: () => {},
     },
     opcodeFunctions: {
-        event_broadcast: () => {}
-    }
+        event_broadcast: () => {},
+    },
 });
 
 test('MeshV2Service Subscription Integration', t => {
@@ -29,15 +29,15 @@ test('MeshV2Service Subscription Integration', t => {
         let subscriptionObserver = null;
 
         service.client = {
-            subscribe: ({query}) => {
+            subscribe: ({ query }) => {
                 subscribedQuery = query;
                 return {
                     subscribe: observer => {
                         subscriptionObserver = observer;
-                        return {unsubscribe: () => {}};
-                    }
+                        return { unsubscribe: () => {} };
+                    },
                 };
-            }
+            },
         };
 
         service.startSubscriptions();
@@ -57,9 +57,9 @@ test('MeshV2Service Subscription Integration', t => {
             subscribe: () => ({
                 subscribe: observer => {
                     subscriptionObserver = observer;
-                    return {unsubscribe: () => {}};
-                }
-            })
+                    return { unsubscribe: () => {} };
+                },
+            }),
         };
 
         service.startSubscriptions();
@@ -79,10 +79,10 @@ test('MeshV2Service Subscription Integration', t => {
                     nodeStatus: {
                         __typename: 'NodeStatus',
                         nodeId: 'node2',
-                        data: []
-                    }
-                }
-            }
+                        data: [],
+                    },
+                },
+            },
         });
 
         st.ok(handleDataUpdateCalled, 'Should call handleDataUpdate');
@@ -99,9 +99,9 @@ test('MeshV2Service Subscription Integration', t => {
             subscribe: () => ({
                 subscribe: observer => {
                     subscriptionObserver = observer;
-                    return {unsubscribe: () => {}};
-                }
-            })
+                    return { unsubscribe: () => {} };
+                },
+            }),
         };
 
         service.startSubscriptions();
@@ -121,10 +121,10 @@ test('MeshV2Service Subscription Integration', t => {
                     batchEvent: {
                         __typename: 'BatchEvent',
                         firedByNodeId: 'node2',
-                        events: []
-                    }
-                }
-            }
+                        events: [],
+                    },
+                },
+            },
         });
 
         st.ok(handleBatchEventCalled, 'Should call handleBatchEvent');
@@ -141,9 +141,9 @@ test('MeshV2Service Subscription Integration', t => {
             subscribe: () => ({
                 subscribe: observer => {
                     subscriptionObserver = observer;
-                    return {unsubscribe: () => {}};
-                }
-            })
+                    return { unsubscribe: () => {} };
+                },
+            }),
         };
 
         service.startSubscriptions();
@@ -160,10 +160,10 @@ test('MeshV2Service Subscription Integration', t => {
                 onMessageInGroup: {
                     groupDissolve: {
                         __typename: 'GroupDissolvePayload',
-                        message: 'Bye'
-                    }
-                }
-            }
+                        message: 'Bye',
+                    },
+                },
+            },
         });
 
         st.ok(cleanupCalled, 'Should call cleanupAndDisconnect');
@@ -181,9 +181,9 @@ test('MeshV2Service Subscription Integration', t => {
             subscribe: () => ({
                 subscribe: observer => {
                     subscriptionObserver = observer;
-                    return {unsubscribe: () => {}};
-                }
-            })
+                    return { unsubscribe: () => {} };
+                },
+            }),
         };
 
         service.startSubscriptions();
@@ -204,9 +204,9 @@ test('MeshV2Service Subscription Integration', t => {
         subscriptionObserver.next({
             data: {
                 onMessageInGroup: {
-                    __typename: 'UnknownType'
-                }
-            }
+                    __typename: 'UnknownType',
+                },
+            },
         });
 
         st.notOk(anyCalled, 'Should not call any handler for unknown type');

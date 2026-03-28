@@ -1,18 +1,12 @@
 import bindAll from 'lodash.bindall';
-import React from 'react';
 import PropTypes from 'prop-types';
-import {defineMessages, injectIntl} from 'react-intl';
-import intlShape from './intlShape';
-import {connect} from 'react-redux';
+import React from 'react';
+import { defineMessages, injectIntl } from 'react-intl';
+import { connect } from 'react-redux';
+import { GUIStoragePropType } from '../gui-config';
 import log from '../lib/log';
-import sharedMessages from './shared-messages';
-import {loadProjectWithChecks} from './project-loader-utils';
-
-import {
-    extractScratchProjectId,
-    isValidScratchProjectUrl
-} from './url-parser';
-
+import { closeFileMenu } from '../reducers/menus';
+import { openLoadingProject, closeLoadingProject, openUrlLoaderModal, closeUrlLoaderModal } from '../reducers/modals';
 import {
     LoadingStates,
     getIsLoadingUpload,
@@ -20,33 +14,27 @@ import {
     onLoadedProject,
     projectError,
     setProjectId,
-    requestProjectUpload
+    requestProjectUpload,
 } from '../reducers/project-state';
-import {setProjectTitle} from '../reducers/project-title';
-import {setRubyVersion} from '../reducers/settings';
-import {persistRubyVersion} from './settings/ruby-version/persistence';
-import {
-    openLoadingProject,
-    closeLoadingProject,
-    openUrlLoaderModal,
-    closeUrlLoaderModal
-} from '../reducers/modals';
-import {
-    closeFileMenu
-} from '../reducers/menus';
-import {GUIStoragePropType} from '../gui-config';
+import { setProjectTitle } from '../reducers/project-title';
+import { setRubyVersion } from '../reducers/settings';
+import intlShape from './intlShape';
+import { loadProjectWithChecks } from './project-loader-utils';
+import { persistRubyVersion } from './settings/ruby-version/persistence';
+import sharedMessages from './shared-messages';
+import { extractScratchProjectId, isValidScratchProjectUrl } from './url-parser';
 
 const messages = defineMessages({
     loadError: {
         id: 'gui.urlLoader.loadError',
         defaultMessage: 'The project URL that was entered failed to load.',
-        description: 'An error that displays when a project URL fails to load.'
+        description: 'An error that displays when a project URL fails to load.',
     },
     invalidUrl: {
         id: 'gui.urlLoader.invalidUrl',
         defaultMessage: 'Please enter a valid Scratch project URL.',
-        description: 'An error that displays when an invalid URL is entered.'
-    }
+        description: 'An error that displays when an invalid URL is entered.',
+    },
 });
 
 /**
@@ -60,35 +48,29 @@ const messages = defineMessages({
  */
 const URLLoaderHOC = function (WrappedComponent) {
     class URLLoaderComponent extends React.Component {
-        constructor (props) {
+        constructor(props) {
             super(props);
             bindAll(this, [
                 'handleStartSelectingUrlLoad',
                 'handleUrlSubmit',
                 'loadScratchProjectFromUrl',
                 'handleFinishedLoadingUpload',
-                'clearLoadingReferences'
+                'clearLoadingReferences',
             ]);
         }
-        componentDidUpdate (prevProps) {
+        componentDidUpdate(prevProps) {
             if (this.props.isLoadingUpload && !prevProps.isLoadingUpload) {
                 this.handleFinishedLoadingUpload();
             }
         }
 
-        handleStartSelectingUrlLoad () {
+        handleStartSelectingUrlLoad() {
             this.props.openUrlLoaderModal();
             this.props.closeFileMenu();
         }
 
-        handleUrlSubmit (url, errorCallback) {
-            const {
-                intl,
-                isShowingWithoutId,
-                loadingState,
-                projectChanged,
-                userOwnsProject
-            } = this.props;
+        handleUrlSubmit(url, errorCallback) {
+            const { intl, isShowingWithoutId, loadingState, projectChanged, userOwnsProject } = this.props;
 
             // Validate Scratch project URL
             if (!isValidScratchProjectUrl(url)) {
@@ -108,9 +90,8 @@ const URLLoaderHOC = function (WrappedComponent) {
             // replace it.
             let uploadAllowed = true;
             if (userOwnsProject || (projectChanged && isShowingWithoutId)) {
-                uploadAllowed = confirm( // eslint-disable-line no-alert
-                    intl.formatMessage(sharedMessages.replaceProjectWarning)
-                );
+                // eslint-disable-next-line no-alert
+                uploadAllowed = confirm(intl.formatMessage(sharedMessages.replaceProjectWarning));
             }
 
             if (uploadAllowed) {
@@ -124,7 +105,7 @@ const URLLoaderHOC = function (WrappedComponent) {
             }
         }
 
-        handleFinishedLoadingUpload () {
+        handleFinishedLoadingUpload() {
             if (this.projectIdToLoad) {
                 this.loadScratchProjectFromUrl(this.projectIdToLoad);
             } else {
@@ -132,7 +113,7 @@ const URLLoaderHOC = function (WrappedComponent) {
             }
         }
 
-        loadScratchProjectFromUrl (projectId) {
+        loadScratchProjectFromUrl(projectId) {
             this.props.onLoadingStarted();
 
             // Set project ID in Redux state first (like project-fetcher-hoc.jsx)
@@ -143,14 +124,14 @@ const URLLoaderHOC = function (WrappedComponent) {
             const options = {
                 method: 'GET',
                 uri: `https://api.smalruby.app/scratch-api-proxy/projects/${projectId}`,
-                json: true
+                json: true,
             };
 
             fetch(options.uri, {
                 method: options.method,
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                },
             })
                 .then(response => {
                     if (!response.ok) {
@@ -166,7 +147,9 @@ const URLLoaderHOC = function (WrappedComponent) {
                     storage.setProjectToken?.(projectToken);
 
                     return storage.scratchStorage.load(
-                        storage.scratchStorage.AssetType.Project, projectId, storage.scratchStorage.DataFormat.JSON
+                        storage.scratchStorage.AssetType.Project,
+                        projectId,
+                        storage.scratchStorage.DataFormat.JSON,
                     );
                 })
                 .then(projectAsset => {
@@ -176,7 +159,7 @@ const URLLoaderHOC = function (WrappedComponent) {
                             this.props.intl,
                             projectAsset.data,
                             this.props.rubyVersion,
-                            this.props.onSetRubyVersion
+                            this.props.onSetRubyVersion,
                         );
                     }
                     throw new Error('Could not find project');
@@ -201,12 +184,12 @@ const URLLoaderHOC = function (WrappedComponent) {
                 });
         }
 
-        clearLoadingReferences () {
+        clearLoadingReferences() {
             this.projectIdToLoad = null;
             this.projectUrlToLoad = null;
         }
 
-        render () {
+        render() {
             const {
                 cancelFileUpload: _cancelFileUpload,
                 closeFileMenu: _closeFileMenuProp,
@@ -272,9 +255,9 @@ const URLLoaderHOC = function (WrappedComponent) {
             hasMeshV1Project: PropTypes.func,
             hasKoshienProject: PropTypes.func,
             runtime: PropTypes.shape({
-                storage: PropTypes.shape({})
-            })
-        })
+                storage: PropTypes.shape({}),
+            }),
+        }),
     };
 
     const mapStateToProps = (state, ownProps) => {
@@ -287,9 +270,8 @@ const URLLoaderHOC = function (WrappedComponent) {
             projectChanged: state.scratchGui.projectChanged,
             rubyVersion: state.scratchGui.settings.rubyVersion,
             storage: state.scratchGui.config.storage,
-            userOwnsProject: ownProps.authorUsername && user &&
-                (ownProps.authorUsername === user.username),
-            vm: state.scratchGui.vm
+            userOwnsProject: ownProps.authorUsername && user && ownProps.authorUsername === user.username,
+            vm: state.scratchGui.vm,
         };
     };
 
@@ -312,20 +294,13 @@ const URLLoaderHOC = function (WrappedComponent) {
         },
         openUrlLoaderModal: () => dispatch(openUrlLoaderModal()),
         requestProjectUpload: loadingState => dispatch(requestProjectUpload(loadingState)),
-        setProjectId: projectId => dispatch(setProjectId(projectId))
+        setProjectId: projectId => dispatch(setProjectId(projectId)),
     });
 
-    const mergeProps = (stateProps, dispatchProps, ownProps) => Object.assign(
-        {}, stateProps, dispatchProps, ownProps
-    );
+    const mergeProps = (stateProps, dispatchProps, ownProps) =>
+        Object.assign({}, stateProps, dispatchProps, ownProps);
 
-    return injectIntl(connect(
-        mapStateToProps,
-        mapDispatchToProps,
-        mergeProps
-    )(URLLoaderComponent));
+    return injectIntl(connect(mapStateToProps, mapDispatchToProps, mergeProps)(URLLoaderComponent));
 };
 
-export {
-    URLLoaderHOC as default
-};
+export { URLLoaderHOC as default };

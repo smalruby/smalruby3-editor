@@ -2,7 +2,7 @@ import {
     getBackpackContents,
     saveBackpackObject,
     deleteBackpackObject,
-    getLocalStorageBackpackAssetURL
+    getLocalStorageBackpackAssetURL,
 } from '../../../src/lib/backpack-api';
 
 const STORAGE_KEY = 'smalrubyBackpack';
@@ -19,7 +19,7 @@ describe('backpack-api (localStorage)', () => {
                 username: 'localUser',
                 token: 'localToken',
                 limit: 20,
-                offset: 0
+                offset: 0,
             });
             expect(contents).toEqual([]);
         });
@@ -31,7 +31,7 @@ describe('backpack-api (localStorage)', () => {
                 name: 'test',
                 mime: 'application/json',
                 body: 'e30=', // base64 of '{}'
-                thumbnail: 'dGVzdA==' // base64 of 'test'
+                thumbnail: 'dGVzdA==', // base64 of 'test'
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
@@ -40,7 +40,7 @@ describe('backpack-api (localStorage)', () => {
                 username: 'localUser',
                 token: 'localToken',
                 limit: 20,
-                offset: 0
+                offset: 0,
             });
             expect(contents).toHaveLength(1);
             expect(contents[0].thumbnailUrl).toBe('data:image/jpeg;base64,dGVzdA==');
@@ -48,13 +48,13 @@ describe('backpack-api (localStorage)', () => {
         });
 
         test('supports pagination via offset and limit', async () => {
-            const items = Array.from({length: 5}, (_, i) => ({
+            const items = Array.from({ length: 5 }, (_, i) => ({
                 id: `id${i}`,
                 type: 'script',
                 name: `item${i}`,
                 mime: 'application/json',
                 body: 'e30=',
-                thumbnail: 'dGVzdA=='
+                thumbnail: 'dGVzdA==',
             }));
             localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 
@@ -63,7 +63,7 @@ describe('backpack-api (localStorage)', () => {
                 username: 'localUser',
                 token: 'localToken',
                 limit: 3,
-                offset: 0
+                offset: 0,
             });
             expect(page1).toHaveLength(3);
 
@@ -72,7 +72,7 @@ describe('backpack-api (localStorage)', () => {
                 username: 'localUser',
                 token: 'localToken',
                 limit: 3,
-                offset: 3
+                offset: 3,
             });
             expect(page2).toHaveLength(2);
         });
@@ -88,7 +88,7 @@ describe('backpack-api (localStorage)', () => {
                 name: 'myCode',
                 mime: 'application/json',
                 body: 'e30=',
-                thumbnail: 'dGVzdA=='
+                thumbnail: 'dGVzdA==',
             });
 
             expect(result.type).toBe('script');
@@ -111,7 +111,7 @@ describe('backpack-api (localStorage)', () => {
                 name: 'first',
                 mime: 'application/json',
                 body: 'e30=',
-                thumbnail: 'dGVzdA=='
+                thumbnail: 'dGVzdA==',
             });
             await saveBackpackObject({
                 host: 'localStorage',
@@ -121,7 +121,7 @@ describe('backpack-api (localStorage)', () => {
                 name: 'second',
                 mime: 'application/json',
                 body: 'e30=',
-                thumbnail: 'dGVzdA=='
+                thumbnail: 'dGVzdA==',
             });
 
             const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -133,8 +133,22 @@ describe('backpack-api (localStorage)', () => {
     describe('deleteBackpackObject', () => {
         test('removes item by id from localStorage', async () => {
             const items = [
-                {id: 'keep', type: 'script', name: 'keep', mime: 'application/json', body: 'e30=', thumbnail: 'dGVzdA=='},
-                {id: 'remove', type: 'script', name: 'remove', mime: 'application/json', body: 'e30=', thumbnail: 'dGVzdA=='}
+                {
+                    id: 'keep',
+                    type: 'script',
+                    name: 'keep',
+                    mime: 'application/json',
+                    body: 'e30=',
+                    thumbnail: 'dGVzdA==',
+                },
+                {
+                    id: 'remove',
+                    type: 'script',
+                    name: 'remove',
+                    mime: 'application/json',
+                    body: 'e30=',
+                    thumbnail: 'dGVzdA==',
+                },
             ];
             localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 
@@ -142,7 +156,7 @@ describe('backpack-api (localStorage)', () => {
                 host: 'localStorage',
                 username: 'localUser',
                 token: 'localToken',
-                id: 'remove'
+                id: 'remove',
             });
 
             const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -151,14 +165,23 @@ describe('backpack-api (localStorage)', () => {
         });
 
         test('is a no-op when id does not exist', async () => {
-            const items = [{id: 'keep', type: 'script', name: 'keep', mime: 'application/json', body: 'e30=', thumbnail: 'dGVzdA=='}];
+            const items = [
+                {
+                    id: 'keep',
+                    type: 'script',
+                    name: 'keep',
+                    mime: 'application/json',
+                    body: 'e30=',
+                    thumbnail: 'dGVzdA==',
+                },
+            ];
             localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 
             await deleteBackpackObject({
                 host: 'localStorage',
                 username: 'localUser',
                 token: 'localToken',
-                id: 'nonexistent'
+                id: 'nonexistent',
             });
 
             const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -168,11 +191,13 @@ describe('backpack-api (localStorage)', () => {
 
     describe('getLocalStorageBackpackAssetURL', () => {
         test('returns data: URL for a known id', () => {
-            const items = [{
-                id: 'abc123',
-                mime: 'image/svg+xml',
-                body: 'PHN2Zy8+' // base64 of '<svg/>'
-            }];
+            const items = [
+                {
+                    id: 'abc123',
+                    mime: 'image/svg+xml',
+                    body: 'PHN2Zy8+', // base64 of '<svg/>'
+                },
+            ];
             localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 
             const url = getLocalStorageBackpackAssetURL('localStorage', 'abc123');

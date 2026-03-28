@@ -1,9 +1,9 @@
-import {generatePreviewCode} from '../../../src/lib/ruby-script-preview';
+import { generatePreviewCode } from '../../../src/lib/ruby-script-preview';
 import {
     makeSpriteTarget,
     makeStageTarget,
     setupRubyGenerator,
-    makeConverter
+    makeConverter,
 } from '../helpers/ruby-roundtrip-helper';
 
 /**
@@ -13,8 +13,8 @@ import {
 const enrichTarget = (target, name = 'Sprite1') => {
     target.sprite = target.sprite || {
         name,
-        costumes: [{name: 'costume1', md5ext: 'abc.svg', dataFormat: 'svg'}],
-        sounds: []
+        costumes: [{ name: 'costume1', md5ext: 'abc.svg', dataFormat: 'svg' }],
+        sounds: [],
     };
     target.currentCostume = target.currentCostume || 0;
     target.x = target.x || 0;
@@ -37,9 +37,9 @@ describe('generatePreviewCode', () => {
     });
 
     test('generates code with require and class for a sprite target (version 2)', async () => {
-        const {target, runtime} = makeSpriteTarget();
+        const { target, runtime } = makeSpriteTarget();
         enrichTarget(target, 'Sprite1');
-        const converter = makeConverter(target, runtime, {version: '2'});
+        const converter = makeConverter(target, runtime, { version: '2' });
         const rubyCode = 'self.when(:flag_clicked) { move(10) }';
         await converter.targetCodeToBlocks(target, rubyCode);
         await converter.applyTargetBlocks(target);
@@ -52,10 +52,10 @@ describe('generatePreviewCode', () => {
     });
 
     test('generates code with require and class for a stage target (version 2)', async () => {
-        const {target, runtime} = makeStageTarget();
+        const { target, runtime } = makeStageTarget();
         enrichTarget(target, 'Stage');
         target.sprite.name = 'Stage';
-        const converter = makeConverter(target, runtime, {version: '2'});
+        const converter = makeConverter(target, runtime, { version: '2' });
         const rubyCode = 'self.when(:flag_clicked) { bounce_if_on_edge }';
         await converter.targetCodeToBlocks(target, rubyCode);
         await converter.applyTargetBlocks(target);
@@ -67,9 +67,9 @@ describe('generatePreviewCode', () => {
     });
 
     test('generates code with Sprite.new for version 1', async () => {
-        const {target, runtime} = makeSpriteTarget();
+        const { target, runtime } = makeSpriteTarget();
         enrichTarget(target, 'Sprite1');
-        const converter = makeConverter(target, runtime, {version: '1'});
+        const converter = makeConverter(target, runtime, { version: '1' });
         const rubyCode = 'self.when(:flag_clicked) { move(10) }';
         await converter.targetCodeToBlocks(target, rubyCode);
         await converter.applyTargetBlocks(target);

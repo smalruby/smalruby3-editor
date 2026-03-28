@@ -62,5 +62,5 @@ const migrateMeshV1Blocks = projectJSON => {
 module.exports = {
     detectMeshV1Blocks,
     detectKoshien,
-    migrateMeshV1Blocks
+    migrateMeshV1Blocks,
 };

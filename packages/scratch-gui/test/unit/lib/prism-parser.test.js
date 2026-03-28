@@ -1,4 +1,4 @@
-import {loadPrism} from '../../../src/lib/prism-parser';
+import { loadPrism } from '../../../src/lib/prism-parser';
 
 describe('PrismParser', () => {
     test('it should parse ruby code', async () => {

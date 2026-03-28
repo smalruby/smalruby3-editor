@@ -112,6 +112,22 @@ Rubytee（ルビティー）は Anthropic Claude API を利用した AI コー�
 - `RUBYTEE_RELAY_ENDPOINT`: Relay API のエンドポイント URL（webpack で注入、monorepo root `.env` に設定）
 - ローカル開発: stg エンドポイントを使用（prod は CORS で localhost を許可しない）
 
+## Prettier (Code Formatting)
+
+Smalruby 固有ファイルのみに Prettier を適用。upstream ファイルは `.prettierignore` で除外。
+
+**新しい Smalruby 固有ファイルを追加した場合は、必ず以下を更新すること:**
+1. `packages/scratch-gui/.prettierignore` — ホワイトリストに追加
+2. `.claude/rules/scratch-gui/smalruby-prettier-files.md` — 一覧に追加
+
+```bash
+# フォーマット実行
+docker compose run --rm app bash -c "cd packages/scratch-gui && npm run format"
+
+# フォーマットチェック
+docker compose run --rm app bash -c "cd packages/scratch-gui && npm run format:check"
+```
+
 ## Development Notes
 
 - The webpack config loads environment variables from monorepo root `.env` file

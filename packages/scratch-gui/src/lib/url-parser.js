@@ -16,7 +16,7 @@ export const extractScratchProjectId = url => {
         // Standard project URL: https://scratch.mit.edu/projects/1209008277/
         /^https?:\/\/scratch\.mit\.edu\/projects\/(\d+)\/?$/,
         // Project URL with additional path: https://scratch.mit.edu/projects/1209008277/editor/
-        /^https?:\/\/scratch\.mit\.edu\/projects\/(\d+)\/.*$/
+        /^https?:\/\/scratch\.mit\.edu\/projects\/(\d+)\/.*$/,
     ];
 
     for (const pattern of patterns) {

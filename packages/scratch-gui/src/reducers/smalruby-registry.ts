@@ -12,14 +12,13 @@
  *
  * No changes needed in gui.ts - it imports this registry.
  */
-
-import meshV2Reducer, {meshV2InitialState} from './mesh-v2';
-import googleDriveFileReducer, {googleDriveFileInitialState} from './google-drive-file';
-import koshienFileReducer, {koshienFileInitialState} from './koshien-file';
-import rubyCodeReducer, {rubyCodeInitialState} from './ruby-code';
-import cardsReducer, {cardsInitialState} from './cards';
-import tutorialOnboardingReducer, {tutorialOnboardingInitialState} from './tutorial-onboarding';
-import paletteVisibilityReducer, {initialState as paletteVisibilityInitialState} from './palette-visibility';
+import cardsReducer, { cardsInitialState } from './cards';
+import googleDriveFileReducer, { googleDriveFileInitialState } from './google-drive-file';
+import koshienFileReducer, { koshienFileInitialState } from './koshien-file';
+import meshV2Reducer, { meshV2InitialState } from './mesh-v2';
+import paletteVisibilityReducer, { initialState as paletteVisibilityInitialState } from './palette-visibility';
+import rubyCodeReducer, { rubyCodeInitialState } from './ruby-code';
+import tutorialOnboardingReducer, { tutorialOnboardingInitialState } from './tutorial-onboarding';
 
 /**
  * All Smalruby reducers
@@ -32,7 +31,7 @@ export const smalrubyReducers = {
     rubyCode: rubyCodeReducer,
     cards: cardsReducer,
     tutorialOnboarding: tutorialOnboardingReducer,
-    paletteVisibility: paletteVisibilityReducer
+    paletteVisibility: paletteVisibilityReducer,
 };
 
 /**
@@ -46,5 +45,5 @@ export const smalrubyInitialState = {
     rubyCode: rubyCodeInitialState,
     cards: cardsInitialState,
     tutorialOnboarding: tutorialOnboardingInitialState,
-    paletteVisibility: paletteVisibilityInitialState
+    paletteVisibility: paletteVisibilityInitialState,
 };

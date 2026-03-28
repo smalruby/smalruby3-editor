@@ -2,20 +2,14 @@
  * Integration tests for Ruby script preview panel.
  */
 import path from 'path';
-import SeleniumHelper from '../helpers/selenium-helper';
 import RubyHelper from '../helpers/ruby-helper';
+import SeleniumHelper from '../helpers/selenium-helper';
 
 const seleniumHelper = new SeleniumHelper();
-const {
-    clickXpath,
-    getDriver,
-    loadUri
-} = seleniumHelper;
+const { clickXpath, getDriver, loadUri } = seleniumHelper;
 
 const rubyHelper = new RubyHelper(seleniumHelper);
-const {
-    fillInRubyProgram
-} = rubyHelper;
+const { fillInRubyProgram } = rubyHelper;
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 
@@ -27,13 +21,13 @@ const SEL = {
     panel: '[class*="panel-container"]',
     codeArea: '[class*="code-area"]',
     copyButton: '[class*="copy-button"]',
-    headerButton: '[class*="header-button"]'
+    headerButton: '[class*="header-button"]',
 };
 
 /**
  * Click a menu item by matching its textContent via JS.
  */
-const clickMenuItem = async (text) => {
+const clickMenuItem = async text => {
     await driver.executeScript(`
         const items = document.querySelectorAll('${SEL.menuItem}');
         for (const item of items) {
@@ -50,13 +44,17 @@ const clickMenuItem = async (text) => {
  * Wait for the preview panel to appear and contain code.
  */
 const waitForPreviewCode = async () => {
-    await driver.wait(async () => {
-        const text = await driver.executeScript(`
+    await driver.wait(
+        async () => {
+            const text = await driver.executeScript(`
             const pre = document.querySelector('${SEL.codeArea}');
             return pre ? pre.textContent : '';
         `);
-        return text.includes('require');
-    }, 15000, 'Preview panel did not show generated code');
+            return text.includes('require');
+        },
+        15000,
+        'Preview panel did not show generated code',
+    );
 };
 
 describe('Ruby script preview panel', () => {

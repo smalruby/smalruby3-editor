@@ -1,4 +1,4 @@
-import {autoCorrect, defaultSettings} from '../../src/lib/auto-correct';
+import { autoCorrect, defaultSettings } from '../../src/lib/auto-correct';
 
 // Integration tests for auto-correct feature
 // These test realistic Ruby code scenarios end-to-end
@@ -21,13 +21,9 @@ describe('auto-correct integration', () => {
             const input = [
                 'ｓｅｌｆ．Ｘ座標　＝　１００',
                 'ｓｅｌｆ．Ｙ座標　＝　ー５０',
-                'ｐｕｔｓ（ｓｅｌｆ．Ｘ座標）'
+                'ｐｕｔｓ（ｓｅｌｆ．Ｘ座標）',
             ].join('\n');
-            const expected = [
-                'self.X座標 = 100',
-                'self.Y座標 = ー50',
-                'puts(self.X座標)'
-            ].join('\n');
+            const expected = ['self.X座標 = 100', 'self.Y座標 = ー50', 'puts(self.X座標)'].join('\n');
             expect(autoCorrect(input, defaultSettings)).toBe(expected);
         });
 
@@ -56,7 +52,7 @@ describe('auto-correct integration', () => {
         });
 
         test('should fix smart single quotes', () => {
-            const input = "x = \u2018hello\u2019";
+            const input = 'x = \u2018hello\u2019';
             const result = autoCorrect(input, defaultSettings);
             expect(result).toBe("x = 'hello'");
         });
@@ -68,22 +64,14 @@ describe('auto-correct integration', () => {
         });
 
         test('should fix fullwidth method definition', () => {
-            const input = [
-                'ｄｅｆ　ｍｅｔｈｏｄ（ａ，　ｂ）',
-                '　　ａ　＋　ｂ',
-                'ｅｎｄ'
-            ].join('\n');
-            const expected = [
-                'def method(a, b)',
-                '  a + b',
-                'end'
-            ].join('\n');
+            const input = ['ｄｅｆ　ｍｅｔｈｏｄ（ａ，　ｂ）', '　　ａ　＋　ｂ', 'ｅｎｄ'].join('\n');
+            const expected = ['def method(a, b)', '  a + b', 'end'].join('\n');
             expect(autoCorrect(input, defaultSettings)).toBe(expected);
         });
     });
 
     describe('string content preservation with replaceInStrings off', () => {
-        const settingsNoStrings = {...defaultSettings, replaceInStrings: false};
+        const settingsNoStrings = { ...defaultSettings, replaceInStrings: false };
 
         test('should not modify string content but fix surrounding code', () => {
             const input = 'ｐｕｔｓ "ＡＢＣ１２３"';
@@ -117,7 +105,7 @@ describe('auto-correct integration', () => {
                 ...defaultSettings,
                 fullwidthAlpha: false,
                 fullwidthSymbols: false,
-                fullwidthSpace: false
+                fullwidthSpace: false,
             };
             const input = 'ｘ　＝　１０';
             const result = autoCorrect(input, settings);
@@ -129,7 +117,7 @@ describe('auto-correct integration', () => {
                 ...defaultSettings,
                 fullwidthNumbers: false,
                 fullwidthSymbols: false,
-                fullwidthSpace: false
+                fullwidthSpace: false,
             };
             const input = 'ｘ　＝　１０';
             const result = autoCorrect(input, settings);

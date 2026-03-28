@@ -1,5 +1,5 @@
-@import "../../css/colors.css";
-@import "../../css/units.css";
+@import '../../css/colors.css';
+@import '../../css/units.css';
 
 .tooltip-container {
     position: absolute;
@@ -52,11 +52,12 @@
 
 .content {
     white-space: nowrap;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 @keyframes float {
-    0%, 100% {
+    0%,
+    100% {
         transform: translateY(0);
     }
     50% {

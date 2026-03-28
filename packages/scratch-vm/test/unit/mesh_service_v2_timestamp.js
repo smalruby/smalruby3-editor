@@ -11,8 +11,8 @@ const createMockBlocks = () => ({
         sequencer: {},
         emit: () => {},
         on: () => {},
-        off: () => {}
-    }
+        off: () => {},
+    },
 });
 
 test('MeshV2Service Timestamp-based getRemoteVariable', t => {
@@ -25,14 +25,14 @@ test('MeshV2Service Timestamp-based getRemoteVariable', t => {
         const now = Date.now();
         service.remoteData = {
             node1: {
-                'my var': {value: 'value-old', timestamp: now - 1000}
+                'my var': { value: 'value-old', timestamp: now - 1000 },
             },
             node2: {
-                'my var': {value: 'value-newest', timestamp: now}
+                'my var': { value: 'value-newest', timestamp: now },
             },
             node3: {
-                'my var': {value: 'value-middle', timestamp: now - 500}
-            }
+                'my var': { value: 'value-middle', timestamp: now - 500 },
+            },
         };
 
         const result = service.getRemoteVariable('my var');
@@ -46,9 +46,7 @@ test('MeshV2Service Timestamp-based getRemoteVariable', t => {
         const nodeStatus = {
             nodeId: 'node4',
             timestamp: serverTimestamp,
-            data: [
-                {key: 'var1', value: '100'}
-            ]
+            data: [{ key: 'var1', value: '100' }],
         };
 
         service.handleDataUpdate(nodeStatus);
@@ -64,17 +62,18 @@ test('MeshV2Service Timestamp-based getRemoteVariable', t => {
         const serverTimestamp = new Date().toISOString();
         const expectedTimestamp = new Date(serverTimestamp).getTime();
         service.client = {
-            query: () => Promise.resolve({
-                data: {
-                    listGroupStatuses: [
-                        {
-                            nodeId: 'node5',
-                            timestamp: serverTimestamp,
-                            data: [{key: 'var2', value: '200'}]
-                        }
-                    ]
-                }
-            })
+            query: () =>
+                Promise.resolve({
+                    data: {
+                        listGroupStatuses: [
+                            {
+                                nodeId: 'node5',
+                                timestamp: serverTimestamp,
+                                data: [{ key: 'var2', value: '200' }],
+                            },
+                        ],
+                    },
+                }),
         };
 
         await service.fetchAllNodesData();

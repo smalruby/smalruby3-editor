@@ -86,7 +86,7 @@ RubyGenerator.addReservedWords(
      return
      until`.split(/\s+/));
 
-/* eslint-disable no-multi-spaces */
+ 
 RubyGenerator.ORDER_ATOMIC = 0;            // 0 "" ...
 RubyGenerator.ORDER_COLLECTION = 1;        // tuples, lists, dictionaries
 RubyGenerator.ORDER_STRING_CONVERSION = 1; // `expression...`
@@ -112,7 +112,7 @@ RubyGenerator.ORDER_ASSIGNMENT = 19;       // =(+=, -= ... )
 RubyGenerator.ORDER_NOT = 20;              // not
 RubyGenerator.ORDER_AND_OR = 21;           // and or
 RubyGenerator.ORDER_NONE = 99;             // (...)
-/* eslint-enable no-multi-spaces */
+ 
 
 RubyGenerator.init = function (options) {
     this.definitions_ = {};

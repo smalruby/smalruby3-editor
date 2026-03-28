@@ -12,11 +12,11 @@ export default function (ScratchBlocks) {
     ScratchBlocks.Colours[name] = {
         primary: '#CC0043',
         secondary: '#DB4D7B',
-        tertiary: '#7A0028'
+        tertiary: '#7A0028',
     };
     ScratchBlocks.Extensions.register(
         `colours_${name}`,
-        ScratchBlocks.ScratchBlocks.VerticalExtensions.colourHelper(name)
+        ScratchBlocks.ScratchBlocks.VerticalExtensions.colourHelper(name),
     );
 
     ScratchBlocks.Blocks.ruby_statement = {
@@ -27,13 +27,13 @@ export default function (ScratchBlocks) {
                 args0: [
                     {
                         type: 'input_value',
-                        name: 'STATEMENT'
-                    }
+                        name: 'STATEMENT',
+                    },
                 ],
                 category: ScratchBlocks.Categories.ruby,
-                extensions: ['colours_ruby', 'shape_statement']
+                extensions: ['colours_ruby', 'shape_statement'],
             });
-        }
+        },
     };
 
     ScratchBlocks.Blocks.ruby_statement_with_block = {
@@ -46,23 +46,23 @@ export default function (ScratchBlocks) {
                 args0: [
                     {
                         type: 'input_value',
-                        name: 'STATEMENT'
+                        name: 'STATEMENT',
                     },
                     {
                         type: 'input_value',
-                        name: 'ARGS'
-                    }
+                        name: 'ARGS',
+                    },
                 ],
                 args1: [
                     {
                         type: 'input_statement',
-                        name: 'SUBSTACK'
-                    }
+                        name: 'SUBSTACK',
+                    },
                 ],
                 category: ScratchBlocks.Categories.ruby,
-                extensions: ['colours_ruby', 'shape_statement']
+                extensions: ['colours_ruby', 'shape_statement'],
             });
-        }
+        },
     };
 
     ScratchBlocks.Blocks.ruby_expression = {
@@ -73,13 +73,13 @@ export default function (ScratchBlocks) {
                 args0: [
                     {
                         type: 'input_value',
-                        name: 'EXPRESSION'
-                    }
+                        name: 'EXPRESSION',
+                    },
                 ],
                 category: ScratchBlocks.Categories.ruby,
-                extensions: ['colours_ruby', 'output_boolean']
+                extensions: ['colours_ruby', 'output_boolean'],
             });
-        }
+        },
     };
 
     ScratchBlocks.Blocks.ruby_range = {
@@ -90,17 +90,17 @@ export default function (ScratchBlocks) {
                 args0: [
                     {
                         type: 'input_value',
-                        name: 'FROM'
+                        name: 'FROM',
                     },
                     {
                         type: 'input_value',
-                        name: 'TO'
-                    }
+                        name: 'TO',
+                    },
                 ],
                 category: ScratchBlocks.Categories.ruby,
-                extensions: ['colours_ruby', 'output_boolean']
+                extensions: ['colours_ruby', 'output_boolean'],
             });
-        }
+        },
     };
 
     ScratchBlocks.Blocks.ruby_exclude_range = {
@@ -111,17 +111,17 @@ export default function (ScratchBlocks) {
                 args0: [
                     {
                         type: 'input_value',
-                        name: 'FROM'
+                        name: 'FROM',
                     },
                     {
                         type: 'input_value',
-                        name: 'TO'
-                    }
+                        name: 'TO',
+                    },
                 ],
                 category: ScratchBlocks.Categories.ruby,
-                extensions: ['colours_ruby', 'output_boolean']
+                extensions: ['colours_ruby', 'output_boolean'],
             });
-        }
+        },
     };
 
     return ScratchBlocks;

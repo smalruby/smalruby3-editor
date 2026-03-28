@@ -49,16 +49,20 @@ const installGestureRecovery = function (ScratchBlocks) {
     // Recovery: if a new pointerdown arrives while a gesture is still active,
     // cancel the stale gesture first. This handles the case where pointerup
     // was lost and the user tries to interact again.
-    document.addEventListener('pointerdown', () => {
-        const workspace = ScratchBlocks.getMainWorkspace();
-        if (!workspace || !workspace.currentGesture_) return;
+    document.addEventListener(
+        'pointerdown',
+        () => {
+            const workspace = ScratchBlocks.getMainWorkspace();
+            if (!workspace || !workspace.currentGesture_) return;
 
-        const gesture = workspace.currentGesture_;
-        // Only recover if the gesture has been dragging (not just a click)
-        if (gesture.isDragging()) {
-            gesture.cancel();
-        }
-    }, true); // capture phase: run before Blockly's own handler
+            const gesture = workspace.currentGesture_;
+            // Only recover if the gesture has been dragging (not just a click)
+            if (gesture.isDragging()) {
+                gesture.cancel();
+            }
+        },
+        true,
+    ); // capture phase: run before Blockly's own handler
 };
 
-export {installGestureRecovery};
+export { installGestureRecovery };

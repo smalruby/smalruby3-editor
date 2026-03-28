@@ -1,5 +1,4 @@
 // === Smalruby: This file is Smalruby-specific (Ruby script preview code generation) ===
-
 import RubyGenerator from './ruby-generator';
 
 /**
@@ -15,6 +14,6 @@ export const generatePreviewCode = (target, version) => {
     return RubyGenerator.targetToCode(target, {
         requires: ['smalruby3'],
         withSpriteNew: true,
-        version
+        version,
     });
 };

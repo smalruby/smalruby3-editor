@@ -6,7 +6,7 @@
 // These are assigned to bits starting from 99 (after the base 99 blocks: bits 0-98)
 // Order in this array determines bit position (99, 100, 101, ...)
 export const EXTENDED_BLOCKS = [
-    'sensing_online' // bit 99 (added in upstream merge 2026-02)
+    'sensing_online', // bit 99 (added in upstream merge 2026-02)
 ];
 
 // Define blocks for each category based on make-toolbox-xml.js
@@ -28,7 +28,7 @@ export const CATEGORY_BLOCKS = {
         'motion_changeyby',
         'motion_sety',
         'motion_ifonedgebounce',
-        'motion_setrotationstyle'
+        'motion_setrotationstyle',
     ],
     looks: [
         'looks_sayforsecs',
@@ -52,7 +52,7 @@ export const CATEGORY_BLOCKS = {
         'looks_backdropnumbername',
         'looks_size',
         // for Stage
-        'looks_switchbackdroptoandwait'
+        'looks_switchbackdroptoandwait',
     ],
     sound: [
         'sound_playuntildone',
@@ -62,7 +62,7 @@ export const CATEGORY_BLOCKS = {
         'sound_seteffectto',
         'sound_cleareffects',
         'sound_changevolumeby',
-        'sound_setvolumeto'
+        'sound_setvolumeto',
     ],
     event: [
         'event_whenflagclicked',
@@ -72,7 +72,7 @@ export const CATEGORY_BLOCKS = {
         'event_whengreaterthan',
         'event_whenbroadcastreceived',
         'event_broadcast',
-        'event_broadcastandwait'
+        'event_broadcastandwait',
     ],
     control: [
         'control_wait',
@@ -85,7 +85,7 @@ export const CATEGORY_BLOCKS = {
         'control_stop',
         'control_start_as_clone',
         'control_create_clone_of',
-        'control_delete_this_clone'
+        'control_delete_this_clone',
     ],
     sensing: [
         'sensing_touchingobject', // bit 63
@@ -106,7 +106,7 @@ export const CATEGORY_BLOCKS = {
         'sensing_current', // bit 78
         'sensing_dayssince2000', // bit 79
         'sensing_username', // bit 80
-        'sensing_online' // bit 99 (extended) - display order from make-toolbox-xml
+        'sensing_online', // bit 99 (extended) - display order from make-toolbox-xml
     ],
     operators: [
         'operator_add',
@@ -126,8 +126,8 @@ export const CATEGORY_BLOCKS = {
         'operator_contains',
         'operator_mod',
         'operator_round',
-        'operator_mathop'
-    ]
+        'operator_mathop',
+    ],
 };
 
 /**
@@ -178,9 +178,7 @@ export const parseHexFormatToSelectedBlocks = function (hexString) {
         const decimal = parseInt(hexDigit, 16);
         const binary = decimal.toString(2).padStart(4, '0');
         // Reverse the binary string to match bit ordering (LSB first)
-        const reversedBinary = binary.split('')
-            .reverse()
-            .join('');
+        const reversedBinary = binary.split('').reverse().join('');
         binaryString += reversedBinary;
     }
 
@@ -196,7 +194,7 @@ export const parseHexFormatToSelectedBlocks = function (hexString) {
     // Determine effective bit limit
     // If hex is 25+ digits (100+ bits), use all bits (new format with room for extended blocks)
     // Otherwise, limit to first 99 bits (0-98) to ignore unintended high bits in old URLs
-    const effectiveBitLimit = (hexData.length >= 25) ? blockOrder.length : (OLD_FORMAT_MAX_BIT + 1);
+    const effectiveBitLimit = hexData.length >= 25 ? blockOrder.length : OLD_FORMAT_MAX_BIT + 1;
 
     // Map binary bits to block selections
     for (let i = 0; i < Math.min(binaryString.length, effectiveBitLimit); i++) {
@@ -253,7 +251,8 @@ export const initializeBlockSelectionFromOnlyBlocks = onlyBlocks => {
     }
 
     // Parse only_blocks parameter (legacy format)
-    const patterns = processedBlocks.split(/[,.]/)
+    const patterns = processedBlocks
+        .split(/[,.]/)
         .map(pattern => pattern.trim())
         .filter(pattern => pattern.length > 0);
 

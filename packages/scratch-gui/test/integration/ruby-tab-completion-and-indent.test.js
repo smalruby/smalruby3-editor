@@ -2,11 +2,7 @@ import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const seleniumHelper = new SeleniumHelper();
-const {
-    getDriver,
-    loadUri,
-    clickText
-} = seleniumHelper;
+const { getDriver, loadUri, clickText } = seleniumHelper;
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 
@@ -26,9 +22,7 @@ describe('Ruby tab completion and indentation', () => {
     beforeEach(async () => {
         await loadUri(uri);
         await clickText('Ruby', '*[@role="tab"]');
-        await driver.wait(async () => (
-            await driver.executeScript('return !!window.monacoEditor;')
-        ), 10000);
+        await driver.wait(async () => await driver.executeScript('return !!window.monacoEditor;'), 10000);
     });
 
     describe('minimum word length for completion', () => {
@@ -75,9 +69,7 @@ describe('Ruby tab completion and indentation', () => {
                 window.monacoEditor.trigger('keyboard', 'type', {text: '\\n'});
             `);
 
-            const value = await driver.executeScript(
-                'return window.monacoEditor.getValue();'
-            );
+            const value = await driver.executeScript('return window.monacoEditor.getValue();');
             expect(value).toBe('if true\n  ');
         });
 
@@ -97,9 +89,7 @@ describe('Ruby tab completion and indentation', () => {
                 window.monacoEditor.trigger('keyboard', 'type', {text: 'end'});
             `);
 
-            const value = await driver.executeScript(
-                'return window.monacoEditor.getValue();'
-            );
+            const value = await driver.executeScript('return window.monacoEditor.getValue();');
             // After Enter, auto-indent adds 2 spaces; "end" is typed
             // at that indented position. In interactive mode the
             // decreaseIndentPattern would dedent it to column 1.
@@ -117,9 +107,7 @@ describe('Ruby tab completion and indentation', () => {
                 window.monacoEditor.trigger('keyboard', 'type', {text: 'else'});
             `);
 
-            const value = await driver.executeScript(
-                'return window.monacoEditor.getValue();'
-            );
+            const value = await driver.executeScript('return window.monacoEditor.getValue();');
             expect(value).toMatch(/^if true\n {2}move\(10\)\n\s*else$/);
         });
 
@@ -131,9 +119,7 @@ describe('Ruby tab completion and indentation', () => {
                 window.monacoEditor.trigger('keyboard', 'type', {text: '\\n'});
             `);
 
-            const value = await driver.executeScript(
-                'return window.monacoEditor.getValue();'
-            );
+            const value = await driver.executeScript('return window.monacoEditor.getValue();');
             expect(value).toBe('3.times do\n  ');
         });
     });

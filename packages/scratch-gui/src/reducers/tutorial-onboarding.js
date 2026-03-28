@@ -13,14 +13,14 @@ const loadFromStorage = () => {
         return {
             tutorialSeen,
             rubyTabUsed,
-            tooltipDismissed: tutorialSeen || rubyTabUsed
+            tooltipDismissed: tutorialSeen || rubyTabUsed,
         };
     } catch (e) {
         // If localStorage is not available, treat as first-time user
         return {
             tutorialSeen: false,
             rubyTabUsed: false,
-            tooltipDismissed: false
+            tooltipDismissed: false,
         };
     }
 };
@@ -30,50 +30,50 @@ const initialState = loadFromStorage();
 const reducer = function (state, action) {
     if (typeof state === 'undefined') state = initialState;
     switch (action.type) {
-    case MARK_TUTORIAL_SEEN:
-        try {
-            localStorage.setItem(STORAGE_KEY_TUTORIAL_SEEN, 'true');
-        } catch (e) {
-            // Ignore localStorage errors
-        }
-        return Object.assign({}, state, {
-            tutorialSeen: true,
-            tooltipDismissed: true
-        });
-    case MARK_RUBY_TAB_USED:
-        try {
-            localStorage.setItem(STORAGE_KEY_RUBY_TAB_USED, 'true');
-        } catch (e) {
-            // Ignore localStorage errors
-        }
-        return Object.assign({}, state, {
-            rubyTabUsed: true,
-            tooltipDismissed: true
-        });
-    case DISMISS_TOOLTIP:
-        return Object.assign({}, state, {
-            tooltipDismissed: true
-        });
-    default:
-        return state;
+        case MARK_TUTORIAL_SEEN:
+            try {
+                localStorage.setItem(STORAGE_KEY_TUTORIAL_SEEN, 'true');
+            } catch (e) {
+                // Ignore localStorage errors
+            }
+            return Object.assign({}, state, {
+                tutorialSeen: true,
+                tooltipDismissed: true,
+            });
+        case MARK_RUBY_TAB_USED:
+            try {
+                localStorage.setItem(STORAGE_KEY_RUBY_TAB_USED, 'true');
+            } catch (e) {
+                // Ignore localStorage errors
+            }
+            return Object.assign({}, state, {
+                rubyTabUsed: true,
+                tooltipDismissed: true,
+            });
+        case DISMISS_TOOLTIP:
+            return Object.assign({}, state, {
+                tooltipDismissed: true,
+            });
+        default:
+            return state;
     }
 };
 
 const markTutorialSeen = function () {
     return {
-        type: MARK_TUTORIAL_SEEN
+        type: MARK_TUTORIAL_SEEN,
     };
 };
 
 const markRubyTabUsed = function () {
     return {
-        type: MARK_RUBY_TAB_USED
+        type: MARK_RUBY_TAB_USED,
     };
 };
 
 const dismissTooltip = function () {
     return {
-        type: DISMISS_TOOLTIP
+        type: DISMISS_TOOLTIP,
     };
 };
 
@@ -85,5 +85,5 @@ export {
     markTutorialSeen,
     markRubyTabUsed,
     dismissTooltip,
-    shouldShowTooltip
+    shouldShowTooltip,
 };

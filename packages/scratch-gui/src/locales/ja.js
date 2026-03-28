@@ -19,8 +19,10 @@ export default {
     'gui.sharedMessages.sprite': 'スプライト{index}',
     'gui.sharedMessages.replaceProjectWarning': '現在のプロジェクトの内容を置き換えますか？',
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターから読み込む',
-    'gui.sharedMessages.migrateMeshV1Warning': 'このプロジェクトには従来のメッシュ拡張機能が含まれていますので4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
-    'gui.sharedMessages.changedRubyVersionByKoshien': 'このプロジェクトにはスモウルビー甲子園拡張機能が含まれていますのでルビーをバージョン1に変更しました',
+    'gui.sharedMessages.migrateMeshV1Warning':
+        'このプロジェクトには従来のメッシュ拡張機能が含まれていますので4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
+    'gui.sharedMessages.changedRubyVersionByKoshien':
+        'このプロジェクトにはスモウルビー甲子園拡張機能が含まれていますのでルビーをバージョン1に変更しました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブから読み込む',
     'gui.menuBar.saveToGoogleDrive': 'Googleドライブにコピーを保存...',
     'gui.menuBar.saveDirectlyToGoogleDrive': 'Googleドライブに直ちに保存',
@@ -35,10 +37,12 @@ export default {
     'gui.menuBar.saveAIAs': 'AIに名前をつけて保存...',
     'gui.menuBar.testAI': 'AIを試す',
     'gui.menuBar.koshienEntryForm': '参加申し込み',
-    'gui.menuBar.koshienCannotChangeRubyVersion': 'スモウルビー甲子園拡張機能が読み込まれているときは、Rubyのバージョンを変更できません。',
+    'gui.menuBar.koshienCannotChangeRubyVersion':
+        'スモウルビー甲子園拡張機能が読み込まれているときは、Rubyのバージョンを変更できません。',
     'gui.menuBar.aiSaving': 'ルビーを保存中...',
     'gui.menuBar.aiSaved': 'ルビーが保存されました。',
-    'gui.smalruby3.alerts.rubyVersionChangeFailed': 'ルビーのバージョンを変更できません：先にルビーのコードのエラーを直してください。',
+    'gui.smalruby3.alerts.rubyVersionChangeFailed':
+        'ルビーのバージョンを変更できません：先にルビーのコードのエラーを直してください。',
     'gui.stageHeader.stageSizeMiddle': '中サイズのステージに切り替える',
 
     'gui.koshienTestModal.title': 'スモウルビー甲子園のAIを試す',
@@ -72,7 +76,8 @@ export default {
     'gui.urlLoader.urlExampleScratch': 'https://scratch.mit.edu/projects/1234567/',
     'gui.menuBar.seeProjectPage': 'プロジェクトページを見る',
     'gui.loader.creating': 'プロジェクトを作成中...',
-    'gui.smalruby3.crashMessage.description': '申し訳ありません。スモウルビーがクラッシュしたようです。このバグは自動的にスモウルビーチームに報告されました。ページを再読み込みしてください。',
+    'gui.smalruby3.crashMessage.description':
+        '申し訳ありません。スモウルビーがクラッシュしたようです。このバグは自動的にスモウルビーチームに報告されました。ページを再読み込みしてください。',
     'gui.smalruby3.gui.defaultProjectTitle': 'スモウルビーのプロジェクト',
     'gui.smalruby3.gui.rubyTab': 'ルビー',
     'gui.smalruby3.previewInfo.betawelcome': 'スモウルビー3.0 ベータ版にようこそ!',
@@ -81,79 +86,139 @@ export default {
     'gui.smalruby3.previewInfo.welcome': 'スモウルビー3.0 プレビュー版にようこそ!',
     'gui.smalruby3.menuBar.downloadRubyCodeToComputer': 'コンピュータにルビーを保存する',
     'gui.smalruby3.menuBar.generateRubyFromCode': 'コードからルビーに変換します',
-    'gui.smalruby3.unsupportedBrowser.notRecommended': '申し訳ありません。スモウルビー3.0はお使いのバージョンのブラウザをサポートしていません。Google Chrome、Mozilla Firefox、Microsoft Edge、Apple Safariのようなサポートしている最新のバージョンにアップデートすることをお勧めします。',
-    'gui.smalruby3.unsupportedBrowser.description': '申し訳ありません。スモウルビー3.0はInternet Explorer、Vivaldi、Opera、Silkをサポートしていません。Google Chrome、Mozilla Firefox、Microsoft Edgeのような新しいブラウザの利用をお勧めします。',
-    'gui.smalruby3.unsupportedBrowser.previewfaq': 'スモウルビーは Scratch 3.0をベースに開発していますので、詳しく知りたい場合は Scratch の {previewFaqLink} をご覧ください。',
-    'gui.smalruby3.webglModal.description': '残念ながら、ブラウザーやコンピューターが{webGlLink}ようです。この技術はスモウルビー3.0の実行に必須です。',
-    'gui.smalruby3.alerts.convertRubyToBlocksError': 'ルビーからコードに変換できませんでした。ルビーを修正してください！',
+    'gui.smalruby3.unsupportedBrowser.notRecommended':
+        '申し訳ありません。スモウルビー3.0はお使いのバージョンのブラウザをサポートしていません。Google Chrome、Mozilla Firefox、Microsoft Edge、Apple Safariのようなサポートしている最新のバージョンにアップデートすることをお勧めします。',
+    'gui.smalruby3.unsupportedBrowser.description':
+        '申し訳ありません。スモウルビー3.0はInternet Explorer、Vivaldi、Opera、Silkをサポートしていません。Google Chrome、Mozilla Firefox、Microsoft Edgeのような新しいブラウザの利用をお勧めします。',
+    'gui.smalruby3.unsupportedBrowser.previewfaq':
+        'スモウルビーは Scratch 3.0をベースに開発していますので、詳しく知りたい場合は Scratch の {previewFaqLink} をご覧ください。',
+    'gui.smalruby3.webglModal.description':
+        '残念ながら、ブラウザーやコンピューターが{webGlLink}ようです。この技術はスモウルビー3.0の実行に必須です。',
+    'gui.smalruby3.alerts.convertRubyToBlocksError':
+        'ルビーからコードに変換できませんでした。ルビーを修正してください！',
     'gui.alerts.cannotExecuteLine': 'この行は実行できません。',
     'gui.smalruby3.telemetryOptIn.label': 'スモウルビーを改善するための利用状況の報告',
-    'gui.smalruby3.telemetryOptIn.body1': 'スモウルビーの開発者は世界中でスモウルビーがどのように使われているのかを理解したいと考えています。その手助けのために、みなさんのスモウルビーの利用状況をスモウルビーの開発者に提供していただけないでしょうか。',
-    'gui.smalruby3.telemetryOptIn.body2': '提供していただく情報にはどの言語を選択したか、どのブロックを使ったか、保存・読み込み・プロジェクトのアップロードなどのイベントを含みます。ただし、ユーザ名などの個人的な情報は一切含みません。',
+    'gui.smalruby3.telemetryOptIn.body1':
+        'スモウルビーの開発者は世界中でスモウルビーがどのように使われているのかを理解したいと考えています。その手助けのために、みなさんのスモウルビーの利用状況をスモウルビーの開発者に提供していただけないでしょうか。',
+    'gui.smalruby3.telemetryOptIn.body2':
+        '提供していただく情報にはどの言語を選択したか、どのブロックを使ったか、保存・読み込み・プロジェクトのアップロードなどのイベントを含みます。ただし、ユーザ名などの個人的な情報は一切含みません。',
     'gui.telemetryOptIn.buttonTextNo': 'いいえ、結構です。',
-    'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '「{ SOURCE }」はブロックに変換できません。\nつづりを確認するか、対応している値を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '「{ SOURCE }」は命令がまちがっています。\nつづりを確認するか、対応しているブロックを使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass': '「{ SOURCE }」はclass定義の中に直接置くことはできません。\nイベントブロック（例: when_flag_clicked）やメソッド定義（def）の中で使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope': '「{VARIABLE}」、変数のスコープは変更できません。\n変数をいったん削除してから、正しいスコープで作り直してください。',
-    'gui.smalruby3.rubyToBlocksConverter.alreadyDefinedMyBlock': '「{NAME}」というブロック定義はすでに存在しています。\n別の名前を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.costumeDoesNotExist': 'コスチューム「{NAME}」は存在しません。\n名前を確認するか、先にコスチュームを追加してください。',
-    'gui.smalruby3.rubyToBlocksConverter.backdropDoesNotExist': '背景「{NAME}」は存在しません。\n名前を確認するか、先に背景を追加してください。',
-    'gui.smalruby3.rubyToBlocksConverter.soundDoesNotExist': '音「{NAME}」は存在しません。\n名前を確認するか、先に音を追加してください。',
-    'gui.smalruby3.rubyToBlocksConverter.stageNoMotionBlocks': 'ステージが選択されています：動きブロックは使えません。\nスプライトを選択してから使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean': '条件がブーリアンではありません：{SOURCE}\n比較演算子（==、<、>など）を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks': '命令ブロックではないブロックが含まれています。\nブロック定義の中では命令ブロック（コマンド）だけを使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType': 'ブロック定義「{NAME}」の引数#{INDEX}の型がまちがっています。\n数値、文字列、またはブーリアンの値を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock': '「{SOURCE}」は命令がまちがっています。\nつづりを確認するか、対応しているブロックを使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.spriteAndCostumesSoundsExclusive': 'set_spriteとset_costumes/set_soundsは同時に使えません。\nset_spriteかset_costumes/set_soundsのどちらかを使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.invalidSpriteName': 'スプライト「{ NAME }」はスプライトライブラリに存在しません。\n名前を確認するか、正しいスプライト名を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.invalidCostumeName': 'コスチューム「{ NAME }」はコスチュームライブラリに存在しません。\n名前を確認するか、正しいコスチューム名を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.invalidSoundName': '音「{ NAME }」は音ライブラリに存在しません。\n名前を確認するか、正しい音の名前を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.invalidBackdropName': '背景「{ NAME }」は背景ライブラリに存在しません。\n名前を確認するか、正しい背景名を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.spriteMethodInStageClass': '「{ METHOD }」はclass Stageでは使えません。\nこのメソッドはスプライト専用です。',
-    'gui.smalruby3.rubyToBlocksConverter.stageMethodInSpriteClass': '「{ METHOD }」はスプライトのclassでは使えません。\nこのメソッドはclass Stage専用です。',
-    'gui.smalruby3.rubyToBlocksConverter.arraySyntaxNotAvailableInV1': '配列の書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えるか、\nlist()の書き方を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.listSyntaxNotAvailableInV2': 'list()の書き方はルビーバージョン1でのみ使えます。\n配列の書き方（$a.push()、$a[0]など）を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.arrayLiteralNotAvailableInV1': '配列リテラルの書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えてください。',
-    'gui.smalruby3.rubyToBlocksConverter.hashSyntaxNotAvailableInV1': 'ハッシュの書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えてください。',
-    'gui.smalruby3.rubyToBlocksConverter.classNotSupportedInV1': 'classの定義はルビーバージョン1では使えません。\n設定メニューからルビーバージョン2に切り替えてください。',
-    'gui.smalruby3.rubyToBlocksConverter.invalidStageSuperclass': 'Stageクラスは ::Smalruby3::Stage または Smalruby3::Stage のみ継承できます。',
-    'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInV1': 'moduleの定義はルビーバージョン1では使えません。\n設定メニューからルビーバージョン2に切り替えてください。',
+    'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive':
+        '「{ SOURCE }」はブロックに変換できません。\nつづりを確認するか、対応している値を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.wrongInstruction':
+        '「{ SOURCE }」は命令がまちがっています。\nつづりを確認するか、対応しているブロックを使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
+        '「{ SOURCE }」はclass定義の中に直接置くことはできません。\nイベントブロック（例: when_flag_clicked）やメソッド定義（def）の中で使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.cannotChangeVariableScope':
+        '「{VARIABLE}」、変数のスコープは変更できません。\n変数をいったん削除してから、正しいスコープで作り直してください。',
+    'gui.smalruby3.rubyToBlocksConverter.alreadyDefinedMyBlock':
+        '「{NAME}」というブロック定義はすでに存在しています。\n別の名前を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.costumeDoesNotExist':
+        'コスチューム「{NAME}」は存在しません。\n名前を確認するか、先にコスチュームを追加してください。',
+    'gui.smalruby3.rubyToBlocksConverter.backdropDoesNotExist':
+        '背景「{NAME}」は存在しません。\n名前を確認するか、先に背景を追加してください。',
+    'gui.smalruby3.rubyToBlocksConverter.soundDoesNotExist':
+        '音「{NAME}」は存在しません。\n名前を確認するか、先に音を追加してください。',
+    'gui.smalruby3.rubyToBlocksConverter.stageNoMotionBlocks':
+        'ステージが選択されています：動きブロックは使えません。\nスプライトを選択してから使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.conditionIsNotBoolean':
+        '条件がブーリアンではありません：{SOURCE}\n比較演算子（==、<、>など）を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.includeNotStatementBlocks':
+        '命令ブロックではないブロックが含まれています。\nブロック定義の中では命令ブロック（コマンド）だけを使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.invalidMyBlockArgumentType':
+        'ブロック定義「{NAME}」の引数#{INDEX}の型がまちがっています。\n数値、文字列、またはブーリアンの値を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInMyBlock':
+        '「{SOURCE}」は命令がまちがっています。\nつづりを確認するか、対応しているブロックを使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.spriteAndCostumesSoundsExclusive':
+        'set_spriteとset_costumes/set_soundsは同時に使えません。\nset_spriteかset_costumes/set_soundsのどちらかを使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.invalidSpriteName':
+        'スプライト「{ NAME }」はスプライトライブラリに存在しません。\n名前を確認するか、正しいスプライト名を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.invalidCostumeName':
+        'コスチューム「{ NAME }」はコスチュームライブラリに存在しません。\n名前を確認するか、正しいコスチューム名を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.invalidSoundName':
+        '音「{ NAME }」は音ライブラリに存在しません。\n名前を確認するか、正しい音の名前を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.invalidBackdropName':
+        '背景「{ NAME }」は背景ライブラリに存在しません。\n名前を確認するか、正しい背景名を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.spriteMethodInStageClass':
+        '「{ METHOD }」はclass Stageでは使えません。\nこのメソッドはスプライト専用です。',
+    'gui.smalruby3.rubyToBlocksConverter.stageMethodInSpriteClass':
+        '「{ METHOD }」はスプライトのclassでは使えません。\nこのメソッドはclass Stage専用です。',
+    'gui.smalruby3.rubyToBlocksConverter.arraySyntaxNotAvailableInV1':
+        '配列の書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えるか、\nlist()の書き方を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.listSyntaxNotAvailableInV2':
+        'list()の書き方はルビーバージョン1でのみ使えます。\n配列の書き方（$a.push()、$a[0]など）を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.arrayLiteralNotAvailableInV1':
+        '配列リテラルの書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えてください。',
+    'gui.smalruby3.rubyToBlocksConverter.hashSyntaxNotAvailableInV1':
+        'ハッシュの書き方はルビーバージョン2でのみ使えます。\n設定メニューからルビーバージョン2に切り替えてください。',
+    'gui.smalruby3.rubyToBlocksConverter.classNotSupportedInV1':
+        'classの定義はルビーバージョン1では使えません。\n設定メニューからルビーバージョン2に切り替えてください。',
+    'gui.smalruby3.rubyToBlocksConverter.invalidStageSuperclass':
+        'Stageクラスは ::Smalruby3::Stage または Smalruby3::Stage のみ継承できます。',
+    'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInV1':
+        'moduleの定義はルビーバージョン1では使えません。\n設定メニューからルビーバージョン2に切り替えてください。',
     'gui.smalruby3.rubyToBlocksConverter.nestedModuleNotSupported': 'moduleの中にmoduleを定義することはできません。',
-    'gui.smalruby3.rubyToBlocksConverter.onlyMethodsInModule': 'moduleの中にはメソッド定義（def）だけを置くことができます。',
+    'gui.smalruby3.rubyToBlocksConverter.onlyMethodsInModule':
+        'moduleの中にはメソッド定義（def）だけを置くことができます。',
     'gui.smalruby3.rubyToBlocksConverter.undefinedModule': 'モジュール「{ NAME }」は定義されていません。',
     'gui.smalruby3.rubyToBlocksConverter.moduleFunctionNotSupported': 'module_functionはスモウルビーでは使えません。',
     'gui.smalruby3.rubyToBlocksConverter.extendNotSupported': 'extendはスモウルビーでは使えません。',
-    'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInStage': 'moduleはステージでは使えません。\nモジュールはスプライトのクラスでのみ使えます。',
-    'gui.smalruby3.rubyToBlocksConverter.includeNotSupportedInStage': 'includeはclass Stageでは使えません。\nモジュールはスプライトのクラスでのみ取り込めます。',
-    'gui.smalruby3.rubyToBlocksConverter.moduleImportFailed': 'モジュール「{ NAME }」を他のスプライトから取り込めませんでした。',
-    'gui.smalruby3.rubyToBlocksConverter.setVariablesListsNotSupported': '「{ METHOD }」はルビーバージョン2では使えません。\n変数やリストの初期値はdef initializeで設定してください。',
-    'gui.smalruby3.rubyToBlocksConverter.invalidInitializeBody': '「{ SOURCE }」はdef initializeの中に置くことはできません。\n変数やリストの代入のみ使えます。',
-    'gui.smalruby3.rubyToBlocksConverter.wrongVariableScopeInInitialize': '「{ SOURCE }」はこのクラスでは使えない変数のスコープです。\n{ CLASS_TYPE }クラスでは{ PREFIX }変数を使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.initializeOutsideClass': 'def initializeはクラス定義の中でのみ使えます。\nclass（例: class Sprite1 ... end）の中で使ってください。',
-    'gui.smalruby3.rubyToBlocksConverter.symbolNeedsToS': '「{ SOURCE }」— シンボルには .to_s を付けてください。\n{ SUGGESTION } と書いてください。',
-    'gui.smalruby3.rubyToBlocksConverter.symbolCannotArithmetic': '「{ SOURCE }」— シンボルは +、-、*、/ などの計算には使えません。\n{ SUGGESTION } のように .to_s すると計算に使えます。',
-    'gui.smalruby3.rubyToBlocksConverter.symbolCannotCompare': '「{ SOURCE }」— シンボルとシンボル以外の値は >、<、>=、<= で比較できません。\n== で比較するか、.to_s で文字列に変換してください。',
+    'gui.smalruby3.rubyToBlocksConverter.moduleNotSupportedInStage':
+        'moduleはステージでは使えません。\nモジュールはスプライトのクラスでのみ使えます。',
+    'gui.smalruby3.rubyToBlocksConverter.includeNotSupportedInStage':
+        'includeはclass Stageでは使えません。\nモジュールはスプライトのクラスでのみ取り込めます。',
+    'gui.smalruby3.rubyToBlocksConverter.moduleImportFailed':
+        'モジュール「{ NAME }」を他のスプライトから取り込めませんでした。',
+    'gui.smalruby3.rubyToBlocksConverter.setVariablesListsNotSupported':
+        '「{ METHOD }」はルビーバージョン2では使えません。\n変数やリストの初期値はdef initializeで設定してください。',
+    'gui.smalruby3.rubyToBlocksConverter.invalidInitializeBody':
+        '「{ SOURCE }」はdef initializeの中に置くことはできません。\n変数やリストの代入のみ使えます。',
+    'gui.smalruby3.rubyToBlocksConverter.wrongVariableScopeInInitialize':
+        '「{ SOURCE }」はこのクラスでは使えない変数のスコープです。\n{ CLASS_TYPE }クラスでは{ PREFIX }変数を使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.initializeOutsideClass':
+        'def initializeはクラス定義の中でのみ使えます。\nclass（例: class Sprite1 ... end）の中で使ってください。',
+    'gui.smalruby3.rubyToBlocksConverter.symbolNeedsToS':
+        '「{ SOURCE }」— シンボルには .to_s を付けてください。\n{ SUGGESTION } と書いてください。',
+    'gui.smalruby3.rubyToBlocksConverter.symbolCannotArithmetic':
+        '「{ SOURCE }」— シンボルは +、-、*、/ などの計算には使えません。\n{ SUGGESTION } のように .to_s すると計算に使えます。',
+    'gui.smalruby3.rubyToBlocksConverter.symbolCannotCompare':
+        '「{ SOURCE }」— シンボルとシンボル以外の値は >、<、>=、<= で比較できません。\n== で比較するか、.to_s で文字列に変換してください。',
     'gui.smalruby3.prismError.expectedCloseArgs': '`)` が足りません。\n`)` を追加して引数を閉じてください。',
     'gui.smalruby3.prismError.expectedCloseArray': '`]` が足りません。\n`]` を追加して配列を閉じてください。',
     'gui.smalruby3.prismError.expectedCloseHash': '`}` が足りません。\n`}` を追加してハッシュを閉じてください。',
-    'gui.smalruby3.prismError.expectedBlockEndBrace': '`}` が足りません。\n`{` で始まるブロックを `}` で閉じてください。',
-    'gui.smalruby3.prismError.expectedBlockEndDo': '`end` が足りません。\n`do` で始まるブロックを `end` で閉じてください。',
+    'gui.smalruby3.prismError.expectedBlockEndBrace':
+        '`}` が足りません。\n`{` で始まるブロックを `}` で閉じてください。',
+    'gui.smalruby3.prismError.expectedBlockEndDo':
+        '`end` が足りません。\n`do` で始まるブロックを `end` で閉じてください。',
     'gui.smalruby3.prismError.expectedEndForDef': '`end` が足りません。\n`def` に対応する `end` を追加してください。',
-    'gui.smalruby3.prismError.expectedEndForClass': '`end` が足りません。\n`class` に対応する `end` を追加してください。',
-    'gui.smalruby3.prismError.expectedEndForWhile': '`end` が足りません。\n`while` に対応する `end` を追加してください。',
-    'gui.smalruby3.prismError.expectedEndForUntil': '`end` が足りません。\n`until` に対応する `end` を追加してください。',
-    'gui.smalruby3.prismError.expectedEndForCase': '`end` が足りません。\n`case` に対応する `end` を追加してください。',
-    'gui.smalruby3.prismError.expectedEndForBegin': '`end` が足りません。\n`begin` に対応する `end` を追加してください。',
-    'gui.smalruby3.prismError.expectedEndForModule': '`end` が足りません。\n`module` に対応する `end` を追加してください。',
-    'gui.smalruby3.prismError.expectedEndForConditional': '`end` が足りません。\n条件分岐（if/unless）を `end` で閉じてください。',
-    'gui.smalruby3.prismError.expectedEndForElse': '`end` が足りません。\n`else` に対応する `end` を追加してください。',
-    'gui.smalruby3.prismError.unterminatedString': '文字列が閉じられていません。\n`"` か `\'` を追加して文字列を閉じてください。',
-    'gui.smalruby3.prismError.unexpectedEndOfInput': 'コードが途中で終わっています。\n`end`、`)`、`]`、`}` が足りないか確認してください。',
+    'gui.smalruby3.prismError.expectedEndForClass':
+        '`end` が足りません。\n`class` に対応する `end` を追加してください。',
+    'gui.smalruby3.prismError.expectedEndForWhile':
+        '`end` が足りません。\n`while` に対応する `end` を追加してください。',
+    'gui.smalruby3.prismError.expectedEndForUntil':
+        '`end` が足りません。\n`until` に対応する `end` を追加してください。',
+    'gui.smalruby3.prismError.expectedEndForCase':
+        '`end` が足りません。\n`case` に対応する `end` を追加してください。',
+    'gui.smalruby3.prismError.expectedEndForBegin':
+        '`end` が足りません。\n`begin` に対応する `end` を追加してください。',
+    'gui.smalruby3.prismError.expectedEndForModule':
+        '`end` が足りません。\n`module` に対応する `end` を追加してください。',
+    'gui.smalruby3.prismError.expectedEndForConditional':
+        '`end` が足りません。\n条件分岐（if/unless）を `end` で閉じてください。',
+    'gui.smalruby3.prismError.expectedEndForElse':
+        '`end` が足りません。\n`else` に対応する `end` を追加してください。',
+    'gui.smalruby3.prismError.unterminatedString':
+        '文字列が閉じられていません。\n`"` か `\'` を追加して文字列を閉じてください。',
+    'gui.smalruby3.prismError.unexpectedEndOfInput':
+        'コードが途中で終わっています。\n`end`、`)`、`]`、`}` が足りないか確認してください。',
     'gui.smalruby3.prismError.unexpectedEnd': '余分な `end` があります。\n不要な `end` を削除してください。',
     'gui.smalruby3.prismError.cannotParseExpression': 'この式を理解できません。\nつづりや文法を確認してください。',
-    'gui.smalruby3.prismError.expectedHashRocket': 'ハッシュのキーと値の間に `=>` がありません。\n`=>` を追加するか、`キー:` の書き方を使ってください。',
-    'gui.smalruby3.prismError.expectedThenOrSemicolon': '`then`、`;`、または改行がありません。\n`then` を追加するか、本体を次の行に書いてください。',
-    'gui.smalruby3.prismError.expectedBlockParamPipe': '`|` が足りません。\n`|` を追加してブロックの引数を閉じてください。',
+    'gui.smalruby3.prismError.expectedHashRocket':
+        'ハッシュのキーと値の間に `=>` がありません。\n`=>` を追加するか、`キー:` の書き方を使ってください。',
+    'gui.smalruby3.prismError.expectedThenOrSemicolon':
+        '`then`、`;`、または改行がありません。\n`then` を追加するか、本体を次の行に書いてください。',
+    'gui.smalruby3.prismError.expectedBlockParamPipe':
+        '`|` が足りません。\n`|` を追加してブロックの引数を閉じてください。',
     'gui.smalruby3.prismError.expectedCloseParams': '`)` が足りません。\n`)` を追加して引数の定義を閉じてください。',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': 'はい、スモウルビーの改善に協力します。',
     'gui.smalruby3.extension.mesh.name': '従来のメッシュ',
@@ -184,7 +249,8 @@ export default {
     'mesh.domainConnectedAlert': 'meshV2が接続中です。ドメインを変更するには、まず切断してください。',
     'mesh.domainInvalidError': 'ドメイン名に使用できない文字が含まれています。',
     'mesh.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。',
-    'mesh.domainDescription': 'ホストが表示されない場合はドメインを設定してください。学校などの施設の郵便番号が最適です。',
+    'mesh.domainDescription':
+        'ホストが表示されない場合はドメインを設定してください。学校などの施設の郵便番号が最適です。',
     'mesh.domainExampleTitle': '例',
     'mesh.domainExample': '100-0014',
     'gui.extension.faceSensing.name': '顔認識',
@@ -249,7 +315,8 @@ export default {
 
     'gui.smalruby3.gui.privacyPolicy': 'プライバシーポリシー',
     'gui.smalruby3.gui.feedback': 'フィードバックを送信',
-    'gui.smalruby3.feedbackConfirm': 'スモウルビーをよりよくするためのフィードバック（ご意見）を送信する外部サイトを開きます。よろしいですか？',
+    'gui.smalruby3.feedbackConfirm':
+        'スモウルビーをよりよくするためのフィードバック（ご意見）を送信する外部サイトを開きます。よろしいですか？',
 
     // Block Display Modal - Block Messages
     // Motion blocks
@@ -366,7 +433,8 @@ export default {
     'gui.smalruby3.blockDisplayModal.operator_round': '(　) を四捨五入',
     'gui.smalruby3.blockDisplayModal.operator_mathop': '(　) の [絶対値▼]',
     'gui.extensionLibrary.showAllExtensions': 'すべての拡張機能を表示',
-    'gui.extensionLibrary.meshDeprecationWarning': '従来のメッシュ拡張機能は4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
+    'gui.extensionLibrary.meshDeprecationWarning':
+        '従来のメッシュ拡張機能は4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
     'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'スモウルビー甲子園拡張機能は Ruby v1 でのみ利用できます。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
@@ -377,13 +445,15 @@ export default {
     'gui.connection.updatePeripheral.doNotDisconnect': 'アップデート中はmicro:bitを外さないでください。',
     'gui.connection.scanning.updatePeripheralPrompt': 'micro:bitを最新のファームウェアにアップデートしてください。',
     'gui.connection.updatePeripheral.microbitMoreUpdateSuccessful': 'MicrobitMoreのアップデートに成功しました！',
-    'gui.connection.updatePeripheral.microbitMoreTiltToLightUp': 'micro:bitを傾けて25個のLEDをすべて点灯させると完了です。',
+    'gui.connection.updatePeripheral.microbitMoreTiltToLightUp':
+        'micro:bitを傾けて25個のLEDをすべて点灯させると完了です。',
     'gui.connection.scanning.updatePeripheralButton': 'アップデート',
     'gui.connection.auto-scanning.updatePeripheralButton': 'アップデート',
     'gui.connection.error.updatePeripheralButton': 'アップデート',
     'gui.connection.unavailable.updatePeripheralButton': 'アップデート',
     'gui.connection.scanning.backButton': '戻る',
-    'gui.connection.networkFiltered.message': 'あたらしいメッシュ機能が使えません。{br}ネットワーク管理者に制限の解除をご依頼ください。',
+    'gui.connection.networkFiltered.message':
+        'あたらしいメッシュ機能が使えません。{br}ネットワーク管理者に制限の解除をご依頼ください。',
     'gui.connection.networkFiltered.copied': 'コピーしました！',
     'gui.connection.networkFiltered.copyButton': 'クリップボードにコピー',
     'gui.connection.networkFiltered.tryagainbutton': 'もう一度試す',
@@ -395,7 +465,8 @@ export default {
     'gui.connection.meshV2Initial.createGroupDescription': 'グループの作成',
     'gui.connection.meshV2Initial.joinGroup': 'メッシュに参加する',
     'gui.connection.meshV2Initial.joinGroupDescription': 'グループに参加',
-    'gui.connection.meshV2Initial.domainHelp': 'ホスト名が一覧に表示されない場合はドメインを設定してください。{br}学校などの施設の郵便番号が最適です。',
+    'gui.connection.meshV2Initial.domainHelp':
+        'ホスト名が一覧に表示されない場合はドメインを設定してください。{br}学校などの施設の郵便番号が最適です。',
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメイン名に無効な文字が含まれています。',
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。',
 
@@ -448,7 +519,8 @@ export default {
     'gui.rubyteeConsent.warningPersonalInfo': '名前や住所などの個人情報を入力しないでください',
     'gui.rubyteeConsent.warningAskAdult': 'こまったら大人に相談してください',
     'gui.rubyteeConsent.detailsToggle': 'くわしい説明（保護者の方へ）',
-    'gui.rubyteeConsent.detailsText': 'ルビティーは Anthropic 社の Claude API を利用した AI コード生成支援機能です。入力内容は当法人の中継サービスを経由して Anthropic 社に送信されます。個人情報は保存されません。',
+    'gui.rubyteeConsent.detailsText':
+        'ルビティーは Anthropic 社の Claude API を利用した AI コード生成支援機能です。入力内容は当法人の中継サービスを経由して Anthropic 社に送信されます。個人情報は保存されません。',
     'gui.rubyteeConsent.termsLink': '利用規約',
     'gui.rubyteeConsent.privacyLink': 'プライバシーポリシー',
     'gui.rubyteeConsent.consentCheckbox': '18歳以上です、または保護者の許可をもらいました',
@@ -464,7 +536,8 @@ export default {
     'gui.rubyteeModal.thinking': 'ルビティーが考えています... ({seconds}秒)',
     'gui.rubyteeModal.generatedCode': '生成されたコード',
     'gui.rubyteeModal.applyCode': 'プログラムを入力する',
-    'gui.rubyteeModal.applyCodeNote': 'AIが生成したプログラムは動作しないことがあります。そのときは、デバッグ（プログラムの問題を調べて直すこと）を楽しみましょう。',
+    'gui.rubyteeModal.applyCodeNote':
+        'AIが生成したプログラムは動作しないことがあります。そのときは、デバッグ（プログラムの問題を調べて直すこと）を楽しみましょう。',
     'gui.rubyteeModal.emptyHistory': 'ルビティーといっしょにプログラミングしましょう！作りたいものを教えてください！',
     'gui.rubyteeModal.you': 'あなた',
     'gui.rubyteeModal.rubytee': 'ルビティー',
@@ -473,7 +546,8 @@ export default {
     'gui.rubyteeModal.cancel': '中断',
     'gui.rubyteeModal.surprise': 'サプライズ！',
     'gui.rubyteeModal.timeoutError': 'リクエストがタイムアウトしました（2分）。もう一度お試しください。',
-    'gui.rubyteeModal.overloadedError': 'ルビティーへのアクセスが集中しているため、一時的に利用できません。5分ほど待ってから、もう一度お試しください。',
+    'gui.rubyteeModal.overloadedError':
+        'ルビティーへのアクセスが集中しているため、一時的に利用できません。5分ほど待ってから、もう一度お試しください。',
     'gui.rubyteeModal.rateLimitError': '利用回数の上限に達しました。{minutes}分後にもう一度お試しください。',
 
     // Tutorials
@@ -497,10 +571,12 @@ export default {
     // Chat Tutorial 1 Basic 2
     'gui.howtos.chat-1-basic-2.name': 'メッセージを送ってみよう！Lv2',
     'gui.howtos.chat-1-basic-2.step1.title': '今度はブロックを自分で組み立ててみよう！',
-    'gui.howtos.chat-1-basic-2.step2.title': '変数「送信メッセージ」を作り、「{greenFlag}が押されたとき」と「送信メッセージを◯◯にする」を配置しよう',
+    'gui.howtos.chat-1-basic-2.step2.title':
+        '変数「送信メッセージ」を作り、「{greenFlag}が押されたとき」と「送信メッセージを◯◯にする」を配置しよう',
     'gui.howtos.chat-1-basic-2.step3.title': '「◯◯と◯秒言う」を追加して「送信中...」と入力しよう',
     'gui.howtos.chat-1-basic-2.step4.title': '★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ',
-    'gui.howtos.chat-1-basic-2.step5.title': '★「◯◯を受け取ったとき」を新しく配置しよう — 送ったメッセージを受け取るよ',
+    'gui.howtos.chat-1-basic-2.step5.title':
+        '★「◯◯を受け取ったとき」を新しく配置しよう — 送ったメッセージを受け取るよ',
     'gui.howtos.chat-1-basic-2.step6.title': '★「◯◯と言う」に「送信メッセージ」変数をはめよう — 変数で値を渡すよ',
     'gui.howtos.chat-1-basic-2.step7.title': '{greenFlag}を押して実行！しゃべる内容も変えてみよう',
     // Chat Tutorial 1 Basic 3
@@ -508,71 +584,91 @@ export default {
     'gui.howtos.chat-1-basic-3.step1.title': '今度はRubyで同じプログラムを作ろう！',
     'gui.howtos.chat-1-basic-3.step2.title': 'ルビータブに切り替えよう',
     'gui.howtos.chat-1-basic-3.step3.title': '「ルビーを入力する」を押して、お手本を入力しよう',
-    'gui.howtos.chat-1-basic-3.step4.title': '★ 2行目に $送信メッセージ = "こんにちは！元気ですか？" を入力しよう — $で始まる変数は全体で使えるよ',
-    'gui.howtos.chat-1-basic-3.step5.title': '★ say("ここを変えるよ") を say($送信メッセージ) に変えよう — 変数で値を渡すよ',
+    'gui.howtos.chat-1-basic-3.step4.title':
+        '★ 2行目に $送信メッセージ = "こんにちは！元気ですか？" を入力しよう — $で始まる変数は全体で使えるよ',
+    'gui.howtos.chat-1-basic-3.step5.title':
+        '★ say("ここを変えるよ") を say($送信メッセージ) に変えよう — 変数で値を渡すよ',
     'gui.howtos.chat-1-basic-3.step6.title': '{greenFlag}を押して実行しよう！',
     'gui.howtos.chat-1-basic-3.step7.title': '大事なこと：Rubyでも「送る」「受け取ったとき」「変数」は同じ考え方',
     // Chat Tutorial 2 Sprites 1
     'gui.howtos.chat-2-sprites-1.name': 'ネコとペンギンで会話しよう',
     'gui.howtos.chat-2-sprites-1.step1.title': 'ネコとペンギンの会話',
     'gui.howtos.chat-2-sprites-1.step2.title': 'ネコのコードを入力する',
-    'gui.howtos.chat-2-sprites-1.step3.title': '大事なこと：変数「受信メッセージ」は「このスプライトのみ」になっています',
-    'gui.howtos.chat-2-sprites-1.step4.title': '大事なこと：「ネコからのメッセージ」を送り、「ペンギンからのメッセージ」を受け取る',
+    'gui.howtos.chat-2-sprites-1.step3.title':
+        '大事なこと：変数「受信メッセージ」は「このスプライトのみ」になっています',
+    'gui.howtos.chat-2-sprites-1.step4.title':
+        '大事なこと：「ネコからのメッセージ」を送り、「ペンギンからのメッセージ」を受け取る',
     'gui.howtos.chat-2-sprites-1.step5.title': 'ペンギンのスプライトを追加します',
     'gui.howtos.chat-2-sprites-1.step6.title': 'ペンギンの位置と向きを調整します',
     'gui.howtos.chat-2-sprites-1.step7.title': 'ペンギンのコードを入力すると完成。ネコやペンギンを押してみよう！',
     // Chat Tutorial 2 Sprites 2
     'gui.howtos.chat-2-sprites-2.name': 'ネコとペンギンで会話しよう！Lv2',
     'gui.howtos.chat-2-sprites-2.step1.title': '今度はブロックを自分で組み立ててみよう！',
-    'gui.howtos.chat-2-sprites-2.step2.title': 'ネコ：変数「送信メッセージ」を作り、「このスプライトが押されたとき」と「送信メッセージを◯◯にする」を配置しよう',
-    'gui.howtos.chat-2-sprites-2.step3.title': 'ネコ：「◯◯と◯秒言う」と★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ',
-    'gui.howtos.chat-2-sprites-2.step4.title': '★ ネコ：「ペンギンからのメッセージを受け取ったとき」を配置し、変数「受信メッセージ」(このスプライトのみ)を使おう — @変数はスプライト専用だよ',
+    'gui.howtos.chat-2-sprites-2.step2.title':
+        'ネコ：変数「送信メッセージ」を作り、「このスプライトが押されたとき」と「送信メッセージを◯◯にする」を配置しよう',
+    'gui.howtos.chat-2-sprites-2.step3.title':
+        'ネコ：「◯◯と◯秒言う」と★「◯◯を送る」を追加しよう — 離れたブロックを実行できるよ',
+    'gui.howtos.chat-2-sprites-2.step4.title':
+        '★ ネコ：「ペンギンからのメッセージを受け取ったとき」を配置し、変数「受信メッセージ」(このスプライトのみ)を使おう — @変数はスプライト専用だよ',
     'gui.howtos.chat-2-sprites-2.step5.title': 'ペンギンのスプライトを追加します',
     'gui.howtos.chat-2-sprites-2.step6.title': 'ペンギンの位置と向きを調整します',
-    'gui.howtos.chat-2-sprites-2.step7.title': '★ ペンギンも同じ構造でブロックを組み立てよう — メッセージ名がネコと逆になるよ',
+    'gui.howtos.chat-2-sprites-2.step7.title':
+        '★ ペンギンも同じ構造でブロックを組み立てよう — メッセージ名がネコと逆になるよ',
     'gui.howtos.chat-2-sprites-2.step8.title': 'ネコやペンギンを押して実行！しゃべる内容も変えてみよう',
     // Chat Tutorial 2 Sprites 3
     'gui.howtos.chat-2-sprites-3.name': 'ネコとペンギンで会話しよう！Lv3',
     'gui.howtos.chat-2-sprites-3.step1.title': '今度はRubyで同じプログラムを作ろう！',
     'gui.howtos.chat-2-sprites-3.step2.title': 'ルビータブに切り替えよう',
     'gui.howtos.chat-2-sprites-3.step3.title': '「ルビーを入力する」を押して、ネコのお手本を入力しよう',
-    'gui.howtos.chat-2-sprites-3.step4.title': '★ say("ここを変えるよ", 3) を say(@受信メッセージ, 3) に変えよう — @で始まる変数はこのスプライトだけで使えるよ',
+    'gui.howtos.chat-2-sprites-3.step4.title':
+        '★ say("ここを変えるよ", 3) を say(@受信メッセージ, 3) に変えよう — @で始まる変数はこのスプライトだけで使えるよ',
     'gui.howtos.chat-2-sprites-3.step5.title': 'ペンギンのスプライトを追加します',
     'gui.howtos.chat-2-sprites-3.step6.title': 'ペンギンの位置と向きを調整します',
-    'gui.howtos.chat-2-sprites-3.step7.title': 'ペンギンのRubyコードを「ルビーを入力する」で入力しよう — メッセージ名がネコと逆になっているよ',
+    'gui.howtos.chat-2-sprites-3.step7.title':
+        'ペンギンのRubyコードを「ルビーを入力する」で入力しよう — メッセージ名がネコと逆になっているよ',
     'gui.howtos.chat-2-sprites-3.step8.title': 'ネコやペンギンを押して実行しよう！',
     // Chat Tutorial 3 Mesh 1
     'gui.howtos.chat-3-mesh-1.name': 'メッシュ拡張機能でつながろう',
     'gui.howtos.chat-3-mesh-1.step1.title': 'メッシュ拡張機能を使って他の人のスモウルビーとつながろう',
-    'gui.howtos.chat-3-mesh-1.step2.title': '2人以上のグループをつくってメッシュ拡張機能を選ぶ（1人でも2つのスモウルビーを使えばできる）',
+    'gui.howtos.chat-3-mesh-1.step2.title':
+        '2人以上のグループをつくってメッシュ拡張機能を選ぶ（1人でも2つのスモウルビーを使えばできる）',
     'gui.howtos.chat-3-mesh-1.step3.title': '1人目はホストになる。他の人はメッシュに参加する',
     'gui.howtos.chat-3-mesh-1.step4.title': 'スプライトのコスチュームを変えてみよう',
     'gui.howtos.chat-3-mesh-1.step5.title': 'ホストとそれ以外でコードが違うよ。まずはホストのコードを入力する',
     'gui.howtos.chat-3-mesh-1.step6.title': '次にメッシュに参加した人のコードを入力する',
     'gui.howtos.chat-3-mesh-1.step7.title': '自分のスプライトを押してメッセージを送ってみよう',
     'gui.howtos.chat-3-mesh-1.step8.title': '大事なこと：他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
-    'gui.howtos.chat-3-mesh-1.external.kairyudo.name': '開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」',
+    'gui.howtos.chat-3-mesh-1.external.kairyudo.name':
+        '開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」',
     // Chat Tutorial 3 Mesh 2
     'gui.howtos.chat-3-mesh-2.name': 'メッシュでつながろう Lv2',
-    'gui.howtos.chat-3-mesh-2.step1.title': 'メッシュ拡張機能を使った会話プログラムを、ブロックを自分で組み立てて作ってみよう',
+    'gui.howtos.chat-3-mesh-2.step1.title':
+        'メッシュ拡張機能を使った会話プログラムを、ブロックを自分で組み立てて作ってみよう',
     'gui.howtos.chat-3-mesh-2.step2.title': '2人以上のグループをつくってメッシュ拡張機能を選ぶ',
     'gui.howtos.chat-3-mesh-2.step3.title': '1人目はホストになる。他の人はメッシュに参加する',
     'gui.howtos.chat-3-mesh-2.step4.title': 'スプライトのコスチュームを変えてみよう',
-    'gui.howtos.chat-3-mesh-2.step5.title': 'ホスト：「このスプライトが押されたとき」に変数をセットして「送信中...」と言い、メッセージを送るブロックを作ろう',
-    'gui.howtos.chat-3-mesh-2.step6.title': '★ ホスト：「受け取ったとき」に「送信メッセージのセンサーの値」を使おう — 他の人の変数はセンサーの値で取り出すよ！',
+    'gui.howtos.chat-3-mesh-2.step5.title':
+        'ホスト：「このスプライトが押されたとき」に変数をセットして「送信中...」と言い、メッセージを送るブロックを作ろう',
+    'gui.howtos.chat-3-mesh-2.step6.title':
+        '★ ホスト：「受け取ったとき」に「送信メッセージのセンサーの値」を使おう — 他の人の変数はセンサーの値で取り出すよ！',
     'gui.howtos.chat-3-mesh-2.step7.title': '★ メンバーも同じ構造のブロックを作ろう — メッセージの名前が逆になるよ！',
-    'gui.howtos.chat-3-mesh-2.step8.title': '自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
+    'gui.howtos.chat-3-mesh-2.step8.title':
+        '自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
     // Chat Tutorial 3 Mesh 3
     'gui.howtos.chat-3-mesh-3.name': 'メッシュでつながろう Lv3',
     'gui.howtos.chat-3-mesh-3.step1.title': 'メッシュ拡張機能を使った会話プログラムを、Rubyで作ってみよう',
     'gui.howtos.chat-3-mesh-3.step2.title': '2人以上のグループをつくってメッシュ拡張機能を選ぶ',
     'gui.howtos.chat-3-mesh-3.step3.title': '1人目はホストになる。他の人はメッシュに参加する',
     'gui.howtos.chat-3-mesh-3.step4.title': 'スプライトのコスチュームを変えてみよう',
-    'gui.howtos.chat-3-mesh-3.step5.title': 'ルビータブに切り替えて「Rubyコードを挿入」でホストのベースコードを入力する',
-    'gui.howtos.chat-3-mesh-3.step6.title': '★ @受信メッセージ = "ここを変えるよ" を @受信メッセージ = mesh.sensor_value("送信メッセージ") に変えよう — 他の人の変数はmesh.sensor_valueで取り出すよ！',
+    'gui.howtos.chat-3-mesh-3.step5.title':
+        'ルビータブに切り替えて「Rubyコードを挿入」でホストのベースコードを入力する',
+    'gui.howtos.chat-3-mesh-3.step6.title':
+        '★ @受信メッセージ = "ここを変えるよ" を @受信メッセージ = mesh.sensor_value("送信メッセージ") に変えよう — 他の人の変数はmesh.sensor_valueで取り出すよ！',
     'gui.howtos.chat-3-mesh-3.step7.title': 'メンバーのコードを入力する — メッセージの名前が逆になるよ！',
-    'gui.howtos.chat-3-mesh-3.step8.title': '自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
-    'gui.howtos.chat-3-mesh-3.external.kairyudo.name': '開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」',
+    'gui.howtos.chat-3-mesh-3.step8.title':
+        '自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
+    'gui.howtos.chat-3-mesh-3.external.kairyudo.name':
+        '開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.all-tutorials': 'チュートリアル',
@@ -590,7 +686,8 @@ export default {
     'gui.libraryCategories.gettingStarted': '始めましょう',
     'gui.library.chatApp': 'チャットアプリをつくろう',
     'gui.menuBar.updateTooltip': '新しいスモウルビーを使ってみよう！',
-    'gui.menuBar.updateConfirm': '新しいバージョンのスモウルビーが利用可能です。いますぐ更新する場合は「OK」を、あとにする場合は「キャンセル」を押してください。',
+    'gui.menuBar.updateConfirm':
+        '新しいバージョンのスモウルビーが利用可能です。いますぐ更新する場合は「OK」を、あとにする場合は「キャンセル」を押してください。',
     'gui.menuBar.tutorialTooltip': 'ルビーを試してみよう!',
-    'gui.aria.clearButton': 'クリア'
+    'gui.aria.clearButton': 'クリア',
 };

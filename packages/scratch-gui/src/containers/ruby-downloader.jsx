@@ -2,25 +2,20 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {connect} from 'react-redux';
-import {projectTitleInitialState} from '../reducers/project-title';
-import RubyGenerator from '../lib/ruby-generator';
+import { connect } from 'react-redux';
 import VM from '@smalruby/scratch-vm';
-import {rubyCodeShape, convertedRubyCode} from '../reducers/ruby-code';
-import {setKoshienFileHandle, clearKoshienFileHandle} from '../reducers/koshien-file';
-import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
+import RubyGenerator from '../lib/ruby-generator';
+import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
+import { setKoshienFileHandle, clearKoshienFileHandle } from '../reducers/koshien-file';
+import { projectTitleInitialState } from '../reducers/project-title';
+import { rubyCodeShape, convertedRubyCode } from '../reducers/ruby-code';
 
 class RubyDownloader extends React.Component {
-    constructor (props) {
+    constructor(props) {
         super(props);
-        bindAll(this, [
-            'downloadProject',
-            'saveWithFileSystemAPI',
-            'supportsFileSystemAPI',
-            'validateAndConvert'
-        ]);
+        bindAll(this, ['downloadProject', 'saveWithFileSystemAPI', 'supportsFileSystemAPI', 'validateAndConvert']);
     }
-    supportsFileSystemAPI () {
+    supportsFileSystemAPI() {
         return 'showSaveFilePicker' in window;
     }
     /**
@@ -28,7 +23,7 @@ class RubyDownloader extends React.Component {
      * apply blocks to update sprite/stage state (round-trip).
      * @returns {Promise<boolean>} true if conversion succeeded or was unnecessary
      */
-    async validateAndConvert () {
+    async validateAndConvert() {
         if (!this.props.rubyCode.modified) {
             return true;
         }
@@ -38,16 +33,14 @@ class RubyDownloader extends React.Component {
                 this.props.rubyCode.target,
                 this.props.rubyCode.code,
                 this.props.intl,
-                {version: this.props.rubyVersion}
+                { version: this.props.rubyVersion },
             );
             if (!converter.result) {
                 if (this.props.onConversionError) {
                     this.props.onConversionError(converter.errors);
                 }
                 if (this.props.onSaveError) {
-                    this.props.onSaveError(
-                        new Error('Ruby to blocks conversion failed')
-                    );
+                    this.props.onSaveError(new Error('Ruby to blocks conversion failed'));
                 }
                 return false;
             }
@@ -62,7 +55,7 @@ class RubyDownloader extends React.Component {
             return false;
         }
     }
-    saveRuby () {
+    saveRuby() {
         const idToTarget = {};
         this.props.vm.runtime.targets.forEach(target => {
             idToTarget[target.id] = target;
@@ -76,23 +69,23 @@ class RubyDownloader extends React.Component {
             requires: ['smalruby3'],
             withSpriteNew: true,
             version: this.props.rubyVersion,
-            forSave: true
+            forSave: true,
         };
         // After validateAndConvert, blocks are already applied and
         // rubyCode.modified is reset, so targetsCode is not needed.
         // This branch remains for safety in non-validated paths.
         if (this.props.rubyCode.modified) {
             options.targetsCode = {
-                [this.props.rubyCode.target.id]: this.props.rubyCode.code
+                [this.props.rubyCode.target.id]: this.props.rubyCode.code,
             };
         }
         const code = RubyGenerator.targetsToCode(targets, options);
 
         return new Blob([code], {
-            type: 'text/x-ruby-script'
+            type: 'text/x-ruby-script',
         });
     }
-    async saveWithFileSystemAPI () {
+    async saveWithFileSystemAPI() {
         try {
             const content = this.saveRuby();
             // If forceFilePicker is true, ignore existing file handle
@@ -102,10 +95,12 @@ class RubyDownloader extends React.Component {
             if (!fileHandle) {
                 fileHandle = await window.showSaveFilePicker({
                     suggestedName: this.props.projectFilename,
-                    types: [{
-                        description: 'Ruby Script',
-                        accept: {'text/x-ruby-script': ['.rb']}
-                    }]
+                    types: [
+                        {
+                            description: 'Ruby Script',
+                            accept: { 'text/x-ruby-script': ['.rb'] },
+                        },
+                    ],
                 });
                 // Store the file handle for future saves
                 this.props.onSetKoshienFileHandle(fileHandle);
@@ -129,7 +124,7 @@ class RubyDownloader extends React.Component {
             }
         }
     }
-    async downloadProject () {
+    async downloadProject() {
         // Validate and convert Ruby code to blocks before saving
         const valid = await this.validateAndConvert();
         if (!valid) return;
@@ -161,14 +156,9 @@ class RubyDownloader extends React.Component {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(downloadLink);
     }
-    render () {
-        const {
-            children
-        } = this.props;
-        return children(
-            this.props.className,
-            this.downloadProject
-        );
+    render() {
+        const { children } = this.props;
+        return children(this.props.className, this.downloadProject);
     }
 }
 
@@ -185,7 +175,7 @@ RubyDownloader.propTypes = {
     className: PropTypes.string,
     forceFilePicker: PropTypes.bool,
     intl: PropTypes.shape({
-        formatMessage: PropTypes.func
+        formatMessage: PropTypes.func,
     }),
     koshienFileHandle: PropTypes.shape({}),
     onConversionError: PropTypes.func,
@@ -196,17 +186,19 @@ RubyDownloader.propTypes = {
     projectFilename: PropTypes.string,
     rubyCode: rubyCodeShape,
     rubyVersion: PropTypes.string,
-    sprites: PropTypes.objectOf(PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        order: PropTypes.number.isRequired
-    })),
+    sprites: PropTypes.objectOf(
+        PropTypes.shape({
+            id: PropTypes.string.isRequired,
+            order: PropTypes.number.isRequired,
+        }),
+    ),
     stage: PropTypes.shape({
-        id: PropTypes.string
+        id: PropTypes.string,
     }),
-    vm: PropTypes.instanceOf(VM)
+    vm: PropTypes.instanceOf(VM),
 };
 RubyDownloader.defaultProps = {
-    className: ''
+    className: '',
 };
 
 const mapStateToProps = state => ({
@@ -216,16 +208,13 @@ const mapStateToProps = state => ({
     stage: state.scratchGui.targets.stage,
     vm: state.scratchGui.vm,
     rubyCode: state.scratchGui.rubyCode,
-    rubyVersion: state.scratchGui.settings.rubyVersion
+    rubyVersion: state.scratchGui.settings.rubyVersion,
 });
 
 const mapDispatchToProps = dispatch => ({
     onSetKoshienFileHandle: fileHandle => dispatch(setKoshienFileHandle(fileHandle)),
     onClearKoshienFileHandle: () => dispatch(clearKoshienFileHandle()),
-    onConvertedRubyCode: () => dispatch(convertedRubyCode())
+    onConvertedRubyCode: () => dispatch(convertedRubyCode()),
 });
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(RubyDownloader);
+export default connect(mapStateToProps, mapDispatchToProps)(RubyDownloader);

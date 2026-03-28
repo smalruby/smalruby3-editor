@@ -1,5 +1,5 @@
 import reducer from '../../../src/reducers/cards';
-import {activateDeck, nextStep, prevStep, closeCards} from '../../../src/reducers/cards';
+import { activateDeck, nextStep, prevStep, closeCards } from '../../../src/reducers/cards';
 
 describe('cards reducer', () => {
     test('should return initial state', () => {
@@ -14,7 +14,7 @@ describe('cards reducer', () => {
             dragging: false,
             tutorialAllowedBlocks: null,
             // === Smalruby: Start of start-tutorial button ===
-            pendingProjectTitle: null
+            pendingProjectTitle: null,
             // === Smalruby: End of start-tutorial button ===
         });
     });

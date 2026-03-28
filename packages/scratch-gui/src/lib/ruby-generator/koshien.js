@@ -76,7 +76,7 @@ export default function (Generator) {
         );
         const result = resultListName ? `list(${Generator.quote_(resultListName)})` : 'nil';
 
-        // eslint-disable-next-line max-len
+         
         return `koshien.locate_objects(result: ${result}, sq_size: ${sqSize}, cent: ${position}, objects: ${objects})\n`;
     };
 

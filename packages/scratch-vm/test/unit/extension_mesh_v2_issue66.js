@@ -14,15 +14,15 @@ const createMockRuntime = () => {
         on: () => {},
         emit: (event, data) => {
             if (!runtime.emittedEvents) runtime.emittedEvents = [];
-            runtime.emittedEvents.push({event, data});
+            runtime.emittedEvents.push({ event, data });
             runtime.lastEmittedEvent = event;
             runtime.lastEmittedData = data;
         },
         getOpcodeFunction: () => () => {},
-        createNewGlobalVariable: name => ({type: Variable.SCALAR_TYPE, name: name || 'var1', value: 0}),
+        createNewGlobalVariable: name => ({ type: Variable.SCALAR_TYPE, name: name || 'var1', value: 0 }),
         _primitives: {},
         extensionManager: {
-            isExtensionLoaded: () => false
+            isExtensionLoaded: () => false,
         },
         constructor: {
             PERIPHERAL_LIST_UPDATE: 'PERIPHERAL_LIST_UPDATE',
@@ -30,18 +30,19 @@ const createMockRuntime = () => {
             PERIPHERAL_DISCONNECTED: 'PERIPHERAL_DISCONNECTED',
             PERIPHERAL_CONNECTION_ERROR_ID: 'PERIPHERAL_CONNECTION_ERROR_ID',
             PERIPHERAL_CONNECTION_LOST_ERROR: 'PERIPHERAL_CONNECTION_LOST_ERROR',
-            PERIPHERAL_REQUEST_ERROR: 'PERIPHERAL_REQUEST_ERROR'
-        }
+            PERIPHERAL_REQUEST_ERROR: 'PERIPHERAL_REQUEST_ERROR',
+        },
     };
     const stage = {
         variables: {},
         getCustomVars: () => [],
-        lookupVariableById: id => stage.variables[id] || {id: id, name: 'var1', value: 0, type: Variable.SCALAR_TYPE},
+        lookupVariableById: id =>
+            stage.variables[id] || { id: id, name: 'var1', value: 0, type: Variable.SCALAR_TYPE },
         lookupVariableByNameAndType: () => null,
         lookupOrCreateVariable: () => ({}),
         createVariable: () => {},
         setVariableValue: () => {},
-        renameVariable: () => {}
+        renameVariable: () => {},
     };
     runtime.getTargetForStage = () => stage;
     return runtime;
@@ -51,8 +52,8 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
     // Set up global window for utils
     global.window = {
         location: {
-            search: '?mesh=test-domain'
-        }
+            search: '?mesh=test-domain',
+        },
     };
     global.URLSearchParams = URLSearchParams;
 
@@ -60,13 +61,13 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const now = Date.now();
-        
+
         // Mock a group that just expired
         const expiredGroup = {
             id: 'expired-id',
             name: 'Expired Group',
             domain: 'test-domain',
-            expiresAt: new Date(now - 1000).toISOString()
+            expiresAt: new Date(now - 1000).toISOString(),
         };
         blocks.discoveredGroups = [expiredGroup];
 
@@ -74,14 +75,14 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
 
         st.equal(blocks.connectionState, 'error');
         st.equal(mockRuntime.lastEmittedEvent, 'PERIPHERAL_DISCONNECTED');
-        st.same(mockRuntime.lastEmittedData, {extensionId: 'meshV2'});
+        st.same(mockRuntime.lastEmittedData, { extensionId: 'meshV2' });
         st.end();
     });
 
     t.test('disconnect when group expires during operation', st => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
-        
+
         // Simulate being connected
         blocks.connectionState = 'connected';
         blocks.meshService.groupId = 'active-group';
@@ -102,10 +103,10 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
         // Track all emitted events
         const originalEmit = mockRuntime.emit;
         mockRuntime.emit = (event, data) => {
-            events.push({event, data});
+            events.push({ event, data });
             return originalEmit(event, data);
         };
-        
+
         // Simulate being connected
         blocks.setConnectionState('connected');
         blocks.meshService.groupId = 'active-group';
@@ -115,7 +116,7 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
         blocks.meshService.disconnectCallback('Unauthorized');
 
         st.equal(blocks.connectionState, 'disconnected'); // Only GroupNotFound/expired currently map to error
-        
+
         // Verify PERIPHERAL_CONNECTION_LOST_ERROR and PERIPHERAL_DISCONNECTED were emitted
         st.equal(events.length, 2);
         st.equal(events[0].event, 'PERIPHERAL_CONNECTION_LOST_ERROR');
@@ -128,9 +129,11 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
         const blocks = new MeshV2Blocks(mockRuntime);
 
         const error = {
-            graphQLErrors: [{
-                errorType: 'GroupNotFound'
-            }]
+            graphQLErrors: [
+                {
+                    errorType: 'GroupNotFound',
+                },
+            ],
         };
 
         const reason = blocks.meshService.shouldDisconnectOnError(error);
@@ -141,7 +144,7 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
     t.test('meshService.cleanupAndDisconnect passes reason to callback', st => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
-        
+
         let capturedReason = null;
         blocks.meshService.setDisconnectCallback(reason => {
             capturedReason = reason;

@@ -12,24 +12,24 @@ const createMockBlocks = broadcastCallback => ({
         sequencer: {},
         emit: () => {},
         on: () => {},
-        off: () => {}
+        off: () => {},
     },
     opcodeFunctions: {
         event_broadcast: args => {
             broadcastCallback(args.BROADCAST_OPTION.name);
-        }
-    }
+        },
+    },
 });
 
 test('MeshV2Service Integration: Batching and Timing', async t => {
     const broadcasted = [];
     const blocks = createMockBlocks(name => {
-        broadcasted.push({name, time: Date.now()});
+        broadcasted.push({ name, time: Date.now() });
     });
 
     // Mock BlockUtility
     BlockUtility.lastInstance = () => ({
-        sequencer: blocks.runtime.sequencer
+        sequencer: blocks.runtime.sequencer,
     });
 
     const sender = new MeshV2Service(blocks, 'sender', 'domain');
@@ -51,12 +51,12 @@ test('MeshV2Service Integration: Batching and Timing', async t => {
                     name: e.eventName,
                     firedByNodeId: sender.meshId,
                     payload: e.payload,
-                    timestamp: e.firedAt
-                }))
+                    timestamp: e.firedAt,
+                })),
             };
             receiver.handleBatchEvent(batchEvent);
-            return Promise.resolve({data: {fireEventsByNode: {}}});
-        }
+            return Promise.resolve({ data: { fireEventsByNode: {} } });
+        },
     };
 
     // Mock both Date.now and Date constructor to avoid CI timing flakiness
@@ -67,7 +67,7 @@ test('MeshV2Service Integration: Batching and Timing', async t => {
     Date.now = () => currentTime;
     // eslint-disable-next-line no-global-assign
     Date = class extends RealDate {
-        constructor (...args) {
+        constructor(...args) {
             if (args.length === 0) {
                 super(currentTime);
             } else {
@@ -75,7 +75,7 @@ test('MeshV2Service Integration: Batching and Timing', async t => {
             }
         }
 
-        static now () {
+        static now() {
             return currentTime;
         }
     };
@@ -145,8 +145,8 @@ test('MeshV2Service Integration: Splitting large batches', async t => {
             } else if (mutateCount === 2) {
                 t.equal(options.variables.events.length, 500, 'Second batch should have 500 events');
             }
-            return Promise.resolve({data: {fireEventsByNode: {}}});
-        }
+            return Promise.resolve({ data: { fireEventsByNode: {} } });
+        },
     };
 
     // Queue 1500 events
@@ -157,6 +157,6 @@ test('MeshV2Service Integration: Splitting large batches', async t => {
     await service.processBatchEvents();
     t.equal(mutateCount, 2, 'Should have made 2 mutation calls');
     t.equal(service.eventQueue.length, 0, 'Queue should be empty after processing');
-    
+
     t.end();
 });

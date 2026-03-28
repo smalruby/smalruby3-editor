@@ -1,4 +1,4 @@
-@import "../components/modal/modal.css";
+@import '../components/modal/modal.css';
 
 .show-all-extensions-label {
     display: flex;
@@ -16,10 +16,10 @@
     cursor: pointer;
 }
 
-[dir="ltr"] .show-all-extensions-checkbox {
+[dir='ltr'] .show-all-extensions-checkbox {
     margin-right: 0.5rem;
 }
 
-[dir="rtl"] .show-all-extensions-checkbox {
+[dir='rtl'] .show-all-extensions-checkbox {
     margin-left: 0.5rem;
 }

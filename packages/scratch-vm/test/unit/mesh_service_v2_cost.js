@@ -6,11 +6,11 @@ const createMockBlocks = () => ({
         sequencer: {},
         emit: () => {},
         on: () => {},
-        off: () => {}
+        off: () => {},
     },
     opcodeFunctions: {
-        event_broadcast: () => {}
-    }
+        event_broadcast: () => {},
+    },
 });
 
 test('MeshV2Service Cost Tracking', t => {
@@ -24,9 +24,9 @@ test('MeshV2Service Cost Tracking', t => {
             subscribe: () => ({
                 subscribe: callbacks => {
                     subCallback = callbacks.next;
-                    return {unsubscribe: () => {}};
-                }
-            })
+                    return { unsubscribe: () => {} };
+                },
+            }),
         };
 
         service.startSubscriptions();
@@ -35,9 +35,9 @@ test('MeshV2Service Cost Tracking', t => {
         subCallback({
             data: {
                 onMessageInGroup: {
-                    nodeStatus: {nodeId: 'node2', data: [], timestamp: new Date().toISOString()}
-                }
-            }
+                    nodeStatus: { nodeId: 'node2', data: [], timestamp: new Date().toISOString() },
+                },
+            },
         });
         st.equal(service.costTracking.dataUpdateReceived, 1, 'Increments for remote data update');
 
@@ -45,9 +45,9 @@ test('MeshV2Service Cost Tracking', t => {
         subCallback({
             data: {
                 onMessageInGroup: {
-                    nodeStatus: {nodeId: 'node1', data: [], timestamp: new Date().toISOString()}
-                }
-            }
+                    nodeStatus: { nodeId: 'node1', data: [], timestamp: new Date().toISOString() },
+                },
+            },
         });
         st.equal(service.costTracking.dataUpdateReceived, 2, 'Increments for self data update');
 
@@ -55,9 +55,9 @@ test('MeshV2Service Cost Tracking', t => {
         subCallback({
             data: {
                 onMessageInGroup: {
-                    batchEvent: {firedByNodeId: 'node2', events: [], timestamp: new Date().toISOString()}
-                }
-            }
+                    batchEvent: { firedByNodeId: 'node2', events: [], timestamp: new Date().toISOString() },
+                },
+            },
         });
         st.equal(service.costTracking.batchEventReceived, 1, 'Increments for remote batch event');
 
@@ -65,9 +65,9 @@ test('MeshV2Service Cost Tracking', t => {
         subCallback({
             data: {
                 onMessageInGroup: {
-                    batchEvent: {firedByNodeId: 'node1', events: [], timestamp: new Date().toISOString()}
-                }
-            }
+                    batchEvent: { firedByNodeId: 'node1', events: [], timestamp: new Date().toISOString() },
+                },
+            },
         });
         st.equal(service.costTracking.batchEventReceived, 2, 'Increments for self batch event');
 
@@ -79,7 +79,7 @@ test('MeshV2Service Cost Tracking', t => {
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
         // 1,000,000 minutes = $0.08 if multiplier is 1
-        service.costTracking.connectionStartTime = Date.now() - (1000000 * 60 * 1000);
+        service.costTracking.connectionStartTime = Date.now() - 1000000 * 60 * 1000;
 
         // Mock log.info to verify the calculation indirectly via totalCost if we could,
         // but here we just check if it runs and we can manually verify the code.

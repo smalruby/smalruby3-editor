@@ -1,6 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (version update notification) ===
-
-import {createVersionChecker} from '../../src/lib/version-checker';
+import { createVersionChecker } from '../../src/lib/version-checker';
 
 // Integration tests for version update notification feature
 // These test the full lifecycle of the version checker
@@ -24,7 +23,7 @@ describe('version update notification integration', () => {
             fetchCallCount++;
             return Promise.resolve({
                 ok: true,
-                json: () => Promise.resolve({commitId: 'new-version'})
+                json: () => Promise.resolve({ commitId: 'new-version' }),
             });
         });
 
@@ -33,7 +32,7 @@ describe('version update notification integration', () => {
             currentCommitId: 'old-version',
             onUpdateAvailable,
             initialDelayMs: 5000,
-            intervalMs: 3600000
+            intervalMs: 3600000,
         });
 
         checker.start();
@@ -69,7 +68,7 @@ describe('version update notification integration', () => {
     test('no notification when server returns same version', async () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({commitId: 'current-version'})
+            json: () => Promise.resolve({ commitId: 'current-version' }),
         });
 
         const onUpdateAvailable = jest.fn();
@@ -77,7 +76,7 @@ describe('version update notification integration', () => {
             currentCommitId: 'current-version',
             onUpdateAvailable,
             initialDelayMs: 1000,
-            intervalMs: 60000
+            intervalMs: 60000,
         });
 
         checker.start();
@@ -106,7 +105,7 @@ describe('version update notification integration', () => {
             currentCommitId: 'local-version',
             onUpdateAvailable,
             initialDelayMs: 1000,
-            intervalMs: 60000
+            intervalMs: 60000,
         });
 
         checker.start();
@@ -123,29 +122,26 @@ describe('version update notification integration', () => {
     test('manual check via check() method', async () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({commitId: 'new-version'})
+            json: () => Promise.resolve({ commitId: 'new-version' }),
         });
 
         const onUpdateAvailable = jest.fn();
         const checker = createVersionChecker({
             currentCommitId: 'old-version',
-            onUpdateAvailable
+            onUpdateAvailable,
         });
 
         // Can call check() directly without start()
         await checker.check();
 
-        expect(global.fetch).toHaveBeenCalledWith(
-            './version.json',
-            {cache: 'no-store'}
-        );
+        expect(global.fetch).toHaveBeenCalledWith('./version.json', { cache: 'no-store' });
         expect(onUpdateAvailable).toHaveBeenCalledTimes(1);
     });
 
     test('skips check when COMMIT_SHA is empty (local development)', async () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({commitId: 'any-version'})
+            json: () => Promise.resolve({ commitId: 'any-version' }),
         });
 
         const onUpdateAvailable = jest.fn();
@@ -153,7 +149,7 @@ describe('version update notification integration', () => {
             currentCommitId: '',
             onUpdateAvailable,
             initialDelayMs: 1000,
-            intervalMs: 60000
+            intervalMs: 60000,
         });
 
         checker.start();

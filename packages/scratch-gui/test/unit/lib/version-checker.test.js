@@ -1,6 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (version update notification) ===
-
-import {createVersionChecker} from '../../../src/lib/version-checker';
+import { createVersionChecker } from '../../../src/lib/version-checker';
 
 describe('version-checker', () => {
     let originalFetch;
@@ -18,32 +17,29 @@ describe('version-checker', () => {
     test('should call onUpdateAvailable when remote commitId differs', async () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({commitId: 'remote-abc123'})
+            json: () => Promise.resolve({ commitId: 'remote-abc123' }),
         });
         const onUpdateAvailable = jest.fn();
         const checker = createVersionChecker({
             currentCommitId: 'local-def456',
-            onUpdateAvailable
+            onUpdateAvailable,
         });
 
         await checker.check();
 
-        expect(global.fetch).toHaveBeenCalledWith(
-            './version.json',
-            expect.objectContaining({cache: 'no-store'})
-        );
+        expect(global.fetch).toHaveBeenCalledWith('./version.json', expect.objectContaining({ cache: 'no-store' }));
         expect(onUpdateAvailable).toHaveBeenCalled();
     });
 
     test('should not call onUpdateAvailable when commitId matches', async () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({commitId: 'same-id'})
+            json: () => Promise.resolve({ commitId: 'same-id' }),
         });
         const onUpdateAvailable = jest.fn();
         const checker = createVersionChecker({
             currentCommitId: 'same-id',
-            onUpdateAvailable
+            onUpdateAvailable,
         });
 
         await checker.check();
@@ -56,7 +52,7 @@ describe('version-checker', () => {
         const onUpdateAvailable = jest.fn();
         const checker = createVersionChecker({
             currentCommitId: 'local-id',
-            onUpdateAvailable
+            onUpdateAvailable,
         });
 
         await checker.check();
@@ -67,12 +63,12 @@ describe('version-checker', () => {
     test('should not call onUpdateAvailable when response is not ok', async () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: false,
-            status: 404
+            status: 404,
         });
         const onUpdateAvailable = jest.fn();
         const checker = createVersionChecker({
             currentCommitId: 'local-id',
-            onUpdateAvailable
+            onUpdateAvailable,
         });
 
         await checker.check();
@@ -83,12 +79,12 @@ describe('version-checker', () => {
     test('should not call onUpdateAvailable when currentCommitId is empty', async () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({commitId: 'remote-id'})
+            json: () => Promise.resolve({ commitId: 'remote-id' }),
         });
         const onUpdateAvailable = jest.fn();
         const checker = createVersionChecker({
             currentCommitId: '',
-            onUpdateAvailable
+            onUpdateAvailable,
         });
 
         await checker.check();
@@ -99,14 +95,14 @@ describe('version-checker', () => {
     test('start should schedule initial check after delay and periodic checks', () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({commitId: 'remote-id'})
+            json: () => Promise.resolve({ commitId: 'remote-id' }),
         });
         const onUpdateAvailable = jest.fn();
         const checker = createVersionChecker({
             currentCommitId: 'local-id',
             onUpdateAvailable,
             initialDelayMs: 5000,
-            intervalMs: 3600000
+            intervalMs: 3600000,
         });
 
         checker.start();
@@ -124,11 +120,11 @@ describe('version-checker', () => {
     test('stop should clear timers', () => {
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve({commitId: 'same-id'})
+            json: () => Promise.resolve({ commitId: 'same-id' }),
         });
         const checker = createVersionChecker({
             currentCommitId: 'same-id',
-            onUpdateAvailable: jest.fn()
+            onUpdateAvailable: jest.fn(),
         });
 
         checker.start();

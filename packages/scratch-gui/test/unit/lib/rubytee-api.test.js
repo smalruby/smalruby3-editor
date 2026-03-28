@@ -35,14 +35,14 @@ describe('RubyteeAPI', () => {
     describe('sendMessage', () => {
         const mockRelayResponse = {
             text: 'Here is a simple program:\n```ruby\nloop do\n  move(10)\nend\n```',
-            outputTokens: 42
+            outputTokens: 42,
         };
 
         beforeEach(() => {
             global.fetch.mockResolvedValue({
                 ok: true,
                 status: 200,
-                json: jest.fn().mockResolvedValue(mockRelayResponse)
+                json: jest.fn().mockResolvedValue(mockRelayResponse),
             });
         });
 
@@ -51,7 +51,7 @@ describe('RubyteeAPI', () => {
 
             expect(global.fetch).toHaveBeenCalledWith(
                 expect.stringContaining('/generate'),
-                expect.objectContaining({method: 'POST'})
+                expect.objectContaining({ method: 'POST' }),
             );
         });
 
@@ -63,7 +63,7 @@ describe('RubyteeAPI', () => {
         });
 
         test('should send userMessage, history, and stateContext in request body', async () => {
-            const stateContext = {sprite: {name: 'Cat'}};
+            const stateContext = { sprite: { name: 'Cat' } };
             await rubyteeApi.sendMessage('make sprite move', stateContext);
 
             const callArgs = global.fetch.mock.calls[0][1];
@@ -111,8 +111,8 @@ describe('RubyteeAPI', () => {
                 status: 429,
                 json: jest.fn().mockResolvedValue({
                     error: 'RATE_LIMIT_EXCEEDED',
-                    resetAfterSeconds: 600
-                })
+                    resetAfterSeconds: 600,
+                }),
             });
 
             await expect(rubyteeApi.sendMessage('test', {})).rejects.toThrow(RateLimitError);
@@ -124,13 +124,13 @@ describe('RubyteeAPI', () => {
                 status: 429,
                 json: jest.fn().mockResolvedValue({
                     error: 'RATE_LIMIT_EXCEEDED',
-                    resetAfterSeconds: 600
-                })
+                    resetAfterSeconds: 600,
+                }),
             });
 
             await expect(rubyteeApi.sendMessage('test', {})).rejects.toMatchObject({
                 name: 'RateLimitError',
-                resetAfterSeconds: 600
+                resetAfterSeconds: 600,
             });
         });
 
@@ -138,7 +138,7 @@ describe('RubyteeAPI', () => {
             global.fetch.mockResolvedValue({
                 ok: false,
                 status: 500,
-                text: jest.fn().mockResolvedValue('Internal Server Error')
+                text: jest.fn().mockResolvedValue('Internal Server Error'),
             });
 
             await expect(rubyteeApi.sendMessage('test', {})).rejects.toThrow();
@@ -181,7 +181,7 @@ describe('RubyteeAPI', () => {
         test('should clear chat history', async () => {
             global.fetch.mockResolvedValue({
                 ok: true,
-                json: jest.fn().mockResolvedValue({text: 'ok', outputTokens: 5})
+                json: jest.fn().mockResolvedValue({ text: 'ok', outputTokens: 5 }),
             });
 
             await rubyteeApi.sendMessage('test', {});

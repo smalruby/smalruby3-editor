@@ -2,13 +2,13 @@ import {
     getModuleNamesFromTarget,
     findTargetsWithModule,
     extractModuleCode,
-    replaceModuleCode
+    replaceModuleCode,
 } from '../../../src/lib/module-sync';
 
 describe('module-sync', () => {
     describe('getModuleNamesFromTarget', () => {
         test('returns empty set for target without comments', () => {
-            const target = {comments: {}};
+            const target = { comments: {} };
             expect(getModuleNamesFromTarget(target)).toEqual(new Set());
         });
 
@@ -19,11 +19,11 @@ describe('module-sync', () => {
         test('finds module names from @ruby:module_source comments', () => {
             const target = {
                 comments: {
-                    c1: {text: '@ruby:module_source:Utils', blockId: 'b1'},
-                    c2: {text: '@ruby:module_source:Helpers', blockId: 'b2'},
-                    c3: {text: '@ruby:class', blockId: null},
-                    c4: {text: '@ruby:return:add', blockId: 'b3'}
-                }
+                    c1: { text: '@ruby:module_source:Utils', blockId: 'b1' },
+                    c2: { text: '@ruby:module_source:Helpers', blockId: 'b2' },
+                    c3: { text: '@ruby:class', blockId: null },
+                    c4: { text: '@ruby:return:add', blockId: 'b3' },
+                },
             };
             const result = getModuleNamesFromTarget(target);
             expect(result).toEqual(new Set(['Utils', 'Helpers']));
@@ -32,9 +32,9 @@ describe('module-sync', () => {
         test('deduplicates module names', () => {
             const target = {
                 comments: {
-                    c1: {text: '@ruby:module_source:Utils', blockId: 'b1'},
-                    c2: {text: '@ruby:module_source:Utils', blockId: 'b2'}
-                }
+                    c1: { text: '@ruby:module_source:Utils', blockId: 'b1' },
+                    c2: { text: '@ruby:module_source:Utils', blockId: 'b2' },
+                },
             };
             const result = getModuleNamesFromTarget(target);
             expect(result).toEqual(new Set(['Utils']));
@@ -46,23 +46,23 @@ describe('module-sync', () => {
             const sprite1 = {
                 id: 'sprite1',
                 comments: {
-                    c1: {text: '@ruby:module_source:Utils', blockId: 'b1'}
-                }
+                    c1: { text: '@ruby:module_source:Utils', blockId: 'b1' },
+                },
             };
             const sprite2 = {
                 id: 'sprite2',
                 comments: {
-                    c1: {text: '@ruby:module_source:Utils', blockId: 'b2'}
-                }
+                    c1: { text: '@ruby:module_source:Utils', blockId: 'b2' },
+                },
             };
             const sprite3 = {
                 id: 'sprite3',
                 comments: {
-                    c1: {text: '@ruby:class', blockId: null}
-                }
+                    c1: { text: '@ruby:class', blockId: null },
+                },
             };
             const vm = {
-                runtime: {targets: [sprite1, sprite2, sprite3]}
+                runtime: { targets: [sprite1, sprite2, sprite3] },
             };
 
             const result = findTargetsWithModule(vm, 'Utils', 'sprite1');
@@ -73,9 +73,9 @@ describe('module-sync', () => {
         test('excludes the source target', () => {
             const sprite1 = {
                 id: 'sprite1',
-                comments: {c1: {text: '@ruby:module_source:Utils', blockId: 'b1'}}
+                comments: { c1: { text: '@ruby:module_source:Utils', blockId: 'b1' } },
             };
-            const vm = {runtime: {targets: [sprite1]}};
+            const vm = { runtime: { targets: [sprite1] } };
 
             const result = findTargetsWithModule(vm, 'Utils', 'sprite1');
             expect(result).toHaveLength(0);
@@ -84,9 +84,9 @@ describe('module-sync', () => {
         test('returns empty array when no targets match', () => {
             const sprite1 = {
                 id: 'sprite1',
-                comments: {c1: {text: '@ruby:class', blockId: null}}
+                comments: { c1: { text: '@ruby:class', blockId: null } },
             };
-            const vm = {runtime: {targets: [sprite1]}};
+            const vm = { runtime: { targets: [sprite1] } };
 
             const result = findTargetsWithModule(vm, 'Utils', 'other');
             expect(result).toHaveLength(0);
@@ -105,13 +105,11 @@ describe('module-sync', () => {
                 'class Sprite1',
                 '  include Utils',
                 'end',
-                ''
+                '',
             ].join('\n');
 
             const result = extractModuleCode(code, 'Utils');
-            expect(result).toEqual(
-                'module Utils\n  def add(a, b)\n    a + b\n  end\nend\n'
-            );
+            expect(result).toEqual('module Utils\n  def add(a, b)\n    a + b\n  end\nend\n');
         });
 
         test('returns null when module not found', () => {
@@ -135,7 +133,7 @@ describe('module-sync', () => {
                 '',
                 'class Sprite1',
                 'end',
-                ''
+                '',
             ].join('\n');
 
             const utils = extractModuleCode(code, 'Utils');
@@ -160,7 +158,7 @@ describe('module-sync', () => {
                 'class Sprite1',
                 '  include Utils',
                 'end',
-                ''
+                '',
             ].join('\n');
 
             const newModule = 'module Utils\n  def add(a, b, c)\n    a + b + c\n  end\nend\n';

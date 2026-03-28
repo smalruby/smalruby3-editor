@@ -1,11 +1,11 @@
 /* eslint-disable no-console */
-import {loader} from '@monaco-editor/react';
+import { loader } from '@monaco-editor/react';
 
 // Configure loader to use a specific version from CDN to match our local NLS messages
 loader.config({
     paths: {
-        vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs'
-    }
+        vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs',
+    },
 });
 
 const loadMonacoLocale = async locale => {
@@ -23,4 +23,4 @@ const loadMonacoLocale = async locale => {
     }
 };
 
-export {loadMonacoLocale};
+export { loadMonacoLocale };

@@ -1,40 +1,37 @@
 import React from 'react';
+import { IntlProvider } from 'react-intl';
+import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import {Provider} from 'react-redux';
-import {IntlProvider} from 'react-intl';
-import {render, act, screen} from '@testing-library/react';
 import VM from '@smalruby/scratch-vm';
-
+import { render, act, screen } from '@testing-library/react';
 import BackpackContainer from '../../../src/containers/backpack.jsx';
 import * as backpackApi from '../../../src/lib/backpack-api';
 
 const mockStore = configureStore();
 
-const makeStore = (vm, storageStore = jest.fn()) => mockStore({
-    scratchGui: {
-        config: {
-            storage: {
-                scratchStorage: {store: storageStore},
-                setBackpackHost: jest.fn()
-            }
+const makeStore = (vm, storageStore = jest.fn()) =>
+    mockStore({
+        scratchGui: {
+            config: {
+                storage: {
+                    scratchStorage: { store: storageStore },
+                    setBackpackHost: jest.fn(),
+                },
+            },
+            vm,
+            assetDrag: {},
+            blockDrag: false,
         },
-        vm,
-        assetDrag: {},
-        blockDrag: false
-    }
-});
+    });
 
-const renderBackpack = (store, host = 'localStorage') => render(
-    <IntlProvider locale="en" messages={{}}>
-        <Provider store={store}>
-            <BackpackContainer
-                host={host}
-                ariaRole="region"
-                ariaLabel="Backpack"
-            />
-        </Provider>
-    </IntlProvider>
-);
+const renderBackpack = (store, host = 'localStorage') =>
+    render(
+        <IntlProvider locale="en" messages={{}}>
+            <Provider store={store}>
+                <BackpackContainer host={host} ariaRole="region" ariaLabel="Backpack" />
+            </Provider>
+        </IntlProvider>,
+    );
 
 describe('Backpack container', () => {
     let vm;

@@ -1,4 +1,5 @@
 import {eslintConfigScratch} from 'eslint-config-scratch';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import {globalIgnores} from 'eslint/config';
 import globals from 'globals';
 import importPlugin from 'eslint-plugin-import-x';
@@ -258,5 +259,9 @@ export default eslintConfigScratch.defineConfig(
         'test/**/*',
         'src/examples/**/*',
         'coverage/**/*'
-    ])
+    ]),
+    // === Smalruby: Start of prettier integration ===
+    // Must be last to disable formatting rules that conflict with prettier
+    eslintConfigPrettier
+    // === Smalruby: End of prettier integration ===
 );

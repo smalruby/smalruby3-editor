@@ -10,11 +10,12 @@ export const getPrism = () => prismInstance;
 const _doLoadPrism = async () => {
     if (typeof process !== 'undefined' && process.versions && process.versions.node) {
         // Node.js environment (for tests)
-        const {WASI: NodeWASI} = require('wasi');
+        const { WASI: NodeWASI } = require('wasi');
         const fs = require('fs').promises;
         const path = require('path');
         const parsePrismModule = require('@ruby/prism/src/parsePrism.js');
-        const parsePrismFn = parsePrismModule.parsePrism ||
+        const parsePrismFn =
+            parsePrismModule.parsePrism ||
             (parsePrismModule.default && parsePrismModule.default.parsePrism) ||
             parsePrismModule.default;
 
@@ -27,17 +28,17 @@ const _doLoadPrism = async () => {
         const prismWasmPath = path.resolve(process.cwd(), '../../node_modules/@ruby/prism/src/prism.wasm');
         const wasmBuffer = await fs.readFile(prismWasmPath);
         const wasm = await WebAssembly.compile(wasmBuffer);
-        const wasi = new NodeWASI({version: 'preview1'});
+        const wasi = new NodeWASI({ version: 'preview1' });
         const instance = await WebAssembly.instantiate(wasm, wasi.getImportObject());
         wasi.initialize(instance);
         return {
-            parse: (source, options = {}) => parsePrismFn(instance.exports, source, options)
+            parse: (source, options = {}) => parsePrismFn(instance.exports, source, options),
         };
     }
 
     // Browser environment
-    const {WASI} = await import('@bjorn3/browser_wasi_shim');
-    const {parsePrism} = await import('@ruby/prism/src/parsePrism.js');
+    const { WASI } = await import('@bjorn3/browser_wasi_shim');
+    const { parsePrism } = await import('@ruby/prism/src/parsePrism.js');
     // prism.wasm loading strategy depends on the build:
     //   - asset/inline (data: URL): used for file:// protocol (integration tests).
     //     fetch() and XHR are blocked by CORS on file://, so we decode Base64 via atob().
@@ -45,7 +46,7 @@ const _doLoadPrism = async () => {
     //     Use instantiateStreaming() for streaming compile — faster and no buffer copy.
     const prismWasmUrl = (await import('@ruby/prism/src/prism.wasm')).default;
     const wasi = new WASI([], [], []);
-    const importObject = {wasi_snapshot_preview1: wasi.wasiImport};
+    const importObject = { wasi_snapshot_preview1: wasi.wasiImport };
 
     let instance;
     if (typeof prismWasmUrl === 'string' && prismWasmUrl.startsWith('data:')) {
@@ -60,12 +61,12 @@ const _doLoadPrism = async () => {
         instance = await WebAssembly.instantiate(wasm, importObject);
     } else {
         // Regular URL (production HTTPS or dev server): use instantiateStreaming()
-        ({instance} = await WebAssembly.instantiateStreaming(fetch(prismWasmUrl), importObject));
+        ({ instance } = await WebAssembly.instantiateStreaming(fetch(prismWasmUrl), importObject));
     }
     wasi.initialize(instance);
 
     return {
-        parse: (source, options = {}) => parsePrism(instance.exports, source, options)
+        parse: (source, options = {}) => parsePrism(instance.exports, source, options),
     };
 };
 

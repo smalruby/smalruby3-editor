@@ -5,7 +5,7 @@ minilog.suggest.deny('vm', 'debug');
 minilog.suggest.deny('vm', 'info');
 
 const MeshV2Service = require('../../src/extensions/scratch3_mesh_v2/mesh-service');
-const {FIRE_EVENTS} = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
+const { FIRE_EVENTS } = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
 const BlockUtility = require('../../src/engine/block-utility');
 
 const createMockBlocks = () => ({
@@ -13,11 +13,11 @@ const createMockBlocks = () => ({
         sequencer: {},
         emit: () => {},
         on: () => {},
-        off: () => {}
+        off: () => {},
     },
     opcodeFunctions: {
-        event_broadcast: () => {}
-    }
+        event_broadcast: () => {},
+    },
 });
 
 // Mock BlockUtility.lastInstance()
@@ -30,7 +30,7 @@ test('MeshV2Service Batch Events', t => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.stopEventBatchTimer(); // Stop timer to prevent interference
-        service.client = {mutate: () => Promise.resolve({})};
+        service.client = { mutate: () => Promise.resolve({}) };
         service.groupId = 'group1';
 
         service.fireEvent('event1', 'payload1');
@@ -47,7 +47,7 @@ test('MeshV2Service Batch Events', t => {
     t.test('fireEvent deduplicates events', st => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
-        service.client = {mutate: () => Promise.resolve({})};
+        service.client = { mutate: () => Promise.resolve({}) };
         service.groupId = 'group1';
 
         service.fireEvent('event1', 'payload1');
@@ -67,7 +67,7 @@ test('MeshV2Service Batch Events', t => {
     t.test('fireEvent respects MAX_EVENT_QUEUE_SIZE (FIFO)', st => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
-        service.client = {mutate: () => Promise.resolve({})};
+        service.client = { mutate: () => Promise.resolve({}) };
         service.groupId = 'group1';
         service.MAX_EVENT_QUEUE_SIZE = 5;
 
@@ -93,12 +93,12 @@ test('MeshV2Service Batch Events', t => {
             mutate: options => {
                 st.equal(options.mutation, FIRE_EVENTS);
                 st.equal(options.variables.events.length, 2);
-                return Promise.resolve({data: {fireEventsByNode: {}}});
-            }
+                return Promise.resolve({ data: { fireEventsByNode: {} } });
+            },
         };
 
-        service.eventQueue.push({eventName: 'e1', payload: 'p1', firedAt: 't1'});
-        service.eventQueue.push({eventName: 'e2', payload: 'p2', firedAt: 't2'});
+        service.eventQueue.push({ eventName: 'e1', payload: 'p1', firedAt: 't1' });
+        service.eventQueue.push({ eventName: 'e2', payload: 'p2', firedAt: 't2' });
 
         await service.processBatchEvents();
         st.equal(service.eventQueue.length, 0);
@@ -121,12 +121,12 @@ test('MeshV2Service Batch Events', t => {
                 } else {
                     st.equal(options.variables.events.length, 500);
                 }
-                return Promise.resolve({data: {fireEventsByNode: {}}});
-            }
+                return Promise.resolve({ data: { fireEventsByNode: {} } });
+            },
         };
 
         for (let i = 0; i < 1500; i++) {
-            service.eventQueue.push({eventName: 'e', payload: 'p', firedAt: 't'});
+            service.eventQueue.push({ eventName: 'e', payload: 'p', firedAt: 't' });
         }
 
         await service.processBatchEvents();
@@ -141,14 +141,14 @@ test('MeshV2Service Batch Events', t => {
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
         const events = [
-            {name: 'event1', timestamp: '2025-12-30T00:00:00.000Z'},
-            {name: 'event2', timestamp: '2025-12-30T00:00:00.100Z'},
-            {name: 'event3', timestamp: '2025-12-30T00:00:00.200Z'}
+            { name: 'event1', timestamp: '2025-12-30T00:00:00.000Z' },
+            { name: 'event2', timestamp: '2025-12-30T00:00:00.100Z' },
+            { name: 'event3', timestamp: '2025-12-30T00:00:00.200Z' },
         ];
 
         const batchEvent = {
             firedByNodeId: 'node2',
-            events: events
+            events: events,
         };
 
         service.handleBatchEvent(batchEvent);
@@ -176,10 +176,10 @@ test('MeshV2Service Batch Events', t => {
         const batchEvent = {
             firedByNodeId: 'node2',
             events: [
-                {name: 'e1', timestamp: '2025-12-30T00:00:00.000Z'},
-                {name: 'e2', timestamp: '2025-12-30T00:00:00.0001Z'},
-                {name: 'e3', timestamp: '2025-12-30T00:00:00.0002Z'}
-            ]
+                { name: 'e1', timestamp: '2025-12-30T00:00:00.000Z' },
+                { name: 'e2', timestamp: '2025-12-30T00:00:00.0001Z' },
+                { name: 'e3', timestamp: '2025-12-30T00:00:00.0002Z' },
+            ],
         };
 
         const realDateNow = Date.now;
@@ -217,11 +217,11 @@ test('MeshV2Service Batch Events', t => {
         const batchEvent = {
             firedByNodeId: 'node2',
             events: [
-                {name: 'e1', timestamp: '2025-12-30T00:00:00.000Z'}, // offset 0
-                {name: 'e2', timestamp: '2025-12-30T00:00:00.020Z'}, // offset 20
-                {name: 'e3', timestamp: '2025-12-30T00:00:00.040Z'}, // offset 40
-                {name: 'e4', timestamp: '2025-12-30T00:00:00.060Z'} // offset 60
-            ]
+                { name: 'e1', timestamp: '2025-12-30T00:00:00.000Z' }, // offset 0
+                { name: 'e2', timestamp: '2025-12-30T00:00:00.020Z' }, // offset 20
+                { name: 'e3', timestamp: '2025-12-30T00:00:00.040Z' }, // offset 40
+                { name: 'e4', timestamp: '2025-12-30T00:00:00.060Z' }, // offset 60
+            ],
         };
 
         const realDateNow = Date.now;
@@ -267,12 +267,12 @@ test('MeshV2Service Batch Events', t => {
         // 50 events all with the same timestamp
         const events = [];
         for (let i = 0; i < 50; i++) {
-            events.push({name: `e${i}`, timestamp: '2025-12-30T00:00:00.000Z'});
+            events.push({ name: `e${i}`, timestamp: '2025-12-30T00:00:00.000Z' });
         }
 
         const batchEvent = {
             firedByNodeId: 'node2',
-            events: events
+            events: events,
         };
 
         const realDateNow = Date.now;
@@ -316,7 +316,7 @@ test('MeshV2Service Batch Events', t => {
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = null; // Disconnected
 
-        service.pendingBroadcasts.push({event: {name: 'e1'}, offsetMs: 0});
+        service.pendingBroadcasts.push({ event: { name: 'e1' }, offsetMs: 0 });
         service.batchStartTime = Date.now();
         service.lastBroadcastOffset = 10;
 
@@ -327,12 +327,21 @@ test('MeshV2Service Batch Events', t => {
         service.processNextBroadcast();
 
         // When disconnected, processNextBroadcast should not modify state
-        st.equal(service.pendingBroadcasts.length, queueLengthBefore,
-            'Queue should remain unchanged when disconnected');
-        st.equal(service.batchStartTime, batchStartBefore,
-            'batchStartTime should remain unchanged when disconnected');
-        st.equal(service.lastBroadcastOffset, offsetBefore,
-            'lastBroadcastOffset should remain unchanged when disconnected');
+        st.equal(
+            service.pendingBroadcasts.length,
+            queueLengthBefore,
+            'Queue should remain unchanged when disconnected',
+        );
+        st.equal(
+            service.batchStartTime,
+            batchStartBefore,
+            'batchStartTime should remain unchanged when disconnected',
+        );
+        st.equal(
+            service.lastBroadcastOffset,
+            offsetBefore,
+            'lastBroadcastOffset should remain unchanged when disconnected',
+        );
 
         st.end();
     });
@@ -342,7 +351,7 @@ test('MeshV2Service Batch Events', t => {
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
 
-        service.pendingBroadcasts.push({event: {name: 'e1'}, offsetMs: 0});
+        service.pendingBroadcasts.push({ event: { name: 'e1' }, offsetMs: 0 });
         service.batchStartTime = Date.now();
         service.lastBroadcastOffset = 10;
 
@@ -410,7 +419,7 @@ test('MeshV2Service Batch Events', t => {
         service.groupId = 'group1';
         service.handleBatchEvent({
             firedByNodeId: 'node2',
-            events: [{name: 'e1', timestamp: new Date().toISOString()}]
+            events: [{ name: 'e1', timestamp: new Date().toISOString() }],
         });
         service.processNextBroadcast();
         st.equal(broadcasted.length, 1);
@@ -425,7 +434,7 @@ test('MeshV2Service Batch Events', t => {
         service.groupId = 'group2';
         service.handleBatchEvent({
             firedByNodeId: 'node2',
-            events: [{name: 'e2', timestamp: new Date().toISOString()}]
+            events: [{ name: 'e2', timestamp: new Date().toISOString() }],
         });
 
         // Simulating BEFORE_STEP call

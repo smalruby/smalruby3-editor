@@ -1,22 +1,22 @@
+import { toBlob } from 'html-to-image';
+import downloadBlob from '../../../src/lib/download-blob';
 import {
     buildFilename,
     cropToWidth,
     measureTextWidth,
     measureFuriganaWidth,
-    downloadRubyAsImage
+    downloadRubyAsImage,
 } from '../../../src/lib/ruby-screenshot';
 
 jest.mock('../../../src/lib/download-blob', () => jest.fn());
-import downloadBlob from '../../../src/lib/download-blob';
 
 // Mock html-to-image
 jest.mock('html-to-image', () => ({
-    toBlob: jest.fn()
+    toBlob: jest.fn(),
 }));
-import {toBlob} from 'html-to-image';
 
 // Helper: create a mock Monaco editor instance
-const makeMockEditor = ({lineCount = 5, contentHeight = 200} = {}) => {
+const makeMockEditor = ({ lineCount = 5, contentHeight = 200 } = {}) => {
     const domNode = document.createElement('div');
     const container = document.createElement('div');
     container.style.height = '300px';
@@ -25,7 +25,7 @@ const makeMockEditor = ({lineCount = 5, contentHeight = 200} = {}) => {
     return {
         getDomNode: jest.fn(() => domNode),
         getModel: jest.fn(() => ({
-            getLineCount: () => lineCount
+            getLineCount: () => lineCount,
         })),
         getContentHeight: jest.fn(() => contentHeight),
         getScrollTop: jest.fn(() => 0),
@@ -35,7 +35,7 @@ const makeMockEditor = ({lineCount = 5, contentHeight = 200} = {}) => {
         updateOptions: jest.fn(),
         layout: jest.fn(),
         _domNode: domNode,
-        _container: container
+        _container: container,
     };
 };
 
@@ -126,23 +126,23 @@ describe('cropToWidth', () => {
         const imgWidth = 1000;
         const imgHeight = 500;
         global.createImageBitmap = jest.fn(() =>
-            Promise.resolve({width: imgWidth, height: imgHeight, close: jest.fn()})
+            Promise.resolve({ width: imgWidth, height: imgHeight, close: jest.fn() }),
         );
 
         const canvases = [];
-        const mockCtx = {drawImage: jest.fn()};
+        const mockCtx = { drawImage: jest.fn() };
         const realCreateElement = document.createElement.bind(document);
         jest.spyOn(document, 'createElement').mockImplementation(tag => {
             const el = realCreateElement(tag);
             if (tag === 'canvas') {
                 canvases.push(el);
                 el.getContext = jest.fn(() => mockCtx);
-                el.toBlob = jest.fn(cb => cb(new Blob(['cropped'], {type: 'image/png'})));
+                el.toBlob = jest.fn(cb => cb(new Blob(['cropped'], { type: 'image/png' })));
             }
             return el;
         });
 
-        const inputBlob = new Blob(['original'], {type: 'image/png'});
+        const inputBlob = new Blob(['original'], { type: 'image/png' });
         const result = await cropToWidth(inputBlob, 400);
 
         expect(result).not.toBe(inputBlob);
@@ -152,22 +152,18 @@ describe('cropToWidth', () => {
     });
 
     test('returns original blob when cropWidth >= image width', async () => {
-        global.createImageBitmap = jest.fn(() =>
-            Promise.resolve({width: 200, height: 100, close: jest.fn()})
-        );
+        global.createImageBitmap = jest.fn(() => Promise.resolve({ width: 200, height: 100, close: jest.fn() }));
 
-        const inputBlob = new Blob(['original'], {type: 'image/png'});
+        const inputBlob = new Blob(['original'], { type: 'image/png' });
         const result = await cropToWidth(inputBlob, 300);
 
         expect(result).toBe(inputBlob);
     });
 
     test('returns original blob when cropWidth equals image width', async () => {
-        global.createImageBitmap = jest.fn(() =>
-            Promise.resolve({width: 200, height: 100, close: jest.fn()})
-        );
+        global.createImageBitmap = jest.fn(() => Promise.resolve({ width: 200, height: 100, close: jest.fn() }));
 
-        const inputBlob = new Blob(['original'], {type: 'image/png'});
+        const inputBlob = new Blob(['original'], { type: 'image/png' });
         const result = await cropToWidth(inputBlob, 200);
 
         expect(result).toBe(inputBlob);
@@ -181,16 +177,14 @@ describe('downloadRubyAsImage', () => {
         jest.clearAllMocks();
         // Mock createImageBitmap for cropToWidth called inside downloadRubyAsImage.
         // Return a small image so cropping can work when contentWidth > 0.
-        global.createImageBitmap = jest.fn(() =>
-            Promise.resolve({width: 2000, height: 400, close: jest.fn()})
-        );
-        const mockCtx = {drawImage: jest.fn()};
+        global.createImageBitmap = jest.fn(() => Promise.resolve({ width: 2000, height: 400, close: jest.fn() }));
+        const mockCtx = { drawImage: jest.fn() };
         const realCreateElement = document.createElement.bind(document);
         jest.spyOn(document, 'createElement').mockImplementation(tag => {
             const el = realCreateElement(tag);
             if (tag === 'canvas') {
                 el.getContext = jest.fn(() => mockCtx);
-                el.toBlob = jest.fn(cb => cb(new Blob(['cropped'], {type: 'image/png'})));
+                el.toBlob = jest.fn(cb => cb(new Blob(['cropped'], { type: 'image/png' })));
             }
             return el;
         });
@@ -221,16 +215,16 @@ describe('downloadRubyAsImage', () => {
     });
 
     test('does nothing when model has zero lines', async () => {
-        const editor = makeMockEditor({lineCount: 0});
+        const editor = makeMockEditor({ lineCount: 0 });
         await downloadRubyAsImage(editor, 'project', 'sprite');
         expect(toBlob).not.toHaveBeenCalled();
     });
 
     test('calls toBlob with editor DOM node and correct options', async () => {
-        const mockBlob = new Blob(['test'], {type: 'image/png'});
+        const mockBlob = new Blob(['test'], { type: 'image/png' });
         toBlob.mockResolvedValue(mockBlob);
 
-        const editor = makeMockEditor({contentHeight: 500});
+        const editor = makeMockEditor({ contentHeight: 500 });
 
         await downloadRubyAsImage(editor, 'MyProject', 'Cat');
 
@@ -243,7 +237,7 @@ describe('downloadRubyAsImage', () => {
     });
 
     test('downloads blob with correct filename', async () => {
-        const mockBlob = new Blob(['test'], {type: 'image/png'});
+        const mockBlob = new Blob(['test'], { type: 'image/png' });
         toBlob.mockResolvedValue(mockBlob);
 
         const editor = makeMockEditor();
@@ -265,7 +259,7 @@ describe('downloadRubyAsImage', () => {
     });
 
     test('temporarily expands editor to full content height', async () => {
-        const mockBlob = new Blob(['test'], {type: 'image/png'});
+        const mockBlob = new Blob(['test'], { type: 'image/png' });
         toBlob.mockImplementation(() => {
             // Check that container was expanded when toBlob is called
             expect(editor._container.style.height).toBe('500px');
@@ -273,7 +267,7 @@ describe('downloadRubyAsImage', () => {
             return Promise.resolve(mockBlob);
         });
 
-        const editor = makeMockEditor({contentHeight: 500});
+        const editor = makeMockEditor({ contentHeight: 500 });
         editor._container.style.height = '300px';
 
         await downloadRubyAsImage(editor, 'project', 'sprite');
@@ -283,7 +277,7 @@ describe('downloadRubyAsImage', () => {
     });
 
     test('restores scroll position after capture', async () => {
-        const mockBlob = new Blob(['test'], {type: 'image/png'});
+        const mockBlob = new Blob(['test'], { type: 'image/png' });
         toBlob.mockResolvedValue(mockBlob);
 
         const editor = makeMockEditor();
@@ -302,9 +296,7 @@ describe('downloadRubyAsImage', () => {
         const editor = makeMockEditor();
         editor._container.style.height = '300px';
 
-        await expect(
-            downloadRubyAsImage(editor, 'project', 'sprite')
-        ).rejects.toThrow('capture failed');
+        await expect(downloadRubyAsImage(editor, 'project', 'sprite')).rejects.toThrow('capture failed');
 
         // State should still be restored
         expect(editor._container.style.height).toBe('300px');
@@ -312,7 +304,7 @@ describe('downloadRubyAsImage', () => {
     });
 
     test('disables scrollBeyondLastLine before capture and restores it after', async () => {
-        const mockBlob = new Blob(['test'], {type: 'image/png'});
+        const mockBlob = new Blob(['test'], { type: 'image/png' });
         toBlob.mockResolvedValue(mockBlob);
 
         const editor = makeMockEditor();
@@ -320,12 +312,12 @@ describe('downloadRubyAsImage', () => {
         await downloadRubyAsImage(editor, 'project', 'sprite');
 
         // First call disables, second call (in finally) re-enables
-        expect(editor.updateOptions).toHaveBeenCalledWith({scrollBeyondLastLine: false});
-        expect(editor.updateOptions).toHaveBeenCalledWith({scrollBeyondLastLine: true});
+        expect(editor.updateOptions).toHaveBeenCalledWith({ scrollBeyondLastLine: false });
+        expect(editor.updateOptions).toHaveBeenCalledWith({ scrollBeyondLastLine: true });
     });
 
     test('calls editor.layout() to trigger re-render', async () => {
-        const mockBlob = new Blob(['test'], {type: 'image/png'});
+        const mockBlob = new Blob(['test'], { type: 'image/png' });
         toBlob.mockResolvedValue(mockBlob);
 
         const editor = makeMockEditor();

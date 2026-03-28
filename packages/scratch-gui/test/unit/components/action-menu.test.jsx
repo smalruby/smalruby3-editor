@@ -1,7 +1,7 @@
 import React from 'react';
-import {fireEvent, act} from '@testing-library/react';
-import {renderWithIntl} from '../../helpers/intl-helpers.jsx';
+import { fireEvent, act } from '@testing-library/react';
 import ActionMenu from '../../../src/components/action-menu/action-menu';
+import { renderWithIntl } from '../../helpers/intl-helpers.jsx';
 
 // Mock ReactTooltip
 const ReactTooltip = props => <div className="mock-tooltip">{props.children}</div>;
@@ -11,7 +11,7 @@ jest.mock('react-tooltip', () => ({
     __esModule: true,
     default: ReactTooltip,
     hide: ReactTooltip.hide,
-    show: ReactTooltip.show
+    show: ReactTooltip.show,
 }));
 
 // Mock styles
@@ -19,7 +19,7 @@ jest.mock('../../../src/components/action-menu/action-menu.css', () => ({
     menuContainer: 'menu-container',
     forceHidden: 'force-hidden',
     button: 'button',
-    mainButton: 'main-button'
+    mainButton: 'main-button',
 }));
 
 describe('ActionMenu Component', () => {
@@ -34,16 +34,16 @@ describe('ActionMenu Component', () => {
                 {
                     img: 'more-img.png',
                     title: 'More Title',
-                    onClick: jest.fn()
-                }
-            ]
+                    onClick: jest.fn(),
+                },
+            ],
         };
         jest.clearAllMocks();
     });
 
     test('clickDelayer sets forceHide and keeps it until re-hover', () => {
         jest.useFakeTimers();
-        const {container} = renderWithIntl(<ActionMenu {...defaultProps} />);
+        const { container } = renderWithIntl(<ActionMenu {...defaultProps} />);
         const mainButton = container.querySelector('.main-button');
         const menuContainer = container.firstChild;
 

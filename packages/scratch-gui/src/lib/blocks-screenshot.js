@@ -39,7 +39,7 @@ const mergeWithBubbleBBox = function (workspace, blockBbox) {
     const minY = Math.min(blockBbox.y, bubbleBbox.y);
     const maxX = Math.max(blockBbox.x + blockBbox.width, bubbleBbox.x + bubbleBbox.width);
     const maxY = Math.max(blockBbox.y + blockBbox.height, bubbleBbox.y + bubbleBbox.height);
-    return {x: minX, y: minY, width: maxX - minX, height: maxY - minY};
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 };
 
 /**
@@ -53,8 +53,8 @@ const calculateCanvasDimensions = function (bbox, scale, padding = EXPORT_PADDIN
     const blockWidth = bbox.width * scale;
     const blockHeight = bbox.height * scale;
     return {
-        width: Math.ceil(blockWidth + (padding * 2)),
-        height: Math.ceil(blockHeight + (padding * 2))
+        width: Math.ceil(blockWidth + padding * 2),
+        height: Math.ceil(blockHeight + padding * 2),
     };
 };
 
@@ -105,7 +105,7 @@ const inlineImageHrefs = async function (svgElement) {
                     } else {
                         img.setAttribute('href', dataUri);
                     }
-                })
+                }),
             );
         }
     }
@@ -136,8 +136,7 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
 
     // Include <defs> and <style> from parent SVG (for block shapes, filters, etc.)
     const blockCanvas = workspace.svgBlockCanvas_;
-    const parentSvg = blockCanvas.ownerSVGElement ||
-        (blockCanvas.closest && blockCanvas.closest('svg'));
+    const parentSvg = blockCanvas.ownerSVGElement || (blockCanvas.closest && blockCanvas.closest('svg'));
     if (parentSvg) {
         const defs = parentSvg.querySelector('defs');
         if (defs) svg.appendChild(defs.cloneNode(true));
@@ -163,8 +162,8 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
 
     // Clone block canvas and re-position so bbox top-left -> (padding, padding).
     // bbox.x and bbox.y are workspace coordinates of the top-left of all blocks.
-    const tx = ((-bbox.x) * scale) + padding;
-    const ty = ((-bbox.y) * scale) + padding;
+    const tx = -bbox.x * scale + padding;
+    const ty = -bbox.y * scale + padding;
     const canvasTransform = `translate(${tx}, ${ty}) scale(${scale})`;
 
     const canvasClone = blockCanvas.cloneNode(true);
@@ -199,7 +198,7 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
  */
 const renderSVGToCanvas = function (svgStr, width, height) {
     return new Promise((resolve, reject) => {
-        const blob = new Blob([svgStr], {type: 'image/svg+xml;charset=utf-8'});
+        const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(blob);
 
         const img = new Image();
@@ -236,7 +235,7 @@ const downloadBlocksAsImage = async function (workspace, projectTitle, spriteNam
 
     const bbox = mergeWithBubbleBBox(workspace, blockBbox);
     const scale = workspace.scale;
-    const {width, height} = calculateCanvasDimensions(bbox, scale);
+    const { width, height } = calculateCanvasDimensions(bbox, scale);
     const svgStr = await buildExportSVG(workspace, bbox, scale, width, height);
     const canvas = await renderSVGToCanvas(svgStr, width, height);
 
@@ -256,5 +255,5 @@ export {
     buildExportSVG,
     inlineImageHrefs,
     downloadBlocksAsImage,
-    EXPORT_PADDING
+    EXPORT_PADDING,
 };

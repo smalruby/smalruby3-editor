@@ -15,7 +15,7 @@ const RUBYTEE_RELAY_ENDPOINT = process.env.RUBYTEE_RELAY_ENDPOINT || '';
  * Error thrown when the relay returns 429 (rate limit exceeded)
  */
 class RateLimitError extends Error {
-    constructor (resetAfterSeconds) {
+    constructor(resetAfterSeconds) {
         super('RATE_LIMIT_EXCEEDED');
         this.name = 'RateLimitError';
         this.resetAfterSeconds = resetAfterSeconds;
@@ -27,7 +27,7 @@ class RateLimitError extends Error {
  * Manages chat history and communication with the smalruby-rubytee-relay
  */
 class RubyteeAPI {
-    constructor () {
+    constructor() {
         this.history = [];
         this._abortController = null;
     }
@@ -41,21 +41,21 @@ class RubyteeAPI {
      * @param {object} stateContext.vm - VM state (extensions)
      * @returns {Promise<string>} The response text from the AI
      */
-    async sendMessage (userMessage, stateContext) {
+    async sendMessage(userMessage, stateContext) {
         // Abort any in-flight request before starting a new one
         this.cancelRequest();
         this._abortController = new AbortController();
-        const {signal} = this._abortController;
+        const { signal } = this._abortController;
 
         const newUserTurn = {
             role: 'user',
-            parts: [{text: userMessage}]
+            parts: [{ text: userMessage }],
         };
 
         const requestBody = {
             userMessage,
             history: this.history,
-            stateContext: stateContext || {}
+            stateContext: stateContext || {},
         };
 
         const url = `${RUBYTEE_RELAY_ENDPOINT}/generate`;
@@ -64,9 +64,9 @@ class RubyteeAPI {
         try {
             const response = await fetch(url, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody),
-                signal
+                signal,
             });
 
             // Handle rate limit
@@ -92,7 +92,7 @@ class RubyteeAPI {
 
             const modelTurn = {
                 role: 'model',
-                parts: [{text: responseText}]
+                parts: [{ text: responseText }],
             };
 
             // Add both turns to history only on success
@@ -102,14 +102,14 @@ class RubyteeAPI {
             // Record to window.smalruby for debugging via browser console
             if (typeof window !== 'undefined') {
                 window.smalruby = window.smalruby || {};
-                window.smalruby.rubytee = window.smalruby.rubytee || {exchanges: []};
+                window.smalruby.rubytee = window.smalruby.rubytee || { exchanges: [] };
                 window.smalruby.rubytee.exchanges.push({
                     userMessage,
                     responseText,
                     codeBlocks: RubyteeAPI.extractAllCodeBlocks(responseText),
                     elapsedMs,
                     outputTokens,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
                 });
                 window.smalruby.rubytee.lastElapsedMs = elapsedMs;
             }
@@ -129,7 +129,7 @@ class RubyteeAPI {
     /**
      * Cancel the current in-flight request if any.
      */
-    cancelRequest () {
+    cancelRequest() {
         if (this._abortController) {
             this._abortController.abort();
             this._abortController = null;
@@ -139,7 +139,7 @@ class RubyteeAPI {
     /**
      * Clear the chat history
      */
-    clearHistory () {
+    clearHistory() {
         this.history = [];
     }
 
@@ -148,7 +148,7 @@ class RubyteeAPI {
      * @param {string} text - Response text from the AI
      * @returns {string|null} Extracted code or null if not found
      */
-    static extractCodeBlock (text) {
+    static extractCodeBlock(text) {
         const blocks = RubyteeAPI.extractAllCodeBlocks(text);
         return blocks.length > 0 ? blocks[0] : null;
     }
@@ -158,7 +158,7 @@ class RubyteeAPI {
      * @param {string} text - Response text from the AI
      * @returns {string[]} Array of extracted code blocks (may be empty)
      */
-    static extractAllCodeBlocks (text) {
+    static extractAllCodeBlocks(text) {
         const blocks = [];
         // Match ```ruby ... ``` or ``` ... ``` (global)
         const pattern = /```(?:ruby)?[ \t]*\r?\n([\s\S]*?)```/g;
@@ -174,5 +174,5 @@ class RubyteeAPI {
     }
 }
 
-export {RateLimitError};
+export { RateLimitError };
 export default RubyteeAPI;

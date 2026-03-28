@@ -1,10 +1,7 @@
 import path from 'path';
-import SeleniumHelper from '../helpers/selenium-helper';
+import { FILE_MENU_XPATH, EDIT_MENU_XPATH } from '../helpers/menu-xpaths';
 import RubyHelper from '../helpers/ruby-helper';
-import {
-    FILE_MENU_XPATH,
-    EDIT_MENU_XPATH
-} from '../helpers/menu-xpaths';
+import SeleniumHelper from '../helpers/selenium-helper';
 
 const seleniumHelper = new SeleniumHelper();
 const {
@@ -20,16 +17,11 @@ const {
     waitForLoadingFinished,
     notExistsByXpath,
     rightClickText,
-    scope
+    scope,
     /* eslint-enable no-unused-vars */
 } = seleniumHelper;
 const rubyHelper = new RubyHelper(seleniumHelper);
-const {
-    fillInRubyProgram,
-    currentRubyProgram,
-    waitForErrorOnLine,
-    waitForNoErrors
-} = rubyHelper;
+const { fillInRubyProgram, currentRubyProgram, waitForErrorOnLine, waitForNoErrors } = rubyHelper;
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 
@@ -77,7 +69,7 @@ describe('convert Code from Ruby', () => {
             await findByXpath('//li[@role="tab" and @aria-selected="true"]/span[text()="Ruby"]');
             await findByXpath(
                 '//*[contains(@class, "alert_alert-message")]/' +
-                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]'
+                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]',
             );
             await waitForErrorOnLine(1);
         });
@@ -87,7 +79,7 @@ describe('convert Code from Ruby', () => {
 
             await findByXpath(
                 '//*[contains(@class, "alert_alert-message")]/' +
-                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]'
+                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]',
             );
             await waitForErrorOnLine(1);
         });
@@ -98,7 +90,7 @@ describe('convert Code from Ruby', () => {
 
             await findByXpath(
                 '//*[contains(@class, "alert_alert-message")]/' +
-                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]'
+                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]',
             );
             await waitForErrorOnLine(1);
         });
@@ -110,16 +102,16 @@ describe('convert Code from Ruby', () => {
             await findByXpath(
                 '//*[contains(@class, "sprite-selector-item_sprite-selector-item") and ' +
                     'contains(@class, "sprite-selector-item_is-selected")]/*/' +
-                    '*[contains(@class, "sprite-selector-item_sprite-name") and text()="Sprite1"]'
+                    '*[contains(@class, "sprite-selector-item_sprite-name") and text()="Sprite1"]',
             );
             await findByXpath(
                 '//*[contains(@class, "sprite-selector-item_sprite-selector-item") and ' +
                     'not(contains(@class, "sprite-selector-item_is-selected"))]/*/' +
-                    '*[contains(@class, "sprite-selector-item_sprite-name") and text()="Apple"]'
+                    '*[contains(@class, "sprite-selector-item_sprite-name") and text()="Apple"]',
             );
             await findByXpath(
                 '//*[contains(@class, "alert_alert-message")]/' +
-                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]'
+                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]',
             );
             await waitForErrorOnLine(1);
         });
@@ -144,7 +136,7 @@ describe('convert Code from Ruby', () => {
 
             await findByXpath(
                 '//*[contains(@class, "alert_alert-message")]/' +
-                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]'
+                    'span[text()="Could not convert Ruby to Code. Please fix Ruby!"]',
             );
             await clickXpath('//div[contains(@class, "alert_alert-close-button")]');
 

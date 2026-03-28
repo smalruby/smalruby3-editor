@@ -1,4 +1,4 @@
-import {autoCorrect, defaultSettings} from '../../../src/lib/auto-correct';
+import { autoCorrect, defaultSettings } from '../../../src/lib/auto-correct';
 
 describe('autoCorrect', () => {
     const allOn = defaultSettings;
@@ -7,7 +7,7 @@ describe('autoCorrect', () => {
         fullwidthAlpha: false,
         fullwidthSymbols: false,
         fullwidthSpace: false,
-        replaceInStrings: true
+        replaceInStrings: true,
     };
 
     describe('fullwidth numbers', () => {
@@ -16,7 +16,7 @@ describe('autoCorrect', () => {
         });
 
         test('should not convert when fullwidthNumbers is off', () => {
-            const settings = {...allOn, fullwidthNumbers: false};
+            const settings = { ...allOn, fullwidthNumbers: false };
             expect(autoCorrect('ｘ = ０', settings)).toBe('x = ０');
         });
     });
@@ -31,7 +31,7 @@ describe('autoCorrect', () => {
         });
 
         test('should not convert when fullwidthAlpha is off', () => {
-            const settings = {...allOn, fullwidthAlpha: false};
+            const settings = { ...allOn, fullwidthAlpha: false };
             expect(autoCorrect('ｘ = 1', settings)).toBe('ｘ = 1');
         });
     });
@@ -82,7 +82,7 @@ describe('autoCorrect', () => {
         });
 
         test('should not convert when fullwidthSymbols is off', () => {
-            const settings = {...allOn, fullwidthSymbols: false};
+            const settings = { ...allOn, fullwidthSymbols: false };
             expect(autoCorrect('（１）', settings)).toBe('（1）');
         });
 
@@ -91,7 +91,7 @@ describe('autoCorrect', () => {
         });
 
         test('should convert smart single quotes to halfwidth', () => {
-            expect(autoCorrect("puts \u2018hello\u2019", allOn)).toBe("puts 'hello'");
+            expect(autoCorrect('puts \u2018hello\u2019', allOn)).toBe("puts 'hello'");
         });
 
         test('should convert minus sign U+2212 to halfwidth hyphen', () => {
@@ -99,7 +99,7 @@ describe('autoCorrect', () => {
         });
 
         test('should not convert smart quotes when fullwidthSymbols is off', () => {
-            const settings = {...allOn, fullwidthSymbols: false};
+            const settings = { ...allOn, fullwidthSymbols: false };
             expect(autoCorrect('puts \u201Cハロー\u201D', settings)).toBe('puts \u201Cハロー\u201D');
         });
     });
@@ -110,7 +110,7 @@ describe('autoCorrect', () => {
         });
 
         test('should not convert when fullwidthSpace is off', () => {
-            const settings = {...allOn, fullwidthSpace: false};
+            const settings = { ...allOn, fullwidthSpace: false };
             expect(autoCorrect('x　= 1', settings)).toBe('x　= 1');
         });
     });
@@ -125,17 +125,17 @@ describe('autoCorrect', () => {
         });
 
         test('should NOT replace inside double-quoted strings when replaceInStrings is off', () => {
-            const settings = {...allOn, replaceInStrings: false};
+            const settings = { ...allOn, replaceInStrings: false };
             expect(autoCorrect('x = "ＡＢＣ"', settings)).toBe('x = "ＡＢＣ"');
         });
 
         test('should NOT replace inside single-quoted strings when replaceInStrings is off', () => {
-            const settings = {...allOn, replaceInStrings: false};
+            const settings = { ...allOn, replaceInStrings: false };
             expect(autoCorrect("x = '１２３'", settings)).toBe("x = '１２３'");
         });
 
         test('should still replace outside strings when replaceInStrings is off', () => {
-            const settings = {...allOn, replaceInStrings: false};
+            const settings = { ...allOn, replaceInStrings: false };
             expect(autoCorrect('ｘ = "ＡＢＣ"', settings)).toBe('x = "ＡＢＣ"');
         });
 
@@ -162,7 +162,7 @@ describe('autoCorrect', () => {
         });
 
         test('should handle string spanning context with code around it', () => {
-            const settings = {...allOn, replaceInStrings: false};
+            const settings = { ...allOn, replaceInStrings: false };
             const input = 'ｘ = "ＡＢＣ"\nｙ = １';
             const expected = 'x = "ＡＢＣ"\ny = 1';
             expect(autoCorrect(input, settings)).toBe(expected);
@@ -192,14 +192,14 @@ describe('autoCorrect', () => {
 
     describe('edge cases', () => {
         test('should handle unclosed string at end of input', () => {
-            const settings = {...allOn, replaceInStrings: false};
+            const settings = { ...allOn, replaceInStrings: false };
             // Unclosed string - treat rest as string, don't replace inside
             const input = 'x = "ＡＢＣ';
             expect(autoCorrect(input, settings)).toBe('x = "ＡＢＣ');
         });
 
         test('should handle escaped quote inside string', () => {
-            const settings = {...allOn, replaceInStrings: false};
+            const settings = { ...allOn, replaceInStrings: false };
             const input = 'x = "hello\\"ＡＢＣ"';
             expect(autoCorrect(input, settings)).toBe('x = "hello\\"ＡＢＣ"');
         });
@@ -220,7 +220,7 @@ describe('autoCorrect', () => {
                 fullwidthAlpha: true,
                 fullwidthSymbols: true,
                 fullwidthSpace: true,
-                replaceInStrings: true
+                replaceInStrings: true,
             });
         });
     });

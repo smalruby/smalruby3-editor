@@ -16,7 +16,7 @@ const {
     getLogs,
     loadUri,
     scope,
-    textExists
+    textExists,
 } = new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/index.html');
@@ -47,11 +47,11 @@ describe('Block palette', () => {
             await clickXpath('//button[@title="ブロックパレットを隠す"]');
             await findByXpath('//button[@title="ブロックパレットを表示する"]');
             const toolboxVisible = await driver.executeScript(
-                'const el = document.querySelector(".blocklyToolboxDiv"); return el ? el.style.display !== "none" : true;'
+                'const el = document.querySelector(".blocklyToolboxDiv"); return el ? el.style.display !== "none" : true;',
             );
             expect(toolboxVisible).toBe(false);
             const extensionButtonVisible = await driver.executeScript(
-                'const el = document.querySelector(\'[class*="extension-button_extension-button-container"]\'); return el ? el.style.display !== "none" : false;'
+                'const el = document.querySelector(\'[class*="extension-button_extension-button-container"]\'); return el ? el.style.display !== "none" : false;',
             );
             expect(extensionButtonVisible).toBe(false);
             const logs = await getLogs();
@@ -66,7 +66,7 @@ describe('Block palette', () => {
             await clickXpath('//button[@title="ブロックパレットを表示する"]');
             await findByXpath('//button[@title="ブロックパレットを隠す"]');
             const toolboxVisible = await driver.executeScript(
-                'const el = document.querySelector(".blocklyToolboxDiv"); return el ? el.style.display !== "none" : true;'
+                'const el = document.querySelector(".blocklyToolboxDiv"); return el ? el.style.display !== "none" : true;',
             );
             expect(toolboxVisible).toBe(true);
             const logs = await getLogs();

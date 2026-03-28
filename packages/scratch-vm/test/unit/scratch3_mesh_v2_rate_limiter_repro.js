@@ -6,10 +6,10 @@ const log = require('../../src/util/log');
 log.debug = () => {};
 log.info = () => {};
 
-test('RateLimiter stack overflow reproduction', {timeout: 60000}, async t => {
+test('RateLimiter stack overflow reproduction', { timeout: 60000 }, async t => {
     // intervalMs: 250ms, enableMerge: true
-    const limiter = new RateLimiter(250, {enableMerge: true});
-    
+    const limiter = new RateLimiter(250, { enableMerge: true });
+
     // Immediate sendFunction
     const sendFunction = d => Promise.resolve(d);
 
@@ -21,7 +21,7 @@ test('RateLimiter stack overflow reproduction', {timeout: 60000}, async t => {
     console.log(`Starting ${MERGE_COUNT} merges...`);
 
     for (let i = 0; i < MERGE_COUNT; i++) {
-        promises.push(limiter.send([{key: 'var1', value: i}], sendFunction));
+        promises.push(limiter.send([{ key: 'var1', value: i }], sendFunction));
     }
 
     console.log('Finished pushing to queue. Waiting for completion...');

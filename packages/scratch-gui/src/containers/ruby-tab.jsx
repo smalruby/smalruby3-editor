@@ -1,73 +1,71 @@
 import PropTypes from 'prop-types';
-import React, {useState, useRef, useCallback, useEffect} from 'react';
-import {injectIntl} from 'react-intl';
-import intlShape from '../lib/intlShape.js';
-import {connect} from 'react-redux';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { injectIntl } from 'react-intl';
+import { connect } from 'react-redux';
 import Editor from '@monaco-editor/react';
+import VM from '@smalruby/scratch-vm';
+import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-modal.jsx';
+import cameraIcon from '../components/blocks-screenshot-button/icon--camera.svg';
+import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-preview.jsx';
+import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
+import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
+import collectMetadata from '../lib/collect-metadata.js';
+import FuriganaAnnotator from '../lib/furigana-annotator';
+import { wrapCurrentCodeWithClass } from '../lib/insert-class';
+import intlShape from '../lib/intlShape.js';
+// === Smalruby: End of module editor update ===
+// === Smalruby: Start of module sync ===
+import { syncModules } from '../lib/module-sync';
+import { loadMonacoLocale } from '../lib/monaco-i18n-helper';
+import { getPrism, loadPrism } from '../lib/prism-parser';
+// === Smalruby: Start of module editor update ===
+import RubyGenerator from '../lib/ruby-generator';
+import { downloadRubyAsImage } from '../lib/ruby-screenshot';
+import { generatePreviewCode } from '../lib/ruby-script-preview';
+import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
+import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
+import { containsV1Code } from '../lib/ruby-to-blocks-converter/v1-detection';
+import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
+import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX } from '../reducers/editor-tab';
+import { setAiSaveStatus, clearAiSaveStatus } from '../reducers/koshien-file';
+import { closeFileMenu } from '../reducers/menus.js';
+import { setProjectChanged } from '../reducers/project-changed';
 import {
     rubyCodeShape,
     updateRubyCode,
     updateRubyCodeErrors,
     updateRubyCodeTarget,
-    updateRubyFontSize
+    updateRubyFontSize,
 } from '../reducers/ruby-code';
-import {setRubyVersion, dismissV1Prompt} from '../reducers/settings';
-import {setProjectChanged} from '../reducers/project-changed';
-import {showAlertWithTimeout, closeAlertWithId} from '../reducers/alerts';
-import {markRubyTabUsed} from '../reducers/tutorial-onboarding';
-import VM from '@smalruby/scratch-vm';
-import {BLOCKS_TAB_INDEX, RUBY_TAB_INDEX} from '../reducers/editor-tab';
-
-import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
-import {targetCodeToBlocks} from '../lib/ruby-to-blocks-converter';
-import {containsV1Code} from '../lib/ruby-to-blocks-converter/v1-detection';
-// === Smalruby: Start of module editor update ===
-import RubyGenerator from '../lib/ruby-generator';
-// === Smalruby: End of module editor update ===
-// === Smalruby: Start of module sync ===
-import {syncModules} from '../lib/module-sync';
-// === Smalruby: End of module sync ===
-
-import QuickFixProvider from './ruby-tab/quick-fix-provider';
-import {
-    registerCustomPasteAction,
-    setupPasteDuplicateHider,
-    registerLanguageAndProviders
-} from './ruby-tab/editor-setup';
-
+import { setRubyVersion, dismissV1Prompt } from '../reducers/settings';
+import { markRubyTabUsed } from '../reducers/tutorial-onboarding';
 import RubyDownloader from './ruby-downloader.jsx';
-import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
-import FuriganaAnnotator from '../lib/furigana-annotator';
-import FuriganaRenderer from './ruby-tab/furigana-renderer';
-import RubyteeModalHOC from './rubytee-modal-hoc.jsx';
-import collectMetadata from '../lib/collect-metadata.js';
-import {closeFileMenu} from '../reducers/menus.js';
-import {wrapCurrentCodeWithClass} from '../lib/insert-class';
-import {setAiSaveStatus, clearAiSaveStatus} from '../reducers/koshien-file';
-import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-modal.jsx';
-import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-preview.jsx';
-import {generatePreviewCode} from '../lib/ruby-script-preview';
-import {autoCorrect, defaultSettings as defaultAutoCorrectSettings} from '../lib/auto-correct';
-import {downloadRubyAsImage} from '../lib/ruby-screenshot';
-import cameraIcon from '../components/blocks-screenshot-button/icon--camera.svg';
-import styles from './ruby-tab/ruby-tab.css';
-import {loadMonacoLocale} from '../lib/monaco-i18n-helper';
-import {getPrism, loadPrism} from '../lib/prism-parser';
 import {
     FONT_SIZES,
     DEFAULT_FONT_SIZE,
     FURIGANA_ENABLED_KEY,
     AUTO_CORRECT_ENABLED_KEY,
-    AUTO_CORRECT_SETTINGS_KEY
+    AUTO_CORRECT_SETTINGS_KEY,
 } from './ruby-tab/constants';
 import updateDebugGlobals from './ruby-tab/debug-globals';
+import {
+    registerCustomPasteAction,
+    setupPasteDuplicateHider,
+    registerLanguageAndProviders,
+} from './ruby-tab/editor-setup';
 import {
     clearDecoration,
     highlightLine,
     highlightLineRange,
-    findExecutableLine
+    findExecutableLine,
 } from './ruby-tab/execution-highlighter';
-import {showBubble, dismissBubble, removeBubble} from './ruby-tab/visual-report-bubble';
+import FuriganaRenderer from './ruby-tab/furigana-renderer';
+// === Smalruby: End of module sync ===
+
+import QuickFixProvider from './ruby-tab/quick-fix-provider';
+import styles from './ruby-tab/ruby-tab.css';
+import { showBubble, dismissBubble, removeBubble } from './ruby-tab/visual-report-bubble';
+import RubyteeModalHOC from './rubytee-modal-hoc.jsx';
 
 // === Initialization helpers ===
 
@@ -82,8 +80,10 @@ const loadAutoCorrectSettings = () => {
     if (typeof window !== 'undefined' && window.localStorage) {
         try {
             const raw = window.localStorage.getItem(AUTO_CORRECT_SETTINGS_KEY);
-            if (raw) return {...defaultAutoCorrectSettings, ...JSON.parse(raw)};
-        } catch (_e) { /* use defaults */ }
+            if (raw) return { ...defaultAutoCorrectSettings, ...JSON.parse(raw) };
+        } catch (_e) {
+            /* use defaults */
+        }
     }
     return defaultAutoCorrectSettings;
 };
@@ -92,17 +92,32 @@ const loadAutoCorrectSettings = () => {
 
 const RubyTab = props => {
     const {
-        vm, intl, rubyCode, rubyVersion, locale,
-        activeTabIndex, isVisible, editingTarget, blocksTabVisible,
-        onChange, updateRubyCodeErrorsState, updateRubyCodeTargetState,
+        vm,
+        intl,
+        rubyCode,
+        rubyVersion,
+        locale,
+        activeTabIndex,
+        isVisible,
+        editingTarget,
+        blocksTabVisible,
+        onChange,
+        updateRubyCodeErrorsState,
+        updateRubyCodeTargetState,
         targetCodeToBlocks: targetCodeToBlocksHOC,
-        onRevertRubyVersion, onShowAlert, onDismissAlert,
-        onRequestCloseFile, onProjectTelemetryEvent,
-        onSetAiSaveStatus, onClearAiSaveStatus,
-        onFontSizeChange, onMarkRubyTabUsed,
-        onOpenRubyteeModal, onRegisterRubyteeApply,
+        onRevertRubyVersion,
+        onShowAlert,
+        onDismissAlert,
+        onRequestCloseFile,
+        onProjectTelemetryEvent,
+        onSetAiSaveStatus,
+        onClearAiSaveStatus,
+        onFontSizeChange,
+        onMarkRubyTabUsed,
+        onOpenRubyteeModal,
+        onRegisterRubyteeApply,
         v1PromptDismissed,
-        onDismissV1Prompt
+        onDismissV1Prompt,
     } = props;
 
     // --- State ---
@@ -111,12 +126,8 @@ const RubyTab = props => {
     void executingLine;
     const [canUndo, setCanUndo] = useState(false);
     const [canRedo, setCanRedo] = useState(false);
-    const [furiganaEnabled, setFuriganaEnabled] = useState(
-        () => loadBool(FURIGANA_ENABLED_KEY, true)
-    );
-    const [autoCorrectEnabled, setAutoCorrectEnabled] = useState(
-        () => loadBool(AUTO_CORRECT_ENABLED_KEY, true)
-    );
+    const [furiganaEnabled, setFuriganaEnabled] = useState(() => loadBool(FURIGANA_ENABLED_KEY, true));
+    const [autoCorrectEnabled, setAutoCorrectEnabled] = useState(() => loadBool(AUTO_CORRECT_ENABLED_KEY, true));
     const [autoCorrectSettings, setAutoCorrectSettings] = useState(loadAutoCorrectSettings);
     const [showAutoCorrectModal, setShowAutoCorrectModal] = useState(false);
     const [showScriptPreview, setShowScriptPreview] = useState(false);
@@ -176,9 +187,7 @@ const RubyTab = props => {
 
     const clearErrors = () => {
         if (editorRef.current && monacoRef.current) {
-            monacoRef.current.editor.setModelMarkers(
-                editorRef.current.getModel(), 'smalruby', []
-            );
+            monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'smalruby', []);
             editorRef.current.trigger('source', 'closeMarkersNavigation');
         }
         if (rubyCode.errors.length > 0) {
@@ -194,17 +203,16 @@ const RubyTab = props => {
                 startLineNumber: err.row + 1,
                 startColumn: err.column + 1,
                 endLineNumber: err.row + 1,
-                endColumn: (err.source ? err.column + err.source.length + 1 : 1000),
+                endColumn: err.source ? err.column + err.source.length + 1 : 1000,
                 message: err.text,
-                severity: monacoRef.current.MarkerSeverity.Error
+                severity: monacoRef.current.MarkerSeverity.Error,
             }));
-            monacoRef.current.editor.setModelMarkers(
-                editorRef.current.getModel(), 'smalruby', markers
-            );
+            monacoRef.current.editor.setModelMarkers(editorRef.current.getModel(), 'smalruby', markers);
             if (markers.length > 0) {
                 const error = errors[0];
                 editorRef.current.setPosition({
-                    lineNumber: error.row + 1, column: error.column + 1
+                    lineNumber: error.row + 1,
+                    column: error.column + 1,
                 });
                 editorRef.current.focus();
                 editorRef.current.trigger('source', 'editor.action.marker.next');
@@ -220,9 +228,7 @@ const RubyTab = props => {
             const t0 = performance.now();
             const parseResult = prism.parse(code);
             const annotations = furiganaAnnotatorRef.current.annotate(code, parseResult);
-            furiganaRendererRef.current.render(
-                editorRef.current, monacoRef.current, annotations
-            );
+            furiganaRendererRef.current.render(editorRef.current, monacoRef.current, annotations);
             furiganaLastMsRef.current = performance.now() - t0;
         } else {
             loadPrism().then(loadedPrism => {
@@ -231,12 +237,8 @@ const RubyTab = props => {
                 const currentCode = editorRef.current.getValue() || '';
                 const t0 = performance.now();
                 const parseResult = loadedPrism.parse(currentCode);
-                const annotations = furiganaAnnotatorRef.current.annotate(
-                    currentCode, parseResult
-                );
-                furiganaRendererRef.current.render(
-                    editorRef.current, monacoRef.current, annotations
-                );
+                const annotations = furiganaAnnotatorRef.current.annotate(currentCode, parseResult);
+                furiganaRendererRef.current.render(editorRef.current, monacoRef.current, annotations);
                 furiganaLastMsRef.current = performance.now() - t0;
             });
         }
@@ -270,16 +272,21 @@ const RubyTab = props => {
     const doHighlightLine = lineNumber => {
         if (!editorRef.current || !monacoRef.current) return;
         executingLineDecorationRef.current = highlightLine(
-            editorRef.current, monacoRef.current,
-            lineNumber, executingLineDecorationRef.current
+            editorRef.current,
+            monacoRef.current,
+            lineNumber,
+            executingLineDecorationRef.current,
         );
     };
 
     const doHighlightLineRange = (startLine, endLine) => {
         if (!editorRef.current || !monacoRef.current) return;
         executingLineDecorationRef.current = highlightLineRange(
-            editorRef.current, monacoRef.current,
-            startLine, endLine, executingLineDecorationRef.current
+            editorRef.current,
+            monacoRef.current,
+            startLine,
+            endLine,
+            executingLineDecorationRef.current,
         );
     };
 
@@ -321,18 +328,12 @@ const RubyTab = props => {
                 isAutoCorrectUpdateRef.current = true;
                 const position = editorRef.current.getPosition();
                 const model = editorRef.current.getModel();
-                const beforeCursor = value.substring(
-                    0, model.getOffsetAt(position)
-                );
-                const correctedBeforeCursor = autoCorrect(
-                    beforeCursor, autoCorrectSettingsRef.current
-                );
+                const beforeCursor = value.substring(0, model.getOffsetAt(position));
+                const correctedBeforeCursor = autoCorrect(beforeCursor, autoCorrectSettingsRef.current);
                 const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
                 model.setValue(corrected);
                 const newOffset = model.getOffsetAt(position) - offsetDiff;
-                const newPosition = model.getPositionAt(
-                    Math.max(0, newOffset)
-                );
+                const newPosition = model.getPositionAt(Math.max(0, newOffset));
                 editorRef.current.setPosition(newPosition);
                 return;
             }
@@ -348,7 +349,7 @@ const RubyTab = props => {
 
         const pasteLabel = intlRef.current.formatMessage({
             id: 'gui.rubyTab.paste',
-            defaultMessage: 'Paste'
+            defaultMessage: 'Paste',
         });
         registerCustomPasteAction(editor, pasteLabel);
         const observers = setupPasteDuplicateHider();
@@ -356,8 +357,11 @@ const RubyTab = props => {
         bodyMutationObserverRef.current = observers.bodyMutationObserver;
 
         completionProviderManagerRef.current = registerLanguageAndProviders(
-            monaco, editor, vmRef.current,
-            quickFixProviderRef.current, completionProviderManagerRef.current
+            monaco,
+            editor,
+            vmRef.current,
+            quickFixProviderRef.current,
+            completionProviderManagerRef.current,
         );
 
         if (containerRef.current) {
@@ -402,7 +406,6 @@ const RubyTab = props => {
                 onChangeRef.current(code);
             });
         }
-
     }, []);
 
     // --- UI event handlers (useCallback for react/jsx-no-bind) ---
@@ -415,7 +418,8 @@ const RubyTab = props => {
 
     const handleZoomOut = useCallback(() => {
         const currentSize = rubyCode.fontSize || DEFAULT_FONT_SIZE;
-        const prevSize = FONT_SIZES.slice().reverse()
+        const prevSize = FONT_SIZES.slice()
+            .reverse()
             .find(s => s < currentSize);
         if (prevSize) onFontSizeChange(prevSize);
     }, [rubyCode.fontSize, onFontSizeChange]);
@@ -432,23 +436,24 @@ const RubyTab = props => {
         downloadRubyAsImage(editorRef.current, title, spriteName);
     }, [vm, props.projectTitle]);
 
-    const handleSelectTarget = useCallback(targetId => {
-        const target = vm.runtime.getTargetById(targetId);
-        if (target) vm.setEditingTarget(target.id);
-    }, [vm]);
+    const handleSelectTarget = useCallback(
+        targetId => {
+            const target = vm.runtime.getTargetById(targetId);
+            if (target) vm.setEditingTarget(target.id);
+        },
+        [vm],
+    );
 
     const getSaveToComputerHandler = useCallback(
         downloadProjectCallback => () => {
             onRequestCloseFile();
             downloadProjectCallback();
             if (onProjectTelemetryEvent) {
-                const metadata = collectMetadata(
-                    vm, props.projectTitle, locale
-                );
+                const metadata = collectMetadata(vm, props.projectTitle, locale);
                 onProjectTelemetryEvent('projectDidSave', metadata);
             }
         },
-        [onRequestCloseFile, onProjectTelemetryEvent, vm, props.projectTitle, locale]
+        [onRequestCloseFile, onProjectTelemetryEvent, vm, props.projectTitle, locale],
     );
 
     const handleDownload = useCallback(() => {
@@ -467,10 +472,12 @@ const RubyTab = props => {
         if (wrapped === null) return; // class already exists
         const model = editorRef.current.getModel();
         const fullRange = model.getFullModelRange();
-        editorRef.current.executeEdits('insertClass', [{
-            range: fullRange,
-            text: wrapped
-        }]);
+        editorRef.current.executeEdits('insertClass', [
+            {
+                range: fullRange,
+                text: wrapped,
+            },
+        ]);
     }, [vm]);
 
     const handleAISaveFinished = useCallback(() => {
@@ -484,11 +491,14 @@ const RubyTab = props => {
         onClearAiSaveStatus();
     }, [onClearAiSaveStatus]);
 
-    const handleConversionError = useCallback(errors => {
-        onShowAlert('convertRubyToBlocksError');
-        updateRubyCodeErrorsState(errors);
-        showErrors(errors);
-    }, [onShowAlert, updateRubyCodeErrorsState]); // showErrors uses refs, safe in stale closure
+    const handleConversionError = useCallback(
+        errors => {
+            onShowAlert('convertRubyToBlocksError');
+            updateRubyCodeErrorsState(errors);
+            showErrors(errors);
+        },
+        [onShowAlert, updateRubyCodeErrorsState],
+    ); // showErrors uses refs, safe in stale closure
 
     const handleToggleFurigana = useCallback(() => {
         setFuriganaEnabled(prev => {
@@ -509,9 +519,7 @@ const RubyTab = props => {
             if (enabled && editorRef.current) {
                 const value = editorRef.current.getValue();
                 if (value) {
-                    const corrected = autoCorrect(
-                        value, autoCorrectSettingsRef.current
-                    );
+                    const corrected = autoCorrect(value, autoCorrectSettingsRef.current);
                     if (corrected !== value) {
                         isAutoCorrectUpdateRef.current = true;
                         const model = editorRef.current.getModel();
@@ -534,10 +542,9 @@ const RubyTab = props => {
     const handlePreviewRubyScript = useCallback(async () => {
         // Validate and convert Ruby code to blocks (same as download flow)
         if (rubyCode.modified) {
-            const converter = await targetCodeToBlocks(
-                vm, rubyCode.target, rubyCode.code, intl,
-                {version: rubyVersion}
-            );
+            const converter = await targetCodeToBlocks(vm, rubyCode.target, rubyCode.code, intl, {
+                version: rubyVersion,
+            });
             if (!converter.result) {
                 onShowAlert('convertRubyToBlocksError');
                 updateRubyCodeErrorsState(converter.errors);
@@ -558,12 +565,9 @@ const RubyTab = props => {
 
     const handleAutoCorrectSettingChange = useCallback((key, value) => {
         setAutoCorrectSettings(prev => {
-            const newSettings = {...prev, [key]: value};
+            const newSettings = { ...prev, [key]: value };
             if (typeof window !== 'undefined' && window.localStorage) {
-                window.localStorage.setItem(
-                    AUTO_CORRECT_SETTINGS_KEY,
-                    JSON.stringify(newSettings)
-                );
+                window.localStorage.setItem(AUTO_CORRECT_SETTINGS_KEY, JSON.stringify(newSettings));
             }
             return newSettings;
         });
@@ -579,9 +583,7 @@ const RubyTab = props => {
                     // === Smalruby: Start of module sync ===
                     if (rubyCode.target && String(newVersion) === '2') {
                         try {
-                            await syncModules(
-                                vm, rubyCode.target, intl, newVersion
-                            );
+                            await syncModules(vm, rubyCode.target, intl, newVersion);
                         } catch (e) {
                             // eslint-disable-next-line no-console
                             console.error('Module sync error:', e);
@@ -602,119 +604,111 @@ const RubyTab = props => {
         }
     };
 
-    const handleExecuteLine = useCallback(async lineNumber => {
-        if (runningBlockIdRef.current) {
-            vm.runtime.toggleScript(runningBlockIdRef.current, {
-                target: vm.editingTarget,
-                stackClick: true
-            });
-            return;
-        }
+    const handleExecuteLine = useCallback(
+        async lineNumber => {
+            if (runningBlockIdRef.current) {
+                vm.runtime.toggleScript(runningBlockIdRef.current, {
+                    target: vm.editingTarget,
+                    stackClick: true,
+                });
+                return;
+            }
 
-        clearErrors();
+            clearErrors();
 
-        const code = rubyCode.code;
-        const targetLine = findExecutableLine(code, lineNumber);
+            const code = rubyCode.code;
+            const targetLine = findExecutableLine(code, lineNumber);
 
-        if (!targetLine) {
-            // eslint-disable-next-line no-console
-            console.warn('[handleExecuteLine] No non-empty line found');
-            onShowAlert('cannotExecuteLine');
-            return;
-        }
+            if (!targetLine) {
+                // eslint-disable-next-line no-console
+                console.warn('[handleExecuteLine] No non-empty line found');
+                onShowAlert('cannotExecuteLine');
+                return;
+            }
 
-        const converter = await targetCodeToBlocks(
-            vm, rubyCode.target, code, intl,
-            {version: rubyVersion}
-        );
+            const converter = await targetCodeToBlocks(vm, rubyCode.target, code, intl, { version: rubyVersion });
 
-        if (!converter.result) {
-            onShowAlert('convertRubyToBlocksError');
-            updateRubyCodeErrorsState(converter.errors);
-            showErrors(converter.errors);
-            return;
-        }
+            if (!converter.result) {
+                onShowAlert('convertRubyToBlocksError');
+                updateRubyCodeErrorsState(converter.errors);
+                showErrors(converter.errors);
+                return;
+            }
 
-        converter.apply()
-            .then(() => {
-                // === Smalruby: Start of update editor after execute ===
-                // Regenerate Ruby code from blocks so that auto-imported
-                // modules are reflected in the editor immediately.
-                // Using direct editor setValue because Redux prop-driven
-                // updates via @monaco-editor/react may not take effect
-                // reliably within the same callback.
-                const regenerated = RubyGenerator.targetToCode(
-                    vm.editingTarget, {version: rubyVersion}
-                );
-                if (editorRef.current && regenerated !== code) {
-                    // Remember cursor content to restore position after setValue
-                    const cursorLine = editorRef.current.getPosition().lineNumber;
-                    const cursorContent = editorRef.current.getModel()
-                        .getLineContent(cursorLine)
-                        .trim();
+            converter
+                .apply()
+                .then(() => {
+                    // === Smalruby: Start of update editor after execute ===
+                    // Regenerate Ruby code from blocks so that auto-imported
+                    // modules are reflected in the editor immediately.
+                    // Using direct editor setValue because Redux prop-driven
+                    // updates via @monaco-editor/react may not take effect
+                    // reliably within the same callback.
+                    const regenerated = RubyGenerator.targetToCode(vm.editingTarget, { version: rubyVersion });
+                    if (editorRef.current && regenerated !== code) {
+                        // Remember cursor content to restore position after setValue
+                        const cursorLine = editorRef.current.getPosition().lineNumber;
+                        const cursorContent = editorRef.current.getModel().getLineContent(cursorLine).trim();
 
-                    editorRef.current.setValue(regenerated);
+                        editorRef.current.setValue(regenerated);
 
-                    // Restore cursor to matching line in regenerated code
-                    if (typeof cursorContent === 'string' && cursorContent.length > 0) {
-                        const lines = regenerated.split('\n');
-                        for (let i = 0; i < lines.length; i++) {
-                            if (lines[i].trim() === cursorContent) {
-                                const newLine = i + 1;
-                                editorRef.current.setPosition({
-                                    lineNumber: newLine, column: 1
-                                });
-                                editorRef.current.revealLineInCenter(newLine);
-                                break;
+                        // Restore cursor to matching line in regenerated code
+                        if (typeof cursorContent === 'string' && cursorContent.length > 0) {
+                            const lines = regenerated.split('\n');
+                            for (let i = 0; i < lines.length; i++) {
+                                if (lines[i].trim() === cursorContent) {
+                                    const newLine = i + 1;
+                                    editorRef.current.setPosition({
+                                        lineNumber: newLine,
+                                        column: 1,
+                                    });
+                                    editorRef.current.revealLineInCenter(newLine);
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-                // === Smalruby: End of update editor after execute ===
+                    // === Smalruby: End of update editor after execute ===
 
-                const blockId = converter.getBlockIdForLine(targetLine);
-                if (!blockId) {
+                    const blockId = converter.getBlockIdForLine(targetLine);
+                    if (!blockId) {
+                        // eslint-disable-next-line no-console
+                        console.warn(`[handleExecuteLine] No executable block at line ${targetLine}`);
+                        onShowAlert('cannotExecuteLine');
+                        return;
+                    }
+
+                    const topBlockId = vm.editingTarget.blocks.getTopLevelScript(blockId);
+                    if (!topBlockId) {
+                        // eslint-disable-next-line no-console
+                        console.warn(`[handleExecuteLine] No top-level block for ${blockId}`);
+                        onShowAlert('cannotExecuteLine');
+                        return;
+                    }
+
+                    const blocks = vm.editingTarget.blocks;
+                    const lineRange = converter.getLineRangeForTopLevelScript(topBlockId, blocks);
+
+                    setExecutingLine(targetLine);
+                    if (lineRange) {
+                        doHighlightLineRange(lineRange.startLine, lineRange.endLine);
+                    } else {
+                        doHighlightLine(targetLine);
+                    }
+
+                    vm.runtime.toggleScript(topBlockId, {
+                        target: vm.editingTarget,
+                        stackClick: true,
+                    });
+                })
+                .catch(error => {
                     // eslint-disable-next-line no-console
-                    console.warn(
-                        `[handleExecuteLine] No executable block at line ${targetLine}`
-                    );
-                    onShowAlert('cannotExecuteLine');
-                    return;
-                }
-
-                const topBlockId = vm.editingTarget.blocks.getTopLevelScript(blockId);
-                if (!topBlockId) {
-                    // eslint-disable-next-line no-console
-                    console.warn(
-                        `[handleExecuteLine] No top-level block for ${blockId}`
-                    );
-                    onShowAlert('cannotExecuteLine');
-                    return;
-                }
-
-                const blocks = vm.editingTarget.blocks;
-                const lineRange = converter.getLineRangeForTopLevelScript(
-                    topBlockId, blocks
-                );
-
-                setExecutingLine(targetLine);
-                if (lineRange) {
-                    doHighlightLineRange(lineRange.startLine, lineRange.endLine);
-                } else {
-                    doHighlightLine(targetLine);
-                }
-
-                vm.runtime.toggleScript(topBlockId, {
-                    target: vm.editingTarget,
-                    stackClick: true
+                    console.error('[handleExecuteLine] Apply error:', error);
+                    onShowAlert('convertRubyToBlocksError');
                 });
-            })
-            .catch(error => {
-                // eslint-disable-next-line no-console
-                console.error('[handleExecuteLine] Apply error:', error);
-                onShowAlert('convertRubyToBlocksError');
-            });
-    }, [vm, rubyCode, intl, rubyVersion, onShowAlert, updateRubyCodeErrorsState, onDismissAlert]);
+        },
+        [vm, rubyCode, intl, rubyVersion, onShowAlert, updateRubyCodeErrorsState, onDismissAlert],
+    );
 
     const renderDownloaderChildren = useCallback((_, downloadProjectCallback) => {
         downloadCallbackRef.current = downloadProjectCallback;
@@ -733,7 +727,7 @@ const RubyTab = props => {
         window.smalruby.vm = vm;
         updateDebugGlobals(vm, {
             enabled: autoCorrectEnabledRef.current,
-            settings: autoCorrectSettingsRef.current
+            settings: autoCorrectSettingsRef.current,
         });
 
         return () => {
@@ -800,7 +794,7 @@ const RubyTab = props => {
                 isVisible,
                 editingTarget,
                 rubyCode,
-                blocksTabVisible
+                blocksTabVisible,
             };
         };
 
@@ -819,8 +813,7 @@ const RubyTab = props => {
         }
 
         // Tab switch away → dismiss bubble
-        if (prev.activeTabIndex === RUBY_TAB_INDEX &&
-            activeTabIndex !== RUBY_TAB_INDEX) {
+        if (prev.activeTabIndex === RUBY_TAB_INDEX && activeTabIndex !== RUBY_TAB_INDEX) {
             handleDismissBubbleStable();
         }
 
@@ -845,16 +838,14 @@ const RubyTab = props => {
         let modified = rubyCode.modified;
         if (modified) {
             const targetId = rubyCode.target ? rubyCode.target.id : null;
-            const changedTarget = vm.editingTarget && rubyCode.target &&
-                vm.editingTarget.id !== targetId;
+            const changedTarget = vm.editingTarget && rubyCode.target && vm.editingTarget.id !== targetId;
             if (changedTarget || blocksTabVisible) {
-                if (String(rubyVersion) === '2' &&
-                    !v1PromptDismissed &&
-                    containsV1Code(rubyCode.code)) {
+                if (String(rubyVersion) === '2' && !v1PromptDismissed && containsV1Code(rubyCode.code)) {
                     const message = intlRef.current.formatMessage({
                         id: 'gui.rubyTab.v1CodeDetected',
-                        // eslint-disable-next-line max-len
-                        defaultMessage: 'Switch Ruby version to "v1"?\n\nThe code you entered uses the "v1" syntax found in textbooks. Switching to "v1" lets you program with the same syntax as the textbook.'
+
+                        defaultMessage:
+                            'Switch Ruby version to "v1"?\n\nThe code you entered uses the "v1" syntax found in textbooks. Switching to "v1" lets you program with the same syntax as the textbook.',
                     });
                     // eslint-disable-next-line no-alert
                     if (window.confirm(message)) {
@@ -871,9 +862,7 @@ const RubyTab = props => {
                             // === Smalruby: Start of module sync ===
                             if (rubyCode.target && String(rubyVersion) === '2') {
                                 try {
-                                    await syncModules(
-                                        vm, rubyCode.target, intl, rubyVersion
-                                    );
+                                    await syncModules(vm, rubyCode.target, intl, rubyVersion);
                                 } catch (e) {
                                     // eslint-disable-next-line no-console
                                     console.error('Module sync error:', e);
@@ -881,12 +870,9 @@ const RubyTab = props => {
                             }
                             // === Smalruby: End of module sync ===
                             if (!modified) {
-                                const etChanged = editingTarget &&
-                                    editingTarget !== prev.editingTarget;
+                                const etChanged = editingTarget && editingTarget !== prev.editingTarget;
                                 if ((isVisible && !prev.isVisible) || etChanged) {
-                                    updateRubyCodeTargetState(
-                                        vm.editingTarget, rubyVersion
-                                    );
+                                    updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
                                 }
                             }
                             if (isVisible && !prev.isVisible) {
@@ -904,8 +890,7 @@ const RubyTab = props => {
         }
 
         if (!modified) {
-            const etChanged = editingTarget &&
-                editingTarget !== prev.editingTarget;
+            const etChanged = editingTarget && editingTarget !== prev.editingTarget;
             if ((isVisible && !prev.isVisible) || etChanged) {
                 updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
             }
@@ -921,21 +906,18 @@ const RubyTab = props => {
 
         updateDebugGlobals(vm, {
             enabled: autoCorrectEnabled,
-            settings: autoCorrectSettings
+            settings: autoCorrectSettings,
         });
         savePrev();
     });
 
     // --- Render ---
 
-    const {code, fontSize} = rubyCode;
+    const { code, fontSize } = rubyCode;
 
     return (
         <>
-            <div
-                ref={containerRef}
-                className={styles.editorContainer}
-            >
+            <div ref={containerRef} className={styles.editorContainer}>
                 <RubyToolbar
                     editingTarget={vm.editingTarget}
                     vm={vm}
@@ -965,15 +947,14 @@ const RubyTab = props => {
                         onChange={handleEditorChange}
                         options={{
                             fontSize: fontSize || DEFAULT_FONT_SIZE,
-                            fontFamily: 'Monaco, Menlo, Consolas, ' +
-                                '"source-code-pro", monospace',
-                            minimap: {enabled: false},
+                            fontFamily: 'Monaco, Menlo, Consolas, "source-code-pro", monospace',
+                            minimap: { enabled: false },
                             renderWhitespace: 'all',
                             scrollBeyondLastLine: true,
                             tabSize: 2,
                             fixedOverflowWidgets: true,
                             wordBasedSuggestions: 'off',
-                            autoIndent: 'full'
+                            autoIndent: 'full',
                         }}
                         theme="vs"
                         value={code}
@@ -1003,35 +984,14 @@ const RubyTab = props => {
                         src={cameraIcon}
                     />
                 </button>
-                <button
-                    className={styles.zoomButton}
-                    data-testid="ruby-zoom-in"
-                    onClick={handleZoomIn}
-                >
-                    <img
-                        src="./static/blocks-media/default/zoom-in.svg"
-                        className={styles.zoomIcon}
-                    />
+                <button className={styles.zoomButton} data-testid="ruby-zoom-in" onClick={handleZoomIn}>
+                    <img src="./static/blocks-media/default/zoom-in.svg" className={styles.zoomIcon} />
                 </button>
-                <button
-                    className={styles.zoomButton}
-                    data-testid="ruby-zoom-out"
-                    onClick={handleZoomOut}
-                >
-                    <img
-                        src="./static/blocks-media/default/zoom-out.svg"
-                        className={styles.zoomIcon}
-                    />
+                <button className={styles.zoomButton} data-testid="ruby-zoom-out" onClick={handleZoomOut}>
+                    <img src="./static/blocks-media/default/zoom-out.svg" className={styles.zoomIcon} />
                 </button>
-                <button
-                    className={styles.zoomButton}
-                    data-testid="ruby-zoom-reset"
-                    onClick={handleZoomReset}
-                >
-                    <img
-                        src="./static/blocks-media/default/zoom-reset.svg"
-                        className={styles.zoomIcon}
-                    />
+                <button className={styles.zoomButton} data-testid="ruby-zoom-reset" onClick={handleZoomReset}>
+                    <img src="./static/blocks-media/default/zoom-reset.svg" className={styles.zoomIcon} />
                 </button>
             </div>
             {showAutoCorrectModal && (
@@ -1041,12 +1001,7 @@ const RubyTab = props => {
                     onRequestClose={handleCloseAutoCorrectSettings}
                 />
             )}
-            {showScriptPreview && (
-                <RubyScriptPreview
-                    code={previewCode}
-                    onClose={handleCloseScriptPreview}
-                />
-            )}
+            {showScriptPreview && <RubyScriptPreview code={previewCode} onClose={handleCloseScriptPreview} />}
         </>
     );
 };
@@ -1078,7 +1033,7 @@ RubyTab.propTypes = {
     onOpenRubyteeModal: PropTypes.func,
     onRegisterRubyteeApply: PropTypes.func,
     v1PromptDismissed: PropTypes.bool,
-    onDismissV1Prompt: PropTypes.func
+    onDismissV1Prompt: PropTypes.func,
 };
 
 const mapStateToProps = state => ({
@@ -1090,7 +1045,7 @@ const mapStateToProps = state => ({
     projectTitle: state.scratchGui.projectTitle,
     locale: state.locales.locale,
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
-    v1PromptDismissed: state.scratchGui.settings.v1PromptDismissed
+    v1PromptDismissed: state.scratchGui.settings.v1PromptDismissed,
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -1108,12 +1063,11 @@ const mapDispatchToProps = dispatch => ({
     onClearAiSaveStatus: () => dispatch(clearAiSaveStatus()),
     onFontSizeChange: fontSize => dispatch(updateRubyFontSize(fontSize)),
     onMarkRubyTabUsed: () => dispatch(markRubyTabUsed()),
-    onDismissV1Prompt: () => dispatch(dismissV1Prompt())
+    onDismissV1Prompt: () => dispatch(dismissV1Prompt()),
 });
 
-const ConnectedRubyTab = RubyteeModalHOC(RubyToBlocksConverterHOC(injectIntl(connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(RubyTab))));
+const ConnectedRubyTab = RubyteeModalHOC(
+    RubyToBlocksConverterHOC(injectIntl(connect(mapStateToProps, mapDispatchToProps)(RubyTab))),
+);
 
 export default ConnectedRubyTab;

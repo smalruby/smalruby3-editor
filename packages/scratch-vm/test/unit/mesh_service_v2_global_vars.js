@@ -17,28 +17,28 @@ const createMockBlocks = () => ({
                 'var1-id': {
                     name: 'var1',
                     type: Variable.SCALAR_TYPE,
-                    value: 10
+                    value: 10,
                 },
                 'var2-id': {
                     name: 'var2',
                     type: Variable.SCALAR_TYPE,
-                    value: 'hello'
+                    value: 'hello',
                 },
                 'list1-id': {
                     name: 'list1',
                     type: Variable.LIST_TYPE,
-                    value: [1, 2, 3]
-                }
-            }
+                    value: [1, 2, 3],
+                },
+            },
         }),
         sequencer: {},
         emit: () => {},
         on: () => {},
-        off: () => {}
+        off: () => {},
     },
     opcodeFunctions: {
-        event_broadcast: () => {}
-    }
+        event_broadcast: () => {},
+    },
 });
 
 test('MeshV2Service Global Variables', t => {
@@ -49,8 +49,14 @@ test('MeshV2Service Global Variables', t => {
         const vars = service.getGlobalVariables();
 
         st.equal(vars.length, 2);
-        st.same(vars.find(v => v.key === 'var1'), {key: 'var1', value: '10'});
-        st.same(vars.find(v => v.key === 'var2'), {key: 'var2', value: 'hello'});
+        st.same(
+            vars.find(v => v.key === 'var1'),
+            { key: 'var1', value: '10' },
+        );
+        st.same(
+            vars.find(v => v.key === 'var2'),
+            { key: 'var2', value: 'hello' },
+        );
         st.notOk(vars.find(v => v.key === 'list1'));
 
         st.end();
@@ -60,7 +66,7 @@ test('MeshV2Service Global Variables', t => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
-        service.client = {mutate: () => Promise.resolve({})};
+        service.client = { mutate: () => Promise.resolve({}) };
 
         let sentData = null;
         service.sendData = data => {
@@ -72,8 +78,14 @@ test('MeshV2Service Global Variables', t => {
 
         st.ok(sentData);
         st.equal(sentData.length, 2);
-        st.same(sentData.find(v => v.key === 'var1'), {key: 'var1', value: '10'});
-        st.same(sentData.find(v => v.key === 'var2'), {key: 'var2', value: 'hello'});
+        st.same(
+            sentData.find(v => v.key === 'var1'),
+            { key: 'var1', value: '10' },
+        );
+        st.same(
+            sentData.find(v => v.key === 'var2'),
+            { key: 'var2', value: 'hello' },
+        );
 
         st.end();
     });
@@ -81,13 +93,13 @@ test('MeshV2Service Global Variables', t => {
     t.test('sendAllGlobalVariables does nothing if no variables', async st => {
         const blocks = {
             runtime: {
-                getTargetForStage: () => ({variables: {}}),
-                on: () => {}
-            }
+                getTargetForStage: () => ({ variables: {} }),
+                on: () => {},
+            },
         };
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
-        service.client = {mutate: () => Promise.resolve({})};
+        service.client = { mutate: () => Promise.resolve({}) };
 
         let sendDataCalled = false;
         service.sendData = () => {
@@ -106,20 +118,21 @@ test('MeshV2Service Global Variables', t => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.client = {
-            mutate: () => Promise.resolve({
-                data: {
-                    createGroup: {
-                        id: 'group1',
-                        name: 'groupName',
-                        domain: 'domain1',
-                        expiresAt: '2099-01-01T00:00:00Z',
-                        heartbeatIntervalSeconds: 60
-                    }
-                }
-            }),
+            mutate: () =>
+                Promise.resolve({
+                    data: {
+                        createGroup: {
+                            id: 'group1',
+                            name: 'groupName',
+                            domain: 'domain1',
+                            expiresAt: '2099-01-01T00:00:00Z',
+                            heartbeatIntervalSeconds: 60,
+                        },
+                    },
+                }),
             subscribe: () => ({
-                subscribe: () => ({unsubscribe: () => {}})
-            })
+                subscribe: () => ({ unsubscribe: () => {} }),
+            }),
         };
 
         let sendAllCalled = false;
@@ -140,18 +153,19 @@ test('MeshV2Service Global Variables', t => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.client = {
-            mutate: () => Promise.resolve({
-                data: {
-                    joinGroup: {
-                        domain: 'domain1',
-                        heartbeatIntervalSeconds: 60
-                    }
-                }
-            }),
-            query: () => Promise.resolve({data: {listGroupStatuses: []}}),
+            mutate: () =>
+                Promise.resolve({
+                    data: {
+                        joinGroup: {
+                            domain: 'domain1',
+                            heartbeatIntervalSeconds: 60,
+                        },
+                    },
+                }),
+            query: () => Promise.resolve({ data: { listGroupStatuses: [] } }),
             subscribe: () => ({
-                subscribe: () => ({unsubscribe: () => {}})
-            })
+                subscribe: () => ({ unsubscribe: () => {} }),
+            }),
         };
 
         let sendAllCalled = false;

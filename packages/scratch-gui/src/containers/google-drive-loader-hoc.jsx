@@ -1,54 +1,44 @@
 /* eslint-disable no-console */
 import bindAll from 'lodash.bindall';
-import React from 'react';
 import PropTypes from 'prop-types';
-import {defineMessages, injectIntl} from 'react-intl';
-import intlShape from '../lib/intlShape.js';
-import {connect} from 'react-redux';
-import log from '../lib/log';
-import sharedMessages from '../lib/shared-messages';
-import {loadProjectWithChecks} from '../lib/project-loader-utils';
-
+import React from 'react';
+import { defineMessages, injectIntl } from 'react-intl';
+import { connect } from 'react-redux';
 import googleDriveAPI from '../lib/google-drive-api';
-import {
-    LoadingStates,
-    getIsLoadingUpload,
-    onLoadedProject
-} from '../reducers/project-state';
-import {setProjectTitle} from '../reducers/project-title';
-import {setRubyVersion} from '../reducers/settings';
-import {persistRubyVersion} from '../lib/settings/ruby-version/persistence';
-import {setGoogleDriveFile} from '../reducers/google-drive-file';
-import {setProjectUnchanged} from '../reducers/project-changed';
-import {
-    openLoadingProject,
-    closeLoadingProject
-} from '../reducers/modals';
-import {
-    closeFileMenu
-} from '../reducers/menus';
+import intlShape from '../lib/intlShape.js';
+import log from '../lib/log';
+import { loadProjectWithChecks } from '../lib/project-loader-utils';
+import { persistRubyVersion } from '../lib/settings/ruby-version/persistence';
+import sharedMessages from '../lib/shared-messages';
+import { setGoogleDriveFile } from '../reducers/google-drive-file';
+import { closeFileMenu } from '../reducers/menus';
+import { openLoadingProject, closeLoadingProject } from '../reducers/modals';
+import { setProjectUnchanged } from '../reducers/project-changed';
+import { LoadingStates, getIsLoadingUpload, onLoadedProject } from '../reducers/project-state';
+import { setProjectTitle } from '../reducers/project-title';
+import { setRubyVersion } from '../reducers/settings';
 
 const messages = defineMessages({
     loadError: {
         id: 'gui.googleDriveLoader.loadError',
         defaultMessage: 'Failed to load project from Google Drive.',
-        description: 'An error that displays when a Google Drive project file fails to load.'
+        description: 'An error that displays when a Google Drive project file fails to load.',
     },
     authError: {
         id: 'gui.googleDriveLoader.authError',
         defaultMessage: 'Failed to authenticate with Google Drive. Please try again.',
-        description: 'An error that displays when Google Drive authentication fails.'
+        description: 'An error that displays when Google Drive authentication fails.',
     },
     configError: {
         id: 'gui.googleDriveLoader.configError',
         defaultMessage: 'Google Drive is not configured. Please contact the administrator.',
-        description: 'An error that displays when Google Drive API is not configured.'
+        description: 'An error that displays when Google Drive API is not configured.',
     },
     pickerTitle: {
         id: 'gui.googleDriveLoader.pickerTitle',
         defaultMessage: 'Select a Scratch 3.0 project (.sb3) from Google Drive',
-        description: 'Title for Google Drive file picker dialog.'
-    }
+        description: 'Title for Google Drive file picker dialog.',
+    },
 });
 
 /**
@@ -62,17 +52,17 @@ const messages = defineMessages({
  */
 const GoogleDriveLoaderHOC = function (WrappedComponent) {
     class GoogleDriveLoaderComponent extends React.Component {
-        constructor (props) {
+        constructor(props) {
             super(props);
             bindAll(this, [
                 'handleStartSelectingGoogleDrive',
                 'handlePickerCallback',
                 'handleFinishedLoadingUpload',
-                'getProjectTitleFromFilename'
+                'getProjectTitleFromFilename',
             ]);
         }
 
-        componentDidUpdate (prevProps) {
+        componentDidUpdate(prevProps) {
             if (this.props.isLoadingUpload && !prevProps.isLoadingUpload) {
                 this.handleFinishedLoadingUpload();
             }
@@ -81,7 +71,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         /**
          * Start Google Drive file selection process
          */
-        handleStartSelectingGoogleDrive () {
+        handleStartSelectingGoogleDrive() {
             // Check if Google Drive is configured
             if (!googleDriveAPI.constructor.isConfigured()) {
                 alert(this.props.intl.formatMessage(messages.configError)); // eslint-disable-line no-alert
@@ -97,18 +87,17 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
 
             // Initialize and show Google Picker
             // Don't show loading modal yet - wait until user selects a file
-            googleDriveAPI.showPicker(this.handlePickerCallback, this.props.locale, title)
-                .catch(error => {
-                    log.error('Failed to show Google Picker:', error);
-                    alert(this.props.intl.formatMessage(messages.authError)); // eslint-disable-line no-alert
-                });
+            googleDriveAPI.showPicker(this.handlePickerCallback, this.props.locale, title).catch(error => {
+                log.error('Failed to show Google Picker:', error);
+                alert(this.props.intl.formatMessage(messages.authError)); // eslint-disable-line no-alert
+            });
         }
 
         /**
          * Handle Google Picker callback
          * @param {object} result - Picker result
          */
-        handlePickerCallback (result) {
+        handlePickerCallback(result) {
             if (result.cancelled) {
                 // User cancelled picker
                 this.props.onCloseLoadingProject();
@@ -125,7 +114,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
 
             if (result.selected) {
                 // File selected - show loading modal immediately (before download)
-                const {fileName} = result;
+                const { fileName } = result;
 
                 // Update project title
                 const projectTitle = this.getProjectTitleFromFilename(fileName);
@@ -138,7 +127,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
 
             if (result.success) {
                 // File downloaded successfully - load the project
-                const {fileId, fileName, fileData} = result;
+                const { fileId, fileName, fileData } = result;
 
                 // Convert ArrayBuffer to Uint8Array
                 const content = new Uint8Array(fileData);
@@ -149,7 +138,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                     this.props.intl,
                     content,
                     this.props.rubyVersion,
-                    this.props.onSetRubyVersion
+                    this.props.onSetRubyVersion,
                 )
                     .then(() => {
                         // Store Google Drive file metadata for direct save functionality
@@ -164,7 +153,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                             error: error,
                             errorType: typeof error,
                             errorMessage: error && error.message,
-                            errorStack: error && error.stack
+                            errorStack: error && error.stack,
                         });
                         log.error('Failed to load project from Google Drive:', error);
                         this.props.onCloseLoadingProject();
@@ -178,18 +167,18 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
          * @param {string} filename - File name
          * @returns {string} Project title
          */
-        getProjectTitleFromFilename (filename) {
+        getProjectTitleFromFilename(filename) {
             return filename.replace(/\.sb3$/, '');
         }
 
         /**
          * Handle finished loading upload
          */
-        handleFinishedLoadingUpload () {
+        handleFinishedLoadingUpload() {
             this.props.onLoadingFinished(this.props.loadingState, true);
         }
 
-        render () {
+        render() {
             const {
                 closeFileMenu: _closeFileMenuProp,
                 intl,
@@ -235,8 +224,8 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         vm: PropTypes.shape({
             loadProject: PropTypes.func,
             hasMeshV1Project: PropTypes.func,
-            hasKoshienProject: PropTypes.func
-        })
+            hasKoshienProject: PropTypes.func,
+        }),
     };
 
     const mapStateToProps = state => ({
@@ -244,7 +233,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         loadingState: state.scratchGui.projectState.loadingState,
         locale: state.locales.locale,
         rubyVersion: state.scratchGui.settings.rubyVersion,
-        vm: state.scratchGui.vm
+        vm: state.scratchGui.vm,
     });
 
     const mapDispatchToProps = dispatch => ({
@@ -255,21 +244,17 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
             dispatch(closeLoadingProject());
         },
         onLoadingStarted: () => dispatch(openLoadingProject()),
-        onSetGoogleDriveFile: (fileId, fileName, folderId) => dispatch(setGoogleDriveFile(fileId, fileName, folderId)),
+        onSetGoogleDriveFile: (fileId, fileName, folderId) =>
+            dispatch(setGoogleDriveFile(fileId, fileName, folderId)),
         onSetProjectTitle: title => dispatch(setProjectTitle(title)),
         onSetRubyVersion: version => {
             dispatch(setRubyVersion(version));
             persistRubyVersion(version);
         },
-        onSetProjectUnchanged: () => dispatch(setProjectUnchanged())
+        onSetProjectUnchanged: () => dispatch(setProjectUnchanged()),
     });
 
-    return injectIntl(connect(
-        mapStateToProps,
-        mapDispatchToProps
-    )(GoogleDriveLoaderComponent));
+    return injectIntl(connect(mapStateToProps, mapDispatchToProps)(GoogleDriveLoaderComponent));
 };
 
-export {
-    GoogleDriveLoaderHOC as default
-};
+export { GoogleDriveLoaderHOC as default };

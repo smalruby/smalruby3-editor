@@ -1,8 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (Rubytee consent integration tests) ===
 import React from 'react';
-import {render, screen, fireEvent} from '@testing-library/react';
-import {IntlProvider} from 'react-intl';
-
+import { IntlProvider } from 'react-intl';
+import { render, screen, fireEvent } from '@testing-library/react';
 import RubyteeConsent from '../../src/components/rubytee-consent/rubytee-consent.jsx';
 
 // Japanese messages for integration testing with real locale
@@ -18,20 +17,15 @@ const jaMessages = {
     'gui.rubyteeConsent.privacyLink': 'プライバシーポリシー',
     'gui.rubyteeConsent.consentCheckbox': '18歳以上です、または保護者の許可をもらいました',
     'gui.rubyteeConsent.cancel': 'つかわない',
-    'gui.rubyteeConsent.accept': 'OK、つかう！'
+    'gui.rubyteeConsent.accept': 'OK、つかう！',
 };
 
-const renderConsent = (props = {}) => render(
-    <IntlProvider
-        locale="ja"
-        messages={jaMessages}
-    >
-        <RubyteeConsent
-            onAccept={props.onAccept || jest.fn()}
-            onCancel={props.onCancel || jest.fn()}
-        />
-    </IntlProvider>
-);
+const renderConsent = (props = {}) =>
+    render(
+        <IntlProvider locale="ja" messages={jaMessages}>
+            <RubyteeConsent onAccept={props.onAccept || jest.fn()} onCancel={props.onCancel || jest.fn()} />
+        </IntlProvider>,
+    );
 
 describe('Rubytee consent dialog integration', () => {
     test('should display AI disclosure and warnings', () => {
@@ -63,7 +57,7 @@ describe('Rubytee consent dialog integration', () => {
 
     test('should call onAccept when accept button clicked after checking', () => {
         const onAccept = jest.fn();
-        renderConsent({onAccept});
+        renderConsent({ onAccept });
 
         const checkbox = screen.getByRole('checkbox');
         fireEvent.click(checkbox);
@@ -76,7 +70,7 @@ describe('Rubytee consent dialog integration', () => {
 
     test('should call onCancel when cancel button clicked', () => {
         const onCancel = jest.fn();
-        renderConsent({onCancel});
+        renderConsent({ onCancel });
 
         const cancelButton = screen.getByText('つかわない');
         fireEvent.click(cancelButton);
@@ -86,7 +80,7 @@ describe('Rubytee consent dialog integration', () => {
 
     test('should not call onAccept when accept button clicked without checking', () => {
         const onAccept = jest.fn();
-        renderConsent({onAccept});
+        renderConsent({ onAccept });
 
         const acceptButton = screen.getByText('OK、つかう！');
         // Button is disabled, so click should not trigger

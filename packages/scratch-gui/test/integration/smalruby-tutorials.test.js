@@ -6,16 +6,7 @@
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
 
-const {
-    clickText,
-    clickXpath,
-    findByXpath,
-    getDriver,
-    getLogs,
-    loadUri,
-    scope,
-    textExists
-} = new SeleniumHelper();
+const { clickText, clickXpath, findByXpath, getDriver, getLogs, loadUri, scope, textExists } = new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 const uriWithTutorial = id => `${uri}?tutorial=${id}`;
@@ -40,7 +31,7 @@ describe('Smalruby Tutorials', () => {
         await clickText('Costumes');
         await clickText('Code');
 
-        const logs = await getLogs({includeAllLevels: true});
+        const logs = await getLogs({ includeAllLevels: true });
         const severeLogs = logs.filter(l => l.level.name === 'SEVERE');
         expect(severeLogs).toEqual([]);
     });
@@ -49,7 +40,7 @@ describe('Smalruby Tutorials', () => {
         await loadUri(`${uriWithTutorial('getStarted')}`);
         await findByXpath('//div[contains(@class, "card_card_")]');
 
-        const logs = await getLogs({includeAllLevels: true});
+        const logs = await getLogs({ includeAllLevels: true });
         const severeLogs = logs.filter(l => l.level.name === 'SEVERE');
         expect(severeLogs).toEqual([]);
     });
@@ -60,7 +51,7 @@ describe('Smalruby Tutorials', () => {
 
         await clickText('Close');
 
-        const cards = await driver.findElements({xpath: '//div[contains(@class, "card_card_")]'});
+        const cards = await driver.findElements({ xpath: '//div[contains(@class, "card_card_")]' });
         expect(cards.length).toBe(0);
     });
 
@@ -88,7 +79,7 @@ describe('Smalruby Tutorials', () => {
 
             // Verify project title changed to the tutorial name
             const titleValue = await driver.executeScript(
-                'return document.querySelector(\'input[class*="title-field"]\').value;'
+                'return document.querySelector(\'input[class*="title-field"]\').value;',
             );
             expect(titleValue).toBe('Getting Started');
 

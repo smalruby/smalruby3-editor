@@ -1,6 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (unit tests for insert-class utility) ===
-
-import {wrapCurrentCodeWithClass} from '../../../src/lib/insert-class';
+import { wrapCurrentCodeWithClass } from '../../../src/lib/insert-class';
 
 // Helper to create a mock target
 const makeTarget = (overrides = {}) => ({
@@ -14,16 +13,16 @@ const makeTarget = (overrides = {}) => ({
     rotationStyle: 'all around',
     sprite: {
         name: 'Sprite1',
-        costumes: [{name: 'costume1'}],
-        sounds: [{name: 'pop'}]
+        costumes: [{ name: 'costume1' }],
+        sounds: [{ name: 'pop' }],
     },
     runtime: {
         targets: [
-            {isStage: true},
+            { isStage: true },
             // will be replaced with the target itself
-        ]
+        ],
     },
-    ...overrides
+    ...overrides,
 });
 
 const makeStageTarget = (overrides = {}) => ({
@@ -31,13 +30,13 @@ const makeStageTarget = (overrides = {}) => ({
     currentCostume: 0,
     sprite: {
         name: 'Stage',
-        costumes: [{name: 'backdrop1'}],
-        sounds: [{name: 'pop'}]
+        costumes: [{ name: 'backdrop1' }],
+        sounds: [{ name: 'pop' }],
     },
     runtime: {
-        targets: [{isStage: true}]
+        targets: [{ isStage: true }],
     },
-    ...overrides
+    ...overrides,
 });
 
 describe('wrapCurrentCodeWithClass', () => {
@@ -75,49 +74,49 @@ describe('wrapCurrentCodeWithClass', () => {
     });
 
     test('generates set_x when x is non-default', () => {
-        const target = makeTarget({x: 100});
+        const target = makeTarget({ x: 100 });
         target.runtime.targets.push(target);
         const result = wrapCurrentCodeWithClass('', target);
         expect(result).toContain('  set_x 100');
     });
 
     test('generates set_y when y is non-default', () => {
-        const target = makeTarget({y: -50});
+        const target = makeTarget({ y: -50 });
         target.runtime.targets.push(target);
         const result = wrapCurrentCodeWithClass('', target);
         expect(result).toContain('  set_y -50');
     });
 
     test('generates set_direction when direction is non-default', () => {
-        const target = makeTarget({direction: 45});
+        const target = makeTarget({ direction: 45 });
         target.runtime.targets.push(target);
         const result = wrapCurrentCodeWithClass('', target);
         expect(result).toContain('  set_direction 45');
     });
 
     test('generates set_visible when not visible', () => {
-        const target = makeTarget({visible: false});
+        const target = makeTarget({ visible: false });
         target.runtime.targets.push(target);
         const result = wrapCurrentCodeWithClass('', target);
         expect(result).toContain('  set_visible false');
     });
 
     test('generates set_size when size is non-default', () => {
-        const target = makeTarget({size: 50});
+        const target = makeTarget({ size: 50 });
         target.runtime.targets.push(target);
         const result = wrapCurrentCodeWithClass('', target);
         expect(result).toContain('  set_size 50');
     });
 
     test('generates set_current_costume when costume is non-default', () => {
-        const target = makeTarget({currentCostume: 2});
+        const target = makeTarget({ currentCostume: 2 });
         target.runtime.targets.push(target);
         const result = wrapCurrentCodeWithClass('', target);
         expect(result).toContain('  set_current_costume 3');
     });
 
     test('generates set_rotation_style when non-default', () => {
-        const target = makeTarget({rotationStyle: 'left-right'});
+        const target = makeTarget({ rotationStyle: 'left-right' });
         target.runtime.targets.push(target);
         const result = wrapCurrentCodeWithClass('', target);
         expect(result).toContain('  set_rotation_style "left-right"');
@@ -156,7 +155,7 @@ describe('wrapCurrentCodeWithClass', () => {
     });
 
     test('generates set_current_backdrop for Stage', () => {
-        const target = makeStageTarget({currentCostume: 1});
+        const target = makeStageTarget({ currentCostume: 1 });
         const result = wrapCurrentCodeWithClass('', target);
         expect(result).toContain('  set_current_backdrop 2');
     });

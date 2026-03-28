@@ -1,11 +1,10 @@
 import React from 'react';
+import { IntlProvider } from 'react-intl';
+import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import {Provider} from 'react-redux';
-import {IntlProvider} from 'react-intl';
-import {render, fireEvent, act} from '@testing-library/react';
-
+import { render, fireEvent, act } from '@testing-library/react';
 import Cards from '../../../src/containers/cards.jsx';
-import {cardsInitialState} from '../../../src/reducers/cards';
+import { cardsInitialState } from '../../../src/reducers/cards';
 
 // Store the props passed to the CardsComponent for inspection
 let capturedProps = {};
@@ -15,13 +14,13 @@ jest.mock('../../../src/components/cards/cards.jsx', () => {
         capturedProps = props;
         return null;
     });
-    return {__esModule: true, default: MockCards};
+    return { __esModule: true, default: MockCards };
 });
 
 // Need to mock the translate-image module
 jest.mock('../../../src/lib/libraries/decks/translate-image.js', () => ({
     loadImageData: jest.fn(),
-    translateImage: jest.fn(key => key)
+    translateImage: jest.fn(key => key),
 }));
 
 const mockStore = configureStore();
@@ -46,26 +45,26 @@ const createStoreState = (overrides = {}) => ({
                             title: 'Step 1',
                             image: 'step1.png',
                             startTutorial: true,
-                            animationTarget: 'startTutorialButton'
+                            animationTarget: 'startTutorialButton',
                         },
                         {
                             title: 'Step 2',
                             image: 'step2.png',
                             code: 'puts "hello"',
-                            animationTarget: 'insertCodeButton'
-                        }
-                    ]
-                }
+                            animationTarget: 'insertCodeButton',
+                        },
+                    ],
+                },
             },
-            ...overrides
+            ...overrides,
         },
-        platform: {platform: 'WEB'},
-        projectChanged: false
+        platform: { platform: 'WEB' },
+        projectChanged: false,
     },
     locales: {
         isRtl: false,
-        locale: 'en'
-    }
+        locale: 'en',
+    },
 });
 
 const renderCards = (storeState = createStoreState()) => {
@@ -73,12 +72,12 @@ const renderCards = (storeState = createStoreState()) => {
     return {
         store,
         ...render(
-            <IntlProvider locale="en" messages={{'gui.howtos.test.name': 'Test Tutorial'}}>
+            <IntlProvider locale="en" messages={{ 'gui.howtos.test.name': 'Test Tutorial' }}>
                 <Provider store={store}>
                     <Cards />
                 </Provider>
-            </IntlProvider>
-        )
+            </IntlProvider>,
+        ),
     };
 };
 
@@ -100,7 +99,7 @@ describe('Cards container - start tutorial', () => {
     test('dispatches requestNewProject and setProjectTitle when start tutorial is clicked', () => {
         const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
 
-        const {store} = renderCards();
+        const { store } = renderCards();
         act(() => {
             capturedProps.onStartTutorial();
         });
@@ -123,7 +122,7 @@ describe('Cards container - start tutorial', () => {
 
         const storeState = createStoreState();
         storeState.scratchGui.projectChanged = true;
-        const {store} = renderCards(storeState);
+        const { store } = renderCards(storeState);
 
         act(() => {
             capturedProps.onStartTutorial();
@@ -180,7 +179,7 @@ describe('Cards container - next button lock', () => {
     });
 
     test('blocks onNextStep when step has an action button (startTutorial)', () => {
-        const {store} = renderCards();
+        const { store } = renderCards();
 
         // Next should be locked on mount (step 0 has startTutorial)
         act(() => {
@@ -193,7 +192,7 @@ describe('Cards container - next button lock', () => {
     });
 
     test('unlocks onNextStep after 5 seconds', () => {
-        const {store} = renderCards();
+        const { store } = renderCards();
 
         // Advance past lock timeout
         act(() => {
@@ -209,7 +208,7 @@ describe('Cards container - next button lock', () => {
     });
 
     test('unlocks onNextStep when startTutorial button is clicked', () => {
-        const {store} = renderCards();
+        const { store } = renderCards();
 
         // Click start tutorial to unlock
         act(() => {
@@ -226,8 +225,8 @@ describe('Cards container - next button lock', () => {
 
     test('unlocks onNextStep when insertCode button is clicked', () => {
         // Use step 1 which has code
-        const storeState = createStoreState({step: 1});
-        const {store} = renderCards(storeState);
+        const storeState = createStoreState({ step: 1 });
+        const { store } = renderCards(storeState);
 
         // Click insert code to unlock
         act(() => {
@@ -254,13 +253,13 @@ describe('Cards container - next button lock', () => {
                         {
                             title: 'Plain Step',
                             image: 'plain.png',
-                            animationTarget: 'nextButton'
-                        }
-                    ]
-                }
-            }
+                            animationTarget: 'nextButton',
+                        },
+                    ],
+                },
+            },
         });
-        const {store} = renderCards(storeState);
+        const { store } = renderCards(storeState);
 
         // Should be able to click next immediately
         act(() => {

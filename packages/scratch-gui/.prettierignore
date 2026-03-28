@@ -1,0 +1,275 @@
+# Prettier whitelist for Smalruby-specific files only.
+# Upstream (Scratch) files are excluded by default.
+#
+# How it works: ignore everything, then re-include Smalruby directories/files
+# level by level (gitignore requires parent dirs to be un-ignored first).
+#
+# Canonical file list: .claude/rules/scratch-gui/smalruby-prettier-files.md
+# When adding new Smalruby-specific files, update both this file and the doc.
+
+# ============================================================
+# Level 0: Ignore everything at root
+# ============================================================
+*
+!src/
+!test/
+
+# ============================================================
+# Level 1: src/*
+# ============================================================
+src/*
+!src/components/
+!src/containers/
+!src/lib/
+!src/locales/
+!src/reducers/
+
+# ============================================================
+# Level 2: src/components/*
+# ============================================================
+src/components/*
+# Smalruby-only directories (all contents included)
+!src/components/auto-correct-modal/
+!src/components/block-display-modal/
+!src/components/blocks-screenshot-button/
+!src/components/google-drive-save-dialog/
+!src/components/koshien-test-modal/
+!src/components/palette-toggle/
+!src/components/ruby-script-preview/
+!src/components/ruby-toolbar/
+!src/components/rubytee-consent/
+!src/components/rubytee-modal/
+!src/components/url-loader-modal/
+# Mixed directories
+!src/components/connection-modal/
+!src/components/menu-bar/
+
+# Level 3: src/components/connection-modal/*
+src/components/connection-modal/*
+!src/components/connection-modal/mesh-v2-initial-step.css
+!src/components/connection-modal/mesh-v2-initial-step.jsx
+!src/components/connection-modal/mesh-v2-network-filtered-step.jsx
+!src/components/connection-modal/mesh-v2-scanning-step.jsx
+
+# Level 3: src/components/menu-bar/*
+src/components/menu-bar/*
+!src/components/menu-bar/tutorial-tooltip.css
+!src/components/menu-bar/tutorial-tooltip.jsx
+
+# ============================================================
+# Level 2: src/containers/*
+# ============================================================
+src/containers/*
+# Smalruby-only directory
+!src/containers/ruby-tab/
+# Individual Smalruby files
+!src/containers/block-display-modal.jsx
+!src/containers/extension-library.css
+!src/containers/google-drive-loader-hoc.jsx
+!src/containers/google-drive-saver-hoc.jsx
+!src/containers/ruby-downloader.jsx
+!src/containers/ruby-tab.jsx
+!src/containers/rubytee-modal-hoc.jsx
+
+# ============================================================
+# Level 2: src/lib/*
+# ============================================================
+src/lib/*
+# Smalruby-only directories
+!src/lib/ruby-generator/
+!src/lib/ruby-to-blocks-converter/
+!src/lib/settings/
+!src/lib/themes/
+# Mixed directory
+!src/lib/libraries/
+# Individual Smalruby files
+!src/lib/auto-correct.js
+!src/lib/block-utils.js
+!src/lib/blocks-gesture-recovery.js
+!src/lib/blocks-screenshot.js
+!src/lib/define-ruby-blocks.js
+!src/lib/furigana-annotator.js
+!src/lib/furigana-call-helpers.js
+!src/lib/furigana-extension-handlers.js
+!src/lib/furigana-label-map.js
+!src/lib/furigana-node-handlers.js
+!src/lib/generator.js
+!src/lib/google-drive-api.js
+!src/lib/google-script-loader.js
+!src/lib/insert-class.js
+!src/lib/log-suppression.js
+!src/lib/microbit-more-update.js
+!src/lib/module-sync.js
+!src/lib/monaco-i18n-helper.js
+!src/lib/prism-parser.js
+!src/lib/project-loader-utils.js
+!src/lib/radix-ui-context-menu.js
+!src/lib/ruby-parser.js
+!src/lib/ruby-screenshot.js
+!src/lib/ruby-script-preview.js
+!src/lib/ruby-to-blocks-converter-hoc.jsx
+!src/lib/rubytee-api.js
+!src/lib/rubytee-context.js
+!src/lib/url-loader-hoc.jsx
+!src/lib/url-params.js
+!src/lib/url-parser.js
+!src/lib/version-checker.js
+
+# Level 3: src/lib/libraries/*
+src/lib/libraries/*
+!src/lib/libraries/extensions/
+
+# Level 4: src/lib/libraries/extensions/*
+src/lib/libraries/extensions/*
+# Smalruby-only directories
+!src/lib/libraries/extensions/koshien/
+!src/lib/libraries/extensions/microbitMore/
+!src/lib/libraries/extensions/smalruby-ruby/
+
+# ============================================================
+# Level 2: src/locales/*
+# ============================================================
+src/locales/*
+!src/locales/en.js
+!src/locales/index.js
+!src/locales/ja-Hira.js
+!src/locales/ja.js
+
+# ============================================================
+# Level 2: src/reducers/*
+# ============================================================
+src/reducers/*
+!src/reducers/block-display.js
+!src/reducers/extension-filter.js
+!src/reducers/google-drive-file.js
+!src/reducers/koshien-file.js
+!src/reducers/mesh-v2.js
+!src/reducers/palette-visibility.js
+!src/reducers/ruby-code.js
+!src/reducers/smalruby-registry.ts
+!src/reducers/tutorial-onboarding.js
+
+# ============================================================
+# Level 1: test/*
+# ============================================================
+test/*
+!test/__mocks__/
+!test/helpers/
+!test/integration/
+!test/unit/
+
+# Level 2: test/__mocks__/*
+test/__mocks__/*
+!test/__mocks__/browserWasiShimMock.js
+
+# Level 2: test/helpers/* — Smalruby-only, no filter needed
+
+# Level 2: test/integration/*
+test/integration/*
+!test/integration/auto-correct.test.js
+!test/integration/block-display-modal.test.js
+!test/integration/block-palette.test.js
+!test/integration/debug_defaults.test.js
+!test/integration/feedback-link.test.js
+!test/integration/ruby-editor-actions.test.js
+!test/integration/ruby-module.test.js
+!test/integration/ruby-script-preview.test.js
+!test/integration/ruby-super.test.js
+!test/integration/ruby-tab-completion-and-indent.test.js
+!test/integration/ruby-tab-furigana-zoom.test.js
+!test/integration/ruby-tab.test.js
+!test/integration/rubytee-consent.test.js
+!test/integration/smalruby-tutorials.test.js
+!test/integration/v1-detection-prompt.test.js
+!test/integration/version-update-notification.test.js
+
+# ============================================================
+# Level 2: test/unit/*
+# ============================================================
+test/unit/*
+!test/unit/components/
+!test/unit/containers/
+!test/unit/helpers/
+!test/unit/lib/
+!test/unit/reducers/
+!test/unit/util/
+!test/unit/empty-block-selection.test.js
+!test/unit/make-toolbox-xml-exact-match.test.js
+!test/unit/make-toolbox-xml-hex.test.js
+!test/unit/only-blocks-initialization.test.js
+!test/unit/setup.js
+
+# Level 3: test/unit/components/*
+test/unit/components/*
+!test/unit/components/action-menu.test.jsx
+!test/unit/components/connected-step.test.jsx
+!test/unit/components/palette-toggle.test.jsx
+!test/unit/components/project-title-input.test.jsx
+!test/unit/components/scanning-step-name-search.test.js
+
+# Level 3: test/unit/containers/*
+test/unit/containers/*
+!test/unit/containers/ruby-tab/
+!test/unit/containers/backpack.test.jsx
+!test/unit/containers/cards.test.jsx
+!test/unit/containers/connection-modal-connected-message.test.jsx
+!test/unit/containers/connection-modal.test.jsx
+!test/unit/containers/google-drive-saver-hoc.test.jsx
+!test/unit/containers/google-drive-state-management.test.jsx
+!test/unit/containers/ruby-downloader.test.jsx
+!test/unit/containers/ruby-tab-project-changed.test.js
+!test/unit/containers/rubytee-modal-hoc-sanitize.test.js
+
+# Level 3: test/unit/helpers/* — Smalruby-only, no filter needed
+
+# Level 3: test/unit/lib/*
+test/unit/lib/*
+# Smalruby-only directories
+!test/unit/lib/ruby-generator/
+!test/unit/lib/ruby-roundtrip/
+!test/unit/lib/ruby-to-blocks-converter/
+# Individual Smalruby files
+!test/unit/lib/auto-correct.test.js
+!test/unit/lib/backpack-api.test.js
+!test/unit/lib/block-display-initialization.test.js
+!test/unit/lib/blocks-gesture-recovery.test.js
+!test/unit/lib/blocks-screenshot.test.js
+!test/unit/lib/furigana-annotator-perf.test.js
+!test/unit/lib/furigana-annotator.test.js
+!test/unit/lib/google-drive-api.test.js
+!test/unit/lib/insert-class.test.js
+!test/unit/lib/layout-constants.test.js
+!test/unit/lib/legacy-storage.test.js
+!test/unit/lib/make-toolbox-xml.test.js
+!test/unit/lib/module-sync.test.js
+!test/unit/lib/prism-parser.test.js
+!test/unit/lib/removed-trademarks.test.js
+!test/unit/lib/ruby-generator-procedure-arguments.test.js
+!test/unit/lib/ruby-generator-version.test.jsx
+!test/unit/lib/ruby-roundtrip-class-assets.test.js
+!test/unit/lib/ruby-roundtrip-class-stage.test.js
+!test/unit/lib/ruby-roundtrip-class-superclass.test.js
+!test/unit/lib/ruby-roundtrip-comment-bugs.test.js
+!test/unit/lib/ruby-roundtrip-gets.test.js
+!test/unit/lib/ruby-roundtrip-method-return.test.js
+!test/unit/lib/ruby-roundtrip-super.test.js
+!test/unit/lib/ruby-screenshot.test.js
+!test/unit/lib/ruby-script-preview.test.js
+!test/unit/lib/ruby-to-blocks-converter-version.test.js
+!test/unit/lib/rubytee-api.test.js
+!test/unit/lib/rubytee-context.test.js
+!test/unit/lib/screen-utils.test.js
+!test/unit/lib/setup-prism.js
+!test/unit/lib/version-checker.test.js
+
+# Level 3: test/unit/reducers/*
+test/unit/reducers/*
+!test/unit/reducers/cards_reducer.test.js
+!test/unit/reducers/menus-reducer.test.js
+!test/unit/reducers/palette-visibility-reducer.test.js
+!test/unit/reducers/settings.test.js
+!test/unit/reducers/stage-size-reducer.test.js
+
+# Level 3: test/unit/util/*
+test/unit/util/*
+!test/unit/util/ruby-versions.test.js

@@ -13,13 +13,13 @@ const createMockBlocks = () => ({
     runtime: {
         on: () => {},
         getTargetForStage: () => ({
-            variables: {}
+            variables: {},
         }),
-        sequencer: {}
+        sequencer: {},
     },
     opcodeFunctions: {
-        event_broadcast: () => {}
-    }
+        event_broadcast: () => {},
+    },
 });
 
 test('MeshV2Service Cost Tracking', t => {
@@ -28,43 +28,45 @@ test('MeshV2Service Cost Tracking', t => {
 
     // Mock client
     const mockClient = {
-        query: () => Promise.resolve({
-            data: {
-                listGroupsByDomain: [],
-                listGroupStatuses: []
-            }
-        }),
-        mutate: () => Promise.resolve({
-            data: {
-                createDomain: 'd1',
-                createGroup: {
-                    id: 'g1',
-                    name: 'G1',
-                    domain: 'd1',
-                    expiresAt: '2099-01-01T00:00:00Z',
-                    heartbeatIntervalSeconds: 60
+        query: () =>
+            Promise.resolve({
+                data: {
+                    listGroupsByDomain: [],
+                    listGroupStatuses: [],
                 },
-                joinGroup: {
-                    id: 'n1',
-                    domain: 'd1',
-                    expiresAt: '2099-01-01T00:00:00Z',
-                    heartbeatIntervalSeconds: 120
+            }),
+        mutate: () =>
+            Promise.resolve({
+                data: {
+                    createDomain: 'd1',
+                    createGroup: {
+                        id: 'g1',
+                        name: 'G1',
+                        domain: 'd1',
+                        expiresAt: '2099-01-01T00:00:00Z',
+                        heartbeatIntervalSeconds: 60,
+                    },
+                    joinGroup: {
+                        id: 'n1',
+                        domain: 'd1',
+                        expiresAt: '2099-01-01T00:00:00Z',
+                        heartbeatIntervalSeconds: 120,
+                    },
+                    renewHeartbeat: {
+                        expiresAt: '2099-01-01T00:00:00Z',
+                        heartbeatIntervalSeconds: 60,
+                    },
+                    sendMemberHeartbeat: {
+                        expiresAt: '2099-01-01T00:00:00Z',
+                        heartbeatIntervalSeconds: 120,
+                    },
                 },
-                renewHeartbeat: {
-                    expiresAt: '2099-01-01T00:00:00Z',
-                    heartbeatIntervalSeconds: 60
-                },
-                sendMemberHeartbeat: {
-                    expiresAt: '2099-01-01T00:00:00Z',
-                    heartbeatIntervalSeconds: 120
-                }
-            }
-        }),
+            }),
         subscribe: () => ({
             subscribe: () => ({
-                unsubscribe: () => {}
-            })
-        })
+                unsubscribe: () => {},
+            }),
+        }),
     };
     service.client = mockClient;
 
@@ -92,10 +94,10 @@ test('MeshV2Service Cost Tracking', t => {
         st.equal(service.costTracking.mutationCount, 3);
 
         await service.renewHeartbeat(); // only if host
-        
+
         // Set isHost directly
         service.isHost = true;
-        
+
         await service.renewHeartbeat();
         st.equal(service.costTracking.mutationCount, 4);
         st.equal(service.costTracking.heartbeatCount, 1);
@@ -105,11 +107,11 @@ test('MeshV2Service Cost Tracking', t => {
         st.equal(service.costTracking.mutationCount, 5);
         st.equal(service.costTracking.heartbeatCount, 2);
 
-        await service._reportData([{key: 'k1', value: 'v1'}]);
+        await service._reportData([{ key: 'k1', value: 'v1' }]);
         st.equal(service.costTracking.mutationCount, 6);
         st.equal(service.costTracking.reportDataCount, 1);
 
-        await service.fireEventsBatch([{eventName: 'e1'}]);
+        await service.fireEventsBatch([{ eventName: 'e1' }]);
         st.equal(service.costTracking.mutationCount, 7);
         st.equal(service.costTracking.fireEventsCount, 1);
 
@@ -123,17 +125,19 @@ test('MeshV2Service Cost Tracking', t => {
         service.costTracking.dataUpdateReceived++;
         service.handleDataUpdate({
             nodeId: 'other',
-            data: [{key: 'k', value: 'v'}]
+            data: [{ key: 'k', value: 'v' }],
         });
         st.equal(service.costTracking.dataUpdateReceived, 1);
 
         service.costTracking.batchEventReceived++;
         service.handleBatchEvent({
             firedByNodeId: 'other',
-            events: [{
-                name: 'e',
-                timestamp: new Date().toISOString()
-            }]
+            events: [
+                {
+                    name: 'e',
+                    timestamp: new Date().toISOString(),
+                },
+            ],
         });
         st.equal(service.costTracking.batchEventReceived, 1);
 

@@ -1,8 +1,4 @@
-import {
-    STAGE_SIZE_MODES,
-    STAGE_DISPLAY_SIZES,
-    STAGE_DISPLAY_SCALES
-} from '../../../src/lib/layout-constants';
+import { STAGE_SIZE_MODES, STAGE_DISPLAY_SIZES, STAGE_DISPLAY_SCALES } from '../../../src/lib/layout-constants';
 
 describe('Layout Constants', () => {
     test('STAGE_SIZE_MODES includes middle', async () => {

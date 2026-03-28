@@ -7,21 +7,14 @@
  * exact pixel dimensions.
  */
 import path from 'path';
-import SeleniumHelper from '../helpers/selenium-helper';
 import RubyHelper from '../helpers/ruby-helper';
+import SeleniumHelper from '../helpers/selenium-helper';
 
 const seleniumHelper = new SeleniumHelper();
-const {
-    clickText,
-    clickXpath,
-    getDriver,
-    loadUri
-} = seleniumHelper;
+const { clickText, clickXpath, getDriver, loadUri } = seleniumHelper;
 
 const rubyHelper = new RubyHelper(seleniumHelper);
-const {
-    fillInRubyProgram
-} = rubyHelper;
+const { fillInRubyProgram } = rubyHelper;
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 

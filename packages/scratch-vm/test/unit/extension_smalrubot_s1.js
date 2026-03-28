@@ -23,8 +23,8 @@ const createMockRuntime = () => {
             PERIPHERAL_CONNECTED: 'PERIPHERAL_CONNECTED',
             PERIPHERAL_DISCONNECTED: 'PERIPHERAL_DISCONNECTED',
             PERIPHERAL_CONNECTION_LOST_ERROR: 'PERIPHERAL_CONNECTION_LOST_ERROR',
-            PERIPHERAL_REQUEST_ERROR: 'PERIPHERAL_REQUEST_ERROR'
-        }
+            PERIPHERAL_REQUEST_ERROR: 'PERIPHERAL_REQUEST_ERROR',
+        },
     };
     return runtime;
 };
@@ -35,15 +35,15 @@ const createMockRuntime = () => {
  * @param {boolean} options.closeThrows - Whether close() should throw an error
  * @returns {object} Mock serial port
  */
-const createMockSerialPort = ({closeThrows = false} = {}) => {
+const createMockSerialPort = ({ closeThrows = false } = {}) => {
     const mockReader = {
         cancel: () => Promise.resolve(),
-        read: () => new Promise(() => {}) // Never resolves
+        read: () => new Promise(() => {}), // Never resolves
     };
 
     const mockWriter = {
         close: () => Promise.resolve(),
-        write: () => Promise.resolve()
+        write: () => Promise.resolve(),
     };
 
     const mockPort = {
@@ -55,11 +55,11 @@ const createMockSerialPort = ({closeThrows = false} = {}) => {
             return Promise.resolve();
         },
         readable: {
-            getReader: () => mockReader
+            getReader: () => mockReader,
         },
         writable: {
-            getWriter: () => mockWriter
-        }
+            getWriter: () => mockWriter,
+        },
     };
 
     return mockPort;
@@ -70,8 +70,8 @@ test('Smalrubot S1 Blocks', t => {
     // Use global._mockNavigator to avoid Navigator object conversion in Node.js
     const mockNavigator = {
         serial: {
-            requestPort: () => Promise.resolve(createMockSerialPort())
-        }
+            requestPort: () => Promise.resolve(createMockSerialPort()),
+        },
     };
 
     global._mockNavigator = mockNavigator;
@@ -101,33 +101,37 @@ test('Smalrubot S1 Blocks', t => {
         const smalrubot = blocks.smalrubot;
 
         // Set up smalrubot in a connected state with a port that throws on close
-        smalrubot.serialPort = createMockSerialPort({closeThrows: true});
+        smalrubot.serialPort = createMockSerialPort({ closeThrows: true });
         smalrubot.reader = {
-            cancel: () => Promise.reject(new Error('Reader already canceled'))
+            cancel: () => Promise.reject(new Error('Reader already canceled')),
         };
         smalrubot.writer = {
-            close: () => Promise.reject(new Error('Cannot close a ERRORED writable stream'))
+            close: () => Promise.reject(new Error('Cannot close a ERRORED writable stream')),
         };
         smalrubot.connectionState = 'connected';
 
         // Perform disconnect
-        return smalrubot.disconnect()
+        return smalrubot
+            .disconnect()
             .then(() => {
                 // Verify state transitioned to disconnected despite errors
-                st.equal(smalrubot.connectionState, 'disconnected',
-                    'should transition to disconnected state even when errors occur');
+                st.equal(
+                    smalrubot.connectionState,
+                    'disconnected',
+                    'should transition to disconnected state even when errors occur',
+                );
 
                 // Verify resources are cleaned up
-                st.equal(smalrubot.serialPort, null,
-                    'should set serialPort to null');
-                st.equal(smalrubot.reader, null,
-                    'should set reader to null');
-                st.equal(smalrubot.writer, null,
-                    'should set writer to null');
+                st.equal(smalrubot.serialPort, null, 'should set serialPort to null');
+                st.equal(smalrubot.reader, null, 'should set reader to null');
+                st.equal(smalrubot.writer, null, 'should set writer to null');
 
                 // Verify PERIPHERAL_DISCONNECTED event was emitted
-                st.equal(mockRuntime.lastEmittedEvent, 'PERIPHERAL_DISCONNECTED',
-                    'should emit PERIPHERAL_DISCONNECTED event');
+                st.equal(
+                    mockRuntime.lastEmittedEvent,
+                    'PERIPHERAL_DISCONNECTED',
+                    'should emit PERIPHERAL_DISCONNECTED event',
+                );
 
                 st.end();
             })
@@ -145,12 +149,10 @@ test('Smalrubot S1 Blocks', t => {
         // Already in disconnected state
         smalrubot.connectionState = 'disconnected';
 
-        return smalrubot.disconnect()
-            .then(() => {
-                st.equal(smalrubot.connectionState, 'disconnected',
-                    'should remain in disconnected state');
-                st.end();
-            });
+        return smalrubot.disconnect().then(() => {
+            st.equal(smalrubot.connectionState, 'disconnected', 'should remain in disconnected state');
+            st.end();
+        });
     });
 
     t.test('disconnect without serial port', st => {
@@ -162,12 +164,10 @@ test('Smalrubot S1 Blocks', t => {
         smalrubot.connectionState = 'connected';
         smalrubot.serialPort = null;
 
-        return smalrubot.disconnect()
-            .then(() => {
-                st.equal(smalrubot.connectionState, 'disconnected',
-                    'should transition to disconnected state');
-                st.end();
-            });
+        return smalrubot.disconnect().then(() => {
+            st.equal(smalrubot.connectionState, 'disconnected', 'should transition to disconnected state');
+            st.end();
+        });
     });
 
     t.test('disconnect cleans up all resources', st => {
@@ -178,26 +178,24 @@ test('Smalrubot S1 Blocks', t => {
         // Set up smalrubot in a connected state
         smalrubot.serialPort = createMockSerialPort();
         smalrubot.reader = {
-            cancel: () => Promise.resolve()
+            cancel: () => Promise.resolve(),
         };
         smalrubot.writer = {
-            close: () => Promise.resolve()
+            close: () => Promise.resolve(),
         };
         smalrubot.writing = true;
         smalrubot.writeQueue = ['data1', 'data2'];
         smalrubot.connectionState = 'connected';
 
-        return smalrubot.disconnect()
-            .then(() => {
-                st.equal(smalrubot.serialPort, null, 'should clear serialPort');
-                st.equal(smalrubot.reader, null, 'should clear reader');
-                st.equal(smalrubot.writer, null, 'should clear writer');
-                st.equal(smalrubot.writing, false, 'should reset writing flag');
-                st.same(smalrubot.writeQueue, [], 'should clear writeQueue');
-                st.equal(smalrubot.connectionState, 'disconnected',
-                    'should transition to disconnected state');
-                st.end();
-            });
+        return smalrubot.disconnect().then(() => {
+            st.equal(smalrubot.serialPort, null, 'should clear serialPort');
+            st.equal(smalrubot.reader, null, 'should clear reader');
+            st.equal(smalrubot.writer, null, 'should clear writer');
+            st.equal(smalrubot.writing, false, 'should reset writing flag');
+            st.same(smalrubot.writeQueue, [], 'should clear writeQueue');
+            st.equal(smalrubot.connectionState, 'disconnected', 'should transition to disconnected state');
+            st.end();
+        });
     });
 
     t.end();

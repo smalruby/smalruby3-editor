@@ -20,10 +20,10 @@ const createMockRuntime = () => {
             runtime.lastEmittedData = data;
         },
         getOpcodeFunction: () => () => {},
-        createNewGlobalVariable: name => ({type: Variable.SCALAR_TYPE, name: name || 'var1', value: 0}),
+        createNewGlobalVariable: name => ({ type: Variable.SCALAR_TYPE, name: name || 'var1', value: 0 }),
         _primitives: {},
         extensionManager: {
-            isExtensionLoaded: () => false
+            isExtensionLoaded: () => false,
         },
         constructor: {
             PERIPHERAL_LIST_UPDATE: 'PERIPHERAL_LIST_UPDATE',
@@ -31,18 +31,19 @@ const createMockRuntime = () => {
             PERIPHERAL_DISCONNECTED: 'PERIPHERAL_DISCONNECTED',
             PERIPHERAL_CONNECTION_ERROR_ID: 'PERIPHERAL_CONNECTION_ERROR_ID',
             PERIPHERAL_CONNECTION_LOST_ERROR: 'PERIPHERAL_CONNECTION_LOST_ERROR',
-            PERIPHERAL_REQUEST_ERROR: 'PERIPHERAL_REQUEST_ERROR'
-        }
+            PERIPHERAL_REQUEST_ERROR: 'PERIPHERAL_REQUEST_ERROR',
+        },
     };
     const stage = {
         variables: {},
         getCustomVars: () => [],
-        lookupVariableById: id => stage.variables[id] || {id: id, name: 'var1', value: 0, type: Variable.SCALAR_TYPE},
+        lookupVariableById: id =>
+            stage.variables[id] || { id: id, name: 'var1', value: 0, type: Variable.SCALAR_TYPE },
         lookupVariableByNameAndType: () => null,
         lookupOrCreateVariable: () => ({}),
         createVariable: () => {},
         setVariableValue: () => {},
-        renameVariable: () => {}
+        renameVariable: () => {},
     };
     runtime.getTargetForStage = () => stage;
     return runtime;
@@ -52,8 +53,8 @@ test('Mesh V2 Blocks', t => {
     // Set up global window for utils
     global.window = {
         location: {
-            search: '?mesh=test-domain'
-        }
+            search: '?mesh=test-domain',
+        },
     };
     global.URLSearchParams = URLSearchParams;
 
@@ -86,14 +87,14 @@ test('Mesh V2 Blocks', t => {
                 id: 'group1',
                 name: 'Group 1',
                 domain: 'test-domain',
-                expiresAt: new Date(now + 100000).toISOString()
+                expiresAt: new Date(now + 100000).toISOString(),
             },
             {
                 id: 'expired-group',
                 name: 'Expired',
                 domain: 'test-domain',
-                expiresAt: new Date(now - 100000).toISOString()
-            }
+                expiresAt: new Date(now - 100000).toISOString(),
+            },
         ];
 
         // Mock service method
@@ -122,7 +123,7 @@ test('Mesh V2 Blocks', t => {
             st.equal(name, blocks.nodeId);
             // Simulate server returning auto-generated domain
             blocks.meshService.domain = 'auto-domain';
-            return Promise.resolve({id: 'new-group-id', domain: 'auto-domain'});
+            return Promise.resolve({ id: 'new-group-id', domain: 'auto-domain' });
         };
 
         blocks.connect('meshV2_host');
@@ -140,7 +141,7 @@ test('Mesh V2 Blocks', t => {
         const blocks = new MeshV2Blocks(mockRuntime);
         blocks.domain = null;
         blocks.meshService.domain = null;
-        blocks.discoveredGroups = [{id: 'group1', name: 'Group 1', domain: 'scanned-domain'}];
+        blocks.discoveredGroups = [{ id: 'group1', name: 'Group 1', domain: 'scanned-domain' }];
 
         // Mock service methods
         blocks.meshService.joinGroup = (id, domain, groupName) => {
@@ -148,7 +149,7 @@ test('Mesh V2 Blocks', t => {
             st.equal(domain, 'scanned-domain');
             st.equal(groupName, 'Group 1');
             blocks.meshService.domain = domain;
-            return Promise.resolve({id: 'node1', domain: domain});
+            return Promise.resolve({ id: 'node1', domain: domain });
         };
 
         blocks.connect('group1');
@@ -171,7 +172,7 @@ test('Mesh V2 Blocks', t => {
 
         setImmediate(() => {
             st.equal(mockRuntime.lastEmittedEvent, 'PERIPHERAL_DISCONNECTED');
-            st.same(mockRuntime.lastEmittedData, {extensionId: 'meshV2'});
+            st.same(mockRuntime.lastEmittedData, { extensionId: 'meshV2' });
             st.equal(blocks.connectionState, 'error');
             st.end();
         });
@@ -180,7 +181,7 @@ test('Mesh V2 Blocks', t => {
     t.test('connect as peer failure', st => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
-        blocks.discoveredGroups = [{id: 'group1', name: 'Group 1', domain: 'scanned-domain'}];
+        blocks.discoveredGroups = [{ id: 'group1', name: 'Group 1', domain: 'scanned-domain' }];
 
         // Mock service method to fail
         blocks.meshService.joinGroup = () => Promise.reject(new Error('Connection failed'));
@@ -189,7 +190,7 @@ test('Mesh V2 Blocks', t => {
 
         setImmediate(() => {
             st.equal(mockRuntime.lastEmittedEvent, 'PERIPHERAL_DISCONNECTED');
-            st.same(mockRuntime.lastEmittedData, {extensionId: 'meshV2'});
+            st.same(mockRuntime.lastEmittedData, { extensionId: 'meshV2' });
             st.equal(blocks.connectionState, 'error');
             st.end();
         });
@@ -207,7 +208,7 @@ test('Mesh V2 Blocks', t => {
         st.equal(blocks.connectionState, 'error');
         // Now it emits both PERIPHERAL_REQUEST_ERROR and PERIPHERAL_DISCONNECTED
         st.equal(mockRuntime.lastEmittedEvent, 'PERIPHERAL_DISCONNECTED');
-        st.same(mockRuntime.lastEmittedData, {extensionId: 'meshV2'});
+        st.same(mockRuntime.lastEmittedData, { extensionId: 'meshV2' });
 
         // Test connected state transition
         blocks.setConnectionState('connected');
@@ -230,7 +231,7 @@ test('Mesh V2 Blocks', t => {
         // Track all emitted events
         const originalEmit = mockRuntime.emit;
         mockRuntime.emit = (event, data) => {
-            events.push({event, data});
+            events.push({ event, data });
             return originalEmit(event, data);
         };
 
@@ -241,8 +242,8 @@ test('Mesh V2 Blocks', t => {
         st.equal(events.length, 2);
         st.equal(events[0].event, 'PERIPHERAL_REQUEST_ERROR');
         st.equal(events[1].event, 'PERIPHERAL_DISCONNECTED');
-        st.same(events[0].data, {extensionId: 'meshV2', errorType: null});
-        st.same(events[1].data, {extensionId: 'meshV2'});
+        st.same(events[0].data, { extensionId: 'meshV2', errorType: null });
+        st.same(events[1].data, { extensionId: 'meshV2' });
 
         st.end();
     });
@@ -255,7 +256,7 @@ test('Mesh V2 Blocks', t => {
         // Track all emitted events
         const originalEmit = mockRuntime.emit;
         mockRuntime.emit = (event, data) => {
-            events.push({event, data});
+            events.push({ event, data });
             return originalEmit(event, data);
         };
 
@@ -283,7 +284,7 @@ test('Mesh V2 Blocks', t => {
         // Track all emitted events
         const originalEmit = mockRuntime.emit;
         mockRuntime.emit = (event, data) => {
-            events.push({event, data});
+            events.push({ event, data });
             return originalEmit(event, data);
         };
 
@@ -310,7 +311,7 @@ test('Mesh V2 Blocks', t => {
         // Track all emitted events
         const originalEmit = mockRuntime.emit;
         mockRuntime.emit = (event, data) => {
-            events.push({event, data});
+            events.push({ event, data });
             return originalEmit(event, data);
         };
 
@@ -356,8 +357,8 @@ test('Mesh V2 Blocks', t => {
             return null;
         };
 
-        st.equal(blocks.getSensorValue({NAME: 'var1'}), 'val1');
-        st.equal(blocks.getSensorValue({NAME: 'var2'}), '');
+        st.equal(blocks.getSensorValue({ NAME: 'var1' }), 'val1');
+        st.equal(blocks.getSensorValue({ NAME: 'var2' }), '');
         st.end();
     });
 
@@ -367,7 +368,7 @@ test('Mesh V2 Blocks', t => {
         const stage = mockRuntime.getTargetForStage();
 
         // Mock service methods to avoid network calls during connect
-        blocks.meshService.joinGroup = () => Promise.resolve({id: 'node1'});
+        blocks.meshService.joinGroup = () => Promise.resolve({ id: 'node1' });
 
         // Setup HOCs
         blocks.connect('some-group');
@@ -387,7 +388,7 @@ test('Mesh V2 Blocks', t => {
         dataSent = null;
 
         // Mock variable existence in stage
-        stage.variables.id1 = {id: 'id1', name: 'var1', value: 0, type: Variable.SCALAR_TYPE};
+        stage.variables.id1 = { id: 'id1', name: 'var1', value: 0, type: Variable.SCALAR_TYPE };
 
         // Test setVariableValue intercept
         stage.setVariableValue('id1', 100);
@@ -406,36 +407,36 @@ test('Mesh V2 Blocks', t => {
         // strongest: 3000s remaining, max is 3000s
         const strongest = {
             createdAt: new Date(now).toISOString(),
-            expiresAt: new Date(now + (3000 * 1000)).toISOString()
+            expiresAt: new Date(now + 3000 * 1000).toISOString(),
         };
         st.equal(blocks.calculateRssi(strongest), 0);
 
         // medium: 1500s remaining, max is 3000s
         const medium = {
-            createdAt: new Date(now - (1500 * 1000)).toISOString(),
-            expiresAt: new Date(now + (1500 * 1000)).toISOString()
+            createdAt: new Date(now - 1500 * 1000).toISOString(),
+            expiresAt: new Date(now + 1500 * 1000).toISOString(),
         };
         st.equal(blocks.calculateRssi(medium), -50);
 
         // weakest: 0s remaining, max is 3000s
         const weakest = {
-            createdAt: new Date(now - (3000 * 1000)).toISOString(),
-            expiresAt: new Date(now).toISOString()
+            createdAt: new Date(now - 3000 * 1000).toISOString(),
+            expiresAt: new Date(now).toISOString(),
         };
         st.equal(blocks.calculateRssi(weakest), -100);
 
         // expired: -10s remaining, max is 3000s
         const expired = {
-            createdAt: new Date(now - (3010 * 1000)).toISOString(),
-            expiresAt: new Date(now - (10 * 1000)).toISOString()
+            createdAt: new Date(now - 3010 * 1000).toISOString(),
+            expiresAt: new Date(now - 10 * 1000).toISOString(),
         };
         st.equal(blocks.calculateRssi(expired), -100);
 
         // null/incomplete object handling
         st.equal(blocks.calculateRssi(null), 0);
         st.equal(blocks.calculateRssi({}), 0);
-        st.equal(blocks.calculateRssi({createdAt: new Date().toISOString()}), 0);
-        st.equal(blocks.calculateRssi({expiresAt: new Date().toISOString()}), 0);
+        st.equal(blocks.calculateRssi({ createdAt: new Date().toISOString() }), 0);
+        st.equal(blocks.calculateRssi({ expiresAt: new Date().toISOString() }), 0);
 
         st.end();
     });
@@ -446,55 +447,63 @@ test('Mesh V2 Blocks', t => {
 
         // GraphQL errorType: GroupNotFound
         const groupNotFoundError = {
-            graphQLErrors: [{
-                message: 'Group expired: xxx@yyy',
-                errorType: 'GroupNotFound'
-            }]
+            graphQLErrors: [
+                {
+                    message: 'Group expired: xxx@yyy',
+                    errorType: 'GroupNotFound',
+                },
+            ],
         };
         st.equal(blocks.meshService.shouldDisconnectOnError(groupNotFoundError), 'GroupNotFound');
 
         // GraphQL errorType: Unauthorized
         const unauthorizedError = {
-            graphQLErrors: [{
-                message: 'Only the host can renew',
-                errorType: 'Unauthorized'
-            }]
+            graphQLErrors: [
+                {
+                    message: 'Only the host can renew',
+                    errorType: 'Unauthorized',
+                },
+            ],
         };
         st.equal(blocks.meshService.shouldDisconnectOnError(unauthorizedError), 'Unauthorized');
 
         // GraphQL errorType: NodeNotFound
         const nodeNotFoundError = {
-            graphQLErrors: [{
-                message: 'Node not found',
-                errorType: 'NodeNotFound'
-            }]
+            graphQLErrors: [
+                {
+                    message: 'Node not found',
+                    errorType: 'NodeNotFound',
+                },
+            ],
         };
         st.equal(blocks.meshService.shouldDisconnectOnError(nodeNotFoundError), 'NodeNotFound');
 
         // GraphQL errorType: ValidationError (should NOT disconnect)
         const validationError = {
-            graphQLErrors: [{
-                message: 'Domain must be 256 characters or less',
-                errorType: 'ValidationError'
-            }]
+            graphQLErrors: [
+                {
+                    message: 'Domain must be 256 characters or less',
+                    errorType: 'ValidationError',
+                },
+            ],
         };
         st.equal(blocks.meshService.shouldDisconnectOnError(validationError), null);
 
         // Fallback: message string matching
         const messageOnlyError = {
-            message: 'GraphQL error: Group not found'
+            message: 'GraphQL error: Group not found',
         };
         st.equal(blocks.meshService.shouldDisconnectOnError(messageOnlyError), 'expired');
 
         const expiredMessageError = {
-            message: 'Group expired'
+            message: 'Group expired',
         };
         st.equal(blocks.meshService.shouldDisconnectOnError(expiredMessageError), 'expired');
 
         // Network error (should NOT disconnect)
         const networkError = {
             message: 'Network request failed',
-            networkError: new Error('Fetch failed')
+            networkError: new Error('Fetch failed'),
         };
         st.equal(blocks.meshService.shouldDisconnectOnError(networkError), null);
 
@@ -521,7 +530,7 @@ test('Mesh V2 Blocks', t => {
             groupId: 'test-group-id',
             groupName: 'abcdef',
             expiresAt: new Date('2024-01-01T11:17:00Z').toISOString(),
-            isHost: false
+            isHost: false,
         };
 
         const message = blocks.menuMessage();

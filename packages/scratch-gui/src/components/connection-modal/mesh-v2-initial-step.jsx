@@ -1,26 +1,22 @@
 // === Smalruby: This file is Smalruby-specific (MeshV2 initial connection step) ===
 // This component shows initial connection options for meshV2 extension
 // with two main actions: create group (become host) or join group.
-
-import {defineMessages, FormattedMessage, useIntl} from 'react-intl';
-import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 import React from 'react';
-
+import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import Box from '../box/box.jsx';
-
-import createGroupImage from './mesh_v2_create_group.png';
-import joinGroupImage from './mesh_v2_join_group.png';
-
 import styles from './connection-modal.css';
 import initialStepStyles from './mesh-v2-initial-step.css';
+import createGroupImage from './mesh_v2_create_group.png';
+import joinGroupImage from './mesh_v2_join_group.png';
 
 const messages = defineMessages({
     domainPlaceholder: {
         defaultMessage: 'Enter domain name...',
         description: 'Placeholder text for domain input field',
-        id: 'gui.connection.meshV2Initial.domainPlaceholder'
-    }
+        id: 'gui.connection.meshV2Initial.domainPlaceholder',
+    },
 });
 
 const MeshV2InitialStep = props => {
@@ -44,17 +40,20 @@ const MeshV2InitialStep = props => {
         return null;
     }, []);
 
-    const handleDomainChange = React.useCallback(event => {
-        const newDomain = event.target.value;
-        const validationError = validate(newDomain);
-        setDomain(newDomain);
-        setError(validationError);
+    const handleDomainChange = React.useCallback(
+        event => {
+            const newDomain = event.target.value;
+            const validationError = validate(newDomain);
+            setDomain(newDomain);
+            setError(validationError);
 
-        // Only notify parent if valid
-        if (!validationError) {
-            props.onDomainChange(newDomain);
-        }
-    }, [validate, props]);
+            // Only notify parent if valid
+            if (!validationError) {
+                props.onDomainChange(newDomain);
+            }
+        },
+        [validate, props],
+    );
 
     return (
         <Box className={styles.body}>
@@ -65,11 +64,7 @@ const MeshV2InitialStep = props => {
                         data-testid="meshV2-create-group"
                         onClick={props.onCreateGroup}
                     >
-                        <img
-                            className={initialStepStyles.buttonImage}
-                            src={createGroupImage}
-                            alt=""
-                        />
+                        <img className={initialStepStyles.buttonImage} src={createGroupImage} alt="" />
                         <div className={initialStepStyles.buttonTextContainer}>
                             <div className={initialStepStyles.buttonTitle}>
                                 <FormattedMessage
@@ -92,11 +87,7 @@ const MeshV2InitialStep = props => {
                         data-testid="meshV2-join-group"
                         onClick={props.onJoinGroup}
                     >
-                        <img
-                            className={initialStepStyles.buttonImage}
-                            src={joinGroupImage}
-                            alt=""
-                        />
+                        <img className={initialStepStyles.buttonImage} src={joinGroupImage} alt="" />
                         <div className={initialStepStyles.buttonTextContainer}>
                             <div className={initialStepStyles.buttonTitle}>
                                 <FormattedMessage
@@ -119,7 +110,7 @@ const MeshV2InitialStep = props => {
                 <Box className={classNames(styles.bottomAreaItem, initialStepStyles.domainSection)}>
                     <input
                         className={classNames(initialStepStyles.domainInput, {
-                            [initialStepStyles.inputError]: error
+                            [initialStepStyles.inputError]: error,
                         })}
                         data-testid="meshV2-domain-input"
                         type="text"
@@ -154,7 +145,7 @@ const MeshV2InitialStep = props => {
                             description="Help text for domain input"
                             id="gui.connection.meshV2Initial.domainHelp"
                             values={{
-                                br: <br />
+                                br: <br />,
                             }}
                         />
                     </div>
@@ -168,7 +159,7 @@ MeshV2InitialStep.propTypes = {
     domain: PropTypes.string,
     onCreateGroup: PropTypes.func.isRequired,
     onDomainChange: PropTypes.func.isRequired,
-    onJoinGroup: PropTypes.func.isRequired
+    onJoinGroup: PropTypes.func.isRequired,
 };
 
 export default MeshV2InitialStep;

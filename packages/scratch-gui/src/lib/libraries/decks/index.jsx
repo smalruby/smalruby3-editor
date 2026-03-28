@@ -1213,7 +1213,7 @@ end`,
             {
                 title: (
                     <FormattedMessage
-                        // eslint-disable-next-line max-len
+                         
                         defaultMessage={'★ @受信メッセージ = "ここを変えるよ" を @受信メッセージ = mesh.sensor_value("送信メッセージ") に変えよう — 他の人の変数はmesh.sensor_valueで取り出すよ！'}
                         description="Chat3 Mesh3 Step 6: Change to sensor_value"
                         id="gui.howtos.chat-3-mesh-3.step6.title"

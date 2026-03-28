@@ -9,7 +9,7 @@
 
 // Mock google-script-loader before importing google-drive-api
 jest.mock('../../../src/lib/google-script-loader', () => ({
-    loadAllGoogleScripts: jest.fn().mockResolvedValue(undefined)
+    loadAllGoogleScripts: jest.fn().mockResolvedValue(undefined),
 }));
 
 // We test the class internals by importing the module and using Jest mocking
@@ -24,7 +24,7 @@ describe('GoogleDriveAPI', () => {
         // Reset module registry to get fresh instance
         jest.resetModules();
         jest.mock('../../../src/lib/google-script-loader', () => ({
-            loadAllGoogleScripts: jest.fn().mockResolvedValue(undefined)
+            loadAllGoogleScripts: jest.fn().mockResolvedValue(undefined),
         }));
 
         // Mock process.env values
@@ -39,19 +39,19 @@ describe('GoogleDriveAPI', () => {
                 getToken: jest.fn().mockReturnValue(null),
                 drive: {
                     files: {
-                        get: jest.fn()
-                    }
+                        get: jest.fn(),
+                    },
                 },
-                request: jest.fn()
-            }
+                request: jest.fn(),
+            },
         };
 
         // Set up mock google
         mockGoogle = {
             accounts: {
                 oauth2: {
-                    initTokenClient: jest.fn()
-                }
+                    initTokenClient: jest.fn(),
+                },
             },
             picker: {
                 DocsView: jest.fn().mockReturnValue({
@@ -59,10 +59,10 @@ describe('GoogleDriveAPI', () => {
                     setMode: jest.fn().mockReturnThis(),
                     setQuery: jest.fn().mockReturnThis(),
                     setParent: jest.fn().mockReturnThis(),
-                    setSelectFolderEnabled: jest.fn().mockReturnThis()
+                    setSelectFolderEnabled: jest.fn().mockReturnThis(),
                 }),
                 DocsUploadView: jest.fn().mockReturnValue({
-                    setIncludeFolders: jest.fn().mockReturnThis()
+                    setIncludeFolders: jest.fn().mockReturnThis(),
                 }),
                 PickerBuilder: jest.fn().mockReturnValue({
                     addView: jest.fn().mockReturnThis(),
@@ -72,15 +72,15 @@ describe('GoogleDriveAPI', () => {
                     setTitle: jest.fn().mockReturnThis(),
                     setLocale: jest.fn().mockReturnThis(),
                     build: jest.fn().mockReturnValue({
-                        setVisible: jest.fn()
-                    })
+                        setVisible: jest.fn(),
+                    }),
                 }),
-                ViewId: {FOLDERS: 'folders'},
-                DocsViewMode: {LIST: 'list'},
-                Response: {ACTION: 'action', DOCUMENTS: 'documents'},
-                Action: {PICKED: 'picked', CANCEL: 'cancel'},
-                Document: {ID: 'id', NAME: 'name'}
-            }
+                ViewId: { FOLDERS: 'folders' },
+                DocsViewMode: { LIST: 'list' },
+                Response: { ACTION: 'action', DOCUMENTS: 'documents' },
+                Action: { PICKED: 'picked', CANCEL: 'cancel' },
+                Document: { ID: 'id', NAME: 'name' },
+            },
         };
 
         global.window = global.window || {};
@@ -102,15 +102,15 @@ describe('GoogleDriveAPI', () => {
             // Verify by checking the tokenClient is initialized with correct scope
             const mockTokenClient = {
                 callback: null,
-                requestAccessToken: jest.fn()
+                requestAccessToken: jest.fn(),
             };
             mockGoogle.accounts.oauth2.initTokenClient.mockReturnValue(mockTokenClient);
 
             return GoogleDriveAPI.initialize().then(() => {
                 expect(mockGoogle.accounts.oauth2.initTokenClient).toHaveBeenCalledWith(
                     expect.objectContaining({
-                        scope: expect.stringContaining('https://www.googleapis.com/auth/drive.file')
-                    })
+                        scope: expect.stringContaining('https://www.googleapis.com/auth/drive.file'),
+                    }),
                 );
             });
         });
@@ -118,15 +118,13 @@ describe('GoogleDriveAPI', () => {
         test('should NOT include generative-language scope (temporarily disabled until OAuth consent is approved)', () => {
             const mockTokenClient = {
                 callback: null,
-                requestAccessToken: jest.fn()
+                requestAccessToken: jest.fn(),
             };
             mockGoogle.accounts.oauth2.initTokenClient.mockReturnValue(mockTokenClient);
 
             return GoogleDriveAPI.initialize().then(() => {
                 const callArg = mockGoogle.accounts.oauth2.initTokenClient.mock.calls[0][0];
-                expect(callArg.scope).not.toContain(
-                    'https://www.googleapis.com/auth/generative-language'
-                );
+                expect(callArg.scope).not.toContain('https://www.googleapis.com/auth/generative-language');
             });
         });
     });
@@ -137,7 +135,7 @@ describe('GoogleDriveAPI', () => {
         beforeEach(async () => {
             mockTokenClient = {
                 callback: null,
-                requestAccessToken: jest.fn()
+                requestAccessToken: jest.fn(),
             };
             mockGoogle.accounts.oauth2.initTokenClient.mockReturnValue(mockTokenClient);
             await GoogleDriveAPI.initialize();
@@ -145,7 +143,7 @@ describe('GoogleDriveAPI', () => {
 
         test('should resolve with access token when new token is received', () => {
             mockTokenClient.requestAccessToken.mockImplementation(config => {
-                mockTokenClient.callback({access_token: 'new-token-123', state: config && config.state});
+                mockTokenClient.callback({ access_token: 'new-token-123', state: config && config.state });
             });
             mockGapi.client.getToken.mockReturnValue(null);
 
@@ -154,12 +152,12 @@ describe('GoogleDriveAPI', () => {
 
         test('should reject when authentication fails', () => {
             mockTokenClient.requestAccessToken.mockImplementation(() => {
-                mockTokenClient.callback({error: 'access_denied'});
+                mockTokenClient.callback({ error: 'access_denied' });
             });
             mockGapi.client.getToken.mockReturnValue(null);
 
             return expect(GoogleDriveAPI.requestAccessToken()).rejects.toThrow(
-                'Authentication failed: access_denied'
+                'Authentication failed: access_denied',
             );
         });
 
@@ -168,13 +166,13 @@ describe('GoogleDriveAPI', () => {
             GoogleDriveAPI.accessToken = 'old-expired-token';
             const expiredToken = {
                 access_token: 'old-expired-token',
-                expires_at: (Date.now() - 1000) / 1000 // 1 second ago (expired)
+                expires_at: (Date.now() - 1000) / 1000, // 1 second ago (expired)
             };
             mockGapi.client.getToken.mockReturnValue(expiredToken);
 
             // Should request new token
             mockTokenClient.requestAccessToken.mockImplementation(config => {
-                mockTokenClient.callback({access_token: 'fresh-token', state: config && config.state});
+                mockTokenClient.callback({ access_token: 'fresh-token', state: config && config.state });
             });
 
             return GoogleDriveAPI.requestAccessToken().then(token => {
@@ -187,7 +185,7 @@ describe('GoogleDriveAPI', () => {
             GoogleDriveAPI.accessToken = 'valid-token';
             const validToken = {
                 access_token: 'valid-token',
-                expires_at: (Date.now() + 3600000) / 1000 // 1 hour from now
+                expires_at: (Date.now() + 3600000) / 1000, // 1 hour from now
             };
             mockGapi.client.getToken.mockReturnValue(validToken);
 
@@ -200,13 +198,13 @@ describe('GoogleDriveAPI', () => {
         test('should handle token without expires_at (treat as expired)', () => {
             GoogleDriveAPI.accessToken = 'token-no-expiry';
             const tokenWithoutExpiry = {
-                access_token: 'token-no-expiry'
+                access_token: 'token-no-expiry',
                 // No expires_at field
             };
             mockGapi.client.getToken.mockReturnValue(tokenWithoutExpiry);
 
             mockTokenClient.requestAccessToken.mockImplementation(config => {
-                mockTokenClient.callback({access_token: 'refreshed-token', state: config && config.state});
+                mockTokenClient.callback({ access_token: 'refreshed-token', state: config && config.state });
             });
 
             return GoogleDriveAPI.requestAccessToken().then(token => {
@@ -219,12 +217,12 @@ describe('GoogleDriveAPI', () => {
             GoogleDriveAPI.accessToken = 'old-token';
             const expiredToken = {
                 access_token: 'old-token',
-                expires_at: (Date.now() - 5000) / 1000
+                expires_at: (Date.now() - 5000) / 1000,
             };
             mockGapi.client.getToken.mockReturnValue(expiredToken);
 
             mockTokenClient.requestAccessToken.mockImplementation(config => {
-                mockTokenClient.callback({access_token: 'updated-token', state: config && config.state});
+                mockTokenClient.callback({ access_token: 'updated-token', state: config && config.state });
             });
 
             return GoogleDriveAPI.requestAccessToken().then(() => {

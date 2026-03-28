@@ -1,21 +1,29 @@
 const test = require('tap').test;
 const path = require('path');
 const fs = require('fs');
-const {detectMeshV1Blocks, detectKoshien, migrateMeshV1Blocks} = require('../../src/serialization/smalruby-migration');
+const {
+    detectMeshV1Blocks,
+    detectKoshien,
+    migrateMeshV1Blocks,
+} = require('../../src/serialization/smalruby-migration');
 
-const meshV1Project = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../fixtures/mesh_v1_project.json'), 'utf8'));
-const meshV2Project = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../fixtures/mesh_v2_project.json'), 'utf8'));
+const meshV1Project = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, '../fixtures/mesh_v1_project.json'), 'utf8'),
+);
+const meshV2Project = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, '../fixtures/mesh_v2_project.json'), 'utf8'),
+);
 
 test('detectMeshV1Blocks', t => {
     t.equal(detectMeshV1Blocks(meshV1Project), true, 'detects mesh v1 blocks');
     t.equal(detectMeshV1Blocks(meshV2Project), false, 'does not detect mesh v1 blocks in v2 project');
-    t.equal(detectMeshV1Blocks({targets: []}), false, 'does not detect mesh v1 blocks in empty project');
+    t.equal(detectMeshV1Blocks({ targets: [] }), false, 'does not detect mesh v1 blocks in empty project');
     t.end();
 });
 
 test('detectKoshien', t => {
-    t.equal(detectKoshien({extensions: ['koshien']}), true, 'detects koshien extension');
-    t.equal(detectKoshien({extensions: ['meshV2']}), false, 'does not detect koshien if not present');
+    t.equal(detectKoshien({ extensions: ['koshien'] }), true, 'detects koshien extension');
+    t.equal(detectKoshien({ extensions: ['meshV2'] }), false, 'does not detect koshien if not present');
     t.equal(detectKoshien({}), false, 'does not detect koshien in project without extensions');
     t.end();
 });

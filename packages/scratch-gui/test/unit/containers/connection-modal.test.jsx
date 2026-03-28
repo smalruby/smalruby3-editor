@@ -1,8 +1,8 @@
 import React from 'react';
-import {render, act} from '@testing-library/react';
-import '@testing-library/jest-dom';
-import {Provider} from 'react-redux';
+import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
+import '@testing-library/jest-dom';
+import { render, act } from '@testing-library/react';
 import ConnectionModal from '../../../src/containers/connection-modal.jsx';
 
 // Mock the ConnectionModalComponent to capture props
@@ -16,7 +16,7 @@ jest.mock('../../../src/components/connection-modal/connection-modal.jsx', () =>
         unavailable: 'unavailable',
         networkFiltered: 'networkFiltered',
         meshV2Initial: 'meshV2Initial',
-        updatePeripheral: 'updatePeripheral'
+        updatePeripheral: 'updatePeripheral',
     };
     const MockComponent = props => (
         <div data-testid="connection-modal-component">
@@ -25,17 +25,17 @@ jest.mock('../../../src/components/connection-modal/connection-modal.jsx', () =>
         </div>
     );
     MockComponent.displayName = 'MockConnectionModalComponent';
-    MockComponent.defaultProps = {connectingMessage: 'Connecting'};
+    MockComponent.defaultProps = { connectingMessage: 'Connecting' };
     return {
         __esModule: true,
         default: MockComponent,
-        PHASES
+        PHASES,
     };
 });
 
 // Mock analytics
 jest.mock('../../../src/lib/analytics', () => ({
-    event: jest.fn()
+    event: jest.fn(),
 }));
 
 // Mock extension data
@@ -47,41 +47,41 @@ jest.mock('../../../src/lib/libraries/extensions/index.jsx', () => [
         connectionSmallIconURL: 'small-icon.png',
         connectionTipIconURL: 'tip-icon.png',
         connectingMessage: 'Connecting...',
-        useAutoScan: false
-    }
+        useAutoScan: false,
+    },
 ]);
 
 // Mock reducers
 jest.mock('../../../src/reducers/modals', () => ({
-    closeConnectionModal: jest.fn(() => ({type: 'CLOSE_CONNECTION_MODAL'})),
-    setConnectionModalExtensionId: jest.fn(() => ({type: 'SET_EXTENSION_ID'})),
-    openConnectionModal: jest.fn(() => ({type: 'OPEN_CONNECTION_MODAL'}))
+    closeConnectionModal: jest.fn(() => ({ type: 'CLOSE_CONNECTION_MODAL' })),
+    setConnectionModalExtensionId: jest.fn(() => ({ type: 'SET_EXTENSION_ID' })),
+    openConnectionModal: jest.fn(() => ({ type: 'OPEN_CONNECTION_MODAL' })),
 }));
 jest.mock('../../../src/reducers/mesh-v2', () => ({
-    setDomain: jest.fn(() => ({type: 'SET_DOMAIN'}))
+    setDomain: jest.fn(() => ({ type: 'SET_DOMAIN' })),
 }));
 
 // Mock microbit-update
 jest.mock('../../../src/lib/microbit-update', () => ({
     isMicroBitUpdateSupported: jest.fn(() => false),
-    selectAndUpdateMicroBit: jest.fn()
+    selectAndUpdateMicroBit: jest.fn(),
 }));
 jest.mock('../../../src/lib/microbit-more-update', () => ({
     isMicroBitUpdateSupported: jest.fn(() => false),
-    selectAndUpdateMicroBit: jest.fn()
+    selectAndUpdateMicroBit: jest.fn(),
 }));
 
 const mockStore = configureStore();
 
-const createStore = ({extensionId = 'meshV2', domain = ''} = {}) =>
+const createStore = ({ extensionId = 'meshV2', domain = '' } = {}) =>
     mockStore({
         scratchGui: {
-            connectionModal: {extensionId},
-            meshV2: {domain}
-        }
+            connectionModal: { extensionId },
+            meshV2: { domain },
+        },
     });
 
-const createMockVm = ({isConnected = false, connectedMessage = null} = {}) => {
+const createMockVm = ({ isConnected = false, connectedMessage = null } = {}) => {
     const listeners = {};
     const vm = {
         on: jest.fn((event, handler) => {
@@ -94,18 +94,18 @@ const createMockVm = ({isConnected = false, connectedMessage = null} = {}) => {
         disconnectPeripheral: jest.fn(),
         runtime: {
             peripheralExtensions: {
-                meshV2: {setDomain: jest.fn()}
-            }
+                meshV2: { setDomain: jest.fn() },
+            },
         },
         extensionManager: {
             isExtensionLoaded: jest.fn(() => false),
-            loadExtensionURL: jest.fn()
+            loadExtensionURL: jest.fn(),
         },
-        emit (event, ...args) {
+        emit(event, ...args) {
             if (listeners[event]) {
                 listeners[event](...args);
             }
-        }
+        },
     };
     return vm;
 };
@@ -115,7 +115,7 @@ const renderWithStore = (vm, storeOptions = {}) => {
     return render(
         <Provider store={store}>
             <ConnectionModal vm={vm} />
-        </Provider>
+        </Provider>,
     );
 };
 
@@ -124,17 +124,17 @@ describe('ConnectionModal container', () => {
         test('initializes connectedMessage from vm.getPeripheralConnectedMessage when already connected', () => {
             const vm = createMockVm({
                 isConnected: true,
-                connectedMessage: 'Registered Host Mesh [ABC]'
+                connectedMessage: 'Registered Host Mesh [ABC]',
             });
-            const {getByTestId} = renderWithStore(vm);
+            const { getByTestId } = renderWithStore(vm);
 
             expect(vm.getPeripheralConnectedMessage).toHaveBeenCalledWith('meshV2');
             expect(getByTestId('connected-message').textContent).toBe('Registered Host Mesh [ABC]');
         });
 
         test('initializes connectedMessage as empty string when not connected', () => {
-            const vm = createMockVm({isConnected: false, connectedMessage: null});
-            const {getByTestId} = renderWithStore(vm);
+            const vm = createMockVm({ isConnected: false, connectedMessage: null });
+            const { getByTestId } = renderWithStore(vm);
 
             expect(getByTestId('connected-message').textContent).toBe('');
         });
@@ -142,19 +142,19 @@ describe('ConnectionModal container', () => {
 
     describe('meshV2 domain handling on modal open', () => {
         test('shows meshV2Initial phase when not connected', () => {
-            const vm = createMockVm({isConnected: false});
-            const {getByTestId} = renderWithStore(vm, {domain: 'cached-domain'});
+            const vm = createMockVm({ isConnected: false });
+            const { getByTestId } = renderWithStore(vm, { domain: 'cached-domain' });
 
             // Should show meshV2Initial phase (domain input visible)
             expect(getByTestId('phase').textContent).toBe('meshV2Initial');
         });
 
         test('preserves cached domain in Redux when modal opens', () => {
-            const {setDomain} = require('../../../src/reducers/mesh-v2');
+            const { setDomain } = require('../../../src/reducers/mesh-v2');
             setDomain.mockClear();
 
-            const vm = createMockVm({isConnected: false});
-            renderWithStore(vm, {domain: 'cached-domain'});
+            const vm = createMockVm({ isConnected: false });
+            renderWithStore(vm, { domain: 'cached-domain' });
 
             // Should NOT reset domain on modal open (preserves user's previous input)
             expect(setDomain).not.toHaveBeenCalledWith(null);
@@ -165,9 +165,9 @@ describe('ConnectionModal container', () => {
         test('updates connectedMessage from vm after PERIPHERAL_CONNECTED event', () => {
             const vm = createMockVm({
                 isConnected: false,
-                connectedMessage: null
+                connectedMessage: null,
             });
-            const {getByTestId} = renderWithStore(vm);
+            const { getByTestId } = renderWithStore(vm);
 
             // Initially no connected message
             expect(getByTestId('connected-message').textContent).toBe('');

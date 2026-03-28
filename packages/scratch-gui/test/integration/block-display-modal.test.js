@@ -1,6 +1,6 @@
 import path from 'path';
+import { SETTINGS_MENU_XPATH } from '../helpers/menu-xpaths';
 import SeleniumHelper from '../helpers/selenium-helper';
-import {SETTINGS_MENU_XPATH} from '../helpers/menu-xpaths';
 
 const {
     clickText,
@@ -13,7 +13,7 @@ const {
     waitForLoadingFinished,
     notExistsByXpath,
     scope,
-    textExists
+    textExists,
 } = new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/index.html');
@@ -64,7 +64,7 @@ describe('Block Display Modal', () => {
         expect(newState).not.toBe(initialState);
 
         // Close the modal using ESC key (more reliable than looking for close button)
-        await driver.actions().sendKeys("\uE00C").perform();
+        await driver.actions().sendKeys('\uE00C').perform();
 
         // Wait for modal to close
         await driver.sleep(300);
@@ -119,7 +119,7 @@ describe('Block Display Modal', () => {
         expect(isEnabled).toBeTruthy();
 
         // Close the modal using ESC key
-        await driver.actions().sendKeys("\uE00C").perform();
+        await driver.actions().sendKeys('\uE00C').perform();
 
         // Wait for modal to close
         await driver.sleep(300);
@@ -160,7 +160,7 @@ describe('Block Display Modal', () => {
         expect(isEnabled).toBeTruthy();
 
         // Close the modal using ESC key
-        await driver.actions().sendKeys("\uE00C").perform();
+        await driver.actions().sendKeys('\uE00C').perform();
 
         // Wait for modal to close
         await driver.sleep(300);
@@ -190,7 +190,7 @@ describe('Block Display Modal', () => {
         // This is the key test - we should NOT see sayforsecs block when only 'say' was specified
         const sayForSecsExists = await textExists('say', scope.blocksTab); // This will need more specific selector
         // TODO: Need more specific way to check if looks_sayforsecs is hidden while looks_say is shown
-        
+
         const logs = await getLogs();
         expect(logs).toEqual([]);
     });
@@ -216,7 +216,7 @@ describe('Block Display Modal', () => {
         expect(isLooksChecked).toBeFalsy();
 
         // Close modal
-        await driver.actions().sendKeys("\uE00C").perform();
+        await driver.actions().sendKeys('\uE00C').perform();
         await driver.sleep(300);
 
         const logs = await getLogs();
@@ -246,14 +246,16 @@ describe('Block Display Modal', () => {
         expect(await soundCheckbox.isSelected()).toBeTruthy();
 
         // Verify some individual block checkboxes are also checked
-        const motionMovestepsCheckbox = await findByXpath('//input[@type="checkbox"][@data-block="motion_movesteps"]');
+        const motionMovestepsCheckbox = await findByXpath(
+            '//input[@type="checkbox"][@data-block="motion_movesteps"]',
+        );
         const looksSayCheckbox = await findByXpath('//input[@type="checkbox"][@data-block="looks_say"]');
-        
+
         expect(await motionMovestepsCheckbox.isSelected()).toBeTruthy();
         expect(await looksSayCheckbox.isSelected()).toBeTruthy();
 
         // Close the modal using ESC key
-        await driver.actions().sendKeys("\uE00C").perform();
+        await driver.actions().sendKeys('\uE00C').perform();
 
         // Wait for modal to close
         await driver.sleep(300);

@@ -5,8 +5,8 @@
  * Run with:
  *   npm exec jest --no-coverage test/unit/lib/furigana-annotator-perf.test.js --verbose
  */
-import {loadPrism} from '../../../src/lib/prism-parser';
 import FuriganaAnnotator from '../../../src/lib/furigana-annotator';
+import { loadPrism } from '../../../src/lib/prism-parser';
 
 // A representative 100-line smalruby program covering many method types
 const SAMPLE_100_LINES = `
@@ -145,12 +145,14 @@ describe('FuriganaAnnotator performance benchmark', () => {
         const avg = times.reduce((a, b) => a + b, 0) / times.length;
         const max = Math.max(...times);
         const min = Math.min(...times);
-        console.log(`[PERF] ${label}: avg=${avg.toFixed(2)}ms min=${min.toFixed(2)}ms max=${max.toFixed(2)}ms (n=${iterations})`);
-        return {avg, max, min};
+        console.log(
+            `[PERF] ${label}: avg=${avg.toFixed(2)}ms min=${min.toFixed(2)}ms max=${max.toFixed(2)}ms (n=${iterations})`,
+        );
+        return { avg, max, min };
     };
 
     test('100-line program: avg annotation time < 50ms', () => {
-        const {avg} = measure('100-line program', SAMPLE_100_LINES, 50);
+        const { avg } = measure('100-line program', SAMPLE_100_LINES, 50);
         // 50ms budget per annotation — should be well within adaptive debounce tolerance
         expect(avg).toBeLessThan(50);
     });

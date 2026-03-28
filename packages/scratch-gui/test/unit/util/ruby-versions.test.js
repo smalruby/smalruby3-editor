@@ -1,5 +1,5 @@
-import {VERSION_1, VERSION_2} from '../../../src/lib/settings/ruby-version';
-import {detectRubyVersion, persistRubyVersion} from '../../../src/lib/settings/ruby-version/persistence';
+import { VERSION_1, VERSION_2 } from '../../../src/lib/settings/ruby-version';
+import { detectRubyVersion, persistRubyVersion } from '../../../src/lib/settings/ruby-version/persistence';
 
 const VERSION_KEY = 'smalruby:rubyVersion';
 const MIGRATION_KEY = 'smalruby:rubyVersionMigratedToV2';

@@ -1,22 +1,21 @@
-import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
-import RubyGenerator from '../../../src/lib/ruby-generator';
-import Variable from '@smalruby/scratch-vm/src/engine/variable';
 import Blocks from '@smalruby/scratch-vm/src/engine/blocks';
-
+import Variable from '@smalruby/scratch-vm/src/engine/variable';
+import RubyGenerator from '../../../src/lib/ruby-generator';
+import ColourBlocks from '../../../src/lib/ruby-generator/colour.js';
+import ControlBlocks from '../../../src/lib/ruby-generator/control.js';
+import DataBlocks from '../../../src/lib/ruby-generator/data.js';
+import EventBlocks from '../../../src/lib/ruby-generator/event.js';
+import LooksBlocks from '../../../src/lib/ruby-generator/looks.js';
 // Import all block generators
 import MathBlocks from '../../../src/lib/ruby-generator/math.js';
-import TextBlocks from '../../../src/lib/ruby-generator/text.js';
-import ColourBlocks from '../../../src/lib/ruby-generator/colour.js';
 import MotionBlocks from '../../../src/lib/ruby-generator/motion.js';
-import LooksBlocks from '../../../src/lib/ruby-generator/looks.js';
-import SoundBlocks from '../../../src/lib/ruby-generator/sound.js';
-import EventBlocks from '../../../src/lib/ruby-generator/event.js';
-import ControlBlocks from '../../../src/lib/ruby-generator/control.js';
-import SensingBlocks from '../../../src/lib/ruby-generator/sensing.js';
 import OperatorsBlocks from '../../../src/lib/ruby-generator/operators.js';
-import DataBlocks from '../../../src/lib/ruby-generator/data.js';
 import ProcedureBlocks from '../../../src/lib/ruby-generator/procedure.js';
 import RubyBlocks from '../../../src/lib/ruby-generator/ruby.js';
+import SensingBlocks from '../../../src/lib/ruby-generator/sensing.js';
+import SoundBlocks from '../../../src/lib/ruby-generator/sound.js';
+import TextBlocks from '../../../src/lib/ruby-generator/text.js';
+import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
 
 describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
     let converter;
@@ -27,7 +26,7 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
     beforeEach(() => {
         runtime = {
             emitProjectChanged: () => {},
-            getTargetForStage: () => target
+            getTargetForStage: () => target,
         };
         target = {
             blocks: new Blocks(runtime),
@@ -58,25 +57,25 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
                     y,
                     width,
                     height,
-                    minimized
+                    minimized,
                 };
-            }
+            },
         };
         vm = {
             runtime: runtime,
             emitWorkspaceUpdate: () => {},
             extensionManager: {
                 isExtensionLoaded: () => true,
-                loadExtensionURL: () => Promise.resolve()
-            }
+                loadExtensionURL: () => Promise.resolve(),
+            },
         };
-        converter = new RubyToBlocksConverter(vm, {version: '2'});
+        converter = new RubyToBlocksConverter(vm, { version: '2' });
         converter._context.target = target;
 
         // Reset RubyGenerator state
         RubyGenerator.cache_ = {
             comments: {},
-            targetCommentTexts: []
+            targetCommentTexts: [],
         };
         RubyGenerator.definitions_ = {};
         RubyGenerator.functionNames_ = {};
@@ -97,7 +96,7 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
         RubyBlocks(RubyGenerator);
     });
 
-    const rubyToBlocksToRuby = async (code) => {
+    const rubyToBlocksToRuby = async code => {
         const result = await converter.targetCodeToBlocks(target, code);
 
         if (!result) {
@@ -107,14 +106,11 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
         await converter.applyTargetBlocks(target);
 
         target.runtime = runtime;
-        runtime.targets = [
-            {isStage: true, sprite: {name: 'Stage'}},
-            target
-        ];
-        target.sprite = {name: 'Sprite1'};
+        runtime.targets = [{ isStage: true, sprite: { name: 'Stage' } }, target];
+        target.sprite = { name: 'Sprite1' };
 
         RubyGenerator.currentTarget = target;
-        const generatedCode = RubyGenerator.targetToCode(target, {version: '2'});
+        const generatedCode = RubyGenerator.targetToCode(target, { version: '2' });
 
         return generatedCode;
     };
@@ -134,7 +130,7 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
                 '    greet(name)',
                 '  end',
                 'end',
-                ''
+                '',
             ].join('\n');
 
             const outputCode = await rubyToBlocksToRuby(inputCode);
@@ -159,7 +155,7 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
                 '    greet',
                 '  end',
                 'end',
-                ''
+                '',
             ].join('\n');
 
             const outputCode = await rubyToBlocksToRuby(inputCode);
@@ -207,7 +203,7 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
                 '    greet(name)',
                 '  end',
                 'end',
-                ''
+                '',
             ].join('\n');
 
             const outputCode = await rubyToBlocksToRuby(inputCode);
@@ -259,7 +255,7 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
                 '    greet("hello")',
                 '  end',
                 'end',
-                ''
+                '',
             ].join('\n');
 
             const outputCode = await rubyToBlocksToRuby(inputCode);

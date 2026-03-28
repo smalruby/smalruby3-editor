@@ -11,23 +11,23 @@ describe('RubyGenerator Versioning', () => {
         renderedTarget = {
             id: 'target1',
             sprite: {
-                name: 'Sprite1'
+                name: 'Sprite1',
             },
             comments: {},
             variables: {},
             blocks: {
                 getScripts: () => ['block1'],
-                getBlock: (id) => {
+                getBlock: id => {
                     if (id === 'block1') {
                         return {
                             id: 'block1',
                             opcode: 'procedures_definition',
                             inputs: {
                                 custom_block: {
-                                    block: 'block2'
-                                }
+                                    block: 'block2',
+                                },
                             },
-                            next: null
+                            next: null,
                         };
                     }
                     if (id === 'block2') {
@@ -35,31 +35,31 @@ describe('RubyGenerator Versioning', () => {
                             id: 'block2',
                             opcode: 'procedures_prototype',
                             mutation: {
-                                proccode: 'my_method'
+                                proccode: 'my_method',
                             },
-                            inputs: {}
+                            inputs: {},
                         };
                     }
                     return null;
                 },
-                getInputs: (block) => block.inputs || {},
-                getProcedureParamNamesIdsAndDefaults: () => [[], [], []]
+                getInputs: block => block.inputs || {},
+                getProcedureParamNamesIdsAndDefaults: () => [[], [], []],
             },
             runtime: {
-                getTargetForStage: () => null
-            }
+                getTargetForStage: () => null,
+            },
         };
         RubyGenerator.currentTarget = renderedTarget;
     });
 
     test('v1 generates def self.method_name', async () => {
-        const code = RubyGenerator.targetToCode(renderedTarget, {version: '1'});
+        const code = RubyGenerator.targetToCode(renderedTarget, { version: '1' });
         expect(code).toContain('def self.my_method');
         expect(code).not.toContain('def my_method');
     });
 
     test('v2 generates def method_name', async () => {
-        const code = RubyGenerator.targetToCode(renderedTarget, {version: '2'});
+        const code = RubyGenerator.targetToCode(renderedTarget, { version: '2' });
         expect(code).toContain('def my_method');
         expect(code).not.toContain('def self.my_method');
     });

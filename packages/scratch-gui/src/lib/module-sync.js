@@ -1,7 +1,6 @@
 // === Smalruby: This file is Smalruby-specific (module sync across sprites) ===
-
 import RubyGenerator from './ruby-generator';
-import {targetCodeToBlocks} from './ruby-to-blocks-converter';
+import { targetCodeToBlocks } from './ruby-to-blocks-converter';
 
 /**
  * Get module names from a target's procedure block comments.
@@ -55,7 +54,7 @@ export const findTargetsWithModule = (vm, moduleName, excludeTargetId) => {
 export const generateTargetCode = (target, version) => {
     RubyGenerator.initTargets({});
     return RubyGenerator.targetToCode_(target, {
-        version
+        version,
     });
 };
 
@@ -116,9 +115,7 @@ export const syncModules = async (vm, sourceTarget, intl, version) => {
             if (updatedCode === targetCode) continue; // No change
 
             // Re-convert the updated code to blocks and apply
-            const converter = await targetCodeToBlocks(
-                vm, target, updatedCode, intl, {version}
-            );
+            const converter = await targetCodeToBlocks(vm, target, updatedCode, intl, { version });
             if (converter.result) {
                 await converter.apply();
             }

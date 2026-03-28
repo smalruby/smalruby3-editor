@@ -1,4 +1,4 @@
-import {installGestureRecovery} from '../../../src/lib/blocks-gesture-recovery';
+import { installGestureRecovery } from '../../../src/lib/blocks-gesture-recovery';
 
 describe('installGestureRecovery', () => {
     let mockWorkspace;
@@ -9,15 +9,15 @@ describe('installGestureRecovery', () => {
     beforeEach(() => {
         mockGesture = {
             cancel: jest.fn(),
-            isDragging: jest.fn(() => true)
+            isDragging: jest.fn(() => true),
         };
 
         mockWorkspace = {
-            currentGesture_: null
+            currentGesture_: null,
         };
 
         mockScratchBlocks = {
-            getMainWorkspace: jest.fn(() => mockWorkspace)
+            getMainWorkspace: jest.fn(() => mockWorkspace),
         };
 
         listeners = {};
@@ -42,7 +42,7 @@ describe('installGestureRecovery', () => {
             Object.defineProperty(document, 'visibilityState', {
                 value: 'hidden',
                 writable: true,
-                configurable: true
+                configurable: true,
             });
 
             listeners['doc:visibilitychange']();
@@ -55,7 +55,7 @@ describe('installGestureRecovery', () => {
             Object.defineProperty(document, 'visibilityState', {
                 value: 'visible',
                 writable: true,
-                configurable: true
+                configurable: true,
             });
 
             listeners['doc:visibilitychange']();
@@ -69,7 +69,7 @@ describe('installGestureRecovery', () => {
             Object.defineProperty(document, 'visibilityState', {
                 value: 'hidden',
                 writable: true,
-                configurable: true
+                configurable: true,
             });
 
             expect(() => listeners['doc:visibilitychange']()).not.toThrow();
@@ -80,7 +80,7 @@ describe('installGestureRecovery', () => {
             Object.defineProperty(document, 'visibilityState', {
                 value: 'hidden',
                 writable: true,
-                configurable: true
+                configurable: true,
             });
 
             expect(() => listeners['doc:visibilitychange']()).not.toThrow();
@@ -136,35 +136,21 @@ describe('installGestureRecovery', () => {
 
         test('should be registered in capture phase', () => {
             // Verify capture phase was used
-            expect(document.addEventListener).toHaveBeenCalledWith(
-                'pointerdown',
-                expect.any(Function),
-                true
-            );
+            expect(document.addEventListener).toHaveBeenCalledWith('pointerdown', expect.any(Function), true);
         });
     });
 
     describe('event listener registration', () => {
         test('should register visibilitychange on document', () => {
-            expect(document.addEventListener).toHaveBeenCalledWith(
-                'visibilitychange',
-                expect.any(Function)
-            );
+            expect(document.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
         });
 
         test('should register blur on window', () => {
-            expect(window.addEventListener).toHaveBeenCalledWith(
-                'blur',
-                expect.any(Function)
-            );
+            expect(window.addEventListener).toHaveBeenCalledWith('blur', expect.any(Function));
         });
 
         test('should register pointerdown on document in capture phase', () => {
-            expect(document.addEventListener).toHaveBeenCalledWith(
-                'pointerdown',
-                expect.any(Function),
-                true
-            );
+            expect(document.addEventListener).toHaveBeenCalledWith('pointerdown', expect.any(Function), true);
         });
     });
 });

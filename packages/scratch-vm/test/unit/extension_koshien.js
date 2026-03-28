@@ -9,15 +9,15 @@ const createMockRuntime = () => {
             runtime.lastEmittedData = data;
         },
         getEditingTarget: () => ({
-            getAllVariableNamesInScopeByType: () => []
+            getAllVariableNamesInScopeByType: () => [],
         }),
         formatMessage: messageData => messageData.default || messageData.defaultMessage,
         setup: () => ({
             locale: 'en',
             translations: {
-                en: {}
-            }
-        })
+                en: {},
+            },
+        }),
     };
     runtime.formatMessage.setup = runtime.setup;
     return runtime;
@@ -38,7 +38,7 @@ test('Koshien Blocks', t => {
         const info = blocks.getInfo();
         st.equal(info.id, 'koshien');
         st.ok(info.blocks.length > 0);
-        
+
         // Verify setMessage block exists
         const setMessageBlock = info.blocks.find(b => b.opcode === 'setMessage');
         st.ok(setMessageBlock);
@@ -49,16 +49,16 @@ test('Koshien Blocks', t => {
     t.test('setMessage', st => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
-        
+
         let messageSent = null;
         blocks._client.setMessage = message => {
             messageSent = message;
             return Promise.resolve();
         };
 
-        const args = {MESSAGE: 'hello world'};
+        const args = { MESSAGE: 'hello world' };
         const result = blocks.setMessage(args);
-        
+
         st.type(result, Promise);
         st.equal(messageSent, 'hello world');
         st.end();
@@ -67,37 +67,37 @@ test('Koshien Blocks', t => {
     t.test('connectGame', st => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
-        
-        st.equal(blocks.connectGame({NAME: 'player1'}), true);
+
+        st.equal(blocks.connectGame({ NAME: 'player1' }), true);
         st.ok(blocks._client.isConnected());
         st.equal(blocks._client._playerName, 'player1');
-        
+
         // Second call should return false if already connected
-        st.equal(blocks.connectGame({NAME: 'player2'}), false);
+        st.equal(blocks.connectGame({ NAME: 'player2' }), false);
         st.end();
     });
 
     t.test('position', st => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
-        st.equal(blocks.position({X: 1, Y: 2}), '1:2');
+        st.equal(blocks.position({ X: 1, Y: 2 }), '1:2');
         st.end();
     });
 
     t.test('positionOf', st => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
-        st.equal(blocks.positionOf({POSITION: '3:4', COORDINATE: 'x'}), 3);
-        st.equal(blocks.positionOf({POSITION: '3:4', COORDINATE: 'y'}), 4);
+        st.equal(blocks.positionOf({ POSITION: '3:4', COORDINATE: 'x' }), 3);
+        st.equal(blocks.positionOf({ POSITION: '3:4', COORDINATE: 'y' }), 4);
         st.end();
     });
 
     t.test('object', st => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
-        st.equal(blocks.object({OBJECT: 'wall'}), 1);
-        st.equal(blocks.object({OBJECT: 'goal'}), 3);
-        st.equal(blocks.object({OBJECT: 'unknown'}), -1);
+        st.equal(blocks.object({ OBJECT: 'wall' }), 1);
+        st.equal(blocks.object({ OBJECT: 'goal' }), 3);
+        st.equal(blocks.object({ OBJECT: 'unknown' }), -1);
         st.end();
     });
 

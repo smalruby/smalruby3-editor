@@ -6,8 +6,7 @@
  * - Google Identity Services for OAuth 2.0 authentication
  * - Google Picker API for file selection UI
  */
-
-import {loadAllGoogleScripts} from './google-script-loader';
+import { loadAllGoogleScripts } from './google-script-loader';
 
 // OAuth 2.0 scopes
 // Using 'drive.file' scope to allow:
@@ -15,9 +14,7 @@ import {loadAllGoogleScripts} from './google-script-loader';
 // - Uploading new files to Google Drive
 // Note: 'generative-language' scope for Gemini AI was previously planned but is no longer
 //       needed. Rubytee (AI assistant) now uses Anthropic Claude via a relay server.
-const SCOPES = [
-    'https://www.googleapis.com/auth/drive.file'
-].join(' ');
+const SCOPES = ['https://www.googleapis.com/auth/drive.file'].join(' ');
 
 // Discovery docs for Google Drive API
 const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
@@ -31,7 +28,7 @@ const API_KEY = process.env.GOOGLE_API_KEY;
  * Manages authentication and file operations with Google Drive
  */
 class GoogleDriveAPI {
-    constructor () {
+    constructor() {
         this.isInitialized = false;
         this.tokenClient = null;
         this.accessToken = null;
@@ -42,20 +39,20 @@ class GoogleDriveAPI {
      * Check if the current access token is valid (not expired)
      * @returns {boolean} True if token exists and is not expired
      */
-    _isTokenValid () {
+    _isTokenValid() {
         const token = window.gapi.client.getToken();
         if (!token || !token.expires_at) {
             return false;
         }
         // expires_at is in seconds since epoch; add 60s buffer to avoid edge cases
-        return (token.expires_at * 1000) > (Date.now() + 60000);
+        return token.expires_at * 1000 > Date.now() + 60000;
     }
 
     /**
      * Generate a cryptographically random state string for CSRF protection
      * @returns {string} Random 32-character hex string
      */
-    _generateState () {
+    _generateState() {
         const array = new Uint8Array(16);
         window.crypto.getRandomValues(array);
         return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
@@ -65,7 +62,7 @@ class GoogleDriveAPI {
      * Initialize Google API and Identity Services
      * @returns {Promise<void>} Promise that resolves when initialization is complete
      */
-    async initialize () {
+    async initialize() {
         if (this.isInitialized) {
             return;
         }
@@ -74,8 +71,8 @@ class GoogleDriveAPI {
         if (!CLIENT_ID || !API_KEY) {
             throw new Error(
                 'Google Drive API credentials not configured. ' +
-                'Please set GOOGLE_CLIENT_ID and GOOGLE_API_KEY environment variables. ' +
-                'See docs/google-api-setup.md for setup instructions.'
+                    'Please set GOOGLE_CLIENT_ID and GOOGLE_API_KEY environment variables. ' +
+                    'See docs/google-api-setup.md for setup instructions.',
             );
         }
 
@@ -87,21 +84,21 @@ class GoogleDriveAPI {
             await new Promise((resolve, reject) => {
                 window.gapi.load('client:picker', {
                     callback: resolve,
-                    onerror: reject
+                    onerror: reject,
                 });
             });
 
             // Initialize gapi client with API key and discovery docs
             await window.gapi.client.init({
                 apiKey: API_KEY,
-                discoveryDocs: DISCOVERY_DOCS
+                discoveryDocs: DISCOVERY_DOCS,
             });
 
             // Initialize Google Identity Services token client
             this.tokenClient = window.google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
-                callback: '' // Will be set dynamically when requesting access
+                callback: '', // Will be set dynamically when requesting access
             });
 
             this.isInitialized = true;
@@ -115,7 +112,7 @@ class GoogleDriveAPI {
      * Request access token
      * @returns {Promise<string>} Promise that resolves with access token
      */
-    requestAccessToken () {
+    requestAccessToken() {
         return new Promise((resolve, reject) => {
             // Check if user already has a valid, non-expired token
             if (this.accessToken && this._isTokenValid()) {
@@ -142,7 +139,7 @@ class GoogleDriveAPI {
 
             // Request new token with state for CSRF protection
             // (prompt: '' = silent re-auth if session still valid)
-            this.tokenClient.requestAccessToken({prompt: '', state: expectedState});
+            this.tokenClient.requestAccessToken({ prompt: '', state: expectedState });
         });
     }
 
@@ -153,7 +150,7 @@ class GoogleDriveAPI {
      * @param {string} title - Title for the picker dialog
      * @returns {Promise<void>} Promise that resolves when picker is shown
      */
-    async showPicker (callback, locale = 'en', title = 'Select a Scratch 3.0 project (.sb3) from Google Drive') {
+    async showPicker(callback, locale = 'en', title = 'Select a Scratch 3.0 project (.sb3) from Google Drive') {
         if (!this.isInitialized) {
             await this.initialize();
         }
@@ -173,10 +170,7 @@ class GoogleDriveAPI {
 
             const picker = new window.google.picker.PickerBuilder()
                 .addView(docsView)
-                .addView(
-                    new window.google.picker.DocsUploadView()
-                        .setIncludeFolders(true)
-                )
+                .addView(new window.google.picker.DocsUploadView().setIncludeFolders(true))
                 .setOAuthToken(token)
                 .setDeveloperKey(API_KEY)
                 .setCallback(this.handlePickerResponse.bind(this))
@@ -195,7 +189,7 @@ class GoogleDriveAPI {
      * Handle picker response
      * @param {object} data - Picker response data
      */
-    handlePickerResponse (data) {
+    handlePickerResponse(data) {
         const action = data[window.google.picker.Response.ACTION];
 
         if (action === window.google.picker.Action.PICKED) {
@@ -207,7 +201,7 @@ class GoogleDriveAPI {
             if (!fileName.endsWith('.sb3')) {
                 if (this.pickerCallback) {
                     this.pickerCallback({
-                        error: 'Invalid file type. Please select a .sb3 file.'
+                        error: 'Invalid file type. Please select a .sb3 file.',
                     });
                 }
                 return;
@@ -218,7 +212,7 @@ class GoogleDriveAPI {
                 try {
                     this.pickerCallback({
                         selected: true,
-                        fileName: fileName
+                        fileName: fileName,
                     });
                 } catch (callbackError) {
                     console.error('[GoogleDriveAPI] Error in file selected callback:', callbackError);
@@ -237,12 +231,12 @@ class GoogleDriveAPI {
                                 success: true,
                                 fileId: fileId,
                                 fileName: fileName,
-                                fileData: fileData
+                                fileData: fileData,
                             });
                         } catch (callbackError) {
                             console.error(
                                 '[GoogleDriveAPI] Error in picker callback (not a download error):',
-                                callbackError
+                                callbackError,
                             );
                             // Don't re-throw - this is a callback error, not a download error
                         }
@@ -253,14 +247,14 @@ class GoogleDriveAPI {
                         error: error,
                         errorType: typeof error,
                         hasMessage: error && 'message' in error,
-                        errorString: String(error)
+                        errorString: String(error),
                     });
 
                     if (this.pickerCallback) {
                         const errorMessage = error && error.message ? error.message : String(error);
                         try {
                             this.pickerCallback({
-                                error: `Failed to download file: ${errorMessage}`
+                                error: `Failed to download file: ${errorMessage}`,
                             });
                         } catch (callbackError) {
                             console.error('[GoogleDriveAPI] Error in error callback:', callbackError);
@@ -270,7 +264,7 @@ class GoogleDriveAPI {
         } else if (action === window.google.picker.Action.CANCEL) {
             if (this.pickerCallback) {
                 this.pickerCallback({
-                    cancelled: true
+                    cancelled: true,
                 });
             }
         }
@@ -282,11 +276,11 @@ class GoogleDriveAPI {
      * @param {string} fileName - File name (for debugging)
      * @returns {Promise<ArrayBuffer>} Promise that resolves with file data as ArrayBuffer
      */
-    async downloadFile (fileId, fileName) {
+    async downloadFile(fileId, fileName) {
         try {
             const response = await window.gapi.client.drive.files.get({
                 fileId: fileId,
-                alt: 'media'
+                alt: 'media',
             });
 
             // Convert response to ArrayBuffer
@@ -308,7 +302,7 @@ class GoogleDriveAPI {
                 message: error && error.message,
                 hasStatus: error && 'status' in error,
                 status: error && error.status,
-                keys: error ? Object.keys(error) : []
+                keys: error ? Object.keys(error) : [],
             });
             throw error;
         }
@@ -321,7 +315,7 @@ class GoogleDriveAPI {
      * @param {string} title - Title for the picker dialog
      * @returns {Promise<void>} Promise that resolves when picker is shown
      */
-    async showFolderPicker (callback, locale = 'en', title = 'Select a folder in Google Drive') {
+    async showFolderPicker(callback, locale = 'en', title = 'Select a folder in Google Drive') {
         if (!this.isInitialized) {
             await this.initialize();
         }
@@ -358,7 +352,7 @@ class GoogleDriveAPI {
      * Handle folder picker response
      * @param {object} data - Picker response data
      */
-    handleFolderPickerResponse (data) {
+    handleFolderPickerResponse(data) {
         const action = data[window.google.picker.Response.ACTION];
 
         if (action === window.google.picker.Action.PICKED) {
@@ -371,7 +365,7 @@ class GoogleDriveAPI {
                     this.pickerCallback({
                         success: true,
                         folderId: folderId,
-                        folderName: folderName
+                        folderName: folderName,
                     });
                 } catch (callbackError) {
                     console.error('[GoogleDriveAPI] Error in folder picker callback:', callbackError);
@@ -380,7 +374,7 @@ class GoogleDriveAPI {
         } else if (action === window.google.picker.Action.CANCEL) {
             if (this.pickerCallback) {
                 this.pickerCallback({
-                    cancelled: true
+                    cancelled: true,
                 });
             }
         }
@@ -393,7 +387,7 @@ class GoogleDriveAPI {
      * @param {string} folderId - Optional folder ID (null for My Drive root)
      * @returns {Promise<object>} Upload result with file ID and webViewLink
      */
-    async uploadFile (filename, fileData, folderId = null) {
+    async uploadFile(filename, fileData, folderId = null) {
         if (!this.isInitialized) {
             await this.initialize();
         }
@@ -405,7 +399,7 @@ class GoogleDriveAPI {
             // Prepare metadata
             const metadata = {
                 name: filename,
-                mimeType: 'application/x.scratch.sb3'
+                mimeType: 'application/x.scratch.sb3',
             };
 
             // Add parent folder if specified
@@ -432,9 +426,9 @@ class GoogleDriveAPI {
             const base64Data = await base64Promise;
 
             // Build multipart body
-            const multipartRequestBody = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${
-                JSON.stringify(metadata)
-            }${delimiter}Content-Type: application/x.scratch.sb3\r\nContent-Transfer-Encoding: base64\r\n\r\n${
+            const multipartRequestBody = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(
+                metadata,
+            )}${delimiter}Content-Type: application/x.scratch.sb3\r\nContent-Transfer-Encoding: base64\r\n\r\n${
                 base64Data
             }${closeDelimiter}`;
 
@@ -444,12 +438,12 @@ class GoogleDriveAPI {
                 method: 'POST',
                 params: {
                     uploadType: 'multipart',
-                    fields: 'id,name,webViewLink'
+                    fields: 'id,name,webViewLink',
                 },
                 headers: {
-                    'Content-Type': `multipart/related; boundary=${boundary}`
+                    'Content-Type': `multipart/related; boundary=${boundary}`,
                 },
-                body: multipartRequestBody
+                body: multipartRequestBody,
             });
 
             console.log('[GoogleDriveAPI] File uploaded successfully:', response.result);
@@ -459,7 +453,7 @@ class GoogleDriveAPI {
                 error: error,
                 errorType: typeof error,
                 message: error && error.message,
-                status: error && error.status
+                status: error && error.status,
             });
             throw error;
         }
@@ -472,7 +466,7 @@ class GoogleDriveAPI {
      * @param {Blob} fileData - File content as Blob
      * @returns {Promise<object>} Update result with file ID and webViewLink
      */
-    async updateFile (fileId, filename, fileData) {
+    async updateFile(fileId, filename, fileData) {
         if (!this.isInitialized) {
             await this.initialize();
         }
@@ -487,7 +481,7 @@ class GoogleDriveAPI {
             // Prepare metadata
             const metadata = {
                 name: filename,
-                mimeType: 'application/x.scratch.sb3'
+                mimeType: 'application/x.scratch.sb3',
             };
 
             // Create multipart request body
@@ -509,9 +503,9 @@ class GoogleDriveAPI {
             const base64Data = await base64Promise;
 
             // Build multipart body
-            const multipartRequestBody = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${
-                JSON.stringify(metadata)
-            }${delimiter}Content-Type: application/x.scratch.sb3\r\nContent-Transfer-Encoding: base64\r\n\r\n${
+            const multipartRequestBody = `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(
+                metadata,
+            )}${delimiter}Content-Type: application/x.scratch.sb3\r\nContent-Transfer-Encoding: base64\r\n\r\n${
                 base64Data
             }${closeDelimiter}`;
 
@@ -521,12 +515,12 @@ class GoogleDriveAPI {
                 method: 'PATCH',
                 params: {
                     uploadType: 'multipart',
-                    fields: 'id,name,webViewLink'
+                    fields: 'id,name,webViewLink',
                 },
                 headers: {
-                    'Content-Type': `multipart/related; boundary=${boundary}`
+                    'Content-Type': `multipart/related; boundary=${boundary}`,
                 },
-                body: multipartRequestBody
+                body: multipartRequestBody,
             });
 
             console.log('[GoogleDriveAPI] File updated successfully:', response.result);
@@ -536,7 +530,7 @@ class GoogleDriveAPI {
                 error: error,
                 errorType: typeof error,
                 message: error && error.message,
-                status: error && error.status
+                status: error && error.status,
             });
             throw error;
         }
@@ -546,7 +540,7 @@ class GoogleDriveAPI {
      * Check if API is configured
      * @returns {boolean} True if API credentials are configured
      */
-    static isConfigured () {
+    static isConfigured() {
         return !!(CLIENT_ID && API_KEY);
     }
 }

@@ -1,9 +1,5 @@
 import RubyGenerator from '../../../src/lib/ruby-generator';
-import {
-    makeStageTarget,
-    makeConverter,
-    setupRubyGenerator
-} from '../helpers/ruby-roundtrip-helper';
+import { makeStageTarget, makeConverter, setupRubyGenerator } from '../helpers/ruby-roundtrip-helper';
 
 /**
  * Round trip: Ruby → Blocks → apply → Ruby (version 2, class Stage syntax)
@@ -12,23 +8,23 @@ const classRoundTrip = async (converter, target, code, options = {}) => {
     const result = await converter.targetCodeToBlocks(target, code);
     if (!result) {
         throw new Error(
-            `Failed to convert Ruby to blocks.\nErrors: ${JSON.stringify(converter.errors)}\nCode:\n${code}`
+            `Failed to convert Ruby to blocks.\nErrors: ${JSON.stringify(converter.errors)}\nCode:\n${code}`,
         );
     }
     await converter.applyTargetBlocks(target);
     RubyGenerator.currentTarget = target;
-    return RubyGenerator.targetToCode(target, {version: '2', ...options}).trim();
+    return RubyGenerator.targetToCode(target, { version: '2', ...options }).trim();
 };
 
 describe('Ruby Roundtrip: class Stage set_xxx', () => {
     let target, runtime, converter;
 
     beforeEach(() => {
-        ({target, runtime} = makeStageTarget());
-        target.sprite = {name: 'Stage', costumes: [], sounds: []};
+        ({ target, runtime } = makeStageTarget());
+        target.sprite = { name: 'Stage', costumes: [], sounds: [] };
         runtime.targets = [target];
         setupRubyGenerator();
-        converter = makeConverter(target, runtime, {version: '2'});
+        converter = makeConverter(target, runtime, { version: '2' });
     });
 
     test('set_current_backdrop round trip', async () => {
@@ -39,7 +35,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  self.when(:flag_clicked) do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const expected = [
             'class Stage',
@@ -48,7 +44,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  when_flag_clicked do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const generated = await classRoundTrip(converter, target, input);
         expect(generated).toBe(expected);
@@ -62,7 +58,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  self.when(:flag_clicked) do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const expected = [
             'class Stage',
@@ -71,7 +67,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  when_flag_clicked do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const generated = await classRoundTrip(converter, target, input);
         expect(generated).toBe(expected);
@@ -85,7 +81,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  self.when(:flag_clicked) do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const expected = [
             'class Stage',
@@ -94,7 +90,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  when_flag_clicked do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const generated = await classRoundTrip(converter, target, input);
         expect(generated).toBe(expected);
@@ -109,7 +105,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  self.when(:flag_clicked) do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const expected = [
             'class Stage',
@@ -119,7 +115,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  when_flag_clicked do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const generated = await classRoundTrip(converter, target, input);
         expect(generated).toBe(expected);
@@ -133,7 +129,7 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  self.when(:flag_clicked) do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const expected = [
             'class Stage',
@@ -142,27 +138,21 @@ describe('Ruby Roundtrip: class Stage set_xxx', () => {
             '  when_flag_clicked do',
             '    broadcast("message1")',
             '  end',
-            'end'
+            'end',
         ].join('\n');
         const generated = await classRoundTrip(converter, target, input);
         expect(generated).toBe(expected);
     });
 
     test('version 1 uses Stage.new format', async () => {
-        const input = [
-            'self.when(:flag_clicked) do',
-            '  broadcast("message1")',
-            'end'
-        ].join('\n');
+        const input = ['self.when(:flag_clicked) do', '  broadcast("message1")', 'end'].join('\n');
 
         const result = await converter.targetCodeToBlocks(target, input);
         expect(result).toBeTruthy();
         await converter.applyTargetBlocks(target);
         RubyGenerator.currentTarget = target;
 
-        const generated = RubyGenerator.targetToCode(
-            target, {version: '1', withSpriteNew: true}
-        ).trim();
+        const generated = RubyGenerator.targetToCode(target, { version: '1', withSpriteNew: true }).trim();
 
         expect(generated).toMatch(/^Stage\.new/);
     });

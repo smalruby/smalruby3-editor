@@ -4,10 +4,7 @@
  * Tests the initializeBlockSelectionFromOnlyBlocks() logic directly
  * instead of through the browser UI with Selenium.
  */
-import {
-    CATEGORY_BLOCKS,
-    initializeBlockSelectionFromOnlyBlocks
-} from '../../../src/lib/block-utils';
+import { CATEGORY_BLOCKS, initializeBlockSelectionFromOnlyBlocks } from '../../../src/lib/block-utils';
 
 describe('initializeBlockSelectionFromOnlyBlocks', () => {
     // From block-display-modal.test.js test 6

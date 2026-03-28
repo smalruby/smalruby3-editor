@@ -1,7 +1,4 @@
-import reducer, {
-    settingsInitialState,
-    dismissV1Prompt
-} from '../../../src/reducers/settings';
+import reducer, { settingsInitialState, dismissV1Prompt } from '../../../src/reducers/settings';
 
 describe('settings reducer', () => {
     describe('v1PromptDismissed', () => {
@@ -22,7 +19,7 @@ describe('settings reducer', () => {
         });
 
         test('should handle unknown action', () => {
-            const state = reducer(settingsInitialState, {type: 'UNKNOWN'});
+            const state = reducer(settingsInitialState, { type: 'UNKNOWN' });
             expect(state.v1PromptDismissed).toBe(false);
         });
     });

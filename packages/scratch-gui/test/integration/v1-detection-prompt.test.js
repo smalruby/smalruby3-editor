@@ -1,9 +1,9 @@
 import path from 'path';
 import webdriver from 'selenium-webdriver';
-import SeleniumHelper from '../helpers/selenium-helper';
 import RubyHelper from '../helpers/ruby-helper';
+import SeleniumHelper from '../helpers/selenium-helper';
 
-const {until} = webdriver;
+const { until } = webdriver;
 
 const seleniumHelper = new SeleniumHelper();
 const {
@@ -19,11 +19,11 @@ const {
     waitForLoadingFinished,
     notExistsByXpath,
     rightClickText,
-    scope
+    scope,
     /* eslint-enable no-unused-vars */
 } = seleniumHelper;
 const rubyHelper = new RubyHelper(seleniumHelper);
-const {fillInRubyProgram, currentRubyProgram} = rubyHelper;
+const { fillInRubyProgram, currentRubyProgram } = rubyHelper;
 
 const v2Uri = `${path.resolve(__dirname, '../../build/index.html')}?ruby_version=2`;
 const v1Uri = `${path.resolve(__dirname, '../../build/index.html')}?ruby_version=1`;

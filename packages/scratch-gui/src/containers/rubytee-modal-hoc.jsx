@@ -1,13 +1,12 @@
 /* eslint-disable no-console */
-import React from 'react';
 import PropTypes from 'prop-types';
-import {defineMessages, injectIntl} from 'react-intl';
-import intlShape from '../lib/intlShape.js';
+import React from 'react';
+import { defineMessages, injectIntl } from 'react-intl';
 import VM from '@smalruby/scratch-vm';
-
-import RubyteeAPI, {RateLimitError} from '../lib/rubytee-api';
-import RubyteeModal from '../components/rubytee-modal/rubytee-modal.jsx';
 import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
+import RubyteeModal from '../components/rubytee-modal/rubytee-modal.jsx';
+import intlShape from '../lib/intlShape.js';
+import RubyteeAPI, { RateLimitError } from '../lib/rubytee-api';
 
 const RUBYTEE_CONSENT_KEY = 'smalruby:rubyteeConsent';
 
@@ -35,26 +34,23 @@ export const sanitizeResourceReferences = (code, validSounds, validCostumes, val
                 return `${indent}# ${fn}(${nameWithQuotes}) # この音は存在しないのでコメントアウトしました`;
             }
             return `${indent}${fn}("${validSounds[0]}")`;
-        }
+        },
     );
 
     // --- Costumes ---
     if (validCostumes.length > 0) {
-        result = result.replace(
-            /^( *)switch_costume\(("[^"]*"|'[^']*')\)/gm,
-            (match, indent, nameWithQuotes) => {
-                const name = nameWithQuotes.slice(1, -1);
-                if (validCostumes.includes(name)) return match;
-                return `${indent}switch_costume("${validCostumes[0]}")`;
-            }
-        );
+        result = result.replace(/^( *)switch_costume\(("[^"]*"|'[^']*')\)/gm, (match, indent, nameWithQuotes) => {
+            const name = nameWithQuotes.slice(1, -1);
+            if (validCostumes.includes(name)) return match;
+            return `${indent}switch_costume("${validCostumes[0]}")`;
+        });
         result = result.replace(
             /^( *)(?:self\.)?costume\s*=\s*("[^"]*"|'[^']*')/gm,
             (match, indent, nameWithQuotes) => {
                 const name = nameWithQuotes.slice(1, -1);
                 if (validCostumes.includes(name)) return match;
                 return `${indent}self.costume = "${validCostumes[0]}"`;
-            }
+            },
         );
     }
 
@@ -66,7 +62,7 @@ export const sanitizeResourceReferences = (code, validSounds, validCostumes, val
                 const name = nameWithQuotes.slice(1, -1);
                 if (validBackdrops.includes(name)) return match;
                 return `${indent}${fn}("${validBackdrops[0]}")`;
-            }
+            },
         );
         result = result.replace(
             /^( *)(?:self\.)?backdrop\s*=\s*("[^"]*"|'[^']*')/gm,
@@ -74,7 +70,7 @@ export const sanitizeResourceReferences = (code, validSounds, validCostumes, val
                 const name = nameWithQuotes.slice(1, -1);
                 if (validBackdrops.includes(name)) return match;
                 return `${indent}self.backdrop = "${validBackdrops[0]}"`;
-            }
+            },
         );
     }
 
@@ -87,24 +83,25 @@ const messages = defineMessages({
     apiError: {
         id: 'gui.rubyteeModal.apiError',
         defaultMessage: 'Rubytee API error. Please try again.',
-        description: 'Error shown when Rubytee API call fails'
+        description: 'Error shown when Rubytee API call fails',
     },
     timeoutError: {
         id: 'gui.rubyteeModal.timeoutError',
         defaultMessage: 'Request timed out (2 minutes). Please try again.',
-        description: 'Error shown when Rubytee API request times out'
+        description: 'Error shown when Rubytee API request times out',
     },
     overloadedError: {
         id: 'gui.rubyteeModal.overloadedError',
-        // eslint-disable-next-line max-len
-        defaultMessage: 'Rubytee is currently experiencing high demand and is temporarily unavailable. Please wait about 5 minutes and try again.',
-        description: 'Error shown when Rubytee API returns 503 due to high demand'
+
+        defaultMessage:
+            'Rubytee is currently experiencing high demand and is temporarily unavailable. Please wait about 5 minutes and try again.',
+        description: 'Error shown when Rubytee API returns 503 due to high demand',
     },
     rateLimitError: {
         id: 'gui.rubyteeModal.rateLimitError',
         defaultMessage: 'You have reached the usage limit. Please try again in {minutes} minutes.',
-        description: 'Error shown when the relay rate limit is exceeded'
-    }
+        description: 'Error shown when the relay rate limit is exceeded',
+    },
 });
 
 /**
@@ -124,8 +121,17 @@ const collectStateContext = (vm, editingTarget) => {
     const extensionIds = [];
     if (vm.extensionManager) {
         const allExtensions = [
-            'music', 'pen', 'videoSensing', 'text2speech', 'translate',
-            'microbit', 'smalrubotS1', 'microbitMore', 'koshien', 'makeymakey', 'gdxfor'
+            'music',
+            'pen',
+            'videoSensing',
+            'text2speech',
+            'translate',
+            'microbit',
+            'smalrubotS1',
+            'microbitMore',
+            'koshien',
+            'makeymakey',
+            'gdxfor',
         ];
         allExtensions.forEach(id => {
             if (vm.extensionManager.isExtensionLoaded(id)) {
@@ -133,31 +139,31 @@ const collectStateContext = (vm, editingTarget) => {
             }
         });
     }
-    context.vm = {extensions: extensionIds};
+    context.vm = { extensions: extensionIds };
 
     // Helper to build target state
     const buildTargetState = target => {
         if (!target) return null;
         const state = {
-            name: target.sprite ? target.sprite.name : (target.name || ''),
+            name: target.sprite ? target.sprite.name : target.name || '',
             x: Math.round(target.x || 0),
             y: Math.round(target.y || 0),
             size: target.size || 100,
             direction: target.direction || 90,
             visible: target.visible !== false,
-            draggable: target.draggable || false
+            draggable: target.draggable || false,
         };
 
         // Costumes
         if (target.sprite && target.sprite.costumes) {
-            state.costumes = target.sprite.costumes.map(c => ({name: c.name}));
+            state.costumes = target.sprite.costumes.map(c => ({ name: c.name }));
         } else {
             state.costumes = [];
         }
 
         // Sounds
         if (target.sprite && target.sprite.sounds) {
-            state.sounds = target.sprite.sounds.map(s => ({name: s.name}));
+            state.sounds = target.sprite.sounds.map(s => ({ name: s.name }));
         } else {
             state.sounds = [];
         }
@@ -179,13 +185,13 @@ const collectStateContext = (vm, editingTarget) => {
     if (stage) {
         const stageState = {
             width: 480,
-            height: 360
+            height: 360,
         };
         if (stage.sprite && stage.sprite.costumes) {
-            stageState.costumes = stage.sprite.costumes.map(c => ({name: c.name}));
+            stageState.costumes = stage.sprite.costumes.map(c => ({ name: c.name }));
         }
         if (stage.sprite && stage.sprite.sounds) {
-            stageState.sounds = stage.sprite.sounds.map(s => ({name: s.name}));
+            stageState.sounds = stage.sprite.sounds.map(s => ({ name: s.name }));
         }
         context.stage = stageState;
     }
@@ -200,7 +206,7 @@ const collectStateContext = (vm, editingTarget) => {
  */
 const RubyteeModalHOC = function (WrappedComponent) {
     class RubyteeModalComponent extends React.Component {
-        constructor (props) {
+        constructor(props) {
             super(props);
 
             this.rubyteeAPI = new RubyteeAPI();
@@ -213,7 +219,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 error: null,
                 latestCodes: [], // all code blocks from the last model response
                 inputValue: '',
-                isConsentOpen: false
+                isConsentOpen: false,
             };
 
             this._timerInterval = null;
@@ -234,15 +240,15 @@ const RubyteeModalHOC = function (WrappedComponent) {
             this._applyRubyteeCode = null;
         }
 
-        componentWillUnmount () {
+        componentWillUnmount() {
             this._clearTimers();
             this.rubyteeAPI.cancelRequest();
         }
 
-        _startTimers () {
-            this.setState({loadingSeconds: 0});
+        _startTimers() {
+            this.setState({ loadingSeconds: 0 });
             this._timerInterval = setInterval(() => {
-                this.setState(prev => ({loadingSeconds: prev.loadingSeconds + 1}));
+                this.setState(prev => ({ loadingSeconds: prev.loadingSeconds + 1 }));
             }, 1000);
             this._timeoutTimer = setTimeout(() => {
                 this._clearTimers();
@@ -252,12 +258,12 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 this.setState(prevState => ({
                     isLoading: false,
                     error: this.props.intl.formatMessage(messages.timeoutError),
-                    chatHistory: prevState.chatHistory.slice(0, -1)
+                    chatHistory: prevState.chatHistory.slice(0, -1),
                 }));
             }, TIMEOUT_SECONDS * 1000);
         }
 
-        _clearTimers () {
+        _clearTimers() {
             if (this._timerInterval) {
                 clearInterval(this._timerInterval);
                 this._timerInterval = null;
@@ -272,39 +278,41 @@ const RubyteeModalHOC = function (WrappedComponent) {
          * Check consent before opening the modal.
          * If consent not yet given, show consent dialog first.
          */
-        handleOpenModal () {
-            const hasConsent = typeof window !== 'undefined' && window.localStorage &&
+        handleOpenModal() {
+            const hasConsent =
+                typeof window !== 'undefined' &&
+                window.localStorage &&
                 window.localStorage.getItem(RUBYTEE_CONSENT_KEY) === 'true';
             if (hasConsent) {
-                this.setState({isModalOpen: true, error: null});
+                this.setState({ isModalOpen: true, error: null });
             } else {
-                this.setState({isConsentOpen: true});
+                this.setState({ isConsentOpen: true });
             }
         }
 
-        handleConsentAccept () {
+        handleConsentAccept() {
             if (typeof window !== 'undefined' && window.localStorage) {
                 window.localStorage.setItem(RUBYTEE_CONSENT_KEY, 'true');
             }
-            this.setState({isConsentOpen: false, isModalOpen: true, error: null});
+            this.setState({ isConsentOpen: false, isModalOpen: true, error: null });
         }
 
-        handleConsentCancel () {
-            this.setState({isConsentOpen: false});
+        handleConsentCancel() {
+            this.setState({ isConsentOpen: false });
         }
 
         /**
          * Reset consent — removes localStorage key and closes the modal.
          */
-        handleResetConsent () {
+        handleResetConsent() {
             if (typeof window !== 'undefined' && window.localStorage) {
                 window.localStorage.removeItem(RUBYTEE_CONSENT_KEY);
             }
-            this.setState({isModalOpen: false});
+            this.setState({ isModalOpen: false });
         }
 
-        handleCloseModal () {
-            this.setState({isModalOpen: false});
+        handleCloseModal() {
+            this.setState({ isModalOpen: false });
         }
 
         /**
@@ -312,12 +320,12 @@ const RubyteeModalHOC = function (WrappedComponent) {
          * generated code to the Monaco editor.
          * @param {function} callback - Function that accepts a code string
          */
-        handleRegisterApplyCallback (callback) {
+        handleRegisterApplyCallback(callback) {
             this._applyRubyteeCode = callback;
         }
 
-        async handleSend () {
-            const {inputValue} = this.state;
+        async handleSend() {
+            const { inputValue } = this.state;
             if (!inputValue.trim() || this.state.isLoading) {
                 return;
             }
@@ -326,36 +334,30 @@ const RubyteeModalHOC = function (WrappedComponent) {
             this.setState({
                 isLoading: true,
                 error: null,
-                inputValue: ''
+                inputValue: '',
             });
 
             // Add user message to local history immediately for UI
-            const userMessage = {role: 'user', text: inputValue.trim()};
+            const userMessage = { role: 'user', text: inputValue.trim() };
             this.setState(prevState => ({
-                chatHistory: [...prevState.chatHistory, userMessage]
+                chatHistory: [...prevState.chatHistory, userMessage],
             }));
 
             try {
                 // Collect state context
-                const stateContext = collectStateContext(
-                    this.props.vm,
-                    this.props.vm && this.props.vm.editingTarget
-                );
+                const stateContext = collectStateContext(this.props.vm, this.props.vm && this.props.vm.editingTarget);
 
                 // Call Rubytee API
-                const responseText = await this.rubyteeAPI.sendMessage(
-                    inputValue.trim(),
-                    stateContext
-                );
+                const responseText = await this.rubyteeAPI.sendMessage(inputValue.trim(), stateContext);
 
-                const modelMessage = {role: 'model', text: responseText};
+                const modelMessage = { role: 'model', text: responseText };
                 const latestCodes = RubyteeAPI.extractAllCodeBlocks(responseText);
 
                 this._clearTimers();
                 this.setState(prevState => ({
                     chatHistory: [...prevState.chatHistory, modelMessage],
                     latestCodes: latestCodes,
-                    isLoading: false
+                    isLoading: false,
                 }));
             } catch (error) {
                 this._clearTimers();
@@ -364,7 +366,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 if (error.name === 'AbortError') {
                     this.setState(prevState => ({
                         isLoading: false,
-                        chatHistory: prevState.chatHistory.slice(0, -1)
+                        chatHistory: prevState.chatHistory.slice(0, -1),
                     }));
                     return;
                 }
@@ -374,10 +376,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 let errorMessage;
                 if (error instanceof RateLimitError) {
                     const minutes = Math.ceil((error.resetAfterSeconds || 0) / 60);
-                    errorMessage = this.props.intl.formatMessage(
-                        messages.rateLimitError,
-                        {minutes}
-                    );
+                    errorMessage = this.props.intl.formatMessage(messages.rateLimitError, { minutes });
                 } else if (error.message && error.message.includes('timeout')) {
                     errorMessage = this.props.intl.formatMessage(messages.timeoutError);
                 } else {
@@ -388,7 +387,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 this.setState(prevState => ({
                     isLoading: false,
                     error: errorMessage,
-                    chatHistory: prevState.chatHistory.slice(0, -1)
+                    chatHistory: prevState.chatHistory.slice(0, -1),
                 }));
             }
         }
@@ -397,7 +396,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
          * Cancel the current in-flight Rubytee request.
          * Stops the timers, aborts the fetch, and removes the pending user message.
          */
-        handleCancel () {
+        handleCancel() {
             if (!this.state.isLoading) {
                 return;
             }
@@ -406,48 +405,50 @@ const RubyteeModalHOC = function (WrappedComponent) {
             // Remove the pending user message (the last entry added optimistically)
             this.setState(prevState => ({
                 isLoading: false,
-                chatHistory: prevState.chatHistory.slice(0, -1)
+                chatHistory: prevState.chatHistory.slice(0, -1),
             }));
         }
 
-        handleApplyCode (index) {
-            const {latestCodes} = this.state;
+        handleApplyCode(index) {
+            const { latestCodes } = this.state;
             let code = latestCodes[index];
             if (code && this._applyRubyteeCode) {
                 const target = this.props.vm && this.props.vm.editingTarget;
-                const validSounds = target && target.sprite && target.sprite.sounds ?
-                    target.sprite.sounds.map(s => s.name) : [];
-                const validCostumes = target && target.sprite && target.sprite.costumes ?
-                    target.sprite.costumes.map(c => c.name) : [];
-                const stage = this.props.vm && this.props.vm.runtime &&
+                const validSounds =
+                    target && target.sprite && target.sprite.sounds ? target.sprite.sounds.map(s => s.name) : [];
+                const validCostumes =
+                    target && target.sprite && target.sprite.costumes ? target.sprite.costumes.map(c => c.name) : [];
+                const stage =
+                    this.props.vm &&
+                    this.props.vm.runtime &&
                     this.props.vm.runtime.targets &&
                     this.props.vm.runtime.targets.find(t => t.isStage);
-                const validBackdrops = stage && stage.sprite && stage.sprite.costumes ?
-                    stage.sprite.costumes.map(c => c.name) : [];
+                const validBackdrops =
+                    stage && stage.sprite && stage.sprite.costumes ? stage.sprite.costumes.map(c => c.name) : [];
                 code = sanitizeResourceReferences(code, validSounds, validCostumes, validBackdrops);
                 this._applyRubyteeCode(code);
             }
         }
 
-        handleClearHistory () {
+        handleClearHistory() {
             this.rubyteeAPI.clearHistory();
             this.setState({
                 chatHistory: [],
                 latestCodes: [],
-                error: null
+                error: null,
             });
         }
 
-        handleInputChange (e) {
-            this.setState({inputValue: e.target.value});
+        handleInputChange(e) {
+            this.setState({ inputValue: e.target.value });
         }
 
-        handleInputKeyDown (e) {
+        handleInputKeyDown(e) {
             // Allow Enter/Return to insert a newline (default textarea behavior)
             // User must click the send button to submit
         }
 
-        render () {
+        render() {
             const {
                 intl, // consumed in error message handling (this.props.intl)
                 ...passThroughProps
@@ -462,10 +463,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
                         {...passThroughProps}
                     />
                     {this.state.isConsentOpen && (
-                        <RubyteeConsent
-                            onAccept={this.handleConsentAccept}
-                            onCancel={this.handleConsentCancel}
-                        />
+                        <RubyteeConsent onAccept={this.handleConsentAccept} onCancel={this.handleConsentCancel} />
                     )}
                     {this.state.isModalOpen && (
                         <RubyteeModal
@@ -493,7 +491,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
 
     RubyteeModalComponent.propTypes = {
         intl: intlShape.isRequired,
-        vm: PropTypes.instanceOf(VM).isRequired
+        vm: PropTypes.instanceOf(VM).isRequired,
     };
 
     return injectIntl(RubyteeModalComponent);

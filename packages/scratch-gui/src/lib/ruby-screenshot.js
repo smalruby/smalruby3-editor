@@ -1,6 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (Ruby tab screenshot export) ===
-
-import {toBlob} from 'html-to-image';
+import { toBlob } from 'html-to-image';
 import downloadBlob from './download-blob';
 
 /**
@@ -71,7 +70,7 @@ const measureFuriganaWidth = function (editorDomNode) {
  */
 const cropToWidth = async function (blob, cropWidth) {
     const bitmap = await createImageBitmap(blob);
-    const {width, height} = bitmap;
+    const { width, height } = bitmap;
 
     // No crop needed if target width >= image width
     if (cropWidth >= width) {
@@ -127,7 +126,7 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
 
     try {
         // Disable scrollBeyondLastLine to get tight content height
-        editor.updateOptions({scrollBeyondLastLine: false});
+        editor.updateOptions({ scrollBeyondLastLine: false });
         editor.layout();
 
         // Expand editor to full content height so all lines are in the DOM
@@ -156,22 +155,20 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
         const blob = await toBlob(editorDomNode, {
             backgroundColor: '#ffffff',
             pixelRatio: PIXEL_RATIO,
-            skipFonts: true
+            skipFonts: true,
         });
 
         if (blob) {
             let downloadableBlob = blob;
             if (contentWidth > 0) {
-                const cropWidthPx = Math.ceil(
-                    (contentWidth + CROP_PADDING) * PIXEL_RATIO
-                );
+                const cropWidthPx = Math.ceil((contentWidth + CROP_PADDING) * PIXEL_RATIO);
                 downloadableBlob = await cropToWidth(blob, cropWidthPx);
             }
             downloadBlob(buildFilename(projectTitle, spriteName), downloadableBlob);
         }
     } finally {
         // Restore original state
-        editor.updateOptions({scrollBeyondLastLine: true});
+        editor.updateOptions({ scrollBeyondLastLine: true });
         containerEl.style.height = originalHeight;
         containerEl.style.overflow = originalOverflow;
         editor.layout();
@@ -180,10 +177,4 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
     }
 };
 
-export {
-    buildFilename,
-    cropToWidth,
-    measureFuriganaWidth,
-    measureTextWidth,
-    downloadRubyAsImage
-};
+export { buildFilename, cropToWidth, measureFuriganaWidth, measureTextWidth, downloadRubyAsImage };

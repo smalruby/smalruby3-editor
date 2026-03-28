@@ -1,13 +1,8 @@
-import {
-    isUniversalHex,
-    separateUniversalHex
-} from '@microbit/microbit-universal-hex';
-import {WebUSB, DAPLink} from 'dapjs';
+import { WebUSB, DAPLink } from 'dapjs';
 import keyMirror from 'keymirror';
-
-import log from './log.js';
-
+import { isUniversalHex, separateUniversalHex } from '@microbit/microbit-universal-hex';
 import hexUrl from '../generated/microbit-more-hex-url.cjs';
+import log from './log.js';
 
 /**
  * @typedef {import('@microbit/microbit-universal-hex').IndividualHex} IndividualHex
@@ -19,7 +14,7 @@ import hexUrl from '../generated/microbit-more-hex-url.cjs';
  */
 const DeviceVersion = keyMirror({
     V1: null,
-    V2: null
+    V2: null,
 });
 
 const vendorId = 0x0d28;
@@ -34,14 +29,14 @@ const productId = 0x0204;
 const getDeviceVersion = device => {
     const microBitBoardId = device?.serialNumber?.substring(0, 4) ?? '';
     switch (microBitBoardId) {
-    case '9900':
-    case '9901':
-        throw new Error('MicrobitMore only supports micro:bit V2');
-    case '9903':
-    case '9904':
-    case '9905':
-    case '9906':
-        return DeviceVersion.V2;
+        case '9900':
+        case '9901':
+            throw new Error('MicrobitMore only supports micro:bit V2');
+        case '9903':
+        case '9904':
+        case '9905':
+        case '9906':
+            return DeviceVersion.V2;
     }
 
     throw new Error('Could not identify micro:bit board version');
@@ -55,14 +50,14 @@ const getDeviceVersion = device => {
  */
 const getHexVersion = hex => {
     switch (hex.boardId) {
-    case 0x9900:
-    case 0x9901:
-        return DeviceVersion.V1;
-    case 0x9903:
-    case 0x9904:
-    case 0x9905:
-    case 0x9906:
-        return DeviceVersion.V2;
+        case 0x9900:
+        case 0x9901:
+            return DeviceVersion.V1;
+        case 0x9903:
+        case 0x9904:
+        case 0x9905:
+        case 0x9906:
+            return DeviceVersion.V2;
     }
 
     throw new Error('Could not identify hex version');
@@ -141,7 +136,7 @@ const updateMicroBit = async (device, progress) => {
  */
 const selectAndUpdateMicroBit = async progress => {
     const device = await navigator.usb.requestDevice({
-        filters: [{vendorId, productId}]
+        filters: [{ vendorId, productId }],
     });
 
     if (!device) {
@@ -155,10 +150,6 @@ const selectAndUpdateMicroBit = async progress => {
  * Checks if the browser supports updating a micro:bit.
  * @returns {boolean} True if the browser appears to support updating a micro:bit.
  */
-const isMicroBitUpdateSupported = () =>
-    !!(navigator.usb && navigator.usb.requestDevice);
+const isMicroBitUpdateSupported = () => !!(navigator.usb && navigator.usb.requestDevice);
 
-export {
-    isMicroBitUpdateSupported,
-    selectAndUpdateMicroBit
-};
+export { isMicroBitUpdateSupported, selectAndUpdateMicroBit };

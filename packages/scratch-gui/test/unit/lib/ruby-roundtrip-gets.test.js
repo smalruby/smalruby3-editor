@@ -1,5 +1,5 @@
-import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
 import RubyGenerator from '../../../src/lib/ruby-generator';
+import RubyToBlocksConverter from '../../../src/lib/ruby-to-blocks-converter';
 
 describe('Ruby Roundtrip Gets', () => {
     let converter;
@@ -10,7 +10,7 @@ describe('Ruby Roundtrip Gets', () => {
         target = {
             isStage: false,
             variables: {},
-            getCostumes: () => [{name: 'costume1'}],
+            getCostumes: () => [{ name: 'costume1' }],
             blocks: {
                 _blocks: {},
                 createBlock: function (block) {
@@ -45,38 +45,38 @@ describe('Ruby Roundtrip Gets', () => {
                 },
                 getComment: function (id) {
                     return target.comments[id];
-                }
+                },
             },
             createComment: function (id, blockId, text) {
-                this.comments[id] = {id, blockId, text};
+                this.comments[id] = { id, blockId, text };
             },
             comments: {},
             lookupVariableByNameAndType: function (name, type) {
                 return Object.values(this.variables).find(v => v.name === name && v.type === type);
-            }
+            },
         };
-        
+
         RubyGenerator.init();
         RubyGenerator.currentTarget = target;
     });
 
-    const roundtrip = async (code) => {
+    const roundtrip = async code => {
         converter.reset();
         const res = await converter.targetCodeToBlocks(target, code);
         if (!res) {
             throw new Error(`Conversion failed: ${JSON.stringify(converter.errors)}`);
         }
-        
+
         target.blocks._blocks = converter._context.blocks;
         target.comments = converter._context.comments;
-        
+
         // RubyGenerator uses its own block accessors
-        RubyGenerator.getBlock = (id) => target.blocks.getBlock(id);
-        RubyGenerator.getInputs = (block) => target.blocks.getInputs(block);
-        RubyGenerator.getFields = (block) => target.blocks.getFields(block);
-        RubyGenerator.getMutation = (block) => target.blocks.getMutation(block);
-        RubyGenerator.getNextBlock = (id) => target.blocks.getNextBlock(id);
-        RubyGenerator.getCommentText = (block) => {
+        RubyGenerator.getBlock = id => target.blocks.getBlock(id);
+        RubyGenerator.getInputs = block => target.blocks.getInputs(block);
+        RubyGenerator.getFields = block => target.blocks.getFields(block);
+        RubyGenerator.getMutation = block => target.blocks.getMutation(block);
+        RubyGenerator.getNextBlock = id => target.blocks.getNextBlock(id);
+        RubyGenerator.getCommentText = block => {
             if (block.comment) {
                 return target.comments[block.comment].text;
             }
@@ -88,7 +88,7 @@ describe('Ruby Roundtrip Gets', () => {
         topLevelBlocks.forEach(blockId => {
             generatedCode += RubyGenerator.blockToCode(target.blocks.getBlock(blockId));
         });
-        
+
         return generatedCode.trim();
     };
 

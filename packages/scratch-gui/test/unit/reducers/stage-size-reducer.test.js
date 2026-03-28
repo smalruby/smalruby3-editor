@@ -1,6 +1,6 @@
 import stageSizeReducer, {
     stageSizeInitialState as initialState,
-    setStageSize
+    setStageSize,
 } from '../../../src/reducers/stage-size';
 
 describe('stageSizeReducer', () => {

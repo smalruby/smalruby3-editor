@@ -17,7 +17,7 @@ const createVersionChecker = ({
     currentCommitId,
     onUpdateAvailable,
     initialDelayMs = DEFAULT_INITIAL_DELAY_MS,
-    intervalMs = DEFAULT_INTERVAL_MS
+    intervalMs = DEFAULT_INTERVAL_MS,
 }) => {
     let initialTimer = null;
     let intervalTimer = null;
@@ -25,7 +25,7 @@ const createVersionChecker = ({
     const check = async () => {
         if (!currentCommitId) return;
         try {
-            const response = await fetch('./version.json', {cache: 'no-store'});
+            const response = await fetch('./version.json', { cache: 'no-store' });
             if (!response.ok) return;
             const data = await response.json();
             if (data.commitId && data.commitId !== currentCommitId) {
@@ -54,7 +54,7 @@ const createVersionChecker = ({
         }
     };
 
-    return {start, stop, check};
+    return { start, stop, check };
 };
 
-export {createVersionChecker};
+export { createVersionChecker };

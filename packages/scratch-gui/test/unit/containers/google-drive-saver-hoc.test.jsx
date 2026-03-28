@@ -1,22 +1,20 @@
 // === Smalruby: This file is Smalruby-specific (Google Drive saver HOC tests) ===
-import 'web-audio-test-api';
-
 import React from 'react';
 import configureStore from 'redux-mock-store';
-import {renderWithIntl} from '../../helpers/intl-helpers.jsx';
+import 'web-audio-test-api';
 import VM from '@smalruby/scratch-vm';
-
 import GoogleDriveSaverHOC from '../../../src/containers/google-drive-saver-hoc.jsx';
+import { renderWithIntl } from '../../helpers/intl-helpers.jsx';
 
 // Mock google-drive-api module
 jest.mock('../../../src/lib/google-drive-api', () => ({
     __esModule: true,
     default: {
-        constructor: {isConfigured: () => true},
+        constructor: { isConfigured: () => true },
         uploadFile: jest.fn(),
         updateFile: jest.fn(),
-        requestAccessToken: jest.fn()
-    }
+        requestAccessToken: jest.fn(),
+    },
 }));
 
 // Mock ruby-to-blocks-converter-hoc to pass through
@@ -34,7 +32,7 @@ describe('GoogleDriveSaverHOC', () => {
         store = mockStore({
             scratchGui: {
                 projectState: {
-                    loadingState: 'SHOWING_WITHOUT_ID'
+                    loadingState: 'SHOWING_WITHOUT_ID',
                 },
                 projectChanged: false,
                 projectTitle: 'test-project',
@@ -43,17 +41,17 @@ describe('GoogleDriveSaverHOC', () => {
                     fileId: null,
                     fileName: null,
                     folderId: null,
-                    isGoogleDriveFile: false
-                }
+                    isGoogleDriveFile: false,
+                },
             },
             locales: {
-                locale: 'en'
-            }
+                locale: 'en',
+            },
         });
     });
 
     test('should update project title when saving copy to Google Drive', async () => {
-        googleDriveAPI.uploadFile.mockResolvedValue({id: 'new-file-id'});
+        googleDriveAPI.uploadFile.mockResolvedValue({ id: 'new-file-id' });
 
         let capturedOnSaveToGoogleDrive;
         const Component = props => {
@@ -68,9 +66,9 @@ describe('GoogleDriveSaverHOC', () => {
                 saveProjectSb3={jest.fn().mockResolvedValue(new ArrayBuffer(8))}
                 targetCodeToBlocks={jest.fn().mockResolvedValue({
                     result: true,
-                    apply: jest.fn().mockResolvedValue()
+                    apply: jest.fn().mockResolvedValue(),
                 })}
-            />
+            />,
         );
 
         // Call save with a new filename
@@ -88,7 +86,7 @@ describe('GoogleDriveSaverHOC', () => {
         store = mockStore({
             scratchGui: {
                 projectState: {
-                    loadingState: 'SHOWING_WITHOUT_ID'
+                    loadingState: 'SHOWING_WITHOUT_ID',
                 },
                 projectChanged: true,
                 projectTitle: 'test-project',
@@ -97,20 +95,18 @@ describe('GoogleDriveSaverHOC', () => {
                     fileId: 'existing-file-id',
                     fileName: 'test.sb3',
                     folderId: null,
-                    isGoogleDriveFile: true
-                }
+                    isGoogleDriveFile: true,
+                },
             },
             locales: {
-                locale: 'en'
-            }
+                locale: 'en',
+            },
         });
 
         // First call to updateFile throws 401, second succeeds
         const authError = new Error('Unauthorized');
         authError.status = 401;
-        googleDriveAPI.updateFile
-            .mockRejectedValueOnce(authError)
-            .mockResolvedValueOnce({});
+        googleDriveAPI.updateFile.mockRejectedValueOnce(authError).mockResolvedValueOnce({});
         googleDriveAPI.requestAccessToken.mockResolvedValue();
 
         let capturedProps;
@@ -126,9 +122,9 @@ describe('GoogleDriveSaverHOC', () => {
                 saveProjectSb3={jest.fn().mockResolvedValue(new ArrayBuffer(8))}
                 targetCodeToBlocks={jest.fn().mockResolvedValue({
                     result: true,
-                    apply: jest.fn().mockResolvedValue()
+                    apply: jest.fn().mockResolvedValue(),
                 })}
-            />
+            />,
         );
 
         // User clicks save directly (isUserInitiated=true)

@@ -372,7 +372,7 @@ export default [
         connectionTipIconURL: boostConnectionTipIconURL,
         prescanMessage: (
             <FormattedMessage
-                // eslint-disable-next-line max-len
+                 
                 defaultMessage="Press the button on your LEGO BOOST, then press the button below to start searching for your device."
                 description="Prompt before searching for a LEGO BOOST"
                 id="gui.extension.boost.prescanMessage"
@@ -419,7 +419,7 @@ export default [
         connectionTipIconURL: wedo2ConnectionTipIconURL,
         prescanMessage: (
             <FormattedMessage
-                // eslint-disable-next-line max-len
+                 
                 defaultMessage="Press the button on your LEGO WeDo 2.0, then press the button below to start searching for your device."
                 description="Prompt before searching for a LEGO WeDo 2.0"
                 id="gui.extension.wedo2.prescanMessage"

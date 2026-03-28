@@ -5,18 +5,18 @@ minilog.suggest.deny('vm', 'debug');
 minilog.suggest.deny('vm', 'info');
 
 const MeshV2Service = require('../../src/extensions/scratch3_mesh_v2/mesh-service');
-const {GET_EVENTS_SINCE, RECORD_EVENTS} = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
+const { GET_EVENTS_SINCE, RECORD_EVENTS } = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
 
 const createMockBlocks = () => ({
     runtime: {
         sequencer: {},
         emit: () => {},
         on: () => {},
-        off: () => {}
+        off: () => {},
     },
     opcodeFunctions: {
-        event_broadcast: () => {}
-    }
+        event_broadcast: () => {},
+    },
 });
 
 test('MeshV2Service Polling', t => {
@@ -35,7 +35,7 @@ test('MeshV2Service Polling', t => {
                 domain: 'domain1',
                 payload: 'p1',
                 timestamp: 'T2',
-                cursor: 'C2'
+                cursor: 'C2',
             },
             {
                 name: 'e2',
@@ -44,8 +44,8 @@ test('MeshV2Service Polling', t => {
                 domain: 'domain1',
                 payload: 'p2',
                 timestamp: 'T3',
-                cursor: 'C3'
-            }
+                cursor: 'C3',
+            },
         ];
 
         service.client = {
@@ -54,10 +54,10 @@ test('MeshV2Service Polling', t => {
                 st.equal(options.variables.since, 'T1');
                 return Promise.resolve({
                     data: {
-                        getEventsSince: events
-                    }
+                        getEventsSince: events,
+                    },
                 });
-            }
+            },
         };
 
         await service.pollEvents();
@@ -76,7 +76,7 @@ test('MeshV2Service Polling', t => {
         service.useWebSocket = false;
         service.lastFetchTime = null;
 
-        const events = [{eventName: 'e1', payload: 'p1', firedAt: 't1'}];
+        const events = [{ eventName: 'e1', payload: 'p1', firedAt: 't1' }];
 
         service.client = {
             mutate: options => {
@@ -84,11 +84,11 @@ test('MeshV2Service Polling', t => {
                 return Promise.resolve({
                     data: {
                         recordEventsByNode: {
-                            nextSince: 'T_NEW'
-                        }
-                    }
+                            nextSince: 'T_NEW',
+                        },
+                    },
                 });
-            }
+            },
         };
 
         await service.fireEventsBatch(events);
@@ -127,10 +127,10 @@ test('MeshV2Service Polling', t => {
 
         // Mock WebSocket
         global.WebSocket = class {
-            constructor () {
+            constructor() {
                 setTimeout(() => this.onopen(), 10);
             }
-            close () {}
+            close() {}
         };
 
         const result = await service.testWebSocket();
@@ -146,10 +146,10 @@ test('MeshV2Service Polling', t => {
 
         // Mock WebSocket
         global.WebSocket = class {
-            constructor () {
+            constructor() {
                 setTimeout(() => this.onerror(new Error('fail')), 10);
             }
-            close () {}
+            close() {}
         };
 
         const result = await service.testWebSocket();
@@ -171,18 +171,18 @@ test('MeshV2Service Polling', t => {
                 name: 'self-event',
                 firedByNodeId: 'node1', // self
                 timestamp: 'T2',
-                cursor: 'C2'
+                cursor: 'C2',
             },
             {
                 name: 'other-event',
                 firedByNodeId: 'node2',
                 timestamp: 'T3',
-                cursor: 'C3'
-            }
+                cursor: 'C3',
+            },
         ];
 
         service.client = {
-            query: () => Promise.resolve({data: {getEventsSince: events}})
+            query: () => Promise.resolve({ data: { getEventsSince: events } }),
         };
 
         await service.pollEvents();
@@ -206,8 +206,8 @@ test('MeshV2Service Polling', t => {
             query: options => {
                 st.ok(options.variables.since);
                 st.ok(new Date(options.variables.since).getTime() > 0);
-                return Promise.resolve({data: {getEventsSince: []}});
-            }
+                return Promise.resolve({ data: { getEventsSince: [] } });
+            },
         };
 
         await service.pollEvents();

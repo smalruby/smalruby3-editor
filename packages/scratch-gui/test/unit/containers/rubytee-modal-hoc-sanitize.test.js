@@ -1,4 +1,4 @@
-import {sanitizeResourceReferences} from '../../../src/containers/rubytee-modal-hoc';
+import { sanitizeResourceReferences } from '../../../src/containers/rubytee-modal-hoc';
 
 describe('sanitizeResourceReferences', () => {
     // --- Sound ---
@@ -40,17 +40,9 @@ describe('sanitizeResourceReferences', () => {
         });
 
         test('handles multiple lines with mixed valid/invalid sounds', () => {
-            const code = [
-                'play("ネコ")',
-                'play("ポップ")',
-                'play_until_done("ドン")'
-            ].join('\n');
+            const code = ['play("ネコ")', 'play("ポップ")', 'play_until_done("ドン")'].join('\n');
             const result = sanitizeResourceReferences(code, ['ネコ'], ['コスチューム1'], ['背景1']);
-            expect(result).toBe([
-                'play("ネコ")',
-                'play("ネコ")',
-                'play_until_done("ネコ")'
-            ].join('\n'));
+            expect(result).toBe(['play("ネコ")', 'play("ネコ")', 'play_until_done("ネコ")'].join('\n'));
         });
     });
 
@@ -149,14 +141,12 @@ describe('sanitizeResourceReferences', () => {
             const code = [
                 'play("ポップ")',
                 'switch_costume("存在しないコスチューム")',
-                'switch_backdrop("存在しない背景")'
+                'switch_backdrop("存在しない背景")',
             ].join('\n');
             const result = sanitizeResourceReferences(code, ['ネコ'], ['コスチューム1'], ['背景1']);
-            expect(result).toBe([
-                'play("ネコ")',
-                'switch_costume("コスチューム1")',
-                'switch_backdrop("背景1")'
-            ].join('\n'));
+            expect(result).toBe(
+                ['play("ネコ")', 'switch_costume("コスチューム1")', 'switch_backdrop("背景1")'].join('\n'),
+            );
         });
     });
 });

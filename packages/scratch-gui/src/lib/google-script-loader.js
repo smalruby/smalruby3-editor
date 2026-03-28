@@ -13,49 +13,45 @@
  * @param {string} id - Unique identifier for the script tag
  * @returns {Promise<void>} Promise that resolves when script is loaded, rejects on error
  */
-const loadScript = (src, id) => new Promise((resolve, reject) => {
-    // Check if script is already loaded
-    if (document.getElementById(id)) {
-        resolve();
-        return;
-    }
+const loadScript = (src, id) =>
+    new Promise((resolve, reject) => {
+        // Check if script is already loaded
+        if (document.getElementById(id)) {
+            resolve();
+            return;
+        }
 
-    const script = document.createElement('script');
-    script.id = id;
-    script.src = src;
-    script.async = true;
-    script.defer = true;
+        const script = document.createElement('script');
+        script.id = id;
+        script.src = src;
+        script.async = true;
+        script.defer = true;
 
-    script.onload = () => {
-        resolve();
-    };
+        script.onload = () => {
+            resolve();
+        };
 
-    script.onerror = () => {
-        reject(new Error(`Failed to load script: ${src}`));
-    };
+        script.onerror = () => {
+            reject(new Error(`Failed to load script: ${src}`));
+        };
 
-    document.head.appendChild(script);
-});
+        document.head.appendChild(script);
+    });
 
 /**
  * Load Google API Client Library (gapi)
  * Required for Google Picker API
  * @returns {Promise<void>} Promise that resolves when API is loaded
  */
-export const loadGoogleAPI = () => loadScript(
-    'https://apis.google.com/js/api.js',
-    'google-api-script'
-);
+export const loadGoogleAPI = () => loadScript('https://apis.google.com/js/api.js', 'google-api-script');
 
 /**
  * Load Google Identity Services (GIS)
  * Required for OAuth 2.0 authentication
  * @returns {Promise<void>} Promise that resolves when GIS is loaded
  */
-export const loadGoogleIdentity = () => loadScript(
-    'https://accounts.google.com/gsi/client',
-    'google-identity-script'
-);
+export const loadGoogleIdentity = () =>
+    loadScript('https://accounts.google.com/gsi/client', 'google-identity-script');
 
 /**
  * Load all required Google scripts
@@ -65,10 +61,7 @@ export const loadGoogleIdentity = () => loadScript(
 export const loadAllGoogleScripts = async () => {
     try {
         // Load both scripts in parallel
-        await Promise.all([
-            loadGoogleAPI(),
-            loadGoogleIdentity()
-        ]);
+        await Promise.all([loadGoogleAPI(), loadGoogleIdentity()]);
     } catch (error) {
         console.error('Failed to load Google scripts:', error);
         throw error;
@@ -91,5 +84,4 @@ export const isGoogleIdentityLoaded = () => typeof window.google !== 'undefined'
  * Check if all required Google scripts are loaded
  * @returns {boolean} True if all scripts are loaded
  */
-export const areAllGoogleScriptsLoaded = () =>
-    isGoogleAPILoaded() && isGoogleIdentityLoaded();
+export const areAllGoogleScriptsLoaded = () => isGoogleAPILoaded() && isGoogleIdentityLoaded();

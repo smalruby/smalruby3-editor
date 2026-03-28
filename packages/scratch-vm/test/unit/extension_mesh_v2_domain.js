@@ -1,6 +1,6 @@
 const test = require('tap').test;
 const Scratch3MeshV2Blocks = require('../../src/extensions/scratch3_mesh_v2/index');
-const {validateDomain} = require('../../src/extensions/scratch3_mesh_v2/utils');
+const { validateDomain } = require('../../src/extensions/scratch3_mesh_v2/utils');
 
 test('validateDomain', t => {
     t.equal(validateDomain('example.com'), 'example.com');
@@ -17,8 +17,8 @@ test('setDomain', t => {
         registerPeripheralExtension: () => {},
         emit: () => {},
         extensionManager: {
-            isExtensionLoaded: () => false
-        }
+            isExtensionLoaded: () => false,
+        },
     };
     const blocks = new Scratch3MeshV2Blocks(runtime);
 
@@ -32,11 +32,11 @@ test('setDomain', t => {
             },
             removeItem: key => {
                 t.equal(key, 'mesh_v2_domain');
-            }
+            },
         },
         location: {
-            search: ''
-        }
+            search: '',
+        },
     };
 
     t.equal(blocks.domain, null);

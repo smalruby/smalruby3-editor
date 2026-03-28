@@ -10,28 +10,25 @@ import sharedMessages from './shared-messages';
  * @returns {Promise} A promise that resolves when the project is loaded.
  */
 const loadProjectWithChecks = (vm, intl, projectData, currentRubyVersion, onSetRubyVersion) =>
-    vm.hasMeshV1Project(projectData)
+    vm
+        .hasMeshV1Project(projectData)
         .then(hasMeshV1 => {
             let migrateMeshV1ToV2 = false;
             if (hasMeshV1) {
-                migrateMeshV1ToV2 = !confirm( // eslint-disable-line no-alert
-                    intl.formatMessage(sharedMessages.migrateMeshV1Warning)
-                );
+                // eslint-disable-next-line no-alert
+                migrateMeshV1ToV2 = !confirm(intl.formatMessage(sharedMessages.migrateMeshV1Warning));
             }
-            return vm.loadProject(projectData, {migrateMeshV1ToV2});
+            return vm.loadProject(projectData, { migrateMeshV1ToV2 });
         })
         .then(() => vm.hasKoshienProject(projectData))
         .then(hasKoshien => {
             if (hasKoshien) {
                 if (currentRubyVersion !== '1') {
-                    alert(intl.formatMessage( // eslint-disable-line no-alert
-                        sharedMessages.changedRubyVersionByKoshien
-                    ));
+                    // eslint-disable-next-line no-alert
+                    alert(intl.formatMessage(sharedMessages.changedRubyVersionByKoshien));
                 }
                 onSetRubyVersion('1');
             }
         });
 
-export {
-    loadProjectWithChecks
-};
+export { loadProjectWithChecks };
