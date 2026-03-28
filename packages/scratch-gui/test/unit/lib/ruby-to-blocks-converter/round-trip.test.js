@@ -520,6 +520,15 @@ end
                 '$a.delete_at(-1) # @ruby:array:delete_at:last'
             );
         });
+
+        test('empty? method', async () => {
+            await expectRoundTrip('$a.empty?');
+        });
+
+        test('show_list and hide_list', async () => {
+            await expectRoundTrip('show_list("@items")');
+            await expectRoundTrip('hide_list("@items")');
+        });
     });
 
     test('symbol .to_s round-trip', async () => {
