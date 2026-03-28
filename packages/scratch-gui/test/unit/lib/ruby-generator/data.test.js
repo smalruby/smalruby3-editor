@@ -351,4 +351,72 @@ describe('RubyGenerator/Data', () => {
                 .toEqual('');
         });
     });
+
+    describe('delete_at / insert special values', () => {
+        beforeEach(() => {
+            RubyGenerator.listName = jest.fn().mockReturnValue('@my_list');
+            RubyGenerator.getFieldId = jest.fn().mockReturnValue('list-id');
+            RubyGenerator.nosToCode = jest.fn(v => v);
+        });
+
+        test('data_deleteoflist with INDEX "last" generates delete_at(-1)', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'data_deleteoflist',
+                fields: {LIST: {id: 'list-id', value: 'my list'}},
+                inputs: {INDEX: {block: 'index-block-id'}}
+            };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('last');
+            RubyGenerator.getBlock = jest.fn().mockReturnValue(null);
+            expect(RubyGenerator.data_deleteoflist(block))
+                .toEqual('@my_list.delete_at(-1)\n');
+        });
+
+        test('data_deleteoflist with INDEX "random" generates delete_at(rand(...))', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'data_deleteoflist',
+                fields: {LIST: {id: 'list-id', value: 'my list'}},
+                inputs: {INDEX: {block: 'index-block-id'}}
+            };
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('random');
+            RubyGenerator.getBlock = jest.fn().mockReturnValue(null);
+            expect(RubyGenerator.data_deleteoflist(block))
+                .toEqual('@my_list.delete_at(rand(0...@my_list.length))\n');
+        });
+
+        test('data_insertatlist with INDEX "last" generates push', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'data_insertatlist',
+                fields: {LIST: {id: 'list-id', value: 'my list'}},
+                inputs: {
+                    INDEX: {block: 'index-block-id'},
+                    ITEM: {block: 'item-block-id'}
+                }
+            };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('last')
+                .mockReturnValueOnce('"thing"');
+            expect(RubyGenerator.data_insertatlist(block))
+                .toEqual('@my_list.push("thing")\n');
+        });
+
+        test('data_insertatlist with INDEX "random" generates insert(rand(...))', () => {
+            const block = {
+                id: 'block-id',
+                opcode: 'data_insertatlist',
+                fields: {LIST: {id: 'list-id', value: 'my list'}},
+                inputs: {
+                    INDEX: {block: 'index-block-id'},
+                    ITEM: {block: 'item-block-id'}
+                }
+            };
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('random')
+                .mockReturnValueOnce('"thing"');
+            expect(RubyGenerator.data_insertatlist(block))
+                .toEqual('@my_list.insert(rand(0..@my_list.length), "thing")\n');
+        });
+    });
 });

@@ -624,20 +624,26 @@ show_variable("@score")
 hide_variable("@score")
 ```
 
-#### Lists
+#### Lists (Arrays)
 
 ```ruby
-list("@items").push("apple")           # Add
-list("@items").delete_at(1)             # Delete
-list("@items").clear                    # Delete all
-list("@items").insert(1, "banana")      # Insert
-list("@items")[1] = "orange"            # Replace
-list("@items")[1]                       # Get
-list("@items").index("apple")           # Search
-list("@items").length                   # Length
-list("@items").include?("apple")        # Contains?
-show_list("@items")                     # Show list
-hide_list("@items")                     # Hide list
+# Initialize with array literal
+@items = ["apple", "banana", "cherry"]
+
+# Operations (0-indexed)
+@items.push("apple")           # Add to end
+@items.delete_at(0)            # Delete at index (0-indexed)
+@items.delete_at(-1)           # Delete last
+@items.clear                   # Delete all
+@items.insert(0, "banana")     # Insert at index (0-indexed)
+@items[0] = "orange"           # Replace at index (0-indexed)
+@items[0]                      # Get at index (0-indexed)
+@items.index("apple")          # Search (returns 0-based index, 0 if not found)
+@items.length                  # Length
+@items.include?("apple")       # Contains?
+@items.empty?                  # Empty?
+show_list("@items")            # Show list
+hide_list("@items")            # Hide list
 ```
 
 ## 5. Unsupported Ruby Syntax

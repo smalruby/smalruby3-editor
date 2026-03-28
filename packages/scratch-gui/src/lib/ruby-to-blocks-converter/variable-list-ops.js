@@ -158,6 +158,17 @@ export const registerListOperations = function (
         const {block: listBlock, converted} = convertToListBlock(converter, messages, receiver);
         const recv = converted ? listBlock : receiver;
         if (!recv) return null;
+
+        // Detect delete_at(-1) as "last" special value
+        if (converter._isNumber(args[0]) && Number(args[0]) === -1) {
+            const block = converter._changeBlock(recv, 'data_deleteoflist', 'statement');
+            converter._addNumberInput(block, 'INDEX', 'math_integer', 1, 1);
+            block.comment = converter._createComment(
+                '@ruby:array:delete_at:last', block.id
+            );
+            return block;
+        }
+
         const index = adjustIndex(converter, args[0], converted);
 
         const block = converter._changeBlock(recv, 'data_deleteoflist', 'statement');

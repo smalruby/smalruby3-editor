@@ -507,6 +507,19 @@ end
             await expectRoundTrip('@items[0]');
             await expectRoundTrip('@items.length');
         });
+
+        test('delete_at(-1) round-trips as last', async () => {
+            await expectRoundTrip('$a.delete_at(-1)');
+        });
+
+        test('empty? method', async () => {
+            await expectRoundTrip('$a.empty?');
+        });
+
+        test('show_list and hide_list', async () => {
+            await expectRoundTrip('show_list("@items")');
+            await expectRoundTrip('hide_list("@items")');
+        });
     });
 
     test('symbol .to_s round-trip', async () => {

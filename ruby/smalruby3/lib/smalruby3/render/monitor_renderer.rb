@@ -44,7 +44,7 @@ module Smalruby3
 
             if key.start_with?("list:")
               name = key.delete_prefix("list:")
-              list_val = target.list(name)
+              list_val = target.instance_variable_get(name.to_s.start_with?("@") ? name.to_sym : :"@#{name}")
               y_off = draw_list(target, name, list_val, y_off)
             else
               value = target.variable(key)

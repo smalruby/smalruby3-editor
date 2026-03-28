@@ -316,9 +316,9 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 - \`touching_color?("#rrggbb")\`
 - \`distance("_mouse_")\`
 - \`ask("question")\` / \`answer\`
-- \`Keyboard.pressed?("key")\`
-- \`Mouse.down?\` / \`Mouse.x\` / \`Mouse.y\`
-- \`Timer.value\` / \`Timer.reset\`
+- \`keyboard.pressed?("key")\`
+- \`mouse.down?\` / \`mouse.x\` / \`mouse.y\`
+- \`timer.value\` / \`timer.reset\`
 - \`loudness\`
 
 ### Operators
@@ -333,6 +333,21 @@ Smalruby is a Ruby subset with methods corresponding to MIT Scratch 3.0 visual p
 - Global variables (stage): \`$high_score = 100\`
 - Local variables: \`count = 0\`
 - \`show_variable("@score")\` / \`hide_variable("@score")\`
+
+### Lists (Arrays)
+- Initialize with array literal: \`@items = ["apple", "banana"]\`
+- \`@items.push("cherry")\` — add to end
+- \`@items.delete_at(0)\` — delete at index (0-indexed)
+- \`@items.delete_at(-1)\` — delete last
+- \`@items.clear\` — delete all
+- \`@items.insert(0, "grape")\` — insert at index (0-indexed)
+- \`@items[0] = "orange"\` — replace at index (0-indexed)
+- \`@items[0]\` — get at index (0-indexed)
+- \`@items.index("apple")\` — search (returns 0-based index, 0 if not found)
+- \`@items.length\` — length
+- \`@items.include?("apple")\` — contains?
+- \`@items.empty?\` — empty?
+- \`show_list("@items")\` / \`hide_list("@items")\` — show/hide list monitor
 
 ### Module / Include (Version 2 only)
 - Define reusable methods in a \`module\`, then \`include\` in a class to share across sprites
@@ -395,10 +410,12 @@ Do NOT use these — they do not exist:
 - ❌ \`set_x()\`, \`set_y()\`, \`change_x()\`, \`change_y()\` → ✅ \`self.x =\`, \`self.y =\`, \`self.x +=\`, \`self.y +=\`
 - ❌ \`set_direction()\` → ✅ \`self.direction =\`
 - ❌ \`set_size()\`, \`change_size()\` → ✅ \`self.size =\`, \`self.size +=\`
-- ❌ \`mouse_x\`, \`mouse_y\` → ✅ \`Mouse.x\`, \`Mouse.y\`
-- ❌ \`mouse_down?\` → ✅ \`Mouse.down?\`
-- ❌ \`key_pressed?()\` → ✅ \`Keyboard.pressed?()\`
-- ❌ \`timer\`, \`reset_timer\` → ✅ \`Timer.value\`, \`Timer.reset\`
+- ❌ \`mouse_x\`, \`mouse_y\` → ✅ \`mouse.x\`, \`mouse.y\`
+- ❌ \`mouse_down?\` → ✅ \`mouse.down?\`
+- ❌ \`key_pressed?()\`, \`Keyboard.pressed?()\` → ✅ \`keyboard.pressed?()\`
+- ❌ \`timer\`, \`reset_timer\`, \`Timer.value\`, \`Timer.reset\` → ✅ \`timer.value\`, \`timer.reset\`
+- ❌ \`Mouse.x\`, \`Mouse.y\`, \`Mouse.down?\` → ✅ \`mouse.x\`, \`mouse.y\`, \`mouse.down?\`
+- ❌ \`list("@items")\` → ✅ \`@items\` (use array directly: \`@items.push(...)\`, \`@items[0]\`)
 - ❌ \`touching?("_mouse_pointer_")\` → ✅ \`touching?("_mouse_")\`
 - ❌ \`play_sound()\`, \`stop_sounds\` → ✅ \`play()\`, \`stop_all_sounds\`
 - ❌ \`clear_effects\` → ✅ \`clear_graphic_effects\`
@@ -586,9 +603,10 @@ When using \`set_sprite\`, only the following sprite names are available:
 These are the most common mistakes. **Always verify your output against these rules**:
 
 1. **\`self.x =\` NOT \`set_x()\`**: Outside class definitions, always use \`self.x = value\`, \`self.y = value\`, \`self.size = value\`, etc. The \`set_x()\`, \`set_y()\`, \`set_size()\` methods are ONLY valid at class definition top-level.
-2. **\`Keyboard.pressed?\` NOT \`key_pressed?\`**: Always use \`Keyboard.pressed?("key")\`, never \`key_pressed?\`.
-3. **\`Mouse.x\` NOT \`mouse_x\`**: Always use \`Mouse.x\`, \`Mouse.y\`, \`Mouse.down?\`.
-4. **\`Timer.value\` NOT \`timer\`**: Always use \`Timer.value\` and \`Timer.reset\`.
+2. **\`keyboard.pressed?\` NOT \`key_pressed?\`**: Always use \`keyboard.pressed?("key")\`, never \`key_pressed?\` or \`Keyboard.pressed?\`.
+3. **\`mouse.x\` NOT \`mouse_x\`**: Always use \`mouse.x\`, \`mouse.y\`, \`mouse.down?\` (lowercase).
+4. **\`timer.value\` NOT \`timer\`**: Always use \`timer.value\` and \`timer.reset\` (lowercase).
+13. **\`@items.push()\` NOT \`list("@items").push()\`**: Use arrays directly. \`list()\` does not exist.
 5. **\`touching?("_mouse_")\` NOT \`touching?("_mouse_pointer_")\`**: The target name is \`"_mouse_"\`, not \`"_mouse_pointer_"\`.
 6. **\`glide([x, y], secs: n)\` NOT \`glide(n, x, y)\`**: Coordinates in array, seconds as keyword argument.
 7. **\`go_to([x, y])\` NOT \`go_to(x, y)\`**: Coordinates must be in an array.

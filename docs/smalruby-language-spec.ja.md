@@ -661,20 +661,26 @@ show_variable("@score")
 hide_variable("@score")
 ```
 
-#### リストの使用
+#### リスト（配列）の使用
 
 ```ruby
-list("@items").push("りんご")          # 追加
-list("@items").delete_at(1)             # 削除
-list("@items").clear                    # 全削除
-list("@items").insert(1, "バナナ")      # 挿入
-list("@items")[1] = "みかん"            # 置換
-list("@items")[1]                       # 取得
-list("@items").index("りんご")          # 検索
-list("@items").length                   # 長さ
-list("@items").include?("りんご")       # 含むか
-show_list("@items")                     # リストの表示
-hide_list("@items")                     # リストの非表示
+# 配列リテラルで初期化
+@items = ["りんご", "バナナ", "さくらんぼ"]
+
+# 操作（0起点インデックス）
+@items.push("りんご")          # 末尾に追加
+@items.delete_at(0)            # インデックス指定で削除（0起点）
+@items.delete_at(-1)           # 末尾を削除
+@items.clear                   # 全削除
+@items.insert(0, "バナナ")     # インデックス指定で挿入（0起点）
+@items[0] = "みかん"           # インデックス指定で置換（0起点）
+@items[0]                      # インデックス指定で取得（0起点）
+@items.index("りんご")         # 検索（0起点のインデックスを返す、見つからない場合は0）
+@items.length                  # 長さ
+@items.include?("りんご")      # 含むか
+@items.empty?                  # 空か
+show_list("@items")            # リストの表示
+hide_list("@items")            # リストの非表示
 ```
 
 ## 5. サポートされていないRuby構文
