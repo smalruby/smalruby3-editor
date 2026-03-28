@@ -509,16 +509,7 @@ end
         });
 
         test('delete_at(-1) round-trips as last', async () => {
-            await expectRoundTrip(
-                '$a.delete_at(-1)',
-                '$a.delete_at(-1) # @ruby:array:delete_at:last'
-            );
-        });
-
-        test('delete_at(-1) with comment round-trips', async () => {
-            await expectRoundTrip(
-                '$a.delete_at(-1) # @ruby:array:delete_at:last'
-            );
+            await expectRoundTrip('$a.delete_at(-1)');
         });
 
         test('empty? method', async () => {

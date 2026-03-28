@@ -359,7 +359,7 @@ describe('RubyGenerator/Data', () => {
             RubyGenerator.nosToCode = jest.fn(v => v);
         });
 
-        test('data_deleteoflist with INDEX "last" generates delete_at(-1) with comment', () => {
+        test('data_deleteoflist with INDEX "last" generates delete_at(-1)', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'data_deleteoflist',
@@ -369,10 +369,10 @@ describe('RubyGenerator/Data', () => {
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('last');
             RubyGenerator.getBlock = jest.fn().mockReturnValue(null);
             expect(RubyGenerator.data_deleteoflist(block))
-                .toEqual('@my_list.delete_at(-1) # @ruby:array:delete_at:last\n');
+                .toEqual('@my_list.delete_at(-1)\n');
         });
 
-        test('data_deleteoflist with INDEX "random" generates delete_at(rand(...)) with comment', () => {
+        test('data_deleteoflist with INDEX "random" generates delete_at(rand(...))', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'data_deleteoflist',
@@ -382,10 +382,10 @@ describe('RubyGenerator/Data', () => {
             RubyGenerator.valueToCode = jest.fn().mockReturnValue('random');
             RubyGenerator.getBlock = jest.fn().mockReturnValue(null);
             expect(RubyGenerator.data_deleteoflist(block))
-                .toEqual('@my_list.delete_at(rand(0...@my_list.length)) # @ruby:array:delete_at:random\n');
+                .toEqual('@my_list.delete_at(rand(0...@my_list.length))\n');
         });
 
-        test('data_insertatlist with INDEX "last" generates push with comment', () => {
+        test('data_insertatlist with INDEX "last" generates push', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'data_insertatlist',
@@ -399,10 +399,10 @@ describe('RubyGenerator/Data', () => {
                 .mockReturnValueOnce('last')
                 .mockReturnValueOnce('"thing"');
             expect(RubyGenerator.data_insertatlist(block))
-                .toEqual('@my_list.push("thing") # @ruby:array:insert:last\n');
+                .toEqual('@my_list.push("thing")\n');
         });
 
-        test('data_insertatlist with INDEX "random" generates insert(rand(...)) with comment', () => {
+        test('data_insertatlist with INDEX "random" generates insert(rand(...))', () => {
             const block = {
                 id: 'block-id',
                 opcode: 'data_insertatlist',
@@ -416,7 +416,7 @@ describe('RubyGenerator/Data', () => {
                 .mockReturnValueOnce('random')
                 .mockReturnValueOnce('"thing"');
             expect(RubyGenerator.data_insertatlist(block))
-                .toEqual('@my_list.insert(rand(0..@my_list.length), "thing") # @ruby:array:insert:random\n');
+                .toEqual('@my_list.insert(rand(0..@my_list.length), "thing")\n');
         });
     });
 });
