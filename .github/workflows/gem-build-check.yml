@@ -1,0 +1,124 @@
+name: Gem Build Check (cross-platform)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ruby-version:
+        description: 'Ruby version to test'
+        required: false
+        default: '3.4'
+        type: choice
+        options:
+          - '3.3'
+          - '3.4'
+          - '4.0'
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  build-linux:
+    name: "Build gem (Linux / Ruby ${{ inputs.ruby-version || '3.4' }})"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ruby/smalruby3
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Install SDL2 development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ inputs.ruby-version || '3.4' }}
+          bundler-cache: true
+          working-directory: ruby/smalruby3
+
+      - name: Build gem
+        run: gem build smalruby3.gemspec
+
+      - name: Install gem locally
+        run: gem install --local smalruby3-*.gem --no-document
+
+      - name: Compile native extension
+        run: bundle exec rake compile
+
+      - name: Run tests
+        run: bundle exec rake test
+
+      - name: Verify smalruby3 loads
+        run: ruby -r smalruby3 -e 'puts "smalruby3 v#{Smalruby3::VERSION} loaded OK"'
+
+      - name: Upload gem artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smalruby3-gem-linux
+          path: ruby/smalruby3/smalruby3-*.gem
+
+  build-windows:
+    name: "Build gem (Windows / Ruby ${{ inputs.ruby-version || '3.4' }})"
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ruby/smalruby3
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Install SDL2 via MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-SDL2
+            mingw-w64-ucrt-x86_64-SDL2_image
+            mingw-w64-ucrt-x86_64-SDL2_mixer
+            mingw-w64-ucrt-x86_64-SDL2_ttf
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ inputs.ruby-version || '3.4' }}
+          bundler-cache: true
+          working-directory: ruby/smalruby3
+
+      - name: Add MSYS2 to PATH
+        shell: bash
+        run: echo "C:/msys64/ucrt64/bin" >> "$GITHUB_PATH"
+
+      - name: Build gem
+        run: gem build smalruby3.gemspec
+
+      - name: Compile native extension
+        shell: bash
+        env:
+          CPATH: C:/msys64/ucrt64/include
+          LIBRARY_PATH: C:/msys64/ucrt64/lib
+          PKG_CONFIG_PATH: C:/msys64/ucrt64/lib/pkgconfig
+        run: bundle exec rake compile
+
+      - name: Run tests
+        shell: bash
+        env:
+          CPATH: C:/msys64/ucrt64/include
+          LIBRARY_PATH: C:/msys64/ucrt64/lib
+          PKG_CONFIG_PATH: C:/msys64/ucrt64/lib/pkgconfig
+        run: bundle exec rake test
+
+      - name: Verify smalruby3 loads
+        run: ruby -r smalruby3 -e "puts \"smalruby3 v#{Smalruby3::VERSION} loaded OK\""
+
+      - name: Upload gem artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smalruby3-gem-windows
+          path: ruby/smalruby3/smalruby3-*.gem
