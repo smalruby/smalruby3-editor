@@ -8,6 +8,11 @@ const messages = defineMessages({
         defaultMessage: 'Execute current line',
         description: 'Tooltip for execute line button'
     },
+    executeAll: {
+        id: 'gui.rubyToolbar.executeAll',
+        defaultMessage: 'Run all',
+        description: 'Tooltip for execute all button in DNCL mode'
+    },
     stopExecution: {
         id: 'gui.rubyToolbar.stopExecution',
         defaultMessage: 'Stop execution',

@@ -108,6 +108,14 @@ const RubyToolbar = props => {
         if (props.onExecuteLine) props.onExecuteLine(position.lineNumber);
     }, [props]);
 
+    // === Smalruby: Start of DNCL execute button label ===
+    const executeMessage = props.isRunning
+        ? messages.stopExecution
+        : props.dnclMode
+            ? messages.executeAll
+            : messages.executeLine;
+    // === Smalruby: End of DNCL execute button label ===
+
     return (
         <div className={styles.toolbar}>
             {/* Run Part */}
@@ -116,12 +124,8 @@ const RubyToolbar = props => {
                     className={styles.iconButton}
                     onClick={handleExecuteLine}
                     disabled={!props.editorRef}
-                    aria-label={intl.formatMessage(
-                        props.isRunning ? messages.stopExecution : messages.executeLine
-                    )}
-                    title={intl.formatMessage(
-                        props.isRunning ? messages.stopExecution : messages.executeLine
-                    )}
+                    aria-label={intl.formatMessage(executeMessage)}
+                    title={intl.formatMessage(executeMessage)}
                 >
                     <img
                         src={props.isRunning ? iconStop : iconPlay}

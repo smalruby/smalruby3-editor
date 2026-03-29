@@ -686,7 +686,13 @@ const RubyTab = props => {
             clearErrors();
 
             const code = rubyCode.code;
-            const targetLine = findExecutableLine(code, lineNumber);
+
+            // === Smalruby: Start of DNCL mode execute all ===
+            // In DNCL mode, execute all top-level scripts from top to bottom
+            // instead of just the cursor line.
+            const isDncl = dnclModeRef.current;
+            const targetLine = isDncl ? 1 : findExecutableLine(code, lineNumber);
+            // === Smalruby: End of DNCL mode execute all ===
 
             if (!targetLine) {
                 // eslint-disable-next-line no-console
@@ -719,11 +725,21 @@ const RubyTab = props => {
                         const cursorLine = editorRef.current.getPosition().lineNumber;
                         const cursorContent = editorRef.current.getModel().getLineContent(cursorLine).trim();
 
-                        editorRef.current.setValue(regenerated);
+                        // === Smalruby: Start of DNCL mode preserve display ===
+                        if (dnclModeRef.current) {
+                            // Convert regenerated Ruby back to DNCL for display
+                            const dnclResult = rubyToDncl(regenerated);
+                            setDnclDisplayCode(dnclResult.dncl);
+                            editorRef.current.setValue(dnclResult.dncl);
+                        } else {
+                            editorRef.current.setValue(regenerated);
+                        }
+                        // === Smalruby: End of DNCL mode preserve display ===
 
                         // Restore cursor to matching line in regenerated code
                         if (typeof cursorContent === 'string' && cursorContent.length > 0) {
-                            const lines = regenerated.split('\n');
+                            const currentValue = editorRef.current.getValue();
+                            const lines = currentValue.split('\n');
                             for (let i = 0; i < lines.length; i++) {
                                 if (lines[i].trim() === cursorContent) {
                                     const newLine = i + 1;
@@ -738,6 +754,31 @@ const RubyTab = props => {
                         }
                     }
                     // === Smalruby: End of update editor after execute ===
+
+                    // === Smalruby: Start of DNCL mode execute all scripts ===
+                    if (isDncl) {
+                        // Execute all top-level scripts sequentially
+                        const blocks = vm.editingTarget.blocks;
+                        const allTopBlocks = blocks.getScripts();
+                        if (allTopBlocks.length === 0) {
+                            onShowAlert('cannotExecuteLine');
+                            return;
+                        }
+
+                        // Highlight all lines
+                        const totalLines = code.split('\n').length;
+                        doHighlightLineRange(1, totalLines);
+
+                        // Execute each top-level script
+                        for (const topBlockId of allTopBlocks) {
+                            vm.runtime.toggleScript(topBlockId, {
+                                target: vm.editingTarget,
+                                stackClick: true,
+                            });
+                        }
+                        return;
+                    }
+                    // === Smalruby: End of DNCL mode execute all scripts ===
 
                     const blockId = converter.getBlockIdForLine(targetLine);
                     if (!blockId) {
