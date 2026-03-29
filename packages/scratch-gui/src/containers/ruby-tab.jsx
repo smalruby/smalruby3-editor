@@ -52,6 +52,7 @@ import {
 import {dnclToRuby} from '../lib/dncl/dncl-to-ruby';
 import {rubyToDncl} from '../lib/dncl/ruby-to-dncl';
 import {DnclSourceMap} from '../lib/dncl/dncl-source-map';
+import {getUrlParams} from '../lib/url-params';
 // === Smalruby: End of DNCL mode imports ===
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import {
@@ -132,14 +133,25 @@ const RubyTab = props => {
     void executingLine;
     const [canUndo, setCanUndo] = useState(false);
     const [canRedo, setCanRedo] = useState(false);
-    const [furiganaEnabled, setFuriganaEnabled] = useState(() => loadBool(FURIGANA_ENABLED_KEY, true));
+    // === Smalruby: Start of furigana URL param override ===
+    const [furiganaEnabled, setFuriganaEnabled] = useState(() => {
+        const urlRubyMode = getUrlParams().rubyMode;
+        if (urlRubyMode === 'furigana') return true;
+        return loadBool(FURIGANA_ENABLED_KEY, true);
+    });
+    // === Smalruby: End of furigana URL param override ===
     const [autoCorrectEnabled, setAutoCorrectEnabled] = useState(() => loadBool(AUTO_CORRECT_ENABLED_KEY, true));
     const [autoCorrectSettings, setAutoCorrectSettings] = useState(loadAutoCorrectSettings);
     const [showAutoCorrectModal, setShowAutoCorrectModal] = useState(false);
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [previewCode, setPreviewCode] = useState('');
     // === Smalruby: Start of DNCL mode state ===
-    const [dnclMode, setDnclMode] = useState(() => loadBool(DNCL_MODE_KEY, false));
+    const [dnclMode, setDnclMode] = useState(() => {
+        const urlRubyMode = getUrlParams().rubyMode;
+        if (urlRubyMode === 'dncl') return true;
+        if (urlRubyMode === 'furigana') return false;
+        return loadBool(DNCL_MODE_KEY, false);
+    });
     const dnclSourceMapRef = useRef(null);
     const dnclModeRef = useRef(dnclMode);
     dnclModeRef.current = dnclMode;

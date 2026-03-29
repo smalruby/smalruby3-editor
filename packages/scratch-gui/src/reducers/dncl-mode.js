@@ -1,27 +1,20 @@
 // === Smalruby: This file is Smalruby-specific (DNCL mode reducer) ===
 
+import { getUrlParams } from '../lib/url-params'
+
 const SET_DNCL_MODE = 'scratch-gui/dncl-mode/SET_DNCL_MODE'
 
 const DNCL_MODE_KEY = 'smalruby:dnclMode'
 
 /**
- * Read initial DNCL mode state from localStorage and URL params.
- * URL param `dncl=1` overrides localStorage.
+ * Read initial DNCL mode state from URL params and localStorage.
+ * URL param `rubyMode=dncl` (case-insensitive) overrides localStorage.
  * @returns {boolean} Whether DNCL mode is enabled.
  */
 const getInitialDnclMode = () => {
-  // Check URL param first
-  if (typeof window !== 'undefined' && window.location) {
-    const params = new URLSearchParams(window.location.search)
-    const dnclParam = params.get('dncl')
-    if (dnclParam === '1' || dnclParam === 'true') {
-      return true
-    }
-    if (dnclParam === '0' || dnclParam === 'false') {
-      return false
-    }
-  }
-  // Fall back to localStorage
+  const urlRubyMode = getUrlParams().rubyMode
+  if (urlRubyMode === 'dncl') return true
+  if (urlRubyMode === 'furigana') return false
   if (typeof window !== 'undefined' && window.localStorage) {
     return window.localStorage.getItem(DNCL_MODE_KEY) === 'true'
   }
