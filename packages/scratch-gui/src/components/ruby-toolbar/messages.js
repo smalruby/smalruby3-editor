@@ -13,20 +13,35 @@ const messages = defineMessages({
         defaultMessage: 'Run all',
         description: 'Tooltip for execute all button in DNCL mode'
     },
-    switchToRuby: {
-        id: 'gui.rubyToolbar.switchToRuby',
-        defaultMessage: 'Switch to Ruby mode',
-        description: 'Tooltip for mode toggle when in DNCL mode'
-    },
-    switchToDncl: {
-        id: 'gui.rubyToolbar.switchToDncl',
-        defaultMessage: 'Switch to DNCL mode',
-        description: 'Tooltip for mode toggle when in Ruby mode'
-    },
     dnclLabel: {
         id: 'gui.rubyToolbar.dnclLabel',
         defaultMessage: 'DNCL',
         description: 'Label for DNCL mode in mode toggle button'
+    },
+    modeFurigana: {
+        id: 'gui.rubyToolbar.modeFurigana',
+        defaultMessage: 'Ruby with furigana',
+        description: 'Tooltip for Ruby furigana mode button'
+    },
+    modeFuriganaLine1: {
+        id: 'gui.rubyToolbar.modeFuriganaLine1',
+        defaultMessage: 'Ruby',
+        description: 'First line of Ruby furigana mode button label'
+    },
+    modeFuriganaLine2: {
+        id: 'gui.rubyToolbar.modeFuriganaLine2',
+        defaultMessage: 'Furigana',
+        description: 'Second line of Ruby furigana mode button label'
+    },
+    modeRuby: {
+        id: 'gui.rubyToolbar.modeRuby',
+        defaultMessage: 'Ruby mode',
+        description: 'Tooltip for Ruby mode button'
+    },
+    modeDncl: {
+        id: 'gui.rubyToolbar.modeDncl',
+        defaultMessage: 'DNCL mode',
+        description: 'Tooltip for DNCL mode button'
     },
     stopExecution: {
         id: 'gui.rubyToolbar.stopExecution',
