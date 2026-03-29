@@ -10,6 +10,10 @@ import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-pre
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
+import { DnclSourceMap } from '../lib/dncl/dncl-source-map';
+// === Smalruby: Start of DNCL mode imports ===
+import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
+import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { wrapCurrentCodeWithClass } from '../lib/insert-class';
 import intlShape from '../lib/intlShape.js';
@@ -25,6 +29,7 @@ import { generatePreviewCode } from '../lib/ruby-script-preview';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { containsV1Code } from '../lib/ruby-to-blocks-converter/v1-detection';
+import { getUrlParams } from '../lib/url-params';
 import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX } from '../reducers/editor-tab';
 import { setAiSaveStatus, clearAiSaveStatus } from '../reducers/koshien-file';
@@ -48,11 +53,6 @@ import {
     AUTO_CORRECT_SETTINGS_KEY,
     DNCL_MODE_KEY,
 } from './ruby-tab/constants';
-// === Smalruby: Start of DNCL mode imports ===
-import {dnclToRuby} from '../lib/dncl/dncl-to-ruby';
-import {rubyToDncl} from '../lib/dncl/ruby-to-dncl';
-import {DnclSourceMap} from '../lib/dncl/dncl-source-map';
-import {getUrlParams} from '../lib/url-params';
 // === Smalruby: End of DNCL mode imports ===
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import {
@@ -150,7 +150,11 @@ const RubyTab = props => {
         const urlRubyMode = getUrlParams().rubyMode;
         if (urlRubyMode === 'dncl') return true;
         if (urlRubyMode === 'furigana') return false;
-        return loadBool(DNCL_MODE_KEY, false);
+        // loadBool treats missing keys as true; DNCL defaults to off
+        if (typeof window !== 'undefined' && window.localStorage) {
+            return window.localStorage.getItem(DNCL_MODE_KEY) === 'true';
+        }
+        return false;
     });
     const dnclSourceMapRef = useRef(null);
     const dnclModeRef = useRef(dnclMode);
