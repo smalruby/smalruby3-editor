@@ -176,42 +176,8 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* === Smalruby: Start of DNCL mode toggle === */}
+            {/* Auto Correct Toggle */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
-                <button
-                    className={`${styles.dnclModeButton} ${
-                        props.dnclMode ? styles.dnclModeButtonActive : ''
-                    }`}
-                    onClick={handleToggleDnclMode}
-                    aria-label={props.dnclMode ? 'DNCL OFF' : 'DNCL ON'}
-                    aria-pressed={props.dnclMode}
-                    title={props.dnclMode ? 'DNCLモード OFF' : 'DNCLモード ON'}
-                >
-                    {'DNCL'}
-                </button>
-            </div>
-            {/* === Smalruby: End of DNCL mode toggle === */}
-
-            {/* Furigana Toggle & Auto Correct Toggle */}
-            <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
-                <button
-                    className={`${styles.furiganaButton} ${
-                        props.furiganaEnabled ? styles.furiganaButtonActive : ''
-                    }`}
-                    onClick={handleToggleFurigana}
-                    aria-label={intl.formatMessage(
-                        props.furiganaEnabled ? messages.furiganaOn : messages.furiganaOff
-                    )}
-                    aria-pressed={props.furiganaEnabled}
-                    title={intl.formatMessage(
-                        props.furiganaEnabled ? messages.furiganaOn : messages.furiganaOff
-                    )}
-                >
-                    <img
-                        src={iconFurigana}
-                        alt=""
-                    />
-                </button>
                 <button
                     className={`${styles.autoCorrectButton} ${
                         props.autoCorrectEnabled ? styles.autoCorrectButtonActive : ''
@@ -232,7 +198,7 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* Navigation & Command Part + Rubytee AI Assistant */}
+            {/* Center: Navigation + Mode Toggle + Furigana (Ruby only) + AI (Ruby only) */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
                 <TargetSelector
                     editingTarget={props.editingTarget}
@@ -240,7 +206,52 @@ const RubyToolbar = props => {
                     onSelectTarget={props.onSelectTarget}
                     onDismissBubble={props.onDismissBubble}
                 />
-                {props.onOpenRubyteeModal && (
+
+                {/* === Smalruby: Start of DNCL mode toggle === */}
+                <button
+                    className={styles.modeToggleButton}
+                    onClick={handleToggleDnclMode}
+                    aria-label={intl.formatMessage(
+                        props.dnclMode ? messages.switchToRuby : messages.switchToDncl
+                    )}
+                    title={intl.formatMessage(
+                        props.dnclMode ? messages.switchToRuby : messages.switchToDncl
+                    )}
+                >
+                    <span className={props.dnclMode ? styles.modeInactive : styles.modeActive}>
+                        {'Ruby'}
+                    </span>
+                    <span className={styles.modeSeparator}>{'|'}</span>
+                    <span className={props.dnclMode ? styles.modeActive : styles.modeInactive}>
+                        {intl.formatMessage(messages.dnclLabel)}
+                    </span>
+                </button>
+                {/* === Smalruby: End of DNCL mode toggle === */}
+
+                {/* Furigana Toggle — hidden in DNCL mode */}
+                {!props.dnclMode && (
+                    <button
+                        className={`${styles.furiganaButton} ${
+                            props.furiganaEnabled ? styles.furiganaButtonActive : ''
+                        }`}
+                        onClick={handleToggleFurigana}
+                        aria-label={intl.formatMessage(
+                            props.furiganaEnabled ? messages.furiganaOn : messages.furiganaOff
+                        )}
+                        aria-pressed={props.furiganaEnabled}
+                        title={intl.formatMessage(
+                            props.furiganaEnabled ? messages.furiganaOn : messages.furiganaOff
+                        )}
+                    >
+                        <img
+                            src={iconFurigana}
+                            alt=""
+                        />
+                    </button>
+                )}
+
+                {/* Rubytee AI Assistant — hidden in DNCL mode */}
+                {!props.dnclMode && props.onOpenRubyteeModal && (
                     <button
                         className={styles.iconButton}
                         onClick={props.onOpenRubyteeModal}

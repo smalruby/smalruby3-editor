@@ -13,6 +13,21 @@ const messages = defineMessages({
         defaultMessage: 'Run all',
         description: 'Tooltip for execute all button in DNCL mode'
     },
+    switchToRuby: {
+        id: 'gui.rubyToolbar.switchToRuby',
+        defaultMessage: 'Switch to Ruby mode',
+        description: 'Tooltip for mode toggle when in DNCL mode'
+    },
+    switchToDncl: {
+        id: 'gui.rubyToolbar.switchToDncl',
+        defaultMessage: 'Switch to DNCL mode',
+        description: 'Tooltip for mode toggle when in Ruby mode'
+    },
+    dnclLabel: {
+        id: 'gui.rubyToolbar.dnclLabel',
+        defaultMessage: 'DNCL',
+        description: 'Label for DNCL mode in mode toggle button'
+    },
     stopExecution: {
         id: 'gui.rubyToolbar.stopExecution',
         defaultMessage: 'Stop execution',
