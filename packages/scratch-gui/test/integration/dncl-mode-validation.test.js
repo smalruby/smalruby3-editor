@@ -73,7 +73,7 @@ describe('DNCL mode validation on switch', () => {
         const errors = await getErrors();
         expect(errors.length).toBeGreaterThan(0);
 
-        // Error message should have the DNCL prefix
+        // Error message should be the localized validation message
         expect(errors[0].message).toContain('日本語モードでは対応していない記述です');
     });
 

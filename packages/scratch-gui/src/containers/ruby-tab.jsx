@@ -559,7 +559,11 @@ const RubyTab = props => {
     ); // showErrors uses refs, safe in stale closure
 
     // === Smalruby: Start of DNCL mode toggle ===
-    const DNCL_ERROR_PREFIX = '日本語モードでは対応していない記述です: ';
+    const dnclValidationErrorMessage = intl.formatMessage({
+        id: 'gui.rubyTab.dnclValidationError',
+        defaultMessage:
+            'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
+    });
 
     const handleToggleDnclMode = useCallback(async () => {
         const enabling = !dnclModeRef.current;
@@ -581,7 +585,7 @@ const RubyTab = props => {
                     const errors = rubyResult.errors.map(err => ({
                         row: err.line - 1,
                         column: err.column - 1,
-                        text: `${DNCL_ERROR_PREFIX}${err.message}`,
+                        text: dnclValidationErrorMessage,
                         type: 'error',
                     }));
                     showErrors(errors);
@@ -595,7 +599,7 @@ const RubyTab = props => {
                 if (!converter.result) {
                     const errors = converter.errors.map(err => ({
                         ...err,
-                        text: `${DNCL_ERROR_PREFIX}${err.text}`,
+                        text: dnclValidationErrorMessage,
                     }));
                     showErrors(errors);
                     return;
@@ -641,7 +645,7 @@ const RubyTab = props => {
 
         isModeSwitchRef.current = false;
         setDnclMode(enabling);
-    }, [vm, rubyCode.target, intl, rubyVersion]);
+    }, [vm, rubyCode.target, intl, rubyVersion, dnclValidationErrorMessage]);
     // === Smalruby: End of DNCL mode toggle ===
 
     const handleToggleFurigana = useCallback(() => {

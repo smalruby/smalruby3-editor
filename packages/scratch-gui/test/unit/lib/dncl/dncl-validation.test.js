@@ -3,7 +3,7 @@
  *
  * When switching from Ruby to DNCL mode, the editor performs a dry-run:
  * Ruby → DNCL → Ruby → Blocks. If the blocks conversion fails, the switch
- * is blocked and errors are shown with a prefix.
+ * is blocked and a localized error message is shown.
  */
 import { rubyToDncl } from '../../../../src/lib/dncl/ruby-to-dncl';
 import { dnclToRuby } from '../../../../src/lib/dncl/dncl-to-ruby';
@@ -12,7 +12,9 @@ import {
     makeConverter,
 } from '../../helpers/ruby-roundtrip-helper';
 
-const DNCL_ERROR_PREFIX = '日本語モードでは対応していない記述です: ';
+// The localized message used in the actual component (ja locale).
+const DNCL_VALIDATION_MESSAGE =
+    '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。';
 
 /**
  * Simulate the DNCL mode switch validation pipeline:
@@ -20,7 +22,7 @@ const DNCL_ERROR_PREFIX = '日本語モードでは対応していない記述�
  * 2. DNCL → Ruby
  * 3. Ruby → Blocks (dry run, no apply)
  *
- * Returns { valid, errors } where errors have the prefix applied.
+ * Returns { valid, errors } where errors use a fixed message.
  */
 const validateForDncl = async (code) => {
     const dnclResult = rubyToDncl(code);
@@ -32,7 +34,7 @@ const validateForDncl = async (code) => {
             errors: rubyResult.errors.map((err) => ({
                 row: err.line - 1,
                 column: err.column - 1,
-                text: `${DNCL_ERROR_PREFIX}${err.message}`,
+                text: DNCL_VALIDATION_MESSAGE,
                 type: 'error',
             })),
         };
@@ -47,7 +49,7 @@ const validateForDncl = async (code) => {
             valid: false,
             errors: converter.errors.map((err) => ({
                 ...err,
-                text: `${DNCL_ERROR_PREFIX}${err.text}`,
+                text: DNCL_VALIDATION_MESSAGE,
             })),
         };
     }
@@ -89,7 +91,6 @@ describe('DNCL mode switch validation', () => {
             const { valid, errors } = await validateForDncl(code);
             expect(valid).toBe(false);
             expect(errors.length).toBeGreaterThan(0);
-            expect(errors[0].text).toMatch(DNCL_ERROR_PREFIX);
         });
 
         test('when_key_pressed is not supported in DNCL', async () => {
@@ -98,7 +99,6 @@ describe('DNCL mode switch validation', () => {
             const { valid, errors } = await validateForDncl(code);
             expect(valid).toBe(false);
             expect(errors.length).toBeGreaterThan(0);
-            expect(errors[0].text).toMatch(DNCL_ERROR_PREFIX);
         });
 
         test('move is not supported in DNCL', async () => {
@@ -106,7 +106,6 @@ describe('DNCL mode switch validation', () => {
             const { valid, errors } = await validateForDncl(code);
             expect(valid).toBe(false);
             expect(errors.length).toBeGreaterThan(0);
-            expect(errors[0].text).toMatch(DNCL_ERROR_PREFIX);
         });
 
         test('turn_right is not supported in DNCL', async () => {
@@ -131,13 +130,13 @@ describe('DNCL mode switch validation', () => {
         });
     });
 
-    describe('error message prefix', () => {
-        test('errors include the DNCL prefix', async () => {
+    describe('error message', () => {
+        test('errors use the localized validation message', async () => {
             const code =
                 'when_key_pressed("a") do\n  say("hello", 1)\nend\n';
             const { errors } = await validateForDncl(code);
             for (const err of errors) {
-                expect(err.text).toContain(DNCL_ERROR_PREFIX);
+                expect(err.text).toBe(DNCL_VALIDATION_MESSAGE);
             }
         });
     });
