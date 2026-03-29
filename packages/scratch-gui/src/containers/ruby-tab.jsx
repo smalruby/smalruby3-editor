@@ -995,7 +995,7 @@ const RubyTab = props => {
     // the editor is populated, this effect attempts to switch to DNCL.
     useEffect(() => {
         if (!pendingDnclSwitchRef.current) return;
-        if (!rubyCodeStr) return;
+        if (!isVisible) return;
         if (!editorRef.current || !monacoRef.current) return;
 
         pendingDnclSwitchRef.current = false;
@@ -1006,7 +1006,7 @@ const RubyTab = props => {
         setTimeout(() => {
             handleToggleDnclMode();
         }, 0);
-    }, [rubyCodeStr, handleToggleDnclMode]);
+    }, [rubyCodeStr, isVisible, handleToggleDnclMode]);
     // === Smalruby: End of pending DNCL switch after tab change ===
 
     // componentDidUpdate equivalent
