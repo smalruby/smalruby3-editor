@@ -44,9 +44,6 @@ jobs:
       - name: Build gem
         run: gem build smalruby3.gemspec
 
-      - name: Install gem locally
-        run: gem install --local smalruby3-*.gem --no-document
-
       - name: Compile native extension
         run: bundle exec rake compile
 
@@ -81,6 +78,7 @@ jobs:
             mingw-w64-ucrt-x86_64-SDL2_image
             mingw-w64-ucrt-x86_64-SDL2_mixer
             mingw-w64-ucrt-x86_64-SDL2_ttf
+            mingw-w64-ucrt-x86_64-clang
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -104,6 +102,8 @@ jobs:
           CPATH: C:/msys64/ucrt64/include
           LIBRARY_PATH: C:/msys64/ucrt64/lib
           PKG_CONFIG_PATH: C:/msys64/ucrt64/lib/pkgconfig
+          LIBCLANG_PATH: C:/msys64/ucrt64/bin
+          BINDGEN_EXTRA_CLANG_ARGS: --sysroot=C:/msys64/ucrt64
         run: bundle exec rake compile
 
       - name: Run tests
