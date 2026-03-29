@@ -56,6 +56,17 @@ const convertBuiltins = (line) => {
     (_, args) => `表示する(${args})`,
   )
 
+  // puts(args) / p(args) / print(args) → 表示する(args)
+  result = result.replace(
+    /(?:puts|print)\(([^)]*)\)/g,
+    (_, args) => `表示する(${args})`,
+  )
+  // p(args) — only match standalone 'p(' to avoid matching 'map(' etc.
+  result = result.replace(
+    /(?<=^|[^a-zA-Z_])p\(([^)]*)\)/g,
+    (_, args) => `表示する(${args})`,
+  )
+
   // expr.to_i → 整数(expr)
   result = result.replace(/(\w+)\.to_i/g, (_, expr) => `整数(${expr})`)
 

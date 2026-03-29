@@ -59,6 +59,18 @@ describe('rubyToDncl', () => {
         'a = 【外部からの入力】',
       )
     })
+
+    test('puts → 表示する', () => {
+      expect(convert('puts(@a)')).toBe('表示する(a)')
+    })
+
+    test('print → 表示する', () => {
+      expect(convert('print(@a)')).toBe('表示する(a)')
+    })
+
+    test('p → 表示する', () => {
+      expect(convert('p(@a)')).toBe('表示する(a)')
+    })
   })
 
   describe('built-in functions', () => {

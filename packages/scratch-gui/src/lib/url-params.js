@@ -9,9 +9,9 @@ const VALID_RUBY_VERSIONS = [VERSION_1, VERSION_2];
 
 // === Smalruby: Start of Ruby mode constants ===
 // Valid values for rubyMode URL parameter (case-insensitive).
-// 'dncl' activates DNCL mode, 'rubi' activates furigana mode.
-const DNCL_ALIASES = ['dncl', 'dnclv2'];
+const DNCL_ALIASES = ['dncl', 'dnclv2', 'ja', 'japanese'];
 const FURIGANA_ALIASES = ['rubi', 'furigana'];
+const RUBY_ALIASES = ['ruby'];
 // === Smalruby: End of Ruby mode constants ===
 
 /**
@@ -48,13 +48,15 @@ const parseUrlParams = () => {
     const rubyVersion = VALID_RUBY_VERSIONS.includes(rvParam) ? rvParam : null;
 
     // === Smalruby: Start of rubyMode URL param ===
-    // rubyMode: 'dncl'/'dnclv2' → 'dncl', 'rubi'/'furigana' → 'furigana', else null
+    // rubyMode: 'dncl'/'ja'/'japanese' → 'dncl', 'rubi'/'furigana' → 'furigana', 'ruby' → 'ruby'
     const rmParam = (params.get('rubyMode') || '').toLowerCase();
     let rubyMode = null;
     if (DNCL_ALIASES.includes(rmParam)) {
         rubyMode = 'dncl';
     } else if (FURIGANA_ALIASES.includes(rmParam)) {
         rubyMode = 'furigana';
+    } else if (RUBY_ALIASES.includes(rmParam)) {
+        rubyMode = 'ruby';
     }
     // === Smalruby: End of rubyMode URL param ===
 

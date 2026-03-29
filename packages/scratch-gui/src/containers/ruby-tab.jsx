@@ -137,6 +137,7 @@ const RubyTab = props => {
     const [furiganaEnabled, setFuriganaEnabled] = useState(() => {
         const urlRubyMode = getUrlParams().rubyMode;
         if (urlRubyMode === 'furigana') return true;
+        if (urlRubyMode === 'ruby' || urlRubyMode === 'dncl') return false;
         return loadBool(FURIGANA_ENABLED_KEY, true);
     });
     // === Smalruby: End of furigana URL param override ===
@@ -149,7 +150,7 @@ const RubyTab = props => {
     const [dnclMode, setDnclMode] = useState(() => {
         const urlRubyMode = getUrlParams().rubyMode;
         if (urlRubyMode === 'dncl') return true;
-        if (urlRubyMode === 'furigana') return false;
+        if (urlRubyMode === 'furigana' || urlRubyMode === 'ruby') return false;
         // loadBool treats missing keys as true; DNCL defaults to off
         if (typeof window !== 'undefined' && window.localStorage) {
             return window.localStorage.getItem(DNCL_MODE_KEY) === 'true';
