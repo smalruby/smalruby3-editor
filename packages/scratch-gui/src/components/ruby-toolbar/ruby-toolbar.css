@@ -184,16 +184,16 @@
 
 .modeToggleItem {
     padding: 0.25rem 0.5rem;
-    background: $looks-secondary;
+    background: transparent;
     border-radius: 1.375rem;
-    border: none;
-    color: $ui-white;
+    border: 2px solid $looks-secondary;
+    color: $looks-secondary;
     font-size: 0.6875rem;
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
-    transition: background 0.15s;
-    line-height: 1.2;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    line-height: 1.2rem;
     text-align: center;
 }
 
@@ -203,6 +203,8 @@
 
 .modeToggleItemActive {
     background: $data-primary;
+    border-color: $data-primary;
+    color: $ui-white;
 }
 
 .modeToggleItemDisabled {
@@ -210,8 +212,18 @@
     cursor: default;
 }
 
-.modeToggleLabel {
+.modeToggleFuriganaLine1 {
     display: block;
+    font-size: 0.4rem;
+    letter-spacing: 3px;
+    line-height: 1;
+}
+
+.modeToggleFuriganaLine2 {
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    line-height: 1;
 }
 /* === Smalruby: End of DNCL mode toggle === */
 

@@ -249,10 +249,10 @@ const RubyToolbar = props => {
                         onClick={handleSelectFuriganaMode}
                         title={intl.formatMessage(messages.modeFurigana)}
                     >
-                        <span className={styles.modeToggleLabel}>
+                        <span className={styles.modeToggleFuriganaLine1}>
                             {intl.formatMessage(messages.modeFuriganaLine1)}
                         </span>
-                        <span className={styles.modeToggleLabel}>
+                        <span className={styles.modeToggleFuriganaLine2}>
                             {intl.formatMessage(messages.modeFuriganaLine2)}
                         </span>
                     </button>
