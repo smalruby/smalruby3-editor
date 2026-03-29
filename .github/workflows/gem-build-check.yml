@@ -51,7 +51,7 @@ jobs:
         run: bundle exec rake test
 
       - name: Verify smalruby3 loads
-        run: ruby -r smalruby3 -e 'puts "smalruby3 v#{Smalruby3::VERSION} loaded OK"'
+        run: bundle exec ruby -e 'require "smalruby3"; puts "smalruby3 v#{Smalruby3::VERSION} loaded OK"'
 
       - name: Upload gem artifact
         uses: actions/upload-artifact@v4
@@ -68,30 +68,25 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
-      - name: Install SDL2 via MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            mingw-w64-ucrt-x86_64-SDL2
-            mingw-w64-ucrt-x86_64-SDL2_image
-            mingw-w64-ucrt-x86_64-SDL2_mixer
-            mingw-w64-ucrt-x86_64-SDL2_ttf
-            mingw-w64-ucrt-x86_64-clang
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ inputs.ruby-version || '3.4' }}
           bundler-cache: true
           working-directory: ruby/smalruby3
 
-      - name: Add MSYS2 to PATH
+      - name: Install SDL2 via RubyInstaller MSYS2
         shell: bash
-        run: echo "C:/msys64/ucrt64/bin" >> "$GITHUB_PATH"
+        run: |
+          ridk exec pacman -S --noconfirm \
+            mingw-w64-ucrt-x86_64-SDL2 \
+            mingw-w64-ucrt-x86_64-SDL2_image \
+            mingw-w64-ucrt-x86_64-SDL2_mixer \
+            mingw-w64-ucrt-x86_64-SDL2_ttf
+
+      - name: Install Rust GNU target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
 
       - name: Build gem
         run: gem build smalruby3.gemspec
@@ -99,23 +94,14 @@ jobs:
       - name: Compile native extension
         shell: bash
         env:
-          CPATH: C:/msys64/ucrt64/include
-          LIBRARY_PATH: C:/msys64/ucrt64/lib
-          PKG_CONFIG_PATH: C:/msys64/ucrt64/lib/pkgconfig
-          LIBCLANG_PATH: C:/msys64/ucrt64/bin
-          BINDGEN_EXTRA_CLANG_ARGS: --sysroot=C:/msys64/ucrt64
+          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
         run: bundle exec rake compile
 
       - name: Run tests
-        shell: bash
-        env:
-          CPATH: C:/msys64/ucrt64/include
-          LIBRARY_PATH: C:/msys64/ucrt64/lib
-          PKG_CONFIG_PATH: C:/msys64/ucrt64/lib/pkgconfig
         run: bundle exec rake test
 
       - name: Verify smalruby3 loads
-        run: ruby -r smalruby3 -e "puts \"smalruby3 v#{Smalruby3::VERSION} loaded OK\""
+        run: bundle exec ruby -e 'require "smalruby3"; puts "smalruby3 v#{Smalruby3::VERSION} loaded OK"'
 
       - name: Upload gem artifact
         uses: actions/upload-artifact@v4
