@@ -564,6 +564,9 @@ const RubyTab = props => {
     const handleToggleDnclMode = useCallback(async () => {
         const enabling = !dnclModeRef.current;
 
+        // Clear any existing errors before mode switch attempt.
+        clearErrors();
+
         // Validate before switching TO DNCL mode:
         // Dry-run Ruby → DNCL → Ruby → Blocks to check for unsupported code.
         if (enabling && editorRef.current && monacoRef.current) {
