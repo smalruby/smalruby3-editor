@@ -50,6 +50,8 @@ jobs:
         run: bundle exec rake test
 
       - name: Verify smalruby3 loads
+        env:
+          SMALRUBY3_TESTING: '1'
         run: bundle exec ruby -e 'require "smalruby3"; puts "smalruby3 v#{Smalruby3::VERSION} loaded OK"'
 
       - name: Upload gem artifact
@@ -104,6 +106,9 @@ jobs:
         run: bundle exec rake test
 
       - name: Verify smalruby3 loads
+        shell: bash
+        env:
+          SMALRUBY3_TESTING: '1'
         run: bundle exec ruby -e 'require "smalruby3"; puts "smalruby3 v#{Smalruby3::VERSION} loaded OK"'
 
       - name: Upload gem artifact
