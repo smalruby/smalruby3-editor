@@ -128,6 +128,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/block-display-modal.test.js`
 - `test/integration/block-palette.test.js`
 - `test/integration/debug_defaults.test.js`
+- `test/integration/dncl-mode-validation.test.js`
 - `test/integration/feedback-link.test.js`
 - `test/integration/ruby-editor-actions.test.js`
 - `test/integration/ruby-module.test.js`
