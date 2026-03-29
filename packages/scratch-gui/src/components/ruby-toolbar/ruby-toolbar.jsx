@@ -15,6 +15,7 @@ import iconRedo from './icon--redo.svg';
 import iconDownload from './icon--download.svg';
 import iconAutoCorrect from './icon--auto-correct.svg';
 import iconRubytee from './icon--rubytee.svg';
+import Spinner from '../spinner/spinner.jsx';
 
 const RubyToolbar = props => {
     const intl = useIntl();
@@ -246,6 +247,7 @@ const RubyToolbar = props => {
                             !props.dnclMode && props.furiganaEnabled
                                 ? styles.modeToggleItemActive : ''
                         }`}
+                        disabled={props.dnclValidating}
                         onClick={handleSelectFuriganaMode}
                         title={intl.formatMessage(messages.modeFurigana)}
                     >
@@ -263,6 +265,7 @@ const RubyToolbar = props => {
                             !props.dnclMode && !props.furiganaEnabled
                                 ? styles.modeToggleItemActive : ''
                         }`}
+                        disabled={props.dnclValidating}
                         onClick={handleSelectRubyMode}
                         title={intl.formatMessage(messages.modeRuby)}
                     >
@@ -272,10 +275,15 @@ const RubyToolbar = props => {
                         className={`${styles.modeToggleItem} ${
                             props.dnclMode ? styles.modeToggleItemActive : ''
                         }`}
+                        disabled={props.dnclValidating}
                         onClick={handleSelectDnclMode}
                         title={intl.formatMessage(messages.modeDncl)}
                     >
-                        {intl.formatMessage(messages.dnclLabel)}
+                        {props.dnclValidating ? (
+                            <Spinner small level="info" />
+                        ) : (
+                            intl.formatMessage(messages.dnclLabel)
+                        )}
                     </button>
                 </div>
             </div>
@@ -354,6 +362,7 @@ RubyToolbar.propTypes = {
     canUndo: PropTypes.bool,
     canRedo: PropTypes.bool,
     dnclMode: PropTypes.bool,
+    dnclValidating: PropTypes.bool,
     onToggleDnclMode: PropTypes.func,
     furiganaEnabled: PropTypes.bool,
     onToggleFurigana: PropTypes.func,

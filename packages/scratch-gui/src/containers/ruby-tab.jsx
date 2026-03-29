@@ -147,6 +147,7 @@ const RubyTab = props => {
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [previewCode, setPreviewCode] = useState('');
     // === Smalruby: Start of DNCL mode state ===
+    const [dnclValidating, setDnclValidating] = useState(false);
     const [dnclMode, setDnclMode] = useState(() => {
         const urlRubyMode = getUrlParams().rubyMode;
         if (urlRubyMode === 'dncl') return true;
@@ -558,23 +559,64 @@ const RubyTab = props => {
     ); // showErrors uses refs, safe in stale closure
 
     // === Smalruby: Start of DNCL mode toggle ===
-    const handleToggleDnclMode = useCallback(() => {
+    const DNCL_ERROR_PREFIX = '日本語モードでは対応していない記述です: ';
+
+    const handleToggleDnclMode = useCallback(async () => {
+        const enabling = !dnclModeRef.current;
+
+        // Validate before switching TO DNCL mode:
+        // Dry-run Ruby → DNCL → Ruby → Blocks to check for unsupported code.
+        if (enabling && editorRef.current && monacoRef.current) {
+            setDnclValidating(true);
+            try {
+                const currentRuby = editorRef.current.getModel().getValue();
+                const dnclResult = rubyToDncl(currentRuby);
+                const rubyResult = dnclToRuby(dnclResult.dncl);
+
+                // Check DNCL → Ruby conversion errors (e.g. @ or $ in DNCL)
+                if (rubyResult.errors && rubyResult.errors.length > 0) {
+                    const errors = rubyResult.errors.map(err => ({
+                        row: err.line - 1,
+                        column: err.column - 1,
+                        text: `${DNCL_ERROR_PREFIX}${err.message}`,
+                        type: 'error',
+                    }));
+                    showErrors(errors);
+                    return;
+                }
+
+                // Dry-run blocks conversion (no apply — no side effects)
+                const converter = await targetCodeToBlocks(vm, rubyCode.target, rubyResult.ruby, intl, {
+                    version: rubyVersion,
+                });
+                if (!converter.result) {
+                    const errors = converter.errors.map(err => ({
+                        ...err,
+                        text: `${DNCL_ERROR_PREFIX}${err.text}`,
+                    }));
+                    showErrors(errors);
+                    return;
+                }
+            } finally {
+                setDnclValidating(false);
+            }
+        }
+
         // Suppress handleEditorChange during mode switch to prevent a
         // re-render race: model.setValue triggers onChange synchronously,
         // which dispatches to Redux, causing a re-render where dnclMode
         // state hasn't committed yet — overwriting the editor content.
         isModeSwitchRef.current = true;
 
-        const enabled = !dnclModeRef.current;
-        dnclModeRef.current = enabled;
+        dnclModeRef.current = enabling; // eslint-disable-line require-atomic-updates
 
         if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem(DNCL_MODE_KEY, enabled);
+            window.localStorage.setItem(DNCL_MODE_KEY, enabling);
         }
 
         if (editorRef.current && monacoRef.current) {
             const model = editorRef.current.getModel();
-            if (enabled) {
+            if (enabling) {
                 // Switching to DNCL: convert Ruby → DNCL
                 const currentRuby = model.getValue();
                 const result = rubyToDncl(currentRuby);
@@ -595,8 +637,8 @@ const RubyTab = props => {
         }
 
         isModeSwitchRef.current = false;
-        setDnclMode(enabled);
-    }, []);
+        setDnclMode(enabling);
+    }, [vm, rubyCode.target, intl, rubyVersion]);
     // === Smalruby: End of DNCL mode toggle ===
 
     const handleToggleFurigana = useCallback(() => {
@@ -1095,6 +1137,7 @@ const RubyTab = props => {
                     onPreviewRubyScript={handlePreviewRubyScript}
                     onOpenRubyteeModal={onOpenRubyteeModal}
                     dnclMode={dnclMode}
+                    dnclValidating={dnclValidating}
                     onToggleDnclMode={handleToggleDnclMode}
                 />
                 <div className={styles.editorWrapper}>
