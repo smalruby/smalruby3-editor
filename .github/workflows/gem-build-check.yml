@@ -38,7 +38,16 @@ jobs:
           ruby-version: ${{ inputs.ruby-version || '3.4' }}
           rustup-toolchain: stable
           bundler-cache: true
+          cargo-cache: true
           working-directory: ruby/smalruby3
+
+      - name: Cache native extension build
+        uses: actions/cache@v4
+        with:
+          path: ruby/smalruby3/ext/smalruby3_imageutil/target
+          key: native-ext-linux-${{ inputs.ruby-version || '3.4' }}-${{ hashFiles('ruby/smalruby3/ext/smalruby3_imageutil/Cargo.toml', 'ruby/smalruby3/ext/smalruby3_imageutil/src/**') }}
+          restore-keys: |
+            native-ext-linux-${{ inputs.ruby-version || '3.4' }}-
 
       - name: Build gem
         run: gem build smalruby3.gemspec
@@ -73,7 +82,6 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
-          update: true
           install: >-
             mingw-w64-ucrt-x86_64-SDL2
             mingw-w64-ucrt-x86_64-SDL2_image
@@ -86,6 +94,7 @@ jobs:
           ruby-version: ${{ inputs.ruby-version || '3.4' }}
           rustup-toolchain: stable
           bundler-cache: true
+          cargo-cache: true
           working-directory: ruby/smalruby3
 
       - name: Add MSYS2 SDL2 to paths
@@ -95,6 +104,14 @@ jobs:
           echo "CPATH=C:\msys64\ucrt64\include" >> $env:GITHUB_ENV
           echo "LIBRARY_PATH=C:\msys64\ucrt64\lib" >> $env:GITHUB_ENV
           echo "PKG_CONFIG_PATH=C:\msys64\ucrt64\lib\pkgconfig" >> $env:GITHUB_ENV
+
+      - name: Cache native extension build
+        uses: actions/cache@v4
+        with:
+          path: ruby/smalruby3/ext/smalruby3_imageutil/target
+          key: native-ext-windows-${{ inputs.ruby-version || '3.4' }}-${{ hashFiles('ruby/smalruby3/ext/smalruby3_imageutil/Cargo.toml', 'ruby/smalruby3/ext/smalruby3_imageutil/src/**') }}
+          restore-keys: |
+            native-ext-windows-${{ inputs.ruby-version || '3.4' }}-
 
       - name: Build gem
         run: gem build smalruby3.gemspec
