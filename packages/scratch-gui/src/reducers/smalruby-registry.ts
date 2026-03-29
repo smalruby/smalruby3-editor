@@ -13,6 +13,7 @@
  * No changes needed in gui.ts - it imports this registry.
  */
 import cardsReducer, { cardsInitialState } from './cards';
+import dnclModeReducer, { dnclModeInitialState } from './dncl-mode';
 import googleDriveFileReducer, { googleDriveFileInitialState } from './google-drive-file';
 import koshienFileReducer, { koshienFileInitialState } from './koshien-file';
 import meshV2Reducer, { meshV2InitialState } from './mesh-v2';
@@ -25,6 +26,7 @@ import tutorialOnboardingReducer, { tutorialOnboardingInitialState } from './tut
  * These will be spread into combineReducers() in gui.ts
  */
 export const smalrubyReducers = {
+    dnclMode: dnclModeReducer,
     meshV2: meshV2Reducer,
     googleDriveFile: googleDriveFileReducer,
     koshienFile: koshienFileReducer,
@@ -39,6 +41,7 @@ export const smalrubyReducers = {
  * These will be spread into buildInitialState() in gui.ts
  */
 export const smalrubyInitialState = {
+    dnclMode: dnclModeInitialState,
     meshV2: meshV2InitialState,
     googleDriveFile: googleDriveFileInitialState,
     koshienFile: koshienFileInitialState,

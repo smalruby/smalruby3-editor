@@ -101,6 +101,7 @@ upstream (Scratch) ファイルは対象外。
 ### src/reducers/
 
 - `src/reducers/block-display.js`
+- `src/reducers/dncl-mode.js`
 - `src/reducers/extension-filter.js`
 - `src/reducers/google-drive-file.js`
 - `src/reducers/koshien-file.js`
