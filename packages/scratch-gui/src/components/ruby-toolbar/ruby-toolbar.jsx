@@ -69,6 +69,13 @@ const RubyToolbar = props => {
         if (props.onToggleFurigana) props.onToggleFurigana();
     }, [props]);
 
+    // === Smalruby: Start of DNCL mode toggle handler ===
+    const handleToggleDnclMode = useCallback(() => {
+        if (props.onDismissBubble) props.onDismissBubble();
+        if (props.onToggleDnclMode) props.onToggleDnclMode();
+    }, [props]);
+    // === Smalruby: End of DNCL mode toggle handler ===
+
     const handleToggleAutoCorrect = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
         if (props.onToggleAutoCorrect) props.onToggleAutoCorrect();
@@ -164,6 +171,22 @@ const RubyToolbar = props => {
                     />
                 </button>
             </div>
+
+            {/* === Smalruby: Start of DNCL mode toggle === */}
+            <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
+                <button
+                    className={`${styles.dnclModeButton} ${
+                        props.dnclMode ? styles.dnclModeButtonActive : ''
+                    }`}
+                    onClick={handleToggleDnclMode}
+                    aria-label={props.dnclMode ? 'DNCL OFF' : 'DNCL ON'}
+                    aria-pressed={props.dnclMode}
+                    title={props.dnclMode ? 'DNCLモード OFF' : 'DNCLモード ON'}
+                >
+                    {'DNCL'}
+                </button>
+            </div>
+            {/* === Smalruby: End of DNCL mode toggle === */}
 
             {/* Furigana Toggle & Auto Correct Toggle */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
@@ -300,6 +323,8 @@ RubyToolbar.propTypes = {
     isRunning: PropTypes.bool,
     canUndo: PropTypes.bool,
     canRedo: PropTypes.bool,
+    dnclMode: PropTypes.bool,
+    onToggleDnclMode: PropTypes.func,
     furiganaEnabled: PropTypes.bool,
     onToggleFurigana: PropTypes.func,
     autoCorrectEnabled: PropTypes.bool,

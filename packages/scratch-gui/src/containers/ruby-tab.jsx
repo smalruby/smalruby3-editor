@@ -46,7 +46,13 @@ import {
     FURIGANA_ENABLED_KEY,
     AUTO_CORRECT_ENABLED_KEY,
     AUTO_CORRECT_SETTINGS_KEY,
+    DNCL_MODE_KEY,
 } from './ruby-tab/constants';
+// === Smalruby: Start of DNCL mode imports ===
+import {dnclToRuby} from '../lib/dncl/dncl-to-ruby';
+import {rubyToDncl} from '../lib/dncl/ruby-to-dncl';
+import {DnclSourceMap} from '../lib/dncl/dncl-source-map';
+// === Smalruby: End of DNCL mode imports ===
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import {
     registerCustomPasteAction,
@@ -132,6 +138,12 @@ const RubyTab = props => {
     const [showAutoCorrectModal, setShowAutoCorrectModal] = useState(false);
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [previewCode, setPreviewCode] = useState('');
+    // === Smalruby: Start of DNCL mode state ===
+    const [dnclMode, setDnclMode] = useState(() => loadBool(DNCL_MODE_KEY, false));
+    const dnclSourceMapRef = useRef(null);
+    const dnclModeRef = useRef(dnclMode);
+    dnclModeRef.current = dnclMode;
+    // === Smalruby: End of DNCL mode state ===
 
     // --- Instance refs ---
     const editorRef = useRef(null);
@@ -338,6 +350,14 @@ const RubyTab = props => {
                 return;
             }
         }
+        // === Smalruby: Start of DNCL mode editor change ===
+        if (dnclModeRef.current) {
+            const result = dnclToRuby(value);
+            dnclSourceMapRef.current = new DnclSourceMap(value, result.ruby);
+            onChangeRef.current(result.ruby);
+            return;
+        }
+        // === Smalruby: End of DNCL mode editor change ===
         onChangeRef.current(value);
     }, []);
 
@@ -499,6 +519,34 @@ const RubyTab = props => {
         },
         [onShowAlert, updateRubyCodeErrorsState],
     ); // showErrors uses refs, safe in stale closure
+
+    // === Smalruby: Start of DNCL mode toggle ===
+    const handleToggleDnclMode = useCallback(() => {
+        setDnclMode(prev => {
+            const enabled = !prev;
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem(DNCL_MODE_KEY, enabled);
+            }
+            if (editorRef.current && monacoRef.current) {
+                const model = editorRef.current.getModel();
+                if (enabled) {
+                    // Switching to DNCL: convert Ruby → DNCL
+                    const currentRuby = model.getValue();
+                    const result = rubyToDncl(currentRuby);
+                    monacoRef.current.editor.setModelLanguage(model, 'dncl');
+                    model.setValue(result.dncl);
+                } else {
+                    // Switching to Ruby: convert DNCL → Ruby
+                    const dnclCode = model.getValue();
+                    const result = dnclToRuby(dnclCode);
+                    monacoRef.current.editor.setModelLanguage(model, 'smalruby');
+                    model.setValue(result.ruby);
+                }
+            }
+            return enabled;
+        });
+    }, []);
+    // === Smalruby: End of DNCL mode toggle ===
 
     const handleToggleFurigana = useCallback(() => {
         setFuriganaEnabled(prev => {
@@ -937,12 +985,14 @@ const RubyTab = props => {
                     onOpenAutoCorrectSettings={handleOpenAutoCorrectSettings}
                     onPreviewRubyScript={handlePreviewRubyScript}
                     onOpenRubyteeModal={onOpenRubyteeModal}
+                    dnclMode={dnclMode}
+                    onToggleDnclMode={handleToggleDnclMode}
                 />
                 <div className={styles.editorWrapper}>
                     <Editor
                         key={locale}
                         height="100%"
-                        language="smalruby"
+                        language={dnclMode ? 'dncl' : 'smalruby'}
                         onMount={handleEditorDidMount}
                         onChange={handleEditorChange}
                         options={{
