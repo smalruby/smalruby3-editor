@@ -220,6 +220,8 @@ export default {
     'gui.smalruby3.prismError.expectedBlockParamPipe':
         '`|` が足りません。\n`|` を追加してブロックの引数を閉じてください。',
     'gui.smalruby3.prismError.expectedCloseParams': '`)` が足りません。\n`)` を追加して引数の定義を閉じてください。',
+    'gui.smalruby3.prismError.unexpectedLocalVariableOrMethod':
+        'コードが終わるべき場所に、変数やメソッドがあります。\n`end` の不足や、余分な命令がないか確認してください。',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': 'はい、スモウルビーの改善に協力します。',
     'gui.smalruby3.extension.mesh.name': '従来のメッシュ',
     'gui.smalruby3.extension.mesh.description': 'ネットワーク上でユーザー間のやりとりを行う。',

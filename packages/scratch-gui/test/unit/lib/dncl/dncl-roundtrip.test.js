@@ -50,14 +50,20 @@ describe('DNCL round-trip (DNCL → Ruby → DNCL)', () => {
 
   describe('control flow', () => {
     test('simple if', () => {
-      const dncl = 'もし a > 0 なら\n  a = 1\nを実行する'
+      const dncl = 'もし a > 0 ならば\n  a = 1\nを実行する'
       expect(roundtrip(dncl)).toBe(dncl)
     })
 
     test('if-else', () => {
       const dncl =
-        'もし a > 0 なら\n  a = 1\nそうでなければ\n  a = 2\nを実行する'
+        'もし a > 0 ならば\n  a = 1\nそうでなければ\n  a = 2\nを実行する'
       expect(roundtrip(dncl)).toBe(dncl)
+    })
+
+    test('if with なら normalizes to ならば', () => {
+      const input = 'もし a > 0 なら\n  a = 1\nを実行する'
+      const expected = 'もし a > 0 ならば\n  a = 1\nを実行する'
+      expect(roundtrip(input)).toBe(expected)
     })
 
     test('while loop', () => {

@@ -94,6 +94,10 @@ const messages = {
     expectedCloseParams: {
         defaultMessage: '`)` is missing.\nAdd `)` to close the parameters.',
         id: 'gui.smalruby3.prismError.expectedCloseParams'
+    },
+    unexpectedLocalVariableOrMethod: {
+        defaultMessage: 'Unexpected variable or method found where the code should have ended.\nCheck for missing `end` or extra statements.',
+        id: 'gui.smalruby3.prismError.unexpectedLocalVariableOrMethod'
     }
 };
 
@@ -176,6 +180,10 @@ const rules = [
     {
         pattern: /expected a `\)` to close the parameters$/,
         key: 'expectedCloseParams'
+    },
+    {
+        pattern: /^unexpected local variable or method, expecting end-of-input$/,
+        key: 'unexpectedLocalVariableOrMethod'
     }
 ];
 

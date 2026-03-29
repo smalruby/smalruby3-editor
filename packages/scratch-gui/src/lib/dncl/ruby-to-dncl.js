@@ -170,19 +170,19 @@ const convertLine = (line) => {
     return null // sentinel: combine with next line
   }
 
-  // if condition → もし condition なら
+  // if condition → もし condition ならば
   const ifMatch = trimmed.match(/^if\s+(.+)$/)
   if (ifMatch) {
     blockStack.push('if')
     const condition = processSegments(ifMatch[1])
-    return `${indent}もし ${condition} なら`
+    return `${indent}もし ${condition} ならば`
   }
 
-  // elsif condition → そうでなくもし condition なら
+  // elsif condition → そうでなくもし condition ならば
   const elsifMatch = trimmed.match(/^elsif\s+(.+)$/)
   if (elsifMatch) {
     const condition = processSegments(elsifMatch[1])
-    return `${indent}そうでなくもし ${condition} なら`
+    return `${indent}そうでなくもし ${condition} ならば`
   }
 
   // else → そうでなければ
