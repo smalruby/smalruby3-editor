@@ -14,5 +14,8 @@ ext/smalruby3_launcher/smalruby3_launcher.o
 ext/smalruby3_launcher/Makefile
 ext/smalruby3_launcher/mkmf.log
 
+# Bundle lock (gem library)
+Gemfile.lock
+
 # Docker marker
 .built
