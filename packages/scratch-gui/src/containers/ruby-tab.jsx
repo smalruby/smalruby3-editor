@@ -156,6 +156,8 @@ const RubyTab = props => {
         }
         return false;
     });
+    // Separate DNCL display code to prevent editor from showing Ruby
+    const [dnclDisplayCode, setDnclDisplayCode] = useState('');
     const dnclSourceMapRef = useRef(null);
     const dnclModeRef = useRef(dnclMode);
     dnclModeRef.current = dnclMode;
@@ -368,6 +370,7 @@ const RubyTab = props => {
         }
         // === Smalruby: Start of DNCL mode editor change ===
         if (dnclModeRef.current) {
+            setDnclDisplayCode(value);
             const result = dnclToRuby(value);
             dnclSourceMapRef.current = new DnclSourceMap(value, result.ruby);
             onChangeRef.current(result.ruby);
@@ -549,12 +552,14 @@ const RubyTab = props => {
                     // Switching to DNCL: convert Ruby → DNCL
                     const currentRuby = model.getValue();
                     const result = rubyToDncl(currentRuby);
+                    setDnclDisplayCode(result.dncl);
                     monacoRef.current.editor.setModelLanguage(model, 'dncl');
                     model.setValue(result.dncl);
                 } else {
                     // Switching to Ruby: convert DNCL → Ruby
-                    const dnclCode = model.getValue();
-                    const result = dnclToRuby(dnclCode);
+                    const currentDncl = model.getValue();
+                    const result = dnclToRuby(currentDncl);
+                    setDnclDisplayCode('');
                     monacoRef.current.editor.setModelLanguage(model, 'smalruby');
                     model.setValue(result.ruby);
                 }
@@ -846,6 +851,23 @@ const RubyTab = props => {
         }
     }, [furiganaEnabled]);
 
+    // === Smalruby: Start of DNCL code sync ===
+    // When code changes from blocks tab (Ruby → DNCL display), sync DNCL display
+    const rubyCodeStr = rubyCode.code;
+    useEffect(() => {
+        if (!dnclMode) return;
+        if (!editorRef.current || !monacoRef.current) return;
+        // Only sync when the Ruby code changed externally (e.g., from blocks)
+        // not from our own editor change (which already sets dnclDisplayCode)
+        const currentEditorValue = editorRef.current.getValue();
+        const currentRubyFromDncl = dnclToRuby(currentEditorValue).ruby;
+        if (currentRubyFromDncl !== rubyCodeStr && rubyCodeStr) {
+            const result = rubyToDncl(rubyCodeStr);
+            setDnclDisplayCode(result.dncl);
+        }
+    }, [rubyCodeStr, dnclMode]);
+    // === Smalruby: End of DNCL code sync ===
+
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);
     useEffect(() => {
@@ -1023,7 +1045,7 @@ const RubyTab = props => {
                             autoIndent: 'full',
                         }}
                         theme="vs"
-                        value={code}
+                        value={dnclMode ? dnclDisplayCode : code}
                         width="100%"
                     />
                 </div>
