@@ -1,0 +1,98 @@
+name: Release - smalruby3 gem
+
+on:
+  push:
+    tags:
+      - 'smalruby3-v*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  test:
+    name: "[smalruby3] Test before release"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.3', '3.4', '4.0']
+    defaults:
+      run:
+        working-directory: ruby/smalruby3
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - name: Install SDL2 development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+          working-directory: ruby/smalruby3
+      - name: Compile native extension
+        run: bundle exec rake compile
+      - name: Run lint
+        if: matrix.ruby == '4.0'
+        run: bundle exec standardrb
+      - name: Run unit tests
+        run: bundle exec rake test
+
+  release:
+    name: "[smalruby3] Publish to RubyGems"
+    needs: test
+    runs-on: ubuntu-latest
+    environment: rubygems
+    defaults:
+      run:
+        working-directory: ruby/smalruby3
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#smalruby3-v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Releasing smalruby3 v${VERSION}"
+
+      - name: Verify version matches
+        run: |
+          GEM_VERSION=$(ruby -r ./lib/smalruby3/version -e 'puts Smalruby3::VERSION')
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          if [ "$GEM_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Version mismatch: gem=$GEM_VERSION tag=$TAG_VERSION"
+            exit 1
+          fi
+
+      - name: Install SDL2 development libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version-file: ruby/smalruby3/.ruby-version
+          bundler-cache: true
+          working-directory: ruby/smalruby3
+
+      - name: Build gem
+        run: gem build smalruby3.gemspec
+
+      - name: Push to RubyGems (Trusted Publishing)
+        uses: rubygems/release-gem@v1
+        with:
+          working-directory: ruby/smalruby3
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "smalruby3 v${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            smalruby3-${{ steps.version.outputs.version }}.gem
