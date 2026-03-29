@@ -184,6 +184,7 @@ const RubyTab = props => {
     const furiganaDebounceTimerRef = useRef(null);
     const furiganaLastMsRef = useRef(0);
     const isAutoCorrectUpdateRef = useRef(false);
+    const isModeSwitchRef = useRef(false);
 
     // Lazy initialization of heavy objects
     if (!quickFixProviderRef.current) quickFixProviderRef.current = new QuickFixProvider();
@@ -367,6 +368,10 @@ const RubyTab = props => {
 
     const handleEditorChange = useCallback(
         value => {
+            // Skip change events triggered by mode switch (Ruby↔DNCL) to
+            // prevent a Redux dispatch that causes a re-render race where
+            // the dnclMode state hasn't committed yet.
+            if (isModeSwitchRef.current) return;
             if (isAutoCorrectUpdateRef.current) {
                 isAutoCorrectUpdateRef.current = false;
                 dispatchCode(value);
@@ -554,31 +559,43 @@ const RubyTab = props => {
 
     // === Smalruby: Start of DNCL mode toggle ===
     const handleToggleDnclMode = useCallback(() => {
-        setDnclMode(prev => {
-            const enabled = !prev;
-            if (typeof window !== 'undefined' && window.localStorage) {
-                window.localStorage.setItem(DNCL_MODE_KEY, enabled);
+        // Suppress handleEditorChange during mode switch to prevent a
+        // re-render race: model.setValue triggers onChange synchronously,
+        // which dispatches to Redux, causing a re-render where dnclMode
+        // state hasn't committed yet — overwriting the editor content.
+        isModeSwitchRef.current = true;
+
+        const enabled = !dnclModeRef.current;
+        dnclModeRef.current = enabled;
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(DNCL_MODE_KEY, enabled);
+        }
+
+        if (editorRef.current && monacoRef.current) {
+            const model = editorRef.current.getModel();
+            if (enabled) {
+                // Switching to DNCL: convert Ruby → DNCL
+                const currentRuby = model.getValue();
+                const result = rubyToDncl(currentRuby);
+                dnclSourceMapRef.current = new DnclSourceMap(result.dncl, currentRuby);
+                monacoRef.current.editor.setModelLanguage(model, 'dncl');
+                model.setValue(result.dncl);
+                setDnclDisplayCode(result.dncl);
+            } else {
+                // Switching to Ruby: convert DNCL → Ruby
+                const currentDncl = model.getValue();
+                const result = dnclToRuby(currentDncl);
+                dnclSourceMapRef.current = null;
+                monacoRef.current.editor.setModelLanguage(model, 'smalruby');
+                model.setValue(result.ruby);
+                setDnclDisplayCode('');
+                onChangeRef.current(result.ruby);
             }
-            if (editorRef.current && monacoRef.current) {
-                const model = editorRef.current.getModel();
-                if (enabled) {
-                    // Switching to DNCL: convert Ruby → DNCL
-                    const currentRuby = model.getValue();
-                    const result = rubyToDncl(currentRuby);
-                    setDnclDisplayCode(result.dncl);
-                    monacoRef.current.editor.setModelLanguage(model, 'dncl');
-                    model.setValue(result.dncl);
-                } else {
-                    // Switching to Ruby: convert DNCL → Ruby
-                    const currentDncl = model.getValue();
-                    const result = dnclToRuby(currentDncl);
-                    setDnclDisplayCode('');
-                    monacoRef.current.editor.setModelLanguage(model, 'smalruby');
-                    model.setValue(result.ruby);
-                }
-            }
-            return enabled;
-        });
+        }
+
+        isModeSwitchRef.current = false;
+        setDnclMode(enabled);
     }, []);
     // === Smalruby: End of DNCL mode toggle ===
 

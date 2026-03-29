@@ -229,6 +229,8 @@ export default {
         '`|` がたりません。\n`|` をついかしてブロックのひきすうをとじてください。',
     'gui.smalruby3.prismError.expectedCloseParams':
         '`)` がたりません。\n`)` をついかしてひきすうのていぎをとじてください。',
+    'gui.smalruby3.prismError.unexpectedLocalVariableOrMethod':
+        'コードがおわるべきばしょに、へんすうやメソッドがあります。\n`end` のふそくや、よぶんなめいれいがないかかくにんしてください。',
     'gui.smalruby3.telemetryOptIn.buttonTextYes': 'はい、スモウルビーのかいぜんにきょうりょくします。',
     'gui.smalruby3.extension.mesh.name': 'じゅうらいのメッシュ',
     'gui.smalruby3.extension.mesh.description': 'ネットワークじょうでユーザーかんのやりとりを おこなう。',

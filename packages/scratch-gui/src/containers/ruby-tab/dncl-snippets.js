@@ -11,14 +11,14 @@
 /* eslint-disable no-template-curly-in-string */
 const DNCL_SNIPPETS = [
   {
-    label: 'もし...なら',
-    insertText: 'もし ${1:条件} なら\n  ${2}\nを実行する',
+    label: 'もし...ならば',
+    insertText: 'もし ${1:条件} ならば\n  ${2}\nを実行する',
     documentation: '条件分岐（if）',
   },
   {
     label: 'もし...そうでなければ',
     insertText:
-      'もし ${1:条件} なら\n  ${2}\nそうでなければ\n  ${3}\nを実行する',
+      'もし ${1:条件} ならば\n  ${2}\nそうでなければ\n  ${3}\nを実行する',
     documentation: '条件分岐（if-else）',
   },
   {

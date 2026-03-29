@@ -94,14 +94,14 @@ describe('rubyToDncl', () => {
   describe('control flow: if', () => {
     test('simple if', () => {
       expect(convert('if @a > 0\n  @a = 1\nend')).toBe(
-        'もし a > 0 なら\n  a = 1\nを実行する',
+        'もし a > 0 ならば\n  a = 1\nを実行する',
       )
     })
 
     test('if-else', () => {
       expect(
         convert('if @a > 0\n  @a = 1\nelse\n  @a = 2\nend'),
-      ).toBe('もし a > 0 なら\n  a = 1\nそうでなければ\n  a = 2\nを実行する')
+      ).toBe('もし a > 0 ならば\n  a = 1\nそうでなければ\n  a = 2\nを実行する')
     })
 
     test('if-elsif-else', () => {
@@ -110,7 +110,7 @@ describe('rubyToDncl', () => {
           'if @a > 0\n  @a = 1\nelsif @a > 5\n  @a = 2\nelse\n  @a = 3\nend',
         ),
       ).toBe(
-        'もし a > 0 なら\n  a = 1\nそうでなくもし a > 5 なら\n  a = 2\nそうでなければ\n  a = 3\nを実行する',
+        'もし a > 0 ならば\n  a = 1\nそうでなくもし a > 5 ならば\n  a = 2\nそうでなければ\n  a = 3\nを実行する',
       )
     })
   })
