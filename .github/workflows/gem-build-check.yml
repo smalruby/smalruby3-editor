@@ -32,12 +32,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - uses: ruby/setup-ruby@v1
+      - name: Setup Ruby and Rust
+        uses: oxidize-rb/actions/setup-ruby-and-rust@v1
         with:
           ruby-version: ${{ inputs.ruby-version || '3.4' }}
+          rustup-toolchain: stable
           bundler-cache: true
           working-directory: ruby/smalruby3
 
@@ -68,33 +67,37 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
-      - uses: ruby/setup-ruby@v1
+      - name: Install SDL2 via MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-SDL2
+            mingw-w64-ucrt-x86_64-SDL2_image
+            mingw-w64-ucrt-x86_64-SDL2_mixer
+            mingw-w64-ucrt-x86_64-SDL2_ttf
+
+      - name: Setup Ruby and Rust
+        uses: oxidize-rb/actions/setup-ruby-and-rust@v1
         with:
           ruby-version: ${{ inputs.ruby-version || '3.4' }}
+          rustup-toolchain: stable
           bundler-cache: true
           working-directory: ruby/smalruby3
 
-      - name: Install SDL2 via RubyInstaller MSYS2
-        shell: bash
+      - name: Add MSYS2 SDL2 to paths
+        shell: pwsh
         run: |
-          ridk exec pacman -S --noconfirm \
-            mingw-w64-ucrt-x86_64-SDL2 \
-            mingw-w64-ucrt-x86_64-SDL2_image \
-            mingw-w64-ucrt-x86_64-SDL2_mixer \
-            mingw-w64-ucrt-x86_64-SDL2_ttf
-
-      - name: Install Rust GNU target
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-gnu
+          echo "C:\msys64\ucrt64\bin" >> $env:GITHUB_PATH
+          echo "CPATH=C:\msys64\ucrt64\include" >> $env:GITHUB_ENV
+          echo "LIBRARY_PATH=C:\msys64\ucrt64\lib" >> $env:GITHUB_ENV
+          echo "PKG_CONFIG_PATH=C:\msys64\ucrt64\lib\pkgconfig" >> $env:GITHUB_ENV
 
       - name: Build gem
         run: gem build smalruby3.gemspec
 
       - name: Compile native extension
-        shell: bash
-        env:
-          CARGO_BUILD_TARGET: x86_64-pc-windows-gnu
         run: bundle exec rake compile
 
       - name: Run tests
