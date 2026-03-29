@@ -36,8 +36,12 @@ jobs:
         run: bundle exec standardrb
 
   unit-test:
-    name: "[smalruby3] Unit Tests"
+    name: "[smalruby3] Unit Tests (Ruby ${{ matrix.ruby }})"
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.3', '3.4', '4.0']
     defaults:
       run:
         working-directory: ruby/smalruby3
@@ -51,7 +55,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version-file: ruby/smalruby3/.ruby-version
+          ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
           working-directory: ruby/smalruby3
       - name: Compile native extension
