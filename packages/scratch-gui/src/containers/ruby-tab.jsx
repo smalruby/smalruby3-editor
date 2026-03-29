@@ -10,6 +10,10 @@ import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-pre
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
+import { DnclSourceMap } from '../lib/dncl/dncl-source-map';
+// === Smalruby: Start of DNCL mode imports ===
+import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
+import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { wrapCurrentCodeWithClass } from '../lib/insert-class';
 import intlShape from '../lib/intlShape.js';
@@ -25,6 +29,7 @@ import { generatePreviewCode } from '../lib/ruby-script-preview';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { containsV1Code } from '../lib/ruby-to-blocks-converter/v1-detection';
+import { getUrlParams } from '../lib/url-params';
 import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX } from '../reducers/editor-tab';
 import { setAiSaveStatus, clearAiSaveStatus } from '../reducers/koshien-file';
@@ -46,7 +51,9 @@ import {
     FURIGANA_ENABLED_KEY,
     AUTO_CORRECT_ENABLED_KEY,
     AUTO_CORRECT_SETTINGS_KEY,
+    DNCL_MODE_KEY,
 } from './ruby-tab/constants';
+// === Smalruby: End of DNCL mode imports ===
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import {
     registerCustomPasteAction,
@@ -126,12 +133,36 @@ const RubyTab = props => {
     void executingLine;
     const [canUndo, setCanUndo] = useState(false);
     const [canRedo, setCanRedo] = useState(false);
-    const [furiganaEnabled, setFuriganaEnabled] = useState(() => loadBool(FURIGANA_ENABLED_KEY, true));
+    // === Smalruby: Start of furigana URL param override ===
+    const [furiganaEnabled, setFuriganaEnabled] = useState(() => {
+        const urlRubyMode = getUrlParams().rubyMode;
+        if (urlRubyMode === 'furigana') return true;
+        if (urlRubyMode === 'ruby' || urlRubyMode === 'dncl') return false;
+        return loadBool(FURIGANA_ENABLED_KEY, true);
+    });
+    // === Smalruby: End of furigana URL param override ===
     const [autoCorrectEnabled, setAutoCorrectEnabled] = useState(() => loadBool(AUTO_CORRECT_ENABLED_KEY, true));
     const [autoCorrectSettings, setAutoCorrectSettings] = useState(loadAutoCorrectSettings);
     const [showAutoCorrectModal, setShowAutoCorrectModal] = useState(false);
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [previewCode, setPreviewCode] = useState('');
+    // === Smalruby: Start of DNCL mode state ===
+    const [dnclMode, setDnclMode] = useState(() => {
+        const urlRubyMode = getUrlParams().rubyMode;
+        if (urlRubyMode === 'dncl') return true;
+        if (urlRubyMode === 'furigana' || urlRubyMode === 'ruby') return false;
+        // loadBool treats missing keys as true; DNCL defaults to off
+        if (typeof window !== 'undefined' && window.localStorage) {
+            return window.localStorage.getItem(DNCL_MODE_KEY) === 'true';
+        }
+        return false;
+    });
+    // Separate DNCL display code to prevent editor from showing Ruby
+    const [dnclDisplayCode, setDnclDisplayCode] = useState('');
+    const dnclSourceMapRef = useRef(null);
+    const dnclModeRef = useRef(dnclMode);
+    dnclModeRef.current = dnclMode;
+    // === Smalruby: End of DNCL mode state ===
 
     // --- Instance refs ---
     const editorRef = useRef(null);
@@ -316,30 +347,51 @@ const RubyTab = props => {
 
     // --- Stable Editor callbacks ---
 
-    const handleEditorChange = useCallback(value => {
-        if (isAutoCorrectUpdateRef.current) {
-            isAutoCorrectUpdateRef.current = false;
-            onChangeRef.current(value);
-            return;
-        }
-        if (autoCorrectEnabledRef.current && editorRef.current) {
-            const corrected = autoCorrect(value, autoCorrectSettingsRef.current);
-            if (corrected !== value) {
-                isAutoCorrectUpdateRef.current = true;
-                const position = editorRef.current.getPosition();
-                const model = editorRef.current.getModel();
-                const beforeCursor = value.substring(0, model.getOffsetAt(position));
-                const correctedBeforeCursor = autoCorrect(beforeCursor, autoCorrectSettingsRef.current);
-                const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
-                model.setValue(corrected);
-                const newOffset = model.getOffsetAt(position) - offsetDiff;
-                const newPosition = model.getPositionAt(Math.max(0, newOffset));
-                editorRef.current.setPosition(newPosition);
+    // === Smalruby: Start of DNCL-aware dispatch helper ===
+    const dispatchCode = useCallback(code => {
+        if (dnclModeRef.current) {
+            setDnclDisplayCode(code);
+            const result = dnclToRuby(code);
+            if (result.errors && result.errors.length > 0) {
+                // Show DNCL validation errors but don't dispatch invalid code
+                dnclSourceMapRef.current = null;
                 return;
             }
+            dnclSourceMapRef.current = new DnclSourceMap(code, result.ruby);
+            onChangeRef.current(result.ruby);
+        } else {
+            onChangeRef.current(code);
         }
-        onChangeRef.current(value);
     }, []);
+    // === Smalruby: End of DNCL-aware dispatch helper ===
+
+    const handleEditorChange = useCallback(
+        value => {
+            if (isAutoCorrectUpdateRef.current) {
+                isAutoCorrectUpdateRef.current = false;
+                dispatchCode(value);
+                return;
+            }
+            if (autoCorrectEnabledRef.current && editorRef.current) {
+                const corrected = autoCorrect(value, autoCorrectSettingsRef.current);
+                if (corrected !== value) {
+                    isAutoCorrectUpdateRef.current = true;
+                    const position = editorRef.current.getPosition();
+                    const model = editorRef.current.getModel();
+                    const beforeCursor = value.substring(0, model.getOffsetAt(position));
+                    const correctedBeforeCursor = autoCorrect(beforeCursor, autoCorrectSettingsRef.current);
+                    const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
+                    model.setValue(corrected);
+                    const newOffset = model.getOffsetAt(position) - offsetDiff;
+                    const newPosition = model.getPositionAt(Math.max(0, newOffset));
+                    editorRef.current.setPosition(newPosition);
+                    return;
+                }
+            }
+            dispatchCode(value);
+        },
+        [dispatchCode],
+    );
 
     const handleEditorDidMount = useCallback((editor, monaco) => {
         editorRef.current = editor;
@@ -500,6 +552,36 @@ const RubyTab = props => {
         [onShowAlert, updateRubyCodeErrorsState],
     ); // showErrors uses refs, safe in stale closure
 
+    // === Smalruby: Start of DNCL mode toggle ===
+    const handleToggleDnclMode = useCallback(() => {
+        setDnclMode(prev => {
+            const enabled = !prev;
+            if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem(DNCL_MODE_KEY, enabled);
+            }
+            if (editorRef.current && monacoRef.current) {
+                const model = editorRef.current.getModel();
+                if (enabled) {
+                    // Switching to DNCL: convert Ruby → DNCL
+                    const currentRuby = model.getValue();
+                    const result = rubyToDncl(currentRuby);
+                    setDnclDisplayCode(result.dncl);
+                    monacoRef.current.editor.setModelLanguage(model, 'dncl');
+                    model.setValue(result.dncl);
+                } else {
+                    // Switching to Ruby: convert DNCL → Ruby
+                    const currentDncl = model.getValue();
+                    const result = dnclToRuby(currentDncl);
+                    setDnclDisplayCode('');
+                    monacoRef.current.editor.setModelLanguage(model, 'smalruby');
+                    model.setValue(result.ruby);
+                }
+            }
+            return enabled;
+        });
+    }, []);
+    // === Smalruby: End of DNCL mode toggle ===
+
     const handleToggleFurigana = useCallback(() => {
         setFuriganaEnabled(prev => {
             const enabled = !prev;
@@ -617,7 +699,13 @@ const RubyTab = props => {
             clearErrors();
 
             const code = rubyCode.code;
-            const targetLine = findExecutableLine(code, lineNumber);
+
+            // === Smalruby: Start of DNCL mode execute all ===
+            // In DNCL mode, execute all top-level scripts from top to bottom
+            // instead of just the cursor line.
+            const isDncl = dnclModeRef.current;
+            const targetLine = isDncl ? 1 : findExecutableLine(code, lineNumber);
+            // === Smalruby: End of DNCL mode execute all ===
 
             if (!targetLine) {
                 // eslint-disable-next-line no-console
@@ -650,11 +738,21 @@ const RubyTab = props => {
                         const cursorLine = editorRef.current.getPosition().lineNumber;
                         const cursorContent = editorRef.current.getModel().getLineContent(cursorLine).trim();
 
-                        editorRef.current.setValue(regenerated);
+                        // === Smalruby: Start of DNCL mode preserve display ===
+                        if (dnclModeRef.current) {
+                            // Convert regenerated Ruby back to DNCL for display
+                            const dnclResult = rubyToDncl(regenerated);
+                            setDnclDisplayCode(dnclResult.dncl);
+                            editorRef.current.setValue(dnclResult.dncl);
+                        } else {
+                            editorRef.current.setValue(regenerated);
+                        }
+                        // === Smalruby: End of DNCL mode preserve display ===
 
                         // Restore cursor to matching line in regenerated code
                         if (typeof cursorContent === 'string' && cursorContent.length > 0) {
-                            const lines = regenerated.split('\n');
+                            const currentValue = editorRef.current.getValue();
+                            const lines = currentValue.split('\n');
                             for (let i = 0; i < lines.length; i++) {
                                 if (lines[i].trim() === cursorContent) {
                                     const newLine = i + 1;
@@ -669,6 +767,31 @@ const RubyTab = props => {
                         }
                     }
                     // === Smalruby: End of update editor after execute ===
+
+                    // === Smalruby: Start of DNCL mode execute all scripts ===
+                    if (isDncl) {
+                        // Execute all top-level scripts sequentially
+                        const blocks = vm.editingTarget.blocks;
+                        const allTopBlocks = blocks.getScripts();
+                        if (allTopBlocks.length === 0) {
+                            onShowAlert('cannotExecuteLine');
+                            return;
+                        }
+
+                        // Highlight all lines
+                        const totalLines = code.split('\n').length;
+                        doHighlightLineRange(1, totalLines);
+
+                        // Execute each top-level script
+                        for (const topBlockId of allTopBlocks) {
+                            vm.runtime.toggleScript(topBlockId, {
+                                target: vm.editingTarget,
+                                stackClick: true,
+                            });
+                        }
+                        return;
+                    }
+                    // === Smalruby: End of DNCL mode execute all scripts ===
 
                     const blockId = converter.getBlockIdForLine(targetLine);
                     if (!blockId) {
@@ -781,6 +904,23 @@ const RubyTab = props => {
             furiganaRendererRef.current.clear(editorRef.current);
         }
     }, [furiganaEnabled]);
+
+    // === Smalruby: Start of DNCL code sync ===
+    // When code changes from blocks tab (Ruby → DNCL display), sync DNCL display
+    const rubyCodeStr = rubyCode.code;
+    useEffect(() => {
+        if (!dnclMode) return;
+        if (!editorRef.current || !monacoRef.current) return;
+        // Only sync when the Ruby code changed externally (e.g., from blocks)
+        // not from our own editor change (which already sets dnclDisplayCode)
+        const currentEditorValue = editorRef.current.getValue();
+        const currentRubyFromDncl = dnclToRuby(currentEditorValue).ruby;
+        if (currentRubyFromDncl !== rubyCodeStr && rubyCodeStr) {
+            const result = rubyToDncl(rubyCodeStr);
+            setDnclDisplayCode(result.dncl);
+        }
+    }, [rubyCodeStr, dnclMode]);
+    // === Smalruby: End of DNCL code sync ===
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);
@@ -937,12 +1077,14 @@ const RubyTab = props => {
                     onOpenAutoCorrectSettings={handleOpenAutoCorrectSettings}
                     onPreviewRubyScript={handlePreviewRubyScript}
                     onOpenRubyteeModal={onOpenRubyteeModal}
+                    dnclMode={dnclMode}
+                    onToggleDnclMode={handleToggleDnclMode}
                 />
                 <div className={styles.editorWrapper}>
                     <Editor
                         key={locale}
                         height="100%"
-                        language="smalruby"
+                        language={dnclMode ? 'dncl' : 'smalruby'}
                         onMount={handleEditorDidMount}
                         onChange={handleEditorChange}
                         options={{
@@ -957,7 +1099,7 @@ const RubyTab = props => {
                             autoIndent: 'full',
                         }}
                         theme="vs"
-                        value={code}
+                        value={dnclMode ? dnclDisplayCode : code}
                         width="100%"
                     />
                 </div>

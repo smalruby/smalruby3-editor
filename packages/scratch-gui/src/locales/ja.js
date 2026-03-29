@@ -480,6 +480,13 @@ export default {
 
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソル行を実行',
+    'gui.rubyToolbar.executeAll': 'すべて実行',
+    'gui.rubyToolbar.dnclLabel': '日本語',
+    'gui.rubyToolbar.modeFurigana': 'Rubyふりがなモード',
+    'gui.rubyToolbar.modeFuriganaLine1': 'ルビー',
+    'gui.rubyToolbar.modeFuriganaLine2': 'Ruby',
+    'gui.rubyToolbar.modeRuby': 'Rubyモード',
+    'gui.rubyToolbar.modeDncl': '日本語モード',
     'gui.rubyToolbar.stopExecution': '実行を停止',
     'gui.rubyToolbar.search': '検索',
     'gui.rubyToolbar.prevSprite': '前のスプライト',

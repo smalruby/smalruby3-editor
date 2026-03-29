@@ -1,6 +1,8 @@
 // === Smalruby: This file is Smalruby-specific (Monaco editor setup for Ruby tab) ===
 
 import CompletionProviderManager from './completion-provider-manager';
+import {DnclSnippetsCompleter} from './dncl-snippets';
+import {dnclLanguage, dnclLanguageConfiguration} from './dncl-mode';
 import SnippetsCompleter from './snippets-completer';
 import {smalrubyLanguage, smalrubyLanguageConfiguration} from './smalruby-mode';
 
@@ -103,6 +105,13 @@ const registerLanguageAndProviders = (monaco, editor, vm, quickFixProvider, exis
     monaco.languages.setMonarchTokensProvider('smalruby', smalrubyLanguage);
     monaco.languages.setLanguageConfiguration('smalruby', smalrubyLanguageConfiguration);
 
+    // === Smalruby: Start of DNCL language registration ===
+    // Register DNCL language mode
+    monaco.languages.register({id: 'dncl'});
+    monaco.languages.setMonarchTokensProvider('dncl', dnclLanguage);
+    monaco.languages.setLanguageConfiguration('dncl', dnclLanguageConfiguration);
+    // === Smalruby: End of DNCL language registration ===
+
     // Set up completion provider
     let completionProviderManager = existingManager;
     if (!completionProviderManager) {
@@ -113,6 +122,15 @@ const registerLanguageAndProviders = (monaco, editor, vm, quickFixProvider, exis
                 completer.provideCompletionItems(model, position, context, token, monaco)
             )
         });
+
+        // === Smalruby: Start of DNCL completion provider ===
+        const dnclCompleter = new DnclSnippetsCompleter();
+        completionProviderManager.register(monaco, 'dncl', {
+            provideCompletionItems: (model, position, context, token) => (
+                dnclCompleter.provideCompletionItems(model, position, context, token, monaco)
+            )
+        });
+        // === Smalruby: End of DNCL completion provider ===
     }
 
     // Register quick fix provider for conversion errors

@@ -7,24 +7,33 @@ const TAB_INDICES = { code: 0, blocks: 0, costumes: 1, sounds: 2, ruby: 3 };
 
 const VALID_RUBY_VERSIONS = [VERSION_1, VERSION_2];
 
+// === Smalruby: Start of Ruby mode constants ===
+// Valid values for rubyMode URL parameter (case-insensitive).
+const DNCL_ALIASES = ['dncl', 'dnclv2', 'ja', 'japanese'];
+const FURIGANA_ALIASES = ['rubi', 'furigana'];
+const RUBY_ALIASES = ['ruby'];
+// === Smalruby: End of Ruby mode constants ===
+
 /**
  * Parse Smalruby-specific URL parameters for testing convenience.
  * Supported parameters:
  * - no_beforeunload=1  — disable the beforeunload confirmation dialog
  * - tab=ruby           — activate a specific tab on startup (code/blocks/costumes/sounds/ruby)
  * - ruby_version=2     — set the Ruby version (1 or 2); invalid values are ignored
+ * - rubyMode=dncl      — activate DNCL mode (aliases: dnclv2, case-insensitive)
+ * - rubyMode=rubi      — activate furigana mode (aliases: furigana, case-insensitive)
  * @returns {object} parsed parameters
  */
 const parseUrlParams = () => {
     if (typeof window === 'undefined') {
-        return { noBeforeUnload: false, initialTab: null, rubyVersion: null };
+        return { noBeforeUnload: false, initialTab: null, rubyVersion: null, rubyMode: null };
     }
 
     let params;
     try {
         params = new URL(window.location.href).searchParams;
     } catch {
-        return { noBeforeUnload: false, initialTab: null, rubyVersion: null };
+        return { noBeforeUnload: false, initialTab: null, rubyVersion: null, rubyMode: null };
     }
 
     // no_beforeunload: any truthy value disables the dialog
@@ -38,7 +47,20 @@ const parseUrlParams = () => {
     const rvParam = params.get('ruby_version');
     const rubyVersion = VALID_RUBY_VERSIONS.includes(rvParam) ? rvParam : null;
 
-    return { noBeforeUnload, initialTab, rubyVersion };
+    // === Smalruby: Start of rubyMode URL param ===
+    // rubyMode: 'dncl'/'ja'/'japanese' → 'dncl', 'rubi'/'furigana' → 'furigana', 'ruby' → 'ruby'
+    const rmParam = (params.get('rubyMode') || '').toLowerCase();
+    let rubyMode = null;
+    if (DNCL_ALIASES.includes(rmParam)) {
+        rubyMode = 'dncl';
+    } else if (FURIGANA_ALIASES.includes(rmParam)) {
+        rubyMode = 'furigana';
+    } else if (RUBY_ALIASES.includes(rmParam)) {
+        rubyMode = 'ruby';
+    }
+    // === Smalruby: End of rubyMode URL param ===
+
+    return { noBeforeUnload, initialTab, rubyVersion, rubyMode };
 };
 
 // Cache the result so it's only parsed once

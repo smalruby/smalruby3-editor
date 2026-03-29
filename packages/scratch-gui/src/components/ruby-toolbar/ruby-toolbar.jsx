@@ -13,7 +13,6 @@ import iconSearch from './icon--search.svg';
 import iconUndo from './icon--undo.svg';
 import iconRedo from './icon--redo.svg';
 import iconDownload from './icon--download.svg';
-import iconFurigana from './icon--furigana.svg';
 import iconAutoCorrect from './icon--auto-correct.svg';
 import iconRubytee from './icon--rubytee.svg';
 
@@ -69,6 +68,28 @@ const RubyToolbar = props => {
         if (props.onToggleFurigana) props.onToggleFurigana();
     }, [props]);
 
+    // === Smalruby: Start of mode selection handlers ===
+    const handleSelectFuriganaMode = useCallback(() => {
+        if (props.onDismissBubble) props.onDismissBubble();
+        // Switch to Ruby mode with furigana ON
+        if (props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
+        if (!props.furiganaEnabled && props.onToggleFurigana) props.onToggleFurigana();
+    }, [props]);
+
+    const handleSelectRubyMode = useCallback(() => {
+        if (props.onDismissBubble) props.onDismissBubble();
+        // Switch to Ruby mode with furigana OFF
+        if (props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
+        if (props.furiganaEnabled && props.onToggleFurigana) props.onToggleFurigana();
+    }, [props]);
+
+    const handleSelectDnclMode = useCallback(() => {
+        if (props.onDismissBubble) props.onDismissBubble();
+        // Switch to DNCL mode
+        if (!props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
+    }, [props]);
+    // === Smalruby: End of mode selection handlers ===
+
     const handleToggleAutoCorrect = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
         if (props.onToggleAutoCorrect) props.onToggleAutoCorrect();
@@ -101,6 +122,14 @@ const RubyToolbar = props => {
         if (props.onExecuteLine) props.onExecuteLine(position.lineNumber);
     }, [props]);
 
+    // === Smalruby: Start of DNCL execute button label ===
+    const executeMessage = props.isRunning
+        ? messages.stopExecution
+        : props.dnclMode
+            ? messages.executeAll
+            : messages.executeLine;
+    // === Smalruby: End of DNCL execute button label ===
+
     return (
         <div className={styles.toolbar}>
             {/* Run Part */}
@@ -109,12 +138,8 @@ const RubyToolbar = props => {
                     className={styles.iconButton}
                     onClick={handleExecuteLine}
                     disabled={!props.editorRef}
-                    aria-label={intl.formatMessage(
-                        props.isRunning ? messages.stopExecution : messages.executeLine
-                    )}
-                    title={intl.formatMessage(
-                        props.isRunning ? messages.stopExecution : messages.executeLine
-                    )}
+                    aria-label={intl.formatMessage(executeMessage)}
+                    title={intl.formatMessage(executeMessage)}
                 >
                     <img
                         src={props.isRunning ? iconStop : iconPlay}
@@ -165,26 +190,8 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* Furigana Toggle & Auto Correct Toggle */}
+            {/* Auto Correct Toggle */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
-                <button
-                    className={`${styles.furiganaButton} ${
-                        props.furiganaEnabled ? styles.furiganaButtonActive : ''
-                    }`}
-                    onClick={handleToggleFurigana}
-                    aria-label={intl.formatMessage(
-                        props.furiganaEnabled ? messages.furiganaOn : messages.furiganaOff
-                    )}
-                    aria-pressed={props.furiganaEnabled}
-                    title={intl.formatMessage(
-                        props.furiganaEnabled ? messages.furiganaOn : messages.furiganaOff
-                    )}
-                >
-                    <img
-                        src={iconFurigana}
-                        alt=""
-                    />
-                </button>
                 <button
                     className={`${styles.autoCorrectButton} ${
                         props.autoCorrectEnabled ? styles.autoCorrectButtonActive : ''
@@ -205,7 +212,7 @@ const RubyToolbar = props => {
                 </button>
             </div>
 
-            {/* Navigation & Command Part + Rubytee AI Assistant */}
+            {/* Center: Navigation + AI */}
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder} ${styles.modCenter}`}>
                 <TargetSelector
                     editingTarget={props.editingTarget}
@@ -213,10 +220,13 @@ const RubyToolbar = props => {
                     onSelectTarget={props.onSelectTarget}
                     onDismissBubble={props.onDismissBubble}
                 />
+
+                {/* Rubytee AI Assistant — disabled in DNCL mode */}
                 {props.onOpenRubyteeModal && (
                     <button
                         className={styles.iconButton}
-                        onClick={props.onOpenRubyteeModal}
+                        onClick={props.dnclMode ? null : props.onOpenRubyteeModal}
+                        disabled={props.dnclMode}
                         aria-label={intl.formatMessage(messages.aiAssistant)}
                         title={intl.formatMessage(messages.aiAssistant)}
                     >
@@ -227,6 +237,49 @@ const RubyToolbar = props => {
                     </button>
                 )}
             </div>
+
+            {/* === Smalruby: Start of mode toggle group === */}
+            <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
+                <div className={styles.modeToggleGroup}>
+                    <button
+                        className={`${styles.modeToggleItem} ${
+                            !props.dnclMode && props.furiganaEnabled
+                                ? styles.modeToggleItemActive : ''
+                        }`}
+                        onClick={handleSelectFuriganaMode}
+                        title={intl.formatMessage(messages.modeFurigana)}
+                    >
+                        <span className={styles.modeToggleFuriganaLabel}>
+                            <span className={styles.modeToggleFuriganaLine1}>
+                                {intl.formatMessage(messages.modeFuriganaLine1)}
+                            </span>
+                            <span className={styles.modeToggleFuriganaLine2}>
+                                {intl.formatMessage(messages.modeFuriganaLine2)}
+                            </span>
+                        </span>
+                    </button>
+                    <button
+                        className={`${styles.modeToggleItem} ${
+                            !props.dnclMode && !props.furiganaEnabled
+                                ? styles.modeToggleItemActive : ''
+                        }`}
+                        onClick={handleSelectRubyMode}
+                        title={intl.formatMessage(messages.modeRuby)}
+                    >
+                        {'Ruby'}
+                    </button>
+                    <button
+                        className={`${styles.modeToggleItem} ${
+                            props.dnclMode ? styles.modeToggleItemActive : ''
+                        }`}
+                        onClick={handleSelectDnclMode}
+                        title={intl.formatMessage(messages.modeDncl)}
+                    >
+                        {intl.formatMessage(messages.dnclLabel)}
+                    </button>
+                </div>
+            </div>
+            {/* === Smalruby: End of mode toggle group === */}
 
             {/* More Menu Part */}
             <div className={styles.toolbarPart}>
@@ -300,6 +353,8 @@ RubyToolbar.propTypes = {
     isRunning: PropTypes.bool,
     canUndo: PropTypes.bool,
     canRedo: PropTypes.bool,
+    dnclMode: PropTypes.bool,
+    onToggleDnclMode: PropTypes.func,
     furiganaEnabled: PropTypes.bool,
     onToggleFurigana: PropTypes.func,
     autoCorrectEnabled: PropTypes.bool,

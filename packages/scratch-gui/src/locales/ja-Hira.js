@@ -494,6 +494,13 @@ export default {
 
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'カーソルぎょうをじっこう',
+    'gui.rubyToolbar.executeAll': 'すべてじっこう',
+    'gui.rubyToolbar.dnclLabel': 'にほんご',
+    'gui.rubyToolbar.modeFurigana': 'Rubyふりがなモード',
+    'gui.rubyToolbar.modeFuriganaLine1': 'ルビー',
+    'gui.rubyToolbar.modeFuriganaLine2': 'Ruby',
+    'gui.rubyToolbar.modeRuby': 'Rubyモード',
+    'gui.rubyToolbar.modeDncl': 'にほんごモード',
     'gui.rubyToolbar.stopExecution': 'じっこうをていし',
     'gui.rubyToolbar.search': 'けんさく',
     'gui.rubyToolbar.prevSprite': 'まえのスプライト',

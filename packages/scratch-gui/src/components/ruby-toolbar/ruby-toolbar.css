@@ -172,6 +172,82 @@
     font-weight: bold;
 }
 
+/* === Smalruby: Start of DNCL mode toggle === */
+/* Toggle-buttons style matching scratch-gui toggle-buttons component */
+.modeToggleGroup {
+    display: flex;
+    flex-direction: row;
+    margin: 0 4px;
+}
+
+.modeToggleItem {
+    margin: 0;
+    border: 1px solid $ui-black-transparent;
+    background: none;
+    outline: none;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    height: 34px;
+    padding: 0 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: hsla(0, 0%, 0%, 0.4);
+    transition: background 0.1s;
+    text-align: center;
+}
+
+.modeToggleItem:not(:last-child) {
+    border-right: none;
+}
+
+.modeToggleItem:first-child {
+    border-radius: $form-radius 0 0 $form-radius;
+}
+
+.modeToggleItem:last-child {
+    border-radius: 0 $form-radius $form-radius 0;
+}
+
+.modeToggleItemActive {
+    background-color: $looks-light-transparent;
+    color: $looks-secondary;
+}
+
+.modeToggleItem:active {
+    background-color: $looks-transparent;
+}
+
+.modeToggleItemDisabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.modeToggleFuriganaLabel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.modeToggleFuriganaLine1 {
+    display: block;
+    font-size: 0.4rem;
+    letter-spacing: 3px;
+    line-height: 1;
+}
+
+.modeToggleFuriganaLine2 {
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    line-height: 1;
+}
+/* === Smalruby: End of DNCL mode toggle === */
+
 .furiganaButton {
     width: 2rem;
     height: 2rem;
