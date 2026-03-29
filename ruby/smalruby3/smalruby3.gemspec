@@ -17,6 +17,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 3.3"
 
   spec.files = Dir["lib/**/*.rb", "lib/**/*.json", "ext/**/*.{rb,rs,toml,in,c.in}", "exe/*", "assets/**/*", "LICENSE", "README.md"]
+    .reject { |f| f.start_with?("ext/smalruby3_imageutil/target/") }
   spec.bindir = "exe"
   spec.executables = ["smalruby3"]
   spec.require_paths = ["lib"]
@@ -27,4 +28,5 @@ Gem::Specification.new do |spec|
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/smalruby/smalruby3-editor/tree/develop/ruby/smalruby3"
+  spec.metadata["changelog_uri"] = "https://github.com/smalruby/smalruby3-editor/releases"
 end
