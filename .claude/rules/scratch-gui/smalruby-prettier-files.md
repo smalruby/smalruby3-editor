@@ -49,6 +49,7 @@ upstream (Scratch) ファイルは対象外。
 ### src/lib/
 
 **Smalruby 固有ディレクトリ:**
+- `src/lib/dncl/`
 - `src/lib/ruby-generator/`
 - `src/lib/ruby-to-blocks-converter/`
 - `src/lib/settings/`
@@ -115,6 +116,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/helpers/`
 - `test/unit/containers/ruby-tab/`
 - `test/unit/helpers/`
+- `test/unit/lib/dncl/`
 - `test/unit/lib/ruby-generator/`
 - `test/unit/lib/ruby-roundtrip/`
 - `test/unit/lib/ruby-to-blocks-converter/`
