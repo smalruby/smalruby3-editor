@@ -186,6 +186,7 @@ const RubyTab = props => {
     const furiganaLastMsRef = useRef(0);
     const isAutoCorrectUpdateRef = useRef(false);
     const isModeSwitchRef = useRef(false);
+    const pendingDnclSwitchRef = useRef(false);
 
     // Lazy initialization of heavy objects
     if (!quickFixProviderRef.current) quickFixProviderRef.current = new QuickFixProvider();
@@ -988,6 +989,26 @@ const RubyTab = props => {
     }, [rubyCodeStr, dnclMode]);
     // === Smalruby: End of DNCL code sync ===
 
+    // === Smalruby: Start of pending DNCL switch after tab change ===
+    // When switching from Code tab to Ruby tab in DNCL mode, the mode is
+    // temporarily set to furigana. After the Ruby code is generated and
+    // the editor is populated, this effect attempts to switch to DNCL.
+    useEffect(() => {
+        if (!pendingDnclSwitchRef.current) return;
+        if (!rubyCodeStr) return;
+        if (!editorRef.current || !monacoRef.current) return;
+
+        pendingDnclSwitchRef.current = false;
+
+        // Use setTimeout to ensure the editor value is committed before
+        // reading it for DNCL validation (handleToggleDnclMode reads
+        // from the editor, not from the prop).
+        setTimeout(() => {
+            handleToggleDnclMode();
+        }, 0);
+    }, [rubyCodeStr, handleToggleDnclMode]);
+    // === Smalruby: End of pending DNCL switch after tab change ===
+
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);
     useEffect(() => {
@@ -1098,6 +1119,24 @@ const RubyTab = props => {
         if (!modified) {
             const etChanged = editingTarget && editingTarget !== prev.editingTarget;
             if ((isVisible && !prev.isVisible) || etChanged) {
+                // === Smalruby: Start of DNCL tab switch fallback ===
+                // When switching to Ruby tab in DNCL mode, temporarily fall
+                // back to furigana mode so blocks→Ruby generation works.
+                // After the code is ready, attempt DNCL switch automatically.
+                if (isVisible && !prev.isVisible && dnclModeRef.current) {
+                    dnclModeRef.current = false;
+                    setDnclMode(false);
+                    setFuriganaEnabled(true);
+                    if (typeof window !== 'undefined' && window.localStorage) {
+                        window.localStorage.setItem(DNCL_MODE_KEY, 'false');
+                        window.localStorage.setItem(FURIGANA_ENABLED_KEY, 'true');
+                    }
+                    if (editorRef.current && monacoRef.current) {
+                        monacoRef.current.editor.setModelLanguage(editorRef.current.getModel(), 'smalruby');
+                    }
+                    pendingDnclSwitchRef.current = true;
+                }
+                // === Smalruby: End of DNCL tab switch fallback ===
                 updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
             }
         }
