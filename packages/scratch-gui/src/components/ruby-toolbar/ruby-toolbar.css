@@ -173,38 +173,53 @@
 }
 
 /* === Smalruby: Start of DNCL mode toggle === */
-/* Tag-filter-style pill buttons matching library selector UI */
+/* Toggle-buttons style matching scratch-gui toggle-buttons component */
 .modeToggleGroup {
     display: flex;
     flex-direction: row;
-    align-items: center;
-    gap: 4px;
     margin: 0 4px;
 }
 
 .modeToggleItem {
-    padding: 0.25rem 0.5rem;
-    background: transparent;
-    border-radius: 1.375rem;
-    border: 2px solid $looks-secondary;
-    color: $looks-secondary;
+    margin: 0;
+    border: 1px solid $ui-black-transparent;
+    background: none;
+    outline: none;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    height: 34px;
+    padding: 0 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     font-size: 0.6875rem;
     font-weight: 600;
     white-space: nowrap;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    line-height: 1.2rem;
+    color: hsla(0, 0%, 0%, 0.4);
+    transition: background 0.1s;
     text-align: center;
 }
 
-.modeToggleItem:hover {
-    opacity: 0.85;
+.modeToggleItem:not(:last-child) {
+    border-right: none;
+}
+
+.modeToggleItem:first-child {
+    border-radius: $form-radius 0 0 $form-radius;
+}
+
+.modeToggleItem:last-child {
+    border-radius: 0 $form-radius $form-radius 0;
 }
 
 .modeToggleItemActive {
-    background: $data-primary;
-    border-color: $data-primary;
-    color: $ui-white;
+    background-color: $looks-light-transparent;
+    color: $looks-secondary;
+}
+
+.modeToggleItem:active {
+    background-color: $looks-transparent;
 }
 
 .modeToggleItemDisabled {
