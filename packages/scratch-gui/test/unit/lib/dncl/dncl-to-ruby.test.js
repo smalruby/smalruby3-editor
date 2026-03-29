@@ -168,4 +168,90 @@ describe('dnclToRuby', () => {
       expect(convert('a = 1 # コメント')).toBe('@a = 1 # コメント')
     })
   })
+
+  describe('control flow: if', () => {
+    test('simple if', () => {
+      expect(convert('もし a > 0 なら\n  a = 1\nを実行する')).toBe(
+        'if @a > 0\n  @a = 1\nend',
+      )
+    })
+
+    test('if-else', () => {
+      expect(
+        convert(
+          'もし a > 0 なら\n  a = 1\nそうでなければ\n  a = 2\nを実行する',
+        ),
+      ).toBe('if @a > 0\n  @a = 1\nelse\n  @a = 2\nend')
+    })
+
+    test('if-elsif-else', () => {
+      expect(
+        convert(
+          'もし a > 0 なら\n  a = 1\nそうでなくもし a > 5 なら\n  a = 2\nそうでなければ\n  a = 3\nを実行する',
+        ),
+      ).toBe(
+        'if @a > 0\n  @a = 1\nelsif @a > 5\n  @a = 2\nelse\n  @a = 3\nend',
+      )
+    })
+
+    test('if with ならば variant', () => {
+      expect(convert('もし a > 0 ならば\n  a = 1\nを実行する')).toBe(
+        'if @a > 0\n  @a = 1\nend',
+      )
+    })
+  })
+
+  describe('control flow: for loop', () => {
+    test('ascending for loop', () => {
+      expect(
+        convert(
+          'i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す',
+        ),
+      ).toBe('(1..10).step(1) do |i|\n  say(@i, 1)\nend')
+    })
+
+    test('descending for loop', () => {
+      expect(
+        convert(
+          'i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す',
+        ),
+      ).toBe('10.step(0, -1) do |i|\n  say(@i, 1)\nend')
+    })
+
+    test('for loop with expression bounds', () => {
+      expect(
+        convert(
+          'i を 0 から n まで 2 ずつ増やしながら\n  表示する(i)\nを繰り返す',
+        ),
+      ).toBe('(0..@n).step(2) do |i|\n  say(@i, 1)\nend')
+    })
+  })
+
+  describe('control flow: while loop', () => {
+    test('while loop', () => {
+      expect(convert('a > 0 の間\n  a = a - 1\nを繰り返す')).toBe(
+        'while @a > 0\n  @a = @a - 1\nend',
+      )
+    })
+
+    test('while loop with complex condition', () => {
+      expect(convert('a > 0 かつ b < 10 の間\n  a = a - 1\nを繰り返す')).toBe(
+        'while @a > 0 && @b < 10\n  @a = @a - 1\nend',
+      )
+    })
+  })
+
+  describe('control flow: function', () => {
+    test('function definition', () => {
+      expect(
+        convert('関数 f(x)\n  返す x * 2\nと定義する'),
+      ).toBe('def f(x)\n  return @x * 2\nend')
+    })
+
+    test('function with multiple params', () => {
+      expect(
+        convert('関数 add(a, b)\n  返す a + b\nと定義する'),
+      ).toBe('def add(a, b)\n  return @a + @b\nend')
+    })
+  })
 })

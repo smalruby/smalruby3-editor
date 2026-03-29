@@ -183,6 +183,13 @@ const skipString = (line, start, quote) => {
 const convertJapaneseStrings = (line) => line.replace(/「([^」]*)」/g, '"$1"')
 
 /**
+ * Convert arrow assignment ← to = in a string.
+ * @param {string} str - The string to convert.
+ * @returns {string} The string with arrows replaced.
+ */
+const convertArrow = (str) => str.replace(/\s*←\s*/g, ' = ')
+
+/**
  * Convert operators in a line segment (outside strings).
  * @param {string} segment - A code segment outside of strings.
  * @returns {string} The segment with converted operators.
@@ -357,6 +364,95 @@ const convertLine = (line) => {
 
   // Handle 乱数(n) → rand(n)
   converted = converted.replace(/乱数\(([^)]*)\)/g, (_, n) => `rand(${n})`)
+
+  // Handle control flow keywords (line-level patterns)
+  // もし condition なら/ならば → if condition
+  const ifMatch = trimmed.match(/^もし\s+(.+?)\s+(?:なら|ならば)$/)
+  if (ifMatch) {
+    const condition = processSegments(
+      convertJapaneseStrings(convertArrow(ifMatch[1])),
+    )
+    return `${indent}if ${condition}`
+  }
+
+  // そうでなくもし condition なら/ならば → elsif condition
+  const elsifMatch = trimmed.match(
+    /^そうでなくもし\s+(.+?)\s+(?:なら|ならば)$/,
+  )
+  if (elsifMatch) {
+    const condition = processSegments(
+      convertJapaneseStrings(convertArrow(elsifMatch[1])),
+    )
+    return `${indent}elsif ${condition}`
+  }
+
+  // そうでなければ → else
+  if (trimmed === 'そうでなければ') {
+    return `${indent}else`
+  }
+
+  // を実行する → end
+  if (trimmed === 'を実行する') {
+    return `${indent}end`
+  }
+
+  // を繰り返す → end
+  if (trimmed === 'を繰り返す') {
+    return `${indent}end`
+  }
+
+  // と定義する → end
+  if (trimmed === 'と定義する') {
+    return `${indent}end`
+  }
+
+  // i を N1 から N2 まで N3 ずつ増やしながら → (N1..N2).step(N3) do |i|
+  const forAscMatch = trimmed.match(
+    /^(\w+)\s+を\s+(.+?)\s+から\s+(.+?)\s+まで\s+(.+?)\s+ずつ増やしながら$/,
+  )
+  if (forAscMatch) {
+    const [, loopVar, from, to, step] = forAscMatch
+    const fromRuby = processSegments(from)
+    const toRuby = processSegments(to)
+    const stepRuby = processSegments(step)
+    return `${indent}(${fromRuby}..${toRuby}).step(${stepRuby}) do |${loopVar}|`
+  }
+
+  // i を N1 から N2 まで N3 ずつ減らしながら → N1.step(N2, -N3) do |i|
+  const forDescMatch = trimmed.match(
+    /^(\w+)\s+を\s+(.+?)\s+から\s+(.+?)\s+まで\s+(.+?)\s+ずつ減らしながら$/,
+  )
+  if (forDescMatch) {
+    const [, loopVar, from, to, step] = forDescMatch
+    const fromRuby = processSegments(from)
+    const toRuby = processSegments(to)
+    const stepRuby = processSegments(step)
+    return `${indent}${fromRuby}.step(${toRuby}, -${stepRuby}) do |${loopVar}|`
+  }
+
+  // condition の間 → while condition
+  const whileMatch = trimmed.match(/^(.+?)\s+の間$/)
+  if (whileMatch) {
+    const condition = processSegments(
+      convertJapaneseStrings(convertArrow(whileMatch[1])),
+    )
+    return `${indent}while ${condition}`
+  }
+
+  // 関数 name(params) → def name(params)
+  const funcMatch = trimmed.match(/^関数\s+(\w+)\(([^)]*)\)$/)
+  if (funcMatch) {
+    return `${indent}def ${funcMatch[1]}(${funcMatch[2]})`
+  }
+
+  // 返す expr → return expr
+  const returnMatch = trimmed.match(/^返す\s+(.+)$/)
+  if (returnMatch) {
+    const expr = processSegments(
+      convertJapaneseStrings(convertArrow(returnMatch[1])),
+    )
+    return `${indent}return ${expr}`
+  }
 
   // Handle ← assignment → =
   converted = converted.replace(/\s*←\s*/g, ' = ')
