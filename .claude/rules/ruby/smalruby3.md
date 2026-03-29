@@ -12,6 +12,50 @@ paths:
 
 smalruby3 は scratch-vm の Ruby 実装。smalruby3-editor で生成した Ruby スクリプトをデスクトップでネイティブ実行する。
 
+## RubyGems 公開
+
+- **gem 名**: `smalruby3`（https://rubygems.org/gems/smalruby3）
+- **所有者**: Kouji Takao
+
+### バージョニング: YY.MR.DDR
+
+semantic versioning 互換かつリリース日推測可能な形式:
+
+| フィールド | 意味 | 例 |
+|-----------|------|-----|
+| `YY` (MAJOR) | 年の下2桁 | `26` = 2026 |
+| `MR` (MINOR) | 月 × 10 + 月内リリース番号 | `31` = 3月1回目, `32` = 3月2回目 |
+| `DDR` (PATCH) | 日 × 10 + 日内リリース番号 | `291` = 29日1回目, `292` = 29日2回目 |
+
+**例**:
+- `26.31.291` — 2026年3月29日、月内1回目、日内1回目
+- `26.31.292` — 同日2回目
+- `26.32.301` — 3月30日、月内2回目（機能追加）
+- `26.41.11` — 4月1日、月内1回目
+
+**CRITICAL**: MINOR を上げても月が変わったことを意味しない。月内の機能リリース回数を表す。
+
+### ライセンス
+
+- **smalruby3 本体**: MIT
+- **依存ライブラリ**（LICENSE の Third-Party Notices に記載）:
+  - ruby-sdl2: LGPL-3.0（gem 依存、動的リンク）
+  - resvg: MPL-2.0（Rust crate、smalruby3_imageutil にコンパイル）
+  - rsdl: Ruby's License（smalruby3_launcher の元コード）
+
+### gem ビルド・公開
+
+```bash
+# ビルド
+cd ruby/smalruby3
+gem build smalruby3.gemspec
+
+# 公開
+gem push smalruby3-YY.MR.DDR.gem
+```
+
+**注意**: `spec.files` は `Dir[...]` で列挙し、`ext/smalruby3_imageutil/target/` を除外する。
+
 ## Tech Stack
 
 - **Ruby**: 3.3+ (`rbenv local 3.3.9` が設定済み)
