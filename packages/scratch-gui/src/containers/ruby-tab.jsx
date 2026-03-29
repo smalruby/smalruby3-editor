@@ -346,39 +346,51 @@ const RubyTab = props => {
 
     // --- Stable Editor callbacks ---
 
-    const handleEditorChange = useCallback(value => {
-        if (isAutoCorrectUpdateRef.current) {
-            isAutoCorrectUpdateRef.current = false;
-            onChangeRef.current(value);
-            return;
-        }
-        if (autoCorrectEnabledRef.current && editorRef.current) {
-            const corrected = autoCorrect(value, autoCorrectSettingsRef.current);
-            if (corrected !== value) {
-                isAutoCorrectUpdateRef.current = true;
-                const position = editorRef.current.getPosition();
-                const model = editorRef.current.getModel();
-                const beforeCursor = value.substring(0, model.getOffsetAt(position));
-                const correctedBeforeCursor = autoCorrect(beforeCursor, autoCorrectSettingsRef.current);
-                const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
-                model.setValue(corrected);
-                const newOffset = model.getOffsetAt(position) - offsetDiff;
-                const newPosition = model.getPositionAt(Math.max(0, newOffset));
-                editorRef.current.setPosition(newPosition);
+    // === Smalruby: Start of DNCL-aware dispatch helper ===
+    const dispatchCode = useCallback(code => {
+        if (dnclModeRef.current) {
+            setDnclDisplayCode(code);
+            const result = dnclToRuby(code);
+            if (result.errors && result.errors.length > 0) {
+                // Show DNCL validation errors but don't dispatch invalid code
+                dnclSourceMapRef.current = null;
                 return;
             }
-        }
-        // === Smalruby: Start of DNCL mode editor change ===
-        if (dnclModeRef.current) {
-            setDnclDisplayCode(value);
-            const result = dnclToRuby(value);
-            dnclSourceMapRef.current = new DnclSourceMap(value, result.ruby);
+            dnclSourceMapRef.current = new DnclSourceMap(code, result.ruby);
             onChangeRef.current(result.ruby);
-            return;
+        } else {
+            onChangeRef.current(code);
         }
-        // === Smalruby: End of DNCL mode editor change ===
-        onChangeRef.current(value);
     }, []);
+    // === Smalruby: End of DNCL-aware dispatch helper ===
+
+    const handleEditorChange = useCallback(
+        value => {
+            if (isAutoCorrectUpdateRef.current) {
+                isAutoCorrectUpdateRef.current = false;
+                dispatchCode(value);
+                return;
+            }
+            if (autoCorrectEnabledRef.current && editorRef.current) {
+                const corrected = autoCorrect(value, autoCorrectSettingsRef.current);
+                if (corrected !== value) {
+                    isAutoCorrectUpdateRef.current = true;
+                    const position = editorRef.current.getPosition();
+                    const model = editorRef.current.getModel();
+                    const beforeCursor = value.substring(0, model.getOffsetAt(position));
+                    const correctedBeforeCursor = autoCorrect(beforeCursor, autoCorrectSettingsRef.current);
+                    const offsetDiff = beforeCursor.length - correctedBeforeCursor.length;
+                    model.setValue(corrected);
+                    const newOffset = model.getOffsetAt(position) - offsetDiff;
+                    const newPosition = model.getPositionAt(Math.max(0, newOffset));
+                    editorRef.current.setPosition(newPosition);
+                    return;
+                }
+            }
+            dispatchCode(value);
+        },
+        [dispatchCode],
+    );
 
     const handleEditorDidMount = useCallback((editor, monaco) => {
         editorRef.current = editor;

@@ -169,6 +169,34 @@ describe('dnclToRuby', () => {
     })
   })
 
+  describe('validation', () => {
+    test('@ in variable name returns errors', () => {
+      const result = dnclToRuby('@a = 10')
+      expect(result.ruby).toBeNull()
+      expect(result.errors).toHaveLength(1)
+      expect(result.errors[0].line).toBe(1)
+      expect(result.errors[0].column).toBe(1)
+    })
+
+    test('$ in variable name returns errors', () => {
+      const result = dnclToRuby('$a = 10')
+      expect(result.ruby).toBeNull()
+      expect(result.errors).toHaveLength(1)
+    })
+
+    test('@ inside string is allowed', () => {
+      const result = dnclToRuby('a = "user@example.com"')
+      expect(result.ruby).toBe('@a = "user@example.com"')
+      expect(result.errors).toHaveLength(0)
+    })
+
+    test('@ in comment is allowed', () => {
+      const result = dnclToRuby('a = 1 # @todo')
+      expect(result.ruby).toBe('@a = 1 # @todo')
+      expect(result.errors).toHaveLength(0)
+    })
+  })
+
   describe('control flow: if', () => {
     test('simple if', () => {
       expect(convert('もし a > 0 なら\n  a = 1\nを実行する')).toBe(
