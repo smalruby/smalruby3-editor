@@ -44,6 +44,9 @@ import {togglePalette} from '../reducers/palette-visibility';
 import PaletteToggle from '../components/palette-toggle/palette-toggle.jsx';
 import BlocksScreenshotButton from '../components/blocks-screenshot-button/blocks-screenshot-button.jsx';
 import {downloadBlocksAsImage} from '../lib/blocks-screenshot';
+// === Smalruby: Start of DNCL block filtering ===
+import {DNCL_ALLOWED_BLOCKS} from '../lib/dncl/dncl-block-filter';
+// === Smalruby: End of DNCL block filtering ===
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -188,9 +191,10 @@ class Blocks extends React.Component {
             this.ScratchBlocks.hideChaff();
         }
 
-        // If selectedBlocks or tutorialAllowedBlocks changed, update toolbox
+        // If selectedBlocks, tutorialAllowedBlocks, or dnclMode changed, update toolbox
         if (this.props.selectedBlocks !== prevProps.selectedBlocks ||
-            this.props.tutorialAllowedBlocks !== prevProps.tutorialAllowedBlocks) {
+            this.props.tutorialAllowedBlocks !== prevProps.tutorialAllowedBlocks ||
+            this.props.dnclMode !== prevProps.dnclMode) { // === Smalruby: DNCL block filtering ===
             const toolboxXML = this.getToolboxXML();
             if (toolboxXML) {
                 this.props.updateToolboxState(toolboxXML);
@@ -479,8 +483,15 @@ class Blocks extends React.Component {
 
             let onlyBlocks;
 
+            // === Smalruby: Start of DNCL block filtering ===
+            // DNCL mode has the absolute highest priority for block filtering.
+            if (this.props.dnclMode) {
+                onlyBlocks = DNCL_ALLOWED_BLOCKS.join(',');
+            }
+            // === Smalruby: End of DNCL block filtering ===
+
             // tutorialAllowedBlocks has highest priority (active tutorial overrides stage comments and URL params)
-            if (this.props.tutorialAllowedBlocks) {
+            if (!onlyBlocks && this.props.tutorialAllowedBlocks) {
                 const allowedBlockIds = [];
                 Object.values(this.props.tutorialAllowedBlocks).forEach(categoryBlocks => {
                     allowedBlockIds.push(...categoryBlocks);
@@ -518,7 +529,8 @@ class Blocks extends React.Component {
                 targetSounds.length > 0 ? targetSounds[targetSounds.length - 1].name : '',
                 getColorsForMode(this.props.colorMode),
                 onlyBlocks,
-                !!onlyBlocks // isOnlyBlocksSpecified: true if onlyBlocks has a value
+                !!onlyBlocks, // isOnlyBlocksSpecified: true if onlyBlocks has a value
+                this.props.dnclMode // === Smalruby: hide extensions in DNCL mode ===
             );
         } catch {
             return null;
@@ -915,6 +927,7 @@ Blocks.propTypes = {
     }),
     stageSize: PropTypes.oneOf(Object.keys(STAGE_DISPLAY_SIZES)).isRequired,
     colorMode: PropTypes.oneOf(Object.keys(colorModeMap)),
+    dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===
     toolboxXML: PropTypes.string,
     updateMetrics: PropTypes.func,
     updateToolboxState: PropTypes.func,
@@ -960,6 +973,7 @@ const mapStateToProps = state => ({
     isRtl: state.locales.isRtl,
     locale: state.locales.locale,
     messages: state.locales.messages,
+    dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
     tutorialAllowedBlocks: state.scratchGui.cards.tutorialAllowedBlocks,
     toolboxXML: state.scratchGui.toolbox.toolboxXML,

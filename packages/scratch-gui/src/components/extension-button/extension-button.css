@@ -42,6 +42,13 @@ $fade-out-distance: 15px;
     outline: revert;
 }
 
+/* === Smalruby: Start of DNCL extension disabled === */
+.extension-button-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+/* === Smalruby: End of DNCL extension disabled === */
+
 .extension-button-icon {
     width: 1.75rem;
     height: 1.75rem;

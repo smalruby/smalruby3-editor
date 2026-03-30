@@ -133,6 +133,7 @@ const GUIComponent = props => {
         blockDisplayModalVisible,
         blocksId,
         blocksTabVisible,
+        dnclMode, // === Smalruby: DNCL block filtering ===
         cardsVisible,
         canChangeLanguage,
         canChangeColorMode,
@@ -594,10 +595,13 @@ const GUIComponent = props => {
                                             colorMode={colorMode}
                                         />
                                     </Box>
+                                    {/* === Smalruby: Start of DNCL extension button === */}
                                     <ExtensionsButton
                                         intl={intl}
+                                        dnclMode={dnclMode}
                                         onExtensionButtonClick={onExtensionButtonClick}
                                     />
+                                    {/* === Smalruby: End of DNCL extension button === */}
                                     <Box className={styles.watermark}>
                                         <Watermark />
                                     </Box>
@@ -697,6 +701,7 @@ GUIComponent.propTypes = {
     basePath: PropTypes.string,
     blockDisplayModalVisible: PropTypes.bool,
     blocksTabVisible: PropTypes.bool,
+    dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===
     blocksId: PropTypes.string,
     canChangeLanguage: PropTypes.bool,
     canChangeColorMode: PropTypes.bool,
