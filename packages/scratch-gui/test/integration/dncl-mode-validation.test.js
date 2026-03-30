@@ -23,29 +23,13 @@ const { fillInRubyProgram, getErrors } = rubyHelper;
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 
-/**
- * Click a button identified by data-testid.
- * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
- * @param {string} testId - The data-testid value.
- */
 const clickByTestId = (d, testId) => d.executeScript(`document.querySelector('[data-testid="${testId}"]').click()`);
 
-/**
- * Check whether a button identified by data-testid has 'Active' in its class.
- * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
- * @param {string} testId - The data-testid value.
- * @returns {Promise<boolean>}
- */
 const isActiveByTestId = (d, testId) =>
     d.executeScript(
         `return document.querySelector('[data-testid="${testId}"]')` + `?.className?.includes('Active') ?? false`,
     );
 
-/**
- * Wait until the Monaco editor has the expected content.
- * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
- * @param {string} expected - Substring that must appear in editor value.
- */
 const waitForEditorValue = (d, expected) =>
     d.wait(
         async () => {
@@ -56,12 +40,6 @@ const waitForEditorValue = (d, expected) =>
         `Editor value did not contain "${expected}"`,
     );
 
-/**
- * Wait until a data-testid button's Active state matches expected.
- * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
- * @param {string} testId - The data-testid value.
- * @param {boolean} expected - Expected active state.
- */
 const waitForActiveState = (d, testId, expected) =>
     d.wait(
         () =>
@@ -72,6 +50,16 @@ const waitForActiveState = (d, testId, expected) =>
         10000,
         `Button ${testId} Active state did not become ${expected}`,
     );
+
+/**
+ * Load the editor in Ruby mode (not DNCL), clearing any localStorage state.
+ * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ */
+const loadInRubyMode = async d => {
+    // Use rubyMode=ruby to ensure we start in Ruby mode, regardless of localStorage
+    await loadUri(`${uri}?rubyMode=ruby`);
+    await clickText('Ruby', '*[@role="tab"]');
+};
 
 let driver;
 
@@ -85,8 +73,7 @@ describe('DNCL mode validation on switch', () => {
     });
 
     test('valid code allows DNCL switch', async () => {
-        await loadUri(uri);
-        await clickText('Ruby', '*[@role="tab"]');
+        await loadInRubyMode(driver);
         await fillInRubyProgram('@x = 10\nsay("hello", 1)\n');
         await waitForEditorValue(driver, '@x = 10');
 
@@ -95,30 +82,43 @@ describe('DNCL mode validation on switch', () => {
     });
 
     test('invalid code blocks DNCL switch and shows errors', async () => {
-        await loadUri(uri);
-        await clickText('Ruby', '*[@role="tab"]');
+        await loadInRubyMode(driver);
         await fillInRubyProgram('move(10)\n');
         await waitForEditorValue(driver, 'move(10)');
 
         await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
+        // Validation is async; wait for it to complete and errors to appear
+        await driver.wait(
+            async () => {
+                const errors = await getErrors();
+                return errors.length > 0;
+            },
+            15000,
+            'DNCL validation errors did not appear',
+        );
+
+        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
 
         const errors = await getErrors();
-        expect(errors.length).toBeGreaterThan(0);
         expect(errors[0].message).toContain('日本語モードでは対応していない記述です');
     });
 
     test('when_flag_clicked blocks DNCL switch', async () => {
-        await loadUri(uri);
-        await clickText('Ruby', '*[@role="tab"]');
+        await loadInRubyMode(driver);
         await fillInRubyProgram('when_flag_clicked do\n  say("hello", 1)\nend\n');
         await waitForEditorValue(driver, 'when_flag_clicked');
 
         await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
+        await driver.wait(
+            async () => {
+                const errors = await getErrors();
+                return errors.length > 0;
+            },
+            15000,
+            'DNCL validation errors did not appear',
+        );
 
-        const errors = await getErrors();
-        expect(errors.length).toBeGreaterThan(0);
+        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
     });
 
     test('DNCL to Ruby switch is not affected', async () => {
