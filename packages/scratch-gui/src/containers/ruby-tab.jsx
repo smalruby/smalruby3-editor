@@ -186,7 +186,6 @@ const RubyTab = props => {
     const furiganaLastMsRef = useRef(0);
     const isAutoCorrectUpdateRef = useRef(false);
     const isModeSwitchRef = useRef(false);
-    const pendingDnclSwitchRef = useRef(false);
 
     // Lazy initialization of heavy objects
     if (!quickFixProviderRef.current) quickFixProviderRef.current = new QuickFixProvider();
@@ -989,26 +988,6 @@ const RubyTab = props => {
     }, [rubyCodeStr, dnclMode]);
     // === Smalruby: End of DNCL code sync ===
 
-    // === Smalruby: Start of pending DNCL switch after tab change ===
-    // When switching from Code tab to Ruby tab in DNCL mode, the mode is
-    // temporarily set to furigana. After the Ruby code is generated and
-    // the editor is populated, this effect attempts to switch to DNCL.
-    useEffect(() => {
-        if (!pendingDnclSwitchRef.current) return;
-        if (!isVisible) return;
-        if (!editorRef.current || !monacoRef.current) return;
-
-        pendingDnclSwitchRef.current = false;
-
-        // Use setTimeout to ensure the editor value is committed before
-        // reading it for DNCL validation (handleToggleDnclMode reads
-        // from the editor, not from the prop).
-        setTimeout(() => {
-            handleToggleDnclMode();
-        }, 0);
-    }, [rubyCodeStr, isVisible, handleToggleDnclMode]);
-    // === Smalruby: End of pending DNCL switch after tab change ===
-
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);
     useEffect(() => {
@@ -1123,7 +1102,8 @@ const RubyTab = props => {
                 // When switching to Ruby tab in DNCL mode, temporarily fall
                 // back to furigana mode so blocks→Ruby generation works.
                 // After the code is ready, attempt DNCL switch automatically.
-                if (isVisible && !prev.isVisible && dnclModeRef.current) {
+                const wasDncl = isVisible && !prev.isVisible && dnclModeRef.current;
+                if (wasDncl) {
                     dnclModeRef.current = false;
                     setDnclMode(false);
                     setFuriganaEnabled(true);
@@ -1134,10 +1114,20 @@ const RubyTab = props => {
                     if (editorRef.current && monacoRef.current) {
                         monacoRef.current.editor.setModelLanguage(editorRef.current.getModel(), 'smalruby');
                     }
-                    pendingDnclSwitchRef.current = true;
                 }
                 // === Smalruby: End of DNCL tab switch fallback ===
                 updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
+                // === Smalruby: Start of deferred DNCL switch ===
+                // Schedule DNCL switch after React re-renders with the new
+                // Ruby code and the Monaco editor value prop is committed.
+                if (wasDncl) {
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            handleToggleDnclMode();
+                        }, 0);
+                    });
+                }
+                // === Smalruby: End of deferred DNCL switch ===
             }
         }
 
