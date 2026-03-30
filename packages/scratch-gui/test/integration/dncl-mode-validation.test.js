@@ -42,17 +42,35 @@ const isActiveByTestId = (d, testId) =>
     );
 
 /**
- * Wait until the Monaco editor has a non-empty value.
+ * Wait until the Monaco editor has the expected content.
  * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ * @param {string} expected - Substring that must appear in editor value.
  */
-const waitForEditorContent = d =>
+const waitForEditorValue = (d, expected) =>
     d.wait(
         async () => {
             const value = await d.executeScript('return window.monacoEditor && window.monacoEditor.getValue()');
-            return value && value.length > 0;
+            return value && value.includes(expected);
         },
         10000,
-        'Editor content did not appear',
+        `Editor value did not contain "${expected}"`,
+    );
+
+/**
+ * Wait until a data-testid button's Active state matches expected.
+ * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ * @param {string} testId - The data-testid value.
+ * @param {boolean} expected - Expected active state.
+ */
+const waitForActiveState = (d, testId, expected) =>
+    d.wait(
+        () =>
+            d.executeScript(
+                `return (document.querySelector('[data-testid="${testId}"]')` +
+                    `?.className?.includes('Active') ?? false) === ${expected}`,
+            ),
+        10000,
+        `Button ${testId} Active state did not become ${expected}`,
     );
 
 let driver;
@@ -70,24 +88,20 @@ describe('DNCL mode validation on switch', () => {
         await loadUri(uri);
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('@x = 10\nsay("hello", 1)\n');
-        await waitForEditorContent(driver);
+        await waitForEditorValue(driver, '@x = 10');
 
         await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-        await driver.sleep(5000);
-
-        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
     });
 
     test('invalid code blocks DNCL switch and shows errors', async () => {
         await loadUri(uri);
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('move(10)\n');
-        await waitForEditorContent(driver);
+        await waitForEditorValue(driver, 'move(10)');
 
         await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-        await driver.sleep(5000);
-
-        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
 
         const errors = await getErrors();
         expect(errors.length).toBeGreaterThan(0);
@@ -98,12 +112,10 @@ describe('DNCL mode validation on switch', () => {
         await loadUri(uri);
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('when_flag_clicked do\n  say("hello", 1)\nend\n');
-        await waitForEditorContent(driver);
+        await waitForEditorValue(driver, 'when_flag_clicked');
 
         await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-        await driver.sleep(5000);
-
-        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
 
         const errors = await getErrors();
         expect(errors.length).toBeGreaterThan(0);
@@ -112,12 +124,9 @@ describe('DNCL mode validation on switch', () => {
     test('DNCL to Ruby switch is not affected', async () => {
         await loadUri(`${uri}?rubyMode=dncl`);
         await clickText('Ruby', '*[@role="tab"]');
-
-        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
 
         await clickByTestId(driver, 'ruby-toolbar-mode-ruby');
-        await driver.sleep(500);
-
-        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
     });
 });
