@@ -100,7 +100,11 @@ describe('DNCL mode validation on switch', () => {
         expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
 
         const errors = await getErrors();
-        expect(errors[0].message).toContain('日本語モードでは対応していない記述です');
+        // Message is locale-dependent; check for either Japanese or English
+        expect(
+            errors[0].message.includes('日本語モードでは対応していない記述です') ||
+                errors[0].message.includes('not supported in Japanese mode'),
+        ).toBe(true);
     });
 
     test('when_flag_clicked blocks DNCL switch', async () => {
