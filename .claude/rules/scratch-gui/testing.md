@@ -99,6 +99,9 @@ describe('motion converter', () => {
 
 ## Integration Test Development Workflow
 
+**重要**: Integration tests では `data-testid` を優先的に使用する。
+詳細は `.claude/rules/scratch-gui/e2e-test.md` を参照。
+
 1. **Build the application**:
    ```bash
    docker compose run --rm app bash -c "cd /app/packages/scratch-gui && npm run build:dev"

@@ -699,4 +699,7 @@ export default {
         '新しいバージョンのスモウルビーが利用可能です。いますぐ更新する場合は「OK」を、あとにする場合は「キャンセル」を押してください。',
     'gui.menuBar.tutorialTooltip': 'ルビーを試してみよう!',
     'gui.aria.clearButton': 'クリア',
+    'gui.extensionButton.dnclExtensionDisabled': '日本語モードでは拡張機能は使えません。',
+    'gui.rubyTab.dnclValidationError':
+        '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
 };

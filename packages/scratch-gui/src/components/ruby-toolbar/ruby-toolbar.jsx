@@ -15,6 +15,7 @@ import iconRedo from './icon--redo.svg';
 import iconDownload from './icon--download.svg';
 import iconAutoCorrect from './icon--auto-correct.svg';
 import iconRubytee from './icon--rubytee.svg';
+import Spinner from '../spinner/spinner.jsx';
 
 const RubyToolbar = props => {
     const intl = useIntl();
@@ -136,6 +137,7 @@ const RubyToolbar = props => {
             <div className={`${styles.toolbarPart} ${styles.modDashedBorder}`}>
                 <button
                     className={styles.iconButton}
+                    data-testid="ruby-toolbar-execute"
                     onClick={handleExecuteLine}
                     disabled={!props.editorRef}
                     aria-label={intl.formatMessage(executeMessage)}
@@ -153,6 +155,7 @@ const RubyToolbar = props => {
                 <div className={styles.buttonGroup}>
                     <button
                         className={styles.iconButton}
+                        data-testid="ruby-toolbar-undo"
                         onClick={handleUndo}
                         disabled={!props.editorRef || !props.canUndo}
                         aria-label={intl.formatMessage(messages.undo)}
@@ -165,6 +168,7 @@ const RubyToolbar = props => {
                     </button>
                     <button
                         className={styles.iconButton}
+                        data-testid="ruby-toolbar-redo"
                         onClick={handleRedo}
                         disabled={!props.editorRef || !props.canRedo}
                         aria-label={intl.formatMessage(messages.redo)}
@@ -178,6 +182,7 @@ const RubyToolbar = props => {
                 </div>
                 <button
                     className={styles.iconButton}
+                    data-testid="ruby-toolbar-search"
                     onClick={handleSearch}
                     disabled={!props.editorRef}
                     aria-label={intl.formatMessage(messages.search)}
@@ -196,6 +201,7 @@ const RubyToolbar = props => {
                     className={`${styles.autoCorrectButton} ${
                         props.autoCorrectEnabled ? styles.autoCorrectButtonActive : ''
                     }`}
+                    data-testid="ruby-toolbar-auto-correct"
                     onClick={handleToggleAutoCorrect}
                     aria-label={intl.formatMessage(
                         props.autoCorrectEnabled ? messages.autoCorrectOn : messages.autoCorrectOff
@@ -225,6 +231,7 @@ const RubyToolbar = props => {
                 {props.onOpenRubyteeModal && (
                     <button
                         className={styles.iconButton}
+                        data-testid="ruby-toolbar-rubytee"
                         onClick={props.dnclMode ? null : props.onOpenRubyteeModal}
                         disabled={props.dnclMode}
                         aria-label={intl.formatMessage(messages.aiAssistant)}
@@ -246,6 +253,8 @@ const RubyToolbar = props => {
                             !props.dnclMode && props.furiganaEnabled
                                 ? styles.modeToggleItemActive : ''
                         }`}
+                        data-testid="ruby-toolbar-mode-furigana"
+                        disabled={props.dnclValidating}
                         onClick={handleSelectFuriganaMode}
                         title={intl.formatMessage(messages.modeFurigana)}
                     >
@@ -263,6 +272,8 @@ const RubyToolbar = props => {
                             !props.dnclMode && !props.furiganaEnabled
                                 ? styles.modeToggleItemActive : ''
                         }`}
+                        data-testid="ruby-toolbar-mode-ruby"
+                        disabled={props.dnclValidating}
                         onClick={handleSelectRubyMode}
                         title={intl.formatMessage(messages.modeRuby)}
                     >
@@ -272,10 +283,16 @@ const RubyToolbar = props => {
                         className={`${styles.modeToggleItem} ${
                             props.dnclMode ? styles.modeToggleItemActive : ''
                         }`}
+                        data-testid="ruby-toolbar-mode-dncl"
+                        disabled={props.dnclValidating}
                         onClick={handleSelectDnclMode}
                         title={intl.formatMessage(messages.modeDncl)}
                     >
-                        {intl.formatMessage(messages.dnclLabel)}
+                        {props.dnclValidating ? (
+                            <Spinner small level="info" />
+                        ) : (
+                            intl.formatMessage(messages.dnclLabel)
+                        )}
                     </button>
                 </div>
             </div>
@@ -289,6 +306,7 @@ const RubyToolbar = props => {
                 >
                     <button
                         className={styles.iconButton}
+                        data-testid="ruby-toolbar-more-menu"
                         onClick={handleToggleMoreMenu}
                         aria-label={intl.formatMessage(messages.moreOptions)}
                         title={intl.formatMessage(messages.moreOptions)}
@@ -299,6 +317,7 @@ const RubyToolbar = props => {
                         <div className={styles.moreMenu}>
                             <div
                                 className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-download"
                                 onClick={handleDownload}
                             >
                                 <img
@@ -310,6 +329,7 @@ const RubyToolbar = props => {
                             </div>
                             <div
                                 className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-insert-class"
                                 onClick={handleInsertClass}
                             >
                                 <span className={styles.moreMenuIcon}>{'{ }'}</span>
@@ -317,6 +337,7 @@ const RubyToolbar = props => {
                             </div>
                             <div
                                 className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-preview"
                                 onClick={handlePreviewRubyScript}
                             >
                                 <span className={styles.moreMenuIcon}>{'</>'}</span>
@@ -324,6 +345,7 @@ const RubyToolbar = props => {
                             </div>
                             <div
                                 className={styles.moreMenuItem}
+                                data-testid="ruby-toolbar-menu-auto-correct-settings"
                                 onClick={handleOpenAutoCorrectSettings}
                             >
                                 <img
@@ -354,6 +376,7 @@ RubyToolbar.propTypes = {
     canUndo: PropTypes.bool,
     canRedo: PropTypes.bool,
     dnclMode: PropTypes.bool,
+    dnclValidating: PropTypes.bool,
     onToggleDnclMode: PropTypes.func,
     furiganaEnabled: PropTypes.bool,
     onToggleFurigana: PropTypes.func,

@@ -166,6 +166,7 @@ const TargetSelector = props => {
         <>
             <button
                 className={styles.iconButton}
+                data-testid="ruby-toolbar-prev-sprite"
                 onClick={handlePrevSprite}
                 disabled={!canGoPrev()}
                 aria-label={intl.formatMessage(messages.prevSprite)}
@@ -178,6 +179,7 @@ const TargetSelector = props => {
             </button>
             <button
                 className={styles.iconButton}
+                data-testid="ruby-toolbar-next-sprite"
                 onClick={handleNextSprite}
                 disabled={!canGoNext()}
                 aria-label={intl.formatMessage(messages.nextSprite)}
@@ -191,6 +193,7 @@ const TargetSelector = props => {
             <div className={styles.commandWrapper}>
                 <input
                     className={styles.commandInput}
+                    data-testid="ruby-toolbar-sprite-search"
                     type="text"
                     value={commandValue}
                     onChange={handleCommandChange}

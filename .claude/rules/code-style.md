@@ -83,6 +83,16 @@ export default MyComponent;
 
 ## Smalruby Marker Comments
 
+### マーカーが必要なファイル / 不要なファイルの判定
+
+**Smalruby 固有ファイル（＝ Prettier 対象ファイル）にはマーカー不要。**
+
+- Prettier 対象ファイル一覧（`smalruby-prettier-files.md`）に含まれるファイルは Smalruby 独自ファイル
+- これらのファイルを修正する際、`=== Smalruby:` マーカーは **一切不要**（ファイル内のどこにも付けない）
+- upstream（Scratch）のファイルを修正する際のみ、修正箇所にマーカーコメントを付ける
+
+### upstream ファイルのマーカー記法
+
 upstream のファイルに Smalruby 固有のコードを追加する際は、必ず **マーカーコメント** で囲む。
 
 ```javascript
@@ -93,11 +103,10 @@ upstream のファイルに Smalruby 固有のコードを追加する際は、�
 
 - Start と End は必ずペアにする
 - `<機能名>` は英語で、何の機能かわかる名前にする
-- ファイル全体が Smalruby 固有の場合はファイル冒頭に `// === Smalruby: This file is Smalruby-specific (<説明>) ===`
-- マーカーを追加・削除したら、該当パッケージの `development.md` のマーカー一覧を更新する
+- マーカーを追加・削除したら、該当パッケージのマーカー一覧を更新する
 
-詳細は各パッケージの development.md を参照:
-- `.claude/rules/scratch-gui/development.md` — scratch-gui のマーカー一覧
+マーカー一覧:
+- `.claude/rules/scratch-gui/smalruby-markers.md` — scratch-gui のマーカー一覧
 - `.claude/rules/scratch-vm/development.md` — scratch-vm のマーカー一覧
 
 ## Documentation

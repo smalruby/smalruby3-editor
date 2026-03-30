@@ -14,28 +14,46 @@ const messages = defineMessages({
         id: 'gui.gui.addExtension',
         description: 'Button to add an extension in the target pane',
         defaultMessage: 'Add Extension'
+    },
+    // === Smalruby: Start of DNCL extension alert ===
+    dnclExtensionDisabled: {
+        id: 'gui.extensionButton.dnclExtensionDisabled',
+        description: 'Alert message when extension button is clicked in DNCL mode',
+        defaultMessage: 'Extensions are not available in Japanese mode.'
     }
+    // === Smalruby: End of DNCL extension alert ===
 });
 
 const ExtensionButton = props => {
     const {
         intl,
+        dnclMode,
         onExtensionButtonClick
     } = props;
     const {captureFocus} = useContext(ModalFocusContext);
 
     const handleExtensionButtonClick = useCallback(() => {
+        // === Smalruby: Start of DNCL extension alert ===
+        if (dnclMode) {
+            window.alert(intl.formatMessage(messages.dnclExtensionDisabled)); // eslint-disable-line no-alert
+            return;
+        }
+        // === Smalruby: End of DNCL extension alert ===
         captureFocus();
         onExtensionButtonClick?.();
-    }, [captureFocus, onExtensionButtonClick]);
+    }, [captureFocus, onExtensionButtonClick, dnclMode, intl]);
 
     return (
         <Box className={styles.extensionButtonContainer}>
             <button
-                className={classNames(styles.extensionButton)}
+                className={classNames(
+                    styles.extensionButton,
+                    {[styles.extensionButtonDisabled]: dnclMode}
+                )}
                 title={intl.formatMessage(messages.addExtension)}
                 onClick={handleExtensionButtonClick}
                 aria-label={intl.formatMessage(messages.addExtension)}
+                data-testid="extension-button"
             >
                 <img
                     className={styles.extensionButtonIcon}
@@ -48,6 +66,7 @@ const ExtensionButton = props => {
 };
 
 ExtensionButton.propTypes = {
+    dnclMode: PropTypes.bool,
     intl: intlShape.isRequired,
     onExtensionButtonClick: PropTypes.func
 };

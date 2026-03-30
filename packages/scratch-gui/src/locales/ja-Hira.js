@@ -715,4 +715,7 @@ export default {
         'あたらしいバージョンのスモウルビーがりようかのうです。いますぐこうしんするばあいは「OK」を、あとにするばあいは「キャンセル」をおしてください。',
     'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!',
     'gui.aria.clearButton': 'クリア',
+    'gui.extensionButton.dnclExtensionDisabled': 'にほんごモードではかくちょうきのうはつかえません。',
+    'gui.rubyTab.dnclValidationError':
+        'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
 };

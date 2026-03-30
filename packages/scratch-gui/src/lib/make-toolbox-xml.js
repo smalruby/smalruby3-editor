@@ -892,12 +892,14 @@ const filterBlocks = function (categoryXML, allowedPatterns) {
  * @param {?object} colors - The colors for the color mode.
  * @param {?string} onlyBlocks - The only_blocks URL parameter for filtering blocks.
  * @param {?boolean} isOnlyBlocksSpecified - Whether the onlyBlocks parameter was explicitly specified.
+ * @param {?boolean} dnclMode - Whether DNCL (Japanese) mode is active. Hides extension categories.
  * @returns {string} - a ScratchBlocks-style XML document for the contents of the toolbox.
  */
 const makeToolboxXML = function (
     isInitialSetup, isStage = true, targetId, categoriesXML = [],
     costumeName = '', backdropName = '', soundName = '', colors = defaultColors,
-    onlyBlocks = null, isOnlyBlocksSpecified = false
+    onlyBlocks = null, isOnlyBlocksSpecified = false,
+    dnclMode = false // === Smalruby: hide extensions in DNCL mode ===
 ) {
     isStage = isInitialSetup || isStage;
     const gap = [categorySeparator];
@@ -979,10 +981,14 @@ const makeToolboxXML = function (
     addCategoryIfNotEmpty(variablesXML);
     addCategoryIfNotEmpty(myBlocksXML);
 
-    // Extension categories are always included (exception categories)
-    for (const extensionCategory of categoriesXML) {
-        addCategoryIfNotEmpty(extensionCategory.xml);
+    // Extension categories: included unless in DNCL mode
+    // === Smalruby: Start of DNCL hide extensions ===
+    if (!dnclMode) {
+        for (const extensionCategory of categoriesXML) {
+            addCategoryIfNotEmpty(extensionCategory.xml);
+        }
     }
+    // === Smalruby: End of DNCL hide extensions ===
 
     // Remove the last gap if it exists
     if (everything.length > 1 && everything[everything.length - 1] === gap[0]) {

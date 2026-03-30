@@ -422,4 +422,7 @@ export default {
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',
     'gui.menuBar.tutorialTooltip': 'Try Ruby!',
     'gui.aria.clearButton': 'Clear',
+    'gui.extensionButton.dnclExtensionDisabled': 'Extensions are not available in Japanese mode.',
+    'gui.rubyTab.dnclValidationError':
+        'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
 };
