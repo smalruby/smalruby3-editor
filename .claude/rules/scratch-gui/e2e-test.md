@@ -1,8 +1,30 @@
-# E2E Testing with Playwright MCP
+# E2E Testing (Playwright MCP & Selenium Integration Tests)
 
 ## data-testid Convention
 
-Playwright MCP でのブラウザ操作には `data-testid` 属性を使用する。各コンポーネントのボタンやフォーム要素に `data-testid` を設定し、Playwright の `getByTestId()` で操作する。
+**Playwright MCP と Selenium integration tests の両方で `data-testid` 属性を使用する。**
+
+- 新しいボタン・フォーム要素を追加する際は、必ず `data-testid` を設定する
+- Integration tests では `data-testid` を優先的に使い、XPath や title 属性での要素指定を避ける
+- `data-testid` を使うことで、属性の追加漏れを防ぎ、テストの安定性を高める
+
+### Integration Tests での data-testid 使用パターン
+
+```javascript
+// ヘルパー関数（テストファイル内で定義）
+const clickByTestId = (d, testId) =>
+    d.executeScript(`document.querySelector('[data-testid="${testId}"]').click()`);
+
+const isActiveByTestId = (d, testId) =>
+    d.executeScript(
+        `return document.querySelector('[data-testid="${testId}"]')` +
+            `?.className?.includes('Active') ?? false`,
+    );
+
+// 使用例
+await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
+expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
+```
 
 ### Naming Convention
 

@@ -19,11 +19,27 @@ const {
     /* eslint-enable no-unused-vars */
 } = seleniumHelper;
 const rubyHelper = new RubyHelper(seleniumHelper);
-const { fillInRubyProgram, currentRubyProgram, getErrors, waitForErrorOnLine, waitForNoErrors } = rubyHelper;
+const { fillInRubyProgram, getErrors } = rubyHelper;
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 
-const DNCL_BUTTON_XPATH = '//button[@title="DNCL mode"]';
+/**
+ * Click a button identified by data-testid.
+ * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ * @param {string} testId - The data-testid value.
+ */
+const clickByTestId = (d, testId) => d.executeScript(`document.querySelector('[data-testid="${testId}"]').click()`);
+
+/**
+ * Check whether a button identified by data-testid has 'Active' in its class.
+ * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ * @param {string} testId - The data-testid value.
+ * @returns {Promise<boolean>}
+ */
+const isActiveByTestId = (d, testId) =>
+    d.executeScript(
+        `return document.querySelector('[data-testid="${testId}"]')` + `?.className?.includes('Active') ?? false`,
+    );
 
 let driver;
 
@@ -41,16 +57,10 @@ describe('DNCL mode validation on switch', () => {
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('@x = 10\nsay("hello", 1)\n');
 
-        // Click DNCL button
-        await clickXpath(DNCL_BUTTON_XPATH);
-
-        // Wait for validation to complete and mode to switch
+        await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
         await driver.sleep(3000);
 
-        // DNCL button should be active (has active class)
-        const dnclButton = await driver.findElement(seleniumHelper.By.xpath(DNCL_BUTTON_XPATH));
-        const className = await dnclButton.getAttribute('class');
-        expect(className).toContain('Active');
+        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
     });
 
     test('invalid code blocks DNCL switch and shows errors', async () => {
@@ -58,22 +68,13 @@ describe('DNCL mode validation on switch', () => {
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('move(10)\n');
 
-        // Click DNCL button
-        await clickXpath(DNCL_BUTTON_XPATH);
-
-        // Wait for validation to complete
+        await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
         await driver.sleep(3000);
 
-        // DNCL button should NOT be active (validation failed)
-        const dnclButton = await driver.findElement(seleniumHelper.By.xpath(DNCL_BUTTON_XPATH));
-        const className = await dnclButton.getAttribute('class');
-        expect(className).not.toContain('Active');
+        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
 
-        // Errors should be shown in the editor
         const errors = await getErrors();
         expect(errors.length).toBeGreaterThan(0);
-
-        // Error message should be the localized validation message
         expect(errors[0].message).toContain('日本語モードでは対応していない記述です');
     });
 
@@ -82,18 +83,11 @@ describe('DNCL mode validation on switch', () => {
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('when_flag_clicked do\n  say("hello", 1)\nend\n');
 
-        // Click DNCL button
-        await clickXpath(DNCL_BUTTON_XPATH);
-
-        // Wait for validation to complete
+        await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
         await driver.sleep(3000);
 
-        // DNCL button should NOT be active
-        const dnclButton = await driver.findElement(seleniumHelper.By.xpath(DNCL_BUTTON_XPATH));
-        const className = await dnclButton.getAttribute('class');
-        expect(className).not.toContain('Active');
+        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
 
-        // Errors should be shown
         const errors = await getErrors();
         expect(errors.length).toBeGreaterThan(0);
     });
@@ -102,16 +96,11 @@ describe('DNCL mode validation on switch', () => {
         await loadUri(`${uri}?rubyMode=dncl`);
         await clickText('Ruby', '*[@role="tab"]');
 
-        // Should start in DNCL mode
-        const dnclButton = await driver.findElement(seleniumHelper.By.xpath(DNCL_BUTTON_XPATH));
-        let className = await dnclButton.getAttribute('class');
-        expect(className).toContain('Active');
+        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 
-        // Click Ruby button to switch back — should always work
-        await clickXpath('//button[@title="Ruby mode"]');
+        await clickByTestId(driver, 'ruby-toolbar-mode-ruby');
         await driver.sleep(500);
 
-        className = await dnclButton.getAttribute('class');
-        expect(className).not.toContain('Active');
+        expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
     });
 });
