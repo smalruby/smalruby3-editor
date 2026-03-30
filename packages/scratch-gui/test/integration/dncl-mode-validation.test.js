@@ -41,6 +41,20 @@ const isActiveByTestId = (d, testId) =>
         `return document.querySelector('[data-testid="${testId}"]')` + `?.className?.includes('Active') ?? false`,
     );
 
+/**
+ * Wait until the Monaco editor has a non-empty value.
+ * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ */
+const waitForEditorContent = d =>
+    d.wait(
+        async () => {
+            const value = await d.executeScript('return window.monacoEditor && window.monacoEditor.getValue()');
+            return value && value.length > 0;
+        },
+        10000,
+        'Editor content did not appear',
+    );
+
 let driver;
 
 describe('DNCL mode validation on switch', () => {
@@ -56,9 +70,10 @@ describe('DNCL mode validation on switch', () => {
         await loadUri(uri);
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('@x = 10\nsay("hello", 1)\n');
+        await waitForEditorContent(driver);
 
         await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-        await driver.sleep(3000);
+        await driver.sleep(5000);
 
         expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
     });
@@ -67,9 +82,10 @@ describe('DNCL mode validation on switch', () => {
         await loadUri(uri);
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('move(10)\n');
+        await waitForEditorContent(driver);
 
         await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-        await driver.sleep(3000);
+        await driver.sleep(5000);
 
         expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
 
@@ -82,9 +98,10 @@ describe('DNCL mode validation on switch', () => {
         await loadUri(uri);
         await clickText('Ruby', '*[@role="tab"]');
         await fillInRubyProgram('when_flag_clicked do\n  say("hello", 1)\nend\n');
+        await waitForEditorContent(driver);
 
         await clickByTestId(driver, 'ruby-toolbar-mode-dncl');
-        await driver.sleep(3000);
+        await driver.sleep(5000);
 
         expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(false);
 
