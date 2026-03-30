@@ -1,3 +1,4 @@
+// === Smalruby: This file is Smalruby-specific (Ruby tab with Monaco Editor, DNCL mode, furigana) ===
 import PropTypes from 'prop-types';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { injectIntl } from 'react-intl';
@@ -11,18 +12,14 @@ import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
 import { DnclSourceMap } from '../lib/dncl/dncl-source-map';
-// === Smalruby: Start of DNCL mode imports ===
 import { dnclToRuby } from '../lib/dncl/dncl-to-ruby';
 import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { wrapCurrentCodeWithClass } from '../lib/insert-class';
 import intlShape from '../lib/intlShape.js';
-// === Smalruby: End of module editor update ===
-// === Smalruby: Start of module sync ===
 import { syncModules } from '../lib/module-sync';
 import { loadMonacoLocale } from '../lib/monaco-i18n-helper';
 import { getPrism, loadPrism } from '../lib/prism-parser';
-// === Smalruby: Start of module editor update ===
 import RubyGenerator from '../lib/ruby-generator';
 import { downloadRubyAsImage } from '../lib/ruby-screenshot';
 import { generatePreviewCode } from '../lib/ruby-script-preview';
@@ -53,7 +50,6 @@ import {
     AUTO_CORRECT_SETTINGS_KEY,
     DNCL_MODE_KEY,
 } from './ruby-tab/constants';
-// === Smalruby: End of DNCL mode imports ===
 import updateDebugGlobals from './ruby-tab/debug-globals';
 import {
     registerCustomPasteAction,
@@ -67,8 +63,6 @@ import {
     findExecutableLine,
 } from './ruby-tab/execution-highlighter';
 import FuriganaRenderer from './ruby-tab/furigana-renderer';
-// === Smalruby: End of module sync ===
-
 import QuickFixProvider from './ruby-tab/quick-fix-provider';
 import styles from './ruby-tab/ruby-tab.css';
 import { showBubble, dismissBubble, removeBubble } from './ruby-tab/visual-report-bubble';
@@ -133,20 +127,17 @@ const RubyTab = props => {
     void executingLine;
     const [canUndo, setCanUndo] = useState(false);
     const [canRedo, setCanRedo] = useState(false);
-    // === Smalruby: Start of furigana URL param override ===
     const [furiganaEnabled, setFuriganaEnabled] = useState(() => {
         const urlRubyMode = getUrlParams().rubyMode;
         if (urlRubyMode === 'furigana') return true;
         if (urlRubyMode === 'ruby' || urlRubyMode === 'dncl') return false;
         return loadBool(FURIGANA_ENABLED_KEY, true);
     });
-    // === Smalruby: End of furigana URL param override ===
     const [autoCorrectEnabled, setAutoCorrectEnabled] = useState(() => loadBool(AUTO_CORRECT_ENABLED_KEY, true));
     const [autoCorrectSettings, setAutoCorrectSettings] = useState(loadAutoCorrectSettings);
     const [showAutoCorrectModal, setShowAutoCorrectModal] = useState(false);
     const [showScriptPreview, setShowScriptPreview] = useState(false);
     const [previewCode, setPreviewCode] = useState('');
-    // === Smalruby: Start of DNCL mode state ===
     const [dnclValidating, setDnclValidating] = useState(false);
     const [dnclMode, setDnclMode] = useState(() => {
         const urlRubyMode = getUrlParams().rubyMode;
@@ -163,7 +154,6 @@ const RubyTab = props => {
     const dnclSourceMapRef = useRef(null);
     const dnclModeRef = useRef(dnclMode);
     dnclModeRef.current = dnclMode;
-    // === Smalruby: End of DNCL mode state ===
 
     // --- Instance refs ---
     const editorRef = useRef(null);
@@ -349,7 +339,6 @@ const RubyTab = props => {
 
     // --- Stable Editor callbacks ---
 
-    // === Smalruby: Start of DNCL-aware dispatch helper ===
     const dispatchCode = useCallback(code => {
         if (dnclModeRef.current) {
             setDnclDisplayCode(code);
@@ -365,7 +354,6 @@ const RubyTab = props => {
             onChangeRef.current(code);
         }
     }, []);
-    // === Smalruby: End of DNCL-aware dispatch helper ===
 
     const handleEditorChange = useCallback(
         value => {
@@ -558,7 +546,6 @@ const RubyTab = props => {
         [onShowAlert, updateRubyCodeErrorsState],
     ); // showErrors uses refs, safe in stale closure
 
-    // === Smalruby: Start of DNCL mode toggle ===
     const dnclValidationErrorMessage = intl.formatMessage({
         id: 'gui.rubyTab.dnclValidationError',
         defaultMessage:
@@ -646,7 +633,6 @@ const RubyTab = props => {
         isModeSwitchRef.current = false;
         setDnclMode(enabling);
     }, [vm, rubyCode.target, intl, rubyVersion, dnclValidationErrorMessage]);
-    // === Smalruby: End of DNCL mode toggle ===
 
     const handleToggleFurigana = useCallback(() => {
         setFuriganaEnabled(prev => {
@@ -728,7 +714,6 @@ const RubyTab = props => {
             if (converter.result) {
                 converter.apply().then(async () => {
                     clearErrors();
-                    // === Smalruby: Start of module sync ===
                     if (rubyCode.target && String(newVersion) === '2') {
                         try {
                             await syncModules(vm, rubyCode.target, intl, newVersion);
@@ -737,7 +722,6 @@ const RubyTab = props => {
                             console.error('Module sync error:', e);
                         }
                     }
-                    // === Smalruby: End of module sync ===
                     updateRubyCodeTargetState(vm.editingTarget, newVersion);
                 });
             } else {
@@ -766,12 +750,10 @@ const RubyTab = props => {
 
             const code = rubyCode.code;
 
-            // === Smalruby: Start of DNCL mode execute all ===
             // In DNCL mode, execute all top-level scripts from top to bottom
             // instead of just the cursor line.
             const isDncl = dnclModeRef.current;
             const targetLine = isDncl ? 1 : findExecutableLine(code, lineNumber);
-            // === Smalruby: End of DNCL mode execute all ===
 
             if (!targetLine) {
                 // eslint-disable-next-line no-console
@@ -792,7 +774,6 @@ const RubyTab = props => {
             converter
                 .apply()
                 .then(() => {
-                    // === Smalruby: Start of update editor after execute ===
                     // Regenerate Ruby code from blocks so that auto-imported
                     // modules are reflected in the editor immediately.
                     // Using direct editor setValue because Redux prop-driven
@@ -804,7 +785,6 @@ const RubyTab = props => {
                         const cursorLine = editorRef.current.getPosition().lineNumber;
                         const cursorContent = editorRef.current.getModel().getLineContent(cursorLine).trim();
 
-                        // === Smalruby: Start of DNCL mode preserve display ===
                         if (dnclModeRef.current) {
                             // Convert regenerated Ruby back to DNCL for display
                             const dnclResult = rubyToDncl(regenerated);
@@ -813,7 +793,6 @@ const RubyTab = props => {
                         } else {
                             editorRef.current.setValue(regenerated);
                         }
-                        // === Smalruby: End of DNCL mode preserve display ===
 
                         // Restore cursor to matching line in regenerated code
                         if (typeof cursorContent === 'string' && cursorContent.length > 0) {
@@ -832,9 +811,7 @@ const RubyTab = props => {
                             }
                         }
                     }
-                    // === Smalruby: End of update editor after execute ===
 
-                    // === Smalruby: Start of DNCL mode execute all scripts ===
                     if (isDncl) {
                         // Execute all top-level scripts sequentially
                         const blocks = vm.editingTarget.blocks;
@@ -857,7 +834,6 @@ const RubyTab = props => {
                         }
                         return;
                     }
-                    // === Smalruby: End of DNCL mode execute all scripts ===
 
                     const blockId = converter.getBlockIdForLine(targetLine);
                     if (!blockId) {
@@ -971,7 +947,6 @@ const RubyTab = props => {
         }
     }, [furiganaEnabled]);
 
-    // === Smalruby: Start of DNCL code sync ===
     // When code changes from blocks tab (Ruby → DNCL display), sync DNCL display
     const rubyCodeStr = rubyCode.code;
     useEffect(() => {
@@ -986,7 +961,6 @@ const RubyTab = props => {
             setDnclDisplayCode(result.dncl);
         }
     }, [rubyCodeStr, dnclMode]);
-    // === Smalruby: End of DNCL code sync ===
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);
@@ -1065,7 +1039,6 @@ const RubyTab = props => {
                         converter.apply().then(async () => {
                             modified = false;
                             clearErrors();
-                            // === Smalruby: Start of module sync ===
                             if (rubyCode.target && String(rubyVersion) === '2') {
                                 try {
                                     await syncModules(vm, rubyCode.target, intl, rubyVersion);
@@ -1074,7 +1047,6 @@ const RubyTab = props => {
                                     console.error('Module sync error:', e);
                                 }
                             }
-                            // === Smalruby: End of module sync ===
                             if (!modified) {
                                 const etChanged = editingTarget && editingTarget !== prev.editingTarget;
                                 if ((isVisible && !prev.isVisible) || etChanged) {
@@ -1098,7 +1070,6 @@ const RubyTab = props => {
         if (!modified) {
             const etChanged = editingTarget && editingTarget !== prev.editingTarget;
             if ((isVisible && !prev.isVisible) || etChanged) {
-                // === Smalruby: Start of DNCL tab switch fallback ===
                 // When switching to Ruby tab in DNCL mode, temporarily fall
                 // back to furigana mode so blocks→Ruby generation works.
                 // After the code is ready, attempt DNCL switch automatically.
@@ -1115,9 +1086,7 @@ const RubyTab = props => {
                         monacoRef.current.editor.setModelLanguage(editorRef.current.getModel(), 'smalruby');
                     }
                 }
-                // === Smalruby: End of DNCL tab switch fallback ===
                 updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
-                // === Smalruby: Start of deferred DNCL switch ===
                 // Schedule DNCL switch after React re-renders with the new
                 // Ruby code and the Monaco editor value prop is committed.
                 if (wasDncl) {
@@ -1127,7 +1096,6 @@ const RubyTab = props => {
                         }, 0);
                     });
                 }
-                // === Smalruby: End of deferred DNCL switch ===
             }
         }
 
