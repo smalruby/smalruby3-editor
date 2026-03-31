@@ -29,11 +29,14 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/reducers/gui.ts` | initial state | Smalruby 初期 state の展開 |
 | `src/reducers/gui.ts` | reducers | Smalruby reducer の登録 |
 | `src/containers/cards.jsx` | tutorial glow animation | チュートリアルのハイライトアニメーション |
+| `src/containers/connection-modal.jsx` | smalrubot firmware flash | SmalrubotS1 ファームウェア書き込みの import、ハンドラー、props |
 | `src/containers/connection-modal.jsx` | meshV2 initial step feature | Mesh v2 接続初期ステップ |
 | `src/containers/connection-modal.jsx` | meshV2 connected message feature | Mesh v2 接続済みメッセージ |
 | `src/containers/connection-modal.jsx` | meshV2 back button feature | Mesh v2 戻るボタン |
 | `src/components/cards/cards.jsx` | tutorial glow animation | チュートリアル UI のハイライト |
+| `src/components/connection-modal/connection-modal.jsx` | smalrubot firmware flash | SmalrubotS1 ファームウェアボタン propType |
 | `src/components/connection-modal/connection-modal.jsx` | network filter detection feature | ネットワークフィルター検出 |
+| `src/components/connection-modal/error-step.jsx` | smalrubot firmware flash | エラーステップのファームウェアボタン |
 | `src/components/connection-modal/connection-modal.jsx` | meshV2 initial step feature | Mesh v2 初期ステップ UI |
 | `src/components/connection-modal/connected-step.jsx` | meshV2 connected message feature | Mesh v2 接続済みステップ UI |
 | `src/components/gui/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダルの import と配置 |
