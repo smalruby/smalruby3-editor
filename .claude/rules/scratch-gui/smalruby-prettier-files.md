@@ -82,6 +82,8 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/radix-ui-context-menu.js`
 - `src/lib/ruby-parser.js`
 - `src/lib/ruby-screenshot.js`
+- `src/lib/smalrubot-firmware-flasher.js`
+- `src/lib/smalrubot-firmware.hex.js`
 - `src/lib/ruby-script-preview.js`
 - `src/lib/ruby-to-blocks-converter-hoc.jsx`
 - `src/lib/rubytee-api.js`
@@ -181,6 +183,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/ruby-roundtrip-method-return.test.js`
 - `test/unit/lib/ruby-roundtrip-super.test.js`
 - `test/unit/lib/ruby-screenshot.test.js`
+- `test/unit/lib/smalrubot-firmware-flasher.test.js`
 - `test/unit/lib/ruby-script-preview.test.js`
 - `test/unit/lib/ruby-to-blocks-converter-version.test.js`
 - `test/unit/lib/rubytee-api.test.js`
