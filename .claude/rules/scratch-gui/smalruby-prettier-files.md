@@ -14,6 +14,7 @@ upstream (Scratch) ファイルは対象外。
 **Smalruby 固有ディレクトリ（ディレクトリ内の全ファイルが対象）:**
 - `src/components/auto-correct-modal/`
 - `src/components/block-display-modal/`
+- `src/components/smalrubot-firmware-modal/`
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`
 - `src/components/koshien-test-modal/`
@@ -44,6 +45,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/containers/google-drive-saver-hoc.jsx`
 - `src/containers/ruby-downloader.jsx`
 - `src/containers/ruby-tab.jsx`
+- `src/containers/smalrubot-firmware-modal.jsx`
 - `src/containers/rubytee-modal-hoc.jsx`
 
 ### src/lib/
@@ -110,6 +112,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/reducers/mesh-v2.js`
 - `src/reducers/palette-visibility.js`
 - `src/reducers/ruby-code.js`
+- `src/reducers/smalrubot-firmware.js`
 - `src/reducers/smalruby-registry.ts`
 - `src/reducers/tutorial-onboarding.js`
 

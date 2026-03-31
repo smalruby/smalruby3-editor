@@ -31,6 +31,7 @@ src/components/*
 # Smalruby-only directories (all contents included)
 !src/components/auto-correct-modal/
 !src/components/block-display-modal/
+!src/components/smalrubot-firmware-modal/
 !src/components/blocks-screenshot-button/
 !src/components/google-drive-save-dialog/
 !src/components/koshien-test-modal/
@@ -69,6 +70,7 @@ src/containers/*
 !src/containers/google-drive-saver-hoc.jsx
 !src/containers/ruby-downloader.jsx
 !src/containers/ruby-tab.jsx
+!src/containers/smalrubot-firmware-modal.jsx
 !src/containers/rubytee-modal-hoc.jsx
 
 # ============================================================
@@ -150,6 +152,7 @@ src/reducers/*
 !src/reducers/mesh-v2.js
 !src/reducers/palette-visibility.js
 !src/reducers/ruby-code.js
+!src/reducers/smalrubot-firmware.js
 !src/reducers/smalruby-registry.ts
 !src/reducers/tutorial-onboarding.js
 

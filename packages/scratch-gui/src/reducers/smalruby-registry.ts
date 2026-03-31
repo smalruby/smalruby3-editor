@@ -19,6 +19,7 @@ import koshienFileReducer, { koshienFileInitialState } from './koshien-file';
 import meshV2Reducer, { meshV2InitialState } from './mesh-v2';
 import paletteVisibilityReducer, { initialState as paletteVisibilityInitialState } from './palette-visibility';
 import rubyCodeReducer, { rubyCodeInitialState } from './ruby-code';
+import smalrubotFirmwareReducer, { smalrubotFirmwareInitialState } from './smalrubot-firmware';
 import tutorialOnboardingReducer, { tutorialOnboardingInitialState } from './tutorial-onboarding';
 
 /**
@@ -31,6 +32,7 @@ export const smalrubyReducers = {
     googleDriveFile: googleDriveFileReducer,
     koshienFile: koshienFileReducer,
     rubyCode: rubyCodeReducer,
+    smalrubotFirmware: smalrubotFirmwareReducer,
     cards: cardsReducer,
     tutorialOnboarding: tutorialOnboardingReducer,
     paletteVisibility: paletteVisibilityReducer,
@@ -46,6 +48,7 @@ export const smalrubyInitialState = {
     googleDriveFile: googleDriveFileInitialState,
     koshienFile: koshienFileInitialState,
     rubyCode: rubyCodeInitialState,
+    smalrubotFirmware: smalrubotFirmwareInitialState,
     cards: cardsInitialState,
     tutorialOnboarding: tutorialOnboardingInitialState,
     paletteVisibility: paletteVisibilityInitialState,

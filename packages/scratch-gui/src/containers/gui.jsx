@@ -297,6 +297,9 @@ const mapStateToProps = (state, ownProps) => {
         colorMode: state.scratchGui.settings.colorMode,
         theme: state.scratchGui.settings.theme,
         blockDisplayModalVisible: state.scratchGui.blockDisplay.modalVisible,
+        // === Smalruby: Start of smalrubot firmware modal ===
+        smalrubotFirmwareModalVisible: state.scratchGui.smalrubotFirmware.modalVisible,
+        // === Smalruby: End of smalrubot firmware modal ===
         dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
         rubyCode: state.scratchGui.rubyCode,
         rubyVersion: state.scratchGui.settings.rubyVersion,
