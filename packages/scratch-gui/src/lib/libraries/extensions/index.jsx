@@ -543,7 +543,8 @@ export default [
                 id="gui.smalruby3.extension.smalrubotS1.connectingMessage"
             />
         ),
-        helpLink: 'https://github.com/smalruby/smalruby3-gui/wiki/SmalrubotS1'
+        helpLink: 'https://github.com/smalruby/smalruby3-gui/wiki/SmalrubotS1',
+        collaborator: 'Artec Co., Ltd.'
     },
     koshien,
     // === Smalruby: Start of Ruby String extension ===
