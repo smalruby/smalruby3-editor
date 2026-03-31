@@ -96,6 +96,9 @@ import {
     openMeshV2Menu,
     closeMeshV2Menu,
     meshV2MenuOpen,
+    openSmalrubotS1Menu,
+    closeSmalrubotS1Menu,
+    smalrubotS1MenuOpen,
     settingsMenuOpen,
     closeSettingsMenu,
     toggleSettingsMenu
@@ -105,6 +108,10 @@ import {updateRubyCodeTarget, updateRubyCodeErrors} from '../../reducers/ruby-co
 import {activateTab, RUBY_TAB_INDEX} from '../../reducers/editor-tab';
 import {showAlertWithTimeout} from '../../reducers/alerts';
 
+// === Smalruby: Start of smalrubot firmware menu ===
+import {openSmalrubotFirmwareModal} from '../../reducers/smalrubot-firmware';
+import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
+// === Smalruby: End of smalrubot firmware menu ===
 import collectMetadata from '../../lib/collect-metadata';
 import {PLATFORM} from '../../lib/platform';
 
@@ -267,6 +274,7 @@ class MenuBar extends React.Component {
             'handleExtensionAdded',
             'handleClickKoshienEntryForm',
             'handleMeshV2MenuClick',
+            'handleSmalrubotS1FirmwareFlash',
             'handleClickTutorials',
             'handleUpdateAvailable',
             'handleUpdateNotificationClick'
@@ -524,6 +532,12 @@ class MenuBar extends React.Component {
         // Open connection modal
         this.props.onOpenConnectionModal('meshV2');
     }
+    // === Smalruby: Start of smalrubot firmware menu ===
+    handleSmalrubotS1FirmwareFlash () {
+        this.props.onRequestCloseSmalrubotS1();
+        this.props.onOpenSmalrubotFirmwareModal();
+    }
+    // === Smalruby: End of smalrubot firmware menu ===
     syncMeshV2Domain () {
         const extension = this.props.vm && this.props.vm.runtime &&
             this.props.vm.runtime.peripheralExtensions &&
@@ -1165,6 +1179,54 @@ class MenuBar extends React.Component {
                                 </div>
                             );
                         })()}
+                        {/* === Smalruby: Start of smalrubot firmware menu === */}
+                        {(() => {
+                            const vm = this.props.vm;
+                            if (!vm || !vm.extensionManager ||
+                                !vm.extensionManager.isExtensionLoaded('smalrubotS1')) {
+                                return null;
+                            }
+                            if (!isFirmwareFlashSupported()) return null;
+                            return (
+                                <div
+                                    className={classNames(
+                                        styles.menuBarItem, styles.noOffset, styles.hoverable, {
+                                            [styles.active]: this.props.smalrubotS1MenuOpen
+                                        })}
+                                    data-testid="menu-smalrubot-s1"
+                                    onClick={this.props.onClickSmalrubotS1}
+                                >
+                                    <span className={styles.collapsibleLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="SmalrubotS1"
+                                            description="Label for SmalrubotS1 menu in menu bar"
+                                            id="gui.menuBar.smalrubotS1"
+                                        />
+                                    </span>
+                                    <img src={dropdownCaret} />
+                                    <MenuBarMenu
+                                        className={classNames(styles.menuBarMenu)}
+                                        open={this.props.smalrubotS1MenuOpen}
+                                        place={this.props.isRtl ? 'left' : 'right'}
+                                        onRequestClose={this.props.onRequestCloseSmalrubotS1}
+                                    >
+                                        <MenuSection>
+                                            <MenuItem
+                                                data-testid="menu-smalrubot-s1-flash-firmware"
+                                                onClick={this.handleSmalrubotS1FirmwareFlash}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Write Firmware"
+                                                    description="Menu item to flash firmware to SmalrubotS1"
+                                                    id="gui.menuBar.smalrubotS1.flashFirmware"
+                                                />
+                                            </MenuItem>
+                                        </MenuSection>
+                                    </MenuBarMenu>
+                                </div>
+                            );
+                        })()}
+                        {/* === Smalruby: End of smalrubot firmware menu === */}
                         {this.props.vm.extensionManager &&
                             this.props.vm.extensionManager.isExtensionLoaded('koshien') && (
                             <div
@@ -1587,6 +1649,7 @@ MenuBar.propTypes = {
     logo: PropTypes.string,
     meshV2Domain: PropTypes.string,
     meshV2MenuOpen: PropTypes.bool,
+    smalrubotS1MenuOpen: PropTypes.bool, // === Smalruby: smalrubot firmware menu ===
     mode1920: PropTypes.bool,
     mode1990: PropTypes.bool,
     mode2020: PropTypes.bool,
@@ -1613,6 +1676,7 @@ MenuBar.propTypes = {
     onActivateTutorial: PropTypes.func,
     showTutorialTooltip: PropTypes.bool,
     onClickMeshV2: PropTypes.func,
+    onClickSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onClickMode: PropTypes.func,
     onClickNew: PropTypes.func,
     onClickRemix: PropTypes.func,
@@ -1634,6 +1698,8 @@ MenuBar.propTypes = {
     onRequestCloseKoshien: PropTypes.func,
     onRequestCloseLogin: PropTypes.func,
     onRequestCloseMeshV2: PropTypes.func,
+    onRequestCloseSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
+    onOpenSmalrubotFirmwareModal: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onRequestCloseMode: PropTypes.func,
     onRequestCloseSettings: PropTypes.func,
     onRequestOpenAbout: PropTypes.func,
@@ -1692,6 +1758,7 @@ const mapStateToProps = (state, ownProps) => {
         koshienMenuOpen: koshienMenuOpen(state),
         meshV2Domain: state.scratchGui.meshV2 ? state.scratchGui.meshV2.domain : null,
         meshV2MenuOpen: meshV2MenuOpen(state),
+        smalrubotS1MenuOpen: smalrubotS1MenuOpen(state), // === Smalruby: smalrubot firmware menu ===
         extensionLoadCounter: state.scratchGui.koshienFile.extensionLoadCounter,
         aiSaveStatus: state.scratchGui.koshienFile.aiSaveStatus,
         googleDriveFile: state.scratchGui.googleDriveFile,
@@ -1758,6 +1825,11 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onRequestCloseKoshien: () => dispatch(closeKoshienMenu()),
     onClickMeshV2: () => dispatch(openMeshV2Menu()),
     onRequestCloseMeshV2: () => dispatch(closeMeshV2Menu()),
+    // === Smalruby: Start of smalrubot firmware menu ===
+    onClickSmalrubotS1: () => dispatch(openSmalrubotS1Menu()),
+    onRequestCloseSmalrubotS1: () => dispatch(closeSmalrubotS1Menu()),
+    onOpenSmalrubotFirmwareModal: () => dispatch(openSmalrubotFirmwareModal()),
+    // === Smalruby: End of smalrubot firmware menu ===
     onClickLogin: ownProps.onClickLogin ?? (() => dispatch(openLoginMenu())),
     onRequestCloseLogin: () => dispatch(closeLoginMenu()),
     onClickMode: () => dispatch(openModeMenu()),

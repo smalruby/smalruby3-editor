@@ -15,6 +15,7 @@ const MENU_THEME = 'themeMenu';
 const MENU_RUBY_VERSION = 'rubyVersionMenu';
 const MENU_KOSHIEN = 'koshienMenu';
 const MENU_MESH_V2 = 'meshV2Menu';
+const MENU_SMALRUBOT_S1 = 'smalrubotS1Menu';
 
 class Menu {
     constructor (id) {
@@ -68,7 +69,8 @@ const rootMenu = new Menu('root')
     .addChild(new Menu(MENU_ACCOUNT))
     .addChild(new Menu(MENU_ABOUT))
     .addChild(new Menu(MENU_KOSHIEN))
-    .addChild(new Menu(MENU_MESH_V2));
+    .addChild(new Menu(MENU_MESH_V2))
+    .addChild(new Menu(MENU_SMALRUBOT_S1));
 
 const initialState = {
     [MENU_ABOUT]: false,
@@ -83,7 +85,8 @@ const initialState = {
     [MENU_THEME]: false,
     [MENU_RUBY_VERSION]: false,
     [MENU_KOSHIEN]: false,
-    [MENU_MESH_V2]: false
+    [MENU_MESH_V2]: false,
+    [MENU_SMALRUBOT_S1]: false
 };
 
 const reducer = function (state, action) {
@@ -200,6 +203,10 @@ const openMeshV2Menu = () => openMenu(MENU_MESH_V2);
 const closeMeshV2Menu = () => closeMenu(MENU_MESH_V2);
 const meshV2MenuOpen = state => state.scratchGui.menus[MENU_MESH_V2];
 
+const openSmalrubotS1Menu = () => openMenu(MENU_SMALRUBOT_S1);
+const closeSmalrubotS1Menu = () => closeMenu(MENU_SMALRUBOT_S1);
+const smalrubotS1MenuOpen = state => state.scratchGui.menus[MENU_SMALRUBOT_S1];
+
 export {
     reducer as default,
     initialState as menuInitialState,
@@ -244,5 +251,8 @@ export {
     koshienMenuOpen,
     openMeshV2Menu,
     closeMeshV2Menu,
-    meshV2MenuOpen
+    meshV2MenuOpen,
+    openSmalrubotS1Menu,
+    closeSmalrubotS1Menu,
+    smalrubotS1MenuOpen
 };
