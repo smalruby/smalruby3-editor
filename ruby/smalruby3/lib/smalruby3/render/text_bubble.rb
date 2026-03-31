@@ -1,12 +1,15 @@
 # frozen_string_literal: true
 
 require "sdl2"
+require_relative "font_support"
 
 module Smalruby3
   module Render
     # Renders say/think speech bubbles matching Scratch's TextBubbleSkin.
     # Draws directly via SDL2 renderer (not surface-based).
     class TextBubble
+      include FontSupport
+
       MAX_TEXT_LENGTH = 330
       MAX_LINE_WIDTH = 170
       MIN_WIDTH = 50
@@ -67,16 +70,6 @@ module Smalruby3
         SDL2::TTF.init
         path = find_font
         @font = SDL2::TTF.open(path, FONT_SIZE) if path
-      end
-
-      def find_font
-        [
-          "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
-          "/System/Library/Fonts/Supplemental/Hiragino Sans W3.otf",
-          "/usr/share/fonts/opentype/ipafont-gothic/ipagp.ttf",
-          "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
-          "/System/Library/Fonts/Helvetica.ttc"
-        ].find { |p| File.exist?(p) }
       end
 
       # --- Text wrapping (character-by-character for CJK support) ---
@@ -177,14 +170,6 @@ module Smalruby3
         fill_circle(x + w - r - 1, y + r, r)
         fill_circle(x + r, y + h - r - 1, r)
         fill_circle(x + w - r - 1, y + h - r - 1, r)
-      end
-
-      def fill_circle(cx, cy, r)
-        r2 = r * r
-        (-r..r).each do |dy|
-          dx = Math.sqrt([r2 - dy * dy, 0].max).to_i
-          @sdl_renderer.draw_line(cx - dx, cy + dy, cx + dx, cy + dy)
-        end
       end
 
       def erase_tail_junction(x, y, w, h, on_right, type)

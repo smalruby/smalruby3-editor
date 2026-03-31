@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
 require "sdl2"
+require_relative "font_support"
 
 module Smalruby3
   module Render
     # Renders variable and list monitors matching Scratch's monitor style.
     class MonitorRenderer
+      include FontSupport
+
       FONT_SIZE = 11
       FONT_SIZE_BOLD = 12
       PADDING = 5
@@ -73,16 +76,6 @@ module Smalruby3
         @font = SDL2::TTF.open(path, FONT_SIZE)
         @font_bold = SDL2::TTF.open(path, FONT_SIZE_BOLD)
         @font_bold.style = SDL2::TTF::Style::BOLD
-      end
-
-      def find_font
-        [
-          "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
-          "/System/Library/Fonts/Supplemental/Hiragino Sans W3.otf",
-          "/usr/share/fonts/opentype/ipafont-gothic/ipagp.ttf",
-          "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
-          "/System/Library/Fonts/Helvetica.ttc"
-        ].find { |p| File.exist?(p) }
       end
 
       # --- Variable monitor ---
@@ -196,14 +189,6 @@ module Smalruby3
         @sdl_renderer.fill_rect(SDL2::Rect.new(x + r, y, w - 2 * r, h))
         fill_circle(x + r, y + r, r)
         fill_circle(x + w - r - 1, y + r, r)
-      end
-
-      def fill_circle(cx, cy, r)
-        r2 = r * r
-        (-r..r).each do |dy|
-          dx = Math.sqrt([r2 - dy * dy, 0].max).to_i
-          @sdl_renderer.draw_line(cx - dx, cy + dy, cx + dx, cy + dy)
-        end
       end
 
       def set_color(rgba)
