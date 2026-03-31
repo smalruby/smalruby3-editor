@@ -142,6 +142,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/ruby-tab-completion-and-indent.test.js`
 - `test/integration/ruby-tab-furigana-zoom.test.js`
 - `test/integration/ruby-tab.test.js`
+- `test/integration/smalrubot-firmware.test.js`
 - `test/integration/rubytee-consent.test.js`
 - `test/integration/smalruby-tutorials.test.js`
 - `test/integration/v1-detection-prompt.test.js`
