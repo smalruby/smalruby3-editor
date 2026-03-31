@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
 require "sdl2"
+require_relative "renderer/screenshot"
 
 module Smalruby3
   module Render
     class Renderer
+      include Screenshot
+
       attr_reader :width, :height
 
       def initialize(width, height)
@@ -163,13 +166,11 @@ module Smalruby3
       end
 
       def destroy
-        @textures.each_value { |t|
-          begin
-            t.destroy
-          rescue
-            nil
-          end
-        }
+        @textures.each_value do |t|
+          t.destroy
+        rescue
+          nil
+        end
         @textures.clear
         @text_bubble&.destroy
         @monitor_renderer&.destroy
@@ -196,7 +197,11 @@ module Smalruby3
           if cache && cache[:hash] == effects_hash
             cache[:texture]
           else
-            cache&.dig(:texture)&.destroy rescue nil # rubocop:disable Style/RescueModifier
+            begin
+              cache&.dig(:texture)&.destroy
+            rescue
+              nil
+            end
             tex = @sdl_renderer.create_texture_from(surface)
             @textures[cache_key] = {texture: tex, hash: effects_hash}
             tex
@@ -212,54 +217,6 @@ module Smalruby3
           return nil unless surface
           @sdl_renderer.create_texture_from(surface)
         end
-      end
-
-      # --- Screenshot capture (read_pixels based) ---
-      # Reads pixels directly from the SDL2 renderer, capturing
-      # everything drawn in the current frame including text bubbles,
-      # monitors, and other renderer-drawn elements.
-
-      def maybe_save_screenshot
-        return unless @screenshot_at_frame
-        return unless @frame_count == @screenshot_at_frame
-        return unless @screenshot_path && !File.symlink?(@screenshot_path)
-
-        require "smalruby3/smalruby3_imageutil"
-        # read_pixels returns ARGB8888 (little-endian: BGRA bytes)
-        argb_data = @sdl_renderer.read_pixels(nil, 0)
-        # Convert BGRA → RGBA for PNG encoding
-        rgba_data = convert_bgra_to_rgba(argb_data)
-        Smalruby3::ImageUtil.save_png(rgba_data, @width, @height, @screenshot_path)
-        warn "[Smalruby3] Screenshot saved to #{@screenshot_path} (frame #{@frame_count})"
-        @screenshot_at_frame = nil
-      rescue => e
-        warn "[Smalruby3] Screenshot failed: #{e.message}"
-        @screenshot_at_frame = nil
-      end
-
-      def convert_bgra_to_rgba(bgra)
-        rgba = bgra.dup
-        i = 0
-        len = rgba.bytesize
-        while i < len
-          # Swap B and R (bytes 0 and 2)
-          b = rgba.getbyte(i)
-          rgba.setbyte(i, rgba.getbyte(i + 2))
-          rgba.setbyte(i + 2, b)
-          i += 4
-        end
-        rgba
-      end
-
-      # Validate screenshot path: must not be a symlink or point outside /tmp
-      def validate_screenshot_path(path)
-        return nil unless path
-        expanded = File.expand_path(path)
-        if File.symlink?(path)
-          warn "[Smalruby3] Refusing screenshot to symlink: #{path}"
-          return nil
-        end
-        expanded
       end
     end
   end

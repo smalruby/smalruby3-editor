@@ -59,7 +59,7 @@ gem push smalruby3-YY.MR.DDR.gem
 ## Tech Stack
 
 - **Ruby**: 3.3+ (`rbenv local 3.3.9` が設定済み)
-- **SDL2**: ruby-sdl2 gem (0.3.6) + rsdl (macOS)
+- **SDL2**: ruby-sdl2 gem (0.3.6) + smalruby3 launcher (macOS)
 - **並行実行**: Thread + Mutex + Fiber
   - メインスレッド: SDL2 イベントループ + 描画
   - 各スクリプト: Fiber で実行、`Fiber.yield` でフレーム同期
@@ -74,10 +74,14 @@ gem push smalruby3-YY.MR.DDR.gem
 
 ```bash
 cd ruby/smalruby3
-rsdl -Ilib examples/01_move.rb
+rake compile  # 初回のみ（ネイティブ拡張ビルド、cargo が必要）
+ruby exe/smalruby3 -I../ruby-sdl2 -I../ruby-sdl2/lib -Ilib examples/01_move.rb
 ```
 
-**CRITICAL**: `ruby` コマンドでは SDL2 が segfault する。必ず `rsdl` を使うこと。
+**CRITICAL**:
+- `ruby` コマンドでは SDL2 が segfault する。必ず `smalruby3` ランチャーを使うこと。
+- `ruby/ruby-sdl2`（smalruby fork）をビルドして `-I../ruby-sdl2 -I../ruby-sdl2/lib` で読み込む。gem 版の ruby-sdl2 には `read_pixels` 等の smalruby 拡張が含まれない。
+- **smalruby3 プログラムは SDL2 ウィンドウを開くため、次の動作確認を行う前に必ず前のプロセスを停止すること。**
 
 ### Docker（テスト・CI用）
 
@@ -129,8 +133,10 @@ docker compose run --rm smalruby3 bundle exec rake test
 
 ```bash
 cd ruby/smalruby3
-rsdl -Ilib examples/01_move.rb
+ruby exe/smalruby3 -I../ruby-sdl2 -I../ruby-sdl2/lib -Ilib examples/01_move.rb
 ```
+
+**注意**: 実行するとSDL2ウィンドウが開く。次の動作確認の前に必ずプロセスを停止すること。
 
 ### Lint (Standard Ruby)
 
@@ -214,7 +220,7 @@ ruby/smalruby3/
 3. **REFACTOR**: テストを維持しながらリファクタリング
 
 - テストフレームワーク: **minitest**
-- SDL2 依存のテスト: モックを使用（SDL2 は rsdl 経由でないと動作しない）
+- SDL2 依存のテスト: モックを使用（SDL2 は smalruby3 ランチャー経由でないと動作しない）
 - テストファイル: `test/**/*_test.rb`
 
 ## Performance Requirements
@@ -297,11 +303,11 @@ SDL2 ウィンドウの描画結果を PNG ファイルとしてキャプチャ�
 
 ```bash
 # N フレーム目のスクリーンショットを保存
-SMALRUBY3_SCREENSHOT=3 rsdl -Ilib examples/01_move.rb
+SMALRUBY3_SCREENSHOT=3 ruby exe/smalruby3 -I../ruby-sdl2 -I../ruby-sdl2/lib -Ilib examples/01_move.rb
 # → /tmp/smalruby3_screenshot.png
 
 # 保存先を指定
-SMALRUBY3_SCREENSHOT=5 SMALRUBY3_SCREENSHOT_PATH=/tmp/debug.png rsdl -Ilib examples/01_move.rb
+SMALRUBY3_SCREENSHOT=5 SMALRUBY3_SCREENSHOT_PATH=/tmp/debug.png ruby exe/smalruby3 -I../ruby-sdl2 -I../ruby-sdl2/lib -Ilib examples/01_move.rb
 
 # Docker でのヘッドレスキャプチャ
 docker compose run --rm -e SMALRUBY3_SCREENSHOT=3 smalruby3 \

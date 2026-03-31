@@ -49,7 +49,7 @@ ruby extconf.rb && make
 
 ```bash
 cd ruby/smalruby3
-rsdl -I../ruby-sdl2 -I../ruby-sdl2/lib -Ilib examples/01_move.rb
+ruby exe/smalruby3 -I../ruby-sdl2 -I../ruby-sdl2/lib -Ilib examples/01_move.rb
 ```
 
 ## 主な変更点（upstream との差分）
