@@ -32,6 +32,9 @@ import DragLayer from '../../containers/drag-layer.jsx';
 import ConnectionModal from '../../containers/connection-modal.jsx';
 import TelemetryModal from '../telemetry-modal/telemetry-modal.jsx';
 import BlockDisplayModal from '../../containers/block-display-modal.jsx';
+// === Smalruby: Start of smalrubot firmware modal ===
+import SmalrubotFirmwareModal from '../../containers/smalrubot-firmware-modal.jsx';
+// === Smalruby: End of smalrubot firmware modal ===
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
@@ -131,6 +134,9 @@ const GUIComponent = props => {
         backpackHost,
         backpackVisible,
         blockDisplayModalVisible,
+        // === Smalruby: Start of smalrubot firmware modal ===
+        smalrubotFirmwareModalVisible,
+        // === Smalruby: End of smalrubot firmware modal ===
         blocksId,
         blocksTabVisible,
         dnclMode, // === Smalruby: DNCL block filtering ===
@@ -393,6 +399,11 @@ const GUIComponent = props => {
                     {blockDisplayModalVisible ? (
                         <BlockDisplayModal />
                     ) : null}
+                    {/* === Smalruby: Start of smalrubot firmware modal === */}
+                    {smalrubotFirmwareModalVisible ? (
+                        <SmalrubotFirmwareModal />
+                    ) : null}
+                    {/* === Smalruby: End of smalrubot firmware modal === */}
                     {!menuBarHidden && <MenuBar
                         ariaRole="banner"
                         ariaLabel={intl.formatMessage(ariaMessages.menuBar)}
@@ -700,6 +711,7 @@ GUIComponent.propTypes = {
     backpackVisible: PropTypes.bool,
     basePath: PropTypes.string,
     blockDisplayModalVisible: PropTypes.bool,
+    smalrubotFirmwareModalVisible: PropTypes.bool, // === Smalruby: smalrubot firmware modal ===
     blocksTabVisible: PropTypes.bool,
     dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===
     blocksId: PropTypes.string,

@@ -14,6 +14,7 @@ upstream (Scratch) ファイルは対象外。
 **Smalruby 固有ディレクトリ（ディレクトリ内の全ファイルが対象）:**
 - `src/components/auto-correct-modal/`
 - `src/components/block-display-modal/`
+- `src/components/smalrubot-firmware-modal/`
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`
 - `src/components/koshien-test-modal/`
@@ -44,6 +45,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/containers/google-drive-saver-hoc.jsx`
 - `src/containers/ruby-downloader.jsx`
 - `src/containers/ruby-tab.jsx`
+- `src/containers/smalrubot-firmware-modal.jsx`
 - `src/containers/rubytee-modal-hoc.jsx`
 
 ### src/lib/
@@ -82,6 +84,8 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/radix-ui-context-menu.js`
 - `src/lib/ruby-parser.js`
 - `src/lib/ruby-screenshot.js`
+- `src/lib/smalrubot-firmware-flasher.js`
+- `src/lib/smalrubot-firmware.hex.js`
 - `src/lib/ruby-script-preview.js`
 - `src/lib/ruby-to-blocks-converter-hoc.jsx`
 - `src/lib/rubytee-api.js`
@@ -108,6 +112,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/reducers/mesh-v2.js`
 - `src/reducers/palette-visibility.js`
 - `src/reducers/ruby-code.js`
+- `src/reducers/smalrubot-firmware.js`
 - `src/reducers/smalruby-registry.ts`
 - `src/reducers/tutorial-onboarding.js`
 
@@ -137,6 +142,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/ruby-tab-completion-and-indent.test.js`
 - `test/integration/ruby-tab-furigana-zoom.test.js`
 - `test/integration/ruby-tab.test.js`
+- `test/integration/smalrubot-firmware.test.js`
 - `test/integration/rubytee-consent.test.js`
 - `test/integration/smalruby-tutorials.test.js`
 - `test/integration/v1-detection-prompt.test.js`
@@ -181,6 +187,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/ruby-roundtrip-method-return.test.js`
 - `test/unit/lib/ruby-roundtrip-super.test.js`
 - `test/unit/lib/ruby-screenshot.test.js`
+- `test/unit/lib/smalrubot-firmware-flasher.test.js`
 - `test/unit/lib/ruby-script-preview.test.js`
 - `test/unit/lib/ruby-to-blocks-converter-version.test.js`
 - `test/unit/lib/rubytee-api.test.js`

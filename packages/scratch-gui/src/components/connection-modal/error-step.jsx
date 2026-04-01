@@ -90,6 +90,25 @@ const ErrorStep = props => (
                         />
                     </button>
                 )}
+                {/* === Smalruby: Start of smalrubot firmware flash === */}
+                {props.onFlashFirmware && (
+                    <button
+                        className={styles.connectionButton}
+                        data-testid="connection-error-flash-firmware"
+                        onClick={props.onFlashFirmware}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Write Firmware"
+                            description="Button to open the firmware flash modal for SmalrubotS1"
+                            id="gui.connection.error.flashFirmwareButton"
+                        />
+                        <img
+                            className={styles.buttonIconRight}
+                            src={enterUpdateIcon}
+                        />
+                    </button>
+                )}
+                {/* === Smalruby: End of smalrubot firmware flash === */}
             </Box>
         </Box>
     </Box>
@@ -97,6 +116,7 @@ const ErrorStep = props => (
 
 ErrorStep.propTypes = {
     connectionIconURL: PropTypes.string.isRequired,
+    onFlashFirmware: PropTypes.func, // === Smalruby: smalrubot firmware flash ===
     onHelp: PropTypes.func,
     onScanning: PropTypes.func,
     onUpdatePeripheral: PropTypes.func

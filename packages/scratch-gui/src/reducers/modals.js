@@ -42,6 +42,13 @@ const reducer = function (state, action) {
         return Object.assign({}, state, {
             [action.modal]: false
         });
+    // === Smalruby: Start of smalrubot firmware modal ===
+    // Close connection modal when firmware modal opens
+    case 'scratch-gui/smalrubot-firmware/OPEN_MODAL':
+        return Object.assign({}, state, {
+            [MODAL_CONNECTION]: false
+        });
+    // === Smalruby: End of smalrubot firmware modal ===
     default:
         return state;
     }

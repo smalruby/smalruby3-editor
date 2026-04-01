@@ -17,6 +17,10 @@ import {
 // === Smalruby: Start of meshV2 initial step feature ===
 import {setDomain as setMeshV2Domain} from '../reducers/mesh-v2';
 // === Smalruby: End of meshV2 initial step feature ===
+// === Smalruby: Start of smalrubot firmware flash ===
+import {isFirmwareFlashSupported} from '../lib/smalrubot-firmware-flasher';
+import {openSmalrubotFirmwareModal} from '../reducers/smalrubot-firmware';
+// === Smalruby: End of smalrubot firmware flash ===
 
 class ConnectionModal extends React.Component {
     constructor (props) {
@@ -32,6 +36,9 @@ class ConnectionModal extends React.Component {
             'handleSendUpdate',
             'handleUpdatePeripheral',
             'handleUseLegacyMesh',
+            // === Smalruby: Start of smalrubot firmware flash ===
+            'handleFlashFirmware',
+            // === Smalruby: End of smalrubot firmware flash ===
             // === Smalruby: Start of meshV2 initial step feature ===
             'handleMeshV2CreateGroup',
             'handleMeshV2JoinGroup',
@@ -180,6 +187,18 @@ class ConnectionModal extends React.Component {
         }
         return selectAndUpdateMicroBit(progressCallback);
     }
+    // === Smalruby: Start of smalrubot firmware flash ===
+    handleFlashFirmware () {
+        analytics.event({
+            category: 'extensions',
+            action: 'open firmware flash from connection error',
+            label: this.props.extensionId
+        });
+        // Opening firmware modal automatically closes connection modal
+        // via cross-reducer in modals.js
+        this.props.onOpenFirmwareModal();
+    }
+    // === Smalruby: End of smalrubot firmware flash ===
     handleUseLegacyMesh () {
         const meshExtensionId = 'mesh';
 
@@ -275,6 +294,9 @@ class ConnectionModal extends React.Component {
     render () {
         const canUpdatePeripheral = ((this.props.extensionId === 'microbit') && isMicroBitUpdateSupported()) ||
             ((this.props.extensionId === 'microbitMore') && isMicroBitMoreUpdateSupported());
+        // === Smalruby: Start of smalrubot firmware flash ===
+        const canFlashFirmware = (this.props.extensionId === 'smalrubotS1') && isFirmwareFlashSupported();
+        // === Smalruby: End of smalrubot firmware flash ===
         return (
             <ConnectionModalComponent
                 connectingMessage={this.state.extension && this.state.extension.connectingMessage}
@@ -310,6 +332,9 @@ class ConnectionModal extends React.Component {
                 onDisconnect={this.handleDisconnect}
                 onHelp={this.handleHelp}
                 onScanning={this.handleScanning}
+                // === Smalruby: Start of smalrubot firmware flash ===
+                onFlashFirmware={canFlashFirmware ? this.handleFlashFirmware : null}
+                // === Smalruby: End of smalrubot firmware flash ===
                 onSendPeripheralUpdate={canUpdatePeripheral ? this.handleSendUpdate : null}
                 onUpdatePeripheral={canUpdatePeripheral ? this.handleUpdatePeripheral : null}
                 onUseLegacyMesh={this.handleUseLegacyMesh}
@@ -325,6 +350,9 @@ ConnectionModal.propTypes = {
     onDomainChange: PropTypes.func.isRequired,
     // === Smalruby: End of meshV2 initial step feature ===
     onCancel: PropTypes.func.isRequired,
+    // === Smalruby: Start of smalrubot firmware flash ===
+    onOpenFirmwareModal: PropTypes.func.isRequired,
+    // === Smalruby: End of smalrubot firmware flash ===
     onUseLegacyMesh: PropTypes.func.isRequired,
     useExternalPeripheralList: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired
@@ -346,6 +374,11 @@ const mapDispatchToProps = dispatch => ({
         dispatch(setMeshV2Domain(domain));
     },
     // === Smalruby: End of meshV2 initial step feature ===
+    // === Smalruby: Start of smalrubot firmware flash ===
+    onOpenFirmwareModal: () => {
+        dispatch(openSmalrubotFirmwareModal());
+    },
+    // === Smalruby: End of smalrubot firmware flash ===
     onUseLegacyMesh: extensionId => {
         dispatch(setConnectionModalExtensionId(extensionId));
         dispatch(openConnectionModal());

@@ -86,6 +86,7 @@ ConnectionModalComponent.propTypes = {
     connectionTipIconURL: PropTypes.string,
     name: PropTypes.node,
     onCancel: PropTypes.func.isRequired,
+    onFlashFirmware: PropTypes.func, // === Smalruby: smalrubot firmware flash ===
     onHelp: PropTypes.func.isRequired,
     phase: PropTypes.oneOf(Object.keys(PHASES)).isRequired,
     prescanMessage: PropTypes.node,
