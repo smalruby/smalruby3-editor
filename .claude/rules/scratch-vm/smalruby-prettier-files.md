@@ -17,6 +17,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/extensions/scratch3_mesh_v2/`
 - `src/extensions/scratch3_mesh/`
 - `src/extensions/scratch3_smalrubot_s1/`
+- `src/extensions/scratch3_tm2scratch/`
 - `src/extensions/smalruby_ruby/`
 
 **個別ファイル:**

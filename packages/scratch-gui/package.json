@@ -132,6 +132,7 @@
     "@smalruby/scratch-svg-renderer": "13.0.0",
     "@smalruby/scratch-vm": "13.0.0",
     "@tensorflow-models/face-detection": "1.0.3",
+    "@tensorflow-models/speech-commands": "0.5.4",
     "@tensorflow/tfjs": "4.22.0",
     "@testing-library/user-event": "14.6.1",
     "arraybuffer-loader": "1.0.8",
