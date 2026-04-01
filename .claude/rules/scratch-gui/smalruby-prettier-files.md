@@ -59,6 +59,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/libraries/extensions/koshien/`
 - `src/lib/libraries/extensions/microbitMore/`
 - `src/lib/libraries/extensions/smalruby-ruby/`
+- `src/lib/libraries/extensions/tm2scratch/`
 
 **個別ファイル:**
 - `src/lib/auto-correct.js`

@@ -1,0 +1,10 @@
+{
+    "ja": {
+        "tm2scratch.entry.name": "Teachable Machine",
+        "tm2scratch.entry.description": "Teachable Machine（機械学習）の画像認識・音声認識を使う。"
+    },
+    "ja-Hira": {
+        "tm2scratch.entry.name": "Teachable Machine",
+        "tm2scratch.entry.description": "Teachable Machine（きかいがくしゅう）のがぞうにんしき・おんせいにんしきをつかう。"
+    }
+}
