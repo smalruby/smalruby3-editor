@@ -1,85 +1,60 @@
-import bindAll from 'lodash.bindall';
-import PropTypes from 'prop-types';
-import React from 'react';
-import { connect } from 'react-redux';
+import React, { useCallback, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import SmalrubotFirmwareModalComponent from '../components/smalrubot-firmware-modal/smalrubot-firmware-modal.jsx';
 import { FirmwareFlasher } from '../lib/smalrubot-firmware-flasher';
 import { closeSmalrubotFirmwareModal } from '../reducers/smalrubot-firmware';
 
-class SmalrubotFirmwareModal extends React.Component {
-    constructor(props) {
-        super(props);
-        bindAll(this, ['handleFlash', 'handleClose']);
-        this.state = {
-            phase: 'ready',
-            progressPercent: 0,
-            statusMessage: null,
-            errorMessage: null,
-        };
-    }
+const SmalrubotFirmwareModal = () => {
+    const dispatch = useDispatch();
+    const [phase, setPhase] = useState('ready');
+    const [progressPercent, setProgressPercent] = useState(0);
+    const [statusMessage, setStatusMessage] = useState(null);
+    const [errorMessage, setErrorMessage] = useState(null);
 
-    handleFlash() {
-        this.setState({
-            phase: 'flashing',
-            progressPercent: 0,
-            statusMessage: null,
-            errorMessage: null,
-        });
+    const handleFlash = useCallback(() => {
+        setPhase('flashing');
+        setProgressPercent(0);
+        setStatusMessage(null);
+        setErrorMessage(null);
 
         const flasher = new FirmwareFlasher({ debug: true });
 
         flasher
             .flashDefaultFirmware(
                 (written, total) => {
-                    this.setState({
-                        progressPercent: Math.floor((written / total) * 200) / 2,
-                    });
+                    setProgressPercent(Math.floor((written / total) * 200) / 2);
                 },
-                statusMsg => {
-                    this.setState({ statusMessage: statusMsg });
+                msg => {
+                    setStatusMessage(msg);
                 },
             )
             .then(() => {
-                this.setState({ phase: 'success' });
+                setPhase('success');
             })
             .catch(err => {
-                this.setState({
-                    phase: 'error',
-                    errorMessage: err.message || String(err),
-                });
+                setPhase('error');
+                setErrorMessage(err.message || String(err));
             });
-    }
+    }, []);
 
-    handleClose() {
-        this.setState({
-            phase: 'ready',
-            progressPercent: 0,
-            statusMessage: null,
-            errorMessage: null,
-        });
-        this.props.onClose();
-    }
+    const handleClose = useCallback(() => {
+        setPhase('ready');
+        setProgressPercent(0);
+        setStatusMessage(null);
+        setErrorMessage(null);
+        dispatch(closeSmalrubotFirmwareModal());
+    }, [dispatch]);
 
-    render() {
-        return (
-            <SmalrubotFirmwareModalComponent
-                errorMessage={this.state.errorMessage}
-                phase={this.state.phase}
-                progressPercent={this.state.progressPercent}
-                statusMessage={this.state.statusMessage}
-                onClose={this.handleClose}
-                onFlash={this.handleFlash}
-            />
-        );
-    }
-}
-
-SmalrubotFirmwareModal.propTypes = {
-    onClose: PropTypes.func.isRequired,
+    return (
+        <SmalrubotFirmwareModalComponent
+            errorMessage={errorMessage}
+            phase={phase}
+            progressPercent={progressPercent}
+            statusMessage={statusMessage}
+            onClose={handleClose}
+            onFlash={handleFlash}
+        />
+    );
 };
 
-const mapDispatchToProps = dispatch => ({
-    onClose: () => dispatch(closeSmalrubotFirmwareModal()),
-});
-
-export default connect(null, mapDispatchToProps)(SmalrubotFirmwareModal);
+export default SmalrubotFirmwareModal;
