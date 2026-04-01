@@ -1476,86 +1476,57 @@ describe('FuriganaAnnotator', () => {
         });
 
         test('tm.when_image_label_received("cat") annotates hat block', () => {
-            const labels = labelsAt(
-                annotate('tm.when_image_label_received("cat") do; end'),
-                1,
-            );
+            const labels = labelsAt(annotate('tm.when_image_label_received("cat") do; end'), 1);
             expect(labels).toContain('ティーチャブルマシン');
             expect(labels).toContain('画像ラベルを受け取ったとき');
         });
 
         test('tm.when_sound_label_received("clap") annotates hat block', () => {
-            const labels = labelsAt(
-                annotate('tm.when_sound_label_received("clap") do; end'),
-                1,
-            );
+            const labels = labelsAt(annotate('tm.when_sound_label_received("clap") do; end'), 1);
             expect(labels).toContain('ティーチャブルマシン');
             expect(labels).toContain('音声ラベルを受け取ったとき');
         });
 
         test('tm.image_label_detected?("dog") annotates boolean', () => {
-            const labels = labelsAt(
-                annotate('tm.image_label_detected?("dog")'),
-                1,
-            );
+            const labels = labelsAt(annotate('tm.image_label_detected?("dog")'), 1);
             expect(labels).toContain('ティーチャブルマシン');
             expect(labels).toContain('画像ラベル？');
         });
 
         test('tm.set_image_classification_model_url("url") annotates command', () => {
-            const labels = labelsAt(
-                annotate(
-                    'tm.set_image_classification_model_url("https://example.com/")',
-                ),
-                1,
-            );
+            const labels = labelsAt(annotate('tm.set_image_classification_model_url("https://example.com/")'), 1);
             expect(labels).toContain('ティーチャブルマシン');
             expect(labels).toContain('画像分類モデルURLを設定');
         });
 
         test('tm.toggle_classification("on") annotates with menu label', () => {
-            const labels = labelsAt(
-                annotate('tm.toggle_classification("on")'),
-                1,
-            );
+            const labels = labelsAt(annotate('tm.toggle_classification("on")'), 1);
             expect(labels).toContain('ティーチャブルマシン');
             expect(labels).toContain('分類を切り替え');
             expect(labels).toContain('オン');
         });
 
         test('tm.video_toggle("on-flipped") annotates with video state label', () => {
-            const labels = labelsAt(
-                annotate('tm.video_toggle("on-flipped")'),
-                1,
-            );
+            const labels = labelsAt(annotate('tm.video_toggle("on-flipped")'), 1);
             expect(labels).toContain('ティーチャブルマシン');
             expect(labels).toContain('ビデオを切り替え');
             expect(labels).toContain('オン（左右反転）');
         });
 
         test('tm.confidence_threshold annotates getter', () => {
-            const labels = labelsAt(
-                annotate('tm.confidence_threshold'),
-                1,
-            );
+            const labels = labelsAt(annotate('tm.confidence_threshold'), 1);
             expect(labels).toContain('ティーチャブルマシン');
             expect(labels).toContain('確信度のしきい値');
         });
 
         test('tm.confidence_threshold = 0.8 annotates setter', () => {
-            const labels = labelsAt(
-                annotate('tm.confidence_threshold = 0.8'),
-                1,
-            );
+            const labels = labelsAt(annotate('tm.confidence_threshold = 0.8'), 1);
             expect(labels).toContain('ティーチャブルマシン');
             expect(labels).toContain('確信度のしきい値を設定');
         });
 
         test('tm.classification_interval = "0.5" annotates setter', () => {
-            const labels = labelsAt(
-                annotate('tm.classification_interval = "0.5"'),
-                1,
-            );
+            const labels = labelsAt(annotate('tm.classification_interval = "0.5"'), 1);
             expect(labels).toContain('ティーチャブルマシン');
             expect(labels).toContain('分類間隔を設定');
         });
