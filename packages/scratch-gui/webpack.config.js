@@ -59,11 +59,12 @@ const baseConfig = new ScratchWebpackConfigBuilder(
                 Buffer: require.resolve('buffer/'),
                 stream: require.resolve('stream-browserify'),
                 process: require.resolve('process/browser'),
-                // Node.js built-ins used by prism-parser.js in Node.js environment only
+                // Node.js built-ins used by prism-parser.js and @tensorflow-models/speech-commands
                 // Provide false fallback so webpack doesn't try to polyfill them for browser
                 wasi: false,
                 fs: false,
-                path: false
+                path: false,
+                util: false
             },
             alias: {}
         }
