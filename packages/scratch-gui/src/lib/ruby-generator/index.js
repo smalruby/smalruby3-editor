@@ -37,6 +37,9 @@ import MeshV2Blocks from './mesh_v2.js';
 import SmalrubotS1Blocks from './smalrubot_s1.js';
 import KoshienBlocks from './koshien.js';
 import FaceSensingBlocks from './face_sensing.js';
+// === Smalruby: Start of TM2Scratch extension ===
+import TM2ScratchBlocks from './tm2scratch.js';
+// === Smalruby: End of TM2Scratch extension ===
 // === Smalruby: Start of Ruby String extension ===
 import SmalrubyRubyBlocks from './smalruby-ruby.js';
 // === Smalruby: End of Ruby String extension ===
@@ -180,6 +183,9 @@ MeshV2Blocks(RubyGenerator);
 SmalrubotS1Blocks(RubyGenerator);
 KoshienBlocks(RubyGenerator);
 FaceSensingBlocks(RubyGenerator);
+// === Smalruby: Start of TM2Scratch extension ===
+TM2ScratchBlocks(RubyGenerator);
+// === Smalruby: End of TM2Scratch extension ===
 // === Smalruby: Start of Ruby String extension ===
 SmalrubyRubyBlocks(RubyGenerator);
 // === Smalruby: End of Ruby String extension ===
