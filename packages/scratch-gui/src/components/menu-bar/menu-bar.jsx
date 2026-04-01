@@ -40,8 +40,7 @@ import {
     openDebugModal,
     openKoshienTestModal,
     openUrlLoaderModal,
-    openConnectionModal,
-    closeConnectionModal // === Smalruby: smalrubot firmware menu ===
+    openConnectionModal
 } from '../../reducers/modals';
 import {
     setDomain as setMeshV2Domain
@@ -536,7 +535,8 @@ class MenuBar extends React.Component {
     // === Smalruby: Start of smalrubot firmware menu ===
     handleSmalrubotS1FirmwareFlash () {
         this.props.onRequestCloseSmalrubotS1();
-        this.props.onCloseConnectionModal();
+        // Opening firmware modal automatically closes connection modal
+        // via cross-reducer in modals.js
         this.props.onOpenSmalrubotFirmwareModal();
     }
     // === Smalruby: End of smalrubot firmware menu ===
@@ -1701,7 +1701,6 @@ MenuBar.propTypes = {
     onRequestCloseLogin: PropTypes.func,
     onRequestCloseMeshV2: PropTypes.func,
     onRequestCloseSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
-    onCloseConnectionModal: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onOpenSmalrubotFirmwareModal: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onRequestCloseMode: PropTypes.func,
     onRequestCloseSettings: PropTypes.func,
@@ -1831,7 +1830,6 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     // === Smalruby: Start of smalrubot firmware menu ===
     onClickSmalrubotS1: () => dispatch(openSmalrubotS1Menu()),
     onRequestCloseSmalrubotS1: () => dispatch(closeSmalrubotS1Menu()),
-    onCloseConnectionModal: () => dispatch(closeConnectionModal()),
     onOpenSmalrubotFirmwareModal: () => dispatch(openSmalrubotFirmwareModal()),
     // === Smalruby: End of smalrubot firmware menu ===
     onClickLogin: ownProps.onClickLogin ?? (() => dispatch(openLoginMenu())),
