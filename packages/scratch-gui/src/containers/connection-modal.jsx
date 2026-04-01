@@ -194,11 +194,11 @@ class ConnectionModal extends React.Component {
             action: 'open firmware flash from connection error',
             label: this.props.extensionId
         });
-        // Close connection modal first, then open firmware modal
-        this.props.onCancel();
-        setTimeout(() => {
+        // Close connection modal, then open firmware modal after unmount
+        this.handleCancel();
+        requestAnimationFrame(() => {
             this.props.onOpenFirmwareModal();
-        }, 300); // Wait for modal close animation
+        });
     }
     // === Smalruby: End of smalrubot firmware flash ===
     handleUseLegacyMesh () {
