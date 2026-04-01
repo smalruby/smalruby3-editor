@@ -28,6 +28,7 @@ import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { containsV1Code } from '../lib/ruby-to-blocks-converter/v1-detection';
 import { getUrlParams } from '../lib/url-params';
 import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
+import { setDnclMode as setDnclModeAction } from '../reducers/dncl-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX } from '../reducers/editor-tab';
 import { setAiSaveStatus, clearAiSaveStatus } from '../reducers/koshien-file';
 import { closeFileMenu } from '../reducers/menus.js';
@@ -119,6 +120,7 @@ const RubyTab = props => {
         onRegisterRubyteeApply,
         v1PromptDismissed,
         onDismissV1Prompt,
+        onSetDnclMode,
     } = props;
 
     // --- State ---
@@ -632,7 +634,8 @@ const RubyTab = props => {
 
         isModeSwitchRef.current = false;
         setDnclMode(enabling);
-    }, [vm, rubyCode.target, intl, rubyVersion, dnclValidationErrorMessage]);
+        onSetDnclMode(enabling);
+    }, [vm, rubyCode.target, intl, rubyVersion, dnclValidationErrorMessage, onSetDnclMode]);
 
     const handleToggleFurigana = useCallback(() => {
         setFuriganaEnabled(prev => {
@@ -1077,6 +1080,7 @@ const RubyTab = props => {
                 if (wasDncl) {
                     dnclModeRef.current = false;
                     setDnclMode(false);
+                    onSetDnclMode(false);
                     setFuriganaEnabled(true);
                     if (typeof window !== 'undefined' && window.localStorage) {
                         window.localStorage.setItem(DNCL_MODE_KEY, 'false');
@@ -1240,6 +1244,7 @@ RubyTab.propTypes = {
     onRegisterRubyteeApply: PropTypes.func,
     v1PromptDismissed: PropTypes.bool,
     onDismissV1Prompt: PropTypes.func,
+    onSetDnclMode: PropTypes.func,
 };
 
 const mapStateToProps = state => ({
@@ -1270,6 +1275,7 @@ const mapDispatchToProps = dispatch => ({
     onFontSizeChange: fontSize => dispatch(updateRubyFontSize(fontSize)),
     onMarkRubyTabUsed: () => dispatch(markRubyTabUsed()),
     onDismissV1Prompt: () => dispatch(dismissV1Prompt()),
+    onSetDnclMode: dnclMode => dispatch(setDnclModeAction(dnclMode)),
 });
 
 const ConnectedRubyTab = RubyteeModalHOC(

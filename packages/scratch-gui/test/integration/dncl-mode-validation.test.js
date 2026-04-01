@@ -133,4 +133,71 @@ describe('DNCL mode validation on switch', () => {
         await clickByTestId(driver, 'ruby-toolbar-mode-ruby');
         await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
     });
+
+    test('DNCL to Ruby switch restores block palette and extension button on Code tab', async () => {
+        // Start in DNCL mode
+        await loadUri(`${uri}?rubyMode=dncl`);
+        await clickText('Ruby', '*[@role="tab"]');
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+
+        // Switch back to Ruby mode
+        await clickByTestId(driver, 'ruby-toolbar-mode-ruby');
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
+
+        // Switch to Code tab
+        await clickText('コード', '*[@role="tab"]');
+
+        // Wait for the extension button to be visible and clickable (not disabled)
+        await driver.wait(
+            () =>
+                driver.executeScript(
+                    `const btn = document.querySelector('[class*="extension-button_extension-button-container"]');` +
+                        `return btn && btn.style.display !== 'none' && !btn.className.includes('Disabled');`,
+                ),
+            10000,
+            'Extension button did not become visible and enabled after leaving DNCL mode',
+        );
+
+        // Verify block palette (toolbox) is visible and has multiple categories
+        const categoryCount = await driver.executeScript(
+            `const toolbox = document.querySelector('.blocklyToolboxDiv');` +
+                `if (!toolbox || toolbox.style.display === 'none') return 0;` +
+                `return toolbox.querySelectorAll('.scratchCategoryMenuItem').length;`,
+        );
+        // Non-DNCL mode should have more categories than DNCL mode (which filters heavily)
+        expect(categoryCount).toBeGreaterThan(3);
+    });
+
+    test('DNCL to furigana switch restores block palette on Code tab', async () => {
+        // Start in DNCL mode
+        await loadUri(`${uri}?rubyMode=dncl`);
+        await clickText('Ruby', '*[@role="tab"]');
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+
+        // Switch to furigana mode
+        await clickByTestId(driver, 'ruby-toolbar-mode-furigana');
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
+
+        // Switch to Code tab
+        await clickText('コード', '*[@role="tab"]');
+
+        // Wait for extension button to be visible and not disabled
+        await driver.wait(
+            () =>
+                driver.executeScript(
+                    `const btn = document.querySelector('[class*="extension-button_extension-button-container"]');` +
+                        `return btn && btn.style.display !== 'none' && !btn.className.includes('Disabled');`,
+                ),
+            10000,
+            'Extension button did not become visible and enabled after leaving DNCL mode',
+        );
+
+        // Verify block palette has full categories
+        const categoryCount = await driver.executeScript(
+            `const toolbox = document.querySelector('.blocklyToolboxDiv');` +
+                `if (!toolbox || toolbox.style.display === 'none') return 0;` +
+                `return toolbox.querySelectorAll('.scratchCategoryMenuItem').length;`,
+        );
+        expect(categoryCount).toBeGreaterThan(3);
+    });
 });
