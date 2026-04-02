@@ -42,7 +42,7 @@ const EXTENSION_RECEIVER_LABELS = {
     mesh: 'メッシュ',
     smalrubot_s1: 'スモウルボットS1',
     koshien: 'スモウルビー甲子園',
-    tm: 'ティーチャブルマシン',
+    tm: '機械学習',
     // v2 API receivers
     music: '音楽',
     keyboard: 'キーボード',

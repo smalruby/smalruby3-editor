@@ -35,6 +35,7 @@ const entry = {
     launchPeripheralConnectionFlow: false,
     useAutoScan: false,
     helpLink: 'https://github.com/champierre/tm2scratch',
+    collaborator: 'Junya Ishihara, Koji Yokokawa',
     setFormatMessage: (formatter) => {
         formatMessage = formatter;
     },
