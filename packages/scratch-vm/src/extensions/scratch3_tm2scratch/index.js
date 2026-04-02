@@ -145,6 +145,8 @@ const Message = {
 
 const AvailableLocales = ['en', 'ja', 'ja-Hira'];
 
+const BACKGROUND_NOISE = '_background_noise_';
+
 // ---------------------------------------------------------------------------
 // TensorFlow.js lazy loaders
 // ---------------------------------------------------------------------------
@@ -179,49 +181,27 @@ class Scratch3TM2ScratchBlocks {
         this.runtime = runtime;
         this.locale = this._getLocale();
 
-        // Video element for image classification
-        this.video = document.createElement('video');
-        this.video.autoplay = true;
-
-        // Classification timing
-        this.interval = 1000;
+        // How long classification results persist before being cleared (ms)
+        this._resultTTL = 1000;
         this._minInterval = 100;
+        this._timer = null;
 
-        // Start video capture
-        const media = navigator.mediaDevices.getUserMedia({
-            video: {width: 360, height: 360},
-            audio: false
-        });
-        media.then(stream => {
-            this.video.srcObject = stream;
-        });
-
-        // Periodic image classification timer
-        this._timer = setInterval(() => {
-            this._classifyVideoImage();
-        }, this._minInterval);
-
-        // Image classification state
         this._imageModelUrl = null;
         this._imageMetadata = null;
         this._imageClassifier = null;
         this._isImageClassifying = false;
         this._imageProbableLabels = [];
 
-        // Sound classification state
         this._soundModelUrl = null;
         this._soundMetadata = null;
         this._soundClassifier = null;
         this._soundClassifierEnabled = false;
         this._soundProbableLabels = [];
 
-        // Confidence threshold
         this.confidenceThreshold = 0.5;
 
-        // Enable video I/O on the stage
         this.runtime.ioDevices.video.enableVideo();
 
-        // Camera device list
         this._devices = [{text: 'default', value: ''}];
         try {
             navigator.mediaDevices.enumerateDevices().then(devices => {
@@ -504,7 +484,9 @@ class Scratch3TM2ScratchBlocks {
             if (util) util.yield();
             return;
         }
-        return this._classifyImage(this.video)
+        const video = this._getVideoElement();
+        if (!video) return;
+        return this._classifyImage(video)
             .then(result => JSON.stringify(result));
     }
 
@@ -575,7 +557,7 @@ class Scratch3TM2ScratchBlocks {
         if (this._timer) {
             clearInterval(this._timer);
         }
-        this.interval = args.CLASSIFICATION_INTERVAL * 1000;
+        this._resultTTL = args.CLASSIFICATION_INTERVAL * 1000;
         this._timer = setInterval(() => {
             this._classifyVideoImage();
         }, this._minInterval);
@@ -652,7 +634,7 @@ class Scratch3TM2ScratchBlocks {
         const items = [Message.any[this.locale]];
         if (!this._soundMetadata) return items;
         return items.concat(
-            this._soundMetadata.wordLabels.filter(l => l !== '_background_noise_')
+            this._soundMetadata.wordLabels.filter(l => l !== BACKGROUND_NOISE)
         );
     }
 
@@ -660,7 +642,7 @@ class Scratch3TM2ScratchBlocks {
         const items = [Message.any_without_of[this.locale]];
         if (!this._soundMetadata) return items;
         return items.concat(
-            this._soundMetadata.wordLabels.filter(l => l !== '_background_noise_')
+            this._soundMetadata.wordLabels.filter(l => l !== BACKGROUND_NOISE)
         );
     }
 
@@ -683,6 +665,11 @@ class Scratch3TM2ScratchBlocks {
         const locale = formatMessage.setup().locale;
         if (AvailableLocales.includes(locale)) return locale;
         return 'en';
+    }
+
+    _getVideoElement () {
+        const provider = this.runtime.ioDevices.video.provider;
+        return provider ? provider._video : null;
     }
 
     _getMostProbable (probabilities) {
@@ -735,7 +722,6 @@ class Scratch3TM2ScratchBlocks {
             const res = await fetch(`${url}metadata.json?${timestamp}`);
             const metadata = await res.json();
 
-            // Skip if same model is already loaded
             if (
                 url === this._imageModelUrl &&
                 this._imageMetadata &&
@@ -752,6 +738,13 @@ class Scratch3TM2ScratchBlocks {
             this._imageMetadata = metadata;
             this._imageClassifier = model;
             this._imageProbableLabels = [];
+
+            // Start periodic classification if not already running
+            if (!this._timer) {
+                this._timer = setInterval(() => {
+                    this._classifyVideoImage();
+                }, this._minInterval);
+            }
             log.info(`Image model loaded from: ${url}`);
         } catch (error) {
             log.warn('Failed to load image classification model', error);
@@ -765,7 +758,6 @@ class Scratch3TM2ScratchBlocks {
             const res = await fetch(`${url}metadata.json?${timestamp}`);
             const metadata = await res.json();
 
-            // Skip if same model is already loaded
             if (
                 url === this._soundModelUrl &&
                 this._soundMetadata &&
@@ -774,6 +766,11 @@ class Scratch3TM2ScratchBlocks {
             ) {
                 log.info(`Sound model already loaded: ${url}`);
                 return;
+            }
+
+            // Stop previous sound classifier to prevent stacking listeners
+            if (this._soundClassifier && this._soundClassifier.isListening()) {
+                await this._soundClassifier.stopListening();
             }
 
             const recognizer = speechCommands.create(
@@ -798,7 +795,9 @@ class Scratch3TM2ScratchBlocks {
 
     _classifyVideoImage () {
         if (this._isImageClassifying) return;
-        this._classifyImage(this.video);
+        const video = this._getVideoElement();
+        if (!video) return;
+        this._classifyImage(video);
     }
 
     async _classifyImage (input) {
@@ -837,7 +836,7 @@ class Scratch3TM2ScratchBlocks {
             setTimeout(() => {
                 this._imageProbableLabels = [];
                 this._isImageClassifying = false;
-            }, this.interval);
+            }, this._resultTTL);
         }
     }
 
@@ -853,7 +852,7 @@ class Scratch3TM2ScratchBlocks {
             }));
             setTimeout(() => {
                 this._soundProbableLabels = [];
-            }, this.interval);
+            }, this._resultTTL);
         }, {probabilityThreshold: 0.0});
     }
 }
