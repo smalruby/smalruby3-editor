@@ -42,7 +42,10 @@ const webBuilder = new ScratchWebpackConfigBuilder(common)
         },
         resolve: {
             fallback: {
-                Buffer: require.resolve('buffer/')
+                Buffer: require.resolve('buffer/'),
+                // @tensorflow-models/speech-commands references Node.js built-ins
+                fs: false,
+                util: false
             }
         },
         output: {

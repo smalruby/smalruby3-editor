@@ -39,8 +39,59 @@ pen.size = 3
 | 顔認識 | `face_sensing` | 対応済み |
 | メッシュ | `mesh` | 未対応（今後移行予定） |
 | micro:bit | `microbit` | 未対応（今後移行予定） |
+| Teachable Machine | `tm` | 実装予定（拡張機能 ID は `tm2scratch`） |
 
 **旧 API との互換性**: 既存の `Keyboard.pressed?`, `Timer.value`, `Pen.clear` などの定数レシーバー（`ConstantReadNode`）パターンは互換性のために残すが、将来的に `keyboard.pressed?` 等の事前定義レシーバーパターンに刷新予定。
+
+## HAT ブロックの Ruby 表現
+
+**新規実装では必ず事前定義レシーバーパターンを使用する。**
+
+```ruby
+# ✅ 新しいパターン（拡張機能の HAT ブロック）
+face_sensing.when_face_tilted("left") do
+end
+
+microbit.when_button_is("A", "down") do
+end
+
+tm.when_image_label_received("label") do
+end
+
+# ✅ 新しいパターン（標準イベント、Ruby v2）
+when_flag_clicked do
+end
+
+# ❌ 旧パターン — 新規実装では使用禁止
+self.when(:flag_clicked) do
+end
+```
+
+`self.when(:symbol)` 形式は Ruby v1 互換のために残しているが、**新しい拡張機能や機能追加では使ってはいけない**。拡張機能の HAT ブロックは `拡張名.when_xxx(args) do ... end` の形式を使う。
+
+### コンバーター実装パターン
+
+```javascript
+// registerOnSendWithBlock で HAT ブロックを登録
+converter.registerOnSendWithBlock(RECEIVER, 'when_xxx', argCount, 0, params => {
+    const {receiver, args, rubyBlock} = params;
+    // 引数バリデーション
+    const block = converter.changeRubyExpressionBlock(receiver, 'opcode_whenXxx', 'hat');
+    converter.addField(block, 'FIELD', args[0]);
+    converter.setParent(rubyBlock, block);
+    return block;
+});
+```
+
+### ジェネレーター実装パターン
+
+```javascript
+Generator.opcode_whenXxx = function (block) {
+    block.isStatement = true;
+    const field = Generator.quote_(Generator.getFieldValue(block, 'FIELD', 'default'));
+    return `receiver.when_xxx(${field}) do\n`;
+};
+```
 
 ## 実装に必要なファイル
 

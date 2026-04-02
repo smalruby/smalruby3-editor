@@ -20,6 +20,7 @@ const EXTENSION_HANDLER_MAP = {
     mesh: '_annotateMeshV2Method',
     smalrubot_s1: '_annotateSmalrubotS1Method',
     koshien: '_annotateKoshienMethod',
+    tm: '_annotateTmMethod',
     // v2 API receivers
     music: '_annotateMusicMethod',
     keyboard: '_annotateKeyboardMethod',
@@ -41,6 +42,7 @@ const EXTENSION_RECEIVER_LABELS = {
     mesh: 'メッシュ',
     smalrubot_s1: 'スモウルボットS1',
     koshien: 'スモウルビー甲子園',
+    tm: '機械学習',
     // v2 API receivers
     music: '音楽',
     keyboard: 'キーボード',
@@ -120,6 +122,17 @@ const KOSHIEN_POSITION_LABEL_FN = content => {
     return null;
 };
 
+const TM_CLASSIFICATION_STATE_LABELS = {
+    on: 'オン',
+    off: 'オフ',
+};
+
+const TM_VIDEO_STATE_LABELS = {
+    on: 'オン',
+    off: 'オフ',
+    'on-flipped': 'オン（左右反転）',
+};
+
 /**
  * Maps extension receiver names → { methodName: stringLabelMap|function }.
  * Values can be plain objects (exact match) or functions (dynamic transform).
@@ -144,6 +157,10 @@ const EXTENSION_STRING_MAPS = {
     },
     smalrubot_s1: {
         action: SMALRUBOT_S1_ACTION_LABELS,
+    },
+    tm: {
+        toggle_classification: TM_CLASSIFICATION_STATE_LABELS,
+        video_toggle: TM_VIDEO_STATE_LABELS,
     },
     koshien: {
         move_to: KOSHIEN_POSITION_LABEL_FN,
@@ -314,6 +331,30 @@ const extensionHandlers = {
             position_of_y: 'Y座標取得',
             object: 'オブジェクト',
             set_message: 'メッセージ設定',
+        };
+        const label = labels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    },
+
+    _annotateTmMethod(node, name) {
+        const labels = {
+            when_image_label_received: '画像ラベルを受け取ったとき',
+            'image_label_detected?': '画像ラベル？',
+            image_label_confidence: '画像ラベルの確度',
+            set_image_classification_model_url: '画像分類モデルURLを設定',
+            classify_video_image: '画像を分類する',
+            image_label: '画像ラベル',
+            when_sound_label_received: '音声ラベルを受け取ったとき',
+            'sound_label_detected?': '音声ラベル？',
+            sound_label_confidence: '音声ラベルの確度',
+            set_sound_classification_model_url: '音声分類モデルURLを設定',
+            sound_label: '音声ラベル',
+            toggle_classification: '分類を切り替え',
+            'classification_interval=': '分類間隔を設定',
+            'confidence_threshold=': '確信度のしきい値を設定',
+            confidence_threshold: '確信度のしきい値',
+            video_toggle: 'ビデオを切り替え',
+            switch_camera: 'カメラを切り替え',
         };
         const label = labels[name];
         if (label) this._addAnnotation(node.messageLoc, label);

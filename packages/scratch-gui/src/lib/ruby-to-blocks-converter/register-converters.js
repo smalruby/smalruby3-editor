@@ -24,6 +24,9 @@ import VideoConverter from './video';
 import Text2SpeechConverter from './text2speech';
 import KoshienConverter from './koshien';
 import FaceSensingConverter from './face_sensing';
+// === Smalruby: Start of TM2Scratch extension ===
+import TM2ScratchConverter from './tm2scratch';
+// === Smalruby: End of TM2Scratch extension ===
 // === Smalruby: Start of Ruby String extension ===
 import SmalrubyRubyConverter from './smalruby-ruby';
 // === Smalruby: End of Ruby String extension ===
@@ -42,6 +45,7 @@ const registerConverters = function (converter) {
         MeshConverter,
         KoshienConverter,
         FaceSensingConverter,
+        TM2ScratchConverter,
         SmalrubyRubyConverter,
         BoostConverter,
         TranslateConverter,

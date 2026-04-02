@@ -130,6 +130,7 @@ src/lib/libraries/extensions/*
 !src/lib/libraries/extensions/koshien/
 !src/lib/libraries/extensions/microbitMore/
 !src/lib/libraries/extensions/smalruby-ruby/
+!src/lib/libraries/extensions/tm2scratch/
 
 # ============================================================
 # Level 2: src/locales/*
