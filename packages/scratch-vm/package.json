@@ -67,6 +67,7 @@
     "allow-incomplete-coverage": true
   },
   "dependencies": {
+    "@serialport/stream": "^9.2.4",
     "@smalruby/scratch-render": "13.0.0",
     "@smalruby/scratch-svg-renderer": "13.0.0",
     "@tensorflow-models/speech-commands": "0.5.4",
@@ -77,13 +78,16 @@
     "aws-appsync": "^4.1.10",
     "btoa": "1.2.1",
     "canvas-toBlob": "1.0.0",
+    "chroma-js": "^3.1.2",
     "decode-html": "2.0.0",
     "diff-match-patch": "1.0.5",
+    "firmata-io": "^2.3.0",
     "format-message": "6.2.4",
     "graphql-tag": "^2.12.6",
     "htmlparser2": "3.10.1",
     "immutable": "3.8.3",
     "jszip": "3.10.1",
+    "long": "~5.2.0",
     "scratch-audio": "2.0.268",
     "scratch-parser": "6.0.0",
     "scratch-sb1-converter": "2.0.279",
@@ -91,8 +95,10 @@
     "scratch-translate-extension-languages": "1.0.7",
     "skyway-js": "^4.4.5",
     "text-encoding": "0.7.0",
+    "throttled-queue": "^2.1.4",
     "tslog": "4.10.2",
-    "uuid": "8.3.2"
+    "uuid": "8.3.2",
+    "web-serial-binding": "github:jaz303/web-serial-binding"
   },
   "devDependencies": {
     "@babel/core": "7.29.0",
