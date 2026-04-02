@@ -1537,4 +1537,83 @@ describe('FuriganaAnnotator', () => {
         });
     });
     // === Smalruby: End of tm2scratch furigana tests ===
+
+    // === Smalruby: Start of g2s furigana tests ===
+    describe('akadako methods (AkaDako extension)', () => {
+        test('akadako.connect_board annotates receiver and method', () => {
+            const labels = labelsAt(annotate('akadako.connect_board'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('ボードを接続');
+        });
+
+        test('akadako.connected? annotates boolean', () => {
+            const labels = labelsAt(annotate('akadako.connected?'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('接続している');
+        });
+
+        test('akadako.when_board_state_changed("connected") annotates with menu label', () => {
+            const labels = labelsAt(annotate('akadako.when_board_state_changed("connected") do; end'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('ボードが変わったとき');
+            expect(labels).toContain('接続された');
+        });
+
+        test('akadako.analog_level_a1 annotates sensor', () => {
+            const labels = labelsAt(annotate('akadako.analog_level_a1'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('アナログA(A1)の値');
+        });
+
+        test('akadako.when_shaken annotates hat block', () => {
+            const labels = labelsAt(annotate('akadako.when_shaken do; end'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('ゆさぶられたとき');
+        });
+
+        test('akadako.temperature annotates sensor', () => {
+            const labels = labelsAt(annotate('akadako.temperature'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('温度(°C)');
+        });
+
+        test('akadako.neopixel_fill_color("10", "red", 100) annotates with color label', () => {
+            const labels = labelsAt(annotate('akadako.neopixel_fill_color("10", "red", 100)'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('カラーLEDの全色を設定');
+            expect(labels).toContain('赤');
+        });
+
+        test('akadako.neopixel_shift_color("10", 1, "true") annotates with loop label', () => {
+            const labels = labelsAt(annotate('akadako.neopixel_shift_color("10", 1, "true")'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('カラーLEDをずらす');
+            expect(labels).toContain('回転する');
+        });
+
+        test('akadako.set_input_bias("10", "pullUp") annotates with bias label', () => {
+            const labels = labelsAt(annotate('akadako.set_input_bias("10", "pullUp")'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('入力バイアス設定');
+            expect(labels).toContain('プルアップする');
+        });
+
+        test('akadako.i2c_write("0x10", "0x01", "0xAB") annotates command', () => {
+            const labels = labelsAt(annotate('akadako.i2c_write("0x10", "0x01", "0xAB")'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('I2C書き込み');
+        });
+
+        test('akadako.bit_not("0x01") annotates bitwise op', () => {
+            const labels = labelsAt(annotate('akadako.bit_not("0x01")'), 1);
+            expect(labels).toContain('AkaDako');
+            expect(labels).toContain('ビットNOT');
+        });
+
+        test('akadako menu labels do not leak to other contexts', () => {
+            const labels = labelsAt(annotate('set_input_bias("pullUp")'), 1);
+            expect(labels).not.toContain('プルアップする');
+        });
+    });
+    // === Smalruby: End of g2s furigana tests ===
 });
