@@ -52,6 +52,12 @@ const waitForActiveState = (d, testId, expected) =>
     );
 
 /**
+ * Click the Code tab using a stable selector instead of XPath text matching.
+ * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ */
+const clickCodeTab = d => d.executeScript(`document.querySelector('[role="tab"]').click()`);
+
+/**
  * Load the editor in Ruby mode (not DNCL), clearing any localStorage state.
  * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
  */
@@ -145,7 +151,7 @@ describe('DNCL mode validation on switch', () => {
         await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
 
         // Switch to Code tab
-        await clickText('コード', '*[@role="tab"]');
+        await clickCodeTab(driver);
 
         // Wait for the extension button to be visible and clickable (not disabled)
         await driver.wait(
@@ -179,7 +185,7 @@ describe('DNCL mode validation on switch', () => {
         await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
 
         // Switch to Code tab
-        await clickText('コード', '*[@role="tab"]');
+        await clickCodeTab(driver);
 
         // Wait for extension button to be visible and not disabled
         await driver.wait(
