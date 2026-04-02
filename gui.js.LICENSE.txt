@@ -723,23 +723,6 @@ and limitations under the License.
   \**************************************************************************************/
 
 /**
-    * @license
-    * Copyright 2024 Google LLC. All Rights Reserved.
-    * Licensed under the Apache License, Version 2.0 (the "License");
-    * you may not use this file except in compliance with the License.
-    * You may obtain a copy of the License at
-    *
-    * http://www.apache.org/licenses/LICENSE-2.0
-    *
-    * Unless required by applicable law or agreed to in writing, software
-    * distributed under the License is distributed on an "AS IS" BASIS,
-    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    * See the License for the specific language governing permissions and
-    * limitations under the License.
-    * =============================================================================
-    */
-
-/**
     * CSS Vendor prefix detection and property feature testing.
     *
     * @copyright Oleg Slobodskoi 2015
@@ -1056,6 +1039,19 @@ and limitations under the License.
  */
 
 /**
+ * TM2Scratch — Teachable Machine extension for Smalruby.
+ *
+ * Block definitions (opcodes, arguments, menus), translation texts,
+ * and block icon are derived from champierre/tm2scratch
+ * (https://github.com/champierre/tm2scratch).
+ * Original copyright: (c) Junya Ishihara and Koji Yokokawa, AGPL-3.0.
+ *
+ * Implementation is original, using TensorFlow.js directly.
+ * Modified 2026 by Ruby Programming Shounendan for Smalruby3 Editor.
+ * @license AGPL-3.0
+ */
+
+/**
  * [js-md5]{@link https://github.com/emn178/js-md5}
  *
  * @namespace md5
@@ -1082,6 +1078,8 @@ and limitations under the License.
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
+
+/** @license See the LICENSE file. */
 
 /** @license URI.js v4.4.1 (c) 2011 Gary Court. License: http://github.com/garycourt/uri-js */
 
