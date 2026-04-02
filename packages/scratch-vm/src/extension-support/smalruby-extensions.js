@@ -39,7 +39,8 @@ const registerSmalrubyExtensions = builtinExtensions => {
     // g2s extension - AkaDako (Grove sensors/actuators) support
     builtinExtensions.g2s = () => {
         const formatMessage = require('format-message');
-        const blockClass = require('../extensions/scratch3_g2s/index.js');
+        const ext = require('../extensions/scratch3_g2s/index.js');
+        const blockClass = ext.blockClass;
         blockClass.formatMessage = formatMessage;
         return blockClass;
     };

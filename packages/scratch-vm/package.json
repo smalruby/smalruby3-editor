@@ -97,6 +97,7 @@
     "text-encoding": "0.7.0",
     "throttled-queue": "^2.1.4",
     "tslog": "4.10.2",
+    "util": "^0.12.5",
     "uuid": "8.3.2",
     "web-serial-binding": "github:jaz303/web-serial-binding"
   },
