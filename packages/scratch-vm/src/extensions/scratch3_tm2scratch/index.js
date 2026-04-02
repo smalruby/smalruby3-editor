@@ -1,8 +1,13 @@
 /**
  * TM2Scratch — Teachable Machine extension for Smalruby.
- * Block names and arguments are fully compatible with
- * champierre/tm2scratch (https://github.com/champierre/tm2scratch).
+ *
+ * Block definitions (opcodes, arguments, menus), translation texts,
+ * and block icon are derived from champierre/tm2scratch
+ * (https://github.com/champierre/tm2scratch).
+ * Original copyright: (c) Junya Ishihara and Koji Yokokawa, AGPL-3.0.
+ *
  * Implementation is original, using TensorFlow.js directly.
+ * Modified 2026 by Ruby Programming Shounendan for Smalruby3 Editor.
  * @license AGPL-3.0
  */
 

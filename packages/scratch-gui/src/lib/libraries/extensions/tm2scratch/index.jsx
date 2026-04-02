@@ -1,3 +1,8 @@
+/**
+ * Icons (tm2scratch.png, tm2scratch-small.png) are from champierre/tm2scratch.
+ * Original copyright: (c) Junya Ishihara and Koji Yokokawa, AGPL-3.0.
+ * See https://github.com/champierre/tm2scratch
+ */
 let formatMessage = (messageData) => messageData.defaultMessage;
 
 import tm2scratchIconURL from './tm2scratch.png';
