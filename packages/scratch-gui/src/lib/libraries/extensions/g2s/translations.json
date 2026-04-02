@@ -1,0 +1,14 @@
+{
+    "en": {
+        "g2s.entry.name": "AkaDako",
+        "g2s.entry.description": "Connect Grove sensors and actuators."
+    },
+    "ja": {
+        "g2s.entry.name": "AkaDako",
+        "g2s.entry.description": "Groveのセンサー・アクチュエーターを接続する。"
+    },
+    "ja-Hira": {
+        "g2s.entry.name": "AkaDako",
+        "g2s.entry.description": "Groveのセンサー・アクチュエーターをせつぞくする。"
+    }
+}

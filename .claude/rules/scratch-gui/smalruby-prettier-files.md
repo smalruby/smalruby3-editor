@@ -56,6 +56,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/ruby-to-blocks-converter/`
 - `src/lib/settings/`
 - `src/lib/themes/`
+- `src/lib/libraries/extensions/g2s/`
 - `src/lib/libraries/extensions/koshien/`
 - `src/lib/libraries/extensions/microbitMore/`
 - `src/lib/libraries/extensions/smalruby-ruby/`
