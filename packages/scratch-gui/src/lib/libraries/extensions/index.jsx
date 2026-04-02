@@ -69,6 +69,9 @@ import koshien from './koshien/index.jsx';
 // === Smalruby: Start of TM2Scratch extension ===
 import tm2scratch from './tm2scratch/index.jsx';
 // === Smalruby: End of TM2Scratch extension ===
+// === Smalruby: Start of AkaDako extension ===
+import g2s from './g2s/index.jsx';
+// === Smalruby: End of AkaDako extension ===
 // === Smalruby: Start of Ruby String extension ===
 import ruby from './smalruby-ruby/index.jsx';
 // === Smalruby: End of Ruby String extension ===
@@ -553,6 +556,9 @@ export default [
     // === Smalruby: Start of TM2Scratch extension ===
     tm2scratch,
     // === Smalruby: End of TM2Scratch extension ===
+    // === Smalruby: Start of AkaDako extension ===
+    g2s,
+    // === Smalruby: End of AkaDako extension ===
     // === Smalruby: Start of Ruby String extension ===
     ruby
     // === Smalruby: End of Ruby String extension ===

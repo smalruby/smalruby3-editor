@@ -40,6 +40,9 @@ import FaceSensingBlocks from './face_sensing.js';
 // === Smalruby: Start of TM2Scratch extension ===
 import TM2ScratchBlocks from './tm2scratch.js';
 // === Smalruby: End of TM2Scratch extension ===
+// === Smalruby: Start of AkaDako extension ===
+import G2SBlocks from './g2s.js';
+// === Smalruby: End of AkaDako extension ===
 // === Smalruby: Start of Ruby String extension ===
 import SmalrubyRubyBlocks from './smalruby-ruby.js';
 // === Smalruby: End of Ruby String extension ===
@@ -186,6 +189,9 @@ FaceSensingBlocks(RubyGenerator);
 // === Smalruby: Start of TM2Scratch extension ===
 TM2ScratchBlocks(RubyGenerator);
 // === Smalruby: End of TM2Scratch extension ===
+// === Smalruby: Start of AkaDako extension ===
+G2SBlocks(RubyGenerator);
+// === Smalruby: End of AkaDako extension ===
 // === Smalruby: Start of Ruby String extension ===
 SmalrubyRubyBlocks(RubyGenerator);
 // === Smalruby: End of Ruby String extension ===

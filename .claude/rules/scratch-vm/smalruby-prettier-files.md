@@ -14,6 +14,7 @@ upstream (Scratch) ファイルは対象外。
 **Smalruby 固有ディレクトリ（ディレクトリ内の全ファイルが対象）:**
 - `src/extensions/koshien/`
 - `src/extensions/microbitMore/`
+- `src/extensions/scratch3_g2s/`
 - `src/extensions/scratch3_mesh_v2/`
 - `src/extensions/scratch3_mesh/`
 - `src/extensions/scratch3_smalrubot_s1/`

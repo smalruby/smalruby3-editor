@@ -127,6 +127,7 @@ src/lib/libraries/*
 # Level 4: src/lib/libraries/extensions/*
 src/lib/libraries/extensions/*
 # Smalruby-only directories
+!src/lib/libraries/extensions/g2s/
 !src/lib/libraries/extensions/koshien/
 !src/lib/libraries/extensions/microbitMore/
 !src/lib/libraries/extensions/smalruby-ruby/

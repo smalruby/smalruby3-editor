@@ -21,6 +21,7 @@ const EXTENSION_HANDLER_MAP = {
     smalrubot_s1: '_annotateSmalrubotS1Method',
     koshien: '_annotateKoshienMethod',
     tm: '_annotateTmMethod',
+    akadako: '_annotateAkadakoMethod',
     // v2 API receivers
     music: '_annotateMusicMethod',
     keyboard: '_annotateKeyboardMethod',
@@ -43,6 +44,7 @@ const EXTENSION_RECEIVER_LABELS = {
     smalrubot_s1: 'スモウルボットS1',
     koshien: 'スモウルビー甲子園',
     tm: '機械学習',
+    akadako: 'AkaDako',
     // v2 API receivers
     music: '音楽',
     keyboard: 'キーボード',
@@ -122,6 +124,40 @@ const KOSHIEN_POSITION_LABEL_FN = content => {
     return null;
 };
 
+const AKADAKO_BOARD_STATE_LABELS = {
+    connected: '接続された',
+    disconnected: '切断された',
+};
+
+const AKADAKO_DIGITAL_LEVEL_LABELS = {
+    0: '0',
+    1: '1',
+};
+
+const AKADAKO_INPUT_BIAS_LABELS = {
+    none: 'プルアップしない',
+    pullUp: 'プルアップする',
+};
+
+const AKADAKO_NEOPIXEL_COLOR_LABELS = {
+    red: '赤',
+    orange: 'だいだい',
+    yellow: '黄',
+    green: '緑',
+    blue: '青',
+    indigo: 'あい',
+    violet: 'すみれ',
+    purple: '紫',
+    white: '白',
+    black: '黒',
+    rainbow: 'レインボー',
+};
+
+const AKADAKO_LOOP_MODE_LABELS = {
+    true: '回転する',
+    false: '回転しない',
+};
+
 const TM_CLASSIFICATION_STATE_LABELS = {
     on: 'オン',
     off: 'オフ',
@@ -161,6 +197,17 @@ const EXTENSION_STRING_MAPS = {
     tm: {
         toggle_classification: TM_CLASSIFICATION_STATE_LABELS,
         video_toggle: TM_VIDEO_STATE_LABELS,
+    },
+    akadako: {
+        when_board_state_changed: AKADAKO_BOARD_STATE_LABELS,
+        set_digital_level: AKADAKO_DIGITAL_LEVEL_LABELS,
+        when_digital_level_changed: AKADAKO_DIGITAL_LEVEL_LABELS,
+        'digital_high?': AKADAKO_DIGITAL_LEVEL_LABELS,
+        set_input_bias: AKADAKO_INPUT_BIAS_LABELS,
+        neopixel_set_color: AKADAKO_NEOPIXEL_COLOR_LABELS,
+        neopixel_fill_color: AKADAKO_NEOPIXEL_COLOR_LABELS,
+        neopixel_shift_color: AKADAKO_LOOP_MODE_LABELS,
+        neopixel_color_mode: AKADAKO_NEOPIXEL_COLOR_LABELS,
     },
     koshien: {
         move_to: KOSHIEN_POSITION_LABEL_FN,
@@ -331,6 +378,68 @@ const extensionHandlers = {
             position_of_y: 'Y座標取得',
             object: 'オブジェクト',
             set_message: 'メッセージ設定',
+        };
+        const label = labels[name];
+        if (label) this._addAnnotation(node.messageLoc, label);
+    },
+
+    _annotateAkadakoMethod(node, name) {
+        const labels = {
+            connect_board: 'ボードを接続',
+            disconnect_board: 'ボードを切断',
+            'connected?': '接続している',
+            when_board_state_changed: 'ボードが変わったとき',
+            board_version: 'バージョン',
+            analog_level_a1: 'アナログA(A1)の値',
+            analog_level_a2: 'アナログA(A2)の値',
+            analog_level_b1: 'アナログB(B1)の値',
+            analog_level_b2: 'アナログB(B2)の値',
+            digital_level_a1: 'デジタルA(A1)の値',
+            digital_level_a2: 'デジタルA(A2)の値',
+            digital_level_b1: 'デジタルB(B1)の値',
+            digital_level_b2: 'デジタルB(B2)の値',
+            set_digital_level: 'デジタル出力',
+            'digital_high?': '1であるか',
+            when_digital_level_changed: 'レベルが変わったとき',
+            set_input_bias: '入力バイアス設定',
+            set_pwm_duty: 'PWMデューティー比を設定',
+            servo_turn: 'サーボを回す',
+            send_ir_remote: '赤外線リモコン送信',
+            ultrasonic_distance_a: '超音波A距離(cm)',
+            ultrasonic_distance_b: '超音波B距離(cm)',
+            laser_distance: 'レーザー距離(cm)',
+            motion_sensor_value: '人感センサーの値',
+            when_shaken: 'ゆさぶられたとき',
+            pitch: 'ピッチ(度)',
+            roll: 'ロール(度)',
+            acceleration_x: '加速度X',
+            acceleration_y: '加速度Y',
+            acceleration_z: '加速度Z',
+            acceleration_absolute: '加速度の絶対値',
+            brightness: '明るさ(lx)',
+            analog_brightness: 'アナログの明るさ',
+            temperature: '温度(°C)',
+            pressure: '気圧(hPa)',
+            humidity: '湿度(%)',
+            water_temperature_a: '水温A(°C)',
+            water_temperature_b: '水温B(°C)',
+            neopixel_config: 'カラーLED設定',
+            neopixel_set_color: 'カラーLEDの色を設定',
+            neopixel_fill_color: 'カラーLEDの全色を設定',
+            neopixel_shift_color: 'カラーLEDをずらす',
+            neopixel_color: 'カラーLED RGB',
+            neopixel_color_mode: 'カラーLEDモード',
+            neopixel_show: 'カラーLEDを光らせる',
+            neopixel_clear: 'カラーLEDを消す',
+            i2c_write: 'I2C書き込み',
+            i2c_read: 'I2C読み出し',
+            number_at: '数列の番目',
+            splice_numbers: '数列を操作',
+            numbers_length: '数列の長さ',
+            read_bytes_as: 'バイト列を読む',
+            int64_op: 'int64演算',
+            bit_op: 'ビット演算',
+            bit_not: 'ビットNOT',
         };
         const label = labels[name];
         if (label) this._addAnnotation(node.messageLoc, label);
