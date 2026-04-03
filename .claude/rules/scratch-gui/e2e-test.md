@@ -59,6 +59,71 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `ruby-toolbar-next-sprite` | button | 次のスプライト |
 | `ruby-toolbar-sprite-search` | input | スプライト検索 |
 
+### Classroom Modal (`classroom-modal.jsx`)
+
+**フェーズ検出（各フェーズのルートに付与）:**
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-modal` | div | モーダル全体 |
+| `classroom-phase-role-select` | div | 役割選択フェーズ |
+| `classroom-phase-teacher-login` | div | 教師ログインフェーズ |
+| `classroom-phase-teacher-dashboard` | div | 教師ダッシュボードフェーズ |
+| `classroom-phase-teacher-create` | div | クラス作成フェーズ |
+| `classroom-phase-teacher-detail` | div | クラス詳細フェーズ |
+| `classroom-phase-student-join` | div | 生徒参加コード入力フェーズ |
+| `classroom-phase-student-seat` | div | 席番号選択フェーズ |
+| `classroom-phase-student-joined` | div | 参加完了フェーズ |
+
+**操作ボタン:**
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-menu-button` | div | メニューバーのクラスボタン |
+| `classroom-role-teacher` | button | 「先生」選択 |
+| `classroom-role-student` | button | 「生徒」選択 |
+| `classroom-google-login` | button | Google ログイン |
+| `classroom-back` | button | 戻る |
+| `classroom-create` | button | クラス作成（ダッシュボード） |
+| `classroom-name-input` | input | クラス名入力 |
+| `classroom-count-input` | input | 人数入力 |
+| `classroom-create-submit` | button | クラス作成実行 |
+| `classroom-join-code-input` | input | 参加コード入力 |
+| `classroom-join-submit` | button | 参加コード送信 |
+| `classroom-seat-{n}` | button | 席番号 n のボタン |
+| `classroom-confirm-seat` | button | 席番号確定・参加 |
+| `classroom-joined-close` | button | 参加完了後の閉じるボタン |
+
+**値確認用（テキスト内容の検証）:**
+
+| data-testid | 要素 | 値の内容 |
+|------------|------|----------|
+| `classroom-menu-label` | span | メニューバーのクラス表示テキスト |
+| `classroom-menu-class-name` | span | 参加中のクラス名 |
+| `classroom-menu-seat-number` | span | 参加中の席番号 |
+| `classroom-list` | ul | クラス一覧 |
+| `classroom-item-{id}` | li | クラス一覧の各項目 |
+| `classroom-item-name-{id}` | span | クラス名 |
+| `classroom-item-code-{id}` | span | 参加コード |
+| `classroom-item-details-{id}` | button | 詳細ボタン |
+| `classroom-detail-name` | div | クラス詳細のクラス名 |
+| `classroom-detail-join-code` | div | クラス詳細の参加コード |
+| `classroom-members-list` | ul | メンバー一覧 |
+| `classroom-member-{memberId}` | li | メンバー項目 |
+| `classroom-member-seat-{memberId}` | span | メンバーの席番号 |
+| `classroom-member-name-{memberId}` | span | メンバーのニックネーム |
+| `classroom-member-remove-{memberId}` | button | メンバー削除 |
+| `classroom-members-empty` | li | メンバー空メッセージ |
+| `classroom-seat-grid` | div | 席番号グリッド |
+| `classroom-selected-seat` | div (hidden) | 選択中の席番号（値取得用） |
+| `classroom-joined-success` | div | 参加成功メッセージ |
+| `classroom-joined-details` | div | 参加詳細（クラス名 + 席番号） |
+| `classroom-joined-class-name` | span | 参加したクラス名 |
+| `classroom-joined-seat-number` | span | 参加した席番号 |
+| `classroom-error` | div | エラーメッセージ |
+| `classroom-loading` | div | ローディング表示 |
+| `classroom-empty-message` | div | クラスなしメッセージ |
+
 ## Playwright MCP での操作例
 
 ```javascript

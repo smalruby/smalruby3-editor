@@ -35,6 +35,9 @@ import BlockDisplayModal from '../../containers/block-display-modal.jsx';
 // === Smalruby: Start of smalrubot firmware modal ===
 import SmalrubotFirmwareModal from '../../containers/smalrubot-firmware-modal.jsx';
 // === Smalruby: End of smalrubot firmware modal ===
+// === Smalruby: Start of classroom modal ===
+import ClassroomModal from '../../containers/classroom-modal.jsx';
+// === Smalruby: End of classroom modal ===
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
@@ -137,6 +140,9 @@ const GUIComponent = props => {
         // === Smalruby: Start of smalrubot firmware modal ===
         smalrubotFirmwareModalVisible,
         // === Smalruby: End of smalrubot firmware modal ===
+        // === Smalruby: Start of classroom modal ===
+        classroomModalVisible,
+        // === Smalruby: End of classroom modal ===
         blocksId,
         blocksTabVisible,
         dnclMode, // === Smalruby: DNCL block filtering ===
@@ -403,6 +409,11 @@ const GUIComponent = props => {
                     {smalrubotFirmwareModalVisible ? (
                         <SmalrubotFirmwareModal />
                     ) : null}
+                    {/* === Smalruby: Start of classroom modal === */}
+                    {classroomModalVisible ? (
+                        <ClassroomModal />
+                    ) : null}
+                    {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
                     {!menuBarHidden && <MenuBar
                         ariaRole="banner"
@@ -711,6 +722,7 @@ GUIComponent.propTypes = {
     backpackVisible: PropTypes.bool,
     basePath: PropTypes.string,
     blockDisplayModalVisible: PropTypes.bool,
+    classroomModalVisible: PropTypes.bool, // === Smalruby: classroom modal ===
     smalrubotFirmwareModalVisible: PropTypes.bool, // === Smalruby: smalrubot firmware modal ===
     blocksTabVisible: PropTypes.bool,
     dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===

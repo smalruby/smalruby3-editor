@@ -112,6 +112,10 @@ import {showAlertWithTimeout} from '../../reducers/alerts';
 import {openSmalrubotFirmwareModal} from '../../reducers/smalrubot-firmware';
 import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 // === Smalruby: End of smalrubot firmware menu ===
+// === Smalruby: Start of classroom button ===
+import {openClassroomModal} from '../../reducers/classroom';
+import ClassroomAPI from '../../lib/classroom-api';
+// === Smalruby: End of classroom button ===
 import collectMetadata from '../../lib/collect-metadata';
 import {PLATFORM} from '../../lib/platform';
 
@@ -1229,6 +1233,39 @@ class MenuBar extends React.Component {
                             );
                         })()}
                         {/* === Smalruby: End of smalrubot firmware menu === */}
+                        {/* === Smalruby: Start of classroom button === */}
+                        {ClassroomAPI.isConfigured() && (
+                            <div
+                                className={classNames(styles.menuBarItem, styles.hoverable)}
+                                data-testid="classroom-menu-button"
+                                onClick={this.props.onOpenClassroomModal}
+                            >
+                                <span data-testid="classroom-menu-label">
+                                    {this.props.classroomClassName ? (
+                                        <React.Fragment>
+                                            <span data-testid="classroom-menu-class-name">
+                                                {this.props.classroomClassName}
+                                            </span>
+                                            {this.props.classroomSeatNumber && (
+                                                <React.Fragment>
+                                                    {' / '}
+                                                    <span data-testid="classroom-menu-seat-number">
+                                                        {this.props.classroomSeatNumber}
+                                                    </span>
+                                                </React.Fragment>
+                                            )}
+                                        </React.Fragment>
+                                    ) : (
+                                        <FormattedMessage
+                                            defaultMessage="Classroom"
+                                            description="Menu bar button for classroom feature"
+                                            id="gui.menuBar.classroom"
+                                        />
+                                    )}
+                                </span>
+                            </div>
+                        )}
+                        {/* === Smalruby: End of classroom button === */}
                         {this.props.vm.extensionManager &&
                             this.props.vm.extensionManager.isExtensionLoaded('koshien') && (
                             <div
@@ -1633,6 +1670,8 @@ MenuBar.propTypes = {
         folderId: PropTypes.string,
         isGoogleDriveFile: PropTypes.bool
     }),
+    classroomClassName: PropTypes.string, // === Smalruby: classroom button ===
+    classroomSeatNumber: PropTypes.number, // === Smalruby: classroom button ===
     googleDriveSaveDialogVisible: PropTypes.bool,
     googleDriveSaveDirectStatus: PropTypes.string,
     googleDriveSaveStatus: PropTypes.string,
@@ -1702,6 +1741,7 @@ MenuBar.propTypes = {
     onRequestCloseMeshV2: PropTypes.func,
     onRequestCloseSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onOpenSmalrubotFirmwareModal: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
+    onOpenClassroomModal: PropTypes.func, // === Smalruby: classroom button ===
     onRequestCloseMode: PropTypes.func,
     onRequestCloseSettings: PropTypes.func,
     onRequestOpenAbout: PropTypes.func,
@@ -1761,6 +1801,10 @@ const mapStateToProps = (state, ownProps) => {
         meshV2Domain: state.scratchGui.meshV2 ? state.scratchGui.meshV2.domain : null,
         meshV2MenuOpen: meshV2MenuOpen(state),
         smalrubotS1MenuOpen: smalrubotS1MenuOpen(state), // === Smalruby: smalrubot firmware menu ===
+        // === Smalruby: Start of classroom button ===
+        classroomClassName: state.scratchGui.classroom.className,
+        classroomSeatNumber: state.scratchGui.classroom.seatNumber,
+        // === Smalruby: End of classroom button ===
         extensionLoadCounter: state.scratchGui.koshienFile.extensionLoadCounter,
         aiSaveStatus: state.scratchGui.koshienFile.aiSaveStatus,
         googleDriveFile: state.scratchGui.googleDriveFile,
@@ -1832,6 +1876,9 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onRequestCloseSmalrubotS1: () => dispatch(closeSmalrubotS1Menu()),
     onOpenSmalrubotFirmwareModal: () => dispatch(openSmalrubotFirmwareModal()),
     // === Smalruby: End of smalrubot firmware menu ===
+    // === Smalruby: Start of classroom button ===
+    onOpenClassroomModal: () => dispatch(openClassroomModal()),
+    // === Smalruby: End of classroom button ===
     onClickLogin: ownProps.onClickLogin ?? (() => dispatch(openLoginMenu())),
     onRequestCloseLogin: () => dispatch(closeLoginMenu()),
     onClickMode: () => dispatch(openModeMenu()),

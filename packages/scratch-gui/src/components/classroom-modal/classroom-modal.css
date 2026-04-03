@@ -1,0 +1,277 @@
+.modal-content {
+    width: 500px;
+    max-width: 90vw;
+}
+
+.body {
+    padding: 1.5rem;
+    min-height: 200px;
+}
+
+.phase-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #575e75;
+}
+
+.description {
+    margin-bottom: 1rem;
+    color: #575e75;
+    line-height: 1.5;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+    color: #575e75;
+    font-size: 0.85rem;
+}
+
+.input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #4c97ff;
+    box-shadow: 0 0 0 2px rgba(76, 151, 255, 0.2);
+}
+
+.button-row {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.primary-button {
+    background-color: #4c97ff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.primary-button:hover {
+    background-color: #3d89f0;
+}
+
+.primary-button:disabled {
+    background-color: #d9d9d9;
+    cursor: not-allowed;
+}
+
+.secondary-button {
+    background-color: white;
+    color: #575e75;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.secondary-button:hover {
+    background-color: #f2f2f2;
+}
+
+.role-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.role-button {
+    background-color: #4c97ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 1.2rem 2rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    font-weight: bold;
+    min-width: 120px;
+}
+
+.role-button:hover {
+    background-color: #3d89f0;
+}
+
+.join-code-display {
+    background-color: #f2f2f2;
+    border: 2px dashed #d9d9d9;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    margin: 1rem 0;
+}
+
+.join-code-value {
+    font-size: 2rem;
+    font-weight: bold;
+    font-family: monospace;
+    letter-spacing: 0.3em;
+    color: #4c97ff;
+}
+
+.class-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.class-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.class-item-name {
+    font-weight: bold;
+    color: #575e75;
+}
+
+.class-item-code {
+    font-family: monospace;
+    font-size: 1.1rem;
+    color: #4c97ff;
+    letter-spacing: 0.1em;
+}
+
+.seat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    gap: 0.4rem;
+    margin: 1rem 0;
+}
+
+.seat-button {
+    background-color: #4c97ff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+}
+
+.seat-button:hover {
+    background-color: #3d89f0;
+}
+
+.seat-taken {
+    background-color: #d9d9d9;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.seat-selected {
+    background-color: #0fbd8c;
+}
+
+.error-text {
+    color: #ff6680;
+    font-size: 0.85rem;
+    margin-top: 0.3rem;
+}
+
+.success-area {
+    text-align: center;
+    padding: 1rem;
+}
+
+.success-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.success-text {
+    font-size: 1.1rem;
+    color: #0fbd8c;
+    font-weight: bold;
+}
+
+.success-details {
+    color: #575e75;
+    margin-top: 0.5rem;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #575e75;
+}
+
+.members-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.8rem;
+    border-bottom: 1px solid #f2f2f2;
+}
+
+.member-seat {
+    font-weight: bold;
+    color: #575e75;
+    min-width: 50px;
+}
+
+.member-name {
+    flex: 1;
+    color: #575e75;
+}
+
+.delete-button {
+    background: none;
+    border: none;
+    color: #ff6680;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.delete-button:hover {
+    text-decoration: underline;
+}
+
+.back-link {
+    background: none;
+    border: none;
+    color: #4c97ff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0;
+    margin-bottom: 0.5rem;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}

@@ -42,8 +42,12 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/connection-modal/connected-step.jsx` | meshV2 connected message feature | Mesh v2 接続済みステップ UI |
 | `src/components/menu-bar/menu-bar.jsx` | smalrubot firmware menu | SmalrubotS1 メニューの import、ハンドラー、レンダリング、Redux 接続 |
 | `src/components/gui/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダルの import と配置 |
+| `src/components/gui/gui.jsx` | classroom modal | クラスルームモーダルの import と配置 |
 | `src/components/gui/gui.jsx` | Redux action props prevention | Redux action props の伝播防止 |
 | `src/containers/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダル state マッピング |
+| `src/containers/gui.jsx` | classroom modal | クラスルームモーダル state マッピング |
+| `src/components/menu-bar/menu-bar.jsx` | classroom button | クラスルームボタンの import、レンダリング、Redux 接続 |
+| `webpack.config.js` | classroom API | CLASSROOM_API_ENDPOINT 環境変数注入 |
 | `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |
 | `src/lib/blocks.js` | gesture recovery | ジェスチャー復旧ハンドラーのインストール |
 | `src/playground/render-gui.jsx` | URL params for Playwright | URL パラメーター import |

@@ -20,6 +20,7 @@ The `infra/` directory contains AWS CDK infrastructure projects (independent fro
 
 - **`infra/smalruby-mesh-v2`**: AWS CDK project for the Mesh v2 networking service (AppSync + DynamoDB)
 - **`infra/smalruby-rubytee-relay`**: AWS CDK project for the Rubytee AI relay service (Anthropic Claude API + DynamoDB)
+- **`infra/smalruby-classroom`**: AWS CDK project for the Classroom service (API Gateway + Lambda + DynamoDB)
 
 The `ruby/` directory contains the smalruby3 Ruby gem and its native dependencies (git submodules):
 
@@ -311,6 +312,7 @@ Follow TDD (Test-Driven Development) approach:
 - `infra/`: AWS CDK infrastructure projects (independent projects, not workspaces)
   - `infra/smalruby-mesh-v2/`: Mesh v2 networking service (AppSync + DynamoDB)
   - `infra/smalruby-rubytee-relay/`: Rubytee AI relay service (Anthropic Claude + DynamoDB)
+  - `infra/smalruby-classroom/`: Classroom service (API Gateway + Lambda + DynamoDB)
 - `scripts/`: Monorepo-level build scripts
 - `.github/workflows/`: CI/CD configuration
 - `.claude/rules/`: Package-specific development rules
