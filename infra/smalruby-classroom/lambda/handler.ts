@@ -29,6 +29,10 @@ const JOIN_CODE_LENGTH = 6;
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 // Classroom TTL: 1 year
 const CLASSROOM_TTL_SECONDS = 365 * 24 * 60 * 60;
+// Rate limiting for join endpoint (per IP)
+const JOIN_RATE_LIMIT_WINDOW_SECONDS = 60;
+const JOIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
+const JOIN_CODE_REGEX = new RegExp(`^[${JOIN_CODE_CHARS}]{${JOIN_CODE_LENGTH}}$`);
 
 // --- DynamoDB Client ---
 
@@ -108,7 +112,11 @@ export function validateJoinCode(code: unknown): string {
   if (typeof code !== 'string' || code.trim().length !== JOIN_CODE_LENGTH) {
     throw new ValidationError(`Join code must be ${JOIN_CODE_LENGTH} characters`);
   }
-  return code.trim().toUpperCase();
+  const upper = code.trim().toUpperCase();
+  if (!JOIN_CODE_REGEX.test(upper)) {
+    throw new ValidationError('Join code contains invalid characters');
+  }
+  return upper;
 }
 
 // --- Error classes ---
@@ -238,7 +246,7 @@ async function handleListClassrooms(teacherSub: string): Promise<APIGatewayProxy
   return { statusCode: 200, body: JSON.stringify({ classrooms }) };
 }
 
-async function handleGetClassroom(classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
+async function handleGetClassroom(teacherSub: string, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
   const result = await docClient.send(new GetCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
@@ -246,6 +254,9 @@ async function handleGetClassroom(classroomId: string): Promise<APIGatewayProxyS
 
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
+  }
+  if (result.Item.teacherSub !== teacherSub) {
+    throw new AuthError('Not authorized to view this classroom');
   }
 
   return {
@@ -324,7 +335,32 @@ async function handleUpdateClassroom(teacherSub: string, classroomId: string, bo
   };
 }
 
-async function handleJoinClassroom(body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+// Simple in-memory rate limiter for join endpoint (per Lambda instance)
+const joinAttempts = new Map<string, { count: number; windowStart: number }>();
+
+function checkJoinRateLimit(sourceIp: string): void {
+  const now = Math.floor(Date.now() / 1000);
+  const entry = joinAttempts.get(sourceIp);
+  if (entry && (now - entry.windowStart) < JOIN_RATE_LIMIT_WINDOW_SECONDS) {
+    if (entry.count >= JOIN_RATE_LIMIT_MAX_ATTEMPTS) {
+      throw new ValidationError('Too many join attempts. Please try again later.');
+    }
+    entry.count++;
+  } else {
+    joinAttempts.set(sourceIp, { count: 1, windowStart: now });
+  }
+  // Clean up old entries periodically
+  if (joinAttempts.size > 1000) {
+    for (const [ip, e] of joinAttempts) {
+      if ((now - e.windowStart) >= JOIN_RATE_LIMIT_WINDOW_SECONDS) {
+        joinAttempts.delete(ip);
+      }
+    }
+  }
+}
+
+async function handleJoinClassroom(sourceIp: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+  checkJoinRateLimit(sourceIp);
   const joinCode = validateJoinCode(body.joinCode);
 
   // Look up classroom by join code
@@ -349,31 +385,30 @@ async function handleJoinClassroom(body: Record<string, unknown>): Promise<APIGa
   const nickname = validateNickname(body.nickname);
   const memberId = `seat-${String(seatNumber).padStart(2, '0')}`;
 
-  // Check if seat is already taken
-  const existingMember = await docClient.send(new GetCommand({
-    TableName: MEMBERSHIPS_TABLE,
-    Key: { classroomId: classroom.classroomId, memberId },
-  }));
-
-  if (existingMember.Item) {
-    throw new ConflictError(`Seat ${seatNumber} is already taken`);
-  }
-
   const sessionToken = generateSessionToken();
   const now = new Date().toISOString();
 
-  await docClient.send(new PutCommand({
-    TableName: MEMBERSHIPS_TABLE,
-    Item: {
-      classroomId: classroom.classroomId,
-      memberId,
-      displayName: nickname,
-      role: 'student',
-      sessionToken,
-      joinedAt: now,
-      ttl: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
-    },
-  }));
+  // Atomic put with condition to prevent race condition on seat assignment
+  try {
+    await docClient.send(new PutCommand({
+      TableName: MEMBERSHIPS_TABLE,
+      Item: {
+        classroomId: classroom.classroomId,
+        memberId,
+        displayName: nickname,
+        role: 'student',
+        sessionToken,
+        joinedAt: now,
+        ttl: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+      },
+      ConditionExpression: 'attribute_not_exists(classroomId) AND attribute_not_exists(memberId)',
+    }));
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'name' in err && err.name === 'ConditionalCheckFailedException') {
+      throw new ConflictError(`Seat ${seatNumber} is already taken`);
+    }
+    throw err;
+  }
 
   return {
     statusCode: 200,
@@ -464,11 +499,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       result = await handleListClassrooms(teacherSub);
 
     } else if (method === 'POST' && path === '/classrooms/join') {
-      result = await handleJoinClassroom(body);
+      const sourceIp = event.requestContext.http.sourceIp || 'unknown';
+      result = await handleJoinClassroom(sourceIp, body);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyGoogleIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
-      result = await handleGetClassroom(classroomId);
+      result = await handleGetClassroom(teacherSub, classroomId);
 
     } else if (method === 'PATCH' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);

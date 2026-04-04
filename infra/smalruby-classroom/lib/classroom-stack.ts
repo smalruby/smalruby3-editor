@@ -5,6 +5,9 @@ import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as path from 'path';
 import { Construct } from 'constructs';
 
@@ -126,6 +129,35 @@ export class ClassroomStack extends cdk.Stack {
     this.classroomsTable.grantReadWriteData(handlerFn);
     this.membershipsTable.grantReadWriteData(handlerFn);
 
+    // --- Custom Domain ---
+
+    const parentZoneName = process.env.ROUTE53_PARENT_ZONE_NAME || 'api.smalruby.app';
+    const defaultCustomDomain = stage === 'prod'
+      ? `classroom.${parentZoneName}`
+      : `${stage}.classroom.${parentZoneName}`;
+    const customDomain = process.env.CLASSROOM_CUSTOM_DOMAIN === 'false'
+      ? undefined
+      : (process.env.CLASSROOM_CUSTOM_DOMAIN || defaultCustomDomain);
+
+    let domainName: apigatewayv2.DomainName | undefined;
+    let zone: route53.IHostedZone | undefined;
+
+    if (customDomain) {
+      zone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+        domainName: parentZoneName,
+      });
+
+      const certificate = new acm.Certificate(this, 'ApiCertificate', {
+        domainName: customDomain,
+        validation: acm.CertificateValidation.fromDns(zone),
+      });
+
+      domainName = new apigatewayv2.DomainName(this, 'ApiDomainName', {
+        domainName: customDomain,
+        certificate,
+      });
+    }
+
     // --- API Gateway ---
 
     this.api = new apigatewayv2.HttpApi(this, 'ClassroomApi', {
@@ -142,6 +174,9 @@ export class ClassroomStack extends cdk.Stack {
         allowHeaders: ['Content-Type', 'Authorization'],
         maxAge: cdk.Duration.hours(24),
       },
+      defaultDomainMapping: domainName ? {
+        domainName,
+      } : undefined,
     });
 
     const integration = new apigatewayv2Integrations.HttpLambdaIntegration(
@@ -191,7 +226,30 @@ export class ClassroomStack extends cdk.Stack {
 
     cdk.Tags.of(this.api).add('ResourceType', 'APIGatewayHTTPAPI');
 
+    // Route53 Alias record for Custom Domain
+    if (customDomain && zone && domainName) {
+      const subdomain = customDomain.replace(`.${parentZoneName}`, '');
+
+      new route53.ARecord(this, 'ApiAliasRecord', {
+        zone,
+        recordName: subdomain,
+        target: route53.RecordTarget.fromAlias(
+          new route53Targets.ApiGatewayv2DomainProperties(
+            domainName.regionalDomainName,
+            domainName.regionalHostedZoneId,
+          )
+        ),
+      });
+    }
+
     // Outputs
+    if (customDomain) {
+      new cdk.CfnOutput(this, 'CustomDomainUrl', {
+        value: `https://${customDomain}`,
+        description: 'Classroom API custom domain URL',
+      });
+    }
+
     new cdk.CfnOutput(this, 'ApiEndpoint', {
       value: this.api.apiEndpoint,
       description: 'Classroom API Gateway endpoint',

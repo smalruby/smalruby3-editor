@@ -176,6 +176,11 @@ describe('validateJoinCode', () => {
   test('should reject non-string', () => {
     expect(() => validateJoinCode(123456)).toThrow('6 characters');
   });
+
+  test('should reject codes with invalid characters (0, 1, I, O)', () => {
+    expect(() => validateJoinCode('ABC001')).toThrow('invalid characters');
+    expect(() => validateJoinCode('ABCIOO')).toThrow('invalid characters');
+  });
 });
 
 describe('getCorsHeaders', () => {
