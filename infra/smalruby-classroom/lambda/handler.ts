@@ -887,8 +887,34 @@ async function handleUpdateSubmission(
 
 async function handleVerifySession(sessionToken: string): Promise<APIGatewayProxyStructuredResultV2> {
   // verifySessionToken will throw AuthError if invalid
-  await verifySessionToken(sessionToken);
-  return { statusCode: 200, body: JSON.stringify({ valid: true }) };
+  const session = await verifySessionToken(sessionToken);
+
+  // Look up latest submission for this member
+  let submission: Record<string, unknown> | null = null;
+  const subResult = await docClient.send(new QueryCommand({
+    TableName: SUBMISSIONS_TABLE,
+    IndexName: 'classroomId-memberId-index',
+    KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
+    ExpressionAttributeValues: {
+      ':cid': session.classroomId,
+      ':mid': session.memberId,
+    },
+    ScanIndexForward: false,
+    Limit: 1,
+  }));
+  if (subResult.Items && subResult.Items.length > 0) {
+    const item = subResult.Items[0];
+    submission = {
+      status: item.status,
+      submittedAt: item.submittedAt,
+      teacherComment: item.teacherComment || null,
+    };
+  }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ valid: true, submission }),
+  };
 }
 
 // --- Main handler ---

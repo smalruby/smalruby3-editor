@@ -90,6 +90,8 @@ export default {
     'gui.classroom.teacherDetail.returned': 'へんきゃくずみ',
     'gui.classroom.teacherDetail.downloadAll': 'ぜんさくひんダウンロード',
     'gui.classroom.error.fileTooLarge': 'プロジェクトがおおきすぎます（{size}MB）。じょうげんは10MBです。',
+    'gui.classroom.studentStatus.returned': 'へんきゃくずみ',
+    'gui.classroom.studentStatus.comment': 'コメント',
     'gui.classroom.teacherDetail.cancelDelete': 'キャンセル',
     'gui.classroom.codeDisplay.title': 'クラスコード',
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',

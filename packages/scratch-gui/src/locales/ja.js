@@ -89,6 +89,8 @@ export default {
     'gui.classroom.teacherDetail.returned': '返却済み',
     'gui.classroom.teacherDetail.downloadAll': '全作品ダウンロード',
     'gui.classroom.error.fileTooLarge': 'プロジェクトが大きすぎます（{size}MB）。上限は10MBです。',
+    'gui.classroom.studentStatus.returned': '返却済み',
+    'gui.classroom.studentStatus.comment': 'コメント',
     'gui.classroom.teacherDetail.cancelDelete': 'キャンセル',
     'gui.classroom.codeDisplay.title': 'クラスコード',
     'gui.classroom.codeDisplay.copyLink': '招待リンクをコピー',
