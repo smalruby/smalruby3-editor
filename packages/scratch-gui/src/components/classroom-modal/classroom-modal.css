@@ -3,6 +3,11 @@
     max-width: 90vw;
 }
 
+.modal-content-wide {
+    width: 968px;
+    max-width: 95vw;
+}
+
 .body {
     padding: 1.5rem;
     min-height: 200px;
@@ -348,7 +353,7 @@
 
 .members-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    grid-template-columns: repeat(10, 1fr);
     gap: 4px;
     margin: 0.5rem 0;
 }
@@ -540,14 +545,6 @@
     margin-bottom: 0.5rem;
 }
 
-/* Class item: code lowercase + expand icon */
-
-.class-item-code-group {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
 .expand-icon-button {
     background: none;
     border: 1px solid #d9d9d9;
@@ -675,4 +672,73 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+/* Two-pane layout for class detail */
+
+.detail-layout {
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-two-pane-layout {
+    display: flex;
+    gap: 1rem;
+    min-height: 350px;
+}
+
+.detail-left-pane {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-right-pane {
+    width: 300px;
+    flex-shrink: 0;
+    border-left: 1px solid #e0e0e0;
+    padding-left: 1rem;
+}
+
+/* Right pane member detail */
+
+.member-detail-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.member-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 0.5rem;
+}
+
+.member-detail-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.member-detail-thumbnail-large {
+    width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+}
+
+.member-detail-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+    font-size: 0.85rem;
 }

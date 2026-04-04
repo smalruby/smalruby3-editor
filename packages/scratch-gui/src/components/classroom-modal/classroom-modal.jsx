@@ -62,13 +62,6 @@ const ClassroomModal = ({
 }) => {
     const intl = useIntl();
 
-    const handleShowCodeDisplay = useCallback(
-        (e) => {
-            onShowCodeDisplay(e.currentTarget.dataset.classroomId);
-        },
-        [onShowCodeDisplay],
-    );
-
     const handleSelectClassroom = useCallback(
         (e) => {
             onSelectClassroom(e.currentTarget.dataset.classroomId);
@@ -92,7 +85,12 @@ const ClassroomModal = ({
 
     return (
         <Modal
-            className={styles.modalContent}
+            className={
+                phase === 'teacher-class-detail' ||
+                phase === 'teacher-code-display'
+                    ? styles.modalContentWide
+                    : styles.modalContent
+            }
             contentLabel={intl.formatMessage(messages.title)}
             id="classroomModal"
             onRequestClose={onClose}
@@ -234,22 +232,12 @@ const ClassroomModal = ({
                                                 >
                                                     {c.className}
                                                 </span>
-                                                <div className={styles.classItemCodeGroup}>
-                                                    <span
-                                                        className={styles.classItemCode}
-                                                        data-testid={`classroom-item-code-${c.classroomId}`}
-                                                    >
-                                                        {c.joinCode.toLowerCase()}
-                                                    </span>
-                                                    <button
-                                                        className={styles.expandIconButton}
-                                                        data-classroom-id={c.classroomId}
-                                                        data-testid={`classroom-item-expand-${c.classroomId}`}
-                                                        onClick={handleShowCodeDisplay}
-                                                    >
-                                                        {'⛶'}
-                                                    </button>
-                                                </div>
+                                                <span
+                                                    className={styles.classItemCode}
+                                                    data-testid={`classroom-item-code-${c.classroomId}`}
+                                                >
+                                                    {c.joinCode.toLowerCase()}
+                                                </span>
                                             </div>
                                             <div className={styles.classItemMeta}>
                                                 <span className={styles.classItemMetaText}>
@@ -328,6 +316,8 @@ const ClassroomModal = ({
                 {/* Phase: teacher-class-detail */}
                 {phase === 'teacher-class-detail' && selectedClassroom && (
                     <TeacherClassDetail
+                        codeDisplayClassroom={codeDisplayClassroom}
+                        codeDisplayFullscreen={codeDisplayFullscreen}
                         error={error}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
@@ -335,22 +325,15 @@ const ClassroomModal = ({
                         selectedClassroom={selectedClassroom}
                         selectedMember={selectedMember}
                         onBack={onBackToDashboard}
+                        onCloseCodeDisplay={onCloseCodeDisplay}
+                        onCopyInviteLink={onCopyInviteLink}
                         onDeleteClassroom={onDeleteClassroom}
                         onDeleteMember={handleDeleteMember}
                         onOpenSubmission={onOpenSubmission}
                         onRefresh={onRefreshDetail}
                         onSelectMember={onSelectMember}
-                    />
-                )}
-
-                {/* Phase: teacher-code-display */}
-                {phase === 'teacher-code-display' && codeDisplayClassroom && (
-                    <ClassCodeDisplay
-                        classroom={codeDisplayClassroom}
-                        isFullscreen={codeDisplayFullscreen}
-                        onClose={onCloseCodeDisplay}
-                        onCopyInviteLink={onCopyInviteLink}
-                        onToggleFullscreen={onToggleCodeFullscreen}
+                        onShowCodeDisplay={onShowCodeDisplay}
+                        onToggleCodeFullscreen={onToggleCodeFullscreen}
                     />
                 )}
 
@@ -730,7 +713,18 @@ const ClassCodeDisplay = ({
                             data-testid="classroom-code-display-copy-link"
                             onClick={handleCopy}
                         >
-                            {'□ '}
+                            <svg
+                                fill="none"
+                                height="16"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                                width="16"
+                            >
+                                <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            {' '}
                             <FormattedMessage
                                 defaultMessage="Copy invite link"
                                 description="Button to copy classroom invite link"
@@ -742,7 +736,19 @@ const ClassCodeDisplay = ({
                             data-testid="classroom-code-display-shrink"
                             onClick={onToggleFullscreen}
                         >
-                            {'⊟'}
+                            <svg
+                                fill="none"
+                                height="16"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                                width="16"
+                            >
+                                <path d="M4 14h6v6" />
+                                <path d="M20 10h-6V4" />
+                                <path d="M14 10l7-7" />
+                                <path d="M3 21l7-7" />
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -756,6 +762,17 @@ const ClassCodeDisplay = ({
             className={styles.codeDisplay}
             data-testid="classroom-phase-teacher-code-display"
         >
+            <button
+                className={styles.backLink}
+                onClick={onClose}
+            >
+                {'<'}{' '}
+                <FormattedMessage
+                    defaultMessage="Back"
+                    description="Back button"
+                    id="gui.classroom.back"
+                />
+            </button>
             <div className={styles.codeDisplayTitle}>
                 <FormattedMessage
                     defaultMessage="Class Code"
@@ -789,7 +806,18 @@ const ClassCodeDisplay = ({
                         data-testid="classroom-code-display-copy-link"
                         onClick={handleCopy}
                     >
-                        {'□ '}
+                        <svg
+                            fill="none"
+                            height="16"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                            width="16"
+                        >
+                            <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        {' '}
                         <FormattedMessage
                             defaultMessage="Copy invite link"
                             description="Button to copy classroom invite link"
@@ -840,7 +868,7 @@ ErrorDisplay.propTypes = {
     errorTitle: PropTypes.string,
 };
 
-// Teacher class detail with seat grid
+// Teacher class detail with two-pane layout
 const TeacherClassDetail = ({
     selectedClassroom,
     members,
@@ -854,8 +882,15 @@ const TeacherClassDetail = ({
     onDeleteClassroom,
     onOpenSubmission,
     onRefresh,
+    onShowCodeDisplay,
+    onCloseCodeDisplay,
+    onCopyInviteLink,
+    onToggleCodeFullscreen,
+    codeDisplayClassroom,
+    codeDisplayFullscreen,
 }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showCodeDisplay, setShowCodeDisplay] = useState(false);
 
     const memberMap = React.useMemo(() => {
         const map = {};
@@ -895,254 +930,330 @@ const TeacherClassDetail = ({
         [onOpenSubmission],
     );
 
+    const handleShowCode = useCallback(() => {
+        setShowCodeDisplay(true);
+        onShowCodeDisplay(selectedClassroom.classroomId);
+    }, [onShowCodeDisplay, selectedClassroom]);
+
+    const handleCloseCode = useCallback(() => {
+        setShowCodeDisplay(false);
+        onCloseCodeDisplay();
+    }, [onCloseCodeDisplay]);
+
     const joinedCount = members.length;
     const totalCount = selectedClassroom.studentCount;
 
     return (
-        <div data-testid="classroom-phase-teacher-detail">
-            <button
-                className={styles.backLink}
-                data-testid="classroom-back"
-                onClick={onBack}
-            >
-                {'<'}{' '}
-                <FormattedMessage
-                    defaultMessage="Back"
-                    description="Back button"
-                    id="gui.classroom.back"
-                />
-            </button>
-            <div
-                className={styles.phaseTitle}
-                data-testid="classroom-detail-name"
-            >
-                {selectedClassroom.className}
-            </div>
-            <div className={styles.joinCodeDisplay}>
-                <span className={styles.joinCodeLabel}>
-                    <FormattedMessage
-                        defaultMessage="Join Code"
-                        description="Join code label"
-                        id="gui.classroom.joinCode.label"
-                    />{': '}
-                </span>
-                <span
-                    className={styles.joinCodeValue}
-                    data-testid="classroom-detail-join-code"
-                >
-                    {selectedClassroom.joinCode}
-                </span>
-            </div>
-            <div className={styles.membersHeader}>
-                <div className={styles.phaseTitle} style={{ marginBottom: 0 }}>
-                    <FormattedMessage
-                        defaultMessage="Members"
-                        description="Members list title"
-                        id="gui.classroom.members.title"
+        <div className={styles.detailLayout} data-testid="classroom-phase-teacher-detail">
+            {showCodeDisplay ? (
+                codeDisplayFullscreen ? (
+                    <ClassCodeDisplay
+                        classroom={codeDisplayClassroom || selectedClassroom}
+                        isFullscreen
+                        onClose={handleCloseCode}
+                        onCopyInviteLink={onCopyInviteLink}
+                        onToggleFullscreen={onToggleCodeFullscreen}
                     />
-                </div>
-                <div className={styles.membersHeaderRight}>
-                    <span
-                        className={styles.membersCount}
-                        data-testid="classroom-members-count"
-                    >
-                        {joinedCount} / {totalCount}
-                    </span>
-                    <button
-                        className={styles.refreshButton}
-                        data-testid="classroom-refresh"
-                        disabled={isLoading}
-                        onClick={onRefresh}
-                    >
-                        {'↻'}
-                    </button>
-                </div>
-            </div>
-            {isLoading && (
-                <div className={styles.loading} data-testid="classroom-loading">
-                    <FormattedMessage
-                        defaultMessage="Loading..."
-                        description="Loading indicator"
-                        id="gui.classroom.loading"
-                    />
-                </div>
-            )}
-            {!isLoading && (
-                <React.Fragment>
-                    <div
-                        className={styles.membersGrid}
-                        data-testid="classroom-members-grid"
-                    >
-                        {Array.from({ length: totalCount }, (_, i) => {
-                            const seatNum = i + 1;
-                            const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
-                            const member = memberMap[memberId];
-                            const isSelected = selectedMember === memberId;
-                            const hasSubmission = member && member.hasSubmission;
-                            let cellColorClass = styles.memberCellEmpty;
-                            if (member) {
-                                cellColorClass = hasSubmission
-                                    ? styles.memberCellSubmitted
-                                    : styles.memberCellJoined;
-                            }
-                            const cellClass = `${styles.memberCell} ${cellColorClass} ${isSelected ? styles.memberCellSelected : ''}`;
-                            return (
-                                <button
-                                    className={cellClass}
-                                    data-member-id={memberId}
-                                    data-testid={`classroom-member-${memberId}`}
-                                    key={memberId}
-                                    onClick={member ? handleCellClick : null}
-                                >
-                                    {hasSubmission ? `✓${seatNum}` : seatNum}
-                                </button>
-                            );
-                        })}
-                    </div>
-                    {selectedMember && memberMap[selectedMember] && (
-                        <div
-                            className={styles.memberDetailPopup}
-                            data-testid="classroom-member-detail"
+                ) : (
+                    <div>
+                        <button
+                            className={styles.backLink}
+                            onClick={handleCloseCode}
                         >
-                            <div className={styles.memberDetailInfo}>
-                                <span
-                                    className={styles.memberDetailSeat}
-                                    data-testid="classroom-member-detail-seat"
-                                >
-                                    {selectedMember}
-                                </span>
-                                <span data-testid="classroom-member-detail-name">
-                                    {memberMap[selectedMember].displayName || '-'}
-                                </span>
-                                {memberMap[selectedMember].hasSubmission && (
-                                    <span
-                                        className={styles.submissionBadge}
-                                        data-testid="classroom-member-detail-submitted"
-                                    >
-                                        {'✓ '}
-                                        {new Date(memberMap[selectedMember].submittedAt).toLocaleTimeString()}
-                                    </span>
-                                )}
-                                <button
-                                    className={styles.deleteButton}
-                                    data-member-id={selectedMember}
-                                    data-testid="classroom-member-remove"
-                                    onClick={onDeleteMember}
-                                >
+                            {'<'}{' '}
+                            <FormattedMessage
+                                defaultMessage="Back"
+                                description="Back button"
+                                id="gui.classroom.back"
+                            />
+                        </button>
+                        <ClassCodeDisplay
+                            classroom={codeDisplayClassroom || selectedClassroom}
+                            onClose={handleCloseCode}
+                            onCopyInviteLink={onCopyInviteLink}
+                            onToggleFullscreen={onToggleCodeFullscreen}
+                        />
+                    </div>
+                )
+            ) : (
+                <React.Fragment>
+                    <div className={styles.detailTwoPaneLayout}>
+                        {/* Left pane */}
+                        <div className={styles.detailLeftPane}>
+                            <button
+                                className={styles.backLink}
+                                data-testid="classroom-back"
+                                onClick={onBack}
+                            >
+                                {'<'}{' '}
+                                <FormattedMessage
+                                    defaultMessage="Back"
+                                    description="Back button"
+                                    id="gui.classroom.back"
+                                />
+                            </button>
+                            <div
+                                className={styles.phaseTitle}
+                                data-testid="classroom-detail-name"
+                            >
+                                {selectedClassroom.className}
+                            </div>
+
+                            {/* Join code with expand button */}
+                            <div className={styles.joinCodeDisplay}>
+                                <span className={styles.joinCodeLabel}>
                                     <FormattedMessage
-                                        defaultMessage="Remove"
-                                        description="Remove member button"
-                                        id="gui.classroom.members.remove"
-                                    />
+                                        defaultMessage="Join Code"
+                                        description="Join code label"
+                                        id="gui.classroom.joinCode.label"
+                                    />{': '}
+                                </span>
+                                <span
+                                    className={styles.joinCodeValue}
+                                    data-testid="classroom-detail-join-code"
+                                >
+                                    {selectedClassroom.joinCode.toLowerCase()}
+                                </span>
+                                <button
+                                    className={styles.expandIconButton}
+                                    data-testid="classroom-detail-expand-code"
+                                    onClick={handleShowCode}
+                                >
+                                    {'⛶'}
                                 </button>
                             </div>
-                            {memberMap[selectedMember].hasSubmission && (
-                                <div className={styles.submissionDetail}>
-                                    {memberMap[selectedMember].thumbnailUrl && (
-                                        <img
-                                            alt="Submission thumbnail"
-                                            className={styles.submissionThumbnail}
-                                            data-testid="classroom-member-detail-thumbnail"
-                                            src={memberMap[selectedMember].thumbnailUrl}
-                                        />
-                                    )}
-                                    <div className={styles.submissionActions}>
-                                        {memberMap[selectedMember].projectName && (
-                                            <span
-                                                className={styles.submissionProjectName}
-                                                data-testid="classroom-member-detail-project-name"
-                                            >
-                                                {memberMap[selectedMember].projectName}
-                                            </span>
-                                        )}
-                                        {memberMap[selectedMember].projectUrl && (
+
+                            {/* Members header + grid */}
+                            <div className={styles.membersHeader}>
+                                <div className={styles.phaseTitle} style={{ marginBottom: 0 }}>
+                                    <FormattedMessage
+                                        defaultMessage="Members"
+                                        description="Members list title"
+                                        id="gui.classroom.members.title"
+                                    />
+                                </div>
+                                <div className={styles.membersHeaderRight}>
+                                    <span
+                                        className={styles.membersCount}
+                                        data-testid="classroom-members-count"
+                                    >
+                                        {joinedCount} / {totalCount}
+                                    </span>
+                                    <button
+                                        className={styles.refreshButton}
+                                        data-testid="classroom-refresh"
+                                        disabled={isLoading}
+                                        onClick={onRefresh}
+                                    >
+                                        {'↻'}
+                                    </button>
+                                </div>
+                            </div>
+                            {isLoading && (
+                                <div className={styles.loading} data-testid="classroom-loading">
+                                    <FormattedMessage
+                                        defaultMessage="Loading..."
+                                        description="Loading indicator"
+                                        id="gui.classroom.loading"
+                                    />
+                                </div>
+                            )}
+                            {!isLoading && (
+                                <div
+                                    className={styles.membersGrid}
+                                    data-testid="classroom-members-grid"
+                                >
+                                    {Array.from({ length: totalCount }, (_, i) => {
+                                        const seatNum = i + 1;
+                                        const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
+                                        const member = memberMap[memberId];
+                                        const isSelected = selectedMember === memberId;
+                                        const hasSubmission = member && member.hasSubmission;
+                                        let cellColorClass = styles.memberCellEmpty;
+                                        if (member) {
+                                            cellColorClass = hasSubmission
+                                                ? styles.memberCellSubmitted
+                                                : styles.memberCellJoined;
+                                        }
+                                        const cellClass = `${styles.memberCell} ${cellColorClass} ${isSelected ? styles.memberCellSelected : ''}`;
+                                        return (
                                             <button
-                                                className={styles.primaryButton}
-                                                data-project-url={memberMap[selectedMember].projectUrl}
-                                                data-testid="classroom-member-detail-open"
-                                                disabled={isLoading}
-                                                onClick={handleOpenClick}
+                                                className={cellClass}
+                                                data-member-id={memberId}
+                                                data-testid={`classroom-member-${memberId}`}
+                                                key={memberId}
+                                                onClick={member ? handleCellClick : null}
+                                            >
+                                                {hasSubmission ? `✓${seatNum}` : seatNum}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Delete classroom */}
+                            <div className={styles.detailFooter}>
+                                <ErrorDisplay error={error} errorTitle={errorTitle} />
+                                {showDeleteConfirm ? (
+                                    <div className={styles.deleteConfirmBox}>
+                                        <div className={styles.deleteConfirmMessage}>
+                                            <FormattedMessage
+                                                defaultMessage="Are you sure you want to delete this classroom? All members will be removed."
+                                                description="Delete classroom confirmation message"
+                                                id="gui.classroom.teacherDetail.deleteConfirm"
+                                            />
+                                        </div>
+                                        <div className={styles.buttonRow}>
+                                            <button
+                                                className={styles.secondaryButton}
+                                                data-testid="classroom-delete-cancel"
+                                                onClick={handleDeleteCancel}
                                             >
                                                 <FormattedMessage
-                                                    defaultMessage="Open in Smalruby"
-                                                    description="Open student submission button"
-                                                    id="gui.classroom.teacherDetail.openSubmission"
+                                                    defaultMessage="Cancel"
+                                                    description="Cancel delete classroom button"
+                                                    id="gui.classroom.teacherDetail.cancelDelete"
                                                 />
                                             </button>
-                                        )}
+                                            <button
+                                                className={styles.dangerButton}
+                                                data-testid="classroom-delete-confirm"
+                                                onClick={handleDeleteConfirm}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Delete"
+                                                    description="Confirm delete classroom button"
+                                                    id="gui.classroom.teacherDetail.delete"
+                                                />
+                                            </button>
+                                        </div>
                                     </div>
+                                ) : (
+                                    <button
+                                        className={styles.dangerButton}
+                                        data-testid="classroom-delete-classroom"
+                                        disabled={isLoading}
+                                        onClick={handleDeleteClick}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Delete Classroom"
+                                            description="Delete classroom button"
+                                            id="gui.classroom.teacherDetail.deleteClassroom"
+                                        />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Right pane - member detail */}
+                        <div className={styles.detailRightPane}>
+                            {selectedMember && memberMap[selectedMember] ? (
+                                <div
+                                    className={styles.memberDetailPanel}
+                                    data-testid="classroom-member-detail"
+                                >
+                                    <div className={styles.memberDetailHeader}>
+                                        <span
+                                            className={styles.memberDetailSeat}
+                                            data-testid="classroom-member-detail-seat"
+                                        >
+                                            {selectedMember}
+                                        </span>
+                                        <span data-testid="classroom-member-detail-name">
+                                            {memberMap[selectedMember].displayName || '-'}
+                                        </span>
+                                        {memberMap[selectedMember].hasSubmission && (
+                                            <span
+                                                className={styles.submissionBadge}
+                                                data-testid="classroom-member-detail-submitted"
+                                            >
+                                                {'✓ '}
+                                                {new Date(memberMap[selectedMember].submittedAt).toLocaleTimeString()}
+                                            </span>
+                                        )}
+                                        <button
+                                            className={styles.deleteButton}
+                                            data-member-id={selectedMember}
+                                            data-testid="classroom-member-remove"
+                                            onClick={onDeleteMember}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Remove"
+                                                description="Remove member button"
+                                                id="gui.classroom.members.remove"
+                                            />
+                                        </button>
+                                    </div>
+                                    {memberMap[selectedMember].hasSubmission && (
+                                        <div className={styles.memberDetailBody}>
+                                            {memberMap[selectedMember].thumbnailUrl && (
+                                                <img
+                                                    alt="Submission thumbnail"
+                                                    className={styles.memberDetailThumbnailLarge}
+                                                    data-testid="classroom-member-detail-thumbnail"
+                                                    src={memberMap[selectedMember].thumbnailUrl}
+                                                />
+                                            )}
+                                            {memberMap[selectedMember].projectName && (
+                                                <span
+                                                    className={styles.submissionProjectName}
+                                                    data-testid="classroom-member-detail-project-name"
+                                                >
+                                                    {memberMap[selectedMember].projectName}
+                                                </span>
+                                            )}
+                                            {memberMap[selectedMember].projectUrl && (
+                                                <button
+                                                    className={styles.primaryButton}
+                                                    data-project-url={memberMap[selectedMember].projectUrl}
+                                                    data-testid="classroom-member-detail-open"
+                                                    disabled={isLoading}
+                                                    onClick={handleOpenClick}
+                                                >
+                                                    <FormattedMessage
+                                                        defaultMessage="Open in Smalruby"
+                                                        description="Open student submission button"
+                                                        id="gui.classroom.teacherDetail.openSubmission"
+                                                    />
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className={styles.memberDetailEmpty}>
+                                    <FormattedMessage
+                                        defaultMessage="Select a member"
+                                        description="Prompt to select a member in class detail"
+                                        id="gui.classroom.teacherDetail.selectMember"
+                                    />
                                 </div>
                             )}
                         </div>
-                    )}
+                    </div>
                 </React.Fragment>
             )}
-            <div className={styles.detailFooter}>
-                <ErrorDisplay error={error} errorTitle={errorTitle} />
-                {showDeleteConfirm ? (
-                    <div className={styles.deleteConfirmBox}>
-                        <div className={styles.deleteConfirmMessage}>
-                            <FormattedMessage
-                                defaultMessage="Are you sure you want to delete this classroom? All members will be removed."
-                                description="Delete classroom confirmation message"
-                                id="gui.classroom.teacherDetail.deleteConfirm"
-                            />
-                        </div>
-                        <div className={styles.buttonRow}>
-                            <button
-                                className={styles.secondaryButton}
-                                data-testid="classroom-delete-cancel"
-                                onClick={handleDeleteCancel}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Cancel"
-                                    description="Cancel submit button"
-                                    id="gui.classroom.submitConfirm.cancel"
-                                />
-                            </button>
-                            <button
-                                className={styles.dangerButton}
-                                data-testid="classroom-delete-confirm"
-                                onClick={handleDeleteConfirm}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Delete"
-                                    description="Confirm delete classroom button"
-                                    id="gui.classroom.teacherDetail.delete"
-                                />
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <button
-                        className={styles.dangerButton}
-                        data-testid="classroom-delete-classroom"
-                        disabled={isLoading}
-                        onClick={handleDeleteClick}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Delete Classroom"
-                            description="Delete classroom button"
-                            id="gui.classroom.teacherDetail.deleteClassroom"
-                        />
-                    </button>
-                )}
-            </div>
         </div>
     );
 };
 
 TeacherClassDetail.propTypes = {
+    codeDisplayClassroom: PropTypes.object,
+    codeDisplayFullscreen: PropTypes.bool,
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     members: PropTypes.arrayOf(PropTypes.object).isRequired,
     onBack: PropTypes.func.isRequired,
+    onCloseCodeDisplay: PropTypes.func.isRequired,
+    onCopyInviteLink: PropTypes.func.isRequired,
     onDeleteClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
     onOpenSubmission: PropTypes.func.isRequired,
     onRefresh: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
+    onShowCodeDisplay: PropTypes.func.isRequired,
+    onToggleCodeFullscreen: PropTypes.func.isRequired,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };

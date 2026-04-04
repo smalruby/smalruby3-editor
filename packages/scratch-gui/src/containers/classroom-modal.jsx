@@ -65,6 +65,9 @@ const translateError = (intl, err, context = 'general') => {
     );
 };
 
+// Persists teacher login across modal close/open within same page session
+let _cachedTeacherIdToken = null;
+
 const ClassroomModal = () => {
     const dispatch = useDispatch();
     const intl = useIntl();
@@ -76,6 +79,9 @@ const ClassroomModal = () => {
         if (classroomState.role === 'student' && classroomState.sessionToken) {
             return 'student-status';
         }
+        if (_cachedTeacherIdToken) {
+            return 'teacher-dashboard';
+        }
         return 'role-select';
     };
 
@@ -86,7 +92,7 @@ const ClassroomModal = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     // Teacher state
-    const [idToken, setIdToken] = useState(null);
+    const [idToken, setIdToken] = useState(_cachedTeacherIdToken);
     const [classrooms, setClassrooms] = useState([]);
     const [selectedClassroom, setSelectedClassroom] = useState(null);
     const [members, setMembers] = useState([]);
@@ -108,6 +114,11 @@ const ClassroomModal = () => {
 
     // Refresh timer for teacher detail
     const refreshTimerRef = useRef(null);
+
+    // Sync teacher token to module-level cache
+    useEffect(() => {
+        _cachedTeacherIdToken = idToken;
+    }, [idToken]);
 
     const handleClose = useCallback(() => {
         dispatch(closeClassroomModal());
@@ -194,6 +205,7 @@ const ClassroomModal = () => {
     // --- Teacher: Logout ---
 
     const handleTeacherLogout = useCallback(() => {
+        _cachedTeacherIdToken = null;
         setIdToken(null);
         setClassrooms([]);
         setSelectedClassroom(null);
@@ -345,6 +357,8 @@ const ClassroomModal = () => {
         clearError();
         setSelectedClassroom(null);
         setMembers([]);
+        setCodeDisplayClassroom(null);
+        setCodeDisplayFullscreen(false);
         if (idToken) {
             setPhase('teacher-dashboard');
         } else {
@@ -395,22 +409,16 @@ const ClassroomModal = () => {
 
     // --- Teacher: Show code display ---
 
-    const handleShowCodeDisplay = useCallback(
-        classroomId => {
-            const classroom = classrooms.find(c => c.classroomId === classroomId);
-            if (classroom) {
-                setCodeDisplayClassroom(classroom);
-                setCodeDisplayFullscreen(false);
-                setPhase('teacher-code-display');
-            }
-        },
-        [classrooms],
-    );
+    const handleShowCodeDisplay = useCallback(() => {
+        if (selectedClassroom) {
+            setCodeDisplayClassroom(selectedClassroom);
+            setCodeDisplayFullscreen(false);
+        }
+    }, [selectedClassroom]);
 
     const handleCloseCodeDisplay = useCallback(() => {
         setCodeDisplayClassroom(null);
         setCodeDisplayFullscreen(false);
-        setPhase('teacher-dashboard');
     }, []);
 
     const handleToggleCodeFullscreen = useCallback(() => {

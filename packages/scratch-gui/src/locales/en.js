@@ -89,9 +89,11 @@ export default {
     'gui.classroom.error.classroomInactive': 'This classroom is no longer active.',
     'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
     'gui.classroom.teacherDetail.openSubmission': 'Open in Smalruby',
+    'gui.classroom.teacherDetail.cancelDelete': 'Cancel',
     'gui.classroom.codeDisplay.title': 'Class Code',
     'gui.classroom.codeDisplay.copyLink': 'Copy invite link',
     'gui.classroom.codeDisplay.copied': 'Copied',
+    'gui.classroom.teacherDetail.selectMember': 'Select a member',
     'gui.classroom.loading': 'Loading...',
     'gui.smalruby3.menuBar.generateRubyFromCode': 'Generate Ruby from Code',
     'gui.smalruby3.unsupportedBrowser.notRecommended':
