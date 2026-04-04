@@ -101,12 +101,7 @@ class ClassroomAPI {
      * @returns {Promise<object>} Submission data with upload URLs
      */
     async createSubmission(sessionToken, classroomId, projectName) {
-        return this._request(
-            'POST',
-            `/classrooms/${classroomId}/submissions`,
-            { projectName },
-            sessionToken,
-        );
+        return this._request('POST', `/classrooms/${classroomId}/submissions`, { projectName }, sessionToken);
     }
 
     /**

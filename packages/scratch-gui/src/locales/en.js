@@ -72,8 +72,7 @@ export default {
     'gui.classroom.studentStatus.leave': 'Leave Classroom',
     'gui.classroom.studentStatus.close': 'Close',
     'gui.classroom.submitConfirm.title': 'Submit your project',
-    'gui.classroom.submitConfirm.message':
-        'Are you sure you want to submit your current project?',
+    'gui.classroom.submitConfirm.message': 'Are you sure you want to submit your current project?',
     'gui.classroom.submitConfirm.cancel': 'Cancel',
     'gui.classroom.submitConfirm.submit': 'Submit',
     'gui.classroom.submitConfirm.submitting': 'Submitting...',

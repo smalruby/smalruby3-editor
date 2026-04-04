@@ -3,13 +3,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
+import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import {
     closeClassroomModal,
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
 } from '../reducers/classroom.js';
-import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
@@ -320,11 +320,7 @@ const ClassroomModal = () => {
 
             // 2. Upload .sb3
             const sb3Data = await vm.saveProjectSb3();
-            await classroomAPI.uploadToPresignedUrl(
-                submissionData.uploadUrl,
-                sb3Data,
-                'application/octet-stream',
-            );
+            await classroomAPI.uploadToPresignedUrl(submissionData.uploadUrl, sb3Data, 'application/octet-stream');
 
             // 3. Upload thumbnail
             if (thumbnailDataUrl) {

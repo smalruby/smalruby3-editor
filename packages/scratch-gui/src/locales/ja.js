@@ -68,8 +68,7 @@ export default {
     'gui.classroom.studentStatus.leave': '退出する',
     'gui.classroom.studentStatus.close': '閉じる',
     'gui.classroom.submitConfirm.title': '作品を提出します',
-    'gui.classroom.submitConfirm.message':
-        '現在のプロジェクトを提出してよろしいですか？',
+    'gui.classroom.submitConfirm.message': '現在のプロジェクトを提出してよろしいですか？',
     'gui.classroom.submitConfirm.cancel': 'キャンセル',
     'gui.classroom.submitConfirm.submit': '提出する',
     'gui.classroom.submitConfirm.submitting': '提出中...',

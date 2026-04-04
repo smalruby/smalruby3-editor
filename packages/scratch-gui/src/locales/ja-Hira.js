@@ -68,8 +68,7 @@ export default {
     'gui.classroom.studentStatus.leave': 'たいしゅつする',
     'gui.classroom.studentStatus.close': 'とじる',
     'gui.classroom.submitConfirm.title': 'さくひんをていしゅつします',
-    'gui.classroom.submitConfirm.message':
-        'いまのプロジェクトをていしゅつしてよいですか？',
+    'gui.classroom.submitConfirm.message': 'いまのプロジェクトをていしゅつしてよいですか？',
     'gui.classroom.submitConfirm.cancel': 'キャンセル',
     'gui.classroom.submitConfirm.submit': 'ていしゅつする',
     'gui.classroom.submitConfirm.submitting': 'ていしゅつちゅう...',
