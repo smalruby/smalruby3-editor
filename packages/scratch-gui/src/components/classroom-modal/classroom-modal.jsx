@@ -1366,7 +1366,7 @@ const StudentJoinForm = ({ error, errorTitle, isLoading, onBack, onJoin }) => {
     const [code, setCode] = React.useState('');
 
     const handleCodeChange = useCallback((e) => {
-        setCode(e.target.value.toUpperCase());
+        setCode(e.target.value.toLowerCase());
     }, []);
 
     const handleSubmit = useCallback(() => {
