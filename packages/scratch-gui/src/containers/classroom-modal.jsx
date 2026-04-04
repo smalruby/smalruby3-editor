@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
@@ -114,6 +115,7 @@ const ClassroomModal = () => {
     // Code display state
     const [codeDisplayClassroom, setCodeDisplayClassroom] = useState(null);
     const [codeDisplayFullscreen, setCodeDisplayFullscreen] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState(null); // { current, total }
 
     // Refresh timer for teacher detail
     const refreshTimerRef = useRef(null);
@@ -714,6 +716,76 @@ const ClassroomModal = () => {
         [idToken, selectedClassroom, clearError, showError, intl, loadClassroomDetail],
     );
 
+    // --- Teacher: Download all submissions as ZIP ---
+
+    const handleDownloadAll = useCallback(async () => {
+        if (!selectedClassroom || !members || members.length === 0) return;
+        clearError();
+
+        const submittedMembers = members.filter(m => m.hasSubmission && m.projectUrl);
+        if (submittedMembers.length === 0) return;
+
+        setDownloadProgress({ current: 0, total: submittedMembers.length });
+
+        try {
+            const zip = new JSZip();
+            const className = selectedClassroom.className || 'class';
+
+            for (let i = 0; i < submittedMembers.length; i++) {
+                const m = submittedMembers[i];
+                setDownloadProgress({ current: i + 1, total: submittedMembers.length });
+
+                const seatLabel = m.memberId.replace('seat-', '');
+                const name = m.displayName || '';
+                const folderName = name ? `${seatLabel}_${name}` : seatLabel;
+                const folder = zip.folder(folderName);
+
+                // Download project .sb3
+                try {
+                    const res = await fetch(m.projectUrl);
+                    if (res.ok) folder.file(`${m.projectName || 'project'}.sb3`, await res.blob());
+                } catch {
+                    // Skip failed downloads
+                }
+
+                // Download thumbnail
+                if (m.thumbnailUrl) {
+                    try {
+                        const res = await fetch(m.thumbnailUrl);
+                        if (res.ok) folder.file('thumbnail.png', await res.blob());
+                    } catch {
+                        // Skip
+                    }
+                }
+
+                // Download screenshots
+                for (let si = 0; si < (m.screenshotUrls || []).length; si++) {
+                    try {
+                        const res = await fetch(m.screenshotUrls[si]);
+                        if (res.ok) folder.file(`screenshot-${si}.png`, await res.blob());
+                    } catch {
+                        // Skip
+                    }
+                }
+            }
+
+            // Generate and download ZIP
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${className}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            showError(translateError(intl, err));
+        } finally {
+            setDownloadProgress(null);
+        }
+    }, [selectedClassroom, members, clearError, showError, intl]);
+
     // --- Classcode URL parameter auto-join ---
     useEffect(() => {
         const urlParams = getUrlParams();
@@ -768,6 +840,8 @@ const ClassroomModal = () => {
             onCreateClassroom={handleCreateClassroom}
             onDeleteClassroom={handleDeleteClassroom}
             onDeleteMember={handleDeleteMember}
+            onDownloadAll={handleDownloadAll}
+            downloadProgress={downloadProgress}
             onJoinWithCode={handleJoinWithCode}
             onLeaveClassroom={handleLeaveClassroom}
             submitProgress={submitProgress}

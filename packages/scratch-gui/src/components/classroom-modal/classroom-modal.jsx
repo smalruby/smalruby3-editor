@@ -46,6 +46,8 @@ const ClassroomModal = ({
     onOpenSubmission,
     onRefreshDetail,
     onReturnSubmission,
+    onDownloadAll,
+    downloadProgress,
     onStartSubmit,
     onConfirmSubmit,
     onCancelSubmit,
@@ -344,6 +346,8 @@ const ClassroomModal = ({
                         onOpenSubmission={onOpenSubmission}
                         onRefresh={onRefreshDetail}
                         onReturnSubmission={onReturnSubmission}
+                        onDownloadAll={onDownloadAll}
+                        downloadProgress={downloadProgress}
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
@@ -917,6 +921,8 @@ const TeacherClassDetail = ({
     onOpenSubmission,
     onRefresh,
     onReturnSubmission,
+    onDownloadAll,
+    downloadProgress,
     onShowCodeDisplay,
     onCloseCodeDisplay,
     onCopyInviteLink,
@@ -1208,18 +1214,36 @@ const TeacherClassDetail = ({
                                         </div>
                                     </div>
                                 ) : (
-                                    <button
-                                        className={styles.dangerButton}
-                                        data-testid="classroom-delete-classroom"
-                                        disabled={isLoading}
-                                        onClick={handleDeleteClick}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Delete Classroom"
-                                            description="Delete classroom button"
-                                            id="gui.classroom.teacherDetail.deleteClassroom"
-                                        />
-                                    </button>
+                                    <div className={styles.detailFooterButtons}>
+                                        <button
+                                            className={styles.dangerButton}
+                                            data-testid="classroom-delete-classroom"
+                                            disabled={isLoading}
+                                            onClick={handleDeleteClick}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Delete Classroom"
+                                                description="Delete classroom button"
+                                                id="gui.classroom.teacherDetail.deleteClassroom"
+                                            />
+                                        </button>
+                                        <button
+                                            className={styles.secondaryButton}
+                                            data-testid="classroom-download-all"
+                                            disabled={isLoading || !!downloadProgress}
+                                            onClick={onDownloadAll}
+                                        >
+                                            {downloadProgress ? (
+                                                `${downloadProgress.current}/${downloadProgress.total}`
+                                            ) : (
+                                                <FormattedMessage
+                                                    defaultMessage="Download All"
+                                                    description="Download all submissions button"
+                                                    id="gui.classroom.teacherDetail.downloadAll"
+                                                />
+                                            )}
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -1390,6 +1414,11 @@ TeacherClassDetail.propTypes = {
     onCopyInviteLink: PropTypes.func.isRequired,
     onDeleteClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
+    onDownloadAll: PropTypes.func.isRequired,
+    downloadProgress: PropTypes.shape({
+        current: PropTypes.number,
+        total: PropTypes.number,
+    }),
     onOpenSubmission: PropTypes.func.isRequired,
     onRefresh: PropTypes.func.isRequired,
     onReturnSubmission: PropTypes.func.isRequired,
@@ -1613,6 +1642,11 @@ ClassroomModal.propTypes = {
     onCreateClassroom: PropTypes.func.isRequired,
     onDeleteClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
+    onDownloadAll: PropTypes.func.isRequired,
+    downloadProgress: PropTypes.shape({
+        current: PropTypes.number,
+        total: PropTypes.number,
+    }),
     onJoinWithCode: PropTypes.func.isRequired,
     onLeaveClassroom: PropTypes.func.isRequired,
     onOpenSubmission: PropTypes.func.isRequired,

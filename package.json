@@ -57,5 +57,8 @@
     "npm": "10.9.5",
     "serialport": "^13.0.0",
     "ts-node": "10.9.2"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
   }
 }

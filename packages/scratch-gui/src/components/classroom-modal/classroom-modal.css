@@ -638,6 +638,12 @@
     border-top: 1px solid #e0e0e0;
 }
 
+.detail-footer-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 .delete-confirm-box {
     background-color: #fff0f3;
     border: 1px solid #ff6680;
