@@ -639,9 +639,23 @@ const ClassroomModal = () => {
                 screenshotBlobs.length,
             );
 
-            // 3. Upload .sb3
+            // 3. Upload .sb3 (with size check)
             setSubmitProgress({ current: 0, total: 1, label: 'project' });
             const sb3Data = await vm.saveProjectSb3();
+            const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+            if (sb3Data.byteLength > MAX_FILE_SIZE) {
+                const sizeMB = (sb3Data.byteLength / (1024 * 1024)).toFixed(1);
+                throw new Error(
+                    intl.formatMessage(
+                        {
+                            defaultMessage: 'Project is too large ({size}MB). Maximum size is 10MB.',
+                            description: 'File too large error',
+                            id: 'gui.classroom.error.fileTooLarge',
+                        },
+                        { size: sizeMB },
+                    ),
+                );
+            }
             await classroomAPI.uploadToPresignedUrl(submissionData.uploadUrl, sb3Data, 'application/octet-stream');
 
             // 4. Upload thumbnail
