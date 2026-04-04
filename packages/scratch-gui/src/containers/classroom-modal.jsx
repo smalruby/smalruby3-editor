@@ -5,6 +5,7 @@ import ClassroomModalComponent from '../components/classroom-modal/classroom-mod
 import classroomAPI from '../lib/classroom-api.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
+import { getUrlParams } from '../lib/url-params.js';
 import {
     closeClassroomModal,
     setClassroomSession,
@@ -100,6 +101,10 @@ const ClassroomModal = () => {
 
     // Submission state
     const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
+
+    // Code display state
+    const [codeDisplayClassroom, setCodeDisplayClassroom] = useState(null);
+    const [codeDisplayFullscreen, setCodeDisplayFullscreen] = useState(false);
 
     // Refresh timer for teacher detail
     const refreshTimerRef = useRef(null);
@@ -388,6 +393,48 @@ const ClassroomModal = () => {
         [vm, dispatch, clearError, showError, intl],
     );
 
+    // --- Teacher: Show code display ---
+
+    const handleShowCodeDisplay = useCallback(
+        classroomId => {
+            const classroom = classrooms.find(c => c.classroomId === classroomId);
+            if (classroom) {
+                setCodeDisplayClassroom(classroom);
+                setCodeDisplayFullscreen(false);
+                setPhase('teacher-code-display');
+            }
+        },
+        [classrooms],
+    );
+
+    const handleCloseCodeDisplay = useCallback(() => {
+        setCodeDisplayClassroom(null);
+        setCodeDisplayFullscreen(false);
+        setPhase('teacher-dashboard');
+    }, []);
+
+    const handleToggleCodeFullscreen = useCallback(() => {
+        setCodeDisplayFullscreen(prev => !prev);
+    }, []);
+
+    const handleCopyInviteLink = useCallback(classroom => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('classcode', classroom.joinCode.toLowerCase());
+        // Ensure features=classroom is included
+        const features = url.searchParams.get('features') || '';
+        if (
+            !features
+                .split(',')
+                .map(f => f.trim())
+                .includes('classroom')
+        ) {
+            url.searchParams.set('features', features ? `${features},classroom` : 'classroom');
+        }
+        navigator.clipboard.writeText(url.toString()).catch(() => {
+            // Clipboard API failed, ignore silently
+        });
+    }, []);
+
     // --- Student: Join with code (validate first) ---
 
     const handleJoinWithCode = useCallback(
@@ -556,6 +603,33 @@ const ClassroomModal = () => {
         setPhase('student-status');
     }, []);
 
+    // --- Classcode URL parameter auto-join ---
+    useEffect(() => {
+        const urlParams = getUrlParams();
+        if (!urlParams.classcode) return;
+
+        const code = urlParams.classcode; // already uppercased by url-params.js
+
+        // Clear classcode from URL to prevent re-trigger
+        const url = new URL(window.location.href);
+        url.searchParams.delete('classcode');
+        window.history.replaceState({}, '', url.toString());
+
+        // If already joined to the same class
+        if (classroomState.sessionToken && classroomState.joinCode === code) {
+            setPhase('student-status');
+            return;
+        }
+
+        // If joined to a different class, leave first
+        if (classroomState.sessionToken) {
+            dispatch(clearClassroomSession());
+        }
+
+        // Start the join flow
+        handleJoinWithCode(code);
+    }, []); // Run once on mount — intentionally omit deps
+
     return (
         <ClassroomModalComponent
             classrooms={classrooms}
@@ -572,10 +646,14 @@ const ClassroomModal = () => {
             selectedSeat={selectedSeat}
             takenSeats={takenSeats}
             thumbnailDataUrl={thumbnailDataUrl}
+            codeDisplayClassroom={codeDisplayClassroom}
+            codeDisplayFullscreen={codeDisplayFullscreen}
             onBackToDashboard={handleBackToDashboard}
             onBackToRoleSelect={handleBackToRoleSelect}
+            onCloseCodeDisplay={handleCloseCodeDisplay}
             onClose={handleClose}
             onConfirmJoin={handleConfirmJoin}
+            onCopyInviteLink={handleCopyInviteLink}
             onCreateClassroom={handleCreateClassroom}
             onDeleteClassroom={handleDeleteClassroom}
             onDeleteMember={handleDeleteMember}
@@ -586,6 +664,7 @@ const ClassroomModal = () => {
             onStartSubmit={handleStartSubmit}
             onConfirmSubmit={handleConfirmSubmit}
             onCancelSubmit={handleCancelSubmit}
+            onShowCodeDisplay={handleShowCodeDisplay}
             onSelectClassroom={handleSelectClassroom}
             onSelectMember={handleSelectMember}
             onSelectSeat={handleSelectSeat}
@@ -594,6 +673,7 @@ const ClassroomModal = () => {
             onShowCreateForm={handleShowCreateForm}
             onTeacherLogin={handleTeacherLogin}
             onTeacherLogout={handleTeacherLogout}
+            onToggleCodeFullscreen={handleToggleCodeFullscreen}
         />
     );
 };

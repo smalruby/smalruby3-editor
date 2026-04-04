@@ -1,6 +1,7 @@
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
+import ReactDOM from 'react-dom';
 
 import Modal from '../../containers/modal.jsx';
 import Box from '../box/box.jsx';
@@ -52,8 +53,21 @@ const ClassroomModal = ({
     classroomState,
     selectedMember,
     onSelectMember,
+    onShowCodeDisplay,
+    onCopyInviteLink,
+    codeDisplayClassroom,
+    codeDisplayFullscreen,
+    onToggleCodeFullscreen,
+    onCloseCodeDisplay,
 }) => {
     const intl = useIntl();
+
+    const handleShowCodeDisplay = useCallback(
+        (e) => {
+            onShowCodeDisplay(e.currentTarget.dataset.classroomId);
+        },
+        [onShowCodeDisplay],
+    );
 
     const handleSelectClassroom = useCallback(
         (e) => {
@@ -220,12 +234,22 @@ const ClassroomModal = ({
                                                 >
                                                     {c.className}
                                                 </span>
-                                                <span
-                                                    className={styles.classItemCode}
-                                                    data-testid={`classroom-item-code-${c.classroomId}`}
-                                                >
-                                                    {c.joinCode}
-                                                </span>
+                                                <div className={styles.classItemCodeGroup}>
+                                                    <span
+                                                        className={styles.classItemCode}
+                                                        data-testid={`classroom-item-code-${c.classroomId}`}
+                                                    >
+                                                        {c.joinCode.toLowerCase()}
+                                                    </span>
+                                                    <button
+                                                        className={styles.expandIconButton}
+                                                        data-classroom-id={c.classroomId}
+                                                        data-testid={`classroom-item-expand-${c.classroomId}`}
+                                                        onClick={handleShowCodeDisplay}
+                                                    >
+                                                        {'⛶'}
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className={styles.classItemMeta}>
                                                 <span className={styles.classItemMetaText}>
@@ -241,6 +265,7 @@ const ClassroomModal = ({
                                                         {new Date(c.createdAt).toLocaleDateString()}
                                                     </span>
                                                 )}
+                                                <span style={{ flex: 1 }} />
                                                 <button
                                                     className={styles.secondaryButton}
                                                     data-classroom-id={c.classroomId}
@@ -315,6 +340,17 @@ const ClassroomModal = ({
                         onOpenSubmission={onOpenSubmission}
                         onRefresh={onRefreshDetail}
                         onSelectMember={onSelectMember}
+                    />
+                )}
+
+                {/* Phase: teacher-code-display */}
+                {phase === 'teacher-code-display' && codeDisplayClassroom && (
+                    <ClassCodeDisplay
+                        classroom={codeDisplayClassroom}
+                        isFullscreen={codeDisplayFullscreen}
+                        onClose={onCloseCodeDisplay}
+                        onCopyInviteLink={onCopyInviteLink}
+                        onToggleFullscreen={onToggleCodeFullscreen}
                     />
                 )}
 
@@ -636,6 +672,149 @@ const ClassroomModal = ({
             </Box>
         </Modal>
     );
+};
+
+// Class code display (normal + fullscreen)
+const ClassCodeDisplay = ({
+    classroom,
+    isFullscreen,
+    onClose,
+    onCopyInviteLink,
+    onToggleFullscreen,
+}) => {
+    const code = classroom.joinCode.toLowerCase();
+    const handleCopy = useCallback(() => {
+        onCopyInviteLink(classroom);
+    }, [classroom, onCopyInviteLink]);
+
+    if (isFullscreen) {
+        return ReactDOM.createPortal(
+            <div className={styles.codeFullscreenOverlay}>
+                <span className={styles.codeFullscreenTitle}>
+                    <FormattedMessage
+                        defaultMessage="Class Code"
+                        description="Title for class code display"
+                        id="gui.classroom.codeDisplay.title"
+                    />
+                </span>
+                <button
+                    className={styles.codeFullscreenClose}
+                    data-testid="classroom-code-display-close"
+                    onClick={onClose}
+                >
+                    {'✕'}
+                </button>
+                <div className={styles.codeFullscreenCode}>{code}</div>
+                <div className={styles.codeFullscreenFooter}>
+                    <div className={styles.codeDisplayInfo}>
+                        <span>{classroom.className}</span>
+                        <span>
+                            {classroom.studentCount}
+                            <FormattedMessage
+                                defaultMessage=" students"
+                                description="Student count suffix in class list"
+                                id="gui.classroom.teacherDashboard.studentCountSuffix"
+                            />
+                        </span>
+                        {classroom.createdAt && (
+                            <span>
+                                {new Date(
+                                    classroom.createdAt,
+                                ).toLocaleDateString()}
+                            </span>
+                        )}
+                    </div>
+                    <div className={styles.codeDisplayActions}>
+                        <button
+                            className={styles.copyLinkButton}
+                            data-testid="classroom-code-display-copy-link"
+                            onClick={handleCopy}
+                        >
+                            {'□ '}
+                            <FormattedMessage
+                                defaultMessage="Copy invite link"
+                                description="Button to copy classroom invite link"
+                                id="gui.classroom.codeDisplay.copyLink"
+                            />
+                        </button>
+                        <button
+                            className={styles.expandIconButton}
+                            data-testid="classroom-code-display-shrink"
+                            onClick={onToggleFullscreen}
+                        >
+                            {'⊟'}
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body,
+        );
+    }
+
+    return (
+        <div
+            className={styles.codeDisplay}
+            data-testid="classroom-phase-teacher-code-display"
+        >
+            <div className={styles.codeDisplayTitle}>
+                <FormattedMessage
+                    defaultMessage="Class Code"
+                    description="Title for class code display"
+                    id="gui.classroom.codeDisplay.title"
+                />
+            </div>
+            <div className={styles.codeDisplayCode}>{code}</div>
+            <div className={styles.codeDisplayFooter}>
+                <div className={styles.codeDisplayInfo}>
+                    <span>{classroom.className}</span>
+                    <span>
+                        {classroom.studentCount}
+                        <FormattedMessage
+                            defaultMessage=" students"
+                            description="Student count suffix in class list"
+                            id="gui.classroom.teacherDashboard.studentCountSuffix"
+                        />
+                    </span>
+                    {classroom.createdAt && (
+                        <span>
+                            {new Date(
+                                classroom.createdAt,
+                            ).toLocaleDateString()}
+                        </span>
+                    )}
+                </div>
+                <div className={styles.codeDisplayActions}>
+                    <button
+                        className={styles.copyLinkButton}
+                        data-testid="classroom-code-display-copy-link"
+                        onClick={handleCopy}
+                    >
+                        {'□ '}
+                        <FormattedMessage
+                            defaultMessage="Copy invite link"
+                            description="Button to copy classroom invite link"
+                            id="gui.classroom.codeDisplay.copyLink"
+                        />
+                    </button>
+                    <button
+                        className={styles.expandIconButton}
+                        data-testid="classroom-code-display-expand"
+                        onClick={onToggleFullscreen}
+                    >
+                        {'⛶'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+ClassCodeDisplay.propTypes = {
+    classroom: PropTypes.object.isRequired,
+    isFullscreen: PropTypes.bool,
+    onClose: PropTypes.func.isRequired,
+    onCopyInviteLink: PropTypes.func.isRequired,
+    onToggleFullscreen: PropTypes.func.isRequired,
 };
 
 // Reusable error display component
@@ -1160,6 +1339,8 @@ StudentJoinForm.propTypes = {
 ClassroomModal.propTypes = {
     classrooms: PropTypes.arrayOf(PropTypes.object),
     classroomState: PropTypes.object,
+    codeDisplayClassroom: PropTypes.object,
+    codeDisplayFullscreen: PropTypes.bool,
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
@@ -1172,8 +1353,10 @@ ClassroomModal.propTypes = {
     onBackToRoleSelect: PropTypes.func.isRequired,
     onCancelSubmit: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
+    onCloseCodeDisplay: PropTypes.func.isRequired,
     onConfirmJoin: PropTypes.func.isRequired,
     onConfirmSubmit: PropTypes.func.isRequired,
+    onCopyInviteLink: PropTypes.func.isRequired,
     onCreateClassroom: PropTypes.func.isRequired,
     onDeleteClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
@@ -1186,10 +1369,12 @@ ClassroomModal.propTypes = {
     onSelectSeat: PropTypes.func.isRequired,
     onSelectStudent: PropTypes.func.isRequired,
     onSelectTeacher: PropTypes.func.isRequired,
+    onShowCodeDisplay: PropTypes.func.isRequired,
     onShowCreateForm: PropTypes.func.isRequired,
     onStartSubmit: PropTypes.func.isRequired,
     onTeacherLogin: PropTypes.func.isRequired,
     onTeacherLogout: PropTypes.func.isRequired,
+    onToggleCodeFullscreen: PropTypes.func.isRequired,
     phase: PropTypes.string.isRequired,
     seatCount: PropTypes.number,
     selectedClassroom: PropTypes.object,
@@ -1201,6 +1386,8 @@ ClassroomModal.propTypes = {
 
 ClassroomModal.defaultProps = {
     classrooms: [],
+    codeDisplayClassroom: null,
+    codeDisplayFullscreen: false,
     error: null,
     errorTitle: null,
     isLoading: false,
