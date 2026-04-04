@@ -105,7 +105,16 @@ const reducer = (state, action) => {
 const openClassroomModal = () => ({ type: OPEN_MODAL });
 const closeClassroomModal = () => ({ type: CLOSE_MODAL });
 
-const setClassroomSession = ({ role, classroomId, className, joinCode, seatNumber, memberId, sessionToken, joinedAt }) => ({
+const setClassroomSession = ({
+    role,
+    classroomId,
+    className,
+    joinCode,
+    seatNumber,
+    memberId,
+    sessionToken,
+    joinedAt,
+}) => ({
     type: SET_SESSION,
     role,
     classroomId,
