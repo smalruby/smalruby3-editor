@@ -75,10 +75,7 @@ describe('classroom reducer', () => {
     });
 
     test('should set submission status to submitted', () => {
-        const state = reducer(
-            classroomInitialState,
-            setSubmissionStatus('submitted', '2026-04-04T10:00:00Z'),
-        );
+        const state = reducer(classroomInitialState, setSubmissionStatus('submitted', '2026-04-04T10:00:00Z'));
         expect(state.submissionStatus).toBe('submitted');
         expect(state.lastSubmittedAt).toBe('2026-04-04T10:00:00Z');
     });
