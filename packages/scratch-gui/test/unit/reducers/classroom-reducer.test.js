@@ -4,6 +4,7 @@ import reducer, {
     closeClassroomModal,
     setClassroomSession,
     clearClassroomSession,
+    setSubmissionStatus,
 } from '../../../src/reducers/classroom';
 
 describe('classroom reducer', () => {
@@ -71,5 +72,35 @@ describe('classroom reducer', () => {
         );
         expect(state.modalVisible).toBe(true);
         expect(state.role).toBe('student');
+    });
+
+    test('should set submission status to submitted', () => {
+        const state = reducer(classroomInitialState, setSubmissionStatus('submitted', '2026-04-04T10:00:00Z'));
+        expect(state.submissionStatus).toBe('submitted');
+        expect(state.lastSubmittedAt).toBe('2026-04-04T10:00:00Z');
+    });
+
+    test('should set submission status to returned while preserving lastSubmittedAt', () => {
+        const withSubmission = {
+            ...classroomInitialState,
+            submissionStatus: 'submitted',
+            lastSubmittedAt: '2026-04-04T10:00:00Z',
+        };
+        const state = reducer(withSubmission, setSubmissionStatus('returned'));
+        expect(state.submissionStatus).toBe('returned');
+        expect(state.lastSubmittedAt).toBe('2026-04-04T10:00:00Z');
+    });
+
+    test('should clear submission status when clearing session', () => {
+        const withSubmission = {
+            ...classroomInitialState,
+            role: 'student',
+            sessionToken: 'token',
+            submissionStatus: 'submitted',
+            lastSubmittedAt: '2026-04-04T10:00:00Z',
+        };
+        const state = reducer(withSubmission, clearClassroomSession());
+        expect(state.submissionStatus).toBeNull();
+        expect(state.lastSubmittedAt).toBeNull();
     });
 });

@@ -44,6 +44,8 @@ const MAX_PROJECT_NAME_LENGTH = 100;
 const PRESIGNED_URL_UPLOAD_EXPIRY = 15 * 60; // 15 minutes
 const PRESIGNED_URL_DOWNLOAD_EXPIRY = 60 * 60; // 1 hour
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_SCREENSHOT_COUNT = 20;
+const MAX_TEACHER_COMMENT_LENGTH = 500;
 
 // --- DynamoDB Client ---
 
@@ -638,10 +640,32 @@ export function validateProjectName(name: unknown): string {
   return trimmed;
 }
 
+export function validateScreenshotCount(count: unknown): number {
+  const n = typeof count === 'number' ? count : parseInt(String(count), 10);
+  if (isNaN(n) || n < 0) return 0;
+  if (n > MAX_SCREENSHOT_COUNT) {
+    throw new ValidationError(`Screenshot count must be ${MAX_SCREENSHOT_COUNT} or less`);
+  }
+  return n;
+}
+
+export function validateTeacherComment(comment: unknown): string {
+  if (comment === undefined || comment === null) return '';
+  if (typeof comment !== 'string') {
+    throw new ValidationError('Comment must be a string');
+  }
+  const trimmed = comment.trim();
+  if (trimmed.length > MAX_TEACHER_COMMENT_LENGTH) {
+    throw new ValidationError(`Comment must be ${MAX_TEACHER_COMMENT_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
 async function handleCreateSubmission(
   classroomId: string, memberId: string, body: Record<string, unknown>
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const projectName = validateProjectName(body.projectName);
+  const screenshotCount = validateScreenshotCount(body.screenshotCount);
   const submissionId = crypto.randomUUID();
   const now = new Date().toISOString();
 
@@ -655,8 +679,7 @@ async function handleCreateSubmission(
       Bucket: SUBMISSIONS_BUCKET,
       Key: s3KeyProject,
       ContentType: 'application/octet-stream',
-      ContentLengthRange: { Minimum: 1, Maximum: MAX_FILE_SIZE },
-    } as any),
+    }),
     { expiresIn: PRESIGNED_URL_UPLOAD_EXPIRY },
   );
 
@@ -670,6 +693,21 @@ async function handleCreateSubmission(
     { expiresIn: PRESIGNED_URL_UPLOAD_EXPIRY },
   );
 
+  // Generate presigned URLs for screenshots
+  const screenshotUploadUrls: string[] = [];
+  for (let i = 0; i < screenshotCount; i++) {
+    const ssUrl = await getSignedUrl(
+      s3Client,
+      new PutObjectCommand({
+        Bucket: SUBMISSIONS_BUCKET,
+        Key: `${classroomId}/${submissionId}/screenshot-${i}.png`,
+        ContentType: 'image/png',
+      }),
+      { expiresIn: PRESIGNED_URL_UPLOAD_EXPIRY },
+    );
+    screenshotUploadUrls.push(ssUrl);
+  }
+
   // Save submission record
   await docClient.send(new PutCommand({
     TableName: SUBMISSIONS_TABLE,
@@ -680,6 +718,7 @@ async function handleCreateSubmission(
       projectName,
       s3Key: s3KeyProject,
       thumbnailS3Key: s3KeyThumbnail,
+      screenshotCount,
       status: 'submitted',
       submittedAt: now,
       updatedAt: now,
@@ -693,6 +732,7 @@ async function handleCreateSubmission(
       submissionId,
       uploadUrl,
       thumbnailUploadUrl,
+      screenshotUploadUrls,
       projectName,
       submittedAt: now,
     }),
@@ -741,14 +781,31 @@ async function handleListSubmissions(
           { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
         );
       }
+      // Generate presigned URLs for screenshots
+      const ssCount = typeof item.screenshotCount === 'number' ? item.screenshotCount : 0;
+      const screenshotUrls: string[] = [];
+      for (let i = 0; i < ssCount; i++) {
+        const ssUrl = await getSignedUrl(
+          s3Client,
+          new GetObjectCommand({
+            Bucket: SUBMISSIONS_BUCKET,
+            Key: `${item.classroomId}/${item.submissionId}/screenshot-${i}.png`,
+          }),
+          { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+        );
+        screenshotUrls.push(ssUrl);
+      }
+
       return {
         submissionId: item.submissionId,
         memberId: item.memberId,
         projectName: item.projectName,
         status: item.status,
         submittedAt: item.submittedAt,
+        teacherComment: item.teacherComment || null,
         thumbnailUrl,
         projectUrl,
+        screenshotUrls,
       };
     })
   );
@@ -756,6 +813,75 @@ async function handleListSubmissions(
   return {
     statusCode: 200,
     body: JSON.stringify({ submissions }),
+  };
+}
+
+async function handleUpdateSubmission(
+  teacherSub: string, classroomId: string, submissionId: string, body: Record<string, unknown>
+): Promise<APIGatewayProxyStructuredResultV2> {
+  // Verify ownership
+  const classroom = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+    throw new AuthError('Not authorized to update submissions');
+  }
+
+  // Verify submission exists
+  const submission = await docClient.send(new GetCommand({
+    TableName: SUBMISSIONS_TABLE,
+    Key: { classroomId, submissionId },
+  }));
+  if (!submission.Item) {
+    throw new ValidationError('Submission not found');
+  }
+
+  const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  const exprParts: string[] = [];
+  const exprNames: Record<string, string> = {};
+  const exprValues: Record<string, unknown> = {};
+
+  if (body.teacherComment !== undefined) {
+    const comment = validateTeacherComment(body.teacherComment);
+    updates.teacherComment = comment;
+    exprParts.push('#tc = :tc');
+    exprNames['#tc'] = 'teacherComment';
+    exprValues[':tc'] = comment;
+  }
+
+  if (body.status !== undefined) {
+    if (body.status !== 'returned') {
+      throw new ValidationError('Status can only be set to "returned"');
+    }
+    updates.status = 'returned';
+    exprParts.push('#st = :st');
+    exprNames['#st'] = 'status';
+    exprValues[':st'] = 'returned';
+  }
+
+  if (exprParts.length === 0) {
+    throw new ValidationError('No fields to update');
+  }
+
+  exprParts.push('#ua = :ua');
+  exprNames['#ua'] = 'updatedAt';
+  exprValues[':ua'] = updates.updatedAt;
+
+  await docClient.send(new UpdateCommand({
+    TableName: SUBMISSIONS_TABLE,
+    Key: { classroomId, submissionId },
+    UpdateExpression: `SET ${exprParts.join(', ')}`,
+    ExpressionAttributeNames: exprNames,
+    ExpressionAttributeValues: exprValues,
+  }));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      submissionId,
+      ...updates,
+    }),
   };
 }
 
@@ -851,6 +977,13 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const teacherSub = await verifyGoogleIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleListSubmissions(teacherSub, classroomId);
+
+    } else if (method === 'PATCH' && /^\/classrooms\/[^/]+\/submissions\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyGoogleIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      const submissionId = event.pathParameters?.submissionId || '';
+      result = await handleUpdateSubmission(teacherSub, classroomId, submissionId, body);
 
     } else {
       result = { statusCode: 404, body: JSON.stringify({ error: 'Not found' }) };

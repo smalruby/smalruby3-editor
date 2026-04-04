@@ -2,6 +2,7 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
+import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
@@ -73,6 +74,7 @@ const ClassroomModal = () => {
     const intl = useIntl();
     const classroomState = useSelector(state => state.scratchGui.classroom);
     const vm = useSelector(state => state.scratchGui.vm);
+    const scratchBlocks = useSelector(state => state.scratchGui.blockDisplay?.scratchBlocks);
 
     // Determine initial phase based on persisted session
     const getInitialPhase = () => {
@@ -107,6 +109,7 @@ const ClassroomModal = () => {
 
     // Submission state
     const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
+    const [submitProgress, setSubmitProgress] = useState(null); // { current, total, label }
 
     // Code display state
     const [codeDisplayClassroom, setCodeDisplayClassroom] = useState(null);
@@ -299,9 +302,13 @@ const ClassroomModal = () => {
                     if (sub) {
                         return {
                             ...m,
+                            submissionId: sub.submissionId,
+                            submissionStatus: sub.status || 'submitted',
                             thumbnailUrl: sub.thumbnailUrl || null,
                             projectUrl: sub.projectUrl || null,
                             projectName: sub.projectName || null,
+                            screenshotUrls: sub.screenshotUrls || [],
+                            teacherComment: sub.teacherComment || '',
                         };
                     }
                     return m;
@@ -557,6 +564,63 @@ const ClassroomModal = () => {
 
     // --- Student: Confirm submit ---
 
+    /**
+     * Capture block screenshots for all targets that have blocks.
+     * Switches editing target for each, takes screenshot, overlays sprite icon.
+     * @returns {Promise<Blob[]>} Array of PNG blobs
+     */
+    const captureBlockScreenshots = useCallback(async () => {
+        if (!vm || !scratchBlocks) return [];
+
+        const workspace = scratchBlocks.getMainWorkspace();
+        if (!workspace) return [];
+
+        const originalTargetId = vm.editingTarget?.id;
+        const allTargets = vm.runtime.targets.filter(t => !t.isOriginal === false || t.isOriginal);
+        // Filter targets that have blocks (including stage)
+        const targetsWithBlocks = allTargets.filter(t => {
+            const blocks = t.blocks._blocks;
+            return blocks && Object.keys(blocks).length > 0;
+        });
+
+        const blobs = [];
+        for (let i = 0; i < targetsWithBlocks.length; i++) {
+            const target = targetsWithBlocks[i];
+            setSubmitProgress({
+                current: i + 1,
+                total: targetsWithBlocks.length,
+                label: target.sprite.name,
+            });
+
+            // Switch editing target and wait for workspace update
+            vm.setEditingTarget(target.id);
+            await new Promise(resolve => {
+                // Wait for workspace to fully update after target switch
+                setTimeout(() => requestAnimationFrame(resolve), 100);
+            });
+
+            try {
+                const costumeDataUri = target.sprite.costumes[target.currentCostume]?.asset?.encodeDataURI();
+                const canvas = await renderBlocksToCanvas(workspace, costumeDataUri);
+                if (!canvas) continue;
+
+                const blob = await new Promise(resolve => {
+                    canvas.toBlob(resolve, 'image/png');
+                });
+                if (blob) blobs.push(blob);
+            } catch {
+                // Skip sprites that fail to capture
+            }
+        }
+
+        // Restore original editing target
+        if (originalTargetId) {
+            vm.setEditingTarget(originalTargetId);
+        }
+        setSubmitProgress(null);
+        return blobs;
+    }, [vm, scratchBlocks]);
+
     const handleConfirmSubmit = useCallback(async () => {
         if (!classroomState.sessionToken || !classroomState.classroomId) return;
         clearError();
@@ -564,18 +628,23 @@ const ClassroomModal = () => {
         try {
             const projectTitle = vm.runtime.projectName || 'Untitled';
 
-            // 1. Get presigned URLs
+            // 1. Capture block screenshots
+            const screenshotBlobs = await captureBlockScreenshots();
+
+            // 2. Get presigned URLs (including screenshot URLs)
             const submissionData = await classroomAPI.createSubmission(
                 classroomState.sessionToken,
                 classroomState.classroomId,
                 projectTitle,
+                screenshotBlobs.length,
             );
 
-            // 2. Upload .sb3
+            // 3. Upload .sb3
+            setSubmitProgress({ current: 0, total: 1, label: 'project' });
             const sb3Data = await vm.saveProjectSb3();
             await classroomAPI.uploadToPresignedUrl(submissionData.uploadUrl, sb3Data, 'application/octet-stream');
 
-            // 3. Upload thumbnail
+            // 4. Upload thumbnail
             if (thumbnailDataUrl) {
                 const thumbnailBlob = await fetch(thumbnailDataUrl).then(r => r.blob());
                 await classroomAPI.uploadToPresignedUrl(
@@ -585,12 +654,23 @@ const ClassroomModal = () => {
                 );
             }
 
-            // 4. Update Redux state
+            // 5. Upload screenshots (parallel)
+            if (screenshotBlobs.length > 0 && submissionData.screenshotUploadUrls) {
+                await Promise.all(
+                    screenshotBlobs.map((blob, i) =>
+                        classroomAPI.uploadToPresignedUrl(submissionData.screenshotUploadUrls[i], blob, 'image/png'),
+                    ),
+                );
+            }
+
+            setSubmitProgress(null);
+
+            // 6. Update Redux state
             dispatch(setSubmissionStatus('submitted', submissionData.submittedAt));
             setPhase('student-status');
         } catch (err) {
+            setSubmitProgress(null);
             if (err.status === 401) {
-                // Session expired during submit
                 dispatch(clearClassroomSession());
                 const title = intl.formatMessage({
                     defaultMessage: 'An error occurred',
@@ -605,11 +685,34 @@ const ClassroomModal = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [classroomState, vm, thumbnailDataUrl, dispatch, clearError, showError, intl]);
+    }, [classroomState, vm, thumbnailDataUrl, captureBlockScreenshots, dispatch, clearError, showError, intl]);
 
     const handleCancelSubmit = useCallback(() => {
         setPhase('student-status');
     }, []);
+
+    // --- Teacher: Return submission ---
+
+    const handleReturnSubmission = useCallback(
+        async (submissionId, teacherComment) => {
+            if (!idToken || !selectedClassroom) return;
+            clearError();
+            setIsLoading(true);
+            try {
+                await classroomAPI.updateSubmission(idToken, selectedClassroom.classroomId, submissionId, {
+                    status: 'returned',
+                    teacherComment,
+                });
+                // Refresh to show updated status
+                await loadClassroomDetail(selectedClassroom.classroomId);
+            } catch (err) {
+                showError(translateError(intl, err));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken, selectedClassroom, clearError, showError, intl, loadClassroomDetail],
+    );
 
     // --- Classcode URL parameter auto-join ---
     useEffect(() => {
@@ -667,8 +770,10 @@ const ClassroomModal = () => {
             onDeleteMember={handleDeleteMember}
             onJoinWithCode={handleJoinWithCode}
             onLeaveClassroom={handleLeaveClassroom}
+            submitProgress={submitProgress}
             onOpenSubmission={handleOpenSubmission}
             onRefreshDetail={handleRefreshDetail}
+            onReturnSubmission={handleReturnSubmission}
             onStartSubmit={handleStartSubmit}
             onConfirmSubmit={handleConfirmSubmit}
             onCancelSubmit={handleCancelSubmit}

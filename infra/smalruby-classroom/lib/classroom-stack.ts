@@ -315,6 +315,12 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/submissions/{submissionId}',
+      methods: [apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
     // Throttling
     const defaultStage = this.api.defaultStage?.node.defaultChild as apigatewayv2.CfnStage;
     if (defaultStage) {

@@ -222,22 +222,98 @@ const renderSVGToCanvas = function (svgStr, width, height) {
 };
 
 /**
+ * Size of the sprite costume image drawn at the top-left of screenshots.
+ */
+const SPRITE_IMAGE_SIZE = 48;
+const SPRITE_IMAGE_GAP = 8;
+
+/**
+ * Loads an image from a data URI and returns an HTMLImageElement.
+ * @param {string} dataUri - data URI string
+ * @returns {Promise<HTMLImageElement>} Loaded image element
+ */
+const loadImage = function (dataUri) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = dataUri;
+    });
+};
+
+/**
+ * Renders workspace blocks to a canvas, optionally with a sprite costume
+ * image drawn above the blocks at the top-left.
+ * @param {object} workspace - Scratch Blocks workspace
+ * @param {string} [costumeDataUri] - Sprite costume data URI (omit to skip)
+ * @returns {Promise<HTMLCanvasElement|null>} Canvas or null if workspace is empty
+ */
+const renderBlocksToCanvas = async function (workspace, costumeDataUri) {
+    const blockBbox = getBlocksBoundingBox(workspace);
+    if (!blockBbox) return null;
+
+    const bbox = mergeWithBubbleBBox(workspace, blockBbox);
+    const scale = workspace.scale;
+    const { width: blocksWidth, height: blocksHeight } = calculateCanvasDimensions(bbox, scale);
+
+    // Calculate sprite header height
+    let spriteHeaderHeight = 0;
+    let spriteImg = null;
+    if (costumeDataUri) {
+        spriteImg = await loadImage(costumeDataUri);
+        spriteHeaderHeight = SPRITE_IMAGE_SIZE + SPRITE_IMAGE_GAP;
+    }
+
+    const totalWidth = blocksWidth;
+    const totalHeight = blocksHeight + spriteHeaderHeight;
+
+    const svgStr = await buildExportSVG(workspace, bbox, scale, blocksWidth, blocksHeight);
+
+    // Render blocks SVG to a temporary canvas
+    const blocksCanvas = await renderSVGToCanvas(svgStr, blocksWidth, blocksHeight);
+
+    // Compose final canvas: sprite image on top, blocks below
+    const canvas = document.createElement('canvas');
+    canvas.width = totalWidth;
+    canvas.height = totalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, totalWidth, totalHeight);
+
+    if (spriteImg) {
+        // Draw sprite at top-left, preserving aspect ratio within SPRITE_IMAGE_SIZE box
+        const aspectRatio = spriteImg.width / spriteImg.height;
+        let drawW = SPRITE_IMAGE_SIZE;
+        let drawH = SPRITE_IMAGE_SIZE;
+        if (aspectRatio > 1) {
+            drawH = SPRITE_IMAGE_SIZE / aspectRatio;
+        } else {
+            drawW = SPRITE_IMAGE_SIZE * aspectRatio;
+        }
+        const drawX = EXPORT_PADDING;
+        const drawY = (SPRITE_IMAGE_SIZE - drawH) / 2;
+        ctx.drawImage(spriteImg, drawX, drawY, drawW, drawH);
+    }
+
+    // Draw blocks below sprite header
+    ctx.drawImage(blocksCanvas, 0, spriteHeaderHeight);
+
+    return canvas;
+};
+
+/**
  * Downloads all blocks in the given workspace as a PNG image.
+ * If costumeDataUri is provided, the sprite image is drawn above the blocks.
  * Does nothing if the workspace contains no blocks.
  * @param {object} workspace - Scratch Blocks workspace
  * @param {string} projectTitle - Project name (used in filename)
  * @param {string} spriteName - Sprite / stage name (used in filename)
+ * @param {string} [costumeDataUri] - Sprite costume data URI
  * @returns {Promise<void>}
  */
-const downloadBlocksAsImage = async function (workspace, projectTitle, spriteName) {
-    const blockBbox = getBlocksBoundingBox(workspace);
-    if (!blockBbox) return;
-
-    const bbox = mergeWithBubbleBBox(workspace, blockBbox);
-    const scale = workspace.scale;
-    const { width, height } = calculateCanvasDimensions(bbox, scale);
-    const svgStr = await buildExportSVG(workspace, bbox, scale, width, height);
-    const canvas = await renderSVGToCanvas(svgStr, width, height);
+const downloadBlocksAsImage = async function (workspace, projectTitle, spriteName, costumeDataUri) {
+    const canvas = await renderBlocksToCanvas(workspace, costumeDataUri);
+    if (!canvas) return;
 
     return new Promise(resolve => {
         canvas.toBlob(blob => {
@@ -253,6 +329,8 @@ export {
     calculateCanvasDimensions,
     buildFilename,
     buildExportSVG,
+    renderSVGToCanvas,
+    renderBlocksToCanvas,
     inlineImageHrefs,
     downloadBlocksAsImage,
     EXPORT_PADDING,

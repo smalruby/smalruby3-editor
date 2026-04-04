@@ -86,6 +86,8 @@ export default {
     'gui.classroom.error.classroomInactive': 'このクラスはげんざいりようできません。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーでひらく',
+    'gui.classroom.teacherDetail.returnSubmission': 'へんきゃくする',
+    'gui.classroom.teacherDetail.returned': 'へんきゃくずみ',
     'gui.classroom.teacherDetail.cancelDelete': 'キャンセル',
     'gui.classroom.codeDisplay.title': 'クラスコード',
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',

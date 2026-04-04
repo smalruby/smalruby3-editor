@@ -7,6 +7,8 @@ import {
   validateNickname,
   validateJoinCode,
   validateProjectName,
+  validateTeacherComment,
+  validateScreenshotCount,
   getCorsHeaders,
 } from '../handler';
 
@@ -234,5 +236,65 @@ describe('validateProjectName', () => {
   test('should accept name at max length', () => {
     const maxName = 'a'.repeat(100);
     expect(validateProjectName(maxName)).toBe(maxName);
+  });
+});
+
+describe('validateTeacherComment', () => {
+  test('should accept valid comment', () => {
+    expect(validateTeacherComment('Good work!')).toBe('Good work!');
+  });
+
+  test('should trim whitespace', () => {
+    expect(validateTeacherComment('  nice  ')).toBe('nice');
+  });
+
+  test('should accept empty string', () => {
+    expect(validateTeacherComment('')).toBe('');
+  });
+
+  test('should return empty for null/undefined', () => {
+    expect(validateTeacherComment(null)).toBe('');
+    expect(validateTeacherComment(undefined)).toBe('');
+  });
+
+  test('should reject non-string', () => {
+    expect(() => validateTeacherComment(123)).toThrow('Comment must be a string');
+  });
+
+  test('should reject too-long comment', () => {
+    const long = 'a'.repeat(501);
+    expect(() => validateTeacherComment(long)).toThrow('500 characters or less');
+  });
+
+  test('should accept comment at max length', () => {
+    const maxComment = 'a'.repeat(500);
+    expect(validateTeacherComment(maxComment)).toBe(maxComment);
+  });
+});
+
+describe('validateScreenshotCount', () => {
+  test('should accept valid count', () => {
+    expect(validateScreenshotCount(5)).toBe(5);
+  });
+
+  test('should return 0 for undefined/null', () => {
+    expect(validateScreenshotCount(undefined)).toBe(0);
+    expect(validateScreenshotCount(null)).toBe(0);
+  });
+
+  test('should return 0 for negative', () => {
+    expect(validateScreenshotCount(-1)).toBe(0);
+  });
+
+  test('should parse string number', () => {
+    expect(validateScreenshotCount('3')).toBe(3);
+  });
+
+  test('should reject count over max', () => {
+    expect(() => validateScreenshotCount(21)).toThrow('20 or less');
+  });
+
+  test('should accept max count', () => {
+    expect(validateScreenshotCount(20)).toBe(20);
   });
 });

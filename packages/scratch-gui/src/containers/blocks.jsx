@@ -806,7 +806,8 @@ class Blocks extends React.Component {
         const target = this.props.vm.editingTarget;
         const spriteName = target ? target.sprite.name : 'sprite';
         const projectTitle = this.props.projectTitle || 'project';
-        downloadBlocksAsImage(this.workspace, projectTitle, spriteName);
+        const costumeDataUri = target?.sprite?.costumes?.[target.currentCostume]?.asset?.encodeDataURI();
+        downloadBlocksAsImage(this.workspace, projectTitle, spriteName, costumeDataUri);
     }
     render () {
         const {
