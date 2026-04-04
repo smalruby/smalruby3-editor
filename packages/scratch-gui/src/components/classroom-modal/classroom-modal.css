@@ -396,6 +396,11 @@
     color: white;
 }
 
+.member-cell-returned {
+    background-color: #ff8c1a;
+    color: white;
+}
+
 .member-cell-empty {
     background-color: #e8e8e8;
     color: #999;
@@ -434,6 +439,92 @@
     color: #0fbd8c;
     font-size: 0.75rem;
     margin-left: 0.5rem;
+}
+
+.returned-badge {
+    color: #ff8c1a;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+}
+
+.image-carousel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.carousel-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #575e75;
+}
+
+.carousel-button {
+    background: none;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 0.15rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #575e75;
+}
+
+.carousel-button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.carousel-button:hover:not(:disabled) {
+    background-color: #f0f0f0;
+}
+
+.comment-section {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.comment-input {
+    width: 100%;
+    min-height: 60px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 0.4rem;
+    font-size: 0.8rem;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.comment-input:focus {
+    outline: none;
+    border-color: #4c97ff;
+}
+
+.return-button {
+    background-color: #ff8c1a;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.return-button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.return-button:hover:not(:disabled) {
+    background-color: #e67e16;
 }
 
 .submission-detail {

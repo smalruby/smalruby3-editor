@@ -253,6 +253,7 @@ export {
     calculateCanvasDimensions,
     buildFilename,
     buildExportSVG,
+    renderSVGToCanvas,
     inlineImageHrefs,
     downloadBlocksAsImage,
     EXPORT_PADDING,

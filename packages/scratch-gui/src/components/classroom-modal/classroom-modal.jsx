@@ -1,6 +1,6 @@
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 
 import Modal from '../../containers/modal.jsx';
@@ -45,9 +45,11 @@ const ClassroomModal = ({
     onLeaveClassroom,
     onOpenSubmission,
     onRefreshDetail,
+    onReturnSubmission,
     onStartSubmit,
     onConfirmSubmit,
     onCancelSubmit,
+    submitProgress,
     thumbnailDataUrl,
     onTeacherLogout,
     classroomState,
@@ -341,6 +343,7 @@ const ClassroomModal = ({
                         onDeleteMember={handleDeleteMember}
                         onOpenSubmission={onOpenSubmission}
                         onRefresh={onRefreshDetail}
+                        onReturnSubmission={onReturnSubmission}
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
@@ -644,7 +647,9 @@ const ClassroomModal = ({
                                 disabled={isLoading}
                                 onClick={onConfirmSubmit}
                             >
-                                {isLoading ? (
+                                {isLoading && submitProgress ? (
+                                    `${submitProgress.label} (${submitProgress.current}/${submitProgress.total})`
+                                ) : isLoading ? (
                                     <FormattedMessage
                                         defaultMessage="Submitting..."
                                         description="Submitting progress"
@@ -911,6 +916,7 @@ const TeacherClassDetail = ({
     onDeleteClassroom,
     onOpenSubmission,
     onRefresh,
+    onReturnSubmission,
     onShowCodeDisplay,
     onCloseCodeDisplay,
     onCopyInviteLink,
@@ -920,6 +926,21 @@ const TeacherClassDetail = ({
 }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCodeDisplay, setShowCodeDisplay] = useState(false);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [commentText, setCommentText] = useState('');
+
+    // Reset image index and comment when selected member changes
+    useEffect(() => {
+        setCurrentImageIndex(0);
+        if (selectedMember) {
+            const memberMap2 = {};
+            for (const m of members) memberMap2[m.memberId] = m;
+            const member = memberMap2[selectedMember];
+            setCommentText(member?.teacherComment || '');
+        } else {
+            setCommentText('');
+        }
+    }, [selectedMember, members]);
 
     const memberMap = React.useMemo(() => {
         const map = {};
@@ -959,6 +980,28 @@ const TeacherClassDetail = ({
         [onOpenSubmission],
     );
 
+    const handleReturnClick = useCallback(() => {
+        if (!selectedMember || !memberMap[selectedMember]?.submissionId) return;
+        onReturnSubmission(memberMap[selectedMember].submissionId, commentText);
+    }, [selectedMember, memberMap, commentText, onReturnSubmission]);
+
+    const handleCommentChange = useCallback(e => {
+        setCommentText(e.target.value);
+    }, []);
+
+    const handlePrevImage = useCallback(() => {
+        setCurrentImageIndex(prev => Math.max(0, prev - 1));
+    }, []);
+
+    const handleNextImage = useCallback(() => {
+        setCurrentImageIndex(prev => {
+            const member = memberMap[selectedMember];
+            if (!member) return prev;
+            const allImages = [member.thumbnailUrl, ...(member.screenshotUrls || [])].filter(Boolean);
+            return Math.min(allImages.length - 1, prev + 1);
+        });
+    }, [memberMap, selectedMember]);
+
     const handleShowCode = useCallback(() => {
         setShowCodeDisplay(true);
         onShowCodeDisplay(selectedClassroom.classroomId);
@@ -971,6 +1014,17 @@ const TeacherClassDetail = ({
 
     const joinedCount = members.length;
     const totalCount = selectedClassroom.studentCount;
+
+    // Pre-compute selected member's derived data for the right pane
+    const selectedMemberData = React.useMemo(() => {
+        if (!selectedMember || !memberMap[selectedMember]) return null;
+        const member = memberMap[selectedMember];
+        return {
+            ...member,
+            allImages: [member.thumbnailUrl, ...(member.screenshotUrls || [])].filter(Boolean),
+            isReturned: member.submissionStatus === 'returned',
+        };
+    }, [selectedMember, memberMap]);
 
     return (
         <div className={styles.detailLayout} data-testid="classroom-phase-teacher-detail">
@@ -1087,13 +1141,21 @@ const TeacherClassDetail = ({
                                         const member = memberMap[memberId];
                                         const isSelected = selectedMember === memberId;
                                         const hasSubmission = member && member.hasSubmission;
+                                        const isReturned = member && member.submissionStatus === 'returned';
                                         let cellColorClass = styles.memberCellEmpty;
                                         if (member) {
-                                            cellColorClass = hasSubmission
-                                                ? styles.memberCellSubmitted
-                                                : styles.memberCellJoined;
+                                            if (isReturned) {
+                                                cellColorClass = styles.memberCellReturned;
+                                            } else if (hasSubmission) {
+                                                cellColorClass = styles.memberCellSubmitted;
+                                            } else {
+                                                cellColorClass = styles.memberCellJoined;
+                                            }
                                         }
                                         const cellClass = `${styles.memberCell} ${cellColorClass} ${isSelected ? styles.memberCellSelected : ''}`;
+                                        let cellLabel = seatNum;
+                                        if (isReturned) cellLabel = `↩${seatNum}`;
+                                        else if (hasSubmission) cellLabel = `✓${seatNum}`;
                                         return (
                                             <button
                                                 className={cellClass}
@@ -1102,7 +1164,7 @@ const TeacherClassDetail = ({
                                                 key={memberId}
                                                 onClick={member ? handleCellClick : null}
                                             >
-                                                {hasSubmission ? `✓${seatNum}` : seatNum}
+                                                {cellLabel}
                                             </button>
                                         );
                                     })}
@@ -1164,7 +1226,7 @@ const TeacherClassDetail = ({
 
                         {/* Right pane - member detail */}
                         <div className={styles.detailRightPane}>
-                            {selectedMember && memberMap[selectedMember] ? (
+                            {selectedMemberData ? (
                                 <div
                                     className={styles.memberDetailPanel}
                                     data-testid="classroom-member-detail"
@@ -1182,15 +1244,15 @@ const TeacherClassDetail = ({
                                             />
                                         </span>
                                         <span data-testid="classroom-member-detail-name">
-                                            {memberMap[selectedMember].displayName || '-'}
+                                            {selectedMemberData.displayName || '-'}
                                         </span>
-                                        {memberMap[selectedMember].hasSubmission && (
+                                        {selectedMemberData.hasSubmission && (
                                             <span
-                                                className={styles.submissionBadge}
+                                                className={selectedMemberData.isReturned ? styles.returnedBadge : styles.submissionBadge}
                                                 data-testid="classroom-member-detail-submitted"
                                             >
-                                                {'✓ '}
-                                                {new Date(memberMap[selectedMember].submittedAt).toLocaleTimeString()}
+                                                {selectedMemberData.isReturned ? '↩ ' : '✓ '}
+                                                {new Date(selectedMemberData.submittedAt).toLocaleTimeString()}
                                             </span>
                                         )}
                                         <button
@@ -1206,28 +1268,54 @@ const TeacherClassDetail = ({
                                             />
                                         </button>
                                     </div>
-                                    {memberMap[selectedMember].hasSubmission && (
+                                    {selectedMemberData.hasSubmission && (
                                         <div className={styles.memberDetailBody}>
-                                            {memberMap[selectedMember].thumbnailUrl && (
-                                                <img
-                                                    alt="Submission thumbnail"
-                                                    className={styles.memberDetailThumbnailLarge}
-                                                    data-testid="classroom-member-detail-thumbnail"
-                                                    src={memberMap[selectedMember].thumbnailUrl}
-                                                />
+                                            {/* Image carousel */}
+                                            {selectedMemberData.allImages.length > 0 && (
+                                                <div className={styles.imageCarousel}>
+                                                    {selectedMemberData.allImages.length > 1 && (
+                                                        <div className={styles.carouselNav}>
+                                                            <button
+                                                                className={styles.carouselButton}
+                                                                data-testid="classroom-member-detail-prev"
+                                                                disabled={currentImageIndex === 0}
+                                                                onClick={handlePrevImage}
+                                                            >
+                                                                {'<'}
+                                                            </button>
+                                                            <span data-testid="classroom-member-detail-image-index">
+                                                                {`${currentImageIndex + 1} / ${selectedMemberData.allImages.length}`}
+                                                            </span>
+                                                            <button
+                                                                className={styles.carouselButton}
+                                                                data-testid="classroom-member-detail-next"
+                                                                disabled={currentImageIndex >= selectedMemberData.allImages.length - 1}
+                                                                onClick={handleNextImage}
+                                                            >
+                                                                {'>'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <img
+                                                        alt="Submission image"
+                                                        className={styles.memberDetailThumbnailLarge}
+                                                        data-testid="classroom-member-detail-thumbnail"
+                                                        src={selectedMemberData.allImages[currentImageIndex] || selectedMemberData.allImages[0]}
+                                                    />
+                                                </div>
                                             )}
-                                            {memberMap[selectedMember].projectName && (
+                                            {selectedMemberData.projectName && (
                                                 <span
                                                     className={styles.submissionProjectName}
                                                     data-testid="classroom-member-detail-project-name"
                                                 >
-                                                    {memberMap[selectedMember].projectName}
+                                                    {selectedMemberData.projectName}
                                                 </span>
                                             )}
-                                            {memberMap[selectedMember].projectUrl && (
+                                            {selectedMemberData.projectUrl && (
                                                 <button
                                                     className={styles.primaryButton}
-                                                    data-project-url={memberMap[selectedMember].projectUrl}
+                                                    data-project-url={selectedMemberData.projectUrl}
                                                     data-testid="classroom-member-detail-open"
                                                     disabled={isLoading}
                                                     onClick={handleOpenClick}
@@ -1239,6 +1327,37 @@ const TeacherClassDetail = ({
                                                     />
                                                 </button>
                                             )}
+                                            {/* Comment + Return */}
+                                            <div className={styles.commentSection}>
+                                                <textarea
+                                                    className={styles.commentInput}
+                                                    data-testid="classroom-member-detail-comment"
+                                                    maxLength={500}
+                                                    placeholder={selectedMemberData.isReturned ? '' : '...'}
+                                                    value={commentText}
+                                                    onChange={handleCommentChange}
+                                                />
+                                                <button
+                                                    className={styles.returnButton}
+                                                    data-testid="classroom-member-detail-return"
+                                                    disabled={isLoading || selectedMemberData.isReturned}
+                                                    onClick={handleReturnClick}
+                                                >
+                                                    {selectedMemberData.isReturned ? (
+                                                        <FormattedMessage
+                                                            defaultMessage="Returned"
+                                                            description="Returned status label"
+                                                            id="gui.classroom.teacherDetail.returned"
+                                                        />
+                                                    ) : (
+                                                        <FormattedMessage
+                                                            defaultMessage="Return"
+                                                            description="Return submission button"
+                                                            id="gui.classroom.teacherDetail.returnSubmission"
+                                                        />
+                                                    )}
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -1273,6 +1392,7 @@ TeacherClassDetail.propTypes = {
     onDeleteMember: PropTypes.func.isRequired,
     onOpenSubmission: PropTypes.func.isRequired,
     onRefresh: PropTypes.func.isRequired,
+    onReturnSubmission: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onShowCodeDisplay: PropTypes.func.isRequired,
     onToggleCodeFullscreen: PropTypes.func.isRequired,
@@ -1497,6 +1617,7 @@ ClassroomModal.propTypes = {
     onLeaveClassroom: PropTypes.func.isRequired,
     onOpenSubmission: PropTypes.func.isRequired,
     onRefreshDetail: PropTypes.func.isRequired,
+    onReturnSubmission: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onSelectSeat: PropTypes.func.isRequired,
@@ -1514,6 +1635,11 @@ ClassroomModal.propTypes = {
     selectedMember: PropTypes.string,
     selectedSeat: PropTypes.number,
     takenSeats: PropTypes.arrayOf(PropTypes.number),
+    submitProgress: PropTypes.shape({
+        current: PropTypes.number,
+        total: PropTypes.number,
+        label: PropTypes.string,
+    }),
     thumbnailDataUrl: PropTypes.string,
 };
 
