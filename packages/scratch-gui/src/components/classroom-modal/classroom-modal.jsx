@@ -719,11 +719,13 @@ const TeacherClassDetail = ({
                             const member = memberMap[memberId];
                             const isSelected = selectedMember === memberId;
                             const hasSubmission = member && member.hasSubmission;
-                            const cellClass = `${styles.memberCell} ${
-                                !member ? styles.memberCellEmpty
-                                    : hasSubmission ? styles.memberCellSubmitted
-                                        : styles.memberCellJoined
-                            } ${isSelected ? styles.memberCellSelected : ''}`;
+                            let cellColorClass = styles.memberCellEmpty;
+                            if (member) {
+                                cellColorClass = hasSubmission
+                                    ? styles.memberCellSubmitted
+                                    : styles.memberCellJoined;
+                            }
+                            const cellClass = `${styles.memberCell} ${cellColorClass} ${isSelected ? styles.memberCellSelected : ''}`;
                             return (
                                 <button
                                     className={cellClass}
