@@ -26,14 +26,14 @@ const RUBY_ALIASES = ['ruby'];
  */
 const parseUrlParams = () => {
     if (typeof window === 'undefined') {
-        return { noBeforeUnload: false, initialTab: null, rubyVersion: null, rubyMode: null };
+        return { noBeforeUnload: false, initialTab: null, rubyVersion: null, rubyMode: null, features: [] };
     }
 
     let params;
     try {
         params = new URL(window.location.href).searchParams;
     } catch {
-        return { noBeforeUnload: false, initialTab: null, rubyVersion: null, rubyMode: null };
+        return { noBeforeUnload: false, initialTab: null, rubyVersion: null, rubyMode: null, features: [] };
     }
 
     // no_beforeunload: any truthy value disables the dialog
@@ -60,7 +60,14 @@ const parseUrlParams = () => {
     }
     // === Smalruby: End of rubyMode URL param ===
 
-    return { noBeforeUnload, initialTab, rubyVersion, rubyMode };
+    // features: comma-separated feature flags (e.g., ?features=classroom,experiment)
+    const featuresParam = params.get('features') || '';
+    const features = featuresParam
+        .split(',')
+        .map(f => f.trim().toLowerCase())
+        .filter(f => f.length > 0);
+
+    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features };
 };
 
 // Cache the result so it's only parsed once
