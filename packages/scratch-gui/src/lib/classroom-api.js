@@ -38,11 +38,12 @@ class ClassroomAPI {
 
     /**
      * Get classroom details.
+     * @param {string} idToken - Google ID token
      * @param {string} classroomId - Classroom ID
      * @returns {Promise<object>} Classroom data
      */
-    async getClassroom(classroomId) {
-        return this._request('GET', `/classrooms/${classroomId}`);
+    async getClassroom(idToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}`, null, idToken);
     }
 
     /**

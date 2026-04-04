@@ -152,7 +152,7 @@ const ClassroomModal = () => {
             setIsLoading(true);
             try {
                 const [classroomData, membersData] = await Promise.all([
-                    classroomAPI.getClassroom(classroomId),
+                    classroomAPI.getClassroom(idToken, classroomId),
                     classroomAPI.listMembers(idToken, classroomId),
                 ]);
                 setSelectedClassroom(classroomData);
