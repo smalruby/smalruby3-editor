@@ -3,11 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
-import {
-    closeClassroomModal,
-    setClassroomSession,
-    clearClassroomSession,
-} from '../reducers/classroom.js';
+import { closeClassroomModal, setClassroomSession, clearClassroomSession } from '../reducers/classroom.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
