@@ -59,6 +59,11 @@ import vmManagerHOC from '../lib/vm-manager-hoc.jsx';
 import cloudManagerHOC from '../lib/cloud-manager-hoc.jsx';
 import systemPreferencesHOC from '../lib/system-preferences-hoc.jsx';
 import {PLATFORM} from '../lib/platform.js';
+// === Smalruby: Start of classcode auto-open ===
+import {isClassroomConfigured} from '../lib/classroom-api.js';
+import {openClassroomModal} from '../reducers/classroom.js';
+import {getUrlParams} from '../lib/url-params.js';
+// === Smalruby: End of classcode auto-open ===
 
 import GUIComponent from '../components/gui/gui.jsx';
 import {GUIStoragePropType} from '../gui-config';
@@ -86,6 +91,12 @@ class GUI extends React.Component {
         if (this.props.dynamicAssets) {
             this.props.onUpdateDynamicAssets(this.props.dynamicAssets);
         }
+        // === Smalruby: Start of classcode auto-open ===
+        const urlParams = getUrlParams();
+        if (urlParams.classcode && isClassroomConfigured()) {
+            this.props.onOpenClassroomModal();
+        }
+        // === Smalruby: End of classcode auto-open ===
     }
     componentDidUpdate (prevProps) {
         if (this.props.dynamicAssets !== prevProps.dynamicAssets) {
@@ -249,7 +260,8 @@ GUI.propTypes = {
     userOwnsProject: PropTypes.bool,
     // TODO: Is this unused?
     hideTutorialProjects: PropTypes.bool,
-    vm: PropTypes.instanceOf(VM).isRequired
+    vm: PropTypes.instanceOf(VM).isRequired,
+    onOpenClassroomModal: PropTypes.func // === Smalruby: classcode auto-open ===
 };
 
 GUI.defaultProps = {
@@ -301,7 +313,7 @@ const mapStateToProps = (state, ownProps) => {
         smalrubotFirmwareModalVisible: state.scratchGui.smalrubotFirmware.modalVisible,
         // === Smalruby: End of smalrubot firmware modal ===
         // === Smalruby: Start of classroom modal ===
-        classroomModalVisible: state.scratchGui.classroom.modalVisible,
+        classroomModalVisible: state.scratchGui.classroom ? state.scratchGui.classroom.modalVisible : false,
         // === Smalruby: End of classroom modal ===
         dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
         rubyCode: state.scratchGui.rubyCode,
@@ -329,7 +341,10 @@ const mapDispatchToProps = dispatch => ({
     convertedRubyCodeState: () => dispatch(convertedRubyCode()),
     onHighlightTarget: id => dispatch(highlightTarget(id)),
     onShowConvertRubyToBlocksErrorAlert: () => showAlertWithTimeout(dispatch, 'convertRubyToBlocksError'),
-    updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors))
+    updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors)),
+    // === Smalruby: Start of classcode auto-open ===
+    onOpenClassroomModal: () => dispatch(openClassroomModal())
+    // === Smalruby: End of classcode auto-open ===
 });
 
 const ConnectedGUI = injectIntl(connect(

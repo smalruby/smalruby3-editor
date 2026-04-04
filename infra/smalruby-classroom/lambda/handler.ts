@@ -9,6 +9,8 @@ import {
   UpdateCommand,
   BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
 import * as crypto from 'crypto';
 
@@ -16,6 +18,8 @@ import * as crypto from 'crypto';
 
 const CLASSROOMS_TABLE = process.env.CLASSROOMS_TABLE_NAME || 'Classrooms';
 const MEMBERSHIPS_TABLE = process.env.MEMBERSHIPS_TABLE_NAME || 'ClassroomMemberships';
+const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmissions';
+const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(o => o.trim());
 
@@ -25,14 +29,21 @@ const MAX_NICKNAME_LENGTH = 20;
 // 6-digit alphanumeric, excluding confusing chars (I, O, 0, 1)
 const JOIN_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const JOIN_CODE_LENGTH = 6;
-// Session token validity: 30 days (for classroom sessions spanning a semester)
-const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
-// Classroom TTL: 1 year
-const CLASSROOM_TTL_SECONDS = 365 * 24 * 60 * 60;
+// Classroom TTL from environment (default 30 days)
+const CLASSROOM_TTL_DAYS = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
+const CLASSROOM_TTL_SECONDS = CLASSROOM_TTL_DAYS * 24 * 60 * 60;
+// Session and membership TTL matches classroom TTL
+const SESSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
 // Rate limiting for join endpoint (per IP)
 const JOIN_RATE_LIMIT_WINDOW_SECONDS = 60;
-const JOIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
+const JOIN_RATE_LIMIT_MAX_ATTEMPTS = 50;
 const JOIN_CODE_REGEX = new RegExp(`^[${JOIN_CODE_CHARS}]{${JOIN_CODE_LENGTH}}$`);
+// Submission config (TTL matches classroom TTL)
+const SUBMISSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
+const MAX_PROJECT_NAME_LENGTH = 100;
+const PRESIGNED_URL_UPLOAD_EXPIRY = 15 * 60; // 15 minutes
+const PRESIGNED_URL_DOWNLOAD_EXPIRY = 60 * 60; // 1 hour
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 // --- DynamoDB Client ---
 
@@ -40,6 +51,10 @@ const ddbClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(ddbClient, {
   marshallOptions: { removeUndefinedValues: true },
 });
+
+// --- S3 Client ---
+
+const s3Client = new S3Client({});
 
 // --- Google Auth ---
 
@@ -203,6 +218,8 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
 
   const now = new Date().toISOString();
   const classroomId = crypto.randomUUID();
+  const ttl = Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS;
+  const expiresAt = new Date(ttl * 1000).toISOString();
 
   await docClient.send(new PutCommand({
     TableName: CLASSROOMS_TABLE,
@@ -215,13 +232,13 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
       status: 'active',
       createdAt: now,
       updatedAt: now,
-      ttl: Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS,
+      ttl,
     },
   }));
 
   return {
     statusCode: 201,
-    body: JSON.stringify({ classroomId, className, joinCode, studentCount, status: 'active', createdAt: now }),
+    body: JSON.stringify({ classroomId, className, joinCode, studentCount, status: 'active', createdAt: now, expiresAt }),
   };
 }
 
@@ -241,6 +258,7 @@ async function handleListClassrooms(teacherSub: string): Promise<APIGatewayProxy
       joinCode: item.joinCode,
       studentCount: item.studentCount,
       createdAt: item.createdAt,
+      expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
     }));
 
   return { statusCode: 200, body: JSON.stringify({ classrooms }) };
@@ -268,6 +286,7 @@ async function handleGetClassroom(teacherSub: string, classroomId: string): Prom
       studentCount: result.Item.studentCount,
       status: result.Item.status,
       createdAt: result.Item.createdAt,
+      expiresAt: result.Item.ttl ? new Date((result.Item.ttl as number) * 1000).toISOString() : null,
     }),
   };
 }
@@ -432,22 +451,140 @@ async function handleListMembers(teacherSub: string, classroomId: string): Promi
     throw new AuthError('Not authorized to view this classroom');
   }
 
-  const result = await docClient.send(new QueryCommand({
-    TableName: MEMBERSHIPS_TABLE,
-    KeyConditionExpression: 'classroomId = :cid',
-    ExpressionAttributeValues: { ':cid': classroomId },
-  }));
+  // Fetch members and submissions in parallel
+  const [membersResult, submissionsResult] = await Promise.all([
+    docClient.send(new QueryCommand({
+      TableName: MEMBERSHIPS_TABLE,
+      KeyConditionExpression: 'classroomId = :cid',
+      ExpressionAttributeValues: { ':cid': classroomId },
+    })),
+    docClient.send(new QueryCommand({
+      TableName: SUBMISSIONS_TABLE,
+      KeyConditionExpression: 'classroomId = :cid',
+      ExpressionAttributeValues: { ':cid': classroomId },
+    })),
+  ]);
 
-  const members = (result.Items || []).map(item => ({
-    memberId: item.memberId,
-    displayName: item.displayName,
-    role: item.role,
-    joinedAt: item.joinedAt,
-  }));
+  // Build submission map: memberId → latest submission
+  const submissionMap = new Map<string, { submittedAt: string; status: string }>();
+  for (const sub of (submissionsResult.Items || [])) {
+    const existing = submissionMap.get(sub.memberId as string);
+    if (!existing || (sub.submittedAt as string) > existing.submittedAt) {
+      submissionMap.set(sub.memberId as string, {
+        submittedAt: sub.submittedAt as string,
+        status: sub.status as string,
+      });
+    }
+  }
+
+  const members = (membersResult.Items || []).map(item => {
+    const submission = submissionMap.get(item.memberId as string);
+    return {
+      memberId: item.memberId,
+      displayName: item.displayName,
+      role: item.role,
+      joinedAt: item.joinedAt,
+      hasSubmission: !!submission,
+      submissionStatus: submission?.status || null,
+      submittedAt: submission?.submittedAt || null,
+    };
+  });
 
   return {
     statusCode: 200,
     body: JSON.stringify({ members, studentCount: classroom.Item.studentCount }),
+  };
+}
+
+async function handleDeleteClassroom(teacherSub: string, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
+  // Verify ownership
+  const classroom = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+    throw new AuthError('Not authorized to delete this classroom');
+  }
+  if (classroom.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+
+  // Soft-delete: set status to 'archived'
+  await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+    UpdateExpression: 'SET #status = :status, updatedAt = :now',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: { ':status': 'archived', ':now': new Date().toISOString() },
+  }));
+
+  // Delete all members (invalidates their sessions)
+  const membersResult = await docClient.send(new QueryCommand({
+    TableName: MEMBERSHIPS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroomId },
+    ProjectionExpression: 'memberId',
+  }));
+
+  if (membersResult.Items && membersResult.Items.length > 0) {
+    const items = membersResult.Items;
+    for (let i = 0; i < items.length; i += 25) {
+      const batch = items.slice(i, i + 25);
+      await docClient.send(new BatchWriteCommand({
+        RequestItems: {
+          [MEMBERSHIPS_TABLE]: batch.map(item => ({
+            DeleteRequest: { Key: { classroomId, memberId: item.memberId as string } },
+          })),
+        },
+      }));
+    }
+  }
+
+  return { statusCode: 204, body: '' };
+}
+
+async function handleLookupClassroom(sourceIp: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+  checkJoinRateLimit(sourceIp);
+  const joinCode = validateJoinCode(body.joinCode);
+
+  const classroomResult = await docClient.send(new QueryCommand({
+    TableName: CLASSROOMS_TABLE,
+    IndexName: 'joinCode-index',
+    KeyConditionExpression: 'joinCode = :jc',
+    ExpressionAttributeValues: { ':jc': joinCode },
+    Limit: 1,
+  }));
+
+  if (!classroomResult.Items || classroomResult.Items.length === 0) {
+    throw new NotFoundError('Invalid join code');
+  }
+
+  const classroom = classroomResult.Items[0];
+  if (classroom.status !== 'active') {
+    throw new NotFoundError('This classroom is no longer active');
+  }
+
+  // Get taken seats
+  const membersResult = await docClient.send(new QueryCommand({
+    TableName: MEMBERSHIPS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroom.classroomId },
+    ProjectionExpression: 'memberId',
+  }));
+
+  const takenSeats = (membersResult.Items || []).map(item => {
+    const match = (item.memberId as string).match(/^seat-(\d+)$/);
+    return match ? parseInt(match[1], 10) : 0;
+  }).filter(n => n > 0);
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      classroomId: classroom.classroomId,
+      className: classroom.className,
+      studentCount: classroom.studentCount,
+      takenSeats,
+    }),
   };
 }
 
@@ -467,6 +604,165 @@ async function handleDeleteMember(teacherSub: string, classroomId: string, membe
   }));
 
   return { statusCode: 204, body: '' };
+}
+
+// --- Session Token Auth ---
+
+export async function verifySessionToken(sessionToken: string): Promise<{ classroomId: string; memberId: string }> {
+  const result = await docClient.send(new QueryCommand({
+    TableName: MEMBERSHIPS_TABLE,
+    IndexName: 'sessionToken-index',
+    KeyConditionExpression: 'sessionToken = :st',
+    ExpressionAttributeValues: { ':st': sessionToken },
+    Limit: 1,
+  }));
+
+  if (!result.Items || result.Items.length === 0) {
+    throw new AuthError('Invalid or expired session token');
+  }
+
+  const item = result.Items[0];
+  return { classroomId: item.classroomId as string, memberId: item.memberId as string };
+}
+
+// --- Submission handlers ---
+
+export function validateProjectName(name: unknown): string {
+  if (typeof name !== 'string' || name.trim().length === 0) {
+    throw new ValidationError('Project name is required');
+  }
+  const trimmed = name.trim();
+  if (trimmed.length > MAX_PROJECT_NAME_LENGTH) {
+    throw new ValidationError(`Project name must be ${MAX_PROJECT_NAME_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+async function handleCreateSubmission(
+  classroomId: string, memberId: string, body: Record<string, unknown>
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const projectName = validateProjectName(body.projectName);
+  const submissionId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const s3KeyProject = `${classroomId}/${submissionId}/project.sb3`;
+  const s3KeyThumbnail = `${classroomId}/${submissionId}/thumbnail.png`;
+
+  // Generate presigned URLs for upload
+  const uploadUrl = await getSignedUrl(
+    s3Client,
+    new PutObjectCommand({
+      Bucket: SUBMISSIONS_BUCKET,
+      Key: s3KeyProject,
+      ContentType: 'application/octet-stream',
+      ContentLengthRange: { Minimum: 1, Maximum: MAX_FILE_SIZE },
+    } as any),
+    { expiresIn: PRESIGNED_URL_UPLOAD_EXPIRY },
+  );
+
+  const thumbnailUploadUrl = await getSignedUrl(
+    s3Client,
+    new PutObjectCommand({
+      Bucket: SUBMISSIONS_BUCKET,
+      Key: s3KeyThumbnail,
+      ContentType: 'image/png',
+    }),
+    { expiresIn: PRESIGNED_URL_UPLOAD_EXPIRY },
+  );
+
+  // Save submission record
+  await docClient.send(new PutCommand({
+    TableName: SUBMISSIONS_TABLE,
+    Item: {
+      classroomId,
+      submissionId,
+      memberId,
+      projectName,
+      s3Key: s3KeyProject,
+      thumbnailS3Key: s3KeyThumbnail,
+      status: 'submitted',
+      submittedAt: now,
+      updatedAt: now,
+      ttl: Math.floor(Date.now() / 1000) + SUBMISSION_TTL_SECONDS,
+    },
+  }));
+
+  return {
+    statusCode: 201,
+    body: JSON.stringify({
+      submissionId,
+      uploadUrl,
+      thumbnailUploadUrl,
+      projectName,
+      submittedAt: now,
+    }),
+  };
+}
+
+async function handleListSubmissions(
+  teacherSub: string, classroomId: string
+): Promise<APIGatewayProxyStructuredResultV2> {
+  // Verify ownership
+  const classroom = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+    throw new AuthError('Not authorized to view submissions');
+  }
+
+  const result = await docClient.send(new QueryCommand({
+    TableName: SUBMISSIONS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroomId },
+  }));
+
+  const submissions = await Promise.all(
+    (result.Items || []).map(async item => {
+      let thumbnailUrl: string | null = null;
+      let projectUrl: string | null = null;
+      if (item.thumbnailS3Key) {
+        thumbnailUrl = await getSignedUrl(
+          s3Client,
+          new GetObjectCommand({
+            Bucket: SUBMISSIONS_BUCKET,
+            Key: item.thumbnailS3Key as string,
+          }),
+          { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+        );
+      }
+      if (item.s3Key) {
+        projectUrl = await getSignedUrl(
+          s3Client,
+          new GetObjectCommand({
+            Bucket: SUBMISSIONS_BUCKET,
+            Key: item.s3Key as string,
+          }),
+          { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+        );
+      }
+      return {
+        submissionId: item.submissionId,
+        memberId: item.memberId,
+        projectName: item.projectName,
+        status: item.status,
+        submittedAt: item.submittedAt,
+        thumbnailUrl,
+        projectUrl,
+      };
+    })
+  );
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ submissions }),
+  };
+}
+
+async function handleVerifySession(sessionToken: string): Promise<APIGatewayProxyStructuredResultV2> {
+  // verifySessionToken will throw AuthError if invalid
+  await verifySessionToken(sessionToken);
+  return { statusCode: 200, body: JSON.stringify({ valid: true }) };
 }
 
 // --- Main handler ---
@@ -502,6 +798,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const sourceIp = event.requestContext.http.sourceIp || 'unknown';
       result = await handleJoinClassroom(sourceIp, body);
 
+    } else if (method === 'POST' && path === '/classrooms/lookup') {
+      const sourceIp = event.requestContext.http.sourceIp || 'unknown';
+      result = await handleLookupClassroom(sourceIp, body);
+
+    } else if (method === 'POST' && path === '/classrooms/verify-session') {
+      const token = extractBearerToken(event.headers?.authorization);
+      result = await handleVerifySession(token);
+
     } else if (method === 'GET' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
       const teacherSub = await verifyGoogleIdToken(token);
@@ -513,6 +817,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const teacherSub = await verifyGoogleIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleUpdateClassroom(teacherSub, classroomId, body);
+
+    } else if (method === 'DELETE' && /^\/classrooms\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyGoogleIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleDeleteClassroom(teacherSub, classroomId);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/members$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
@@ -526,6 +836,21 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const classroomId = event.pathParameters?.classroomId || '';
       const memberId = event.pathParameters?.memberId || '';
       result = await handleDeleteMember(teacherSub, classroomId, memberId);
+
+    } else if (method === 'POST' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const session = await verifySessionToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      if (session.classroomId !== classroomId) {
+        throw new AuthError('Session does not match this classroom');
+      }
+      result = await handleCreateSubmission(classroomId, session.memberId, body);
+
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyGoogleIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleListSubmissions(teacherSub, classroomId);
 
     } else {
       result = { statusCode: 404, body: JSON.stringify({ error: 'Not found' }) };

@@ -58,6 +58,34 @@ class ClassroomAPI {
     }
 
     /**
+     * Delete a classroom (soft-delete).
+     * @param {string} idToken - Google ID token
+     * @param {string} classroomId - Classroom ID to delete
+     * @returns {Promise<void>}
+     */
+    async deleteClassroom(idToken, classroomId) {
+        return this._request('DELETE', `/classrooms/${classroomId}`, null, idToken);
+    }
+
+    /**
+     * Look up a classroom by join code (validates code, returns seat info).
+     * @param {string} joinCode - 6-digit join code
+     * @returns {Promise<object>} Classroom info with takenSeats
+     */
+    async lookupClassroom(joinCode) {
+        return this._request('POST', '/classrooms/lookup', { joinCode });
+    }
+
+    /**
+     * Verify that a student session token is still valid.
+     * @param {string} sessionToken - Student session token
+     * @returns {Promise<object>} Verification result
+     */
+    async verifySession(sessionToken) {
+        return this._request('POST', '/classrooms/verify-session', null, sessionToken);
+    }
+
+    /**
      * Join a classroom as a student.
      * @param {string} joinCode - 6-digit join code
      * @param {number} seatNumber - Selected seat number
@@ -94,6 +122,45 @@ class ClassroomAPI {
     }
 
     /**
+     * Create a submission (get presigned URLs for upload).
+     * @param {string} sessionToken - Student session token
+     * @param {string} classroomId - Classroom ID
+     * @param {string} projectName - Project name
+     * @returns {Promise<object>} Submission data with upload URLs
+     */
+    async createSubmission(sessionToken, classroomId, projectName) {
+        return this._request('POST', `/classrooms/${classroomId}/submissions`, { projectName }, sessionToken);
+    }
+
+    /**
+     * List submissions for a classroom (teacher only).
+     * @param {string} idToken - Google ID token
+     * @param {string} classroomId - Classroom ID
+     * @returns {Promise<object>} Submissions list
+     */
+    async listSubmissions(idToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/submissions`, null, idToken);
+    }
+
+    /**
+     * Upload data to a presigned URL.
+     * @param {string} url - Presigned URL
+     * @param {ArrayBuffer|Blob|string} data - Data to upload
+     * @param {string} contentType - MIME type
+     * @returns {Promise<void>}
+     */
+    async uploadToPresignedUrl(url, data, contentType) {
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': contentType },
+            body: data,
+        });
+        if (!response.ok) {
+            throw new Error(`Upload failed: ${response.status}`);
+        }
+    }
+
+    /**
      * Internal request helper.
      * @param {string} method - HTTP method
      * @param {string} path - API path
@@ -116,18 +183,32 @@ class ClassroomAPI {
             options.body = JSON.stringify(body);
         }
 
-        const response = await fetch(url, options);
+        const maxRetries = 3;
+        let lastError;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            const response = await fetch(url, options);
 
-        if (response.status === 204) return null;
+            if (response.status === 204) return null;
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const error = new Error(errorData.error || `API error ${response.status}`);
-            error.status = response.status;
-            throw error;
+            if (response.status === 429 && attempt < maxRetries) {
+                // Exponential backoff: 500ms, 1000ms, 2000ms + jitter
+                const delay = 500 * Math.pow(2, attempt);
+                const jitter = Math.random() * 200;
+                await new Promise(r => setTimeout(r, delay + jitter));
+                continue;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                lastError = new Error(errorData.error || `API error ${response.status}`);
+                lastError.status = response.status;
+                throw lastError;
+            }
+
+            return response.json();
         }
 
-        return response.json();
+        throw lastError;
     }
 }
 

@@ -26,14 +26,28 @@ const RUBY_ALIASES = ['ruby'];
  */
 const parseUrlParams = () => {
     if (typeof window === 'undefined') {
-        return { noBeforeUnload: false, initialTab: null, rubyVersion: null, rubyMode: null, features: [] };
+        return {
+            noBeforeUnload: false,
+            initialTab: null,
+            rubyVersion: null,
+            rubyMode: null,
+            features: [],
+            classcode: null,
+        };
     }
 
     let params;
     try {
         params = new URL(window.location.href).searchParams;
     } catch {
-        return { noBeforeUnload: false, initialTab: null, rubyVersion: null, rubyMode: null, features: [] };
+        return {
+            noBeforeUnload: false,
+            initialTab: null,
+            rubyVersion: null,
+            rubyMode: null,
+            features: [],
+            classcode: null,
+        };
     }
 
     // no_beforeunload: any truthy value disables the dialog
@@ -67,7 +81,10 @@ const parseUrlParams = () => {
         .map(f => f.trim().toLowerCase())
         .filter(f => f.length > 0);
 
-    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features };
+    // classcode: auto-join a classroom via invite link
+    const classcode = (params.get('classcode') || '').trim().toUpperCase() || null;
+
+    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features, classcode };
 };
 
 // Cache the result so it's only parsed once

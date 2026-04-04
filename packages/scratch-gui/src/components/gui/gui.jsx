@@ -221,6 +221,7 @@ const GUIComponent = props => {
         onUpdateDynamicAssets,
         onSetPlatform,
         onSetTheme,
+        onOpenClassroomModal,
         // === Smalruby: End of Redux action props prevention ===
         rubyTabVisible,
         showComingSoon,

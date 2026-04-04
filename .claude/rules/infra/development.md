@@ -15,9 +15,11 @@ AWS CDK infrastructure projects live in `infra/`. Each project is independent fr
 |---------|------|-------------|
 | smalruby-mesh-v2 | `infra/smalruby-mesh-v2/` | Mesh v2 networking service (AppSync + DynamoDB) |
 | smalruby-rubytee-relay | `infra/smalruby-rubytee-relay/` | Rubytee AI relay (API Gateway + Lambda + DynamoDB) |
+| smalruby-classroom | `infra/smalruby-classroom/` | Classroom service (API Gateway + Lambda + DynamoDB + S3) |
 
 See project-specific rules for details:
 - `.claude/rules/infra/smalruby-mesh-v2.md`
+- `.claude/rules/infra/smalruby-classroom.md`
 - `.claude/rules/infra/smalruby-rubytee-relay.md`
 
 ## Docker Service
@@ -33,6 +35,13 @@ For projects other than mesh-v2, override the working directory with `-w`:
 ```bash
 docker compose run --rm -w /app/infra/<project-name> infra <command>
 ```
+
+## cdk.context.json
+
+CDK のコンテキストキャッシュファイル `cdk.context.json` は **コミットする**。CDK のガイドラインに従い、デプロイの再現性を保証する。Route53 ホストゾーン ID など、CDK が自動的にキャッシュした値を含む。
+
+- `cdk.context.json` は `.gitignore` に追加**しない**
+- デプロイ後に生成・更新された場合はコミットする
 
 ## AWS Credentials
 
