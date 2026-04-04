@@ -100,6 +100,35 @@
     margin: 2rem 0;
 }
 
+.status-card {
+    background-color: #f2f2f2;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0 1rem;
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.status-row:last-child {
+    border-bottom: none;
+}
+
+.status-label {
+    font-weight: bold;
+    color: #575e75;
+    font-size: 0.85rem;
+}
+
+.status-value {
+    color: #575e75;
+    font-size: 0.85rem;
+}
+
 .role-button {
     background-color: #4c97ff;
     color: white;

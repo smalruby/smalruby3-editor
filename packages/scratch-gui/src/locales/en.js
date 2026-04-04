@@ -60,6 +60,13 @@ export default {
     'gui.classroom.studentJoined.success': 'Joined successfully!',
     'gui.classroom.studentJoined.seat': 'Seat {seatNumber}',
     'gui.classroom.studentJoined.start': 'Start',
+    'gui.classroom.studentStatus.title': 'Your Classroom',
+    'gui.classroom.studentStatus.class': 'Class',
+    'gui.classroom.studentStatus.seat': 'Seat',
+    'gui.classroom.studentStatus.joinedAt': 'Joined',
+    'gui.classroom.studentStatus.leave': 'Leave Classroom',
+    'gui.classroom.studentStatus.close': 'Close',
+    'gui.classroom.teacherDashboard.logout': 'Logout',
     'gui.classroom.loading': 'Loading...',
     'gui.smalruby3.menuBar.generateRubyFromCode': 'Generate Ruby from Code',
     'gui.smalruby3.unsupportedBrowser.notRecommended':

@@ -39,6 +39,9 @@ const ClassroomModal = ({
     onConfirmJoin,
     onClose,
     onDeleteMember,
+    onLeaveClassroom,
+    onTeacherLogout,
+    classroomState,
     selectedMember,
     onSelectMember,
 }) => {
@@ -229,6 +232,17 @@ const ClassroomModal = ({
                         )}
                         <div className={styles.buttonRow}>
                             <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-teacher-logout"
+                                onClick={onTeacherLogout}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Logout"
+                                    description="Teacher logout button"
+                                    id="gui.classroom.teacherDashboard.logout"
+                                />
+                            </button>
+                            <button
                                 className={styles.primaryButton}
                                 data-testid="classroom-create"
                                 onClick={onShowCreateForm}
@@ -382,6 +396,98 @@ const ClassroomModal = ({
                                 />
                             </button>
                         </div>
+                    </div>
+                )}
+
+                {/* Phase: student-status (already joined) */}
+                {phase === 'student-status' && classroomState && (
+                    <div data-testid="classroom-phase-student-status">
+                        <div className={styles.phaseTitle}>
+                            <FormattedMessage
+                                defaultMessage="Your Classroom"
+                                description="Student status title"
+                                id="gui.classroom.studentStatus.title"
+                            />
+                        </div>
+                        <div className={styles.statusCard}>
+                            <div className={styles.statusRow}>
+                                <span className={styles.statusLabel}>
+                                    <FormattedMessage
+                                        defaultMessage="Class"
+                                        description="Class name label"
+                                        id="gui.classroom.studentStatus.class"
+                                    />
+                                </span>
+                                <span
+                                    className={styles.statusValue}
+                                    data-testid="classroom-status-class-name"
+                                >
+                                    {classroomState.className}
+                                </span>
+                            </div>
+                            <div className={styles.statusRow}>
+                                <span className={styles.statusLabel}>
+                                    <FormattedMessage
+                                        defaultMessage="Seat"
+                                        description="Seat number label"
+                                        id="gui.classroom.studentStatus.seat"
+                                    />
+                                </span>
+                                <span
+                                    className={styles.statusValue}
+                                    data-testid="classroom-status-seat-number"
+                                >
+                                    {classroomState.seatNumber}
+                                </span>
+                            </div>
+                            {classroomState.joinedAt && (
+                                <div className={styles.statusRow}>
+                                    <span className={styles.statusLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="Joined"
+                                            description="Joined at label"
+                                            id="gui.classroom.studentStatus.joinedAt"
+                                        />
+                                    </span>
+                                    <span
+                                        className={styles.statusValue}
+                                        data-testid="classroom-status-joined-at"
+                                    >
+                                        {new Date(classroomState.joinedAt).toLocaleString()}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className={styles.buttonRow}>
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-leave"
+                                disabled={isLoading}
+                                onClick={onLeaveClassroom}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Leave Classroom"
+                                    description="Leave classroom button"
+                                    id="gui.classroom.studentStatus.leave"
+                                />
+                            </button>
+                            <button
+                                className={styles.primaryButton}
+                                data-testid="classroom-status-close"
+                                onClick={onClose}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Close"
+                                    description="Close button"
+                                    id="gui.classroom.studentStatus.close"
+                                />
+                            </button>
+                        </div>
+                        {error && (
+                            <div className={styles.errorText} data-testid="classroom-error">
+                                {error}
+                            </div>
+                        )}
                     </div>
                 )}
             </Box>
@@ -749,6 +855,7 @@ ClassroomModal.propTypes = {
     onCreateClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
     onJoinWithCode: PropTypes.func.isRequired,
+    onLeaveClassroom: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onSelectSeat: PropTypes.func.isRequired,
@@ -756,6 +863,9 @@ ClassroomModal.propTypes = {
     onSelectTeacher: PropTypes.func.isRequired,
     onShowCreateForm: PropTypes.func.isRequired,
     onTeacherLogin: PropTypes.func.isRequired,
+    onTeacherLogout: PropTypes.func.isRequired,
+    onLeaveClassroom: PropTypes.func.isRequired,
+    classroomState: PropTypes.object,
     phase: PropTypes.string.isRequired,
     seatCount: PropTypes.number,
     selectedClassroom: PropTypes.object,

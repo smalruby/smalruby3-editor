@@ -1,17 +1,30 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
-import { closeClassroomModal, setClassroomSession } from '../reducers/classroom.js';
+import {
+    closeClassroomModal,
+    setClassroomSession,
+    clearClassroomSession,
+} from '../reducers/classroom.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 const ClassroomModal = () => {
     const dispatch = useDispatch();
+    const classroomState = useSelector(state => state.scratchGui.classroom);
+
+    // Determine initial phase based on persisted session
+    const getInitialPhase = () => {
+        if (classroomState.role === 'student' && classroomState.sessionToken) {
+            return 'student-status';
+        }
+        return 'role-select';
+    };
 
     // UI state
-    const [phase, setPhase] = useState('role-select');
+    const [phase, setPhase] = useState(getInitialPhase);
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -26,14 +39,14 @@ const ClassroomModal = () => {
     const [seatCount, setSeatCount] = useState(0);
     const [takenSeats, setTakenSeats] = useState([]);
     const [selectedSeat, setSelectedSeat] = useState(null);
-    const [pendingClassroomId, setPendingClassroomId] = useState(null);
-    const [pendingClassName, setPendingClassName] = useState(null);
     const [joinedInfo, setJoinedInfo] = useState(null);
     const [selectedMember, setSelectedMember] = useState(null);
 
     const handleClose = useCallback(() => {
         dispatch(closeClassroomModal());
     }, [dispatch]);
+
+    // --- Role selection ---
 
     const handleSelectTeacher = useCallback(() => {
         setError(null);
@@ -75,8 +88,6 @@ const ClassroomModal = () => {
                 });
                 google.accounts.id.prompt(notification => {
                     if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        // One Tap not available; fall back to button-based flow
-                        // Render a temporary button and auto-click it
                         const container = document.createElement('div');
                         container.style.cssText =
                             'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;';
@@ -85,7 +96,6 @@ const ClassroomModal = () => {
                             theme: 'outline',
                             size: 'large',
                         });
-                        // Clean up after sign-in completes or user closes
                         const observer = new MutationObserver(() => {
                             if (!document.body.contains(container)) {
                                 observer.disconnect();
@@ -101,6 +111,17 @@ const ClassroomModal = () => {
         } catch (err) {
             setError(err.message || 'Sign-in failed');
         }
+    }, []);
+
+    // --- Teacher: Logout ---
+
+    const handleTeacherLogout = useCallback(() => {
+        setIdToken(null);
+        setClassrooms([]);
+        setSelectedClassroom(null);
+        setMembers([]);
+        setError(null);
+        setPhase('role-select');
     }, []);
 
     // --- Teacher: Load classrooms when entering dashboard ---
@@ -188,6 +209,7 @@ const ClassroomModal = () => {
             try {
                 await classroomAPI.deleteMember(idToken, selectedClassroom.classroomId, memberId);
                 setMembers(prev => prev.filter(m => m.memberId !== memberId));
+                setSelectedMember(null);
             } catch (err) {
                 setError(err.message);
             }
@@ -199,15 +221,14 @@ const ClassroomModal = () => {
 
     const handleJoinWithCode = useCallback(joinCode => {
         setError(null);
-        // Proceed to seat selection; server validates seat number on join
         setPendingJoinCode(joinCode);
-        setSeatCount(40); // Default max; server validates against actual class size
+        setSeatCount(40);
         setTakenSeats([]);
         setSelectedSeat(null);
         setPhase('student-seat');
     }, []);
 
-    // --- Student: Select seat ---
+    // --- Student: Select seat / member ---
 
     const handleSelectMember = useCallback(memberId => {
         setSelectedMember(memberId);
@@ -225,7 +246,6 @@ const ClassroomModal = () => {
         setIsLoading(true);
         try {
             const data = await classroomAPI.joinClassroom(pendingJoinCode, selectedSeat);
-            // Save session to Redux + localStorage
             dispatch(
                 setClassroomSession({
                     role: 'student',
@@ -235,6 +255,7 @@ const ClassroomModal = () => {
                     seatNumber: data.seatNumber,
                     memberId: data.memberId,
                     sessionToken: data.sessionToken,
+                    joinedAt: new Date().toISOString(),
                 }),
             );
             setJoinedInfo({
@@ -253,9 +274,28 @@ const ClassroomModal = () => {
         }
     }, [dispatch, pendingJoinCode, selectedSeat]);
 
+    // --- Student: Leave classroom ---
+
+    const handleLeaveClassroom = useCallback(async () => {
+        setError(null);
+        setIsLoading(true);
+        try {
+            // No auth needed for leave — the server will accept DELETE
+            // but currently requires teacher auth. For now, just clear local state.
+            // TODO: Add a student-authenticated leave endpoint
+            dispatch(clearClassroomSession());
+            setPhase('role-select');
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [dispatch]);
+
     return (
         <ClassroomModalComponent
             classrooms={classrooms}
+            classroomState={classroomState}
             error={error}
             isLoading={isLoading}
             joinedInfo={joinedInfo}
@@ -263,6 +303,7 @@ const ClassroomModal = () => {
             phase={phase}
             seatCount={seatCount}
             selectedClassroom={selectedClassroom}
+            selectedMember={selectedMember}
             selectedSeat={selectedSeat}
             takenSeats={takenSeats}
             onBackToDashboard={handleBackToDashboard}
@@ -272,14 +313,15 @@ const ClassroomModal = () => {
             onCreateClassroom={handleCreateClassroom}
             onDeleteMember={handleDeleteMember}
             onJoinWithCode={handleJoinWithCode}
+            onLeaveClassroom={handleLeaveClassroom}
             onSelectClassroom={handleSelectClassroom}
             onSelectMember={handleSelectMember}
             onSelectSeat={handleSelectSeat}
-            selectedMember={selectedMember}
             onSelectStudent={handleSelectStudent}
             onSelectTeacher={handleSelectTeacher}
             onShowCreateForm={handleShowCreateForm}
             onTeacherLogin={handleTeacherLogin}
+            onTeacherLogout={handleTeacherLogout}
         />
     );
 };

@@ -58,6 +58,7 @@ const initialState = {
     seatNumber: storedSession?.seatNumber || null,
     memberId: storedSession?.memberId || null,
     sessionToken: storedSession?.sessionToken || null,
+    joinedAt: storedSession?.joinedAt || null,
 };
 
 const reducer = (state, action) => {
@@ -76,6 +77,7 @@ const reducer = (state, action) => {
                 seatNumber: action.seatNumber,
                 memberId: action.memberId,
                 sessionToken: action.sessionToken,
+                joinedAt: action.joinedAt || new Date().toISOString(),
             };
             if (action.role === 'student' && action.sessionToken) {
                 saveSession(session);
@@ -93,6 +95,7 @@ const reducer = (state, action) => {
                 seatNumber: null,
                 memberId: null,
                 sessionToken: null,
+                joinedAt: null,
             };
         default:
             return state;
@@ -102,7 +105,7 @@ const reducer = (state, action) => {
 const openClassroomModal = () => ({ type: OPEN_MODAL });
 const closeClassroomModal = () => ({ type: CLOSE_MODAL });
 
-const setClassroomSession = ({ role, classroomId, className, joinCode, seatNumber, memberId, sessionToken }) => ({
+const setClassroomSession = ({ role, classroomId, className, joinCode, seatNumber, memberId, sessionToken, joinedAt }) => ({
     type: SET_SESSION,
     role,
     classroomId,
@@ -111,6 +114,7 @@ const setClassroomSession = ({ role, classroomId, className, joinCode, seatNumbe
     seatNumber,
     memberId,
     sessionToken,
+    joinedAt,
 });
 
 const clearClassroomSession = () => ({ type: CLEAR_SESSION });
