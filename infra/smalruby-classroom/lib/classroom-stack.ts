@@ -5,6 +5,7 @@ import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayv2Integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
@@ -14,6 +15,8 @@ import { Construct } from 'constructs';
 export class ClassroomStack extends cdk.Stack {
   public readonly classroomsTable: dynamodb.Table;
   public readonly membershipsTable: dynamodb.Table;
+  public readonly submissionsTable: dynamodb.Table;
+  public readonly submissionsBucket: s3.Bucket;
   public readonly api: apigatewayv2.HttpApi;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -94,7 +97,77 @@ export class ClassroomStack extends cdk.Stack {
       timeToLiveAttribute: 'ttl',
     });
 
+    // GSI: sessionToken lookup (for student submission auth)
+    this.membershipsTable.addGlobalSecondaryIndex({
+      indexName: 'sessionToken-index',
+      partitionKey: {
+        name: 'sessionToken',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     cdk.Tags.of(this.membershipsTable).add('ResourceType', 'DynamoDB');
+
+    // Submissions table
+    this.submissionsTable = new dynamodb.Table(this, 'SubmissionsTable', {
+      tableName: `ClassroomSubmissions${stageSuffix}`,
+      partitionKey: {
+        name: 'classroomId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'submissionId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      timeToLiveAttribute: 'ttl',
+    });
+
+    // GSI: lookup submissions by member
+    this.submissionsTable.addGlobalSecondaryIndex({
+      indexName: 'classroomId-memberId-index',
+      partitionKey: {
+        name: 'classroomId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'memberId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    cdk.Tags.of(this.submissionsTable).add('ResourceType', 'DynamoDB');
+
+    // --- S3 Bucket for submissions ---
+
+    this.submissionsBucket = new s3.Bucket(this, 'SubmissionsBucket', {
+      bucketName: `smalruby-classroom-submissions${stageSuffix}`,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: stage !== 'prod',
+      lifecycleRules: [
+        {
+          expiration: cdk.Duration.days(90),
+        },
+      ],
+      cors: [
+        {
+          allowedMethods: [s3.HttpMethods.PUT],
+          allowedOrigins: corsAllowOrigins,
+          allowedHeaders: ['Content-Type'],
+          maxAge: 3600,
+        },
+      ],
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+    });
+
+    cdk.Tags.of(this.submissionsBucket).add('ResourceType', 'S3');
 
     // --- Lambda ---
 
@@ -115,6 +188,8 @@ export class ClassroomStack extends cdk.Stack {
       environment: {
         CLASSROOMS_TABLE_NAME: this.classroomsTable.tableName,
         MEMBERSHIPS_TABLE_NAME: this.membershipsTable.tableName,
+        SUBMISSIONS_TABLE_NAME: this.submissionsTable.tableName,
+        SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
         GOOGLE_CLIENT_ID: googleClientId,
         CORS_ALLOWED_ORIGINS: corsOriginsEnv,
         STAGE: stage,
@@ -128,6 +203,9 @@ export class ClassroomStack extends cdk.Stack {
 
     this.classroomsTable.grantReadWriteData(handlerFn);
     this.membershipsTable.grantReadWriteData(handlerFn);
+    this.submissionsTable.grantReadWriteData(handlerFn);
+    this.submissionsBucket.grantPut(handlerFn);
+    this.submissionsBucket.grantRead(handlerFn);
 
     // --- Custom Domain ---
 
@@ -215,6 +293,12 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/submissions',
+      methods: [apigatewayv2.HttpMethod.POST, apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
     // Throttling
     const defaultStage = this.api.defaultStage?.node.defaultChild as apigatewayv2.CfnStage;
     if (defaultStage) {
@@ -263,6 +347,16 @@ export class ClassroomStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'MembershipsTableName', {
       value: this.membershipsTable.tableName,
       description: 'DynamoDB table name for memberships',
+    });
+
+    new cdk.CfnOutput(this, 'SubmissionsTableName', {
+      value: this.submissionsTable.tableName,
+      description: 'DynamoDB table name for submissions',
+    });
+
+    new cdk.CfnOutput(this, 'SubmissionsBucketName', {
+      value: this.submissionsBucket.bucketName,
+      description: 'S3 bucket name for submission files',
     });
   }
 }
