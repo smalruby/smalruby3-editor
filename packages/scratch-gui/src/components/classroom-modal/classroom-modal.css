@@ -184,6 +184,8 @@
     font-family: monospace;
     letter-spacing: 0.3em;
     color: #4c97ff;
+    user-select: text;
+    cursor: text;
 }
 
 .join-code-label {
@@ -251,6 +253,8 @@
     font-size: 1.1rem;
     color: #4c97ff;
     letter-spacing: 0.1em;
+    user-select: text;
+    cursor: text;
 }
 
 .class-item-meta {
@@ -582,6 +586,8 @@
     font-family: monospace;
     letter-spacing: 0.3em;
     color: #333;
+    user-select: text;
+    cursor: text;
     padding: 2rem 0;
 }
 
@@ -664,6 +670,8 @@
     font-family: monospace;
     letter-spacing: 0.2em;
     color: #333;
+    user-select: text;
+    cursor: text;
 }
 
 .code-fullscreen-footer {
