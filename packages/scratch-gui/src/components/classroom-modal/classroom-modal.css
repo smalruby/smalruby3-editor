@@ -6,6 +6,8 @@
 .body {
     padding: 1.5rem;
     min-height: 200px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
     background-color: white;
     border-radius: 0 0 8px 8px;
 }
@@ -118,17 +120,22 @@
     background-color: #f2f2f2;
     border: 2px dashed #d9d9d9;
     border-radius: 8px;
-    padding: 1rem;
+    padding: 0.5rem;
     text-align: center;
-    margin: 1rem 0;
+    margin: 0.5rem 0;
 }
 
 .join-code-value {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: bold;
     font-family: monospace;
     letter-spacing: 0.3em;
     color: #4c97ff;
+}
+
+.join-code-label {
+    font-size: 0.75rem;
+    color: #575e75;
 }
 
 .class-list {
@@ -225,31 +232,63 @@
     color: #575e75;
 }
 
-.members-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 300px;
-    overflow-y: auto;
+.members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 4px;
+    margin: 0.5rem 0;
 }
 
-.member-item {
+.member-cell {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0.4rem 0.8rem;
-    border-bottom: 1px solid #f2f2f2;
-}
-
-.member-seat {
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 4px;
+    font-size: 0.8rem;
     font-weight: bold;
-    color: #575e75;
-    min-width: 50px;
+    cursor: pointer;
+    border: none;
+    padding: 0;
 }
 
-.member-name {
-    flex: 1;
+.member-cell-joined {
+    background-color: #4c97ff;
+    color: white;
+}
+
+.member-cell-empty {
+    background-color: #e8e8e8;
+    color: #999;
+    cursor: default;
+}
+
+.member-cell-selected {
+    outline: 3px solid #0fbd8c;
+    outline-offset: -1px;
+}
+
+.member-detail-popup {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #f2f2f2;
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
     color: #575e75;
+}
+
+.member-detail-info {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.member-detail-seat {
+    font-weight: bold;
 }
 
 .delete-button {
@@ -258,10 +297,23 @@
     color: #ff6680;
     cursor: pointer;
     font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
 }
 
 .delete-button:hover {
     text-decoration: underline;
+}
+
+.members-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.members-count {
+    font-size: 0.8rem;
+    color: #999;
 }
 
 .back-link {

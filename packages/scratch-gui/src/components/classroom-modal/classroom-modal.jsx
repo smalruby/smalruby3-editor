@@ -39,6 +39,8 @@ const ClassroomModal = ({
     onConfirmJoin,
     onClose,
     onDeleteMember,
+    selectedMember,
+    onSelectMember,
 }) => {
     const intl = useIntl();
 
@@ -258,107 +260,15 @@ const ClassroomModal = ({
 
                 {/* Phase: teacher-class-detail */}
                 {phase === 'teacher-class-detail' && selectedClassroom && (
-                    <div data-testid="classroom-phase-teacher-detail">
-                        <button
-                            className={styles.backLink}
-                            data-testid="classroom-back"
-                            onClick={onBackToDashboard}
-                        >
-                            {'<'}{' '}
-                            <FormattedMessage
-                                defaultMessage="Back"
-                                description="Back button"
-                                id="gui.classroom.back"
-                            />
-                        </button>
-                        <div
-                            className={styles.phaseTitle}
-                            data-testid="classroom-detail-name"
-                        >
-                            {selectedClassroom.className}
-                        </div>
-                        <div className={styles.joinCodeDisplay}>
-                            <div>
-                                <FormattedMessage
-                                    defaultMessage="Join Code"
-                                    description="Join code label"
-                                    id="gui.classroom.joinCode.label"
-                                />
-                            </div>
-                            <div
-                                className={styles.joinCodeValue}
-                                data-testid="classroom-detail-join-code"
-                            >
-                                {selectedClassroom.joinCode}
-                            </div>
-                        </div>
-                        <div className={styles.phaseTitle}>
-                            <FormattedMessage
-                                defaultMessage="Members"
-                                description="Members list title"
-                                id="gui.classroom.members.title"
-                            />
-                        </div>
-                        {isLoading && (
-                            <div className={styles.loading} data-testid="classroom-loading">
-                                <FormattedMessage
-                                    defaultMessage="Loading..."
-                                    description="Loading indicator"
-                                    id="gui.classroom.loading"
-                                />
-                            </div>
-                        )}
-                        {!isLoading && (
-                            <ul className={styles.membersList} data-testid="classroom-members-list">
-                                {members.map(m => (
-                                    <li
-                                        className={styles.memberItem}
-                                        data-testid={`classroom-member-${m.memberId}`}
-                                        key={m.memberId}
-                                    >
-                                        <span
-                                            className={styles.memberSeat}
-                                            data-testid={`classroom-member-seat-${m.memberId}`}
-                                        >
-                                            {m.memberId}
-                                        </span>
-                                        <span
-                                            className={styles.memberName}
-                                            data-testid={`classroom-member-name-${m.memberId}`}
-                                        >
-                                            {m.displayName || '-'}
-                                        </span>
-                                        <button
-                                            className={styles.deleteButton}
-                                            data-member-id={m.memberId}
-                                            data-testid={`classroom-member-remove-${m.memberId}`}
-                                            onClick={handleDeleteMember}
-                                        >
-                                            <FormattedMessage
-                                                defaultMessage="Remove"
-                                                description="Remove member button"
-                                                id="gui.classroom.members.remove"
-                                            />
-                                        </button>
-                                    </li>
-                                ))}
-                                {members.length === 0 && (
-                                    <li
-                                        className={styles.memberItem}
-                                        data-testid="classroom-members-empty"
-                                    >
-                                        <span className={styles.memberName}>
-                                            <FormattedMessage
-                                                defaultMessage="No members yet"
-                                                description="Empty members message"
-                                                id="gui.classroom.members.empty"
-                                            />
-                                        </span>
-                                    </li>
-                                )}
-                            </ul>
-                        )}
-                    </div>
+                    <TeacherClassDetail
+                        isLoading={isLoading}
+                        members={members}
+                        selectedClassroom={selectedClassroom}
+                        selectedMember={selectedMember}
+                        onBack={onBackToDashboard}
+                        onDeleteMember={handleDeleteMember}
+                        onSelectMember={onSelectMember}
+                    />
                 )}
 
                 {/* Phase: student-join */}
@@ -477,6 +387,163 @@ const ClassroomModal = ({
             </Box>
         </Modal>
     );
+};
+
+// Teacher class detail with seat grid
+const TeacherClassDetail = ({
+    selectedClassroom,
+    members,
+    selectedMember,
+    isLoading,
+    onBack,
+    onSelectMember,
+    onDeleteMember,
+}) => {
+    const memberMap = React.useMemo(() => {
+        const map = {};
+        for (const m of members) {
+            map[m.memberId] = m;
+        }
+        return map;
+    }, [members]);
+
+    const handleCellClick = useCallback((e) => {
+        const memberId = e.currentTarget.dataset.memberId;
+        if (memberId && memberMap[memberId]) {
+            onSelectMember(memberId === selectedMember ? null : memberId);
+        }
+    }, [memberMap, selectedMember, onSelectMember]);
+
+    const joinedCount = members.length;
+    const totalCount = selectedClassroom.studentCount;
+
+    return (
+        <div data-testid="classroom-phase-teacher-detail">
+            <button
+                className={styles.backLink}
+                data-testid="classroom-back"
+                onClick={onBack}
+            >
+                {'<'}{' '}
+                <FormattedMessage
+                    defaultMessage="Back"
+                    description="Back button"
+                    id="gui.classroom.back"
+                />
+            </button>
+            <div
+                className={styles.phaseTitle}
+                data-testid="classroom-detail-name"
+            >
+                {selectedClassroom.className}
+            </div>
+            <div className={styles.joinCodeDisplay}>
+                <span className={styles.joinCodeLabel}>
+                    <FormattedMessage
+                        defaultMessage="Join Code"
+                        description="Join code label"
+                        id="gui.classroom.joinCode.label"
+                    />{': '}
+                </span>
+                <span
+                    className={styles.joinCodeValue}
+                    data-testid="classroom-detail-join-code"
+                >
+                    {selectedClassroom.joinCode}
+                </span>
+            </div>
+            <div className={styles.membersHeader}>
+                <div className={styles.phaseTitle} style={{ marginBottom: 0 }}>
+                    <FormattedMessage
+                        defaultMessage="Members"
+                        description="Members list title"
+                        id="gui.classroom.members.title"
+                    />
+                </div>
+                <span
+                    className={styles.membersCount}
+                    data-testid="classroom-members-count"
+                >
+                    {joinedCount} / {totalCount}
+                </span>
+            </div>
+            {isLoading && (
+                <div className={styles.loading} data-testid="classroom-loading">
+                    <FormattedMessage
+                        defaultMessage="Loading..."
+                        description="Loading indicator"
+                        id="gui.classroom.loading"
+                    />
+                </div>
+            )}
+            {!isLoading && (
+                <React.Fragment>
+                    <div
+                        className={styles.membersGrid}
+                        data-testid="classroom-members-grid"
+                    >
+                        {Array.from({ length: totalCount }, (_, i) => {
+                            const seatNum = i + 1;
+                            const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
+                            const member = memberMap[memberId];
+                            const isSelected = selectedMember === memberId;
+                            return (
+                                <button
+                                    className={`${styles.memberCell} ${member ? styles.memberCellJoined : styles.memberCellEmpty} ${isSelected ? styles.memberCellSelected : ''}`}
+                                    data-member-id={memberId}
+                                    data-testid={`classroom-member-${memberId}`}
+                                    key={memberId}
+                                    onClick={member ? handleCellClick : null}
+                                >
+                                    {seatNum}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {selectedMember && memberMap[selectedMember] && (
+                        <div
+                            className={styles.memberDetailPopup}
+                            data-testid="classroom-member-detail"
+                        >
+                            <div className={styles.memberDetailInfo}>
+                                <span
+                                    className={styles.memberDetailSeat}
+                                    data-testid="classroom-member-detail-seat"
+                                >
+                                    {selectedMember}
+                                </span>
+                                <span data-testid="classroom-member-detail-name">
+                                    {memberMap[selectedMember].displayName || '-'}
+                                </span>
+                            </div>
+                            <button
+                                className={styles.deleteButton}
+                                data-member-id={selectedMember}
+                                data-testid="classroom-member-remove"
+                                onClick={onDeleteMember}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Remove"
+                                    description="Remove member button"
+                                    id="gui.classroom.members.remove"
+                                />
+                            </button>
+                        </div>
+                    )}
+                </React.Fragment>
+            )}
+        </div>
+    );
+};
+
+TeacherClassDetail.propTypes = {
+    isLoading: PropTypes.bool,
+    members: PropTypes.arrayOf(PropTypes.object).isRequired,
+    onBack: PropTypes.func.isRequired,
+    onDeleteMember: PropTypes.func.isRequired,
+    onSelectMember: PropTypes.func.isRequired,
+    selectedClassroom: PropTypes.object.isRequired,
+    selectedMember: PropTypes.string,
 };
 
 // Teacher create classroom form
@@ -683,6 +750,7 @@ ClassroomModal.propTypes = {
     onDeleteMember: PropTypes.func.isRequired,
     onJoinWithCode: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
+    onSelectMember: PropTypes.func.isRequired,
     onSelectSeat: PropTypes.func.isRequired,
     onSelectStudent: PropTypes.func.isRequired,
     onSelectTeacher: PropTypes.func.isRequired,
@@ -691,6 +759,7 @@ ClassroomModal.propTypes = {
     phase: PropTypes.string.isRequired,
     seatCount: PropTypes.number,
     selectedClassroom: PropTypes.object,
+    selectedMember: PropTypes.string,
     selectedSeat: PropTypes.number,
     takenSeats: PropTypes.arrayOf(PropTypes.number),
 };
@@ -703,6 +772,7 @@ ClassroomModal.defaultProps = {
     members: [],
     seatCount: 0,
     selectedClassroom: null,
+    selectedMember: null,
     selectedSeat: null,
     takenSeats: [],
 };

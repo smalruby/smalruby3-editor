@@ -29,6 +29,7 @@ const ClassroomModal = () => {
     const [pendingClassroomId, setPendingClassroomId] = useState(null);
     const [pendingClassName, setPendingClassName] = useState(null);
     const [joinedInfo, setJoinedInfo] = useState(null);
+    const [selectedMember, setSelectedMember] = useState(null);
 
     const handleClose = useCallback(() => {
         dispatch(closeClassroomModal());
@@ -208,6 +209,10 @@ const ClassroomModal = () => {
 
     // --- Student: Select seat ---
 
+    const handleSelectMember = useCallback(memberId => {
+        setSelectedMember(memberId);
+    }, []);
+
     const handleSelectSeat = useCallback(seatNumber => {
         setSelectedSeat(seatNumber);
     }, []);
@@ -268,7 +273,9 @@ const ClassroomModal = () => {
             onDeleteMember={handleDeleteMember}
             onJoinWithCode={handleJoinWithCode}
             onSelectClassroom={handleSelectClassroom}
+            onSelectMember={handleSelectMember}
             onSelectSeat={handleSelectSeat}
+            selectedMember={selectedMember}
             onSelectStudent={handleSelectStudent}
             onSelectTeacher={handleSelectTeacher}
             onShowCreateForm={handleShowCreateForm}
