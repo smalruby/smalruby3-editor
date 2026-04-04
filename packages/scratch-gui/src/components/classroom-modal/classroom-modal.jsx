@@ -666,8 +666,11 @@ const ClassCodeDisplay = ({
     onToggleFullscreen,
 }) => {
     const code = classroom.joinCode.toLowerCase();
+    const [copied, setCopied] = useState(false);
     const handleCopy = useCallback(() => {
         onCopyInviteLink(classroom);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     }, [classroom, onCopyInviteLink]);
 
     if (isFullscreen) {
@@ -725,11 +728,19 @@ const ClassCodeDisplay = ({
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                             </svg>
                             {' '}
-                            <FormattedMessage
-                                defaultMessage="Copy invite link"
-                                description="Button to copy classroom invite link"
-                                id="gui.classroom.codeDisplay.copyLink"
-                            />
+                            {copied ? (
+                                <FormattedMessage
+                                    defaultMessage="Copied"
+                                    description="Confirmation after copying invite link"
+                                    id="gui.classroom.codeDisplay.copied"
+                                />
+                            ) : (
+                                <FormattedMessage
+                                    defaultMessage="Copy invite link"
+                                    description="Button to copy classroom invite link"
+                                    id="gui.classroom.codeDisplay.copyLink"
+                                />
+                            )}
                         </button>
                         <button
                             className={styles.expandIconButton}
@@ -956,17 +967,6 @@ const TeacherClassDetail = ({
                     />
                 ) : (
                     <div>
-                        <button
-                            className={styles.backLink}
-                            onClick={handleCloseCode}
-                        >
-                            {'<'}{' '}
-                            <FormattedMessage
-                                defaultMessage="Back"
-                                description="Back button"
-                                id="gui.classroom.back"
-                            />
-                        </button>
                         <ClassCodeDisplay
                             classroom={codeDisplayClassroom || selectedClassroom}
                             onClose={handleCloseCode}
@@ -977,21 +977,21 @@ const TeacherClassDetail = ({
                 )
             ) : (
                 <React.Fragment>
+                    <button
+                        className={styles.backLink}
+                        data-testid="classroom-back"
+                        onClick={onBack}
+                    >
+                        {'<'}{' '}
+                        <FormattedMessage
+                            defaultMessage="Back"
+                            description="Back button"
+                            id="gui.classroom.back"
+                        />
+                    </button>
                     <div className={styles.detailTwoPaneLayout}>
                         {/* Left pane */}
                         <div className={styles.detailLeftPane}>
-                            <button
-                                className={styles.backLink}
-                                data-testid="classroom-back"
-                                onClick={onBack}
-                            >
-                                {'<'}{' '}
-                                <FormattedMessage
-                                    defaultMessage="Back"
-                                    description="Back button"
-                                    id="gui.classroom.back"
-                                />
-                            </button>
                             <div
                                 className={styles.phaseTitle}
                                 data-testid="classroom-detail-name"
@@ -1049,20 +1049,10 @@ const TeacherClassDetail = ({
                                     </button>
                                 </div>
                             </div>
-                            {isLoading && (
-                                <div className={styles.loading} data-testid="classroom-loading">
-                                    <FormattedMessage
-                                        defaultMessage="Loading..."
-                                        description="Loading indicator"
-                                        id="gui.classroom.loading"
-                                    />
-                                </div>
-                            )}
-                            {!isLoading && (
-                                <div
-                                    className={styles.membersGrid}
-                                    data-testid="classroom-members-grid"
-                                >
+                            <div
+                                className={styles.membersGrid}
+                                data-testid="classroom-members-grid"
+                            >
                                     {Array.from({ length: totalCount }, (_, i) => {
                                         const seatNum = i + 1;
                                         const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
@@ -1089,7 +1079,6 @@ const TeacherClassDetail = ({
                                         );
                                     })}
                                 </div>
-                            )}
 
                             {/* Delete classroom */}
                             <div className={styles.detailFooter}>
@@ -1157,7 +1146,12 @@ const TeacherClassDetail = ({
                                             className={styles.memberDetailSeat}
                                             data-testid="classroom-member-detail-seat"
                                         >
-                                            {selectedMember}
+                                            <FormattedMessage
+                                                defaultMessage="Seat {number}"
+                                                description="Seat number display in member detail"
+                                                id="gui.classroom.teacherDetail.seatNumber"
+                                                values={{ number: selectedMember.replace('seat-', '') }}
+                                            />
                                         </span>
                                         <span data-testid="classroom-member-detail-name">
                                             {memberMap[selectedMember].displayName || '-'}

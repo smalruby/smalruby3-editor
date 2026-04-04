@@ -91,6 +91,7 @@ export default {
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
     'gui.classroom.teacherDetail.selectMember': 'メンバーをせんたくしてください',
+    'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
     'gui.classroom.loading': 'よみこみちゅう...',
     'gui.sharedMessages.backdrop': 'はいけい{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',

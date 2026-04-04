@@ -94,6 +94,7 @@ export default {
     'gui.classroom.codeDisplay.copyLink': 'Copy invite link',
     'gui.classroom.codeDisplay.copied': 'Copied',
     'gui.classroom.teacherDetail.selectMember': 'Select a member',
+    'gui.classroom.teacherDetail.seatNumber': 'Seat {number}',
     'gui.classroom.loading': 'Loading...',
     'gui.smalruby3.menuBar.generateRubyFromCode': 'Generate Ruby from Code',
     'gui.smalruby3.unsupportedBrowser.notRecommended':

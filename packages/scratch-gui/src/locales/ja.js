@@ -90,6 +90,7 @@ export default {
     'gui.classroom.codeDisplay.copyLink': '招待リンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
     'gui.classroom.teacherDetail.selectMember': 'メンバーを選択してください',
+    'gui.classroom.teacherDetail.seatNumber': '出席番号{number}',
     'gui.classroom.loading': '読み込み中...',
     'gui.sharedMessages.backdrop': '背景{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',
