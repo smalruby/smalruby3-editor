@@ -6,6 +6,7 @@ import {
   validateSeatNumber,
   validateNickname,
   validateJoinCode,
+  validateProjectName,
   getCorsHeaders,
 } from '../handler';
 
@@ -206,5 +207,32 @@ describe('getCorsHeaders', () => {
     expect(headers['Access-Control-Allow-Methods']).toContain('POST');
     expect(headers['Access-Control-Allow-Methods']).toContain('GET');
     expect(headers['Access-Control-Allow-Methods']).toContain('DELETE');
+  });
+});
+
+describe('validateProjectName', () => {
+  test('should accept valid project name', () => {
+    expect(validateProjectName('My Project')).toBe('My Project');
+  });
+
+  test('should trim whitespace', () => {
+    expect(validateProjectName('  My Project  ')).toBe('My Project');
+  });
+
+  test('should reject empty string', () => {
+    expect(() => validateProjectName('')).toThrow('Project name is required');
+  });
+
+  test('should reject non-string', () => {
+    expect(() => validateProjectName(123)).toThrow('Project name is required');
+  });
+
+  test('should reject too long name', () => {
+    expect(() => validateProjectName('a'.repeat(101))).toThrow('100 characters or less');
+  });
+
+  test('should accept name at max length', () => {
+    const maxName = 'a'.repeat(100);
+    expect(validateProjectName(maxName)).toBe(maxName);
   });
 });
