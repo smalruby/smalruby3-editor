@@ -50,6 +50,8 @@ const ClassroomModal = ({
     onConfirmSubmit,
     onCancelSubmit,
     submitProgress,
+    teacherComment,
+    onRefreshStudentStatus,
     thumbnailDataUrl,
     onTeacherLogout,
     classroomState,
@@ -531,7 +533,19 @@ const ClassroomModal = ({
                                     className={styles.statusValue}
                                     data-testid="classroom-submit-status"
                                 >
-                                    {classroomState.submissionStatus === 'submitted' ? (
+                                    {classroomState.submissionStatus === 'returned' ? (
+                                        <React.Fragment>
+                                            {'↩ '}
+                                            <FormattedMessage
+                                                defaultMessage="Returned"
+                                                description="Returned status"
+                                                id="gui.classroom.studentStatus.returned"
+                                            />
+                                            {classroomState.lastSubmittedAt && (
+                                                <span>{` (${new Date(classroomState.lastSubmittedAt).toLocaleTimeString()})`}</span>
+                                            )}
+                                        </React.Fragment>
+                                    ) : classroomState.submissionStatus === 'submitted' ? (
                                         <React.Fragment>
                                             {'✓ '}
                                             <FormattedMessage
@@ -551,7 +565,32 @@ const ClassroomModal = ({
                                         />
                                     )}
                                 </span>
+                                <button
+                                    className={styles.refreshButton}
+                                    data-testid="classroom-student-refresh"
+                                    disabled={isLoading}
+                                    onClick={onRefreshStudentStatus}
+                                >
+                                    {'↻'}
+                                </button>
                             </div>
+                            {classroomState.submissionStatus === 'returned' && teacherComment && (
+                                <div
+                                    className={styles.teacherCommentBox}
+                                    data-testid="classroom-status-teacher-comment"
+                                >
+                                    <span className={styles.statusLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="Comment"
+                                            description="Teacher comment label"
+                                            id="gui.classroom.studentStatus.comment"
+                                        />
+                                    </span>
+                                    <span className={styles.teacherCommentText}>
+                                        {teacherComment}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div className={styles.buttonRow}>
                             <button
@@ -560,7 +599,7 @@ const ClassroomModal = ({
                                 disabled={isLoading}
                                 onClick={onStartSubmit}
                             >
-                                {classroomState.submissionStatus === 'submitted' ? (
+                                {classroomState.submissionStatus ? (
                                     <FormattedMessage
                                         defaultMessage="Resubmit"
                                         description="Resubmit button"
@@ -1617,6 +1656,7 @@ ClassroomModal.propTypes = {
     onLeaveClassroom: PropTypes.func.isRequired,
     onOpenSubmission: PropTypes.func.isRequired,
     onRefreshDetail: PropTypes.func.isRequired,
+    onRefreshStudentStatus: PropTypes.func.isRequired,
     onReturnSubmission: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
@@ -1640,6 +1680,7 @@ ClassroomModal.propTypes = {
         total: PropTypes.number,
         label: PropTypes.string,
     }),
+    teacherComment: PropTypes.string,
     thumbnailDataUrl: PropTypes.string,
 };
 

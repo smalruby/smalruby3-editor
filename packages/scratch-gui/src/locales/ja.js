@@ -87,6 +87,8 @@ export default {
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーで開く',
     'gui.classroom.teacherDetail.returnSubmission': '返却する',
     'gui.classroom.teacherDetail.returned': '返却済み',
+    'gui.classroom.studentStatus.returned': '返却済み',
+    'gui.classroom.studentStatus.comment': 'コメント',
     'gui.classroom.teacherDetail.cancelDelete': 'キャンセル',
     'gui.classroom.codeDisplay.title': 'クラスコード',
     'gui.classroom.codeDisplay.copyLink': '招待リンクをコピー',

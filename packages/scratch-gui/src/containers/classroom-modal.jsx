@@ -523,23 +523,39 @@ const ClassroomModal = () => {
         }
     }, [dispatch, pendingJoinCode, selectedSeat, clearError, showError, intl]);
 
-    // --- Student: Verify session on status screen ---
+    // --- Student: Verify session + fetch submission status ---
 
+    const [studentTeacherComment, setStudentTeacherComment] = useState(null);
+
+    const refreshStudentStatus = useCallback(async () => {
+        if (!classroomState.sessionToken) return;
+        setIsLoading(true);
+        try {
+            const result = await classroomAPI.verifySession(classroomState.sessionToken);
+            if (result.submission) {
+                dispatch(setSubmissionStatus(result.submission.status, result.submission.submittedAt));
+                setStudentTeacherComment(result.submission.teacherComment || null);
+            }
+        } catch {
+            dispatch(clearClassroomSession());
+            const title = intl.formatMessage({
+                defaultMessage: 'An error occurred',
+                description: 'Error dialog title',
+                id: 'gui.classroom.error.title',
+            });
+            showError(translateError(intl, { status: 401 }, 'session'), title);
+            setPhase('role-select');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [classroomState.sessionToken, dispatch, showError, intl]);
+
+    // Fetch on student-status phase display
     useEffect(() => {
         if (phase === 'student-status' && classroomState.sessionToken) {
-            classroomAPI.verifySession(classroomState.sessionToken).catch(() => {
-                // Session is invalid — clear and redirect
-                dispatch(clearClassroomSession());
-                const title = intl.formatMessage({
-                    defaultMessage: 'An error occurred',
-                    description: 'Error dialog title',
-                    id: 'gui.classroom.error.title',
-                });
-                showError(translateError(intl, { status: 401 }, 'session'), title);
-                setPhase('role-select');
-            });
+            refreshStudentStatus();
         }
-    }, [phase, classroomState.sessionToken, dispatch, showError, intl]);
+    }, [phase]); // Only on phase change, not on every render
 
     // --- Student: Leave classroom ---
 
@@ -774,6 +790,8 @@ const ClassroomModal = () => {
             onOpenSubmission={handleOpenSubmission}
             onRefreshDetail={handleRefreshDetail}
             onReturnSubmission={handleReturnSubmission}
+            teacherComment={studentTeacherComment}
+            onRefreshStudentStatus={refreshStudentStatus}
             onStartSubmit={handleStartSubmit}
             onConfirmSubmit={handleConfirmSubmit}
             onCancelSubmit={handleCancelSubmit}
