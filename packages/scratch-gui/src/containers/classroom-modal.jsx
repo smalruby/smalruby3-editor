@@ -3,10 +3,7 @@ import { useDispatch } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
-import {
-    closeClassroomModal,
-    setClassroomSession,
-} from '../reducers/classroom.js';
+import { closeClassroomModal, setClassroomSession } from '../reducers/classroom.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
@@ -67,7 +64,7 @@ const ClassroomModal = () => {
                 /* global google */
                 google.accounts.id.initialize({
                     client_id: GOOGLE_CLIENT_ID,
-                    callback: (response) => {
+                    callback: response => {
                         if (response.credential) {
                             resolve(response.credential);
                         } else {
@@ -75,12 +72,13 @@ const ClassroomModal = () => {
                         }
                     },
                 });
-                google.accounts.id.prompt((notification) => {
+                google.accounts.id.prompt(notification => {
                     if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
                         // One Tap not available; fall back to button-based flow
                         // Render a temporary button and auto-click it
                         const container = document.createElement('div');
-                        container.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;';
+                        container.style.cssText =
+                            'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;';
                         document.body.appendChild(container);
                         google.accounts.id.renderButton(container, {
                             theme: 'outline',
@@ -110,7 +108,8 @@ const ClassroomModal = () => {
         if (phase === 'teacher-dashboard' && idToken) {
             setIsLoading(true);
             setError(null);
-            classroomAPI.listClassrooms(idToken)
+            classroomAPI
+                .listClassrooms(idToken)
                 .then(data => {
                     setClassrooms(data.classrooms || []);
                 })
@@ -129,42 +128,44 @@ const ClassroomModal = () => {
         setPhase('teacher-create');
     }, []);
 
-    const handleCreateClassroom = useCallback(async (formData) => {
-        setError(null);
-        setIsLoading(true);
-        try {
-            await classroomAPI.createClassroom(
-                idToken,
-                formData.className,
-                formData.studentCount,
-            );
-            setPhase('teacher-dashboard');
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [idToken]);
+    const handleCreateClassroom = useCallback(
+        async formData => {
+            setError(null);
+            setIsLoading(true);
+            try {
+                await classroomAPI.createClassroom(idToken, formData.className, formData.studentCount);
+                setPhase('teacher-dashboard');
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken],
+    );
 
     // --- Teacher: Select classroom to view details ---
 
-    const handleSelectClassroom = useCallback(async (classroomId) => {
-        setError(null);
-        setIsLoading(true);
-        try {
-            const [classroomData, membersData] = await Promise.all([
-                classroomAPI.getClassroom(classroomId),
-                classroomAPI.listMembers(idToken, classroomId),
-            ]);
-            setSelectedClassroom(classroomData);
-            setMembers(membersData.members || []);
-            setPhase('teacher-class-detail');
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [idToken]);
+    const handleSelectClassroom = useCallback(
+        async classroomId => {
+            setError(null);
+            setIsLoading(true);
+            try {
+                const [classroomData, membersData] = await Promise.all([
+                    classroomAPI.getClassroom(classroomId),
+                    classroomAPI.listMembers(idToken, classroomId),
+                ]);
+                setSelectedClassroom(classroomData);
+                setMembers(membersData.members || []);
+                setPhase('teacher-class-detail');
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken],
+    );
 
     const handleBackToDashboard = useCallback(() => {
         setError(null);
@@ -179,24 +180,23 @@ const ClassroomModal = () => {
 
     // --- Teacher: Delete member ---
 
-    const handleDeleteMember = useCallback(async (memberId) => {
-        if (!selectedClassroom) return;
-        setError(null);
-        try {
-            await classroomAPI.deleteMember(
-                idToken,
-                selectedClassroom.classroomId,
-                memberId,
-            );
-            setMembers(prev => prev.filter(m => m.memberId !== memberId));
-        } catch (err) {
-            setError(err.message);
-        }
-    }, [idToken, selectedClassroom]);
+    const handleDeleteMember = useCallback(
+        async memberId => {
+            if (!selectedClassroom) return;
+            setError(null);
+            try {
+                await classroomAPI.deleteMember(idToken, selectedClassroom.classroomId, memberId);
+                setMembers(prev => prev.filter(m => m.memberId !== memberId));
+            } catch (err) {
+                setError(err.message);
+            }
+        },
+        [idToken, selectedClassroom],
+    );
 
     // --- Student: Join with code ---
 
-    const handleJoinWithCode = useCallback((joinCode) => {
+    const handleJoinWithCode = useCallback(joinCode => {
         setError(null);
         // Proceed to seat selection; server validates seat number on join
         setPendingJoinCode(joinCode);
@@ -208,7 +208,7 @@ const ClassroomModal = () => {
 
     // --- Student: Select seat ---
 
-    const handleSelectSeat = useCallback((seatNumber) => {
+    const handleSelectSeat = useCallback(seatNumber => {
         setSelectedSeat(seatNumber);
     }, []);
 
@@ -219,20 +219,19 @@ const ClassroomModal = () => {
         setError(null);
         setIsLoading(true);
         try {
-            const data = await classroomAPI.joinClassroom(
-                pendingJoinCode,
-                selectedSeat,
-            );
+            const data = await classroomAPI.joinClassroom(pendingJoinCode, selectedSeat);
             // Save session to Redux + localStorage
-            dispatch(setClassroomSession({
-                role: 'student',
-                classroomId: data.classroomId,
-                className: data.className,
-                joinCode: pendingJoinCode,
-                seatNumber: data.seatNumber,
-                memberId: data.memberId,
-                sessionToken: data.sessionToken,
-            }));
+            dispatch(
+                setClassroomSession({
+                    role: 'student',
+                    classroomId: data.classroomId,
+                    className: data.className,
+                    joinCode: pendingJoinCode,
+                    seatNumber: data.seatNumber,
+                    memberId: data.memberId,
+                    sessionToken: data.sessionToken,
+                }),
+            );
             setJoinedInfo({
                 className: data.className,
                 seatNumber: data.seatNumber,

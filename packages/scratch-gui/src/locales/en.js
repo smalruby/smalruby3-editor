@@ -39,12 +39,10 @@ export default {
     'gui.classroom.roleSelect.student': 'Student',
     'gui.classroom.back': 'Back',
     'gui.classroom.teacherLogin.prompt': 'Sign in with Google',
-    'gui.classroom.teacherLogin.description':
-        'Sign in with your Google account to manage classrooms.',
+    'gui.classroom.teacherLogin.description': 'Sign in with your Google account to manage classrooms.',
     'gui.classroom.teacherLogin.button': 'Sign in with Google',
     'gui.classroom.teacherDashboard.title': 'Your Classrooms',
-    'gui.classroom.teacherDashboard.empty':
-        'No classrooms yet. Create one to get started!',
+    'gui.classroom.teacherDashboard.empty': 'No classrooms yet. Create one to get started!',
     'gui.classroom.teacherDashboard.details': 'Details',
     'gui.classroom.teacherDashboard.create': 'Create Classroom',
     'gui.classroom.teacherCreate.title': 'Create Classroom',

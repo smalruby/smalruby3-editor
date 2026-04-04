@@ -1802,8 +1802,8 @@ const mapStateToProps = (state, ownProps) => {
         meshV2MenuOpen: meshV2MenuOpen(state),
         smalrubotS1MenuOpen: smalrubotS1MenuOpen(state), // === Smalruby: smalrubot firmware menu ===
         // === Smalruby: Start of classroom button ===
-        classroomClassName: state.scratchGui.classroom.className,
-        classroomSeatNumber: state.scratchGui.classroom.seatNumber,
+        classroomClassName: state.scratchGui.classroom ? state.scratchGui.classroom.className : null,
+        classroomSeatNumber: state.scratchGui.classroom ? state.scratchGui.classroom.seatNumber : null,
         // === Smalruby: End of classroom button ===
         extensionLoadCounter: state.scratchGui.koshienFile.extensionLoadCounter,
         aiSaveStatus: state.scratchGui.koshienFile.aiSaveStatus,

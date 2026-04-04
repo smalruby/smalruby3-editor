@@ -26,7 +26,7 @@ const loadSession = () => {
  * Save classroom session to localStorage.
  * @param {object} session - Session data to save
  */
-const saveSession = (session) => {
+const saveSession = session => {
     if (typeof window === 'undefined' || !window.localStorage) return;
     try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
@@ -102,15 +102,7 @@ const reducer = (state, action) => {
 const openClassroomModal = () => ({ type: OPEN_MODAL });
 const closeClassroomModal = () => ({ type: CLOSE_MODAL });
 
-const setClassroomSession = ({
-    role,
-    classroomId,
-    className,
-    joinCode,
-    seatNumber,
-    memberId,
-    sessionToken,
-}) => ({
+const setClassroomSession = ({ role, classroomId, className, joinCode, seatNumber, memberId, sessionToken }) => ({
     type: SET_SESSION,
     role,
     classroomId,

@@ -35,12 +35,10 @@ export default {
     'gui.classroom.roleSelect.student': '生徒',
     'gui.classroom.back': '戻る',
     'gui.classroom.teacherLogin.prompt': 'Googleでログイン',
-    'gui.classroom.teacherLogin.description':
-        'Googleアカウントでログインして、クラスを管理します。',
+    'gui.classroom.teacherLogin.description': 'Googleアカウントでログインして、クラスを管理します。',
     'gui.classroom.teacherLogin.button': 'Googleでログイン',
     'gui.classroom.teacherDashboard.title': 'あなたのクラス',
-    'gui.classroom.teacherDashboard.empty':
-        'クラスがありません。作成してはじめましょう！',
+    'gui.classroom.teacherDashboard.empty': 'クラスがありません。作成してはじめましょう！',
     'gui.classroom.teacherDashboard.details': '詳細',
     'gui.classroom.teacherDashboard.create': 'クラスを作る',
     'gui.classroom.teacherCreate.title': 'クラスを作る',

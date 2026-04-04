@@ -89,12 +89,7 @@ class ClassroomAPI {
      * @returns {Promise<void>}
      */
     async deleteMember(idToken, classroomId, memberId) {
-        return this._request(
-            'DELETE',
-            `/classrooms/${classroomId}/members/${memberId}`,
-            null,
-            idToken,
-        );
+        return this._request('DELETE', `/classrooms/${classroomId}/members/${memberId}`, null, idToken);
     }
 
     /**
