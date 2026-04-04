@@ -92,6 +92,7 @@ export default {
     'gui.classroom.teacherDetail.returnSubmission': 'Return',
     'gui.classroom.teacherDetail.returned': 'Returned',
     'gui.classroom.teacherDetail.downloadAll': 'Download All',
+    'gui.classroom.error.fileTooLarge': 'Project is too large ({size}MB). Maximum size is 10MB.',
     'gui.classroom.teacherDetail.cancelDelete': 'Cancel',
     'gui.classroom.codeDisplay.title': 'Class Code',
     'gui.classroom.codeDisplay.copyLink': 'Copy invite link',
