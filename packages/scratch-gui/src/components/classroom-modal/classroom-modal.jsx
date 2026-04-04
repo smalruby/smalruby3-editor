@@ -829,11 +829,19 @@ const ClassCodeDisplay = ({
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                         </svg>
                         {' '}
-                        <FormattedMessage
-                            defaultMessage="Copy invite link"
-                            description="Button to copy classroom invite link"
-                            id="gui.classroom.codeDisplay.copyLink"
-                        />
+                        {copied ? (
+                            <FormattedMessage
+                                defaultMessage="Copied"
+                                description="Confirmation after copying invite link"
+                                id="gui.classroom.codeDisplay.copied"
+                            />
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage="Copy invite link"
+                                description="Button to copy classroom invite link"
+                                id="gui.classroom.codeDisplay.copyLink"
+                            />
+                        )}
                     </button>
                     <button
                         className={styles.expandIconButton}

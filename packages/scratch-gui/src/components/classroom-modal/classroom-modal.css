@@ -519,6 +519,8 @@
     font-size: 0.85rem;
     padding: 0;
     margin-bottom: 0.5rem;
+    text-align: left;
+    display: block;
 }
 
 .back-link:hover {
