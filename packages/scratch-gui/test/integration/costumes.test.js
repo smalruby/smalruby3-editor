@@ -16,7 +16,7 @@ const {
 } = new SeleniumHelper();
 
 // The costumes library is slow to load. Increase the timeout for these tests.
-jest.setTimeout(60_000);
+jest.setTimeout(90_000);
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 
@@ -35,6 +35,7 @@ describe('Working with costumes', () => {
         await loadUri(uri);
         await clickText('Costumes');
         await clickXpath('//button[@aria-label="Choose a Costume"]');
+        await waitForLoadingFinished();
         const el = await findByXpath("//input[@placeholder='Search']");
         await el.sendKeys('abb');
         await clickText('Abby-a'); // Should close the modal, then click the costumes in the selector
@@ -194,6 +195,7 @@ describe('Working with costumes', () => {
             .setSize(1244, 768); // Letters filter not visible at 1024 width
         await clickText('Costumes');
         await clickXpath('//button[@aria-label="Choose a Costume"]');
+        await waitForLoadingFinished();
         await clickText('Letters');
         await clickText('Block-a', scope.modal); // Closes modal
         await rightClickText('Block-a', scope.costumesTab); // Make sure it is there
