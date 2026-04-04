@@ -2,13 +2,7 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
-import {
-    getBlocksBoundingBox,
-    mergeWithBubbleBBox,
-    calculateCanvasDimensions,
-    buildExportSVG,
-    renderSVGToCanvas,
-} from '../lib/blocks-screenshot.js';
+import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
@@ -606,41 +600,9 @@ const ClassroomModal = () => {
             });
 
             try {
-                const blockBbox = getBlocksBoundingBox(workspace);
-                if (!blockBbox) continue;
-
-                const bbox = mergeWithBubbleBBox(workspace, blockBbox);
-                const scale = workspace.scale;
-                const { width, height } = calculateCanvasDimensions(bbox, scale);
-                const svgStr = await buildExportSVG(workspace, bbox, scale, width, height);
-                const canvas = await renderSVGToCanvas(svgStr, width, height);
-
-                // Overlay sprite costume in top-right corner
-                const ctx = canvas.getContext('2d');
-                const costumeAsset = target.sprite.costumes[target.currentCostume]?.asset;
-                if (costumeAsset) {
-                    const costumeDataUri = costumeAsset.encodeDataURI();
-                    const spriteImg = await new Promise((resolve, reject) => {
-                        const img = new Image();
-                        img.onload = () => resolve(img);
-                        img.onerror = reject;
-                        img.src = costumeDataUri;
-                    });
-                    const spriteSize = 48;
-                    const margin = 8;
-                    // Draw white circle background
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.arc(
-                        canvas.width - margin - spriteSize / 2,
-                        margin + spriteSize / 2,
-                        spriteSize / 2 + 4,
-                        0,
-                        Math.PI * 2,
-                    );
-                    ctx.fill();
-                    ctx.drawImage(spriteImg, canvas.width - spriteSize - margin, margin, spriteSize, spriteSize);
-                }
+                const costumeDataUri = target.sprite.costumes[target.currentCostume]?.asset?.encodeDataURI();
+                const canvas = await renderBlocksToCanvas(workspace, costumeDataUri);
+                if (!canvas) continue;
 
                 const blob = await new Promise(resolve => {
                     canvas.toBlob(resolve, 'image/png');
