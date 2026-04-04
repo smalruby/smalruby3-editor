@@ -864,7 +864,6 @@ ClassroomModal.propTypes = {
     onShowCreateForm: PropTypes.func.isRequired,
     onTeacherLogin: PropTypes.func.isRequired,
     onTeacherLogout: PropTypes.func.isRequired,
-    onLeaveClassroom: PropTypes.func.isRequired,
     classroomState: PropTypes.object,
     phase: PropTypes.string.isRequired,
     seatCount: PropTypes.number,

@@ -276,20 +276,9 @@ const ClassroomModal = () => {
 
     // --- Student: Leave classroom ---
 
-    const handleLeaveClassroom = useCallback(async () => {
-        setError(null);
-        setIsLoading(true);
-        try {
-            // No auth needed for leave — the server will accept DELETE
-            // but currently requires teacher auth. For now, just clear local state.
-            // TODO: Add a student-authenticated leave endpoint
-            dispatch(clearClassroomSession());
-            setPhase('role-select');
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
+    const handleLeaveClassroom = useCallback(() => {
+        dispatch(clearClassroomSession());
+        setPhase('role-select');
     }, [dispatch]);
 
     return (
