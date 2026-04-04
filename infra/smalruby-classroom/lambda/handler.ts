@@ -29,16 +29,17 @@ const MAX_NICKNAME_LENGTH = 20;
 // 6-digit alphanumeric, excluding confusing chars (I, O, 0, 1)
 const JOIN_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const JOIN_CODE_LENGTH = 6;
-// Session token validity: 30 days (for classroom sessions spanning a semester)
-const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
-// Classroom TTL: 1 year
-const CLASSROOM_TTL_SECONDS = 365 * 24 * 60 * 60;
+// Classroom TTL from environment (default 30 days)
+const CLASSROOM_TTL_DAYS = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
+const CLASSROOM_TTL_SECONDS = CLASSROOM_TTL_DAYS * 24 * 60 * 60;
+// Session and membership TTL matches classroom TTL
+const SESSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
 // Rate limiting for join endpoint (per IP)
 const JOIN_RATE_LIMIT_WINDOW_SECONDS = 60;
 const JOIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
 const JOIN_CODE_REGEX = new RegExp(`^[${JOIN_CODE_CHARS}]{${JOIN_CODE_LENGTH}}$`);
-// Submission config
-const SUBMISSION_TTL_SECONDS = 90 * 24 * 60 * 60; // 90 days
+// Submission config (TTL matches classroom TTL)
+const SUBMISSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
 const MAX_PROJECT_NAME_LENGTH = 100;
 const PRESIGNED_URL_UPLOAD_EXPIRY = 15 * 60; // 15 minutes
 const PRESIGNED_URL_DOWNLOAD_EXPIRY = 60 * 60; // 1 hour
@@ -217,6 +218,8 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
 
   const now = new Date().toISOString();
   const classroomId = crypto.randomUUID();
+  const ttl = Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS;
+  const expiresAt = new Date(ttl * 1000).toISOString();
 
   await docClient.send(new PutCommand({
     TableName: CLASSROOMS_TABLE,
@@ -229,13 +232,13 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
       status: 'active',
       createdAt: now,
       updatedAt: now,
-      ttl: Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS,
+      ttl,
     },
   }));
 
   return {
     statusCode: 201,
-    body: JSON.stringify({ classroomId, className, joinCode, studentCount, status: 'active', createdAt: now }),
+    body: JSON.stringify({ classroomId, className, joinCode, studentCount, status: 'active', createdAt: now, expiresAt }),
   };
 }
 
@@ -255,6 +258,7 @@ async function handleListClassrooms(teacherSub: string): Promise<APIGatewayProxy
       joinCode: item.joinCode,
       studentCount: item.studentCount,
       createdAt: item.createdAt,
+      expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
     }));
 
   return { statusCode: 200, body: JSON.stringify({ classrooms }) };
@@ -282,6 +286,7 @@ async function handleGetClassroom(teacherSub: string, classroomId: string): Prom
       studentCount: result.Item.studentCount,
       status: result.Item.status,
       createdAt: result.Item.createdAt,
+      expiresAt: result.Item.ttl ? new Date((result.Item.ttl as number) * 1000).toISOString() : null,
     }),
   };
 }

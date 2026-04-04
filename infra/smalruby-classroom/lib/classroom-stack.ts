@@ -33,6 +33,9 @@ export class ClassroomStack extends cdk.Stack {
     // Google Client ID for id_token verification
     const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
 
+    // Classroom TTL in days (default 30, configurable via env)
+    const classroomTtlDays = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
+
     // Tags
     cdk.Tags.of(this).add('Project', 'Classroom');
     cdk.Tags.of(this).add('Stage', stage);
@@ -152,7 +155,7 @@ export class ClassroomStack extends cdk.Stack {
       autoDeleteObjects: stage !== 'prod',
       lifecycleRules: [
         {
-          expiration: cdk.Duration.days(90),
+          expiration: cdk.Duration.days(classroomTtlDays),
         },
       ],
       cors: [
@@ -192,6 +195,7 @@ export class ClassroomStack extends cdk.Stack {
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
         GOOGLE_CLIENT_ID: googleClientId,
         CORS_ALLOWED_ORIGINS: corsOriginsEnv,
+        CLASSROOM_TTL_DAYS: String(classroomTtlDays),
         STAGE: stage,
       },
       bundling: {

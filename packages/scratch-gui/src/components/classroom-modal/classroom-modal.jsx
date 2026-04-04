@@ -253,6 +253,16 @@ const ClassroomModal = ({
                                                         {new Date(c.createdAt).toLocaleDateString()}
                                                     </span>
                                                 )}
+                                                {c.expiresAt && (
+                                                    <span className={styles.classItemMetaText}>
+                                                        <FormattedMessage
+                                                            defaultMessage="Expires: {date}"
+                                                            description="Expiry date in class list"
+                                                            id="gui.classroom.teacherDashboard.expiresAt"
+                                                            values={{ date: new Date(c.expiresAt).toLocaleDateString() }}
+                                                        />
+                                                    </span>
+                                                )}
                                                 <span style={{ flex: 1 }} />
                                                 <button
                                                     className={styles.secondaryButton}
@@ -1030,6 +1040,16 @@ const TeacherClassDetail = ({
                                     {'⛶'}
                                 </button>
                             </div>
+                            {selectedClassroom.expiresAt && (
+                                <div className={styles.expiresAtText}>
+                                    <FormattedMessage
+                                        defaultMessage="Expires: {date}"
+                                        description="Expiry date in class detail"
+                                        id="gui.classroom.teacherDetail.expiresAt"
+                                        values={{ date: new Date(selectedClassroom.expiresAt).toLocaleDateString() }}
+                                    />
+                                </div>
+                            )}
 
                             {/* Members header + grid */}
                             <div className={styles.membersHeader}>

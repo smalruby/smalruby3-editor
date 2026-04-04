@@ -92,6 +92,8 @@ export default {
     'gui.classroom.codeDisplay.copied': 'コピーしました',
     'gui.classroom.teacherDetail.selectMember': 'メンバーをせんたくしてください',
     'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
+    'gui.classroom.teacherDashboard.expiresAt': 'ゆうこうきげん: {date}',
+    'gui.classroom.teacherDetail.expiresAt': 'ゆうこうきげん: {date}',
     'gui.classroom.loading': 'よみこみちゅう...',
     'gui.sharedMessages.backdrop': 'はいけい{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',

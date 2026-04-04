@@ -192,6 +192,12 @@
     cursor: text;
 }
 
+.expires-at-text {
+    font-size: 0.8rem;
+    color: #999;
+    margin: 0.25rem 0 0.5rem;
+}
+
 .join-code-label {
     font-size: 0.75rem;
     color: #575e75;

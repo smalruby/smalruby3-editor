@@ -95,6 +95,8 @@ export default {
     'gui.classroom.codeDisplay.copied': 'Copied',
     'gui.classroom.teacherDetail.selectMember': 'Select a member',
     'gui.classroom.teacherDetail.seatNumber': 'Seat {number}',
+    'gui.classroom.teacherDashboard.expiresAt': 'Expires: {date}',
+    'gui.classroom.teacherDetail.expiresAt': 'Expires: {date}',
     'gui.classroom.loading': 'Loading...',
     'gui.smalruby3.menuBar.generateRubyFromCode': 'Generate Ruby from Code',
     'gui.smalruby3.unsupportedBrowser.notRecommended':

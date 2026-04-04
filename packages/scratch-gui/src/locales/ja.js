@@ -91,6 +91,8 @@ export default {
     'gui.classroom.codeDisplay.copied': 'コピーしました',
     'gui.classroom.teacherDetail.selectMember': 'メンバーを選択してください',
     'gui.classroom.teacherDetail.seatNumber': '出席番号{number}',
+    'gui.classroom.teacherDashboard.expiresAt': '有効期限: {date}',
+    'gui.classroom.teacherDetail.expiresAt': '有効期限: {date}',
     'gui.classroom.loading': '読み込み中...',
     'gui.sharedMessages.backdrop': '背景{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',
