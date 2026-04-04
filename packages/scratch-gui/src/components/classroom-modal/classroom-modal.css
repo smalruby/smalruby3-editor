@@ -287,6 +287,11 @@
     color: white;
 }
 
+.member-cell-submitted {
+    background-color: #0fbd8c;
+    color: white;
+}
+
 .member-cell-empty {
     background-color: #e8e8e8;
     color: #999;
@@ -318,6 +323,24 @@
 
 .member-detail-seat {
     font-weight: bold;
+}
+
+.submission-badge {
+    color: #0fbd8c;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+}
+
+.thumbnail-preview {
+    text-align: center;
+    margin: 0.5rem 0;
+}
+
+.thumbnail-image {
+    max-width: 240px;
+    max-height: 180px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
 }
 
 .delete-button {

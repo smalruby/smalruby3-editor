@@ -40,6 +40,10 @@ const ClassroomModal = ({
     onClose,
     onDeleteMember,
     onLeaveClassroom,
+    onStartSubmit,
+    onConfirmSubmit,
+    onCancelSubmit,
+    thumbnailDataUrl,
     onTeacherLogout,
     classroomState,
     selectedMember,
@@ -457,8 +461,55 @@ const ClassroomModal = ({
                                     </span>
                                 </div>
                             )}
+                            <div className={styles.statusRow}>
+                                <span className={styles.statusLabel}>
+                                    <FormattedMessage
+                                        defaultMessage="Submission"
+                                        description="Submission status label"
+                                        id="gui.classroom.studentStatus.submission"
+                                    />
+                                </span>
+                                <span
+                                    className={styles.statusValue}
+                                    data-testid="classroom-submit-status"
+                                >
+                                    {classroomState.submissionStatus === 'submitted' ? (
+                                        <React.Fragment>
+                                            {'✓ '}
+                                            <FormattedMessage
+                                                defaultMessage="Submitted"
+                                                description="Submitted status"
+                                                id="gui.classroom.studentStatus.submitted"
+                                            />
+                                            {classroomState.lastSubmittedAt && (
+                                                <span>{` (${new Date(classroomState.lastSubmittedAt).toLocaleTimeString()})`}</span>
+                                            )}
+                                        </React.Fragment>
+                                    ) : (
+                                        <FormattedMessage
+                                            defaultMessage="Not submitted"
+                                            description="Not submitted status"
+                                            id="gui.classroom.studentStatus.notSubmitted"
+                                        />
+                                    )}
+                                </span>
+                            </div>
                         </div>
                         <div className={styles.buttonRow}>
+                            <button
+                                className={styles.primaryButton}
+                                data-testid="classroom-submit-button"
+                                disabled={isLoading}
+                                onClick={onStartSubmit}
+                            >
+                                <FormattedMessage
+                                    defaultMessage={classroomState.submissionStatus === 'submitted' ? 'Resubmit' : 'Submit'}
+                                    description="Submit/resubmit button"
+                                    id={classroomState.submissionStatus === 'submitted'
+                                        ? 'gui.classroom.studentStatus.resubmit'
+                                        : 'gui.classroom.studentStatus.submit'}
+                                />
+                            </button>
                             <button
                                 className={styles.secondaryButton}
                                 data-testid="classroom-leave"
@@ -481,6 +532,74 @@ const ClassroomModal = ({
                                     description="Close button"
                                     id="gui.classroom.studentStatus.close"
                                 />
+                            </button>
+                        </div>
+                        {error && (
+                            <div className={styles.errorText} data-testid="classroom-error">
+                                {error}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Phase: student-submit-confirm */}
+                {phase === 'student-submit-confirm' && (
+                    <div data-testid="classroom-phase-submit-confirm">
+                        <div className={styles.phaseTitle}>
+                            <FormattedMessage
+                                defaultMessage="Submit your project"
+                                description="Submit confirmation title"
+                                id="gui.classroom.submitConfirm.title"
+                            />
+                        </div>
+                        {thumbnailDataUrl && (
+                            <div className={styles.thumbnailPreview}>
+                                <img
+                                    alt="Project thumbnail"
+                                    className={styles.thumbnailImage}
+                                    data-testid="classroom-submit-preview"
+                                    src={thumbnailDataUrl}
+                                />
+                            </div>
+                        )}
+                        <div className={styles.description}>
+                            <FormattedMessage
+                                defaultMessage="Are you sure you want to submit your current project?"
+                                description="Submit confirmation message"
+                                id="gui.classroom.submitConfirm.message"
+                            />
+                        </div>
+                        <div className={styles.buttonRow}>
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-submit-cancel"
+                                onClick={onCancelSubmit}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Cancel"
+                                    description="Cancel submit button"
+                                    id="gui.classroom.submitConfirm.cancel"
+                                />
+                            </button>
+                            <button
+                                className={styles.primaryButton}
+                                data-testid="classroom-submit-confirm"
+                                disabled={isLoading}
+                                onClick={onConfirmSubmit}
+                            >
+                                {isLoading ? (
+                                    <FormattedMessage
+                                        defaultMessage="Submitting..."
+                                        description="Submitting progress"
+                                        id="gui.classroom.submitConfirm.submitting"
+                                    />
+                                ) : (
+                                    <FormattedMessage
+                                        defaultMessage="Submit"
+                                        description="Confirm submit button"
+                                        id="gui.classroom.submitConfirm.submit"
+                                    />
+                                )}
                             </button>
                         </div>
                         {error && (
@@ -593,15 +712,21 @@ const TeacherClassDetail = ({
                             const memberId = `seat-${String(seatNum).padStart(2, '0')}`;
                             const member = memberMap[memberId];
                             const isSelected = selectedMember === memberId;
+                            const hasSubmission = member && member.hasSubmission;
+                            const cellClass = `${styles.memberCell} ${
+                                !member ? styles.memberCellEmpty
+                                    : hasSubmission ? styles.memberCellSubmitted
+                                        : styles.memberCellJoined
+                            } ${isSelected ? styles.memberCellSelected : ''}`;
                             return (
                                 <button
-                                    className={`${styles.memberCell} ${member ? styles.memberCellJoined : styles.memberCellEmpty} ${isSelected ? styles.memberCellSelected : ''}`}
+                                    className={cellClass}
                                     data-member-id={memberId}
                                     data-testid={`classroom-member-${memberId}`}
                                     key={memberId}
                                     onClick={member ? handleCellClick : null}
                                 >
-                                    {seatNum}
+                                    {hasSubmission ? `✓${seatNum}` : seatNum}
                                 </button>
                             );
                         })}
@@ -621,6 +746,15 @@ const TeacherClassDetail = ({
                                 <span data-testid="classroom-member-detail-name">
                                     {memberMap[selectedMember].displayName || '-'}
                                 </span>
+                                {memberMap[selectedMember].hasSubmission && (
+                                    <span
+                                        className={styles.submissionBadge}
+                                        data-testid="classroom-member-detail-submitted"
+                                    >
+                                        {'✓ '}
+                                        {new Date(memberMap[selectedMember].submittedAt).toLocaleTimeString()}
+                                    </span>
+                                )}
                             </div>
                             <button
                                 className={styles.deleteButton}
@@ -856,6 +990,10 @@ ClassroomModal.propTypes = {
     onDeleteMember: PropTypes.func.isRequired,
     onJoinWithCode: PropTypes.func.isRequired,
     onLeaveClassroom: PropTypes.func.isRequired,
+    onStartSubmit: PropTypes.func.isRequired,
+    onConfirmSubmit: PropTypes.func.isRequired,
+    onCancelSubmit: PropTypes.func.isRequired,
+    thumbnailDataUrl: PropTypes.string,
     onSelectClassroom: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onSelectSeat: PropTypes.func.isRequired,

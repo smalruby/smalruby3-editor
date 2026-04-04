@@ -94,6 +94,50 @@ class ClassroomAPI {
     }
 
     /**
+     * Create a submission (get presigned URLs for upload).
+     * @param {string} sessionToken - Student session token
+     * @param {string} classroomId - Classroom ID
+     * @param {string} projectName - Project name
+     * @returns {Promise<object>} Submission data with upload URLs
+     */
+    async createSubmission(sessionToken, classroomId, projectName) {
+        return this._request(
+            'POST',
+            `/classrooms/${classroomId}/submissions`,
+            { projectName },
+            sessionToken,
+        );
+    }
+
+    /**
+     * List submissions for a classroom (teacher only).
+     * @param {string} idToken - Google ID token
+     * @param {string} classroomId - Classroom ID
+     * @returns {Promise<object>} Submissions list
+     */
+    async listSubmissions(idToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/submissions`, null, idToken);
+    }
+
+    /**
+     * Upload data to a presigned URL.
+     * @param {string} url - Presigned URL
+     * @param {ArrayBuffer|Blob|string} data - Data to upload
+     * @param {string} contentType - MIME type
+     * @returns {Promise<void>}
+     */
+    async uploadToPresignedUrl(url, data, contentType) {
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': contentType },
+            body: data,
+        });
+        if (!response.ok) {
+            throw new Error(`Upload failed: ${response.status}`);
+        }
+    }
+
+    /**
      * Internal request helper.
      * @param {string} method - HTTP method
      * @param {string} path - API path

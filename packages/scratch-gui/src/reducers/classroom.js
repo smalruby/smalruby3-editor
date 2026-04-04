@@ -2,6 +2,7 @@ const OPEN_MODAL = 'scratch-gui/classroom/OPEN_MODAL';
 const CLOSE_MODAL = 'scratch-gui/classroom/CLOSE_MODAL';
 const SET_SESSION = 'scratch-gui/classroom/SET_SESSION';
 const CLEAR_SESSION = 'scratch-gui/classroom/CLEAR_SESSION';
+const SET_SUBMISSION_STATUS = 'scratch-gui/classroom/SET_SUBMISSION_STATUS';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -59,6 +60,8 @@ const initialState = {
     memberId: storedSession?.memberId || null,
     sessionToken: storedSession?.sessionToken || null,
     joinedAt: storedSession?.joinedAt || null,
+    submissionStatus: storedSession?.submissionStatus || null,
+    lastSubmittedAt: storedSession?.lastSubmittedAt || null,
 };
 
 const reducer = (state, action) => {
@@ -96,7 +99,20 @@ const reducer = (state, action) => {
                 memberId: null,
                 sessionToken: null,
                 joinedAt: null,
+                submissionStatus: null,
+                lastSubmittedAt: null,
             };
+        case SET_SUBMISSION_STATUS: {
+            const updates = {
+                submissionStatus: action.submissionStatus,
+                lastSubmittedAt: action.lastSubmittedAt || state.lastSubmittedAt,
+            };
+            // Persist to localStorage
+            if (state.role === 'student' && state.sessionToken) {
+                saveSession({ ...state, ...updates });
+            }
+            return { ...state, ...updates };
+        }
         default:
             return state;
     }
@@ -128,6 +144,12 @@ const setClassroomSession = ({
 
 const clearClassroomSession = () => ({ type: CLEAR_SESSION });
 
+const setSubmissionStatus = (submissionStatus, lastSubmittedAt) => ({
+    type: SET_SUBMISSION_STATUS,
+    submissionStatus,
+    lastSubmittedAt,
+});
+
 export default reducer;
 export {
     initialState as classroomInitialState,
@@ -135,4 +157,5 @@ export {
     closeClassroomModal,
     setClassroomSession,
     clearClassroomSession,
+    setSubmissionStatus,
 };

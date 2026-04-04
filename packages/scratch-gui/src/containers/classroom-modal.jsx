@@ -3,13 +3,20 @@ import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
-import { closeClassroomModal, setClassroomSession, clearClassroomSession } from '../reducers/classroom.js';
+import {
+    closeClassroomModal,
+    setClassroomSession,
+    clearClassroomSession,
+    setSubmissionStatus,
+} from '../reducers/classroom.js';
+import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 const ClassroomModal = () => {
     const dispatch = useDispatch();
     const classroomState = useSelector(state => state.scratchGui.classroom);
+    const vm = useSelector(state => state.scratchGui.vm);
 
     // Determine initial phase based on persisted session
     const getInitialPhase = () => {
@@ -37,6 +44,10 @@ const ClassroomModal = () => {
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [joinedInfo, setJoinedInfo] = useState(null);
     const [selectedMember, setSelectedMember] = useState(null);
+
+    // Submission state
+    const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
+    const [submissions, setSubmissions] = useState([]);
 
     const handleClose = useCallback(() => {
         dispatch(closeClassroomModal());
@@ -277,6 +288,68 @@ const ClassroomModal = () => {
         setPhase('role-select');
     }, [dispatch]);
 
+    // --- Student: Start submit flow ---
+
+    const handleStartSubmit = useCallback(() => {
+        setError(null);
+        setThumbnailDataUrl(null);
+        // Capture thumbnail
+        if (vm && vm.renderer) {
+            getProjectThumbnail(vm, dataUrl => {
+                setThumbnailDataUrl(dataUrl);
+            });
+        }
+        setPhase('student-submit-confirm');
+    }, [vm]);
+
+    // --- Student: Confirm submit ---
+
+    const handleConfirmSubmit = useCallback(async () => {
+        if (!classroomState.sessionToken || !classroomState.classroomId) return;
+        setError(null);
+        setIsLoading(true);
+        try {
+            const projectTitle = vm.runtime.projectName || 'Untitled';
+
+            // 1. Get presigned URLs
+            const submissionData = await classroomAPI.createSubmission(
+                classroomState.sessionToken,
+                classroomState.classroomId,
+                projectTitle,
+            );
+
+            // 2. Upload .sb3
+            const sb3Data = await vm.saveProjectSb3();
+            await classroomAPI.uploadToPresignedUrl(
+                submissionData.uploadUrl,
+                sb3Data,
+                'application/octet-stream',
+            );
+
+            // 3. Upload thumbnail
+            if (thumbnailDataUrl) {
+                const thumbnailBlob = await fetch(thumbnailDataUrl).then(r => r.blob());
+                await classroomAPI.uploadToPresignedUrl(
+                    submissionData.thumbnailUploadUrl,
+                    thumbnailBlob,
+                    'image/png',
+                );
+            }
+
+            // 4. Update Redux state
+            dispatch(setSubmissionStatus('submitted', submissionData.submittedAt));
+            setPhase('student-status');
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [classroomState, vm, thumbnailDataUrl, dispatch]);
+
+    const handleCancelSubmit = useCallback(() => {
+        setPhase('student-status');
+    }, []);
+
     return (
         <ClassroomModalComponent
             classrooms={classrooms}
@@ -299,6 +372,10 @@ const ClassroomModal = () => {
             onDeleteMember={handleDeleteMember}
             onJoinWithCode={handleJoinWithCode}
             onLeaveClassroom={handleLeaveClassroom}
+            onStartSubmit={handleStartSubmit}
+            onConfirmSubmit={handleConfirmSubmit}
+            onCancelSubmit={handleCancelSubmit}
+            thumbnailDataUrl={thumbnailDataUrl}
             onSelectClassroom={handleSelectClassroom}
             onSelectMember={handleSelectMember}
             onSelectSeat={handleSelectSeat}
