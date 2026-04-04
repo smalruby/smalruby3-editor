@@ -14,6 +14,7 @@ upstream (Scratch) ファイルは対象外。
 **Smalruby 固有ディレクトリ（ディレクトリ内の全ファイルが対象）:**
 - `src/components/auto-correct-modal/`
 - `src/components/block-display-modal/`
+- `src/components/classroom-modal/`
 - `src/components/smalrubot-firmware-modal/`
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`
@@ -40,6 +41,7 @@ upstream (Scratch) ファイルは対象外。
 
 **個別ファイル:**
 - `src/containers/block-display-modal.jsx`
+- `src/containers/classroom-modal.jsx`
 - `src/containers/extension-library.css`
 - `src/containers/google-drive-loader-hoc.jsx`
 - `src/containers/google-drive-saver-hoc.jsx`
@@ -64,6 +66,7 @@ upstream (Scratch) ファイルは対象外。
 
 **個別ファイル:**
 - `src/lib/auto-correct.js`
+- `src/lib/classroom-api.js`
 - `src/lib/block-utils.js`
 - `src/lib/blocks-gesture-recovery.js`
 - `src/lib/blocks-screenshot.js`
@@ -107,6 +110,7 @@ upstream (Scratch) ファイルは対象外。
 ### src/reducers/
 
 - `src/reducers/block-display.js`
+- `src/reducers/classroom.js`
 - `src/reducers/dncl-mode.js`
 - `src/reducers/extension-filter.js`
 - `src/reducers/google-drive-file.js`
@@ -201,6 +205,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/make-toolbox-xml-hex.test.js`
 - `test/unit/only-blocks-initialization.test.js`
 - `test/unit/reducers/cards_reducer.test.js`
+- `test/unit/reducers/classroom-reducer.test.js`
 - `test/unit/reducers/menus-reducer.test.js`
 - `test/unit/reducers/palette-visibility-reducer.test.js`
 - `test/unit/reducers/settings.test.js`

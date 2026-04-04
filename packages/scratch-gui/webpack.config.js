@@ -112,6 +112,9 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         'process.env.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS': `"${process.env.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS || ''}"`,
         'process.env.MESH_NETWORK_FILTER': `"${process.env.MESH_NETWORK_FILTER || ''}"`,
         'process.env.RUBYTEE_RELAY_ENDPOINT': `"${process.env.RUBYTEE_RELAY_ENDPOINT || ''}"`,
+        // === Smalruby: Start of classroom API ===
+        'process.env.CLASSROOM_API_ENDPOINT': `"${process.env.CLASSROOM_API_ENDPOINT || ''}"`,
+        // === Smalruby: End of classroom API ===
         'process.env.MAX_USER_MESSAGE_LENGTH': `"${process.env.MAX_USER_MESSAGE_LENGTH || '250'}"`,
         'process.env.MIN_USER_MESSAGE_LENGTH': `"${process.env.MIN_USER_MESSAGE_LENGTH || '10'}"`,
         // === Smalruby: version update notification ===
