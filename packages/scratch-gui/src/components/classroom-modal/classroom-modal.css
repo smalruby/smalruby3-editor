@@ -51,6 +51,10 @@
     box-sizing: border-box;
 }
 
+.input::placeholder {
+    color: #ccc;
+}
+
 .input:focus {
     outline: none;
     border-color: #4c97ff;

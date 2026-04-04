@@ -1406,7 +1406,7 @@ const StudentJoinForm = ({ error, errorTitle, isLoading, onBack, onJoin }) => {
                     className={styles.input}
                     data-testid="classroom-join-code-input"
                     maxLength={6}
-                    placeholder="ABC234"
+                    placeholder="○○○○○○"
                     style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.2em' }}
                     type="text"
                     value={code}
