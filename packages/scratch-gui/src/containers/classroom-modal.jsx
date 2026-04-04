@@ -561,10 +561,18 @@ const ClassroomModal = () => {
 
     // --- Student: Leave classroom ---
 
-    const handleLeaveClassroom = useCallback(() => {
+    const handleLeaveClassroom = useCallback(async () => {
+        // Notify server to remove member record (best-effort)
+        if (classroomState.sessionToken && classroomState.classroomId) {
+            try {
+                await classroomAPI.leaveClassroom(classroomState.sessionToken, classroomState.classroomId);
+            } catch {
+                // Proceed even if server call fails
+            }
+        }
         dispatch(clearClassroomSession());
         setPhase('role-select');
-    }, [dispatch]);
+    }, [classroomState.sessionToken, classroomState.classroomId, dispatch]);
 
     // --- Student: Start submit flow ---
 

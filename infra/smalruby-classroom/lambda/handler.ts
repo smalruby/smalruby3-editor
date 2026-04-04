@@ -983,11 +983,27 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       result = await handleListMembers(teacherSub, classroomId);
 
     } else if (method === 'DELETE' && /^\/classrooms\/[^/]+\/members\/[^/]+$/.test(path)) {
-      const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       const memberId = event.pathParameters?.memberId || '';
-      result = await handleDeleteMember(teacherSub, classroomId, memberId);
+
+      if (memberId === 'me') {
+        // Student self-removal via sessionToken
+        const token = extractBearerToken(event.headers?.authorization);
+        const session = await verifySessionToken(token);
+        if (session.classroomId !== classroomId) {
+          throw new AuthError('Session does not match this classroom');
+        }
+        await docClient.send(new DeleteCommand({
+          TableName: MEMBERSHIPS_TABLE,
+          Key: { classroomId, memberId: session.memberId },
+        }));
+        result = { statusCode: 204 };
+      } else {
+        // Teacher removal via Google ID token
+        const token = extractBearerToken(event.headers?.authorization);
+        const teacherSub = await verifyGoogleIdToken(token);
+        result = await handleDeleteMember(teacherSub, classroomId, memberId);
+      }
 
     } else if (method === 'POST' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);

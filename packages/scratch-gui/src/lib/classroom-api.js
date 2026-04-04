@@ -122,6 +122,16 @@ class ClassroomAPI {
     }
 
     /**
+     * Leave a classroom (student self-removal).
+     * @param {string} sessionToken - Student session token
+     * @param {string} classroomId - Classroom ID
+     * @returns {Promise<void>}
+     */
+    async leaveClassroom(sessionToken, classroomId) {
+        return this._request('DELETE', `/classrooms/${classroomId}/members/me`, null, sessionToken);
+    }
+
+    /**
      * Create a submission (get presigned URLs for upload).
      * @param {string} sessionToken - Student session token
      * @param {string} classroomId - Classroom ID
