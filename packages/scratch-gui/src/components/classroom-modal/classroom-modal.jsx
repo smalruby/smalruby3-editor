@@ -267,6 +267,7 @@ const ClassroomModal = ({
                             {'<'}{' '}
                             <FormattedMessage
                                 defaultMessage="Back"
+                                description="Back button"
                                 id="gui.classroom.back"
                             />
                         </button>
@@ -302,6 +303,7 @@ const ClassroomModal = ({
                             <div className={styles.loading} data-testid="classroom-loading">
                                 <FormattedMessage
                                     defaultMessage="Loading..."
+                                    description="Loading indicator"
                                     id="gui.classroom.loading"
                                 />
                             </div>
@@ -505,7 +507,7 @@ const TeacherCreateForm = ({ error, isLoading, onBack, onCreate }) => {
                 onClick={onBack}
             >
                 {'<'}{' '}
-                <FormattedMessage defaultMessage="Back" id="gui.classroom.back" />
+                <FormattedMessage defaultMessage="Back" description="Back button" id="gui.classroom.back" />
             </button>
             <div className={styles.phaseTitle}>
                 <FormattedMessage
@@ -612,7 +614,7 @@ const StudentJoinForm = ({ error, isLoading, onBack, onJoin }) => {
                 onClick={onBack}
             >
                 {'<'}{' '}
-                <FormattedMessage defaultMessage="Back" id="gui.classroom.back" />
+                <FormattedMessage defaultMessage="Back" description="Back button" id="gui.classroom.back" />
             </button>
             <div className={styles.phaseTitle}>
                 <FormattedMessage

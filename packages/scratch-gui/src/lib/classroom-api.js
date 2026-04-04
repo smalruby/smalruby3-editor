@@ -135,4 +135,7 @@ class ClassroomAPI {
     }
 }
 
+const isClassroomConfigured = ClassroomAPI.isConfigured;
+
+export { isClassroomConfigured };
 export default new ClassroomAPI();

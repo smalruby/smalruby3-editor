@@ -6,6 +6,8 @@
 .body {
     padding: 1.5rem;
     min-height: 200px;
+    background-color: white;
+    border-radius: 0 0 8px 8px;
 }
 
 .phase-title {
