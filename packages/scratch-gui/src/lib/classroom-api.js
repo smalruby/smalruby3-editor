@@ -183,18 +183,32 @@ class ClassroomAPI {
             options.body = JSON.stringify(body);
         }
 
-        const response = await fetch(url, options);
+        const maxRetries = 3;
+        let lastError;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            const response = await fetch(url, options);
 
-        if (response.status === 204) return null;
+            if (response.status === 204) return null;
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const error = new Error(errorData.error || `API error ${response.status}`);
-            error.status = response.status;
-            throw error;
+            if (response.status === 429 && attempt < maxRetries) {
+                // Exponential backoff: 500ms, 1000ms, 2000ms + jitter
+                const delay = 500 * Math.pow(2, attempt);
+                const jitter = Math.random() * 200;
+                await new Promise(r => setTimeout(r, delay + jitter));
+                continue;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                lastError = new Error(errorData.error || `API error ${response.status}`);
+                lastError.status = response.status;
+                throw lastError;
+            }
+
+            return response.json();
         }
 
-        return response.json();
+        throw lastError;
     }
 }
 

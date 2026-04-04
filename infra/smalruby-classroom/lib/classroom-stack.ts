@@ -319,8 +319,8 @@ export class ClassroomStack extends cdk.Stack {
     const defaultStage = this.api.defaultStage?.node.defaultChild as apigatewayv2.CfnStage;
     if (defaultStage) {
       defaultStage.defaultRouteSettings = {
-        throttlingRateLimit: stage === 'prod' ? 10 : 5,
-        throttlingBurstLimit: stage === 'prod' ? 30 : 10,
+        throttlingRateLimit: stage === 'prod' ? 200 : 50,
+        throttlingBurstLimit: stage === 'prod' ? 200 : 50,
       };
     }
 
