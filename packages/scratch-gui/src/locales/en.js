@@ -77,6 +77,18 @@ export default {
     'gui.classroom.submitConfirm.submit': 'Submit',
     'gui.classroom.submitConfirm.submitting': 'Submitting...',
     'gui.classroom.teacherDashboard.logout': 'Logout',
+    'gui.classroom.teacherDashboard.studentCountSuffix': ' students',
+    'gui.classroom.teacherDetail.delete': 'Delete',
+    'gui.classroom.teacherDetail.deleteClassroom': 'Delete Classroom',
+    'gui.classroom.teacherDetail.deleteConfirm':
+        'Are you sure you want to delete this classroom? All members will be removed.',
+    'gui.classroom.error.title': 'An error occurred',
+    'gui.classroom.error.invalidJoinCode': 'Could not join the classroom. Please check the join code and try again.',
+    'gui.classroom.error.seatTaken': 'This seat is already taken. Please choose a different seat.',
+    'gui.classroom.error.sessionExpired': 'Your session has expired. Please rejoin the classroom.',
+    'gui.classroom.error.classroomInactive': 'This classroom is no longer active.',
+    'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
+    'gui.classroom.teacherDetail.openSubmission': 'Open in Smalruby',
     'gui.classroom.loading': 'Loading...',
     'gui.smalruby3.menuBar.generateRubyFromCode': 'Generate Ruby from Code',
     'gui.smalruby3.unsupportedBrowser.notRecommended':

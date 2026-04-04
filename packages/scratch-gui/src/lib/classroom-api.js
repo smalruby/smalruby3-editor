@@ -58,6 +58,34 @@ class ClassroomAPI {
     }
 
     /**
+     * Delete a classroom (soft-delete).
+     * @param {string} idToken - Google ID token
+     * @param {string} classroomId - Classroom ID to delete
+     * @returns {Promise<void>}
+     */
+    async deleteClassroom(idToken, classroomId) {
+        return this._request('DELETE', `/classrooms/${classroomId}`, null, idToken);
+    }
+
+    /**
+     * Look up a classroom by join code (validates code, returns seat info).
+     * @param {string} joinCode - 6-digit join code
+     * @returns {Promise<object>} Classroom info with takenSeats
+     */
+    async lookupClassroom(joinCode) {
+        return this._request('POST', '/classrooms/lookup', { joinCode });
+    }
+
+    /**
+     * Verify that a student session token is still valid.
+     * @param {string} sessionToken - Student session token
+     * @returns {Promise<object>} Verification result
+     */
+    async verifySession(sessionToken) {
+        return this._request('POST', '/classrooms/verify-session', null, sessionToken);
+    }
+
+    /**
      * Join a classroom as a student.
      * @param {string} joinCode - 6-digit join code
      * @param {number} seatNumber - Selected seat number

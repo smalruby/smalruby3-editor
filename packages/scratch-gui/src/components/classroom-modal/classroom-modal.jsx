@@ -1,6 +1,6 @@
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 
 import Modal from '../../containers/modal.jsx';
 import Box from '../box/box.jsx';
@@ -25,6 +25,7 @@ const ClassroomModal = ({
     selectedSeat,
     joinedInfo,
     error,
+    errorTitle,
     isLoading,
     onSelectTeacher,
     onSelectStudent,
@@ -38,8 +39,11 @@ const ClassroomModal = ({
     onSelectSeat,
     onConfirmJoin,
     onClose,
+    onDeleteClassroom,
     onDeleteMember,
     onLeaveClassroom,
+    onOpenSubmission,
+    onRefreshDetail,
     onStartSubmit,
     onConfirmSubmit,
     onCancelSubmit,
@@ -114,6 +118,7 @@ const ClassroomModal = ({
                                 />
                             </button>
                         </div>
+                        <ErrorDisplay error={error} errorTitle={errorTitle} />
                     </div>
                 )}
 
@@ -159,110 +164,128 @@ const ClassroomModal = ({
                                 />
                             </button>
                         </div>
-                        {error && (
-                            <div className={styles.errorText} data-testid="classroom-error">
-                                {error}
-                            </div>
-                        )}
+                        <ErrorDisplay error={error} errorTitle={errorTitle} />
                     </div>
                 )}
 
                 {/* Phase: teacher-dashboard */}
                 {phase === 'teacher-dashboard' && (
-                    <div data-testid="classroom-phase-teacher-dashboard">
-                        <div className={styles.phaseTitle}>
-                            <FormattedMessage
-                                defaultMessage="Your Classrooms"
-                                description="Teacher dashboard title"
-                                id="gui.classroom.teacherDashboard.title"
-                            />
+                    <div
+                        className={styles.dashboardLayout}
+                        data-testid="classroom-phase-teacher-dashboard"
+                    >
+                        <div className={styles.dashboardHeader}>
+                            <div className={styles.phaseTitle} style={{ marginBottom: 0 }}>
+                                <FormattedMessage
+                                    defaultMessage="Your Classrooms"
+                                    description="Teacher dashboard title"
+                                    id="gui.classroom.teacherDashboard.title"
+                                />
+                            </div>
                         </div>
-                        {isLoading && (
-                            <div className={styles.loading} data-testid="classroom-loading">
-                                <FormattedMessage
-                                    defaultMessage="Loading..."
-                                    description="Loading indicator"
-                                    id="gui.classroom.loading"
-                                />
-                            </div>
-                        )}
-                        {!isLoading && classrooms.length === 0 && (
-                            <div
-                                className={styles.description}
-                                data-testid="classroom-empty-message"
-                            >
-                                <FormattedMessage
-                                    defaultMessage="No classrooms yet. Create one to get started!"
-                                    description="Empty classrooms message"
-                                    id="gui.classroom.teacherDashboard.empty"
-                                />
-                            </div>
-                        )}
-                        {!isLoading && classrooms.length > 0 && (
-                            <ul className={styles.classList} data-testid="classroom-list">
-                                {classrooms.map(c => (
-                                    <li
-                                        className={styles.classItem}
-                                        data-testid={`classroom-item-${c.classroomId}`}
-                                        key={c.classroomId}
-                                    >
-                                        <span
-                                            className={styles.classItemName}
-                                            data-testid={`classroom-item-name-${c.classroomId}`}
+                        <div className={styles.dashboardBody}>
+                            {isLoading && (
+                                <div className={styles.loading} data-testid="classroom-loading">
+                                    <FormattedMessage
+                                        defaultMessage="Loading..."
+                                        description="Loading indicator"
+                                        id="gui.classroom.loading"
+                                    />
+                                </div>
+                            )}
+                            {!isLoading && classrooms.length === 0 && (
+                                <div
+                                    className={styles.description}
+                                    data-testid="classroom-empty-message"
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="No classrooms yet. Create one to get started!"
+                                        description="Empty classrooms message"
+                                        id="gui.classroom.teacherDashboard.empty"
+                                    />
+                                </div>
+                            )}
+                            {!isLoading && classrooms.length > 0 && (
+                                <ul className={styles.classList} data-testid="classroom-list">
+                                    {classrooms.map(c => (
+                                        <li
+                                            className={styles.classItem}
+                                            data-testid={`classroom-item-${c.classroomId}`}
+                                            key={c.classroomId}
                                         >
-                                            {c.className}
-                                        </span>
-                                        <span
-                                            className={styles.classItemCode}
-                                            data-testid={`classroom-item-code-${c.classroomId}`}
-                                        >
-                                            {c.joinCode}
-                                        </span>
-                                        <button
-                                            className={styles.secondaryButton}
-                                            data-classroom-id={c.classroomId}
-                                            data-testid={`classroom-item-details-${c.classroomId}`}
-                                            onClick={handleSelectClassroom}
-                                        >
-                                            <FormattedMessage
-                                                defaultMessage="Details"
-                                                description="View classroom details button"
-                                                id="gui.classroom.teacherDashboard.details"
-                                            />
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                        <div className={styles.buttonRow}>
-                            <button
-                                className={styles.secondaryButton}
-                                data-testid="classroom-teacher-logout"
-                                onClick={onTeacherLogout}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Logout"
-                                    description="Teacher logout button"
-                                    id="gui.classroom.teacherDashboard.logout"
-                                />
-                            </button>
-                            <button
-                                className={styles.primaryButton}
-                                data-testid="classroom-create"
-                                onClick={onShowCreateForm}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Create Classroom"
-                                    description="Create new classroom button"
-                                    id="gui.classroom.teacherDashboard.create"
-                                />
-                            </button>
+                                            <div className={styles.classItemMain}>
+                                                <span
+                                                    className={styles.classItemName}
+                                                    data-testid={`classroom-item-name-${c.classroomId}`}
+                                                >
+                                                    {c.className}
+                                                </span>
+                                                <span
+                                                    className={styles.classItemCode}
+                                                    data-testid={`classroom-item-code-${c.classroomId}`}
+                                                >
+                                                    {c.joinCode}
+                                                </span>
+                                            </div>
+                                            <div className={styles.classItemMeta}>
+                                                <span className={styles.classItemMetaText}>
+                                                    {c.studentCount}
+                                                    <FormattedMessage
+                                                        defaultMessage=" students"
+                                                        description="Student count suffix in class list"
+                                                        id="gui.classroom.teacherDashboard.studentCountSuffix"
+                                                    />
+                                                </span>
+                                                {c.createdAt && (
+                                                    <span className={styles.classItemMetaText}>
+                                                        {new Date(c.createdAt).toLocaleDateString()}
+                                                    </span>
+                                                )}
+                                                <button
+                                                    className={styles.secondaryButton}
+                                                    data-classroom-id={c.classroomId}
+                                                    data-testid={`classroom-item-details-${c.classroomId}`}
+                                                    onClick={handleSelectClassroom}
+                                                >
+                                                    <FormattedMessage
+                                                        defaultMessage="Details"
+                                                        description="View classroom details button"
+                                                        id="gui.classroom.teacherDashboard.details"
+                                                    />
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
-                        {error && (
-                            <div className={styles.errorText} data-testid="classroom-error">
-                                {error}
+                        <div className={styles.dashboardFooter}>
+                            <ErrorDisplay error={error} errorTitle={errorTitle} />
+                            <div className={styles.buttonRow}>
+                                <button
+                                    className={styles.secondaryButton}
+                                    data-testid="classroom-teacher-logout"
+                                    onClick={onTeacherLogout}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Logout"
+                                        description="Teacher logout button"
+                                        id="gui.classroom.teacherDashboard.logout"
+                                    />
+                                </button>
+                                <button
+                                    className={styles.primaryButton}
+                                    data-testid="classroom-create"
+                                    onClick={onShowCreateForm}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Create Classroom"
+                                        description="Create new classroom button"
+                                        id="gui.classroom.teacherDashboard.create"
+                                    />
+                                </button>
                             </div>
-                        )}
+                        </div>
                     </div>
                 )}
 
@@ -270,6 +293,7 @@ const ClassroomModal = ({
                 {phase === 'teacher-create' && (
                     <TeacherCreateForm
                         error={error}
+                        errorTitle={errorTitle}
                         isLoading={isLoading}
                         onBack={onBackToDashboard}
                         onCreate={onCreateClassroom}
@@ -279,12 +303,17 @@ const ClassroomModal = ({
                 {/* Phase: teacher-class-detail */}
                 {phase === 'teacher-class-detail' && selectedClassroom && (
                     <TeacherClassDetail
+                        error={error}
+                        errorTitle={errorTitle}
                         isLoading={isLoading}
                         members={members}
                         selectedClassroom={selectedClassroom}
                         selectedMember={selectedMember}
                         onBack={onBackToDashboard}
+                        onDeleteClassroom={onDeleteClassroom}
                         onDeleteMember={handleDeleteMember}
+                        onOpenSubmission={onOpenSubmission}
+                        onRefresh={onRefreshDetail}
                         onSelectMember={onSelectMember}
                     />
                 )}
@@ -293,6 +322,7 @@ const ClassroomModal = ({
                 {phase === 'student-join' && (
                     <StudentJoinForm
                         error={error}
+                        errorTitle={errorTitle}
                         isLoading={isLoading}
                         onBack={onBackToRoleSelect}
                         onJoin={onJoinWithCode}
@@ -347,11 +377,7 @@ const ClassroomModal = ({
                                 />
                             </button>
                         </div>
-                        {error && (
-                            <div className={styles.errorText} data-testid="classroom-error">
-                                {error}
-                            </div>
-                        )}
+                        <ErrorDisplay error={error} errorTitle={errorTitle} />
                     </div>
                 )}
 
@@ -540,11 +566,7 @@ const ClassroomModal = ({
                                 />
                             </button>
                         </div>
-                        {error && (
-                            <div className={styles.errorText} data-testid="classroom-error">
-                                {error}
-                            </div>
-                        )}
+                        <ErrorDisplay error={error} errorTitle={errorTitle} />
                     </div>
                 )}
 
@@ -608,16 +630,35 @@ const ClassroomModal = ({
                                 )}
                             </button>
                         </div>
-                        {error && (
-                            <div className={styles.errorText} data-testid="classroom-error">
-                                {error}
-                            </div>
-                        )}
+                        <ErrorDisplay error={error} errorTitle={errorTitle} />
                     </div>
                 )}
             </Box>
         </Modal>
     );
+};
+
+// Reusable error display component
+const ErrorDisplay = ({ error, errorTitle }) => {
+    if (!error) return null;
+    if (errorTitle) {
+        return (
+            <div className={styles.errorBox} data-testid="classroom-error">
+                <div className={styles.errorBoxTitle}>{errorTitle}</div>
+                <div className={styles.errorBoxMessage}>{error}</div>
+            </div>
+        );
+    }
+    return (
+        <div className={styles.errorText} data-testid="classroom-error">
+            {error}
+        </div>
+    );
+};
+
+ErrorDisplay.propTypes = {
+    error: PropTypes.string,
+    errorTitle: PropTypes.string,
 };
 
 // Teacher class detail with seat grid
@@ -626,10 +667,17 @@ const TeacherClassDetail = ({
     members,
     selectedMember,
     isLoading,
+    error,
+    errorTitle,
     onBack,
     onSelectMember,
     onDeleteMember,
+    onDeleteClassroom,
+    onOpenSubmission,
+    onRefresh,
 }) => {
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
     const memberMap = React.useMemo(() => {
         const map = {};
         for (const m of members) {
@@ -644,6 +692,29 @@ const TeacherClassDetail = ({
             onSelectMember(memberId === selectedMember ? null : memberId);
         }
     }, [memberMap, selectedMember, onSelectMember]);
+
+    const handleDeleteClick = useCallback(() => {
+        setShowDeleteConfirm(true);
+    }, []);
+
+    const handleDeleteConfirm = useCallback(() => {
+        setShowDeleteConfirm(false);
+        onDeleteClassroom(selectedClassroom.classroomId);
+    }, [onDeleteClassroom, selectedClassroom]);
+
+    const handleDeleteCancel = useCallback(() => {
+        setShowDeleteConfirm(false);
+    }, []);
+
+    const handleOpenClick = useCallback(
+        (e) => {
+            const projectUrl = e.currentTarget.dataset.projectUrl;
+            if (projectUrl) {
+                onOpenSubmission(projectUrl);
+            }
+        },
+        [onOpenSubmission],
+    );
 
     const joinedCount = members.length;
     const totalCount = selectedClassroom.studentCount;
@@ -691,12 +762,22 @@ const TeacherClassDetail = ({
                         id="gui.classroom.members.title"
                     />
                 </div>
-                <span
-                    className={styles.membersCount}
-                    data-testid="classroom-members-count"
-                >
-                    {joinedCount} / {totalCount}
-                </span>
+                <div className={styles.membersHeaderRight}>
+                    <span
+                        className={styles.membersCount}
+                        data-testid="classroom-members-count"
+                    >
+                        {joinedCount} / {totalCount}
+                    </span>
+                    <button
+                        className={styles.refreshButton}
+                        data-testid="classroom-refresh"
+                        disabled={isLoading}
+                        onClick={onRefresh}
+                    >
+                        {'↻'}
+                    </button>
+                </div>
             </div>
             {isLoading && (
                 <div className={styles.loading} data-testid="classroom-loading">
@@ -763,39 +844,132 @@ const TeacherClassDetail = ({
                                         {new Date(memberMap[selectedMember].submittedAt).toLocaleTimeString()}
                                     </span>
                                 )}
+                                <button
+                                    className={styles.deleteButton}
+                                    data-member-id={selectedMember}
+                                    data-testid="classroom-member-remove"
+                                    onClick={onDeleteMember}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Remove"
+                                        description="Remove member button"
+                                        id="gui.classroom.members.remove"
+                                    />
+                                </button>
                             </div>
-                            <button
-                                className={styles.deleteButton}
-                                data-member-id={selectedMember}
-                                data-testid="classroom-member-remove"
-                                onClick={onDeleteMember}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Remove"
-                                    description="Remove member button"
-                                    id="gui.classroom.members.remove"
-                                />
-                            </button>
+                            {memberMap[selectedMember].hasSubmission && (
+                                <div className={styles.submissionDetail}>
+                                    {memberMap[selectedMember].thumbnailUrl && (
+                                        <img
+                                            alt="Submission thumbnail"
+                                            className={styles.submissionThumbnail}
+                                            data-testid="classroom-member-detail-thumbnail"
+                                            src={memberMap[selectedMember].thumbnailUrl}
+                                        />
+                                    )}
+                                    <div className={styles.submissionActions}>
+                                        {memberMap[selectedMember].projectName && (
+                                            <span
+                                                className={styles.submissionProjectName}
+                                                data-testid="classroom-member-detail-project-name"
+                                            >
+                                                {memberMap[selectedMember].projectName}
+                                            </span>
+                                        )}
+                                        {memberMap[selectedMember].projectUrl && (
+                                            <button
+                                                className={styles.primaryButton}
+                                                data-project-url={memberMap[selectedMember].projectUrl}
+                                                data-testid="classroom-member-detail-open"
+                                                disabled={isLoading}
+                                                onClick={handleOpenClick}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Open in Smalruby"
+                                                    description="Open student submission button"
+                                                    id="gui.classroom.teacherDetail.openSubmission"
+                                                />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </React.Fragment>
             )}
+            <div className={styles.detailFooter}>
+                <ErrorDisplay error={error} errorTitle={errorTitle} />
+                {showDeleteConfirm ? (
+                    <div className={styles.deleteConfirmBox}>
+                        <div className={styles.deleteConfirmMessage}>
+                            <FormattedMessage
+                                defaultMessage="Are you sure you want to delete this classroom? All members will be removed."
+                                description="Delete classroom confirmation message"
+                                id="gui.classroom.teacherDetail.deleteConfirm"
+                            />
+                        </div>
+                        <div className={styles.buttonRow}>
+                            <button
+                                className={styles.secondaryButton}
+                                data-testid="classroom-delete-cancel"
+                                onClick={handleDeleteCancel}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Cancel"
+                                    description="Cancel submit button"
+                                    id="gui.classroom.submitConfirm.cancel"
+                                />
+                            </button>
+                            <button
+                                className={styles.dangerButton}
+                                data-testid="classroom-delete-confirm"
+                                onClick={handleDeleteConfirm}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Delete"
+                                    description="Confirm delete classroom button"
+                                    id="gui.classroom.teacherDetail.delete"
+                                />
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <button
+                        className={styles.dangerButton}
+                        data-testid="classroom-delete-classroom"
+                        disabled={isLoading}
+                        onClick={handleDeleteClick}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Delete Classroom"
+                            description="Delete classroom button"
+                            id="gui.classroom.teacherDetail.deleteClassroom"
+                        />
+                    </button>
+                )}
+            </div>
         </div>
     );
 };
 
 TeacherClassDetail.propTypes = {
+    error: PropTypes.string,
+    errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     members: PropTypes.arrayOf(PropTypes.object).isRequired,
     onBack: PropTypes.func.isRequired,
+    onDeleteClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
+    onOpenSubmission: PropTypes.func.isRequired,
+    onRefresh: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };
 
 // Teacher create classroom form
-const TeacherCreateForm = ({ error, isLoading, onBack, onCreate }) => {
+const TeacherCreateForm = ({ error, errorTitle, isLoading, onBack, onCreate }) => {
     const [className, setClassName] = React.useState('');
     const [studentCount, setStudentCount] = React.useState('35');
 
@@ -882,24 +1056,21 @@ const TeacherCreateForm = ({ error, isLoading, onBack, onCreate }) => {
                     />
                 </button>
             </div>
-            {error && (
-                <div className={styles.errorText} data-testid="classroom-error">
-                    {error}
-                </div>
-            )}
+            <ErrorDisplay error={error} errorTitle={errorTitle} />
         </div>
     );
 };
 
 TeacherCreateForm.propTypes = {
     error: PropTypes.string,
+    errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     onBack: PropTypes.func.isRequired,
     onCreate: PropTypes.func.isRequired,
 };
 
 // Student join form
-const StudentJoinForm = ({ error, isLoading, onBack, onJoin }) => {
+const StudentJoinForm = ({ error, errorTitle, isLoading, onBack, onJoin }) => {
     const [code, setCode] = React.useState('');
 
     const handleCodeChange = useCallback((e) => {
@@ -958,24 +1129,29 @@ const StudentJoinForm = ({ error, isLoading, onBack, onJoin }) => {
                     disabled={code.trim().length !== 6 || isLoading}
                     onClick={handleSubmit}
                 >
-                    <FormattedMessage
-                        defaultMessage="Next"
-                        description="Submit join code button"
-                        id="gui.classroom.studentJoin.next"
-                    />
+                    {isLoading ? (
+                        <FormattedMessage
+                            defaultMessage="Loading..."
+                            description="Loading indicator"
+                            id="gui.classroom.loading"
+                        />
+                    ) : (
+                        <FormattedMessage
+                            defaultMessage="Next"
+                            description="Submit join code button"
+                            id="gui.classroom.studentJoin.next"
+                        />
+                    )}
                 </button>
             </div>
-            {error && (
-                <div className={styles.errorText} data-testid="classroom-error">
-                    {error}
-                </div>
-            )}
+            <ErrorDisplay error={error} errorTitle={errorTitle} />
         </div>
     );
 };
 
 StudentJoinForm.propTypes = {
     error: PropTypes.string,
+    errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     onBack: PropTypes.func.isRequired,
     onJoin: PropTypes.func.isRequired,
@@ -983,7 +1159,9 @@ StudentJoinForm.propTypes = {
 
 ClassroomModal.propTypes = {
     classrooms: PropTypes.arrayOf(PropTypes.object),
+    classroomState: PropTypes.object,
     error: PropTypes.string,
+    errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     joinedInfo: PropTypes.shape({
         className: PropTypes.string,
@@ -992,36 +1170,39 @@ ClassroomModal.propTypes = {
     members: PropTypes.arrayOf(PropTypes.object),
     onBackToDashboard: PropTypes.func.isRequired,
     onBackToRoleSelect: PropTypes.func.isRequired,
+    onCancelSubmit: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     onConfirmJoin: PropTypes.func.isRequired,
+    onConfirmSubmit: PropTypes.func.isRequired,
     onCreateClassroom: PropTypes.func.isRequired,
+    onDeleteClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
     onJoinWithCode: PropTypes.func.isRequired,
     onLeaveClassroom: PropTypes.func.isRequired,
-    onStartSubmit: PropTypes.func.isRequired,
-    onConfirmSubmit: PropTypes.func.isRequired,
-    onCancelSubmit: PropTypes.func.isRequired,
-    thumbnailDataUrl: PropTypes.string,
+    onOpenSubmission: PropTypes.func.isRequired,
+    onRefreshDetail: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onSelectSeat: PropTypes.func.isRequired,
     onSelectStudent: PropTypes.func.isRequired,
     onSelectTeacher: PropTypes.func.isRequired,
     onShowCreateForm: PropTypes.func.isRequired,
+    onStartSubmit: PropTypes.func.isRequired,
     onTeacherLogin: PropTypes.func.isRequired,
     onTeacherLogout: PropTypes.func.isRequired,
-    classroomState: PropTypes.object,
     phase: PropTypes.string.isRequired,
     seatCount: PropTypes.number,
     selectedClassroom: PropTypes.object,
     selectedMember: PropTypes.string,
     selectedSeat: PropTypes.number,
     takenSeats: PropTypes.arrayOf(PropTypes.number),
+    thumbnailDataUrl: PropTypes.string,
 };
 
 ClassroomModal.defaultProps = {
     classrooms: [],
     error: null,
+    errorTitle: null,
     isLoading: false,
     joinedInfo: null,
     members: [],

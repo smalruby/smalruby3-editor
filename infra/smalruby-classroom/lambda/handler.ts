@@ -491,6 +491,98 @@ async function handleListMembers(teacherSub: string, classroomId: string): Promi
   };
 }
 
+async function handleDeleteClassroom(teacherSub: string, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
+  // Verify ownership
+  const classroom = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+    throw new AuthError('Not authorized to delete this classroom');
+  }
+  if (classroom.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+
+  // Soft-delete: set status to 'archived'
+  await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+    UpdateExpression: 'SET #status = :status, updatedAt = :now',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: { ':status': 'archived', ':now': new Date().toISOString() },
+  }));
+
+  // Delete all members (invalidates their sessions)
+  const membersResult = await docClient.send(new QueryCommand({
+    TableName: MEMBERSHIPS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroomId },
+    ProjectionExpression: 'memberId',
+  }));
+
+  if (membersResult.Items && membersResult.Items.length > 0) {
+    const items = membersResult.Items;
+    for (let i = 0; i < items.length; i += 25) {
+      const batch = items.slice(i, i + 25);
+      await docClient.send(new BatchWriteCommand({
+        RequestItems: {
+          [MEMBERSHIPS_TABLE]: batch.map(item => ({
+            DeleteRequest: { Key: { classroomId, memberId: item.memberId as string } },
+          })),
+        },
+      }));
+    }
+  }
+
+  return { statusCode: 204, body: '' };
+}
+
+async function handleLookupClassroom(sourceIp: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+  checkJoinRateLimit(sourceIp);
+  const joinCode = validateJoinCode(body.joinCode);
+
+  const classroomResult = await docClient.send(new QueryCommand({
+    TableName: CLASSROOMS_TABLE,
+    IndexName: 'joinCode-index',
+    KeyConditionExpression: 'joinCode = :jc',
+    ExpressionAttributeValues: { ':jc': joinCode },
+    Limit: 1,
+  }));
+
+  if (!classroomResult.Items || classroomResult.Items.length === 0) {
+    throw new NotFoundError('Invalid join code');
+  }
+
+  const classroom = classroomResult.Items[0];
+  if (classroom.status !== 'active') {
+    throw new NotFoundError('This classroom is no longer active');
+  }
+
+  // Get taken seats
+  const membersResult = await docClient.send(new QueryCommand({
+    TableName: MEMBERSHIPS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroom.classroomId },
+    ProjectionExpression: 'memberId',
+  }));
+
+  const takenSeats = (membersResult.Items || []).map(item => {
+    const match = (item.memberId as string).match(/^seat-(\d+)$/);
+    return match ? parseInt(match[1], 10) : 0;
+  }).filter(n => n > 0);
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      classroomId: classroom.classroomId,
+      className: classroom.className,
+      studentCount: classroom.studentCount,
+      takenSeats,
+    }),
+  };
+}
+
 async function handleDeleteMember(teacherSub: string, classroomId: string, memberId: string): Promise<APIGatewayProxyStructuredResultV2> {
   // Verify ownership
   const classroom = await docClient.send(new GetCommand({
@@ -623,12 +715,23 @@ async function handleListSubmissions(
   const submissions = await Promise.all(
     (result.Items || []).map(async item => {
       let thumbnailUrl: string | null = null;
+      let projectUrl: string | null = null;
       if (item.thumbnailS3Key) {
         thumbnailUrl = await getSignedUrl(
           s3Client,
           new GetObjectCommand({
             Bucket: SUBMISSIONS_BUCKET,
             Key: item.thumbnailS3Key as string,
+          }),
+          { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
+        );
+      }
+      if (item.s3Key) {
+        projectUrl = await getSignedUrl(
+          s3Client,
+          new GetObjectCommand({
+            Bucket: SUBMISSIONS_BUCKET,
+            Key: item.s3Key as string,
           }),
           { expiresIn: PRESIGNED_URL_DOWNLOAD_EXPIRY },
         );
@@ -640,6 +743,7 @@ async function handleListSubmissions(
         status: item.status,
         submittedAt: item.submittedAt,
         thumbnailUrl,
+        projectUrl,
       };
     })
   );
@@ -648,6 +752,12 @@ async function handleListSubmissions(
     statusCode: 200,
     body: JSON.stringify({ submissions }),
   };
+}
+
+async function handleVerifySession(sessionToken: string): Promise<APIGatewayProxyStructuredResultV2> {
+  // verifySessionToken will throw AuthError if invalid
+  await verifySessionToken(sessionToken);
+  return { statusCode: 200, body: JSON.stringify({ valid: true }) };
 }
 
 // --- Main handler ---
@@ -683,6 +793,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const sourceIp = event.requestContext.http.sourceIp || 'unknown';
       result = await handleJoinClassroom(sourceIp, body);
 
+    } else if (method === 'POST' && path === '/classrooms/lookup') {
+      const sourceIp = event.requestContext.http.sourceIp || 'unknown';
+      result = await handleLookupClassroom(sourceIp, body);
+
+    } else if (method === 'POST' && path === '/classrooms/verify-session') {
+      const token = extractBearerToken(event.headers?.authorization);
+      result = await handleVerifySession(token);
+
     } else if (method === 'GET' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
       const teacherSub = await verifyGoogleIdToken(token);
@@ -694,6 +812,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const teacherSub = await verifyGoogleIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleUpdateClassroom(teacherSub, classroomId, body);
+
+    } else if (method === 'DELETE' && /^\/classrooms\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyGoogleIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleDeleteClassroom(teacherSub, classroomId);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/members$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);

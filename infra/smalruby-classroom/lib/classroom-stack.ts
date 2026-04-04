@@ -157,7 +157,7 @@ export class ClassroomStack extends cdk.Stack {
       ],
       cors: [
         {
-          allowedMethods: [s3.HttpMethods.PUT],
+          allowedMethods: [s3.HttpMethods.PUT, s3.HttpMethods.GET],
           allowedOrigins: corsAllowOrigins,
           allowedHeaders: ['Content-Type'],
           maxAge: 3600,
@@ -271,12 +271,24 @@ export class ClassroomStack extends cdk.Stack {
 
     this.api.addRoutes({
       path: '/classrooms/{classroomId}',
-      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH],
+      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.PATCH, apigatewayv2.HttpMethod.DELETE],
       integration,
     });
 
     this.api.addRoutes({
       path: '/classrooms/join',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/lookup',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/verify-session',
       methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });
