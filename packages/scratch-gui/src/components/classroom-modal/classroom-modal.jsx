@@ -502,13 +502,19 @@ const ClassroomModal = ({
                                 disabled={isLoading}
                                 onClick={onStartSubmit}
                             >
-                                <FormattedMessage
-                                    defaultMessage={classroomState.submissionStatus === 'submitted' ? 'Resubmit' : 'Submit'}
-                                    description="Submit/resubmit button"
-                                    id={classroomState.submissionStatus === 'submitted'
-                                        ? 'gui.classroom.studentStatus.resubmit'
-                                        : 'gui.classroom.studentStatus.submit'}
-                                />
+                                {classroomState.submissionStatus === 'submitted' ? (
+                                    <FormattedMessage
+                                        defaultMessage="Resubmit"
+                                        description="Resubmit button"
+                                        id="gui.classroom.studentStatus.resubmit"
+                                    />
+                                ) : (
+                                    <FormattedMessage
+                                        defaultMessage="Submit"
+                                        description="Submit button"
+                                        id="gui.classroom.studentStatus.submit"
+                                    />
+                                )}
                             </button>
                             <button
                                 className={styles.secondaryButton}
