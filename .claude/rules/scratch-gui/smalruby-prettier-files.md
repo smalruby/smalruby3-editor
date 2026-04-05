@@ -16,6 +16,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/block-display-modal/`
 - `src/components/classroom-modal/`
 - `src/components/classroom-teacher-modal/`
+- `src/components/classroom-tutorial/`
 - `src/components/smalrubot-firmware-modal/`
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`

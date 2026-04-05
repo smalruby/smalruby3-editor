@@ -131,6 +131,21 @@ export default {
     'gui.classroom.management.create': 'クラスをつくる',
     'gui.classroom.management.googleImport': 'Google Classroom からインポート',
     'gui.classroom.management.logout': 'ログアウト',
+    'gui.classroom.management.googleCoursesTitle': 'Google Classroom のコースいちらん',
+    'gui.classroom.management.noCourses': 'コースがみつかりません',
+    'gui.classroom.management.importButton': 'インポート',
+    'gui.classroom.tutorial.dismiss': 'わかりました',
+    'gui.classroom.tutorial.googleAccountSelect':
+        'Googleアカウントをえらんでください。がっこうのアカウント（Google Workspace for Education）をえらぶと、Google Classroomとれんけいできます。',
+    'gui.classroom.tutorial.checkboxes':
+        'Google Classroomとれんけいするには、2つのチェックボックスのりょうほうにチェックをいれてください。',
+    'gui.classroom.tutorial.classCreation':
+        '「クラス」はかだいごとにつくります。れい：「3じかんめ：チャットアプリをつくろう」のように、1つのじゅぎょうに1つのクラスをつくりましょう。',
+    'gui.classroom.tutorial.courseSelection':
+        'Google Classroomのコースをえらんでください。えらんだコースのなまえとせいとすうがじどうでにゅうりょくされます。',
+    'gui.classroom.tutorial.bookmarkPrompt':
+        'このページをブックマークしておくと、つぎからすぐにクラスかんりがめんをひらけます。',
+    'gui.classroom.tutorial.seatCountHint': 'せいとのにんずうは、クラスをつくったあとでもへんこうできます。',
     'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
     'gui.classroom.teacherDashboard.expiresAt': 'ゆうこうきげん: {date}',
     'gui.classroom.teacherDetail.expiresAt': 'ゆうこうきげん: {date}',

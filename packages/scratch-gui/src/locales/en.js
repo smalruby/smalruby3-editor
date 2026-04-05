@@ -135,6 +135,20 @@ export default {
     'gui.classroom.management.create': 'Create Classroom',
     'gui.classroom.management.googleImport': 'Import from Google Classroom',
     'gui.classroom.management.logout': 'Logout',
+    'gui.classroom.management.googleCoursesTitle': 'Google Classroom Courses',
+    'gui.classroom.management.noCourses': 'No courses found',
+    'gui.classroom.management.importButton': 'Import',
+    'gui.classroom.tutorial.dismiss': 'OK',
+    'gui.classroom.tutorial.googleAccountSelect':
+        'Please select your Google account. Choose your school account (Google Workspace for Education) to integrate with Google Classroom.',
+    'gui.classroom.tutorial.checkboxes': 'To integrate with Google Classroom, check both checkboxes.',
+    'gui.classroom.tutorial.classCreation':
+        'Create a "Class" for each assignment. For example: "Lesson 3: Build a Chat App" — one class per lesson.',
+    'gui.classroom.tutorial.courseSelection':
+        'Select a Google Classroom course. The course name and student count will be filled in automatically.',
+    'gui.classroom.tutorial.bookmarkPrompt':
+        'Bookmark this page so you can quickly access the class management screen next time.',
+    'gui.classroom.tutorial.seatCountHint': 'You can change the number of students even after creating a class.',
     'gui.classroom.teacherDetail.seatNumber': 'Seat {number}',
     'gui.classroom.teacherDashboard.expiresAt': 'Expires: {date}',
     'gui.classroom.teacherDetail.expiresAt': 'Expires: {date}',

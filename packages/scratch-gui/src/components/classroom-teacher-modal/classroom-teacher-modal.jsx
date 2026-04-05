@@ -17,6 +17,7 @@ import GoogleCourseList from '../classroom-modal/google-course-list.jsx';
 import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherCreateForm from '../classroom-modal/teacher-create-form.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
+import ClassroomTutorial from '../classroom-tutorial/classroom-tutorial.jsx';
 
 import styles from './classroom-teacher-modal.css';
 
@@ -102,6 +103,13 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     className={styles.loginArea}
                     data-testid="classroom-phase-teacher-login"
                 >
+                    <ClassroomTutorial name="googleAccountSelect">
+                        <FormattedMessage
+                            defaultMessage="Please select your Google account. Choose your school account (Google Workspace for Education) to integrate with Google Classroom."
+                            description="Tutorial: Google account selection"
+                            id="gui.classroom.tutorial.googleAccountSelect"
+                        />
+                    </ClassroomTutorial>
                     <h2>
                         <FormattedMessage
                             defaultMessage="Sign in with Google"
@@ -134,50 +142,78 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
 
         if (phase === 'teacher-class-detail' && selectedClassroom) {
             return (
-                <TeacherClassDetail
-                    codeDisplayClassroom={codeDisplayClassroom}
-                    codeDisplayFullscreen={false}
-                    downloadProgress={downloadProgress}
-                    error={error}
-                    errorTitle={errorTitle}
-                    isLoading={isLoading}
-                    members={members}
-                    noBackButton
-                    selectedClassroom={selectedClassroom}
-                    selectedMember={selectedMember}
-                    onCloseCodeDisplay={onCloseCodeDisplay}
-                    onCopyInviteLink={onCopyInviteLink}
-                    onDeleteClassroom={onDeleteClassroom}
-                    onDeleteMember={handleDeleteMember}
-                    onDownloadAll={onDownloadAll}
-                    onOpenSubmission={onOpenSubmission}
-                    onRefresh={onRefreshDetail}
-                    onReturnSubmission={onReturnSubmission}
-                    onSelectMember={onSelectMember}
-                    onShowCodeDisplay={onShowCodeDisplay}
-                    onShowPostAssignment={onShowPostAssignment}
-                    onToggleCodeFullscreen={onToggleCodeFullscreen}
-                />
+                <div className={styles.mainRelative}>
+                    <ClassroomTutorial name="seatCountHint">
+                        <FormattedMessage
+                            defaultMessage="You can change the number of students even after creating a class."
+                            description="Tutorial: seat count hint"
+                            id="gui.classroom.tutorial.seatCountHint"
+                        />
+                    </ClassroomTutorial>
+                    <TeacherClassDetail
+                        codeDisplayClassroom={codeDisplayClassroom}
+                        codeDisplayFullscreen={false}
+                        downloadProgress={downloadProgress}
+                        error={error}
+                        errorTitle={errorTitle}
+                        isLoading={isLoading}
+                        members={members}
+                        noBackButton
+                        selectedClassroom={selectedClassroom}
+                        selectedMember={selectedMember}
+                        onCloseCodeDisplay={onCloseCodeDisplay}
+                        onCopyInviteLink={onCopyInviteLink}
+                        onDeleteClassroom={onDeleteClassroom}
+                        onDeleteMember={handleDeleteMember}
+                        onDownloadAll={onDownloadAll}
+                        onOpenSubmission={onOpenSubmission}
+                        onRefresh={onRefreshDetail}
+                        onReturnSubmission={onReturnSubmission}
+                        onSelectMember={onSelectMember}
+                        onShowCodeDisplay={onShowCodeDisplay}
+                        onShowPostAssignment={onShowPostAssignment}
+                        onToggleCodeFullscreen={onToggleCodeFullscreen}
+                    />
+                </div>
             );
         }
 
         if (phase === 'teacher-create') {
             return (
-                <TeacherCreateForm
-                    error={error}
-                    errorTitle={errorTitle}
-                    importSource={selectedGoogleCourse}
-                    isLoading={isLoading}
-                    noBackButton
-                    onBack={onBackToDashboard}
-                    onCreate={onCreateClassroom}
-                />
+                <div className={styles.mainRelative}>
+                    <ClassroomTutorial name="classCreation">
+                        <FormattedMessage
+                            defaultMessage='Create a "Class" for each assignment. For example: "Lesson 3: Build a Chat App" — one class per lesson.'
+                            description="Tutorial: class creation concept"
+                            id="gui.classroom.tutorial.classCreation"
+                        />
+                    </ClassroomTutorial>
+                    <TeacherCreateForm
+                        error={error}
+                        errorTitle={errorTitle}
+                        importSource={selectedGoogleCourse}
+                        isLoading={isLoading}
+                        noBackButton
+                        onBack={onBackToDashboard}
+                        onCreate={onCreateClassroom}
+                    />
+                </div>
             );
         }
 
         if (phase === 'teacher-google-courses') {
             return (
-                <div data-testid="classroom-phase-teacher-google-courses">
+                <div
+                    className={styles.mainRelative}
+                    data-testid="classroom-phase-teacher-google-courses"
+                >
+                    <ClassroomTutorial name="courseSelection">
+                        <FormattedMessage
+                            defaultMessage="Select a Google Classroom course. The course name and student count will be filled in automatically."
+                            description="Tutorial: course selection"
+                            id="gui.classroom.tutorial.courseSelection"
+                        />
+                    </ClassroomTutorial>
                     <div className={styles.mainPhaseTitle}>
                         <FormattedMessage
                             defaultMessage="Google Classroom Courses"
@@ -200,7 +236,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     ) : (
                         <GoogleCourseList
                             courses={googleCourses}
-                            selectedCourseId={selectedGoogleCourse?.courseId}
+                            selectedCourseId={
+                                selectedGoogleCourse?.courseId
+                            }
                             onSelect={onSelectGoogleCourse}
                         />
                     )}
@@ -208,7 +246,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         <button
                             className={styles.loginButton}
                             data-testid="classroom-google-import-confirm"
-                            disabled={!selectedGoogleCourse || isLoading}
+                            disabled={
+                                !selectedGoogleCourse || isLoading
+                            }
                             onClick={onConfirmGoogleImport}
                         >
                             <FormattedMessage
@@ -239,6 +279,13 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         // Default: dashboard (no class selected)
         return (
             <div className={styles.mainEmpty}>
+                <ClassroomTutorial name="bookmarkPrompt">
+                    <FormattedMessage
+                        defaultMessage="Bookmark this page so you can quickly access the class management screen next time."
+                        description="Tutorial: bookmark prompt"
+                        id="gui.classroom.tutorial.bookmarkPrompt"
+                    />
+                </ClassroomTutorial>
                 <FormattedMessage
                     defaultMessage="Select a classroom from the sidebar"
                     description="Prompt to select a classroom in teacher management"
