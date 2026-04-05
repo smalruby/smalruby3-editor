@@ -133,6 +133,9 @@ export default {
     'gui.classroom.management.googleCoursesTitle': 'Google Classroom のクラス一覧',
     'gui.classroom.management.noCourses': 'クラスが見つかりません',
     'gui.classroom.management.importButton': 'インポート',
+    'gui.classroom.management.authHintTitle': 'Google Classroom からインポートする前に',
+    'gui.classroom.management.authHintGuide':
+        '認可の画面が表示されたら、下の画像のようにすべてのチェックボックスにチェックを入れてください。',
     'gui.classroom.management.loginHint':
         '学校の Google Workspace for Education のアカウントでログインすると、Google Classroom と連携できます。',
     'gui.classroom.management.googleCoursesGuide':

@@ -175,6 +175,18 @@
     margin-top: 1rem;
 }
 
+.auth-hint {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.auth-hint-image {
+    max-width: 100%;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
 .sidebar-button-icon {
     width: 18px;
     height: 18px;

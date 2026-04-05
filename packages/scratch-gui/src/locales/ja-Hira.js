@@ -135,6 +135,9 @@ export default {
     'gui.classroom.management.googleCoursesTitle': 'Google Classroom のクラスいちらん',
     'gui.classroom.management.noCourses': 'クラスがみつかりません',
     'gui.classroom.management.importButton': 'インポート',
+    'gui.classroom.management.authHintTitle': 'Google Classroom からインポートするまえに',
+    'gui.classroom.management.authHintGuide':
+        'にんかのがめんがひょうじされたら、したのがぞうのようにすべてのチェックボックスにチェックをいれてください。',
     'gui.classroom.management.loginHint':
         'がっこうの Google Workspace for Education のアカウントでログインすると、Google Classroom とれんけいできます。',
     'gui.classroom.management.googleCoursesGuide':

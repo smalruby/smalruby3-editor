@@ -6,8 +6,9 @@
  */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
+import { useDispatch, useSelector } from 'react-redux';
 
 import Modal from '../../containers/modal.jsx';
 
@@ -19,6 +20,12 @@ import TeacherCreateForm from '../classroom-modal/teacher-create-form.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
 import ClassroomTutorial from '../classroom-tutorial/classroom-tutorial.jsx';
 
+import {
+    isTutorialSeen,
+    markClassroomTutorialSeen,
+} from '../../reducers/classroom-tutorial.js';
+
+import googleAuthHintImage from './google-auth-hint.png';
 import googleClassroomIcon from './google-classroom-icon.png';
 import styles from './classroom-teacher-modal.css';
 
@@ -71,6 +78,26 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onUpdateAssignmentName,
     } = containerProps;
 
+    const dispatch = useDispatch();
+    const checkboxesSeen = useSelector((state) =>
+        isTutorialSeen(state, 'checkboxes'),
+    );
+    const [showAuthHint, setShowAuthHint] = useState(false);
+
+    const handleImportClick = useCallback(() => {
+        if (checkboxesSeen) {
+            onGoogleClassroomImport();
+        } else {
+            setShowAuthHint(true);
+        }
+    }, [checkboxesSeen, onGoogleClassroomImport]);
+
+    const handleAuthHintDismiss = useCallback(() => {
+        dispatch(markClassroomTutorialSeen('checkboxes'));
+        setShowAuthHint(false);
+        onGoogleClassroomImport();
+    }, [dispatch, onGoogleClassroomImport]);
+
     const handleSelectClassroom = useCallback(
         (e) => {
             onSelectClassroom(e.currentTarget.dataset.classroomId);
@@ -86,6 +113,46 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     );
 
     const renderMain = () => {
+        // Auth hint: shown before first Google Classroom import
+        if (showAuthHint) {
+            return (
+                <div className={styles.authHint}>
+                    <div className={styles.mainPhaseTitle}>
+                        <FormattedMessage
+                            defaultMessage="Before importing from Google Classroom"
+                            description="Auth hint title"
+                            id="gui.classroom.management.authHintTitle"
+                        />
+                    </div>
+                    <p className={styles.mainPhaseGuide}>
+                        <FormattedMessage
+                            defaultMessage="When the authorization screen appears, make sure to check all the checkboxes as shown below."
+                            description="Auth hint guide"
+                            id="gui.classroom.management.authHintGuide"
+                        />
+                    </p>
+                    <img
+                        alt="Google authorization checkboxes"
+                        className={styles.authHintImage}
+                        src={googleAuthHintImage}
+                    />
+                    <div className={styles.mainFooter}>
+                        <button
+                            className={styles.loginButton}
+                            data-testid="classroom-auth-hint-ok"
+                            onClick={handleAuthHintDismiss}
+                        >
+                            <FormattedMessage
+                                defaultMessage="OK"
+                                description="Dismiss auth hint"
+                                id="gui.classroom.tutorial.dismiss"
+                            />
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
         // Fullscreen code display overlay (portal)
         if (codeDisplayFullscreen && codeDisplayClassroom) {
             return (
@@ -362,7 +429,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             <button
                                 className={styles.sidebarButton}
                                 data-testid="classroom-google-import"
-                                onClick={onGoogleClassroomImport}
+                                onClick={handleImportClick}
                             >
                                 <img
                                     alt=""

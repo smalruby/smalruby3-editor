@@ -139,6 +139,9 @@ export default {
     'gui.classroom.management.googleCoursesTitle': 'Google Classroom Classes',
     'gui.classroom.management.noCourses': 'No classes found',
     'gui.classroom.management.importButton': 'Import',
+    'gui.classroom.management.authHintTitle': 'Before importing from Google Classroom',
+    'gui.classroom.management.authHintGuide':
+        'When the authorization screen appears, make sure to check all the checkboxes as shown below.',
     'gui.classroom.management.loginHint':
         'Sign in with your school Google Workspace for Education account to integrate with Google Classroom.',
     'gui.classroom.management.googleCoursesGuide': 'Select a class to import and click the Import button.',
