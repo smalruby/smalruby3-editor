@@ -326,6 +326,25 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // Google Classroom integration routes
+    this.api.addRoutes({
+      path: '/classrooms/google-courses',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/google-import',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/google-assignment',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
     // Throttling
     const defaultStage = this.api.defaultStage?.node.defaultChild as apigatewayv2.CfnStage;
     if (defaultStage) {

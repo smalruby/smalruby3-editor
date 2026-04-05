@@ -71,7 +71,7 @@ export function getCorsHeaders(origin?: string): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': allowed,
     'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Google-Access-Token',
     'Content-Type': 'application/json',
   };
 }
@@ -168,6 +168,47 @@ class ConflictError extends Error {
   }
 }
 
+class GoogleAPIError extends Error {
+  statusCode: number;
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.name = 'GoogleAPIError';
+    this.statusCode = statusCode;
+  }
+}
+
+// --- Google Classroom API proxy ---
+
+async function callGoogleClassroomAPI(
+  accessToken: string,
+  path: string,
+  method: string = 'GET',
+  body?: unknown,
+): Promise<unknown> {
+  const url = `https://classroom.googleapis.com/v1/${path}`;
+  const response = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new GoogleAPIError(response.status, `Google Classroom API ${response.status}: ${errorText}`);
+  }
+  return response.json();
+}
+
+function extractGoogleAccessToken(headers: Record<string, string | undefined>): string {
+  const token = headers['x-google-access-token'];
+  if (!token) {
+    throw new AuthError('X-Google-Access-Token header is required');
+  }
+  return token;
+}
+
 // --- Auth helpers ---
 
 export async function verifyGoogleIdToken(idToken: string): Promise<string> {
@@ -261,6 +302,7 @@ async function handleListClassrooms(teacherSub: string): Promise<APIGatewayProxy
       className: item.className,
       joinCode: item.joinCode,
       studentCount: item.studentCount,
+      googleClassroomCourseId: item.googleClassroomCourseId || null,
       createdAt: item.createdAt,
       expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
     }));
@@ -288,6 +330,7 @@ async function handleGetClassroom(teacherSub: string, classroomId: string): Prom
       className: result.Item.className,
       joinCode: result.Item.joinCode,
       studentCount: result.Item.studentCount,
+      googleClassroomCourseId: result.Item.googleClassroomCourseId || null,
       status: result.Item.status,
       createdAt: result.Item.createdAt,
       expiresAt: result.Item.ttl ? new Date((result.Item.ttl as number) * 1000).toISOString() : null,
@@ -889,6 +932,177 @@ async function handleUpdateSubmission(
   };
 }
 
+// --- Google Classroom handlers ---
+
+async function handleListGoogleCourses(accessToken: string): Promise<APIGatewayProxyStructuredResultV2> {
+  const data = await callGoogleClassroomAPI(accessToken, 'courses?teacherId=me&courseStates=ACTIVE&pageSize=100') as {
+    courses?: Array<{ id: string; name: string; section?: string }>;
+  };
+  const courses = data.courses || [];
+
+  // Get student count for each course (in parallel, max 10 at a time)
+  const enriched = await Promise.all(
+    courses.map(async (course) => {
+      try {
+        const students = await callGoogleClassroomAPI(accessToken, `courses/${course.id}/students?pageSize=0`) as {
+          students?: unknown[];
+        };
+        return {
+          courseId: course.id,
+          name: course.name,
+          section: course.section || null,
+          studentCount: students.students?.length || 0,
+        };
+      } catch {
+        return {
+          courseId: course.id,
+          name: course.name,
+          section: course.section || null,
+          studentCount: 0,
+        };
+      }
+    }),
+  );
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ courses: enriched }),
+  };
+}
+
+async function handleImportGoogleClassroom(
+  teacherSub: string,
+  accessToken: string,
+  body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const courseId = body.courseId;
+  if (typeof courseId !== 'string' || !courseId) {
+    throw new ValidationError('courseId is required');
+  }
+
+  // Fetch course info
+  const course = await callGoogleClassroomAPI(accessToken, `courses/${courseId}`) as {
+    id: string;
+    name: string;
+    section?: string;
+  };
+
+  // Fetch student count
+  let studentCount = 0;
+  try {
+    const students = await callGoogleClassroomAPI(accessToken, `courses/${courseId}/students?pageSize=100`) as {
+      students?: unknown[];
+    };
+    studentCount = students.students?.length || 0;
+  } catch {
+    // If roster access fails, default to 0
+  }
+  if (studentCount === 0) {
+    studentCount = 35; // default class size
+  }
+
+  // Generate unique join code
+  let joinCode = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = generateJoinCode();
+    const existing = await docClient.send(new QueryCommand({
+      TableName: CLASSROOMS_TABLE,
+      IndexName: 'joinCode-index',
+      KeyConditionExpression: 'joinCode = :jc',
+      ExpressionAttributeValues: { ':jc': candidate },
+      Limit: 1,
+    }));
+    if (!existing.Items || existing.Items.length === 0) {
+      joinCode = candidate;
+      break;
+    }
+  }
+  if (!joinCode) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to generate unique join code' }) };
+  }
+
+  const now = new Date().toISOString();
+  const classroomId = crypto.randomUUID();
+  const ttl = Math.floor(Date.now() / 1000) + CLASSROOM_TTL_SECONDS;
+  const expiresAt = new Date(ttl * 1000).toISOString();
+
+  await docClient.send(new PutCommand({
+    TableName: CLASSROOMS_TABLE,
+    Item: {
+      classroomId,
+      teacherSub,
+      className: course.name + (course.section ? ` (${course.section})` : ''),
+      joinCode,
+      studentCount,
+      googleClassroomCourseId: courseId,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+      ttl,
+    },
+  }));
+
+  return {
+    statusCode: 201,
+    body: JSON.stringify({
+      classroomId,
+      className: course.name + (course.section ? ` (${course.section})` : ''),
+      joinCode,
+      studentCount,
+      googleClassroomCourseId: courseId,
+      status: 'active',
+      createdAt: now,
+      expiresAt,
+    }),
+  };
+}
+
+async function handlePostAssignment(
+  teacherSub: string,
+  accessToken: string,
+  classroomId: string,
+  body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  // Verify classroom ownership and get googleClassroomCourseId
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!result.Item || result.Item.teacherSub !== teacherSub) {
+    throw new NotFoundError('Classroom not found');
+  }
+  const courseId = result.Item.googleClassroomCourseId as string;
+  if (!courseId) {
+    throw new ValidationError('This classroom is not linked to Google Classroom');
+  }
+
+  const title = body.title;
+  if (typeof title !== 'string' || title.trim().length === 0) {
+    throw new ValidationError('Assignment title is required');
+  }
+  const link = body.link;
+  if (typeof link !== 'string' || !link.startsWith('http')) {
+    throw new ValidationError('Assignment link is required');
+  }
+  const description = typeof body.description === 'string' ? body.description.trim() : '';
+
+  const courseWork = await callGoogleClassroomAPI(accessToken, `courses/${courseId}/courseWork`, 'POST', {
+    title: title.trim(),
+    description: description || undefined,
+    workType: 'ASSIGNMENT',
+    state: 'PUBLISHED',
+    materials: [{ link: { url: link, title: 'スモウルビーで開く' } }],
+  }) as { id: string; alternateLink: string };
+
+  return {
+    statusCode: 201,
+    body: JSON.stringify({
+      courseWorkId: courseWork.id,
+      alternateLink: courseWork.alternateLink,
+    }),
+  };
+}
+
 async function handleVerifySession(sessionToken: string): Promise<APIGatewayProxyStructuredResultV2> {
   // verifySessionToken will throw AuthError if invalid
   const session = await verifySessionToken(sessionToken);
@@ -1043,6 +1257,26 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const submissionId = event.pathParameters?.submissionId || '';
       result = await handleUpdateSubmission(teacherSub, classroomId, submissionId, body);
 
+    // --- Google Classroom routes ---
+    } else if (method === 'GET' && path === '/classrooms/google-courses') {
+      const token = extractBearerToken(event.headers?.authorization);
+      await verifyGoogleIdToken(token);
+      const accessToken = extractGoogleAccessToken(event.headers);
+      result = await handleListGoogleCourses(accessToken);
+
+    } else if (method === 'POST' && path === '/classrooms/google-import') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyGoogleIdToken(token);
+      const accessToken = extractGoogleAccessToken(event.headers);
+      result = await handleImportGoogleClassroom(teacherSub, accessToken, body);
+
+    } else if (method === 'POST' && /^\/classrooms\/[^/]+\/google-assignment$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyGoogleIdToken(token);
+      const accessToken = extractGoogleAccessToken(event.headers);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handlePostAssignment(teacherSub, accessToken, classroomId, body);
+
     } else {
       result = { statusCode: 404, body: JSON.stringify({ error: 'Not found' }) };
     }
@@ -1063,6 +1297,15 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     }
     if (err instanceof ConflictError) {
       return { statusCode: 409, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
+    }
+    if (err instanceof GoogleAPIError) {
+      if (err.statusCode === 401) {
+        return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Google access token expired. Please re-authorize.' }) };
+      }
+      if (err.statusCode === 403) {
+        return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Insufficient Google Classroom permissions.' }) };
+      }
+      return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: 'Google Classroom API error' }) };
     }
     if (err instanceof SyntaxError) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid JSON body' }) };
