@@ -1187,6 +1187,19 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const token = extractBearerToken(event.headers?.authorization);
       result = await handleVerifySession(token);
 
+    // --- Google Classroom routes (must be before /classrooms/{classroomId}) ---
+    } else if (method === 'GET' && path === '/classrooms/google-courses') {
+      const token = extractBearerToken(event.headers?.authorization);
+      await verifyGoogleIdToken(token);
+      const accessToken = extractGoogleAccessToken(event.headers);
+      result = await handleListGoogleCourses(accessToken);
+
+    } else if (method === 'POST' && path === '/classrooms/google-import') {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyGoogleIdToken(token);
+      const accessToken = extractGoogleAccessToken(event.headers);
+      result = await handleImportGoogleClassroom(teacherSub, accessToken, body);
+
     } else if (method === 'GET' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
       const teacherSub = await verifyGoogleIdToken(token);
@@ -1255,19 +1268,6 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const classroomId = event.pathParameters?.classroomId || '';
       const submissionId = event.pathParameters?.submissionId || '';
       result = await handleUpdateSubmission(teacherSub, classroomId, submissionId, body);
-
-    // --- Google Classroom routes ---
-    } else if (method === 'GET' && path === '/classrooms/google-courses') {
-      const token = extractBearerToken(event.headers?.authorization);
-      await verifyGoogleIdToken(token);
-      const accessToken = extractGoogleAccessToken(event.headers);
-      result = await handleListGoogleCourses(accessToken);
-
-    } else if (method === 'POST' && path === '/classrooms/google-import') {
-      const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
-      const accessToken = extractGoogleAccessToken(event.headers);
-      result = await handleImportGoogleClassroom(teacherSub, accessToken, body);
 
     } else if (method === 'POST' && /^\/classrooms\/[^/]+\/google-assignment$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
