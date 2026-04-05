@@ -196,6 +196,11 @@ export class ClassroomStack extends cdk.Stack {
         GOOGLE_CLIENT_ID: googleClientId,
         CORS_ALLOWED_ORIGINS: corsOriginsEnv,
         CLASSROOM_TTL_DAYS: String(classroomTtlDays),
+        SESSION_ACTIVE_TTL_SECONDS: process.env.SESSION_ACTIVE_TTL_SECONDS || '3600',
+        PRESIGNED_URL_UPLOAD_EXPIRY: process.env.PRESIGNED_URL_UPLOAD_EXPIRY || '900',
+        PRESIGNED_URL_DOWNLOAD_EXPIRY: process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600',
+        JOIN_RATE_LIMIT_WINDOW_SECONDS: process.env.JOIN_RATE_LIMIT_WINDOW_SECONDS || '60',
+        JOIN_RATE_LIMIT_MAX_ATTEMPTS: process.env.JOIN_RATE_LIMIT_MAX_ATTEMPTS || '50',
         STAGE: stage,
       },
       bundling: {
