@@ -4,6 +4,7 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
+import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
@@ -961,9 +962,50 @@ const ClassroomModal = ({ mode = 'student' }) => {
         handleJoinWithCode(code);
     }, []); // Run once on mount — intentionally omit deps
 
+    const teacherContainerProps = {
+        phase,
+        classrooms,
+        selectedClassroom,
+        members,
+        error,
+        errorTitle,
+        isLoading,
+        selectedMember,
+        codeDisplayClassroom,
+        codeDisplayFullscreen,
+        downloadProgress,
+        googleCourses,
+        selectedGoogleCourse,
+        onTeacherLogin: handleTeacherLogin,
+        onTeacherLogout: handleTeacherLogout,
+        onShowCreateForm: handleShowCreateForm,
+        onCreateClassroom: handleCreateClassroom,
+        onSelectClassroom: handleSelectClassroom,
+        onBackToDashboard: handleBackToDashboard,
+        onDeleteClassroom: handleDeleteClassroom,
+        onDeleteMember: handleDeleteMember,
+        onRefreshDetail: handleRefreshDetail,
+        onSelectMember: handleSelectMember,
+        onOpenSubmission: handleOpenSubmission,
+        onReturnSubmission: handleReturnSubmission,
+        onDownloadAll: handleDownloadAll,
+        onShowCodeDisplay: handleShowCodeDisplay,
+        onCloseCodeDisplay: handleCloseCodeDisplay,
+        onCopyInviteLink: handleCopyInviteLink,
+        onToggleCodeFullscreen: handleToggleCodeFullscreen,
+        onShowPostAssignment: handleShowPostAssignment,
+        onPostAssignment: handlePostAssignment,
+        onGoogleClassroomImport: handleGoogleClassroomImport,
+        onSelectGoogleCourse: handleSelectGoogleCourse,
+        onConfirmGoogleImport: handleConfirmGoogleImport,
+    };
+
+    if (mode === 'teacher') {
+        return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
+    }
+
     return (
         <ClassroomModalComponent
-            mode={mode}
             classrooms={classrooms}
             classroomState={classroomState}
             error={error}
