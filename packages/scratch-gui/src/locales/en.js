@@ -31,6 +31,13 @@ export default {
     'gui.smalrubotFirmware.retryButton': 'Try Again',
     'gui.smalrubotFirmware.closeButton': 'Close',
     'gui.smalrubotFirmware.closeAfterErrorButton': 'Close',
+    'gui.smalrubotFirmware.macSetupTitle': 'macOS Setup Required',
+    'gui.smalrubotFirmware.macSetupDescription':
+        'To flash firmware on macOS, you need to install the PL2303 Serial Driver app from the Mac App Store.',
+    'gui.smalrubotFirmware.macSetupLink': 'Open in Mac App Store',
+    'gui.smalrubotFirmware.macSetupInstruction':
+        'Install and set up the app following the instructions on the app page.',
+    'gui.smalrubotFirmware.macSetupProceed': 'Setup Complete, Proceed to Flash',
     'gui.connection.error.flashFirmwareButton': 'Write Firmware',
     'gui.classroom.title': 'Classroom',
     'gui.menuBar.classroom': 'Classroom',

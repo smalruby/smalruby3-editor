@@ -1,12 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import SmalrubotFirmwareModalComponent from '../components/smalrubot-firmware-modal/smalrubot-firmware-modal.jsx';
-import { FirmwareFlasher } from '../lib/smalrubot-firmware-flasher';
+import { FirmwareFlasher, isMacOS } from '../lib/smalrubot-firmware-flasher';
 import { closeSmalrubotFirmwareModal } from '../reducers/smalrubot-firmware';
 
 const SmalrubotFirmwareModal = () => {
     const dispatch = useDispatch();
-    const [phase, setPhase] = useState('ready');
+    const [phase, setPhase] = useState(isMacOS() ? 'macSetup' : 'ready');
     const [progressPercent, setProgressPercent] = useState(0);
     const [statusMessage, setStatusMessage] = useState(null);
     const [errorMessage, setErrorMessage] = useState(null);
@@ -38,12 +38,16 @@ const SmalrubotFirmwareModal = () => {
     }, []);
 
     const handleClose = useCallback(() => {
-        setPhase('ready');
+        setPhase(isMacOS() ? 'macSetup' : 'ready');
         setProgressPercent(0);
         setStatusMessage(null);
         setErrorMessage(null);
         dispatch(closeSmalrubotFirmwareModal());
     }, [dispatch]);
+
+    const handleProceedToReady = useCallback(() => {
+        setPhase('ready');
+    }, []);
 
     return (
         <SmalrubotFirmwareModalComponent
@@ -53,6 +57,7 @@ const SmalrubotFirmwareModal = () => {
             statusMessage={statusMessage}
             onClose={handleClose}
             onFlash={handleFlash}
+            onProceedToReady={handleProceedToReady}
         />
     );
 };
