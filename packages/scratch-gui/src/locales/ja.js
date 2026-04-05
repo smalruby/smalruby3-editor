@@ -97,7 +97,9 @@ export default {
     'gui.classroom.teacherDetail.seated': '着席中',
     'gui.classroom.teacherDetail.notSeated': '離席',
     'gui.classroom.teacherDetail.downloadAll': '全作品ダウンロード',
-    'gui.classroom.teacherCreate.hint': '課題ごとにクラスを作成します。例:「第3回 チャットアプリを作ろう」',
+    'gui.classroom.teacherCreate.hint':
+        'クラス名と課題名を入力してください。例: クラス「5-2」、課題「第3回 チャットアプリを作ろう」',
+    'gui.classroom.teacherCreate.className': 'クラス名',
     'gui.classroom.teacherCreate.assignmentName': '課題名',
     'gui.classroom.teacherCreate.importSource': 'インポート元: {source}',
     'gui.classroom.teacherCreate.footerHint': '作成後、Google Classroom に課題リンクを配信できます。',
@@ -144,6 +146,7 @@ export default {
     'gui.classroom.teacherDetail.legend.seated': '着席',
     'gui.classroom.teacherDetail.legend.submitted': '提出済',
     'gui.classroom.teacherDetail.legend.returned': '返却済',
+    'gui.classroom.teacherDetail.assignmentNameLabel': '課題名',
     'gui.classroom.teacherDetail.seatNumber': '出席番号{number}',
     'gui.classroom.teacherDashboard.expiresAt': '有効期限: {date}',
     'gui.classroom.teacherDetail.expiresAt': '有効期限: {date}',

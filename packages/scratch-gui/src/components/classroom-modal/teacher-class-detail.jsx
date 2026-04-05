@@ -29,6 +29,7 @@ const TeacherClassDetail = ({
     onCopyInviteLink,
     onToggleCodeFullscreen,
     onShowPostAssignment,
+    onUpdateAssignmentName,
     codeDisplayClassroom,
     codeDisplayFullscreen,
 }) => {
@@ -36,6 +37,9 @@ const TeacherClassDetail = ({
     const [showCodeDisplay, setShowCodeDisplay] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [commentText, setCommentText] = useState('');
+    const [editAssignmentName, setEditAssignmentName] = useState(
+        selectedClassroom.assignmentName || '',
+    );
 
     // Reset image index and comment when selected member changes
     useEffect(() => {
@@ -119,6 +123,17 @@ const TeacherClassDetail = ({
             return Math.min(allImages.length - 1, prev + 1);
         });
     }, [memberMap, selectedMember]);
+
+    const handleAssignmentNameChange = useCallback((e) => {
+        setEditAssignmentName(e.target.value);
+    }, []);
+
+    const handleAssignmentNameBlur = useCallback(() => {
+        const trimmed = editAssignmentName.trim();
+        if (trimmed && trimmed !== (selectedClassroom.assignmentName || '') && onUpdateAssignmentName) {
+            onUpdateAssignmentName(trimmed);
+        }
+    }, [editAssignmentName, selectedClassroom, onUpdateAssignmentName]);
 
     const handleShowCode = useCallback(() => {
         setShowCodeDisplay(true);
@@ -204,6 +219,27 @@ const TeacherClassDetail = ({
                                 data-testid="classroom-detail-name"
                             >
                                 {selectedClassroom.className}
+                            </div>
+
+                            {/* Editable assignment name */}
+                            <div className={styles.assignmentNameRow}>
+                                <span className={styles.joinCodeLabel}>
+                                    <FormattedMessage
+                                        defaultMessage="Assignment Name"
+                                        description="Assignment name label in class detail"
+                                        id="gui.classroom.teacherDetail.assignmentNameLabel"
+                                    />
+                                    {': '}
+                                </span>
+                                <input
+                                    className={styles.assignmentNameInput}
+                                    data-testid="classroom-detail-assignment-name"
+                                    maxLength={50}
+                                    type="text"
+                                    value={editAssignmentName}
+                                    onBlur={handleAssignmentNameBlur}
+                                    onChange={handleAssignmentNameChange}
+                                />
                             </div>
 
                             {/* Join code with expand button */}
@@ -744,6 +780,7 @@ TeacherClassDetail.propTypes = {
     onShowCodeDisplay: PropTypes.func.isRequired,
     onShowPostAssignment: PropTypes.func,
     onToggleCodeFullscreen: PropTypes.func.isRequired,
+    onUpdateAssignmentName: PropTypes.func,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };

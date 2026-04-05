@@ -68,6 +68,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onGoogleClassroomImport,
         onSelectGoogleCourse,
         onConfirmGoogleImport,
+        onUpdateAssignmentName,
     } = containerProps;
 
     const handleSelectClassroom = useCallback(
@@ -174,6 +175,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onShowCodeDisplay={onShowCodeDisplay}
                         onShowPostAssignment={onShowPostAssignment}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
+                        onUpdateAssignmentName={onUpdateAssignmentName}
                     />
                 </div>
             );

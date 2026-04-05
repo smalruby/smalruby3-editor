@@ -23,10 +23,15 @@ const TeacherCreateForm = ({
             ? String(importSource.studentCount)
             : '35';
     const [className, setClassName] = React.useState(defaultName);
+    const [assignmentName, setAssignmentName] = React.useState('');
     const [studentCount, setStudentCount] = React.useState(defaultCount);
 
     const handleClassNameChange = useCallback((e) => {
         setClassName(e.target.value);
+    }, []);
+
+    const handleAssignmentNameChange = useCallback((e) => {
+        setAssignmentName(e.target.value);
     }, []);
 
     const handleStudentCountChange = useCallback((e) => {
@@ -35,10 +40,14 @@ const TeacherCreateForm = ({
 
     const handleSubmit = useCallback(() => {
         const count = parseInt(studentCount, 10);
-        if (className.trim() && count > 0 && count <= 50) {
-            onCreate({ className: className.trim(), studentCount: count });
+        if (className.trim() && assignmentName.trim() && count > 0 && count <= 50) {
+            onCreate({
+                className: className.trim(),
+                assignmentName: assignmentName.trim(),
+                studentCount: count,
+            });
         }
-    }, [className, studentCount, onCreate]);
+    }, [className, assignmentName, studentCount, onCreate]);
 
     return (
         <div data-testid="classroom-phase-teacher-create">
@@ -65,8 +74,8 @@ const TeacherCreateForm = ({
             </div>
             <div className={styles.formHint}>
                 <FormattedMessage
-                    defaultMessage='Create a classroom for each assignment. Example: &quot;Lesson 3: Build a Chat App&quot;'
-                    description="Hint explaining classroom = assignment"
+                    defaultMessage='Enter the class name and assignment name. Example: class &quot;5-2&quot;, assignment &quot;Lesson 3: Build a Chat App&quot;'
+                    description="Hint explaining class name and assignment name fields"
                     id="gui.classroom.teacherCreate.hint"
                 />
             </div>
@@ -85,9 +94,9 @@ const TeacherCreateForm = ({
             <div className={styles.formGroup}>
                 <label className={styles.label} htmlFor="classroom-name">
                     <FormattedMessage
-                        defaultMessage="Assignment Name"
-                        description="Assignment name input label"
-                        id="gui.classroom.teacherCreate.assignmentName"
+                        defaultMessage="Class Name"
+                        description="Class name input label"
+                        id="gui.classroom.teacherCreate.className"
                     />
                 </label>
                 <input
@@ -98,6 +107,24 @@ const TeacherCreateForm = ({
                     type="text"
                     value={className}
                     onChange={handleClassNameChange}
+                />
+            </div>
+            <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="classroom-assignment-name">
+                    <FormattedMessage
+                        defaultMessage="Assignment Name"
+                        description="Assignment name input label"
+                        id="gui.classroom.teacherCreate.assignmentName"
+                    />
+                </label>
+                <input
+                    className={styles.input}
+                    data-testid="classroom-assignment-name-input"
+                    id="classroom-assignment-name"
+                    maxLength={50}
+                    type="text"
+                    value={assignmentName}
+                    onChange={handleAssignmentNameChange}
                 />
             </div>
             <div className={styles.formGroup}>
@@ -123,7 +150,7 @@ const TeacherCreateForm = ({
                 <button
                     className={styles.primaryButton}
                     data-testid="classroom-create-submit"
-                    disabled={!className.trim() || isLoading}
+                    disabled={!className.trim() || !assignmentName.trim() || isLoading}
                     onClick={handleSubmit}
                 >
                     <FormattedMessage

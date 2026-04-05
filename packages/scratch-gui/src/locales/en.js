@@ -103,7 +103,8 @@ export default {
     'gui.classroom.teacherDetail.notSeated': 'Not seated',
     'gui.classroom.teacherDetail.downloadAll': 'Download All',
     'gui.classroom.teacherCreate.hint':
-        'Create a classroom for each assignment. Example: "Lesson 3: Build a Chat App"',
+        'Enter the class name and assignment name. Example: class "5-2", assignment "Lesson 3: Build a Chat App"',
+    'gui.classroom.teacherCreate.className': 'Class Name',
     'gui.classroom.teacherCreate.assignmentName': 'Assignment Name',
     'gui.classroom.teacherCreate.importSource': 'Importing from: {source}',
     'gui.classroom.teacherCreate.footerHint':
@@ -149,6 +150,7 @@ export default {
     'gui.classroom.teacherDetail.legend.seated': 'Seated',
     'gui.classroom.teacherDetail.legend.submitted': 'Submitted',
     'gui.classroom.teacherDetail.legend.returned': 'Returned',
+    'gui.classroom.teacherDetail.assignmentNameLabel': 'Assignment Name',
     'gui.classroom.teacherDetail.seatNumber': 'Seat {number}',
     'gui.classroom.teacherDashboard.expiresAt': 'Expires: {date}',
     'gui.classroom.teacherDetail.expiresAt': 'Expires: {date}',

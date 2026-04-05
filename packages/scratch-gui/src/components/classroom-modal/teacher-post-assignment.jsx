@@ -15,7 +15,10 @@ const TeacherPostAssignment = ({
     onBack,
     onPostAssignment,
 }) => {
-    const [title, setTitle] = useState('');
+    const defaultTitle = selectedClassroom
+        ? `${selectedClassroom.className}${selectedClassroom.assignmentName ? ` (${selectedClassroom.assignmentName})` : ''}`
+        : '';
+    const [title, setTitle] = useState(defaultTitle);
     const [description, setDescription] = useState('');
     const [posted, setPosted] = useState(false);
 
@@ -138,6 +141,7 @@ TeacherPostAssignment.propTypes = {
     onBack: PropTypes.func,
     onPostAssignment: PropTypes.func.isRequired,
     selectedClassroom: PropTypes.shape({
+        assignmentName: PropTypes.string,
         className: PropTypes.string,
     }),
 };

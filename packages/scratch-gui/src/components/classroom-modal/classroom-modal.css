@@ -196,6 +196,28 @@
     background-color: #3d89f0;
 }
 
+.assignment-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
+    font-size: 0.85rem;
+}
+
+.assignment-name-input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.85rem;
+    color: #575e75;
+}
+
+.assignment-name-input:focus {
+    border-color: #4c97ff;
+    outline: none;
+}
+
 .join-code-display {
     background-color: #f2f2f2;
     border: 2px dashed #d9d9d9;

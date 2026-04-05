@@ -338,6 +338,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
                 await classroomAPI.createClassroom(
                     idToken,
                     formData.className,
+                    formData.assignmentName,
                     formData.studentCount,
                     selectedGoogleCourse?.courseId,
                 );
@@ -962,6 +963,22 @@ const ClassroomModal = ({ mode = 'student' }) => {
         handleJoinWithCode(code);
     }, []); // Run once on mount — intentionally omit deps
 
+    // --- Teacher: Update assignment name ---
+
+    const handleUpdateAssignmentName = useCallback(
+        async assignmentName => {
+            if (!idToken || !selectedClassroom) return;
+            clearError();
+            try {
+                await classroomAPI.updateClassroom(idToken, selectedClassroom.classroomId, { assignmentName });
+                setSelectedClassroom(prev => ({ ...prev, assignmentName }));
+            } catch (err) {
+                showError(translateError(intl, err));
+            }
+        },
+        [idToken, selectedClassroom, clearError, showError, intl],
+    );
+
     const teacherContainerProps = {
         phase,
         classrooms,
@@ -998,6 +1015,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
         onGoogleClassroomImport: handleGoogleClassroomImport,
         onSelectGoogleCourse: handleSelectGoogleCourse,
         onConfirmGoogleImport: handleConfirmGoogleImport,
+        onUpdateAssignmentName: handleUpdateAssignmentName,
     };
 
     if (mode === 'teacher') {

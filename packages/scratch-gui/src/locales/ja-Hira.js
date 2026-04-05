@@ -100,7 +100,8 @@ export default {
     'gui.classroom.teacherDetail.notSeated': 'りせき',
     'gui.classroom.teacherDetail.downloadAll': 'ぜんさくひんダウンロード',
     'gui.classroom.teacherCreate.hint':
-        'かだいごとにクラスをさくせいします。れい:「だい3かい チャットアプリをつくろう」',
+        'クラスめいとかだいめいをにゅうりょくしてください。れい: クラス「5-2」、かだい「だい3かい チャットアプリをつくろう」',
+    'gui.classroom.teacherCreate.className': 'クラスめい',
     'gui.classroom.teacherCreate.assignmentName': 'かだいめい',
     'gui.classroom.teacherCreate.importSource': 'インポートもと: {source}',
     'gui.classroom.teacherCreate.footerHint': 'さくせいご、Google Classroom にかだいリンクをはいしんできます。',
@@ -147,6 +148,7 @@ export default {
     'gui.classroom.teacherDetail.legend.seated': 'ちゃくせき',
     'gui.classroom.teacherDetail.legend.submitted': 'ていしゅつずみ',
     'gui.classroom.teacherDetail.legend.returned': 'へんきゃくずみ',
+    'gui.classroom.teacherDetail.assignmentNameLabel': 'かだいめい',
     'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
     'gui.classroom.teacherDashboard.expiresAt': 'ゆうこうきげん: {date}',
     'gui.classroom.teacherDetail.expiresAt': 'ゆうこうきげん: {date}',
