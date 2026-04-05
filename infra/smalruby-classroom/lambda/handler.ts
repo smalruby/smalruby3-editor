@@ -239,6 +239,7 @@ function extractBearerToken(authHeader?: string): string {
 async function handleCreateClassroom(teacherSub: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
   const className = validateClassName(body.className);
   const studentCount = validateStudentCount(body.studentCount);
+  const googleClassroomCourseId = typeof body.googleClassroomCourseId === 'string' ? body.googleClassroomCourseId.trim() : undefined;
 
   // Generate unique join code (retry up to 5 times)
   let joinCode = '';
@@ -273,6 +274,7 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
       className,
       joinCode,
       studentCount,
+      googleClassroomCourseId: googleClassroomCourseId || undefined,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -282,7 +284,7 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
 
   return {
     statusCode: 201,
-    body: JSON.stringify({ classroomId, className, joinCode, studentCount, status: 'active', createdAt: now, expiresAt }),
+    body: JSON.stringify({ classroomId, className, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, status: 'active', createdAt: now, expiresAt }),
   };
 }
 

@@ -94,6 +94,12 @@ export default {
     'gui.classroom.teacherDetail.seated': 'Seated',
     'gui.classroom.teacherDetail.notSeated': 'Not seated',
     'gui.classroom.teacherDetail.downloadAll': 'Download All',
+    'gui.classroom.teacherCreate.hint':
+        'Create a classroom for each assignment. Example: "Lesson 3: Build a Chat App"',
+    'gui.classroom.teacherCreate.assignmentName': 'Assignment Name',
+    'gui.classroom.teacherCreate.importSource': 'Importing from: {source}',
+    'gui.classroom.teacherCreate.footerHint':
+        'After creating, you can share the assignment link to Google Classroom.',
     'gui.classroom.googleImport': 'Import from Google Classroom',
     'gui.classroom.googleCourses.title': 'Google Classroom Courses',
     'gui.classroom.googleCourses.import': 'Import',

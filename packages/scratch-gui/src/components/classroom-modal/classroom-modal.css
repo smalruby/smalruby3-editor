@@ -30,6 +30,29 @@
     line-height: 1.5;
 }
 
+.form-hint {
+    color: #888;
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.import-source-info {
+    background: #e9f0ff;
+    border-left: 3px solid #4c97ff;
+    padding: 0.4rem 0.8rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: #575e75;
+}
+
+.form-footer-hint {
+    color: #888;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
 .form-group {
     margin-bottom: 1rem;
 }

@@ -251,22 +251,11 @@ const ClassroomModal = () => {
         setSelectedGoogleCourse(course);
     }, []);
 
-    const handleConfirmGoogleImport = useCallback(async () => {
-        if (!selectedGoogleCourse || !googleAccessToken) return;
-        clearError();
-        setIsLoading(true);
-        try {
-            await classroomAPI.importGoogleClassroom(idToken, googleAccessToken, selectedGoogleCourse.courseId);
-            setPhase('teacher-dashboard');
-        } catch (err) {
-            if (err.status === 401) {
-                clearClassroomAccessToken();
-            }
-            showError(translateError(intl, err));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [idToken, googleAccessToken, selectedGoogleCourse, clearError, showError, intl]);
+    const handleConfirmGoogleImport = useCallback(() => {
+        if (!selectedGoogleCourse) return;
+        // Transition to create form with pre-filled data from Google Classroom
+        setPhase('teacher-create');
+    }, [selectedGoogleCourse]);
 
     const handlePostAssignment = useCallback(
         async (title, description) => {
@@ -338,7 +327,13 @@ const ClassroomModal = () => {
             clearError();
             setIsLoading(true);
             try {
-                await classroomAPI.createClassroom(idToken, formData.className, formData.studentCount);
+                await classroomAPI.createClassroom(
+                    idToken,
+                    formData.className,
+                    formData.studentCount,
+                    selectedGoogleCourse?.courseId,
+                );
+                setSelectedGoogleCourse(null);
                 setPhase('teacher-dashboard');
             } catch (err) {
                 showError(translateError(intl, err));
@@ -346,7 +341,7 @@ const ClassroomModal = () => {
                 setIsLoading(false);
             }
         },
-        [idToken, clearError, showError, intl],
+        [idToken, selectedGoogleCourse, clearError, showError, intl],
     );
 
     // --- Teacher: Delete classroom ---

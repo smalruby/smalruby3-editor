@@ -91,6 +91,11 @@ export default {
     'gui.classroom.teacherDetail.seated': 'ちゃくせきちゅう',
     'gui.classroom.teacherDetail.notSeated': 'りせき',
     'gui.classroom.teacherDetail.downloadAll': 'ぜんさくひんダウンロード',
+    'gui.classroom.teacherCreate.hint':
+        'かだいごとにクラスをさくせいします。れい:「だい3かい チャットアプリをつくろう」',
+    'gui.classroom.teacherCreate.assignmentName': 'かだいめい',
+    'gui.classroom.teacherCreate.importSource': 'インポートもと: {source}',
+    'gui.classroom.teacherCreate.footerHint': 'さくせいご、Google Classroom にかだいリンクをはいしんできます。',
     'gui.classroom.googleImport': 'Google Classroom からインポート',
     'gui.classroom.googleCourses.title': 'Google Classroom のクラス',
     'gui.classroom.googleCourses.import': 'インポート',

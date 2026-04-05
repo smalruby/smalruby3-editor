@@ -419,6 +419,7 @@ const ClassroomModal = ({
                     <TeacherCreateForm
                         error={error}
                         errorTitle={errorTitle}
+                        importSource={selectedGoogleCourse}
                         isLoading={isLoading}
                         onBack={onBackToDashboard}
                         onCreate={onCreateClassroom}
@@ -1609,9 +1610,13 @@ TeacherClassDetail.propTypes = {
 };
 
 // Teacher create classroom form
-const TeacherCreateForm = ({ error, errorTitle, isLoading, onBack, onCreate }) => {
-    const [className, setClassName] = React.useState('');
-    const [studentCount, setStudentCount] = React.useState('35');
+const TeacherCreateForm = ({ error, errorTitle, importSource, isLoading, onBack, onCreate }) => {
+    const defaultName = importSource
+        ? `${importSource.name}${importSource.section ? ` (${importSource.section})` : ''}`
+        : '';
+    const defaultCount = importSource?.studentCount > 0 ? String(importSource.studentCount) : '35';
+    const [className, setClassName] = React.useState(defaultName);
+    const [studentCount, setStudentCount] = React.useState(defaultCount);
 
     const handleClassNameChange = useCallback((e) => {
         setClassName(e.target.value);
@@ -1645,12 +1650,29 @@ const TeacherCreateForm = ({ error, errorTitle, isLoading, onBack, onCreate }) =
                     id="gui.classroom.teacherCreate.title"
                 />
             </div>
+            <div className={styles.formHint}>
+                <FormattedMessage
+                    defaultMessage="Create a classroom for each assignment. Example: &quot;Lesson 3: Build a Chat App&quot;"
+                    description="Hint explaining classroom = assignment"
+                    id="gui.classroom.teacherCreate.hint"
+                />
+            </div>
+            {importSource && (
+                <div className={styles.importSourceInfo}>
+                    <FormattedMessage
+                        defaultMessage="Importing from: {source}"
+                        description="Shows Google Classroom import source"
+                        id="gui.classroom.teacherCreate.importSource"
+                        values={{ source: `${importSource.name}${importSource.section ? ` (${importSource.section})` : ''}` }}
+                    />
+                </div>
+            )}
             <div className={styles.formGroup}>
                 <label className={styles.label} htmlFor="classroom-name">
                     <FormattedMessage
-                        defaultMessage="Classroom Name"
-                        description="Classroom name input label"
-                        id="gui.classroom.teacherCreate.name"
+                        defaultMessage="Assignment Name"
+                        description="Assignment name input label"
+                        id="gui.classroom.teacherCreate.assignmentName"
                     />
                 </label>
                 <input
@@ -1696,6 +1718,13 @@ const TeacherCreateForm = ({ error, errorTitle, isLoading, onBack, onCreate }) =
                     />
                 </button>
             </div>
+            <div className={styles.formFooterHint}>
+                <FormattedMessage
+                    defaultMessage="After creating, you can share the assignment link to Google Classroom."
+                    description="Hint about posting to Google Classroom after creation"
+                    id="gui.classroom.teacherCreate.footerHint"
+                />
+            </div>
             <ErrorDisplay error={error} errorTitle={errorTitle} />
         </div>
     );
@@ -1704,6 +1733,11 @@ const TeacherCreateForm = ({ error, errorTitle, isLoading, onBack, onCreate }) =
 TeacherCreateForm.propTypes = {
     error: PropTypes.string,
     errorTitle: PropTypes.string,
+    importSource: PropTypes.shape({
+        name: PropTypes.string,
+        section: PropTypes.string,
+        studentCount: PropTypes.number,
+    }),
     isLoading: PropTypes.bool,
     onBack: PropTypes.func.isRequired,
     onCreate: PropTypes.func.isRequired,

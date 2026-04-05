@@ -21,10 +21,15 @@ class ClassroomAPI {
      * @param {string} idToken - Google ID token for teacher authentication
      * @param {string} className - Name of the class
      * @param {number} studentCount - Number of students
+     * @param {string} [googleClassroomCourseId] - Google Classroom course ID (for imported classes)
      * @returns {Promise<object>} Created classroom data
      */
-    async createClassroom(idToken, className, studentCount) {
-        return this._request('POST', '/classrooms', { className, studentCount }, idToken);
+    async createClassroom(idToken, className, studentCount, googleClassroomCourseId) {
+        const body = { className, studentCount };
+        if (googleClassroomCourseId) {
+            body.googleClassroomCourseId = googleClassroomCourseId;
+        }
+        return this._request('POST', '/classrooms', body, idToken);
     }
 
     /**
