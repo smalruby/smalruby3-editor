@@ -264,30 +264,33 @@ describeIfToken('教師フロー — クラス CRUD', () => {
     let classroomId: string;
     let joinCode: string;
 
-    test('POST /classrooms — クラス作成', async () => {
+    test('POST /classrooms — クラス作成（className + assignmentName）', async () => {
         const { status, data } = await request(
             'POST',
             '/classrooms',
-            { className: 'Integration Test クラス', studentCount: 5 },
+            { className: 'Integration Test クラス', assignmentName: 'テスト課題', studentCount: 5 },
             teacherHeaders,
         );
         expect(status).toBe(201);
         expect(data.classroomId).toBeDefined();
         expect(data.className).toBe('Integration Test クラス');
+        expect(data.assignmentName).toBe('テスト課題');
         expect(data.studentCount).toBe(5);
         expect(data.joinCode).toBeDefined();
         classroomId = data.classroomId as string;
         joinCode = data.joinCode as string;
     });
 
-    test('GET /classrooms — クラス一覧に含まれる', async () => {
+    test('GET /classrooms — クラス一覧に assignmentName が含まれる', async () => {
         const { status, data } = await request('GET', '/classrooms', null, teacherHeaders);
         expect(status).toBe(200);
-        const classrooms = data.classrooms as Array<{ classroomId: string }>;
-        expect(classrooms.some(c => c.classroomId === classroomId)).toBe(true);
+        const classrooms = data.classrooms as Array<{ classroomId: string; assignmentName: string | null }>;
+        const found = classrooms.find(c => c.classroomId === classroomId);
+        expect(found).toBeDefined();
+        expect(found!.assignmentName).toBe('テスト課題');
     });
 
-    test('GET /classrooms/{id} — クラス詳細', async () => {
+    test('GET /classrooms/{id} — クラス詳細に assignmentName が含まれる', async () => {
         const { status, data } = await request(
             'GET',
             `/classrooms/${classroomId}`,
@@ -296,7 +299,30 @@ describeIfToken('教師フロー — クラス CRUD', () => {
         );
         expect(status).toBe(200);
         expect(data.className).toBe('Integration Test クラス');
+        expect(data.assignmentName).toBe('テスト課題');
         expect(data.studentCount).toBe(5);
+    });
+
+    test('PATCH /classrooms/{id} — assignmentName を更新', async () => {
+        const { status, data } = await request(
+            'PATCH',
+            `/classrooms/${classroomId}`,
+            { assignmentName: '更新後の課題名' },
+            teacherHeaders,
+        );
+        expect(status).toBe(200);
+        expect(data.assignmentName).toBe('更新後の課題名');
+    });
+
+    test('GET /classrooms/{id} — 更新後の assignmentName を確認', async () => {
+        const { status, data } = await request(
+            'GET',
+            `/classrooms/${classroomId}`,
+            null,
+            teacherHeaders,
+        );
+        expect(status).toBe(200);
+        expect(data.assignmentName).toBe('更新後の課題名');
     });
 
     test('POST /classrooms — googleClassroomCourseId 付きで作成', async () => {
@@ -305,6 +331,7 @@ describeIfToken('教師フロー — クラス CRUD', () => {
             '/classrooms',
             {
                 className: 'GC Import Test',
+                assignmentName: 'GC 課題',
                 studentCount: 10,
                 googleClassroomCourseId: 'test-course-123',
             },
