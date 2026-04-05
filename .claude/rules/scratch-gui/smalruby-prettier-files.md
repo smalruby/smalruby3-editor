@@ -67,6 +67,7 @@ upstream (Scratch) ファイルは対象外。
 **個別ファイル:**
 - `src/lib/auto-correct.js`
 - `src/lib/classroom-api.js`
+- `src/lib/google-classroom-auth.js`
 - `src/lib/block-utils.js`
 - `src/lib/blocks-gesture-recovery.js`
 - `src/lib/blocks-screenshot.js`

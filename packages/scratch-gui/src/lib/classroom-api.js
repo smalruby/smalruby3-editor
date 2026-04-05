@@ -188,22 +188,69 @@ class ClassroomAPI {
         }
     }
 
+    // --- Google Classroom integration ---
+
+    /**
+     * List Google Classroom courses for the teacher.
+     * @param {string} idToken - Google ID token
+     * @param {string} googleAccessToken - Google access token with Classroom scopes
+     * @returns {Promise<object>} List of courses
+     */
+    async listGoogleCourses(idToken, googleAccessToken) {
+        return this._request('GET', '/classrooms/google-courses', null, idToken, googleAccessToken);
+    }
+
+    /**
+     * Import a Google Classroom course as a Smalruby classroom.
+     * @param {string} idToken - Google ID token
+     * @param {string} googleAccessToken - Google access token with Classroom scopes
+     * @param {string} courseId - Google Classroom course ID
+     * @returns {Promise<object>} Created classroom data
+     */
+    async importGoogleClassroom(idToken, googleAccessToken, courseId) {
+        return this._request('POST', '/classrooms/google-import', { courseId }, idToken, googleAccessToken);
+    }
+
+    /**
+     * Post an assignment link to Google Classroom.
+     * @param {string} idToken - Google ID token
+     * @param {string} googleAccessToken - Google access token with Classroom scopes
+     * @param {string} classroomId - Smalruby classroom ID
+     * @param {string} title - Assignment title
+     * @param {string} link - Assignment URL
+     * @param {string} [description] - Assignment description
+     * @returns {Promise<object>} Created courseWork data
+     */
+    async postGoogleAssignment(idToken, googleAccessToken, classroomId, title, link, description) {
+        return this._request(
+            'POST',
+            `/classrooms/${classroomId}/google-assignment`,
+            { title, link, description },
+            idToken,
+            googleAccessToken,
+        );
+    }
+
     /**
      * Internal request helper.
      * @param {string} method - HTTP method
      * @param {string} path - API path
      * @param {object|null} body - Request body
      * @param {string} [authToken] - Bearer token
+     * @param {string} [googleAccessToken] - Google access token for Classroom API proxy
      * @returns {Promise<object|void>} Response data
      * @private
      */
-    async _request(method, path, body, authToken) {
+    async _request(method, path, body, authToken, googleAccessToken) {
         const url = `${CLASSROOM_API_ENDPOINT}${path}`;
         const headers = {
             'Content-Type': 'application/json',
         };
         if (authToken) {
             headers.Authorization = `Bearer ${authToken}`;
+        }
+        if (googleAccessToken) {
+            headers['X-Google-Access-Token'] = googleAccessToken;
         }
 
         const options = { method, headers };

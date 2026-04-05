@@ -90,6 +90,7 @@ src/lib/*
 # Individual Smalruby files
 !src/lib/auto-correct.js
 !src/lib/classroom-api.js
+!src/lib/google-classroom-auth.js
 !src/lib/block-utils.js
 !src/lib/blocks-gesture-recovery.js
 !src/lib/blocks-screenshot.js
