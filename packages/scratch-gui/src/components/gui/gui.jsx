@@ -142,6 +142,7 @@ const GUIComponent = props => {
         // === Smalruby: End of smalrubot firmware modal ===
         // === Smalruby: Start of classroom modal ===
         classroomModalVisible,
+        teacherModalVisible,
         // === Smalruby: End of classroom modal ===
         blocksId,
         blocksTabVisible,
@@ -412,7 +413,10 @@ const GUIComponent = props => {
                     ) : null}
                     {/* === Smalruby: Start of classroom modal === */}
                     {classroomModalVisible ? (
-                        <ClassroomModal />
+                        <ClassroomModal mode="student" />
+                    ) : null}
+                    {teacherModalVisible ? (
+                        <ClassroomModal mode="teacher" />
                     ) : null}
                     {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
@@ -724,6 +728,7 @@ GUIComponent.propTypes = {
     basePath: PropTypes.string,
     blockDisplayModalVisible: PropTypes.bool,
     classroomModalVisible: PropTypes.bool, // === Smalruby: classroom modal ===
+    teacherModalVisible: PropTypes.bool, // === Smalruby: classroom modal ===
     smalrubotFirmwareModalVisible: PropTypes.bool, // === Smalruby: smalrubot firmware modal ===
     blocksTabVisible: PropTypes.bool,
     dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===

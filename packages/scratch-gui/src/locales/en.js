@@ -41,6 +41,7 @@ export default {
     'gui.connection.error.flashFirmwareButton': 'Write Firmware',
     'gui.classroom.title': 'Classroom',
     'gui.menuBar.classroom': 'Classroom',
+    'gui.menuBar.classroomManagement': 'Class Management',
     'gui.classroom.roleSelect.prompt': 'How do you use the classroom?',
     'gui.classroom.roleSelect.teacher': 'Teacher',
     'gui.classroom.roleSelect.student': 'Student',

@@ -113,7 +113,7 @@ import {openSmalrubotFirmwareModal} from '../../reducers/smalrubot-firmware';
 import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 // === Smalruby: End of smalrubot firmware menu ===
 // === Smalruby: Start of classroom button ===
-import {openClassroomModal} from '../../reducers/classroom';
+import {openClassroomModal, openTeacherModal} from '../../reducers/classroom';
 import {isClassroomConfigured} from '../../lib/classroom-api';
 import {getUrlParams} from '../../lib/url-params';
 // === Smalruby: End of classroom button ===
@@ -1236,35 +1236,52 @@ class MenuBar extends React.Component {
                         {/* === Smalruby: End of smalrubot firmware menu === */}
                         {/* === Smalruby: Start of classroom button === */}
                         {isClassroomConfigured() && getUrlParams().features.includes('classroom') && (
-                            <div
-                                className={classNames(styles.menuBarItem, styles.hoverable)}
-                                data-testid="classroom-menu-button"
-                                onClick={this.props.onOpenClassroomModal}
-                            >
-                                <span data-testid="classroom-menu-label">
-                                    {this.props.classroomClassName ? (
-                                        <React.Fragment>
-                                            <span data-testid="classroom-menu-class-name">
-                                                {this.props.classroomClassName}
-                                            </span>
-                                            {this.props.classroomSeatNumber && (
-                                                <React.Fragment>
-                                                    {' / '}
-                                                    <span data-testid="classroom-menu-seat-number">
-                                                        {this.props.classroomSeatNumber}
-                                                    </span>
-                                                </React.Fragment>
-                                            )}
-                                        </React.Fragment>
-                                    ) : (
-                                        <FormattedMessage
-                                            defaultMessage="Classroom"
-                                            description="Menu bar button for classroom feature"
-                                            id="gui.menuBar.classroom"
-                                        />
-                                    )}
-                                </span>
-                            </div>
+                            <React.Fragment>
+                                {getUrlParams().classrole === 'teacher' && (
+                                    <div
+                                        className={classNames(styles.menuBarItem, styles.hoverable)}
+                                        data-testid="classroom-management-button"
+                                        onClick={this.props.onOpenTeacherModal}
+                                    >
+                                        <span>
+                                            <FormattedMessage
+                                                defaultMessage="Class Management"
+                                                description="Menu bar button for teacher class management"
+                                                id="gui.menuBar.classroomManagement"
+                                            />
+                                        </span>
+                                    </div>
+                                )}
+                                <div
+                                    className={classNames(styles.menuBarItem, styles.hoverable)}
+                                    data-testid="classroom-menu-button"
+                                    onClick={this.props.onOpenClassroomModal}
+                                >
+                                    <span data-testid="classroom-menu-label">
+                                        {this.props.classroomClassName ? (
+                                            <React.Fragment>
+                                                <span data-testid="classroom-menu-class-name">
+                                                    {this.props.classroomClassName}
+                                                </span>
+                                                {this.props.classroomSeatNumber && (
+                                                    <React.Fragment>
+                                                        {' / '}
+                                                        <span data-testid="classroom-menu-seat-number">
+                                                            {this.props.classroomSeatNumber}
+                                                        </span>
+                                                    </React.Fragment>
+                                                )}
+                                            </React.Fragment>
+                                        ) : (
+                                            <FormattedMessage
+                                                defaultMessage="Classroom"
+                                                description="Menu bar button for classroom feature"
+                                                id="gui.menuBar.classroom"
+                                            />
+                                        )}
+                                    </span>
+                                </div>
+                            </React.Fragment>
                         )}
                         {/* === Smalruby: End of classroom button === */}
                         {this.props.vm.extensionManager &&
@@ -1743,6 +1760,7 @@ MenuBar.propTypes = {
     onRequestCloseSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onOpenSmalrubotFirmwareModal: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onOpenClassroomModal: PropTypes.func, // === Smalruby: classroom button ===
+    onOpenTeacherModal: PropTypes.func, // === Smalruby: classroom button ===
     onRequestCloseMode: PropTypes.func,
     onRequestCloseSettings: PropTypes.func,
     onRequestOpenAbout: PropTypes.func,
@@ -1879,6 +1897,7 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     // === Smalruby: End of smalrubot firmware menu ===
     // === Smalruby: Start of classroom button ===
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
+    onOpenTeacherModal: () => dispatch(openTeacherModal()),
     // === Smalruby: End of classroom button ===
     onClickLogin: ownProps.onClickLogin ?? (() => dispatch(openLoginMenu())),
     onRequestCloseLogin: () => dispatch(closeLoginMenu()),

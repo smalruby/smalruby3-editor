@@ -36,6 +36,7 @@ export default {
     'gui.connection.error.flashFirmwareButton': 'ファームウェア書き込み',
     'gui.classroom.title': 'クラス',
     'gui.menuBar.classroom': 'クラス',
+    'gui.menuBar.classroomManagement': 'クラス管理',
     'gui.classroom.roleSelect.prompt': 'どちらで使いますか？',
     'gui.classroom.roleSelect.teacher': '先生',
     'gui.classroom.roleSelect.student': '生徒',

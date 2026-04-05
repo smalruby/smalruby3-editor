@@ -17,6 +17,7 @@ const messages = defineMessages({
 });
 
 const ClassroomModal = ({
+    mode,
     phase,
     classrooms,
     selectedClassroom,
@@ -99,12 +100,12 @@ const ClassroomModal = ({
     return (
         <Modal
             className={
-                phase === 'teacher-class-detail' ||
-                phase === 'teacher-code-display'
+                phase === 'teacher-class-detail' || phase === 'teacher-code-display'
                     ? styles.modalContentWide
                     : styles.modalContent
             }
             contentLabel={intl.formatMessage(messages.title)}
+            fullScreen={mode === 'teacher'}
             id="classroomModal"
             onRequestClose={onClose}
         >
@@ -2023,6 +2024,7 @@ StudentJoinForm.propTypes = {
 
 ClassroomModal.propTypes = {
     classrooms: PropTypes.arrayOf(PropTypes.object),
+    mode: PropTypes.oneOf(['student', 'teacher']),
     classroomState: PropTypes.object,
     codeDisplayClassroom: PropTypes.object,
     codeDisplayFullscreen: PropTypes.bool,

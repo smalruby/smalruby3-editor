@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import PropTypes from 'prop-types';
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
@@ -11,6 +12,7 @@ import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import { getUrlParams } from '../lib/url-params.js';
 import {
     closeClassroomModal,
+    closeTeacherModal,
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
@@ -71,22 +73,24 @@ const translateError = (intl, err, context = 'general') => {
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
 
-const ClassroomModal = () => {
+const ClassroomModal = ({ mode = 'student' }) => {
     const dispatch = useDispatch();
     const intl = useIntl();
     const classroomState = useSelector(state => state.scratchGui.classroom);
     const vm = useSelector(state => state.scratchGui.vm);
     const scratchBlocks = useSelector(state => state.scratchGui.blockDisplay?.scratchBlocks);
 
-    // Determine initial phase based on persisted session
+    // Determine initial phase based on mode and persisted session
     const getInitialPhase = () => {
+        if (mode === 'teacher') {
+            if (_cachedTeacherIdToken) return 'teacher-dashboard';
+            return 'teacher-login';
+        }
+        // Student mode
         if (classroomState.role === 'student' && classroomState.sessionToken) {
             return 'student-status';
         }
-        if (_cachedTeacherIdToken) {
-            return 'teacher-dashboard';
-        }
-        return 'role-select';
+        return 'student-join';
     };
 
     // UI state
@@ -135,8 +139,8 @@ const ClassroomModal = () => {
     }, [idToken]);
 
     const handleClose = useCallback(() => {
-        dispatch(closeClassroomModal());
-    }, [dispatch]);
+        dispatch(mode === 'teacher' ? closeTeacherModal() : closeClassroomModal());
+    }, [dispatch, mode]);
 
     // Helper to set error with optional title
     const showError = useCallback((message, title = null) => {
@@ -959,6 +963,7 @@ const ClassroomModal = () => {
 
     return (
         <ClassroomModalComponent
+            mode={mode}
             classrooms={classrooms}
             classroomState={classroomState}
             error={error}
@@ -1016,6 +1021,10 @@ const ClassroomModal = () => {
             onShowPostAssignment={handleShowPostAssignment}
         />
     );
+};
+
+ClassroomModal.propTypes = {
+    mode: PropTypes.oneOf(['student', 'teacher']),
 };
 
 export default ClassroomModal;
