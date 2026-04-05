@@ -1057,7 +1057,7 @@ const TeacherClassDetail = ({
         onCloseCodeDisplay();
     }, [onCloseCodeDisplay]);
 
-    const joinedCount = members.length;
+    const joinedCount = members.filter(m => !m.left).length;
     const totalCount = selectedClassroom.studentCount;
 
     // Pre-compute selected member's derived data for the right pane

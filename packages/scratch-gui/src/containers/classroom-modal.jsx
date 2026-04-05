@@ -299,7 +299,9 @@ const ClassroomModal = () => {
                         subMap[sub.memberId] = sub;
                     }
                 }
+                const memberIds = new Set();
                 const enrichedMembers = (membersData.members || []).map(m => {
+                    memberIds.add(m.memberId);
                     const sub = subMap[m.memberId];
                     if (sub) {
                         return {
@@ -315,6 +317,24 @@ const ClassroomModal = () => {
                     }
                     return m;
                 });
+                // Add submissions from members who have left
+                for (const [memberId, sub] of Object.entries(subMap)) {
+                    if (!memberIds.has(memberId)) {
+                        enrichedMembers.push({
+                            memberId,
+                            hasSubmission: true,
+                            submissionId: sub.submissionId,
+                            submissionStatus: sub.status || 'submitted',
+                            submittedAt: sub.submittedAt || null,
+                            thumbnailUrl: sub.thumbnailUrl || null,
+                            projectUrl: sub.projectUrl || null,
+                            projectName: sub.projectName || null,
+                            screenshotUrls: sub.screenshotUrls || [],
+                            teacherComment: sub.teacherComment || '',
+                            left: true,
+                        });
+                    }
+                }
                 setSelectedClassroom(classroomData);
                 setMembers(enrichedMembers);
                 return true;
