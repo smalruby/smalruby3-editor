@@ -258,7 +258,7 @@ export class ClassroomStack extends cdk.Stack {
           apigatewayv2.CorsHttpMethod.DELETE,
           apigatewayv2.CorsHttpMethod.OPTIONS,
         ],
-        allowHeaders: ['Content-Type', 'Authorization'],
+        allowHeaders: ['Content-Type', 'Authorization', 'X-Google-Access-Token'],
         maxAge: cdk.Duration.hours(24),
       },
       defaultDomainMapping: domainName ? {
