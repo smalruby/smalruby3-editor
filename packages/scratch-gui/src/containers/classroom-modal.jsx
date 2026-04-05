@@ -126,9 +126,12 @@ const ClassroomModal = () => {
     // Refresh timer for teacher detail
     const refreshTimerRef = useRef(null);
 
-    // Sync teacher token to module-level cache
+    // Sync teacher token to module-level cache + debug global
     useEffect(() => {
         _cachedTeacherIdToken = idToken;
+        if (typeof window !== 'undefined') {
+            window._classroomIdToken = idToken;
+        }
     }, [idToken]);
 
     const handleClose = useCallback(() => {
