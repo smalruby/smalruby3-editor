@@ -1113,7 +1113,8 @@ async function handleVerifySession(sessionToken: string): Promise<APIGatewayProx
   await docClient.send(new UpdateCommand({
     TableName: MEMBERSHIPS_TABLE,
     Key: { classroomId: session.classroomId, memberId: session.memberId },
-    UpdateExpression: 'SET lastActiveAt = :now, ttl = :ttl',
+    UpdateExpression: 'SET lastActiveAt = :now, #ttl = :ttl',
+    ExpressionAttributeNames: { '#ttl': 'ttl' },
     ExpressionAttributeValues: {
       ':now': now,
       ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
