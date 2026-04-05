@@ -1057,6 +1057,12 @@ const TeacherClassDetail = ({
         onCloseCodeDisplay();
     }, [onCloseCodeDisplay]);
 
+    const isSeated = useCallback(member => {
+        if (!member || !member.lastActiveAt) return false;
+        const elapsed = Date.now() - new Date(member.lastActiveAt).getTime();
+        return elapsed < 60 * 60 * 1000; // 1 hour
+    }, []);
+
     const joinedCount = members.filter(m => !m.left).length;
     const totalCount = selectedClassroom.studentCount;
 
@@ -1068,8 +1074,9 @@ const TeacherClassDetail = ({
             ...member,
             allImages: [member.thumbnailUrl, ...(member.screenshotUrls || [])].filter(Boolean),
             isReturned: member.submissionStatus === 'returned',
+            isSeated: isSeated(member),
         };
-    }, [selectedMember, memberMap]);
+    }, [selectedMember, memberMap, isSeated]);
 
     return (
         <div className={styles.detailLayout} data-testid="classroom-phase-teacher-detail">
@@ -1197,6 +1204,7 @@ const TeacherClassDetail = ({
                                                 cellColorClass = styles.memberCellJoined;
                                             }
                                         }
+                                        const seated = isSeated(member);
                                         const cellClass = `${styles.memberCell} ${cellColorClass} ${isSelected ? styles.memberCellSelected : ''}`;
                                         let cellLabel = seatNum;
                                         if (isReturned) cellLabel = `↩${seatNum}`;
@@ -1209,7 +1217,9 @@ const TeacherClassDetail = ({
                                                 key={memberId}
                                                 onClick={member ? handleCellClick : null}
                                             >
-                                                {cellLabel}
+                                                {seated ? (
+                                                    <span className={styles.seatedLabel}>{cellLabel}</span>
+                                                ) : cellLabel}
                                             </button>
                                         );
                                     })}
@@ -1318,6 +1328,24 @@ const TeacherClassDetail = ({
                                                 {new Date(selectedMemberData.submittedAt).toLocaleTimeString()}
                                             </span>
                                         )}
+                                        <span
+                                            className={selectedMemberData.isSeated ? styles.seatedBadge : styles.notSeatedBadge}
+                                            data-testid="classroom-member-detail-seated"
+                                        >
+                                            {selectedMemberData.isSeated ? (
+                                                <FormattedMessage
+                                                    defaultMessage="Seated"
+                                                    description="Student is currently seated"
+                                                    id="gui.classroom.teacherDetail.seated"
+                                                />
+                                            ) : (
+                                                <FormattedMessage
+                                                    defaultMessage="Not seated"
+                                                    description="Student is not currently seated"
+                                                    id="gui.classroom.teacherDetail.notSeated"
+                                                />
+                                            )}
+                                        </span>
                                         <button
                                             className={styles.deleteButton}
                                             data-member-id={selectedMember}

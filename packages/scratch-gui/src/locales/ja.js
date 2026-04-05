@@ -87,6 +87,8 @@ export default {
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーで開く',
     'gui.classroom.teacherDetail.returnSubmission': '返却する',
     'gui.classroom.teacherDetail.returned': '返却済み',
+    'gui.classroom.teacherDetail.seated': '着席中',
+    'gui.classroom.teacherDetail.notSeated': '離席',
     'gui.classroom.teacherDetail.downloadAll': '全作品ダウンロード',
     'gui.classroom.error.fileTooLarge': 'プロジェクトが大きすぎます（{size}MB）。上限は10MBです。',
     'gui.classroom.studentStatus.returned': '返却済み',

@@ -91,6 +91,8 @@ export default {
     'gui.classroom.teacherDetail.openSubmission': 'Open in Smalruby',
     'gui.classroom.teacherDetail.returnSubmission': 'Return',
     'gui.classroom.teacherDetail.returned': 'Returned',
+    'gui.classroom.teacherDetail.seated': 'Seated',
+    'gui.classroom.teacherDetail.notSeated': 'Not seated',
     'gui.classroom.teacherDetail.downloadAll': 'Download All',
     'gui.classroom.error.fileTooLarge': 'Project is too large ({size}MB). Maximum size is 10MB.',
     'gui.classroom.studentStatus.returned': 'Returned',

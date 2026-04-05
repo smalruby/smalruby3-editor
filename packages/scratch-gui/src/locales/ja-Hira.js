@@ -88,6 +88,8 @@ export default {
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーでひらく',
     'gui.classroom.teacherDetail.returnSubmission': 'へんきゃくする',
     'gui.classroom.teacherDetail.returned': 'へんきゃくずみ',
+    'gui.classroom.teacherDetail.seated': 'ちゃくせきちゅう',
+    'gui.classroom.teacherDetail.notSeated': 'りせき',
     'gui.classroom.teacherDetail.downloadAll': 'ぜんさくひんダウンロード',
     'gui.classroom.error.fileTooLarge': 'プロジェクトがおおきすぎます（{size}MB）。じょうげんは10MBです。',
     'gui.classroom.studentStatus.returned': 'へんきゃくずみ',

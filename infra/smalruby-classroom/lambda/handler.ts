@@ -35,14 +35,16 @@ const CLASSROOM_TTL_SECONDS = CLASSROOM_TTL_DAYS * 24 * 60 * 60;
 // Session and membership TTL matches classroom TTL
 const SESSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
 // Rate limiting for join endpoint (per IP)
-const JOIN_RATE_LIMIT_WINDOW_SECONDS = 60;
-const JOIN_RATE_LIMIT_MAX_ATTEMPTS = 50;
+const JOIN_RATE_LIMIT_WINDOW_SECONDS = parseInt(process.env.JOIN_RATE_LIMIT_WINDOW_SECONDS || '60', 10);
+const JOIN_RATE_LIMIT_MAX_ATTEMPTS = parseInt(process.env.JOIN_RATE_LIMIT_MAX_ATTEMPTS || '50', 10);
 const JOIN_CODE_REGEX = new RegExp(`^[${JOIN_CODE_CHARS}]{${JOIN_CODE_LENGTH}}$`);
+// Session activity TTL — determines "seated" status for teachers (default 1 hour)
+const SESSION_ACTIVE_TTL_SECONDS = parseInt(process.env.SESSION_ACTIVE_TTL_SECONDS || '3600', 10);
 // Submission config (TTL matches classroom TTL)
 const SUBMISSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
 const MAX_PROJECT_NAME_LENGTH = 100;
-const PRESIGNED_URL_UPLOAD_EXPIRY = 15 * 60; // 15 minutes
-const PRESIGNED_URL_DOWNLOAD_EXPIRY = 60 * 60; // 1 hour
+const PRESIGNED_URL_UPLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_UPLOAD_EXPIRY || '900', 10); // default 15 minutes
+const PRESIGNED_URL_DOWNLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600', 10); // default 1 hour
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_SCREENSHOT_COUNT = 20;
 const MAX_TEACHER_COMMENT_LENGTH = 500;
@@ -420,6 +422,7 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
         role: 'student',
         sessionToken,
         joinedAt: now,
+        lastActiveAt: now,
         ttl: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
       },
       ConditionExpression: 'attribute_not_exists(classroomId) AND attribute_not_exists(memberId)',
@@ -486,6 +489,7 @@ async function handleListMembers(teacherSub: string, classroomId: string): Promi
       displayName: item.displayName,
       role: item.role,
       joinedAt: item.joinedAt,
+      lastActiveAt: item.lastActiveAt || null,
       hasSubmission: !!submission,
       submissionStatus: submission?.status || null,
       submittedAt: submission?.submittedAt || null,
@@ -888,6 +892,18 @@ async function handleUpdateSubmission(
 async function handleVerifySession(sessionToken: string): Promise<APIGatewayProxyStructuredResultV2> {
   // verifySessionToken will throw AuthError if invalid
   const session = await verifySessionToken(sessionToken);
+
+  // Update lastActiveAt and extend TTL on each verify call
+  const now = new Date().toISOString();
+  await docClient.send(new UpdateCommand({
+    TableName: MEMBERSHIPS_TABLE,
+    Key: { classroomId: session.classroomId, memberId: session.memberId },
+    UpdateExpression: 'SET lastActiveAt = :now, ttl = :ttl',
+    ExpressionAttributeValues: {
+      ':now': now,
+      ':ttl': Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+    },
+  }));
 
   // Look up latest submission for this member
   let submission: Record<string, unknown> | null = null;

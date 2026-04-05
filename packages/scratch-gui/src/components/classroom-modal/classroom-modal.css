@@ -447,6 +447,24 @@
     margin-left: 0.5rem;
 }
 
+.seated-badge {
+    color: #4c97ff;
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+    font-weight: bold;
+}
+
+.not-seated-badge {
+    color: #aaa;
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+}
+
+.seated-label {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 .image-carousel {
     display: flex;
     flex-direction: column;
