@@ -532,9 +532,9 @@ const ClassroomModal = ({ mode = 'student' }) => {
     const handleShowCodeDisplay = useCallback(() => {
         if (selectedClassroom) {
             setCodeDisplayClassroom(selectedClassroom);
-            setCodeDisplayFullscreen(false);
+            setCodeDisplayFullscreen(mode === 'teacher');
         }
-    }, [selectedClassroom]);
+    }, [selectedClassroom, mode]);
 
     const handleCloseCodeDisplay = useCallback(() => {
         setCodeDisplayClassroom(null);
