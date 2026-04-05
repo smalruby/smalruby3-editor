@@ -195,8 +195,7 @@ async function callGoogleClassroomAPI(
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!response.ok) {
-    const errorText = await response.text().catch(() => '');
-    throw new GoogleAPIError(response.status, `Google Classroom API ${response.status}: ${errorText}`);
+    throw new GoogleAPIError(response.status, `Google Classroom API error: ${response.status}`);
   }
   return response.json();
 }
