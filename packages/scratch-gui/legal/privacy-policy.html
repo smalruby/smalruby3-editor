@@ -46,7 +46,7 @@
 <body>
   <h1>プライバシーポリシー</h1>
   <p class="meta">
-    制定日：2025年3月3日（最終改定：2026年3月5日）<br>
+    制定日：2025年3月3日（最終改定：2026年4月5日）<br>
     運営者：NPO法人Rubyプログラミング少年団
   </p>
 
@@ -71,19 +71,34 @@
     <li>Googleドライブ連携を使用しない場合、Google認証は行われません。</li>
   </ul>
 
-  <h2>2.2 Google API の使用について</h2>
+  <h2>2.2 クラスルーム機能について</h2>
+  <p>
+    本サービスでは、教師と生徒がクラス単位で作品の提出・確認を行える「クラスルーム機能」をご利用いただけます。
+  </p>
+  <ul>
+    <li>教師はGoogleアカウントでログインし、クラスの作成・管理を行います。教師のGoogle IDは認証目的でのみ使用し、氏名・メールアドレス等のプロフィール情報は取得しません。</li>
+    <li>生徒は参加コードと席番号でクラスに参加します。Googleアカウントは不要です。</li>
+    <li>生徒が提出した作品ファイル（.sb3）とスクリーンショット画像は、当法人のサーバー（AWS S3）に一時的に保存されます。これらのデータはクラスの有効期限（デフォルト30日）経過後に自動的に削除されます。</li>
+    <li>セッション情報（参加状態）はブラウザの localStorage に保存され、サーバー側でも管理されます。</li>
+  </ul>
+
+  <h2>2.3 Google API の使用について</h2>
   <p>本サービスは以下の Google API を使用します。</p>
   <ul>
     <li>
       <strong>Google Drive API（drive.file スコープ）</strong><br>
       ユーザーが Google ピッカーで明示的に選択したファイルの読み取り、および Google ドライブへのファイルのアップロード・更新のために使用します。ユーザーが選択していないファイルやフォルダにはアクセスしません。
     </li>
+    <li>
+      <strong>Google Classroom API（courses.readonly, rosters.readonly, coursework.students スコープ）</strong><br>
+      教師がクラスルーム機能で Google Classroom のクラスからインポートする場合に使用します。クラスの一覧と生徒数の取得、および課題リンクの投稿に使用します。<strong>生徒の氏名・メールアドレスはインポートしません。</strong>この機能はクラスルーム機能を利用する教師のみが対象で、追加のスコープ同意が必要です。
+    </li>
   </ul>
   <p>
     Google API から取得した情報の使用は、<a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API サービスのユーザーデータポリシー</a>に準拠します。これには、限定的な使用の要件が含まれます。
   </p>
 
-  <h2>2.3 AI コード生成支援（ルビティー）について</h2>
+  <h2>2.4 AI コード生成支援（ルビティー）について</h2>
   <p>
     本サービスでは、AI による Ruby コード生成支援機能「ルビティー」をご利用いただけます。この機能は、当法人が運営する中継サービス（smalruby-rubytee-relay）を経由して Anthropic 社の Claude API に接続します。<strong>Google アカウントへのログインは不要です。</strong>
   </p>
@@ -94,7 +109,7 @@
     <li>Anthropic 社のプライバシーポリシー: <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic Privacy Policy</a></li>
   </ul>
 
-  <h2>2.4 アクセス解析（Google タグマネージャー / Google Analytics）</h2>
+  <h2>2.5 アクセス解析（Google タグマネージャー / Google Analytics）</h2>
   <p>
     本サービスでは、サービスの改善を目的として、Google タグマネージャー（GTM）を通じた Google Analytics 4（GA4）によるアクセス解析を実施しています。
   </p>
