@@ -14,6 +14,7 @@
  */
 import cardsReducer, { cardsInitialState } from './cards';
 import classroomReducer, { classroomInitialState } from './classroom';
+import classroomTutorialReducer, { classroomTutorialInitialState } from './classroom-tutorial';
 import dnclModeReducer, { dnclModeInitialState } from './dncl-mode';
 import googleDriveFileReducer, { googleDriveFileInitialState } from './google-drive-file';
 import koshienFileReducer, { koshienFileInitialState } from './koshien-file';
@@ -29,6 +30,7 @@ import tutorialOnboardingReducer, { tutorialOnboardingInitialState } from './tut
  */
 export const smalrubyReducers = {
     classroom: classroomReducer,
+    classroomTutorial: classroomTutorialReducer,
     dnclMode: dnclModeReducer,
     meshV2: meshV2Reducer,
     googleDriveFile: googleDriveFileReducer,
@@ -46,6 +48,7 @@ export const smalrubyReducers = {
  */
 export const smalrubyInitialState = {
     classroom: classroomInitialState,
+    classroomTutorial: classroomTutorialInitialState,
     dnclMode: dnclModeInitialState,
     meshV2: meshV2InitialState,
     googleDriveFile: googleDriveFileInitialState,

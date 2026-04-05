@@ -1,5 +1,7 @@
 const OPEN_MODAL = 'scratch-gui/classroom/OPEN_MODAL';
 const CLOSE_MODAL = 'scratch-gui/classroom/CLOSE_MODAL';
+const OPEN_TEACHER_MODAL = 'scratch-gui/classroom/OPEN_TEACHER_MODAL';
+const CLOSE_TEACHER_MODAL = 'scratch-gui/classroom/CLOSE_TEACHER_MODAL';
 const SET_SESSION = 'scratch-gui/classroom/SET_SESSION';
 const CLEAR_SESSION = 'scratch-gui/classroom/CLEAR_SESSION';
 const SET_SUBMISSION_STATUS = 'scratch-gui/classroom/SET_SUBMISSION_STATUS';
@@ -52,6 +54,7 @@ const storedSession = loadSession();
 
 const initialState = {
     modalVisible: false,
+    teacherModalVisible: false,
     role: storedSession ? 'student' : null,
     classroomId: storedSession?.classroomId || null,
     className: storedSession?.className || null,
@@ -71,6 +74,10 @@ const reducer = (state, action) => {
             return { ...state, modalVisible: true };
         case CLOSE_MODAL:
             return { ...state, modalVisible: false };
+        case OPEN_TEACHER_MODAL:
+            return { ...state, teacherModalVisible: true };
+        case CLOSE_TEACHER_MODAL:
+            return { ...state, teacherModalVisible: false };
         case SET_SESSION: {
             const session = {
                 role: action.role,
@@ -120,6 +127,8 @@ const reducer = (state, action) => {
 
 const openClassroomModal = () => ({ type: OPEN_MODAL });
 const closeClassroomModal = () => ({ type: CLOSE_MODAL });
+const openTeacherModal = () => ({ type: OPEN_TEACHER_MODAL });
+const closeTeacherModal = () => ({ type: CLOSE_TEACHER_MODAL });
 
 const setClassroomSession = ({
     role,
@@ -155,6 +164,8 @@ export {
     initialState as classroomInitialState,
     openClassroomModal,
     closeClassroomModal,
+    openTeacherModal,
+    closeTeacherModal,
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,

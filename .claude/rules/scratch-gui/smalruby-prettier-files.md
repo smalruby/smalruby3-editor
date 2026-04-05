@@ -112,6 +112,7 @@ upstream (Scratch) ファイルは対象外。
 
 - `src/reducers/block-display.js`
 - `src/reducers/classroom.js`
+- `src/reducers/classroom-tutorial.js`
 - `src/reducers/dncl-mode.js`
 - `src/reducers/extension-filter.js`
 - `src/reducers/google-drive-file.js`
