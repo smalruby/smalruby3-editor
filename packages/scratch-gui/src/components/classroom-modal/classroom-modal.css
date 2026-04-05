@@ -447,6 +447,24 @@
     margin-left: 0.5rem;
 }
 
+.seated-badge {
+    color: #4c97ff;
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+    font-weight: bold;
+}
+
+.not-seated-badge {
+    color: #aaa;
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+}
+
+.seated-label {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 .image-carousel {
     display: flex;
     flex-direction: column;
@@ -525,6 +543,44 @@
 
 .return-button:hover:not(:disabled) {
     background-color: #e67e16;
+}
+
+.refresh-button {
+    background: none;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #575e75;
+    margin-left: auto;
+}
+
+.refresh-button:hover:not(:disabled) {
+    background-color: #f0f0f0;
+}
+
+.refresh-button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.teacher-comment-box {
+    background-color: #fff8e1;
+    border: 1px solid #ffcc02;
+    border-radius: 4px;
+    padding: 0.5rem;
+    margin-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.teacher-comment-text {
+    font-size: 0.85rem;
+    color: #575e75;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .submission-detail {
@@ -636,6 +692,12 @@
     margin-top: 1rem;
     padding-top: 0.5rem;
     border-top: 1px solid #e0e0e0;
+}
+
+.detail-footer-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .delete-confirm-box {

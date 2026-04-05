@@ -46,10 +46,14 @@ const ClassroomModal = ({
     onOpenSubmission,
     onRefreshDetail,
     onReturnSubmission,
+    onDownloadAll,
+    downloadProgress,
     onStartSubmit,
     onConfirmSubmit,
     onCancelSubmit,
     submitProgress,
+    teacherComment,
+    onRefreshStudentStatus,
     thumbnailDataUrl,
     onTeacherLogout,
     classroomState,
@@ -344,6 +348,8 @@ const ClassroomModal = ({
                         onOpenSubmission={onOpenSubmission}
                         onRefresh={onRefreshDetail}
                         onReturnSubmission={onReturnSubmission}
+                        onDownloadAll={onDownloadAll}
+                        downloadProgress={downloadProgress}
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
@@ -531,7 +537,19 @@ const ClassroomModal = ({
                                     className={styles.statusValue}
                                     data-testid="classroom-submit-status"
                                 >
-                                    {classroomState.submissionStatus === 'submitted' ? (
+                                    {classroomState.submissionStatus === 'returned' ? (
+                                        <React.Fragment>
+                                            {'↩ '}
+                                            <FormattedMessage
+                                                defaultMessage="Returned"
+                                                description="Returned status"
+                                                id="gui.classroom.studentStatus.returned"
+                                            />
+                                            {classroomState.lastSubmittedAt && (
+                                                <span>{` (${new Date(classroomState.lastSubmittedAt).toLocaleTimeString()})`}</span>
+                                            )}
+                                        </React.Fragment>
+                                    ) : classroomState.submissionStatus === 'submitted' ? (
                                         <React.Fragment>
                                             {'✓ '}
                                             <FormattedMessage
@@ -551,7 +569,32 @@ const ClassroomModal = ({
                                         />
                                     )}
                                 </span>
+                                <button
+                                    className={styles.refreshButton}
+                                    data-testid="classroom-student-refresh"
+                                    disabled={isLoading}
+                                    onClick={onRefreshStudentStatus}
+                                >
+                                    {'↻'}
+                                </button>
                             </div>
+                            {classroomState.submissionStatus === 'returned' && teacherComment && (
+                                <div
+                                    className={styles.teacherCommentBox}
+                                    data-testid="classroom-status-teacher-comment"
+                                >
+                                    <span className={styles.statusLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="Comment"
+                                            description="Teacher comment label"
+                                            id="gui.classroom.studentStatus.comment"
+                                        />
+                                    </span>
+                                    <span className={styles.teacherCommentText}>
+                                        {teacherComment}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div className={styles.buttonRow}>
                             <button
@@ -560,7 +603,7 @@ const ClassroomModal = ({
                                 disabled={isLoading}
                                 onClick={onStartSubmit}
                             >
-                                {classroomState.submissionStatus === 'submitted' ? (
+                                {classroomState.submissionStatus ? (
                                     <FormattedMessage
                                         defaultMessage="Resubmit"
                                         description="Resubmit button"
@@ -917,6 +960,8 @@ const TeacherClassDetail = ({
     onOpenSubmission,
     onRefresh,
     onReturnSubmission,
+    onDownloadAll,
+    downloadProgress,
     onShowCodeDisplay,
     onCloseCodeDisplay,
     onCopyInviteLink,
@@ -1012,7 +1057,13 @@ const TeacherClassDetail = ({
         onCloseCodeDisplay();
     }, [onCloseCodeDisplay]);
 
-    const joinedCount = members.length;
+    const isSeated = useCallback(member => {
+        if (!member || !member.lastActiveAt) return false;
+        const elapsed = Date.now() - new Date(member.lastActiveAt).getTime();
+        return elapsed < 60 * 60 * 1000; // 1 hour
+    }, []);
+
+    const joinedCount = members.filter(m => !m.left).length;
     const totalCount = selectedClassroom.studentCount;
 
     // Pre-compute selected member's derived data for the right pane
@@ -1023,8 +1074,9 @@ const TeacherClassDetail = ({
             ...member,
             allImages: [member.thumbnailUrl, ...(member.screenshotUrls || [])].filter(Boolean),
             isReturned: member.submissionStatus === 'returned',
+            isSeated: isSeated(member),
         };
-    }, [selectedMember, memberMap]);
+    }, [selectedMember, memberMap, isSeated]);
 
     return (
         <div className={styles.detailLayout} data-testid="classroom-phase-teacher-detail">
@@ -1152,6 +1204,7 @@ const TeacherClassDetail = ({
                                                 cellColorClass = styles.memberCellJoined;
                                             }
                                         }
+                                        const seated = isSeated(member);
                                         const cellClass = `${styles.memberCell} ${cellColorClass} ${isSelected ? styles.memberCellSelected : ''}`;
                                         let cellLabel = seatNum;
                                         if (isReturned) cellLabel = `↩${seatNum}`;
@@ -1164,7 +1217,9 @@ const TeacherClassDetail = ({
                                                 key={memberId}
                                                 onClick={member ? handleCellClick : null}
                                             >
-                                                {cellLabel}
+                                                {seated ? (
+                                                    <span className={styles.seatedLabel}>{cellLabel}</span>
+                                                ) : cellLabel}
                                             </button>
                                         );
                                     })}
@@ -1208,18 +1263,36 @@ const TeacherClassDetail = ({
                                         </div>
                                     </div>
                                 ) : (
-                                    <button
-                                        className={styles.dangerButton}
-                                        data-testid="classroom-delete-classroom"
-                                        disabled={isLoading}
-                                        onClick={handleDeleteClick}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Delete Classroom"
-                                            description="Delete classroom button"
-                                            id="gui.classroom.teacherDetail.deleteClassroom"
-                                        />
-                                    </button>
+                                    <div className={styles.detailFooterButtons}>
+                                        <button
+                                            className={styles.dangerButton}
+                                            data-testid="classroom-delete-classroom"
+                                            disabled={isLoading}
+                                            onClick={handleDeleteClick}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Delete Classroom"
+                                                description="Delete classroom button"
+                                                id="gui.classroom.teacherDetail.deleteClassroom"
+                                            />
+                                        </button>
+                                        <button
+                                            className={styles.secondaryButton}
+                                            data-testid="classroom-download-all"
+                                            disabled={isLoading || !!downloadProgress}
+                                            onClick={onDownloadAll}
+                                        >
+                                            {downloadProgress ? (
+                                                `${downloadProgress.current}/${downloadProgress.total}`
+                                            ) : (
+                                                <FormattedMessage
+                                                    defaultMessage="Download All"
+                                                    description="Download all submissions button"
+                                                    id="gui.classroom.teacherDetail.downloadAll"
+                                                />
+                                            )}
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -1255,6 +1328,24 @@ const TeacherClassDetail = ({
                                                 {new Date(selectedMemberData.submittedAt).toLocaleTimeString()}
                                             </span>
                                         )}
+                                        <span
+                                            className={selectedMemberData.isSeated ? styles.seatedBadge : styles.notSeatedBadge}
+                                            data-testid="classroom-member-detail-seated"
+                                        >
+                                            {selectedMemberData.isSeated ? (
+                                                <FormattedMessage
+                                                    defaultMessage="Seated"
+                                                    description="Student is currently seated"
+                                                    id="gui.classroom.teacherDetail.seated"
+                                                />
+                                            ) : (
+                                                <FormattedMessage
+                                                    defaultMessage="Not seated"
+                                                    description="Student is not currently seated"
+                                                    id="gui.classroom.teacherDetail.notSeated"
+                                                />
+                                            )}
+                                        </span>
                                         <button
                                             className={styles.deleteButton}
                                             data-member-id={selectedMember}
@@ -1390,6 +1481,11 @@ TeacherClassDetail.propTypes = {
     onCopyInviteLink: PropTypes.func.isRequired,
     onDeleteClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
+    onDownloadAll: PropTypes.func.isRequired,
+    downloadProgress: PropTypes.shape({
+        current: PropTypes.number,
+        total: PropTypes.number,
+    }),
     onOpenSubmission: PropTypes.func.isRequired,
     onRefresh: PropTypes.func.isRequired,
     onReturnSubmission: PropTypes.func.isRequired,
@@ -1613,10 +1709,16 @@ ClassroomModal.propTypes = {
     onCreateClassroom: PropTypes.func.isRequired,
     onDeleteClassroom: PropTypes.func.isRequired,
     onDeleteMember: PropTypes.func.isRequired,
+    onDownloadAll: PropTypes.func.isRequired,
+    downloadProgress: PropTypes.shape({
+        current: PropTypes.number,
+        total: PropTypes.number,
+    }),
     onJoinWithCode: PropTypes.func.isRequired,
     onLeaveClassroom: PropTypes.func.isRequired,
     onOpenSubmission: PropTypes.func.isRequired,
     onRefreshDetail: PropTypes.func.isRequired,
+    onRefreshStudentStatus: PropTypes.func.isRequired,
     onReturnSubmission: PropTypes.func.isRequired,
     onSelectClassroom: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
@@ -1640,6 +1742,7 @@ ClassroomModal.propTypes = {
         total: PropTypes.number,
         label: PropTypes.string,
     }),
+    teacherComment: PropTypes.string,
     thumbnailDataUrl: PropTypes.string,
 };
 

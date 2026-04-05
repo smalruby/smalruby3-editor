@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
@@ -114,6 +115,7 @@ const ClassroomModal = () => {
     // Code display state
     const [codeDisplayClassroom, setCodeDisplayClassroom] = useState(null);
     const [codeDisplayFullscreen, setCodeDisplayFullscreen] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState(null); // { current, total }
 
     // Refresh timer for teacher detail
     const refreshTimerRef = useRef(null);
@@ -297,7 +299,9 @@ const ClassroomModal = () => {
                         subMap[sub.memberId] = sub;
                     }
                 }
+                const memberIds = new Set();
                 const enrichedMembers = (membersData.members || []).map(m => {
+                    memberIds.add(m.memberId);
                     const sub = subMap[m.memberId];
                     if (sub) {
                         return {
@@ -313,6 +317,24 @@ const ClassroomModal = () => {
                     }
                     return m;
                 });
+                // Add submissions from members who have left
+                for (const [memberId, sub] of Object.entries(subMap)) {
+                    if (!memberIds.has(memberId)) {
+                        enrichedMembers.push({
+                            memberId,
+                            hasSubmission: true,
+                            submissionId: sub.submissionId,
+                            submissionStatus: sub.status || 'submitted',
+                            submittedAt: sub.submittedAt || null,
+                            thumbnailUrl: sub.thumbnailUrl || null,
+                            projectUrl: sub.projectUrl || null,
+                            projectName: sub.projectName || null,
+                            screenshotUrls: sub.screenshotUrls || [],
+                            teacherComment: sub.teacherComment || '',
+                            left: true,
+                        });
+                    }
+                }
                 setSelectedClassroom(classroomData);
                 setMembers(enrichedMembers);
                 return true;
@@ -523,30 +545,54 @@ const ClassroomModal = () => {
         }
     }, [dispatch, pendingJoinCode, selectedSeat, clearError, showError, intl]);
 
-    // --- Student: Verify session on status screen ---
+    // --- Student: Verify session + fetch submission status ---
 
+    const [studentTeacherComment, setStudentTeacherComment] = useState(null);
+
+    const refreshStudentStatus = useCallback(async () => {
+        if (!classroomState.sessionToken) return;
+        setIsLoading(true);
+        try {
+            const result = await classroomAPI.verifySession(classroomState.sessionToken);
+            if (result.submission) {
+                dispatch(setSubmissionStatus(result.submission.status, result.submission.submittedAt));
+                setStudentTeacherComment(result.submission.teacherComment || null);
+            }
+        } catch {
+            dispatch(clearClassroomSession());
+            const title = intl.formatMessage({
+                defaultMessage: 'An error occurred',
+                description: 'Error dialog title',
+                id: 'gui.classroom.error.title',
+            });
+            showError(translateError(intl, { status: 401 }, 'session'), title);
+            setPhase('role-select');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [classroomState.sessionToken, dispatch, showError, intl]);
+
+    // Fetch on student-status phase display
     useEffect(() => {
         if (phase === 'student-status' && classroomState.sessionToken) {
-            classroomAPI.verifySession(classroomState.sessionToken).catch(() => {
-                // Session is invalid — clear and redirect
-                dispatch(clearClassroomSession());
-                const title = intl.formatMessage({
-                    defaultMessage: 'An error occurred',
-                    description: 'Error dialog title',
-                    id: 'gui.classroom.error.title',
-                });
-                showError(translateError(intl, { status: 401 }, 'session'), title);
-                setPhase('role-select');
-            });
+            refreshStudentStatus();
         }
-    }, [phase, classroomState.sessionToken, dispatch, showError, intl]);
+    }, [phase]); // Only on phase change, not on every render
 
     // --- Student: Leave classroom ---
 
-    const handleLeaveClassroom = useCallback(() => {
+    const handleLeaveClassroom = useCallback(async () => {
+        // Notify server to remove member record (best-effort)
+        if (classroomState.sessionToken && classroomState.classroomId) {
+            try {
+                await classroomAPI.leaveClassroom(classroomState.sessionToken, classroomState.classroomId);
+            } catch {
+                // Proceed even if server call fails
+            }
+        }
         dispatch(clearClassroomSession());
         setPhase('role-select');
-    }, [dispatch]);
+    }, [classroomState.sessionToken, classroomState.classroomId, dispatch]);
 
     // --- Student: Start submit flow ---
 
@@ -639,9 +685,23 @@ const ClassroomModal = () => {
                 screenshotBlobs.length,
             );
 
-            // 3. Upload .sb3
+            // 3. Upload .sb3 (with size check)
             setSubmitProgress({ current: 0, total: 1, label: 'project' });
             const sb3Data = await vm.saveProjectSb3();
+            const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+            if (sb3Data.byteLength > MAX_FILE_SIZE) {
+                const sizeMB = (sb3Data.byteLength / (1024 * 1024)).toFixed(1);
+                throw new Error(
+                    intl.formatMessage(
+                        {
+                            defaultMessage: 'Project is too large ({size}MB). Maximum size is 10MB.',
+                            description: 'File too large error',
+                            id: 'gui.classroom.error.fileTooLarge',
+                        },
+                        { size: sizeMB },
+                    ),
+                );
+            }
             await classroomAPI.uploadToPresignedUrl(submissionData.uploadUrl, sb3Data, 'application/octet-stream');
 
             // 4. Upload thumbnail
@@ -714,6 +774,76 @@ const ClassroomModal = () => {
         [idToken, selectedClassroom, clearError, showError, intl, loadClassroomDetail],
     );
 
+    // --- Teacher: Download all submissions as ZIP ---
+
+    const handleDownloadAll = useCallback(async () => {
+        if (!selectedClassroom || !members || members.length === 0) return;
+        clearError();
+
+        const submittedMembers = members.filter(m => m.hasSubmission && m.projectUrl);
+        if (submittedMembers.length === 0) return;
+
+        setDownloadProgress({ current: 0, total: submittedMembers.length });
+
+        try {
+            const zip = new JSZip();
+            const className = selectedClassroom.className || 'class';
+
+            for (let i = 0; i < submittedMembers.length; i++) {
+                const m = submittedMembers[i];
+                setDownloadProgress({ current: i + 1, total: submittedMembers.length });
+
+                const seatLabel = m.memberId.replace('seat-', '');
+                const name = m.displayName || '';
+                const folderName = name ? `${seatLabel}_${name}` : seatLabel;
+                const folder = zip.folder(folderName);
+
+                // Download project .sb3
+                try {
+                    const res = await fetch(m.projectUrl);
+                    if (res.ok) folder.file(`${m.projectName || 'project'}.sb3`, await res.blob());
+                } catch {
+                    // Skip failed downloads
+                }
+
+                // Download thumbnail
+                if (m.thumbnailUrl) {
+                    try {
+                        const res = await fetch(m.thumbnailUrl);
+                        if (res.ok) folder.file('thumbnail.png', await res.blob());
+                    } catch {
+                        // Skip
+                    }
+                }
+
+                // Download screenshots
+                for (let si = 0; si < (m.screenshotUrls || []).length; si++) {
+                    try {
+                        const res = await fetch(m.screenshotUrls[si]);
+                        if (res.ok) folder.file(`screenshot-${si}.png`, await res.blob());
+                    } catch {
+                        // Skip
+                    }
+                }
+            }
+
+            // Generate and download ZIP
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${className}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            showError(translateError(intl, err));
+        } finally {
+            setDownloadProgress(null);
+        }
+    }, [selectedClassroom, members, clearError, showError, intl]);
+
     // --- Classcode URL parameter auto-join ---
     useEffect(() => {
         const urlParams = getUrlParams();
@@ -768,12 +898,16 @@ const ClassroomModal = () => {
             onCreateClassroom={handleCreateClassroom}
             onDeleteClassroom={handleDeleteClassroom}
             onDeleteMember={handleDeleteMember}
+            onDownloadAll={handleDownloadAll}
+            downloadProgress={downloadProgress}
             onJoinWithCode={handleJoinWithCode}
             onLeaveClassroom={handleLeaveClassroom}
             submitProgress={submitProgress}
             onOpenSubmission={handleOpenSubmission}
             onRefreshDetail={handleRefreshDetail}
             onReturnSubmission={handleReturnSubmission}
+            teacherComment={studentTeacherComment}
+            onRefreshStudentStatus={refreshStudentStatus}
             onStartSubmit={handleStartSubmit}
             onConfirmSubmit={handleConfirmSubmit}
             onCancelSubmit={handleCancelSubmit}
