@@ -19,6 +19,7 @@ import TeacherCreateForm from '../classroom-modal/teacher-create-form.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
 import ClassroomTutorial from '../classroom-tutorial/classroom-tutorial.jsx';
 
+import googleClassroomIcon from './google-classroom-icon.png';
 import styles from './classroom-teacher-modal.css';
 
 const messages = defineMessages({
@@ -103,13 +104,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     className={styles.loginArea}
                     data-testid="classroom-phase-teacher-login"
                 >
-                    <ClassroomTutorial name="googleAccountSelect">
-                        <FormattedMessage
-                            defaultMessage="Please select your Google account. Choose your school account (Google Workspace for Education) to integrate with Google Classroom."
-                            description="Tutorial: Google account selection"
-                            id="gui.classroom.tutorial.googleAccountSelect"
-                        />
-                    </ClassroomTutorial>
                     <h2>
                         <FormattedMessage
                             defaultMessage="Sign in with Google"
@@ -122,6 +116,13 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             defaultMessage="Sign in with your Google account to manage classrooms."
                             description="Teacher login description"
                             id="gui.classroom.management.loginDescription"
+                        />
+                    </p>
+                    <p className={styles.loginHint}>
+                        <FormattedMessage
+                            defaultMessage="Use your school's Google Workspace for Education account to integrate with Google Classroom."
+                            description="Hint about using school Google account"
+                            id="gui.classroom.management.loginHint"
                         />
                     </p>
                     <button
@@ -207,20 +208,20 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     className={styles.mainRelative}
                     data-testid="classroom-phase-teacher-google-courses"
                 >
-                    <ClassroomTutorial name="courseSelection">
-                        <FormattedMessage
-                            defaultMessage="Select a Google Classroom course. The course name and student count will be filled in automatically."
-                            description="Tutorial: course selection"
-                            id="gui.classroom.tutorial.courseSelection"
-                        />
-                    </ClassroomTutorial>
                     <div className={styles.mainPhaseTitle}>
                         <FormattedMessage
-                            defaultMessage="Google Classroom Courses"
+                            defaultMessage="Google Classroom Classes"
                             description="Google Classroom courses list title"
                             id="gui.classroom.management.googleCoursesTitle"
                         />
                     </div>
+                    <p className={styles.mainPhaseGuide}>
+                        <FormattedMessage
+                            defaultMessage="Select a class to import and click the Import button."
+                            description="Guide for Google Classroom course selection"
+                            id="gui.classroom.management.googleCoursesGuide"
+                        />
+                    </p>
                     {isLoading && (
                         <div data-testid="classroom-loading">{'...'}</div>
                     )}
@@ -268,7 +269,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     error={error}
                     errorTitle={errorTitle}
                     isLoading={isLoading}
-                    noBackButton
                     selectedClassroom={selectedClassroom}
                     onBack={onBackToDashboard}
                     onPostAssignment={onPostAssignment}
@@ -279,13 +279,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         // Default: dashboard (no class selected)
         return (
             <div className={styles.mainEmpty}>
-                <ClassroomTutorial name="bookmarkPrompt">
-                    <FormattedMessage
-                        defaultMessage="Bookmark this page so you can quickly access the class management screen next time."
-                        description="Tutorial: bookmark prompt"
-                        id="gui.classroom.tutorial.bookmarkPrompt"
-                    />
-                </ClassroomTutorial>
                 <FormattedMessage
                     defaultMessage="Select a classroom from the sidebar"
                     description="Prompt to select a classroom in teacher management"
@@ -369,6 +362,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                                 data-testid="classroom-google-import"
                                 onClick={onGoogleClassroomImport}
                             >
+                                <img
+                                    alt=""
+                                    className={styles.sidebarButtonIcon}
+                                    src={googleClassroomIcon}
+                                />
                                 <FormattedMessage
                                     defaultMessage="Import from Google Classroom"
                                     description="Import from Google Classroom button in sidebar"

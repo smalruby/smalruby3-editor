@@ -402,6 +402,26 @@
     color: #575e75;
 }
 
+.members-legend {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.3rem 0;
+    font-size: 0.75rem;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    color: white;
+    font-weight: bold;
+}
+
+.legend-seated {
+    text-decoration: underline;
+}
+
 .members-grid {
     display: grid;
     grid-template-columns: repeat(10, 1fr);

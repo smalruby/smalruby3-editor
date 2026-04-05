@@ -158,6 +158,26 @@
     margin-bottom: 1rem;
 }
 
+.login-hint {
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.main-phase-guide {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
 .main-footer {
     margin-top: 1rem;
+}
+
+.sidebar-button-icon {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-right: 0.3rem;
 }

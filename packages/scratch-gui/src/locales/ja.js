@@ -128,21 +128,22 @@ export default {
     'gui.classroom.management.create': 'クラスを作る',
     'gui.classroom.management.googleImport': 'Google Classroom からインポート',
     'gui.classroom.management.logout': 'ログアウト',
-    'gui.classroom.management.googleCoursesTitle': 'Google Classroom のコース一覧',
-    'gui.classroom.management.noCourses': 'コースが見つかりません',
+    'gui.classroom.management.googleCoursesTitle': 'Google Classroom のクラス一覧',
+    'gui.classroom.management.noCourses': 'クラスが見つかりません',
     'gui.classroom.management.importButton': 'インポート',
+    'gui.classroom.management.loginHint':
+        '学校の Google Workspace for Education のアカウントでログインすると、Google Classroom と連携できます。',
+    'gui.classroom.management.googleCoursesGuide':
+        'インポートするクラスを選択して「インポート」ボタンを押してください。',
     'gui.classroom.tutorial.dismiss': 'わかりました',
-    'gui.classroom.tutorial.googleAccountSelect':
-        'Googleアカウントを選んでください。学校のアカウント（Google Workspace for Education）を選ぶと、Google Classroomと連携できます。',
     'gui.classroom.tutorial.checkboxes':
         'Google Classroomと連携するには、2つのチェックボックスの両方にチェックを入れてください。',
     'gui.classroom.tutorial.classCreation':
         '「クラス」は課題ごとに作ります。例：「3時間目：チャットアプリを作ろう」のように、1つの授業に1つのクラスを作りましょう。',
-    'gui.classroom.tutorial.courseSelection':
-        'Google Classroomのコースを選んでください。選んだコースの名前と生徒数が自動で入力されます。',
-    'gui.classroom.tutorial.bookmarkPrompt':
-        'このページをブックマークしておくと、次回からすぐにクラス管理画面を開けます。',
     'gui.classroom.tutorial.seatCountHint': '生徒の人数は、クラスを作成した後でも変更できます。',
+    'gui.classroom.teacherDetail.legend.seated': '着席',
+    'gui.classroom.teacherDetail.legend.submitted': '提出済',
+    'gui.classroom.teacherDetail.legend.returned': '返却済',
     'gui.classroom.teacherDetail.seatNumber': '出席番号{number}',
     'gui.classroom.teacherDashboard.expiresAt': '有効期限: {date}',
     'gui.classroom.teacherDetail.expiresAt': '有効期限: {date}',

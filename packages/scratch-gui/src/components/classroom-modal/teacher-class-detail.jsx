@@ -61,13 +61,11 @@ const TeacherClassDetail = ({
     const handleCellClick = useCallback(
         (e) => {
             const memberId = e.currentTarget.dataset.memberId;
-            if (memberId && memberMap[memberId]) {
-                onSelectMember(
-                    memberId === selectedMember ? null : memberId,
-                );
+            if (memberId) {
+                onSelectMember(memberId);
             }
         },
-        [memberMap, selectedMember, onSelectMember],
+        [onSelectMember],
     );
 
     const handleDeleteClick = useCallback(() => {
@@ -276,6 +274,19 @@ const TeacherClassDetail = ({
                                     </button>
                                 </div>
                             </div>
+                            <div className={styles.membersLegend}>
+                                <span className={`${styles.legendItem} ${styles.memberCellJoined}`}>
+                                    <span className={styles.legendSeated}>
+                                        <FormattedMessage defaultMessage="Seated" description="Legend: seated" id="gui.classroom.teacherDetail.legend.seated" />
+                                    </span>
+                                </span>
+                                <span className={`${styles.legendItem} ${styles.memberCellSubmitted}`}>
+                                    <FormattedMessage defaultMessage="Submitted" description="Legend: submitted" id="gui.classroom.teacherDetail.legend.submitted" />
+                                </span>
+                                <span className={`${styles.legendItem} ${styles.memberCellReturned}`}>
+                                    <FormattedMessage defaultMessage="Returned" description="Legend: returned" id="gui.classroom.teacherDetail.legend.returned" />
+                                </span>
+                            </div>
                             <div
                                 className={styles.membersGrid}
                                 data-testid="classroom-members-grid"
@@ -308,36 +319,16 @@ const TeacherClassDetail = ({
                                                     styles.memberCellJoined;
                                             }
                                         }
-                                        const seated = isSeated(member);
                                         const cellClass = `${styles.memberCell} ${cellColorClass} ${isSelected ? styles.memberCellSelected : ''}`;
-                                        let cellLabel = seatNum;
-                                        if (isReturned)
-                                            cellLabel = `↩${seatNum}`;
-                                        else if (hasSubmission)
-                                            cellLabel = `✓${seatNum}`;
                                         return (
                                             <button
                                                 className={cellClass}
                                                 data-member-id={memberId}
                                                 data-testid={`classroom-member-${memberId}`}
                                                 key={memberId}
-                                                onClick={
-                                                    member
-                                                        ? handleCellClick
-                                                        : null
-                                                }
+                                                onClick={handleCellClick}
                                             >
-                                                {seated ? (
-                                                    <span
-                                                        className={
-                                                            styles.seatedLabel
-                                                        }
-                                                    >
-                                                        {cellLabel}
-                                                    </span>
-                                                ) : (
-                                                    cellLabel
-                                                )}
+                                                {seatNum}
                                             </button>
                                         );
                                     },
@@ -699,6 +690,17 @@ const TeacherClassDetail = ({
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            ) : selectedMember && !memberMap[selectedMember] ? (
+                                <div className={styles.memberDetailPanel} data-testid="classroom-member-detail">
+                                    <div className={styles.memberDetailHeader}>
+                                        <span className={styles.memberDetailSeat} data-testid="classroom-member-detail-seat">
+                                            <FormattedMessage defaultMessage="Seat {number}" description="Seat number display in member detail" id="gui.classroom.teacherDetail.seatNumber" values={{ number: selectedMember.replace('seat-', '') }} />
+                                        </span>
+                                        <span data-testid="classroom-member-detail-name">
+                                            <FormattedMessage defaultMessage="Not seated" description="Student is not currently seated" id="gui.classroom.teacherDetail.notSeated" />
+                                        </span>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className={styles.memberDetailEmpty}>

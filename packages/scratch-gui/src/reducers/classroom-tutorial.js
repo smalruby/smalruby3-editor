@@ -2,14 +2,7 @@ const MARK_SEEN = 'scratch-gui/classroom-tutorial/MARK_SEEN';
 
 const STORAGE_PREFIX = 'smalruby:tutorial:';
 
-const TUTORIAL_NAMES = [
-    'googleAccountSelect',
-    'checkboxes',
-    'classCreation',
-    'courseSelection',
-    'bookmarkPrompt',
-    'seatCountHint',
-];
+const TUTORIAL_NAMES = ['checkboxes', 'classCreation', 'seatCountHint'];
 
 const loadFromStorage = () => {
     const seen = {};
