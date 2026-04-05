@@ -65,6 +65,13 @@ const ClassroomModal = ({
     codeDisplayFullscreen,
     onToggleCodeFullscreen,
     onCloseCodeDisplay,
+    googleCourses,
+    selectedGoogleCourse,
+    onGoogleClassroomImport,
+    onSelectGoogleCourse,
+    onConfirmGoogleImport,
+    onPostAssignment,
+    onShowPostAssignment,
 }) => {
     const intl = useIntl();
 
@@ -313,9 +320,98 @@ const ClassroomModal = ({
                                         id="gui.classroom.teacherDashboard.create"
                                     />
                                 </button>
+                                <button
+                                    className={styles.secondaryButton}
+                                    data-testid="classroom-google-import"
+                                    onClick={onGoogleClassroomImport}
+                                >
+                                    <FormattedMessage
+                                        defaultMessage="Import from Google Classroom"
+                                        description="Import classroom from Google Classroom"
+                                        id="gui.classroom.googleImport"
+                                    />
+                                </button>
                             </div>
                         </div>
                     </div>
+                )}
+
+                {/* Phase: teacher-google-courses */}
+                {phase === 'teacher-google-courses' && (
+                    <div
+                        className={styles.phaseContainer}
+                        data-testid="classroom-phase-teacher-google-courses"
+                    >
+                        <button
+                            className={styles.backButton}
+                            data-testid="classroom-back"
+                            onClick={onBackToDashboard}
+                        >
+                            {'< '}
+                            <FormattedMessage
+                                defaultMessage="Back"
+                                description="Back button"
+                                id="gui.classroom.back"
+                            />
+                        </button>
+                        <div className={styles.phaseTitle}>
+                            <FormattedMessage
+                                defaultMessage="Google Classroom Courses"
+                                description="Google Classroom courses list title"
+                                id="gui.classroom.googleCourses.title"
+                            />
+                        </div>
+                        {isLoading && (
+                            <div
+                                className={styles.loading}
+                                data-testid="classroom-loading"
+                            >
+                                {'...'}
+                            </div>
+                        )}
+                        <ErrorDisplay error={error} errorTitle={errorTitle} />
+                        {googleCourses.length === 0 && !isLoading ? (
+                            <div className={styles.emptyMessage}>
+                                <FormattedMessage
+                                    defaultMessage="No courses found"
+                                    description="No Google Classroom courses"
+                                    id="gui.classroom.googleCourses.empty"
+                                />
+                            </div>
+                        ) : (
+                            <GoogleCourseList
+                                courses={googleCourses}
+                                selectedCourseId={selectedGoogleCourse?.courseId}
+                                onSelect={onSelectGoogleCourse}
+                            />
+                        )}
+                        <div className={styles.footerButtons}>
+                            <button
+                                className={styles.primaryButton}
+                                data-testid="classroom-google-import-confirm"
+                                disabled={!selectedGoogleCourse || isLoading}
+                                onClick={onConfirmGoogleImport}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Import"
+                                    description="Import Google Classroom course"
+                                    id="gui.classroom.googleCourses.import"
+                                />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Phase: teacher-post-assignment */}
+                {phase === 'teacher-post-assignment' && (
+                    <TeacherPostAssignment
+                        error={error}
+                        errorTitle={errorTitle}
+                        isLoading={isLoading}
+                        selectedClassroom={selectedClassroom}
+                        onBack={onBackToDashboard}
+                        onPostAssignment={onPostAssignment}
+                    />
                 )}
 
                 {/* Phase: teacher-create */}
@@ -352,6 +448,7 @@ const ClassroomModal = ({
                         downloadProgress={downloadProgress}
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
+                        onShowPostAssignment={onShowPostAssignment}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                     />
                 )}
@@ -966,6 +1063,7 @@ const TeacherClassDetail = ({
     onCloseCodeDisplay,
     onCopyInviteLink,
     onToggleCodeFullscreen,
+    onShowPostAssignment,
     codeDisplayClassroom,
     codeDisplayFullscreen,
 }) => {
@@ -1292,6 +1390,19 @@ const TeacherClassDetail = ({
                                                 />
                                             )}
                                         </button>
+                                        {selectedClassroom.googleClassroomCourseId && (
+                                            <button
+                                                className={styles.secondaryButton}
+                                                data-testid="classroom-post-assignment"
+                                                onClick={onShowPostAssignment}
+                                            >
+                                                <FormattedMessage
+                                                    defaultMessage="Post Assignment"
+                                                    description="Post assignment to Google Classroom"
+                                                    id="gui.classroom.postAssignment.title"
+                                                />
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1491,6 +1602,7 @@ TeacherClassDetail.propTypes = {
     onReturnSubmission: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onShowCodeDisplay: PropTypes.func.isRequired,
+    onShowPostAssignment: PropTypes.func,
     onToggleCodeFullscreen: PropTypes.func.isRequired,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
@@ -1595,6 +1707,196 @@ TeacherCreateForm.propTypes = {
     isLoading: PropTypes.bool,
     onBack: PropTypes.func.isRequired,
     onCreate: PropTypes.func.isRequired,
+};
+
+// Google Classroom course list (avoids inline arrow in JSX)
+const GoogleCourseList = ({ courses, selectedCourseId, onSelect }) => {
+    const handleClick = useCallback(
+        (e) => {
+            const courseId = e.currentTarget.dataset.courseId;
+            const course = courses.find(c => c.courseId === courseId);
+            if (course) onSelect(course);
+        },
+        [courses, onSelect],
+    );
+
+    return (
+        <ul className={styles.classList}>
+            {courses.map(course => (
+                <li
+                    className={`${styles.classItem} ${selectedCourseId === course.courseId ? styles.classItemSelected : ''}`}
+                    data-course-id={course.courseId}
+                    data-testid={`classroom-google-course-${course.courseId}`}
+                    key={course.courseId}
+                    onClick={handleClick}
+                >
+                    <div className={styles.classItemMain}>
+                        <span className={styles.classItemName}>
+                            {course.name}
+                        </span>
+                        {course.section && (
+                            <span className={styles.classItemCode}>
+                                {course.section}
+                            </span>
+                        )}
+                    </div>
+                    <div className={styles.classItemMeta}>
+                        <span>
+                            <FormattedMessage
+                                defaultMessage="{count} students"
+                                description="Student count"
+                                id="gui.classroom.googleCourses.students"
+                                values={{ count: course.studentCount }}
+                            />
+                        </span>
+                    </div>
+                </li>
+            ))}
+        </ul>
+    );
+};
+
+GoogleCourseList.propTypes = {
+    courses: PropTypes.arrayOf(
+        PropTypes.shape({
+            courseId: PropTypes.string,
+            name: PropTypes.string,
+            section: PropTypes.string,
+            studentCount: PropTypes.number,
+        }),
+    ).isRequired,
+    onSelect: PropTypes.func.isRequired,
+    selectedCourseId: PropTypes.string,
+};
+
+// Teacher: Post assignment to Google Classroom
+const TeacherPostAssignment = ({
+    error,
+    errorTitle,
+    isLoading,
+    selectedClassroom,
+    onBack,
+    onPostAssignment,
+}) => {
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [posted, setPosted] = useState(false);
+
+    const handlePost = useCallback(async () => {
+        if (!title.trim()) return;
+        try {
+            await onPostAssignment(title.trim(), description.trim());
+            setPosted(true);
+        } catch {
+            // error is shown via parent error state
+        }
+    }, [title, description, onPostAssignment]);
+
+    const handleTitleChange = useCallback(e => {
+        setTitle(e.target.value);
+    }, []);
+
+    const handleDescriptionChange = useCallback(e => {
+        setDescription(e.target.value);
+    }, []);
+
+    return (
+        <div
+            className={styles.phaseContainer}
+            data-testid="classroom-phase-teacher-post-assignment"
+        >
+            <button
+                className={styles.backButton}
+                data-testid="classroom-back"
+                onClick={onBack}
+            >
+                {'< '}
+                <FormattedMessage
+                    defaultMessage="Back"
+                    description="Back button"
+                    id="gui.classroom.back"
+                />
+            </button>
+            <div className={styles.phaseTitle}>
+                <FormattedMessage
+                    defaultMessage="Post Assignment"
+                    description="Post assignment to Google Classroom"
+                    id="gui.classroom.postAssignment.title"
+                />
+            </div>
+            <div className={styles.detailLabel}>
+                {selectedClassroom?.className}
+            </div>
+            {posted ? (
+                <div className={styles.successMessage} data-testid="classroom-post-assignment-success">
+                    <FormattedMessage
+                        defaultMessage="Assignment posted!"
+                        description="Assignment posted successfully"
+                        id="gui.classroom.postAssignment.success"
+                    />
+                </div>
+            ) : (
+                <>
+                    <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>
+                            <FormattedMessage
+                                defaultMessage="Title"
+                                description="Assignment title label"
+                                id="gui.classroom.postAssignment.titleLabel"
+                            />
+                        </label>
+                        <input
+                            className={styles.formInput}
+                            data-testid="classroom-post-assignment-title"
+                            type="text"
+                            value={title}
+                            onChange={handleTitleChange}
+                        />
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>
+                            <FormattedMessage
+                                defaultMessage="Description (optional)"
+                                description="Assignment description label"
+                                id="gui.classroom.postAssignment.descriptionLabel"
+                            />
+                        </label>
+                        <textarea
+                            className={styles.commentInput}
+                            data-testid="classroom-post-assignment-description"
+                            rows={3}
+                            value={description}
+                            onChange={handleDescriptionChange}
+                        />
+                    </div>
+                    <button
+                        className={styles.primaryButton}
+                        data-testid="classroom-post-assignment-submit"
+                        disabled={!title.trim() || isLoading}
+                        onClick={handlePost}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Post to Google Classroom"
+                            description="Post assignment button"
+                            id="gui.classroom.postAssignment.post"
+                        />
+                    </button>
+                </>
+            )}
+            <ErrorDisplay error={error} errorTitle={errorTitle} />
+        </div>
+    );
+};
+
+TeacherPostAssignment.propTypes = {
+    error: PropTypes.string,
+    errorTitle: PropTypes.string,
+    isLoading: PropTypes.bool,
+    onBack: PropTypes.func.isRequired,
+    onPostAssignment: PropTypes.func.isRequired,
+    selectedClassroom: PropTypes.shape({
+        className: PropTypes.string,
+    }),
 };
 
 // Student join form
@@ -1727,10 +2029,27 @@ ClassroomModal.propTypes = {
     onSelectTeacher: PropTypes.func.isRequired,
     onShowCodeDisplay: PropTypes.func.isRequired,
     onShowCreateForm: PropTypes.func.isRequired,
+    onShowPostAssignment: PropTypes.func,
     onStartSubmit: PropTypes.func.isRequired,
     onTeacherLogin: PropTypes.func.isRequired,
     onTeacherLogout: PropTypes.func.isRequired,
     onToggleCodeFullscreen: PropTypes.func.isRequired,
+    googleCourses: PropTypes.arrayOf(
+        PropTypes.shape({
+            courseId: PropTypes.string,
+            name: PropTypes.string,
+            section: PropTypes.string,
+            studentCount: PropTypes.number,
+        }),
+    ),
+    selectedGoogleCourse: PropTypes.shape({
+        courseId: PropTypes.string,
+        name: PropTypes.string,
+    }),
+    onGoogleClassroomImport: PropTypes.func,
+    onSelectGoogleCourse: PropTypes.func,
+    onConfirmGoogleImport: PropTypes.func,
+    onPostAssignment: PropTypes.func,
     phase: PropTypes.string.isRequired,
     seatCount: PropTypes.number,
     selectedClassroom: PropTypes.object,

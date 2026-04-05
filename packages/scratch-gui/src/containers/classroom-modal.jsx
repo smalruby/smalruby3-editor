@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
+import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import { getUrlParams } from '../lib/url-params.js';
@@ -117,6 +118,11 @@ const ClassroomModal = () => {
     const [codeDisplayFullscreen, setCodeDisplayFullscreen] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState(null); // { current, total }
 
+    // Google Classroom state
+    const [googleAccessToken, setGoogleAccessToken] = useState(null);
+    const [googleCourses, setGoogleCourses] = useState([]);
+    const [selectedGoogleCourse, setSelectedGoogleCourse] = useState(null);
+
     // Refresh timer for teacher detail
     const refreshTimerRef = useRef(null);
 
@@ -218,6 +224,88 @@ const ClassroomModal = () => {
         clearError();
         setPhase('role-select');
     }, [clearError]);
+
+    // --- Google Classroom: Import flow ---
+
+    const handleGoogleClassroomImport = useCallback(async () => {
+        clearError();
+        setIsLoading(true);
+        try {
+            const accessToken = await requestClassroomAccessToken();
+            setGoogleAccessToken(accessToken);
+            const data = await classroomAPI.listGoogleCourses(idToken, accessToken);
+            setGoogleCourses(data.courses || []);
+            setSelectedGoogleCourse(null);
+            setPhase('teacher-google-courses');
+        } catch (err) {
+            if (err.status === 401) {
+                clearClassroomAccessToken();
+            }
+            showError(translateError(intl, err));
+        } finally {
+            setIsLoading(false);
+        }
+    }, [idToken, clearError, showError, intl]);
+
+    const handleSelectGoogleCourse = useCallback(course => {
+        setSelectedGoogleCourse(course);
+    }, []);
+
+    const handleConfirmGoogleImport = useCallback(async () => {
+        if (!selectedGoogleCourse || !googleAccessToken) return;
+        clearError();
+        setIsLoading(true);
+        try {
+            await classroomAPI.importGoogleClassroom(idToken, googleAccessToken, selectedGoogleCourse.courseId);
+            setPhase('teacher-dashboard');
+        } catch (err) {
+            if (err.status === 401) {
+                clearClassroomAccessToken();
+            }
+            showError(translateError(intl, err));
+        } finally {
+            setIsLoading(false);
+        }
+    }, [idToken, googleAccessToken, selectedGoogleCourse, clearError, showError, intl]);
+
+    const handlePostAssignment = useCallback(
+        async (title, description) => {
+            if (!selectedClassroom) return;
+            clearError();
+            setIsLoading(true);
+            try {
+                let accessToken = googleAccessToken;
+                if (!accessToken) {
+                    accessToken = await requestClassroomAccessToken();
+                    setGoogleAccessToken(accessToken);
+                }
+                const link = `${window.location.origin}${window.location.pathname}?features=classroom&classcode=${selectedClassroom.joinCode}`;
+                const result = await classroomAPI.postGoogleAssignment(
+                    idToken,
+                    accessToken,
+                    selectedClassroom.classroomId,
+                    title,
+                    link,
+                    description,
+                );
+                return result;
+            } catch (err) {
+                if (err.status === 401) {
+                    clearClassroomAccessToken();
+                    setGoogleAccessToken(null);
+                }
+                showError(translateError(intl, err));
+                throw err;
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [idToken, googleAccessToken, selectedClassroom, clearError, showError, intl],
+    );
+
+    const handleShowPostAssignment = useCallback(() => {
+        setPhase('teacher-post-assignment');
+    }, []);
 
     // --- Teacher: Load classrooms when entering dashboard ---
 
@@ -921,6 +1009,13 @@ const ClassroomModal = () => {
             onTeacherLogin={handleTeacherLogin}
             onTeacherLogout={handleTeacherLogout}
             onToggleCodeFullscreen={handleToggleCodeFullscreen}
+            googleCourses={googleCourses}
+            selectedGoogleCourse={selectedGoogleCourse}
+            onGoogleClassroomImport={handleGoogleClassroomImport}
+            onSelectGoogleCourse={handleSelectGoogleCourse}
+            onConfirmGoogleImport={handleConfirmGoogleImport}
+            onPostAssignment={handlePostAssignment}
+            onShowPostAssignment={handleShowPostAssignment}
         />
     );
 };
