@@ -27,6 +27,12 @@ export default {
     'gui.smalrubotFirmware.retryButton': 'もう一度試す',
     'gui.smalrubotFirmware.closeButton': '閉じる',
     'gui.smalrubotFirmware.closeAfterErrorButton': '閉じる',
+    'gui.smalrubotFirmware.macSetupTitle': 'macOSセットアップが必要です',
+    'gui.smalrubotFirmware.macSetupDescription':
+        'macOSでファームウェアを書き込むには、Mac App StoreからPL2303 Serial Driverアプリのインストールが必要です。',
+    'gui.smalrubotFirmware.macSetupLink': 'Mac App Storeで開く',
+    'gui.smalrubotFirmware.macSetupInstruction': 'アプリの説明に従ってインストール・セットアップを行ってください。',
+    'gui.smalrubotFirmware.macSetupProceed': 'セットアップ完了、書き込みに進む',
     'gui.connection.error.flashFirmwareButton': 'ファームウェア書き込み',
     'gui.classroom.title': 'クラス',
     'gui.menuBar.classroom': 'クラス',

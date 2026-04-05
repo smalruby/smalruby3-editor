@@ -2,8 +2,8 @@
  * SmalrubotS1 Firmware Flasher — WebSerial STK500v1 Implementation
  *
  * Flashes firmware to Studuino (ATmega168) boards via WebSerial API.
- * Supported on Windows and ChromeOS Chrome browsers.
- * macOS is NOT supported due to PL2303 USB-Serial chip limitations.
+ * Supported on Windows, ChromeOS, and macOS Chrome browsers.
+ * macOS requires the PL2303 Serial Driver app from the Mac App Store.
  *
  * Protocol: STK500v1 (Optiboot bootloader)
  * Reference: notes/issues/52/smalruby-integration/firmware-flasher.js
@@ -82,13 +82,12 @@ const isMacOS = () => {
 
 /**
  * Check if firmware flashing is supported on this platform.
- * Requires WebSerial API and a non-macOS platform.
+ * Requires WebSerial API.
  * @returns {boolean} True if firmware flashing is supported.
  */
 const isFirmwareFlashSupported = () => {
     if (typeof navigator === 'undefined') return false;
     if (!navigator.serial) return false;
-    if (isMacOS()) return false;
     return true;
 };
 

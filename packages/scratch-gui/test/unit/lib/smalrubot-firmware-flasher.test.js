@@ -135,7 +135,7 @@ describe('smalrubot-firmware-flasher', () => {
             expect(isFirmwareFlashSupported()).toBe(false);
         });
 
-        test('should return false on macOS even with WebSerial', () => {
+        test('should return true on macOS with WebSerial', () => {
             Object.defineProperty(global, 'navigator', {
                 value: {
                     serial: { requestPort: jest.fn() },
@@ -144,7 +144,7 @@ describe('smalrubot-firmware-flasher', () => {
                 writable: true,
                 configurable: true,
             });
-            expect(isFirmwareFlashSupported()).toBe(false);
+            expect(isFirmwareFlashSupported()).toBe(true);
         });
 
         test('should return true on Windows with WebSerial', () => {

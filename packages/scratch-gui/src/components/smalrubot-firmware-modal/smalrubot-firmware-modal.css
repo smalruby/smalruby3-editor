@@ -118,6 +118,16 @@
     font-size: 0.875rem;
 }
 
+.app-store-link {
+    color: $motion-primary;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.app-store-link:hover {
+    text-decoration: underline;
+}
+
 .error-details {
     width: 100%;
     margin-top: 0.5rem;

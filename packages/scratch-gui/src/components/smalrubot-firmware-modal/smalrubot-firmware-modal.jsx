@@ -16,10 +16,20 @@ const messages = defineMessages({
 });
 
 /**
- * @typedef {'ready'|'flashing'|'success'|'error'} FlashPhase
+ * @typedef {'macSetup'|'ready'|'flashing'|'success'|'error'} FlashPhase
  */
 
-const SmalrubotFirmwareModal = ({ phase, progressPercent, statusMessage, errorMessage, onFlash, onClose }) => {
+const MAC_APP_STORE_URL = 'https://apps.apple.com/jp/app/pl2303-serial/id1624835354?mt=12';
+
+const SmalrubotFirmwareModal = ({
+    phase,
+    progressPercent,
+    statusMessage,
+    errorMessage,
+    onFlash,
+    onClose,
+    onProceedToReady,
+}) => {
     const intl = useIntl();
     return (
         <Modal
@@ -29,6 +39,54 @@ const SmalrubotFirmwareModal = ({ phase, progressPercent, statusMessage, errorMe
             onRequestClose={onClose}
         >
             <Box className={styles.body}>
+                {phase === 'macSetup' && (
+                    <React.Fragment>
+                        <div className={styles.description}>
+                            <FormattedMessage
+                                defaultMessage="To flash firmware on macOS, you need to install the PL2303 Serial Driver app from the Mac App Store."
+                                description="Description for macOS setup step in firmware flash modal"
+                                id="gui.smalrubotFirmware.macSetupDescription"
+                            />
+                        </div>
+                        <div className={styles.description}>
+                            <a
+                                className={styles.appStoreLink}
+                                href={MAC_APP_STORE_URL}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Open in Mac App Store"
+                                    description="Link to PL2303 Serial app on Mac App Store"
+                                    id="gui.smalrubotFirmware.macSetupLink"
+                                />
+                            </a>
+                        </div>
+                        <div className={styles.description}>
+                            <FormattedMessage
+                                defaultMessage="Install and set up the app following the instructions on the app page."
+                                description="Instruction for macOS setup step"
+                                id="gui.smalrubotFirmware.macSetupInstruction"
+                            />
+                        </div>
+                        <div className={styles.buttonRow}>
+                            <button className={styles.flashButton} onClick={onProceedToReady}>
+                                <FormattedMessage
+                                    defaultMessage="Setup Complete, Proceed to Flash"
+                                    description="Button to proceed from macOS setup to firmware flash"
+                                    id="gui.smalrubotFirmware.macSetupProceed"
+                                />
+                            </button>
+                            <button className={styles.closeButton} onClick={onClose}>
+                                <FormattedMessage
+                                    defaultMessage="Cancel"
+                                    description="Button to cancel firmware flash"
+                                    id="gui.smalrubotFirmware.cancelButton"
+                                />
+                            </button>
+                        </div>
+                    </React.Fragment>
+                )}
                 {phase === 'ready' && (
                     <React.Fragment>
                         <div className={styles.description}>
@@ -150,13 +208,15 @@ SmalrubotFirmwareModal.propTypes = {
     errorMessage: PropTypes.string,
     onClose: PropTypes.func.isRequired,
     onFlash: PropTypes.func.isRequired,
-    phase: PropTypes.oneOf(['ready', 'flashing', 'success', 'error']).isRequired,
+    onProceedToReady: PropTypes.func,
+    phase: PropTypes.oneOf(['macSetup', 'ready', 'flashing', 'success', 'error']).isRequired,
     progressPercent: PropTypes.number,
     statusMessage: PropTypes.string,
 };
 
 SmalrubotFirmwareModal.defaultProps = {
     errorMessage: null,
+    onProceedToReady: null,
     progressPercent: 0,
     statusMessage: null,
 };
