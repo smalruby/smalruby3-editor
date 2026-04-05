@@ -6,7 +6,14 @@ import ErrorDisplay from './error-display.jsx';
 
 import styles from './classroom-modal.css';
 
-const StudentJoinForm = ({ error, errorTitle, isLoading, onBack, onJoin }) => {
+const StudentJoinForm = ({
+    error,
+    errorTitle,
+    isLoading,
+    noBackButton,
+    onBack,
+    onJoin,
+}) => {
     const [code, setCode] = React.useState('');
 
     const handleCodeChange = useCallback((e) => {
@@ -30,18 +37,20 @@ const StudentJoinForm = ({ error, errorTitle, isLoading, onBack, onJoin }) => {
 
     return (
         <div data-testid="classroom-phase-student-join">
-            <button
-                className={styles.backLink}
-                data-testid="classroom-back"
-                onClick={onBack}
-            >
-                {'<'}{' '}
-                <FormattedMessage
-                    defaultMessage="Back"
-                    description="Back button"
-                    id="gui.classroom.back"
-                />
-            </button>
+            {!noBackButton && (
+                <button
+                    className={styles.backLink}
+                    data-testid="classroom-back"
+                    onClick={onBack}
+                >
+                    {'<'}{' '}
+                    <FormattedMessage
+                        defaultMessage="Back"
+                        description="Back button"
+                        id="gui.classroom.back"
+                    />
+                </button>
+            )}
             <div className={styles.phaseTitle}>
                 <FormattedMessage
                     defaultMessage="Enter Join Code"
@@ -97,7 +106,8 @@ StudentJoinForm.propTypes = {
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
-    onBack: PropTypes.func.isRequired,
+    noBackButton: PropTypes.bool,
+    onBack: PropTypes.func,
     onJoin: PropTypes.func.isRequired,
 };
 

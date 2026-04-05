@@ -466,7 +466,7 @@ const ClassroomModal = ({
                         error={error}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
-                        onBack={onBackToRoleSelect}
+                        noBackButton
                         onJoin={onJoinWithCode}
                     />
                 )}
