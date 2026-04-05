@@ -258,7 +258,7 @@ export class ClassroomStack extends cdk.Stack {
           apigatewayv2.CorsHttpMethod.DELETE,
           apigatewayv2.CorsHttpMethod.OPTIONS,
         ],
-        allowHeaders: ['Content-Type', 'Authorization'],
+        allowHeaders: ['Content-Type', 'Authorization', 'X-Google-Access-Token'],
         maxAge: cdk.Duration.hours(24),
       },
       defaultDomainMapping: domainName ? {
@@ -323,6 +323,25 @@ export class ClassroomStack extends cdk.Stack {
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/submissions/{submissionId}',
       methods: [apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
+    // Google Classroom integration routes
+    this.api.addRoutes({
+      path: '/classrooms/google-courses',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/google-import',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/google-assignment',
+      methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });
 

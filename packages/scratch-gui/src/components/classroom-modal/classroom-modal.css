@@ -30,6 +30,29 @@
     line-height: 1.5;
 }
 
+.form-hint {
+    color: #888;
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.import-source-info {
+    background: #e9f0ff;
+    border-left: 3px solid #4c97ff;
+    padding: 0.4rem 0.8rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: #575e75;
+}
+
+.form-footer-hint {
+    color: #888;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
 .form-group {
     margin-bottom: 1rem;
 }
@@ -245,6 +268,20 @@
     border: 1px solid #d9d9d9;
     border-radius: 4px;
     margin-bottom: 0.25rem;
+    cursor: pointer;
+}
+
+.class-item-selected {
+    border-color: #4c97ff;
+    background-color: #e9f0ff;
+}
+
+.success-message {
+    color: #0fbd8c;
+    font-weight: bold;
+    text-align: center;
+    padding: 2rem 0;
+    font-size: 1.1rem;
 }
 
 .class-item-main {
