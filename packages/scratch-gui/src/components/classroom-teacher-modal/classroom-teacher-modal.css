@@ -1,7 +1,7 @@
 .layout {
     display: flex;
     flex: 1;
-    height: 100%;
+    height: calc(100vh - 3.125rem);
     min-height: 0;
     background-color: white;
 }
