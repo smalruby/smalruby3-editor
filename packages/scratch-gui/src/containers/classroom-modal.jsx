@@ -188,6 +188,18 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     const handleTeacherLogin = useCallback(async () => {
         clearError();
+        let signInContainer = null;
+        let signInObserver = null;
+        const cleanupSignIn = () => {
+            if (signInObserver) {
+                signInObserver.disconnect();
+                signInObserver = null;
+            }
+            if (signInContainer && signInContainer.parentNode) {
+                signInContainer.parentNode.removeChild(signInContainer);
+            }
+            signInContainer = null;
+        };
         try {
             await loadGoogleIdentity();
 
@@ -196,6 +208,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
                 google.accounts.id.initialize({
                     client_id: GOOGLE_CLIENT_ID,
                     callback: response => {
+                        cleanupSignIn();
                         if (response.credential) {
                             resolve(response.credential);
                         } else {
@@ -205,20 +218,21 @@ const ClassroomModal = ({ mode = 'student' }) => {
                 });
                 google.accounts.id.prompt(notification => {
                     if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        const container = document.createElement('div');
-                        container.style.cssText =
+                        signInContainer = document.createElement('div');
+                        signInContainer.style.cssText =
                             'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;';
-                        document.body.appendChild(container);
-                        google.accounts.id.renderButton(container, {
+                        document.body.appendChild(signInContainer);
+                        google.accounts.id.renderButton(signInContainer, {
                             theme: 'outline',
                             size: 'large',
                         });
-                        const observer = new MutationObserver(() => {
-                            if (!document.body.contains(container)) {
-                                observer.disconnect();
+                        signInObserver = new MutationObserver(() => {
+                            if (!document.body.contains(signInContainer)) {
+                                signInObserver.disconnect();
+                                signInObserver = null;
                             }
                         });
-                        observer.observe(document.body, { childList: true, subtree: true });
+                        signInObserver.observe(document.body, { childList: true, subtree: true });
                     }
                 });
             });
@@ -226,6 +240,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
             setIdToken(token);
             setPhase('teacher-dashboard');
         } catch (err) {
+            cleanupSignIn();
             showError(err.message || 'Sign-in failed');
         }
     }, [clearError, showError]);
