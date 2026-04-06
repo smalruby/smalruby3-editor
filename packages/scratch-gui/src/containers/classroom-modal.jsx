@@ -1,8 +1,10 @@
 import JSZip from 'jszip';
+import PropTypes from 'prop-types';
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
+import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
@@ -11,6 +13,7 @@ import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import { getUrlParams } from '../lib/url-params.js';
 import {
     closeClassroomModal,
+    closeTeacherModal,
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
@@ -71,22 +74,33 @@ const translateError = (intl, err, context = 'general') => {
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
 
-const ClassroomModal = () => {
+// Dev bypass token for stg/local automated testing
+const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN;
+
+const ClassroomModal = ({ mode = 'student' }) => {
     const dispatch = useDispatch();
     const intl = useIntl();
     const classroomState = useSelector(state => state.scratchGui.classroom);
     const vm = useSelector(state => state.scratchGui.vm);
     const scratchBlocks = useSelector(state => state.scratchGui.blockDisplay?.scratchBlocks);
 
-    // Determine initial phase based on persisted session
+    // Auto-login with dev bypass token when devlogin=1
+    const urlParams = getUrlParams();
+    if (mode === 'teacher' && urlParams.devlogin && DEV_BYPASS_TOKEN && !_cachedTeacherIdToken) {
+        _cachedTeacherIdToken = DEV_BYPASS_TOKEN;
+    }
+
+    // Determine initial phase based on mode and persisted session
     const getInitialPhase = () => {
+        if (mode === 'teacher') {
+            if (_cachedTeacherIdToken) return 'teacher-dashboard';
+            return 'teacher-login';
+        }
+        // Student mode
         if (classroomState.role === 'student' && classroomState.sessionToken) {
             return 'student-status';
         }
-        if (_cachedTeacherIdToken) {
-            return 'teacher-dashboard';
-        }
-        return 'role-select';
+        return 'student-join';
     };
 
     // UI state
@@ -135,8 +149,8 @@ const ClassroomModal = () => {
     }, [idToken]);
 
     const handleClose = useCallback(() => {
-        dispatch(closeClassroomModal());
-    }, [dispatch]);
+        dispatch(mode === 'teacher' ? closeTeacherModal() : closeClassroomModal());
+    }, [dispatch, mode]);
 
     // Helper to set error with optional title
     const showError = useCallback((message, title = null) => {
@@ -322,6 +336,7 @@ const ClassroomModal = () => {
     // --- Teacher: Create classroom ---
 
     const handleShowCreateForm = useCallback(() => {
+        setSelectedGoogleCourse(null);
         setPhase('teacher-create');
     }, []);
 
@@ -333,6 +348,7 @@ const ClassroomModal = () => {
                 await classroomAPI.createClassroom(
                     idToken,
                     formData.className,
+                    formData.assignmentName,
                     formData.studentCount,
                     selectedGoogleCourse?.courseId,
                 );
@@ -527,9 +543,9 @@ const ClassroomModal = () => {
     const handleShowCodeDisplay = useCallback(() => {
         if (selectedClassroom) {
             setCodeDisplayClassroom(selectedClassroom);
-            setCodeDisplayFullscreen(false);
+            setCodeDisplayFullscreen(mode === 'teacher');
         }
-    }, [selectedClassroom]);
+    }, [selectedClassroom, mode]);
 
     const handleCloseCodeDisplay = useCallback(() => {
         setCodeDisplayClassroom(null);
@@ -932,10 +948,10 @@ const ClassroomModal = () => {
 
     // --- Classcode URL parameter auto-join ---
     useEffect(() => {
-        const urlParams = getUrlParams();
-        if (!urlParams.classcode) return;
+        const classcodeParams = getUrlParams();
+        if (!classcodeParams.classcode) return;
 
-        const code = urlParams.classcode; // already uppercased by url-params.js
+        const code = classcodeParams.classcode; // already uppercased by url-params.js
 
         // Clear classcode from URL to prevent re-trigger
         const url = new URL(window.location.href);
@@ -956,6 +972,65 @@ const ClassroomModal = () => {
         // Start the join flow
         handleJoinWithCode(code);
     }, []); // Run once on mount — intentionally omit deps
+
+    // --- Teacher: Update assignment name ---
+
+    const handleUpdateAssignmentName = useCallback(
+        async assignmentName => {
+            if (!idToken || !selectedClassroom) return;
+            clearError();
+            try {
+                await classroomAPI.updateClassroom(idToken, selectedClassroom.classroomId, { assignmentName });
+                setSelectedClassroom(prev => ({ ...prev, assignmentName }));
+            } catch (err) {
+                showError(translateError(intl, err));
+            }
+        },
+        [idToken, selectedClassroom, clearError, showError, intl],
+    );
+
+    const teacherContainerProps = {
+        phase,
+        classrooms,
+        selectedClassroom,
+        members,
+        error,
+        errorTitle,
+        isLoading,
+        selectedMember,
+        codeDisplayClassroom,
+        codeDisplayFullscreen,
+        downloadProgress,
+        googleCourses,
+        selectedGoogleCourse,
+        onTeacherLogin: handleTeacherLogin,
+        onTeacherLogout: handleTeacherLogout,
+        onShowCreateForm: handleShowCreateForm,
+        onCreateClassroom: handleCreateClassroom,
+        onSelectClassroom: handleSelectClassroom,
+        onBackToDashboard: handleBackToDashboard,
+        onDeleteClassroom: handleDeleteClassroom,
+        onDeleteMember: handleDeleteMember,
+        onRefreshDetail: handleRefreshDetail,
+        onSelectMember: handleSelectMember,
+        onOpenSubmission: handleOpenSubmission,
+        onReturnSubmission: handleReturnSubmission,
+        onDownloadAll: handleDownloadAll,
+        onShowCodeDisplay: handleShowCodeDisplay,
+        onCloseCodeDisplay: handleCloseCodeDisplay,
+        onCopyInviteLink: handleCopyInviteLink,
+        onToggleCodeFullscreen: handleToggleCodeFullscreen,
+        onShowPostAssignment: handleShowPostAssignment,
+        onPostAssignment: handlePostAssignment,
+        onGoogleClassroomImport: handleGoogleClassroomImport,
+        onSelectGoogleCourse: handleSelectGoogleCourse,
+        onConfirmGoogleImport: handleConfirmGoogleImport,
+        onUpdateAssignmentName: handleUpdateAssignmentName,
+    };
+
+    if (mode === 'teacher') {
+        return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
+    }
 
     return (
         <ClassroomModalComponent
@@ -1016,6 +1091,10 @@ const ClassroomModal = () => {
             onShowPostAssignment={handleShowPostAssignment}
         />
     );
+};
+
+ClassroomModal.propTypes = {
+    mode: PropTypes.oneOf(['student', 'teacher']),
 };
 
 export default ClassroomModal;

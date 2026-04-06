@@ -20,7 +20,7 @@
 .phase-title {
     font-size: 1.1rem;
     font-weight: bold;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     color: #575e75;
 }
 
@@ -89,6 +89,30 @@
     gap: 0.5rem;
     justify-content: flex-end;
     margin-top: 1rem;
+}
+
+.import-from-gc-row {
+    text-align: center;
+    margin-top: 0.8rem;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: #4c97ff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    padding: 0.2rem;
+}
+
+.link-button:hover {
+    color: #3373cc;
+}
+
+.link-button:disabled {
+    color: #aaa;
+    cursor: default;
 }
 
 .primary-button {
@@ -196,13 +220,35 @@
     background-color: #3d89f0;
 }
 
+.assignment-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
+    font-size: 0.85rem;
+}
+
+.assignment-name-input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.85rem;
+    color: #575e75;
+}
+
+.assignment-name-input:focus {
+    border-color: #4c97ff;
+    outline: none;
+}
+
 .join-code-display {
     background-color: #f2f2f2;
     border: 2px dashed #d9d9d9;
     border-radius: 8px;
-    padding: 0.5rem;
+    padding: 0.3rem;
     text-align: center;
-    margin: 0.5rem 0;
+    margin: 0.3rem 0;
 }
 
 .join-code-value {
@@ -400,6 +446,26 @@
     text-align: center;
     padding: 2rem;
     color: #575e75;
+}
+
+.members-legend {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.3rem 0;
+    font-size: 0.75rem;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    color: white;
+    font-weight: bold;
+}
+
+.legend-seated {
+    text-decoration: underline;
 }
 
 .members-grid {

@@ -33,6 +33,9 @@ export class ClassroomStack extends cdk.Stack {
     // Google Client ID for id_token verification
     const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
 
+    // Dev bypass token (stg only — allows skipping Google auth for automated testing)
+    const devBypassToken = process.env.DEV_BYPASS_TOKEN || '';
+
     // Classroom TTL in days (default 30, configurable via env)
     const classroomTtlDays = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
 
@@ -194,6 +197,7 @@ export class ClassroomStack extends cdk.Stack {
         SUBMISSIONS_TABLE_NAME: this.submissionsTable.tableName,
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
         GOOGLE_CLIENT_ID: googleClientId,
+        DEV_BYPASS_TOKEN: devBypassToken,
         CORS_ALLOWED_ORIGINS: corsOriginsEnv,
         CLASSROOM_TTL_DAYS: String(classroomTtlDays),
         SESSION_ACTIVE_TTL_SECONDS: process.env.SESSION_ACTIVE_TTL_SECONDS || '3600',

@@ -19,6 +19,8 @@ services:
       - RUBYTEE_RELAY_ENDPOINT
       - MAX_USER_MESSAGE_LENGTH
       - MIN_USER_MESSAGE_LENGTH
+      - CLASSROOM_API_ENDPOINT
+      - DEV_BYPASS_TOKEN
     working_dir: /app
     shm_size: '4gb'
     command: npm start

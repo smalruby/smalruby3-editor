@@ -21,6 +21,7 @@ const MEMBERSHIPS_TABLE = process.env.MEMBERSHIPS_TABLE_NAME || 'ClassroomMember
 const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmissions';
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN || '';
 const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(o => o.trim());
 
 const MAX_CLASS_NAME_LENGTH = 50;
@@ -211,6 +212,11 @@ function extractGoogleAccessToken(headers: Record<string, string | undefined>): 
 // --- Auth helpers ---
 
 export async function verifyGoogleIdToken(idToken: string): Promise<string> {
+  // Dev bypass: accept DEV_BYPASS_TOKEN in non-production environments
+  if (DEV_BYPASS_TOKEN && idToken === DEV_BYPASS_TOKEN) {
+    return 'dev-test-teacher';
+  }
+
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken,
@@ -238,6 +244,7 @@ function extractBearerToken(authHeader?: string): string {
 
 async function handleCreateClassroom(teacherSub: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
   const className = validateClassName(body.className);
+  const assignmentName = validateClassName(body.assignmentName); // reuse same validator (1-50 chars)
   const studentCount = validateStudentCount(body.studentCount);
   const googleClassroomCourseId = typeof body.googleClassroomCourseId === 'string' ? body.googleClassroomCourseId.trim() : undefined;
 
@@ -272,6 +279,7 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
       classroomId,
       teacherSub,
       className,
+      assignmentName,
       joinCode,
       studentCount,
       googleClassroomCourseId: googleClassroomCourseId || undefined,
@@ -284,7 +292,7 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
 
   return {
     statusCode: 201,
-    body: JSON.stringify({ classroomId, className, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, status: 'active', createdAt: now, expiresAt }),
+    body: JSON.stringify({ classroomId, className, assignmentName, joinCode, studentCount, googleClassroomCourseId: googleClassroomCourseId || null, status: 'active', createdAt: now, expiresAt }),
   };
 }
 
@@ -301,6 +309,7 @@ async function handleListClassrooms(teacherSub: string): Promise<APIGatewayProxy
     .map(item => ({
       classroomId: item.classroomId,
       className: item.className,
+      assignmentName: item.assignmentName || null,
       joinCode: item.joinCode,
       studentCount: item.studentCount,
       googleClassroomCourseId: item.googleClassroomCourseId || null,
@@ -329,6 +338,7 @@ async function handleGetClassroom(teacherSub: string, classroomId: string): Prom
     body: JSON.stringify({
       classroomId: result.Item.classroomId,
       className: result.Item.className,
+      assignmentName: result.Item.assignmentName || null,
       joinCode: result.Item.joinCode,
       studentCount: result.Item.studentCount,
       googleClassroomCourseId: result.Item.googleClassroomCourseId || null,
@@ -353,6 +363,9 @@ async function handleUpdateClassroom(teacherSub: string, classroomId: string, bo
 
   if (body.className !== undefined) {
     updates.className = validateClassName(body.className);
+  }
+  if (body.assignmentName !== undefined) {
+    updates.assignmentName = validateClassName(body.assignmentName);
   }
   if (body.studentCount !== undefined) {
     updates.studentCount = validateStudentCount(body.studentCount);
@@ -395,6 +408,7 @@ async function handleUpdateClassroom(teacherSub: string, classroomId: string, bo
     body: JSON.stringify({
       classroomId: result.Attributes?.classroomId,
       className: result.Attributes?.className,
+      assignmentName: result.Attributes?.assignmentName,
       joinCode: result.Attributes?.joinCode,
       studentCount: result.Attributes?.studentCount,
       status: result.Attributes?.status,

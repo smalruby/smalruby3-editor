@@ -314,6 +314,7 @@ const mapStateToProps = (state, ownProps) => {
         // === Smalruby: End of smalrubot firmware modal ===
         // === Smalruby: Start of classroom modal ===
         classroomModalVisible: state.scratchGui.classroom ? state.scratchGui.classroom.modalVisible : false,
+        teacherModalVisible: state.scratchGui.classroom ? state.scratchGui.classroom.teacherModalVisible : false,
         // === Smalruby: End of classroom modal ===
         dnclMode: state.scratchGui.dnclMode.dnclMode, // === Smalruby: DNCL block filtering ===
         rubyCode: state.scratchGui.rubyCode,
