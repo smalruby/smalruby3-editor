@@ -336,6 +336,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
     // --- Teacher: Create classroom ---
 
     const handleShowCreateForm = useCallback(() => {
+        setSelectedGoogleCourse(null);
         setPhase('teacher-create');
     }, []);
 

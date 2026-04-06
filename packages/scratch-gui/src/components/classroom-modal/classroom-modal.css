@@ -20,7 +20,7 @@
 .phase-title {
     font-size: 1.1rem;
     font-weight: bold;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     color: #575e75;
 }
 
@@ -89,6 +89,30 @@
     gap: 0.5rem;
     justify-content: flex-end;
     margin-top: 1rem;
+}
+
+.import-from-gc-row {
+    text-align: center;
+    margin-top: 0.8rem;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: #4c97ff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    padding: 0.2rem;
+}
+
+.link-button:hover {
+    color: #3373cc;
+}
+
+.link-button:disabled {
+    color: #aaa;
+    cursor: default;
 }
 
 .primary-button {
@@ -222,9 +246,9 @@
     background-color: #f2f2f2;
     border: 2px dashed #d9d9d9;
     border-radius: 8px;
-    padding: 0.5rem;
+    padding: 0.3rem;
     text-align: center;
-    margin: 0.5rem 0;
+    margin: 0.3rem 0;
 }
 
 .join-code-value {

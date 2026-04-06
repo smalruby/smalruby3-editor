@@ -14,6 +14,7 @@ const TeacherCreateForm = ({
     noBackButton,
     onBack,
     onCreate,
+    onImportFromGC,
 }) => {
     const defaultName = importSource
         ? `${importSource.name}${importSource.section ? ` (${importSource.section})` : ''}`
@@ -160,6 +161,22 @@ const TeacherCreateForm = ({
                     />
                 </button>
             </div>
+            {onImportFromGC && (
+                <div className={styles.importFromGCRow}>
+                    <button
+                        className={styles.linkButton}
+                        data-testid="classroom-import-from-gc"
+                        disabled={isLoading}
+                        onClick={onImportFromGC}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Import from Google Classroom"
+                            description="Link to import class info from Google Classroom"
+                            id="gui.classroom.teacherCreate.importFromGC"
+                        />
+                    </button>
+                </div>
+            )}
             <div className={styles.formFooterHint}>
                 <FormattedMessage
                     defaultMessage="After creating, you can share the assignment link to Google Classroom."
@@ -184,6 +201,7 @@ TeacherCreateForm.propTypes = {
     noBackButton: PropTypes.bool,
     onBack: PropTypes.func,
     onCreate: PropTypes.func.isRequired,
+    onImportFromGC: PropTypes.func,
 };
 
 export default TeacherCreateForm;

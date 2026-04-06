@@ -26,7 +26,6 @@ import {
 } from '../../reducers/classroom-tutorial.js';
 
 import googleAuthHintImage from './google-auth-hint.png';
-import googleClassroomIcon from './google-classroom-icon.png';
 import styles from './classroom-teacher-modal.css';
 
 const messages = defineMessages({
@@ -266,6 +265,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         noBackButton
                         onBack={onBackToDashboard}
                         onCreate={onCreateClassroom}
+                        onImportFromGC={handleImportClick}
                     />
                 </div>
             );
@@ -277,6 +277,18 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     className={styles.mainRelative}
                     data-testid="classroom-phase-teacher-google-courses"
                 >
+                    <button
+                        className={styles.backLink}
+                        data-testid="classroom-back"
+                        onClick={onShowCreateForm}
+                    >
+                        {'< '}
+                        <FormattedMessage
+                            defaultMessage="Back"
+                            description="Back button"
+                            id="gui.classroom.back"
+                        />
+                    </button>
                     <div className={styles.mainPhaseTitle}>
                         <FormattedMessage
                             defaultMessage="Google Classroom Classes"
@@ -424,22 +436,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                                     defaultMessage="Create Classroom"
                                     description="Create new classroom button in sidebar"
                                     id="gui.classroom.management.create"
-                                />
-                            </button>
-                            <button
-                                className={styles.sidebarButton}
-                                data-testid="classroom-google-import"
-                                onClick={handleImportClick}
-                            >
-                                <img
-                                    alt=""
-                                    className={styles.sidebarButtonIcon}
-                                    src={googleClassroomIcon}
-                                />
-                                <FormattedMessage
-                                    defaultMessage="Import from Google Classroom"
-                                    description="Import from Google Classroom button in sidebar"
-                                    id="gui.classroom.management.googleImport"
                                 />
                             </button>
                             <button
