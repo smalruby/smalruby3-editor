@@ -74,12 +74,21 @@ const translateError = (intl, err, context = 'general') => {
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
 
+// Dev bypass token for stg/local automated testing
+const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN;
+
 const ClassroomModal = ({ mode = 'student' }) => {
     const dispatch = useDispatch();
     const intl = useIntl();
     const classroomState = useSelector(state => state.scratchGui.classroom);
     const vm = useSelector(state => state.scratchGui.vm);
     const scratchBlocks = useSelector(state => state.scratchGui.blockDisplay?.scratchBlocks);
+
+    // Auto-login with dev bypass token when devlogin=1
+    const urlParams = getUrlParams();
+    if (mode === 'teacher' && urlParams.devlogin && DEV_BYPASS_TOKEN && !_cachedTeacherIdToken) {
+        _cachedTeacherIdToken = DEV_BYPASS_TOKEN;
+    }
 
     // Determine initial phase based on mode and persisted session
     const getInitialPhase = () => {
@@ -938,10 +947,10 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     // --- Classcode URL parameter auto-join ---
     useEffect(() => {
-        const urlParams = getUrlParams();
-        if (!urlParams.classcode) return;
+        const classcodeParams = getUrlParams();
+        if (!classcodeParams.classcode) return;
 
-        const code = urlParams.classcode; // already uppercased by url-params.js
+        const code = classcodeParams.classcode; // already uppercased by url-params.js
 
         // Clear classcode from URL to prevent re-trigger
         const url = new URL(window.location.href);

@@ -35,6 +35,7 @@ const parseUrlParams = () => {
             features: [],
             classcode: null,
             classrole: null,
+            devlogin: false,
         };
     }
 
@@ -50,6 +51,7 @@ const parseUrlParams = () => {
             features: [],
             classcode: null,
             classrole: null,
+            devlogin: false,
         };
     }
 
@@ -91,7 +93,10 @@ const parseUrlParams = () => {
     const classroleParam = (params.get('classrole') || '').toLowerCase();
     const classrole = classroleParam === 'teacher' ? 'teacher' : null;
 
-    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features, classcode, classrole };
+    // devlogin: bypass Google auth with DEV_BYPASS_TOKEN (stg/local only)
+    const devlogin = params.get('devlogin') === '1' || params.get('devlogin') === 'true';
+
+    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features, classcode, classrole, devlogin };
 };
 
 // Cache the result so it's only parsed once
