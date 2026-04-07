@@ -46,6 +46,12 @@
     color: #575e75;
 }
 
+.form-field-hint {
+    color: #888;
+    font-size: 0.75rem;
+    margin-top: 0.2rem;
+}
+
 .form-footer-hint {
     color: #888;
     font-size: 0.75rem;
@@ -113,6 +119,13 @@
 .link-button:disabled {
     color: #aaa;
     cursor: default;
+}
+
+.gc-import-icon {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    margin-right: 0.3rem;
 }
 
 .primary-button {
@@ -225,7 +238,9 @@
     align-items: center;
     gap: 0.3rem;
     margin-bottom: 0.3rem;
-    font-size: 0.85rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #575e75;
 }
 
 .assignment-name-input {
@@ -233,7 +248,8 @@
     border: 1px solid #ddd;
     border-radius: 4px;
     padding: 0.2rem 0.4rem;
-    font-size: 0.85rem;
+    font-size: 1rem;
+    font-weight: bold;
     color: #575e75;
 }
 
@@ -270,6 +286,13 @@
 .join-code-label {
     font-size: 0.75rem;
     color: #575e75;
+}
+
+.assignment-name-label {
+    font-size: inherit;
+    font-weight: normal;
+    color: #575e75;
+    white-space: nowrap;
 }
 
 /* Dashboard: fixed header, scrollable list, fixed footer */
@@ -421,6 +444,22 @@
     line-height: 1.5;
 }
 
+.error-action-link {
+    background: none;
+    border: none;
+    color: #4c97ff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    padding: 0;
+    margin-top: 0.3rem;
+    display: inline;
+}
+
+.error-action-link:hover {
+    color: #3373cc;
+}
+
 .success-area {
     text-align: center;
     padding: 1rem;
@@ -513,6 +552,11 @@
 .member-cell-selected {
     outline: 3px solid #0fbd8c;
     outline-offset: -1px;
+}
+
+.member-cell-seated {
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 .member-detail-popup {
@@ -801,6 +845,7 @@
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    justify-content: space-between;
 }
 
 .delete-confirm-box {

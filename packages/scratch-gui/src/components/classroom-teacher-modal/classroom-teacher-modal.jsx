@@ -6,7 +6,7 @@
  */
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { defineMessages, useIntl, FormattedMessage } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -26,6 +26,7 @@ import {
 } from '../../reducers/classroom-tutorial.js';
 
 import googleAuthHintImage from './google-auth-hint.png';
+import googleClassroomIcon from './google-classroom-icon.png';
 import styles from './classroom-teacher-modal.css';
 
 const messages = defineMessages({
@@ -36,6 +37,90 @@ const messages = defineMessages({
     },
 });
 
+/**
+ * Carousel showing feature highlights on the login screen.
+ * Auto-advances every 5 seconds with dot indicators.
+ */
+const CAROUSEL_SLIDES = [
+    {
+        titleId: 'gui.classroom.carousel.submitTitle',
+        titleDefault: 'Students can submit assignments',
+        descId: 'gui.classroom.carousel.submitDesc',
+        descDefault:
+            'Students join with a code and submit their work with one click.',
+    },
+    {
+        titleId: 'gui.classroom.carousel.overviewTitle',
+        titleDefault: 'See submission status at a glance',
+        descId: 'gui.classroom.carousel.overviewDesc',
+        descDefault:
+            'The seat grid shows who has submitted, returned, or is still working.',
+    },
+    {
+        titleId: 'gui.classroom.carousel.screenshotTitle',
+        titleDefault: 'Preview without opening',
+        descId: 'gui.classroom.carousel.screenshotDesc',
+        descDefault:
+            'Thumbnails and block screenshots let you review work quickly.',
+    },
+    {
+        titleId: 'gui.classroom.carousel.gcTitle',
+        titleDefault: 'Google Classroom integration',
+        descId: 'gui.classroom.carousel.gcDesc',
+        descDefault:
+            'Import class rosters from Google Classroom and post assignment links.',
+    },
+];
+
+const LoginCarousel = () => {
+    const [slideIndex, setSlideIndex] = useState(0);
+    const intl = useIntl();
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setSlideIndex((prev) => (prev + 1) % CAROUSEL_SLIDES.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const handleDotClick = useCallback((e) => {
+        setSlideIndex(Number(e.currentTarget.dataset.index));
+    }, []);
+
+    const slide = CAROUSEL_SLIDES[slideIndex];
+    return (
+        <div className={styles.carousel}>
+            <div className={styles.carouselSlide}>
+                <div className={styles.carouselTitle}>
+                    {intl.formatMessage({
+                        id: slide.titleId,
+                        defaultMessage: slide.titleDefault,
+                    })}
+                </div>
+                <div className={styles.carouselDesc}>
+                    {intl.formatMessage({
+                        id: slide.descId,
+                        defaultMessage: slide.descDefault,
+                    })}
+                </div>
+            </div>
+            <div className={styles.carouselDots}>
+                {CAROUSEL_SLIDES.map((_, i) => (
+                    <button
+                        className={classNames(
+                            styles.carouselDot,
+                            i === slideIndex && styles.carouselDotActive,
+                        )}
+                        data-index={i}
+                        key={i}
+                        onClick={handleDotClick}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
+
 const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     const intl = useIntl();
     const {
@@ -45,6 +130,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         members,
         error,
         errorTitle,
+        errorActionLabel,
+        errorActionHandler,
         isLoading,
         selectedMember,
         codeDisplayClassroom,
@@ -111,6 +198,41 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         [onDeleteMember],
     );
 
+    // Group classrooms by className for sidebar display
+    const groupedClassrooms = useMemo(() => {
+        const groups = {};
+        for (const c of classrooms) {
+            const name = c.className || '';
+            if (!groups[name]) {
+                groups[name] = [];
+            }
+            groups[name].push(c);
+        }
+        const sortedGroupNames = Object.keys(groups).sort((a, b) =>
+            a.localeCompare(b, 'ja'),
+        );
+        for (const name of sortedGroupNames) {
+            groups[name].sort((a, b) => {
+                const nameComp = (a.assignmentName || '').localeCompare(
+                    b.assignmentName || '',
+                    'ja',
+                );
+                if (nameComp !== 0) return nameComp;
+                return (
+                    new Date(b.createdAt || 0) -
+                    new Date(a.createdAt || 0)
+                );
+            });
+        }
+        return sortedGroupNames.map((name) => ({
+            className: name,
+            hasGoogleClassroom: groups[name].some(
+                (c) => c.googleClassroomCourseId,
+            ),
+            classrooms: groups[name],
+        }));
+    }, [classrooms]);
+
     const renderMain = () => {
         // Auth hint: shown before first Google Classroom import
         if (showAuthHint) {
@@ -171,39 +293,47 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     className={styles.loginArea}
                     data-testid="classroom-phase-teacher-login"
                 >
-                    <h2>
-                        <FormattedMessage
-                            defaultMessage="Sign in with Google"
-                            description="Prompt for teacher Google sign in"
-                            id="gui.classroom.management.loginPrompt"
+                    <div className={styles.loginTop}>
+                        <h2>
+                            <FormattedMessage
+                                defaultMessage="Sign in with Google"
+                                description="Prompt for teacher Google sign in"
+                                id="gui.classroom.management.loginPrompt"
+                            />
+                        </h2>
+                        <p>
+                            <FormattedMessage
+                                defaultMessage="Sign in with your Google account to manage classrooms."
+                                description="Teacher login description"
+                                id="gui.classroom.management.loginDescription"
+                            />
+                        </p>
+                        <p className={styles.loginHint}>
+                            <FormattedMessage
+                                defaultMessage="Use your school's Google Workspace for Education account to integrate with Google Classroom."
+                                description="Hint about using school Google account"
+                                id="gui.classroom.management.loginHint"
+                            />
+                        </p>
+                        <button
+                            className={styles.loginButton}
+                            data-testid="classroom-google-login"
+                            onClick={onTeacherLogin}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Sign in with Google"
+                                description="Google sign in button"
+                                id="gui.classroom.management.loginButton"
+                            />
+                        </button>
+                        <ErrorDisplay
+                            error={error}
+                            errorTitle={errorTitle}
                         />
-                    </h2>
-                    <p>
-                        <FormattedMessage
-                            defaultMessage="Sign in with your Google account to manage classrooms."
-                            description="Teacher login description"
-                            id="gui.classroom.management.loginDescription"
-                        />
-                    </p>
-                    <p className={styles.loginHint}>
-                        <FormattedMessage
-                            defaultMessage="Use your school's Google Workspace for Education account to integrate with Google Classroom."
-                            description="Hint about using school Google account"
-                            id="gui.classroom.management.loginHint"
-                        />
-                    </p>
-                    <button
-                        className={styles.loginButton}
-                        data-testid="classroom-google-login"
-                        onClick={onTeacherLogin}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Sign in with Google"
-                            description="Google sign in button"
-                            id="gui.classroom.management.loginButton"
-                        />
-                    </button>
-                    <ErrorDisplay error={error} errorTitle={errorTitle} />
+                    </div>
+                    <div className={styles.loginBottom}>
+                        <LoginCarousel />
+                    </div>
                 </div>
             );
         }
@@ -223,6 +353,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         codeDisplayFullscreen={false}
                         downloadProgress={downloadProgress}
                         error={error}
+                        errorActionLabel={errorActionLabel}
+                        errorActionHandler={errorActionHandler}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
                         members={members}
@@ -385,7 +517,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     <aside className={styles.sidebar}>
                         <div className={styles.sidebarHeader}>
                             <FormattedMessage
-                                defaultMessage="Your Classrooms"
+                                defaultMessage="Your Classes & Assignments"
                                 description="Teacher sidebar title"
                                 id="gui.classroom.management.sidebarTitle"
                             />
@@ -400,27 +532,66 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                                     />
                                 </li>
                             )}
-                            {classrooms.map((c) => (
-                                <li
-                                    className={classNames(
-                                        styles.sidebarItem,
-                                        selectedClassroom &&
-                                            selectedClassroom.classroomId ===
-                                                c.classroomId &&
-                                            styles.sidebarItemSelected,
-                                    )}
-                                    data-classroom-id={c.classroomId}
-                                    data-testid={`classroom-sidebar-item-${c.classroomId}`}
-                                    key={c.classroomId}
-                                    onClick={handleSelectClassroom}
-                                >
-                                    <span className={styles.sidebarItemName}>
-                                        {c.className}
-                                    </span>
-                                    <span className={styles.sidebarItemMeta}>
-                                        {`${c.studentCount} · ${c.joinCode.toLowerCase()}`}
-                                    </span>
-                                </li>
+                            {groupedClassrooms.map((group) => (
+                                <React.Fragment key={group.className}>
+                                    <li
+                                        className={
+                                            styles.sidebarGroupHeader
+                                        }
+                                        data-testid={`classroom-sidebar-group-${group.className}`}
+                                    >
+                                        {group.hasGoogleClassroom && (
+                                            <img
+                                                alt=""
+                                                className={
+                                                    styles.sidebarGroupIcon
+                                                }
+                                                src={
+                                                    googleClassroomIcon
+                                                }
+                                            />
+                                        )}
+                                        <span>
+                                            {group.className}
+                                        </span>
+                                    </li>
+                                    {group.classrooms.map((c) => (
+                                        <li
+                                            className={classNames(
+                                                styles.sidebarItem,
+                                                styles.sidebarItemIndented,
+                                                selectedClassroom &&
+                                                    selectedClassroom.classroomId ===
+                                                        c.classroomId &&
+                                                    styles.sidebarItemSelected,
+                                            )}
+                                            data-classroom-id={
+                                                c.classroomId
+                                            }
+                                            data-testid={`classroom-sidebar-item-${c.classroomId}`}
+                                            key={c.classroomId}
+                                            onClick={
+                                                handleSelectClassroom
+                                            }
+                                        >
+                                            <span
+                                                className={
+                                                    styles.sidebarItemName
+                                                }
+                                            >
+                                                {c.assignmentName ||
+                                                    '-'}
+                                            </span>
+                                            <span
+                                                className={
+                                                    styles.sidebarItemMeta
+                                                }
+                                            >
+                                                {`${c.studentCount} · ${c.joinCode.toLowerCase()}`}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </React.Fragment>
                             ))}
                         </ul>
                         <div className={styles.sidebarFooter}>

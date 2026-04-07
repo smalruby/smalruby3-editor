@@ -32,6 +32,22 @@
     min-height: 0;
 }
 
+.sidebar-group-header {
+    padding: 0.4rem 0.6rem 0.15rem;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #575e75;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+}
+
+.sidebar-group-icon {
+    width: 16px;
+    height: 16px;
+}
+
 .sidebar-item {
     padding: 0.4rem 0.6rem;
     margin-bottom: 0.15rem;
@@ -42,6 +58,10 @@
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
+}
+
+.sidebar-item-indented {
+    padding-left: 1.2rem;
 }
 
 .sidebar-item:hover {
@@ -135,10 +155,78 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     height: 100%;
     text-align: center;
     color: #575e75;
+}
+
+.login-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 2rem;
+    padding-bottom: 1.5rem;
+}
+
+.login-bottom {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid #e0e0e0;
+    width: 100%;
+    max-width: 600px;
+    padding: 1.5rem 0;
+}
+
+.carousel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 500px;
+    padding: 0 1rem;
+}
+
+.carousel-slide {
+    text-align: center;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.carousel-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #575e75;
+}
+
+.carousel-desc {
+    font-size: 0.9rem;
+    color: #888;
+    line-height: 1.4;
+}
+
+.carousel-dots {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.carousel-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background: #ddd;
+    cursor: pointer;
+    padding: 0;
+}
+
+.carousel-dot-active {
+    background: #4c97ff;
 }
 
 .main-relative {

@@ -1,3 +1,4 @@
+import classNames from 'classnames';
 import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -13,6 +14,8 @@ const TeacherClassDetail = ({
     selectedMember,
     isLoading,
     error,
+    errorActionLabel,
+    errorActionHandler,
     errorTitle,
     noBackButton,
     onBack,
@@ -221,9 +224,9 @@ const TeacherClassDetail = ({
                                 {selectedClassroom.className}
                             </div>
 
-                            {/* Editable assignment name */}
+                            {/* Editable assignment name + post assignment button */}
                             <div className={styles.assignmentNameRow}>
-                                <span className={styles.joinCodeLabel}>
+                                <span className={styles.assignmentNameLabel}>
                                     <FormattedMessage
                                         defaultMessage="Assignment Name"
                                         description="Assignment name label in class detail"
@@ -240,6 +243,23 @@ const TeacherClassDetail = ({
                                     onBlur={handleAssignmentNameBlur}
                                     onChange={handleAssignmentNameChange}
                                 />
+                                {selectedClassroom.googleClassroomCourseId && (
+                                    <button
+                                        className={
+                                            styles.secondaryButton
+                                        }
+                                        data-testid="classroom-post-assignment"
+                                        onClick={
+                                            onShowPostAssignment
+                                        }
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Post Assignment"
+                                            description="Post assignment to Google Classroom"
+                                            id="gui.classroom.postAssignment.title"
+                                        />
+                                    </button>
+                                )}
                             </div>
 
                             {/* Join code with expand button */}
@@ -341,6 +361,9 @@ const TeacherClassDetail = ({
                                             member &&
                                             member.submissionStatus ===
                                                 'returned';
+                                        const seated =
+                                            member &&
+                                            isSeated(member);
                                         let cellColorClass =
                                             styles.memberCellEmpty;
                                         if (member) {
@@ -355,7 +378,14 @@ const TeacherClassDetail = ({
                                                     styles.memberCellJoined;
                                             }
                                         }
-                                        const cellClass = `${styles.memberCell} ${cellColorClass} ${isSelected ? styles.memberCellSelected : ''}`;
+                                        const cellClass = classNames(
+                                            styles.memberCell,
+                                            cellColorClass,
+                                            isSelected &&
+                                                styles.memberCellSelected,
+                                            seated &&
+                                                styles.memberCellSeated,
+                                        );
                                         return (
                                             <button
                                                 className={cellClass}
@@ -374,8 +404,10 @@ const TeacherClassDetail = ({
                             {/* Delete classroom */}
                             <div className={styles.detailFooter}>
                                 <ErrorDisplay
+                                    actionLabel={errorActionLabel}
                                     error={error}
                                     errorTitle={errorTitle}
+                                    onAction={errorActionHandler}
                                 />
                                 {showDeleteConfirm ? (
                                     <div className={styles.deleteConfirmBox}>
@@ -426,18 +458,6 @@ const TeacherClassDetail = ({
                                         }
                                     >
                                         <button
-                                            className={styles.dangerButton}
-                                            data-testid="classroom-delete-classroom"
-                                            disabled={isLoading}
-                                            onClick={handleDeleteClick}
-                                        >
-                                            <FormattedMessage
-                                                defaultMessage="Delete Classroom"
-                                                description="Delete classroom button"
-                                                id="gui.classroom.teacherDetail.deleteClassroom"
-                                            />
-                                        </button>
-                                        <button
                                             className={
                                                 styles.secondaryButton
                                             }
@@ -458,23 +478,18 @@ const TeacherClassDetail = ({
                                                 />
                                             )}
                                         </button>
-                                        {selectedClassroom.googleClassroomCourseId && (
-                                            <button
-                                                className={
-                                                    styles.secondaryButton
-                                                }
-                                                data-testid="classroom-post-assignment"
-                                                onClick={
-                                                    onShowPostAssignment
-                                                }
-                                            >
-                                                <FormattedMessage
-                                                    defaultMessage="Post Assignment"
-                                                    description="Post assignment to Google Classroom"
-                                                    id="gui.classroom.postAssignment.title"
-                                                />
-                                            </button>
-                                        )}
+                                        <button
+                                            className={styles.dangerButton}
+                                            data-testid="classroom-delete-classroom"
+                                            disabled={isLoading}
+                                            onClick={handleDeleteClick}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Delete Classroom"
+                                                description="Delete classroom button"
+                                                id="gui.classroom.teacherDetail.deleteClassroom"
+                                            />
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -731,10 +746,20 @@ const TeacherClassDetail = ({
                                 <div className={styles.memberDetailPanel} data-testid="classroom-member-detail">
                                     <div className={styles.memberDetailHeader}>
                                         <span className={styles.memberDetailSeat} data-testid="classroom-member-detail-seat">
-                                            <FormattedMessage defaultMessage="Seat {number}" description="Seat number display in member detail" id="gui.classroom.teacherDetail.seatNumber" values={{ number: selectedMember.replace('seat-', '') }} />
+                                            <FormattedMessage
+                                                defaultMessage="Seat {number}"
+                                                description="Seat number display in member detail"
+                                                id="gui.classroom.teacherDetail.seatNumber"
+                                                values={{ number: selectedMember.replace('seat-', '') }}
+                                            />
                                         </span>
-                                        <span data-testid="classroom-member-detail-name">
-                                            <FormattedMessage defaultMessage="Not seated" description="Student is not currently seated" id="gui.classroom.teacherDetail.notSeated" />
+                                        <span>{' - '}</span>
+                                        <span className={styles.notSeatedBadge} data-testid="classroom-member-detail-name">
+                                            <FormattedMessage
+                                                defaultMessage="Not seated"
+                                                description="Student is not currently seated"
+                                                id="gui.classroom.teacherDetail.notSeated"
+                                            />
                                         </span>
                                     </div>
                                 </div>
@@ -763,6 +788,8 @@ TeacherClassDetail.propTypes = {
         total: PropTypes.number,
     }),
     error: PropTypes.string,
+    errorActionLabel: PropTypes.string,
+    errorActionHandler: PropTypes.func,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     members: PropTypes.arrayOf(PropTypes.object).isRequired,

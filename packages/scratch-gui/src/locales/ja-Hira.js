@@ -94,6 +94,7 @@ export default {
     'gui.classroom.error.sessionExpired': 'セッションがむこうになりました。もういちどさんかしてください。',
     'gui.classroom.error.classroomInactive': 'このクラスはげんざいりようできません。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
+    'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーでひらく',
     'gui.classroom.teacherDetail.returnSubmission': 'へんきゃくする',
     'gui.classroom.teacherDetail.returned': 'へんきゃくずみ',
@@ -128,7 +129,7 @@ export default {
     'gui.classroom.management.loginPrompt': 'Googleでログイン',
     'gui.classroom.management.loginDescription': 'Googleアカウントでログインして、クラスをかんりします。',
     'gui.classroom.management.loginButton': 'Googleでログイン',
-    'gui.classroom.management.sidebarTitle': 'あなたのクラス',
+    'gui.classroom.management.sidebarTitle': 'あなたのクラス・かだい',
     'gui.classroom.management.loading': 'よみこみちゅう...',
     'gui.classroom.management.create': 'クラスをつくる',
     'gui.classroom.management.googleImport': 'GC からインポート',
@@ -156,6 +157,19 @@ export default {
     'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
     'gui.classroom.teacherDashboard.expiresAt': 'ゆうこうきげん: {date}',
     'gui.classroom.teacherDetail.expiresAt': 'ゆうこうきげん: {date}',
+    'gui.classroom.teacherCreate.assignmentNameHint': 'かだいめいはあとからへんこうできます。',
+    'gui.classroom.carousel.submitTitle': 'せいとがかだいをていしゅつできる',
+    'gui.classroom.carousel.submitDesc':
+        'さんかコードでクラスにさんかして、ワンクリックでさくひんをていしゅつできます。',
+    'gui.classroom.carousel.overviewTitle': 'ていしゅつじょうきょうがひとめでわかる',
+    'gui.classroom.carousel.overviewDesc':
+        'ざせきグリッドで、ていしゅつずみ・へんきゃくずみ・さぎょうちゅうがすぐにわかります。',
+    'gui.classroom.carousel.screenshotTitle': 'ひらかなくてもプレビューできる',
+    'gui.classroom.carousel.screenshotDesc':
+        'サムネイルとブロックのスクリーンショットで、さくひんをすばやくかくにんできます。',
+    'gui.classroom.carousel.gcTitle': 'Google Classroom とれんけい',
+    'gui.classroom.carousel.gcDesc':
+        'Google Classroom からクラスじょうほうをインポートし、かだいリンクをはいしんできます。',
     'gui.classroom.loading': 'よみこみちゅう...',
     'gui.sharedMessages.backdrop': 'はいけい{index}',
     'gui.sharedMessages.costume': 'コスチューム{index}',

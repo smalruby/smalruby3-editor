@@ -1,9 +1,10 @@
 import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 
 import ErrorDisplay from './error-display.jsx';
 
+import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import styles from './classroom-modal.css';
 
 const TeacherCreateForm = ({
@@ -26,6 +27,14 @@ const TeacherCreateForm = ({
     const [className, setClassName] = React.useState(defaultName);
     const [assignmentName, setAssignmentName] = React.useState('');
     const [studentCount, setStudentCount] = React.useState(defaultCount);
+    const assignmentNameRef = useRef(null);
+
+    // Auto-focus assignment name after GC import (class name and count are pre-filled)
+    useEffect(() => {
+        if (importSource && assignmentNameRef.current) {
+            assignmentNameRef.current.focus();
+        }
+    }, [importSource]);
 
     const handleClassNameChange = useCallback((e) => {
         setClassName(e.target.value);
@@ -80,6 +89,27 @@ const TeacherCreateForm = ({
                     id="gui.classroom.teacherCreate.hint"
                 />
             </div>
+            {onImportFromGC && (
+                <div className={styles.importFromGCRow}>
+                    <button
+                        className={styles.linkButton}
+                        data-testid="classroom-import-from-gc"
+                        disabled={isLoading}
+                        onClick={onImportFromGC}
+                    >
+                        <img
+                            alt=""
+                            className={styles.gcImportIcon}
+                            src={googleClassroomIcon}
+                        />
+                        <FormattedMessage
+                            defaultMessage="Import from Google Classroom"
+                            description="Link to import class info from Google Classroom"
+                            id="gui.classroom.teacherCreate.importFromGC"
+                        />
+                    </button>
+                </div>
+            )}
             {importSource && (
                 <div className={styles.importSourceInfo}>
                     <FormattedMessage
@@ -111,24 +141,6 @@ const TeacherCreateForm = ({
                 />
             </div>
             <div className={styles.formGroup}>
-                <label className={styles.label} htmlFor="classroom-assignment-name">
-                    <FormattedMessage
-                        defaultMessage="Assignment Name"
-                        description="Assignment name input label"
-                        id="gui.classroom.teacherCreate.assignmentName"
-                    />
-                </label>
-                <input
-                    className={styles.input}
-                    data-testid="classroom-assignment-name-input"
-                    id="classroom-assignment-name"
-                    maxLength={50}
-                    type="text"
-                    value={assignmentName}
-                    onChange={handleAssignmentNameChange}
-                />
-            </div>
-            <div className={styles.formGroup}>
                 <label className={styles.label} htmlFor="classroom-count">
                     <FormattedMessage
                         defaultMessage="Number of Students"
@@ -147,6 +159,32 @@ const TeacherCreateForm = ({
                     onChange={handleStudentCountChange}
                 />
             </div>
+            <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="classroom-assignment-name">
+                    <FormattedMessage
+                        defaultMessage="Assignment Name"
+                        description="Assignment name input label"
+                        id="gui.classroom.teacherCreate.assignmentName"
+                    />
+                </label>
+                <input
+                    className={styles.input}
+                    data-testid="classroom-assignment-name-input"
+                    id="classroom-assignment-name"
+                    maxLength={50}
+                    ref={assignmentNameRef}
+                    type="text"
+                    value={assignmentName}
+                    onChange={handleAssignmentNameChange}
+                />
+                <div className={styles.formFieldHint}>
+                    <FormattedMessage
+                        defaultMessage="You can change the assignment name later."
+                        description="Hint that assignment name can be changed after creation"
+                        id="gui.classroom.teacherCreate.assignmentNameHint"
+                    />
+                </div>
+            </div>
             <div className={styles.buttonRow}>
                 <button
                     className={styles.primaryButton}
@@ -161,22 +199,6 @@ const TeacherCreateForm = ({
                     />
                 </button>
             </div>
-            {onImportFromGC && (
-                <div className={styles.importFromGCRow}>
-                    <button
-                        className={styles.linkButton}
-                        data-testid="classroom-import-from-gc"
-                        disabled={isLoading}
-                        onClick={onImportFromGC}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Import from Google Classroom"
-                            description="Link to import class info from Google Classroom"
-                            id="gui.classroom.teacherCreate.importFromGC"
-                        />
-                    </button>
-                </div>
-            )}
             <div className={styles.formFooterHint}>
                 <FormattedMessage
                     defaultMessage="After creating, you can share the assignment link to Google Classroom."
