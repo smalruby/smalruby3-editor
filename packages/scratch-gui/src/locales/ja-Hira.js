@@ -94,6 +94,7 @@ export default {
     'gui.classroom.error.sessionExpired': 'セッションがむこうになりました。もういちどさんかしてください。',
     'gui.classroom.error.classroomInactive': 'このクラスはげんざいりようできません。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
+    'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーでひらく',
     'gui.classroom.teacherDetail.returnSubmission': 'へんきゃくする',
     'gui.classroom.teacherDetail.returned': 'へんきゃくずみ',

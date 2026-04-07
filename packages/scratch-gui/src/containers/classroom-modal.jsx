@@ -152,16 +152,55 @@ const ClassroomModal = ({ mode = 'student' }) => {
         dispatch(mode === 'teacher' ? closeTeacherModal() : closeClassroomModal());
     }, [dispatch, mode]);
 
+    // Error action state (link shown alongside the error message)
+    const [errorActionLabel, setErrorActionLabel] = useState(null);
+    const [errorActionHandler, setErrorActionHandler] = useState(null);
+
     // Helper to set error with optional title
     const showError = useCallback((message, title = null) => {
         setError(message);
         setErrorTitle(title);
+        setErrorActionLabel(null);
+        setErrorActionHandler(null);
     }, []);
 
     const clearError = useCallback(() => {
         setError(null);
         setErrorTitle(null);
+        setErrorActionLabel(null);
+        setErrorActionHandler(null);
     }, []);
+
+    // Go to teacher login screen (used as error action for session expiry)
+    const handleGoToLogin = useCallback(() => {
+        _cachedTeacherIdToken = null;
+        setIdToken(null);
+        setClassrooms([]);
+        setSelectedClassroom(null);
+        setMembers([]);
+        clearError();
+        setPhase('teacher-login');
+    }, [clearError]);
+
+    // Show error with session-expired action link (teacher mode only)
+    const showSessionExpiredError = useCallback(
+        (message, title = null) => {
+            setError(message);
+            setErrorTitle(title);
+            if (mode === 'teacher') {
+                setErrorActionLabel(
+                    intl.formatMessage({
+                        defaultMessage: 'Go to login screen',
+                        description: 'Link to go back to the login screen after session expiry',
+                        id: 'gui.classroom.error.goToLogin',
+                    }),
+                );
+                // useState setter with function form to store the callback
+                setErrorActionHandler(() => handleGoToLogin);
+            }
+        },
+        [mode, intl, handleGoToLogin],
+    );
 
     // --- Role selection ---
 
@@ -254,8 +293,8 @@ const ClassroomModal = ({ mode = 'student' }) => {
         setSelectedClassroom(null);
         setMembers([]);
         clearError();
-        setPhase('role-select');
-    }, [clearError]);
+        setPhase(mode === 'teacher' ? 'teacher-login' : 'role-select');
+    }, [mode, clearError]);
 
     // --- Google Classroom: Import flow ---
 
@@ -456,11 +495,15 @@ const ClassroomModal = ({ mode = 'student' }) => {
                 setMembers(enrichedMembers);
                 return true;
             } catch (err) {
-                showError(translateError(intl, err));
+                if (err.status === 401) {
+                    showSessionExpiredError(translateError(intl, err, 'session'));
+                } else {
+                    showError(translateError(intl, err));
+                }
                 return false;
             }
         },
-        [idToken, showError, intl],
+        [idToken, showError, showSessionExpiredError, intl],
     );
 
     const handleSelectClassroom = useCallback(
@@ -508,9 +551,9 @@ const ClassroomModal = ({ mode = 'student' }) => {
         if (idToken) {
             setPhase('teacher-dashboard');
         } else {
-            setPhase('role-select');
+            setPhase(mode === 'teacher' ? 'teacher-login' : 'role-select');
         }
-    }, [idToken, clearError]);
+    }, [mode, idToken, clearError]);
 
     // --- Teacher: Delete member ---
 
@@ -1011,6 +1054,8 @@ const ClassroomModal = ({ mode = 'student' }) => {
         members,
         error,
         errorTitle,
+        errorActionLabel,
+        errorActionHandler,
         isLoading,
         selectedMember,
         codeDisplayClassroom,

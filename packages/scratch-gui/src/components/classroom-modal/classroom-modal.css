@@ -444,6 +444,22 @@
     line-height: 1.5;
 }
 
+.error-action-link {
+    background: none;
+    border: none;
+    color: #4c97ff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    padding: 0;
+    margin-top: 0.3rem;
+    display: inline;
+}
+
+.error-action-link:hover {
+    color: #3373cc;
+}
+
 .success-area {
     text-align: center;
     padding: 1rem;

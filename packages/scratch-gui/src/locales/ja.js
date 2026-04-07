@@ -92,6 +92,7 @@ export default {
     'gui.classroom.error.sessionExpired': 'セッションが無効になりました。もう一度参加してください。',
     'gui.classroom.error.classroomInactive': 'このクラスは現在利用できません。',
     'gui.classroom.error.generic': '予期しないエラーが発生しました。もう一度お試しください。',
+    'gui.classroom.error.goToLogin': 'ログイン画面を表示',
     'gui.classroom.teacherDetail.openSubmission': 'スモウルビーで開く',
     'gui.classroom.teacherDetail.returnSubmission': '返却する',
     'gui.classroom.teacherDetail.returned': '返却済み',

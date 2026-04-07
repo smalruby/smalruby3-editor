@@ -130,6 +130,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         members,
         error,
         errorTitle,
+        errorActionLabel,
+        errorActionHandler,
         isLoading,
         selectedMember,
         codeDisplayClassroom,
@@ -351,6 +353,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         codeDisplayFullscreen={false}
                         downloadProgress={downloadProgress}
                         error={error}
+                        errorActionLabel={errorActionLabel}
+                        errorActionHandler={errorActionHandler}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
                         members={members}

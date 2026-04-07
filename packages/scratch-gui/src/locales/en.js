@@ -97,6 +97,7 @@ export default {
     'gui.classroom.error.sessionExpired': 'Your session has expired. Please rejoin the classroom.',
     'gui.classroom.error.classroomInactive': 'This classroom is no longer active.',
     'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
+    'gui.classroom.error.goToLogin': 'Go to login screen',
     'gui.classroom.teacherDetail.openSubmission': 'Open in Smalruby',
     'gui.classroom.teacherDetail.returnSubmission': 'Return',
     'gui.classroom.teacherDetail.returned': 'Returned',

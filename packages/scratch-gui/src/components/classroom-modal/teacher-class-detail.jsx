@@ -14,6 +14,8 @@ const TeacherClassDetail = ({
     selectedMember,
     isLoading,
     error,
+    errorActionLabel,
+    errorActionHandler,
     errorTitle,
     noBackButton,
     onBack,
@@ -402,8 +404,10 @@ const TeacherClassDetail = ({
                             {/* Delete classroom */}
                             <div className={styles.detailFooter}>
                                 <ErrorDisplay
+                                    actionLabel={errorActionLabel}
                                     error={error}
                                     errorTitle={errorTitle}
+                                    onAction={errorActionHandler}
                                 />
                                 {showDeleteConfirm ? (
                                     <div className={styles.deleteConfirmBox}>
@@ -784,6 +788,8 @@ TeacherClassDetail.propTypes = {
         total: PropTypes.number,
     }),
     error: PropTypes.string,
+    errorActionLabel: PropTypes.string,
+    errorActionHandler: PropTypes.func,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     members: PropTypes.arrayOf(PropTypes.object).isRequired,
