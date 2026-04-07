@@ -66,7 +66,6 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-modal` | div | モーダル全体 |
-| `classroom-phase-role-select` | div | 役割選択フェーズ |
 | `classroom-phase-teacher-login` | div | 教師ログインフェーズ |
 | `classroom-phase-teacher-dashboard` | div | 教師ダッシュボードフェーズ |
 | `classroom-phase-teacher-create` | div | クラス作成フェーズ |
@@ -74,14 +73,14 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `classroom-phase-student-join` | div | 生徒参加コード入力フェーズ |
 | `classroom-phase-student-seat` | div | 席番号選択フェーズ |
 | `classroom-phase-student-joined` | div | 参加完了フェーズ |
+| `classroom-phase-student-status` | div | 生徒ステータスフェーズ |
+| `classroom-phase-submit-confirm` | div | 提出確認フェーズ |
 
 **操作ボタン:**
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-menu-button` | div | メニューバーのクラスボタン |
-| `classroom-role-teacher` | button | 「先生」選択 |
-| `classroom-role-student` | button | 「生徒」選択 |
 | `classroom-google-login` | button | Google ログイン |
 | `classroom-back` | button | 戻る |
 | `classroom-create` | button | クラス作成（ダッシュボード） |
@@ -99,8 +98,8 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | data-testid | 要素 | 値の内容 |
 |------------|------|----------|
 | `classroom-menu-label` | span | メニューバーのクラス表示テキスト |
-| `classroom-menu-class-name` | span | 参加中のクラス名 |
-| `classroom-menu-seat-number` | span | 参加中の席番号 |
+| `classroom-menu-class-name` | span | 課題名（またはクラス名） |
+| `classroom-menu-seat-number` | span | 出席番号（0埋め2桁） |
 | `classroom-list` | ul | クラス一覧 |
 | `classroom-item-{id}` | li | クラス一覧の各項目 |
 | `classroom-item-name-{id}` | span | クラス名 |
@@ -116,11 +115,18 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `classroom-members-empty` | li | メンバー空メッセージ |
 | `classroom-seat-grid` | div | 席番号グリッド |
 | `classroom-selected-seat` | div (hidden) | 選択中の席番号（値取得用） |
-| `classroom-joined-success` | div | 参加成功メッセージ |
-| `classroom-joined-details` | div | 参加詳細（クラス名 + 席番号） |
+| `classroom-joined-details` | div | 参加詳細（クラス名 + 出席番号） |
 | `classroom-joined-class-name` | span | 参加したクラス名 |
-| `classroom-joined-seat-number` | span | 参加した席番号 |
+| `classroom-joined-seat-number` | span | 出席番号（0埋め2桁） |
+| `classroom-joined-assignment` | div | 課題名 |
+| `classroom-status-class-name` | span | ステータス: クラス名 |
+| `classroom-status-seat-number` | span | ステータス: 出席番号（0埋め2桁） |
+| `classroom-status-assignment` | span | ステータス: 課題名 |
+| `classroom-status-joined-at` | span | ステータス: 参加日時 |
+| `classroom-submit-status` | span | ステータス: 提出状況 |
+| `classroom-status-teacher-comment` | div | 先生からのコメント |
 | `classroom-error` | div | エラーメッセージ |
+| `classroom-error-action` | button | エラーアクションリンク |
 | `classroom-loading` | div | ローディング表示 |
 | `classroom-empty-message` | div | クラスなしメッセージ |
 
