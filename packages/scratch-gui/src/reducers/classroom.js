@@ -13,9 +13,9 @@ const STORAGE_KEY = 'smalruby:classroom';
  * @returns {object|null} Stored session or null
  */
 const loadSession = () => {
-    if (typeof window === 'undefined' || !window.localStorage) return null;
+    if (typeof window === 'undefined' || !window.sessionStorage) return null;
     try {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
+        const raw = window.sessionStorage.getItem(STORAGE_KEY);
         if (!raw) return null;
         const data = JSON.parse(raw);
         if (data && data.sessionToken && data.classroomId) return data;
@@ -30,9 +30,9 @@ const loadSession = () => {
  * @param {object} session - Session data to save
  */
 const saveSession = session => {
-    if (typeof window === 'undefined' || !window.localStorage) return;
+    if (typeof window === 'undefined' || !window.sessionStorage) return;
     try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     } catch {
         // Ignore storage errors
     }
@@ -42,9 +42,9 @@ const saveSession = session => {
  * Clear classroom session from localStorage.
  */
 const clearStoredSession = () => {
-    if (typeof window === 'undefined' || !window.localStorage) return;
+    if (typeof window === 'undefined' || !window.sessionStorage) return;
     try {
-        window.localStorage.removeItem(STORAGE_KEY);
+        window.sessionStorage.removeItem(STORAGE_KEY);
     } catch {
         // Ignore storage errors
     }

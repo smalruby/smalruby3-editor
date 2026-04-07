@@ -44,11 +44,12 @@ const SESSION_ACTIVE_TTL_SECONDS = parseInt(process.env.SESSION_ACTIVE_TTL_SECON
 // Submission config (TTL matches classroom TTL)
 const SUBMISSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
 const MAX_PROJECT_NAME_LENGTH = 100;
-const PRESIGNED_URL_UPLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_UPLOAD_EXPIRY || '900', 10); // default 15 minutes
+const PRESIGNED_URL_UPLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_UPLOAD_EXPIRY || '300', 10); // default 5 minutes
 const PRESIGNED_URL_DOWNLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600', 10); // default 1 hour
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_SCREENSHOT_COUNT = 20;
 const MAX_TEACHER_COMMENT_LENGTH = 500;
+const MAX_SUBMISSIONS_PER_MEMBER = 10;
 
 // --- DynamoDB Client ---
 
@@ -646,8 +647,6 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
     statusCode: 200,
     body: JSON.stringify({
       classroomId: classroom.classroomId,
-      className: classroom.className,
-      assignmentName: classroom.assignmentName || null,
       studentCount: classroom.studentCount,
       takenSeats,
     }),
@@ -730,6 +729,19 @@ async function handleCreateSubmission(
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const projectName = validateProjectName(body.projectName);
   const screenshotCount = validateScreenshotCount(body.screenshotCount);
+
+  // Limit submissions per member to prevent storage abuse
+  const existingSubmissions = await docClient.send(new QueryCommand({
+    TableName: SUBMISSIONS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    FilterExpression: 'memberId = :mid',
+    ExpressionAttributeValues: { ':cid': classroomId, ':mid': memberId },
+    Select: 'COUNT',
+  }));
+  if ((existingSubmissions.Count || 0) >= MAX_SUBMISSIONS_PER_MEMBER) {
+    throw new ValidationError(`Maximum ${MAX_SUBMISSIONS_PER_MEMBER} submissions allowed`);
+  }
+
   const submissionId = crypto.randomUUID();
   const now = new Date().toISOString();
 

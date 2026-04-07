@@ -359,14 +359,15 @@ describeIfToken('教師フロー — クラス CRUD', () => {
     // --- 生徒参加 → 提出 → 返却 の E2E フロー ---
     let sessionToken: string;
 
-    test('POST /classrooms/lookup — 参加コードで検索（assignmentName を含む）', async () => {
+    test('POST /classrooms/lookup — 参加コードで検索（className/assignmentName は含まない）', async () => {
         const { status, data } = await request('POST', '/classrooms/lookup', {
             joinCode,
         });
         expect(status).toBe(200);
         expect(data.classroomId).toBe(classroomId);
-        expect(data.className).toBe('Integration Test クラス');
-        expect(data.assignmentName).toBe('更新後の課題名');
+        expect(data.className).toBeUndefined();
+        expect(data.assignmentName).toBeUndefined();
+        expect(data.studentCount).toBeDefined();
         expect(data.takenSeats).toEqual([]);
     });
 
