@@ -43,7 +43,9 @@ upstream (Scratch) ファイルは対象外。
 
 **個別ファイル:**
 - `src/containers/block-display-modal.jsx`
+- `src/containers/classroom-error-utils.js`
 - `src/containers/classroom-modal.jsx`
+- `src/containers/use-teacher-classroom.js`
 - `src/containers/extension-library.css`
 - `src/containers/google-drive-loader-hoc.jsx`
 - `src/containers/google-drive-saver-hoc.jsx`

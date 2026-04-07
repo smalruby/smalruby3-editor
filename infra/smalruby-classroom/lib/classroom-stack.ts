@@ -356,6 +356,17 @@ export class ClassroomStack extends cdk.Stack {
         throttlingRateLimit: stage === 'prod' ? 200 : 50,
         throttlingBurstLimit: stage === 'prod' ? 200 : 50,
       };
+      // Stricter rate limiting for unauthenticated join/lookup endpoints
+      defaultStage.routeSettings = {
+        'POST /classrooms/join': {
+          ThrottlingRateLimit: stage === 'prod' ? 10 : 5,
+          ThrottlingBurstLimit: stage === 'prod' ? 20 : 10,
+        },
+        'POST /classrooms/lookup': {
+          ThrottlingRateLimit: stage === 'prod' ? 10 : 5,
+          ThrottlingBurstLimit: stage === 'prod' ? 20 : 10,
+        },
+      };
     }
 
     cdk.Tags.of(this.api).add('ResourceType', 'APIGatewayHTTPAPI');
