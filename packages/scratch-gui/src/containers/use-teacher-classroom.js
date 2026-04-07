@@ -12,9 +12,6 @@ const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS |
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
 
-// Dev bypass token for stg/local automated testing
-const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN;
-
 /**
  * Return the cached teacher ID token (for initial phase calculation).
  * @returns {string|null} cached token
@@ -28,8 +25,6 @@ export const getCachedTeacherIdToken = () => _cachedTeacherIdToken;
 export const setCachedTeacherIdToken = token => {
     _cachedTeacherIdToken = token;
 };
-
-export { DEV_BYPASS_TOKEN };
 
 /**
  * Custom hook encapsulating all teacher-side classroom state and handlers.
