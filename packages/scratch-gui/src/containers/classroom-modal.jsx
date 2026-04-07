@@ -17,11 +17,7 @@ import {
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import translateError from './classroom-error-utils.js';
-import useTeacherClassroom, {
-    getCachedTeacherIdToken,
-    setCachedTeacherIdToken,
-    DEV_BYPASS_TOKEN,
-} from './use-teacher-classroom.js';
+import useTeacherClassroom, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-classroom.js';
 
 const ClassroomModal = ({ mode = 'student' }) => {
     const dispatch = useDispatch();
@@ -31,10 +27,10 @@ const ClassroomModal = ({ mode = 'student' }) => {
     const projectTitle = useSelector(state => state.scratchGui.projectTitle);
     const scratchBlocks = useSelector(state => state.scratchGui.blockDisplay?.scratchBlocks);
 
-    // Auto-login with dev bypass token when devlogin=1
+    // Auto-login with dev bypass token from URL (e.g. ?devlogin=<secret>)
     const urlParams = getUrlParams();
-    if (mode === 'teacher' && urlParams.devlogin && DEV_BYPASS_TOKEN && !getCachedTeacherIdToken()) {
-        setCachedTeacherIdToken(DEV_BYPASS_TOKEN);
+    if (mode === 'teacher' && urlParams.devlogin && !getCachedTeacherIdToken()) {
+        setCachedTeacherIdToken(urlParams.devlogin);
     }
 
     // Determine initial phase based on mode and persisted session

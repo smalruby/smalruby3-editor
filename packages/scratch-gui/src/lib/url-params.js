@@ -93,8 +93,8 @@ const parseUrlParams = () => {
     const classroleParam = (params.get('classrole') || '').toLowerCase();
     const classrole = classroleParam === 'teacher' ? 'teacher' : null;
 
-    // devlogin: bypass Google auth with DEV_BYPASS_TOKEN (stg/local only)
-    const devlogin = params.get('devlogin') === '1' || params.get('devlogin') === 'true';
+    // devlogin: bypass Google auth with a secret token (stg/local only)
+    const devlogin = params.get('devlogin') || null;
 
     return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features, classcode, classrole, devlogin };
 };
