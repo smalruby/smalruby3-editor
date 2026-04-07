@@ -1246,13 +1246,13 @@ class MenuBar extends React.Component {
                                         {this.props.classroomClassName ? (
                                             <React.Fragment>
                                                 <span data-testid="classroom-menu-class-name">
-                                                    {this.props.classroomClassName}
+                                                    {this.props.classroomAssignmentName || this.props.classroomClassName}
                                                 </span>
                                                 {this.props.classroomSeatNumber && (
                                                     <React.Fragment>
                                                         {' / '}
                                                         <span data-testid="classroom-menu-seat-number">
-                                                            {this.props.classroomSeatNumber}
+                                                            {String(this.props.classroomSeatNumber).padStart(2, '0')}
                                                         </span>
                                                     </React.Fragment>
                                                 )}
@@ -1673,6 +1673,7 @@ MenuBar.propTypes = {
         folderId: PropTypes.string,
         isGoogleDriveFile: PropTypes.bool
     }),
+    classroomAssignmentName: PropTypes.string, // === Smalruby: classroom button ===
     classroomClassName: PropTypes.string, // === Smalruby: classroom button ===
     classroomSeatNumber: PropTypes.number, // === Smalruby: classroom button ===
     googleDriveSaveDialogVisible: PropTypes.bool,
@@ -1805,6 +1806,7 @@ const mapStateToProps = (state, ownProps) => {
         meshV2MenuOpen: meshV2MenuOpen(state),
         smalrubotS1MenuOpen: smalrubotS1MenuOpen(state), // === Smalruby: smalrubot firmware menu ===
         // === Smalruby: Start of classroom button ===
+        classroomAssignmentName: state.scratchGui.classroom ? state.scratchGui.classroom.assignmentName : null,
         classroomClassName: state.scratchGui.classroom ? state.scratchGui.classroom.className : null,
         classroomSeatNumber: state.scratchGui.classroom ? state.scratchGui.classroom.seatNumber : null,
         // === Smalruby: End of classroom button ===

@@ -32,6 +32,8 @@ const ClassroomModal = ({
     selectedSeat,
     joinedInfo,
     error,
+    errorActionHandler,
+    errorActionLabel,
     errorTitle,
     isLoading,
     onSelectTeacher,
@@ -41,7 +43,6 @@ const ClassroomModal = ({
     onCreateClassroom,
     onSelectClassroom,
     onBackToDashboard,
-    onBackToRoleSelect,
     onJoinWithCode,
     onSelectSeat,
     onConfirmJoin,
@@ -115,44 +116,6 @@ const ClassroomModal = ({
             onRequestClose={onClose}
         >
             <Box className={styles.body} data-testid="classroom-modal">
-                {/* Phase: role-select */}
-                {phase === 'role-select' && (
-                    <div data-testid="classroom-phase-role-select">
-                        <div className={styles.phaseTitle}>
-                            <FormattedMessage
-                                defaultMessage="How do you use the classroom?"
-                                description="Prompt for selecting teacher or student role"
-                                id="gui.classroom.roleSelect.prompt"
-                            />
-                        </div>
-                        <div className={styles.roleButtons}>
-                            <button
-                                className={styles.roleButton}
-                                data-testid="classroom-role-teacher"
-                                onClick={onSelectTeacher}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Teacher"
-                                    description="Button for teacher role"
-                                    id="gui.classroom.roleSelect.teacher"
-                                />
-                            </button>
-                            <button
-                                className={styles.roleButton}
-                                data-testid="classroom-role-student"
-                                onClick={onSelectStudent}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Student"
-                                    description="Button for student role"
-                                    id="gui.classroom.roleSelect.student"
-                                />
-                            </button>
-                        </div>
-                        <ErrorDisplay error={error} errorTitle={errorTitle} />
-                    </div>
-                )}
-
                 {/* Phase: teacher-login */}
                 {phase === 'teacher-login' && (
                     <div data-testid="classroom-phase-teacher-login">
@@ -464,6 +427,8 @@ const ClassroomModal = ({
                 {phase === 'student-join' && (
                     <StudentJoinForm
                         error={error}
+                        errorActionHandler={errorActionHandler}
+                        errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
                         noBackButton
@@ -528,16 +493,6 @@ const ClassroomModal = ({
                     <div data-testid="classroom-phase-student-joined">
                         <div className={styles.successArea}>
                             <div
-                                className={styles.successText}
-                                data-testid="classroom-joined-success"
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Joined successfully!"
-                                    description="Success message after joining classroom"
-                                    id="gui.classroom.studentJoined.success"
-                                />
-                            </div>
-                            <div
                                 className={styles.successDetails}
                                 data-testid="classroom-joined-details"
                             >
@@ -550,10 +505,20 @@ const ClassroomModal = ({
                                         defaultMessage="Seat {seatNumber}"
                                         description="Seat number display"
                                         id="gui.classroom.studentJoined.seat"
-                                        values={{ seatNumber: joinedInfo.seatNumber }}
+                                        values={{
+                                            seatNumber: String(joinedInfo.seatNumber).padStart(2, '0'),
+                                        }}
                                     />
                                 </span>
                             </div>
+                            {joinedInfo.assignmentName && (
+                                <div
+                                    className={styles.successAssignment}
+                                    data-testid="classroom-joined-assignment"
+                                >
+                                    {joinedInfo.assignmentName}
+                                </div>
+                            )}
                         </div>
                         <div className={styles.buttonRow}>
                             <button
@@ -600,18 +565,35 @@ const ClassroomModal = ({
                             <div className={styles.statusRow}>
                                 <span className={styles.statusLabel}>
                                     <FormattedMessage
-                                        defaultMessage="Seat"
+                                        defaultMessage="Seat Number"
                                         description="Seat number label"
-                                        id="gui.classroom.studentStatus.seat"
+                                        id="gui.classroom.studentStatus.seatNumber"
                                     />
                                 </span>
                                 <span
                                     className={styles.statusValue}
                                     data-testid="classroom-status-seat-number"
                                 >
-                                    {classroomState.seatNumber}
+                                    {String(classroomState.seatNumber).padStart(2, '0')}
                                 </span>
                             </div>
+                            {classroomState.assignmentName && (
+                                <div className={styles.statusRow}>
+                                    <span className={styles.statusLabel}>
+                                        <FormattedMessage
+                                            defaultMessage="Assignment"
+                                            description="Assignment name label"
+                                            id="gui.classroom.studentStatus.assignment"
+                                        />
+                                    </span>
+                                    <span
+                                        className={styles.statusValue}
+                                        data-testid="classroom-status-assignment"
+                                    >
+                                        {classroomState.assignmentName}
+                                    </span>
+                                </div>
+                            )}
                             {classroomState.joinedAt && (
                                 <div className={styles.statusRow}>
                                     <span className={styles.statusLabel}>
@@ -625,16 +607,25 @@ const ClassroomModal = ({
                                         className={styles.statusValue}
                                         data-testid="classroom-status-joined-at"
                                     >
-                                        {new Date(classroomState.joinedAt).toLocaleString()}
+                                        {new Date(classroomState.joinedAt).toLocaleString(
+                                            [],
+                                            {
+                                                year: 'numeric',
+                                                month: 'numeric',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            },
+                                        )}
                                     </span>
                                 </div>
                             )}
                             <div className={styles.statusRow}>
                                 <span className={styles.statusLabel}>
                                     <FormattedMessage
-                                        defaultMessage="Submission"
+                                        defaultMessage="Submission Status"
                                         description="Submission status label"
-                                        id="gui.classroom.studentStatus.submission"
+                                        id="gui.classroom.studentStatus.submissionStatus"
                                     />
                                 </span>
                                 <span
@@ -650,7 +641,7 @@ const ClassroomModal = ({
                                                 id="gui.classroom.studentStatus.returned"
                                             />
                                             {classroomState.lastSubmittedAt && (
-                                                <span>{` (${new Date(classroomState.lastSubmittedAt).toLocaleTimeString()})`}</span>
+                                                <span>{` (${new Date(classroomState.lastSubmittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}</span>
                                             )}
                                         </React.Fragment>
                                     ) : classroomState.submissionStatus === 'submitted' ? (
@@ -662,7 +653,7 @@ const ClassroomModal = ({
                                                 id="gui.classroom.studentStatus.submitted"
                                             />
                                             {classroomState.lastSubmittedAt && (
-                                                <span>{` (${new Date(classroomState.lastSubmittedAt).toLocaleTimeString()})`}</span>
+                                                <span>{` (${new Date(classroomState.lastSubmittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}</span>
                                             )}
                                         </React.Fragment>
                                     ) : (
@@ -689,9 +680,9 @@ const ClassroomModal = ({
                                 >
                                     <span className={styles.statusLabel}>
                                         <FormattedMessage
-                                            defaultMessage="Comment"
+                                            defaultMessage="Teacher's Comment"
                                             description="Teacher comment label"
-                                            id="gui.classroom.studentStatus.comment"
+                                            id="gui.classroom.studentStatus.teacherComment"
                                         />
                                     </span>
                                     <span className={styles.teacherCommentText}>
@@ -700,27 +691,7 @@ const ClassroomModal = ({
                                 </div>
                             )}
                         </div>
-                        <div className={styles.buttonRow}>
-                            <button
-                                className={styles.primaryButton}
-                                data-testid="classroom-submit-button"
-                                disabled={isLoading}
-                                onClick={onStartSubmit}
-                            >
-                                {classroomState.submissionStatus ? (
-                                    <FormattedMessage
-                                        defaultMessage="Resubmit"
-                                        description="Resubmit button"
-                                        id="gui.classroom.studentStatus.resubmit"
-                                    />
-                                ) : (
-                                    <FormattedMessage
-                                        defaultMessage="Submit"
-                                        description="Submit button"
-                                        id="gui.classroom.studentStatus.submit"
-                                    />
-                                )}
-                            </button>
+                        <div className={styles.statusFooter}>
                             <button
                                 className={styles.secondaryButton}
                                 data-testid="classroom-leave"
@@ -735,17 +706,31 @@ const ClassroomModal = ({
                             </button>
                             <button
                                 className={styles.primaryButton}
-                                data-testid="classroom-status-close"
-                                onClick={onClose}
+                                data-testid="classroom-submit-button"
+                                disabled={isLoading}
+                                onClick={onStartSubmit}
                             >
-                                <FormattedMessage
-                                    defaultMessage="Close"
-                                    description="Close button"
-                                    id="gui.classroom.studentStatus.close"
-                                />
+                                {classroomState.submissionStatus ? (
+                                    <FormattedMessage
+                                        defaultMessage="Resubmit Assignment"
+                                        description="Resubmit button"
+                                        id="gui.classroom.studentStatus.resubmit"
+                                    />
+                                ) : (
+                                    <FormattedMessage
+                                        defaultMessage="Submit Assignment"
+                                        description="Submit button"
+                                        id="gui.classroom.studentStatus.submit"
+                                    />
+                                )}
                             </button>
                         </div>
-                        <ErrorDisplay error={error} errorTitle={errorTitle} />
+                        <ErrorDisplay
+                            actionLabel={errorActionLabel}
+                            error={error}
+                            errorTitle={errorTitle}
+                            onAction={errorActionHandler}
+                        />
                     </div>
                 )}
 
@@ -825,15 +810,17 @@ ClassroomModal.propTypes = {
     codeDisplayClassroom: PropTypes.object,
     codeDisplayFullscreen: PropTypes.bool,
     error: PropTypes.string,
+    errorActionHandler: PropTypes.func,
+    errorActionLabel: PropTypes.string,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     joinedInfo: PropTypes.shape({
+        assignmentName: PropTypes.string,
         className: PropTypes.string,
         seatNumber: PropTypes.number,
     }),
     members: PropTypes.arrayOf(PropTypes.object),
     onBackToDashboard: PropTypes.func.isRequired,
-    onBackToRoleSelect: PropTypes.func.isRequired,
     onCancelSubmit: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     onCloseCodeDisplay: PropTypes.func.isRequired,
@@ -857,8 +844,8 @@ ClassroomModal.propTypes = {
     onSelectClassroom: PropTypes.func.isRequired,
     onSelectMember: PropTypes.func.isRequired,
     onSelectSeat: PropTypes.func.isRequired,
-    onSelectStudent: PropTypes.func.isRequired,
-    onSelectTeacher: PropTypes.func.isRequired,
+    onSelectStudent: PropTypes.func,
+    onSelectTeacher: PropTypes.func,
     onShowCodeDisplay: PropTypes.func.isRequired,
     onShowCreateForm: PropTypes.func.isRequired,
     onShowPostAssignment: PropTypes.func,
