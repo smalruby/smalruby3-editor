@@ -101,13 +101,13 @@ The VM uses the `tap` test framework.
   - `fixtures/`: Test fixtures and project files
 - `playground/`: Development playground interface
 
-## Ruby Integration with Opal
+## Ruby Integration with @ruby/prism
 
-The VM executes Ruby code transpiled by Opal. Key files:
+Ruby code is parsed by @ruby/prism (WebAssembly) in the browser and converted to/from Scratch blocks:
 
-- Ruby execution is handled through Opal runtime integration
-- The VM expects `Opal` to be available globally
-- Ruby blocks are converted to JavaScript via Opal before execution
+- Ruby parsing is handled by @ruby/prism in scratch-gui
+- Ruby-to-blocks conversion: `scratch-gui/src/lib/ruby-to-blocks-converter/`
+- Blocks-to-Ruby generation: `scratch-gui/src/lib/ruby-generator/`
 
 ## Extension Development
 
