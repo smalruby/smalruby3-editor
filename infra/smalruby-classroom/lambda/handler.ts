@@ -9,7 +9,7 @@ import {
   UpdateCommand,
   BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
 import * as crypto from 'crypto';
@@ -49,7 +49,6 @@ const PRESIGNED_URL_DOWNLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_DOWNLOA
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_SCREENSHOT_COUNT = 20;
 const MAX_TEACHER_COMMENT_LENGTH = 500;
-const MAX_SUBMISSIONS_PER_MEMBER = 10;
 
 // --- DynamoDB Client ---
 
@@ -730,16 +729,32 @@ async function handleCreateSubmission(
   const projectName = validateProjectName(body.projectName);
   const screenshotCount = validateScreenshotCount(body.screenshotCount);
 
-  // Limit submissions per member to prevent storage abuse
-  const existingSubmissions = await docClient.send(new QueryCommand({
+  // Single-submission model: find and clean up previous submission
+  const prevResult = await docClient.send(new QueryCommand({
     TableName: SUBMISSIONS_TABLE,
-    KeyConditionExpression: 'classroomId = :cid',
-    FilterExpression: 'memberId = :mid',
+    IndexName: 'classroomId-memberId-index',
+    KeyConditionExpression: 'classroomId = :cid AND memberId = :mid',
     ExpressionAttributeValues: { ':cid': classroomId, ':mid': memberId },
-    Select: 'COUNT',
+    Limit: 1,
   }));
-  if ((existingSubmissions.Count || 0) >= MAX_SUBMISSIONS_PER_MEMBER) {
-    throw new ValidationError(`Maximum ${MAX_SUBMISSIONS_PER_MEMBER} submissions allowed`);
+  if (prevResult.Items && prevResult.Items.length > 0) {
+    const prev = prevResult.Items[0];
+    const prevId = prev.submissionId as string;
+    const prevScreenshots = (prev.screenshotCount as number) || 0;
+    // Delete old S3 objects (best-effort)
+    const deleteKeys = [
+      `${classroomId}/${prevId}/project.sb3`,
+      `${classroomId}/${prevId}/thumbnail.png`,
+      ...Array.from({ length: prevScreenshots }, (_, i) => `${classroomId}/${prevId}/screenshot-${i}.png`),
+    ];
+    await Promise.allSettled(
+      deleteKeys.map(key => s3Client.send(new DeleteObjectCommand({ Bucket: SUBMISSIONS_BUCKET, Key: key }))),
+    );
+    // Delete old DynamoDB record
+    await docClient.send(new DeleteCommand({
+      TableName: SUBMISSIONS_TABLE,
+      Key: { classroomId, submissionId: prevId },
+    }));
   }
 
   const submissionId = crypto.randomUUID();
