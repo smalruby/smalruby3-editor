@@ -4,9 +4,6 @@
 
 ```mermaid
 stateDiagram-v2
-    [*] --> role_select: モーダルを開く
-
-    state "役割選択" as role_select
     state "先生フロー" as teacher {
         state "Google ログイン" as teacher_login
         state "ダッシュボード" as teacher_dashboard
@@ -23,14 +20,14 @@ stateDiagram-v2
         state "提出確認" as student_confirm
     }
 
-    role_select --> teacher_login: 「先生」
-    role_select --> student_join: 「生徒」
+    [*] --> student_join: 生徒モーダルを開く
+    [*] --> teacher_login: 先生モーダルを開く（設定→クラス管理）
 
     teacher_login --> teacher_dashboard: ログイン成功
     teacher_dashboard --> teacher_create: 「クラスをつくる」
     teacher_dashboard --> teacher_detail: クラスを選択
     teacher_dashboard --> teacher_gc: 「GC からインポート」
-    teacher_dashboard --> role_select: ログアウト
+    teacher_dashboard --> teacher_login: ログアウト
     teacher_create --> teacher_dashboard: 作成完了 / 戻る
     teacher_detail --> teacher_dashboard: 戻る
     teacher_detail --> teacher_post: 「課題を配信」
@@ -39,14 +36,12 @@ stateDiagram-v2
     teacher_gc --> teacher_dashboard: 戻る
 
     student_join --> student_seat: コード確認成功
-    student_join --> role_select: 戻る
     student_seat --> student_joined: 参加成功
     student_seat --> student_join: 戻る
     student_joined --> [*]: 「はじめる」
 
-    student_status --> student_confirm: 「提出」
-    student_status --> role_select: 退出
-    student_status --> [*]: 閉じる
+    student_status --> student_confirm: 「課題を提出する」
+    student_status --> student_join: 退出
     student_confirm --> student_status: 提出完了 / キャンセル
 ```
 
@@ -62,14 +57,15 @@ stateDiagram-v2
 
 | 要素 | テキスト/内容 | data-testid |
 |------|-------------|-------------|
-| クラスボタン | 「クラス」（未参加時） | `classroom-menu-label` |
+| クラスボタン | 「クラス」（未参加時） | `classroom-menu-button` |
+| ラベル | — | `classroom-menu-label` |
 
-生徒がクラスに参加中の場合、ボタンのテキストがクラス名と席番号に変わります:
+生徒がクラスに参加中の場合、ボタンのテキストが課題名と出席番号に変わります:
 
 | 要素 | テキスト/内容 | data-testid |
 |------|-------------|-------------|
-| クラス名表示 | 例: 「第3回 チャットアプリを作ろう」 | `classroom-menu-class-name` |
-| 席番号表示 | 例: 「/ 5」 | `classroom-menu-seat-number` |
+| 課題名（またはクラス名） | 例: 「第１回チャットアプリを作ろう」 | `classroom-menu-class-name` |
+| 出席番号 | 例: 「/ 03」（0埋め2桁） | `classroom-menu-seat-number` |
 
 ---
 
@@ -84,33 +80,13 @@ stateDiagram-v2
 | 閉じるボタン (×) | — | ヘッダー右端 |
 | ローディング表示 | `classroom-loading` | API 通信中に表示 |
 | エラー表示 | `classroom-error` | エラーメッセージ |
+| エラーアクションリンク | `classroom-error-action` | セッション切れ時に「参加画面を表示」等 |
 
 ---
 
-## 1. 役割選択 (`role-select`)
+## 1. 先生: Google ログイン (`teacher-login`)
 
-モーダルを開いたときの初期画面。先生か生徒かを選択します。
-
-生徒が既にクラスに参加している場合（localStorage にセッション情報あり）は、この画面をスキップして**ステータス**画面に直接遷移します。
-
-![役割選択画面](images/02-role-select.png)
-
-**パーツ:**
-
-| 要素 | テキスト/内容 | data-testid | 操作 |
-|------|-------------|-------------|------|
-| フェーズルート | — | `classroom-phase-role-select` | — |
-| プロンプト | 「どちらで使いますか？」 | — | — |
-| 先生ボタン | 「先生」 | `classroom-role-teacher` | → teacher-login / teacher-dashboard |
-| 生徒ボタン | 「生徒」 | `classroom-role-student` | → student-join |
-
-**レイアウト:** 2つのボタンが横並び。青色の角丸ボタン。
-
----
-
-## 2. 先生: Google ログイン (`teacher-login`)
-
-Google アカウントでサインインする画面。
+Google アカウントでサインインする画面。先生は「設定 → クラス管理」メニューからアクセスします。
 
 ![先生ログイン画面](images/04-teacher-login.png)
 
@@ -119,7 +95,7 @@ Google アカウントでサインインする画面。
 | 要素 | テキスト/内容 | data-testid | 操作 |
 |------|-------------|-------------|------|
 | フェーズルート | — | `classroom-phase-teacher-login` | — |
-| 戻るリンク | 「< 戻る」 | `classroom-back` | → role-select |
+| 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
 | 見出し | 「Googleでログイン」 | — | — |
 | 説明文 | 「Googleアカウントでログインして、クラスを管理します。」 | — | — |
 | ログインボタン | 「Googleでログイン」 | `classroom-google-login` | Google 認証画面を開く |
@@ -128,7 +104,7 @@ Google アカウントでサインインする画面。
 
 ---
 
-## 3. 先生: ダッシュボード (`teacher-dashboard`)
+## 2. 先生: ダッシュボード (`teacher-dashboard`)
 
 先生のメイン画面。作成したクラスがカード形式で一覧表示されます。
 
@@ -157,7 +133,7 @@ Google アカウントでサインインする画面。
 
 | 要素 | テキスト | data-testid | 操作 |
 |------|---------|-------------|------|
-| ログアウト | 「ログアウト」 | `classroom-teacher-logout` | → role-select |
+| ログアウト | 「ログアウト」 | `classroom-teacher-logout` | → teacher-login |
 | クラス作成 | 「クラスを作る」 | `classroom-create` | → teacher-create（青色、強調） |
 | GCインポート | 「Google Classroom からインポート」 | `classroom-google-import` | → teacher-google-courses |
 
@@ -165,7 +141,7 @@ Google アカウントでサインインする画面。
 
 ---
 
-## 4. 先生: クラス作成 (`teacher-create`)
+## 3. 先生: クラス作成 (`teacher-create`)
 
 課題名と人数を入力してクラスを作成する画面。
 
@@ -192,7 +168,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 ---
 
-## 5. 先生: クラス詳細 (`teacher-detail`)
+## 4. 先生: クラス詳細 (`teacher-detail`)
 
 クラスの参加状況と提出を管理する画面。モーダルが**ワイド表示 (968px)** に広がります。
 
@@ -222,8 +198,8 @@ Google Classroom からインポートした場合は「インポート元: {コ
 | メンバー数 | 「1 / 35」 | `classroom-members-count` | 参加人数 / 最大人数 |
 | 更新ボタン | ↻ アイコン | `classroom-refresh` | メンバー・提出を再取得 |
 | 座席グリッド | — | `classroom-members-grid` | — |
-| クラス削除ボタン | 「クラスを削除」 | `classroom-delete-classroom` | 赤枠ボタン |
-| 全作品ダウンロード | 「全作品ダウンロード」 | `classroom-download-all` | — |
+| 全作品ダウンロード | 「全作品ダウンロード」 | `classroom-download-all` | 左寄せ |
+| クラス削除ボタン | 「クラスを削除」 | `classroom-delete-classroom` | 赤枠ボタン、右寄せ |
 
 **座席グリッド:**
 
@@ -232,7 +208,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 | セルの色 | 状態 | テキスト |
 |---------|------|---------|
 | グレー (`#e0e0e0`) | 空席 | 席番号のみ (例: 「5」) |
-| 青 (`#4285f4`) | 着席（未提出） | 席番号 |
+| 青 (`#4285f4`) | 着席（未提出） | 席番号（下線付き） |
 | 緑 (`#34a853`) | 提出済み | 「✓」+ 席番号 (例: 「✓5」) |
 | オレンジ (`#ff9800`) | 返却済み | 席番号 |
 
@@ -251,7 +227,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 | 着席状態 | 「着席中」 | `classroom-member-detail-seated` | 青色テキスト |
 | 削除リンク | 「削除」 | `classroom-member-remove` | 赤色テキスト |
 | サムネイル画像 | — | `classroom-member-detail-thumbnail` | プロジェクトのサムネイル |
-| プロジェクト名 | 「Untitled」 | — | サムネイル下 |
+| プロジェクト名 | 「第１回チャットアプリを作ろう」 | — | サムネイル下 |
 | 「スモウルビーで開く」 | — | `classroom-member-detail-open` | 青色ボタン、全幅 |
 | コメント入力 | textarea (placeholder: 「...」) | `classroom-member-detail-comment` | — |
 | 返却ボタン | 「返却する」 | `classroom-member-detail-return` | オレンジ色ボタン、全幅 |
@@ -286,9 +262,11 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 ---
 
-## 6. 生徒: 参加コード入力 (`student-join`)
+## 5. 生徒: 参加コード入力 (`student-join`)
 
-6文字の参加コードを入力する画面。
+6文字の参加コードを入力する画面。生徒がモーダルを開いたときの初期画面です。
+
+生徒が既にクラスに参加している場合（localStorage にセッション情報あり）は、この画面をスキップして**ステータス**画面に直接遷移します。
 
 ![参加コード入力画面](images/03-student-join.png)
 
@@ -297,16 +275,19 @@ Google Classroom からインポートした場合は「インポート元: {コ
 | 要素 | テキスト/内容 | data-testid | 操作 |
 |------|-------------|-------------|------|
 | フェーズルート | — | `classroom-phase-student-join` | — |
-| 戻るリンク | 「< 戻る」 | `classroom-back` | → role-select |
 | 見出し | 「参加コードを入力」 | — | — |
 | コード入力 | 6文字入力欄 (placeholder: ○○○○○○) | `classroom-join-code-input` | 自動大文字変換 |
 | 次へボタン | 「次へ」 | `classroom-join-submit` | コード未入力/不正時は disabled |
+| ヒントボックス | — | — | 青系背景のボックス |
+| ヒントタイトル | 「ヒント」 | — | 青色太字 |
+| ヒント1行目 | 「先生から参加コードを聞いてください。」 | — | — |
+| ヒント2行目 | 「先生は「⚙ 設定 → クラス管理」から参加コードを確認できます。」 | — | — |
 
-**レイアウト:** 入力欄は中央寄せ、幅広のテキスト入力。プレースホルダーの「○○○○○○」が6文字分表示。「次へ」ボタンは右寄せ。
+**レイアウト:** 入力欄は中央寄せ、幅広のテキスト入力。「次へ」ボタンは右寄せ。ヒントボックスはフォーム下部に表示。
 
 ---
 
-## 7. 生徒: 席番号選択 (`student-seat`)
+## 6. 生徒: 席番号選択 (`student-seat`)
 
 クラスの座席がグリッド表示され、空いている席番号を選択します。
 
@@ -335,9 +316,10 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 ---
 
-## 8. 生徒: 参加完了 (`student-joined`)
+## 7. 生徒: 参加完了 (`student-joined`)
 
 参加が成功したときの確認画面。メニューバーにもクラス情報が表示されます。
+プロジェクト名が課題名に自動変更されます。
 
 ![参加完了画面](images/09-student-joined.png)
 
@@ -346,17 +328,17 @@ Google Classroom からインポートした場合は「インポート元: {コ
 | 要素 | テキスト例 | data-testid | 操作 |
 |------|----------|-------------|------|
 | フェーズルート | — | `classroom-phase-student-joined` | — |
-| 成功メッセージ | 「参加しました！」 | `classroom-joined-success` | 緑色テキスト、中央寄せ |
-| 詳細 | 「第3回 チャットアプリを作ろう / 5番」 | `classroom-joined-details` | — |
-| クラス名 | 「第3回 チャットアプリを作ろう」 | `classroom-joined-class-name` | — |
-| 席番号 | 「5番」 | `classroom-joined-seat-number` | — |
+| 詳細 | 「テスト8年1組 / 出席番号03」 | `classroom-joined-details` | — |
+| クラス名 | 「テスト8年1組」 | `classroom-joined-class-name` | — |
+| 出席番号 | 「出席番号03」（0埋め2桁） | `classroom-joined-seat-number` | — |
+| 課題名 | 「第１回チャットアプリを作ろう」 | `classroom-joined-assignment` | 課題名がある場合のみ表示 |
 | はじめるボタン | 「はじめる」 | `classroom-joined-close` | モーダルを閉じる |
 
-**レイアウト:** 成功メッセージは緑色の太字、中央表示。「はじめる」ボタンは青色、右寄せ。
+**レイアウト:** クラス名と出席番号は中央表示。課題名はその下にやや小さいフォントで表示。「はじめる」ボタンは青色、右寄せ。
 
 ---
 
-## 9. 生徒: ステータス (`student-status`)
+## 8. 生徒: ステータス (`student-status`)
 
 参加中の生徒がモーダルを開いたときに表示される画面。提出状況を確認し、提出/退出ができます。
 
@@ -372,12 +354,13 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 | 行ラベル | 値の例 | data-testid (値部分) |
 |---------|-------|---------------------|
-| 「クラス」 | 「第3回 チャットアプリを作ろう」 | `classroom-status-class-name` |
-| 「席番号」 | 「5」 | `classroom-status-seat-number` |
-| 「参加日時」 | 「2026/4/5 19:11:11」 | `classroom-status-joined-at` |
-| 「提出」 | 「未提出」or「✓ 提出済み (19:11:54)」 | `classroom-submit-status` |
+| 「クラス」 | 「テスト8年1組」 | `classroom-status-class-name` |
+| 「出席番号」 | 「03」（0埋め2桁） | `classroom-status-seat-number` |
+| 「課題」 | 「第１回チャットアプリを作ろう」 | `classroom-status-assignment` |
+| 「参加日時」 | 「2026/4/8 00:07」（秒なし） | `classroom-status-joined-at` |
+| 「提出状況」 | 「未提出」or「✓ 提出済み (00:08)」 | `classroom-submit-status` |
 
-提出行の右端に更新ボタンがあります:
+提出状況行の右端に更新ボタンがあります:
 
 | 要素 | data-testid | 操作 |
 |------|-------------|------|
@@ -387,21 +370,24 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 | 要素 | data-testid |
 |------|-------------|
-| コメント表示 | `classroom-status-teacher-comment` |
+| 先生からのコメント | `classroom-status-teacher-comment` |
 
-**フッターボタン (横3列):**
+**フッターボタン (左右に配置):**
 
 | 要素 | テキスト (未提出時) | テキスト (提出済み) | data-testid | 操作 |
 |------|-------------------|-------------------|-------------|------|
-| 提出ボタン | 「提出する」 | 「再提出する」 | `classroom-submit-button` | → submit-confirm |
-| 退出ボタン | 「退出する」 | 「退出する」 | `classroom-leave` | → role-select |
-| 閉じるボタン | 「閉じる」 | 「閉じる」 | `classroom-status-close` | モーダルを閉じる |
+| 退出ボタン | 「退出する」 | 「退出する」 | `classroom-leave` | → student-join |
+| 提出ボタン | 「課題を提出する」 | 「課題を再提出する」 | `classroom-submit-button` | → submit-confirm |
 
-**レイアウト:** 情報テーブルは白背景のカード内。ボタンは横3列、「提出する」は青色強調、「退出する」は白、「閉じる」は青色。
+**レイアウト:** 情報テーブルは白背景のカード内。フッターは `[退出する]` が左、`[課題を提出する]` が右。
+
+**セッション切れ時:**
+
+セッションが無効になった場合、エラーメッセージと「参加画面を表示」リンクが表示されます。
 
 ---
 
-## 10. 生徒: 提出確認 (`submit-confirm`)
+## 9. 生徒: 提出確認 (`submit-confirm`)
 
 提出前の確認画面。プロジェクトのサムネイルがプレビュー表示されます。
 
@@ -421,7 +407,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 **レイアウト:** サムネイルは中央の白枠内に表示。ボタンは横2列、右に「提出する」(青色)、左に「キャンセル」(白色ボーダー)。
 
 「提出する」を押すと:
-1. プロジェクトファイル (.sb3) を保存
+1. プロジェクトファイル (.sb3) を保存（ファイル名はプロジェクト名 = 課題名）
 2. サムネイルを生成
 3. ステージのスクリーンショットを撮影
 4. Presigned URL 経由で S3 にアップロード
@@ -429,7 +415,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 ---
 
-## 11. 先生: Google Classroom コース一覧 (`teacher-google-courses`)
+## 10. 先生: Google Classroom コース一覧 (`teacher-google-courses`)
 
 Google Classroom のアクティブなコース一覧を表示し、インポートするコースを選択します。
 
@@ -446,7 +432,7 @@ Google Classroom のアクティブなコース一覧を表示し、インポー
 
 ---
 
-## 12. 先生: 課題配信 (`teacher-post-assignment`)
+## 11. 先生: 課題配信 (`teacher-post-assignment`)
 
 Google Classroom にリンクしたクラスで、課題リンクを投稿する画面。
 
@@ -481,11 +467,15 @@ Google Classroom にリンクしたクラスで、課題リンクを投稿する
 | `smalruby:classroom` | 生徒のセッション情報 (JSON) |
 
 生徒がクラスに参加すると、以下の情報が localStorage に保存されます:
-- `role`, `classroomId`, `className`, `joinCode`
+- `role`, `classroomId`, `className`, `assignmentName`, `joinCode`
 - `seatNumber`, `memberId`, `sessionToken`
 - `joinedAt`, `submissionStatus`, `lastSubmittedAt`
 
 ブラウザを閉じて再度開いても、セッションが有効であれば自動的に復帰します。
+
+## classcode URL パラメータ
+
+`?classcode=XXXXXX` で参加コード入力をスキップして自動参加フローに入ります。このパラメータは**初回のモーダルオープン時のみ有効**で、消費後はキャッシュからも削除されます。再度モーダルを開いた場合は通常のフローになります。
 
 ## レスポンシブ対応
 

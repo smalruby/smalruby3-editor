@@ -11,7 +11,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | フェーズ |
 |------------|---------|
 | `classroom-modal` | モーダル全体 |
-| `classroom-phase-role-select` | 役割選択 |
 | `classroom-phase-teacher-login` | 先生: Google ログイン |
 | `classroom-phase-teacher-dashboard` | 先生: ダッシュボード |
 | `classroom-phase-teacher-create` | 先生: クラス作成 |
@@ -29,8 +28,6 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-menu-button` | div | メニューバーのクラスボタン |
-| `classroom-role-teacher` | button | 「先生」選択 |
-| `classroom-role-student` | button | 「生徒」選択 |
 | `classroom-google-login` | button | Google ログイン |
 | `classroom-back` | button | 戻る |
 | `classroom-refresh` | button | 更新 (↻) |
@@ -77,7 +74,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-member-detail` | div | 詳細パネル |
 | `classroom-member-detail-name` | span | ニックネーム |
-| `classroom-member-detail-seat` | span | 席番号 |
+| `classroom-member-detail-seat` | span | 出席番号 |
 | `classroom-member-detail-seated` | span | 着席状態 |
 | `classroom-member-detail-submitted` | span | 提出状態 |
 | `classroom-member-detail-thumbnail` | img | サムネイル |
@@ -118,25 +115,26 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-joined-success` | div | 参加成功メッセージ |
-| `classroom-joined-details` | div | 参加詳細 |
+| `classroom-joined-details` | div | 参加詳細（クラス名 + 出席番号） |
 | `classroom-joined-class-name` | span | クラス名 |
-| `classroom-joined-seat-number` | span | 席番号 |
-| `classroom-joined-close` | button | 閉じる |
+| `classroom-joined-seat-number` | span | 出席番号（0埋め2桁） |
+| `classroom-joined-assignment` | div | 課題名（課題名がある場合のみ） |
+| `classroom-joined-close` | button | はじめる |
 
 ### 生徒: ステータス
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-status-class-name` | span | クラス名 |
-| `classroom-status-seat-number` | span | 席番号 |
-| `classroom-status-joined-at` | span | 参加日時 |
+| `classroom-status-seat-number` | span | 出席番号（0埋め2桁） |
+| `classroom-status-assignment` | span | 課題名 |
+| `classroom-status-joined-at` | span | 参加日時（秒なし） |
 | `classroom-submit-status` | span | 提出状況 |
-| `classroom-status-teacher-comment` | div | 先生のコメント |
+| `classroom-status-teacher-comment` | div | 先生からのコメント |
 | `classroom-student-refresh` | button | 更新 (↻) |
-| `classroom-submit-button` | button | 提出/再提出 |
-| `classroom-leave` | button | 退出 |
-| `classroom-status-close` | button | 閉じる |
+| `classroom-submit-button` | button | 課題を提出する / 課題を再提出する |
+| `classroom-leave` | button | 退出する |
+| `classroom-error-action` | button | セッション切れ時のアクションリンク |
 
 ### 生徒: 提出確認
 
@@ -160,9 +158,10 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
+| `classroom-menu-button` | div | クラスボタン（コンテナ） |
 | `classroom-menu-label` | span | メニューバーのクラス表示テキスト |
-| `classroom-menu-class-name` | span | 参加中のクラス名 |
-| `classroom-menu-seat-number` | span | 参加中の席番号 |
+| `classroom-menu-class-name` | span | 課題名（またはクラス名） |
+| `classroom-menu-seat-number` | span | 出席番号（0埋め2桁） |
 
 ### 汎用
 
@@ -170,6 +169,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-loading` | div | ローディング表示 |
 | `classroom-error` | div | エラーメッセージ |
+| `classroom-error-action` | button | エラーアクションリンク |
 
 ---
 
@@ -181,14 +181,22 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 http://localhost:8601?no_beforeunload=1&features=classroom
 ```
 
+### devlogin でのテスト（stg 環境）
+
+```
+http://localhost:8601?no_beforeunload=1&features=classroom&devlogin=1
+```
+
+`devlogin=1` を指定すると、Google ログインをバイパスして `DEV_BYPASS_TOKEN` で先生モードにログインできます（stg/ローカル環境のみ）。
+
 ### data-testid を使ったテスト例
 
 ```javascript
 // フェーズの確認
-await page.getByTestId('classroom-phase-role-select').waitFor();
+await page.getByTestId('classroom-phase-student-join').waitFor();
 
 // ボタンクリック
-await page.getByTestId('classroom-role-student').click();
+await page.getByTestId('classroom-join-submit').click();
 
 // テキスト入力
 await page.getByTestId('classroom-join-code-input').fill('ABC123');
@@ -196,86 +204,24 @@ await page.getByTestId('classroom-join-code-input').fill('ABC123');
 // テキスト取得
 const className = await page.getByTestId('classroom-status-class-name').textContent();
 
-// 要素の存在確認
-const hasError = await page.getByTestId('classroom-error').isVisible();
-```
-
-### 生徒参加フローのテスト例
-
-```javascript
-// 1. クラスモーダルを開く
-await page.getByTestId('classroom-menu-button').click();
-
-// 2. 生徒を選択
-await page.getByTestId('classroom-role-student').click();
-await page.getByTestId('classroom-phase-student-join').waitFor();
-
-// 3. 参加コード入力
-await page.getByTestId('classroom-join-code-input').fill('ABC123');
-await page.getByTestId('classroom-join-submit').click();
-
-// 4. 席番号選択
-await page.getByTestId('classroom-phase-student-seat').waitFor();
-await page.getByTestId('classroom-seat-5').click();
-await page.getByTestId('classroom-confirm-seat').click();
-
-// 5. 参加完了確認
-await page.getByTestId('classroom-joined-success').waitFor();
-await page.getByTestId('classroom-joined-close').click();
-```
-
-### 参加リンクからの自動参加テスト
-
-```javascript
-// classcode パラメータ付きで開く
-await page.goto('http://localhost:8601?no_beforeunload=1&features=classroom&classcode=ABC123');
-
-// 自動的に席番号選択画面に遷移
-await page.getByTestId('classroom-phase-student-seat').waitFor();
+// data-testid 経由の JavaScript クリック
+await page.evaluate(() => {
+    document.querySelector('[data-testid="classroom-menu-button"]').click();
+});
 ```
 
 ---
 
-## 結合テスト (Backend)
+## 結合テスト (infra)
 
 ### 実行方法
 
 ```bash
-# 基本実行 (認証不要テストのみ)
+# 認証なしテスト（バリデーション、CORS等）
 docker compose run --rm -w /app/infra/smalruby-classroom infra npm run test:integration
 
-# 教師フロー含む全テスト
-GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom infra npm run test:integration
+# 教師フロー含む全テスト（DEV_BYPASS_TOKEN を使用）
+docker compose run --rm -w /app/infra/smalruby-classroom -e GOOGLE_ID_TOKEN=<DEV_BYPASS_TOKEN> infra npm run test:integration
 ```
 
-### GOOGLE_ID_TOKEN の取得方法
-
-1. ブラウザで Smalruby を開く (`?features=classroom`)
-2. クラスモーダルを開き、先生としてログイン
-3. 開発者ツールのコンソールで `window._classroomIdToken` を実行
-4. 表示されたトークンをコピー
-
-### テストカバレッジ
-
-| カテゴリ | テスト数 | 認証 |
-|---------|---------|------|
-| 認証エラー (先生) | 3 | 不要 |
-| Google Classroom 認証エラー | 3 | 不要 |
-| 生徒フロー バリデーション | 5 | 不要 |
-| セッション検証 | 2 | 不要 |
-| 提出 認証エラー | 2 | 不要 |
-| CORS | 2 | 不要 |
-| 404 | 1 | 不要 |
-| 教師フロー CRUD | 14 | GOOGLE_ID_TOKEN |
-| **合計** | **32** | |
-
-教師フロー CRUD では、クラス作成 → 生徒参加 → 提出 → 返却 → 退出 → 削除の E2E フローを検証します。
-
----
-
-## Unit テスト (Frontend)
-
-```bash
-# Redux reducer テスト
-docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest test/unit/reducers/classroom-reducer.test.js"
-```
+`DEV_BYPASS_TOKEN` は `infra/smalruby-classroom/.env.stg` に記載されています。
