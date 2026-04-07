@@ -45,10 +45,10 @@
 git commit -m "feat: add Ruby code export functionality"
 
 # Detailed commit
-git commit -m "fix: resolve Opal transpilation error for blocks
+git commit -m "fix: resolve prism parser error for nested blocks
 
-The Opal transpiler was failing when encountering nested blocks.
-This commit updates the parser configuration to handle nesting correctly.
+The @ruby/prism parser was failing when encountering deeply nested blocks.
+This commit updates the converter to handle nesting correctly.
 
 Fixes #123"
 

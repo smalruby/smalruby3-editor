@@ -117,13 +117,13 @@ Use JSDoc for functions and classes:
 
 ```javascript
 /**
- * Transpile Ruby code to JavaScript using Opal.
- * @param {string} rubyCode - The Ruby source code to transpile.
- * @param {Object} options - Transpilation options.
- * @param {boolean} options.sourceMap - Whether to generate source maps.
- * @returns {string} The transpiled JavaScript code.
+ * Parse Ruby code into an AST using @ruby/prism.
+ * @param {string} rubyCode - The Ruby source code to parse.
+ * @param {object} options - Parser options.
+ * @param {boolean} options.verbose - Whether to include verbose output.
+ * @returns {object} The parsed AST node.
  */
-function transpileRuby(rubyCode, options = {}) {
+function parseRuby(rubyCode, options = {}) {
     // Implementation
 }
 ```

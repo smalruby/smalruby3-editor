@@ -254,7 +254,6 @@ export default eslintConfigScratch.defineConfig(
         'build/**/*',
         'dist/**/*',
         'node_modules/**/*',
-        'opal/**/*',
         'static/**/*',
         'test/**/*',
         'src/examples/**/*',

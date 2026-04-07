@@ -13,7 +13,7 @@ packages. Use this if you'd like to learn about how the Smalruby editor works or
 The `packages` directory in this repository contains:
 
 - `scratch-gui`: **Smalruby 3 GUI**. The React-based web interface, customized for Smalruby (e.g., Ruby mode, custom extensions). Forked from `scratch-gui`.
-- `scratch-vm`: **Smalruby 3 VM**. The virtual machine that runs projects, with Opal integration for Ruby execution. Forked from `scratch-vm`.
+- `scratch-vm`: **Smalruby 3 VM**. The virtual machine that runs projects, with @ruby/prism integration for Ruby parsing. Forked from `scratch-vm`.
 - `scratch-render` draws backdrops, sprites, and clones on the stage.
 - `scratch-svg-renderer` processes SVG (vector) images for use with projects.
 
@@ -90,7 +90,7 @@ Smalruby supports a subset of Ruby syntax. See the language specification for de
 - **[Version 1 API Differences](docs/smalruby-language-spec-v1-diff.md)** ([Japanese](docs/smalruby-language-spec-v1-diff.ja.md)) — Changes from v1 to v2
 
 ### Ruby Mode
-Smalruby 3 integrates [Opal](https://opalrb.com/) to convert Ruby code into JavaScript that runs within the Scratch VM. The `scratch-vm` package handles this execution logic, while `scratch-gui` provides the Ruby code editor (using Ace Editor) and UI toggles.
+Smalruby 3 integrates [@ruby/prism](https://github.com/ruby/prism) to parse Ruby code within the browser. The `scratch-gui` package provides the Ruby code editor (using Monaco Editor) with Ruby-to-blocks conversion and blocks-to-Ruby generation.
 
 ### Google Drive Integration
 Smalruby 3 supports loading and saving projects directly to Google Drive.
