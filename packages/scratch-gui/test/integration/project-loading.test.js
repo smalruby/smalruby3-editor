@@ -18,8 +18,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe('Loading scratch gui', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {
@@ -37,7 +37,7 @@ describe('Loading scratch gui', () => {
         // of loading projects that we are not actively using anymore
         test.skip('Load a project by ID directly through url', async () => {
             await driver.quit(); // Reset driver to test hitting # url directly
-            driver = getDriver();
+            driver = await getDriver();
 
             const projectId = '96708228';
             await loadUri(`${uri}#${projectId}`);
@@ -52,7 +52,7 @@ describe('Loading scratch gui', () => {
         // of loading projects that we are not actively using anymore
         test.skip('Load a project by ID (fullscreen)', async () => {
             await driver.quit(); // Reset driver to test hitting # url directly
-            driver = getDriver();
+            driver = await getDriver();
 
             const prevSize = driver.manage()
                 .window()

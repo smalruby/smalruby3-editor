@@ -9,8 +9,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe('Ruby tab completion and indentation', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

@@ -200,11 +200,16 @@ jobs:
         with:
           cache: 'npm'
           node-version-file: '.nvmrc'
+      - uses: browser-actions/setup-chrome@c785b87e244131f27c9f19c1a33e2ead956ab7ce # v1
+        id: setup-chrome
+        with:
+          chrome-version: stable
       - name: Info
         run: |
           cat <<EOF
           Node version: $(node --version)
           NPM version: $(npm --version)
+          Chrome: ${{ steps.setup-chrome.outputs.chrome-path }} ($(${{ steps.setup-chrome.outputs.chrome-path }} --version))
           GitHub ref: ${{ github.ref }}
           GitHub head ref: ${{ github.head_ref }}
           EOF

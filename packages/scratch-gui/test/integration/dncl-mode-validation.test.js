@@ -70,8 +70,8 @@ const loadInRubyMode = async d => {
 let driver;
 
 describe('DNCL mode validation on switch', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

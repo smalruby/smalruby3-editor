@@ -24,8 +24,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe('Block palette', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

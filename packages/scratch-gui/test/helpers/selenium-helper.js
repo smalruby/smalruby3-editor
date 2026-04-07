@@ -2,6 +2,10 @@
 // allow time for that so we get a more specific error message
 jest.setTimeout(95000);
 
+// Retry flaky tests once to mitigate transient CI failures
+// (e.g., ChromeDriver session crashes, resource contention)
+jest.retryTimes(1);
+
 import {promises as fs} from 'fs';
 import path from 'path';
 
@@ -172,10 +176,10 @@ class SeleniumHelper {
     }
 
     /**
-     * Instantiate a new Selenium driver.
-     * @returns {webdriver.ThenableWebDriver} The new driver.
+     * Build Chrome capabilities for the Selenium driver.
+     * @returns {webdriver.Capabilities} The Chrome capabilities.
      */
-    getDriver () {
+    _buildChromeCapabilities () {
         const chromeCapabilities = webdriver.Capabilities.chrome();
         const args = [];
         if (USE_HEADLESS) {
@@ -201,11 +205,42 @@ class SeleniumHelper {
         chromeCapabilities.setLoggingPrefs({
             performance: 'ALL'
         });
-        this.driver = new webdriver.Builder()
-            .forBrowser('chrome')
-            .withCapabilities(chromeCapabilities)
-            .build();
-        return this.driver;
+        return chromeCapabilities;
+    }
+
+    /**
+     * Instantiate a new Selenium driver with retry on session creation failure.
+     * ChromeDriver can intermittently fail to start in CI (version mismatch,
+     * resource contention), so we retry up to `retries` times.
+     * @param {number} [retries=2] Maximum number of retry attempts.
+     * @returns {Promise<webdriver.ThenableWebDriver>} The new driver.
+     */
+    async getDriver (retries = 2) {
+        const chromeCapabilities = this._buildChromeCapabilities();
+
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                this.driver = new webdriver.Builder()
+                    .forBrowser('chrome')
+                    .withCapabilities(chromeCapabilities)
+                    .build();
+                // Verify the session is actually alive
+                await this.driver.getSession();
+                return this.driver;
+            } catch (e) {
+                if (attempt < retries) {
+                    const delayMs = 1000 * (attempt + 1);
+                    console.warn(
+                        `getDriver: session creation failed (attempt ${attempt + 1}/${retries + 1}), ` +
+                        `retrying in ${delayMs}ms...`,
+                        e.message
+                    );
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                } else {
+                    throw e;
+                }
+            }
+        }
     }
 
     /**

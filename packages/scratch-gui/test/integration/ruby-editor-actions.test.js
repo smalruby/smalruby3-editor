@@ -20,8 +20,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe('Ruby editor actions', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

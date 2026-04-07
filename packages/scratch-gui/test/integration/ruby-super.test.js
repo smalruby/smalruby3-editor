@@ -16,8 +16,8 @@ const uri = `${path.resolve(__dirname, '../../build/index.html')}?ruby_version=2
 let driver;
 
 describe('Ruby super keyword round-trip', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

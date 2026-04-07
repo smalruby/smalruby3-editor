@@ -24,8 +24,8 @@ let driver;
 const stubConfirmToDecline = () => driver.executeScript('window.confirm = () => false;');
 
 describe('Ruby module/include round-trip', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

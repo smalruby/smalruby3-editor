@@ -8,8 +8,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe('Feedback link', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

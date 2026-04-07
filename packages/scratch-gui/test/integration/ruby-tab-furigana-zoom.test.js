@@ -57,8 +57,8 @@ const clickZoomReset = async () => {
 };
 
 describe('Ruby tab furigana zoom follow', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

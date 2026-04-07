@@ -58,8 +58,8 @@ const waitForPreviewCode = async () => {
 };
 
 describe('Ruby script preview panel', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

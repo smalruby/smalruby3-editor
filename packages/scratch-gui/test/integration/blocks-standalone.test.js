@@ -27,8 +27,8 @@ let driver;
 // standalone way of initialization is working
 // NOTE: Skipped in Smalruby as standalone.html is not built (not used in Smalruby)
 describe.skip('Working with the blocks', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

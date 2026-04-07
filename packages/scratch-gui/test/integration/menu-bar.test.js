@@ -22,8 +22,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe('Menu bar settings', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

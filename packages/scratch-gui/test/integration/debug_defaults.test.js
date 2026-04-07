@@ -8,8 +8,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe.skip('Debug Smalruby 3 Defaults', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {
