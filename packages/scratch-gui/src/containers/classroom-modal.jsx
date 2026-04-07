@@ -1,14 +1,11 @@
-import JSZip from 'jszip';
 import PropTypes from 'prop-types';
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
-import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
-import { loadGoogleIdentity } from '../lib/google-script-loader.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
 import {
@@ -20,15 +17,11 @@ import {
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import translateError from './classroom-error-utils.js';
-
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000', 10);
-
-// Persists teacher login across modal close/open within same page session
-let _cachedTeacherIdToken = null;
-
-// Dev bypass token for stg/local automated testing
-const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN;
+import useTeacherClassroom, {
+    getCachedTeacherIdToken,
+    setCachedTeacherIdToken,
+    DEV_BYPASS_TOKEN,
+} from './use-teacher-classroom.js';
 
 const ClassroomModal = ({ mode = 'student' }) => {
     const dispatch = useDispatch();
@@ -40,14 +33,14 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     // Auto-login with dev bypass token when devlogin=1
     const urlParams = getUrlParams();
-    if (mode === 'teacher' && urlParams.devlogin && DEV_BYPASS_TOKEN && !_cachedTeacherIdToken) {
-        _cachedTeacherIdToken = DEV_BYPASS_TOKEN;
+    if (mode === 'teacher' && urlParams.devlogin && DEV_BYPASS_TOKEN && !getCachedTeacherIdToken()) {
+        setCachedTeacherIdToken(DEV_BYPASS_TOKEN);
     }
 
     // Determine initial phase based on mode and persisted session
     const getInitialPhase = () => {
         if (mode === 'teacher') {
-            if (_cachedTeacherIdToken) return 'teacher-dashboard';
+            if (getCachedTeacherIdToken()) return 'teacher-dashboard';
             return 'teacher-login';
         }
         // Student mode
@@ -62,49 +55,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
     const [error, setError] = useState(null);
     const [errorTitle, setErrorTitle] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-
-    // Teacher state
-    const [idToken, setIdToken] = useState(_cachedTeacherIdToken);
-    const [classrooms, setClassrooms] = useState([]);
-    const [selectedClassroom, setSelectedClassroom] = useState(null);
-    const [members, setMembers] = useState([]);
-
-    // Student state
-    const [pendingJoinCode, setPendingJoinCode] = useState(null);
-    const [seatCount, setSeatCount] = useState(0);
-    const [takenSeats, setTakenSeats] = useState([]);
-    const [selectedSeat, setSelectedSeat] = useState(null);
-    const [joinedInfo, setJoinedInfo] = useState(null);
-    const [selectedMember, setSelectedMember] = useState(null);
-
-    // Submission state
-    const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
-    const [submitProgress, setSubmitProgress] = useState(null); // { current, total, label }
-
-    // Code display state
-    const [codeDisplayClassroom, setCodeDisplayClassroom] = useState(null);
-    const [codeDisplayFullscreen, setCodeDisplayFullscreen] = useState(false);
-    const [downloadProgress, setDownloadProgress] = useState(null); // { current, total }
-
-    // Google Classroom state
-    const [googleAccessToken, setGoogleAccessToken] = useState(null);
-    const [googleCourses, setGoogleCourses] = useState([]);
-    const [selectedGoogleCourse, setSelectedGoogleCourse] = useState(null);
-
-    // Refresh timer for teacher detail
-    const refreshTimerRef = useRef(null);
-
-    // Sync teacher token to module-level cache + debug global
-    useEffect(() => {
-        _cachedTeacherIdToken = idToken;
-        if (typeof window !== 'undefined') {
-            window._classroomIdToken = idToken;
-        }
-    }, [idToken]);
-
-    const handleClose = useCallback(() => {
-        dispatch(mode === 'teacher' ? closeTeacherModal() : closeClassroomModal());
-    }, [dispatch, mode]);
 
     // Error action state (link shown alongside the error message)
     const [errorActionLabel, setErrorActionLabel] = useState(null);
@@ -125,20 +75,42 @@ const ClassroomModal = ({ mode = 'student' }) => {
         setErrorActionHandler(null);
     }, []);
 
+    // Use a ref-based wrapper for showSessionExpiredError to break the circular
+    // dependency: the hook needs showSessionExpiredError, but
+    // showSessionExpiredError needs handleGoToLogin, which needs teacher state.
+    // The ref is updated after showSessionExpiredError is defined below.
+    const showSessionExpiredErrorRef = useRef(null);
+    const stableShowSessionExpiredError = useCallback((...args) => showSessionExpiredErrorRef.current?.(...args), []);
+
+    // Teacher hook (must be called unconditionally)
+    const teacher = useTeacherClassroom({
+        mode,
+        dispatch,
+        intl,
+        phase,
+        setPhase,
+        showError,
+        clearError,
+        showSessionExpiredError: stableShowSessionExpiredError,
+        isLoading,
+        setIsLoading,
+        vm,
+    });
+
     // Go back to login/join screen (used as error action for session expiry)
     const handleGoToLogin = useCallback(() => {
         if (mode === 'teacher') {
-            _cachedTeacherIdToken = null;
-            setIdToken(null);
-            setClassrooms([]);
-            setSelectedClassroom(null);
-            setMembers([]);
+            setCachedTeacherIdToken(null);
+            teacher.setIdToken(null);
+            teacher.setClassrooms([]);
+            teacher.setSelectedClassroom(null);
+            teacher.setMembers([]);
         } else {
             dispatch(clearClassroomSession());
         }
         clearError();
         setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
-    }, [mode, clearError, dispatch]);
+    }, [mode, clearError, dispatch, teacher]);
 
     // Show error with session-expired action link
     const showSessionExpiredError = useCallback(
@@ -163,431 +135,39 @@ const ClassroomModal = ({ mode = 'student' }) => {
         },
         [mode, intl, handleGoToLogin],
     );
+    showSessionExpiredErrorRef.current = showSessionExpiredError;
+
+    const handleClose = useCallback(() => {
+        dispatch(mode === 'teacher' ? closeTeacherModal() : closeClassroomModal());
+    }, [dispatch, mode]);
 
     // --- Role selection ---
 
     const handleSelectTeacher = useCallback(() => {
         clearError();
-        if (idToken) {
+        if (teacher.idToken) {
             setPhase('teacher-dashboard');
         } else {
             setPhase('teacher-login');
         }
-    }, [idToken, clearError]);
+    }, [teacher.idToken, clearError]);
 
     const handleSelectStudent = useCallback(() => {
         clearError();
         setPhase('student-join');
     }, [clearError]);
 
-    // --- Teacher: Google Sign-In ---
+    // --- Student state ---
 
-    const handleTeacherLogin = useCallback(async () => {
-        clearError();
-        let signInContainer = null;
-        let signInObserver = null;
-        const cleanupSignIn = () => {
-            if (signInObserver) {
-                signInObserver.disconnect();
-                signInObserver = null;
-            }
-            if (signInContainer && signInContainer.parentNode) {
-                signInContainer.parentNode.removeChild(signInContainer);
-            }
-            signInContainer = null;
-        };
-        try {
-            await loadGoogleIdentity();
+    const [pendingJoinCode, setPendingJoinCode] = useState(null);
+    const [seatCount, setSeatCount] = useState(0);
+    const [takenSeats, setTakenSeats] = useState([]);
+    const [selectedSeat, setSelectedSeat] = useState(null);
+    const [joinedInfo, setJoinedInfo] = useState(null);
 
-            const token = await new Promise((resolve, reject) => {
-                /* global google */
-                google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: response => {
-                        cleanupSignIn();
-                        if (response.credential) {
-                            resolve(response.credential);
-                        } else {
-                            reject(new Error('Google Sign-In failed'));
-                        }
-                    },
-                });
-                google.accounts.id.prompt(notification => {
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        signInContainer = document.createElement('div');
-                        signInContainer.style.cssText =
-                            'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;';
-                        document.body.appendChild(signInContainer);
-                        google.accounts.id.renderButton(signInContainer, {
-                            theme: 'outline',
-                            size: 'large',
-                        });
-                        signInObserver = new MutationObserver(() => {
-                            if (!document.body.contains(signInContainer)) {
-                                signInObserver.disconnect();
-                                signInObserver = null;
-                            }
-                        });
-                        signInObserver.observe(document.body, { childList: true, subtree: true });
-                    }
-                });
-            });
-
-            setIdToken(token);
-            setPhase('teacher-dashboard');
-        } catch (err) {
-            cleanupSignIn();
-            showError(err.message || 'Sign-in failed');
-        }
-    }, [clearError, showError]);
-
-    // --- Teacher: Logout ---
-
-    const handleTeacherLogout = useCallback(() => {
-        _cachedTeacherIdToken = null;
-        setIdToken(null);
-        setClassrooms([]);
-        setSelectedClassroom(null);
-        setMembers([]);
-        clearError();
-        setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
-    }, [mode, clearError]);
-
-    // --- Google Classroom: Import flow ---
-
-    const handleGoogleClassroomImport = useCallback(async () => {
-        clearError();
-        setIsLoading(true);
-        try {
-            const accessToken = await requestClassroomAccessToken();
-            setGoogleAccessToken(accessToken);
-            const data = await classroomAPI.listGoogleCourses(idToken, accessToken);
-            setGoogleCourses(data.courses || []);
-            setSelectedGoogleCourse(null);
-            setPhase('teacher-google-courses');
-        } catch (err) {
-            if (err.status === 401) {
-                clearClassroomAccessToken();
-            }
-            showError(translateError(intl, err));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [idToken, clearError, showError, intl]);
-
-    const handleSelectGoogleCourse = useCallback(course => {
-        setSelectedGoogleCourse(course);
-    }, []);
-
-    const handleConfirmGoogleImport = useCallback(() => {
-        if (!selectedGoogleCourse) return;
-        // Transition to create form with pre-filled data from Google Classroom
-        setPhase('teacher-create');
-    }, [selectedGoogleCourse]);
-
-    const handlePostAssignment = useCallback(
-        async (title, description) => {
-            if (!selectedClassroom) return;
-            clearError();
-            setIsLoading(true);
-            try {
-                let accessToken = googleAccessToken;
-                if (!accessToken) {
-                    accessToken = await requestClassroomAccessToken();
-                    setGoogleAccessToken(accessToken);
-                }
-                const link = `${window.location.origin}${window.location.pathname}?features=classroom&classcode=${selectedClassroom.joinCode}`;
-                const result = await classroomAPI.postGoogleAssignment(
-                    idToken,
-                    accessToken,
-                    selectedClassroom.classroomId,
-                    title,
-                    link,
-                    description,
-                );
-                return result;
-            } catch (err) {
-                if (err.status === 401) {
-                    clearClassroomAccessToken();
-                    setGoogleAccessToken(null);
-                }
-                showError(translateError(intl, err));
-                throw err;
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [idToken, googleAccessToken, selectedClassroom, clearError, showError, intl],
-    );
-
-    const handleShowPostAssignment = useCallback(() => {
-        setPhase('teacher-post-assignment');
-    }, []);
-
-    // --- Teacher: Load classrooms when entering dashboard ---
-
-    useEffect(() => {
-        if (phase === 'teacher-dashboard' && idToken) {
-            setIsLoading(true);
-            clearError();
-            classroomAPI
-                .listClassrooms(idToken)
-                .then(data => {
-                    setClassrooms(data.classrooms || []);
-                })
-                .catch(err => {
-                    showError(translateError(intl, err));
-                })
-                .finally(() => {
-                    setIsLoading(false);
-                });
-        }
-    }, [phase, idToken, clearError, showError, intl]);
-
-    // --- Teacher: Create classroom ---
-
-    const handleShowCreateForm = useCallback(() => {
-        setSelectedGoogleCourse(null);
-        setPhase('teacher-create');
-    }, []);
-
-    const handleCreateClassroom = useCallback(
-        async formData => {
-            clearError();
-            setIsLoading(true);
-            try {
-                await classroomAPI.createClassroom(
-                    idToken,
-                    formData.className,
-                    formData.assignmentName,
-                    formData.studentCount,
-                    selectedGoogleCourse?.courseId,
-                );
-                setSelectedGoogleCourse(null);
-                setPhase('teacher-dashboard');
-            } catch (err) {
-                showError(translateError(intl, err));
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [idToken, selectedGoogleCourse, clearError, showError, intl],
-    );
-
-    // --- Teacher: Delete classroom ---
-
-    const handleDeleteClassroom = useCallback(
-        async classroomId => {
-            clearError();
-            setIsLoading(true);
-            try {
-                await classroomAPI.deleteClassroom(idToken, classroomId);
-                setSelectedClassroom(null);
-                setMembers([]);
-                setPhase('teacher-dashboard');
-            } catch (err) {
-                showError(translateError(intl, err));
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [idToken, clearError, showError, intl],
-    );
-
-    // --- Teacher: Select classroom to view details ---
-
-    const loadClassroomDetail = useCallback(
-        async classroomId => {
-            try {
-                const [classroomData, membersData, submissionsData] = await Promise.all([
-                    classroomAPI.getClassroom(idToken, classroomId),
-                    classroomAPI.listMembers(idToken, classroomId),
-                    classroomAPI.listSubmissions(idToken, classroomId),
-                ]);
-                // Merge submission thumbnailUrl/projectUrl into members
-                const subMap = {};
-                for (const sub of submissionsData.submissions || []) {
-                    const existing = subMap[sub.memberId];
-                    if (!existing || sub.submittedAt > existing.submittedAt) {
-                        subMap[sub.memberId] = sub;
-                    }
-                }
-                const memberIds = new Set();
-                const enrichedMembers = (membersData.members || []).map(m => {
-                    memberIds.add(m.memberId);
-                    const sub = subMap[m.memberId];
-                    if (sub) {
-                        return {
-                            ...m,
-                            submissionId: sub.submissionId,
-                            submissionStatus: sub.status || 'submitted',
-                            thumbnailUrl: sub.thumbnailUrl || null,
-                            projectUrl: sub.projectUrl || null,
-                            projectName: sub.projectName || null,
-                            screenshotUrls: sub.screenshotUrls || [],
-                            teacherComment: sub.teacherComment || '',
-                        };
-                    }
-                    return m;
-                });
-                // Add submissions from members who have left
-                for (const [memberId, sub] of Object.entries(subMap)) {
-                    if (!memberIds.has(memberId)) {
-                        enrichedMembers.push({
-                            memberId,
-                            hasSubmission: true,
-                            submissionId: sub.submissionId,
-                            submissionStatus: sub.status || 'submitted',
-                            submittedAt: sub.submittedAt || null,
-                            thumbnailUrl: sub.thumbnailUrl || null,
-                            projectUrl: sub.projectUrl || null,
-                            projectName: sub.projectName || null,
-                            screenshotUrls: sub.screenshotUrls || [],
-                            teacherComment: sub.teacherComment || '',
-                            left: true,
-                        });
-                    }
-                }
-                setSelectedClassroom(classroomData);
-                setMembers(enrichedMembers);
-                return true;
-            } catch (err) {
-                if (err.status === 401) {
-                    showSessionExpiredError(translateError(intl, err, 'session'));
-                } else {
-                    showError(translateError(intl, err));
-                }
-                return false;
-            }
-        },
-        [idToken, showError, showSessionExpiredError, intl],
-    );
-
-    const handleSelectClassroom = useCallback(
-        async classroomId => {
-            clearError();
-            setIsLoading(true);
-            const success = await loadClassroomDetail(classroomId);
-            if (success) {
-                setPhase('teacher-class-detail');
-            }
-            setIsLoading(false);
-        },
-        [clearError, loadClassroomDetail],
-    );
-
-    const handleRefreshDetail = useCallback(async () => {
-        if (!selectedClassroom) return;
-        clearError();
-        setIsLoading(true);
-        await loadClassroomDetail(selectedClassroom.classroomId);
-        setIsLoading(false);
-    }, [selectedClassroom, clearError, loadClassroomDetail]);
-
-    // Auto-refresh teacher detail
-    useEffect(() => {
-        if (phase === 'teacher-class-detail' && selectedClassroom && idToken) {
-            refreshTimerRef.current = setInterval(() => {
-                loadClassroomDetail(selectedClassroom.classroomId);
-            }, REFRESH_INTERVAL_MS);
-            return () => clearInterval(refreshTimerRef.current);
-        }
-        return () => {
-            if (refreshTimerRef.current) {
-                clearInterval(refreshTimerRef.current);
-            }
-        };
-    }, [phase, selectedClassroom, idToken, loadClassroomDetail]);
-
-    const handleBackToDashboard = useCallback(() => {
-        clearError();
-        setSelectedClassroom(null);
-        setMembers([]);
-        setCodeDisplayClassroom(null);
-        setCodeDisplayFullscreen(false);
-        if (idToken) {
-            setPhase('teacher-dashboard');
-        } else {
-            setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
-        }
-    }, [mode, idToken, clearError]);
-
-    // --- Teacher: Delete member ---
-
-    const handleDeleteMember = useCallback(
-        async memberId => {
-            if (!selectedClassroom) return;
-            clearError();
-            try {
-                await classroomAPI.deleteMember(idToken, selectedClassroom.classroomId, memberId);
-                setMembers(prev => prev.filter(m => m.memberId !== memberId));
-                setSelectedMember(null);
-            } catch (err) {
-                showError(translateError(intl, err));
-            }
-        },
-        [idToken, selectedClassroom, clearError, showError, intl],
-    );
-
-    // --- Teacher: Open student submission ---
-
-    const handleOpenSubmission = useCallback(
-        async projectUrl => {
-            if (!projectUrl || !vm) return;
-            clearError();
-            setIsLoading(true);
-            try {
-                const response = await fetch(projectUrl);
-                if (!response.ok) {
-                    throw new Error(`Download failed: ${response.status}`);
-                }
-                const projectData = await response.arrayBuffer();
-                await vm.loadProject(projectData);
-                dispatch(closeClassroomModal());
-            } catch (err) {
-                showError(translateError(intl, err));
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [vm, dispatch, clearError, showError, intl],
-    );
-
-    // --- Teacher: Show code display ---
-
-    const handleShowCodeDisplay = useCallback(() => {
-        if (selectedClassroom) {
-            setCodeDisplayClassroom(selectedClassroom);
-            setCodeDisplayFullscreen(mode === 'teacher');
-        }
-    }, [selectedClassroom, mode]);
-
-    const handleCloseCodeDisplay = useCallback(() => {
-        setCodeDisplayClassroom(null);
-        setCodeDisplayFullscreen(false);
-    }, []);
-
-    const handleToggleCodeFullscreen = useCallback(() => {
-        setCodeDisplayFullscreen(prev => !prev);
-    }, []);
-
-    const handleCopyInviteLink = useCallback(classroom => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('classcode', classroom.joinCode.toLowerCase());
-        // Ensure features=classroom is included
-        const features = url.searchParams.get('features') || '';
-        if (
-            !features
-                .split(',')
-                .map(f => f.trim())
-                .includes('classroom')
-        ) {
-            url.searchParams.set('features', features ? `${features},classroom` : 'classroom');
-        }
-        navigator.clipboard.writeText(url.toString()).catch(() => {
-            // Clipboard API failed, ignore silently
-        });
-    }, []);
+    // Submission state
+    const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
+    const [submitProgress, setSubmitProgress] = useState(null);
 
     // --- Student: Join with code (validate first) ---
 
@@ -616,12 +196,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
         [clearError, showError, intl],
     );
 
-    // --- Student: Select seat / member ---
-
-    const handleSelectMember = useCallback(memberId => {
-        setSelectedMember(memberId);
-    }, []);
-
     const handleSelectSeat = useCallback(seatNumber => {
         setSelectedSeat(seatNumber);
     }, []);
@@ -647,7 +221,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
                     joinedAt: new Date().toISOString(),
                 }),
             );
-            // Set project title to assignment name
             if (data.assignmentName) {
                 dispatch(setProjectTitle(data.assignmentName));
             }
@@ -699,7 +272,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
     // --- Student: Leave classroom ---
 
     const handleLeaveClassroom = useCallback(async () => {
-        // Notify server to remove member record (best-effort)
         if (classroomState.sessionToken && classroomState.classroomId) {
             try {
                 await classroomAPI.leaveClassroom(classroomState.sessionToken, classroomState.classroomId);
@@ -716,7 +288,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
     const handleStartSubmit = useCallback(() => {
         clearError();
         setThumbnailDataUrl(null);
-        // Capture thumbnail
         if (vm && vm.renderer) {
             getProjectThumbnail(vm, dataUrl => {
                 setThumbnailDataUrl(dataUrl);
@@ -729,7 +300,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     /**
      * Capture block screenshots for all targets that have blocks.
-     * Switches editing target for each, takes screenshot, overlays sprite icon.
      * @returns {Promise<Blob[]>} Array of PNG blobs
      */
     const captureBlockScreenshots = useCallback(async () => {
@@ -740,7 +310,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
         const originalTargetId = vm.editingTarget?.id;
         const allTargets = vm.runtime.targets.filter(t => !t.isOriginal === false || t.isOriginal);
-        // Filter targets that have blocks (including stage)
         const targetsWithBlocks = allTargets.filter(t => {
             const blocks = t.blocks._blocks;
             return blocks && Object.keys(blocks).length > 0;
@@ -755,10 +324,8 @@ const ClassroomModal = ({ mode = 'student' }) => {
                 label: target.sprite.name,
             });
 
-            // Switch editing target and wait for workspace update
             vm.setEditingTarget(target.id);
             await new Promise(resolve => {
-                // Wait for workspace to fully update after target switch
                 setTimeout(() => requestAnimationFrame(resolve), 100);
             });
 
@@ -776,7 +343,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
             }
         }
 
-        // Restore original editing target
         if (originalTargetId) {
             vm.setEditingTarget(originalTargetId);
         }
@@ -790,11 +356,8 @@ const ClassroomModal = ({ mode = 'student' }) => {
         setIsLoading(true);
         try {
             const submitProjectTitle = projectTitle || 'Untitled';
-
-            // 1. Capture block screenshots
             const screenshotBlobs = await captureBlockScreenshots();
 
-            // 2. Get presigned URLs (including screenshot URLs)
             const submissionData = await classroomAPI.createSubmission(
                 classroomState.sessionToken,
                 classroomState.classroomId,
@@ -802,10 +365,9 @@ const ClassroomModal = ({ mode = 'student' }) => {
                 screenshotBlobs.length,
             );
 
-            // 3. Upload .sb3 (with size check)
             setSubmitProgress({ current: 0, total: 1, label: 'project' });
             const sb3Data = await vm.saveProjectSb3();
-            const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+            const MAX_FILE_SIZE = 10 * 1024 * 1024;
             if (sb3Data.byteLength > MAX_FILE_SIZE) {
                 const sizeMB = (sb3Data.byteLength / (1024 * 1024)).toFixed(1);
                 throw new Error(
@@ -821,7 +383,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
             }
             await classroomAPI.uploadToPresignedUrl(submissionData.uploadUrl, sb3Data, 'application/octet-stream');
 
-            // 4. Upload thumbnail
             if (thumbnailDataUrl) {
                 const thumbnailBlob = await fetch(thumbnailDataUrl).then(r => r.blob());
                 await classroomAPI.uploadToPresignedUrl(
@@ -831,7 +392,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
                 );
             }
 
-            // 5. Upload screenshots (parallel)
             if (screenshotBlobs.length > 0 && submissionData.screenshotUploadUrls) {
                 await Promise.all(
                     screenshotBlobs.map((blob, i) =>
@@ -841,8 +401,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
             }
 
             setSubmitProgress(null);
-
-            // 6. Update Redux state
             dispatch(setSubmissionStatus('submitted', submissionData.submittedAt));
             setPhase('student-status');
         } catch (err) {
@@ -873,182 +431,69 @@ const ClassroomModal = ({ mode = 'student' }) => {
         setPhase('student-status');
     }, []);
 
-    // --- Teacher: Return submission ---
-
-    const handleReturnSubmission = useCallback(
-        async (submissionId, teacherComment) => {
-            if (!idToken || !selectedClassroom) return;
-            clearError();
-            setIsLoading(true);
-            try {
-                await classroomAPI.updateSubmission(idToken, selectedClassroom.classroomId, submissionId, {
-                    status: 'returned',
-                    teacherComment,
-                });
-                // Refresh to show updated status
-                await loadClassroomDetail(selectedClassroom.classroomId);
-            } catch (err) {
-                showError(translateError(intl, err));
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [idToken, selectedClassroom, clearError, showError, intl, loadClassroomDetail],
-    );
-
-    // --- Teacher: Download all submissions as ZIP ---
-
-    const handleDownloadAll = useCallback(async () => {
-        if (!selectedClassroom || !members || members.length === 0) return;
-        clearError();
-
-        const submittedMembers = members.filter(m => m.hasSubmission && m.projectUrl);
-        if (submittedMembers.length === 0) return;
-
-        setDownloadProgress({ current: 0, total: submittedMembers.length });
-
-        try {
-            const zip = new JSZip();
-            const className = selectedClassroom.className || 'class';
-
-            for (let i = 0; i < submittedMembers.length; i++) {
-                const m = submittedMembers[i];
-                setDownloadProgress({ current: i + 1, total: submittedMembers.length });
-
-                const seatLabel = m.memberId.replace('seat-', '');
-                const name = m.displayName || '';
-                const folderName = name ? `${seatLabel}_${name}` : seatLabel;
-                const folder = zip.folder(folderName);
-
-                // Download project .sb3
-                try {
-                    const res = await fetch(m.projectUrl);
-                    if (res.ok) folder.file(`${m.projectName || 'project'}.sb3`, await res.blob());
-                } catch {
-                    // Skip failed downloads
-                }
-
-                // Download thumbnail
-                if (m.thumbnailUrl) {
-                    try {
-                        const res = await fetch(m.thumbnailUrl);
-                        if (res.ok) folder.file('thumbnail.png', await res.blob());
-                    } catch {
-                        // Skip
-                    }
-                }
-
-                // Download screenshots
-                for (let si = 0; si < (m.screenshotUrls || []).length; si++) {
-                    try {
-                        const res = await fetch(m.screenshotUrls[si]);
-                        if (res.ok) folder.file(`screenshot-${si}.png`, await res.blob());
-                    } catch {
-                        // Skip
-                    }
-                }
-            }
-
-            // Generate and download ZIP
-            const blob = await zip.generateAsync({ type: 'blob' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${className}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (err) {
-            showError(translateError(intl, err));
-        } finally {
-            setDownloadProgress(null);
-        }
-    }, [selectedClassroom, members, clearError, showError, intl]);
-
     // --- Classcode URL parameter auto-join ---
     useEffect(() => {
         const classcodeParams = getUrlParams();
         if (!classcodeParams.classcode) return;
 
-        const code = classcodeParams.classcode; // already uppercased by url-params.js
+        const code = classcodeParams.classcode;
 
-        // Clear classcode from URL and cache to prevent re-trigger on modal reopen
         const url = new URL(window.location.href);
         url.searchParams.delete('classcode');
         window.history.replaceState({}, '', url.toString());
         clearClasscode();
 
-        // If already joined to the same class
         if (classroomState.sessionToken && classroomState.joinCode === code) {
             setPhase('student-status');
             return;
         }
 
-        // If joined to a different class, leave first
         if (classroomState.sessionToken) {
             dispatch(clearClassroomSession());
         }
 
-        // Start the join flow
         handleJoinWithCode(code);
     }, []); // Run once on mount — intentionally omit deps
 
-    // --- Teacher: Update assignment name ---
-
-    const handleUpdateAssignmentName = useCallback(
-        async assignmentName => {
-            if (!idToken || !selectedClassroom) return;
-            clearError();
-            try {
-                await classroomAPI.updateClassroom(idToken, selectedClassroom.classroomId, { assignmentName });
-                setSelectedClassroom(prev => ({ ...prev, assignmentName }));
-            } catch (err) {
-                showError(translateError(intl, err));
-            }
-        },
-        [idToken, selectedClassroom, clearError, showError, intl],
-    );
-
     const teacherContainerProps = {
         phase,
-        classrooms,
-        selectedClassroom,
-        members,
+        classrooms: teacher.classrooms,
+        selectedClassroom: teacher.selectedClassroom,
+        members: teacher.members,
         error,
         errorTitle,
         errorActionLabel,
         errorActionHandler,
         isLoading,
-        selectedMember,
-        codeDisplayClassroom,
-        codeDisplayFullscreen,
-        downloadProgress,
-        googleCourses,
-        selectedGoogleCourse,
-        onTeacherLogin: handleTeacherLogin,
-        onTeacherLogout: handleTeacherLogout,
-        onShowCreateForm: handleShowCreateForm,
-        onCreateClassroom: handleCreateClassroom,
-        onSelectClassroom: handleSelectClassroom,
-        onBackToDashboard: handleBackToDashboard,
-        onDeleteClassroom: handleDeleteClassroom,
-        onDeleteMember: handleDeleteMember,
-        onRefreshDetail: handleRefreshDetail,
-        onSelectMember: handleSelectMember,
-        onOpenSubmission: handleOpenSubmission,
-        onReturnSubmission: handleReturnSubmission,
-        onDownloadAll: handleDownloadAll,
-        onShowCodeDisplay: handleShowCodeDisplay,
-        onCloseCodeDisplay: handleCloseCodeDisplay,
-        onCopyInviteLink: handleCopyInviteLink,
-        onToggleCodeFullscreen: handleToggleCodeFullscreen,
-        onShowPostAssignment: handleShowPostAssignment,
-        onPostAssignment: handlePostAssignment,
-        onGoogleClassroomImport: handleGoogleClassroomImport,
-        onSelectGoogleCourse: handleSelectGoogleCourse,
-        onConfirmGoogleImport: handleConfirmGoogleImport,
-        onUpdateAssignmentName: handleUpdateAssignmentName,
+        selectedMember: teacher.selectedMember,
+        codeDisplayClassroom: teacher.codeDisplayClassroom,
+        codeDisplayFullscreen: teacher.codeDisplayFullscreen,
+        downloadProgress: teacher.downloadProgress,
+        googleCourses: teacher.googleCourses,
+        selectedGoogleCourse: teacher.selectedGoogleCourse,
+        onTeacherLogin: teacher.handleTeacherLogin,
+        onTeacherLogout: teacher.handleTeacherLogout,
+        onShowCreateForm: teacher.handleShowCreateForm,
+        onCreateClassroom: teacher.handleCreateClassroom,
+        onSelectClassroom: teacher.handleSelectClassroom,
+        onBackToDashboard: teacher.handleBackToDashboard,
+        onDeleteClassroom: teacher.handleDeleteClassroom,
+        onDeleteMember: teacher.handleDeleteMember,
+        onRefreshDetail: teacher.handleRefreshDetail,
+        onSelectMember: teacher.handleSelectMember,
+        onOpenSubmission: teacher.handleOpenSubmission,
+        onReturnSubmission: teacher.handleReturnSubmission,
+        onDownloadAll: teacher.handleDownloadAll,
+        onShowCodeDisplay: teacher.handleShowCodeDisplay,
+        onCloseCodeDisplay: teacher.handleCloseCodeDisplay,
+        onCopyInviteLink: teacher.handleCopyInviteLink,
+        onToggleCodeFullscreen: teacher.handleToggleCodeFullscreen,
+        onShowPostAssignment: teacher.handleShowPostAssignment,
+        onPostAssignment: teacher.handlePostAssignment,
+        onGoogleClassroomImport: teacher.handleGoogleClassroomImport,
+        onSelectGoogleCourse: teacher.handleSelectGoogleCourse,
+        onConfirmGoogleImport: teacher.handleConfirmGoogleImport,
+        onUpdateAssignmentName: teacher.handleUpdateAssignmentName,
     };
 
     if (mode === 'teacher') {
@@ -1057,7 +502,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     return (
         <ClassroomModalComponent
-            classrooms={classrooms}
+            classrooms={teacher.classrooms}
             classroomState={classroomState}
             error={error}
             errorActionHandler={errorActionHandler}
@@ -1065,54 +510,54 @@ const ClassroomModal = ({ mode = 'student' }) => {
             errorTitle={errorTitle}
             isLoading={isLoading}
             joinedInfo={joinedInfo}
-            members={members}
+            members={teacher.members}
             phase={phase}
             seatCount={seatCount}
-            selectedClassroom={selectedClassroom}
-            selectedMember={selectedMember}
+            selectedClassroom={teacher.selectedClassroom}
+            selectedMember={teacher.selectedMember}
             selectedSeat={selectedSeat}
             takenSeats={takenSeats}
             thumbnailDataUrl={thumbnailDataUrl}
-            codeDisplayClassroom={codeDisplayClassroom}
-            codeDisplayFullscreen={codeDisplayFullscreen}
-            onBackToDashboard={handleBackToDashboard}
-            onCloseCodeDisplay={handleCloseCodeDisplay}
+            codeDisplayClassroom={teacher.codeDisplayClassroom}
+            codeDisplayFullscreen={teacher.codeDisplayFullscreen}
+            onBackToDashboard={teacher.handleBackToDashboard}
+            onCloseCodeDisplay={teacher.handleCloseCodeDisplay}
             onClose={handleClose}
             onConfirmJoin={handleConfirmJoin}
-            onCopyInviteLink={handleCopyInviteLink}
-            onCreateClassroom={handleCreateClassroom}
-            onDeleteClassroom={handleDeleteClassroom}
-            onDeleteMember={handleDeleteMember}
-            onDownloadAll={handleDownloadAll}
-            downloadProgress={downloadProgress}
+            onCopyInviteLink={teacher.handleCopyInviteLink}
+            onCreateClassroom={teacher.handleCreateClassroom}
+            onDeleteClassroom={teacher.handleDeleteClassroom}
+            onDeleteMember={teacher.handleDeleteMember}
+            onDownloadAll={teacher.handleDownloadAll}
+            downloadProgress={teacher.downloadProgress}
             onJoinWithCode={handleJoinWithCode}
             onLeaveClassroom={handleLeaveClassroom}
             submitProgress={submitProgress}
-            onOpenSubmission={handleOpenSubmission}
-            onRefreshDetail={handleRefreshDetail}
-            onReturnSubmission={handleReturnSubmission}
+            onOpenSubmission={teacher.handleOpenSubmission}
+            onRefreshDetail={teacher.handleRefreshDetail}
+            onReturnSubmission={teacher.handleReturnSubmission}
             teacherComment={studentTeacherComment}
             onRefreshStudentStatus={refreshStudentStatus}
             onStartSubmit={handleStartSubmit}
             onConfirmSubmit={handleConfirmSubmit}
             onCancelSubmit={handleCancelSubmit}
-            onShowCodeDisplay={handleShowCodeDisplay}
-            onSelectClassroom={handleSelectClassroom}
-            onSelectMember={handleSelectMember}
+            onShowCodeDisplay={teacher.handleShowCodeDisplay}
+            onSelectClassroom={teacher.handleSelectClassroom}
+            onSelectMember={teacher.handleSelectMember}
             onSelectSeat={handleSelectSeat}
             onSelectStudent={handleSelectStudent}
             onSelectTeacher={handleSelectTeacher}
-            onShowCreateForm={handleShowCreateForm}
-            onTeacherLogin={handleTeacherLogin}
-            onTeacherLogout={handleTeacherLogout}
-            onToggleCodeFullscreen={handleToggleCodeFullscreen}
-            googleCourses={googleCourses}
-            selectedGoogleCourse={selectedGoogleCourse}
-            onGoogleClassroomImport={handleGoogleClassroomImport}
-            onSelectGoogleCourse={handleSelectGoogleCourse}
-            onConfirmGoogleImport={handleConfirmGoogleImport}
-            onPostAssignment={handlePostAssignment}
-            onShowPostAssignment={handleShowPostAssignment}
+            onShowCreateForm={teacher.handleShowCreateForm}
+            onTeacherLogin={teacher.handleTeacherLogin}
+            onTeacherLogout={teacher.handleTeacherLogout}
+            onToggleCodeFullscreen={teacher.handleToggleCodeFullscreen}
+            googleCourses={teacher.googleCourses}
+            selectedGoogleCourse={teacher.selectedGoogleCourse}
+            onGoogleClassroomImport={teacher.handleGoogleClassroomImport}
+            onSelectGoogleCourse={teacher.handleSelectGoogleCourse}
+            onConfirmGoogleImport={teacher.handleConfirmGoogleImport}
+            onPostAssignment={teacher.handlePostAssignment}
+            onShowPostAssignment={teacher.handleShowPostAssignment}
         />
     );
 };
