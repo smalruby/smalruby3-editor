@@ -68,6 +68,7 @@ src/containers/*
 !src/containers/ruby-tab/
 # Individual Smalruby files
 !src/containers/block-display-modal.jsx
+!src/containers/classroom-error-utils.js
 !src/containers/classroom-modal.jsx
 !src/containers/extension-library.css
 !src/containers/google-drive-loader-hoc.jsx

@@ -8,6 +8,10 @@ import Box from '../box/box.jsx';
 import ErrorDisplay from './error-display.jsx';
 import GoogleCourseList from './google-course-list.jsx';
 import StudentJoinForm from './student-join-form.jsx';
+import StudentJoinedConfirmation from './student-joined-confirmation.jsx';
+import StudentSeatSelector from './student-seat-selector.jsx';
+import StudentStatusView from './student-status-view.jsx';
+import StudentSubmitConfirm from './student-submit-confirm.jsx';
 import TeacherClassDetail from './teacher-class-detail.jsx';
 import TeacherCreateForm from './teacher-create-form.jsx';
 import TeacherPostAssignment from './teacher-post-assignment.jsx';
@@ -94,13 +98,6 @@ const ClassroomModal = ({
             onDeleteMember(e.currentTarget.dataset.memberId);
         },
         [onDeleteMember],
-    );
-
-    const handleSelectSeat = useCallback(
-        (e) => {
-            onSelectSeat(parseInt(e.currentTarget.dataset.seat, 10));
-        },
-        [onSelectSeat],
     );
 
     // Student mode: regular modal
@@ -438,366 +435,53 @@ const ClassroomModal = ({
 
                 {/* Phase: student-seat */}
                 {phase === 'student-seat' && (
-                    <div data-testid="classroom-phase-student-seat">
-                        <div className={styles.phaseTitle}>
-                            <FormattedMessage
-                                defaultMessage="Select your seat number"
-                                description="Seat selection prompt"
-                                id="gui.classroom.studentSeat.prompt"
-                            />
-                        </div>
-                        <div className={styles.seatGrid} data-testid="classroom-seat-grid">
-                            {Array.from({ length: seatCount }, (_, i) => i + 1).map(n => {
-                                const isTaken = takenSeats.includes(n);
-                                const isSelected = selectedSeat === n;
-                                return (
-                                    <button
-                                        className={`${styles.seatButton} ${isTaken ? styles.seatTaken : ''} ${isSelected ? styles.seatSelected : ''}`}
-                                        data-seat={n}
-                                        data-testid={`classroom-seat-${n}`}
-                                        disabled={isTaken}
-                                        key={n}
-                                        onClick={handleSelectSeat}
-                                    >
-                                        {n}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        <div
-                            data-testid="classroom-selected-seat"
-                            style={{ display: 'none' }}
-                        >
-                            {selectedSeat}
-                        </div>
-                        <div className={styles.buttonRow}>
-                            <button
-                                className={styles.primaryButton}
-                                data-testid="classroom-confirm-seat"
-                                disabled={!selectedSeat || isLoading}
-                                onClick={onConfirmJoin}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Join"
-                                    description="Confirm join button"
-                                    id="gui.classroom.studentSeat.join"
-                                />
-                            </button>
-                        </div>
-                        <ErrorDisplay error={error} errorTitle={errorTitle} />
-                    </div>
+                    <StudentSeatSelector
+                        error={error}
+                        errorTitle={errorTitle}
+                        isLoading={isLoading}
+                        seatCount={seatCount}
+                        selectedSeat={selectedSeat}
+                        takenSeats={takenSeats}
+                        onConfirmJoin={onConfirmJoin}
+                        onSelectSeat={onSelectSeat}
+                    />
                 )}
 
                 {/* Phase: student-joined */}
                 {phase === 'student-joined' && joinedInfo && (
-                    <div data-testid="classroom-phase-student-joined">
-                        <div className={styles.successArea}>
-                            <div
-                                className={styles.successDetails}
-                                data-testid="classroom-joined-details"
-                            >
-                                <span data-testid="classroom-joined-class-name">
-                                    {joinedInfo.className}
-                                </span>
-                                {' / '}
-                                <span data-testid="classroom-joined-seat-number">
-                                    <FormattedMessage
-                                        defaultMessage="Seat {seatNumber}"
-                                        description="Seat number display"
-                                        id="gui.classroom.studentJoined.seat"
-                                        values={{
-                                            seatNumber: String(joinedInfo.seatNumber).padStart(2, '0'),
-                                        }}
-                                    />
-                                </span>
-                            </div>
-                            {joinedInfo.assignmentName && (
-                                <div
-                                    className={styles.successAssignment}
-                                    data-testid="classroom-joined-assignment"
-                                >
-                                    {joinedInfo.assignmentName}
-                                </div>
-                            )}
-                        </div>
-                        <div className={styles.buttonRow}>
-                            <button
-                                className={styles.primaryButton}
-                                data-testid="classroom-joined-close"
-                                onClick={onClose}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Start"
-                                    description="Close button after joining"
-                                    id="gui.classroom.studentJoined.start"
-                                />
-                            </button>
-                        </div>
-                    </div>
+                    <StudentJoinedConfirmation
+                        joinedInfo={joinedInfo}
+                        onClose={onClose}
+                    />
                 )}
 
                 {/* Phase: student-status (already joined) */}
                 {phase === 'student-status' && classroomState && (
-                    <div data-testid="classroom-phase-student-status">
-                        <div className={styles.phaseTitle}>
-                            <FormattedMessage
-                                defaultMessage="Your Classroom"
-                                description="Student status title"
-                                id="gui.classroom.studentStatus.title"
-                            />
-                        </div>
-                        <div className={styles.statusCard}>
-                            <div className={styles.statusRow}>
-                                <span className={styles.statusLabel}>
-                                    <FormattedMessage
-                                        defaultMessage="Class"
-                                        description="Class name label"
-                                        id="gui.classroom.studentStatus.class"
-                                    />
-                                </span>
-                                <span
-                                    className={styles.statusValue}
-                                    data-testid="classroom-status-class-name"
-                                >
-                                    {classroomState.className}
-                                </span>
-                            </div>
-                            <div className={styles.statusRow}>
-                                <span className={styles.statusLabel}>
-                                    <FormattedMessage
-                                        defaultMessage="Seat Number"
-                                        description="Seat number label"
-                                        id="gui.classroom.studentStatus.seatNumber"
-                                    />
-                                </span>
-                                <span
-                                    className={styles.statusValue}
-                                    data-testid="classroom-status-seat-number"
-                                >
-                                    {String(classroomState.seatNumber).padStart(2, '0')}
-                                </span>
-                            </div>
-                            {classroomState.assignmentName && (
-                                <div className={styles.statusRow}>
-                                    <span className={styles.statusLabel}>
-                                        <FormattedMessage
-                                            defaultMessage="Assignment"
-                                            description="Assignment name label"
-                                            id="gui.classroom.studentStatus.assignment"
-                                        />
-                                    </span>
-                                    <span
-                                        className={styles.statusValue}
-                                        data-testid="classroom-status-assignment"
-                                    >
-                                        {classroomState.assignmentName}
-                                    </span>
-                                </div>
-                            )}
-                            {classroomState.joinedAt && (
-                                <div className={styles.statusRow}>
-                                    <span className={styles.statusLabel}>
-                                        <FormattedMessage
-                                            defaultMessage="Joined"
-                                            description="Joined at label"
-                                            id="gui.classroom.studentStatus.joinedAt"
-                                        />
-                                    </span>
-                                    <span
-                                        className={styles.statusValue}
-                                        data-testid="classroom-status-joined-at"
-                                    >
-                                        {new Date(classroomState.joinedAt).toLocaleString(
-                                            [],
-                                            {
-                                                year: 'numeric',
-                                                month: 'numeric',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            },
-                                        )}
-                                    </span>
-                                </div>
-                            )}
-                            <div className={styles.statusRow}>
-                                <span className={styles.statusLabel}>
-                                    <FormattedMessage
-                                        defaultMessage="Submission Status"
-                                        description="Submission status label"
-                                        id="gui.classroom.studentStatus.submissionStatus"
-                                    />
-                                </span>
-                                <span
-                                    className={styles.statusValue}
-                                    data-testid="classroom-submit-status"
-                                >
-                                    {classroomState.submissionStatus === 'returned' ? (
-                                        <React.Fragment>
-                                            {'↩ '}
-                                            <FormattedMessage
-                                                defaultMessage="Returned"
-                                                description="Returned status"
-                                                id="gui.classroom.studentStatus.returned"
-                                            />
-                                            {classroomState.lastSubmittedAt && (
-                                                <span>{` (${new Date(classroomState.lastSubmittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}</span>
-                                            )}
-                                        </React.Fragment>
-                                    ) : classroomState.submissionStatus === 'submitted' ? (
-                                        <React.Fragment>
-                                            {'✓ '}
-                                            <FormattedMessage
-                                                defaultMessage="Submitted"
-                                                description="Submitted status"
-                                                id="gui.classroom.studentStatus.submitted"
-                                            />
-                                            {classroomState.lastSubmittedAt && (
-                                                <span>{` (${new Date(classroomState.lastSubmittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}</span>
-                                            )}
-                                        </React.Fragment>
-                                    ) : (
-                                        <FormattedMessage
-                                            defaultMessage="Not submitted"
-                                            description="Not submitted status"
-                                            id="gui.classroom.studentStatus.notSubmitted"
-                                        />
-                                    )}
-                                </span>
-                                <button
-                                    className={styles.refreshButton}
-                                    data-testid="classroom-student-refresh"
-                                    disabled={isLoading}
-                                    onClick={onRefreshStudentStatus}
-                                >
-                                    {'↻'}
-                                </button>
-                            </div>
-                            {classroomState.submissionStatus === 'returned' && teacherComment && (
-                                <div
-                                    className={styles.teacherCommentBox}
-                                    data-testid="classroom-status-teacher-comment"
-                                >
-                                    <span className={styles.statusLabel}>
-                                        <FormattedMessage
-                                            defaultMessage="Teacher's Comment"
-                                            description="Teacher comment label"
-                                            id="gui.classroom.studentStatus.teacherComment"
-                                        />
-                                    </span>
-                                    <span className={styles.teacherCommentText}>
-                                        {teacherComment}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                        <div className={styles.statusFooter}>
-                            <button
-                                className={styles.secondaryButton}
-                                data-testid="classroom-leave"
-                                disabled={isLoading}
-                                onClick={onLeaveClassroom}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Leave Classroom"
-                                    description="Leave classroom button"
-                                    id="gui.classroom.studentStatus.leave"
-                                />
-                            </button>
-                            <button
-                                className={styles.primaryButton}
-                                data-testid="classroom-submit-button"
-                                disabled={isLoading}
-                                onClick={onStartSubmit}
-                            >
-                                {classroomState.submissionStatus ? (
-                                    <FormattedMessage
-                                        defaultMessage="Resubmit Assignment"
-                                        description="Resubmit button"
-                                        id="gui.classroom.studentStatus.resubmit"
-                                    />
-                                ) : (
-                                    <FormattedMessage
-                                        defaultMessage="Submit Assignment"
-                                        description="Submit button"
-                                        id="gui.classroom.studentStatus.submit"
-                                    />
-                                )}
-                            </button>
-                        </div>
-                        <ErrorDisplay
-                            actionLabel={errorActionLabel}
-                            error={error}
-                            errorTitle={errorTitle}
-                            onAction={errorActionHandler}
-                        />
-                    </div>
+                    <StudentStatusView
+                        classroomState={classroomState}
+                        error={error}
+                        errorActionHandler={errorActionHandler}
+                        errorActionLabel={errorActionLabel}
+                        errorTitle={errorTitle}
+                        isLoading={isLoading}
+                        teacherComment={teacherComment}
+                        onLeaveClassroom={onLeaveClassroom}
+                        onRefreshStudentStatus={onRefreshStudentStatus}
+                        onStartSubmit={onStartSubmit}
+                    />
                 )}
 
                 {/* Phase: student-submit-confirm */}
                 {phase === 'student-submit-confirm' && (
-                    <div data-testid="classroom-phase-submit-confirm">
-                        <div className={styles.phaseTitle}>
-                            <FormattedMessage
-                                defaultMessage="Submit your project"
-                                description="Submit confirmation title"
-                                id="gui.classroom.submitConfirm.title"
-                            />
-                        </div>
-                        {thumbnailDataUrl && (
-                            <div className={styles.thumbnailPreview}>
-                                <img
-                                    alt="Project thumbnail"
-                                    className={styles.thumbnailImage}
-                                    data-testid="classroom-submit-preview"
-                                    src={thumbnailDataUrl}
-                                />
-                            </div>
-                        )}
-                        <div className={styles.description}>
-                            <FormattedMessage
-                                defaultMessage="Are you sure you want to submit your current project?"
-                                description="Submit confirmation message"
-                                id="gui.classroom.submitConfirm.message"
-                            />
-                        </div>
-                        <div className={styles.buttonRow}>
-                            <button
-                                className={styles.secondaryButton}
-                                data-testid="classroom-submit-cancel"
-                                onClick={onCancelSubmit}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Cancel"
-                                    description="Cancel submit button"
-                                    id="gui.classroom.submitConfirm.cancel"
-                                />
-                            </button>
-                            <button
-                                className={styles.primaryButton}
-                                data-testid="classroom-submit-confirm"
-                                disabled={isLoading}
-                                onClick={onConfirmSubmit}
-                            >
-                                {isLoading && submitProgress ? (
-                                    `${submitProgress.label} (${submitProgress.current}/${submitProgress.total})`
-                                ) : isLoading ? (
-                                    <FormattedMessage
-                                        defaultMessage="Submitting..."
-                                        description="Submitting progress"
-                                        id="gui.classroom.submitConfirm.submitting"
-                                    />
-                                ) : (
-                                    <FormattedMessage
-                                        defaultMessage="Submit"
-                                        description="Confirm submit button"
-                                        id="gui.classroom.submitConfirm.submit"
-                                    />
-                                )}
-                            </button>
-                        </div>
-                        <ErrorDisplay error={error} errorTitle={errorTitle} />
-                    </div>
+                    <StudentSubmitConfirm
+                        error={error}
+                        errorTitle={errorTitle}
+                        isLoading={isLoading}
+                        submitProgress={submitProgress}
+                        thumbnailDataUrl={thumbnailDataUrl}
+                        onCancelSubmit={onCancelSubmit}
+                        onConfirmSubmit={onConfirmSubmit}
+                    />
                 )}
             </Box>
         </Modal>

@@ -19,58 +19,10 @@ import {
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
+import translateError from './classroom-error-utils.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000', 10);
-
-/**
- * Translate known API error messages to localized user-friendly messages.
- * @param {object} intl - react-intl intl object
- * @param {Error} err - Error from API call
- * @param {string} context - Error context ('join', 'seat', 'session', 'general')
- * @returns {string} Localized error message
- */
-const translateError = (intl, err, context = 'general') => {
-    const msg = err.message || '';
-    const status = err.status;
-
-    if (context === 'join' && (status === 404 || msg.includes('Invalid join code'))) {
-        return intl.formatMessage({
-            defaultMessage: 'Could not join the classroom. Please check the join code and try again.',
-            description: 'Error when join code is invalid',
-            id: 'gui.classroom.error.invalidJoinCode',
-        });
-    }
-    if (context === 'seat' && (status === 409 || msg.includes('already taken'))) {
-        return intl.formatMessage({
-            defaultMessage: 'This seat is already taken. Please choose a different seat.',
-            description: 'Error when seat is already taken',
-            id: 'gui.classroom.error.seatTaken',
-        });
-    }
-    if (context === 'session' || msg.includes('Invalid or expired session') || status === 401) {
-        return intl.formatMessage({
-            defaultMessage: 'Your session has expired. Please rejoin the classroom.',
-            description: 'Error when session token is invalid',
-            id: 'gui.classroom.error.sessionExpired',
-        });
-    }
-    if (msg.includes('no longer active')) {
-        return intl.formatMessage({
-            defaultMessage: 'This classroom is no longer active.',
-            description: 'Error when classroom is archived',
-            id: 'gui.classroom.error.classroomInactive',
-        });
-    }
-    return (
-        msg ||
-        intl.formatMessage({
-            defaultMessage: 'An unexpected error occurred. Please try again.',
-            description: 'Generic error message',
-            id: 'gui.classroom.error.generic',
-        })
-    );
-};
 
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
