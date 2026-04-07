@@ -16,8 +16,8 @@ let driver;
 describe('player example', () => {
     const uri = path.resolve(__dirname, '../../build/player.html');
 
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {
@@ -46,8 +46,8 @@ describe('player example', () => {
 describe('blocks example', () => {
     const uri = path.resolve(__dirname, '../../build/blocks-only.html');
 
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

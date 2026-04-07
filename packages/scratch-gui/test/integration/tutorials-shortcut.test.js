@@ -14,8 +14,8 @@ const uriPrefix = path.resolve(__dirname, '../../build/index.html?tutorial=');
 let driver;
 
 describe.skip('Working with shortcut to Tutorials library', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

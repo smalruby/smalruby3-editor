@@ -28,8 +28,8 @@ const loadExtension = async (d, extensionName) => {
 };
 
 describe('SmalrubotS1 firmware flash', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

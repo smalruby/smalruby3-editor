@@ -16,8 +16,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe('Loading scratch gui', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

@@ -16,8 +16,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe('Project state', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

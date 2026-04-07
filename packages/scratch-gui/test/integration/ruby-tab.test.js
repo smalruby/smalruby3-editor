@@ -28,8 +28,8 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 let driver;
 
 describe('convert Code from Ruby', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

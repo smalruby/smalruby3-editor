@@ -14,8 +14,8 @@ const uriWithTutorial = id => `${uri}?tutorial=${id}`;
 let driver;
 
 describe('Smalruby Tutorials', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

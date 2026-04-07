@@ -34,8 +34,8 @@ const V2_CODE = 'self.when_flag_clicked do\\n  move(10)\\nend';
 let driver;
 
 describe('v1 code detection prompt', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {

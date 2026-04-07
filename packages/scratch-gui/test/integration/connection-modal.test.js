@@ -24,8 +24,8 @@ const websocketFakeoutJs = `var RealWebSocket = WebSocket;
     }`;
 
 describe('Hardware extension connection modal', () => {
-    beforeAll(() => {
-        driver = getDriver();
+    beforeAll(async () => {
+        driver = await getDriver();
     });
 
     afterAll(async () => {
@@ -34,7 +34,7 @@ describe('Hardware extension connection modal', () => {
 
     test('Message saying Scratch Link is unavailable (BLE)', async () => {
         await driver.quit();
-        driver = getDriver();
+        driver = await getDriver();
 
         await loadUri(uri);
 
