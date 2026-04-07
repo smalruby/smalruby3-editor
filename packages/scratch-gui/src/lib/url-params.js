@@ -108,5 +108,14 @@ const getUrlParams = () => {
     return _cached;
 };
 
-export { getUrlParams };
+/**
+ * Clear the cached classcode so it is only consumed once.
+ */
+const clearClasscode = () => {
+    if (_cached) {
+        _cached = { ..._cached, classcode: null };
+    }
+};
+
+export { getUrlParams, clearClasscode };
 export default getUrlParams;

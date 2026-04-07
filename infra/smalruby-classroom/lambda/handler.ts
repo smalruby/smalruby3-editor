@@ -498,6 +498,7 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
       sessionToken,
       classroomId: classroom.classroomId,
       className: classroom.className,
+      assignmentName: classroom.assignmentName || null,
       seatNumber,
       memberId,
     }),
@@ -646,6 +647,7 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
     body: JSON.stringify({
       classroomId: classroom.classroomId,
       className: classroom.className,
+      assignmentName: classroom.assignmentName || null,
       studentCount: classroom.studentCount,
       takenSeats,
     }),

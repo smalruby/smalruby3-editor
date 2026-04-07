@@ -10,7 +10,7 @@ import classroomAPI from '../lib/classroom-api.js';
 import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
-import { getUrlParams } from '../lib/url-params.js';
+import { getUrlParams, clearClasscode } from '../lib/url-params.js';
 import {
     closeClassroomModal,
     closeTeacherModal,
@@ -18,6 +18,7 @@ import {
     clearClassroomSession,
     setSubmissionStatus,
 } from '../reducers/classroom.js';
+import { setProjectTitle } from '../reducers/project-title.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000', 10);
@@ -82,6 +83,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
     const intl = useIntl();
     const classroomState = useSelector(state => state.scratchGui.classroom);
     const vm = useSelector(state => state.scratchGui.vm);
+    const projectTitle = useSelector(state => state.scratchGui.projectTitle);
     const scratchBlocks = useSelector(state => state.scratchGui.blockDisplay?.scratchBlocks);
 
     // Auto-login with dev bypass token when devlogin=1
@@ -171,33 +173,41 @@ const ClassroomModal = ({ mode = 'student' }) => {
         setErrorActionHandler(null);
     }, []);
 
-    // Go to teacher login screen (used as error action for session expiry)
+    // Go back to login/join screen (used as error action for session expiry)
     const handleGoToLogin = useCallback(() => {
-        _cachedTeacherIdToken = null;
-        setIdToken(null);
-        setClassrooms([]);
-        setSelectedClassroom(null);
-        setMembers([]);
+        if (mode === 'teacher') {
+            _cachedTeacherIdToken = null;
+            setIdToken(null);
+            setClassrooms([]);
+            setSelectedClassroom(null);
+            setMembers([]);
+        } else {
+            dispatch(clearClassroomSession());
+        }
         clearError();
-        setPhase('teacher-login');
-    }, [clearError]);
+        setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
+    }, [mode, clearError, dispatch]);
 
-    // Show error with session-expired action link (teacher mode only)
+    // Show error with session-expired action link
     const showSessionExpiredError = useCallback(
         (message, title = null) => {
             setError(message);
             setErrorTitle(title);
-            if (mode === 'teacher') {
-                setErrorActionLabel(
-                    intl.formatMessage({
-                        defaultMessage: 'Go to login screen',
-                        description: 'Link to go back to the login screen after session expiry',
-                        id: 'gui.classroom.error.goToLogin',
-                    }),
-                );
-                // useState setter with function form to store the callback
-                setErrorActionHandler(() => handleGoToLogin);
-            }
+            const label =
+                mode === 'teacher'
+                    ? intl.formatMessage({
+                          defaultMessage: 'Go to login screen',
+                          description: 'Link to go back to the login screen after session expiry',
+                          id: 'gui.classroom.error.goToLogin',
+                      })
+                    : intl.formatMessage({
+                          defaultMessage: 'Go to join screen',
+                          description: 'Link to go back to the join screen after session expiry',
+                          id: 'gui.classroom.error.goToJoin',
+                      });
+            setErrorActionLabel(label);
+            // useState setter with function form to store the callback
+            setErrorActionHandler(() => handleGoToLogin);
         },
         [mode, intl, handleGoToLogin],
     );
@@ -216,11 +226,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
     const handleSelectStudent = useCallback(() => {
         clearError();
         setPhase('student-join');
-    }, [clearError]);
-
-    const handleBackToRoleSelect = useCallback(() => {
-        clearError();
-        setPhase('role-select');
     }, [clearError]);
 
     // --- Teacher: Google Sign-In ---
@@ -293,7 +298,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
         setSelectedClassroom(null);
         setMembers([]);
         clearError();
-        setPhase(mode === 'teacher' ? 'teacher-login' : 'role-select');
+        setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
     }, [mode, clearError]);
 
     // --- Google Classroom: Import flow ---
@@ -551,7 +556,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
         if (idToken) {
             setPhase('teacher-dashboard');
         } else {
-            setPhase(mode === 'teacher' ? 'teacher-login' : 'role-select');
+            setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
         }
     }, [mode, idToken, clearError]);
 
@@ -682,6 +687,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
                     role: 'student',
                     classroomId: data.classroomId,
                     className: data.className,
+                    assignmentName: data.assignmentName || null,
                     joinCode: pendingJoinCode,
                     seatNumber: data.seatNumber,
                     memberId: data.memberId,
@@ -689,8 +695,13 @@ const ClassroomModal = ({ mode = 'student' }) => {
                     joinedAt: new Date().toISOString(),
                 }),
             );
+            // Set project title to assignment name
+            if (data.assignmentName) {
+                dispatch(setProjectTitle(data.assignmentName));
+            }
             setJoinedInfo({
                 className: data.className,
+                assignmentName: data.assignmentName || null,
                 seatNumber: data.seatNumber,
             });
             setPhase('student-joined');
@@ -720,17 +731,11 @@ const ClassroomModal = ({ mode = 'student' }) => {
             }
         } catch {
             dispatch(clearClassroomSession());
-            const title = intl.formatMessage({
-                defaultMessage: 'An error occurred',
-                description: 'Error dialog title',
-                id: 'gui.classroom.error.title',
-            });
-            showError(translateError(intl, { status: 401 }, 'session'), title);
-            setPhase('role-select');
+            showSessionExpiredError(translateError(intl, { status: 401 }, 'session'));
         } finally {
             setIsLoading(false);
         }
-    }, [classroomState.sessionToken, dispatch, showError, intl]);
+    }, [classroomState.sessionToken, dispatch, showSessionExpiredError, intl]);
 
     // Fetch on student-status phase display
     useEffect(() => {
@@ -751,7 +756,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
             }
         }
         dispatch(clearClassroomSession());
-        setPhase('role-select');
+        setPhase('student-join');
     }, [classroomState.sessionToken, classroomState.classroomId, dispatch]);
 
     // --- Student: Start submit flow ---
@@ -832,7 +837,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
         clearError();
         setIsLoading(true);
         try {
-            const projectTitle = vm.runtime.projectName || 'Untitled';
+            const submitProjectTitle = projectTitle || 'Untitled';
 
             // 1. Capture block screenshots
             const screenshotBlobs = await captureBlockScreenshots();
@@ -841,7 +846,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
             const submissionData = await classroomAPI.createSubmission(
                 classroomState.sessionToken,
                 classroomState.classroomId,
-                projectTitle,
+                submitProjectTitle,
                 screenshotBlobs.length,
             );
 
@@ -892,20 +897,25 @@ const ClassroomModal = ({ mode = 'student' }) => {
             setSubmitProgress(null);
             if (err.status === 401) {
                 dispatch(clearClassroomSession());
-                const title = intl.formatMessage({
-                    defaultMessage: 'An error occurred',
-                    description: 'Error dialog title',
-                    id: 'gui.classroom.error.title',
-                });
-                showError(translateError(intl, err, 'session'), title);
-                setPhase('role-select');
+                showSessionExpiredError(translateError(intl, err, 'session'));
             } else {
                 showError(translateError(intl, err));
             }
         } finally {
             setIsLoading(false);
         }
-    }, [classroomState, vm, thumbnailDataUrl, captureBlockScreenshots, dispatch, clearError, showError, intl]);
+    }, [
+        classroomState,
+        vm,
+        projectTitle,
+        thumbnailDataUrl,
+        captureBlockScreenshots,
+        dispatch,
+        clearError,
+        showError,
+        showSessionExpiredError,
+        intl,
+    ]);
 
     const handleCancelSubmit = useCallback(() => {
         setPhase('student-status');
@@ -1011,10 +1021,11 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
         const code = classcodeParams.classcode; // already uppercased by url-params.js
 
-        // Clear classcode from URL to prevent re-trigger
+        // Clear classcode from URL and cache to prevent re-trigger on modal reopen
         const url = new URL(window.location.href);
         url.searchParams.delete('classcode');
         window.history.replaceState({}, '', url.toString());
+        clearClasscode();
 
         // If already joined to the same class
         if (classroomState.sessionToken && classroomState.joinCode === code) {
@@ -1097,6 +1108,8 @@ const ClassroomModal = ({ mode = 'student' }) => {
             classrooms={classrooms}
             classroomState={classroomState}
             error={error}
+            errorActionHandler={errorActionHandler}
+            errorActionLabel={errorActionLabel}
             errorTitle={errorTitle}
             isLoading={isLoading}
             joinedInfo={joinedInfo}
@@ -1111,7 +1124,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
             codeDisplayClassroom={codeDisplayClassroom}
             codeDisplayFullscreen={codeDisplayFullscreen}
             onBackToDashboard={handleBackToDashboard}
-            onBackToRoleSelect={handleBackToRoleSelect}
             onCloseCodeDisplay={handleCloseCodeDisplay}
             onClose={handleClose}
             onConfirmJoin={handleConfirmJoin}

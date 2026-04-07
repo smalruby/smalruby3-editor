@@ -479,6 +479,19 @@
 .success-details {
     color: #575e75;
     margin-top: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.success-assignment {
+    color: #575e75;
+    margin-top: 0.3rem;
+    font-size: 0.95rem;
+}
+
+.status-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
 }
 
 .loading {
@@ -1062,4 +1075,25 @@
     height: 100%;
     color: #999;
     font-size: 0.85rem;
+}
+
+.join-hint-box {
+    margin-top: 1.5rem;
+    padding: 0.8rem 1rem;
+    background-color: #f0f4ff;
+    border: 1px solid #c8d6f0;
+    border-radius: 8px;
+}
+
+.join-hint-title {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #4c6ef5;
+    margin-bottom: 0.4rem;
+}
+
+.join-hint-text {
+    font-size: 0.8rem;
+    color: #575e75;
+    line-height: 1.5;
 }

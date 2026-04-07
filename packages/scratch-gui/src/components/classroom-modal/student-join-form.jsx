@@ -8,6 +8,8 @@ import styles from './classroom-modal.css';
 
 const StudentJoinForm = ({
     error,
+    errorActionLabel,
+    errorActionHandler,
     errorTitle,
     isLoading,
     noBackButton,
@@ -97,13 +99,46 @@ const StudentJoinForm = ({
                     )}
                 </button>
             </div>
-            <ErrorDisplay error={error} errorTitle={errorTitle} />
+            <ErrorDisplay
+                actionLabel={errorActionLabel}
+                error={error}
+                errorTitle={errorTitle}
+                onAction={errorActionHandler}
+            />
+            <div className={styles.joinHintBox}>
+                <div className={styles.joinHintTitle}>
+                    <FormattedMessage
+                        defaultMessage="Hint"
+                        description="Hint box title on student join form"
+                        id="gui.classroom.studentJoin.hintTitle"
+                    />
+                </div>
+                <div className={styles.joinHintText}>
+                    <FormattedMessage
+                        defaultMessage="Ask your teacher for the join code."
+                        description="Hint text telling students to ask teacher for join code"
+                        id="gui.classroom.studentJoin.hintAskTeacher"
+                    />
+                </div>
+                <div className={styles.joinHintText}>
+                    <FormattedMessage
+                        defaultMessage="Teachers can find the join code in {settingsIcon} Settings → Class Management."
+                        description="Hint text explaining where teachers find join code"
+                        id="gui.classroom.studentJoin.hintTeacherPath"
+                        values={{
+                            settingsIcon: '\u2699',
+                        }}
+                    />
+                </div>
+            </div>
         </div>
     );
 };
 
 StudentJoinForm.propTypes = {
     error: PropTypes.string,
+    errorActionHandler: PropTypes.func,
+    errorActionLabel: PropTypes.string,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
     noBackButton: PropTypes.bool,
