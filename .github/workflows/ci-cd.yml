@@ -200,7 +200,7 @@ jobs:
         with:
           cache: 'npm'
           node-version-file: '.nvmrc'
-      - uses: browser-actions/setup-chrome@facf10a55b9caf92e0cc749b4f45a9a17dbe063a # v1
+      - uses: browser-actions/setup-chrome@c785b87e244131f27c9f19c1a33e2ead956ab7ce # v1
         id: setup-chrome
         with:
           chrome-version: stable
