@@ -205,6 +205,8 @@
 .status-row {
     display: flex;
     justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
     padding: 0.3rem 0;
     border-bottom: 1px solid #e0e0e0;
 }
@@ -217,11 +219,13 @@
     font-weight: bold;
     color: #575e75;
     font-size: 0.85rem;
+    flex-shrink: 0;
 }
 
 .status-value {
     color: #575e75;
     font-size: 0.85rem;
+    text-align: right;
 }
 
 .role-button {
@@ -374,9 +378,20 @@
     margin-bottom: 1rem;
 }
 
-.post-assignment-actions {
+.post-assignment-success-area {
     text-align: center;
+    padding: 2rem 0;
+}
+
+.post-assignment-actions {
     margin-bottom: 1rem;
+}
+
+.post-assignment-hint-center {
+    font-size: 0.8rem;
+    color: #888;
+    line-height: 1.5;
+    text-align: center;
 }
 
 .class-item-main {
@@ -505,13 +520,14 @@
 .success-details {
     color: #575e75;
     margin-top: 0.5rem;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
 }
 
 .success-assignment {
     color: #575e75;
     margin-top: 0.3rem;
-    font-size: 0.95rem;
+    font-size: 1.15rem;
+    font-weight: bold;
 }
 
 .status-footer {

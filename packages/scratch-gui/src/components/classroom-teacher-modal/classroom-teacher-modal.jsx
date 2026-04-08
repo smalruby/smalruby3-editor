@@ -19,6 +19,7 @@ import TeacherClassDetail from '../classroom-modal/teacher-class-detail.jsx';
 import TeacherCreateForm from '../classroom-modal/teacher-create-form.jsx';
 import TeacherPostAssignment from '../classroom-modal/teacher-post-assignment.jsx';
 import ClassroomTutorial from '../classroom-tutorial/classroom-tutorial.jsx';
+import Spinner from '../spinner/spinner.jsx';
 
 import {
     isTutorialSeen,
@@ -493,6 +494,13 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         }
 
         // Default: dashboard (no class selected)
+        if (isLoading) {
+            return (
+                <div className={styles.mainEmpty}>
+                    <Spinner large level="primary" />
+                </div>
+            );
+        }
         return (
             <div className={styles.mainEmpty}>
                 <FormattedMessage
