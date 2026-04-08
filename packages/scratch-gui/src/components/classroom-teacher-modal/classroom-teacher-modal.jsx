@@ -34,7 +34,7 @@ const messages = defineMessages({
     title: {
         defaultMessage: 'Class Management',
         description: 'Title for the teacher class management modal',
-        id: 'gui.menuBar.classroomManagement',
+        id: 'gui.classroom.management.title',
     },
 });
 
