@@ -136,7 +136,7 @@ export default {
     'gui.classroom.studentStatus.returned': '返却済み',
     'gui.classroom.studentStatus.teacherComment': '先生からのコメント',
     'gui.classroom.teacherDetail.cancelDelete': 'キャンセル',
-    'gui.classroom.codeDisplay.title': 'クラスコード',
+    'gui.classroom.codeDisplay.title': '参加コード',
     'gui.classroom.codeDisplay.copyLink': '招待リンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
     'gui.classroom.teacherDetail.selectMember': 'メンバーを選択してください',

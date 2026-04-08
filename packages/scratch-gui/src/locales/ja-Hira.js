@@ -138,7 +138,7 @@ export default {
     'gui.classroom.studentStatus.returned': 'へんきゃくずみ',
     'gui.classroom.studentStatus.teacherComment': 'せんせいからのコメント',
     'gui.classroom.teacherDetail.cancelDelete': 'キャンセル',
-    'gui.classroom.codeDisplay.title': 'クラスコード',
+    'gui.classroom.codeDisplay.title': 'さんかコード',
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
     'gui.classroom.teacherDetail.selectMember': 'メンバーをせんたくしてください',
