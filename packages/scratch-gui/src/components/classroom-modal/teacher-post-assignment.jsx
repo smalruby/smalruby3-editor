@@ -11,7 +11,6 @@ const TeacherPostAssignment = ({
     error,
     errorTitle,
     isLoading,
-    noBackButton,
     selectedClassroom,
     onBack,
     onPostAssignment,
@@ -20,12 +19,19 @@ const TeacherPostAssignment = ({
     const [title, setTitle] = useState(defaultTitle);
     const [description, setDescription] = useState('');
     const [posted, setPosted] = useState(false);
+    const [alternateLink, setAlternateLink] = useState(null);
 
     const handlePost = useCallback(async () => {
         if (!title.trim()) return;
         try {
-            await onPostAssignment(title.trim(), description.trim());
+            const result = await onPostAssignment(
+                title.trim(),
+                description.trim(),
+            );
             setPosted(true);
+            if (result?.alternateLink) {
+                setAlternateLink(result.alternateLink);
+            }
         } catch {
             // error is shown via parent error state
         }
@@ -44,47 +50,66 @@ const TeacherPostAssignment = ({
             className={styles.phaseContainer}
             data-testid="classroom-phase-teacher-post-assignment"
         >
-            {!noBackButton && (
-                <button
-                    className={styles.backButton}
-                    data-testid="classroom-back"
-                    onClick={onBack}
-                >
-                    {'< '}
-                    <FormattedMessage
-                        defaultMessage="Back"
-                        description="Back button"
-                        id="gui.classroom.back"
-                    />
-                </button>
-            )}
+            <button
+                className={styles.backButton}
+                data-testid="classroom-back"
+                onClick={onBack}
+            >
+                {'< '}
+                <FormattedMessage
+                    defaultMessage="Back"
+                    description="Back button"
+                    id="gui.classroom.back"
+                />
+            </button>
             <div className={styles.phaseTitle}>
                 <FormattedMessage
-                    defaultMessage="Post Assignment"
-                    description="Post assignment to Google Classroom"
-                    id="gui.classroom.postAssignment.title"
+                    defaultMessage="Post assignment to Google Classroom"
+                    description="Post assignment page title"
+                    id="gui.classroom.postAssignment.pageTitle"
                 />
             </div>
             {posted ? (
-                <div
-                    className={styles.successMessage}
-                    data-testid="classroom-post-assignment-success"
-                >
-                    <FormattedMessage
-                        defaultMessage="Assignment posted!"
-                        description="Assignment posted successfully"
-                        id="gui.classroom.postAssignment.success"
-                    />
+                <div data-testid="classroom-post-assignment-success">
+                    <div className={styles.successMessage}>
+                        <FormattedMessage
+                            defaultMessage="Assignment posted!"
+                            description="Assignment posted successfully"
+                            id="gui.classroom.postAssignment.success"
+                        />
+                    </div>
+                    {alternateLink && (
+                        <div className={styles.postAssignmentActions}>
+                            <a
+                                className={styles.primaryButton}
+                                data-testid="classroom-view-posted-assignment"
+                                href={alternateLink}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            >
+                                <img
+                                    alt=""
+                                    className={styles.gcImportIcon}
+                                    src={googleClassroomIcon}
+                                />
+                                <FormattedMessage
+                                    defaultMessage="View on Google Classroom"
+                                    description="View posted assignment on Google Classroom"
+                                    id="gui.classroom.postAssignment.viewOnGC"
+                                />
+                            </a>
+                        </div>
+                    )}
+                    <div className={styles.postAssignmentHint}>
+                        <FormattedMessage
+                            defaultMessage="You can edit or delete this assignment on Google Classroom."
+                            description="Hint after posting assignment"
+                            id="gui.classroom.postAssignment.postHint"
+                        />
+                    </div>
                 </div>
             ) : (
                 <>
-                    <div className={styles.postAssignmentHeader}>
-                        <FormattedMessage
-                            defaultMessage="Create an assignment on Google Classroom."
-                            description="Post assignment form header"
-                            id="gui.classroom.postAssignment.header"
-                        />
-                    </div>
                     <div className={styles.postAssignmentTarget}>
                         <FormattedMessage
                             defaultMessage="Target: {className}"
@@ -129,7 +154,7 @@ const TeacherPostAssignment = ({
                     </div>
                     <div className={styles.postAssignmentHint}>
                         <FormattedMessage
-                            defaultMessage="After creating the assignment, you can set formatting, assignees, points, etc. on Google Classroom."
+                            defaultMessage="After posting, you can edit details, set assignees, points, etc. on Google Classroom. You can also delete the assignment from Google Classroom."
                             description="Hint about Google Classroom settings"
                             id="gui.classroom.postAssignment.hint"
                         />
@@ -162,7 +187,6 @@ TeacherPostAssignment.propTypes = {
     error: PropTypes.string,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
-    noBackButton: PropTypes.bool,
     onBack: PropTypes.func,
     onPostAssignment: PropTypes.func.isRequired,
     selectedClassroom: PropTypes.shape({

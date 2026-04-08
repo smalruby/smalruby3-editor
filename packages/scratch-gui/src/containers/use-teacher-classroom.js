@@ -245,6 +245,11 @@ const useTeacherClassroom = ({
         setPhase('teacher-post-assignment');
     }, [setPhase]);
 
+    const handleBackToDetail = useCallback(() => {
+        clearError();
+        setPhase('teacher-class-detail');
+    }, [clearError, setPhase]);
+
     // --- Teacher: Load classrooms when entering dashboard ---
 
     useEffect(() => {
@@ -694,6 +699,7 @@ const useTeacherClassroom = ({
         handleSelectGoogleCourse,
         handleConfirmGoogleImport,
         handleShowPostAssignment,
+        handleBackToDetail,
         handlePostAssignment,
         handleUpdateAssignmentName,
         handleUpdateStudentCount,
