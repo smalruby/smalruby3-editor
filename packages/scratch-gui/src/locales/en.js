@@ -143,7 +143,7 @@ export default {
     'gui.classroom.studentStatus.returned': 'Returned',
     'gui.classroom.studentStatus.teacherComment': "Teacher's Comment",
     'gui.classroom.teacherDetail.cancelDelete': 'Cancel',
-    'gui.classroom.codeDisplay.title': 'Class Code',
+    'gui.classroom.codeDisplay.title': 'Join Code',
     'gui.classroom.codeDisplay.copyLink': 'Copy invite link',
     'gui.classroom.codeDisplay.copied': 'Copied',
     'gui.classroom.teacherDetail.selectMember': 'Select a member',

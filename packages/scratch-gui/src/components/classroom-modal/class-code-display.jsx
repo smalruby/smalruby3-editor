@@ -25,8 +25,8 @@ const ClassCodeDisplay = ({
             <div className={styles.codeFullscreenOverlay}>
                 <span className={styles.codeFullscreenTitle}>
                     <FormattedMessage
-                        defaultMessage="Class Code"
-                        description="Title for class code display"
+                        defaultMessage="Join Code"
+                        description="Title for join code display"
                         id="gui.classroom.codeDisplay.title"
                     />
                 </span>
@@ -49,6 +49,9 @@ const ClassCodeDisplay = ({
                                 id="gui.classroom.teacherDashboard.studentCountSuffix"
                             />
                         </span>
+                        {classroom.assignmentName && (
+                            <span>{classroom.assignmentName}</span>
+                        )}
                         {classroom.createdAt && (
                             <span>
                                 {new Date(
@@ -135,6 +138,9 @@ const ClassCodeDisplay = ({
                             id="gui.classroom.teacherDashboard.studentCountSuffix"
                         />
                     </span>
+                    {classroom.assignmentName && (
+                        <span>{classroom.assignmentName}</span>
+                    )}
                     {classroom.createdAt && (
                         <span>
                             {new Date(
