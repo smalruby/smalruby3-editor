@@ -425,6 +425,57 @@
     color: #999;
 }
 
+.course-tile-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.course-tile {
+    width: 300px;
+    height: 84px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.6rem 1rem;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    background: #f8f9fa;
+    cursor: pointer;
+    text-align: left;
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.course-tile:hover {
+    border-color: #4c97ff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.course-tile-selected {
+    border-color: #4c97ff;
+    background: #e9f0ff;
+    box-shadow: 0 1px 4px rgba(76, 151, 255, 0.3);
+}
+
+.course-tile-name {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #3c4043;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.course-tile-section {
+    font-size: 0.85rem;
+    color: #5f6368;
+    margin-top: 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .seat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));

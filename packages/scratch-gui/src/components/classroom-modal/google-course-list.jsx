@@ -1,4 +1,4 @@
-import { FormattedMessage } from 'react-intl';
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 
@@ -15,38 +15,29 @@ const GoogleCourseList = ({ courses, selectedCourseId, onSelect }) => {
     );
 
     return (
-        <ul className={styles.classList}>
+        <div className={styles.courseTileGrid}>
             {courses.map((course) => (
-                <li
-                    className={`${styles.classItem} ${selectedCourseId === course.courseId ? styles.classItemSelected : ''}`}
+                <button
+                    className={classNames(styles.courseTile, {
+                        [styles.courseTileSelected]:
+                            selectedCourseId === course.courseId,
+                    })}
                     data-course-id={course.courseId}
                     data-testid={`classroom-google-course-${course.courseId}`}
                     key={course.courseId}
                     onClick={handleClick}
                 >
-                    <div className={styles.classItemMain}>
-                        <span className={styles.classItemName}>
-                            {course.name}
+                    <span className={styles.courseTileName}>
+                        {course.name}
+                    </span>
+                    {course.section && (
+                        <span className={styles.courseTileSection}>
+                            {course.section}
                         </span>
-                        {course.section && (
-                            <span className={styles.classItemCode}>
-                                {course.section}
-                            </span>
-                        )}
-                    </div>
-                    <div className={styles.classItemMeta}>
-                        <span>
-                            <FormattedMessage
-                                defaultMessage="{count} students"
-                                description="Student count"
-                                id="gui.classroom.googleCourses.students"
-                                values={{ count: course.studentCount }}
-                            />
-                        </span>
-                    </div>
-                </li>
+                    )}
+                </button>
             ))}
-        </ul>
+        </div>
     );
 };
 
