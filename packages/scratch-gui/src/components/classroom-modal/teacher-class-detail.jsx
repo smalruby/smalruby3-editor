@@ -7,6 +7,7 @@ import ClassCodeDisplay from './class-code-display.jsx';
 import ErrorDisplay from './error-display.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
+import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 import styles from './classroom-modal.css';
 
 const TeacherClassDetail = ({
@@ -198,23 +199,60 @@ const TeacherClassDetail = ({
                                     onBlur={handleAssignmentNameBlur}
                                     onChange={handleAssignmentNameChange}
                                 />
-                                {selectedClassroom.googleClassroomCourseId && (
-                                    <button
-                                        className={
-                                            styles.secondaryButton
-                                        }
-                                        data-testid="classroom-post-assignment"
-                                        onClick={
-                                            onShowPostAssignment
-                                        }
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Post Assignment"
-                                            description="Post assignment to Google Classroom"
-                                            id="gui.classroom.postAssignment.title"
-                                        />
-                                    </button>
-                                )}
+                                {selectedClassroom.googleClassroomCourseId &&
+                                    (selectedClassroom.googleClassroomAlternateLink ? (
+                                        <a
+                                            className={
+                                                styles.secondaryButton
+                                            }
+                                            data-testid="classroom-view-assignment"
+                                            href={
+                                                selectedClassroom.googleClassroomAlternateLink
+                                            }
+                                            rel="noopener noreferrer"
+                                            target="_blank"
+                                        >
+                                            <img
+                                                alt=""
+                                                className={
+                                                    styles.gcImportIcon
+                                                }
+                                                src={
+                                                    googleClassroomIcon
+                                                }
+                                            />
+                                            <FormattedMessage
+                                                defaultMessage="View Assignment"
+                                                description="View posted assignment on Google Classroom"
+                                                id="gui.classroom.postAssignment.viewAssignment"
+                                            />
+                                        </a>
+                                    ) : (
+                                        <button
+                                            className={
+                                                styles.secondaryButton
+                                            }
+                                            data-testid="classroom-post-assignment"
+                                            onClick={
+                                                onShowPostAssignment
+                                            }
+                                        >
+                                            <img
+                                                alt=""
+                                                className={
+                                                    styles.gcImportIcon
+                                                }
+                                                src={
+                                                    googleClassroomIcon
+                                                }
+                                            />
+                                            <FormattedMessage
+                                                defaultMessage="Post Assignment"
+                                                description="Post assignment to Google Classroom"
+                                                id="gui.classroom.postAssignment.title"
+                                            />
+                                        </button>
+                                    ))}
                             </div>
 
                             {/* Join code with expand button */}

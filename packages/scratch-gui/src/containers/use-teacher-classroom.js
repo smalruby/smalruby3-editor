@@ -208,6 +208,24 @@ const useTeacherClassroom = ({
                     link,
                     description,
                 );
+                // Update selectedClassroom with the alternateLink to prevent double posting
+                if (result.alternateLink) {
+                    setSelectedClassroom(prev => ({
+                        ...prev,
+                        googleClassroomAlternateLink: result.alternateLink,
+                    }));
+                    // Also update classrooms list
+                    setClassrooms(prev =>
+                        prev.map(c =>
+                            c.classroomId === selectedClassroom.classroomId
+                                ? {
+                                      ...c,
+                                      googleClassroomAlternateLink: result.alternateLink,
+                                  }
+                                : c,
+                        ),
+                    );
+                }
                 return result;
             } catch (err) {
                 if (err.status === 401) {
