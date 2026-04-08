@@ -159,7 +159,14 @@ const useTeacherClassroom = ({
 
     // --- Google Classroom: Import flow ---
 
-    const handleGoogleClassroomImport = useCallback(async () => {
+    const handleShowGoogleCourses = useCallback(() => {
+        clearError();
+        setGoogleCourses([]);
+        setSelectedGoogleCourse(null);
+        setPhase('teacher-google-courses');
+    }, [clearError, setPhase]);
+
+    const handleLoadGoogleCourses = useCallback(async () => {
         clearError();
         setIsLoading(true);
         try {
@@ -168,7 +175,6 @@ const useTeacherClassroom = ({
             const data = await classroomAPI.listGoogleCourses(idToken, accessToken);
             setGoogleCourses(data.courses || []);
             setSelectedGoogleCourse(null);
-            setPhase('teacher-google-courses');
         } catch (err) {
             if (err.status === 401) {
                 clearClassroomAccessToken();
@@ -177,7 +183,7 @@ const useTeacherClassroom = ({
         } finally {
             setIsLoading(false);
         }
-    }, [idToken, clearError, showError, intl, setIsLoading, setPhase]);
+    }, [idToken, clearError, showError, intl, setIsLoading]);
 
     const handleSelectGoogleCourse = useCallback(course => {
         setSelectedGoogleCourse(course);
@@ -695,7 +701,8 @@ const useTeacherClassroom = ({
         handleDownloadAll,
         handleOpenSubmission,
         handleReturnSubmission,
-        handleGoogleClassroomImport,
+        handleShowGoogleCourses,
+        handleLoadGoogleCourses,
         handleSelectGoogleCourse,
         handleConfirmGoogleImport,
         handleShowPostAssignment,

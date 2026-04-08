@@ -487,7 +487,8 @@ const ClassroomModal = ({ mode = 'student' }) => {
         onShowPostAssignment: teacher.handleShowPostAssignment,
         onBackToDetail: teacher.handleBackToDetail,
         onPostAssignment: teacher.handlePostAssignment,
-        onGoogleClassroomImport: teacher.handleGoogleClassroomImport,
+        onShowGoogleCourses: teacher.handleShowGoogleCourses,
+        onLoadGoogleCourses: teacher.handleLoadGoogleCourses,
         onSelectGoogleCourse: teacher.handleSelectGoogleCourse,
         onConfirmGoogleImport: teacher.handleConfirmGoogleImport,
         onUpdateAssignmentName: teacher.handleUpdateAssignmentName,
@@ -551,7 +552,8 @@ const ClassroomModal = ({ mode = 'student' }) => {
             onToggleCodeFullscreen={teacher.handleToggleCodeFullscreen}
             googleCourses={teacher.googleCourses}
             selectedGoogleCourse={teacher.selectedGoogleCourse}
-            onGoogleClassroomImport={teacher.handleGoogleClassroomImport}
+            onShowGoogleCourses={teacher.handleShowGoogleCourses}
+            onLoadGoogleCourses={teacher.handleLoadGoogleCourses}
             onSelectGoogleCourse={teacher.handleSelectGoogleCourse}
             onConfirmGoogleImport={teacher.handleConfirmGoogleImport}
             onPostAssignment={teacher.handlePostAssignment}
