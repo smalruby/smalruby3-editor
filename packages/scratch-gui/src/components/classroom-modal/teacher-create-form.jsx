@@ -84,7 +84,7 @@ const TeacherCreateForm = ({
             </div>
             <div className={styles.formHint}>
                 <FormattedMessage
-                    defaultMessage='Enter the class name and assignment name. Example: class &quot;5-2&quot;, assignment &quot;Lesson 3: Build a Chat App&quot;'
+                    defaultMessage='Create one class per lesson. Enter the class name (e.g. &quot;5-2&quot;), student count, and assignment name (e.g. &quot;Lesson 3: Build a Chat App&quot;).'
                     description="Hint explaining class name and assignment name fields"
                     id="gui.classroom.teacherCreate.hint"
                 />
@@ -103,7 +103,7 @@ const TeacherCreateForm = ({
                             src={googleClassroomIcon}
                         />
                         <FormattedMessage
-                            defaultMessage="Import from Google Classroom"
+                            defaultMessage="Import class name and student count from Google Classroom"
                             description="Link to import class info from Google Classroom"
                             id="gui.classroom.teacherCreate.importFromGC"
                         />
@@ -179,7 +179,7 @@ const TeacherCreateForm = ({
                 />
                 <div className={styles.formFieldHint}>
                     <FormattedMessage
-                        defaultMessage="You can change the assignment name later."
+                        defaultMessage="You can change the student count and assignment name anytime."
                         description="Hint that assignment name can be changed after creation"
                         id="gui.classroom.teacherCreate.assignmentNameHint"
                     />
@@ -198,13 +198,6 @@ const TeacherCreateForm = ({
                         id="gui.classroom.teacherCreate.submit"
                     />
                 </button>
-            </div>
-            <div className={styles.formFooterHint}>
-                <FormattedMessage
-                    defaultMessage="After creating, you can share the assignment link to Google Classroom."
-                    description="Hint about posting to Google Classroom after creation"
-                    id="gui.classroom.teacherCreate.footerHint"
-                />
             </div>
             <ErrorDisplay error={error} errorTitle={errorTitle} />
         </div>
