@@ -96,6 +96,10 @@ export default {
     'gui.classroom.teacherDetail.deleteClassroom': 'Delete Classroom',
     'gui.classroom.teacherDetail.deleteConfirm':
         'Are you sure you want to delete this classroom? All members will be removed.',
+    'gui.classroom.teacherDetail.studentCountTitle': 'Change Student Count',
+    'gui.classroom.teacherDetail.studentCountHint':
+        'You can increase the number of seats. Decreasing is not allowed.',
+    'gui.classroom.teacherDetail.cancelStudentCount': 'Cancel',
     'gui.classroom.error.title': 'An error occurred',
     'gui.classroom.error.invalidJoinCode': 'Could not join the classroom. Please check the join code and try again.',
     'gui.classroom.error.seatTaken': 'This seat is already taken. Please choose a different seat.',

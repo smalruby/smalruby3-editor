@@ -90,6 +90,9 @@ export default {
     'gui.classroom.teacherDetail.delete': '削除',
     'gui.classroom.teacherDetail.deleteClassroom': 'クラスを削除',
     'gui.classroom.teacherDetail.deleteConfirm': '本当にこのクラスを削除しますか？全てのメンバーが削除されます。',
+    'gui.classroom.teacherDetail.studentCountTitle': '人数を変更',
+    'gui.classroom.teacherDetail.studentCountHint': '人数を増やすことができます。減らすことはできません。',
+    'gui.classroom.teacherDetail.cancelStudentCount': 'キャンセル',
     'gui.classroom.error.title': 'エラーが発生しました',
     'gui.classroom.error.invalidJoinCode':
         'クラスに参加できませんでした。参加コードを確認して、もう一度お試しください。',

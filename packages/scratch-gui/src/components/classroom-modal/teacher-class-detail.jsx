@@ -34,11 +34,14 @@ const TeacherClassDetail = ({
     onToggleCodeFullscreen,
     onShowPostAssignment,
     onUpdateAssignmentName,
+    onUpdateStudentCount,
     codeDisplayClassroom,
     codeDisplayFullscreen,
 }) => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCodeDisplay, setShowCodeDisplay] = useState(false);
+    const [showStudentCountDialog, setShowStudentCountDialog] = useState(false);
+    const [editStudentCount, setEditStudentCount] = useState(0);
     const [editAssignmentName, setEditAssignmentName] = useState(
         selectedClassroom.assignmentName || '',
     );
@@ -84,6 +87,26 @@ const TeacherClassDetail = ({
             onUpdateAssignmentName(trimmed);
         }
     }, [editAssignmentName, selectedClassroom, onUpdateAssignmentName]);
+
+    const handleOpenStudentCountDialog = useCallback(() => {
+        setEditStudentCount(selectedClassroom.studentCount);
+        setShowStudentCountDialog(true);
+    }, [selectedClassroom]);
+
+    const handleIncrementStudentCount = useCallback(() => {
+        setEditStudentCount((prev) => prev + 1);
+    }, []);
+
+    const handleConfirmStudentCount = useCallback(() => {
+        setShowStudentCountDialog(false);
+        if (editStudentCount > selectedClassroom.studentCount && onUpdateStudentCount) {
+            onUpdateStudentCount(editStudentCount);
+        }
+    }, [editStudentCount, selectedClassroom, onUpdateStudentCount]);
+
+    const handleCancelStudentCount = useCallback(() => {
+        setShowStudentCountDialog(false);
+    }, []);
 
     const handleShowCode = useCallback(() => {
         setShowCodeDisplay(true);
@@ -250,7 +273,14 @@ const TeacherClassDetail = ({
                                         className={styles.membersCount}
                                         data-testid="classroom-members-count"
                                     >
-                                        {joinedCount} / {totalCount}
+                                        {joinedCount} /{' '}
+                                        <button
+                                            className={styles.studentCountButton}
+                                            data-testid="classroom-student-count-btn"
+                                            onClick={handleOpenStudentCountDialog}
+                                        >
+                                            {totalCount}
+                                        </button>
                                     </span>
                                     <button
                                         className={styles.refreshButton}
@@ -427,6 +457,60 @@ const TeacherClassDetail = ({
                             </div>
                         </div>
 
+                        {showStudentCountDialog && (
+                            <div className={styles.studentCountDialog} data-testid="classroom-student-count-dialog">
+                                <div className={styles.studentCountDialogContent}>
+                                    <div className={styles.studentCountDialogTitle}>
+                                        <FormattedMessage
+                                            defaultMessage="Change Student Count"
+                                            description="Student count dialog title"
+                                            id="gui.classroom.teacherDetail.studentCountTitle"
+                                        />
+                                    </div>
+                                    <div className={styles.studentCountDialogBody}>
+                                        <span className={styles.studentCountValue} data-testid="classroom-student-count-value">
+                                            {editStudentCount}
+                                        </span>
+                                        <button
+                                            className={styles.studentCountIncrement}
+                                            data-testid="classroom-student-count-increment"
+                                            onClick={handleIncrementStudentCount}
+                                        >
+                                            {'+'}
+                                        </button>
+                                    </div>
+                                    <div className={styles.studentCountDialogHint}>
+                                        <FormattedMessage
+                                            defaultMessage="You can increase the number of seats. Decreasing is not allowed."
+                                            description="Student count dialog hint"
+                                            id="gui.classroom.teacherDetail.studentCountHint"
+                                        />
+                                    </div>
+                                    <div className={styles.buttonRow}>
+                                        <button
+                                            className={styles.secondaryButton}
+                                            data-testid="classroom-student-count-cancel"
+                                            onClick={handleCancelStudentCount}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Cancel"
+                                                description="Cancel button"
+                                                id="gui.classroom.teacherDetail.cancelStudentCount"
+                                            />
+                                        </button>
+                                        <button
+                                            className={styles.primaryButton}
+                                            data-testid="classroom-student-count-ok"
+                                            disabled={editStudentCount <= selectedClassroom.studentCount}
+                                            onClick={handleConfirmStudentCount}
+                                        >
+                                            {'OK'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Right pane - member detail */}
                         <div className={styles.detailRightPane}>
                             <TeacherMemberDetail
@@ -474,6 +558,7 @@ TeacherClassDetail.propTypes = {
     onShowPostAssignment: PropTypes.func,
     onToggleCodeFullscreen: PropTypes.func.isRequired,
     onUpdateAssignmentName: PropTypes.func,
+    onUpdateStudentCount: PropTypes.func,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };

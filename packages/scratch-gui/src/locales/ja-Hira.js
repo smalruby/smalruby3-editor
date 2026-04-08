@@ -92,6 +92,9 @@ export default {
     'gui.classroom.teacherDetail.deleteClassroom': 'クラスをさくじょ',
     'gui.classroom.teacherDetail.deleteConfirm':
         'ほんとうにこのクラスをさくじょしますか？すべてのメンバーがさくじょされます。',
+    'gui.classroom.teacherDetail.studentCountTitle': 'にんずうをへんこう',
+    'gui.classroom.teacherDetail.studentCountHint': 'にんずうをふやすことができます。へらすことはできません。',
+    'gui.classroom.teacherDetail.cancelStudentCount': 'キャンセル',
     'gui.classroom.error.title': 'エラーがはっせいしました',
     'gui.classroom.error.invalidJoinCode':
         'クラスにさんかできませんでした。さんかコードをかくにんして、もういちどおためしください。',
