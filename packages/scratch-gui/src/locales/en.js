@@ -168,8 +168,7 @@ export default {
     'gui.classroom.tutorial.dismiss': 'OK',
     'gui.classroom.tutorial.checkboxes': 'To integrate with Google Classroom, check both checkboxes.',
     'gui.classroom.tutorial.classCreation':
-        'Create a "Class" for each assignment. For example: "Lesson 3: Build a Chat App" — one class per lesson.',
-    'gui.classroom.tutorial.seatCountHint': 'You can change the number of students even after creating a class.',
+        'Let\'s start by creating a "Class"!\nCreate one class per lesson, e.g. "Lesson 3: Make a Chat App".\nClick the "Create Classroom" button in the sidebar on the left.',
     'gui.classroom.teacherDetail.legend.seated': 'Seated',
     'gui.classroom.teacherDetail.legend.submitted': 'Submitted',
     'gui.classroom.teacherDetail.legend.returned': 'Returned',

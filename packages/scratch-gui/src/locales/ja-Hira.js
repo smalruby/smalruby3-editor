@@ -165,8 +165,7 @@ export default {
     'gui.classroom.tutorial.checkboxes':
         'Google Classroomとれんけいするには、2つのチェックボックスのりょうほうにチェックをいれてください。',
     'gui.classroom.tutorial.classCreation':
-        '「クラス」はかだいごとにつくります。れい：「3じかんめ：チャットアプリをつくろう」のように、1つのじゅぎょうに1つのクラスをつくりましょう。',
-    'gui.classroom.tutorial.seatCountHint': 'せいとのにんずうは、クラスをつくったあとでもへんこうできます。',
+        'まずは「クラス」をつくりましょう！\n「3じかんめ：チャットアプリをつくろう」のように、1つのじゅぎょうに1つのクラスをつくります。\nひだりのサイドバーの「クラスをつくる」ボタンをおしてください。',
     'gui.classroom.teacherDetail.legend.seated': 'ちゃくせき',
     'gui.classroom.teacherDetail.legend.submitted': 'ていしゅつずみ',
     'gui.classroom.teacherDetail.legend.returned': 'へんきゃくずみ',

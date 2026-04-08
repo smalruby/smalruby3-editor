@@ -163,8 +163,7 @@ export default {
     'gui.classroom.tutorial.checkboxes':
         'Google Classroomと連携するには、2つのチェックボックスの両方にチェックを入れてください。',
     'gui.classroom.tutorial.classCreation':
-        '「クラス」は課題ごとに作ります。例：「3時間目：チャットアプリを作ろう」のように、1つの授業に1つのクラスを作りましょう。',
-    'gui.classroom.tutorial.seatCountHint': '生徒の人数は、クラスを作成した後でも変更できます。',
+        'まずは「クラス」を作りましょう！\n「3時間目：チャットアプリを作ろう」のように、1つの授業に1つのクラスを作ります。\n左のサイドバーの「クラスを作る」ボタンを押してください。',
     'gui.classroom.teacherDetail.legend.seated': '着席',
     'gui.classroom.teacherDetail.legend.submitted': '提出済',
     'gui.classroom.teacherDetail.legend.returned': '返却済',
