@@ -147,8 +147,13 @@
     margin-top: 1rem;
 }
 
-.login-button:hover {
+.login-button:hover:not(:disabled) {
     background: #3373cc;
+}
+
+.login-button:disabled {
+    background-color: #d9d9d9;
+    cursor: not-allowed;
 }
 
 .login-area {
@@ -265,6 +270,7 @@
 
 .main-footer {
     margin-top: 1rem;
+    text-align: right;
 }
 
 .auth-hint-overlay {
