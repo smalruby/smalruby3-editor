@@ -490,6 +490,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
         onSelectGoogleCourse: teacher.handleSelectGoogleCourse,
         onConfirmGoogleImport: teacher.handleConfirmGoogleImport,
         onUpdateAssignmentName: teacher.handleUpdateAssignmentName,
+        onUpdateStudentCount: teacher.handleUpdateStudentCount,
     };
 
     if (mode === 'teacher') {

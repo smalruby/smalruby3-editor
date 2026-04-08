@@ -610,6 +610,25 @@ const useTeacherClassroom = ({
         [idToken, selectedClassroom, clearError, showError, intl],
     );
 
+    const handleUpdateStudentCount = useCallback(
+        async studentCount => {
+            if (!idToken || !selectedClassroom) return;
+            clearError();
+            try {
+                await classroomAPI.updateClassroom(idToken, selectedClassroom.classroomId, { studentCount });
+                setSelectedClassroom(prev => ({ ...prev, studentCount }));
+                // Refresh members to reflect new seat grid
+                const detail = await classroomAPI.getClassroom(idToken, selectedClassroom.classroomId);
+                const memberList = await classroomAPI.listMembers(idToken, selectedClassroom.classroomId);
+                setSelectedClassroom(detail);
+                setMembers(memberList.members || []);
+            } catch (err) {
+                showError(translateError(intl, err));
+            }
+        },
+        [idToken, selectedClassroom, clearError, showError, intl],
+    );
+
     // --- Teacher: Select member ---
 
     const handleSelectMember = useCallback(memberId => {
@@ -659,6 +678,7 @@ const useTeacherClassroom = ({
         handleShowPostAssignment,
         handlePostAssignment,
         handleUpdateAssignmentName,
+        handleUpdateStudentCount,
         handleSelectMember,
     };
 };

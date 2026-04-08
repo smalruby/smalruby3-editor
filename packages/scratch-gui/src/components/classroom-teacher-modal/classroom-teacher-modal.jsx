@@ -162,6 +162,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onSelectGoogleCourse,
         onConfirmGoogleImport,
         onUpdateAssignmentName,
+        onUpdateStudentCount,
     } = containerProps;
 
     const dispatch = useDispatch();
@@ -374,6 +375,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onShowPostAssignment={onShowPostAssignment}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}
+                        onUpdateStudentCount={onUpdateStudentCount}
                     />
                 </div>
             );
