@@ -25,7 +25,7 @@ const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN || '';
 const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(o => o.trim());
 
 const MAX_CLASS_NAME_LENGTH = 50;
-const MAX_STUDENT_COUNT = 50;
+const MAX_STUDENT_COUNT = parseInt(process.env.MAX_STUDENT_COUNT || '50', 10);
 const MAX_NICKNAME_LENGTH = 20;
 // 6-digit alphanumeric, excluding confusing chars (I, O, 0, 1)
 const JOIN_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -1044,6 +1044,7 @@ async function handleImportGoogleClassroom(
   if (studentCount === 0) {
     studentCount = 35; // default class size
   }
+  studentCount = Math.min(studentCount, MAX_STUDENT_COUNT);
 
   // Generate unique join code
   let joinCode = '';
@@ -1127,6 +1128,16 @@ async function handlePostAssignment(
   const link = body.link;
   if (typeof link !== 'string' || !link.startsWith('http')) {
     throw new ValidationError('Assignment link is required');
+  }
+  try {
+    const linkUrl = new URL(link);
+    const allowedHosts = ['smalruby.app', 'smalruby.jp', 'localhost'];
+    if (!allowedHosts.some(h => linkUrl.hostname === h || linkUrl.hostname.endsWith(`.${h}`))) {
+      throw new ValidationError('Assignment link must be a Smalruby URL');
+    }
+  } catch (e) {
+    if (e instanceof ValidationError) throw e;
+    throw new ValidationError('Assignment link is not a valid URL');
   }
   const description = typeof body.description === 'string' ? body.description.trim() : '';
 

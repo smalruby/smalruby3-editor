@@ -200,6 +200,7 @@ export class ClassroomStack extends cdk.Stack {
         DEV_BYPASS_TOKEN: devBypassToken,
         CORS_ALLOWED_ORIGINS: corsOriginsEnv,
         CLASSROOM_TTL_DAYS: String(classroomTtlDays),
+        MAX_STUDENT_COUNT: process.env.MAX_STUDENT_COUNT || '50',
         SESSION_ACTIVE_TTL_SECONDS: process.env.SESSION_ACTIVE_TTL_SECONDS || '3600',
         PRESIGNED_URL_UPLOAD_EXPIRY: process.env.PRESIGNED_URL_UPLOAD_EXPIRY || '900',
         PRESIGNED_URL_DOWNLOAD_EXPIRY: process.env.PRESIGNED_URL_DOWNLOAD_EXPIRY || '3600',
