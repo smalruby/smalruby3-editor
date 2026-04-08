@@ -62,15 +62,11 @@ const TeacherPostAssignment = ({
                     id="gui.classroom.back"
                 />
             </button>
-            <div className={styles.phaseTitle}>
-                <FormattedMessage
-                    defaultMessage="Post assignment to Google Classroom"
-                    description="Post assignment page title"
-                    id="gui.classroom.postAssignment.pageTitle"
-                />
-            </div>
             {posted ? (
-                <div data-testid="classroom-post-assignment-success">
+                <div
+                    className={styles.postAssignmentSuccessArea}
+                    data-testid="classroom-post-assignment-success"
+                >
                     <div className={styles.successMessage}>
                         <FormattedMessage
                             defaultMessage="Assignment posted!"
@@ -81,17 +77,12 @@ const TeacherPostAssignment = ({
                     {alternateLink && (
                         <div className={styles.postAssignmentActions}>
                             <a
-                                className={styles.primaryButton}
+                                className={styles.linkButton}
                                 data-testid="classroom-view-posted-assignment"
                                 href={alternateLink}
                                 rel="noopener noreferrer"
                                 target="_blank"
                             >
-                                <img
-                                    alt=""
-                                    className={styles.gcImportIcon}
-                                    src={googleClassroomIcon}
-                                />
                                 <FormattedMessage
                                     defaultMessage="View on Google Classroom"
                                     description="View posted assignment on Google Classroom"
@@ -100,7 +91,7 @@ const TeacherPostAssignment = ({
                             </a>
                         </div>
                     )}
-                    <div className={styles.postAssignmentHint}>
+                    <div className={styles.postAssignmentHintCenter}>
                         <FormattedMessage
                             defaultMessage="You can edit or delete this assignment on Google Classroom."
                             description="Hint after posting assignment"
@@ -110,6 +101,13 @@ const TeacherPostAssignment = ({
                 </div>
             ) : (
                 <>
+                    <div className={styles.phaseTitle}>
+                        <FormattedMessage
+                            defaultMessage="Post assignment to Google Classroom"
+                            description="Post assignment page title"
+                            id="gui.classroom.postAssignment.pageTitle"
+                        />
+                    </div>
                     <div className={styles.postAssignmentTarget}>
                         <FormattedMessage
                             defaultMessage="Target: {className}"

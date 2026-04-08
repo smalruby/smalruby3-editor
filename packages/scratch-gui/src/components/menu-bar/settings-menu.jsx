@@ -29,6 +29,7 @@ import blockDisplayIcon from './block-display-icon.png';
 import {isClassroomConfigured} from '../../lib/classroom-api';
 import {getUrlParams} from '../../lib/url-params';
 import {openTeacherModal} from '../../reducers/classroom';
+import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 // === Smalruby: End of classroom management menu ===
 import {
     colorModeMenuOpen,
@@ -197,6 +198,10 @@ const SettingsMenu = ({
                     {isClassroomConfigured() && getUrlParams().features.includes('classroom') && (
                         <MenuItem onClick={onOpenTeacherModal}>
                             <div className={styles.option}>
+                                <img
+                                    className={styles.icon}
+                                    src={googleClassroomIcon}
+                                />
                                 <FormattedMessage
                                     defaultMessage="Class Management..."
                                     description="Class management menu item"
