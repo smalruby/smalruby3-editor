@@ -313,6 +313,7 @@ async function handleListClassrooms(teacherSub: string): Promise<APIGatewayProxy
       joinCode: item.joinCode,
       studentCount: item.studentCount,
       googleClassroomCourseId: item.googleClassroomCourseId || null,
+      googleClassroomAlternateLink: item.googleClassroomAlternateLink || null,
       createdAt: item.createdAt,
       expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
     }));
@@ -342,6 +343,7 @@ async function handleGetClassroom(teacherSub: string, classroomId: string): Prom
       joinCode: result.Item.joinCode,
       studentCount: result.Item.studentCount,
       googleClassroomCourseId: result.Item.googleClassroomCourseId || null,
+      googleClassroomAlternateLink: result.Item.googleClassroomAlternateLink || null,
       status: result.Item.status,
       createdAt: result.Item.createdAt,
       expiresAt: result.Item.ttl ? new Date((result.Item.ttl as number) * 1000).toISOString() : null,
@@ -1148,6 +1150,17 @@ async function handlePostAssignment(
     state: 'PUBLISHED',
     materials: [{ link: { url: link, title: 'スモウルビーで開く' } }],
   }) as { id: string; alternateLink: string };
+
+  // Persist courseWork info to prevent duplicate posting
+  await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+    UpdateExpression: 'SET googleClassroomCourseWorkId = :cwId, googleClassroomAlternateLink = :link',
+    ExpressionAttributeValues: {
+      ':cwId': courseWork.id,
+      ':link': courseWork.alternateLink,
+    },
+  }));
 
   return {
     statusCode: 201,
