@@ -157,6 +157,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onCopyInviteLink,
         onToggleCodeFullscreen,
         onShowPostAssignment,
+        onBackToDetail,
         onPostAssignment,
         onGoogleClassroomImport,
         onSelectGoogleCourse,
@@ -485,7 +486,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     errorTitle={errorTitle}
                     isLoading={isLoading}
                     selectedClassroom={selectedClassroom}
-                    onBack={onBackToDashboard}
+                    onBack={onBackToDetail}
                     onPostAssignment={onPostAssignment}
                 />
             );

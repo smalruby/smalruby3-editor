@@ -485,6 +485,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
         onCopyInviteLink: teacher.handleCopyInviteLink,
         onToggleCodeFullscreen: teacher.handleToggleCodeFullscreen,
         onShowPostAssignment: teacher.handleShowPostAssignment,
+        onBackToDetail: teacher.handleBackToDetail,
         onPostAssignment: teacher.handlePostAssignment,
         onGoogleClassroomImport: teacher.handleGoogleClassroomImport,
         onSelectGoogleCourse: teacher.handleSelectGoogleCourse,
