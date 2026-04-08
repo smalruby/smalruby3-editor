@@ -155,6 +155,7 @@ export default {
     'gui.classroom.management.authHintTitle': 'Google Classroom からインポートする前に',
     'gui.classroom.management.authHintGuide':
         '認可の画面が表示されたら、下の画像のようにすべてのチェックボックスにチェックを入れてください。',
+    'gui.classroom.management.authHintCaption': '▼ 見本',
     'gui.classroom.management.loginHint':
         '学校の Google Workspace for Education のアカウントでログインすると、Google Classroom と連携できます。',
     'gui.classroom.management.googleCoursesGuide':

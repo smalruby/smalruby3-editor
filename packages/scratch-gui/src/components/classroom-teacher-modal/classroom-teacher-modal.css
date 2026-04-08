@@ -272,11 +272,26 @@
     margin: 0 auto;
 }
 
+.auth-hint-figure {
+    margin: 1rem auto;
+    max-width: 60%;
+    background: #f8f8f8;
+    border: 2px solid #c0c0c0;
+    border-radius: 8px;
+    padding: 0.3rem 0.5rem 0.5rem;
+}
+
+.auth-hint-caption {
+    font-size: 0.8rem;
+    color: #888;
+    text-align: left;
+    margin-bottom: 0.3rem;
+}
+
 .auth-hint-image {
     max-width: 100%;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    margin: 1rem 0;
+    border-radius: 4px;
+    opacity: 0.85;
 }
 
 .sidebar-button-icon {

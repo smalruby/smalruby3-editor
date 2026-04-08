@@ -157,6 +157,7 @@ export default {
     'gui.classroom.management.authHintTitle': 'Google Classroom からインポートするまえに',
     'gui.classroom.management.authHintGuide':
         'にんかのがめんがひょうじされたら、したのがぞうのようにすべてのチェックボックスにチェックをいれてください。',
+    'gui.classroom.management.authHintCaption': '▼ みほん',
     'gui.classroom.management.loginHint':
         'がっこうの Google Workspace for Education のアカウントでログインすると、Google Classroom とれんけいできます。',
     'gui.classroom.management.googleCoursesGuide':

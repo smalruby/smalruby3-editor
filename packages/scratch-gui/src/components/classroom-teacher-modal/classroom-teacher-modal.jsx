@@ -255,11 +255,20 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             id="gui.classroom.management.authHintGuide"
                         />
                     </p>
-                    <img
-                        alt="Google authorization checkboxes"
-                        className={styles.authHintImage}
-                        src={googleAuthHintImage}
-                    />
+                    <figure className={styles.authHintFigure}>
+                        <figcaption className={styles.authHintCaption}>
+                            <FormattedMessage
+                                defaultMessage="▼ Example"
+                                description="Caption for auth hint example image"
+                                id="gui.classroom.management.authHintCaption"
+                            />
+                        </figcaption>
+                        <img
+                            alt="Google authorization checkboxes"
+                            className={styles.authHintImage}
+                            src={googleAuthHintImage}
+                        />
+                    </figure>
                     <div className={styles.mainFooter}>
                         <button
                             className={styles.loginButton}
