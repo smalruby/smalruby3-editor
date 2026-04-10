@@ -162,31 +162,48 @@ const useTeacherClassroom = ({
     const attemptSilentReauth = useCallback(async () => {
         try {
             await loadGoogleIdentity();
-            const newToken = await new Promise((resolve, reject) => {
-                google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    auto_select: true,
-                    callback: response => {
-                        if (response.credential) {
-                            resolve(response.credential);
-                        } else {
-                            reject(new Error('Silent reauth failed'));
+            const REAUTH_TIMEOUT_MS = 5000;
+            const newToken = await Promise.race([
+                new Promise((resolve, reject) => {
+                    google.accounts.id.initialize({
+                        client_id: GOOGLE_CLIENT_ID,
+                        auto_select: true,
+                        callback: response => {
+                            if (response.credential) {
+                                resolve(response.credential);
+                            } else {
+                                reject(new Error('Silent reauth failed'));
+                            }
+                        },
+                    });
+                    google.accounts.id.prompt(notification => {
+                        // Only accept truly automatic sign-in (no UI shown)
+                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                            reject(new Error('Silent reauth not available'));
                         }
-                    },
-                });
-                google.accounts.id.prompt(notification => {
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        reject(new Error('Silent reauth not available'));
-                    }
-                    // If isDismissedMoment(), user closed One Tap — also fail
-                    if (notification.isDismissedMoment()) {
-                        reject(new Error('User dismissed reauth'));
-                    }
-                });
-            });
+                        if (notification.isDismissedMoment()) {
+                            reject(new Error('User dismissed reauth'));
+                        }
+                        // If One Tap UI is displayed, cancel it — we only want silent
+                        if (notification.isDisplayMoment() && !notification.isNotDisplayed()) {
+                            google.accounts.id.cancel();
+                            reject(new Error('One Tap displayed, not silent'));
+                        }
+                    });
+                }),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Silent reauth timeout')), REAUTH_TIMEOUT_MS),
+                ),
+            ]);
             setIdToken(newToken);
             return newToken;
         } catch {
+            // Ensure One Tap UI is closed on any failure
+            try {
+                google.accounts.id.cancel();
+            } catch {
+                // google may not be loaded
+            }
             return null;
         }
     }, []);
