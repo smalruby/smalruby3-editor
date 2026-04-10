@@ -109,6 +109,14 @@ const ClassroomModal = ({ mode = 'student' }) => {
         setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
     }, [mode, clearError, dispatch, teacher]);
 
+    // Handle relogin request from Alert "参加しなおす" button
+    useEffect(() => {
+        if (classroomState.reloginRequested) {
+            dispatch(clearClassroomSession()); // clears flag + student session
+            handleGoToLogin();
+        }
+    }, [classroomState.reloginRequested, dispatch, handleGoToLogin]);
+
     // Show session-expired alert banner (replaces inline error)
     const showSessionExpiredError = useCallback(() => {
         const alertId = mode === 'teacher' ? 'classroomTeacherSessionExpired' : 'classroomSessionExpired';
