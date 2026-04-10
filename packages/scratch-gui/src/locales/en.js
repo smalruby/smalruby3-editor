@@ -105,6 +105,7 @@ export default {
     'gui.classroom.error.invalidJoinCode': 'Could not join the classroom. Please check the join code and try again.',
     'gui.classroom.error.seatTaken': 'This seat is already taken. Please choose a different seat.',
     'gui.classroom.error.sessionExpired': 'Your session has expired. Please rejoin the classroom.',
+    'gui.classroom.sessionExpiredBanner': 'Session expired. Click here to rejoin.',
     'gui.classroom.error.classroomInactive': 'This classroom is no longer active.',
     'gui.classroom.error.generic': 'An unexpected error occurred. Please try again.',
     'gui.classroom.error.goToLogin': 'Go to login screen',

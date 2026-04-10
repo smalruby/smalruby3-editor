@@ -101,6 +101,8 @@ export default {
         'クラスにさんかできませんでした。さんかコードをかくにんして、もういちどおためしください。',
     'gui.classroom.error.seatTaken': 'このせきはすでにつかわれています。べつのせきをえらんでください。',
     'gui.classroom.error.sessionExpired': 'セッションがむこうになりました。もういちどさんかしてください。',
+    'gui.classroom.sessionExpiredBanner':
+        'セッションがむこうになりました。ここをクリックしてもういちどさんかしてください。',
     'gui.classroom.error.classroomInactive': 'このクラスはげんざいりようできません。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
     'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',

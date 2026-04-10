@@ -13,6 +13,7 @@ import {
     closeTeacherModal,
     setClassroomSession,
     clearClassroomSession,
+    setSessionExpired,
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
@@ -95,6 +96,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     // Go back to login/join screen (used as error action for session expiry)
     const handleGoToLogin = useCallback(() => {
+        dispatch(setSessionExpired(false));
         if (mode === 'teacher') {
             setCachedTeacherIdToken(null);
             teacher.setIdToken(null);
@@ -111,6 +113,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
     // Show error with session-expired action link
     const showSessionExpiredError = useCallback(
         (message, title = null) => {
+            dispatch(setSessionExpired(true));
             setError(message);
             setErrorTitle(title);
             const label =

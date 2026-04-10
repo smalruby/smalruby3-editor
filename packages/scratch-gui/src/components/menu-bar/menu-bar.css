@@ -349,3 +349,22 @@
 .tutorial-button-wrapper {
     position: relative;
 }
+
+/* === Smalruby: Start of classroom session expired banner === */
+.session-expired-banner {
+    display: flex;
+    align-items: center;
+    padding: 0 0.75rem;
+    background: hsla(0, 70%, 55%, 0.9);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    height: 100%;
+}
+
+.session-expired-banner:hover {
+    background: hsla(0, 70%, 45%, 0.95);
+}
+/* === Smalruby: End of classroom session expired banner === */

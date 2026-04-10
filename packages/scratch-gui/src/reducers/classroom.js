@@ -5,6 +5,7 @@ const CLOSE_TEACHER_MODAL = 'scratch-gui/classroom/CLOSE_TEACHER_MODAL';
 const SET_SESSION = 'scratch-gui/classroom/SET_SESSION';
 const CLEAR_SESSION = 'scratch-gui/classroom/CLEAR_SESSION';
 const SET_SUBMISSION_STATUS = 'scratch-gui/classroom/SET_SUBMISSION_STATUS';
+const SET_SESSION_EXPIRED = 'scratch-gui/classroom/SET_SESSION_EXPIRED';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -66,6 +67,7 @@ const initialState = {
     joinedAt: storedSession?.joinedAt || null,
     submissionStatus: storedSession?.submissionStatus || null,
     lastSubmittedAt: storedSession?.lastSubmittedAt || null,
+    sessionExpired: false,
 };
 
 const reducer = (state, action) => {
@@ -111,7 +113,10 @@ const reducer = (state, action) => {
                 joinedAt: null,
                 submissionStatus: null,
                 lastSubmittedAt: null,
+                sessionExpired: false,
             };
+        case SET_SESSION_EXPIRED:
+            return { ...state, sessionExpired: action.expired };
         case SET_SUBMISSION_STATUS: {
             const updates = {
                 submissionStatus: action.submissionStatus,
@@ -158,6 +163,11 @@ const setClassroomSession = ({
 
 const clearClassroomSession = () => ({ type: CLEAR_SESSION });
 
+const setSessionExpired = (expired = true) => ({
+    type: SET_SESSION_EXPIRED,
+    expired,
+});
+
 const setSubmissionStatus = (submissionStatus, lastSubmittedAt) => ({
     type: SET_SUBMISSION_STATUS,
     submissionStatus,
@@ -173,5 +183,6 @@ export {
     closeTeacherModal,
     setClassroomSession,
     clearClassroomSession,
+    setSessionExpired,
     setSubmissionStatus,
 };
