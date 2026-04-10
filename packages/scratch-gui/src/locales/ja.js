@@ -99,8 +99,8 @@ export default {
         'クラスに参加できませんでした。参加コードを確認して、もう一度お試しください。',
     'gui.classroom.error.seatTaken': 'この席はすでに使われています。別の席を選んでください。',
     'gui.classroom.error.sessionExpired': 'セッションが無効になりました。もう一度参加してください。',
-    'gui.classroom.sessionExpiredBanner':
-        'セッションが無効になりました。ここをクリックしてもう一度参加してください。',
+    'gui.classroom.sessionExpiredBanner': 'セッションが無効になりました。',
+    'gui.classroom.alert.rejoin': '参加しなおす',
     'gui.classroom.error.classroomInactive': 'このクラスは現在利用できません。',
     'gui.classroom.error.generic': '予期しないエラーが発生しました。もう一度お試しください。',
     'gui.classroom.error.goToLogin': 'ログイン画面を表示',

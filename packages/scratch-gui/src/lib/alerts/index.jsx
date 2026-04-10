@@ -271,7 +271,23 @@ const alerts = [
         ),
         level: AlertLevels.WARN,
         maxDisplaySecs: 5
+    },
+    // === Smalruby: Start of classroom session expired alert ===
+    {
+        alertId: 'classroomSessionExpired',
+        clearList: ['classroomSessionExpired'],
+        closeButton: true,
+        content: (
+            <FormattedMessage
+                defaultMessage="Session expired."
+                description="Alert when classroom session expires"
+                id="gui.classroom.sessionExpiredBanner"
+            />
+        ),
+        level: AlertLevels.WARN,
+        showRejoin: true
     }
+    // === Smalruby: End of classroom session expired alert ===
 ];
 
 export {

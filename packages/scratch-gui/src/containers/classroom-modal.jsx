@@ -8,12 +8,12 @@ import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
+import { showAlertWithTimeout } from '../reducers/alerts.js';
 import {
     closeClassroomModal,
     closeTeacherModal,
     setClassroomSession,
     clearClassroomSession,
-    setSessionExpired,
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
@@ -96,7 +96,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     // Go back to login/join screen (used as error action for session expiry)
     const handleGoToLogin = useCallback(() => {
-        dispatch(setSessionExpired(false));
         if (mode === 'teacher') {
             setCachedTeacherIdToken(null);
             teacher.setIdToken(null);
@@ -110,30 +109,10 @@ const ClassroomModal = ({ mode = 'student' }) => {
         setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
     }, [mode, clearError, dispatch, teacher]);
 
-    // Show error with session-expired action link
-    const showSessionExpiredError = useCallback(
-        (message, title = null) => {
-            dispatch(setSessionExpired(true));
-            setError(message);
-            setErrorTitle(title);
-            const label =
-                mode === 'teacher'
-                    ? intl.formatMessage({
-                          defaultMessage: 'Go to login screen',
-                          description: 'Link to go back to the login screen after session expiry',
-                          id: 'gui.classroom.error.goToLogin',
-                      })
-                    : intl.formatMessage({
-                          defaultMessage: 'Go to join screen',
-                          description: 'Link to go back to the join screen after session expiry',
-                          id: 'gui.classroom.error.goToJoin',
-                      });
-            setErrorActionLabel(label);
-            // useState setter with function form to store the callback
-            setErrorActionHandler(() => handleGoToLogin);
-        },
-        [mode, intl, handleGoToLogin],
-    );
+    // Show session-expired alert banner (replaces inline error)
+    const showSessionExpiredError = useCallback(() => {
+        showAlertWithTimeout(dispatch, 'classroomSessionExpired');
+    }, [dispatch]);
     showSessionExpiredErrorRef.current = showSessionExpiredError;
 
     const handleClose = useCallback(() => {

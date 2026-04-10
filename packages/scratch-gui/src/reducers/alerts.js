@@ -66,6 +66,7 @@ const reducer = function (state, action) {
                 newAlert.level = alertData.level;
                 newAlert.showDownload = alertData.showDownload;
                 newAlert.showSaveNow = alertData.showSaveNow;
+                newAlert.showRejoin = alertData.showRejoin; // === Smalruby: classroom session expired ===
 
                 newList.push(newAlert);
                 return Object.assign({}, state, {
@@ -208,6 +209,7 @@ export {
     initialState as alertsInitialState,
     closeAlert,
     closeAlertWithId,
+    closeAlertsWithId,
     filterInlineAlerts,
     filterPopupAlerts,
     showAlertWithTimeout,

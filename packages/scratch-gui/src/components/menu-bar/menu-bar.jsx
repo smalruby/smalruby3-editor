@@ -113,7 +113,7 @@ import {openSmalrubotFirmwareModal} from '../../reducers/smalrubot-firmware';
 import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 // === Smalruby: End of smalrubot firmware menu ===
 // === Smalruby: Start of classroom button ===
-import {openClassroomModal, setSessionExpired} from '../../reducers/classroom';
+import {openClassroomModal} from '../../reducers/classroom';
 import {isClassroomConfigured} from '../../lib/classroom-api';
 import {getUrlParams} from '../../lib/url-params';
 // === Smalruby: End of classroom button ===
@@ -1266,19 +1266,6 @@ class MenuBar extends React.Component {
                                         )}
                                     </span>
                                 </div>
-                                {this.props.classroomSessionExpired && (
-                                    <div
-                                        className={styles.sessionExpiredBanner}
-                                        data-testid="classroom-session-expired"
-                                        onClick={this.props.onSessionExpiredClick}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="Session expired. Click here to rejoin."
-                                            description="Banner shown when classroom session expires"
-                                            id="gui.classroom.sessionExpiredBanner"
-                                        />
-                                    </div>
-                                )}
                             </React.Fragment>
                         )}
                         {/* === Smalruby: End of classroom button === */}
@@ -1689,7 +1676,6 @@ MenuBar.propTypes = {
     classroomAssignmentName: PropTypes.string, // === Smalruby: classroom button ===
     classroomClassName: PropTypes.string, // === Smalruby: classroom button ===
     classroomSeatNumber: PropTypes.number, // === Smalruby: classroom button ===
-    classroomSessionExpired: PropTypes.bool, // === Smalruby: classroom button ===
     googleDriveSaveDialogVisible: PropTypes.bool,
     googleDriveSaveDirectStatus: PropTypes.string,
     googleDriveSaveStatus: PropTypes.string,
@@ -1760,7 +1746,6 @@ MenuBar.propTypes = {
     onRequestCloseSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onOpenSmalrubotFirmwareModal: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onOpenClassroomModal: PropTypes.func, // === Smalruby: classroom button ===
-    onSessionExpiredClick: PropTypes.func, // === Smalruby: classroom button ===
     onRequestCloseMode: PropTypes.func,
     onRequestCloseSettings: PropTypes.func,
     onRequestOpenAbout: PropTypes.func,
@@ -1824,7 +1809,6 @@ const mapStateToProps = (state, ownProps) => {
         classroomAssignmentName: state.scratchGui.classroom ? state.scratchGui.classroom.assignmentName : null,
         classroomClassName: state.scratchGui.classroom ? state.scratchGui.classroom.className : null,
         classroomSeatNumber: state.scratchGui.classroom ? state.scratchGui.classroom.seatNumber : null,
-        classroomSessionExpired: state.scratchGui.classroom ? state.scratchGui.classroom.sessionExpired : false,
         // === Smalruby: End of classroom button ===
         extensionLoadCounter: state.scratchGui.koshienFile.extensionLoadCounter,
         aiSaveStatus: state.scratchGui.koshienFile.aiSaveStatus,
@@ -1899,10 +1883,6 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     // === Smalruby: End of smalrubot firmware menu ===
     // === Smalruby: Start of classroom button ===
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
-    onSessionExpiredClick: () => {
-        dispatch(setSessionExpired(false));
-        dispatch(openClassroomModal());
-    },
     // === Smalruby: End of classroom button ===
     onClickLogin: ownProps.onClickLogin ?? (() => dispatch(openLoginMenu())),
     onRequestCloseLogin: () => dispatch(closeLoginMenu()),
