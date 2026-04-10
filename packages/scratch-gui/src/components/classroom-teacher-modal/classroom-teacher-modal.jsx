@@ -28,6 +28,10 @@ import {
 
 import googleAuthHintImage from './google-auth-hint.png';
 import googleClassroomIcon from './google-classroom-icon.png';
+import carouselImage1 from './carousel-1-submit.png';
+import carouselImage2 from './carousel-2-overview.png';
+import carouselImage3 from './carousel-3-preview.png';
+import carouselImage4 from './carousel-4-gc.png';
 import styles from './classroom-teacher-modal.css';
 
 const messages = defineMessages({
@@ -49,6 +53,7 @@ const CAROUSEL_SLIDES = [
         descId: 'gui.classroom.carousel.submitDesc',
         descDefault:
             'Students join with a code and submit their work with one click.',
+        image: carouselImage1,
     },
     {
         titleId: 'gui.classroom.carousel.overviewTitle',
@@ -56,6 +61,7 @@ const CAROUSEL_SLIDES = [
         descId: 'gui.classroom.carousel.overviewDesc',
         descDefault:
             'The seat grid shows who has submitted, returned, or is still working.',
+        image: carouselImage2,
     },
     {
         titleId: 'gui.classroom.carousel.screenshotTitle',
@@ -63,6 +69,7 @@ const CAROUSEL_SLIDES = [
         descId: 'gui.classroom.carousel.screenshotDesc',
         descDefault:
             'Thumbnails and block screenshots let you review work quickly.',
+        image: carouselImage3,
     },
     {
         titleId: 'gui.classroom.carousel.gcTitle',
@@ -70,6 +77,7 @@ const CAROUSEL_SLIDES = [
         descId: 'gui.classroom.carousel.gcDesc',
         descDefault:
             'Import class rosters from Google Classroom and post assignment links.',
+        image: carouselImage4,
     },
 ];
 
@@ -104,6 +112,13 @@ const LoginCarousel = () => {
                         defaultMessage: slide.descDefault,
                     })}
                 </div>
+                {slide.image && (
+                    <img
+                        alt=""
+                        className={styles.carouselImage}
+                        src={slide.image}
+                    />
+                )}
             </div>
             <div className={styles.carouselDots}>
                 {CAROUSEL_SLIDES.map((_, i) => (
