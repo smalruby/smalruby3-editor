@@ -147,7 +147,7 @@ AlertComponent.propTypes = {
     onSaveNow: PropTypes.func,
     showDownload: PropTypes.func,
     showReconnect: PropTypes.bool,
-    showRejoin: PropTypes.bool, // === Smalruby: classroom session expired ===
+    showRejoin: PropTypes.string, // === Smalruby: classroom session expired === ('student' | 'teacher')
     showSaveNow: PropTypes.bool
 };
 

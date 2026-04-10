@@ -111,8 +111,9 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     // Show session-expired alert banner (replaces inline error)
     const showSessionExpiredError = useCallback(() => {
-        showAlertWithTimeout(dispatch, 'classroomSessionExpired');
-    }, [dispatch]);
+        const alertId = mode === 'teacher' ? 'classroomTeacherSessionExpired' : 'classroomSessionExpired';
+        showAlertWithTimeout(dispatch, alertId);
+    }, [dispatch, mode]);
     showSessionExpiredErrorRef.current = showSessionExpiredError;
 
     const handleClose = useCallback(() => {

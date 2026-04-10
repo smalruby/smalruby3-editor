@@ -8,7 +8,7 @@ import {openConnectionModal} from '../reducers/modals';
 import {setConnectionModalExtensionId} from '../reducers/connection-modal';
 import {manualUpdateProject} from '../reducers/project-state';
 // === Smalruby: Start of classroom session expired ===
-import {openClassroomModal, clearClassroomSession} from '../reducers/classroom';
+import {openClassroomModal, openTeacherModal, clearClassroomSession} from '../reducers/classroom';
 import {closeAlertsWithId} from '../reducers/alerts';
 // === Smalruby: End of classroom session expired ===
 
@@ -30,7 +30,7 @@ class Alert extends React.Component {
     }
     // === Smalruby: Start of classroom session expired ===
     handleOnRejoin () {
-        this.props.onRejoinClassroom();
+        this.props.onRejoinClassroom(this.props.showRejoin === 'teacher');
         this.handleOnCloseAlert();
     }
     // === Smalruby: End of classroom session expired ===
@@ -86,10 +86,10 @@ const mapDispatchToProps = dispatch => ({
         dispatch(manualUpdateProject());
     },
     // === Smalruby: Start of classroom session expired ===
-    onRejoinClassroom: () => {
+    onRejoinClassroom: isTeacher => {
         dispatch(closeAlertsWithId('classroomSessionExpired'));
         dispatch(clearClassroomSession());
-        dispatch(openClassroomModal());
+        dispatch(isTeacher ? openTeacherModal() : openClassroomModal());
     }
     // === Smalruby: End of classroom session expired ===
 });
@@ -110,7 +110,7 @@ Alert.propTypes = {
     onSaveNow: PropTypes.func,
     showDownload: PropTypes.bool,
     showReconnect: PropTypes.bool,
-    showRejoin: PropTypes.bool, // === Smalruby: classroom session expired ===
+    showRejoin: PropTypes.string, // === Smalruby: classroom session expired === ('student' | 'teacher')
     showSaveNow: PropTypes.bool
 };
 
