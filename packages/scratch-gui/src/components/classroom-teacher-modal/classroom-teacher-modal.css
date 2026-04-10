@@ -158,19 +158,19 @@
 
 .login-area {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
     height: 100%;
-    text-align: center;
     color: #575e75;
 }
 
 .login-top {
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 2rem;
-    padding-bottom: 1.5rem;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem 1.5rem;
 }
 
 .login-bottom {
@@ -178,41 +178,49 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-top: 1px solid #e0e0e0;
-    width: 100%;
-    max-width: 600px;
-    padding: 1.5rem 0;
+    border-left: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    padding: 1.5rem;
 }
 
 .carousel {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 0.6rem;
     width: 100%;
-    max-width: 500px;
-    padding: 0 1rem;
+    max-width: 100%;
+    padding: 0;
 }
 
 .carousel-slide {
     text-align: center;
-    min-height: 80px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.3rem;
 }
 
 .carousel-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: bold;
     color: #575e75;
 }
 
 .carousel-desc {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: #888;
-    line-height: 1.4;
+    line-height: 1.3;
+}
+
+.carousel-image {
+    max-width: 100%;
+    max-height: 280px;
+    width: auto;
+    height: auto;
+    margin-top: 0.5rem;
+    border-radius: 6px;
+    object-fit: contain;
 }
 
 .carousel-dots {
