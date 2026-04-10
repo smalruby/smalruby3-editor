@@ -8,7 +8,7 @@ import {openConnectionModal} from '../reducers/modals';
 import {setConnectionModalExtensionId} from '../reducers/connection-modal';
 import {manualUpdateProject} from '../reducers/project-state';
 // === Smalruby: Start of classroom session expired ===
-import {openClassroomModal, openTeacherModal, clearClassroomSession} from '../reducers/classroom';
+import {openClassroomModal, openTeacherModal, requestRelogin} from '../reducers/classroom';
 import {closeAlertsWithId} from '../reducers/alerts';
 // === Smalruby: End of classroom session expired ===
 
@@ -88,8 +88,13 @@ const mapDispatchToProps = dispatch => ({
     // === Smalruby: Start of classroom session expired ===
     onRejoinClassroom: isTeacher => {
         dispatch(closeAlertsWithId('classroomSessionExpired'));
-        dispatch(clearClassroomSession());
-        dispatch(isTeacher ? openTeacherModal() : openClassroomModal());
+        dispatch(closeAlertsWithId('classroomTeacherSessionExpired'));
+        dispatch(requestRelogin());
+        if (isTeacher) {
+            dispatch(openTeacherModal());
+        } else {
+            dispatch(openClassroomModal());
+        }
     }
     // === Smalruby: End of classroom session expired ===
 });

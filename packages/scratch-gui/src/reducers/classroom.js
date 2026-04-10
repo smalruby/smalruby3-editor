@@ -5,6 +5,7 @@ const CLOSE_TEACHER_MODAL = 'scratch-gui/classroom/CLOSE_TEACHER_MODAL';
 const SET_SESSION = 'scratch-gui/classroom/SET_SESSION';
 const CLEAR_SESSION = 'scratch-gui/classroom/CLEAR_SESSION';
 const SET_SUBMISSION_STATUS = 'scratch-gui/classroom/SET_SUBMISSION_STATUS';
+const REQUEST_RELOGIN = 'scratch-gui/classroom/REQUEST_RELOGIN';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -66,6 +67,7 @@ const initialState = {
     joinedAt: storedSession?.joinedAt || null,
     submissionStatus: storedSession?.submissionStatus || null,
     lastSubmittedAt: storedSession?.lastSubmittedAt || null,
+    reloginRequested: false,
 };
 
 const reducer = (state, action) => {
@@ -111,6 +113,7 @@ const reducer = (state, action) => {
                 joinedAt: null,
                 submissionStatus: null,
                 lastSubmittedAt: null,
+                reloginRequested: false,
             };
         case SET_SUBMISSION_STATUS: {
             const updates = {
@@ -123,6 +126,8 @@ const reducer = (state, action) => {
             }
             return { ...state, ...updates };
         }
+        case REQUEST_RELOGIN:
+            return { ...state, reloginRequested: true };
         default:
             return state;
     }
@@ -157,6 +162,7 @@ const setClassroomSession = ({
 });
 
 const clearClassroomSession = () => ({ type: CLEAR_SESSION });
+const requestRelogin = () => ({ type: REQUEST_RELOGIN });
 
 const setSubmissionStatus = (submissionStatus, lastSubmittedAt) => ({
     type: SET_SUBMISSION_STATUS,
@@ -173,5 +179,6 @@ export {
     closeTeacherModal,
     setClassroomSession,
     clearClassroomSession,
+    requestRelogin,
     setSubmissionStatus,
 };
