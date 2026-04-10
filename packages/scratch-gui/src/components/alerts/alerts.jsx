@@ -30,6 +30,7 @@ const AlertsComponent = ({
                     message={a.message}
                     showDownload={a.showDownload}
                     showReconnect={a.showReconnect}
+                    showRejoin={a.showRejoin}
                     showSaveNow={a.showSaveNow}
                     onCloseAlert={onCloseAlert}
                 />

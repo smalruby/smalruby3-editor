@@ -28,7 +28,9 @@ const AlertComponent = ({
     onDownload,
     onSaveNow,
     onReconnect,
-    showReconnect
+    onRejoin, // === Smalruby: classroom session expired ===
+    showReconnect,
+    showRejoin // === Smalruby: classroom session expired ===
 }) => (
     <Box
         className={classNames(styles.alert, styles[level])}
@@ -101,6 +103,20 @@ const AlertComponent = ({
                     />
                 </button>
             )}
+            {/* === Smalruby: Start of classroom session expired === */}
+            {showRejoin && (
+                <button
+                    className={styles.alertConnectionButton}
+                    onClick={onRejoin}
+                >
+                    <FormattedMessage
+                        defaultMessage="Rejoin"
+                        description="Button to rejoin classroom after session expiry"
+                        id="gui.classroom.alert.rejoin"
+                    />
+                </button>
+            )}
+            {/* === Smalruby: End of classroom session expired === */}
             {closeButton && (
                 <Box
                     className={styles.alertCloseButtonContainer}
@@ -127,9 +143,11 @@ AlertComponent.propTypes = {
     onCloseAlert: PropTypes.func.isRequired,
     onDownload: PropTypes.func,
     onReconnect: PropTypes.func,
+    onRejoin: PropTypes.func, // === Smalruby: classroom session expired ===
     onSaveNow: PropTypes.func,
     showDownload: PropTypes.func,
     showReconnect: PropTypes.bool,
+    showRejoin: PropTypes.string, // === Smalruby: classroom session expired === ('student' | 'teacher')
     showSaveNow: PropTypes.bool
 };
 

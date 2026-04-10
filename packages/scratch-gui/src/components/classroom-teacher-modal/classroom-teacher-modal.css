@@ -147,8 +147,13 @@
     margin-top: 1rem;
 }
 
-.login-button:hover {
+.login-button:hover:not(:disabled) {
     background: #3373cc;
+}
+
+.login-button:disabled {
+    background-color: #d9d9d9;
+    cursor: not-allowed;
 }
 
 .login-area {
@@ -265,18 +270,55 @@
 
 .main-footer {
     margin-top: 1rem;
+    text-align: right;
+}
+
+.auth-hint-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    overflow-y: auto;
 }
 
 .auth-hint {
     max-width: 600px;
     margin: 0 auto;
+    padding: 1rem;
+}
+
+.course-list-loading {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+.auth-hint-figure {
+    margin: 1rem auto;
+    max-width: 60%;
+    background: #f8f8f8;
+    border: 2px solid #c0c0c0;
+    border-radius: 8px;
+    padding: 0.3rem 0.5rem 0.5rem;
+}
+
+.auth-hint-caption {
+    font-size: 0.8rem;
+    color: #888;
+    text-align: left;
+    margin-bottom: 0.3rem;
 }
 
 .auth-hint-image {
     max-width: 100%;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    margin: 1rem 0;
+    border-radius: 4px;
+    opacity: 0.85;
 }
 
 .sidebar-button-icon {

@@ -34,7 +34,7 @@ const messages = defineMessages({
     title: {
         defaultMessage: 'Class Management',
         description: 'Title for the teacher class management modal',
-        id: 'gui.menuBar.classroomManagement',
+        id: 'gui.classroom.management.title',
     },
 });
 
@@ -160,7 +160,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onShowPostAssignment,
         onBackToDetail,
         onPostAssignment,
-        onGoogleClassroomImport,
+        onShowGoogleCourses,
+        onLoadGoogleCourses,
         onSelectGoogleCourse,
         onConfirmGoogleImport,
         onUpdateAssignmentName,
@@ -174,18 +175,19 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     const [showAuthHint, setShowAuthHint] = useState(false);
 
     const handleImportClick = useCallback(() => {
+        onShowGoogleCourses();
         if (checkboxesSeen) {
-            onGoogleClassroomImport();
+            onLoadGoogleCourses();
         } else {
             setShowAuthHint(true);
         }
-    }, [checkboxesSeen, onGoogleClassroomImport]);
+    }, [checkboxesSeen, onShowGoogleCourses, onLoadGoogleCourses]);
 
     const handleAuthHintDismiss = useCallback(() => {
         dispatch(markClassroomTutorialSeen('checkboxes'));
         setShowAuthHint(false);
-        onGoogleClassroomImport();
-    }, [dispatch, onGoogleClassroomImport]);
+        onLoadGoogleCourses();
+    }, [dispatch, onLoadGoogleCourses]);
 
     const handleSelectClassroom = useCallback(
         (e) => {
@@ -237,46 +239,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
     }, [classrooms]);
 
     const renderMain = () => {
-        // Auth hint: shown before first Google Classroom import
-        if (showAuthHint) {
-            return (
-                <div className={styles.authHint}>
-                    <div className={styles.mainPhaseTitle}>
-                        <FormattedMessage
-                            defaultMessage="Before importing from Google Classroom"
-                            description="Auth hint title"
-                            id="gui.classroom.management.authHintTitle"
-                        />
-                    </div>
-                    <p className={styles.mainPhaseGuide}>
-                        <FormattedMessage
-                            defaultMessage="When the authorization screen appears, make sure to check all the checkboxes as shown below."
-                            description="Auth hint guide"
-                            id="gui.classroom.management.authHintGuide"
-                        />
-                    </p>
-                    <img
-                        alt="Google authorization checkboxes"
-                        className={styles.authHintImage}
-                        src={googleAuthHintImage}
-                    />
-                    <div className={styles.mainFooter}>
-                        <button
-                            className={styles.loginButton}
-                            data-testid="classroom-auth-hint-ok"
-                            onClick={handleAuthHintDismiss}
-                        >
-                            <FormattedMessage
-                                defaultMessage="OK"
-                                description="Dismiss auth hint"
-                                id="gui.classroom.tutorial.dismiss"
-                            />
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
         // Fullscreen code display overlay (portal)
         if (codeDisplayFullscreen && codeDisplayClassroom) {
             return (
@@ -344,13 +306,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         if (phase === 'teacher-class-detail' && selectedClassroom) {
             return (
                 <div className={styles.mainRelative}>
-                    <ClassroomTutorial name="seatCountHint">
-                        <FormattedMessage
-                            defaultMessage="You can change the number of students even after creating a class."
-                            description="Tutorial: seat count hint"
-                            id="gui.classroom.tutorial.seatCountHint"
-                        />
-                    </ClassroomTutorial>
                     <TeacherClassDetail
                         codeDisplayClassroom={codeDisplayClassroom}
                         codeDisplayFullscreen={false}
@@ -386,13 +341,6 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         if (phase === 'teacher-create') {
             return (
                 <div className={styles.mainRelative}>
-                    <ClassroomTutorial name="classCreation">
-                        <FormattedMessage
-                            defaultMessage='Create a "Class" for each assignment. For example: "Lesson 3: Build a Chat App" — one class per lesson.'
-                            description="Tutorial: class creation concept"
-                            id="gui.classroom.tutorial.classCreation"
-                        />
-                    </ClassroomTutorial>
                     <TeacherCreateForm
                         error={error}
                         errorTitle={errorTitle}
@@ -402,6 +350,7 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onBack={onBackToDashboard}
                         onCreate={onCreateClassroom}
                         onImportFromGC={handleImportClick}
+
                     />
                 </div>
             );
@@ -413,6 +362,55 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     className={styles.mainRelative}
                     data-testid="classroom-phase-teacher-google-courses"
                 >
+                    {showAuthHint && (
+                        <div className={styles.authHintOverlay}>
+                            <div className={styles.authHint}>
+                                <div className={styles.mainPhaseTitle}>
+                                    <FormattedMessage
+                                        defaultMessage="Before importing from Google Classroom"
+                                        description="Auth hint title"
+                                        id="gui.classroom.management.authHintTitle"
+                                    />
+                                </div>
+                                <p className={styles.mainPhaseGuide}>
+                                    <FormattedMessage
+                                        defaultMessage="When the authorization screen appears, make sure to check all the checkboxes as shown below."
+                                        description="Auth hint guide"
+                                        id="gui.classroom.management.authHintGuide"
+                                    />
+                                </p>
+                                <figure className={styles.authHintFigure}>
+                                    <figcaption
+                                        className={styles.authHintCaption}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="▼ Example"
+                                            description="Caption for auth hint example image"
+                                            id="gui.classroom.management.authHintCaption"
+                                        />
+                                    </figcaption>
+                                    <img
+                                        alt="Google authorization checkboxes"
+                                        className={styles.authHintImage}
+                                        src={googleAuthHintImage}
+                                    />
+                                </figure>
+                                <div className={styles.mainFooter}>
+                                    <button
+                                        className={styles.loginButton}
+                                        data-testid="classroom-auth-hint-ok"
+                                        onClick={handleAuthHintDismiss}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="OK"
+                                            description="Dismiss auth hint"
+                                            id="gui.classroom.tutorial.dismiss"
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <button
                         className={styles.backLink}
                         data-testid="classroom-back"
@@ -439,11 +437,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                             id="gui.classroom.management.googleCoursesGuide"
                         />
                     </p>
-                    {isLoading && (
-                        <div data-testid="classroom-loading">{'...'}</div>
-                    )}
                     <ErrorDisplay error={error} errorTitle={errorTitle} />
-                    {googleCourses.length === 0 && !isLoading ? (
+                    {isLoading ? (
+                        <div className={styles.courseListLoading}>
+                            <Spinner large level="primary" />
+                        </div>
+                    ) : googleCourses.length === 0 ? (
                         <div>
                             <FormattedMessage
                                 defaultMessage="No courses found"
@@ -503,6 +502,13 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         }
         return (
             <div className={styles.mainEmpty}>
+                <ClassroomTutorial name="classCreation">
+                    <FormattedMessage
+                        defaultMessage={'Let\'s start by creating a "Class"!\nCreate one class per lesson, e.g. "Lesson 3: Make a Chat App".\nClick the "Create Classroom" button in the sidebar on the left.'}
+                        description="Tutorial: class creation onboarding after first login"
+                        id="gui.classroom.tutorial.classCreation"
+                    />
+                </ClassroomTutorial>
                 <FormattedMessage
                     defaultMessage="Select a classroom from the sidebar"
                     description="Prompt to select a classroom in teacher management"

@@ -38,6 +38,7 @@ export default {
     'gui.classroom.title': 'クラス',
     'gui.menuBar.classroom': 'クラス',
     'gui.menuBar.classroomManagement': 'クラスかんり...',
+    'gui.classroom.management.title': 'クラスかんり',
     'gui.classroom.roleSelect.prompt': 'どちらでつかいますか？',
     'gui.classroom.roleSelect.teacher': 'せんせい',
     'gui.classroom.roleSelect.student': 'せいと',
@@ -53,7 +54,7 @@ export default {
     'gui.classroom.teacherCreate.name': 'クラスめい',
     'gui.classroom.teacherCreate.count': 'にんずう',
     'gui.classroom.teacherCreate.submit': 'つくる',
-    'gui.classroom.teacherCreate.importFromGC': 'Google Classroom からインポート',
+    'gui.classroom.teacherCreate.importFromGC': 'Google Classroom からクラスめいとにんずうをインポート',
     'gui.classroom.joinCode.label': 'さんかコード',
     'gui.classroom.members.title': 'メンバー',
     'gui.classroom.members.remove': 'さくじょ',
@@ -100,6 +101,8 @@ export default {
         'クラスにさんかできませんでした。さんかコードをかくにんして、もういちどおためしください。',
     'gui.classroom.error.seatTaken': 'このせきはすでにつかわれています。べつのせきをえらんでください。',
     'gui.classroom.error.sessionExpired': 'セッションがむこうになりました。もういちどさんかしてください。',
+    'gui.classroom.sessionExpiredBanner': 'セッションがむこうになりました。',
+    'gui.classroom.alert.rejoin': 'さんかしなおす',
     'gui.classroom.error.classroomInactive': 'このクラスはげんざいりようできません。',
     'gui.classroom.error.generic': 'よきしないエラーがはっせいしました。もういちどおためしください。',
     'gui.classroom.error.goToLogin': 'ログインがめんをひょうじ',
@@ -111,11 +114,11 @@ export default {
     'gui.classroom.teacherDetail.notSeated': 'りせき',
     'gui.classroom.teacherDetail.downloadAll': 'ぜんさくひんダウンロード',
     'gui.classroom.teacherCreate.hint':
-        'クラスめいとかだいめいをにゅうりょくしてください。れい: クラス「5-2」、かだい「だい3かい チャットアプリをつくろう」',
+        '1つのじゅぎょうに1つのクラスをつくります。クラスめい（れい：「5-2」）、にんずう、かだいめい（れい：「だい3かい チャットアプリをつくろう」）をにゅうりょくしてください。',
     'gui.classroom.teacherCreate.className': 'クラスめい',
     'gui.classroom.teacherCreate.assignmentName': 'かだいめい',
     'gui.classroom.teacherCreate.importSource': 'インポートもと: {source}',
-    'gui.classroom.teacherCreate.footerHint': 'さくせいご、Google Classroom にかだいリンクをはいしんできます。',
+    'gui.classroom.teacherCreate.footerHint': '',
     'gui.classroom.googleImport': 'Google Classroom からインポート',
     'gui.classroom.googleCourses.title': 'Google Classroom のクラス',
     'gui.classroom.googleCourses.import': 'インポート',
@@ -137,7 +140,7 @@ export default {
     'gui.classroom.studentStatus.returned': 'へんきゃくずみ',
     'gui.classroom.studentStatus.teacherComment': 'せんせいからのコメント',
     'gui.classroom.teacherDetail.cancelDelete': 'キャンセル',
-    'gui.classroom.codeDisplay.title': 'クラスコード',
+    'gui.classroom.codeDisplay.title': 'さんかコード',
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
     'gui.classroom.teacherDetail.selectMember': 'メンバーをせんたくしてください',
@@ -156,6 +159,7 @@ export default {
     'gui.classroom.management.authHintTitle': 'Google Classroom からインポートするまえに',
     'gui.classroom.management.authHintGuide':
         'にんかのがめんがひょうじされたら、したのがぞうのようにすべてのチェックボックスにチェックをいれてください。',
+    'gui.classroom.management.authHintCaption': '▼ みほん',
     'gui.classroom.management.loginHint':
         'がっこうの Google Workspace for Education のアカウントでログインすると、Google Classroom とれんけいできます。',
     'gui.classroom.management.googleCoursesGuide':
@@ -164,8 +168,7 @@ export default {
     'gui.classroom.tutorial.checkboxes':
         'Google Classroomとれんけいするには、2つのチェックボックスのりょうほうにチェックをいれてください。',
     'gui.classroom.tutorial.classCreation':
-        '「クラス」はかだいごとにつくります。れい：「3じかんめ：チャットアプリをつくろう」のように、1つのじゅぎょうに1つのクラスをつくりましょう。',
-    'gui.classroom.tutorial.seatCountHint': 'せいとのにんずうは、クラスをつくったあとでもへんこうできます。',
+        'まずは「クラス」をつくりましょう！\n「3じかんめ：チャットアプリをつくろう」のように、1つのじゅぎょうに1つのクラスをつくります。\nひだりのサイドバーの「クラスをつくる」ボタンをおしてください。',
     'gui.classroom.teacherDetail.legend.seated': 'ちゃくせき',
     'gui.classroom.teacherDetail.legend.submitted': 'ていしゅつずみ',
     'gui.classroom.teacherDetail.legend.returned': 'へんきゃくずみ',
@@ -173,7 +176,7 @@ export default {
     'gui.classroom.teacherDetail.seatNumber': 'しゅっせきばんごう{number}',
     'gui.classroom.teacherDashboard.expiresAt': 'ゆうこうきげん: {date}',
     'gui.classroom.teacherDetail.expiresAt': 'ゆうこうきげん: {date}',
-    'gui.classroom.teacherCreate.assignmentNameHint': 'かだいめいはあとからへんこうできます。',
+    'gui.classroom.teacherCreate.assignmentNameHint': 'にんずうとかだいめいはいつでもへんこうできます。',
     'gui.classroom.carousel.submitTitle': 'せいとがかだいをていしゅつできる',
     'gui.classroom.carousel.submitDesc':
         'さんかコードでクラスにさんかして、ワンクリックでさくひんをていしゅつできます。',

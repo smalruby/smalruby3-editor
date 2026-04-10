@@ -159,7 +159,14 @@ const useTeacherClassroom = ({
 
     // --- Google Classroom: Import flow ---
 
-    const handleGoogleClassroomImport = useCallback(async () => {
+    const handleShowGoogleCourses = useCallback(() => {
+        clearError();
+        setGoogleCourses([]);
+        setSelectedGoogleCourse(null);
+        setPhase('teacher-google-courses');
+    }, [clearError, setPhase]);
+
+    const handleLoadGoogleCourses = useCallback(async () => {
         clearError();
         setIsLoading(true);
         try {
@@ -168,7 +175,6 @@ const useTeacherClassroom = ({
             const data = await classroomAPI.listGoogleCourses(idToken, accessToken);
             setGoogleCourses(data.courses || []);
             setSelectedGoogleCourse(null);
-            setPhase('teacher-google-courses');
         } catch (err) {
             if (err.status === 401) {
                 clearClassroomAccessToken();
@@ -177,7 +183,7 @@ const useTeacherClassroom = ({
         } finally {
             setIsLoading(false);
         }
-    }, [idToken, clearError, showError, intl, setIsLoading, setPhase]);
+    }, [idToken, clearError, showError, intl, setIsLoading]);
 
     const handleSelectGoogleCourse = useCallback(course => {
         setSelectedGoogleCourse(course);
@@ -262,13 +268,17 @@ const useTeacherClassroom = ({
                     setClassrooms(data.classrooms || []);
                 })
                 .catch(err => {
-                    showError(translateError(intl, err));
+                    if (err.status === 401) {
+                        showSessionExpiredError();
+                    } else {
+                        showError(translateError(intl, err));
+                    }
                 })
                 .finally(() => {
                     setIsLoading(false);
                 });
         }
-    }, [phase, idToken, clearError, showError, intl, setIsLoading]);
+    }, [phase, idToken, clearError, showError, showSessionExpiredError, intl, setIsLoading]);
 
     // --- Teacher: Create classroom ---
 
@@ -292,12 +302,16 @@ const useTeacherClassroom = ({
                 setSelectedGoogleCourse(null);
                 setPhase('teacher-dashboard');
             } catch (err) {
-                showError(translateError(intl, err));
+                if (err.status === 401) {
+                    showSessionExpiredError();
+                } else {
+                    showError(translateError(intl, err));
+                }
             } finally {
                 setIsLoading(false);
             }
         },
-        [idToken, selectedGoogleCourse, clearError, showError, intl, setIsLoading, setPhase],
+        [idToken, selectedGoogleCourse, clearError, showError, showSessionExpiredError, intl, setIsLoading, setPhase],
     );
 
     // --- Teacher: Delete classroom ---
@@ -312,12 +326,16 @@ const useTeacherClassroom = ({
                 setMembers([]);
                 setPhase('teacher-dashboard');
             } catch (err) {
-                showError(translateError(intl, err));
+                if (err.status === 401) {
+                    showSessionExpiredError();
+                } else {
+                    showError(translateError(intl, err));
+                }
             } finally {
                 setIsLoading(false);
             }
         },
-        [idToken, clearError, showError, intl, setIsLoading, setPhase],
+        [idToken, clearError, showError, showSessionExpiredError, intl, setIsLoading, setPhase],
     );
 
     // --- Teacher: Select classroom to view details ---
@@ -449,10 +467,14 @@ const useTeacherClassroom = ({
                 setMembers(prev => prev.filter(m => m.memberId !== memberId));
                 setSelectedMember(null);
             } catch (err) {
-                showError(translateError(intl, err));
+                if (err.status === 401) {
+                    showSessionExpiredError();
+                } else {
+                    showError(translateError(intl, err));
+                }
             }
         },
-        [idToken, selectedClassroom, clearError, showError, intl],
+        [idToken, selectedClassroom, clearError, showError, showSessionExpiredError, intl],
     );
 
     // --- Teacher: Open student submission ---
@@ -530,12 +552,25 @@ const useTeacherClassroom = ({
                 // Refresh to show updated status
                 await loadClassroomDetail(selectedClassroom.classroomId);
             } catch (err) {
-                showError(translateError(intl, err));
+                if (err.status === 401) {
+                    showSessionExpiredError();
+                } else {
+                    showError(translateError(intl, err));
+                }
             } finally {
                 setIsLoading(false);
             }
         },
-        [idToken, selectedClassroom, clearError, showError, intl, loadClassroomDetail, setIsLoading],
+        [
+            idToken,
+            selectedClassroom,
+            clearError,
+            showError,
+            showSessionExpiredError,
+            intl,
+            loadClassroomDetail,
+            setIsLoading,
+        ],
     );
 
     // --- Teacher: Download all submissions as ZIP ---
@@ -627,10 +662,14 @@ const useTeacherClassroom = ({
                     assignmentName,
                 }));
             } catch (err) {
-                showError(translateError(intl, err));
+                if (err.status === 401) {
+                    showSessionExpiredError();
+                } else {
+                    showError(translateError(intl, err));
+                }
             }
         },
-        [idToken, selectedClassroom, clearError, showError, intl],
+        [idToken, selectedClassroom, clearError, showError, showSessionExpiredError, intl],
     );
 
     const handleUpdateStudentCount = useCallback(
@@ -646,10 +685,14 @@ const useTeacherClassroom = ({
                 setSelectedClassroom(detail);
                 setMembers(memberList.members || []);
             } catch (err) {
-                showError(translateError(intl, err));
+                if (err.status === 401) {
+                    showSessionExpiredError();
+                } else {
+                    showError(translateError(intl, err));
+                }
             }
         },
-        [idToken, selectedClassroom, clearError, showError, intl],
+        [idToken, selectedClassroom, clearError, showError, showSessionExpiredError, intl],
     );
 
     // --- Teacher: Select member ---
@@ -695,7 +738,8 @@ const useTeacherClassroom = ({
         handleDownloadAll,
         handleOpenSubmission,
         handleReturnSubmission,
-        handleGoogleClassroomImport,
+        handleShowGoogleCourses,
+        handleLoadGoogleCourses,
         handleSelectGoogleCourse,
         handleConfirmGoogleImport,
         handleShowPostAssignment,
