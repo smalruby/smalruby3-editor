@@ -4,11 +4,8 @@ import {
 } from '../../../../src/lib/dncl/dncl-block-filter'
 
 describe('isDnclAllowedBlock', () => {
-  test('allows event_whenflagclicked', () => {
-    expect(isDnclAllowedBlock('event_whenflagclicked')).toBe(true)
-  })
-
-  test('rejects event_whenkeypressed', () => {
+  test('rejects all event blocks (no DNCL equivalent)', () => {
+    expect(isDnclAllowedBlock('event_whenflagclicked')).toBe(false)
     expect(isDnclAllowedBlock('event_whenkeypressed')).toBe(false)
   })
 
@@ -18,19 +15,24 @@ describe('isDnclAllowedBlock', () => {
     expect(isDnclAllowedBlock('operator_random')).toBe(true)
   })
 
-  test('allows control_if but not control_forever', () => {
+  test('allows control_if and control_repeat but not control_forever or control_wait', () => {
     expect(isDnclAllowedBlock('control_if')).toBe(true)
     expect(isDnclAllowedBlock('control_if_else')).toBe(true)
+    expect(isDnclAllowedBlock('control_repeat')).toBe(true)
+    expect(isDnclAllowedBlock('control_repeat_until')).toBe(true)
     expect(isDnclAllowedBlock('control_forever')).toBe(false)
+    expect(isDnclAllowedBlock('control_wait')).toBe(false)
+    expect(isDnclAllowedBlock('control_wait_until')).toBe(false)
+    expect(isDnclAllowedBlock('control_stop')).toBe(false)
   })
 
-  test('allows looks_say but not looks_show', () => {
-    expect(isDnclAllowedBlock('looks_say')).toBe(true)
+  test('allows looks_sayforsecs (表示する) but not looks_say or looks_show', () => {
     expect(isDnclAllowedBlock('looks_sayforsecs')).toBe(true)
+    expect(isDnclAllowedBlock('looks_say')).toBe(false)
     expect(isDnclAllowedBlock('looks_show')).toBe(false)
   })
 
-  test('allows sensing_askandwait but not sensing_touchingobject', () => {
+  test('allows sensing_askandwait (【外部からの入力】) but not sensing_touchingobject', () => {
     expect(isDnclAllowedBlock('sensing_askandwait')).toBe(true)
     expect(isDnclAllowedBlock('sensing_answer')).toBe(true)
     expect(isDnclAllowedBlock('sensing_touchingobject')).toBe(false)
@@ -64,6 +66,10 @@ describe('isDnclHiddenCategory', () => {
 
   test('hides sound category', () => {
     expect(isDnclHiddenCategory('sound')).toBe(true)
+  })
+
+  test('hides events category', () => {
+    expect(isDnclHiddenCategory('events')).toBe(true)
   })
 
   test('does not hide control', () => {

@@ -50,9 +50,9 @@ const convertOperators = (segment) => {
 const convertBuiltins = (line) => {
   let result = line
 
-  // say(args, 1) → 表示する(args) — remove trailing ", 1"
+  // say(args, N) → 表示する(args) — remove trailing ", N" (any duration)
   result = result.replace(
-    /say\((.+),\s*1\)/g,
+    /say\((.+),\s*\d+(?:\.\d+)?\)/g,
     (_, args) => `表示する(${args})`,
   )
 
@@ -67,11 +67,36 @@ const convertBuiltins = (line) => {
     (_, args) => `表示する(${args})`,
   )
 
+  // Math.sqrt(expr) → 平方根(expr)
+  result = result.replace(
+    /Math\.sqrt\(([^)]*)\)/g,
+    (_, expr) => `平方根(${expr})`,
+  )
+
+  // expr.include?(sub) → 含む(expr, sub)
+  // expr can be a variable (word chars) or a string literal ("...")
+  result = result.replace(
+    /("[^"]*"|\w+)\.include\?\(([^)]*)\)/g,
+    (_, expr, sub) => `含む(${expr}, ${sub})`,
+  )
+
   // expr.to_i → 整数(expr)
   result = result.replace(/(\w+)\.to_i/g, (_, expr) => `整数(${expr})`)
 
   // expr.to_s → 文字列(expr)
   result = result.replace(/(\w+)\.to_s/g, (_, expr) => `文字列(${expr})`)
+
+  // expr.round → 四捨五入(expr)
+  result = result.replace(/(\w+)\.round/g, (_, expr) => `四捨五入(${expr})`)
+
+  // expr.floor → 切り捨て(expr)
+  result = result.replace(/(\w+)\.floor/g, (_, expr) => `切り捨て(${expr})`)
+
+  // expr.ceil → 切り上げ(expr)
+  result = result.replace(/(\w+)\.ceil/g, (_, expr) => `切り上げ(${expr})`)
+
+  // expr.abs → 絶対値(expr)
+  result = result.replace(/(\w+)\.abs/g, (_, expr) => `絶対値(${expr})`)
 
   // rand(n) → 乱数(n)
   result = result.replace(/rand\(([^)]*)\)/g, (_, n) => `乱数(${n})`)
@@ -196,6 +221,22 @@ const convertLine = (line) => {
     blockStack.push('loop')
     const condition = processSegments(whileMatch[1])
     return `${indent}${condition} の間`
+  }
+
+  // until condition → condition でない の間
+  const untilMatch = trimmed.match(/^until\s+(.+)$/)
+  if (untilMatch) {
+    blockStack.push('loop')
+    const condition = processSegments(untilMatch[1])
+    return `${indent}${condition} でない の間`
+  }
+
+  // N.times do → i を 1 から N まで 1 ずつ増やしながら
+  const timesMatch = trimmed.match(/^(.+?)\.times\s+do$/)
+  if (timesMatch) {
+    blockStack.push('loop')
+    const count = processSegments(timesMatch[1])
+    return `${indent}_ を 1 から ${count} まで 1 ずつ増やしながら`
   }
 
   // (from..to).step(step) do |var| → ascending for loop
