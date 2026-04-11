@@ -101,6 +101,32 @@ describe('DNCL round-trip (DNCL → Ruby → DNCL)', () => {
     test('乱数 round-trips', () => {
       expect(roundtrip('a = 乱数(10)')).toBe('a = 乱数(10)')
     })
+
+    test('四捨五入 round-trips', () => {
+      expect(roundtrip('a = 四捨五入(x)')).toBe('a = 四捨五入(x)')
+    })
+
+    test('切り捨て round-trips', () => {
+      expect(roundtrip('a = 切り捨て(x)')).toBe('a = 切り捨て(x)')
+    })
+
+    test('切り上げ round-trips', () => {
+      expect(roundtrip('a = 切り上げ(x)')).toBe('a = 切り上げ(x)')
+    })
+
+    test('絶対値 round-trips', () => {
+      expect(roundtrip('a = 絶対値(x)')).toBe('a = 絶対値(x)')
+    })
+
+    test('平方根 round-trips', () => {
+      expect(roundtrip('a = 平方根(x)')).toBe('a = 平方根(x)')
+    })
+
+    test('含む round-trips', () => {
+      expect(roundtrip('a = 含む("hello", "ell")')).toBe(
+        'a = 含む("hello", "ell")',
+      )
+    })
   })
 
   describe('comments and blank lines', () => {

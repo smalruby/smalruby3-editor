@@ -73,6 +73,36 @@ const DNCL_SNIPPETS = [
     insertText: '乱数(${1:範囲})',
     documentation: '乱数を生成する',
   },
+  {
+    label: '四捨五入',
+    insertText: '四捨五入(${1:値})',
+    documentation: '四捨五入する',
+  },
+  {
+    label: '切り捨て',
+    insertText: '切り捨て(${1:値})',
+    documentation: '小数点以下を切り捨てる',
+  },
+  {
+    label: '切り上げ',
+    insertText: '切り上げ(${1:値})',
+    documentation: '小数点以下を切り上げる',
+  },
+  {
+    label: '絶対値',
+    insertText: '絶対値(${1:値})',
+    documentation: '絶対値を求める',
+  },
+  {
+    label: '平方根',
+    insertText: '平方根(${1:値})',
+    documentation: '平方根を求める',
+  },
+  {
+    label: '含む',
+    insertText: '含む(${1:文字列}, ${2:検索文字列})',
+    documentation: '文字列に検索文字列が含まれるか判定する',
+  },
 ]
 /* eslint-enable no-template-curly-in-string */
 

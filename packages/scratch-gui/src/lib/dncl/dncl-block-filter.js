@@ -8,26 +8,19 @@
  * (e.g., `operator_` matches all operator blocks).
  */
 const DNCL_ALLOWED_BLOCKS = [
-  // Events: only green flag
-  'event_whenflagclicked',
-
-  // Control: basic flow control only
-  'control_wait',
+  // Control: DNCL control flow only
   'control_repeat',
   'control_if',
   'control_if_else',
-  'control_wait_until',
   'control_repeat_until',
-  'control_stop',
 
   // Operators: all
   'operator_',
 
-  // Looks: display only (say)
+  // Looks: 表示する only (say with duration)
   'looks_sayforsecs',
-  'looks_say',
 
-  // Sensing: input only (ask/answer)
+  // Sensing: 【外部からの入力】 only (ask/answer)
   'sensing_askandwait',
   'sensing_answer',
 
@@ -79,6 +72,7 @@ const isDnclAllowedBlock = (opcode) =>
 const DNCL_HIDDEN_CATEGORIES = [
   'motion',
   'sound',
+  'events',
 ]
 
 /**

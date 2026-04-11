@@ -89,6 +89,60 @@ describe('rubyToDncl', () => {
     test('.length → 要素数()', () => {
       expect(convert('@a = @_array_Kouka_.length')).toBe('a = 要素数(Kouka)')
     })
+
+    test('.round → 四捨五入()', () => {
+      expect(convert('@a = @x.round')).toBe('a = 四捨五入(x)')
+    })
+
+    test('.floor → 切り捨て()', () => {
+      expect(convert('@a = @x.floor')).toBe('a = 切り捨て(x)')
+    })
+
+    test('.ceil → 切り上げ()', () => {
+      expect(convert('@a = @x.ceil')).toBe('a = 切り上げ(x)')
+    })
+
+    test('.abs → 絶対値()', () => {
+      expect(convert('@a = @x.abs')).toBe('a = 絶対値(x)')
+    })
+
+    test('Math.sqrt() → 平方根()', () => {
+      expect(convert('@a = Math.sqrt(@x)')).toBe('a = 平方根(x)')
+    })
+
+    test('.include?() → 含む()', () => {
+      expect(convert('@a = @x.include?("ell")')).toBe('a = 含む(x, "ell")')
+    })
+  })
+
+  describe('display: say with any duration', () => {
+    test('say with 1 second', () => {
+      expect(convert('say(@a, 1)')).toBe('表示する(a)')
+    })
+
+    test('say with 2 seconds', () => {
+      expect(convert('say(@a, 2)')).toBe('表示する(a)')
+    })
+
+    test('say with 0.5 seconds', () => {
+      expect(convert('say(@a, 0.5)')).toBe('表示する(a)')
+    })
+  })
+
+  describe('control flow: until', () => {
+    test('until loop converts to でない の間', () => {
+      expect(convert('until @a > 10\n  @a = @a + 1\nend')).toBe(
+        'a > 10 でない の間\n  a = a + 1\nを繰り返す',
+      )
+    })
+  })
+
+  describe('control flow: N.times', () => {
+    test('N.times converts to for loop', () => {
+      expect(convert('10.times do\n  @a = @a + 1\nend')).toBe(
+        '_ を 1 から 10 まで 1 ずつ増やしながら\n  a = a + 1\nを繰り返す',
+      )
+    })
   })
 
   describe('control flow: if', () => {

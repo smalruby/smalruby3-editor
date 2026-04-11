@@ -143,6 +143,32 @@ describe('dnclToRuby', () => {
     test('乱数 (random)', () => {
       expect(convert('a = 乱数(10)')).toBe('@a = rand(10)')
     })
+
+    test('四捨五入 (round)', () => {
+      expect(convert('a = 四捨五入(x)')).toBe('@a = @x.round')
+    })
+
+    test('切り捨て (floor)', () => {
+      expect(convert('a = 切り捨て(x)')).toBe('@a = @x.floor')
+    })
+
+    test('切り上げ (ceil)', () => {
+      expect(convert('a = 切り上げ(x)')).toBe('@a = @x.ceil')
+    })
+
+    test('絶対値 (abs)', () => {
+      expect(convert('a = 絶対値(x)')).toBe('@a = @x.abs')
+    })
+
+    test('平方根 (sqrt)', () => {
+      expect(convert('a = 平方根(x)')).toBe('@a = Math.sqrt(@x)')
+    })
+
+    test('含む (contains)', () => {
+      expect(convert('a = 含む("hello", "ell")')).toBe(
+        '@a = "hello".include?("ell")',
+      )
+    })
   })
 
   describe('multiline', () => {

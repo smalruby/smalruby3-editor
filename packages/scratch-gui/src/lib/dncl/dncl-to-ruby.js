@@ -37,10 +37,16 @@ const isIdentChar = (ch) =>
  */
 const DNCL_KEYWORDS = new Set([
   '表示する',
+  '含む',
   '要素数',
   '整数',
   '文字列',
   '乱数',
+  '四捨五入',
+  '切り捨て',
+  '切り上げ',
+  '絶対値',
+  '平方根',
   '真',
   '偽',
   'かつ',
@@ -89,6 +95,12 @@ const RUBY_LITERALS = new Set([
   'to_f',
   'length',
   'step',
+  'round',
+  'floor',
+  'ceil',
+  'abs',
+  'include?',
+  'Math',
 ])
 
 /**
@@ -347,6 +359,12 @@ const convertLine = (line) => {
     (_, args) => `say(${args}, 1)`,
   )
 
+  // Handle 含む(str, sub) → str.include?(sub)
+  converted = converted.replace(
+    /含む\(([^,]+),\s*([^)]+)\)/g,
+    (_, str, sub) => `${str}.include?(${sub})`,
+  )
+
   // Handle 要素数(Name) → Name.length
   converted = converted.replace(
     /要素数\(([^)]*)\)/g,
@@ -364,6 +382,28 @@ const convertLine = (line) => {
 
   // Handle 乱数(n) → rand(n)
   converted = converted.replace(/乱数\(([^)]*)\)/g, (_, n) => `rand(${n})`)
+
+  // Handle math functions
+  converted = converted.replace(
+    /四捨五入\(([^)]*)\)/g,
+    (_, expr) => `${expr}.round`,
+  )
+  converted = converted.replace(
+    /切り捨て\(([^)]*)\)/g,
+    (_, expr) => `${expr}.floor`,
+  )
+  converted = converted.replace(
+    /切り上げ\(([^)]*)\)/g,
+    (_, expr) => `${expr}.ceil`,
+  )
+  converted = converted.replace(
+    /絶対値\(([^)]*)\)/g,
+    (_, expr) => `${expr}.abs`,
+  )
+  converted = converted.replace(
+    /平方根\(([^)]*)\)/g,
+    (_, expr) => `Math.sqrt(${expr})`,
+  )
 
   // Handle control flow keywords (line-level patterns)
   // もし condition なら/ならば → if condition
