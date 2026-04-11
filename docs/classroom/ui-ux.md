@@ -81,6 +81,7 @@ stateDiagram-v2
 | ローディング表示 | `classroom-loading` | API 通信中に表示 |
 | エラー表示 | `classroom-error` | エラーメッセージ |
 | エラーアクションリンク | `classroom-error-action` | セッション切れ時に「参加画面を表示」等 |
+| セッション切れ Alert | — | Alert バナー（オレンジ帯）がモーダルの上に表示。「参加しなおす」ボタン付き |
 
 ---
 
@@ -98,9 +99,13 @@ Google アカウントでサインインする画面。先生は「設定 → �
 | 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
 | 見出し | 「Googleでログイン」 | — | — |
 | 説明文 | 「Googleアカウントでログインして、クラスを管理します。」 | — | — |
+| ヒント | 「学校の Google Workspace for Education のアカウントで…」 | — | — |
 | ログインボタン | 「Googleでログイン」 | `classroom-google-login` | Google 認証画面を開く |
+| カルーセル | 右ペインに機能紹介画像（4枚、5秒ごと自動切替） | — | ドットクリックで手動切替 |
 
-**レイアウト:** ログインボタンは青色、右寄せ。
+**レイアウト:** 左右分割レイアウト。左ペイン: ログインフォーム、右ペイン: 画像カルーセル（薄いグレー背景）。1024x600 の画面でもスクロールなしで表示。
+
+**セッション管理:** Google ID Token（1時間有効）。期限切れ時はサイレント再認証（`auto_select`）を試行し、透過的にトークンを更新。失敗時のみ Alert バナーを表示。
 
 ---
 
@@ -137,13 +142,15 @@ Google アカウントでサインインする画面。先生は「設定 → �
 | クラス作成 | 「クラスを作る」 | `classroom-create` | → teacher-create（青色、強調） |
 | GCインポート | 「Google Classroom からインポート」 | `classroom-google-import` | → teacher-google-courses |
 
-**レイアウト:** カードは縦に並ぶ。各カードは白背景、ボーダー付き。フッターのボタンは横3列。
+**レイアウト:** サイドバー（左）にクラス一覧、メインエリア（右）にクラス詳細またはプロンプト。フッターにクラス作成ボタンとログアウト。
+
+**チュートリアル:** 初回ログイン後、ダッシュボードにチュートリアルダイアログが表示される（「まずは「クラス」を作りましょう！」）。OK クリックで非表示。
 
 ---
 
 ## 3. 先生: クラス作成 (`teacher-create`)
 
-課題名と人数を入力してクラスを作成する画面。
+クラス名・人数・課題名を入力してクラスを作成する画面。
 
 ![クラス作成画面](images/06-teacher-create.png)
 
@@ -152,15 +159,17 @@ Google アカウントでサインインする画面。先生は「設定 → �
 | 要素 | テキスト/内容 | data-testid | 操作 |
 |------|-------------|-------------|------|
 | フェーズルート | — | `classroom-phase-teacher-create` | — |
-| 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
 | 見出し | 「クラスを作る」 | — | — |
-| ヒント | 「課題ごとにクラスを作成します。例:「第3回 チャットアプリを作ろう」」 | — | — |
-| 課題名ラベル | 「課題名」 | — | — |
-| 課題名入力 | テキスト入力 | `classroom-name-input` | — |
+| 説明文 | 「1つの授業に1つのクラスを作ります。クラス名（例：「5-2」）、人数、課題名（例：「第3回 チャットアプリを作ろう」）を入力してください。」 | — | — |
+| GCインポートリンク | 「Google Classroom からクラス名と人数をインポート」 | `classroom-import-from-gc` | → teacher-google-courses |
+| クラス名ラベル | 「クラス名」 | — | — |
+| クラス名入力 | テキスト入力 | `classroom-name-input` | — |
 | 人数ラベル | 「人数」 | — | — |
 | 人数入力 | 数値入力（デフォルト: 35） | `classroom-count-input` | 1〜50 |
-| 作成ボタン | 「作成」 | `classroom-create-submit` | 課題名未入力時は disabled |
-| フッター | 「作成後、Google Classroom に課題リンクを配信できます。」 | — | — |
+| 課題名ラベル | 「課題名」 | — | — |
+| 課題名入力 | テキスト入力 | `classroom-assignment-name-input` | — |
+| ヒント | 「人数と課題名はいつでも変更できます。」 | — | — |
+| 作成ボタン | 「作成」 | `classroom-create-submit` | クラス名または課題名未入力時は disabled |
 
 **レイアウト:** フォームフィールドは縦並び。「作成」ボタンは右寄せ、灰色（disabled） or 青色。
 
@@ -242,7 +251,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 **コード表示 (全画面):**
 
-コード拡大ボタン (⛶) をクリックすると、参加コードが全画面表示されます (Portal 使用)。
+コード拡大ボタン (⛶) をクリックすると、参加コードが全画面表示されます (Portal 使用)。タイトルは「参加コード」、フッターにクラス名・人数・課題名・日付が表示されます。
 
 | 要素 | data-testid | 操作 |
 |------|-------------|------|
@@ -417,24 +426,29 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 ## 10. 先生: Google Classroom コース一覧 (`teacher-google-courses`)
 
-Google Classroom のアクティブなコース一覧を表示し、インポートするコースを選択します。
+Google Classroom のアクティブなコース一覧を表示し、インポートするコースを選択します。クラス作成画面の「Google Classroom からクラス名と人数をインポート」リンクから遷移します。
 
 **パーツ:**
 
 | 要素 | テキスト/内容 | data-testid | 操作 |
 |------|-------------|-------------|------|
 | フェーズルート | — | `classroom-phase-teacher-google-courses` | — |
-| 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
+| 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-create |
+| 見出し | 「Google Classroom のクラス一覧」 | — | — |
+| 説明文 | 「インポートするクラスを選択して「インポート」ボタンを押してください。」 | — | — |
 | コースなし表示 | 「クラスが見つかりません」 | — | コースが0件時 |
-| インポートボタン | 「インポート」 | `classroom-google-import-confirm` | → teacher-create（コース情報付き） |
+| ローディング | スピナー | — | 読み込み中に表示 |
+| インポートボタン | 「インポート」 | `classroom-google-import-confirm` | 未選択時は disabled。→ teacher-create（コース情報付き） |
 
-各コースカードにはコース名・セクション・生徒数が表示されます。
+**レイアウト:** 各コースは **タイルグリッド** (300×84px) で表示されます。クラス名とセクション名が表示されます。画面幅に応じてタイルの列数が変わります（レスポンシブ）。
+
+**認可ヒント:** 初回インポート時、コース一覧画面上にオーバーレイで「Google Classroom からインポートする前に」チュートリアルが表示されます（チェックボックス確認の見本画像付き）。
 
 ---
 
 ## 11. 先生: 課題配信 (`teacher-post-assignment`)
 
-Google Classroom にリンクしたクラスで、課題リンクを投稿する画面。
+Google Classroom にリンクしたクラスで、課題リンクを投稿する画面。クラス詳細の「課題を配信」ボタンから遷移します。
 
 **パーツ:**
 
@@ -442,9 +456,14 @@ Google Classroom にリンクしたクラスで、課題リンクを投稿する
 |------|-------------|-------------|------|
 | フェーズルート | — | `classroom-phase-teacher-post-assignment` | — |
 | 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-detail |
-| タイトル入力 | テキスト入力 | `classroom-post-assignment-title` | — |
+| ページタイトル | 「Google Classroom に課題を配信します」 | — | — |
+| 対象 | 「対象: {クラス名}」 | — | — |
+| タイトル入力 | テキスト入力（デフォルト: 課題名） | `classroom-post-assignment-title` | — |
 | 説明入力 | テキストエリア | `classroom-post-assignment-description` | 任意 |
-| 配信ボタン | 「Google Classroom に配信」 | `classroom-post-assignment-submit` | — |
+| ヒント | 「配信後、課題の詳細の装飾、割当先、点数などの設定は Google Classroom で行えます。…」 | — | — |
+| 配信ボタン | 「Google Classroom に配信する」 | `classroom-post-assignment-submit` | — |
+
+**配信後:** 成功すると「Google Classroom で確認する」リンクが表示されます。クラス詳細画面の「課題を配信」ボタンは「課題を確認」リンク（新しいタブで Google Classroom を開く）に変わります。二重配信を防止するため、配信済み状態は DynamoDB に永続化されます。
 | 成功メッセージ | 「配信しました！」 | `classroom-post-assignment-success` | 配信成功時に表示 |
 
 ---
