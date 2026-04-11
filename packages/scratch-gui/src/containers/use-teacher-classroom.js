@@ -160,6 +160,11 @@ const useTeacherClassroom = ({
     // --- Teacher: Silent re-authentication on 401 ---
 
     const attemptSilentReauth = useCallback(async () => {
+        // Skip silent reauth in non-teacher mode or when using devlogin token
+        if (mode !== 'teacher') return null;
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('devlogin')) return null;
+
         try {
             await loadGoogleIdentity();
             const REAUTH_TIMEOUT_MS = 5000;
@@ -206,7 +211,7 @@ const useTeacherClassroom = ({
             }
             return null;
         }
-    }, []);
+    }, [mode]);
 
     /**
      * Handle a 401 error from a teacher API call.
@@ -509,11 +514,72 @@ const useTeacherClassroom = ({
         setIsLoading(false);
     }, [selectedClassroom, clearError, loadClassroomDetail, setIsLoading]);
 
-    // Auto-refresh teacher detail
+    // Lightweight refresh: only update members list without touching
+    // selectedClassroom or triggering re-render of detail pane
+    const refreshMembersOnly = useCallback(
+        async classroomId => {
+            try {
+                const [membersData, submissionsData] = await Promise.all([
+                    classroomAPI.listMembers(idToken, classroomId),
+                    classroomAPI.listSubmissions(idToken, classroomId),
+                ]);
+                const subMap = {};
+                for (const sub of submissionsData.submissions || []) {
+                    const existing = subMap[sub.memberId];
+                    if (!existing || sub.submittedAt > existing.submittedAt) {
+                        subMap[sub.memberId] = sub;
+                    }
+                }
+                const memberIds = new Set();
+                const enriched = (membersData.members || []).map(m => {
+                    memberIds.add(m.memberId);
+                    const sub = subMap[m.memberId];
+                    return sub
+                        ? {
+                              ...m,
+                              submissionId: sub.submissionId,
+                              submissionStatus: sub.status || 'submitted',
+                              thumbnailUrl: sub.thumbnailUrl || null,
+                              projectUrl: sub.projectUrl || null,
+                              projectName: sub.projectName || null,
+                              screenshotUrls: sub.screenshotUrls || [],
+                              teacherComment: sub.teacherComment || '',
+                          }
+                        : m;
+                });
+                for (const [memberId, sub] of Object.entries(subMap)) {
+                    if (!memberIds.has(memberId)) {
+                        enriched.push({
+                            memberId,
+                            hasSubmission: true,
+                            submissionId: sub.submissionId,
+                            submissionStatus: sub.status || 'submitted',
+                            submittedAt: sub.submittedAt || null,
+                            thumbnailUrl: sub.thumbnailUrl || null,
+                            projectUrl: sub.projectUrl || null,
+                            projectName: sub.projectName || null,
+                            screenshotUrls: sub.screenshotUrls || [],
+                            teacherComment: sub.teacherComment || '',
+                            left: true,
+                        });
+                    }
+                }
+                setMembers(prev => (JSON.stringify(prev) === JSON.stringify(enriched) ? prev : enriched));
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                }
+                // Silently ignore other refresh errors
+            }
+        },
+        [idToken, handleTeacher401],
+    );
+
+    // Auto-refresh teacher detail (members only — preserves detail pane state)
     useEffect(() => {
         if (phase === 'teacher-class-detail' && selectedClassroom && idToken) {
             refreshTimerRef.current = setInterval(() => {
-                loadClassroomDetail(selectedClassroom.classroomId);
+                refreshMembersOnly(selectedClassroom.classroomId);
             }, REFRESH_INTERVAL_MS);
             return () => clearInterval(refreshTimerRef.current);
         }
@@ -522,7 +588,7 @@ const useTeacherClassroom = ({
                 clearInterval(refreshTimerRef.current);
             }
         };
-    }, [phase, selectedClassroom, idToken, loadClassroomDetail]);
+    }, [phase, selectedClassroom, idToken, refreshMembersOnly]);
 
     const handleBackToDashboard = useCallback(() => {
         clearError();
