@@ -35,6 +35,11 @@ const CLASSROOM_TTL_DAYS = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
 const CLASSROOM_TTL_SECONDS = CLASSROOM_TTL_DAYS * 24 * 60 * 60;
 // Session and membership TTL matches classroom TTL
 const SESSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
+// Google ID Token max age override (seconds). Default: undefined (use Google's standard 1-hour).
+// Set to e.g. 120 for testing session expiry quickly.
+const ID_TOKEN_MAX_AGE_SECONDS = process.env.ID_TOKEN_MAX_AGE_SECONDS
+  ? parseInt(process.env.ID_TOKEN_MAX_AGE_SECONDS, 10)
+  : undefined;
 // Rate limiting for join endpoint (per IP)
 const JOIN_RATE_LIMIT_WINDOW_SECONDS = parseInt(process.env.JOIN_RATE_LIMIT_WINDOW_SECONDS || '60', 10);
 const JOIN_RATE_LIMIT_MAX_ATTEMPTS = parseInt(process.env.JOIN_RATE_LIMIT_MAX_ATTEMPTS || '50', 10);
@@ -225,6 +230,13 @@ export async function verifyGoogleIdToken(idToken: string): Promise<string> {
     const payload = ticket.getPayload();
     if (!payload || !payload.sub) {
       throw new AuthError('Invalid token payload');
+    }
+    // Custom max age check: reject tokens older than ID_TOKEN_MAX_AGE_SECONDS
+    if (ID_TOKEN_MAX_AGE_SECONDS && payload.iat) {
+      const tokenAge = Math.floor(Date.now() / 1000) - payload.iat;
+      if (tokenAge > ID_TOKEN_MAX_AGE_SECONDS) {
+        throw new AuthError(`Token too old: ${tokenAge}s > ${ID_TOKEN_MAX_AGE_SECONDS}s`);
+      }
     }
     return payload.sub;
   } catch (err) {

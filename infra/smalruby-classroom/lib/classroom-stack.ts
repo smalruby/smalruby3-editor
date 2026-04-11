@@ -207,6 +207,7 @@ export class ClassroomStack extends cdk.Stack {
         JOIN_RATE_LIMIT_WINDOW_SECONDS: process.env.JOIN_RATE_LIMIT_WINDOW_SECONDS || '60',
         JOIN_RATE_LIMIT_MAX_ATTEMPTS: process.env.JOIN_RATE_LIMIT_MAX_ATTEMPTS || '50',
         STAGE: stage,
+        ...(process.env.ID_TOKEN_MAX_AGE_SECONDS ? { ID_TOKEN_MAX_AGE_SECONDS: process.env.ID_TOKEN_MAX_AGE_SECONDS } : {}),
       },
       bundling: {
         minify: true,
