@@ -333,6 +333,69 @@ const processSegments = (line) => {
 }
 
 /**
+ * Convert DNCL built-in function calls to Ruby equivalents.
+ * @param {string} text - Text that may contain DNCL function calls.
+ * @returns {string} Text with functions converted to Ruby.
+ */
+const convertBuiltinFunctions = (text) => {
+  let result = text
+
+  // Handle 表示する(...) → say(..., 1)
+  result = result.replace(
+    /表示する\(([^)]*)\)/g,
+    (_, args) => `say(${args}, 1)`,
+  )
+
+  // Handle 含む(str, sub) → str.include?(sub)
+  result = result.replace(
+    /含む\(([^,]+),\s*([^)]+)\)/g,
+    (_, str, sub) => `${str}.include?(${sub})`,
+  )
+
+  // Handle 要素数(Name) → Name.length
+  result = result.replace(
+    /要素数\(([^)]*)\)/g,
+    (_, name) => `${name}.length`,
+  )
+
+  // Handle 整数(expr) → expr.to_i
+  result = result.replace(/整数\(([^)]*)\)/g, (_, expr) => `${expr}.to_i`)
+
+  // Handle 文字列(expr) → expr.to_s
+  result = result.replace(
+    /文字列\(([^)]*)\)/g,
+    (_, expr) => `${expr}.to_s`,
+  )
+
+  // Handle 乱数(n) → rand(n)
+  result = result.replace(/乱数\(([^)]*)\)/g, (_, n) => `rand(${n})`)
+
+  // Handle math functions
+  result = result.replace(
+    /四捨五入\(([^)]*)\)/g,
+    (_, expr) => `${expr}.round`,
+  )
+  result = result.replace(
+    /切り捨て\(([^)]*)\)/g,
+    (_, expr) => `${expr}.floor`,
+  )
+  result = result.replace(
+    /切り上げ\(([^)]*)\)/g,
+    (_, expr) => `${expr}.ceil`,
+  )
+  result = result.replace(
+    /絶対値\(([^)]*)\)/g,
+    (_, expr) => `${expr}.abs`,
+  )
+  result = result.replace(
+    /平方根\(([^)]*)\)/g,
+    (_, expr) => `Math.sqrt(${expr})`,
+  )
+
+  return result
+}
+
+/**
  * Convert a single DNCL line to Ruby.
  * @param {string} line - A single line of DNCL code.
  * @returns {string} The converted Ruby line.
@@ -353,65 +416,16 @@ const convertLine = (line) => {
   // Convert Japanese bracket strings first
   let converted = convertJapaneseStrings(line)
 
-  // Handle 表示する(...) → say(..., 1)
-  converted = converted.replace(
-    /表示する\(([^)]*)\)/g,
-    (_, args) => `say(${args}, 1)`,
-  )
-
-  // Handle 含む(str, sub) → str.include?(sub)
-  converted = converted.replace(
-    /含む\(([^,]+),\s*([^)]+)\)/g,
-    (_, str, sub) => `${str}.include?(${sub})`,
-  )
-
-  // Handle 要素数(Name) → Name.length
-  converted = converted.replace(
-    /要素数\(([^)]*)\)/g,
-    (_, name) => `${name}.length`,
-  )
-
-  // Handle 整数(expr) → expr.to_i
-  converted = converted.replace(/整数\(([^)]*)\)/g, (_, expr) => `${expr}.to_i`)
-
-  // Handle 文字列(expr) → expr.to_s
-  converted = converted.replace(
-    /文字列\(([^)]*)\)/g,
-    (_, expr) => `${expr}.to_s`,
-  )
-
-  // Handle 乱数(n) → rand(n)
-  converted = converted.replace(/乱数\(([^)]*)\)/g, (_, n) => `rand(${n})`)
-
-  // Handle math functions
-  converted = converted.replace(
-    /四捨五入\(([^)]*)\)/g,
-    (_, expr) => `${expr}.round`,
-  )
-  converted = converted.replace(
-    /切り捨て\(([^)]*)\)/g,
-    (_, expr) => `${expr}.floor`,
-  )
-  converted = converted.replace(
-    /切り上げ\(([^)]*)\)/g,
-    (_, expr) => `${expr}.ceil`,
-  )
-  converted = converted.replace(
-    /絶対値\(([^)]*)\)/g,
-    (_, expr) => `${expr}.abs`,
-  )
-  converted = converted.replace(
-    /平方根\(([^)]*)\)/g,
-    (_, expr) => `Math.sqrt(${expr})`,
-  )
+  // Apply all builtin function conversions
+  converted = convertBuiltinFunctions(converted)
 
   // Handle control flow keywords (line-level patterns)
   // もし condition なら/ならば → if condition
   const ifMatch = trimmed.match(/^もし\s+(.+?)\s+(?:なら|ならば)$/)
   if (ifMatch) {
-    const condition = processSegments(
-      convertJapaneseStrings(convertArrow(ifMatch[1])),
-    )
+    let condition = convertJapaneseStrings(convertArrow(ifMatch[1]))
+    condition = convertBuiltinFunctions(condition)
+    condition = processSegments(condition)
     return `${indent}if ${condition}`
   }
 
@@ -420,9 +434,9 @@ const convertLine = (line) => {
     /^そうでなくもし\s+(.+?)\s+(?:なら|ならば)$/,
   )
   if (elsifMatch) {
-    const condition = processSegments(
-      convertJapaneseStrings(convertArrow(elsifMatch[1])),
-    )
+    let condition = convertJapaneseStrings(convertArrow(elsifMatch[1]))
+    condition = convertBuiltinFunctions(condition)
+    condition = processSegments(condition)
     return `${indent}elsif ${condition}`
   }
 
@@ -473,9 +487,9 @@ const convertLine = (line) => {
   // condition の間 → while condition
   const whileMatch = trimmed.match(/^(.+?)\s+の間$/)
   if (whileMatch) {
-    const condition = processSegments(
-      convertJapaneseStrings(convertArrow(whileMatch[1])),
-    )
+    let condition = convertJapaneseStrings(convertArrow(whileMatch[1]))
+    condition = convertBuiltinFunctions(condition)
+    condition = processSegments(condition)
     return `${indent}while ${condition}`
   }
 
@@ -488,9 +502,9 @@ const convertLine = (line) => {
   // 返す expr → return expr
   const returnMatch = trimmed.match(/^返す\s+(.+)$/)
   if (returnMatch) {
-    const expr = processSegments(
-      convertJapaneseStrings(convertArrow(returnMatch[1])),
-    )
+    let expr = convertJapaneseStrings(convertArrow(returnMatch[1]))
+    expr = convertBuiltinFunctions(expr)
+    expr = processSegments(expr)
     return `${indent}return ${expr}`
   }
 
