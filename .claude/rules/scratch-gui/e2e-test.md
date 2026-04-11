@@ -158,15 +158,11 @@ http://localhost:8601?no_beforeunload=1&tab=ruby&ruby_version=2&rubyMode=ruby
 | `tab` | `ruby` | Ruby タブを初期表示 |
 | `ruby_version` | `2` | Ruby バージョン |
 | `rubyMode` | `ruby`, `furigana`, `dncl` | Ruby タブの初期モード |
-| `features` | カンマ区切り（例: `classroom`) | 隠し機能の有効化 |
+| `features` | カンマ区切り | 隠し機能の有効化（現在は未使用） |
 
-### Feature Flags
+### クラスルーム機能
 
-`?features=xxx` で隠し機能を有効化できる。カンマ区切りで複数指定可能。
-
-| Flag | 機能 |
-|------|------|
-| `classroom` | クラスルーム機能（メニューバーに「クラス」ボタン表示） |
+クラスルーム機能は `CLASSROOM_API_ENDPOINT` 環境変数が設定されていれば常に有効です（`?features=classroom` は不要）。
 
 ## Monaco Editor の操作
 

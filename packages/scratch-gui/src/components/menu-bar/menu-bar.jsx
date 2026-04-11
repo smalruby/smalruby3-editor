@@ -115,7 +115,6 @@ import {isFirmwareFlashSupported} from '../../lib/smalrubot-firmware-flasher';
 // === Smalruby: Start of classroom button ===
 import {openClassroomModal} from '../../reducers/classroom';
 import {isClassroomConfigured} from '../../lib/classroom-api';
-import {getUrlParams} from '../../lib/url-params';
 // === Smalruby: End of classroom button ===
 import collectMetadata from '../../lib/collect-metadata';
 import {PLATFORM} from '../../lib/platform';
@@ -1235,7 +1234,7 @@ class MenuBar extends React.Component {
                         })()}
                         {/* === Smalruby: End of smalrubot firmware menu === */}
                         {/* === Smalruby: Start of classroom button === */}
-                        {isClassroomConfigured() && getUrlParams().features.includes('classroom') && (
+                        {isClassroomConfigured() && (
                             <React.Fragment>
                                 <div
                                     className={classNames(styles.menuBarItem, styles.hoverable)}

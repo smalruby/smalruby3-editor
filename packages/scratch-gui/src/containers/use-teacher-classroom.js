@@ -278,7 +278,7 @@ const useTeacherClassroom = ({
                     accessToken = await requestClassroomAccessToken();
                     setGoogleAccessToken(accessToken);
                 }
-                const link = `${window.location.origin}${window.location.pathname}?features=classroom&classcode=${selectedClassroom.joinCode}`;
+                const link = `${window.location.origin}${window.location.pathname}?classcode=${selectedClassroom.joinCode}`;
                 const result = await classroomAPI.postGoogleAssignment(
                     idToken,
                     accessToken,
@@ -674,16 +674,8 @@ const useTeacherClassroom = ({
     const handleCopyInviteLink = useCallback(classroom => {
         const url = new URL(window.location.href);
         url.searchParams.set('classcode', classroom.joinCode.toLowerCase());
-        // Ensure features=classroom is included
-        const features = url.searchParams.get('features') || '';
-        if (
-            !features
-                .split(',')
-                .map(f => f.trim())
-                .includes('classroom')
-        ) {
-            url.searchParams.set('features', features ? `${features},classroom` : 'classroom');
-        }
+        // Remove feature flags from invite link (classroom is always enabled)
+        url.searchParams.delete('features');
         navigator.clipboard.writeText(url.toString()).catch(() => {
             // Clipboard API failed, ignore silently
         });
