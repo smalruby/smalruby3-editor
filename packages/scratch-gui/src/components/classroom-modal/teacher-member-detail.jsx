@@ -80,6 +80,16 @@ const TeacherMemberDetail = ({
         return elapsed < 60 * 60 * 1000; // 1 hour
     }, []);
 
+    // Clamp image index if images changed (e.g. re-submission with fewer screenshots)
+    useEffect(() => {
+        if (!selectedMember || !memberMap[selectedMember]) return;
+        const member = memberMap[selectedMember];
+        const imageCount = [member.thumbnailUrl, ...(member.screenshotUrls || [])].filter(Boolean).length;
+        if (imageCount > 0 && currentImageIndex >= imageCount) {
+            setCurrentImageIndex(0);
+        }
+    }, [selectedMember, memberMap, currentImageIndex]);
+
     // Pre-compute selected member's derived data
     const selectedMemberData = useMemo(() => {
         if (!selectedMember || !memberMap[selectedMember]) return null;
