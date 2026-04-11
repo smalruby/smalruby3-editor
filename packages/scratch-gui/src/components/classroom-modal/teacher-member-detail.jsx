@@ -16,16 +16,20 @@ const TeacherMemberDetail = ({
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [commentText, setCommentText] = useState('');
 
-    // Reset image index and comment when selected member changes
+    // Reset image index and comment only when a DIFFERENT member is selected
+    const prevSelectedMemberRef = React.useRef(selectedMember);
     useEffect(() => {
-        setCurrentImageIndex(0);
-        if (selectedMember) {
-            const member = memberMap[selectedMember];
-            setCommentText(member?.teacherComment || '');
-        } else {
-            setCommentText('');
+        if (selectedMember !== prevSelectedMemberRef.current) {
+            prevSelectedMemberRef.current = selectedMember;
+            setCurrentImageIndex(0);
+            if (selectedMember) {
+                const member = memberMap[selectedMember];
+                setCommentText(member?.teacherComment || '');
+            } else {
+                setCommentText('');
+            }
         }
-    }, [selectedMember, members, memberMap]);
+    }, [selectedMember, memberMap]);
 
     const handleOpenClick = useCallback(
         (e) => {
@@ -75,6 +79,16 @@ const TeacherMemberDetail = ({
             Date.now() - new Date(member.lastActiveAt).getTime();
         return elapsed < 60 * 60 * 1000; // 1 hour
     }, []);
+
+    // Clamp image index if images changed (e.g. re-submission with fewer screenshots)
+    useEffect(() => {
+        if (!selectedMember || !memberMap[selectedMember]) return;
+        const member = memberMap[selectedMember];
+        const imageCount = [member.thumbnailUrl, ...(member.screenshotUrls || [])].filter(Boolean).length;
+        if (imageCount > 0 && currentImageIndex >= imageCount) {
+            setCurrentImageIndex(0);
+        }
+    }, [selectedMember, memberMap, currentImageIndex]);
 
     // Pre-compute selected member's derived data
     const selectedMemberData = useMemo(() => {

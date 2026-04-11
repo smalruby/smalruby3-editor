@@ -440,6 +440,7 @@ const useTeacherClassroom = ({
             return sub
                 ? {
                       ...m,
+                      hasSubmission: true,
                       submissionId: sub.submissionId,
                       submissionStatus: sub.status || 'submitted',
                       thumbnailUrl: sub.thumbnailUrl || null,
@@ -540,6 +541,7 @@ const useTeacherClassroom = ({
                     return sub
                         ? {
                               ...m,
+                              hasSubmission: true,
                               submissionId: sub.submissionId,
                               submissionStatus: sub.status || 'submitted',
                               thumbnailUrl: sub.thumbnailUrl || null,
@@ -567,7 +569,7 @@ const useTeacherClassroom = ({
                         });
                     }
                 }
-                setMembers(prev => (JSON.stringify(prev) === JSON.stringify(enriched) ? prev : enriched));
+                setMembers(enriched);
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();
