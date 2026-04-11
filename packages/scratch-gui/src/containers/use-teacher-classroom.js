@@ -569,7 +569,7 @@ const useTeacherClassroom = ({
                         });
                     }
                 }
-                setMembers(prev => (JSON.stringify(prev) === JSON.stringify(enriched) ? prev : enriched));
+                setMembers(enriched);
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();

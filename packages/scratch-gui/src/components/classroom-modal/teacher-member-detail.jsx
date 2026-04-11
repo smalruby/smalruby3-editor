@@ -16,16 +16,20 @@ const TeacherMemberDetail = ({
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [commentText, setCommentText] = useState('');
 
-    // Reset image index and comment when selected member changes
+    // Reset image index and comment only when a DIFFERENT member is selected
+    const prevSelectedMemberRef = React.useRef(selectedMember);
     useEffect(() => {
-        setCurrentImageIndex(0);
-        if (selectedMember) {
-            const member = memberMap[selectedMember];
-            setCommentText(member?.teacherComment || '');
-        } else {
-            setCommentText('');
+        if (selectedMember !== prevSelectedMemberRef.current) {
+            prevSelectedMemberRef.current = selectedMember;
+            setCurrentImageIndex(0);
+            if (selectedMember) {
+                const member = memberMap[selectedMember];
+                setCommentText(member?.teacherComment || '');
+            } else {
+                setCommentText('');
+            }
         }
-    }, [selectedMember, members, memberMap]);
+    }, [selectedMember, memberMap]);
 
     const handleOpenClick = useCallback(
         (e) => {
