@@ -49,7 +49,7 @@ stateDiagram-v2
 
 ## メニューバー
 
-メニューバーの右端に「クラス」ボタンが表示されます（`?features=classroom` が必要）。
+メニューバーの右端に「クラス」ボタンが表示されます（`CLASSROOM_API_ENDPOINT` 環境変数が設定されている場合）。
 
 ![メニューバー](images/01-menu-bar.png)
 

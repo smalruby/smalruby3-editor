@@ -27,7 +27,6 @@ import rubyIcon from '../../containers/ruby-tab/icon--ruby.svg';
 import blockDisplayIcon from './block-display-icon.png';
 // === Smalruby: Start of classroom management menu ===
 import {isClassroomConfigured} from '../../lib/classroom-api';
-import {getUrlParams} from '../../lib/url-params';
 import {openTeacherModal} from '../../reducers/classroom';
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
 // === Smalruby: End of classroom management menu ===
@@ -195,7 +194,7 @@ const SettingsMenu = ({
                         </div>
                     </MenuItem>
                     {/* === Smalruby: Start of classroom management menu === */}
-                    {isClassroomConfigured() && getUrlParams().features.includes('classroom') && (
+                    {isClassroomConfigured() && (
                         <MenuItem onClick={onOpenTeacherModal}>
                             <div className={styles.option}>
                                 <img

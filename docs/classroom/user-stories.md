@@ -174,7 +174,7 @@ sequenceDiagram
 先生が共有した参加リンクからアクセスすると、自動的にクラス参加フローが開始されます。
 
 ```
-https://smalruby.app?features=classroom&classcode=ABC123
+https://smalruby.app?classcode=ABC123
 ```
 
 URL に `classcode` パラメータがあると、モーダルが自動で開き、参加コード入力をスキップして席番号選択画面に遷移します。

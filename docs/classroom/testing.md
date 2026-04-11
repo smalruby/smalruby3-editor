@@ -178,13 +178,13 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 ### 基本的なテスト URL
 
 ```
-http://localhost:8601?no_beforeunload=1&features=classroom
+http://localhost:8601?no_beforeunload=1
 ```
 
 ### devlogin でのテスト（stg 環境）
 
 ```
-http://localhost:8601?no_beforeunload=1&features=classroom&devlogin=1
+http://localhost:8601?no_beforeunload=1&classrole=teacher&devlogin=<DEV_BYPASS_TOKEN>
 ```
 
 `devlogin=1` を指定すると、Google ログインをバイパスして `DEV_BYPASS_TOKEN` で先生モードにログインできます（stg/ローカル環境のみ）。

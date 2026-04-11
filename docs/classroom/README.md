@@ -21,7 +21,7 @@ Smalruby Classroom は、日本の学校の授業で Smalruby を使うための
 
 ### 先生
 
-1. Smalruby を開く（`https://smalruby.app?features=classroom`）
+1. Smalruby を開く（`https://smalruby.app`）
 2. メニューバーの「クラス」をクリック
 3. 「先生」を選択 → Google ログイン
 4. 「クラスをつくる」→ クラス名と人数を入力
@@ -30,7 +30,7 @@ Smalruby Classroom は、日本の学校の授業で Smalruby を使うための
 ### 生徒
 
 1. 先生から参加コードを受け取る
-2. Smalruby を開く（参加リンク or `?features=classroom`）
+2. Smalruby を開く（参加リンク or `https://smalruby.app`）
 3. 「生徒」→ 参加コード入力 → 席番号を選択
 4. プロジェクトを作成し「提出」ボタンで提出
 
@@ -40,6 +40,6 @@ Smalruby Classroom は、日本の学校の授業で Smalruby を使うための
 - モダンブラウザ（Chrome / Edge / Firefox / Safari）
 - インターネット接続
 
-## 機能フラグ
+## 前提: API エンドポイント
 
-クラス機能は `?features=classroom` URL パラメータで有効化されます。将来的にデフォルト有効に切り替える予定です。
+クラス機能は `CLASSROOM_API_ENDPOINT` 環境変数が設定されている場合に有効です（メニューバーに「クラス」ボタンが表示されます）。
