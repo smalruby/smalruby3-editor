@@ -440,6 +440,7 @@ const useTeacherClassroom = ({
             return sub
                 ? {
                       ...m,
+                      hasSubmission: true,
                       submissionId: sub.submissionId,
                       submissionStatus: sub.status || 'submitted',
                       thumbnailUrl: sub.thumbnailUrl || null,
@@ -540,6 +541,7 @@ const useTeacherClassroom = ({
                     return sub
                         ? {
                               ...m,
+                              hasSubmission: true,
                               submissionId: sub.submissionId,
                               submissionStatus: sub.status || 'submitted',
                               thumbnailUrl: sub.thumbnailUrl || null,
