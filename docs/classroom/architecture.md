@@ -64,7 +64,32 @@ sequenceDiagram
     S->>API: Authorization: Bearer {sessionToken}
     API->>DB: sessionToken-index で検索
     DB-->>API: メンバー情報
+
+    Note over T,G: サイレント再認証 (トークン期限切れ時)
+    T->>T: 30秒ごとの自動リフレッシュで 401 検出
+    T->>G: google.accounts.id.prompt({auto_select: true})
+    G-->>T: 新しい ID Token (サイレント)
+    T->>API: 新トークンで再試行
+    Note over T: 再認証失敗時は Alert バナーを表示
 ```
+
+### 先生セッション管理
+
+| 項目 | 内容 |
+|------|------|
+| 認証方式 | Google ID Token (JWT) |
+| 有効期限 | 1時間（Google 標準）。stg は `ID_TOKEN_MAX_AGE_SECONDS` で短縮可 |
+| サイレント再認証 | `auto_select: true` で透過的にトークン更新（FedCM 10分制限あり） |
+| 再認証失敗時 | Alert バナー「セッションが無効になりました。」+ 「参加しなおす」ボタン |
+| 自動リフレッシュ | 30秒ごとにメンバー情報を更新（`refreshMembersOnly`、詳細パネルの状態は保持） |
+
+### 生徒セッション管理
+
+| 項目 | 内容 |
+|------|------|
+| 認証方式 | Session Token (UUID)、DynamoDB に保存 |
+| 有効期限 | 30日（stg は 1日）。verify-session ごとに TTL を延長 |
+| セッション期限切れ時 | Alert バナー + 「参加しなおす」ボタンで参加コード入力画面に戻る |
 
 ## AWS サービス
 

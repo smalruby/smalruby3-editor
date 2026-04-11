@@ -14,16 +14,34 @@ smalruby3-editor/
 │
 ├── packages/scratch-gui/
 │   ├── src/
-│   │   ├── components/classroom-modal/
-│   │   │   ├── classroom-modal.jsx    ← UI コンポーネント (全フェーズ描画)
-│   │   │   └── classroom-modal.css    ← スタイル
+│   │   ├── components/
+│   │   │   ├── classroom-modal/       ← 生徒用 UI コンポーネント群
+│   │   │   │   ├── classroom-modal.jsx
+│   │   │   │   ├── classroom-modal.css
+│   │   │   │   ├── class-code-display.jsx ← 参加コード表示（全画面対応）
+│   │   │   │   ├── google-course-list.jsx ← GC コースタイルグリッド
+│   │   │   │   ├── teacher-class-detail.jsx ← 先生クラス詳細
+│   │   │   │   ├── teacher-create-form.jsx ← クラス作成フォーム
+│   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
+│   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
+│   │   │   │   ├── classroom-teacher-modal.jsx
+│   │   │   │   ├── classroom-teacher-modal.css
+│   │   │   │   └── carousel-*.png     ← ログイン画面カルーセル画像
+│   │   │   ├── classroom-tutorial/    ← チュートリアルオーバーレイ
+│   │   │   └── alerts/alert.jsx       ← セッション切れ Alert（showRejoin 対応）
 │   │   ├── containers/
-│   │   │   └── classroom-modal.jsx    ← コンテナ (状態管理, API呼び出し)
+│   │   │   ├── classroom-modal.jsx    ← コンテナ (状態管理, API呼び出し)
+│   │   │   ├── use-teacher-classroom.js ← 先生用カスタムフック（サイレント再認証含む）
+│   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
+│   │   │   └── alert.jsx             ← Alert コンテナ（参加しなおす対応）
 │   │   ├── lib/
-│   │   │   ├── classroom-api.js       ← API クライアント (20メソッド)
-│   │   │   └── google-classroom-auth.js ← Google Classroom OAuth
+│   │   │   ├── classroom-api.js       ← API クライアント (20メソッド, リトライ付き)
+│   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
+│   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）
 │   │   ├── reducers/
-│   │   │   └── classroom.js           ← Redux (セッション永続化)
+│   │   │   ├── classroom.js           ← Redux (セッション永続化, reloginRequested)
+│   │   │   ├── classroom-tutorial.js  ← チュートリアル表示済みフラグ
+│   │   │   └── alerts.js             ← Alert 状態管理（showRejoin 対応）
 │   │   └── locales/
 │   │       ├── ja.js                  ← 日本語
 │   │       ├── ja-Hira.js             ← ひらがな
