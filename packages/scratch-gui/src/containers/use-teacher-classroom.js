@@ -223,6 +223,9 @@ const useTeacherClassroom = ({
         if (newToken) {
             return newToken;
         }
+        // Clear expired token to stop auto-refresh timer
+        setIdToken(null);
+        _cachedTeacherIdToken = null;
         showSessionExpiredError();
         return null;
     }, [attemptSilentReauth, showSessionExpiredError]);
