@@ -80,8 +80,11 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
+| `settings-menu` | div | 設定メニュー（⚙ アイコン） |
+| `settings-classroom-management` | MenuItem | 設定 → クラス管理 |
 | `classroom-menu-button` | div | メニューバーのクラスボタン |
 | `classroom-google-login` | button | Google ログイン |
+| `classroom-microsoft-login` | button | Microsoft ログイン |
 | `classroom-back` | button | 戻る |
 | `classroom-create` | button | クラス作成（ダッシュボード） |
 | `classroom-name-input` | input | クラス名入力 |

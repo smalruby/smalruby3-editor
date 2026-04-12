@@ -7,7 +7,8 @@ graph TB
     subgraph Browser["ブラウザ (Smalruby Editor)"]
         GUI["scratch-gui<br/>React / Redux"]
         API_CLIENT["classroom-api.js<br/>API クライアント"]
-        GC_AUTH["google-classroom-auth.js<br/>Google OAuth"]
+        TEACHER_AUTH["teacher-auth.js<br/>認証抽象化 (Google / Microsoft)"]
+        GC_AUTH["google-classroom-auth.js<br/>Google Classroom OAuth"]
     end
 
     subgraph AWS["AWS (ap-northeast-1)"]
@@ -24,16 +25,24 @@ graph TB
         GC_API["Google Classroom API"]
     end
 
+    subgraph Azure["Microsoft Azure"]
+        MSAUTH["Microsoft Identity Platform<br/>(ID Token 検証)"]
+    end
+
     GUI --> API_CLIENT
+    GUI --> TEACHER_AUTH
     GUI --> GC_AUTH
     API_CLIENT -->|"HTTPS"| APIGW
+    TEACHER_AUTH -->|"Google ログイン"| GAUTH
+    TEACHER_AUTH -->|"Microsoft ログイン"| MSAUTH
     GC_AUTH -->|"OAuth 同意"| GAUTH
     APIGW --> LAMBDA
     LAMBDA --> DDB_C
     LAMBDA --> DDB_M
     LAMBDA --> DDB_S
     LAMBDA -->|"Presigned URL 生成"| S3
-    LAMBDA -->|"ID Token 検証"| GAUTH
+    LAMBDA -->|"Google ID Token 検証"| GAUTH
+    LAMBDA -->|"Microsoft ID Token 検証 (JWKS)"| MSAUTH
     LAMBDA -->|"コース取得 / 課題投稿"| GC_API
     Browser -->|"Presigned URL で直接アップロード"| S3
 ```
@@ -46,14 +55,26 @@ sequenceDiagram
     participant S as 生徒 (ブラウザ)
     participant API as Lambda
     participant G as Google OAuth
+    participant MS as Microsoft Identity
     participant DB as DynamoDB
 
-    Note over T,G: 先生の認証 (Google ID Token)
-    T->>G: Google ログイン
-    G-->>T: ID Token
+    Note over T,G: 先生の認証 (Google or Microsoft)
+    alt Google ログイン
+        T->>G: Google ログイン
+        G-->>T: ID Token (iss: accounts.google.com)
+    else Microsoft ログイン
+        T->>MS: MSAL popup ログイン
+        MS-->>T: ID Token (iss: login.microsoftonline.com)
+    end
     T->>API: Authorization: Bearer {idToken}
-    API->>G: verifyIdToken(idToken)
-    G-->>API: { sub: "teacher-google-id" }
+    API->>API: iss クレームで Google / Microsoft を自動判別
+    alt Google
+        API->>G: verifyIdToken(idToken)
+        G-->>API: { sub: "teacher-google-id" }
+    else Microsoft
+        API->>MS: JWKS で JWT 検証
+        MS-->>API: { oid: "teacher-microsoft-id" }
+    end
     API->>DB: teacherSub で操作
 
     Note over S,DB: 生徒の認証 (Session Token)
@@ -65,10 +86,15 @@ sequenceDiagram
     API->>DB: sessionToken-index で検索
     DB-->>API: メンバー情報
 
-    Note over T,G: サイレント再認証 (トークン期限切れ時)
+    Note over T,MS: サイレント再認証 (トークン期限切れ時)
     T->>T: 30秒ごとの自動リフレッシュで 401 検出
-    T->>G: google.accounts.id.prompt({auto_select: true})
-    G-->>T: 新しい ID Token (サイレント)
+    alt Google
+        T->>G: google.accounts.id.prompt({auto_select: true})
+        G-->>T: 新しい ID Token (サイレント)
+    else Microsoft
+        T->>MS: acquireTokenSilent({forceRefresh: true})
+        MS-->>T: 新しい ID Token (サイレント)
+    end
     T->>API: 新トークンで再試行
     Note over T: 再認証失敗時は Alert バナーを表示
 ```
@@ -77,9 +103,9 @@ sequenceDiagram
 
 | 項目 | 内容 |
 |------|------|
-| 認証方式 | Google ID Token (JWT) |
-| 有効期限 | 1時間（Google 標準）。stg は `ID_TOKEN_MAX_AGE_SECONDS` で短縮可 |
-| サイレント再認証 | `auto_select: true` で透過的にトークン更新（FedCM 10分制限あり） |
+| 認証方式 | Google ID Token (JWT) または Microsoft ID Token (JWT) |
+| 有効期限 | 1時間（Google / Microsoft 共通）。stg は `ID_TOKEN_MAX_AGE_SECONDS` で短縮可 |
+| サイレント再認証 | Google: `auto_select: true`（FedCM 10分制限あり）、Microsoft: `acquireTokenSilent({ forceRefresh: true })` |
 | 再認証失敗時 | Alert バナー「セッションが無効になりました。」+ 「参加しなおす」ボタン |
 | 自動リフレッシュ | 30秒ごとにメンバー情報を更新（`refreshMembersOnly`、詳細パネルの状態は保持） |
 

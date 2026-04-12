@@ -116,6 +116,7 @@ const SettingsMenu = ({
             className={classNames(menuBarStyles.menuBarItem, menuBarStyles.hoverable, menuBarStyles.colorModeMenu, {
                 [menuBarStyles.active]: settingsMenuOpen
             })}
+            data-testid="settings-menu"
             onClick={onRequestOpen}
         >
             <img
@@ -196,7 +197,10 @@ const SettingsMenu = ({
                     {/* === Smalruby: Start of classroom management menu === */}
                     {isClassroomConfigured() && (
                         <MenuItem onClick={onOpenTeacherModal}>
-                            <div className={styles.option}>
+                            <div
+                                className={styles.option}
+                                data-testid="settings-classroom-management"
+                            >
                                 <img
                                     className={styles.icon}
                                     src={googleClassroomIcon}

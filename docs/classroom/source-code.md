@@ -24,14 +24,22 @@ smalruby3-editor/
 │   │   │   │   ├── teacher-create-form.jsx ← クラス作成フォーム
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
-│   │   │   │   ├── classroom-teacher-modal.jsx
+│   │   │   │   ├── classroom-teacher-modal.jsx ← メイン（ダッシュボード/詳細/作成等）
 │   │   │   │   ├── classroom-teacher-modal.css
-│   │   │   │   └── carousel-*.png     ← ログイン画面カルーセル画像
+│   │   │   │   ├── teacher-login-phase.jsx ← ログイン画面（カルーセル付き）
+│   │   │   │   ├── teacher-sidebar.jsx ← サイドバー（クラス一覧ナビ）
+│   │   │   │   ├── teacher-google-courses-phase.jsx ← GC コースインポート
+│   │   │   │   └── carousel-*.png     ← カルーセル画像
 │   │   │   ├── classroom-tutorial/    ← チュートリアルオーバーレイ
 │   │   │   └── alerts/alert.jsx       ← セッション切れ Alert（showRejoin 対応）
 │   │   ├── containers/
-│   │   │   ├── classroom-modal.jsx    ← コンテナ (状態管理, API呼び出し)
-│   │   │   ├── use-teacher-classroom.js ← 先生用カスタムフック（サイレント再認証含む）
+│   │   │   ├── classroom-modal.jsx    ← コンテナ（生徒/先生モードの振り分け）
+│   │   │   ├── use-teacher-classroom.js ← 先生用フック統合（他フックを束ねる）
+│   │   │   ├── use-teacher-auth.js    ← 認証フック（Google/Microsoft 共通）
+│   │   │   ├── use-teacher-classrooms.js ← クラス CRUD + 自動リフレッシュ
+│   │   │   ├── use-teacher-submissions.js ← 提出管理・一括ダウンロード
+│   │   │   ├── use-student-submit.js  ← 生徒提出フロー
+│   │   │   ├── use-google-classroom.js ← Google Classroom API 連携
 │   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
 │   │   │   └── alert.jsx             ← Alert コンテナ（参加しなおす対応）
 │   │   ├── lib/
@@ -115,34 +123,47 @@ GOOGLE_ID_TOKEN=eyJ... docker compose run --rm -w /app/infra/smalruby-classroom 
 
 ### `packages/scratch-gui/src/containers/classroom-modal.jsx`
 
-**コンテナコンポーネント** — 状態管理と API 呼び出しを担当。
+**コンテナコンポーネント** — 生徒/先生モードの振り分けを担当。
+
+ロジックの大部分はカスタムフックに委譲している:
+- `useStudentSubmit()` — 生徒の提出フロー
+- `useTeacherClassroom()` — 先生側の統合フック
 
 主要な state:
 - `phase` — 現在のフェーズ (`role-select`, `teacher-dashboard`, `student-status`, etc.)
-- `classrooms` — 先生のクラス一覧
-- `members` — 選択中のクラスのメンバー
-- `submissions` — 提出一覧
-- `selectedMember` — 詳細表示中のメンバー
 - `error` — エラーメッセージ
 - `loading` — ローディング状態
 
-主要なハンドラー:
-- `handleTeacherLogin()` — Google ログイン
-- `handleCreateClassroom()` — クラス作成
-- `handleJoinClassroom()` — 生徒参加
-- `handleSubmit()` — 作品提出 (サムネイル/スクリーンショット生成 + S3 アップロード)
-- `handleReturn()` — 返却
-- `handleGoogleImport()` — Google Classroom インポート
-- `handlePostAssignment()` — 課題配信
+### カスタムフック群 (`src/containers/use-*.js`)
+
+`use-teacher-classroom.js` を頂点に、ドメインごとに分割された5つのフックで構成:
+
+| フック | 責務 |
+|--------|------|
+| `use-teacher-classroom.js` | **統合フック** — 他の4フックを束ねて先生側の全状態・操作を提供 |
+| `use-teacher-auth.js` | 認証 (Google / Microsoft のログイン、サイレント再認証、ログアウト) |
+| `use-teacher-classrooms.js` | クラス CRUD、メンバー管理、30秒ごとの自動リフレッシュ |
+| `use-teacher-submissions.js` | 提出一覧、返却、コメント、全作品一括ダウンロード |
+| `use-google-classroom.js` | Google Classroom コース取得・インポート |
+| `use-student-submit.js` | 生徒の提出フロー (サムネイル/スクリーンショット生成 + S3 アップロード) |
 
 ### `packages/scratch-gui/src/components/classroom-modal/classroom-modal.jsx`
 
-**プレゼンテーショナルコンポーネント** — 13フェーズの UI を描画。
+**プレゼンテーショナルコンポーネント** — 生徒フェーズの UI を描画。
 
 サブコンポーネント (同一ファイル内):
 - `ClassCodeDisplay` — 参加コード大画面表示 (Portal 使用)
 - `SeatGrid` — 座席グリッド
 - `MemberDetailPanel` — メンバー詳細パネル (右側)
+
+### 先生用コンポーネント (`src/components/classroom-teacher-modal/`)
+
+| ファイル | 責務 |
+|---------|------|
+| `classroom-teacher-modal.jsx` | 先生モーダル本体（ダッシュボード、クラス詳細、作成、課題配信） |
+| `teacher-login-phase.jsx` | ログイン画面（Google / Microsoft ボタン + カルーセル） |
+| `teacher-sidebar.jsx` | サイドバー（クラス一覧ナビゲーション） |
+| `teacher-google-courses-phase.jsx` | Google Classroom コースインポート画面 |
 
 ### `packages/scratch-gui/src/lib/classroom-api.js`
 
