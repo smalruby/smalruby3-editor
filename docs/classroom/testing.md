@@ -184,10 +184,10 @@ http://localhost:8601?no_beforeunload=1
 ### devlogin でのテスト（stg 環境）
 
 ```
-http://localhost:8601?no_beforeunload=1&classrole=teacher&devlogin=<DEV_BYPASS_TOKEN>
+http://localhost:8601?no_beforeunload=1&devlogin=<DEV_BYPASS_TOKEN>
 ```
 
-`devlogin=1` を指定すると、Google ログインをバイパスして `DEV_BYPASS_TOKEN` で先生モードにログインできます（stg/ローカル環境のみ）。
+`devlogin=<DEV_BYPASS_TOKEN>` を指定すると、Google ログインをバイパスして `DEV_BYPASS_TOKEN` で先生としてログインできます（stg/ローカル環境のみ）。先生ダッシュボードへは「⚙ 設定 → クラス管理」からアクセスしてください。
 
 ### data-testid を使ったテスト例
 

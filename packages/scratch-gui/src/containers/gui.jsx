@@ -61,7 +61,7 @@ import systemPreferencesHOC from '../lib/system-preferences-hoc.jsx';
 import {PLATFORM} from '../lib/platform.js';
 // === Smalruby: Start of classcode auto-open ===
 import {isClassroomConfigured} from '../lib/classroom-api.js';
-import {openClassroomModal, openTeacherModal} from '../reducers/classroom.js';
+import {openClassroomModal} from '../reducers/classroom.js';
 import {getUrlParams} from '../lib/url-params.js';
 // === Smalruby: End of classcode auto-open ===
 
@@ -95,8 +95,6 @@ class GUI extends React.Component {
         const urlParams = getUrlParams();
         if (urlParams.classcode && isClassroomConfigured()) {
             this.props.onOpenClassroomModal();
-        } else if (urlParams.classrole === 'teacher' && urlParams.devlogin && isClassroomConfigured()) {
-            this.props.onOpenTeacherModal();
         }
         // === Smalruby: End of classcode auto-open ===
     }
@@ -263,8 +261,7 @@ GUI.propTypes = {
     // TODO: Is this unused?
     hideTutorialProjects: PropTypes.bool,
     vm: PropTypes.instanceOf(VM).isRequired,
-    onOpenClassroomModal: PropTypes.func, // === Smalruby: classcode auto-open ===
-    onOpenTeacherModal: PropTypes.func // === Smalruby: classcode auto-open ===
+    onOpenClassroomModal: PropTypes.func // === Smalruby: classcode auto-open ===
 };
 
 GUI.defaultProps = {
@@ -347,8 +344,7 @@ const mapDispatchToProps = dispatch => ({
     onShowConvertRubyToBlocksErrorAlert: () => showAlertWithTimeout(dispatch, 'convertRubyToBlocksError'),
     updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors)),
     // === Smalruby: Start of classcode auto-open ===
-    onOpenClassroomModal: () => dispatch(openClassroomModal()),
-    onOpenTeacherModal: () => dispatch(openTeacherModal())
+    onOpenClassroomModal: () => dispatch(openClassroomModal())
     // === Smalruby: End of classcode auto-open ===
 });
 

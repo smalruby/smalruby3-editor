@@ -22,7 +22,6 @@ const RUBY_ALIASES = ['ruby'];
  * - ruby_version=2     — set the Ruby version (1 or 2); invalid values are ignored
  * - rubyMode=dncl      — activate DNCL mode (aliases: dnclv2, case-insensitive)
  * - rubyMode=rubi      — activate furigana mode (aliases: furigana, case-insensitive)
- * - classrole=teacher  — enable teacher mode (shows management UI + student UI)
  * @returns {object} parsed parameters
  */
 const parseUrlParams = () => {
@@ -34,7 +33,6 @@ const parseUrlParams = () => {
             rubyMode: null,
             features: [],
             classcode: null,
-            classrole: null,
             devlogin: false,
         };
     }
@@ -50,7 +48,6 @@ const parseUrlParams = () => {
             rubyMode: null,
             features: [],
             classcode: null,
-            classrole: null,
             devlogin: false,
         };
     }
@@ -89,14 +86,10 @@ const parseUrlParams = () => {
     // classcode: auto-join a classroom via invite link
     const classcode = (params.get('classcode') || '').trim().toUpperCase() || null;
 
-    // classrole: 'teacher' enables teacher mode (management UI + student UI)
-    const classroleParam = (params.get('classrole') || '').toLowerCase();
-    const classrole = classroleParam === 'teacher' ? 'teacher' : null;
-
     // devlogin: bypass Google auth with a secret token (stg/local only)
     const devlogin = params.get('devlogin') || null;
 
-    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features, classcode, classrole, devlogin };
+    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features, classcode, devlogin };
 };
 
 // Cache the result so it's only parsed once
