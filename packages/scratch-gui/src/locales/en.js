@@ -67,7 +67,7 @@ export default {
     'gui.classroom.studentJoin.next': 'Next',
     'gui.classroom.studentJoin.hintTitle': 'Hint',
     'gui.classroom.studentJoin.hintAskTeacher': 'Ask your teacher for the join code.',
-    'gui.classroom.studentJoin.historyPlaceholder': 'Past classes',
+    'gui.classroom.studentJoin.historyPlaceholder': 'Previously joined classes',
     'gui.classroom.studentJoin.hintTeacherPath':
         'Teachers can find the join code in {settingsIcon} Settings → Class Management.',
     'gui.classroom.studentSeat.prompt': 'Select your seat number',

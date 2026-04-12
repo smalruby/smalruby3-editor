@@ -131,11 +131,11 @@ const StudentJoinForm = ({
                         onChange={handleHistorySelect}
                     >
                         <option value="">
-                            {`\u25BC ${intl.formatMessage({
-                                defaultMessage: 'Past classes',
+                            {intl.formatMessage({
+                                defaultMessage: 'Previously joined classes',
                                 description: 'Placeholder for join code history dropdown',
                                 id: 'gui.classroom.studentJoin.historyPlaceholder',
-                            })}`}
+                            })}
                         </option>
                         {joinCodeHistory.map((entry) => (
                             <option
