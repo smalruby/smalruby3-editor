@@ -61,16 +61,31 @@
 }
 
 .sidebar-item-indented {
-    padding-left: 1.2rem;
+    margin-left: 0.6rem;
+    margin-right: 0.3rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #d0d7e3;
+    border-radius: 8px;
+    background-color: #fff;
 }
 
 .sidebar-item:hover {
     background-color: #e9f0ff;
 }
 
+.sidebar-item-indented:hover {
+    border-color: #4c97ff;
+    background-color: #f0f6ff;
+}
+
 .sidebar-item-selected {
     background-color: #d6e4ff;
     font-weight: bold;
+}
+
+.sidebar-item-indented.sidebar-item-selected {
+    border-color: #4c97ff;
+    background-color: #d6e4ff;
 }
 
 .sidebar-item-name {

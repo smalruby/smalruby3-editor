@@ -218,10 +218,15 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         [onDeleteMember],
     );
 
-    // Group classrooms by className for sidebar display
+    // Group classrooms by className for sidebar display (hide expired)
     const groupedClassrooms = useMemo(() => {
+        const now = new Date();
+        const activeClassrooms = classrooms.filter((c) => {
+            if (!c.expiresAt) return true;
+            return new Date(c.expiresAt) > now;
+        });
         const groups = {};
-        for (const c of classrooms) {
+        for (const c of activeClassrooms) {
             const name = c.className || '';
             if (!groups[name]) {
                 groups[name] = [];
