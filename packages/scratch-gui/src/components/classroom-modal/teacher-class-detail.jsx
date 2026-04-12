@@ -1,7 +1,7 @@
 import classNames from 'classnames';
 import { FormattedMessage } from 'react-intl';
 import PropTypes from 'prop-types';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import ClassCodeDisplay from './class-code-display.jsx';
 import ErrorDisplay from './error-display.jsx';
@@ -46,6 +46,14 @@ const TeacherClassDetail = ({
     const [editAssignmentName, setEditAssignmentName] = useState(
         selectedClassroom.assignmentName || '',
     );
+
+    // Sync local state when a different classroom is selected
+    useEffect(() => {
+        setEditAssignmentName(selectedClassroom.assignmentName || '');
+        setShowDeleteConfirm(false);
+        setShowCodeDisplay(false);
+        setShowStudentCountDialog(false);
+    }, [selectedClassroom.classroomId]);
 
     const memberMap = React.useMemo(() => {
         const map = {};
