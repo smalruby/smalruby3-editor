@@ -11,7 +11,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | フェーズ |
 |------------|---------|
 | `classroom-modal` | モーダル全体 |
-| `classroom-phase-teacher-login` | 先生: Google ログイン |
+| `classroom-phase-teacher-login` | 先生: ログイン (Google / Microsoft) |
 | `classroom-phase-teacher-dashboard` | 先生: ダッシュボード |
 | `classroom-phase-teacher-create` | 先生: クラス作成 |
 | `classroom-phase-teacher-detail` | 先生: クラス詳細 |
@@ -29,6 +29,7 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-menu-button` | div | メニューバーのクラスボタン |
 | `classroom-google-login` | button | Google ログイン |
+| `classroom-microsoft-login` | button | Microsoft ログイン |
 | `classroom-back` | button | 戻る |
 | `classroom-refresh` | button | 更新 (↻) |
 | `classroom-create` | button | クラス作成 (ダッシュボード) |

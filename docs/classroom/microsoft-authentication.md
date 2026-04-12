@@ -76,9 +76,11 @@ Google の `sub`（数値文字列）と Microsoft の `oid`（UUID）は自然�
 
 | ファイル | 役割 |
 |---------|------|
+| `src/containers/use-teacher-auth.js` | 認証フック（Google / Microsoft のログイン・再認証・ログアウト） |
 | `src/lib/teacher-auth.js` | 認証抽象化（login, reauth, logout の統一 API） |
 | `src/lib/microsoft-auth.js` | MSAL.js ラッパー |
 | `src/lib/google-classroom-auth.js` | Google Classroom API 用アクセストークン管理 |
+| `src/components/classroom-teacher-modal/teacher-login-phase.jsx` | ログイン UI（Google / Microsoft ボタン + カルーセル） |
 | `src/playground/auth-redirect.js` | ブリッジページ用 webpack エントリーポイント |
 | `legal/auth-redirect.html` | ブリッジページ HTML |
 | `infra/smalruby-classroom/lambda/handler.ts` | `verifyTeacherIdToken()` |

@@ -5,7 +5,7 @@
 ```mermaid
 stateDiagram-v2
     state "先生フロー" as teacher {
-        state "Google ログイン" as teacher_login
+        state "ログイン (Google / Microsoft)" as teacher_login
         state "ダッシュボード" as teacher_dashboard
         state "クラス作成" as teacher_create
         state "クラス詳細" as teacher_detail
@@ -85,9 +85,9 @@ stateDiagram-v2
 
 ---
 
-## 1. 先生: Google ログイン (`teacher-login`)
+## 1. 先生: ログイン (`teacher-login`)
 
-Google アカウントでサインインする画面。先生は「設定 → クラス管理」メニューからアクセスします。
+Google または Microsoft アカウントでサインインする画面。先生は「設定 → クラス管理」メニューからアクセスします。
 
 ![先生ログイン画面](images/04-teacher-login.png)
 
@@ -97,15 +97,16 @@ Google アカウントでサインインする画面。先生は「設定 → �
 |------|-------------|-------------|------|
 | フェーズルート | — | `classroom-phase-teacher-login` | — |
 | 戻るリンク | 「< 戻る」 | `classroom-back` | → teacher-dashboard |
-| 見出し | 「Googleでログイン」 | — | — |
-| 説明文 | 「Googleアカウントでログインして、クラスを管理します。」 | — | — |
+| 見出し | 「ログイン」 | — | — |
+| 説明文 | 「アカウントでログインして、クラスを管理します。」 | — | — |
 | ヒント | 「学校の Google Workspace for Education のアカウントで…」 | — | — |
-| ログインボタン | 「Googleでログイン」 | `classroom-google-login` | Google 認証画面を開く |
+| Google ログインボタン | 「Googleでログイン」 | `classroom-google-login` | Google 認証画面を開く |
+| Microsoft ログインボタン | 「Microsoftでログイン」 | `classroom-microsoft-login` | Microsoft 認証ポップアップを開く |
 | カルーセル | 右ペインに機能紹介画像（4枚、5秒ごと自動切替） | — | ドットクリックで手動切替 |
 
-**レイアウト:** 左右分割レイアウト。左ペイン: ログインフォーム、右ペイン: 画像カルーセル（薄いグレー背景）。1024x600 の画面でもスクロールなしで表示。
+**レイアウト:** 左右分割レイアウト。左ペイン: ログインフォーム（Google / Microsoft の2つのログインボタン）、右ペイン: 画像カルーセル（薄いグレー背景）。1024x600 の画面でもスクロールなしで表示。
 
-**セッション管理:** Google ID Token（1時間有効）。期限切れ時はサイレント再認証（`auto_select`）を試行し、透過的にトークンを更新。失敗時のみ Alert バナーを表示。
+**セッション管理:** Google / Microsoft ID Token（1時間有効）。期限切れ時はプロバイダーに応じたサイレント再認証を試行し、透過的にトークンを更新。失敗時のみ Alert バナーを表示。詳細は [Microsoft 認証](microsoft-authentication.md) を参照。
 
 ---
 
