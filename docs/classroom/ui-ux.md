@@ -57,6 +57,8 @@ stateDiagram-v2
 
 | 要素 | テキスト/内容 | data-testid |
 |------|-------------|-------------|
+| 設定メニュー | ⚙ アイコン | `settings-menu` |
+| クラス管理メニュー | 「クラス管理...」（設定メニュー内） | `settings-classroom-management` |
 | クラスボタン | 「クラス」（未参加時） | `classroom-menu-button` |
 | ラベル | — | `classroom-menu-label` |
 

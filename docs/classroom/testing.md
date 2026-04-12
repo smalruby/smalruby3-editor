@@ -27,6 +27,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
+| `settings-menu` | div | 設定メニュー（⚙ アイコン） |
+| `settings-classroom-management` | MenuItem | 設定 → クラス管理 |
 | `classroom-menu-button` | div | メニューバーのクラスボタン |
 | `classroom-google-login` | button | Google ログイン |
 | `classroom-microsoft-login` | button | Microsoft ログイン |
