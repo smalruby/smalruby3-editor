@@ -3,6 +3,11 @@
  *
  * Provides ID tokens for teacher login using Microsoft Entra ID.
  * Uses `@azure/msal-browser` for popup-based authentication.
+ *
+ * IMPORTANT: Call `handleMsalPopupRedirect()` at app startup (before React renders).
+ * When MSAL completes authentication in a popup, the popup redirects back to the app.
+ * This function detects the popup context, sends the auth result to the parent window,
+ * and closes the popup — preventing the full app from loading inside it.
  */
 import { PublicClientApplication } from '@azure/msal-browser';
 
@@ -12,17 +17,11 @@ let _msalInstance = null;
 let _initPromise = null;
 
 /**
- * Initialize MSAL instance.
- * @returns {Promise<PublicClientApplication>} The initialized MSAL instance.
+ * Get or create the MSAL instance (singleton).
+ * @returns {PublicClientApplication} The MSAL instance (may not be initialized yet).
  */
-const _initialize = () => {
-    if (_initPromise) return _initPromise;
-
-    _initPromise = (async () => {
-        if (!MICROSOFT_CLIENT_ID) {
-            throw new Error('MICROSOFT_CLIENT_ID is not configured.');
-        }
-
+const _getMsalInstance = () => {
+    if (!_msalInstance) {
         _msalInstance = new PublicClientApplication({
             auth: {
                 clientId: MICROSOFT_CLIENT_ID,
@@ -33,12 +32,48 @@ const _initialize = () => {
                 cacheLocation: 'sessionStorage',
             },
         });
+    }
+    return _msalInstance;
+};
 
-        await _msalInstance.initialize();
-        return _msalInstance;
+/**
+ * Initialize MSAL instance (async, cached).
+ * @returns {Promise<PublicClientApplication>} The initialized MSAL instance.
+ */
+const _initialize = () => {
+    if (_initPromise) return _initPromise;
+
+    _initPromise = (async () => {
+        if (!MICROSOFT_CLIENT_ID) {
+            throw new Error('MICROSOFT_CLIENT_ID is not configured.');
+        }
+
+        const instance = _getMsalInstance();
+        await instance.initialize();
+        return instance;
     })();
 
     return _initPromise;
+};
+
+/**
+ * Handle MSAL popup redirect at app startup.
+ *
+ * Must be called early (before React renders). When the app loads
+ * inside an MSAL popup after authentication, this function processes
+ * the auth response, sends it to the parent window, and closes the popup.
+ * In non-popup contexts, this is a no-op.
+ */
+export const handleMsalPopupRedirect = async () => {
+    if (!MICROSOFT_CLIENT_ID) return;
+    if (typeof window === 'undefined') return;
+
+    try {
+        const instance = await _initialize();
+        await instance.handleRedirectPromise();
+    } catch {
+        // Ignore errors — this is best-effort for popup handling
+    }
 };
 
 /**
@@ -71,7 +106,9 @@ export const requestMicrosoftIdToken = async () => {
     });
 
     if (!result.idToken) {
-        throw new Error('Microsoft authentication failed: no ID token received');
+        throw new Error(
+            'Microsoft authentication failed: no ID token received',
+        );
     }
 
     return result.idToken;
@@ -86,11 +123,18 @@ export const isMicrosoftAuthAvailable = () => Boolean(MICROSOFT_CLIENT_ID);
 /**
  * Clear the cached Microsoft session.
  */
-export const clearMicrosoftAuth = () => {
-    if (_msalInstance) {
-        const accounts = _msalInstance.getAllAccounts();
-        accounts.forEach((account) => {
-            _msalInstance.getTokenCache().removeAccount(account);
-        });
+export const clearMicrosoftAuth = async () => {
+    if (!_msalInstance) return;
+    try {
+        const instance = await _initialize();
+        const accounts = instance.getAllAccounts();
+        for (const account of accounts) {
+            await instance.logout({
+                account,
+                onRedirectNavigate: () => false, // prevent navigation
+            });
+        }
+    } catch {
+        // Ignore errors during cleanup
     }
 };
