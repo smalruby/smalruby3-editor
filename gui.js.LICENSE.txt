@@ -212,6 +212,10 @@ and limitations under the License.
 
 /*! ./writer */
 
+/*! @azure/msal-browser v5.6.3 2026-04-01 */
+
+/*! @azure/msal-common v16.4.1 2026-04-01 */
+
 /*! @license DOMPurify 3.3.1 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.3.1/LICENSE */
 
 /*! @source http://purl.eligrey.com/github/canvas-toBlob.js/blob/master/canvas-toBlob.js */
