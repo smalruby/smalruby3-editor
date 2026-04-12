@@ -155,9 +155,11 @@ export default {
     'gui.classroom.teacherDetail.selectMember': 'Click a seat number to view student details',
     'gui.classroom.joinCode.fullscreen': 'Show fullscreen',
     'gui.classroom.teacherDetail.selectClassroom': 'Select a classroom from the sidebar',
-    'gui.classroom.management.loginPrompt': 'Sign in with Google',
-    'gui.classroom.management.loginDescription': 'Sign in with your Google account to manage classrooms.',
+    'gui.classroom.management.loginPrompt': 'Sign in to manage classrooms',
+    'gui.classroom.management.loginDescription':
+        'Sign in with your school account to create and manage classrooms.',
     'gui.classroom.management.loginButton': 'Sign in with Google',
+    'gui.classroom.management.microsoftLoginButton': 'Sign in with Microsoft',
     'gui.classroom.management.sidebarTitle': 'Your Classes & Assignments',
     'gui.classroom.management.loading': 'Loading...',
     'gui.classroom.management.create': 'Create Classroom',

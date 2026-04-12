@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
 import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
+import { requestMicrosoftIdToken, isMicrosoftAuthAvailable } from '../lib/microsoft-auth.js';
 import { closeClassroomModal } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
@@ -11,6 +12,7 @@ const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS |
 
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
+let _cachedAuthProvider = null; // 'google' | 'microsoft' | null
 
 /**
  * Return the cached teacher ID token (for initial phase calculation).
@@ -57,6 +59,7 @@ const useTeacherClassroom = ({
 }) => {
     // Teacher state
     const [idToken, setIdToken] = useState(_cachedTeacherIdToken);
+    const [authProvider, setAuthProvider] = useState(_cachedAuthProvider);
     const [classrooms, setClassrooms] = useState([]);
     const [selectedClassroom, setSelectedClassroom] = useState(null);
     const [members, setMembers] = useState([]);
@@ -73,14 +76,17 @@ const useTeacherClassroom = ({
     // Refresh timer for teacher detail
     const refreshTimerRef = useRef(null);
 
-    // Sync teacher token to module-level cache
+    // Sync teacher token and provider to module-level cache
     useEffect(() => {
         _cachedTeacherIdToken = idToken;
     }, [idToken]);
+    useEffect(() => {
+        _cachedAuthProvider = authProvider;
+    }, [authProvider]);
 
     // --- Teacher: Google Sign-In ---
 
-    const handleTeacherLogin = useCallback(async () => {
+    const handleGoogleLogin = useCallback(async () => {
         clearError();
         let signInContainer = null;
         let signInObserver = null;
@@ -135,6 +141,7 @@ const useTeacherClassroom = ({
             });
 
             setIdToken(token);
+            setAuthProvider('google');
             setPhase('teacher-dashboard');
         } catch (err) {
             cleanupSignIn();
@@ -142,11 +149,27 @@ const useTeacherClassroom = ({
         }
     }, [clearError, showError, setPhase]);
 
+    // --- Teacher: Microsoft Sign-In ---
+
+    const handleMicrosoftLogin = useCallback(async () => {
+        clearError();
+        try {
+            const token = await requestMicrosoftIdToken();
+            setIdToken(token);
+            setAuthProvider('microsoft');
+            setPhase('teacher-dashboard');
+        } catch (err) {
+            showError(err.message || 'Microsoft Sign-In failed');
+        }
+    }, [clearError, showError, setPhase]);
+
     // --- Teacher: Logout ---
 
     const handleTeacherLogout = useCallback(() => {
         _cachedTeacherIdToken = null;
+        _cachedAuthProvider = null;
         setIdToken(null);
+        setAuthProvider(null);
         setClassrooms([]);
         setSelectedClassroom(null);
         setMembers([]);
@@ -845,6 +868,7 @@ const useTeacherClassroom = ({
     return {
         // State
         idToken,
+        authProvider,
         classrooms,
         selectedClassroom,
         members,
@@ -862,7 +886,9 @@ const useTeacherClassroom = ({
         setMembers,
 
         // Handlers
-        handleTeacherLogin,
+        handleGoogleLogin,
+        handleMicrosoftLogin,
+        isMicrosoftAuthAvailable: isMicrosoftAuthAvailable(),
         handleTeacherLogout,
         handleShowCreateForm,
         handleCreateClassroom,

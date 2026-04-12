@@ -153,9 +153,11 @@ export default {
     'gui.classroom.teacherDetail.selectMember': 'しゅっせきばんごうをクリックしてせいとのしょうさいをみる',
     'gui.classroom.joinCode.fullscreen': 'ぜんがめんひょうじ',
     'gui.classroom.teacherDetail.selectClassroom': 'サイドバーからクラスをせんたくしてください',
-    'gui.classroom.management.loginPrompt': 'Googleでログイン',
-    'gui.classroom.management.loginDescription': 'Googleアカウントでログインして、クラスをかんりします。',
+    'gui.classroom.management.loginPrompt': 'ログインしてクラスをかんり',
+    'gui.classroom.management.loginDescription':
+        'がっこうのアカウントでログインして、クラスをつくったりかんりしたりします。',
     'gui.classroom.management.loginButton': 'Googleでログイン',
+    'gui.classroom.management.microsoftLoginButton': 'Microsoftでログイン',
     'gui.classroom.management.sidebarTitle': 'あなたのクラス・かだい',
     'gui.classroom.management.loading': 'よみこみちゅう...',
     'gui.classroom.management.create': 'クラスをつくる',

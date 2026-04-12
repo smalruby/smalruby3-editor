@@ -87,6 +87,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/insert-class.js`
 - `src/lib/join-code-history.js`
 - `src/lib/log-suppression.js`
+- `src/lib/microsoft-auth.js`
 - `src/lib/microbit-more-update.js`
 - `src/lib/module-sync.js`
 - `src/lib/monaco-i18n-helper.js`
