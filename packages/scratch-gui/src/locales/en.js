@@ -76,7 +76,7 @@ export default {
     'gui.classroom.studentJoined.start': 'Start',
     'gui.classroom.studentJoined.nextStepsTitle': 'What to do next',
     'gui.classroom.studentJoined.nextSteps':
-        "1. Close this dialog and create your project{br}2. When you're done, click the 'Class' button in the menu bar to submit",
+        "1. Close this dialog and create your project{br}2. When you're done, click the assignment name in the menu bar to submit",
     'gui.classroom.studentStatus.submitHint': "Click 'Submit Assignment' when your project is ready.",
     'gui.classroom.studentStatus.title': 'Your Classroom',
     'gui.classroom.studentStatus.class': 'Class',

@@ -72,7 +72,7 @@ export default {
     'gui.classroom.studentJoined.start': 'はじめる',
     'gui.classroom.studentJoined.nextStepsTitle': 'つぎにやること',
     'gui.classroom.studentJoined.nextSteps':
-        '1. このがめんをとじてプロジェクトをつくろう{br}2. できたら、メニューバーの「クラス」ボタンをおしてていしゅつしよう',
+        '1. このがめんをとじてプロジェクトをつくろう{br}2. できたら、メニューバーのかだいめいをおしてていしゅつしよう',
     'gui.classroom.studentStatus.submitHint':
         'プロジェクトがかんせいしたら「かだいをていしゅつする」をおしてください。',
     'gui.classroom.studentStatus.title': 'さんかしているクラス',

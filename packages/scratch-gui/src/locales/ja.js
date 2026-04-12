@@ -71,7 +71,7 @@ export default {
     'gui.classroom.studentJoined.start': 'はじめる',
     'gui.classroom.studentJoined.nextStepsTitle': 'つぎにやること',
     'gui.classroom.studentJoined.nextSteps':
-        '1. この画面を閉じてプロジェクトを作ろう{br}2. できたら、メニューバーの「クラス」ボタンを押して提出しよう',
+        '1. この画面を閉じてプロジェクトを作ろう{br}2. できたら、メニューバーの課題名を押して提出しよう',
     'gui.classroom.studentStatus.submitHint': 'プロジェクトが完成したら「課題を提出する」を押してください。',
     'gui.classroom.studentStatus.title': '参加しているクラス',
     'gui.classroom.studentStatus.class': 'クラス',
