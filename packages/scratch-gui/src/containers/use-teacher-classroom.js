@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
 import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
 import { loadGoogleIdentity } from '../lib/google-script-loader.js';
-import { requestMicrosoftIdToken, isMicrosoftAuthAvailable } from '../lib/microsoft-auth.js';
+import { requestMicrosoftIdToken, refreshMicrosoftIdToken, isMicrosoftAuthAvailable, clearMicrosoftAuth } from '../lib/microsoft-auth.js';
 import { closeClassroomModal } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
@@ -13,6 +13,13 @@ const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS |
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
 let _cachedAuthProvider = null; // 'google' | 'microsoft' | null
+
+// On page reload, _cachedTeacherIdToken is reset to null but MSAL's
+// sessionStorage may still contain tokens. Clear them to prevent
+// silent acquisition from using stale cached tokens.
+if (!_cachedTeacherIdToken) {
+    clearMicrosoftAuth();
+}
 
 /**
  * Return the cached teacher ID token (for initial phase calculation).
@@ -143,29 +150,43 @@ const useTeacherClassroom = ({
             setIdToken(token);
             setAuthProvider('google');
             setPhase('teacher-dashboard');
-        } catch (err) {
+        } catch {
             cleanupSignIn();
-            showError(err.message || 'Sign-in failed');
+            // User cancelled or popup was blocked — just reset, user can retry.
+            clearError();
         }
-    }, [clearError, showError, setPhase]);
+    }, [clearError, setPhase]);
 
     // --- Teacher: Microsoft Sign-In ---
 
     const handleMicrosoftLogin = useCallback(async () => {
+        // eslint-disable-next-line no-console
+        console.log('[auth] MS login: starting');
         clearError();
         try {
             const token = await requestMicrosoftIdToken();
+            // eslint-disable-next-line no-console
+            console.log('[auth] MS login: got token, length=', token?.length);
             setIdToken(token);
             setAuthProvider('microsoft');
             setPhase('teacher-dashboard');
         } catch (err) {
-            showError(err.message || 'Microsoft Sign-In failed');
+            // eslint-disable-next-line no-console
+            console.log('[auth] MS login: failed', err?.name, err?.message);
+            clearError();
         }
-    }, [clearError, showError, setPhase]);
+    }, [clearError, setPhase]);
 
     // --- Teacher: Logout ---
 
     const handleTeacherLogout = useCallback(() => {
+        // eslint-disable-next-line no-console
+        console.log('[auth] logout: provider=', authProvider);
+        if (authProvider === 'microsoft') {
+            // eslint-disable-next-line no-console
+            console.log('[auth] logout: clearing MSAL session');
+            clearMicrosoftAuth();
+        }
         _cachedTeacherIdToken = null;
         _cachedAuthProvider = null;
         setIdToken(null);
@@ -174,8 +195,11 @@ const useTeacherClassroom = ({
         setSelectedClassroom(null);
         setMembers([]);
         clearError();
+        // eslint-disable-next-line no-console
+        console.log('[auth] logout: MSAL sessionStorage keys remaining=',
+            Object.keys(sessionStorage).filter(k => k.includes('msal')).length);
         setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
-    }, [mode, clearError, setPhase]);
+    }, [mode, authProvider, clearError, setPhase]);
 
     // --- Teacher: Silent re-authentication on 401 ---
 
@@ -225,10 +249,16 @@ const useTeacherClassroom = ({
     }, []);
 
     const attemptMicrosoftSilentReauth = useCallback(async () => {
+        // eslint-disable-next-line no-console
+        console.log('[auth] MS silent reauth: starting (forceRefresh)');
         try {
-            const newToken = await requestMicrosoftIdToken();
+            const newToken = await refreshMicrosoftIdToken();
+            // eslint-disable-next-line no-console
+            console.log('[auth] MS silent reauth: got FRESH token, length=', newToken?.length);
             return newToken;
-        } catch {
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.log('[auth] MS silent reauth: failed', err?.name, err?.message);
             return null;
         }
     }, []);
@@ -238,6 +268,8 @@ const useTeacherClassroom = ({
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('devlogin')) return null;
 
+        // eslint-disable-next-line no-console
+        console.log('[auth] silent reauth: provider=', authProvider);
         let newToken = null;
         if (authProvider === 'microsoft') {
             newToken = await attemptMicrosoftSilentReauth();
@@ -245,6 +277,8 @@ const useTeacherClassroom = ({
             newToken = await attemptGoogleSilentReauth();
         }
 
+        // eslint-disable-next-line no-console
+        console.log('[auth] silent reauth: result=', newToken ? 'SUCCESS' : 'FAILED');
         if (newToken) {
             setIdToken(newToken);
         }
@@ -253,15 +287,35 @@ const useTeacherClassroom = ({
 
     /**
      * Handle a 401 error from a teacher API call.
-     * Tries silent re-authentication first; falls back to alert if that fails.
+     * Tries silent re-authentication once; falls back to session expired alert.
+     * Uses a ref guard to prevent infinite reauth loops (401 → reauth → setIdToken
+     * → useEffect re-fires → 401 → reauth → ...).
      * @returns {string|null} new ID token if reauth succeeded, null otherwise
      */
+    const reauthInProgressRef = useRef(false);
     const handleTeacher401 = useCallback(async () => {
-        const newToken = await attemptSilentReauth();
-        if (newToken) {
-            return newToken;
+        if (reauthInProgressRef.current) {
+            // eslint-disable-next-line no-console
+            console.log('[auth] handleTeacher401: skipped (already in progress)');
+            return null;
+        }
+        reauthInProgressRef.current = true;
+        // eslint-disable-next-line no-console
+        console.log('[auth] handleTeacher401: attempting silent reauth');
+        try {
+            const newToken = await attemptSilentReauth();
+            if (newToken) {
+                // eslint-disable-next-line no-console
+                console.log('[auth] handleTeacher401: reauth succeeded');
+                return newToken;
+            }
+        } finally {
+            // Reset after a short delay to allow the retried API call to complete
+            setTimeout(() => { reauthInProgressRef.current = false; }, 5000);
         }
         // Clear expired token to stop auto-refresh timer
+        // eslint-disable-next-line no-console
+        console.log('[auth] handleTeacher401: reauth failed, showing session expired');
         setIdToken(null);
         _cachedTeacherIdToken = null;
         showSessionExpiredError();
@@ -882,6 +936,25 @@ const useTeacherClassroom = ({
     const handleSelectMember = useCallback(memberId => {
         setSelectedMember(memberId);
     }, []);
+
+    // --- Debug: expose forceTeacher401 for manual testing ---
+    useEffect(() => {
+        if (typeof window !== 'undefined' && idToken) {
+            window.smalruby = window.smalruby || {};
+            window.smalruby.forceTeacher401 = () => {
+                // eslint-disable-next-line no-console
+                console.log('[auth-debug] forceTeacher401: corrupting cached token');
+                const corruptedToken = 'expired.token.stub';
+                _cachedTeacherIdToken = corruptedToken;
+                setIdToken(corruptedToken);
+            };
+        }
+        return () => {
+            if (typeof window !== 'undefined' && window.smalruby) {
+                delete window.smalruby.forceTeacher401;
+            }
+        };
+    }, [idToken]);
 
     return {
         // State

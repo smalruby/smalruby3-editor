@@ -53,6 +53,7 @@ const _initialize = () => {
 
 /**
  * Request a Microsoft ID token via popup login.
+ * Tries silent acquisition from cache first; falls back to interactive popup.
  * @returns {Promise<string>} The ID token string.
  */
 export const requestMicrosoftIdToken = async () => {
@@ -92,26 +93,50 @@ export const requestMicrosoftIdToken = async () => {
 };
 
 /**
+ * Force-refresh a Microsoft ID token for silent re-authentication.
+ * Unlike requestMicrosoftIdToken, this bypasses the MSAL cache and
+ * requests a new token from Microsoft using the refresh token.
+ * @returns {Promise<string>} A fresh ID token string.
+ */
+export const refreshMicrosoftIdToken = async () => {
+    const msalInstance = await _initialize();
+
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length === 0) {
+        throw new Error('No Microsoft account in cache');
+    }
+
+    const result = await msalInstance.acquireTokenSilent({
+        scopes: ['openid', 'profile'],
+        account: accounts[0],
+        redirectUri: POPUP_REDIRECT_URI,
+        forceRefresh: true,
+    });
+
+    if (!result.idToken) {
+        throw new Error('Microsoft silent refresh failed');
+    }
+
+    return result.idToken;
+};
+
+/**
  * Check if Microsoft auth is configured.
  * @returns {boolean} True if MICROSOFT_CLIENT_ID is set.
  */
 export const isMicrosoftAuthAvailable = () => Boolean(MICROSOFT_CLIENT_ID);
 
 /**
- * Clear the cached Microsoft session.
+ * Clear the cached Microsoft session (MSAL token cache in sessionStorage).
  */
-export const clearMicrosoftAuth = async () => {
-    if (!_msalInstance) return;
-    try {
-        const instance = await _initialize();
-        const accounts = instance.getAllAccounts();
-        for (const account of accounts) {
-            await instance.logout({
-                account,
-                onRedirectNavigate: () => false,
-            });
-        }
-    } catch {
-        // Ignore errors during cleanup
-    }
+export const clearMicrosoftAuth = () => {
+    // Clear all MSAL-related entries from sessionStorage
+    const msalKeys = Object.keys(sessionStorage).filter(
+        (k) => k.startsWith('msal.'),
+    );
+    msalKeys.forEach((k) => sessionStorage.removeItem(k));
+
+    // Reset the MSAL instance so a fresh one is created on next login
+    _msalInstance = null;
+    _initPromise = null;
 };
