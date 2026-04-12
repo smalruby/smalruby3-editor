@@ -362,7 +362,7 @@ const TeacherMemberDetail = ({
     return (
         <div className={styles.memberDetailEmpty}>
             <FormattedMessage
-                defaultMessage="Select a member"
+                defaultMessage="Click a seat number to view student details"
                 description="Prompt to select a member in class detail"
                 id="gui.classroom.teacherDetail.selectMember"
             />

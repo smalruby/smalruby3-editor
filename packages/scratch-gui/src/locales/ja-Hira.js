@@ -70,6 +70,11 @@ export default {
     'gui.classroom.studentJoined.success': 'さんかしました！',
     'gui.classroom.studentJoined.seat': 'しゅっせきばんごう{seatNumber}',
     'gui.classroom.studentJoined.start': 'はじめる',
+    'gui.classroom.studentJoined.nextStepsTitle': 'つぎにやること',
+    'gui.classroom.studentJoined.nextSteps':
+        '1. このがめんをとじてプロジェクトをつくろう{br}2. できたら、メニューバーの「クラス」ボタンをおしてていしゅつしよう',
+    'gui.classroom.studentStatus.submitHint':
+        'プロジェクトがかんせいしたら「かだいをていしゅつする」をおしてください。',
     'gui.classroom.studentStatus.title': 'さんかしているクラス',
     'gui.classroom.studentStatus.class': 'クラス',
     'gui.classroom.studentStatus.seatNumber': 'しゅっせきばんごう',
@@ -143,7 +148,8 @@ export default {
     'gui.classroom.codeDisplay.title': 'さんかコード',
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
-    'gui.classroom.teacherDetail.selectMember': 'メンバーをせんたくしてください',
+    'gui.classroom.teacherDetail.selectMember': 'せきばんごうをクリックしてせいとのしょうさいをみる',
+    'gui.classroom.joinCode.fullscreen': 'ぜんがめんひょうじ',
     'gui.classroom.teacherDetail.selectClassroom': 'サイドバーからクラスをせんたくしてください',
     'gui.classroom.management.loginPrompt': 'Googleでログイン',
     'gui.classroom.management.loginDescription': 'Googleアカウントでログインして、クラスをかんりします。',

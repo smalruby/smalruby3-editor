@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -39,6 +39,7 @@ const TeacherClassDetail = ({
     codeDisplayClassroom,
     codeDisplayFullscreen,
 }) => {
+    const intl = useIntl();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCodeDisplay, setShowCodeDisplay] = useState(false);
     const [showStudentCountDialog, setShowStudentCountDialog] = useState(false);
@@ -283,6 +284,11 @@ const TeacherClassDetail = ({
                                     className={styles.expandIconButton}
                                     data-testid="classroom-detail-expand-code"
                                     onClick={handleShowCode}
+                                    title={intl.formatMessage({
+                                        defaultMessage: 'Show fullscreen',
+                                        description: 'Tooltip for join code fullscreen button',
+                                        id: 'gui.classroom.joinCode.fullscreen',
+                                    })}
                                 >
                                     {'⛶'}
                                 </button>

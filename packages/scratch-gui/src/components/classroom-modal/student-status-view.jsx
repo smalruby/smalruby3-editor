@@ -171,6 +171,15 @@ const StudentStatusView = ({
                 </div>
             )}
         </div>
+        {!classroomState.submissionStatus && (
+            <div className={styles.formFieldHint}>
+                <FormattedMessage
+                    defaultMessage="Click 'Submit Assignment' when your project is ready."
+                    description="Hint for students who haven't submitted yet"
+                    id="gui.classroom.studentStatus.submitHint"
+                />
+            </div>
+        )}
         <div className={styles.statusFooter}>
             <button
                 className={styles.secondaryButton}
