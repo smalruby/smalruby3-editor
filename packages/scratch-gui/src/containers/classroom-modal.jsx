@@ -6,6 +6,7 @@ import ClassroomModalComponent from '../components/classroom-modal/classroom-mod
 import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
+import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
@@ -133,10 +134,12 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     // --- Student state ---
 
+    const [joinCodeHistory, setJoinCodeHistory] = useState(() => loadHistory());
     const [pendingJoinCode, setPendingJoinCode] = useState(null);
     const [seatCount, setSeatCount] = useState(0);
     const [takenSeats, setTakenSeats] = useState([]);
     const [selectedSeat, setSelectedSeat] = useState(null);
+    const [pendingClassroomInfo, setPendingClassroomInfo] = useState(null);
     const [joinedInfo, setJoinedInfo] = useState(null);
     const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
     const [submitProgress, setSubmitProgress] = useState(null);
@@ -150,6 +153,11 @@ const ClassroomModal = ({ mode = 'student' }) => {
             try {
                 const data = await classroomAPI.lookupClassroom(joinCode);
                 setPendingJoinCode(joinCode);
+                setPendingClassroomInfo({
+                    className: data.className || '',
+                    assignmentName: data.assignmentName || '',
+                    expiresAt: data.expiresAt || null,
+                });
                 setSeatCount(data.studentCount);
                 setTakenSeats(data.takenSeats || []);
                 setSelectedSeat(null);
@@ -196,6 +204,13 @@ const ClassroomModal = ({ mode = 'student' }) => {
             if (data.assignmentName) {
                 dispatch(setProjectTitle(data.assignmentName));
             }
+            addToHistory({
+                joinCode: pendingJoinCode,
+                className: data.className,
+                assignmentName: data.assignmentName || '',
+                expiresAt: pendingClassroomInfo?.expiresAt || null,
+            });
+            setJoinCodeHistory(loadHistory());
             setJoinedInfo({
                 className: data.className,
                 assignmentName: data.assignmentName || null,
@@ -478,6 +493,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
             errorActionLabel={errorActionLabel}
             errorTitle={errorTitle}
             isLoading={isLoading}
+            joinCodeHistory={joinCodeHistory}
             joinedInfo={joinedInfo}
             phase={phase}
             seatCount={seatCount}

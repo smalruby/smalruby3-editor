@@ -32,6 +32,7 @@ const ClassroomModal = ({
     errorActionLabel,
     errorTitle,
     isLoading,
+    joinCodeHistory,
     onSelectTeacher,
     onJoinWithCode,
     onSelectSeat,
@@ -65,6 +66,7 @@ const ClassroomModal = ({
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
+                        joinCodeHistory={joinCodeHistory}
                         noBackButton
                         onJoin={onJoinWithCode}
                         onTeacherLink={onSelectTeacher}
@@ -133,6 +135,13 @@ ClassroomModal.propTypes = {
     errorActionLabel: PropTypes.string,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
+    joinCodeHistory: PropTypes.arrayOf(
+        PropTypes.shape({
+            joinCode: PropTypes.string.isRequired,
+            className: PropTypes.string,
+            assignmentName: PropTypes.string,
+        }),
+    ),
     joinedInfo: PropTypes.shape({
         assignmentName: PropTypes.string,
         className: PropTypes.string,

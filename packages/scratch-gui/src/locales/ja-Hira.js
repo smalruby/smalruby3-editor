@@ -65,6 +65,7 @@ export default {
     'gui.classroom.studentJoin.hintAskTeacher': 'せんせいからさんかコードをきいてください。',
     'gui.classroom.studentJoin.hintTeacherPath':
         'せんせいは「{settingsIcon} せってい → クラスかんり」からさんかコードをかくにんできます。',
+    'gui.classroom.studentJoin.historyPlaceholder': 'これまでにさんかしたクラス・かだいのさんかコード',
     'gui.classroom.studentJoin.teacherLink': 'せんせいのかたはこちら（クラスかんり）',
     'gui.classroom.studentSeat.prompt': 'しゅっせきばんごうをえらんでください',
     'gui.classroom.studentSeat.join': 'さんかする',

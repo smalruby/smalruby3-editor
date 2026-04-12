@@ -1207,6 +1207,26 @@
     color: #3373cc;
 }
 
+.history-select {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.4rem;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #575e75;
+    background-color: white;
+    cursor: pointer;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.history-select:focus {
+    outline: none;
+    border-color: #4c97ff;
+}
+
 .student-count-button {
     background: none;
     border: 1px solid #4c97ff;

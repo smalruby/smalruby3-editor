@@ -85,6 +85,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/google-drive-api.js`
 - `src/lib/google-script-loader.js`
 - `src/lib/insert-class.js`
+- `src/lib/join-code-history.js`
 - `src/lib/log-suppression.js`
 - `src/lib/microbit-more-update.js`
 - `src/lib/module-sync.js`
@@ -184,6 +185,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/furigana-annotator.test.js`
 - `test/unit/lib/google-drive-api.test.js`
 - `test/unit/lib/insert-class.test.js`
+- `test/unit/lib/join-code-history.test.js`
 - `test/unit/lib/layout-constants.test.js`
 - `test/unit/lib/legacy-storage.test.js`
 - `test/unit/lib/make-toolbox-xml.test.js`
