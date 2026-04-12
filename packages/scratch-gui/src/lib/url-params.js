@@ -84,7 +84,7 @@ const parseUrlParams = () => {
         .filter(f => f.length > 0);
 
     // classcode: auto-join a classroom via invite link
-    const classcode = (params.get('classcode') || '').trim().toUpperCase() || null;
+    const classcode = (params.get('classcode') || '').trim().toLowerCase() || null;
 
     // devlogin: bypass Google auth with a secret token (stg/local only)
     const devlogin = params.get('devlogin') || null;

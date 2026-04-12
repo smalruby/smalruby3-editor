@@ -18,8 +18,15 @@ describe('generateJoinCode', () => {
     expect(code).toHaveLength(6);
   });
 
-  test('should only contain allowed characters (no I, O, 0, 1)', () => {
-    const forbidden = /[IO01]/;
+  test('should generate lowercase codes', () => {
+    for (let i = 0; i < 20; i++) {
+      const code = generateJoinCode();
+      expect(code).toBe(code.toLowerCase());
+    }
+  });
+
+  test('should only contain allowed characters (no i, o, 0, 1)', () => {
+    const forbidden = /[io01IO]/;
     for (let i = 0; i < 100; i++) {
       const code = generateJoinCode();
       expect(code).not.toMatch(forbidden);
@@ -159,30 +166,34 @@ describe('validateNickname', () => {
 });
 
 describe('validateJoinCode', () => {
-  test('should accept valid 6-char code', () => {
-    expect(validateJoinCode('ABC234')).toBe('ABC234');
+  test('should accept valid 6-char lowercase code', () => {
+    expect(validateJoinCode('abc234')).toBe('abc234');
   });
 
-  test('should uppercase', () => {
-    expect(validateJoinCode('abc234')).toBe('ABC234');
+  test('should lowercase uppercase input', () => {
+    expect(validateJoinCode('ABC234')).toBe('abc234');
+  });
+
+  test('should lowercase mixed case input', () => {
+    expect(validateJoinCode('AbC234')).toBe('abc234');
   });
 
   test('should trim whitespace', () => {
-    expect(validateJoinCode(' ABC234 ')).toBe('ABC234');
+    expect(validateJoinCode(' abc234 ')).toBe('abc234');
   });
 
   test('should reject wrong length', () => {
-    expect(() => validateJoinCode('ABC')).toThrow('6 characters');
-    expect(() => validateJoinCode('ABCDEFG')).toThrow('6 characters');
+    expect(() => validateJoinCode('abc')).toThrow('6 characters');
+    expect(() => validateJoinCode('abcdefg')).toThrow('6 characters');
   });
 
   test('should reject non-string', () => {
     expect(() => validateJoinCode(123456)).toThrow('6 characters');
   });
 
-  test('should reject codes with invalid characters (0, 1, I, O)', () => {
-    expect(() => validateJoinCode('ABC001')).toThrow('invalid characters');
-    expect(() => validateJoinCode('ABCIOO')).toThrow('invalid characters');
+  test('should reject codes with invalid characters (0, 1, i, o)', () => {
+    expect(() => validateJoinCode('abc001')).toThrow('invalid characters');
+    expect(() => validateJoinCode('abcioo')).toThrow('invalid characters');
   });
 });
 
