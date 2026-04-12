@@ -35,6 +35,9 @@ export class ClassroomStack extends cdk.Stack {
 
     // Dev bypass token (stg only — allows skipping Google auth for automated testing)
     const devBypassToken = process.env.DEV_BYPASS_TOKEN || '';
+    if (stage === 'prod' && devBypassToken) {
+      throw new Error('DEV_BYPASS_TOKEN must not be set in production. Remove it from .env.prod.');
+    }
 
     // Classroom TTL in days (default 30, configurable via env)
     const classroomTtlDays = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);

@@ -257,9 +257,29 @@ function extractBearerToken(authHeader?: string): string {
 
 async function handleCreateClassroom(teacherSub: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
   const className = validateClassName(body.className);
-  const assignmentName = validateClassName(body.assignmentName); // reuse same validator (1-50 chars)
+  let assignmentName = validateClassName(body.assignmentName); // reuse same validator (1-50 chars)
   const studentCount = validateStudentCount(body.studentCount);
   const googleClassroomCourseId = typeof body.googleClassroomCourseId === 'string' ? body.googleClassroomCourseId.trim() : undefined;
+
+  // Auto-number duplicate assignment names within the same class
+  const existingClassrooms = await docClient.send(new QueryCommand({
+    TableName: CLASSROOMS_TABLE,
+    IndexName: 'teacherSub-index',
+    KeyConditionExpression: 'teacherSub = :ts',
+    ExpressionAttributeValues: { ':ts': teacherSub },
+  }));
+  if (existingClassrooms.Items) {
+    const sameClassAssignments = existingClassrooms.Items
+      .filter(item => item.className === className && item.status === 'active')
+      .map(item => item.assignmentName as string);
+    if (sameClassAssignments.includes(assignmentName)) {
+      let suffix = 2;
+      while (sameClassAssignments.includes(`${assignmentName} (${suffix})`)) {
+        suffix++;
+      }
+      assignmentName = `${assignmentName} (${suffix})`;
+    }
+  }
 
   // Generate unique join code (retry up to 5 times)
   let joinCode = '';
