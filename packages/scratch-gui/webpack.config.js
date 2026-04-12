@@ -209,7 +209,10 @@ const buildConfig = baseConfig.clone()
     .enableDevServer(process.env.PORT || 8601)
     .merge({
         entry: {
-            gui: './src/playground/index.jsx'
+            gui: './src/playground/index.jsx',
+            // === Smalruby: Start of Microsoft auth redirect ===
+            'auth-redirect': './src/playground/auth-redirect.js'
+            // === Smalruby: End of Microsoft auth redirect ===
             // Removed unused entry points to reduce build time:
             // guistandalone: './src/playground/standalone.jsx',
             // blocksonly: './src/playground/blocks-only.jsx',

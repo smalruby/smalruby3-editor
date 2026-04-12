@@ -5,8 +5,9 @@
  * Uses `@azure/msal-browser` for popup-based authentication.
  *
  * The popup redirects to a dedicated /auth-redirect.html page (not the main app).
- * This lightweight page uses the MSAL redirect bridge to send the auth result
- * back to the parent window and close itself.
+ * That page runs a bundled script (auth-redirect.js) that calls
+ * broadcastResponseToMainFrame() to send the auth response back
+ * to this parent window via BroadcastChannel.
  */
 import { PublicClientApplication } from '@azure/msal-browser';
 

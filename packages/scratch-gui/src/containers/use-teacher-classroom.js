@@ -184,6 +184,8 @@ const useTeacherClassroom = ({
         if (mode !== 'teacher') return null;
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('devlogin')) return null;
+        // Google silent reauth only applies to Google-authenticated teachers
+        if (authProvider === 'microsoft') return null;
 
         try {
             await loadGoogleIdentity();
