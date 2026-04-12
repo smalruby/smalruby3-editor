@@ -179,14 +179,7 @@ const useTeacherClassroom = ({
 
     // --- Teacher: Silent re-authentication on 401 ---
 
-    const attemptSilentReauth = useCallback(async () => {
-        // Skip silent reauth in non-teacher mode or when using devlogin token
-        if (mode !== 'teacher') return null;
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('devlogin')) return null;
-        // Google silent reauth only applies to Google-authenticated teachers
-        if (authProvider === 'microsoft') return null;
-
+    const attemptGoogleSilentReauth = useCallback(async () => {
         try {
             await loadGoogleIdentity();
             const REAUTH_TIMEOUT_MS = 5000;
@@ -204,14 +197,12 @@ const useTeacherClassroom = ({
                         },
                     });
                     google.accounts.id.prompt(notification => {
-                        // Only accept truly automatic sign-in (no UI shown)
                         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
                             reject(new Error('Silent reauth not available'));
                         }
                         if (notification.isDismissedMoment()) {
                             reject(new Error('User dismissed reauth'));
                         }
-                        // If One Tap UI is displayed, cancel it — we only want silent
                         if (notification.isDisplayMoment() && !notification.isNotDisplayed()) {
                             google.accounts.id.cancel();
                             reject(new Error('One Tap displayed, not silent'));
@@ -222,10 +213,8 @@ const useTeacherClassroom = ({
                     setTimeout(() => reject(new Error('Silent reauth timeout')), REAUTH_TIMEOUT_MS),
                 ),
             ]);
-            setIdToken(newToken);
             return newToken;
         } catch {
-            // Ensure One Tap UI is closed on any failure
             try {
                 google.accounts.id.cancel();
             } catch {
@@ -233,7 +222,34 @@ const useTeacherClassroom = ({
             }
             return null;
         }
-    }, [mode]);
+    }, []);
+
+    const attemptMicrosoftSilentReauth = useCallback(async () => {
+        try {
+            const newToken = await requestMicrosoftIdToken();
+            return newToken;
+        } catch {
+            return null;
+        }
+    }, []);
+
+    const attemptSilentReauth = useCallback(async () => {
+        if (mode !== 'teacher') return null;
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('devlogin')) return null;
+
+        let newToken = null;
+        if (authProvider === 'microsoft') {
+            newToken = await attemptMicrosoftSilentReauth();
+        } else {
+            newToken = await attemptGoogleSilentReauth();
+        }
+
+        if (newToken) {
+            setIdToken(newToken);
+        }
+        return newToken;
+    }, [mode, authProvider, attemptGoogleSilentReauth, attemptMicrosoftSilentReauth]);
 
     /**
      * Handle a 401 error from a teacher API call.
