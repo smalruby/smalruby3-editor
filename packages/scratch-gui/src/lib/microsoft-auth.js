@@ -57,19 +57,18 @@ const _initialize = () => {
 };
 
 /**
- * Synchronously detect if this page is loaded inside an MSAL popup redirect.
+ * Synchronously detect if this page is loaded inside an MSAL popup.
  *
- * After Microsoft auth completes, the popup navigates to the redirect URI
- * with auth response params in the URL hash (code=...&state=...).
- * This check is synchronous so it can be used to skip React rendering entirely.
- * @returns {boolean} True if this page is in an MSAL popup redirect context.
+ * After Microsoft auth completes, the popup navigates to the redirect URI.
+ * We detect this by checking if the window was opened by another window
+ * (window.opener exists). This prevents the full app from rendering inside
+ * the popup, allowing MSAL to process the auth response and close it.
+ * @returns {boolean} True if this page is in an MSAL popup context.
  */
 export const isMsalPopupRedirect = () => {
     if (!MICROSOFT_CLIENT_ID) return false;
     if (typeof window === 'undefined') return false;
-    // MSAL popup: opened by parent window, URL hash contains auth response
-    const hash = window.location.hash;
-    return Boolean(window.opener && hash && hash.includes('code=') && hash.includes('state='));
+    return Boolean(window.opener && window.opener !== window);
 };
 
 /**
