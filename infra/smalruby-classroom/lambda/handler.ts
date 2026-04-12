@@ -681,8 +681,11 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
     statusCode: 200,
     body: JSON.stringify({
       classroomId: classroom.classroomId,
+      className: classroom.className,
+      assignmentName: classroom.assignmentName || null,
       studentCount: classroom.studentCount,
       takenSeats,
+      expiresAt: classroom.ttl ? new Date((classroom.ttl as number) * 1000).toISOString() : null,
     }),
   };
 }

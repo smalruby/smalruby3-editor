@@ -7,7 +7,7 @@ import ErrorDisplay from './error-display.jsx';
 import styles from './classroom-modal.css';
 
 /**
- * Normalize input for join code: full-width → half-width, then keep only [a-z0-9].
+ * Normalize input for join code: full-width to half-width, then keep only [a-z0-9].
  * @param {string} raw - Raw input string
  * @returns {string} Normalized lowercase alphanumeric string
  */
@@ -17,13 +17,13 @@ const normalizeJoinCodeInput = (raw) => {
         const cp = raw.charCodeAt(i);
         let ch;
         if (cp >= 0xff10 && cp <= 0xff19) {
-            // Full-width digits → half-width
+            // Full-width digits -> half-width
             ch = String.fromCharCode(cp - 0xff10 + 0x30);
         } else if (cp >= 0xff21 && cp <= 0xff3a) {
-            // Full-width uppercase → half-width lowercase
+            // Full-width uppercase -> half-width lowercase
             ch = String.fromCharCode(cp - 0xff21 + 0x61);
         } else if (cp >= 0xff41 && cp <= 0xff5a) {
-            // Full-width lowercase → half-width lowercase
+            // Full-width lowercase -> half-width lowercase
             ch = String.fromCharCode(cp - 0xff41 + 0x61);
         } else {
             ch = raw[i].toLowerCase();
@@ -41,6 +41,7 @@ const StudentJoinForm = ({
     errorActionHandler,
     errorTitle,
     isLoading,
+    joinCodeHistory,
     noBackButton,
     onBack,
     onJoin,
@@ -66,6 +67,19 @@ const StudentJoinForm = ({
         },
         [code, onJoin],
     );
+
+    const handleHistorySelect = useCallback(
+        (e) => {
+            const selectedCode = e.target.value;
+            if (selectedCode) {
+                setCode(selectedCode);
+            }
+        },
+        [],
+    );
+
+    const hasHistory =
+        Array.isArray(joinCodeHistory) && joinCodeHistory.length > 0;
 
     return (
         <div data-testid="classroom-phase-student-join">
@@ -108,6 +122,31 @@ const StudentJoinForm = ({
                 />
             </div>
             <div className={styles.buttonRow}>
+                {hasHistory && (
+                    <select
+                        className={styles.historySelect}
+                        data-testid="classroom-join-history"
+                        value=""
+                        onChange={handleHistorySelect}
+                    >
+                        <option value="">
+                            {'\u25BC '}
+                            <FormattedMessage
+                                defaultMessage="Past classes"
+                                description="Placeholder for join code history dropdown"
+                                id="gui.classroom.studentJoin.historyPlaceholder"
+                            />
+                        </option>
+                        {joinCodeHistory.map((entry) => (
+                            <option
+                                key={entry.joinCode}
+                                value={entry.joinCode}
+                            >
+                                {`${entry.className}${entry.assignmentName ? `/${entry.assignmentName}` : ''} ${entry.joinCode}`}
+                            </option>
+                        ))}
+                    </select>
+                )}
                 <button
                     className={styles.primaryButton}
                     data-testid="classroom-join-submit"
@@ -184,6 +223,15 @@ StudentJoinForm.propTypes = {
     errorActionLabel: PropTypes.string,
     errorTitle: PropTypes.string,
     isLoading: PropTypes.bool,
+    joinCodeHistory: PropTypes.arrayOf(
+        PropTypes.shape({
+            joinCode: PropTypes.string.isRequired,
+            className: PropTypes.string,
+            assignmentName: PropTypes.string,
+            expiresAt: PropTypes.string,
+            joinedAt: PropTypes.string,
+        }),
+    ),
     noBackButton: PropTypes.bool,
     onBack: PropTypes.func,
     onJoin: PropTypes.func.isRequired,
