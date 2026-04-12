@@ -4,10 +4,8 @@ import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
-import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
-import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
 import {
@@ -20,6 +18,7 @@ import {
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import translateError from './classroom-error-utils.js';
+import useStudentSubmit from './use-student-submit.js';
 import useTeacherClassroom, { getCachedTeacherIdToken, setCachedTeacherIdToken } from './use-teacher-classroom.js';
 
 const ClassroomModal = ({ mode = 'student' }) => {
@@ -91,6 +90,21 @@ const ClassroomModal = ({ mode = 'student' }) => {
         vm,
     });
 
+    // Student submit hook
+    const submit = useStudentSubmit({
+        classroomState,
+        vm,
+        scratchBlocks,
+        projectTitle,
+        dispatch,
+        clearError,
+        showError,
+        showSessionExpiredError: stableShowSessionExpiredError,
+        intl,
+        setIsLoading,
+        setPhase,
+    });
+
     // Go back to login/join screen (used as error action for session expiry)
     const handleGoToLogin = useCallback(() => {
         if (mode === 'teacher') {
@@ -132,7 +146,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
         dispatch(openTeacherModal());
     }, [dispatch]);
 
-    // --- Student state ---
+    // --- Student: join state ---
 
     const [joinCodeHistory, setJoinCodeHistory] = useState(() => loadHistory());
     const [pendingJoinCode, setPendingJoinCode] = useState(null);
@@ -141,8 +155,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [pendingClassroomInfo, setPendingClassroomInfo] = useState(null);
     const [joinedInfo, setJoinedInfo] = useState(null);
-    const [thumbnailDataUrl, setThumbnailDataUrl] = useState(null);
-    const [submitProgress, setSubmitProgress] = useState(null);
 
     // --- Student: Join with code ---
 
@@ -226,7 +238,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [dispatch, pendingJoinCode, selectedSeat, clearError, showError, intl]);
+    }, [dispatch, pendingJoinCode, selectedSeat, pendingClassroomInfo, clearError, showError, intl]);
 
     // --- Student: Verify session + fetch submission status ---
 
@@ -268,147 +280,6 @@ const ClassroomModal = ({ mode = 'student' }) => {
         dispatch(clearClassroomSession());
         setPhase('student-join');
     }, [classroomState.sessionToken, classroomState.classroomId, dispatch]);
-
-    // --- Student: Submit flow ---
-
-    const handleStartSubmit = useCallback(() => {
-        clearError();
-        setThumbnailDataUrl(null);
-        if (vm && vm.renderer) {
-            getProjectThumbnail(vm, dataUrl => {
-                setThumbnailDataUrl(dataUrl);
-            });
-        }
-        setPhase('student-submit-confirm');
-    }, [vm, clearError]);
-
-    const captureBlockScreenshots = useCallback(async () => {
-        if (!vm || !scratchBlocks) return [];
-        const workspace = scratchBlocks.getMainWorkspace();
-        if (!workspace) return [];
-
-        const originalTargetId = vm.editingTarget?.id;
-        const allTargets = vm.runtime.targets.filter(t => !t.isOriginal === false || t.isOriginal);
-        const targetsWithBlocks = allTargets.filter(t => {
-            const blocks = t.blocks._blocks;
-            return blocks && Object.keys(blocks).length > 0;
-        });
-
-        const blobs = [];
-        for (let i = 0; i < targetsWithBlocks.length; i++) {
-            const target = targetsWithBlocks[i];
-            setSubmitProgress({
-                current: i + 1,
-                total: targetsWithBlocks.length,
-                label: target.sprite.name,
-            });
-
-            vm.setEditingTarget(target.id);
-            await new Promise(resolve => {
-                setTimeout(() => requestAnimationFrame(resolve), 100);
-            });
-
-            try {
-                const costumeDataUri = target.sprite.costumes[target.currentCostume]?.asset?.encodeDataURI();
-                const canvas = await renderBlocksToCanvas(workspace, costumeDataUri);
-                if (!canvas) continue;
-
-                const blob = await new Promise(resolve => {
-                    canvas.toBlob(resolve, 'image/png');
-                });
-                if (blob) blobs.push(blob);
-            } catch {
-                // Skip sprites that fail to capture
-            }
-        }
-
-        if (originalTargetId) {
-            vm.setEditingTarget(originalTargetId);
-        }
-        setSubmitProgress(null);
-        return blobs;
-    }, [vm, scratchBlocks]);
-
-    const handleConfirmSubmit = useCallback(async () => {
-        if (!classroomState.sessionToken || !classroomState.classroomId) return;
-        clearError();
-        setIsLoading(true);
-        try {
-            const submitProjectTitle = projectTitle || 'Untitled';
-            const screenshotBlobs = await captureBlockScreenshots();
-
-            const submissionData = await classroomAPI.createSubmission(
-                classroomState.sessionToken,
-                classroomState.classroomId,
-                submitProjectTitle,
-                screenshotBlobs.length,
-            );
-
-            setSubmitProgress({ current: 0, total: 1, label: 'project' });
-            const sb3Data = await vm.saveProjectSb3();
-            const MAX_FILE_SIZE = 10 * 1024 * 1024;
-            if (sb3Data.byteLength > MAX_FILE_SIZE) {
-                const sizeMB = (sb3Data.byteLength / (1024 * 1024)).toFixed(1);
-                throw new Error(
-                    intl.formatMessage(
-                        {
-                            defaultMessage: 'Project is too large ({size}MB). Maximum size is 10MB.',
-                            description: 'File too large error',
-                            id: 'gui.classroom.error.fileTooLarge',
-                        },
-                        { size: sizeMB },
-                    ),
-                );
-            }
-            await classroomAPI.uploadToPresignedUrl(submissionData.uploadUrl, sb3Data, 'application/octet-stream');
-
-            if (thumbnailDataUrl) {
-                const thumbnailBlob = await fetch(thumbnailDataUrl).then(r => r.blob());
-                await classroomAPI.uploadToPresignedUrl(
-                    submissionData.thumbnailUploadUrl,
-                    thumbnailBlob,
-                    'image/png',
-                );
-            }
-
-            if (screenshotBlobs.length > 0 && submissionData.screenshotUploadUrls) {
-                await Promise.all(
-                    screenshotBlobs.map((blob, i) =>
-                        classroomAPI.uploadToPresignedUrl(submissionData.screenshotUploadUrls[i], blob, 'image/png'),
-                    ),
-                );
-            }
-
-            setSubmitProgress(null);
-            dispatch(setSubmissionStatus('submitted', submissionData.submittedAt));
-            setPhase('student-status');
-        } catch (err) {
-            setSubmitProgress(null);
-            if (err.status === 401) {
-                dispatch(clearClassroomSession());
-                showSessionExpiredError(translateError(intl, err, 'session'));
-            } else {
-                showError(translateError(intl, err));
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    }, [
-        classroomState,
-        vm,
-        projectTitle,
-        thumbnailDataUrl,
-        captureBlockScreenshots,
-        dispatch,
-        clearError,
-        showError,
-        showSessionExpiredError,
-        intl,
-    ]);
-
-    const handleCancelSubmit = useCallback(() => {
-        setPhase('student-status');
-    }, []);
 
     // --- Classcode URL parameter auto-join ---
     useEffect(() => {
@@ -501,20 +372,20 @@ const ClassroomModal = ({ mode = 'student' }) => {
             phase={phase}
             seatCount={seatCount}
             selectedSeat={selectedSeat}
-            submitProgress={submitProgress}
+            submitProgress={submit.submitProgress}
             takenSeats={takenSeats}
             teacherComment={studentTeacherComment}
-            thumbnailDataUrl={thumbnailDataUrl}
-            onCancelSubmit={handleCancelSubmit}
+            thumbnailDataUrl={submit.thumbnailDataUrl}
+            onCancelSubmit={submit.handleCancelSubmit}
             onClose={handleClose}
             onConfirmJoin={handleConfirmJoin}
-            onConfirmSubmit={handleConfirmSubmit}
+            onConfirmSubmit={submit.handleConfirmSubmit}
             onJoinWithCode={handleJoinWithCode}
             onLeaveClassroom={handleLeaveClassroom}
             onRefreshStudentStatus={refreshStudentStatus}
             onSelectSeat={handleSelectSeat}
             onSelectTeacher={handleSelectTeacher}
-            onStartSubmit={handleStartSubmit}
+            onStartSubmit={submit.handleStartSubmit}
         />
     );
 };
