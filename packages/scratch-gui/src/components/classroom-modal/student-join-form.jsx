@@ -1,4 +1,4 @@
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 
@@ -47,6 +47,7 @@ const StudentJoinForm = ({
     onJoin,
     onTeacherLink,
 }) => {
+    const intl = useIntl();
     const [code, setCode] = React.useState('');
 
     const handleCodeChange = useCallback((e) => {
@@ -130,12 +131,11 @@ const StudentJoinForm = ({
                         onChange={handleHistorySelect}
                     >
                         <option value="">
-                            {'\u25BC '}
-                            <FormattedMessage
-                                defaultMessage="Past classes"
-                                description="Placeholder for join code history dropdown"
-                                id="gui.classroom.studentJoin.historyPlaceholder"
-                            />
+                            {`\u25BC ${intl.formatMessage({
+                                defaultMessage: 'Past classes',
+                                description: 'Placeholder for join code history dropdown',
+                                id: 'gui.classroom.studentJoin.historyPlaceholder',
+                            })}`}
                         </option>
                         {joinCodeHistory.map((entry) => (
                             <option
