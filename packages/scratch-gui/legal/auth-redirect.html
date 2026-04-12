@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Authenticating...</title>
+</head>
+<body>
+    <p>Processing authentication...</p>
+    <script type="module">
+        import { broadcastResponseToMainFrame } from "https://esm.sh/@azure/msal-browser@5.6.3/redirect-bridge";
+        broadcastResponseToMainFrame().catch((error) => {
+            console.error("Error broadcasting response:", error);
+        });
+    </script>
+</body>
+</html>

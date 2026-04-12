@@ -4,37 +4,21 @@
  * Provides ID tokens for teacher login using Microsoft Entra ID.
  * Uses `@azure/msal-browser` for popup-based authentication.
  *
- * IMPORTANT: Call `handleMsalPopupRedirect()` at app startup (before React renders).
- * When MSAL completes authentication in a popup, the popup redirects back to the app.
- * This function detects the popup context, sends the auth result to the parent window,
- * and closes the popup — preventing the full app from loading inside it.
+ * The popup redirects to a dedicated /auth-redirect.html page (not the main app).
+ * This lightweight page uses the MSAL redirect bridge to send the auth result
+ * back to the parent window and close itself.
  */
 import { PublicClientApplication } from '@azure/msal-browser';
 
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
 
+/** Dedicated redirect page for popup auth (must not load the full SPA). */
+const POPUP_REDIRECT_URI = `${
+    typeof window === 'undefined' ? '' : window.location.origin
+}/auth-redirect.html`;
+
 let _msalInstance = null;
 let _initPromise = null;
-
-/**
- * Get or create the MSAL instance (singleton).
- * @returns {PublicClientApplication} The MSAL instance (may not be initialized yet).
- */
-const _getMsalInstance = () => {
-    if (!_msalInstance) {
-        _msalInstance = new PublicClientApplication({
-            auth: {
-                clientId: MICROSOFT_CLIENT_ID,
-                authority: 'https://login.microsoftonline.com/common',
-                redirectUri: window.location.origin,
-            },
-            cache: {
-                cacheLocation: 'sessionStorage',
-            },
-        });
-    }
-    return _msalInstance;
-};
 
 /**
  * Initialize MSAL instance (async, cached).
@@ -48,44 +32,22 @@ const _initialize = () => {
             throw new Error('MICROSOFT_CLIENT_ID is not configured.');
         }
 
-        const instance = _getMsalInstance();
-        await instance.initialize();
-        return instance;
+        _msalInstance = new PublicClientApplication({
+            auth: {
+                clientId: MICROSOFT_CLIENT_ID,
+                authority: 'https://login.microsoftonline.com/common',
+                redirectUri: POPUP_REDIRECT_URI,
+            },
+            cache: {
+                cacheLocation: 'sessionStorage',
+            },
+        });
+
+        await _msalInstance.initialize();
+        return _msalInstance;
     })();
 
     return _initPromise;
-};
-
-/**
- * Synchronously detect if this page is loaded inside an MSAL popup.
- *
- * After Microsoft auth completes, the popup navigates to the redirect URI.
- * We detect this by checking if the window was opened by another window
- * (window.opener exists). This prevents the full app from rendering inside
- * the popup, allowing MSAL to process the auth response and close it.
- * @returns {boolean} True if this page is in an MSAL popup context.
- */
-export const isMsalPopupRedirect = () => {
-    if (!MICROSOFT_CLIENT_ID) return false;
-    if (typeof window === 'undefined') return false;
-    return Boolean(window.opener && window.opener !== window);
-};
-
-/**
- * Handle MSAL popup redirect at app startup.
- *
- * Call this when `isMsalPopupRedirect()` returns true. Initializes MSAL,
- * processes the auth response in the URL hash, sends the result to the
- * parent window via postMessage, and closes the popup.
- */
-export const handleMsalPopupRedirect = async () => {
-    try {
-        const instance = await _initialize();
-        await instance.handleRedirectPromise();
-    } catch {
-        // If handling fails, close the popup to avoid getting stuck
-        window.close();
-    }
 };
 
 /**
@@ -102,6 +64,7 @@ export const requestMicrosoftIdToken = async () => {
             const result = await msalInstance.acquireTokenSilent({
                 scopes: ['openid', 'profile'],
                 account: accounts[0],
+                redirectUri: POPUP_REDIRECT_URI,
             });
             if (result.idToken) {
                 return result.idToken;
@@ -115,6 +78,7 @@ export const requestMicrosoftIdToken = async () => {
     const result = await msalInstance.loginPopup({
         scopes: ['openid', 'profile'],
         prompt: 'select_account',
+        redirectUri: POPUP_REDIRECT_URI,
     });
 
     if (!result.idToken) {
@@ -143,7 +107,7 @@ export const clearMicrosoftAuth = async () => {
         for (const account of accounts) {
             await instance.logout({
                 account,
-                onRedirectNavigate: () => false, // prevent navigation
+                onRedirectNavigate: () => false,
             });
         }
     } catch {
