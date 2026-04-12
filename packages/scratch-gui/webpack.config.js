@@ -115,6 +115,7 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         // === Smalruby: Start of classroom API ===
         'process.env.CLASSROOM_API_ENDPOINT': `"${process.env.CLASSROOM_API_ENDPOINT || ''}"`,
         'process.env.CLASSROOM_REFRESH_INTERVAL_MS': `"${process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000'}"`,
+        'process.env.MICROSOFT_CLIENT_ID': `"${process.env.MICROSOFT_CLIENT_ID || ''}"`,
         // === Smalruby: End of classroom API ===
         'process.env.MAX_USER_MESSAGE_LENGTH': `"${process.env.MAX_USER_MESSAGE_LENGTH || '250'}"`,
         'process.env.MIN_USER_MESSAGE_LENGTH': `"${process.env.MIN_USER_MESSAGE_LENGTH || '10'}"`,
@@ -208,7 +209,10 @@ const buildConfig = baseConfig.clone()
     .enableDevServer(process.env.PORT || 8601)
     .merge({
         entry: {
-            gui: './src/playground/index.jsx'
+            gui: './src/playground/index.jsx',
+            // === Smalruby: Start of Microsoft auth redirect ===
+            'auth-redirect': './src/playground/auth-redirect.js'
+            // === Smalruby: End of Microsoft auth redirect ===
             // Removed unused entry points to reduce build time:
             // guistandalone: './src/playground/standalone.jsx',
             // blocksonly: './src/playground/blocks-only.jsx',

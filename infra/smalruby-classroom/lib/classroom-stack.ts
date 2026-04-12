@@ -33,6 +33,9 @@ export class ClassroomStack extends cdk.Stack {
     // Google Client ID for id_token verification
     const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
 
+    // Microsoft Client ID for id_token verification (optional)
+    const microsoftClientId = process.env.MICROSOFT_CLIENT_ID || '';
+
     // Dev bypass token (stg only — allows skipping Google auth for automated testing)
     const devBypassToken = process.env.DEV_BYPASS_TOKEN || '';
     if (stage === 'prod' && devBypassToken) {
@@ -200,6 +203,7 @@ export class ClassroomStack extends cdk.Stack {
         SUBMISSIONS_TABLE_NAME: this.submissionsTable.tableName,
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
         GOOGLE_CLIENT_ID: googleClientId,
+        MICROSOFT_CLIENT_ID: microsoftClientId,
         DEV_BYPASS_TOKEN: devBypassToken,
         CORS_ALLOWED_ORIGINS: corsOriginsEnv,
         CLASSROOM_TTL_DAYS: String(classroomTtlDays),
@@ -210,7 +214,6 @@ export class ClassroomStack extends cdk.Stack {
         JOIN_RATE_LIMIT_WINDOW_SECONDS: process.env.JOIN_RATE_LIMIT_WINDOW_SECONDS || '60',
         JOIN_RATE_LIMIT_MAX_ATTEMPTS: process.env.JOIN_RATE_LIMIT_MAX_ATTEMPTS || '50',
         STAGE: stage,
-        ...(process.env.ID_TOKEN_MAX_AGE_SECONDS ? { ID_TOKEN_MAX_AGE_SECONDS: process.env.ID_TOKEN_MAX_AGE_SECONDS } : {}),
       },
       bundling: {
         minify: true,

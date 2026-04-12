@@ -12,6 +12,7 @@ import {
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { OAuth2Client } from 'google-auth-library';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import * as crypto from 'crypto';
 
 // --- Configuration ---
@@ -21,6 +22,7 @@ const MEMBERSHIPS_TABLE = process.env.MEMBERSHIPS_TABLE_NAME || 'ClassroomMember
 const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmissions';
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
 const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN || '';
 const STAGE = process.env.STAGE || 'stg';
 const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(o => o.trim());
@@ -36,11 +38,10 @@ const CLASSROOM_TTL_DAYS = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
 const CLASSROOM_TTL_SECONDS = CLASSROOM_TTL_DAYS * 24 * 60 * 60;
 // Session and membership TTL matches classroom TTL
 const SESSION_TTL_SECONDS = CLASSROOM_TTL_SECONDS;
-// Google ID Token max age override (seconds). Default: undefined (use Google's standard 1-hour).
-// Set to e.g. 120 for testing session expiry quickly.
-const ID_TOKEN_MAX_AGE_SECONDS = process.env.ID_TOKEN_MAX_AGE_SECONDS
-  ? parseInt(process.env.ID_TOKEN_MAX_AGE_SECONDS, 10)
-  : undefined;
+// Token expiry is validated by each provider's library:
+// - Google: google-auth-library checks exp automatically
+// - Microsoft: jose jwtVerify checks exp automatically
+// No custom ID_TOKEN_MAX_AGE_SECONDS check needed.
 // Rate limiting for join endpoint (per IP)
 const JOIN_RATE_LIMIT_WINDOW_SECONDS = parseInt(process.env.JOIN_RATE_LIMIT_WINDOW_SECONDS || '60', 10);
 const JOIN_RATE_LIMIT_MAX_ATTEMPTS = parseInt(process.env.JOIN_RATE_LIMIT_MAX_ATTEMPTS || '50', 10);
@@ -215,14 +216,24 @@ function extractGoogleAccessToken(headers: Record<string, string | undefined>): 
   return token;
 }
 
+// --- Microsoft JWKS ---
+
+const MICROSOFT_JWKS_URI = 'https://login.microsoftonline.com/common/discovery/v2.0/keys';
+const microsoftJWKS = createRemoteJWKSet(new URL(MICROSOFT_JWKS_URI));
+
 // --- Auth helpers ---
 
-export async function verifyGoogleIdToken(idToken: string): Promise<string> {
-  // Dev bypass: accept DEV_BYPASS_TOKEN in non-production environments only
-  if (DEV_BYPASS_TOKEN && idToken === DEV_BYPASS_TOKEN && STAGE !== 'prod') {
-    return 'dev-test-teacher';
-  }
+/**
+ * Decode a JWT payload without verification to inspect the issuer claim.
+ */
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  const parts = token.split('.');
+  if (parts.length !== 3) throw new AuthError('Malformed token');
+  const payload = Buffer.from(parts[1], 'base64url').toString('utf-8');
+  return JSON.parse(payload);
+}
 
+export async function verifyGoogleIdToken(idToken: string): Promise<string> {
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken,
@@ -232,18 +243,60 @@ export async function verifyGoogleIdToken(idToken: string): Promise<string> {
     if (!payload || !payload.sub) {
       throw new AuthError('Invalid token payload');
     }
-    // Custom max age check: reject tokens older than ID_TOKEN_MAX_AGE_SECONDS
-    if (ID_TOKEN_MAX_AGE_SECONDS && payload.iat) {
-      const tokenAge = Math.floor(Date.now() / 1000) - payload.iat;
-      if (tokenAge > ID_TOKEN_MAX_AGE_SECONDS) {
-        throw new AuthError(`Token too old: ${tokenAge}s > ${ID_TOKEN_MAX_AGE_SECONDS}s`);
-      }
-    }
     return payload.sub;
   } catch (err) {
     if (err instanceof AuthError) throw err;
     throw new AuthError('Invalid or expired Google ID token');
   }
+}
+
+export async function verifyMicrosoftIdToken(idToken: string): Promise<string> {
+  if (!MICROSOFT_CLIENT_ID) {
+    throw new AuthError('Microsoft authentication is not configured');
+  }
+  try {
+    const { payload } = await jwtVerify(idToken, microsoftJWKS, {
+      audience: MICROSOFT_CLIENT_ID,
+    });
+    // Validate issuer: must be Microsoft login endpoint
+    const iss = payload.iss as string;
+    if (!iss || !iss.startsWith('https://login.microsoftonline.com/')) {
+      throw new AuthError('Invalid Microsoft token issuer');
+    }
+    // Use oid (object ID) as the unique identifier for the user
+    const oid = (payload.oid || payload.sub) as string;
+    if (!oid) {
+      throw new AuthError('Invalid Microsoft token payload');
+    }
+    return oid;
+  } catch (err) {
+    if (err instanceof AuthError) throw err;
+    throw new AuthError('Invalid or expired Microsoft ID token');
+  }
+}
+
+/**
+ * Verify a teacher ID token from either Google or Microsoft.
+ * Detects the provider by inspecting the JWT issuer claim.
+ */
+export async function verifyTeacherIdToken(idToken: string): Promise<string> {
+  // Dev bypass: accept DEV_BYPASS_TOKEN in non-production environments only
+  if (DEV_BYPASS_TOKEN && idToken === DEV_BYPASS_TOKEN && STAGE !== 'prod') {
+    return 'dev-test-teacher';
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    payload = decodeJwtPayload(idToken);
+  } catch {
+    throw new AuthError('Invalid token format');
+  }
+
+  const iss = payload.iss as string;
+  if (iss && iss.startsWith('https://login.microsoftonline.com/')) {
+    return verifyMicrosoftIdToken(idToken);
+  }
+  return verifyGoogleIdToken(idToken);
 }
 
 function extractBearerToken(authHeader?: string): string {
@@ -1273,12 +1326,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     // Route matching
     if (method === 'POST' && path === '/classrooms') {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       result = await handleCreateClassroom(teacherSub, body);
 
     } else if (method === 'GET' && path === '/classrooms') {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       result = await handleListClassrooms(teacherSub);
 
     } else if (method === 'POST' && path === '/classrooms/join') {
@@ -1296,37 +1349,37 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     // --- Google Classroom routes (must be before /classrooms/{classroomId}) ---
     } else if (method === 'GET' && path === '/classrooms/google-courses') {
       const token = extractBearerToken(event.headers?.authorization);
-      await verifyGoogleIdToken(token);
+      await verifyTeacherIdToken(token);
       const accessToken = extractGoogleAccessToken(event.headers);
       result = await handleListGoogleCourses(accessToken);
 
     } else if (method === 'POST' && path === '/classrooms/google-import') {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       const accessToken = extractGoogleAccessToken(event.headers);
       result = await handleImportGoogleClassroom(teacherSub, accessToken, body);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleGetClassroom(teacherSub, classroomId);
 
     } else if (method === 'PATCH' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleUpdateClassroom(teacherSub, classroomId, body);
 
     } else if (method === 'DELETE' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleDeleteClassroom(teacherSub, classroomId);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/members$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleListMembers(teacherSub, classroomId);
 
@@ -1347,9 +1400,9 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         }));
         result = { statusCode: 204 };
       } else {
-        // Teacher removal via Google ID token
+        // Teacher removal via ID token
         const token = extractBearerToken(event.headers?.authorization);
-        const teacherSub = await verifyGoogleIdToken(token);
+        const teacherSub = await verifyTeacherIdToken(token);
         result = await handleDeleteMember(teacherSub, classroomId, memberId);
       }
 
@@ -1364,20 +1417,20 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleListSubmissions(teacherSub, classroomId);
 
     } else if (method === 'PATCH' && /^\/classrooms\/[^/]+\/submissions\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       const submissionId = event.pathParameters?.submissionId || '';
       result = await handleUpdateSubmission(teacherSub, classroomId, submissionId, body);
 
     } else if (method === 'POST' && /^\/classrooms\/[^/]+\/google-assignment$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyGoogleIdToken(token);
+      const teacherSub = await verifyTeacherIdToken(token);
       const accessToken = extractGoogleAccessToken(event.headers);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handlePostAssignment(teacherSub, accessToken, classroomId, body);

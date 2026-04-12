@@ -2,15 +2,25 @@ import JSZip from 'jszip';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
 import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
-import { loadGoogleIdentity } from '../lib/google-script-loader.js';
+import {
+    loginWithGoogle,
+    requestMicrosoftIdToken,
+    isMicrosoftAuthAvailable,
+    attemptSilentReauth,
+    clearAuthSession,
+    cleanupOnReload,
+} from '../lib/teacher-auth.js';
 import { closeClassroomModal } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000', 10);
 
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
+let _cachedAuthProvider = null; // 'google' | 'microsoft' | null
+
+// Clear stale MSAL sessions on page reload
+cleanupOnReload();
 
 /**
  * Return the cached teacher ID token (for initial phase calculation).
@@ -57,6 +67,7 @@ const useTeacherClassroom = ({
 }) => {
     // Teacher state
     const [idToken, setIdToken] = useState(_cachedTeacherIdToken);
+    const [authProvider, setAuthProvider] = useState(_cachedAuthProvider);
     const [classrooms, setClassrooms] = useState([]);
     const [selectedClassroom, setSelectedClassroom] = useState(null);
     const [members, setMembers] = useState([]);
@@ -73,159 +84,99 @@ const useTeacherClassroom = ({
     // Refresh timer for teacher detail
     const refreshTimerRef = useRef(null);
 
-    // Sync teacher token to module-level cache
+    // Sync teacher token and provider to module-level cache
     useEffect(() => {
         _cachedTeacherIdToken = idToken;
     }, [idToken]);
+    useEffect(() => {
+        _cachedAuthProvider = authProvider;
+    }, [authProvider]);
 
     // --- Teacher: Google Sign-In ---
 
-    const handleTeacherLogin = useCallback(async () => {
+    const handleGoogleLogin = useCallback(async () => {
         clearError();
-        let signInContainer = null;
-        let signInObserver = null;
-        const cleanupSignIn = () => {
-            if (signInObserver) {
-                signInObserver.disconnect();
-                signInObserver = null;
-            }
-            if (signInContainer && signInContainer.parentNode) {
-                signInContainer.parentNode.removeChild(signInContainer);
-            }
-            signInContainer = null;
-        };
         try {
-            await loadGoogleIdentity();
-
-            const token = await new Promise((resolve, reject) => {
-                /* global google */
-                google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: response => {
-                        cleanupSignIn();
-                        if (response.credential) {
-                            resolve(response.credential);
-                        } else {
-                            reject(new Error('Google Sign-In failed'));
-                        }
-                    },
-                });
-                google.accounts.id.prompt(notification => {
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        signInContainer = document.createElement('div');
-                        signInContainer.style.cssText =
-                            'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;';
-                        document.body.appendChild(signInContainer);
-                        google.accounts.id.renderButton(signInContainer, {
-                            theme: 'outline',
-                            size: 'large',
-                        });
-                        signInObserver = new MutationObserver(() => {
-                            if (!document.body.contains(signInContainer)) {
-                                signInObserver.disconnect();
-                                signInObserver = null;
-                            }
-                        });
-                        signInObserver.observe(document.body, {
-                            childList: true,
-                            subtree: true,
-                        });
-                    }
-                });
-            });
-
+            const token = await loginWithGoogle();
             setIdToken(token);
+            setAuthProvider('google');
             setPhase('teacher-dashboard');
-        } catch (err) {
-            cleanupSignIn();
-            showError(err.message || 'Sign-in failed');
+        } catch {
+            clearError();
         }
-    }, [clearError, showError, setPhase]);
+    }, [clearError, setPhase]);
+
+    // --- Teacher: Microsoft Sign-In ---
+
+    const handleMicrosoftLogin = useCallback(async () => {
+        clearError();
+        try {
+            const token = await requestMicrosoftIdToken();
+            setIdToken(token);
+            setAuthProvider('microsoft');
+            setPhase('teacher-dashboard');
+        } catch {
+            clearError();
+        }
+    }, [clearError, setPhase]);
 
     // --- Teacher: Logout ---
 
     const handleTeacherLogout = useCallback(() => {
+        clearAuthSession(authProvider);
         _cachedTeacherIdToken = null;
+        _cachedAuthProvider = null;
         setIdToken(null);
+        setAuthProvider(null);
         setClassrooms([]);
         setSelectedClassroom(null);
         setMembers([]);
         clearError();
         setPhase(mode === 'teacher' ? 'teacher-login' : 'student-join');
-    }, [mode, clearError, setPhase]);
+    }, [mode, authProvider, clearError, setPhase]);
 
     // --- Teacher: Silent re-authentication on 401 ---
 
-    const attemptSilentReauth = useCallback(async () => {
-        // Skip silent reauth in non-teacher mode or when using devlogin token
+    const handleSilentReauth = useCallback(async () => {
         if (mode !== 'teacher') return null;
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('devlogin')) return null;
 
-        try {
-            await loadGoogleIdentity();
-            const REAUTH_TIMEOUT_MS = 5000;
-            const newToken = await Promise.race([
-                new Promise((resolve, reject) => {
-                    google.accounts.id.initialize({
-                        client_id: GOOGLE_CLIENT_ID,
-                        auto_select: true,
-                        callback: response => {
-                            if (response.credential) {
-                                resolve(response.credential);
-                            } else {
-                                reject(new Error('Silent reauth failed'));
-                            }
-                        },
-                    });
-                    google.accounts.id.prompt(notification => {
-                        // Only accept truly automatic sign-in (no UI shown)
-                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                            reject(new Error('Silent reauth not available'));
-                        }
-                        if (notification.isDismissedMoment()) {
-                            reject(new Error('User dismissed reauth'));
-                        }
-                        // If One Tap UI is displayed, cancel it — we only want silent
-                        if (notification.isDisplayMoment() && !notification.isNotDisplayed()) {
-                            google.accounts.id.cancel();
-                            reject(new Error('One Tap displayed, not silent'));
-                        }
-                    });
-                }),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Silent reauth timeout')), REAUTH_TIMEOUT_MS),
-                ),
-            ]);
+        const newToken = await attemptSilentReauth(authProvider);
+        if (newToken) {
             setIdToken(newToken);
-            return newToken;
-        } catch {
-            // Ensure One Tap UI is closed on any failure
-            try {
-                google.accounts.id.cancel();
-            } catch {
-                // google may not be loaded
-            }
-            return null;
         }
-    }, [mode]);
+        return newToken;
+    }, [mode, authProvider]);
 
     /**
      * Handle a 401 error from a teacher API call.
-     * Tries silent re-authentication first; falls back to alert if that fails.
+     * Tries silent re-authentication once; falls back to session expired alert.
+     * Uses a ref guard to prevent infinite reauth loops (401 → reauth → setIdToken
+     * → useEffect re-fires → 401 → reauth → ...).
      * @returns {string|null} new ID token if reauth succeeded, null otherwise
      */
+    const reauthInProgressRef = useRef(false);
     const handleTeacher401 = useCallback(async () => {
-        const newToken = await attemptSilentReauth();
-        if (newToken) {
-            return newToken;
+        if (reauthInProgressRef.current) {
+            return null;
         }
-        // Clear expired token to stop auto-refresh timer
+        reauthInProgressRef.current = true;
+        try {
+            const newToken = await handleSilentReauth();
+            if (newToken) {
+                return newToken;
+            }
+        } finally {
+            setTimeout(() => {
+                reauthInProgressRef.current = false;
+            }, 5000);
+        }
         setIdToken(null);
         _cachedTeacherIdToken = null;
         showSessionExpiredError();
         return null;
-    }, [attemptSilentReauth, showSessionExpiredError]);
+    }, [handleSilentReauth, showSessionExpiredError]);
 
     // --- Google Classroom: Import flow ---
 
@@ -341,8 +292,8 @@ const useTeacherClassroom = ({
                         const newToken = await handleTeacher401();
                         if (newToken) {
                             try {
-                                const data = await classroomAPI.listClassrooms(newToken);
-                                setClassrooms(data.classrooms || []);
+                                const retryData = await classroomAPI.listClassrooms(newToken);
+                                setClassrooms(retryData.classrooms || []);
                             } catch {
                                 // Retry also failed
                             }
@@ -842,9 +793,26 @@ const useTeacherClassroom = ({
         setSelectedMember(memberId);
     }, []);
 
+    // --- Debug: expose forceTeacher401 for manual testing ---
+    useEffect(() => {
+        if (typeof window !== 'undefined' && idToken) {
+            window.smalruby = window.smalruby || {};
+            window.smalruby.forceTeacher401 = () => {
+                _cachedTeacherIdToken = 'expired.token.stub';
+                setIdToken('expired.token.stub');
+            };
+        }
+        return () => {
+            if (typeof window !== 'undefined' && window.smalruby) {
+                delete window.smalruby.forceTeacher401;
+            }
+        };
+    }, [idToken]);
+
     return {
         // State
         idToken,
+        authProvider,
         classrooms,
         selectedClassroom,
         members,
@@ -862,7 +830,9 @@ const useTeacherClassroom = ({
         setMembers,
 
         // Handlers
-        handleTeacherLogin,
+        handleGoogleLogin,
+        handleMicrosoftLogin,
+        isMicrosoftAuthAvailable: isMicrosoftAuthAvailable(),
         handleTeacherLogout,
         handleShowCreateForm,
         handleCreateClassroom,

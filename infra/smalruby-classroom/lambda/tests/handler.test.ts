@@ -10,7 +10,10 @@ import {
   validateTeacherComment,
   validateScreenshotCount,
   getCorsHeaders,
+  verifyTeacherIdToken,
+  verifyMicrosoftIdToken,
 } from '../handler';
+import { jwtVerify } from 'jose';
 
 describe('generateJoinCode', () => {
   test('should generate a 6-character code', () => {
@@ -307,5 +310,36 @@ describe('validateScreenshotCount', () => {
 
   test('should accept max count', () => {
     expect(validateScreenshotCount(20)).toBe(20);
+  });
+});
+
+describe('verifyTeacherIdToken', () => {
+  test('should reject malformed token', async () => {
+    await expect(verifyTeacherIdToken('not-a-jwt')).rejects.toThrow();
+  });
+
+  test('should route Microsoft tokens to verifyMicrosoftIdToken', async () => {
+    // Build a fake JWT with Microsoft issuer
+    const header = Buffer.from(JSON.stringify({ alg: 'RS256' })).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({
+      iss: 'https://login.microsoftonline.com/tenant-id/v2.0',
+      oid: 'ms-user-123',
+    })).toString('base64url');
+    const fakeToken = `${header}.${payload}.fake-signature`;
+
+    // MICROSOFT_CLIENT_ID is not set in test env, so this should fail
+    // with "not configured" — proving the routing works
+    await expect(verifyTeacherIdToken(fakeToken))
+      .rejects.toThrow('Microsoft authentication is not configured');
+  });
+});
+
+describe('verifyMicrosoftIdToken', () => {
+  // MICROSOFT_CLIENT_ID is not set in test environment,
+  // so verifyMicrosoftIdToken will always throw "not configured".
+  // These tests verify the guard works correctly.
+  test('should reject when MICROSOFT_CLIENT_ID is not configured', async () => {
+    await expect(verifyMicrosoftIdToken('any-token'))
+      .rejects.toThrow('Microsoft authentication is not configured');
   });
 });

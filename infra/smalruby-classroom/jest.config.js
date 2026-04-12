@@ -5,5 +5,8 @@ module.exports = {
   testPathIgnorePatterns: ['\\.integration\\.test\\.ts$'],
   transform: {
     '^.+\\.tsx?$': 'ts-jest'
+  },
+  moduleNameMapper: {
+    '^jose$': '<rootDir>/lambda/tests/__mocks__/jose.ts'
   }
 };

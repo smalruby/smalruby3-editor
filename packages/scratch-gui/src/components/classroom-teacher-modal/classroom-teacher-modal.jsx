@@ -155,7 +155,10 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         downloadProgress,
         googleCourses,
         selectedGoogleCourse,
-        onTeacherLogin,
+        onGoogleLogin,
+        onMicrosoftLogin,
+        isMicrosoftAuthAvailable,
+        authProvider,
         onTeacherLogout,
         onShowCreateForm,
         onCreateClassroom,
@@ -281,29 +284,22 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                     <div className={styles.loginTop}>
                         <h2>
                             <FormattedMessage
-                                defaultMessage="Sign in with Google"
-                                description="Prompt for teacher Google sign in"
+                                defaultMessage="Sign in to manage classrooms"
+                                description="Prompt for teacher sign in"
                                 id="gui.classroom.management.loginPrompt"
                             />
                         </h2>
                         <p>
                             <FormattedMessage
-                                defaultMessage="Sign in with your Google account to manage classrooms."
+                                defaultMessage="Sign in with your school account to create and manage classrooms."
                                 description="Teacher login description"
                                 id="gui.classroom.management.loginDescription"
-                            />
-                        </p>
-                        <p className={styles.loginHint}>
-                            <FormattedMessage
-                                defaultMessage="Use your school's Google Workspace for Education account to integrate with Google Classroom."
-                                description="Hint about using school Google account"
-                                id="gui.classroom.management.loginHint"
                             />
                         </p>
                         <button
                             className={styles.loginButton}
                             data-testid="classroom-google-login"
-                            onClick={onTeacherLogin}
+                            onClick={onGoogleLogin}
                         >
                             <FormattedMessage
                                 defaultMessage="Sign in with Google"
@@ -311,6 +307,19 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                                 id="gui.classroom.management.loginButton"
                             />
                         </button>
+                        {isMicrosoftAuthAvailable && (
+                            <button
+                                className={styles.loginButton}
+                                data-testid="classroom-microsoft-login"
+                                onClick={onMicrosoftLogin}
+                            >
+                                <FormattedMessage
+                                    defaultMessage="Sign in with Microsoft"
+                                    description="Microsoft sign in button"
+                                    id="gui.classroom.management.microsoftLoginButton"
+                                />
+                            </button>
+                        )}
                         <ErrorDisplay
                             error={error}
                             errorTitle={errorTitle}
@@ -349,7 +358,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onReturnSubmission={onReturnSubmission}
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
-                        onShowPostAssignment={onShowPostAssignment}
+                        onShowPostAssignment={
+                            authProvider === 'google'
+                                ? onShowPostAssignment
+                                : null
+                        }
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}
                         onUpdateStudentCount={onUpdateStudentCount}
@@ -369,8 +382,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         noBackButton
                         onBack={onBackToDashboard}
                         onCreate={onCreateClassroom}
-                        onImportFromGC={handleImportClick}
-
+                        onImportFromGC={
+                            authProvider === 'google'
+                                ? handleImportClick
+                                : null
+                        }
                     />
                 </div>
             );
