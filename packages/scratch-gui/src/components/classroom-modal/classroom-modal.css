@@ -1191,6 +1191,22 @@
     line-height: 1.5;
 }
 
+.teacher-link {
+    display: block;
+    margin-top: 0.5rem;
+    background: none;
+    border: none;
+    color: #4c97ff;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.teacher-link:hover {
+    color: #3373cc;
+}
+
 .student-count-button {
     background: none;
     border: 1px solid #4c97ff;

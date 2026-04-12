@@ -15,11 +15,12 @@ const StudentJoinForm = ({
     noBackButton,
     onBack,
     onJoin,
+    onTeacherLink,
 }) => {
     const [code, setCode] = React.useState('');
 
     const handleCodeChange = useCallback((e) => {
-        setCode(e.target.value.toLowerCase());
+        setCode(e.target.value.toUpperCase());
     }, []);
 
     const handleSubmit = useCallback(() => {
@@ -130,6 +131,19 @@ const StudentJoinForm = ({
                         }}
                     />
                 </div>
+                {onTeacherLink && (
+                    <button
+                        className={styles.teacherLink}
+                        data-testid="classroom-teacher-link"
+                        onClick={onTeacherLink}
+                    >
+                        <FormattedMessage
+                            defaultMessage="For teachers: Go to Class Management"
+                            description="Link for teachers to access class management from student join form"
+                            id="gui.classroom.studentJoin.teacherLink"
+                        />
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -144,6 +158,7 @@ StudentJoinForm.propTypes = {
     noBackButton: PropTypes.bool,
     onBack: PropTypes.func,
     onJoin: PropTypes.func.isRequired,
+    onTeacherLink: PropTypes.func,
 };
 
 export default StudentJoinForm;

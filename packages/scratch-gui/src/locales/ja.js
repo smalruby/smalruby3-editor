@@ -64,6 +64,7 @@ export default {
     'gui.classroom.studentJoin.hintAskTeacher': '先生から参加コードを聞いてください。',
     'gui.classroom.studentJoin.hintTeacherPath':
         '先生は「{settingsIcon} 設定 → クラス管理」から参加コードを確認できます。',
+    'gui.classroom.studentJoin.teacherLink': '先生の方はこちら（クラス管理）',
     'gui.classroom.studentSeat.prompt': '出席番号を選んでください',
     'gui.classroom.studentSeat.join': '参加する',
     'gui.classroom.studentJoined.success': '参加しました！',

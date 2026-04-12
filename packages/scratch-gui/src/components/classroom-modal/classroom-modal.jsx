@@ -260,6 +260,7 @@ const ClassroomModal = ({
                         isLoading={isLoading}
                         noBackButton
                         onJoin={onJoinWithCode}
+                        onTeacherLink={onSelectTeacher}
                     />
                 )}
 
