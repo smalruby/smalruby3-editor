@@ -65,7 +65,7 @@ export default {
     'gui.classroom.studentJoin.hintAskTeacher': 'せんせいからさんかコードをきいてください。',
     'gui.classroom.studentJoin.hintTeacherPath':
         'せんせいは「{settingsIcon} せってい → クラスかんり」からさんかコードをかくにんできます。',
-    'gui.classroom.studentSeat.prompt': 'せきばんごうをえらんでください',
+    'gui.classroom.studentSeat.prompt': 'しゅっせきばんごうをえらんでください',
     'gui.classroom.studentSeat.join': 'さんかする',
     'gui.classroom.studentJoined.success': 'さんかしました！',
     'gui.classroom.studentJoined.seat': 'しゅっせきばんごう{seatNumber}',
@@ -148,7 +148,7 @@ export default {
     'gui.classroom.codeDisplay.title': 'さんかコード',
     'gui.classroom.codeDisplay.copyLink': 'しょうたいリンクをコピー',
     'gui.classroom.codeDisplay.copied': 'コピーしました',
-    'gui.classroom.teacherDetail.selectMember': 'せきばんごうをクリックしてせいとのしょうさいをみる',
+    'gui.classroom.teacherDetail.selectMember': 'しゅっせきばんごうをクリックしてせいとのしょうさいをみる',
     'gui.classroom.joinCode.fullscreen': 'ぜんがめんひょうじ',
     'gui.classroom.teacherDetail.selectClassroom': 'サイドバーからクラスをせんたくしてください',
     'gui.classroom.management.loginPrompt': 'Googleでログイン',
