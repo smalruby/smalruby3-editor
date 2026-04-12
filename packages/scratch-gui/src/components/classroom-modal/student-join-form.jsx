@@ -6,6 +6,35 @@ import ErrorDisplay from './error-display.jsx';
 
 import styles from './classroom-modal.css';
 
+/**
+ * Normalize input for join code: full-width → half-width, then keep only [a-z0-9].
+ * @param {string} raw - Raw input string
+ * @returns {string} Normalized lowercase alphanumeric string
+ */
+const normalizeJoinCodeInput = (raw) => {
+    let result = '';
+    for (let i = 0; i < raw.length; i++) {
+        const cp = raw.charCodeAt(i);
+        let ch;
+        if (cp >= 0xff10 && cp <= 0xff19) {
+            // Full-width digits → half-width
+            ch = String.fromCharCode(cp - 0xff10 + 0x30);
+        } else if (cp >= 0xff21 && cp <= 0xff3a) {
+            // Full-width uppercase → half-width lowercase
+            ch = String.fromCharCode(cp - 0xff21 + 0x61);
+        } else if (cp >= 0xff41 && cp <= 0xff5a) {
+            // Full-width lowercase → half-width lowercase
+            ch = String.fromCharCode(cp - 0xff41 + 0x61);
+        } else {
+            ch = raw[i].toLowerCase();
+        }
+        if (/[a-z0-9]/.test(ch)) {
+            result += ch;
+        }
+    }
+    return result;
+};
+
 const StudentJoinForm = ({
     error,
     errorActionLabel,
@@ -20,19 +49,19 @@ const StudentJoinForm = ({
     const [code, setCode] = React.useState('');
 
     const handleCodeChange = useCallback((e) => {
-        setCode(e.target.value.toUpperCase());
+        setCode(normalizeJoinCodeInput(e.target.value));
     }, []);
 
     const handleSubmit = useCallback(() => {
         if (code.trim().length === 6) {
-            onJoin(code.trim().toUpperCase());
+            onJoin(code.trim());
         }
     }, [code, onJoin]);
 
     const handleKeyDown = useCallback(
         (e) => {
             if (e.key === 'Enter' && code.trim().length === 6) {
-                onJoin(code.trim().toUpperCase());
+                onJoin(code.trim());
             }
         },
         [code, onJoin],

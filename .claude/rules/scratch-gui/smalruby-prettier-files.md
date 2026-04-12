@@ -164,6 +164,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/palette-toggle.test.jsx`
 - `test/unit/components/project-title-input.test.jsx`
 - `test/unit/components/scanning-step-name-search.test.js`
+- `test/unit/components/student-join-form.test.js`
 - `test/unit/containers/backpack.test.jsx`
 - `test/unit/containers/cards.test.jsx`
 - `test/unit/containers/connection-modal-connected-message.test.jsx`

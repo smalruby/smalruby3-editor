@@ -29,7 +29,7 @@ const MAX_CLASS_NAME_LENGTH = 50;
 const MAX_STUDENT_COUNT = parseInt(process.env.MAX_STUDENT_COUNT || '50', 10);
 const MAX_NICKNAME_LENGTH = 20;
 // 6-digit alphanumeric, excluding confusing chars (I, O, 0, 1)
-const JOIN_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const JOIN_CODE_CHARS = 'abcdefghjklmnpqrstuvwxyz23456789';
 const JOIN_CODE_LENGTH = 6;
 // Classroom TTL from environment (default 30 days)
 const CLASSROOM_TTL_DAYS = parseInt(process.env.CLASSROOM_TTL_DAYS || '30', 10);
@@ -138,11 +138,11 @@ export function validateJoinCode(code: unknown): string {
   if (typeof code !== 'string' || code.trim().length !== JOIN_CODE_LENGTH) {
     throw new ValidationError(`Join code must be ${JOIN_CODE_LENGTH} characters`);
   }
-  const upper = code.trim().toUpperCase();
-  if (!JOIN_CODE_REGEX.test(upper)) {
+  const lower = code.trim().toLowerCase();
+  if (!JOIN_CODE_REGEX.test(lower)) {
     throw new ValidationError('Join code contains invalid characters');
   }
-  return upper;
+  return lower;
 }
 
 // --- Error classes ---

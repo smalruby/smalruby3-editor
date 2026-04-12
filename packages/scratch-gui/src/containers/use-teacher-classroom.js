@@ -275,7 +275,7 @@ const useTeacherClassroom = ({
                     accessToken = await requestClassroomAccessToken();
                     setGoogleAccessToken(accessToken);
                 }
-                const link = `${window.location.origin}${window.location.pathname}?classcode=${selectedClassroom.joinCode}`;
+                const link = `${window.location.origin}${window.location.pathname}?classcode=${selectedClassroom.joinCode.toLowerCase()}`;
                 const result = await classroomAPI.postGoogleAssignment(
                     idToken,
                     accessToken,
