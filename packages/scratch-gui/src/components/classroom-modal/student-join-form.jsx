@@ -82,6 +82,12 @@ const StudentJoinForm = ({
     const hasHistory =
         Array.isArray(joinCodeHistory) && joinCodeHistory.length > 0;
 
+    // Show selected state if current code matches a history entry
+    const historySelectValue =
+        hasHistory && joinCodeHistory.some((e) => e.joinCode === code)
+            ? code
+            : '';
+
     return (
         <div data-testid="classroom-phase-student-join">
             {!noBackButton && (
@@ -127,12 +133,12 @@ const StudentJoinForm = ({
                     <select
                         className={styles.historySelect}
                         data-testid="classroom-join-history"
-                        value=""
+                        value={historySelectValue}
                         onChange={handleHistorySelect}
                     >
                         <option value="">
                             {intl.formatMessage({
-                                defaultMessage: 'Previously joined classes',
+                                defaultMessage: 'Join codes from previously joined classes',
                                 description: 'Placeholder for join code history dropdown',
                                 id: 'gui.classroom.studentJoin.historyPlaceholder',
                             })}
