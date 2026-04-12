@@ -279,7 +279,8 @@ const buildConfig = baseConfig.clone()
             },
             {
                 from: 'legal',
-                to: '.'
+                to: '.',
+                globOptions: { dot: true }
             },
             {
                 from: 'extensions/**',
