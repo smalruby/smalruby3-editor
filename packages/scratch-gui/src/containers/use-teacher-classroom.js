@@ -73,12 +73,9 @@ const useTeacherClassroom = ({
     // Refresh timer for teacher detail
     const refreshTimerRef = useRef(null);
 
-    // Sync teacher token to module-level cache + debug global
+    // Sync teacher token to module-level cache
     useEffect(() => {
         _cachedTeacherIdToken = idToken;
-        if (typeof window !== 'undefined') {
-            window._classroomIdToken = idToken;
-        }
     }, [idToken]);
 
     // --- Teacher: Google Sign-In ---

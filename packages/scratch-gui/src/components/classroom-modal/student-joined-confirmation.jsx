@@ -35,6 +35,23 @@ const StudentJoinedConfirmation = ({ joinedInfo, onClose }) => (
                 </div>
             )}
         </div>
+        <div className={styles.joinHintBox}>
+            <div className={styles.joinHintTitle}>
+                <FormattedMessage
+                    defaultMessage="What to do next"
+                    description="Next steps hint title after joining"
+                    id="gui.classroom.studentJoined.nextStepsTitle"
+                />
+            </div>
+            <div className={styles.joinHintText}>
+                <FormattedMessage
+                    defaultMessage="1. Close this dialog and create your project{br}2. When you're done, click the assignment name in the menu bar to submit"
+                    description="Next steps hint after joining"
+                    id="gui.classroom.studentJoined.nextSteps"
+                    values={{ br: <br /> }}
+                />
+            </div>
+        </div>
         <div className={styles.buttonRow}>
             <button
                 className={styles.primaryButton}

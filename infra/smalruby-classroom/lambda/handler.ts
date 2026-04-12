@@ -22,6 +22,7 @@ const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmis
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const DEV_BYPASS_TOKEN = process.env.DEV_BYPASS_TOKEN || '';
+const STAGE = process.env.STAGE || 'stg';
 const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(o => o.trim());
 
 const MAX_CLASS_NAME_LENGTH = 50;
@@ -217,8 +218,8 @@ function extractGoogleAccessToken(headers: Record<string, string | undefined>): 
 // --- Auth helpers ---
 
 export async function verifyGoogleIdToken(idToken: string): Promise<string> {
-  // Dev bypass: accept DEV_BYPASS_TOKEN in non-production environments
-  if (DEV_BYPASS_TOKEN && idToken === DEV_BYPASS_TOKEN) {
+  // Dev bypass: accept DEV_BYPASS_TOKEN in non-production environments only
+  if (DEV_BYPASS_TOKEN && idToken === DEV_BYPASS_TOKEN && STAGE !== 'prod') {
     return 'dev-test-teacher';
   }
 
