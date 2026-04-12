@@ -57,22 +57,35 @@ const _initialize = () => {
 };
 
 /**
+ * Synchronously detect if this page is loaded inside an MSAL popup redirect.
+ *
+ * After Microsoft auth completes, the popup navigates to the redirect URI
+ * with auth response params in the URL hash (code=...&state=...).
+ * This check is synchronous so it can be used to skip React rendering entirely.
+ * @returns {boolean} True if this page is in an MSAL popup redirect context.
+ */
+export const isMsalPopupRedirect = () => {
+    if (!MICROSOFT_CLIENT_ID) return false;
+    if (typeof window === 'undefined') return false;
+    // MSAL popup: opened by parent window, URL hash contains auth response
+    const hash = window.location.hash;
+    return Boolean(window.opener && hash && hash.includes('code=') && hash.includes('state='));
+};
+
+/**
  * Handle MSAL popup redirect at app startup.
  *
- * Must be called early (before React renders). When the app loads
- * inside an MSAL popup after authentication, this function processes
- * the auth response, sends it to the parent window, and closes the popup.
- * In non-popup contexts, this is a no-op.
+ * Call this when `isMsalPopupRedirect()` returns true. Initializes MSAL,
+ * processes the auth response in the URL hash, sends the result to the
+ * parent window via postMessage, and closes the popup.
  */
 export const handleMsalPopupRedirect = async () => {
-    if (!MICROSOFT_CLIENT_ID) return;
-    if (typeof window === 'undefined') return;
-
     try {
         const instance = await _initialize();
         await instance.handleRedirectPromise();
     } catch {
-        // Ignore errors — this is best-effort for popup handling
+        // If handling fails, close the popup to avoid getting stuck
+        window.close();
     }
 };
 

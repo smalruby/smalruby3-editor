@@ -21,16 +21,20 @@ document.body.appendChild(appTarget);
 
 if (supportedBrowser()) {
     // === Smalruby: Start of Microsoft auth popup handler ===
-    // Handle MSAL popup redirect before rendering the app.
-    // When Microsoft auth completes in a popup, the popup redirects to this page.
-    // MSAL needs to process the auth response and close the popup before React renders.
-    const {handleMsalPopupRedirect} = require('../lib/microsoft-auth.js');
-    handleMsalPopupRedirect();
+    // Detect if this page is loaded inside an MSAL popup after Microsoft auth.
+    // When the popup redirects back, the URL hash contains auth response params
+    // (code=...&state=...). In this case, do NOT render the app — just let MSAL
+    // handle the redirect, send the result to the parent window, and close the popup.
+    const {isMsalPopupRedirect, handleMsalPopupRedirect} = require('../lib/microsoft-auth.js');
+    if (isMsalPopupRedirect()) {
+        handleMsalPopupRedirect();
+    } else {
     // === Smalruby: End of Microsoft auth popup handler ===
 
-    // require needed here to avoid importing unsupported browser-crashing code
-    // at the top level
-    require('./render-gui.jsx').default(appTarget);
+        // require needed here to avoid importing unsupported browser-crashing code
+        // at the top level
+        require('./render-gui.jsx').default(appTarget);
+    }
 
 } else {
     BrowserModalComponent.setAppElement(appTarget);
