@@ -89,6 +89,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/log-suppression.js`
 - `src/lib/microsoft-auth.js`
 - `src/lib/microbit-more-update.js`
+- `src/lib/teacher-auth.js`
 - `src/lib/module-sync.js`
 - `src/lib/monaco-i18n-helper.js`
 - `src/lib/prism-parser.js`

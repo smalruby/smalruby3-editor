@@ -2,24 +2,25 @@ import JSZip from 'jszip';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import classroomAPI from '../lib/classroom-api.js';
 import { requestClassroomAccessToken, clearClassroomAccessToken } from '../lib/google-classroom-auth.js';
-import { loadGoogleIdentity } from '../lib/google-script-loader.js';
-import { requestMicrosoftIdToken, refreshMicrosoftIdToken, isMicrosoftAuthAvailable, clearMicrosoftAuth } from '../lib/microsoft-auth.js';
+import {
+    loginWithGoogle,
+    requestMicrosoftIdToken,
+    isMicrosoftAuthAvailable,
+    attemptSilentReauth,
+    clearAuthSession,
+    cleanupOnReload,
+} from '../lib/teacher-auth.js';
 import { closeClassroomModal } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const REFRESH_INTERVAL_MS = parseInt(process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000', 10);
 
 // Persists teacher login across modal close/open within same page session
 let _cachedTeacherIdToken = null;
 let _cachedAuthProvider = null; // 'google' | 'microsoft' | null
 
-// On page reload, _cachedTeacherIdToken is reset to null but MSAL's
-// sessionStorage may still contain tokens. Clear them to prevent
-// silent acquisition from using stale cached tokens.
-if (!_cachedTeacherIdToken) {
-    clearMicrosoftAuth();
-}
+// Clear stale MSAL sessions on page reload
+cleanupOnReload();
 
 /**
  * Return the cached teacher ID token (for initial phase calculation).
@@ -95,64 +96,12 @@ const useTeacherClassroom = ({
 
     const handleGoogleLogin = useCallback(async () => {
         clearError();
-        let signInContainer = null;
-        let signInObserver = null;
-        const cleanupSignIn = () => {
-            if (signInObserver) {
-                signInObserver.disconnect();
-                signInObserver = null;
-            }
-            if (signInContainer && signInContainer.parentNode) {
-                signInContainer.parentNode.removeChild(signInContainer);
-            }
-            signInContainer = null;
-        };
         try {
-            await loadGoogleIdentity();
-
-            const token = await new Promise((resolve, reject) => {
-                /* global google */
-                google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: response => {
-                        cleanupSignIn();
-                        if (response.credential) {
-                            resolve(response.credential);
-                        } else {
-                            reject(new Error('Google Sign-In failed'));
-                        }
-                    },
-                });
-                google.accounts.id.prompt(notification => {
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        signInContainer = document.createElement('div');
-                        signInContainer.style.cssText =
-                            'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;';
-                        document.body.appendChild(signInContainer);
-                        google.accounts.id.renderButton(signInContainer, {
-                            theme: 'outline',
-                            size: 'large',
-                        });
-                        signInObserver = new MutationObserver(() => {
-                            if (!document.body.contains(signInContainer)) {
-                                signInObserver.disconnect();
-                                signInObserver = null;
-                            }
-                        });
-                        signInObserver.observe(document.body, {
-                            childList: true,
-                            subtree: true,
-                        });
-                    }
-                });
-            });
-
+            const token = await loginWithGoogle();
             setIdToken(token);
             setAuthProvider('google');
             setPhase('teacher-dashboard');
         } catch {
-            cleanupSignIn();
-            // User cancelled or popup was blocked — just reset, user can retry.
             clearError();
         }
     }, [clearError, setPhase]);
@@ -174,9 +123,7 @@ const useTeacherClassroom = ({
     // --- Teacher: Logout ---
 
     const handleTeacherLogout = useCallback(() => {
-        if (authProvider === 'microsoft') {
-            clearMicrosoftAuth();
-        }
+        clearAuthSession(authProvider);
         _cachedTeacherIdToken = null;
         _cachedAuthProvider = null;
         setIdToken(null);
@@ -190,76 +137,17 @@ const useTeacherClassroom = ({
 
     // --- Teacher: Silent re-authentication on 401 ---
 
-    const attemptGoogleSilentReauth = useCallback(async () => {
-        try {
-            await loadGoogleIdentity();
-            const REAUTH_TIMEOUT_MS = 5000;
-            const newToken = await Promise.race([
-                new Promise((resolve, reject) => {
-                    google.accounts.id.initialize({
-                        client_id: GOOGLE_CLIENT_ID,
-                        auto_select: true,
-                        callback: response => {
-                            if (response.credential) {
-                                resolve(response.credential);
-                            } else {
-                                reject(new Error('Silent reauth failed'));
-                            }
-                        },
-                    });
-                    google.accounts.id.prompt(notification => {
-                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                            reject(new Error('Silent reauth not available'));
-                        }
-                        if (notification.isDismissedMoment()) {
-                            reject(new Error('User dismissed reauth'));
-                        }
-                        if (notification.isDisplayMoment() && !notification.isNotDisplayed()) {
-                            google.accounts.id.cancel();
-                            reject(new Error('One Tap displayed, not silent'));
-                        }
-                    });
-                }),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Silent reauth timeout')), REAUTH_TIMEOUT_MS),
-                ),
-            ]);
-            return newToken;
-        } catch {
-            try {
-                google.accounts.id.cancel();
-            } catch {
-                // google may not be loaded
-            }
-            return null;
-        }
-    }, []);
-
-    const attemptMicrosoftSilentReauth = useCallback(async () => {
-        try {
-            return await refreshMicrosoftIdToken();
-        } catch {
-            return null;
-        }
-    }, []);
-
-    const attemptSilentReauth = useCallback(async () => {
+    const handleSilentReauth = useCallback(async () => {
         if (mode !== 'teacher') return null;
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('devlogin')) return null;
 
-        let newToken = null;
-        if (authProvider === 'microsoft') {
-            newToken = await attemptMicrosoftSilentReauth();
-        } else {
-            newToken = await attemptGoogleSilentReauth();
-        }
-
+        const newToken = await attemptSilentReauth(authProvider);
         if (newToken) {
             setIdToken(newToken);
         }
         return newToken;
-    }, [mode, authProvider, attemptGoogleSilentReauth, attemptMicrosoftSilentReauth]);
+    }, [mode, authProvider]);
 
     /**
      * Handle a 401 error from a teacher API call.
@@ -275,7 +163,7 @@ const useTeacherClassroom = ({
         }
         reauthInProgressRef.current = true;
         try {
-            const newToken = await attemptSilentReauth();
+            const newToken = await handleSilentReauth();
             if (newToken) {
                 return newToken;
             }
@@ -286,7 +174,7 @@ const useTeacherClassroom = ({
         _cachedTeacherIdToken = null;
         showSessionExpiredError();
         return null;
-    }, [attemptSilentReauth, showSessionExpiredError]);
+    }, [handleSilentReauth, showSessionExpiredError]);
 
     // --- Google Classroom: Import flow ---
 
