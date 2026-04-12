@@ -168,7 +168,9 @@ const useTeacherClassroom = ({
                 return newToken;
             }
         } finally {
-            setTimeout(() => { reauthInProgressRef.current = false; }, 5000);
+            setTimeout(() => {
+                reauthInProgressRef.current = false;
+            }, 5000);
         }
         setIdToken(null);
         _cachedTeacherIdToken = null;

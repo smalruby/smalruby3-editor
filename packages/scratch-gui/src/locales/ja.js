@@ -151,8 +151,7 @@ export default {
     'gui.classroom.joinCode.fullscreen': '全画面表示',
     'gui.classroom.teacherDetail.selectClassroom': 'サイドバーからクラスを選択してください',
     'gui.classroom.management.loginPrompt': 'ログインしてクラスを管理',
-    'gui.classroom.management.loginDescription':
-        '学校のアカウントでログインして、クラスを作成・管理します。',
+    'gui.classroom.management.loginDescription': '学校のアカウントでログインして、クラスを作成・管理します。',
     'gui.classroom.management.loginButton': 'Googleでログイン',
     'gui.classroom.management.microsoftLoginButton': 'Microsoftでログイン',
     'gui.classroom.management.sidebarTitle': 'あなたのクラス・課題',

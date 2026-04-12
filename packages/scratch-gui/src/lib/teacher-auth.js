@@ -43,7 +43,7 @@ export const loginWithGoogle = async () => {
         /* global google */
         google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
-            callback: (response) => {
+            callback: response => {
                 cleanup();
                 if (response.credential) {
                     resolve(response.credential);
@@ -53,11 +53,8 @@ export const loginWithGoogle = async () => {
             },
         });
 
-        google.accounts.id.prompt((notification) => {
-            if (
-                notification.isNotDisplayed() ||
-                notification.isSkippedMoment()
-            ) {
+        google.accounts.id.prompt(notification => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
                 signInContainer = document.createElement('div');
                 signInContainer.style.cssText =
                     'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000;';
@@ -93,7 +90,7 @@ export const silentReauthGoogle = async () => {
                 google.accounts.id.initialize({
                     client_id: GOOGLE_CLIENT_ID,
                     auto_select: true,
-                    callback: (response) => {
+                    callback: response => {
                         if (response.credential) {
                             resolve(response.credential);
                         } else {
@@ -101,34 +98,21 @@ export const silentReauthGoogle = async () => {
                         }
                     },
                 });
-                google.accounts.id.prompt((notification) => {
-                    if (
-                        notification.isNotDisplayed() ||
-                        notification.isSkippedMoment()
-                    ) {
-                        reject(
-                            new Error('Silent reauth not available'),
-                        );
+                google.accounts.id.prompt(notification => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        reject(new Error('Silent reauth not available'));
                     }
                     if (notification.isDismissedMoment()) {
                         reject(new Error('User dismissed reauth'));
                     }
-                    if (
-                        notification.isDisplayMoment() &&
-                        !notification.isNotDisplayed()
-                    ) {
+                    if (notification.isDisplayMoment() && !notification.isNotDisplayed()) {
                         google.accounts.id.cancel();
-                        reject(
-                            new Error('One Tap displayed, not silent'),
-                        );
+                        reject(new Error('One Tap displayed, not silent'));
                     }
                 });
             }),
             new Promise((_, reject) =>
-                setTimeout(
-                    () => reject(new Error('Silent reauth timeout')),
-                    REAUTH_TIMEOUT_MS,
-                ),
+                setTimeout(() => reject(new Error('Silent reauth timeout')), REAUTH_TIMEOUT_MS),
             ),
         ]);
         return newToken;
@@ -159,7 +143,7 @@ export const silentReauthMicrosoft = async () => {
  * @param {string|null} provider - 'google' | 'microsoft' | null
  * @returns {Promise<string|null>} New ID token or null
  */
-export const attemptSilentReauth = async (provider) => {
+export const attemptSilentReauth = async provider => {
     if (provider === 'microsoft') {
         return silentReauthMicrosoft();
     }
@@ -170,7 +154,7 @@ export const attemptSilentReauth = async (provider) => {
  * Clear auth session for the given provider.
  * @param {string|null} provider - 'google' | 'microsoft' | null
  */
-export const clearAuthSession = (provider) => {
+export const clearAuthSession = provider => {
     if (provider === 'microsoft') {
         clearMicrosoftAuth();
     }

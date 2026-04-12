@@ -14,9 +14,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
 
 /** Dedicated redirect page for popup auth (must not load the full SPA). */
-const POPUP_REDIRECT_URI = `${
-    typeof window === 'undefined' ? '' : window.location.origin
-}/auth-redirect.html`;
+const POPUP_REDIRECT_URI = `${typeof window === 'undefined' ? '' : window.location.origin}/auth-redirect.html`;
 
 let _msalInstance = null;
 let _initPromise = null;
@@ -84,9 +82,7 @@ export const requestMicrosoftIdToken = async () => {
     });
 
     if (!result.idToken) {
-        throw new Error(
-            'Microsoft authentication failed: no ID token received',
-        );
+        throw new Error('Microsoft authentication failed: no ID token received');
     }
 
     return result.idToken;
@@ -131,10 +127,8 @@ export const isMicrosoftAuthAvailable = () => Boolean(MICROSOFT_CLIENT_ID);
  */
 export const clearMicrosoftAuth = () => {
     // Clear all MSAL-related entries from sessionStorage
-    const msalKeys = Object.keys(sessionStorage).filter(
-        (k) => k.startsWith('msal.'),
-    );
-    msalKeys.forEach((k) => sessionStorage.removeItem(k));
+    const msalKeys = Object.keys(sessionStorage).filter(k => k.startsWith('msal.'));
+    msalKeys.forEach(k => sessionStorage.removeItem(k));
 
     // Reset the MSAL instance so a fresh one is created on next login
     _msalInstance = null;
