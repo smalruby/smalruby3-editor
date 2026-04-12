@@ -12,6 +12,7 @@ import { showAlertWithTimeout } from '../reducers/alerts.js';
 import {
     closeClassroomModal,
     closeTeacherModal,
+    openTeacherModal,
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
@@ -131,13 +132,10 @@ const ClassroomModal = ({ mode = 'student' }) => {
     // --- Role selection ---
 
     const handleSelectTeacher = useCallback(() => {
-        clearError();
-        if (teacher.idToken) {
-            setPhase('teacher-dashboard');
-        } else {
-            setPhase('teacher-login');
-        }
-    }, [teacher.idToken, clearError]);
+        // Close student modal and open teacher management modal
+        dispatch(closeClassroomModal());
+        dispatch(openTeacherModal());
+    }, [dispatch]);
 
     const handleSelectStudent = useCallback(() => {
         clearError();
