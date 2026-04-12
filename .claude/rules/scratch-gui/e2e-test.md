@@ -164,6 +164,22 @@ http://localhost:8601?no_beforeunload=1&tab=ruby&ruby_version=2&rubyMode=ruby
 
 クラスルーム機能は `CLASSROOM_API_ENDPOINT` 環境変数が設定されていれば常に有効です（`?features=classroom` は不要）。
 
+### ブロックパレットの文字化け回避
+
+Playwright でルビータブ（またはコスチューム/音タブ）からコードタブに切り替えると、ブロックパレットの文字が乱れることがある。これはコードタブ非表示中に Blockly が SVG を再構築する際、`getBBox()` が `0` を返すためブロックパスの幅が最小値で固定されることが原因。
+
+**回避策**: タブ切り替え後に `resize` イベントを発火してブロックを再描画させる:
+
+```javascript
+// コードタブに切り替えた後
+await page.locator('[role="tab"]').first().click();
+await page.waitForTimeout(500);
+await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+await page.waitForTimeout(500);
+```
+
+この問題は通常のブラウザ操作では発生しない（Playwright 環境固有）。
+
 ## Monaco Editor の操作
 
 ```javascript
