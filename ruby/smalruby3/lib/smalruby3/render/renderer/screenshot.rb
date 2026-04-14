@@ -19,8 +19,8 @@ module Smalruby3
           return unless @screenshot_path && !File.symlink?(@screenshot_path)
 
           require "smalruby3/smalruby3_imageutil"
-          # read_pixels returns ARGB8888 (little-endian: BGRA bytes)
-          argb_data = @sdl_renderer.read_pixels(nil, 0)
+          # Explicitly request ARGB8888 for consistent byte order across platforms
+          argb_data = @sdl_renderer.read_pixels(nil, SDL2::PixelFormat::ARGB8888)
           # Convert BGRA → RGBA for PNG encoding
           rgba_data = convert_bgra_to_rgba(argb_data)
           Smalruby3::ImageUtil.save_png(rgba_data, @width, @height, @screenshot_path)
