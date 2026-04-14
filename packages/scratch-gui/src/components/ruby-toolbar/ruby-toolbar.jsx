@@ -86,8 +86,9 @@ const RubyToolbar = props => {
 
     const handleSelectDnclMode = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
-        // Switch to DNCL mode
+        // Switch to DNCL mode (disable furigana since DNCL is already in Japanese)
         if (!props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
+        if (props.furiganaEnabled && props.onToggleFurigana) props.onToggleFurigana();
     }, [props]);
     // === Smalruby: End of mode selection handlers ===
 
