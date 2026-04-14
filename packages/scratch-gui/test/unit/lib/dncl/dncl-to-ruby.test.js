@@ -96,13 +96,13 @@ describe('dnclToRuby', () => {
   describe('入力 (input)', () => {
     test('input assigned to lowercase variable', () => {
       expect(convert('a = 【外部からの入力】')).toBe(
-        'ask_and_wait("")\n@a = answer',
+        'ask("")\n@a = answer',
       )
     })
 
     test('input assigned to uppercase variable', () => {
       expect(convert('A = 【外部からの入力】')).toBe(
-        'ask_and_wait("")\n@_var_A_ = answer',
+        'ask("")\n@_var_A_ = answer',
       )
     })
   })
@@ -261,7 +261,7 @@ describe('dnclToRuby', () => {
         convert(
           'i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す',
         ),
-      ).toBe('(1..10).step(1) do |i|\n  say(@i, 1)\nend')
+      ).toBe('@i = 1\nwhile @i <= 10\n  say(@i, 1)\n  @i += 1\nend')
     })
 
     test('descending for loop', () => {
@@ -269,7 +269,7 @@ describe('dnclToRuby', () => {
         convert(
           'i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す',
         ),
-      ).toBe('10.step(0, -1) do |i|\n  say(@i, 1)\nend')
+      ).toBe('@i = 10\nwhile @i >= 0\n  say(@i, 1)\n  @i += -1\nend')
     })
 
     test('for loop with expression bounds', () => {
@@ -277,7 +277,29 @@ describe('dnclToRuby', () => {
         convert(
           'i を 0 から n まで 2 ずつ増やしながら\n  表示する(i)\nを繰り返す',
         ),
-      ).toBe('(0..@n).step(2) do |i|\n  say(@i, 1)\nend')
+      ).toBe('@i = 0\nwhile @i <= @n\n  say(@i, 1)\n  @i += 2\nend')
+    })
+
+    test('nested for loops', () => {
+      const dncl = [
+        'i を 1 から 3 まで 1 ずつ増やしながら',
+        '  j を 1 から 3 まで 1 ずつ増やしながら',
+        '    表示する(i)',
+        '  を繰り返す',
+        'を繰り返す',
+      ].join('\n')
+      const ruby = [
+        '@i = 1',
+        'while @i <= 3',
+        '  @j = 1',
+        '  while @j <= 3',
+        '    say(@i, 1)',
+        '    @j += 1',
+        '  end',
+        '  @i += 1',
+        'end',
+      ].join('\n')
+      expect(convert(dncl)).toBe(ruby)
     })
   })
 

@@ -110,6 +110,13 @@ const RUBY_LITERALS = new Set([
 let arrayNames = new Set()
 
 /**
+ * Stack tracking for-loop state for increment insertion at `を繰り返す`.
+ * Each entry: { varName, stepRuby, ascending, indent }
+ * @type {Array<object>}
+ */
+let forLoopStack = []
+
+/**
  * Detect array names from the full source before line-by-line conversion.
  * An uppercase identifier assigned to an array literal is an array name.
  * @param {string} source - The full DNCL source code.
@@ -450,8 +457,18 @@ const convertLine = (line) => {
     return `${indent}end`
   }
 
-  // を繰り返す → end
+  // を繰り返す → end (with for-loop increment insertion)
   if (trimmed === 'を繰り返す') {
+    if (forLoopStack.length > 0) {
+      const top = forLoopStack[forLoopStack.length - 1]
+      // Check if this end matches the innermost for-loop by indent level
+      if (top.indent === indent) {
+        forLoopStack.pop()
+        const stepExpr = top.ascending ? top.stepRuby : `-${top.stepRuby}`
+        const bodyIndent = `${indent}  `
+        return `${bodyIndent}${top.varName} += ${stepExpr}\n${indent}end`
+      }
+    }
     return `${indent}end`
   }
 
@@ -460,28 +477,32 @@ const convertLine = (line) => {
     return `${indent}end`
   }
 
-  // i を N1 から N2 まで N3 ずつ増やしながら → (N1..N2).step(N3) do |i|
+  // i を N1 から N2 まで N3 ずつ増やしながら → @i = N1 + while @i <= N2
   const forAscMatch = trimmed.match(
     /^(\w+)\s+を\s+(.+?)\s+から\s+(.+?)\s+まで\s+(.+?)\s+ずつ増やしながら$/,
   )
   if (forAscMatch) {
     const [, loopVar, from, to, step] = forAscMatch
+    const varName = convertIdentifier(loopVar)
     const fromRuby = processSegments(from)
     const toRuby = processSegments(to)
     const stepRuby = processSegments(step)
-    return `${indent}(${fromRuby}..${toRuby}).step(${stepRuby}) do |${loopVar}|`
+    forLoopStack.push({ varName, stepRuby, ascending: true, indent })
+    return `${indent}${varName} = ${fromRuby}\n${indent}while ${varName} <= ${toRuby}`
   }
 
-  // i を N1 から N2 まで N3 ずつ減らしながら → N1.step(N2, -N3) do |i|
+  // i を N1 から N2 まで N3 ずつ減らしながら → @i = N1 + while @i >= N2
   const forDescMatch = trimmed.match(
     /^(\w+)\s+を\s+(.+?)\s+から\s+(.+?)\s+まで\s+(.+?)\s+ずつ減らしながら$/,
   )
   if (forDescMatch) {
     const [, loopVar, from, to, step] = forDescMatch
+    const varName = convertIdentifier(loopVar)
     const fromRuby = processSegments(from)
     const toRuby = processSegments(to)
     const stepRuby = processSegments(step)
-    return `${indent}${fromRuby}.step(${toRuby}, -${stepRuby}) do |${loopVar}|`
+    forLoopStack.push({ varName, stepRuby, ascending: false, indent })
+    return `${indent}${varName} = ${fromRuby}\n${indent}while ${varName} >= ${toRuby}`
   }
 
   // condition の間 → while condition
@@ -519,7 +540,7 @@ const convertLine = (line) => {
     const inputIndent = inputMatch[1]
     const varPart = inputMatch[2].trim()
     const processedVar = processSegments(varPart)
-    return `${inputIndent}ask_and_wait("")\n${inputIndent}${processedVar} = answer`
+    return `${inputIndent}ask("")\n${inputIndent}${processedVar} = answer`
   }
 
   // Process segments (strings vs code)
@@ -591,6 +612,7 @@ const dnclToRuby = (source) => {
   }
 
   detectArrayNames(source)
+  forLoopStack = []
 
   const lines = source.split('\n')
   const rubyLines = lines.map((line) => convertLine(line))

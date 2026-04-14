@@ -54,7 +54,13 @@ describe('rubyToDncl', () => {
       expect(convert('say(@a, @b, @c, 1)')).toBe('表示する(a, b, c)')
     })
 
-    test('ask_and_wait + answer → 入力', () => {
+    test('ask + answer → 入力', () => {
+      expect(convert('ask("")\n@a = answer')).toBe(
+        'a = 【外部からの入力】',
+      )
+    })
+
+    test('ask_and_wait + answer → 入力 (legacy)', () => {
       expect(convert('ask_and_wait("")\n@a = answer')).toBe(
         'a = 【外部からの入力】',
       )
@@ -169,17 +175,62 @@ describe('rubyToDncl', () => {
     })
   })
 
-  describe('control flow: for loop', () => {
-    test('ascending for loop', () => {
+  describe('control flow: for loop (step syntax)', () => {
+    test('ascending step for loop', () => {
       expect(convert('(1..10).step(1) do |i|\n  say(@i, 1)\nend')).toBe(
         'i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す',
       )
     })
 
-    test('descending for loop', () => {
+    test('descending step for loop', () => {
       expect(convert('10.step(0, -1) do |i|\n  say(@i, 1)\nend')).toBe(
         'i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す',
       )
+    })
+  })
+
+  describe('control flow: for loop (while pattern)', () => {
+    test('ascending while-based for loop', () => {
+      const ruby = '@i = 1\nwhile @i <= 10\n  say(@i, 1)\n  @i += 1\nend'
+      expect(convert(ruby)).toBe(
+        'i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す',
+      )
+    })
+
+    test('descending while-based for loop', () => {
+      const ruby = '@i = 10\nwhile @i >= 0\n  say(@i, 1)\n  @i += -1\nend'
+      expect(convert(ruby)).toBe(
+        'i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す',
+      )
+    })
+
+    test('ascending while-based for loop with step 2', () => {
+      const ruby = '@i = 0\nwhile @i <= @n\n  say(@i, 1)\n  @i += 2\nend'
+      expect(convert(ruby)).toBe(
+        'i を 0 から n まで 2 ずつ増やしながら\n  表示する(i)\nを繰り返す',
+      )
+    })
+
+    test('nested while-based for loops', () => {
+      const ruby = [
+        '@i = 1',
+        'while @i <= 3',
+        '  @j = 1',
+        '  while @j <= 3',
+        '    say(@i, 1)',
+        '    @j += 1',
+        '  end',
+        '  @i += 1',
+        'end',
+      ].join('\n')
+      const dncl = [
+        'i を 1 から 3 まで 1 ずつ増やしながら',
+        '  j を 1 から 3 まで 1 ずつ増やしながら',
+        '    表示する(i)',
+        '  を繰り返す',
+        'を繰り返す',
+      ].join('\n')
+      expect(convert(ruby)).toBe(dncl)
     })
   })
 
