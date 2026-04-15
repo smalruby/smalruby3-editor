@@ -250,6 +250,124 @@ describe('rubyToDncl', () => {
     })
   })
 
+  describe('CJK variable names', () => {
+    test('kanji variable assignment', () => {
+      expect(convert('@合計 = 0')).toBe('合計 = 0')
+    })
+
+    test('kanji variable reference in expression', () => {
+      expect(convert('@合計 = @合計 + @i')).toBe('合計 = 合計 + i')
+    })
+
+    test('hiragana variable', () => {
+      expect(convert('@けっか = 1')).toBe('けっか = 1')
+    })
+
+    test('katakana variable', () => {
+      expect(convert('@カウント = 0')).toBe('カウント = 0')
+    })
+
+    test('negation of CJK variable', () => {
+      expect(convert('if !@合計\n  @a = 1\nend')).toBe(
+        'もし 合計 でない ならば\n  a = 1\nを実行する',
+      )
+    })
+
+    test('CJK uppercase scalar variable', () => {
+      expect(convert('@_var_合計_ = 0')).toBe('合計 = 0')
+    })
+
+    test('CJK uppercase array variable', () => {
+      expect(convert('@_array_配列_ = [1, 2, 3]')).toBe('配列 = [1, 2, 3]')
+    })
+  })
+
+  describe('CJK for-loop (while pattern)', () => {
+    test('for-loop with CJK body variable', () => {
+      const ruby = [
+        '@合計 = 0',
+        '@i = 1',
+        'while @i <= 10',
+        '  @合計 += @i',
+        '  @i += 1',
+        'end',
+      ].join('\n')
+      const dncl = [
+        '合計 = 0',
+        'i を 1 から 10 まで 1 ずつ増やしながら',
+        '  合計 += i',
+        'を繰り返す',
+      ].join('\n')
+      expect(convert(ruby)).toBe(dncl)
+    })
+
+    test('for-loop with CJK loop variable', () => {
+      const ruby = [
+        '@回数 = 1',
+        'while @回数 <= 5',
+        '  say(@回数, 1)',
+        '  @回数 += 1',
+        'end',
+      ].join('\n')
+      const dncl = [
+        '回数 を 1 から 5 まで 1 ずつ増やしながら',
+        '  表示する(回数)',
+        'を繰り返す',
+      ].join('\n')
+      expect(convert(ruby)).toBe(dncl)
+    })
+  })
+
+  describe('CJK built-in methods', () => {
+    test('.to_i on CJK variable', () => {
+      expect(convert('@a = @合計.to_i')).toBe('a = 整数(合計)')
+    })
+
+    test('.to_s on CJK variable', () => {
+      expect(convert('@a = @合計.to_s')).toBe('a = 文字列(合計)')
+    })
+
+    test('.length on CJK variable', () => {
+      expect(convert('@a = @配列.length')).toBe('a = 要素数(配列)')
+    })
+
+    test('.round on CJK variable', () => {
+      expect(convert('@a = @平均.round')).toBe('a = 四捨五入(平均)')
+    })
+
+    test('.abs on CJK variable', () => {
+      expect(convert('@a = @差分.abs')).toBe('a = 絶対値(差分)')
+    })
+
+    test('.include? on CJK variable', () => {
+      expect(convert('@a = @文字列.include?("ell")')).toBe(
+        'a = 含む(文字列, "ell")',
+      )
+    })
+  })
+
+  describe('CJK roundtrip: reported bug', () => {
+    test('DNCL program with 合計 variable roundtrips correctly', () => {
+      const ruby = [
+        '@合計 = 0',
+        '@i = 1',
+        'while @i <= 10',
+        '  @合計 += @i',
+        '  @i += 1',
+        'end',
+        'say(@合計, 1)',
+      ].join('\n')
+      const expectedDncl = [
+        '合計 = 0',
+        'i を 1 から 10 まで 1 ずつ増やしながら',
+        '  合計 += i',
+        'を繰り返す',
+        '表示する(合計)',
+      ].join('\n')
+      expect(convert(ruby)).toBe(expectedDncl)
+    })
+  })
+
   describe('comments', () => {
     test('preserves comments', () => {
       expect(convert('# コメント')).toBe('# コメント')
