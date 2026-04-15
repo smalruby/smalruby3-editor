@@ -26,4 +26,14 @@ See `.env.example` for the full list. Key groups:
 - **Google**: `GOOGLE_CLIENT_ID`, `GOOGLE_API_KEY`
 - **Mesh v2**: `MESH_GRAPHQL_ENDPOINT`, `MESH_API_KEY`, `MESH_AWS_REGION`
 - **Rubytee**: `RUBYTEE_RELAY_ENDPOINT`
-- **Classroom**: `CLASSROOM_API_ENDPOINT`, `DEV_BYPASS_TOKEN`
+- **Classroom**: `CLASSROOM_API_ENDPOINT`, `MICROSOFT_CLIENT_ID`, `DEV_BYPASS_TOKEN`
+
+## GitHub Actions への反映
+
+ビルド時に webpack で埋め込む環境変数（`packages/scratch-gui/webpack.config.js` の `DefinePlugin` で `process.env.*` として注入されるもの）は、**必ず `.github/workflows/ci-cd.yml` の `build-and-deploy` ジョブにも設定すること**。
+
+- secrets に追加する値: GitHub リポジトリの **Settings > Secrets and variables > Actions > Secrets** に登録し、workflow では `${{ secrets.KEY_NAME }}` で参照
+- vars に追加する値: 同 **Variables** に登録し、`${{ vars.KEY_NAME }}` で参照
+- `build-and-deploy` ジョブ内のビルドステップは **3箇所** ある（smalruby.app 用、smalruby3-editor GitHub Pages 用、ブランチプレビュー用）。すべてに追加すること
+
+新しい環境変数を `webpack.config.js` に追加した場合、workflow への追加を忘れると本番ビルドでその機能が無効になる。
