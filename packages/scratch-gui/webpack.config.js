@@ -338,7 +338,13 @@ const distWithHtmlConfig = buildConfig.clone()
     .merge({
         devtool: false, // Disable source maps for production
         output: {
-            filename: '[name].[contenthash].js', // Add contenthash for cache busting
+            // Add contenthash for cache busting, except auth-redirect which is
+            // referenced by a static HTML file (legal/auth-redirect.html) with a
+            // fixed <script src="auth-redirect.js"> tag.
+            filename: (pathData) =>
+                pathData.chunk.name === 'auth-redirect'
+                    ? '[name].js'
+                    : '[name].[contenthash].js',
             path: path.resolve(__dirname, 'dist'),
             clean: false
         },
