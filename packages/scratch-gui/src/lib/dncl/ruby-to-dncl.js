@@ -1,5 +1,8 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
 
+/** Regex character class for identifiers: word chars + CJK (hiragana, katakana, kanji). */
+const ID = '\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF'
+
 /**
  * Context for tracking whether the current `end` should become
  * `を実行する`, `を繰り返す`, or `と定義する`.
@@ -16,11 +19,11 @@ let blockStack = []
 const convertVarRefs = (segment) => {
   let result = segment
   // @_array_Name_ → Name
-  result = result.replace(/@_array_(\w+)_/g, '$1')
+  result = result.replace(new RegExp(`@_array_([${ID}]+)_`, 'g'), '$1')
   // @_var_Name_ → Name
-  result = result.replace(/@_var_(\w+)_/g, '$1')
+  result = result.replace(new RegExp(`@_var_([${ID}]+)_`, 'g'), '$1')
   // @name → name (but not @@ or @_ prefixed patterns already handled)
-  result = result.replace(/@(\w+)/g, '$1')
+  result = result.replace(new RegExp(`@([${ID}]+)`, 'g'), '$1')
   return result
 }
 
@@ -37,7 +40,7 @@ const convertOperators = (segment) => {
   result = result.replace(/(?<=\s|^)false(?=\s|$)/g, '偽')
 
   // !expr → expr でない (handle @-prefixed vars too)
-  result = result.replace(/!(@?\w+)/g, '$1 でない')
+  result = result.replace(new RegExp(`!(@?[${ID}]+)`, 'g'), '$1 でない')
 
   return result
 }
@@ -74,35 +77,56 @@ const convertBuiltins = (line) => {
   )
 
   // expr.include?(sub) → 含む(expr, sub)
-  // expr can be a variable (word chars) or a string literal ("...")
+  // expr can be a variable (word chars + CJK) or a string literal ("...")
   result = result.replace(
-    /("[^"]*"|\w+)\.include\?\(([^)]*)\)/g,
+    new RegExp(`("[^"]*"|[${ID}]+)\\.include\\?\\(([^)]*)\\)`, 'g'),
     (_, expr, sub) => `含む(${expr}, ${sub})`,
   )
 
   // expr.to_i → 整数(expr)
-  result = result.replace(/(\w+)\.to_i/g, (_, expr) => `整数(${expr})`)
+  result = result.replace(
+    new RegExp(`([${ID}]+)\\.to_i`, 'g'),
+    (_, expr) => `整数(${expr})`,
+  )
 
   // expr.to_s → 文字列(expr)
-  result = result.replace(/(\w+)\.to_s/g, (_, expr) => `文字列(${expr})`)
+  result = result.replace(
+    new RegExp(`([${ID}]+)\\.to_s`, 'g'),
+    (_, expr) => `文字列(${expr})`,
+  )
 
   // expr.round → 四捨五入(expr)
-  result = result.replace(/(\w+)\.round/g, (_, expr) => `四捨五入(${expr})`)
+  result = result.replace(
+    new RegExp(`([${ID}]+)\\.round`, 'g'),
+    (_, expr) => `四捨五入(${expr})`,
+  )
 
   // expr.floor → 切り捨て(expr)
-  result = result.replace(/(\w+)\.floor/g, (_, expr) => `切り捨て(${expr})`)
+  result = result.replace(
+    new RegExp(`([${ID}]+)\\.floor`, 'g'),
+    (_, expr) => `切り捨て(${expr})`,
+  )
 
   // expr.ceil → 切り上げ(expr)
-  result = result.replace(/(\w+)\.ceil/g, (_, expr) => `切り上げ(${expr})`)
+  result = result.replace(
+    new RegExp(`([${ID}]+)\\.ceil`, 'g'),
+    (_, expr) => `切り上げ(${expr})`,
+  )
 
   // expr.abs → 絶対値(expr)
-  result = result.replace(/(\w+)\.abs/g, (_, expr) => `絶対値(${expr})`)
+  result = result.replace(
+    new RegExp(`([${ID}]+)\\.abs`, 'g'),
+    (_, expr) => `絶対値(${expr})`,
+  )
 
   // rand(n) → 乱数(n)
   result = result.replace(/rand\(([^)]*)\)/g, (_, n) => `乱数(${n})`)
 
   // expr.length → 要素数(expr)
-  result = result.replace(/(\w+)\.length/g, (_, expr) => `要素数(${expr})`)
+  result = result.replace(
+    new RegExp(`([${ID}]+)\\.length`, 'g'),
+    (_, expr) => `要素数(${expr})`,
+  )
 
   return result
 }
@@ -241,7 +265,9 @@ const convertLine = (line) => {
 
   // (from..to).step(step) do |var| → ascending for loop
   const forAscMatch = trimmed.match(
-    /^\((.+?)\.\.(.+?)\)\.step\((.+?)\)\s+do\s+\|(\w+)\|$/,
+    new RegExp(
+      `^\\((.+?)\\.\\.(.+?)\\)\\.step\\((.+?)\\)\\s+do\\s+\\|([${ID}]+)\\|$`,
+    ),
   )
   if (forAscMatch) {
     blockStack.push('loop')
@@ -254,7 +280,9 @@ const convertLine = (line) => {
 
   // from.step(to, -step) do |var| → descending for loop
   const forDescMatch = trimmed.match(
-    /^(.+?)\.step\((.+?),\s*-(.+?)\)\s+do\s+\|(\w+)\|$/,
+    new RegExp(
+      `^(.+?)\\.step\\((.+?),\\s*-(.+?)\\)\\s+do\\s+\\|([${ID}]+)\\|$`,
+    ),
   )
   if (forDescMatch) {
     blockStack.push('loop')
@@ -266,7 +294,9 @@ const convertLine = (line) => {
   }
 
   // def name(params) → 関数 name(params)
-  const defMatch = trimmed.match(/^def\s+(\w+)\(([^)]*)\)$/)
+  const defMatch = trimmed.match(
+    new RegExp(`^def\\s+([${ID}]+)\\(([^)]*)\\)$`),
+  )
   if (defMatch) {
     blockStack.push('func')
     return `${indent}関数 ${defMatch[1]}(${defMatch[2]})`
@@ -317,7 +347,7 @@ const detectForLoopPattern = (pending, whileLine, whileIndent) => {
 
   // Match: while @var <= expr  or  while @var >= expr
   const whileMatch = whileLine.match(
-    /^while\s+(@\w+)\s*(<=|>=)\s*(.+)$/,
+    new RegExp(`^while\\s+(@[${ID}]+)\\s*(<=|>=)\\s*(.+)$`),
   )
   if (!whileMatch) return null
   if (whileMatch[1] !== pending.varRef) return null
@@ -358,7 +388,9 @@ const rubyToDncl = (source) => {
     const indent = indentMatch ? indentMatch[1] : ''
 
     // Check if this is an assignment that could be a for-loop init
-    const assignMatch = trimmed.match(/^(@\w+)\s*=\s*(.+)$/)
+    const assignMatch = trimmed.match(
+      new RegExp(`^(@[${ID}]+)\\s*=\\s*(.+)$`),
+    )
     if (assignMatch && !trimmed.includes('answer')) {
       // Extract var name for DNCL display (strip @, @_var_, @_array_)
       const varRef = assignMatch[1]
