@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スモウルビー | 中学校プログラミング教育の新標準 — ブロック・Ruby・DNCL対応</title>
+    <meta name="description" content="スモウルビーは、ブロックプログラミングからRuby・DNCLまで対応した無料のプログラミング学習環境です。Rubyふりがな機能で小・中・高の一貫教育を実現。インストール不要、ブラウザだけで授業が始められます。">
+    <meta name="keywords" content="スモウルビー, Smalruby, プログラミング教育, 中学校, 技術科, ブロックプログラミング, Ruby, DNCL, 日本語プログラミング, Rubyふりがな, ふりがな, 共通テスト, Scratch, メッシュ, 計測と制御, スモウルボット, クラス管理, 無料, ICT教育, GIGAスクール">
+    <meta name="author" content="NPO法人Rubyプログラミング少年団">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://smalruby.app/about.html">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="スモウルビー | 中学校プログラミング教育の新標準">
+    <meta property="og:description" content="ブロックからRuby・DNCLまで。Rubyふりがな機能付き。インストール不要・無料のプログラミング学習環境。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://smalruby.app/about.html">
+    <meta property="og:image" content="https://smalruby.app/assets/hatti-greeting.png">
+    <meta property="og:site_name" content="スモウルビー">
+    <meta property="og:locale" content="ja_JP">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="スモウルビー | 中学校プログラミング教育の新標準">
+    <meta name="twitter:description" content="ブロックからRuby・DNCLまで。Rubyふりがな機能付き。インストール不要・無料のプログラミング学習環境。">
+    <meta name="twitter:image" content="https://smalruby.app/assets/hatti-greeting.png">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* ============================================================
+           Design Tokens
+           ============================================================ */
+        :root {
+            --ruby-red: #e60012;
+            --ruby-dark: #b8000e;
+            --purple: #6a1b9a;
+            --purple-deep: #4a148c;
+            --purple-light: #9c27b0;
+            --gold: #ffeb3b;
+            --gold-deep: #f9a825;
+            --bg: #fafbff;
+            --text: #2d3748;
+            --text-light: #718096;
+            --card-bg: #ffffff;
+            --block-event: #ffbf00;
+            --block-control: #ffab19;
+            --block-motion: #4c97ff;
+            --block-looks: #9966ff;
+            --block-sensing: #5cb1d6;
+            --block-operator: #59c059;
+            --block-variable: #ff8c1a;
+            --block-ruby: #cc342d;
+            --hatti-yellow: #f5c518;
+            --shimacat-orange: #f5a623;
+            --shimaraby-white: #f0f0f0;
+        }
+
+        /* ============================================================
+           Reset & Base
+           ============================================================ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        h2 { font-size: 1.1rem; font-weight: 700; }
+
+        a { text-decoration: none; }
+
+        /* ============================================================
+           Utility: Scroll Reveal
+           ============================================================ */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ============================================================
+           HERO Section
+           ============================================================ */
+        .hero {
+            position: relative;
+            background: linear-gradient(135deg, var(--purple-deep) 0%, var(--purple) 40%, var(--purple-light) 100%);
+            color: white;
+            padding: 3rem 1rem 5rem;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        /* Floating blocks background */
+        .hero-blocks-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .floating-block {
+            position: absolute;
+            border-radius: 8px;
+            opacity: 0.12;
+            animation: floatBlock 20s infinite linear;
+        }
+        @keyframes floatBlock {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-150px) rotate(360deg); }
+        }
+
+        .hero-content { position: relative; z-index: 2; }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(4px);
+            padding: 0.4rem 1.2rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .hero h1 {
+            font-size: clamp(1.6rem, 5vw, 2.6rem);
+            font-weight: 800;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+        }
+        .hero h1 .accent { color: var(--gold); }
+
+        .hero-sub {
+            font-size: 1.1rem;
+            opacity: 0.92;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+        }
+
+        /* Characters in hero */
+        .hero-characters {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .hero-character {
+            height: 90px;
+            width: auto;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+            animation: characterBounce 3s ease-in-out infinite;
+        }
+        .hero-character:nth-child(2) { height: 100px; animation-delay: 0.5s; }
+        .hero-character:nth-child(3) { animation-delay: 1s; }
+        @keyframes characterBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+
+        /* ============================================================
+           Stats Bar (overlapping hero)
+           ============================================================ */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            max-width: 800px;
+            margin: -3rem auto 0;
+            position: relative;
+            z-index: 10;
+            padding: 0 1.5rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-4px); }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--ruby-red), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-label { font-size: 0.85rem; color: var(--text-light); margin-top: 0.25rem; }
+        .stats-note {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-light);
+            max-width: 800px;
+            margin: 0.75rem auto 0;
+            padding: 0 1.5rem;
+        }
+
+        /* ============================================================
+           Section: Common
+           ============================================================ */
+        .section { padding: 4rem 0; }
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .section-header h2 {
+            font-size: clamp(1.4rem, 3.5vw, 2rem);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+        .section-header p {
+            color: var(--text-light);
+            font-size: 1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .section-label {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--ruby-red), var(--purple));
+            color: white;
+            padding: 0.25rem 1rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+        }
+
+        /* ============================================================
+           Block Demo Section (interactive)
+           ============================================================ */
+        .demo-section {
+            background: linear-gradient(180deg, #f0f4ff 0%, var(--bg) 100%);
+        }
+        .demo-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr;
+            align-items: center;
+            gap: 1rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        @media (max-width: 768px) {
+            .demo-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+        .demo-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            min-height: 320px;
+            position: relative;
+        }
+        .demo-panel-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .demo-panel-title i { font-size: 1rem; }
+
+        /* Scratch-style blocks */
+        .scratch-block {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 3px 0;
+            white-space: nowrap;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+            position: relative;
+            font-family: "Helvetica Neue", Arial, sans-serif;
+        }
+        .scratch-block .block-input {
+            background: rgba(255,255,255,0.25);
+            border-radius: 12px;
+            padding: 1px 8px;
+            margin: 0 3px;
+            font-size: 0.8rem;
+            min-width: 24px;
+            text-align: center;
+        }
+        .scratch-block .block-input-hex {
+            background: rgba(255,255,255,0.25);
+            width: 18px;
+            height: 18px;
+            transform: rotate(45deg);
+            display: inline-block;
+            margin: 0 6px;
+            border-radius: 2px;
+        }
+        .block-event { background: var(--block-event); }
+        .block-control { background: var(--block-control); }
+        .block-motion { background: var(--block-motion); }
+        .block-looks { background: var(--block-looks); }
+        .block-sensing { background: var(--block-sensing); }
+        .block-operator { background: var(--block-operator); }
+
+        .blocks-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+        .block-indent { margin-left: 20px; }
+
+        /* Block snap animation */
+        .block-animate {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        .block-animate.snapped {
+            opacity: 1;
+            transform: translateX(0);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Arrow between panels */
+        .demo-arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .demo-arrow-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--ruby-red), var(--purple));
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(106,27,154,0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .demo-arrow-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(106,27,154,0.4);
+        }
+        .demo-arrow-label {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            font-weight: 600;
+        }
+        @media (max-width: 768px) {
+            .demo-arrow { flex-direction: row; }
+            .demo-arrow-btn { transform: rotate(90deg); }
+        }
+
+        /* Ruby code display */
+        .ruby-code {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            color: #e8e8e8;
+            background: #1e1e2e;
+            border-radius: 10px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        .ruby-code .kw { color: #c792ea; }
+        .ruby-code .fn { color: #82aaff; }
+        .ruby-code .num { color: #f78c6c; }
+        .ruby-code .str { color: #c3e88d; }
+        .ruby-code .cm { color: #676e95; }
+        .ruby-code .op { color: #89ddff; }
+        .ruby-code .var { color: #f07178; }
+
+        /* Furigana (ruby annotation) */
+        .ruby-code ruby { position: relative; }
+        .ruby-code rt {
+            font-size: 0.55em;
+            color: #a0aec0;
+            font-weight: 400;
+            letter-spacing: 0;
+        }
+
+        .ruby-line {
+            display: block;
+            white-space: pre;
+            opacity: 0;
+            transform: translateY(8px);
+        }
+        .ruby-line.typed {
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        /* ============================================================
+           Features Grid
+           ============================================================ */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .feature-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+        }
+        .feature-card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-bottom: 3px solid var(--purple);
+        }
+        .feature-card-body {
+            padding: 1.5rem;
+        }
+        .feature-card-body h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .feature-card-body h3 .feature-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        .feature-card-body p {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        /* ============================================================
+           Timeline (school progression)
+           ============================================================ */
+        .timeline {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--block-motion), var(--purple), var(--ruby-red));
+            border-radius: 2px;
+        }
+        @media (max-width: 768px) {
+            .timeline::before { left: 20px; }
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        .timeline-item:nth-child(odd) { flex-direction: row-reverse; }
+        @media (max-width: 768px) {
+            .timeline-item,
+            .timeline-item:nth-child(odd) {
+                flex-direction: row;
+                padding-left: 50px;
+            }
+        }
+
+        .timeline-dot {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 0.8rem;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        @media (max-width: 768px) {
+            .timeline-dot {
+                left: 20px;
+                width: 40px;
+                height: 40px;
+                font-size: 0.7rem;
+            }
+        }
+
+        .timeline-card {
+            width: calc(50% - 50px);
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        @media (max-width: 768px) {
+            .timeline-card { width: 100%; }
+        }
+        .timeline-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .timeline-card p { font-size: 0.9rem; color: var(--text-light); }
+        .timeline-card .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ============================================================
+           Teacher Benefits
+           ============================================================ */
+        .teacher-section {
+            background: linear-gradient(135deg, #f8f0ff 0%, #fff0f0 100%);
+        }
+        .teacher-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: center;
+        }
+        @media (max-width: 768px) {
+            .teacher-grid { grid-template-columns: 1fr; }
+        }
+        .teacher-screenshot {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        }
+        .teacher-screenshot img {
+            width: 100%;
+            display: block;
+        }
+        .teacher-benefits-list {
+            list-style: none;
+        }
+        .teacher-benefits-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .benefit-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .benefit-text h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.2rem; }
+        .benefit-text p { font-size: 0.85rem; color: var(--text-light); }
+
+        /* ============================================================
+           Testimonial / Quote
+           ============================================================ */
+        .quote-section {
+            background: linear-gradient(135deg, var(--purple-deep), var(--purple));
+            color: white;
+            text-align: center;
+            padding: 4rem 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .quote-section::before {
+            content: '\201C';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 15rem;
+            opacity: 0.08;
+            font-family: Georgia, serif;
+        }
+        .quote-text {
+            font-size: clamp(1.1rem, 3vw, 1.5rem);
+            font-weight: 600;
+            max-width: 700px;
+            margin: 0 auto 1rem;
+            line-height: 1.7;
+        }
+        .quote-character {
+            width: 60px;
+            margin-top: 1rem;
+            filter: brightness(1.1);
+        }
+
+        /* ============================================================
+           CTA Section
+           ============================================================ */
+        .cta-section {
+            text-align: center;
+            padding: 5rem 1rem;
+            position: relative;
+            overflow: hidden;
+            background: white;
+        }
+        .cta-section h2 {
+            font-size: clamp(1.3rem, 4vw, 2rem);
+            margin-bottom: 1rem;
+        }
+        .cta-section p {
+            color: var(--text-light);
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: linear-gradient(135deg, var(--ruby-red), var(--ruby-dark));
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            box-shadow: 0 6px 25px rgba(230,0,18,0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 35px rgba(230,0,18,0.4);
+        }
+        .cta-btn i { font-size: 1.3rem; }
+
+        .cta-sub-links {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .cta-sub-links a {
+            color: var(--purple);
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .cta-sub-links a:hover { text-decoration: underline; }
+
+        .cta-characters {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2.5rem;
+        }
+        .cta-characters img {
+            height: 80px;
+            width: auto;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));
+        }
+
+        /* ============================================================
+           Footer
+           ============================================================ */
+        footer {
+            background: #1a1a2e;
+            color: rgba(255,255,255,0.7);
+            padding: 2.5rem 1rem;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        footer a { color: rgba(255,255,255,0.9); }
+        footer .footer-links {
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* ============================================================
+           Block Puzzle Interactive Canvas
+           ============================================================ */
+        .puzzle-canvas-wrap {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 2rem auto 0;
+        }
+        #puzzleCanvas {
+            width: 100%;
+            height: 280px;
+            border-radius: 16px;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            cursor: grab;
+        }
+        #puzzleCanvas:active { cursor: grabbing; }
+        .puzzle-hint {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+
+        /* ============================================================
+           Character speech bubble
+           ============================================================ */
+        .character-with-speech {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+        .character-with-speech img { width: 70px; flex-shrink: 0; }
+        .speech-bubble {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            position: relative;
+            font-size: 0.95rem;
+        }
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 20px;
+            border: 8px solid transparent;
+            border-right-color: white;
+        }
+
+        /* ============================================================
+           Responsive tweaks
+           ============================================================ */
+        @media (max-width: 600px) {
+            .stats-bar { grid-template-columns: 1fr; gap: 0.75rem; }
+            .hero { padding: 2rem 1rem 4rem; }
+            .section { padding: 3rem 0; }
+            .hero-characters { gap: 0.5rem; }
+            .hero-character { height: 60px; }
+            .hero-character:nth-child(2) { height: 70px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ================================================================
+     HERO
+     ================================================================ -->
+<section class="hero" id="hero">
+    <div class="hero-blocks-bg" id="heroBg"></div>
+    <div class="hero-content">
+        <div class="hero-badge"><i class="fas fa-school"></i>&ensp;日本中の中学校で導入加速中</div>
+        <h1>
+            「ブロック」から本物の「<span class="accent">Ruby</span>」へ。<br>
+            学びを止めない<br class="sp-only">プログラミング環境。
+        </h1>
+        <p class="hero-sub">
+            スモウルビーは、<strong style="color:var(--gold);">共通テストまで見据えた</strong>一貫性のあるICT教育を実現する、<br>
+            インストール不要・無料のプログラミング学習環境です。
+        </p>
+
+        <div class="hero-characters">
+            <img src="static/smalruby-assets/ddaccfcda466a4887299feddc899fea7.png"
+                 alt="シマラビー" class="hero-character">
+            <img src="static/smalruby-assets/851e679b8f113ee90e0d686c33fbc940.png"
+                 alt="シマキャット" class="hero-character">
+            <img src="assets/hatti-greeting.png"
+                 alt="ハッチー" class="hero-character">
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+     STATS BAR
+     ================================================================ -->
+<div class="stats-bar">
+    <div class="stat-card reveal">
+        <div class="stat-number" data-target="110">0</div>
+        <div class="stat-label">導入クラス数 / 日</div>
+    </div>
+    <div class="stat-card reveal">
+        <div class="stat-number" data-target="3900">0</div>
+        <div class="stat-label">アクティブ生徒数 / 日</div>
+    </div>
+    <div class="stat-card reveal">
+        <div class="stat-number" data-target="0" data-prefix="&yen;">
+            &yen;0
+        </div>
+        <div class="stat-label">導入コスト（無料）</div>
+    </div>
+</div>
+<p class="stats-note">※ 2026年3月3日のアクティブユーザー数(約4,100人)をもとに推計。アクティブユーザーの95%を中学校の生徒と想定、1クラス35人で算出。</p>
+
+<!-- ================================================================
+     BLOCK <-> RUBY DEMO
+     ================================================================ -->
+<section class="section demo-section" id="demo">
+    <div class="container">
+        <div class="section-header reveal">
+            <span class="section-label">LIVE DEMO</span>
+            <h2>ブロックとRuby、同じプログラムを自在に行き来</h2>
+            <p>ブロックで組んだプログラムがRubyコードに。Rubyで書いたコードがブロックに。これがスモウルビーの真骨頂です。</p>
+        </div>
+
+        <div class="demo-wrapper reveal">
+            <!-- Block side -->
+            <div class="demo-panel" id="blockPanel">
+                <div class="demo-panel-title">
+                    <i class="fas fa-puzzle-piece" style="color:var(--block-motion);"></i>
+                    ブロック
+                </div>
+                <div class="blocks-container" id="blocksContainer">
+                    <div class="scratch-block block-event block-animate" data-delay="0">
+                        <svg class="green-flag-icon" viewBox="0 0 16 16" width="16" height="16" style="margin-right:4px;vertical-align:middle;"><path d="M1 1v14" stroke="#45993d" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M2 1c0 0 2 1 5 1s5-2 8-1v7c-3-1-5 1-8 1s-5-2-5-2z" fill="#4CBF56"/><path d="M2 1c0 0 2 1 5 1s5-2 8-1v7c-3-1-5 1-8 1s-5-2-5-2z" fill="url(#gflag)" opacity="0.3"/><defs><linearGradient id="gflag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient></defs></svg>
+                        が押されたとき
+                    </div>
+                    <div class="scratch-block block-control block-animate" data-delay="200">
+                        ずっと
+                    </div>
+                    <div class="block-indent">
+                        <div class="scratch-block block-control block-animate" data-delay="400">
+                            もし <span class="scratch-block block-sensing" style="font-size:0.75rem;margin:0 4px;box-shadow:none;padding:3px 8px;"><span class="block-input" style="background:rgba(255,255,255,0.3);">端</span> に触れた</span> なら
+                        </div>
+                        <div class="block-indent">
+                            <div class="scratch-block block-motion block-animate" data-delay="700">
+                                &#8635; <span class="block-input">180</span> 度回す
+                            </div>
+                        </div>
+                        <div class="scratch-block block-motion block-animate" data-delay="900">
+                            <span class="block-input">10</span> 歩動かす
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="demo-arrow">
+                <button class="demo-arrow-btn" id="transformBtn" title="変換する">
+                    <i class="fas fa-arrows-alt-h"></i>
+                </button>
+                <span class="demo-arrow-label">変換</span>
+            </div>
+
+            <!-- Ruby side -->
+            <div class="demo-panel" id="rubyPanel">
+                <div class="demo-panel-title">
+                    <i class="fas fa-gem" style="color:var(--ruby-red);"></i>
+                    Ruby
+                </div>
+                <div class="ruby-code" id="rubyCode">
+                    <span class="ruby-line" data-delay="0"><ruby><span class="fn">when_flag_clicked</span><rt>⚑が押されたとき</rt></ruby> <ruby><span class="kw">do</span><rt>以下の処理</rt></ruby></span>
+                    <span class="ruby-line" data-delay="100">  <ruby><span class="fn">loop</span><rt>ずっと繰り返す</rt></ruby> <ruby><span class="kw">do</span><rt>以下の処理</rt></ruby></span>
+                    <span class="ruby-line" data-delay="200">    <ruby><span class="kw">if</span><rt>もし</rt></ruby> <ruby><span class="fn">touching?</span><rt>触れた</rt></ruby>(<ruby><span class="str">"_edge_"</span><rt>端</rt></ruby>)</span>
+                    <span class="ruby-line" data-delay="300">      <ruby><span class="fn">turn_right</span><rt>時計回りに回す</rt></ruby>(<ruby><span class="num">180</span><rt>180度</rt></ruby>)</span>
+                    <span class="ruby-line" data-delay="400">    <ruby><span class="kw">end</span><rt>分岐終了</rt></ruby></span>
+                    <span class="ruby-line" data-delay="500">    <ruby><span class="fn">move</span><rt>動かす</rt></ruby>(<ruby><span class="num">10</span><rt>10歩</rt></ruby>)</span>
+                    <span class="ruby-line" data-delay="600">  <ruby><span class="kw">end</span><rt>繰り返し終了</rt></ruby></span>
+                    <span class="ruby-line" data-delay="700"><ruby><span class="kw">end</span><rt>ブロック終了</rt></ruby></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+     FEATURES (3 cards)
+     ================================================================ -->
+<section class="section" id="features">
+    <div class="container">
+        <div class="section-header reveal">
+            <span class="section-label">FEATURES</span>
+            <h2>なぜ、スモウルビーなのか？</h2>
+            <p>中学校の技術科で求められるすべてを、ひとつの環境で。</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <img src="assets/chat-3-mesh-1.jpg"
+                     alt="メッシュ機能でチャットアプリ" class="feature-card-img">
+                <div class="feature-card-body">
+                    <h3>
+                        <span class="feature-icon" style="background:var(--block-motion);"><i class="fas fa-comments"></i></span>
+                        双方向コンテンツ「メッシュ」
+                    </h3>
+                    <p>チャットアプリやセンサー共有など、ネットワークを利用した双方向コンテンツを3ステップのチュートリアルで制作。生徒の「伝えたい」を形にします。</p>
+                </div>
+            </div>
+
+            <div class="feature-card reveal">
+                <img src="assets/getting-started.jpg"
+                     alt="スモウルビーの画面" class="feature-card-img">
+                <div class="feature-card-body">
+                    <h3>
+                        <span class="feature-icon" style="background:var(--block-operator);"><i class="fas fa-robot"></i></span>
+                        計測と制御のプログラミング
+                    </h3>
+                    <p>アーテック社製「スモウルボットS1」に完全対応。ChromebookとUSBケーブルだけで、センサーやモーターを制御するIoTプログラミングを実現します。</p>
+                </div>
+            </div>
+
+            <div class="feature-card reveal">
+                <img src="assets/carousel-2-overview.png"
+                     alt="クラス管理画面" class="feature-card-img">
+                <div class="feature-card-body">
+                    <h3>
+                        <span class="feature-icon" style="background:var(--purple);"><i class="fas fa-chalkboard-teacher"></i></span>
+                        クラス管理で先生の負担を軽減
+                    </h3>
+                    <p>リアルタイムの進捗確認、課題の配信と提出物の一括ダウンロード。参加コードを配るだけで準備完了。タブレット管理やインストール作業は不要です。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+     BLOCK PUZZLE (interactive canvas)
+     ================================================================ -->
+<section class="section" style="background: linear-gradient(180deg, var(--bg), #f0f4ff);">
+    <div class="container">
+        <div class="section-header reveal">
+            <span class="section-label">TRY IT</span>
+            <h2>ブロックをドラッグして組み立ててみよう</h2>
+            <p>スモウルビーのブロックプログラミングを体験してみましょう。</p>
+        </div>
+        <div class="puzzle-canvas-wrap reveal">
+            <canvas id="puzzleCanvas"></canvas>
+            <p class="puzzle-hint"><i class="fas fa-hand-pointer"></i> ブロックをドラッグ&ドロップで正しい順番に並べよう</p>
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+     TIMELINE: School Progression
+     ================================================================ -->
+<section class="section" id="progression">
+    <div class="container">
+        <div class="section-header reveal">
+            <span class="section-label">SEAMLESS</span>
+            <h2>小・中・高をつなぐ唯一のツール</h2>
+            <p>環境を変えずにステップアップ。だからスモウルビー。</p>
+        </div>
+
+        <div class="timeline">
+            <div class="timeline-item reveal">
+                <div class="timeline-dot" style="background:var(--block-motion);">小</div>
+                <div class="timeline-card">
+                    <span class="badge" style="background:var(--block-motion);">小学校</span>
+                    <h3><i class="fas fa-puzzle-piece" style="color:var(--block-motion);"></i> ブロックで楽しく基礎を学ぶ</h3>
+                    <p>カラフルなブロックを組み合わせてプログラミングの基礎と論理思考を育成。Scratchと同じ操作感で、小学校からのスムーズな移行が可能です。</p>
+                </div>
+            </div>
+
+            <div class="timeline-item reveal">
+                <div class="timeline-dot" style="background:var(--purple);">中</div>
+                <div class="timeline-card">
+                    <span class="badge" style="background:var(--purple);">中学校</span>
+                    <h3><i class="fas fa-network-wired" style="color:var(--purple);"></i> メッシュ・スモウルボットで課題解決</h3>
+                    <p>双方向コンテンツや計測・制御で「社会課題の解決」を体験。ブロックとRubyを行き来しながら、テキストプログラミングへの橋渡しもスタート。</p>
+                </div>
+            </div>
+
+            <div class="timeline-item reveal">
+                <div class="timeline-dot" style="background:var(--ruby-red);">高</div>
+                <div class="timeline-card">
+                    <span class="badge" style="background:var(--ruby-red);">高校</span>
+                    <h3><i class="fas fa-gem" style="color:var(--ruby-red);"></i> テキスト型Rubyへ完全移行</h3>
+                    <p>同じ環境のままRubyコードでの開発へ。大学入学共通テスト対策や、実践的なプログラミングスキルの習得を支援します。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="character-with-speech reveal">
+            <img src="static/smalruby-assets/ddaccfcda466a4887299feddc899fea7.png" alt="シマラビー">
+            <div class="speech-bubble">
+                環境を変えないから、生徒が混乱せず、<strong>指導のノウハウも蓄積</strong>されます。一度学んだ操作がそのまま次の学年でも活きるのが、スモウルビーの強みです。
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+     TEACHER BENEFITS
+     ================================================================ -->
+<section class="section teacher-section" id="teacher">
+    <div class="container">
+        <div class="section-header reveal">
+            <span class="section-label">FOR TEACHERS</span>
+            <h2>先生のための機能が充実</h2>
+            <p>授業準備から成績管理まで、先生の負担を劇的に軽減します。</p>
+        </div>
+
+        <div class="teacher-grid reveal">
+            <div class="teacher-screenshot">
+                <img src="assets/carousel-2-overview.png"
+                     alt="クラス管理ダッシュボード">
+            </div>
+            <ul class="teacher-benefits-list">
+                <li>
+                    <div class="benefit-icon" style="background:var(--block-motion);"><i class="fas fa-globe"></i></div>
+                    <div class="benefit-text">
+                        <h4>ブラウザだけで完結</h4>
+                        <p>インストール不要。Chromebook、iPad、Windowsタブレット、どのデバイスからでもアクセスできます。</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="benefit-icon" style="background:var(--purple);"><i class="fas fa-users"></i></div>
+                    <div class="benefit-text">
+                        <h4>クラス管理機能</h4>
+                        <p>参加コードを生徒に伝えるだけ。リアルタイムで進捗を確認し、提出物を一括ダウンロードできます。</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="benefit-icon" style="background:var(--block-operator);"><i class="fas fa-book-open"></i></div>
+                    <div class="benefit-text">
+                        <h4>段階的チュートリアル</h4>
+                        <p>Lv1（コード挿入）→ Lv2（ブロック組立）→ Lv3（Ruby入力）の3段階。生徒のペースに合わせて進められます。</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="benefit-icon" style="background:var(--ruby-red);"><i class="fas fa-yen-sign"></i></div>
+                    <div class="benefit-text">
+                        <h4>完全無料</h4>
+                        <p>NPO法人が開発・運営。ライセンス費用も利用制限もありません。全国の中学校で安心してご利用いただけます。</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+     QUOTE
+     ================================================================ -->
+<section class="quote-section">
+    <div class="container reveal">
+        <p class="quote-text">
+            環境を変えずにステップアップ。<br>
+            だからスモウルビー。
+        </p>
+        <p style="opacity:0.8;font-size:0.95rem;">
+            小学校のScratchから、中学校の双方向・計測制御、<br>
+            高校のテキストプログラミングまで。<br>
+            <strong>ひとつの環境</strong>で<strong>すべての学び</strong>をつなぎます。
+        </p>
+        <img src="assets/hatti-greeting.png"
+             alt="ハッチー" class="quote-character">
+    </div>
+</section>
+
+<!-- ================================================================
+     CTA
+     ================================================================ -->
+<section class="cta-section" id="cta">
+    <div class="container reveal">
+        <h2>まずは、あなたのブラウザで<br>試してみませんか？</h2>
+        <p>インストール不要。今すぐ授業の準備が始められます。</p>
+        <a href="https://smalruby.app" class="cta-btn" target="_blank" rel="noopener">
+            <i class="fas fa-play-circle"></i>
+            スモウルビーを無料で始める
+        </a>
+        <div class="cta-sub-links">
+            <a href="https://www.youtube.com/results?search_query=%E3%82%B9%E3%83%A2%E3%82%A6%E3%83%AB%E3%83%93%E3%83%BC" target="_blank" rel="noopener">
+                <i class="fab fa-youtube"></i> 授業の様子をYouTubeで見る
+            </a>
+            <a href="https://www.amazon.co.jp/dp/4822286398" target="_blank" rel="noopener">
+                <i class="fas fa-book"></i> 書籍を見る
+            </a>
+        </div>
+        <div class="cta-characters">
+            <img src="static/smalruby-assets/ddaccfcda466a4887299feddc899fea7.png" alt="シマラビー">
+            <img src="static/smalruby-assets/851e679b8f113ee90e0d686c33fbc940.png" alt="シマキャット">
+            <img src="assets/hatti-greeting.png" alt="ハッチー">
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+     FOOTER
+     ================================================================ -->
+<footer>
+    <div class="footer-links">
+        <a href="https://smalruby.app" target="_blank" rel="noopener">smalruby.app</a>
+        <a href="https://github.com/smalruby" target="_blank" rel="noopener"><i class="fab fa-github"></i> GitHub</a>
+    </div>
+    <p>
+        NPO法人Rubyプログラミング少年団 (代表: 高尾宏治)<br>
+        書籍: 『小学生から楽しむ きらきらRubyプログラミング』(ISBN: 4822286398)
+    </p>
+    <p style="margin-top:0.5rem;opacity:0.5;">&copy; 2026 Smalruby Project. All rights reserved.</p>
+</footer>
+
+<!-- ================================================================
+     SCRIPTS
+     ================================================================ -->
+<script>
+/* =================================================================
+   1. Floating Blocks Background (Hero)
+   ================================================================= */
+(function initHeroBg() {
+    const bg = document.getElementById('heroBg');
+    const colors = ['#ffbf00','#4c97ff','#9966ff','#59c059','#ff8c1a','#5cb1d6','#cc342d'];
+    for (let i = 0; i < 18; i++) {
+        const block = document.createElement('div');
+        block.className = 'floating-block';
+        const size = 20 + Math.random() * 50;
+        block.style.width = size + 'px';
+        block.style.height = size * 0.6 + 'px';
+        block.style.left = Math.random() * 100 + '%';
+        block.style.backgroundColor = colors[i % colors.length];
+        block.style.animationDuration = (12 + Math.random() * 18) + 's';
+        block.style.animationDelay = -(Math.random() * 20) + 's';
+        bg.appendChild(block);
+    }
+})();
+
+/* =================================================================
+   2. Scroll Reveal
+   ================================================================= */
+const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            revealObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+/* =================================================================
+   3. Animated Counters (Stats)
+   ================================================================= */
+const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        const target = parseInt(el.dataset.target);
+        if (target === 0) { counterObserver.unobserve(el); return; }
+        const prefix = el.dataset.prefix || '';
+        const suffix = '+';
+        let current = 0;
+        const step = Math.ceil(target / 60);
+        const interval = setInterval(() => {
+            current += step;
+            if (current >= target) {
+                current = target;
+                clearInterval(interval);
+            }
+            el.textContent = prefix + current.toLocaleString() + suffix;
+        }, 25);
+        counterObserver.unobserve(el);
+    });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('.stat-number[data-target]').forEach(el => counterObserver.observe(el));
+
+/* =================================================================
+   4. Block Snap Animation (Demo)
+   ================================================================= */
+const blockObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const blocks = entry.target.querySelectorAll('.block-animate');
+        blocks.forEach((block, i) => {
+            const delay = parseInt(block.dataset.delay) || i * 150;
+            setTimeout(() => block.classList.add('snapped'), delay);
+        });
+        blockObserver.unobserve(entry.target);
+    });
+}, { threshold: 0.3 });
+
+const blocksContainer = document.getElementById('blocksContainer');
+if (blocksContainer) blockObserver.observe(blocksContainer);
+
+/* =================================================================
+   5. Block <-> Ruby Transform Button
+   ================================================================= */
+let showingRuby = false;
+const transformBtn = document.getElementById('transformBtn');
+const blockPanel = document.getElementById('blockPanel');
+const rubyPanel = document.getElementById('rubyPanel');
+const rubyLines = document.querySelectorAll('.ruby-line');
+
+// Initial state: show blocks, ruby lines hidden
+rubyLines.forEach(l => { l.classList.remove('typed'); });
+
+// Show ruby lines on first view
+const rubyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        rubyLines.forEach((line, i) => {
+            const delay = parseInt(line.dataset.delay) || i * 100;
+            setTimeout(() => line.classList.add('typed'), delay + 600);
+        });
+        rubyObserver.unobserve(entry.target);
+    });
+}, { threshold: 0.3 });
+
+if (rubyPanel) rubyObserver.observe(rubyPanel);
+
+// Transform button: cycle through states (neutral -> ruby highlight -> block highlight -> ...)
+let demoState = 0; // 0=neutral, 1=ruby, 2=block
+function applyDemoState() {
+    blockPanel.style.transition = 'all 0.4s ease';
+    rubyPanel.style.transition = 'all 0.4s ease';
+    if (demoState === 1) {
+        // Highlight Ruby
+        blockPanel.style.opacity = '0.5';
+        blockPanel.style.transform = 'scale(0.97)';
+        blockPanel.style.boxShadow = '0 4px 20px rgba(0,0,0,0.03)';
+        rubyPanel.style.opacity = '1';
+        rubyPanel.style.transform = 'scale(1.02)';
+        rubyPanel.style.boxShadow = '0 0 0 3px var(--ruby-red), 0 8px 30px rgba(204,52,45,0.15)';
+    } else if (demoState === 2) {
+        // Highlight Blocks
+        blockPanel.style.opacity = '1';
+        blockPanel.style.transform = 'scale(1.02)';
+        blockPanel.style.boxShadow = '0 0 0 3px var(--block-motion), 0 8px 30px rgba(76,151,255,0.15)';
+        rubyPanel.style.opacity = '0.5';
+        rubyPanel.style.transform = 'scale(0.97)';
+        rubyPanel.style.boxShadow = '0 4px 20px rgba(0,0,0,0.03)';
+    } else {
+        // Neutral
+        blockPanel.style.opacity = '1';
+        blockPanel.style.transform = 'scale(1)';
+        blockPanel.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)';
+        rubyPanel.style.opacity = '1';
+        rubyPanel.style.transform = 'scale(1)';
+        rubyPanel.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)';
+    }
+}
+if (transformBtn) {
+    transformBtn.addEventListener('click', () => {
+        demoState = (demoState + 1) % 3;
+        applyDemoState();
+    });
+}
+
+/* =================================================================
+   6. Block Puzzle Canvas (drag-and-drop mini game)
+   ================================================================= */
+(function initPuzzle() {
+    const canvas = document.getElementById('puzzleCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    function resize() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const W = () => canvas.width / dpr;
+    const H = () => canvas.height / dpr;
+
+    // Puzzle blocks — indent reflects Scratch nesting
+    //   🏁 が押されたとき   indent 0
+    //   ずっと             indent 0
+    //     もし 端に触れた    indent 1
+    //       ↻ 180 度回す   indent 2
+    //     10 歩動かす       indent 1
+    const INDENT_PX = 22;
+    const puzzleBlocks = [
+        { text: '10 歩動かす',       color: '#4c97ff', order: 4, indent: 1 },
+        { text: '⚑ が押されたとき',  color: '#ffbf00', order: 0, indent: 0, hasFlag: true },
+        { text: 'ずっと',            color: '#ffab19', order: 1, indent: 0 },
+        { text: 'もし 端に触れた なら', color: '#ffab19', order: 2, indent: 1 },
+        { text: '↻ 180 度回す',     color: '#4c97ff', order: 3, indent: 2 },
+    ];
+
+    const BLOCK_W = 190;
+    const BLOCK_H = 38;
+    const BASE_X = 20;
+
+    // Randomize initial positions
+    puzzleBlocks.forEach((b, i) => {
+        b.x = 30 + Math.random() * (W() - BLOCK_W - 60);
+        b.y = 20 + (i * (BLOCK_H + 8));
+        b.targetX = BASE_X + b.indent * INDENT_PX;
+        b.targetY = 20 + (b.order * (BLOCK_H + 6));
+        b.settled = false;
+    });
+
+    // Shuffle y positions
+    for (let i = puzzleBlocks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [puzzleBlocks[i].y, puzzleBlocks[j].y] = [puzzleBlocks[j].y, puzzleBlocks[i].y];
+    }
+
+    let dragging = null;
+    let offsetX = 0, offsetY = 0;
+    let allSettled = false;
+    let celebrationTimer = 0;
+
+    function drawBlock(b) {
+        const radius = 8;
+        ctx.fillStyle = b.color;
+        ctx.beginPath();
+        ctx.roundRect(b.x, b.y, BLOCK_W, BLOCK_H, radius);
+        ctx.fill();
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.12)';
+        ctx.beginPath();
+        ctx.roundRect(b.x, b.y + BLOCK_H - 4, BLOCK_W, 4, [0, 0, radius, radius]);
+        ctx.fill();
+
+        // Notch (top) — only when settled and not first block
+        if (b.settled && b.order > 0) {
+            ctx.fillStyle = b.color;
+            ctx.beginPath();
+            ctx.roundRect(b.x + 20, b.y - 4, 30, 6, 3);
+            ctx.fill();
+        }
+        // Tab (bottom) — only when settled
+        if (b.settled) {
+            ctx.fillStyle = b.color;
+            ctx.beginPath();
+            ctx.roundRect(b.x + 20, b.y + BLOCK_H - 2, 30, 6, 3);
+            ctx.fill();
+        }
+
+        // Text
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 13px "Helvetica Neue", Arial, sans-serif';
+        ctx.textBaseline = 'middle';
+        if (b.hasFlag) {
+            // Draw green flag icon
+            const fx = b.x + 12;
+            const fy = b.y + BLOCK_H / 2;
+            // Pole
+            ctx.strokeStyle = '#45993d';
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(fx, fy - 8);
+            ctx.lineTo(fx, fy + 8);
+            ctx.stroke();
+            // Flag shape
+            ctx.fillStyle = '#4CBF56';
+            ctx.beginPath();
+            ctx.moveTo(fx + 1, fy - 8);
+            ctx.quadraticCurveTo(fx + 5, fy - 6, fx + 10, fy - 8);
+            ctx.lineTo(fx + 10, fy - 1);
+            ctx.quadraticCurveTo(fx + 5, fy + 1, fx + 1, fy - 1);
+            ctx.closePath();
+            ctx.fill();
+            // Text after flag
+            ctx.fillStyle = 'white';
+            ctx.fillText('が押されたとき', b.x + 26, b.y + BLOCK_H / 2);
+        } else {
+            ctx.fillText(b.text, b.x + 14, b.y + BLOCK_H / 2);
+        }
+
+        // Settled glow
+        if (b.settled) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(b.x, b.y, BLOCK_W, BLOCK_H, radius);
+            ctx.stroke();
+        }
+    }
+
+    function drawTargetSlots() {
+        // Sort by order to draw slots in correct position
+        const sorted = [...puzzleBlocks].sort((a, b) => a.order - b.order);
+        ctx.strokeStyle = 'rgba(106,27,154,0.15)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        sorted.forEach(b => {
+            ctx.beginPath();
+            ctx.roundRect(b.targetX, b.targetY, BLOCK_W, BLOCK_H, 8);
+            ctx.stroke();
+        });
+        ctx.setLineDash([]);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W(), H());
+        drawTargetSlots();
+
+        // Sort so dragging block is on top
+        const sorted = [...puzzleBlocks].sort((a, b) => (a === dragging ? 1 : 0) - (b === dragging ? 1 : 0));
+        sorted.forEach(drawBlock);
+
+        // Celebration effect
+        if (allSettled && celebrationTimer < 120) {
+            celebrationTimer++;
+            const count = 3;
+            for (let i = 0; i < count; i++) {
+                const px = Math.random() * W();
+                const py = Math.random() * H();
+                const colors = ['#ffbf00','#4c97ff','#cc342d','#59c059','#9966ff'];
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                ctx.globalAlpha = Math.max(0, 1 - celebrationTimer / 120);
+                ctx.beginPath();
+                ctx.arc(px, py, 2 + Math.random() * 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        requestAnimationFrame(draw);
+    }
+    draw();
+
+    function getBlockAt(mx, my) {
+        for (let i = puzzleBlocks.length - 1; i >= 0; i--) {
+            const b = puzzleBlocks[i];
+            if (mx >= b.x && mx <= b.x + BLOCK_W && my >= b.y && my <= b.y + BLOCK_H) {
+                return b;
+            }
+        }
+        return null;
+    }
+
+    function getCanvasCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    }
+
+    function onStart(e) {
+        e.preventDefault();
+        const { x, y } = getCanvasCoords(e);
+        const b = getBlockAt(x, y);
+        if (b && !b.settled) {
+            dragging = b;
+            offsetX = x - b.x;
+            offsetY = y - b.y;
+            canvas.style.cursor = 'grabbing';
+        }
+    }
+
+    function onMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const { x, y } = getCanvasCoords(e);
+        dragging.x = x - offsetX;
+        dragging.y = y - offsetY;
+    }
+
+    function onEnd() {
+        if (!dragging) return;
+        // Snap check — each block has its own targetX/targetY
+        if (Math.abs(dragging.x - dragging.targetX) < 50 && Math.abs(dragging.y - dragging.targetY) < 25) {
+            dragging.x = dragging.targetX;
+            dragging.y = dragging.targetY;
+            dragging.settled = true;
+        }
+        dragging = null;
+        canvas.style.cursor = 'grab';
+
+        // Check all settled
+        if (puzzleBlocks.every(b => b.settled)) {
+            allSettled = true;
+        }
+    }
+
+    canvas.addEventListener('mousedown', onStart);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onEnd);
+    canvas.addEventListener('mouseleave', onEnd);
+    canvas.addEventListener('touchstart', onStart, { passive: false });
+    canvas.addEventListener('touchmove', onMove, { passive: false });
+    canvas.addEventListener('touchend', onEnd);
+})();
+</script>
+
+</body>
+</html>
