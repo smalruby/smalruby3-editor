@@ -287,6 +287,11 @@ const buildConfig = baseConfig.clone()
                 globOptions: { dot: true }
             },
             {
+                from: 'pages',
+                to: '.',
+                globOptions: { dot: true }
+            },
+            {
                 from: 'extensions/**',
                 to: 'static',
                 context: 'src/examples'
@@ -339,7 +344,7 @@ const distWithHtmlConfig = buildConfig.clone()
         devtool: false, // Disable source maps for production
         output: {
             // Add contenthash for cache busting, except auth-redirect which is
-            // referenced by a static HTML file (legal/auth-redirect.html) with a
+            // referenced by a static HTML file (pages/auth-redirect.html) with a
             // fixed <script src="auth-redirect.js"> tag.
             filename: (pathData) =>
                 pathData.chunk.name === 'auth-redirect'
