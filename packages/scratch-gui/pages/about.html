@@ -377,30 +377,32 @@
             .demo-arrow-btn { transform: rotate(90deg); }
         }
 
-        /* Ruby code display */
+        /* Ruby code display — light theme */
         .ruby-code {
             font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
             font-size: 0.85rem;
             line-height: 1.8;
-            color: #e8e8e8;
-            background: #1e1e2e;
+            color: #334155;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid var(--purple);
             border-radius: 10px;
-            padding: 1rem;
+            padding: 1rem 1rem 1rem 1.2rem;
             overflow-x: auto;
         }
-        .ruby-code .kw { color: #c792ea; }
-        .ruby-code .fn { color: #82aaff; }
-        .ruby-code .num { color: #f78c6c; }
-        .ruby-code .str { color: #c3e88d; }
-        .ruby-code .cm { color: #676e95; }
-        .ruby-code .op { color: #89ddff; }
-        .ruby-code .var { color: #f07178; }
+        .ruby-code .kw { color: #7c3aed; font-weight: 600; }
+        .ruby-code .fn { color: #2563eb; }
+        .ruby-code .num { color: #d97706; font-weight: 600; }
+        .ruby-code .str { color: #059669; }
+        .ruby-code .cm { color: #94a3b8; }
+        .ruby-code .op { color: #0891b2; }
+        .ruby-code .var { color: #dc2626; }
 
         /* Furigana (ruby annotation) */
         .ruby-code ruby { position: relative; }
         .ruby-code rt {
             font-size: 0.55em;
-            color: #a0aec0;
+            color: #9ca3af;
             font-weight: 400;
             letter-spacing: 0;
         }
@@ -933,14 +935,14 @@
             </div>
 
             <div class="feature-card reveal">
-                <img src="assets/getting-started.jpg"
-                     alt="スモウルビーの画面" class="feature-card-img">
+                <img src="assets/smalrubot-s1.png"
+                     alt="Studuinoロボット" class="feature-card-img">
                 <div class="feature-card-body">
                     <h3>
                         <span class="feature-icon" style="background:var(--block-operator);"><i class="fas fa-robot"></i></span>
                         計測と制御のプログラミング
                     </h3>
-                    <p>アーテック社製「スモウルボットS1」に完全対応。ChromebookとUSBケーブルだけで、センサーやモーターを制御するIoTプログラミングを実現します。</p>
+                    <p>アーテック社製「Studuino」に対応。ChromebookとUSBケーブルだけで、センサーやモーターを制御するIoTプログラミングを実現します。</p>
                 </div>
             </div>
 
