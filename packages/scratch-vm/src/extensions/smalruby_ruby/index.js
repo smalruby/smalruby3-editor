@@ -318,7 +318,13 @@ class SmalrubyRubyBlocks {
         const method = args.METHOD;
         const arg1 = String(args.ARG1 || '');
         const arg2 = (args.ARG2 === undefined) ? undefined : String(args.ARG2);
+
+        // For list methods, data_listcontents provides items as space-separated string.
+        // Split into array items for operations.
+        const toItems = s => (s === '' ? [] : s.split(' '));
+
         switch (method) {
+        // String methods
         case 'reverse':
             return string.split('').reverse().join('');
         case 'delete':
@@ -329,18 +335,28 @@ class SmalrubyRubyBlocks {
             if (arg2 === undefined) return string;
             return string.replaceAll(arg1, arg2);
         case 'lines':
-            return JSON.stringify(string.split('\n').map(l => `${l}\n`));
-        case 'max':
-            return string; // Array max is handled in converter, passthrough here
-        case 'sort':
-            return string; // Array sort is handled in converter, passthrough here
-        case 'join': {
-            const sep = arg1 || '';
-            return string.replace(/^\[|\]$/g, '').split(',').map(s => s.trim()).join(sep);
+            return string.split('\n').filter((_, i, a) => i < a.length - 1 || _ !== '')
+                .map(l => `${l}\n`).join(' ');
+        // Array methods (receiver is list contents string)
+        case 'max': {
+            const items = toItems(string);
+            if (items.length === 0) return '';
+            const nums = items.map(Number);
+            if (nums.every(n => !isNaN(n))) return String(Math.max(...nums));
+            return items.reduce((a, b) => (a > b ? a : b));
         }
+        case 'sort': {
+            const items = toItems(string);
+            const nums = items.map(Number);
+            if (nums.every(n => !isNaN(n))) return nums.sort((a, b) => a - b).join(' ');
+            return items.sort().join(' ');
+        }
+        case 'join':
+            return toItems(string).join(arg1);
+        // Hash methods (receiver is list contents string)
         case 'keys':
         case 'values':
-            return string; // Hash keys/values handled in converter, passthrough here
+            return string;
         default:
             return string;
         }

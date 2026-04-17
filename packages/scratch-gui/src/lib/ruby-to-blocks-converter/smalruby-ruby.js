@@ -1,4 +1,7 @@
-// === Smalruby: This file is Smalruby-specific (Ruby String extension converter) ===
+// === Smalruby: This file is Smalruby-specific (Ruby method extension converter) ===
+
+import { convertToListBlock } from './variable-hash-ops';
+import { messages } from './converter-errors';
 
 /**
  * Build blockInfo mutation data for isDynamic string method blocks.
@@ -237,10 +240,31 @@ const SmalrubyRubyConverter = {
             return block;
         });
 
-        // Helper: register a no-arg REPORTER method
+        // Helper: register a no-arg REPORTER method (string)
         const registerNoArgR = (receivers, method) => {
             converter.registerOnSend(receivers, method, 0, params => {
                 const {receiver} = params;
+                const mutation = buildMutation(
+                    'reporter', method, 'methodRMenu',
+                    methodRArgs, methodRMenuItems
+                );
+                const block = converter._createBlock('smalrubyRuby_methodR', 'value', {mutation});
+                converter._addTextInput(block, 'STRING', receiver, 'string');
+                converter._addField(block, 'METHOD', method);
+                return block;
+            });
+        };
+
+        // Helper: register a no-arg REPORTER method for list/hash receivers
+        // Converts data_variable to data_listcontents so the VM receives list contents
+        const registerListNoArgR = (receivers, method) => {
+            converter.registerOnSend(receivers, method, 0, params => {
+                let {receiver} = params;
+                // Convert data_variable to data_listcontents for list variables
+                const result = convertToListBlock(converter, messages, receiver);
+                if (result.converted) {
+                    receiver = result.block;
+                }
                 const mutation = buildMutation(
                     'reporter', method, 'methodRMenu',
                     methodRArgs, methodRMenuItems
@@ -272,17 +296,22 @@ const SmalrubyRubyConverter = {
         // String#lines (REPORTER, 0 args)
         registerNoArgR(['string', 'block', 'variable'], 'lines');
 
-        // Array#max (REPORTER, 0 args)
-        registerNoArgR(['string', 'block', 'variable', 'array'], 'max');
+        // Array#max (REPORTER, 0 args - list receiver)
+        registerListNoArgR(['string', 'block', 'variable', 'array'], 'max');
 
-        // Array#sort (REPORTER, 0 args)
-        registerNoArgR(['string', 'block', 'variable', 'array'], 'sort');
+        // Array#sort (REPORTER, 0 args - list receiver)
+        registerListNoArgR(['string', 'block', 'variable', 'array'], 'sort');
 
-        // Array#join (REPORTER, 0-1 args)
-        registerNoArgR(['string', 'block', 'variable', 'array'], 'join');
+        // Array#join (REPORTER, 0-1 args - list receiver)
+        registerListNoArgR(['string', 'block', 'variable', 'array'], 'join');
         converter.registerOnSend(['string', 'block', 'variable', 'array'], 'join', 1, params => {
-            const {receiver, args} = params;
+            let {receiver} = params;
+            const {args} = params;
             if (!converter._isStringOrBlock(args[0])) return null;
+            const result = convertToListBlock(converter, messages, receiver);
+            if (result.converted) {
+                receiver = result.block;
+            }
             const mutation = buildMutation(
                 'reporter', 'join', 'methodRMenu',
                 methodRArgs, methodRMenuItems
@@ -294,9 +323,51 @@ const SmalrubyRubyConverter = {
             return block;
         });
 
-        // Hash#keys, Hash#values (REPORTER, 0 args)
-        registerNoArgR(['string', 'block', 'variable', 'hash'], 'keys');
-        registerNoArgR(['string', 'block', 'variable', 'hash'], 'values');
+        // Hash#keys / Hash#values (REPORTER, 0 args)
+        // For hash variables, reference the __hash_X_keys__ / __hash_X_values__ list
+        const registerHashMethodR = (method) => {
+            converter.registerOnSend(['string', 'block', 'variable', 'hash'], method, 0, params => {
+                const {receiver} = params;
+
+                // Try to resolve hash sub-list (keys or values)
+                if (converter._isBlock(receiver) && receiver.opcode === 'data_variable') {
+                    const varName = receiver.fields.VARIABLE.value;
+                    const variable = converter._context.variables[varName] ||
+                        converter._context.localVariables[varName];
+                    if (variable) {
+                        let prefixedName;
+                        if (variable.scope === 'global') prefixedName = `$${varName}`;
+                        else if (variable.scope === 'instance') prefixedName = `@${varName}`;
+                        else if (variable.scope === 'local') prefixedName = variable.originalName;
+
+                        if (prefixedName) {
+                            const listName = method === 'keys'
+                                ? converter._hashKeysListName(prefixedName)
+                                : converter._hashValuesListName(prefixedName);
+                            const listVar = converter._lookupOrCreateList(listName);
+                            // Convert in-place to data_listcontents for the sub-list
+                            receiver.opcode = 'data_listcontents';
+                            delete receiver.fields.VARIABLE;
+                            receiver.fields.LIST = {
+                                name: 'LIST', id: listVar.id,
+                                value: listVar.name, variableType: listVar.type
+                            };
+                        }
+                    }
+                }
+
+                const mutation = buildMutation(
+                    'reporter', method, 'methodRMenu',
+                    methodRArgs, methodRMenuItems
+                );
+                const block = converter._createBlock('smalrubyRuby_methodR', 'value', {mutation});
+                converter._addTextInput(block, 'STRING', receiver, 'string');
+                converter._addField(block, 'METHOD', method);
+                return block;
+            });
+        };
+        registerHashMethodR('keys');
+        registerHashMethodR('values');
 
         // Array#sort! (COMMAND, 0 args)
         registerNoArgC('sort!');
