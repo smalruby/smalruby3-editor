@@ -11,6 +11,20 @@ describe('RubyGenerator/SmalrubyRuby', () => {
     });
 
     describe('smalrubyRuby_stringMethodR', () => {
+        test('should generate reverse method call (no args)', () => {
+            RubyGenerator.valueToCode = (block, name, _order) => {
+                const map = {STRING: '"Jimmy"'};
+                return map[name] || '';
+            };
+
+            const block = {
+                opcode: 'smalrubyRuby_stringMethodR',
+                fields: {METHOD: {value: 'reverse'}}
+            };
+            const result = RubyGenerator.smalrubyRuby_stringMethodR(block);
+            expect(result[0]).toEqual('"Jimmy".reverse');
+        });
+
         test('should generate delete method call', () => {
             RubyGenerator.valueToCode = (block, name, _order) => {
                 const map = {
@@ -22,9 +36,8 @@ describe('RubyGenerator/SmalrubyRuby', () => {
 
             const block = {
                 opcode: 'smalrubyRuby_stringMethodR',
-                fields: {
-                    METHOD: {value: 'delete'}
-                }
+                fields: {METHOD: {value: 'delete'}},
+                inputs: {ARG1: {}}
             };
             const result = RubyGenerator.smalrubyRuby_stringMethodR(block);
             expect(result[0]).toEqual('"hello world".delete("l")');
@@ -35,9 +48,8 @@ describe('RubyGenerator/SmalrubyRuby', () => {
 
             const block = {
                 opcode: 'smalrubyRuby_stringMethodR',
-                fields: {
-                    METHOD: {value: 'delete'}
-                }
+                fields: {METHOD: {value: 'delete'}},
+                inputs: {ARG1: {}}
             };
             const result = RubyGenerator.smalrubyRuby_stringMethodR(block);
             expect(result[0]).toEqual('"".delete("")');
@@ -55,9 +67,8 @@ describe('RubyGenerator/SmalrubyRuby', () => {
 
             const block = {
                 opcode: 'smalrubyRuby_stringMethodR',
-                fields: {
-                    METHOD: {value: 'delete'}
-                }
+                fields: {METHOD: {value: 'delete'}},
+                inputs: {ARG1: {}, ARG2: {}}
             };
             const result = RubyGenerator.smalrubyRuby_stringMethodR(block);
             expect(result[0]).toEqual('"hello".delete("l", "o")');
@@ -70,7 +81,8 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             };
             const block = {
                 opcode: 'smalrubyRuby_stringMethodR',
-                fields: {METHOD: {value: 'gsub'}}
+                fields: {METHOD: {value: 'gsub'}},
+                inputs: {ARG1: {}, ARG2: {}}
             };
             const result = RubyGenerator.smalrubyRuby_stringMethodR(block);
             expect(result[0]).toEqual('"hello".gsub("l", "r")');

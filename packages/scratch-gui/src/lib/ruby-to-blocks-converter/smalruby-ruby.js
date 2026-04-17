@@ -31,6 +31,13 @@ const buildMutation = function (blockType, method, menuName, argumentsByMethod, 
 
 // Shared argumentsByMethod configs
 const stringMethodRArgs = {
+    reverse: {
+        text: '文字列 [STRING] . [METHOD]',
+        arguments: {
+            STRING: {type: 'string', defaultValue: ''},
+            METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'reverse'},
+        }
+    },
     delete: {
         text: '文字列 [STRING] . [METHOD] ( [ARG1] )',
         arguments: {
@@ -70,7 +77,7 @@ const stringMethodCArgs = {
     }
 };
 
-const stringMethodRMenuItems = {stringMethodRMenu: [['delete', 'delete'], ['gsub', 'gsub']]};
+const stringMethodRMenuItems = {stringMethodRMenu: [['reverse', 'reverse'], ['delete', 'delete'], ['gsub', 'gsub']]};
 const stringMethodCMenuItems = {stringMethodCMenu: [['delete!', 'delete!'], ['gsub!', 'gsub!']]};
 
 /**
@@ -78,6 +85,20 @@ const stringMethodCMenuItems = {stringMethodCMenu: [['delete!', 'delete!'], ['gs
  */
 const SmalrubyRubyConverter = {
     register: function (converter) {
+        // String#reverse (returns value - REPORTER, 0 args)
+        converter.registerOnSend(['string', 'block', 'variable'], 'reverse', 0, params => {
+            const {receiver} = params;
+
+            const mutation = buildMutation(
+                'reporter', 'reverse', 'stringMethodRMenu',
+                stringMethodRArgs, stringMethodRMenuItems
+            );
+            const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value', {mutation});
+            converter._addTextInput(block, 'STRING', receiver, 'string');
+            converter._addField(block, 'METHOD', 'reverse');
+            return block;
+        });
+
         // String#delete (returns value - REPORTER)
         converter.registerOnSend(['string', 'block', 'variable'], 'delete', 1, params => {
             const {receiver, args} = params;
