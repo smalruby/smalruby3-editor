@@ -14,6 +14,35 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
         target = null;
     });
 
+    describe('String#reverse (REPORTER, 0 args)', () => {
+        test('should convert string literal receiver', async () => {
+            const code = '"Jimmy".reverse';
+            const expected = [
+                {
+                    opcode: 'smalrubyRuby_stringMethodR',
+                    fields: [
+                        {name: 'METHOD', value: 'reverse'}
+                    ],
+                    inputs: [
+                        {name: 'STRING', block: expectedInfo.makeText('Jimmy')}
+                    ],
+                    mutation: {blockInfo: expect.any(Object)}
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
+
+        test('should convert variable receiver', async () => {
+            const code = 'name = "Jimmy"\nname.reverse';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('should reject with arguments', async () => {
+            await convertAndExpectRubyBlockError(converter, target, '"hello".reverse("x")');
+        });
+    });
+
     describe('String#delete (REPORTER)', () => {
         test('should convert string literal receiver with string arg', async () => {
             const code = '"hello world".delete("l")';

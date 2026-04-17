@@ -81,6 +81,17 @@ class SmalrubyRubyBlocks {
                         }
                     },
                     argumentsByMethod: {
+                        reverse: {
+                            text: '\u6587\u5b57\u5217 [STRING] . [METHOD]',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'string'},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'stringMethodRMenu',
+                                    defaultValue: 'reverse'
+                                }
+                            }
+                        },
                         delete: {
                             text: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
                             arguments: {
@@ -108,7 +119,7 @@ class SmalrubyRubyBlocks {
                         }
                     },
                     menuItems: {
-                        stringMethodRMenu: [['delete', 'delete'], ['gsub', 'gsub']]
+                        stringMethodRMenu: [['reverse', 'reverse'], ['delete', 'delete'], ['gsub', 'gsub']]
                     }
                 },
                 {
@@ -172,6 +183,7 @@ class SmalrubyRubyBlocks {
                 stringMethodRMenu: {
                     acceptReporters: false,
                     items: [
+                        {text: 'reverse', value: 'reverse'},
                         {text: 'delete', value: 'delete'},
                         {text: 'gsub', value: 'gsub'}
                     ]
@@ -206,6 +218,8 @@ class SmalrubyRubyBlocks {
         const arg1 = String(args.ARG1 || '');
         const arg2 = (args.ARG2 === undefined) ? undefined : String(args.ARG2);
         switch (method) {
+        case 'reverse':
+            return string.split('').reverse().join('');
         case 'delete':
             return string.split('')
                 .filter(c => !arg1.includes(c))

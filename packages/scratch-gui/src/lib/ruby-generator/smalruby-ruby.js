@@ -10,6 +10,12 @@ export default function (Generator) {
         const order = Generator.ORDER_FUNCTION_CALL;
         const string = Generator.valueToCode(block, 'STRING', order) || Generator.quote_('');
         const method = Generator.getFieldValue(block, 'METHOD') || 'delete';
+        const hasArg1 = block.inputs && block.inputs.ARG1;
+        if (!hasArg1) {
+            // Methods without arguments (e.g. reverse)
+            return [`${string}.${method}`, order];
+        }
+
         const arg1 = Generator.valueToCode(block, 'ARG1', order) || Generator.quote_('');
         const arg2 = Generator.valueToCode(block, 'ARG2', order);
 
