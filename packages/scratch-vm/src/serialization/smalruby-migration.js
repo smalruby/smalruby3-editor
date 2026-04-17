@@ -59,8 +59,30 @@ const migrateMeshV1Blocks = projectJSON => {
     return newProjectJSON;
 };
 
+/**
+ * Migrate legacy stringMethodR/stringMethodC opcodes to methodR/methodC.
+ * This runs unconditionally on every project load.
+ * @param {object} projectJSON The project JSON to migrate.
+ * @returns {object} The migrated project JSON (modified in place).
+ */
+const migrateStringMethodBlocks = projectJSON => {
+    if (!projectJSON.targets) return projectJSON;
+    for (const target of projectJSON.targets) {
+        for (const blockId in target.blocks) {
+            const block = target.blocks[blockId];
+            if (block.opcode === 'smalrubyRuby_stringMethodR') {
+                block.opcode = 'smalrubyRuby_methodR';
+            } else if (block.opcode === 'smalrubyRuby_stringMethodC') {
+                block.opcode = 'smalrubyRuby_methodC';
+            }
+        }
+    }
+    return projectJSON;
+};
+
 module.exports = {
     detectMeshV1Blocks,
     detectKoshien,
     migrateMeshV1Blocks,
+    migrateStringMethodBlocks,
 };

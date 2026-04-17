@@ -30,19 +30,19 @@ const buildMutation = function (blockType, method, menuName, argumentsByMethod, 
 };
 
 // Shared argumentsByMethod configs
-const stringMethodRArgs = {
+const methodRArgs = {
     reverse: {
         text: '文字列 [STRING] . [METHOD]',
         arguments: {
             STRING: {type: 'string', defaultValue: ''},
-            METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'reverse'},
+            METHOD: {type: 'string', menu: 'methodRMenu', defaultValue: 'reverse'},
         }
     },
     delete: {
         text: '文字列 [STRING] . [METHOD] ( [ARG1] )',
         arguments: {
             STRING: {type: 'string', defaultValue: ''},
-            METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'delete'},
+            METHOD: {type: 'string', menu: 'methodRMenu', defaultValue: 'delete'},
             ARG1: {type: 'string', defaultValue: 'arg1'}
         }
     },
@@ -50,19 +50,62 @@ const stringMethodRArgs = {
         text: '文字列 [STRING] . [METHOD] ( [ARG1] [ARG2] )',
         arguments: {
             STRING: {type: 'string', defaultValue: ''},
-            METHOD: {type: 'string', menu: 'stringMethodRMenu', defaultValue: 'gsub'},
+            METHOD: {type: 'string', menu: 'methodRMenu', defaultValue: 'gsub'},
             ARG1: {type: 'string', defaultValue: 'arg1'},
             ARG2: {type: 'string', defaultValue: 'arg2'}
+        }
+    },
+    lines: {
+        text: '[STRING] . [METHOD]',
+        arguments: {
+            STRING: {type: 'string', defaultValue: ''},
+            METHOD: {type: 'string', menu: 'methodRMenu', defaultValue: 'lines'},
+        }
+    },
+    max: {
+        text: '[STRING] . [METHOD]',
+        arguments: {
+            STRING: {type: 'string', defaultValue: ''},
+            METHOD: {type: 'string', menu: 'methodRMenu', defaultValue: 'max'},
+        }
+    },
+    sort: {
+        text: '[STRING] . [METHOD]',
+        arguments: {
+            STRING: {type: 'string', defaultValue: ''},
+            METHOD: {type: 'string', menu: 'methodRMenu', defaultValue: 'sort'},
+        }
+    },
+    join: {
+        text: '[STRING] . [METHOD] ( [ARG1] )',
+        arguments: {
+            STRING: {type: 'string', defaultValue: ''},
+            METHOD: {type: 'string', menu: 'methodRMenu', defaultValue: 'join'},
+            ARG1: {type: 'string', defaultValue: ''}
+        }
+    },
+    keys: {
+        text: '[STRING] . [METHOD]',
+        arguments: {
+            STRING: {type: 'string', defaultValue: ''},
+            METHOD: {type: 'string', menu: 'methodRMenu', defaultValue: 'keys'},
+        }
+    },
+    values: {
+        text: '[STRING] . [METHOD]',
+        arguments: {
+            STRING: {type: 'string', defaultValue: ''},
+            METHOD: {type: 'string', menu: 'methodRMenu', defaultValue: 'values'},
         }
     }
 };
 
-const stringMethodCArgs = {
+const methodCArgs = {
     'delete!': {
         text: '文字列 [STRING] . [METHOD] ( [ARG1] )',
         arguments: {
             STRING: {type: 'string', menu: 'variableNames', defaultValue: ' '},
-            METHOD: {type: 'string', menu: 'stringMethodCMenu', defaultValue: 'delete!'},
+            METHOD: {type: 'string', menu: 'methodCMenu', defaultValue: 'delete!'},
             ARG1: {type: 'string', defaultValue: 'arg1'}
         }
     },
@@ -70,15 +113,35 @@ const stringMethodCArgs = {
         text: '文字列 [STRING] . [METHOD] ( [ARG1] [ARG2] )',
         arguments: {
             STRING: {type: 'string', menu: 'variableNames', defaultValue: ' '},
-            METHOD: {type: 'string', menu: 'stringMethodCMenu', defaultValue: 'gsub!'},
+            METHOD: {type: 'string', menu: 'methodCMenu', defaultValue: 'gsub!'},
             ARG1: {type: 'string', defaultValue: 'arg1'},
             ARG2: {type: 'string', defaultValue: 'arg2'}
+        }
+    },
+    'sort!': {
+        text: '[STRING] . [METHOD]',
+        arguments: {
+            STRING: {type: 'string', menu: 'variableNames', defaultValue: ' '},
+            METHOD: {type: 'string', menu: 'methodCMenu', defaultValue: 'sort!'},
+        }
+    },
+    'reverse!': {
+        text: '[STRING] . [METHOD]',
+        arguments: {
+            STRING: {type: 'string', menu: 'variableNames', defaultValue: ' '},
+            METHOD: {type: 'string', menu: 'methodCMenu', defaultValue: 'reverse!'},
         }
     }
 };
 
-const stringMethodRMenuItems = {stringMethodRMenu: [['reverse', 'reverse'], ['delete', 'delete'], ['gsub', 'gsub']]};
-const stringMethodCMenuItems = {stringMethodCMenu: [['delete!', 'delete!'], ['gsub!', 'gsub!']]};
+const methodRMenuItems = {methodRMenu: [
+    ['reverse', 'reverse'], ['delete', 'delete'], ['gsub', 'gsub'], ['lines', 'lines'],
+    ['max', 'max'], ['sort', 'sort'], ['join', 'join'],
+    ['keys', 'keys'], ['values', 'values']
+]};
+const methodCMenuItems = {methodCMenu: [
+    ['delete!', 'delete!'], ['gsub!', 'gsub!'], ['sort!', 'sort!'], ['reverse!', 'reverse!']
+]};
 
 /**
  * Converter for Smalruby Ruby String extension blocks.
@@ -90,10 +153,10 @@ const SmalrubyRubyConverter = {
             const {receiver} = params;
 
             const mutation = buildMutation(
-                'reporter', 'reverse', 'stringMethodRMenu',
-                stringMethodRArgs, stringMethodRMenuItems
+                'reporter', 'reverse', 'methodRMenu',
+                methodRArgs, methodRMenuItems
             );
-            const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value', {mutation});
+            const block = converter._createBlock('smalrubyRuby_methodR', 'value', {mutation});
             converter._addTextInput(block, 'STRING', receiver, 'string');
             converter._addField(block, 'METHOD', 'reverse');
             return block;
@@ -105,10 +168,10 @@ const SmalrubyRubyConverter = {
             if (!converter._isStringOrBlock(args[0])) return null;
 
             const mutation = buildMutation(
-                'reporter', 'delete', 'stringMethodRMenu',
-                stringMethodRArgs, stringMethodRMenuItems
+                'reporter', 'delete', 'methodRMenu',
+                methodRArgs, methodRMenuItems
             );
-            const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value', {mutation});
+            const block = converter._createBlock('smalrubyRuby_methodR', 'value', {mutation});
             converter._addTextInput(block, 'STRING', receiver, 'string');
             converter._addField(block, 'METHOD', 'delete');
             converter._addTextInput(block, 'ARG1', args[0], 'arg1');
@@ -125,10 +188,10 @@ const SmalrubyRubyConverter = {
             if (!varInfo) return null;
 
             const mutation = buildMutation(
-                'command', 'delete!', 'stringMethodCMenu',
-                stringMethodCArgs, stringMethodCMenuItems
+                'command', 'delete!', 'methodCMenu',
+                methodCArgs, methodCMenuItems
             );
-            const block = converter._createBlock('smalrubyRuby_stringMethodC', 'statement', {mutation});
+            const block = converter._createBlock('smalrubyRuby_methodC', 'statement', {mutation});
             converter._addField(block, 'STRING', varInfo.name);
             converter._addField(block, 'METHOD', 'delete!');
             converter._addTextInput(block, 'ARG1', args[0], 'arg1');
@@ -142,10 +205,10 @@ const SmalrubyRubyConverter = {
             if (!converter._isStringOrBlock(args[1])) return null;
 
             const mutation = buildMutation(
-                'reporter', 'gsub', 'stringMethodRMenu',
-                stringMethodRArgs, stringMethodRMenuItems
+                'reporter', 'gsub', 'methodRMenu',
+                methodRArgs, methodRMenuItems
             );
-            const block = converter._createBlock('smalrubyRuby_stringMethodR', 'value', {mutation});
+            const block = converter._createBlock('smalrubyRuby_methodR', 'value', {mutation});
             converter._addTextInput(block, 'STRING', receiver, 'string');
             converter._addField(block, 'METHOD', 'gsub');
             converter._addTextInput(block, 'ARG1', args[0], 'arg1');
@@ -163,16 +226,83 @@ const SmalrubyRubyConverter = {
             if (!varInfo) return null;
 
             const mutation = buildMutation(
-                'command', 'gsub!', 'stringMethodCMenu',
-                stringMethodCArgs, stringMethodCMenuItems
+                'command', 'gsub!', 'methodCMenu',
+                methodCArgs, methodCMenuItems
             );
-            const block = converter._createBlock('smalrubyRuby_stringMethodC', 'statement', {mutation});
+            const block = converter._createBlock('smalrubyRuby_methodC', 'statement', {mutation});
             converter._addField(block, 'STRING', varInfo.name);
             converter._addField(block, 'METHOD', 'gsub!');
             converter._addTextInput(block, 'ARG1', args[0], 'arg1');
             converter._addTextInput(block, 'ARG2', args[1], 'arg2');
             return block;
         });
+
+        // Helper: register a no-arg REPORTER method
+        const registerNoArgR = (receivers, method) => {
+            converter.registerOnSend(receivers, method, 0, params => {
+                const {receiver} = params;
+                const mutation = buildMutation(
+                    'reporter', method, 'methodRMenu',
+                    methodRArgs, methodRMenuItems
+                );
+                const block = converter._createBlock('smalrubyRuby_methodR', 'value', {mutation});
+                converter._addTextInput(block, 'STRING', receiver, 'string');
+                converter._addField(block, 'METHOD', method);
+                return block;
+            });
+        };
+
+        // Helper: register a no-arg COMMAND method (bang methods on variables)
+        const registerNoArgC = (method) => {
+            converter.registerOnSend(['variable'], method, 0, params => {
+                const {receiver} = params;
+                const varInfo = converter.lookupVariableFromVariableBlock(receiver);
+                if (!varInfo) return null;
+                const mutation = buildMutation(
+                    'command', method, 'methodCMenu',
+                    methodCArgs, methodCMenuItems
+                );
+                const block = converter._createBlock('smalrubyRuby_methodC', 'statement', {mutation});
+                converter._addField(block, 'STRING', varInfo.name);
+                converter._addField(block, 'METHOD', method);
+                return block;
+            });
+        };
+
+        // String#lines (REPORTER, 0 args)
+        registerNoArgR(['string', 'block', 'variable'], 'lines');
+
+        // Array#max (REPORTER, 0 args)
+        registerNoArgR(['string', 'block', 'variable', 'array'], 'max');
+
+        // Array#sort (REPORTER, 0 args)
+        registerNoArgR(['string', 'block', 'variable', 'array'], 'sort');
+
+        // Array#join (REPORTER, 0-1 args)
+        registerNoArgR(['string', 'block', 'variable', 'array'], 'join');
+        converter.registerOnSend(['string', 'block', 'variable', 'array'], 'join', 1, params => {
+            const {receiver, args} = params;
+            if (!converter._isStringOrBlock(args[0])) return null;
+            const mutation = buildMutation(
+                'reporter', 'join', 'methodRMenu',
+                methodRArgs, methodRMenuItems
+            );
+            const block = converter._createBlock('smalrubyRuby_methodR', 'value', {mutation});
+            converter._addTextInput(block, 'STRING', receiver, 'string');
+            converter._addField(block, 'METHOD', 'join');
+            converter._addTextInput(block, 'ARG1', args[0], '');
+            return block;
+        });
+
+        // Hash#keys, Hash#values (REPORTER, 0 args)
+        registerNoArgR(['string', 'block', 'variable', 'hash'], 'keys');
+        registerNoArgR(['string', 'block', 'variable', 'hash'], 'values');
+
+        // Array#sort! (COMMAND, 0 args)
+        registerNoArgC('sort!');
+
+        // Array#reverse! (COMMAND, 0 args)
+        registerNoArgC('reverse!');
     }
 };
 
