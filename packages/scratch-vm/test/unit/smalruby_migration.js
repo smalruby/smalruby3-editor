@@ -57,14 +57,16 @@ test('migrateMeshV1Blocks', t => {
 
 test('migrateStringMethodBlocks', t => {
     const project = {
-        targets: [{
-            blocks: {
-                a: {opcode: 'smalrubyRuby_stringMethodR'},
-                b: {opcode: 'smalrubyRuby_stringMethodC'},
-                c: {opcode: 'smalrubyRuby_methodR'},
-                d: {opcode: 'motion_movesteps'},
-            }
-        }]
+        targets: [
+            {
+                blocks: {
+                    a: { opcode: 'smalrubyRuby_stringMethodR' },
+                    b: { opcode: 'smalrubyRuby_stringMethodC' },
+                    c: { opcode: 'smalrubyRuby_methodR' },
+                    d: { opcode: 'motion_movesteps' },
+                },
+            },
+        ],
     };
     migrateStringMethodBlocks(project);
     t.equal(project.targets[0].blocks.a.opcode, 'smalrubyRuby_methodR', 'stringMethodR migrated');
