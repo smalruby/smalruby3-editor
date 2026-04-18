@@ -55,6 +55,18 @@ export default function (Generator) {
     Generator.smalrubyRuby_arrayMethod = generateMethodCall;
     Generator.smalrubyRuby_hashMethod = generateMethodCall;
 
+    // --- Array method with block (CONDITIONAL, C-shape) ---
+    Generator.smalrubyRuby_arrayMethodWithBlock = function (block) {
+        const order = Generator.ORDER_FUNCTION_CALL;
+        const receiver =
+            Generator.valueToCode(block, 'RECEIVER', order) ||
+            Generator.quote_('');
+        const method = Generator.getFieldValue(block, 'METHOD') || 'each';
+        const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+        block.isStatement = true;
+        return `${receiver}.${method} do\n${branch}`;
+    };
+
     // --- Return value (REPORTER) ---
     Generator.smalrubyRuby_returnValue = function (_block) {
         return ['_rv_', Generator.ORDER_FUNCTION_CALL];
