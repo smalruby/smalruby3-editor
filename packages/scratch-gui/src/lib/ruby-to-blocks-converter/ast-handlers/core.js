@@ -100,13 +100,23 @@ const CoreHandlers = {
         let cond = this.visit(node);
         const split = this._splitPreBlocksAndValue(cond);
         if (split.preBlocks.length > 0) {
-            if (!this._isFalseOrBooleanBlock(split.value)) {
+            // === Smalruby: Start of returnValue to returnValueTruthy conversion ===
+            // When a smalrubyRuby method is used in a boolean context (if/unless
+            // condition), replace the returnValue REPORTER with returnValueTruthy
+            // BOOLEAN so it can be used as a condition input.
+            let value = split.value;
+            if (this._isBlock(value) &&
+                value.opcode === 'smalrubyRuby_returnValue') {
+                value = this._createBlock('smalrubyRuby_returnValueTruthy', 'value_boolean');
+            }
+            // === Smalruby: End of returnValue to returnValueTruthy conversion ===
+            if (!this._isFalseOrBooleanBlock(value)) {
                 throw new RubyToBlocksConverterError(
                     node,
                     this._translator(messages.conditionIsNotBoolean, {SOURCE: this._getSource(node)})
                 );
             }
-            return [...split.preBlocks, split.value];
+            return [...split.preBlocks, value];
         }
         cond = split.value;
         if (!this._isFalseOrBooleanBlock(cond)) {
