@@ -81,10 +81,10 @@ describe('RubyToBlocksConverter/Operators', () => {
         ];
         await convertAndExpectToEqualBlocks(converter, target, code, expected);
 
+        // "1" * 2 is now valid (String#*), "1" * "2" is also handled by String#*
+        // Only numeric receiver with string arg remains an error
         { for (const s of [
-            '"1" * "2"',
-            '1 * "2"',
-            '"1" * 2'
+            '1 * "2"'
         ]) {
             await convertAndExpectRubyBlockError(converter, target, s);
         } }

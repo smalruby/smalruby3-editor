@@ -82,6 +82,22 @@ describe('RubyGenerator/SmalrubyRuby', () => {
                 RubyGenerator.smalrubyRuby_stringMethod(block);
             expect(result).toEqual('name.reverse!\n');
         });
+
+        test('should generate * operator as infix', () => {
+            RubyGenerator.valueToCode = (block, name, _order) => {
+                const map = { RECEIVER: '"Jimmy"', ARG1: '5' };
+                return map[name] || '';
+            };
+            const block = {
+                opcode: 'smalrubyRuby_stringMethod',
+                fields: { METHOD: { value: '*' } },
+                inputs: { ARG1: {} },
+                next: null,
+            };
+            const result =
+                RubyGenerator.smalrubyRuby_stringMethod(block);
+            expect(result).toEqual('"Jimmy" * 5\n');
+        });
     });
 
     describe('returnValue', () => {
@@ -150,6 +166,13 @@ describe('RubyGenerator/SmalrubyRuby', () => {
                 '  books.keys\n  say(_rv_)\n';
             const result = RubyGenerator.finishTargets(input, {});
             expect(result).toEqual('  say(books.keys)\n');
+        });
+
+        test('should inline * operator', () => {
+            const input =
+                '  "Jimmy" * 5\n  say(_rv_, 2)\n';
+            const result = RubyGenerator.finishTargets(input, {});
+            expect(result).toEqual('  say("Jimmy" * 5, 2)\n');
         });
     });
 });

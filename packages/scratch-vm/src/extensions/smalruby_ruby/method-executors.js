@@ -80,6 +80,9 @@ const executeStringMethod = (args, util, setReturnValue) => {
                         ? string
                         : string.replaceAll(String(arg1 || ''), String(arg2));
                 break;
+            case '*':
+                result = string.repeat(Math.max(0, Math.floor(Number(arg1) || 0)));
+                break;
             default:
                 result = string;
         }

@@ -36,11 +36,18 @@ const SmalrubyRubyConverter = {
             });
             converter._addTextInput(block, 'RECEIVER', receiver, 'string');
             converter._addField(block, 'METHOD', method);
+            const addArg = (name, value, defaultVal) => {
+                if (converter._isNumber(value)) {
+                    converter._addNumberInput(block, name, 'math_number', value, 0);
+                } else {
+                    converter._addTextInput(block, name, value, defaultVal);
+                }
+            };
             if (args.length > 0) {
-                converter._addTextInput(block, 'ARG1', args[0], '');
+                addArg('ARG1', args[0], '');
             }
             if (args.length > 1) {
-                converter._addTextInput(block, 'ARG2', args[1], '');
+                addArg('ARG2', args[1], '');
             }
             return block;
         };
@@ -110,6 +117,18 @@ const SmalrubyRubyConverter = {
         );
         // 1-arg string methods
         registerStringMethod('delete', 1);
+        // String#* — only for string literal receivers to avoid conflict with numeric *
+        converter.registerOnSend(['string'], '*', 1, (params) => {
+            const { receiver, args } = params;
+            return createMethodBlock(
+                'smalrubyRuby_stringMethod',
+                '*',
+                receiver,
+                args,
+                stringMethodArgs,
+                stringMethodMenuItems,
+            );
+        });
         // 2-arg string methods
         registerStringMethod('gsub', 2);
         // bang methods
