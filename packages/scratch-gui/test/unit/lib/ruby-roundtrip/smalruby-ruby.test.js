@@ -156,6 +156,49 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         );
     });
 
+    test('bang method reverse!', async () => {
+        // Bang methods use internal variable names (@_s_1_) in generator output
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              s = "hello"
+              s.reverse!
+              say(s, 2)
+            end
+        `,
+            dedent`
+            when_flag_clicked do
+              s = "hello"
+              @_s_1_.reverse!
+              say(s, 2)
+            end
+        `,
+            opts,
+        );
+    });
+
+    test('bang method sort!', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              t = [3, 1, 2]
+              t.sort!
+            end
+        `,
+            dedent`
+            when_flag_clicked do
+              t = [3, 1, 2]
+              @_t_1_.sort!
+            end
+        `,
+            opts,
+        );
+    });
+
     test('bare literal inside when_flag_clicked', async () => {
         await expectRoundTrip(
             converter,
