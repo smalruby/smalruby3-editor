@@ -283,6 +283,23 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         );
     });
 
+    // TODO: 2 ** 8 (non-10 base) is not yet supported as a block
+    // Only 10 ** n and Math::E ** n are supported via operator_mathop
+
+    test('power operator 10 ** 3', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              say(10 ** 3, 2)
+            end
+        `,
+            null,
+            opts,
+        );
+    });
+
     // TODO: bare array literal roundtrip needs further work
     // test('bare array literal', async () => {
     //     await expectRoundTrip(converter, target, '[12, 47, 35]', null, opts);
