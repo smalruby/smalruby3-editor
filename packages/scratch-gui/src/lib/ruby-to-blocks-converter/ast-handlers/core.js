@@ -132,6 +132,16 @@ const CoreHandlers = {
         if (!_.isArray(blocks)) {
             blocks = [blocks];
         }
+        // === Smalruby: Start of bare literal in statement context ===
+        const Primitive = require('../primitive').default;
+        blocks = blocks.map(b => {
+            if (b instanceof Primitive && b.type !== 'sym') {
+                return this._convertBareLiteralToAssignment(b);
+            }
+            return b;
+        });
+        blocks = blocks.flat();
+        // === Smalruby: End of bare literal in statement context ===
         if (blocks.length >= 2 && this._isBlock(blocks[0])) {
             // It's a multi-block result, link them
             for (let i = 0; i < blocks.length - 1; i++) {

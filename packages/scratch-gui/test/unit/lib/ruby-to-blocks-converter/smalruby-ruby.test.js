@@ -122,4 +122,49 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
         });
 
     });
+
+    describe('bare literals', () => {
+        test('should convert bare string literal "Jimmy"', async () => {
+            const code = '"Jimmy"';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            const blocks = Object.values(converter._context.blocks);
+            const setBlock = blocks.find(
+                (b) => b.opcode === 'data_setvariableto',
+            );
+            expect(setBlock).toBeTruthy();
+            expect(setBlock.comment).toBeTruthy();
+        });
+
+        test('should convert bare integer literal 42', async () => {
+            const code = '42';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('should convert bare float literal 3.14', async () => {
+            const code = '3.14';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('should convert bare empty array []', async () => {
+            const code = '[]';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('should convert bare array [12, 47, 35]', async () => {
+            const code = '[12, 47, 35]';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('should still error on bare symbol :foo', async () => {
+            const code = ':foo';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(false);
+            expect(converter.errors.length).toBeGreaterThan(0);
+        });
+    });
 });

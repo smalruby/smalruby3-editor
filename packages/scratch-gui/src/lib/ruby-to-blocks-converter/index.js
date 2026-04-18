@@ -134,15 +134,56 @@ class RubyToBlocksConverter extends Visitor {
                 rootType !== 'BeginNode') {
                 blocks = this._linkBlocks(blocks);
             }
+            // === Smalruby: Start of bare literal to temp variable ===
+            // Convert bare Primitive literals to temp variable assignments
+            // so they become valid blocks (e.g. "Jimmy" → _lit_1_ = "Jimmy")
+            const Primitive = require('./primitive').default;
+            const newBlocks = [];
+            let convertedPrev = false;
+            for (let i = 0; i < blocks.length; i++) {
+                const block = blocks[i];
+                if (block instanceof Primitive && block.type !== 'sym') {
+                    const converted = this._convertBareLiteralToAssignment(block);
+                    const arr = _.isArray(converted) ? converted : [converted];
+                    // Link converted blocks into a chain
+                    for (let j = 0; j < arr.length - 1; j++) {
+                        arr[j].next = arr[j + 1].id;
+                        arr[j + 1].parent = arr[j].id;
+                    }
+                    // Link last converted block to the previous block's chain
+                    if (newBlocks.length > 0) {
+                        const prev = newBlocks[newBlocks.length - 1];
+                        if (this._isBlock(prev) && !prev.next) {
+                            prev.next = arr[0].id;
+                            arr[0].parent = prev.id;
+                        }
+                    }
+                    newBlocks.push(...arr);
+                    convertedPrev = true;
+                } else {
+                    // Link previous converted-literal block to this existing block
+                    if (this._isBlock(block) && !block.parent &&
+                        newBlocks.length > 0 && convertedPrev) {
+                        const prev = newBlocks[newBlocks.length - 1];
+                        if (this._isBlock(prev) && !prev.next) {
+                            prev.next = block.id;
+                            block.parent = prev.id;
+                        }
+                    }
+                    convertedPrev = false;
+                    newBlocks.push(block);
+                }
+            }
+            blocks = newBlocks;
+            // === Smalruby: End of bare literal to temp variable ===
+
             blocks.forEach(block => {
                 if (this._isBlock(block)) {
                     if (!block.parent) {
                         block.topLevel = true;
                     }
-                } else {
-                    const Primitive = require('./primitive').default;
-                    if (block instanceof Primitive) {
-                        if (block.type === 'sym') {
+                } else if (block instanceof Primitive) {
+                    if (block.type === 'sym') {
                             const source = this._truncateSource(this._getSource(block.node));
                             const suggestion = `${source}.to_s`;
                             throw new RubyToBlocksConverterError(
@@ -160,9 +201,8 @@ class RubyToBlocksConverter extends Visitor {
                                 {SOURCE: this._truncateSource(this._getSource(block.node))}
                             )
                         );
-                    } else {
-                        throw new Error(`invalid block: ${block}`);
-                    }
+                } else {
+                    throw new Error(`invalid block: ${block}`);
                 }
             });
             Object.keys(this._context.blocks).forEach(blockId => {
@@ -336,6 +376,68 @@ class RubyToBlocksConverter extends Visitor {
             return `::${node.name}`;
         }
         return String(node.name || '');
+    }
+
+    /**
+     * Convert a bare Primitive literal to a temp variable assignment block.
+     * e.g. "Jimmy" → _lit_1_ = "Jimmy" with `@ruby`:literal:string comment
+     * @param {object} primitive - The Primitive instance.
+     * @returns {object|Array} The assignment block(s).
+     */
+    _convertBareLiteralToAssignment (primitive) {
+        const index = (this._context.literalCallIndices._lit_ || 0) + 1;
+        this._context.literalCallIndices._lit_ = index;
+        const varName = `_lit_${index}_`;
+
+        if (primitive.type === 'array') {
+            // Array literal: create list variable + add items
+            const prefixedName = varName;
+            const listVar = this._lookupOrCreateList(prefixedName);
+            const clearBlock = this._createBlock('data_deletealloflist', 'statement');
+            clearBlock.node = primitive.node;
+            clearBlock.fields = {
+                LIST: {name: 'LIST', id: listVar.id, value: listVar.name, variableType: listVar.type}
+            };
+            clearBlock.comment = this._createComment(`@ruby:literal:array`, clearBlock.id);
+
+            const addBlocks = [];
+            const items = primitive.value;
+            items.forEach(item => {
+                const addBlock = this._createBlock('data_addtolist', 'statement');
+                addBlock.node = primitive.node;
+                addBlock.fields = {
+                    LIST: {name: 'LIST', id: listVar.id, value: listVar.name, variableType: listVar.type}
+                };
+                const val = this._isPrimitive(item) ? item.value : item;
+                this._addTextInput(addBlock, 'ITEM', String(val), '');
+                addBlocks.push(addBlock);
+            });
+
+            return [clearBlock, ...addBlocks];
+        }
+
+        // String, integer, float: create scalar variable assignment
+        let commentType;
+        if (primitive.type === 'str') {
+            commentType = 'string';
+        } else if (primitive.type === 'int') {
+            commentType = 'integer';
+        } else if (primitive.type === 'float') {
+            commentType = 'float';
+        } else {
+            commentType = primitive.type;
+        }
+
+        const variable = this._lookupOrCreateVariable(varName);
+        const block = this._createBlock('data_setvariableto', 'statement');
+        block.node = primitive.node;
+        block.fields = {
+            VARIABLE: {name: 'VARIABLE', id: variable.id, value: variable.name, variableType: variable.type}
+        };
+        this._addTextInput(block, 'VALUE', String(primitive.value), '0');
+        block.comment = this._createComment(`@ruby:literal:${commentType}`, block.id);
+
+        return block;
     }
 
     visitProgramNode (node) {

@@ -167,17 +167,28 @@ describe('RubyToBlocksConverter', () => {
             });
 
             test('error', async () => {
+                // Bare literals (1, "Hello!") are now auto-converted to temp
+                // variable assignments, so they no longer error.
+                // Only symbols still error.
                 { for (const c of [
-                    '1',
-                    '"Hello!"',
-                    ':symbol',
-                    'move(10); 1',
-                    'move(10); 1; bounce_if_on_edge'
+                    ':symbol'
                 ]) {
                     const res = await converter.targetCodeToBlocks(target, c);
                     expect(converter.errors).toHaveLength(1);
                     expect(converter.errors[0].row).toEqual(0);
                     expect(res).toBeFalsy();
+                } }
+            });
+
+            test('bare literals are accepted', async () => {
+                { for (const c of [
+                    '1',
+                    '"Hello!"',
+                    'move(10); 1',
+                    'move(10); 1; bounce_if_on_edge'
+                ]) {
+                    const res = await converter.targetCodeToBlocks(target, c);
+                    expect(res).toBeTruthy();
                 } }
             });
         });
