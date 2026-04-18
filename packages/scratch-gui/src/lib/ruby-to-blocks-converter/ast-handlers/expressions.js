@@ -76,9 +76,13 @@ const ExpressionHandlers = {
         if (block && this._isBlock(block) &&
             typeof block.opcode === 'string' &&
             /^smalrubyRuby_\w+Method$/.test(block.opcode)) {
-            const rvBlock = this._createBlock('smalrubyRuby_returnValue', 'value');
-            preBlocks.push(block);
-            block = rvBlock;
+            // Skip auto-split for bang methods (they are statements, not expressions)
+            const method = block.fields && block.fields.METHOD && block.fields.METHOD.value;
+            if (!method || !method.endsWith('!')) {
+                const rvBlock = this._createBlock('smalrubyRuby_returnValue', 'value');
+                preBlocks.push(block);
+                block = rvBlock;
+            }
         }
         // === Smalruby: End of auto-split method call return value ===
 
