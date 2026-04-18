@@ -156,6 +156,21 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         );
     });
 
+    test('bare literal inside when_flag_clicked', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              "hello"
+              say("hello", 2)
+            end
+        `,
+            null,
+            opts,
+        );
+    });
+
     // TODO: bare array literal roundtrip needs further work
     // test('bare array literal', async () => {
     //     await expectRoundTrip(converter, target, '[12, 47, 35]', null, opts);
