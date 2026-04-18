@@ -106,6 +106,14 @@ class Blocks extends React.Component {
         this.onTargetsUpdate = debounce(this.onTargetsUpdate, 100);
         this.toolboxUpdateQueue = [];
         this._pendingScrollCenter = false;
+        // === Smalruby: Start of deferred flyout rebuild ===
+        // Track whether the code tab has ever been visible. When the workspace
+        // is first created while a non-code tab is active (?tab=ruby etc.),
+        // Blockly computes SVG text widths as 0 because the container is hidden.
+        // On the first visibility we must rebuild the flyout without recycling
+        // so that all blocks get correct measurements.
+        this._hasBeenVisible = false;
+        // === Smalruby: End of deferred flyout rebuild ===
     }
     componentDidMount () {
         this.ScratchBlocks = VMScratchBlocks(this.props.vm, this.props.useCatBlocks);
@@ -162,6 +170,7 @@ class Blocks extends React.Component {
         // If locale changes while not visible it will get handled in didUpdate
         if (this.props.isVisible) {
             this.setLocale();
+            this._hasBeenVisible = true; // === Smalruby: deferred flyout rebuild ===
         }
 
         window.addEventListener('load-extension', () => {
@@ -223,6 +232,21 @@ class Blocks extends React.Component {
         // @todo hack to reload the workspace due to gui bug #413
         if (this.props.isVisible) { // Scripts tab
             this.workspace.setVisible(true);
+            // === Smalruby: Start of deferred flyout rebuild ===
+            if (!this._hasBeenVisible) {
+                // First time the code tab becomes visible after being initially
+                // hidden (e.g. ?tab=ruby). Flyout blocks were created while the
+                // container was display:none, so their SVG text measurements are
+                // wrong. Disable flyout recycling and force a full rebuild.
+                this._hasBeenVisible = true;
+                this.workspace.getFlyout().setRecyclingEnabled(false);
+                this.props.vm.refreshWorkspace();
+                this.requestToolboxUpdate();
+                this.withToolboxUpdates(() => {
+                    this.workspace.getFlyout().setRecyclingEnabled(true);
+                });
+            } else
+            // === Smalruby: End of deferred flyout rebuild ===
             if (prevProps.locale !== this.props.locale || this.props.locale !== this.props.vm.getLocale()) {
                 // call setLocale if the locale has changed, or changed while the blocks were hidden.
                 // vm.getLocale() will be out of sync if locale was changed while not visible
