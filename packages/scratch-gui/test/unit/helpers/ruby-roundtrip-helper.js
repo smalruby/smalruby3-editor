@@ -30,6 +30,7 @@ import OperatorsBlocks from '../../../src/lib/ruby-generator/operators.js';
 import DataBlocks from '../../../src/lib/ruby-generator/data.js';
 import ProcedureBlocks from '../../../src/lib/ruby-generator/procedure.js';
 import RubyBlocks from '../../../src/lib/ruby-generator/ruby.js';
+import SmalrubyRubyBlocks from '../../../src/lib/ruby-generator/smalruby-ruby.js';
 
 /**
  * Build a minimal target-like object.
@@ -121,6 +122,7 @@ export const setupRubyGenerator = () => {
     DataBlocks(RubyGenerator);
     ProcedureBlocks(RubyGenerator);
     RubyBlocks(RubyGenerator);
+    SmalrubyRubyBlocks(RubyGenerator);
 };
 
 /**
