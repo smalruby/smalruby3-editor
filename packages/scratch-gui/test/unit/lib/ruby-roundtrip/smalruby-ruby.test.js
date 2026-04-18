@@ -105,6 +105,20 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         );
     });
 
+    test('String#* with say', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              say("Jimmy" * 5, 2)
+            end
+        `,
+            null,
+            opts,
+        );
+    });
+
     test('Hash#keys with say', async () => {
         await expectRoundTrip(
             converter,

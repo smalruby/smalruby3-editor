@@ -57,6 +57,17 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
+        test('should convert "Jimmy" * 5', async () => {
+            const code = '"Jimmy" * 5';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            const blocks = Object.values(converter._context.blocks);
+            const methodBlock = blocks.find(
+                (b) => b.opcode === 'smalrubyRuby_stringMethod',
+            );
+            expect(methodBlock).toBeTruthy();
+            expect(methodBlock.fields.METHOD.value).toBe('*');
+        });
     });
 
     describe('arrayMethod', () => {

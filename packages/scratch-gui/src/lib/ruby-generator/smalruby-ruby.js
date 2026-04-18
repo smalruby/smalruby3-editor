@@ -33,6 +33,11 @@ export default function (Generator) {
             Generator.quote_('');
         const arg2 = Generator.valueToCode(block, 'ARG2', order);
 
+        // Operator methods: generate infix notation (e.g. receiver * arg)
+        if (method === '*') {
+            return `${receiver} ${method} ${arg1}`;
+        }
+
         const args = [arg1];
         if (arg2) args.push(arg2);
 
@@ -73,7 +78,7 @@ export default function (Generator) {
         // Pattern: a line ending with .method_call (optionally with args),
         // followed by a line that references _rv_ or _rv_truthy_
         const methodPattern =
-            '\\S[^\\n]*\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\([^)]*\\))?';
+            '\\S[^\\n]*(?:\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\([^)]*\\))?| \\* \\S+)';
         // Process _rv_truthy_ BEFORE _rv_ to avoid partial match
         code = code.replace(
             new RegExp(

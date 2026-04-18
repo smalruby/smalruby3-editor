@@ -152,6 +152,21 @@ const stringMethodArgumentsByMethod = {
             ARG2: { type: ArgumentType.STRING, defaultValue: 'r' },
         },
     },
+    '*': {
+        text: 'String [RECEIVER] . [METHOD] ( [ARG1] )',
+        arguments: {
+            RECEIVER: {
+                type: ArgumentType.STRING,
+                defaultValue: 'hello',
+            },
+            METHOD: {
+                type: ArgumentType.STRING,
+                menu: 'stringMethodMenu',
+                defaultValue: '*',
+            },
+            ARG1: { type: ArgumentType.STRING, defaultValue: '3' },
+        },
+    },
 };
 
 const stringMethodMenuItems = [
@@ -165,6 +180,7 @@ const stringMethodMenuItems = [
     ['reverse!', 'reverse!'],
     ['delete!', 'delete!'],
     ['gsub!', 'gsub!'],
+    ['*', '*'],
 ];
 
 const arrayMethodArgumentsByMethod = {
@@ -391,6 +407,7 @@ const menus = {
             { text: 'reverse!', value: 'reverse!' },
             { text: 'delete!', value: 'delete!' },
             { text: 'gsub!', value: 'gsub!' },
+            { text: '*', value: '*' },
         ],
     },
     arrayMethodMenu: {
