@@ -155,7 +155,7 @@ const OperatorsMath = {
                 rh = rh[0];
             }
 
-            if (!receiver.value === 10) return null;
+            if (receiver.value !== 10) return null;
             if (!converter._isNumberOrBlock(rh)) return null;
 
             const block = converter._createBlock('operator_mathop', 'value');
