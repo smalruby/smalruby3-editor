@@ -5,6 +5,7 @@ const {
     detectMeshV1Blocks,
     detectKoshien,
     migrateMeshV1Blocks,
+    migrateStringMethodBlocks,
 } = require('../../src/serialization/smalruby-migration');
 
 const meshV1Project = JSON.parse(
@@ -51,5 +52,26 @@ test('migrateMeshV1Blocks', t => {
     });
     t.ok(foundMeshV2, 'found at least one meshV2 block');
 
+    t.end();
+});
+
+test('migrateStringMethodBlocks', t => {
+    const project = {
+        targets: [
+            {
+                blocks: {
+                    a: { opcode: 'smalrubyRuby_stringMethodR' },
+                    b: { opcode: 'smalrubyRuby_stringMethodC' },
+                    c: { opcode: 'smalrubyRuby_methodR' },
+                    d: { opcode: 'motion_movesteps' },
+                },
+            },
+        ],
+    };
+    migrateStringMethodBlocks(project);
+    t.equal(project.targets[0].blocks.a.opcode, 'smalrubyRuby_methodR', 'stringMethodR migrated');
+    t.equal(project.targets[0].blocks.b.opcode, 'smalrubyRuby_methodC', 'stringMethodC migrated');
+    t.equal(project.targets[0].blocks.c.opcode, 'smalrubyRuby_methodR', 'methodR unchanged');
+    t.equal(project.targets[0].blocks.d.opcode, 'motion_movesteps', 'unrelated unchanged');
     t.end();
 });

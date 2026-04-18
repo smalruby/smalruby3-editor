@@ -19,7 +19,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const code = '"Jimmy".reverse';
             const expected = [
                 {
-                    opcode: 'smalrubyRuby_stringMethodR',
+                    opcode: 'smalrubyRuby_methodR',
                     fields: [
                         {name: 'METHOD', value: 'reverse'}
                     ],
@@ -48,7 +48,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const code = '"hello world".delete("l")';
             const expected = [
                 {
-                    opcode: 'smalrubyRuby_stringMethodR',
+                    opcode: 'smalrubyRuby_methodR',
                     fields: [
                         {name: 'METHOD', value: 'delete'}
                     ],
@@ -73,7 +73,7 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             const code = '"hello world".gsub("l", "r")';
             const expected = [
                 {
-                    opcode: 'smalrubyRuby_stringMethodR',
+                    opcode: 'smalrubyRuby_methodR',
                     fields: [
                         {name: 'METHOD', value: 'gsub'}
                     ],
@@ -112,6 +112,50 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
 
         test('should reject wrong number of arguments', async () => {
             await convertAndExpectRubyBlockError(converter, target, '"hello".gsub!("l")');
+        });
+    });
+
+    describe('New methods (Phase 1 #4-#9)', () => {
+        test('String#lines should convert', async () => {
+            const code = '"hello\\nworld".lines';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('Array#max should convert', async () => {
+            const code = 'ticket = [12, 47, 35]\nticket.max';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('Array#sort should convert', async () => {
+            const code = 'ticket = [12, 47, 35]\nticket.sort';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('Array#join should convert without args', async () => {
+            const code = 'ticket = [12, 47, 35]\nticket.join';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('Array#join should convert with separator arg', async () => {
+            const code = 'ticket = [12, 47, 35]\nticket.join(", ")';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('Hash#keys should convert', async () => {
+            const code = 'books = {}\nbooks.keys';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('Hash#values should convert', async () => {
+            const code = 'books = {}\nbooks.values';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
         });
     });
 });

@@ -56,11 +56,11 @@ class SmalrubyRubyBlocks {
             blockIconURI: blockIconURI,
             blocks: [
                 {
-                    opcode: 'stringMethodR',
+                    opcode: 'methodR',
                     text: formatMessage({
-                        id: 'smalrubyRuby.stringMethodR',
-                        default: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
-                        description: 'String method that returns a value'
+                        id: 'smalrubyRuby.methodR',
+                        default: '[STRING] . [METHOD]',
+                        description: 'Method that returns a value (string/array/hash)'
                     }),
                     blockType: BlockType.REPORTER,
                     isDynamic: true,
@@ -72,7 +72,7 @@ class SmalrubyRubyBlocks {
                         },
                         METHOD: {
                             type: ArgumentType.STRING,
-                            menu: 'stringMethodRMenu',
+                            menu: 'methodRMenu',
                             defaultValue: 'delete'
                         },
                         ARG1: {
@@ -87,7 +87,7 @@ class SmalrubyRubyBlocks {
                                 STRING: {type: ArgumentType.STRING, defaultValue: 'string'},
                                 METHOD: {
                                     type: ArgumentType.STRING,
-                                    menu: 'stringMethodRMenu',
+                                    menu: 'methodRMenu',
                                     defaultValue: 'reverse'
                                 }
                             }
@@ -98,7 +98,7 @@ class SmalrubyRubyBlocks {
                                 STRING: {type: ArgumentType.STRING, defaultValue: 'string'},
                                 METHOD: {
                                     type: ArgumentType.STRING,
-                                    menu: 'stringMethodRMenu',
+                                    menu: 'methodRMenu',
                                     defaultValue: 'delete'
                                 },
                                 ARG1: {type: ArgumentType.STRING, defaultValue: 'arg1'}
@@ -110,24 +110,95 @@ class SmalrubyRubyBlocks {
                                 STRING: {type: ArgumentType.STRING, defaultValue: 'string'},
                                 METHOD: {
                                     type: ArgumentType.STRING,
-                                    menu: 'stringMethodRMenu',
+                                    menu: 'methodRMenu',
                                     defaultValue: 'gsub'
                                 },
                                 ARG1: {type: ArgumentType.STRING, defaultValue: 'arg1'},
                                 ARG2: {type: ArgumentType.STRING, defaultValue: 'arg2'}
                             }
+                        },
+                        lines: {
+                            text: '[STRING] . [METHOD]',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'string'},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'methodRMenu',
+                                    defaultValue: 'lines'
+                                }
+                            }
+                        },
+                        max: {
+                            text: '[STRING] . [METHOD]',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'list'},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'methodRMenu',
+                                    defaultValue: 'max'
+                                }
+                            }
+                        },
+                        sort: {
+                            text: '[STRING] . [METHOD]',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'list'},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'methodRMenu',
+                                    defaultValue: 'sort'
+                                }
+                            }
+                        },
+                        join: {
+                            text: '[STRING] . [METHOD] ( [ARG1] )',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'list'},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'methodRMenu',
+                                    defaultValue: 'join'
+                                },
+                                ARG1: {type: ArgumentType.STRING, defaultValue: ''}
+                            }
+                        },
+                        keys: {
+                            text: '[STRING] . [METHOD]',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'hash'},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'methodRMenu',
+                                    defaultValue: 'keys'
+                                }
+                            }
+                        },
+                        values: {
+                            text: '[STRING] . [METHOD]',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, defaultValue: 'hash'},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'methodRMenu',
+                                    defaultValue: 'values'
+                                }
+                            }
                         }
                     },
                     menuItems: {
-                        stringMethodRMenu: [['reverse', 'reverse'], ['delete', 'delete'], ['gsub', 'gsub']]
+                        methodRMenu: [
+                            ['reverse', 'reverse'], ['delete', 'delete'], ['gsub', 'gsub'], ['lines', 'lines'],
+                            ['max', 'max'], ['sort', 'sort'], ['join', 'join'],
+                            ['keys', 'keys'], ['values', 'values']
+                        ]
                     }
                 },
                 {
-                    opcode: 'stringMethodC',
+                    opcode: 'methodC',
                     text: formatMessage({
-                        id: 'smalrubyRuby.stringMethodC',
-                        default: '\u6587\u5b57\u5217 [STRING] . [METHOD] ( [ARG1] )',
-                        description: 'String method that does not return a value'
+                        id: 'smalrubyRuby.methodC',
+                        default: '[STRING] . [METHOD]',
+                        description: 'Method that modifies a variable in place (string/array/hash)'
                     }),
                     blockType: BlockType.COMMAND,
                     isDynamic: true,
@@ -139,7 +210,7 @@ class SmalrubyRubyBlocks {
                         },
                         METHOD: {
                             type: ArgumentType.STRING,
-                            menu: 'stringMethodCMenu',
+                            menu: 'methodCMenu',
                             defaultValue: 'delete!'
                         },
                         ARG1: {
@@ -154,7 +225,7 @@ class SmalrubyRubyBlocks {
                                 STRING: {type: ArgumentType.STRING, menu: 'variableNames', defaultValue: ' '},
                                 METHOD: {
                                     type: ArgumentType.STRING,
-                                    menu: 'stringMethodCMenu',
+                                    menu: 'methodCMenu',
                                     defaultValue: 'delete!'
                                 },
                                 ARG1: {type: ArgumentType.STRING, defaultValue: 'arg1'}
@@ -166,33 +237,63 @@ class SmalrubyRubyBlocks {
                                 STRING: {type: ArgumentType.STRING, menu: 'variableNames', defaultValue: ' '},
                                 METHOD: {
                                     type: ArgumentType.STRING,
-                                    menu: 'stringMethodCMenu',
+                                    menu: 'methodCMenu',
                                     defaultValue: 'gsub!'
                                 },
                                 ARG1: {type: ArgumentType.STRING, defaultValue: 'arg1'},
                                 ARG2: {type: ArgumentType.STRING, defaultValue: 'arg2'}
                             }
+                        },
+                        'sort!': {
+                            text: '[STRING] . [METHOD]',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, menu: 'variableNames', defaultValue: ' '},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'methodCMenu',
+                                    defaultValue: 'sort!'
+                                }
+                            }
+                        },
+                        'reverse!': {
+                            text: '[STRING] . [METHOD]',
+                            arguments: {
+                                STRING: {type: ArgumentType.STRING, menu: 'variableNames', defaultValue: ' '},
+                                METHOD: {
+                                    type: ArgumentType.STRING,
+                                    menu: 'methodCMenu',
+                                    defaultValue: 'reverse!'
+                                }
+                            }
                         }
                     },
                     menuItems: {
-                        stringMethodCMenu: [['delete!', 'delete!'], ['gsub!', 'gsub!']]
+                        methodCMenu: [['delete!', 'delete!'], ['gsub!', 'gsub!'], ['sort!', 'sort!'], ['reverse!', 'reverse!']]
                     }
                 }
             ],
             menus: {
-                stringMethodRMenu: {
+                methodRMenu: {
                     acceptReporters: false,
                     items: [
                         {text: 'reverse', value: 'reverse'},
                         {text: 'delete', value: 'delete'},
-                        {text: 'gsub', value: 'gsub'}
+                        {text: 'gsub', value: 'gsub'},
+                        {text: 'lines', value: 'lines'},
+                        {text: 'max', value: 'max'},
+                        {text: 'sort', value: 'sort'},
+                        {text: 'join', value: 'join'},
+                        {text: 'keys', value: 'keys'},
+                        {text: 'values', value: 'values'}
                     ]
                 },
-                stringMethodCMenu: {
+                methodCMenu: {
                     acceptReporters: false,
                     items: [
                         {text: 'delete!', value: 'delete!'},
-                        {text: 'gsub!', value: 'gsub!'}
+                        {text: 'gsub!', value: 'gsub!'},
+                        {text: 'sort!', value: 'sort!'},
+                        {text: 'reverse!', value: 'reverse!'}
                     ]
                 },
                 variableNames: {
@@ -212,12 +313,18 @@ class SmalrubyRubyBlocks {
      * @param {string} args.ARG1 - the first argument.
      * @returns {string} the result string.
      */
-    stringMethodR (args) {
+    methodR (args) {
         const string = String(args.STRING || '');
         const method = args.METHOD;
         const arg1 = String(args.ARG1 || '');
         const arg2 = (args.ARG2 === undefined) ? undefined : String(args.ARG2);
+
+        // For list methods, data_listcontents provides items as space-separated string.
+        // Split into array items for operations.
+        const toItems = s => (s === '' ? [] : s.split(' '));
+
         switch (method) {
+        // String methods
         case 'reverse':
             return string.split('').reverse().join('');
         case 'delete':
@@ -227,6 +334,29 @@ class SmalrubyRubyBlocks {
         case 'gsub':
             if (arg2 === undefined) return string;
             return string.replaceAll(arg1, arg2);
+        case 'lines':
+            return string.split('\n').filter((_, i, a) => i < a.length - 1 || _ !== '')
+                .map(l => `${l}\n`).join(' ');
+        // Array methods (receiver is list contents string)
+        case 'max': {
+            const items = toItems(string);
+            if (items.length === 0) return '';
+            const nums = items.map(Number);
+            if (nums.every(n => !isNaN(n))) return String(Math.max(...nums));
+            return items.reduce((a, b) => (a > b ? a : b));
+        }
+        case 'sort': {
+            const items = toItems(string);
+            const nums = items.map(Number);
+            if (nums.every(n => !isNaN(n))) return nums.sort((a, b) => a - b).join(' ');
+            return items.sort().join(' ');
+        }
+        case 'join':
+            return toItems(string).join(arg1);
+        // Hash methods (receiver is list contents string)
+        case 'keys':
+        case 'values':
+            return string;
         default:
             return string;
         }
@@ -241,7 +371,7 @@ class SmalrubyRubyBlocks {
      * @param {string} args.ARG1 - the first argument.
      * @param {object} util - block utility object.
      */
-    stringMethodC (args, util) {
+    methodC (args, util) {
         const variableName = args.STRING;
         const target = util.target;
         const variable = target.lookupVariableByNameAndType(variableName, Variable.SCALAR_TYPE);
@@ -260,6 +390,12 @@ class SmalrubyRubyBlocks {
             break;
         case 'gsub!':
             result = (arg2 === undefined) ? string : string.replaceAll(arg1, arg2);
+            break;
+        case 'sort!':
+            result = string; // List sort is handled via list blocks
+            break;
+        case 'reverse!':
+            result = string.split('').reverse().join('');
             break;
         default:
             result = string;
