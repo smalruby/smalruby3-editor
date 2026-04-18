@@ -67,6 +67,21 @@ const ExpressionHandlers = {
         if (!block) {
             block = this._callConvertersHandler('onSend', receiver, name, args, rubyBlockArgs, rubyBlock, node);
         }
+
+        // === Smalruby: Start of auto-split method call return value ===
+        // When a smalrubyRuby method COMMAND block is used in a value context
+        // (e.g. say("hello".reverse)), split into:
+        //   1. The COMMAND block (as a pre-block)
+        //   2. A returnValue REPORTER (as the value)
+        if (block && this._isBlock(block) &&
+            typeof block.opcode === 'string' &&
+            /^smalrubyRuby_\w+Method$/.test(block.opcode)) {
+            const rvBlock = this._createBlock('smalrubyRuby_returnValue', 'value');
+            preBlocks.push(block);
+            block = rvBlock;
+        }
+        // === Smalruby: End of auto-split method call return value ===
+
         if (!block) {
             if ((this._isSelf(receiver) || receiver === null) && !rubyBlock) {
                 switch (name) {

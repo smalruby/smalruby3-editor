@@ -13,19 +13,19 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
     describe('stringMethod', () => {
         test('should convert "hello".reverse', async () => {
             const code = '"hello".reverse';
-            const expected = [
-                {
-                    opcode: 'smalrubyRuby_stringMethod',
-                    fields: [{ name: 'METHOD', value: 'reverse' }],
-                    mutation: { blockInfo: expect.any(Object) },
-                },
-            ];
-            await convertAndExpectToEqualBlocks(
-                converter,
-                target,
-                code,
-                expected,
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+            // Auto-split: COMMAND + returnValue REPORTER
+            const blocks = Object.values(converter._context.blocks);
+            const methodBlock = blocks.find(
+                (b) => b.opcode === 'smalrubyRuby_stringMethod',
             );
+            const rvBlock = blocks.find(
+                (b) => b.opcode === 'smalrubyRuby_returnValue',
+            );
+            expect(methodBlock).toBeTruthy();
+            expect(methodBlock.fields.METHOD.value).toBe('reverse');
+            expect(rvBlock).toBeTruthy();
         });
 
         test('should convert "hello".delete("l")', async () => {
