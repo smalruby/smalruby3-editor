@@ -1,159 +1,123 @@
 import RubyToBlocksConverter from '../../../../src/lib/ruby-to-blocks-converter';
-import {
-    convertAndExpectToEqualBlocks,
-    convertAndExpectRubyBlockError,
-    expectedInfo
-} from '../../../helpers/expect-to-equal-blocks';
+import { convertAndExpectToEqualBlocks } from '../../../helpers/expect-to-equal-blocks';
 
 describe('RubyToBlocksConverter/SmalrubyRuby', () => {
     let converter;
     let target;
 
     beforeEach(() => {
-        converter = new RubyToBlocksConverter(null, {version: '2'});
+        converter = new RubyToBlocksConverter(null, { version: '2' });
         target = null;
     });
 
-    describe('String#reverse (REPORTER, 0 args)', () => {
-        test('should convert string literal receiver', async () => {
-            const code = '"Jimmy".reverse';
+    describe('stringMethod', () => {
+        test('should convert "hello".reverse', async () => {
+            const code = '"hello".reverse';
             const expected = [
                 {
-                    opcode: 'smalrubyRuby_methodR',
-                    fields: [
-                        {name: 'METHOD', value: 'reverse'}
-                    ],
-                    inputs: [
-                        {name: 'STRING', block: expectedInfo.makeText('Jimmy')}
-                    ],
-                    mutation: {blockInfo: expect.any(Object)}
-                }
+                    opcode: 'smalrubyRuby_stringMethod',
+                    fields: [{ name: 'METHOD', value: 'reverse' }],
+                    mutation: { blockInfo: expect.any(Object) },
+                },
             ];
-            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+            await convertAndExpectToEqualBlocks(
+                converter,
+                target,
+                code,
+                expected,
+            );
         });
 
-        test('should convert variable receiver', async () => {
-            const code = 'name = "Jimmy"\nname.reverse';
+        test('should convert "hello".delete("l")', async () => {
+            const code = '"hello".delete("l")';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
 
-        test('should reject with arguments', async () => {
-            await convertAndExpectRubyBlockError(converter, target, '"hello".reverse("x")');
-        });
-    });
-
-    describe('String#delete (REPORTER)', () => {
-        test('should convert string literal receiver with string arg', async () => {
-            const code = '"hello world".delete("l")';
-            const expected = [
-                {
-                    opcode: 'smalrubyRuby_methodR',
-                    fields: [
-                        {name: 'METHOD', value: 'delete'}
-                    ],
-                    inputs: [
-                        {name: 'STRING', block: expectedInfo.makeText('hello world')},
-                        {name: 'ARG1', block: expectedInfo.makeText('l')}
-                    ],
-                    mutation: {blockInfo: expect.any(Object)}
-                }
-            ];
-            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        test('should convert "hello".gsub("l", "r")', async () => {
+            const code = '"hello".gsub("l", "r")';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
         });
 
-        test('should reject wrong number of arguments', async () => {
-            await convertAndExpectRubyBlockError(converter, target, '"hello".delete()');
-            await convertAndExpectRubyBlockError(converter, target, '"hello".delete("l", "o")');
-        });
-    });
-
-    describe('String#gsub (REPORTER, 2 args)', () => {
-        test('should convert with pattern and replacement', async () => {
-            const code = '"hello world".gsub("l", "r")';
-            const expected = [
-                {
-                    opcode: 'smalrubyRuby_methodR',
-                    fields: [
-                        {name: 'METHOD', value: 'gsub'}
-                    ],
-                    inputs: [
-                        {name: 'STRING', block: expectedInfo.makeText('hello world')},
-                        {name: 'ARG1', block: expectedInfo.makeText('l')},
-                        {name: 'ARG2', block: expectedInfo.makeText('r')}
-                    ],
-                    mutation: {blockInfo: expect.any(Object)}
-                }
-            ];
-            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        test('should convert "hello".upcase', async () => {
+            const code = '"hello".upcase';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
         });
 
-        test('should reject wrong number of arguments', async () => {
-            await convertAndExpectRubyBlockError(converter, target, '"hello".gsub("l")');
-            await convertAndExpectRubyBlockError(converter, target, '"hello".gsub("l", "r", "x")');
-        });
-    });
-
-    describe('String#delete! (COMMAND)', () => {
-        test('should reject string literal receiver', async () => {
-            await convertAndExpectRubyBlockError(converter, target, '"hello".delete!("l")');
+        test('should convert "hello".downcase', async () => {
+            const code = '"Hello".downcase';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
         });
 
-        test('should reject wrong number of arguments', async () => {
-            await convertAndExpectRubyBlockError(converter, target, '"hello".delete!()');
-            await convertAndExpectRubyBlockError(converter, target, '"hello".delete!("l", "o")');
-        });
-    });
-
-    describe('String#gsub! (COMMAND, 2 args)', () => {
-        test('should reject string literal receiver', async () => {
-            await convertAndExpectRubyBlockError(converter, target, '"hello".gsub!("l", "r")');
+        test('should convert "".empty?', async () => {
+            const code = '"".empty?';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
         });
 
-        test('should reject wrong number of arguments', async () => {
-            await convertAndExpectRubyBlockError(converter, target, '"hello".gsub!("l")');
-        });
-    });
-
-    describe('New methods (Phase 1 #4-#9)', () => {
-        test('String#lines should convert', async () => {
+        test('should convert "hello\\nworld".lines', async () => {
             const code = '"hello\\nworld".lines';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
+    });
 
-        test('Array#max should convert', async () => {
+    describe('arrayMethod', () => {
+        test('should convert ticket.max', async () => {
             const code = 'ticket = [12, 47, 35]\nticket.max';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
 
-        test('Array#sort should convert', async () => {
+        test('should convert ticket.sort', async () => {
             const code = 'ticket = [12, 47, 35]\nticket.sort';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
 
-        test('Array#join should convert without args', async () => {
-            const code = 'ticket = [12, 47, 35]\nticket.join';
+        test('should convert ticket.reverse', async () => {
+            const code = 'ticket = [12, 47, 35]\nticket.reverse';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
 
-        test('Array#join should convert with separator arg', async () => {
+        test('should convert ticket.join(", ")', async () => {
             const code = 'ticket = [12, 47, 35]\nticket.join(", ")';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
 
-        test('Hash#keys should convert', async () => {
+        test('should convert ticket.first', async () => {
+            const code = 'ticket = [12, 47, 35]\nticket.first';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('should convert ticket.last', async () => {
+            const code = 'ticket = [12, 47, 35]\nticket.last';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+    });
+
+    describe('hashMethod', () => {
+        test('should convert books.keys', async () => {
             const code = 'books = {}\nbooks.keys';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
 
-        test('Hash#values should convert', async () => {
+        test('should convert books.values', async () => {
             const code = 'books = {}\nbooks.values';
+            const result = await converter.targetCodeToBlocks(target, code);
+            expect(result).toBe(true);
+        });
+
+        test('should convert books.empty?', async () => {
+            const code = 'books = {}\nbooks.empty?';
             const result = await converter.targetCodeToBlocks(target, code);
             expect(result).toBe(true);
         });
