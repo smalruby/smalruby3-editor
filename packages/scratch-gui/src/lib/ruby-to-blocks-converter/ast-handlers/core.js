@@ -142,15 +142,24 @@ const CoreHandlers = {
         });
         blocks = blocks.flat();
         // === Smalruby: End of bare literal in statement context ===
+        // === Smalruby: Start of statement-only linking ===
+        // Link only statement/terminate blocks, skipping value blocks (e.g.,
+        // orphan returnValue REPORTERs from auto-split). Value blocks in a
+        // next-chain corrupt the generator output because blockToCode returns
+        // [code, order] tuples that get string-concatenated as garbage.
         if (blocks.length >= 2 && this._isBlock(blocks[0])) {
-            // It's a multi-block result, link them
-            for (let i = 0; i < blocks.length - 1; i++) {
-                if (this._isBlock(blocks[i]) && this._isBlock(blocks[i + 1])) {
-                    blocks[i].next = blocks[i + 1].id;
-                    blocks[i + 1].parent = blocks[i].id;
+            let prevIdx = this._isStatementBlock(blocks[0]) ? 0 : -1;
+            for (let i = 1; i < blocks.length; i++) {
+                if (this._isBlock(blocks[i]) && this._isStatementBlock(blocks[i])) {
+                    if (prevIdx >= 0) {
+                        blocks[prevIdx].next = blocks[i].id;
+                        blocks[i].parent = blocks[prevIdx].id;
+                    }
+                    prevIdx = i;
                 }
             }
         }
+        // === Smalruby: End of statement-only linking ===
         const block = blocks[0];
         if (block !== null && typeof block !== 'undefined' && !this._isStatementBlock(block)) {
             if (!(this._context.inMyBlockDefinition && block.opcode === 'data_setvariableto')) {
