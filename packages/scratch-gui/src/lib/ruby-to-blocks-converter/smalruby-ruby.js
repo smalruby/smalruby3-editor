@@ -117,7 +117,18 @@ const SmalrubyRubyConverter = {
         );
         // 1-arg string methods
         registerStringMethod('delete', 1);
-        registerStringMethod('*', 1);
+        // String#* — only for string literal receivers to avoid conflict with numeric *
+        converter.registerOnSend(['string'], '*', 1, (params) => {
+            const { receiver, args } = params;
+            return createMethodBlock(
+                'smalrubyRuby_stringMethod',
+                '*',
+                receiver,
+                args,
+                stringMethodArgs,
+                stringMethodMenuItems,
+            );
+        });
         // 2-arg string methods
         registerStringMethod('gsub', 2);
         // bang methods
