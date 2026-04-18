@@ -146,6 +146,8 @@ class RubyToBlocksConverter extends Visitor {
             });
             // Flatten arrays (array literals produce multiple blocks)
             blocks = blocks.flat();
+            // Re-link blocks so converted literals connect to subsequent blocks
+            blocks = this._linkBlocks(blocks);
             // === Smalruby: End of bare literal to temp variable ===
 
             blocks.forEach(block => {
