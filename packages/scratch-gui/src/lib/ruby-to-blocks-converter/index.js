@@ -138,16 +138,43 @@ class RubyToBlocksConverter extends Visitor {
             // Convert bare Primitive literals to temp variable assignments
             // so they become valid blocks (e.g. "Jimmy" → _lit_1_ = "Jimmy")
             const Primitive = require('./primitive').default;
-            blocks = blocks.map(block => {
+            const newBlocks = [];
+            let convertedPrev = false;
+            for (let i = 0; i < blocks.length; i++) {
+                const block = blocks[i];
                 if (block instanceof Primitive && block.type !== 'sym') {
-                    return this._convertBareLiteralToAssignment(block);
+                    const converted = this._convertBareLiteralToAssignment(block);
+                    const arr = _.isArray(converted) ? converted : [converted];
+                    // Link converted blocks into a chain
+                    for (let j = 0; j < arr.length - 1; j++) {
+                        arr[j].next = arr[j + 1].id;
+                        arr[j + 1].parent = arr[j].id;
+                    }
+                    // Link last converted block to the previous block's chain
+                    if (newBlocks.length > 0) {
+                        const prev = newBlocks[newBlocks.length - 1];
+                        if (this._isBlock(prev) && !prev.next) {
+                            prev.next = arr[0].id;
+                            arr[0].parent = prev.id;
+                        }
+                    }
+                    newBlocks.push(...arr);
+                    convertedPrev = true;
+                } else {
+                    // Link previous converted-literal block to this existing block
+                    if (this._isBlock(block) && !block.parent &&
+                        newBlocks.length > 0 && convertedPrev) {
+                        const prev = newBlocks[newBlocks.length - 1];
+                        if (this._isBlock(prev) && !prev.next) {
+                            prev.next = block.id;
+                            block.parent = prev.id;
+                        }
+                    }
+                    convertedPrev = false;
+                    newBlocks.push(block);
                 }
-                return block;
-            });
-            // Flatten arrays (array literals produce multiple blocks)
-            blocks = blocks.flat();
-            // Re-link blocks so converted literals connect to subsequent blocks
-            blocks = this._linkBlocks(blocks);
+            }
+            blocks = newBlocks;
             // === Smalruby: End of bare literal to temp variable ===
 
             blocks.forEach(block => {
