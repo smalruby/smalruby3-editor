@@ -38,6 +38,14 @@ export default function (Generator) {
         const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
         const wait = hasWaitComment(block) ? `${Generator.INDENT}wait\n` : '';
         const suffix = needsWithScreenRefresh(block) ? '.with_screen_refresh' : '';
+        // === Smalruby: Start of times with block parameter ===
+        const comment = Generator.getCommentText(block);
+        const timesParamMatch = comment && comment.match(/@ruby:syntax:times_param:(\S+)/);
+        if (timesParamMatch) {
+            const paramName = timesParamMatch[1];
+            return `${times}.times${suffix} do |${paramName}|\n${branch}${wait}end\n`;
+        }
+        // === Smalruby: End of times with block parameter ===
         return `${times}.times${suffix} do\n${branch}${wait}end\n`;
     };
 

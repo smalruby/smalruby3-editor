@@ -122,6 +122,76 @@ const ControlConverter = {
             return block;
         });
 
+        // number.times { |i| block } - control_repeat with counter variable
+        converter.registerOnSendWithBlock('any', 'times', 0, 1, params => {
+            const {receiver, rubyBlockArgs, rubyBlock} = params;
+            if (!rubyBlock || !converter._isNumberOrBlock(receiver)) return null;
+            if (!rubyBlockArgs || rubyBlockArgs.length !== 1) return null;
+
+            const paramName = rubyBlockArgs[0];
+            const variable = converter._lookupOrCreateVariable(paramName);
+
+            // Create: paramVar = 0 (with marker comment)
+            const initBlock = converter._createBlock('data_setvariableto', 'statement', {
+                fields: {
+                    VARIABLE: {
+                        name: 'VARIABLE',
+                        id: variable.id,
+                        value: variable.name,
+                        variableType: variable.type
+                    }
+                }
+            });
+            converter._addTextInput(initBlock, 'VALUE', '0', '0');
+            initBlock.comment = converter._createComment(
+                `@ruby:syntax:times_param_init:${paramName}`, initBlock.id
+            );
+
+            // Create: control_repeat with marker comment
+            const cleanedRubyBlock = converter._removeWaitBlocks(rubyBlock);
+            const repeatBlock = createControlRepeatBlock(converter, receiver, null);
+            if (converter._hadWaitInLastRemove) {
+                repeatBlock.comment = converter._createComment(
+                    `@ruby:method:wait\n@ruby:syntax:times_param:${paramName}`, repeatBlock.id
+                );
+            } else {
+                repeatBlock.comment = converter._createComment(
+                    `@ruby:syntax:times_param:${paramName}`, repeatBlock.id
+                );
+            }
+
+            // Create: paramVar += 1 (with marker comment) — append to end of body
+            const incrBlock = converter._createBlock('data_changevariableby', 'statement', {
+                fields: {
+                    VARIABLE: {
+                        name: 'VARIABLE',
+                        id: variable.id,
+                        value: variable.name,
+                        variableType: variable.type
+                    }
+                }
+            });
+            converter._addNumberInput(incrBlock, 'VALUE', 'math_number', 1, 1);
+            incrBlock.comment = converter._createComment(
+                `@ruby:syntax:times_param_incr`, incrBlock.id
+            );
+
+            // Link body: cleanedRubyBlock → incrBlock at end
+            if (cleanedRubyBlock) {
+                let lastBody = cleanedRubyBlock;
+                while (lastBody.next) {
+                    lastBody = converter._context.blocks[lastBody.next];
+                }
+                lastBody.next = incrBlock.id;
+                incrBlock.parent = lastBody.id;
+                converter._addSubstack(repeatBlock, cleanedRubyBlock);
+            } else {
+                converter._addSubstack(repeatBlock, incrBlock);
+            }
+
+            return [initBlock, repeatBlock];
+        });
+
         // number.times.with_screen_refresh { block } - control_repeat + comment
         converter.registerOnSendWithBlock('any', 'with_screen_refresh', 0, 0, params => {
             const {receiver, rubyBlock} = params;

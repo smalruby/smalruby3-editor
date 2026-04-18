@@ -41,6 +41,12 @@ export default function (Generator) {
         const comment = Generator.getCommentText(block);
         const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
 
+        // === Smalruby: Start of times block param init suppression ===
+        if (comment && comment.includes('@ruby:syntax:times_param_init')) {
+            return '';
+        }
+        // === Smalruby: End of times block param init suppression ===
+
         // === Smalruby: Start of bare literal generation ===
         if (comment && comment.startsWith('@ruby:literal:')) {
             const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '""';
@@ -152,6 +158,12 @@ export default function (Generator) {
     };
 
     Generator.data_changevariableby = function (block) {
+        // === Smalruby: Start of times block param incr suppression ===
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.includes('@ruby:syntax:times_param_incr')) {
+            return '';
+        }
+        // === Smalruby: End of times block param incr suppression ===
         const variable = Generator.variableName(Generator.getFieldId(block, 'VARIABLE'));
         const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || 0;
         return `${variable} += ${Generator.nosToCode(value)}\n`;
