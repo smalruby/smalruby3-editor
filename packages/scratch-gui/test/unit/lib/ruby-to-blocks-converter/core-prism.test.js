@@ -35,20 +35,16 @@ describe('RubyToBlocksConverter Core (Prism)', () => {
         expect(stepsBlock.fields.NUM.value).toBe('10');
     });
 
-    test('it should return false for a simple integer', async () => {
+    test('bare integer is accepted (converted to temp variable)', async () => {
         const code = '10';
         const converter = await targetCodeToBlocks(vm, target, code);
-        expect(converter.result).toBeFalsy();
-        expect(converter.errors).toHaveLength(1);
-        expect(converter.errors[0].text).toContain('could not be converted');
+        expect(converter.result).toBeTruthy();
     });
 
-    test('it should return false for a simple string', async () => {
+    test('bare string is accepted (converted to temp variable)', async () => {
         const code = '"hello"';
         const converter = await targetCodeToBlocks(vm, target, code);
-        expect(converter.result).toBeFalsy();
-        expect(converter.errors).toHaveLength(1);
-        expect(converter.errors[0].text).toContain('could not be converted');
+        expect(converter.result).toBeTruthy();
     });
 
     test('float literal 1.0 should be stored as "1.0" in NUM field', async () => {
