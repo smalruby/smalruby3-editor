@@ -139,7 +139,6 @@ class RubyToBlocksConverter extends Visitor {
             // so they become valid blocks (e.g. "Jimmy" → _lit_1_ = "Jimmy")
             const Primitive = require('./primitive').default;
             const newBlocks = [];
-            let convertedPrev = false;
             for (let i = 0; i < blocks.length; i++) {
                 const block = blocks[i];
                 if (block instanceof Primitive && block.type !== 'sym') {
@@ -159,18 +158,7 @@ class RubyToBlocksConverter extends Visitor {
                         }
                     }
                     newBlocks.push(...arr);
-                    convertedPrev = true;
                 } else {
-                    // Link previous converted-literal block to this existing block
-                    if (this._isBlock(block) && !block.parent &&
-                        newBlocks.length > 0 && convertedPrev) {
-                        const prev = newBlocks[newBlocks.length - 1];
-                        if (this._isBlock(prev) && !prev.next) {
-                            prev.next = block.id;
-                            block.parent = prev.id;
-                        }
-                    }
-                    convertedPrev = false;
                     newBlocks.push(block);
                 }
             }

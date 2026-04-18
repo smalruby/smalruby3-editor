@@ -144,6 +144,7 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
     });
 
     test('bare literal followed by say', async () => {
+        // Bare literal becomes independent top-level block, generated after say
         await expectRoundTrip(
             converter,
             target,
@@ -151,7 +152,11 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
             "hello"
             say("hello")
         `,
-            null,
+            dedent`
+            say("hello")
+
+            "hello"
+        `,
             opts,
         );
     });
@@ -210,6 +215,70 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
             end
         `,
             null,
+            opts,
+        );
+    });
+
+    test('bare literal before hat block', async () => {
+        // Hat blocks are sorted to top by generator
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            "hi"
+
+            when_flag_clicked do
+              say("a", 2)
+            end
+        `,
+            dedent`
+            when_flag_clicked do
+              say("a", 2)
+            end
+
+            "hi"
+        `,
+            opts,
+        );
+    });
+
+    test('bare literal before def', async () => {
+        // Def blocks are sorted to top by generator
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            "hi"
+
+            def greet
+              say("hello", 2)
+            end
+        `,
+            dedent`
+            def greet
+              say("hello", 2)
+            end
+
+            "hi"
+        `,
+            opts,
+        );
+    });
+
+    test('bare literal before value block', async () => {
+        // Value blocks are sorted independently
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            "hi"
+            2 + 3
+        `,
+            dedent`
+            2 + 3
+
+            "hi"
+        `,
             opts,
         );
     });
