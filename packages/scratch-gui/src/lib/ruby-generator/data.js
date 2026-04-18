@@ -41,6 +41,20 @@ export default function (Generator) {
         const comment = Generator.getCommentText(block);
         const hasValueInput = block.inputs && block.inputs.VALUE && block.inputs.VALUE.block;
 
+        // === Smalruby: Start of bare literal generation ===
+        if (comment && comment.startsWith('@ruby:literal:')) {
+            const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '""';
+            const litType = comment.replace('@ruby:literal:', '');
+            if (litType === 'string') {
+                return `${value}\n`;
+            }
+            if (litType === 'integer' || litType === 'float') {
+                return `${Generator.nosToCode(value)}\n`;
+            }
+            return `${value}\n`;
+        }
+        // === Smalruby: End of bare literal generation ===
+
         // === Smalruby: Start of regex literal variable generation ===
         if (comment && comment.includes('@ruby:regexp:literal') && hasValueInput) {
             const lvarMatch = comment.match(/@ruby:lvar:([^:,\s]+):\d+/);

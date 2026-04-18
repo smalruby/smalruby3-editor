@@ -87,6 +87,11 @@ export default function (Generator) {
     };
 
     Generator.data_addtolist = function (block) {
+        // === Smalruby: Start of bare literal suppression ===
+        if (block._suppressOutput) {
+            return '';
+        }
+        // === Smalruby: End of bare literal suppression ===
         const comment = Generator.getCommentText(block);
         if (comment && comment.includes('@ruby:array:literal:element')) {
             // Suppressed: handled by data_deletealloflist array literal pattern
@@ -186,6 +191,23 @@ export default function (Generator) {
         const list = getListName(block);
 
         const comment = Generator.getCommentText(block);
+
+        // === Smalruby: Start of bare array literal ===
+        if (comment && comment === '@ruby:literal:array') {
+            const values = [];
+            let nextId = block.next;
+            while (nextId) {
+                const pushBlock = Generator.getBlock(nextId);
+                if (!pushBlock || pushBlock.opcode !== 'data_addtolist') break;
+                const value = Generator.valueToCode(pushBlock, 'ITEM', Generator.ORDER_NONE) || '0';
+                values.push(Generator.nosToCode(value));
+                pushBlock._suppressOutput = true;
+                nextId = pushBlock.next;
+            }
+            return `[${values.join(', ')}]\n`;
+        }
+        // === Smalruby: End of bare array literal ===
+
         const arrayLiteralMatch = comment ? comment.match(/@ruby:array:literal:(\d+)/) : null;
         if (arrayLiteralMatch) {
             const count = parseInt(arrayLiteralMatch[1], 10);
