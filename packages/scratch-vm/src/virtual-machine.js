@@ -18,7 +18,7 @@ const formatMessage = require('format-message');
 
 const Variable = require('./engine/variable');
 const newBlockIds = require('./util/new-block-ids');
-const {detectMeshV1Blocks, detectKoshien, migrateMeshV1Blocks, migrateStringMethodBlocks} = require('./serialization/smalruby-migration');
+const {detectMeshV1Blocks, detectKoshien, migrateMeshV1Blocks} = require('./serialization/smalruby-migration');
 
 const {loadCostume} = require('./import/load-costume.js');
 const {loadSound} = require('./import/load-sound.js');
@@ -366,8 +366,6 @@ class VirtualMachine extends EventEmitter {
                 if (options.migrateMeshV1ToV2) {
                     projectJSON = migrateMeshV1Blocks(projectJSON);
                 }
-                // smalruby: stringMethodR/C → methodR/C migration (always)
-                migrateStringMethodBlocks(projectJSON);
                 return this.deserializeProject(projectJSON, validatedInput[1]);
             })
             .then(() => this.runtime.handleProjectLoaded())

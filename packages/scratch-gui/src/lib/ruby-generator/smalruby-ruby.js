@@ -1,47 +1,97 @@
-// === Smalruby: This file is Smalruby-specific (Ruby String extension generator) ===
+// === Smalruby: This file is Smalruby-specific (Ruby extension generator) ===
 
 /**
- * Define Ruby code generator for Smalruby Ruby String Blocks
+ * Define Ruby code generator for Smalruby Ruby Extension Blocks
  * @param {object} Generator - The RubyGenerator
  * @returns {object} same as param.
  */
 export default function (Generator) {
-    Generator.smalrubyRuby_methodR = function (block) {
+    // --- Method call expression builder ---
+    const buildMethodCallExpr = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
-        const string = Generator.valueToCode(block, 'STRING', order) || Generator.quote_('');
-        const method = Generator.getFieldValue(block, 'METHOD') || 'delete';
-        const hasArg1 = block.inputs && block.inputs.ARG1;
-        if (!hasArg1) {
-            // Methods without arguments (e.g. reverse)
-            return [`${string}.${method}`, order];
+        const method = Generator.getFieldValue(block, 'METHOD') || 'reverse';
+        const isBang = method.endsWith('!');
+
+        let receiver;
+        if (isBang) {
+            const varName =
+                Generator.getFieldValue(block, 'RECEIVER') || '';
+            receiver = Generator.variableNameByName(varName) || 'nil';
+        } else {
+            receiver =
+                Generator.valueToCode(block, 'RECEIVER', order) ||
+                Generator.quote_('');
         }
 
-        const arg1 = Generator.valueToCode(block, 'ARG1', order) || Generator.quote_('');
+        const hasArg1 = block.inputs && block.inputs.ARG1;
+        if (!hasArg1) {
+            return `${receiver}.${method}`;
+        }
+
+        const arg1 =
+            Generator.valueToCode(block, 'ARG1', order) ||
+            Generator.quote_('');
         const arg2 = Generator.valueToCode(block, 'ARG2', order);
 
         const args = [arg1];
         if (arg2) args.push(arg2);
 
-        return [`${string}.${method}(${args.join(', ')})`, order];
+        return `${receiver}.${method}(${args.join(', ')})`;
     };
 
-    Generator.smalrubyRuby_methodC = function (block) {
-        const order = Generator.ORDER_FUNCTION_CALL;
-        const varName = Generator.getFieldValue(block, 'STRING') || '';
-        const string = Generator.variableNameByName(varName) || 'nil';
-        const method = Generator.getFieldValue(block, 'METHOD') || 'delete!';
-        const hasArg1 = block.inputs && block.inputs.ARG1;
-        if (!hasArg1) {
-            return `${string}.${method}\n`;
-        }
+    // --- Class method COMMAND blocks ---
+    // Always generate as statement. Post-processing inlines _rv_ references.
+    const generateMethodCall = function (block) {
+        const expr = buildMethodCallExpr(block);
+        return `${expr}\n`;
+    };
 
-        const arg1 = Generator.valueToCode(block, 'ARG1', order) || Generator.quote_('');
-        const arg2 = Generator.valueToCode(block, 'ARG2', order);
+    Generator.smalrubyRuby_stringMethod = generateMethodCall;
+    Generator.smalrubyRuby_arrayMethod = generateMethodCall;
+    Generator.smalrubyRuby_hashMethod = generateMethodCall;
 
-        const args = [arg1];
-        if (arg2) args.push(arg2);
+    // --- Return value (REPORTER) ---
+    Generator.smalrubyRuby_returnValue = function (_block) {
+        return ['_rv_', Generator.ORDER_FUNCTION_CALL];
+    };
 
-        return `${string}.${method}(${args.join(', ')})\n`;
+    // --- Return value truthy? (BOOLEAN) ---
+    Generator.smalrubyRuby_returnValueTruthy = function (_block) {
+        return ['_rv_truthy_', Generator.ORDER_FUNCTION_CALL];
+    };
+
+    // --- Post-processing: inline _rv_ references ---
+    // Override finishTargets to replace patterns like:
+    //   receiver.method
+    //   say(_rv_, 2)
+    // with:
+    //   say(receiver.method, 2)
+    const originalFinishTargets = Generator.finishTargets.bind(Generator);
+    Generator.finishTargets = function (code, options) {
+        code = originalFinishTargets(code, options);
+        // Replace: "  expr.method\n  ...(_rv_)..." → inline expr.method into _rv_
+        // Pattern: a line ending with .method_call (optionally with args),
+        // followed by a line that references _rv_ or _rv_truthy_
+        const methodPattern =
+            '\\S[^\\n]*\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\([^)]*\\))?';
+        // Process _rv_truthy_ BEFORE _rv_ to avoid partial match
+        code = code.replace(
+            new RegExp(
+                `^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_truthy_`,
+                'gm',
+            ),
+            (match, indent1, expr, indent2, before) =>
+                `${indent2}${before}${expr}`,
+        );
+        code = code.replace(
+            new RegExp(
+                `^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_`,
+                'gm',
+            ),
+            (match, indent1, expr, indent2, before) =>
+                `${indent2}${before}${expr}`,
+        );
+        return code;
     };
 
     return Generator;

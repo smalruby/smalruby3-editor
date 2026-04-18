@@ -1,12 +1,18 @@
 {
     "ja": {
         "smalrubyRuby.categoryName": "ルビー",
-        "smalrubyRuby.methodR": "[STRING] . [METHOD]",
-        "smalrubyRuby.methodC": "[STRING] . [METHOD]"
+        "smalrubyRuby.stringMethod": "文字列 [RECEIVER] . [METHOD]",
+        "smalrubyRuby.arrayMethod": "配列 [RECEIVER] . [METHOD]",
+        "smalrubyRuby.hashMethod": "ハッシュ [RECEIVER] . [METHOD]",
+        "smalrubyRuby.returnValue": "戻り値",
+        "smalrubyRuby.returnValueTruthy": "戻り値が真?"
     },
     "ja-Hira": {
         "smalrubyRuby.categoryName": "るびー",
-        "smalrubyRuby.methodR": "[STRING] . [METHOD]",
-        "smalrubyRuby.methodC": "[STRING] . [METHOD]"
+        "smalrubyRuby.stringMethod": "もじれつ [RECEIVER] . [METHOD]",
+        "smalrubyRuby.arrayMethod": "はいれつ [RECEIVER] . [METHOD]",
+        "smalrubyRuby.hashMethod": "はっしゅ [RECEIVER] . [METHOD]",
+        "smalrubyRuby.returnValue": "もどりち",
+        "smalrubyRuby.returnValueTruthy": "もどりちがしん?"
     }
 }

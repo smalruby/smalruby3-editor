@@ -8,155 +8,148 @@ describe('RubyGenerator/SmalrubyRuby', () => {
             }
             return '';
         };
+        RubyGenerator.getBlock = () => null;
+        RubyGenerator._smalrubyLastMethodExpr = null;
+        RubyGenerator.requires_ = {};
+        RubyGenerator.definitions_ = {};
+        RubyGenerator.prepares_ = {};
     });
 
-    describe('smalrubyRuby_methodR', () => {
-        test('should generate reverse method call (no args)', () => {
+    describe('stringMethod', () => {
+        test('should generate reverse as statement', () => {
             RubyGenerator.valueToCode = (block, name, _order) => {
-                const map = {STRING: '"Jimmy"'};
+                const map = { RECEIVER: '"hello"' };
                 return map[name] || '';
             };
-
             const block = {
-                opcode: 'smalrubyRuby_methodR',
-                fields: {METHOD: {value: 'reverse'}}
+                opcode: 'smalrubyRuby_stringMethod',
+                fields: { METHOD: { value: 'reverse' } },
+                next: null,
             };
-            const result = RubyGenerator.smalrubyRuby_methodR(block);
-            expect(result[0]).toEqual('"Jimmy".reverse');
+            const result =
+                RubyGenerator.smalrubyRuby_stringMethod(block);
+            expect(result).toEqual('"hello".reverse\n');
         });
 
-        test('should generate delete method call', () => {
+        test('should generate delete with args', () => {
             RubyGenerator.valueToCode = (block, name, _order) => {
-                const map = {
-                    STRING: '"hello world"',
-                    ARG1: '"l"'
-                };
+                const map = { RECEIVER: '"hello"', ARG1: '"l"' };
                 return map[name] || '';
             };
-
             const block = {
-                opcode: 'smalrubyRuby_methodR',
-                fields: {METHOD: {value: 'delete'}},
-                inputs: {ARG1: {}}
+                opcode: 'smalrubyRuby_stringMethod',
+                fields: { METHOD: { value: 'delete' } },
+                inputs: { ARG1: {} },
+                next: null,
             };
-            const result = RubyGenerator.smalrubyRuby_methodR(block);
-            expect(result[0]).toEqual('"hello world".delete("l")');
-        });
-
-        test('should use default values when inputs are empty', () => {
-            RubyGenerator.valueToCode = () => '';
-
-            const block = {
-                opcode: 'smalrubyRuby_methodR',
-                fields: {METHOD: {value: 'delete'}},
-                inputs: {ARG1: {}}
-            };
-            const result = RubyGenerator.smalrubyRuby_methodR(block);
-            expect(result[0]).toEqual('"".delete("")');
-        });
-
-        test('should include ARG2 when present', () => {
-            RubyGenerator.valueToCode = (block, name, _order) => {
-                const map = {
-                    STRING: '"hello"',
-                    ARG1: '"l"',
-                    ARG2: '"o"'
-                };
-                return map[name] || '';
-            };
-
-            const block = {
-                opcode: 'smalrubyRuby_methodR',
-                fields: {METHOD: {value: 'delete'}},
-                inputs: {ARG1: {}, ARG2: {}}
-            };
-            const result = RubyGenerator.smalrubyRuby_methodR(block);
-            expect(result[0]).toEqual('"hello".delete("l", "o")');
+            const result =
+                RubyGenerator.smalrubyRuby_stringMethod(block);
+            expect(result).toEqual('"hello".delete("l")\n');
         });
 
         test('should generate gsub with 2 args', () => {
             RubyGenerator.valueToCode = (block, name, _order) => {
-                const map = {STRING: '"hello"', ARG1: '"l"', ARG2: '"r"'};
+                const map = {
+                    RECEIVER: '"hello"',
+                    ARG1: '"l"',
+                    ARG2: '"r"',
+                };
                 return map[name] || '';
             };
             const block = {
-                opcode: 'smalrubyRuby_methodR',
-                fields: {METHOD: {value: 'gsub'}},
-                inputs: {ARG1: {}, ARG2: {}}
+                opcode: 'smalrubyRuby_stringMethod',
+                fields: { METHOD: { value: 'gsub' } },
+                inputs: { ARG1: {}, ARG2: {} },
+                next: null,
             };
-            const result = RubyGenerator.smalrubyRuby_methodR(block);
-            expect(result[0]).toEqual('"hello".gsub("l", "r")');
+            const result =
+                RubyGenerator.smalrubyRuby_stringMethod(block);
+            expect(result).toEqual('"hello".gsub("l", "r")\n');
+        });
+
+        test('should generate bang method with variable receiver', () => {
+            RubyGenerator.variableNameByName = (name) => name;
+            RubyGenerator.valueToCode = () => '';
+            const block = {
+                opcode: 'smalrubyRuby_stringMethod',
+                fields: {
+                    METHOD: { value: 'reverse!' },
+                    RECEIVER: { value: 'name' },
+                },
+                next: null,
+            };
+            const result =
+                RubyGenerator.smalrubyRuby_stringMethod(block);
+            expect(result).toEqual('name.reverse!\n');
         });
     });
 
-    describe('smalrubyRuby_methodC', () => {
-        test('should generate delete! with variable receiver', () => {
-            RubyGenerator.variableNameByName = name => name;
-            RubyGenerator.valueToCode = (block, name, _order) => {
-                const map = {ARG1: '"l"'};
-                return map[name] || '';
-            };
+    describe('returnValue', () => {
+        test('should return _rv_ placeholder', () => {
+            const block = { opcode: 'smalrubyRuby_returnValue' };
+            const result =
+                RubyGenerator.smalrubyRuby_returnValue(block);
+            expect(result[0]).toEqual('_rv_');
+        });
+    });
 
+    describe('returnValueTruthy', () => {
+        test('should return _rv_truthy_ placeholder', () => {
             const block = {
-                opcode: 'smalrubyRuby_methodC',
-                fields: {
-                    STRING: {value: 'my_var'},
-                    METHOD: {value: 'delete!'}
-                },
-                inputs: {ARG1: {}}
+                opcode: 'smalrubyRuby_returnValueTruthy',
             };
-            const result = RubyGenerator.smalrubyRuby_methodC(block);
-            expect(result).toEqual('my_var.delete!("l")\n');
+            const result =
+                RubyGenerator.smalrubyRuby_returnValueTruthy(block);
+            expect(result[0]).toEqual('_rv_truthy_');
+        });
+    });
+
+    describe('finishTargets (post-processing)', () => {
+        test('should inline _rv_ with preceding method call', () => {
+            const input =
+                '  "Jimmy".reverse\n  say(_rv_, 2)\n';
+            const result = RubyGenerator.finishTargets(input, {});
+            expect(result).toEqual(
+                '  say("Jimmy".reverse, 2)\n',
+            );
         });
 
-        test('should use nil when variable not found', () => {
-            RubyGenerator.variableNameByName = () => null;
-            RubyGenerator.valueToCode = () => '';
-
-            const block = {
-                opcode: 'smalrubyRuby_methodC',
-                fields: {
-                    STRING: {value: ''},
-                    METHOD: {value: 'delete!'}
-                },
-                inputs: {ARG1: {}}
-            };
-            const result = RubyGenerator.smalrubyRuby_methodC(block);
-            expect(result).toEqual('nil.delete!("")\n');
+        test('should inline _rv_ with gsub (args)', () => {
+            const input =
+                '  "hello".gsub("l", "r")\n  say(_rv_, 2)\n';
+            const result = RubyGenerator.finishTargets(input, {});
+            expect(result).toEqual(
+                '  say("hello".gsub("l", "r"), 2)\n',
+            );
         });
 
-        test('should include ARG2 when present', () => {
-            RubyGenerator.variableNameByName = name => name;
-            RubyGenerator.valueToCode = (block, name, _order) => {
-                const map = {ARG1: '"l"', ARG2: '"o"'};
-                return map[name] || '';
-            };
-
-            const block = {
-                opcode: 'smalrubyRuby_methodC',
-                fields: {
-                    STRING: {value: 'x'},
-                    METHOD: {value: 'delete!'}
-                },
-                inputs: {ARG1: {}, ARG2: {}}
-            };
-            const result = RubyGenerator.smalrubyRuby_methodC(block);
-            expect(result).toEqual('x.delete!("l", "o")\n');
+        test('should inline _rv_truthy_ with empty?', () => {
+            const input =
+                '  name.empty?\n  if _rv_truthy_\n';
+            const result = RubyGenerator.finishTargets(input, {});
+            expect(result).toEqual('  if name.empty?\n');
         });
 
-        test('should generate sort! without args', () => {
-            RubyGenerator.variableNameByName = name => name;
-            RubyGenerator.valueToCode = () => '';
+        test('should not inline when no _rv_ reference follows', () => {
+            const input = '  "hello".reverse\n  say("world")\n';
+            const result = RubyGenerator.finishTargets(input, {});
+            expect(result).toEqual(
+                '  "hello".reverse\n  say("world")\n',
+            );
+        });
 
-            const block = {
-                opcode: 'smalrubyRuby_methodC',
-                fields: {
-                    STRING: {value: 'ticket'},
-                    METHOD: {value: 'sort!'}
-                }
-            };
-            const result = RubyGenerator.smalrubyRuby_methodC(block);
-            expect(result).toEqual('ticket.sort!\n');
+        test('should handle array method max', () => {
+            const input =
+                '  ticket.max\n  say(_rv_, 2)\n';
+            const result = RubyGenerator.finishTargets(input, {});
+            expect(result).toEqual('  say(ticket.max, 2)\n');
+        });
+
+        test('should handle hash method keys', () => {
+            const input =
+                '  books.keys\n  say(_rv_)\n';
+            const result = RubyGenerator.finishTargets(input, {});
+            expect(result).toEqual('  say(books.keys)\n');
         });
     });
 });
