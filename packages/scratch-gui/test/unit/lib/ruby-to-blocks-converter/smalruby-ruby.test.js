@@ -52,12 +52,6 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             expect(result).toBe(true);
         });
 
-        test('should convert "".empty?', async () => {
-            const code = '"".empty?';
-            const result = await converter.targetCodeToBlocks(target, code);
-            expect(result).toBe(true);
-        });
-
         test('should convert "hello\\nworld".lines', async () => {
             const code = '"hello\\nworld".lines';
             const result = await converter.targetCodeToBlocks(target, code);
@@ -116,10 +110,5 @@ describe('RubyToBlocksConverter/SmalrubyRuby', () => {
             expect(result).toBe(true);
         });
 
-        test('should convert books.empty?', async () => {
-            const code = 'books = {}\nbooks.empty?';
-            const result = await converter.targetCodeToBlocks(target, code);
-            expect(result).toBe(true);
-        });
     });
 });

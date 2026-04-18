@@ -451,8 +451,8 @@ const SmalrubyRubyConverter = {
             }
         };
 
-        // 0-arg string methods
-        ['reverse', 'upcase', 'downcase', 'empty?', 'lines'].forEach((m) =>
+        // 0-arg string methods (empty? handled by operators.js)
+        ['reverse', 'upcase', 'downcase', 'lines'].forEach((m) =>
             registerStringMethod(m, 0),
         );
         // 1-arg string methods
@@ -508,8 +508,8 @@ const SmalrubyRubyConverter = {
             }
         };
 
-        // 0-arg array methods
-        ['max', 'min', 'sort', 'reverse', 'first', 'last', 'empty?'].forEach(
+        // 0-arg array methods (empty? handled by variable-list-ops.js)
+        ['max', 'min', 'sort', 'reverse', 'first', 'last'].forEach(
             (m) => registerArrayMethod(m, 0),
         );
         // join: 0-1 args
@@ -568,19 +568,6 @@ const SmalrubyRubyConverter = {
                                 };
                             }
                         }
-                    } else if (
-                        method === 'empty?' &&
-                        converter._isBlock(receiver) &&
-                        receiver.opcode === 'data_variable'
-                    ) {
-                        const result = convertToListBlock(
-                            converter,
-                            messages,
-                            receiver,
-                        );
-                        if (result.converted) {
-                            // use converted block
-                        }
                     }
 
                     return createMethodBlock(
@@ -597,7 +584,6 @@ const SmalrubyRubyConverter = {
 
         registerHashMethod('keys');
         registerHashMethod('values');
-        registerHashMethod('empty?');
     },
 };
 
