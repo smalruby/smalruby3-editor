@@ -6,22 +6,18 @@
  * @returns {object} same as param.
  */
 export default function (Generator) {
-    // --- Class method COMMAND blocks ---
-    // All produce: receiver.method or receiver.method(args)
-    // as a statement (with trailing \n).
-
-    const generateMethodCall = function (block) {
+    // --- Method call expression builder ---
+    const buildMethodCallExpr = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
         const method = Generator.getFieldValue(block, 'METHOD') || 'reverse';
         const isBang = method.endsWith('!');
 
         let receiver;
         if (isBang) {
-            // Bang method: RECEIVER is a field (variable name)
-            const varName = Generator.getFieldValue(block, 'RECEIVER') || '';
+            const varName =
+                Generator.getFieldValue(block, 'RECEIVER') || '';
             receiver = Generator.variableNameByName(varName) || 'nil';
         } else {
-            // Non-bang: RECEIVER is an input (value)
             receiver =
                 Generator.valueToCode(block, 'RECEIVER', order) ||
                 Generator.quote_('');
@@ -29,7 +25,7 @@ export default function (Generator) {
 
         const hasArg1 = block.inputs && block.inputs.ARG1;
         if (!hasArg1) {
-            return `${receiver}.${method}\n`;
+            return `${receiver}.${method}`;
         }
 
         const arg1 =
@@ -40,7 +36,14 @@ export default function (Generator) {
         const args = [arg1];
         if (arg2) args.push(arg2);
 
-        return `${receiver}.${method}(${args.join(', ')})\n`;
+        return `${receiver}.${method}(${args.join(', ')})`;
+    };
+
+    // --- Class method COMMAND blocks ---
+    // Always generate as statement. Post-processing inlines _rv_ references.
+    const generateMethodCall = function (block) {
+        const expr = buildMethodCallExpr(block);
+        return `${expr}\n`;
     };
 
     Generator.smalrubyRuby_stringMethod = generateMethodCall;
@@ -49,16 +52,46 @@ export default function (Generator) {
 
     // --- Return value (REPORTER) ---
     Generator.smalrubyRuby_returnValue = function (_block) {
-        // In Ruby, the return value is implicit — the method call expression itself.
-        // The converter emits a preceding method call COMMAND block; the generator
-        // should reconstruct the inline expression. For now, emit a placeholder
-        // that the round-trip converter can recognise.
-        return ['_rv_', Generator.ORDER_ATOMIC];
+        return ['_rv_', Generator.ORDER_FUNCTION_CALL];
     };
 
     // --- Return value truthy? (BOOLEAN) ---
     Generator.smalrubyRuby_returnValueTruthy = function (_block) {
-        return ['_rv_truthy_', Generator.ORDER_ATOMIC];
+        return ['_rv_truthy_', Generator.ORDER_FUNCTION_CALL];
+    };
+
+    // --- Post-processing: inline _rv_ references ---
+    // Override finishTargets to replace patterns like:
+    //   receiver.method
+    //   say(_rv_, 2)
+    // with:
+    //   say(receiver.method, 2)
+    const originalFinishTargets = Generator.finishTargets.bind(Generator);
+    Generator.finishTargets = function (code, options) {
+        code = originalFinishTargets(code, options);
+        // Replace: "  expr.method\n  ...(_rv_)..." → inline expr.method into _rv_
+        // Pattern: a line ending with .method_call (optionally with args),
+        // followed by a line that references _rv_ or _rv_truthy_
+        const methodPattern =
+            '\\S[^\\n]*\\.(?:reverse|upcase|downcase|empty\\?|lines|delete|gsub|max|min|sort|join|first|last|keys|values|reverse!|delete!|gsub!|sort!)(?:\\([^)]*\\))?';
+        // Process _rv_truthy_ BEFORE _rv_ to avoid partial match
+        code = code.replace(
+            new RegExp(
+                `^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_truthy_`,
+                'gm',
+            ),
+            (match, indent1, expr, indent2, before) =>
+                `${indent2}${before}${expr}`,
+        );
+        code = code.replace(
+            new RegExp(
+                `^([ \\t]*)(${methodPattern})\\n([ \\t]*)(.*?)_rv_`,
+                'gm',
+            ),
+            (match, indent1, expr, indent2, before) =>
+                `${indent2}${before}${expr}`,
+        );
+        return code;
     };
 
     return Generator;
