@@ -18,6 +18,7 @@ const {
     executeStringMethod,
     executeArrayMethod,
     executeHashMethod,
+    executeArrayMethodWithBlock,
 } = require('./method-executors');
 
 /**
@@ -145,6 +146,28 @@ class SmalrubyRubyBlocks {
                         hashMethodMenu: hashMethodMenuItems,
                     },
                 },
+                // --- Array method with block (CONDITIONAL, C-shape) ---
+                {
+                    opcode: 'arrayMethodWithBlock',
+                    text: formatMessage({
+                        id: 'smalrubyRuby.arrayMethodWithBlock',
+                        default: 'Array [RECEIVER] . [METHOD] do',
+                        description:
+                            'Array method call with block (C-shape)',
+                    }),
+                    blockType: BlockType.CONDITIONAL,
+                    arguments: {
+                        RECEIVER: {
+                            type: ArgumentType.STRING,
+                            defaultValue: '',
+                        },
+                        METHOD: {
+                            type: ArgumentType.STRING,
+                            menu: 'arrayMethodWithBlockMenu',
+                            defaultValue: 'each',
+                        },
+                    },
+                },
                 // --- Return value (REPORTER) ---
                 {
                     opcode: 'returnValue',
@@ -229,6 +252,10 @@ class SmalrubyRubyBlocks {
 
     hashMethod(args, util) {
         executeHashMethod(args, util, this._setReturnValue);
+    }
+
+    arrayMethodWithBlock(args, util) {
+        executeArrayMethodWithBlock(args, util, this._setReturnValue);
     }
 
     // --- Variable names menu ---

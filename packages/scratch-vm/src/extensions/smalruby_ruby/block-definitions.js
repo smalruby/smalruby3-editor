@@ -433,6 +433,10 @@ const menus = {
             { text: 'empty?', value: 'empty?' },
         ],
     },
+    arrayMethodWithBlockMenu: {
+        acceptReporters: false,
+        items: [{ text: 'each', value: 'each' }],
+    },
     variableNames: {
         acceptReporters: false,
         items: 'getVariableNamesMenuItems',

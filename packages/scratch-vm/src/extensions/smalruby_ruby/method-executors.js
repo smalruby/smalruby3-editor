@@ -220,8 +220,37 @@ const executeHashMethod = (args, util, setReturnValue) => {
     setReturnValue(util, result);
 };
 
+/**
+ * Execute an array method with block (C-shape).
+ * @param {object} args - Block arguments (RECEIVER, METHOD).
+ * @param {object} util - Block utility (has util.target, util.thread, util.stackFrame, util.startBranch).
+ * @param {Function} setReturnValue - Callback to store the return value.
+ */
+const executeArrayMethodWithBlock = (args, util, setReturnValue) => {
+    const method = args.METHOD;
+    const toItems = (s) => (s === '' ? [] : String(s).split(' '));
+
+    switch (method) {
+        case 'each': {
+            const items = toItems(String(args.RECEIVER || ''));
+            if (typeof util.stackFrame.index === 'undefined') {
+                util.stackFrame.index = 0;
+            }
+            if (util.stackFrame.index < items.length) {
+                setReturnValue(util, items[util.stackFrame.index]);
+                util.stackFrame.index++;
+                util.startBranch(1, true);
+            }
+            break;
+        }
+        default:
+            break;
+    }
+};
+
 module.exports = {
     executeStringMethod,
     executeArrayMethod,
     executeHashMethod,
+    executeArrayMethodWithBlock,
 };

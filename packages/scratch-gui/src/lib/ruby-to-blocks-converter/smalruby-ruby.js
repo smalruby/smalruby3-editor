@@ -256,6 +256,41 @@ const SmalrubyRubyConverter = {
 
         registerHashMethod('keys');
         registerHashMethod('values');
+
+        // --- Register array method with block (each, etc.) ---
+        converter.registerOnSendWithBlock(
+            ['string', 'block', 'variable', 'array'],
+            'each',
+            0,
+            0,
+            (params) => {
+                let { receiver } = params;
+                const { rubyBlock } = params;
+                if (typeof rubyBlock === 'undefined') return null;
+                // Convert data_variable to data_listcontents for list variables
+                const result = convertToListBlock(
+                    converter,
+                    messages,
+                    receiver,
+                );
+                if (result.converted) {
+                    receiver = result.block;
+                }
+                const block = converter._createBlock(
+                    'smalrubyRuby_arrayMethodWithBlock',
+                    'statement',
+                );
+                converter._addTextInput(
+                    block,
+                    'RECEIVER',
+                    receiver,
+                    '',
+                );
+                converter._addField(block, 'METHOD', 'each');
+                converter._addSubstack(block, rubyBlock);
+                return block;
+            },
+        );
     },
 };
 
