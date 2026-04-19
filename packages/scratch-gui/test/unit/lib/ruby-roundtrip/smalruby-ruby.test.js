@@ -437,7 +437,21 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         );
     });
 
-    test('self.clone roundtrip', async () => {
+    test('clone roundtrip', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              clone
+            end
+        `,
+            null,
+            opts,
+        );
+    });
+
+    test('self.clone converts to clone', async () => {
         await expectRoundTrip(
             converter,
             target,
@@ -446,7 +460,11 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
               self.clone
             end
         `,
-            null,
+            dedent`
+            when_flag_clicked do
+              clone
+            end
+        `,
             opts,
         );
     });

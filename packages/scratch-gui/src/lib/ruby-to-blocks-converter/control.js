@@ -102,8 +102,12 @@ const ControlConverter = {
             return block;
         });
 
-        // self.clone - control_create_clone_of("myself") with @ruby:method:clone
-        converter.registerOnSend('self', 'clone', 0, () => {
+        // clone / self.clone - control_create_clone_of("myself") with @ruby:method:clone
+        // Stage cannot be cloned
+        converter.registerOnSend('self', 'clone', 0, params => {
+            if (converter._context.target && converter._context.target.isStage) {
+                return null; // fall through to ruby_statement (Stage cannot clone)
+            }
             const block = converter._createBlock('control_create_clone_of', 'statement');
             const optionBlock = converter._createBlock('control_create_clone_of_menu', 'value', {
                 shadow: true

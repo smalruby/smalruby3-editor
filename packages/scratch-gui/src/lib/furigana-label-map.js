@@ -93,6 +93,7 @@ const TOPLEVEL_METHOD_LABELS = {
     sleep: '待つ',
     loop: 'ずっと繰り返す',
     stop: '止める',
+    clone: 'クローンを作る',
     create_clone: 'クローンを作る',
     delete_this_clone: 'このクローンを削除',
     when_start_as_a_clone: 'クローンされたとき',
