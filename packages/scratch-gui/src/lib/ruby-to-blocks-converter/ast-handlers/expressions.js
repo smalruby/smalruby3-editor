@@ -31,6 +31,49 @@ const ExpressionHandlers = {
     ...ExpressionsLiterals,
 
     visitCallNode (node) {
+        // === Smalruby: Start of attr_accessor getter/setter resolution ===
+        const attrAccessors = this._context.attrAccessors;
+        if (attrAccessors) {
+            const recvType = node.receiver ? this._getNodeTypeName(node.receiver) : null;
+            const isSelfOrNone = !node.receiver || recvType === 'SelfNode';
+
+            // Getter: foo or self.foo (no args, no block)
+            if (isSelfOrNone &&
+                (!node.arguments_ || node.arguments_.arguments_.length === 0) &&
+                !node.block) {
+                const attrKind = attrAccessors[node.name];
+                if (attrKind === 'accessor' || attrKind === 'reader') {
+                    return this._onVar(`@${node.name}`, 'instance', node);
+                }
+            }
+
+            // Setter: self.foo = val (name ends with =, 1 arg)
+            if (node.name.endsWith('=') &&
+                recvType === 'SelfNode' &&
+                node.arguments_ && node.arguments_.arguments_.length === 1) {
+                const baseName = node.name.slice(0, -1);
+                const attrKind = attrAccessors[baseName];
+                if (attrKind === 'accessor' || attrKind === 'writer') {
+                    const variable = this._lookupOrCreateVariable(`@${baseName}`);
+                    const savedIsValue = this._context.isValue;
+                    this._context.isValue = true;
+                    let rh = this.visit(node.arguments_.arguments_[0]);
+                    this._context.isValue = savedIsValue;
+                    const s = this._splitPreBlocksAndValue(rh);
+                    rh = s.value;
+                    const preBlks = s.preBlocks;
+                    const block = this._callConvertersHandler('onVasgn', 'instance', variable, rh);
+                    if (block) {
+                        if (preBlks.length > 0) {
+                            return [...preBlks, ...(_.isArray(block) ? block : [block])];
+                        }
+                        return block;
+                    }
+                }
+            }
+        }
+        // === Smalruby: End of attr_accessor getter/setter resolution ===
+
         const saved = this._saveContext();
 
         const preBlocks = [];

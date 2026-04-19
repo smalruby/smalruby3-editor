@@ -201,6 +201,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/removed-trademarks.test.js`
 - `test/unit/lib/ruby-generator-procedure-arguments.test.js`
 - `test/unit/lib/ruby-generator-version.test.jsx`
+- `test/unit/lib/ruby-roundtrip-class-attr-accessor.test.js`
 - `test/unit/lib/ruby-roundtrip-class-assets.test.js`
 - `test/unit/lib/ruby-roundtrip-class-stage.test.js`
 - `test/unit/lib/ruby-roundtrip-class-superclass.test.js`
