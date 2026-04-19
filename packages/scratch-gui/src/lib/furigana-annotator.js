@@ -206,6 +206,16 @@ class FuriganaAnnotator {
                     case 'Math':
                         this._annotateMathMethod(node, name);
                         break;
+                    case 'Array':
+                        if (name === 'new') {
+                            this._addAnnotation(node.messageLoc, '配列を作る');
+                        }
+                        break;
+                    case 'Hash':
+                        if (name === 'new') {
+                            this._addAnnotation(node.messageLoc, 'ハッシュを作る');
+                        }
+                        break;
                     default:
                         break;
                 }
