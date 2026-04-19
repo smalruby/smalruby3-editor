@@ -47,6 +47,7 @@
     "lint": "eslint && format-message lint -e customrules -c .format-message-lint.json src/**/*.js && prettier --check .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "generate:ruby-icon": "node scripts/generate-ruby-icon-uri.js",
     "prepublish": "in-publish && npm run build || not-in-publish",
     "start": "webpack serve",
     "tap": "tap './test/unit/*.js' './test/integration/*.js' './test/integration/**/*.js'",
