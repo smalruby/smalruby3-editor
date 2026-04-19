@@ -59,11 +59,13 @@ const clickCodeTab = d => d.executeScript(`document.querySelector('[role="tab"]'
 
 /**
  * Load the editor in Ruby mode (not DNCL), clearing any localStorage state.
+ * Uses locale=ja because furigana/DNCL modes are only available in Japanese locales.
  * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
  */
 const loadInRubyMode = async d => {
     // Use rubyMode=ruby to ensure we start in Ruby mode, regardless of localStorage
-    await loadUri(`${uri}?rubyMode=ruby`);
+    // locale=ja is required because DNCL mode is hidden for non-Japanese locales
+    await loadUri(`${uri}?rubyMode=ruby&locale=ja`);
     await clickText('Ruby', '*[@role="tab"]');
 };
 
@@ -132,7 +134,7 @@ describe('DNCL mode validation on switch', () => {
     });
 
     test('DNCL to Ruby switch is not affected', async () => {
-        await loadUri(`${uri}?rubyMode=dncl`);
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja`);
         await clickText('Ruby', '*[@role="tab"]');
         await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
 
@@ -142,7 +144,7 @@ describe('DNCL mode validation on switch', () => {
 
     test('DNCL to Ruby switch restores block palette and extension button on Code tab', async () => {
         // Start in DNCL mode
-        await loadUri(`${uri}?rubyMode=dncl`);
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja`);
         await clickText('Ruby', '*[@role="tab"]');
         await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
 
@@ -176,7 +178,7 @@ describe('DNCL mode validation on switch', () => {
 
     test('DNCL to furigana switch restores block palette on Code tab', async () => {
         // Start in DNCL mode
-        await loadUri(`${uri}?rubyMode=dncl`);
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja`);
         await clickText('Ruby', '*[@role="tab"]');
         await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
 
