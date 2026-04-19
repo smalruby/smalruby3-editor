@@ -55,18 +55,11 @@ export default function (Generator) {
     Generator.smalrubyRuby_arrayMethod = generateMethodCall;
     Generator.smalrubyRuby_hashMethod = generateMethodCall;
 
-    // --- Array method with block (CONDITIONAL, C-shape) ---
-    Generator.smalrubyRuby_arrayMethodWithBlock = function (block) {
-        const order = Generator.ORDER_FUNCTION_CALL;
-        const receiver =
-            Generator.valueToCode(block, 'RECEIVER', order) ||
-            Generator.quote_('');
-        const method = Generator.getFieldValue(block, 'METHOD') || 'each';
-        let branch = Generator.statementToCode(block, 'SUBSTACK') || '';
-
-        // Resolve block parameter names from comment
+    // --- Helper: resolve block parameter names from comment ---
+    const resolveBlockParams = function (block, branch) {
         const comment = Generator.getCommentText(block);
         let paramStr = '';
+        let resolvedBranch = branch;
         if (comment) {
             const paramMatches = comment.match(
                 /@ruby:block_param:(\d+):(\S+)/g,
@@ -76,8 +69,7 @@ export default function (Generator) {
                     const [, idx, name] = m.match(
                         /@ruby:block_param:(\d+):(\S+)/,
                     );
-                    // Replace placeholder with original name in body
-                    branch = branch.replace(
+                    resolvedBranch = resolvedBranch.replace(
                         new RegExp(`_bp_${idx}_`, 'g'),
                         name,
                     );
@@ -86,9 +78,34 @@ export default function (Generator) {
                 paramStr = ` |${params.join(', ')}|`;
             }
         }
+        return { paramStr, branch: resolvedBranch };
+    };
+
+    // --- Array method with block (CONDITIONAL, C-shape) ---
+    Generator.smalrubyRuby_arrayMethodWithBlock = function (block) {
+        const order = Generator.ORDER_FUNCTION_CALL;
+        const receiver =
+            Generator.valueToCode(block, 'RECEIVER', order) ||
+            Generator.quote_('');
+        const method = Generator.getFieldValue(block, 'METHOD') || 'each';
+        const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+        const resolved = resolveBlockParams(block, branch);
 
         block.isStatement = true;
-        return `${receiver}.${method} do${paramStr}\n${branch}`;
+        return `${receiver}.${method} do${resolved.paramStr}\n${resolved.branch}`;
+    };
+
+    // --- Number method with block (CONDITIONAL, C-shape) ---
+    Generator.smalrubyRuby_numberMethodWithBlock = function (block) {
+        const receiver =
+            Generator.valueToCode(block, 'RECEIVER', Generator.ORDER_ATOMIC) ||
+            '0';
+        const method = Generator.getFieldValue(block, 'METHOD') || 'times';
+        const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+        const resolved = resolveBlockParams(block, branch);
+
+        block.isStatement = true;
+        return `${receiver}.${method} do${resolved.paramStr}\n${resolved.branch}`;
     };
 
     // --- Block parameter (REPORTER) ---

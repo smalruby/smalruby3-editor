@@ -19,6 +19,7 @@ const {
     executeArrayMethod,
     executeHashMethod,
     executeArrayMethodWithBlock,
+    executeNumberMethodWithBlock,
 } = require('./method-executors');
 
 /**
@@ -168,6 +169,28 @@ class SmalrubyRubyBlocks {
                         },
                     },
                 },
+                // --- Number method with block (CONDITIONAL, C-shape) ---
+                {
+                    opcode: 'numberMethodWithBlock',
+                    text: formatMessage({
+                        id: 'smalrubyRuby.numberMethodWithBlock',
+                        default: 'Number [RECEIVER] . [METHOD] do',
+                        description:
+                            'Number method call with block (C-shape)',
+                    }),
+                    blockType: BlockType.CONDITIONAL,
+                    arguments: {
+                        RECEIVER: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 5,
+                        },
+                        METHOD: {
+                            type: ArgumentType.STRING,
+                            menu: 'numberMethodWithBlockMenu',
+                            defaultValue: 'times',
+                        },
+                    },
+                },
                 // --- Block parameter (REPORTER) ---
                 {
                     opcode: 'blockParam',
@@ -275,6 +298,10 @@ class SmalrubyRubyBlocks {
 
     arrayMethodWithBlock(args, util) {
         executeArrayMethodWithBlock(args, util, this._setReturnValue);
+    }
+
+    numberMethodWithBlock(args, util) {
+        executeNumberMethodWithBlock(args, util, this._setReturnValue);
     }
 
     blockParam(args, util) {

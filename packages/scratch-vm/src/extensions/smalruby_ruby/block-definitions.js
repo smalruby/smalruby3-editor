@@ -437,6 +437,10 @@ const menus = {
         acceptReporters: false,
         items: [{ text: 'each', value: 'each' }],
     },
+    numberMethodWithBlockMenu: {
+        acceptReporters: false,
+        items: [{ text: 'times', value: 'times' }],
+    },
     blockParamMenu: {
         acceptReporters: false,
         items: [
