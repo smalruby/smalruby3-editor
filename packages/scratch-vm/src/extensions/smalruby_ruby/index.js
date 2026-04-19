@@ -1,26 +1,19 @@
-const ArgumentType = require('../../extension-support/argument-type');
-const BlockType = require('../../extension-support/block-type');
 const formatMessage = require('format-message');
 const Variable = require('../../engine/variable');
 const translations = require('./translations.json');
 
-const {
-    stringMethodArgumentsByMethod,
-    stringMethodMenuItems,
-    arrayMethodArgumentsByMethod,
-    arrayMethodMenuItems,
-    hashMethodArgumentsByMethod,
-    hashMethodMenuItems,
-    menus,
-} = require('./block-definitions');
+const { getBlocks, menus } = require('./block-definitions');
 
 const {
     executeStringMethod,
     executeArrayMethod,
     executeHashMethod,
+} = require('./method-executors');
+
+const {
     executeArrayMethodWithBlock,
     executeNumberMethodWithBlock,
-} = require('./method-executors');
+} = require('./block-method-executors');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -68,173 +61,7 @@ class SmalrubyRubyBlocks {
                 description: 'Label for the ruby extension category',
             }),
             blockIconURI: blockIconURI,
-            blocks: [
-                // --- String method (COMMAND, isDynamic) ---
-                {
-                    opcode: 'stringMethod',
-                    text: formatMessage({
-                        id: 'smalrubyRuby.stringMethod',
-                        default: 'String [RECEIVER] . [METHOD]',
-                        description: 'String method call',
-                    }),
-                    blockType: BlockType.COMMAND,
-                    isDynamic: true,
-                    arguments: {
-                        RECEIVER: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'hello',
-                        },
-                        METHOD: {
-                            type: ArgumentType.STRING,
-                            menu: 'stringMethodMenu',
-                            defaultValue: 'reverse',
-                        },
-                    },
-                    argumentsByMethod: stringMethodArgumentsByMethod,
-                    menuItems: {
-                        stringMethodMenu: stringMethodMenuItems,
-                    },
-                },
-                // --- Array method (COMMAND, isDynamic) ---
-                {
-                    opcode: 'arrayMethod',
-                    text: formatMessage({
-                        id: 'smalrubyRuby.arrayMethod',
-                        default: 'Array [RECEIVER] . [METHOD]',
-                        description: 'Array method call',
-                    }),
-                    blockType: BlockType.COMMAND,
-                    isDynamic: true,
-                    arguments: {
-                        RECEIVER: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'list',
-                        },
-                        METHOD: {
-                            type: ArgumentType.STRING,
-                            menu: 'arrayMethodMenu',
-                            defaultValue: 'max',
-                        },
-                    },
-                    argumentsByMethod: arrayMethodArgumentsByMethod,
-                    menuItems: {
-                        arrayMethodMenu: arrayMethodMenuItems,
-                    },
-                },
-                // --- Hash method (COMMAND, isDynamic) ---
-                {
-                    opcode: 'hashMethod',
-                    text: formatMessage({
-                        id: 'smalrubyRuby.hashMethod',
-                        default: 'Hash [RECEIVER] . [METHOD]',
-                        description: 'Hash method call',
-                    }),
-                    blockType: BlockType.COMMAND,
-                    isDynamic: true,
-                    arguments: {
-                        RECEIVER: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'hash',
-                        },
-                        METHOD: {
-                            type: ArgumentType.STRING,
-                            menu: 'hashMethodMenu',
-                            defaultValue: 'keys',
-                        },
-                    },
-                    argumentsByMethod: hashMethodArgumentsByMethod,
-                    menuItems: {
-                        hashMethodMenu: hashMethodMenuItems,
-                    },
-                },
-                // --- Array method with block (CONDITIONAL, C-shape) ---
-                {
-                    opcode: 'arrayMethodWithBlock',
-                    text: formatMessage({
-                        id: 'smalrubyRuby.arrayMethodWithBlock',
-                        default: 'Array [RECEIVER] . [METHOD] do',
-                        description:
-                            'Array method call with block (C-shape)',
-                    }),
-                    blockType: BlockType.CONDITIONAL,
-                    arguments: {
-                        RECEIVER: {
-                            type: ArgumentType.STRING,
-                            defaultValue: '',
-                        },
-                        METHOD: {
-                            type: ArgumentType.STRING,
-                            menu: 'arrayMethodWithBlockMenu',
-                            defaultValue: 'each',
-                        },
-                    },
-                },
-                // --- Number method with block (CONDITIONAL, C-shape) ---
-                {
-                    opcode: 'numberMethodWithBlock',
-                    text: formatMessage({
-                        id: 'smalrubyRuby.numberMethodWithBlock',
-                        default: 'Number [RECEIVER] . [METHOD] do',
-                        description:
-                            'Number method call with block (C-shape)',
-                    }),
-                    blockType: BlockType.CONDITIONAL,
-                    arguments: {
-                        RECEIVER: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 5,
-                        },
-                        METHOD: {
-                            type: ArgumentType.STRING,
-                            menu: 'numberMethodWithBlockMenu',
-                            defaultValue: 'times',
-                        },
-                    },
-                },
-                // --- Block parameter (REPORTER) ---
-                {
-                    opcode: 'blockParam',
-                    text: formatMessage({
-                        id: 'smalrubyRuby.blockParam',
-                        default: 'block param [PARAM]',
-                        description:
-                            'Block parameter for block-accepting methods (each, times, etc.)',
-                    }),
-                    blockType: BlockType.REPORTER,
-                    disableMonitor: true,
-                    arguments: {
-                        PARAM: {
-                            type: ArgumentType.STRING,
-                            menu: 'blockParamMenu',
-                            defaultValue: '_1',
-                        },
-                    },
-                },
-                // --- Return value (REPORTER) ---
-                {
-                    opcode: 'returnValue',
-                    text: formatMessage({
-                        id: 'smalrubyRuby.returnValue',
-                        default: 'return value',
-                        description:
-                            'Return value of the last Ruby method call',
-                    }),
-                    blockType: BlockType.REPORTER,
-                    disableMonitor: true,
-                },
-                // --- Return value truthy? (BOOLEAN) ---
-                {
-                    opcode: 'returnValueTruthy',
-                    text: formatMessage({
-                        id: 'smalrubyRuby.returnValueTruthy',
-                        default: 'return value truthy?',
-                        description:
-                            'Whether the return value is truthy (Ruby semantics: nil/false are falsy)',
-                    }),
-                    blockType: BlockType.BOOLEAN,
-                    disableMonitor: true,
-                },
-            ],
+            blocks: getBlocks(),
             menus: menus,
             translationMap: translations,
         };
@@ -282,7 +109,18 @@ class SmalrubyRubyBlocks {
         return true;
     }
 
-    // --- Method execution blocks ---
+    // --- Block parameter ---
+
+    blockParam(args, util) {
+        const param = args.PARAM || '_1';
+        const params = util.thread._smalrubyBlockParams;
+        if (params && params[param] !== undefined) {
+            return params[param];
+        }
+        return '';
+    }
+
+    // --- Method execution blocks (per class) ---
 
     stringMethod(args, util) {
         executeStringMethod(args, util, this._setReturnValue);
@@ -302,15 +140,6 @@ class SmalrubyRubyBlocks {
 
     numberMethodWithBlock(args, util) {
         executeNumberMethodWithBlock(args, util, this._setReturnValue);
-    }
-
-    blockParam(args, util) {
-        const param = args.PARAM || '_1';
-        const params = util.thread._smalrubyBlockParams;
-        if (params && params[param] !== undefined) {
-            return params[param];
-        }
-        return '';
     }
 
     // --- Variable names menu ---
