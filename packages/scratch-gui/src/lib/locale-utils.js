@@ -27,7 +27,19 @@ const isWideLocale = locale => (
     wideLocales.indexOf(locale) !== -1
 );
 
+// === Smalruby: Start of Japanese locale check ===
+/**
+ * Check whether the given locale is a Japanese locale.
+ * Furigana and DNCL modes are only available in Japanese locales.
+ * @param {string} locale - The locale string (e.g. 'ja', 'ja-Hira', 'en').
+ * @returns {boolean} True if the locale is Japanese.
+ */
+const isJapaneseLocale = locale =>
+    locale === 'ja' || locale === 'ja-Hira';
+// === Smalruby: End of Japanese locale check ===
+
 export {
     wideLocales,
-    isWideLocale
+    isWideLocale,
+    isJapaneseLocale
 };
