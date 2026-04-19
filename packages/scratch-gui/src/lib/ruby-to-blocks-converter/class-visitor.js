@@ -95,6 +95,37 @@ const ClassVisitor = {
         ];
         const ATTR_ORDER = isStageClass ? STAGE_ATTR_ORDER : SPRITE_ATTR_ORDER;
 
+        // Pre-scan class body for attr_accessor/attr_reader/attr_writer
+        // { varName: 'accessor' | 'reader' | 'writer' }
+        const attrAccessors = {};
+        const attrStatements = new Set();
+        if (node.body && node.body.body) {
+            for (const stmt of node.body.body) {
+                if (this._getNodeTypeName(stmt) === 'CallNode' &&
+                    !stmt.receiver &&
+                    (stmt.name === 'attr_accessor' ||
+                     stmt.name === 'attr_reader' ||
+                     stmt.name === 'attr_writer') &&
+                    stmt.arguments_ &&
+                    stmt.arguments_.arguments_.length >= 1) {
+
+                    const kind = stmt.name.replace('attr_', '');
+                    for (const argNode of stmt.arguments_.arguments_) {
+                        if (this._getNodeTypeName(argNode) === 'SymbolNode') {
+                            const unescaped = argNode.unescaped;
+                            const symName = typeof unescaped === 'object' ? unescaped.value : unescaped;
+                            attrAccessors[symName] = kind;
+                            // Create instance variable
+                            this._lookupOrCreateVariable(`@${symName}`);
+                        }
+                    }
+                    attrStatements.add(stmt);
+                }
+            }
+        }
+        // Store attr info in context for getter/setter resolution
+        this._context.attrAccessors = attrAccessors;
+
         // Pre-scan class body for set_xxx calls
         const classInfo = {};
         const setMethodNames = new Set();
@@ -299,6 +330,17 @@ const ClassVisitor = {
                 }
             });
         }
+        // Add attr_accessor/reader/writer parts
+        const attrByKind = { accessor: [], reader: [], writer: [] };
+        for (const [name, kind] of Object.entries(attrAccessors)) {
+            attrByKind[kind].push(name);
+        }
+        for (const [kind, names] of Object.entries(attrByKind)) {
+            if (names.length > 0) {
+                commentParts.push(`attr_${kind}=${names.join('+')}`);
+            }
+        }
+
         // Add include= parts for each included module (in order)
         includedModuleNames.forEach(moduleName => {
             commentParts.push(`include=${moduleName}`);
@@ -383,6 +425,10 @@ const ClassVisitor = {
                 }
                 // Filter out include statements (already processed above)
                 if (includeStatements.has(stmt)) {
+                    return false;
+                }
+                // Filter out attr_accessor/reader/writer (processed in pre-scan)
+                if (attrStatements.has(stmt)) {
                     return false;
                 }
                 // Filter out def initialize (already processed above)

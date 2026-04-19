@@ -141,6 +141,37 @@ export default function (Generator) {
             includeCode = includeNames.map(name => `${this.INDENT}include ${name}\n`).join('');
         }
 
+        // Generate attr_accessor/reader/writer statements
+        let attrAccessorCode = '';
+        const attrLines = [];
+        for (let i = allowedAttributes.length - 1; i >= 0; i--) {
+            const attrMatch = allowedAttributes[i].match(/^attr_(accessor|reader|writer)=(.+)$/);
+            if (attrMatch) {
+                const kind = attrMatch[1];
+                const names = attrMatch[2].split('+');
+                const syms = names.map(n => `:${n}`).join(', ');
+                attrLines.push(`attr_${kind} ${syms}`);
+                allowedAttributes.splice(i, 1);
+            }
+        }
+        if (attrLines.length > 0) {
+            attrAccessorCode = attrLines
+                .map(line => `${this.INDENT}${line}\n`)
+                .join('');
+        }
+
+        // Store attr accessor info for variable name resolution
+        this._attrAccessorNames = new Set();
+        for (const line of attrLines) {
+            const match = line.match(/^attr_(?:accessor|reader|writer)\s+(.+)$/);
+            if (match) {
+                match[1].split(',').forEach(s => {
+                    const name = s.trim().replace(/^:/, '');
+                    this._attrAccessorNames.add(name);
+                });
+            }
+        }
+
         let outsideCode = '';
         if (forFileOutput && code.length > 0) {
             // Split code into top-level sections (separated by blank lines)
@@ -178,7 +209,7 @@ export default function (Generator) {
             code = this.prefixLines(code, this.INDENT);
         }
         // Build the inner class content with separators
-        const innerParts = [setCode, initCode, includeCode, code].filter(p => p.length > 0);
+        const innerParts = [setCode, initCode, includeCode, attrAccessorCode, code].filter(p => p.length > 0);
         const innerCode = innerParts.join('\n');
         let inheritance = '';
         if (superclassPath) {
@@ -253,6 +284,9 @@ export default function (Generator) {
             // Skip internal variables
             if (RETURN_PATTERN.test(variable.name)) continue;
             if (LOCAL_PATTERN.test(variable.name)) continue;
+
+            // Skip attr_accessor variables (managed by accessor, not initialize)
+            if (this._attrAccessorNames && this._attrAccessorNames.has(variable.name)) continue;
 
             const isList = variable.type === 'list';
             let valueCode;

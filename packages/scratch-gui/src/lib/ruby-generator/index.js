@@ -136,6 +136,28 @@ RubyGenerator.init = function (options) {
     } else {
         this.variableDB_ = new Blockly.Names(RubyGenerator.RESERVED_WORDS_);
     }
+
+    // === Smalruby: Start of attr_accessor early detection ===
+    // Parse attr_accessor names from @ruby:class comment before code generation
+    // so that data_variable and data_setvariableto can output accessor syntax.
+    this._attrAccessorNames = new Set();
+    if (this.currentTarget_) {
+        const commentTexts = this.cache_.targetCommentTexts || [];
+        for (const text of commentTexts) {
+            if (text && text.startsWith('@ruby:class:')) {
+                const parts = text.slice('@ruby:class:'.length).split(',');
+                for (const part of parts) {
+                    const match = part.match(/^attr_(?:accessor|reader|writer)=(.+)$/);
+                    if (match) {
+                        match[1].split('+').forEach(name => {
+                            this._attrAccessorNames.add(name);
+                        });
+                    }
+                }
+            }
+        }
+    }
+    // === Smalruby: End of attr_accessor early detection ===
 };
 
 RubyGenerator.spriteName = function () {

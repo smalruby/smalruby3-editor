@@ -34,6 +34,15 @@ export default function (Generator) {
                 variable = `@${variable}`;
             }
         }
+        // === Smalruby: Start of attr_accessor getter ===
+        // If the variable is an instance variable with a known accessor, output without @
+        if (variable.startsWith('@') && Generator._attrAccessorNames) {
+            const baseName = variable.slice(1);
+            if (Generator._attrAccessorNames.has(baseName)) {
+                return [baseName, Generator.ORDER_ATOMIC];
+            }
+        }
+        // === Smalruby: End of attr_accessor getter ===
         return [variable, Generator.ORDER_ATOMIC];
     };
 
@@ -148,6 +157,14 @@ export default function (Generator) {
         }
 
         const value = Generator.valueToCode(block, 'VALUE', Generator.ORDER_NONE) || '0';
+        // === Smalruby: Start of attr_accessor setter ===
+        if (variable.startsWith('@') && Generator._attrAccessorNames) {
+            const baseName = variable.slice(1);
+            if (Generator._attrAccessorNames.has(baseName)) {
+                return `self.${baseName} = ${Generator.nosToCode(value)}\n`;
+            }
+        }
+        // === Smalruby: End of attr_accessor setter ===
         return `${variable} = ${Generator.nosToCode(value)}\n`;
     };
 
