@@ -943,8 +943,14 @@ const RubyTab = props => {
         loadMonacoLocale(locale);
     }, [locale]);
 
-    // Force Ruby mode when switching to a non-Japanese locale
+    // Force Ruby mode when switching to a non-Japanese locale.
+    // Skip the initial render — initial state is already set correctly by useState.
+    const localeInitRef = useRef(false);
     useEffect(() => {
+        if (!localeInitRef.current) {
+            localeInitRef.current = true;
+            return;
+        }
         if (isJapaneseLocale(locale)) {
             // Restore saved preferences when switching back to Japanese
             setFuriganaEnabled(loadBool(FURIGANA_ENABLED_KEY, true));
