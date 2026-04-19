@@ -67,8 +67,8 @@ describe('Ruby tab furigana zoom follow', () => {
 
     test('furigana zones persist with correct labels after zoom in', async () => {
         // locale=ja is required because furigana mode is only available in Japanese locales
-        await loadUri(`${uri}?locale=ja`);
-        await clickText('Ruby', '*[@role="tab"]');
+        // tab=ruby to open Ruby tab directly (avoids locale-dependent tab label)
+        await loadUri(`${uri}?locale=ja&tab=ruby`);
         await fillInRubyProgram('x = 10\nputs(x)');
 
         // Wait for furigana to render
