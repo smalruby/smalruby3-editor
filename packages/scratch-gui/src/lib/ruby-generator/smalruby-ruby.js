@@ -62,9 +62,40 @@ export default function (Generator) {
             Generator.valueToCode(block, 'RECEIVER', order) ||
             Generator.quote_('');
         const method = Generator.getFieldValue(block, 'METHOD') || 'each';
-        const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+        let branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+
+        // Resolve block parameter names from comment
+        const comment = Generator.getCommentText(block);
+        let paramStr = '';
+        if (comment) {
+            const paramMatches = comment.match(
+                /@ruby:block_param:(\d+):(\S+)/g,
+            );
+            if (paramMatches) {
+                const params = paramMatches.map(m => {
+                    const [, idx, name] = m.match(
+                        /@ruby:block_param:(\d+):(\S+)/,
+                    );
+                    // Replace placeholder with original name in body
+                    branch = branch.replace(
+                        new RegExp(`_bp_${idx}_`, 'g'),
+                        name,
+                    );
+                    return name;
+                });
+                paramStr = ` |${params.join(', ')}|`;
+            }
+        }
+
         block.isStatement = true;
-        return `${receiver}.${method} do\n${branch}`;
+        return `${receiver}.${method} do${paramStr}\n${branch}`;
+    };
+
+    // --- Block parameter (REPORTER) ---
+    Generator.smalrubyRuby_blockParam = function (block) {
+        const param = Generator.getFieldValue(block, 'PARAM') || '_1';
+        const idx = param.replace('_', '');
+        return [`_bp_${idx}_`, Generator.ORDER_ATOMIC];
     };
 
     // --- Return value (REPORTER) ---

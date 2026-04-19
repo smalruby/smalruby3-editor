@@ -367,6 +367,23 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         );
     });
 
+    test('Array#each with block parameter', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              ticket = [35, 12, 47]
+              ticket.each do |item|
+                say(item, 1)
+              end
+            end
+        `,
+            null,
+            opts,
+        );
+    });
+
     // TODO: 2 ** 8 (non-10 base) is not yet supported as a block
     // Only 10 ** n and Math::E ** n are supported via operator_mathop
 

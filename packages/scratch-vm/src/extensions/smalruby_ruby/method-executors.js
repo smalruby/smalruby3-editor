@@ -237,7 +237,13 @@ const executeArrayMethodWithBlock = (args, util, setReturnValue) => {
                 util.stackFrame.index = 0;
             }
             if (util.stackFrame.index < items.length) {
-                setReturnValue(util, items[util.stackFrame.index]);
+                const value = items[util.stackFrame.index];
+                setReturnValue(util, value);
+                // Set block params for blockParam REPORTER
+                if (!util.thread._smalrubyBlockParams) {
+                    util.thread._smalrubyBlockParams = {};
+                }
+                util.thread._smalrubyBlockParams._1 = value;
                 util.stackFrame.index++;
                 util.startBranch(1, true);
             }

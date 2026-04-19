@@ -5,6 +5,7 @@
         "smalrubyRuby.arrayMethod": "配列 [RECEIVER] . [METHOD]",
         "smalrubyRuby.hashMethod": "ハッシュ [RECEIVER] . [METHOD]",
         "smalrubyRuby.arrayMethodWithBlock": "配列 [RECEIVER] . [METHOD] do",
+        "smalrubyRuby.blockParam": "ブロックパラメーター [PARAM]",
         "smalrubyRuby.returnValue": "戻り値",
         "smalrubyRuby.returnValueTruthy": "戻り値が真?"
     },
@@ -14,6 +15,7 @@
         "smalrubyRuby.arrayMethod": "はいれつ [RECEIVER] . [METHOD]",
         "smalrubyRuby.hashMethod": "はっしゅ [RECEIVER] . [METHOD]",
         "smalrubyRuby.arrayMethodWithBlock": "はいれつ [RECEIVER] . [METHOD] do",
+        "smalrubyRuby.blockParam": "ぶろっくぱらめーたー [PARAM]",
         "smalrubyRuby.returnValue": "もどりち",
         "smalrubyRuby.returnValueTruthy": "もどりちがしん?"
     }

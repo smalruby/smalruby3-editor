@@ -168,6 +168,25 @@ class SmalrubyRubyBlocks {
                         },
                     },
                 },
+                // --- Block parameter (REPORTER) ---
+                {
+                    opcode: 'blockParam',
+                    text: formatMessage({
+                        id: 'smalrubyRuby.blockParam',
+                        default: 'block param [PARAM]',
+                        description:
+                            'Block parameter for block-accepting methods (each, times, etc.)',
+                    }),
+                    blockType: BlockType.REPORTER,
+                    disableMonitor: true,
+                    arguments: {
+                        PARAM: {
+                            type: ArgumentType.STRING,
+                            menu: 'blockParamMenu',
+                            defaultValue: '_1',
+                        },
+                    },
+                },
                 // --- Return value (REPORTER) ---
                 {
                     opcode: 'returnValue',
@@ -256,6 +275,15 @@ class SmalrubyRubyBlocks {
 
     arrayMethodWithBlock(args, util) {
         executeArrayMethodWithBlock(args, util, this._setReturnValue);
+    }
+
+    blockParam(args, util) {
+        const param = args.PARAM || '_1';
+        const params = util.thread._smalrubyBlockParams;
+        if (params && params[param] !== undefined) {
+            return params[param];
+        }
+        return '';
     }
 
     // --- Variable names menu ---
