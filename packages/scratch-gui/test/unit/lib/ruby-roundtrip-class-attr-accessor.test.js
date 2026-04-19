@@ -1,10 +1,6 @@
 import dedent from 'dedent';
 import RubyGenerator from '../../../src/lib/ruby-generator';
-import {
-    makeSpriteTarget,
-    makeConverter,
-    setupRubyGenerator,
-} from '../helpers/ruby-roundtrip-helper';
+import { makeSpriteTarget, makeConverter, setupRubyGenerator } from '../helpers/ruby-roundtrip-helper';
 
 /**
  * Round trip: Ruby → Blocks → apply → Ruby (version 2, class syntax with attr_accessor)
