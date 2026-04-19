@@ -17,6 +17,7 @@ import { rubyToDncl } from '../lib/dncl/ruby-to-dncl';
 import FuriganaAnnotator from '../lib/furigana-annotator';
 import { wrapCurrentCodeWithClass } from '../lib/insert-class';
 import intlShape from '../lib/intlShape.js';
+import { isJapaneseLocale } from '../lib/locale-utils';
 import { syncModules } from '../lib/module-sync';
 import { loadMonacoLocale } from '../lib/monaco-i18n-helper';
 import { getPrism, loadPrism } from '../lib/prism-parser';
@@ -130,6 +131,7 @@ const RubyTab = props => {
     const [canUndo, setCanUndo] = useState(false);
     const [canRedo, setCanRedo] = useState(false);
     const [furiganaEnabled, setFuriganaEnabled] = useState(() => {
+        if (!isJapaneseLocale(locale)) return false;
         const urlRubyMode = getUrlParams().rubyMode;
         if (urlRubyMode === 'furigana') return true;
         if (urlRubyMode === 'ruby' || urlRubyMode === 'dncl') return false;
@@ -142,6 +144,7 @@ const RubyTab = props => {
     const [previewCode, setPreviewCode] = useState('');
     const [dnclValidating, setDnclValidating] = useState(false);
     const [dnclMode, setDnclMode] = useState(() => {
+        if (!isJapaneseLocale(locale)) return false;
         const urlRubyMode = getUrlParams().rubyMode;
         if (urlRubyMode === 'dncl') return true;
         if (urlRubyMode === 'furigana' || urlRubyMode === 'ruby') return false;
@@ -940,6 +943,35 @@ const RubyTab = props => {
         loadMonacoLocale(locale);
     }, [locale]);
 
+    // Force Ruby mode when switching to a non-Japanese locale.
+    // Skip the initial render — initial state is already set correctly by useState.
+    const localeInitRef = useRef(false);
+    useEffect(() => {
+        if (!localeInitRef.current) {
+            localeInitRef.current = true;
+            return;
+        }
+        if (isJapaneseLocale(locale)) {
+            // Restore saved preferences when switching back to Japanese
+            setFuriganaEnabled(loadBool(FURIGANA_ENABLED_KEY, true));
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const savedDncl = window.localStorage.getItem(DNCL_MODE_KEY) === 'true';
+                if (savedDncl !== dnclMode) {
+                    setDnclMode(savedDncl);
+                    onSetDnclMode(savedDncl);
+                }
+            }
+        } else {
+            // Non-Japanese locale: force Ruby mode without updating localStorage
+            if (furiganaEnabled) {
+                setFuriganaEnabled(false);
+            }
+            if (dnclMode) {
+                handleToggleDnclMode();
+            }
+        }
+    }, [locale]);
+
     // Furigana toggle effect
     useEffect(() => {
         if (!editorRef.current || !monacoRef.current) return;
@@ -1147,6 +1179,7 @@ const RubyTab = props => {
                     dnclMode={dnclMode}
                     dnclValidating={dnclValidating}
                     onToggleDnclMode={handleToggleDnclMode}
+                    locale={locale}
                 />
                 <div className={styles.editorWrapper}>
                     <Editor
