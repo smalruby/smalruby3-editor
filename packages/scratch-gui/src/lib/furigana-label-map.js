@@ -40,6 +40,27 @@ const RECEIVER_METHOD_LABELS = {
     insert: '挿入する',
     index: '検索する',
     clear: '全削除する',
+    // Ruby extension methods (String/Array/Hash)
+    reverse: '逆にする',
+    upcase: '大文字にする',
+    downcase: '小文字にする',
+    gsub: '置き換える',
+    delete: '削除する',
+    lines: '行に分ける',
+    max: '最大値',
+    min: '最小値',
+    sort: '並べ替える',
+    first: '最初の要素',
+    last: '最後の要素',
+    join: '結合する',
+    keys: 'キー一覧',
+    values: '値一覧',
+    'empty?': '空か',
+    'reverse!': '逆にする!',
+    'sort!': '並べ替える!',
+    'delete!': '削除する!',
+    'gsub!': '置き換える!',
+    each: '繰り返す',
 };
 
 /**
@@ -49,6 +70,10 @@ const RECEIVER_METHOD_LABELS = {
 const TOPLEVEL_METHOD_LABELS = {
     // Module
     include: '取り込む',
+    // Class accessors
+    attr_accessor: 'アクセサ定義',
+    attr_reader: '読み取り定義',
+    attr_writer: '書き込み定義',
     // Standard I/O
     puts: '表示する',
     print: '表示する',
