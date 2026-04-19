@@ -1,6 +1,7 @@
 import {defineMessages} from 'react-intl';
 import _ from 'lodash';
 import {RubyToBlocksConverterError} from '../errors';
+import Primitive from '../primitive';
 import ExpressionsLiterals from './expressions-literals';
 
 const messages = defineMessages({
@@ -73,6 +74,46 @@ const ExpressionHandlers = {
             }
         }
         // === Smalruby: End of attr_accessor getter/setter resolution ===
+
+        // === Smalruby: Start of Array.new / Hash.new constructor ===
+        if (node.name === 'new' && node.receiver) {
+            const recvType = this._getNodeTypeName(node.receiver);
+            if (recvType === 'ConstantReadNode') {
+                const className = node.receiver.name;
+                const ctorArgs = node.arguments_ ? node.arguments_.arguments_ : [];
+
+                if (className === 'Array') {
+                    if (ctorArgs.length === 0) {
+                        return new Primitive('array', [], node);
+                    }
+                    if (ctorArgs.length <= 2) {
+                        const sizeNode = ctorArgs[0];
+                        const sizeType = this._getNodeTypeName(sizeNode);
+                        if (sizeType === 'IntegerNode') {
+                            const size = sizeNode.value;
+                            const fillVal = ctorArgs.length === 2
+                                ? this.visit(ctorArgs[1])
+                                : '';
+                            const items = Array.from({length: size}, () => fillVal);
+                            return new Primitive('array', items, node);
+                        }
+                    }
+                }
+
+                if (className === 'Hash') {
+                    if (ctorArgs.length === 0) {
+                        return new Primitive('hash', new Map(), node);
+                    }
+                    // Hash.new(default) → error
+                    throw new RubyToBlocksConverterError(
+                        node,
+                        `Hash.new(${this._getSource(ctorArgs[0])}) — ` +
+                        'ハッシュのデフォルト値には対応していません。{} を使ってください。'
+                    );
+                }
+            }
+        }
+        // === Smalruby: End of Array.new / Hash.new constructor ===
 
         const saved = this._saveContext();
 

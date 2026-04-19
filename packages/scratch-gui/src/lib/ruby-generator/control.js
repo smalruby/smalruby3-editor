@@ -311,6 +311,10 @@ export default function (Generator) {
     };
 
     Generator.control_create_clone_of = function (block) {
+        const comment = Generator.getCommentText(block);
+        if (comment && comment.includes('@ruby:method:clone')) {
+            return `clone\n`;
+        }
         const target = Generator.valueToCode(block, 'CLONE_OPTION', Generator.ORDER_NONE);
         return `create_clone(${target})\n`;
     };

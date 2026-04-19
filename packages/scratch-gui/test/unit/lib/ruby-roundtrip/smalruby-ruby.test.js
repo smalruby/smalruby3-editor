@@ -436,4 +436,66 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
             opts,
         );
     });
+
+    test('clone roundtrip', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              clone
+            end
+        `,
+            null,
+            opts,
+        );
+    });
+
+    test('self.clone converts to clone', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              self.clone
+            end
+        `,
+            dedent`
+            when_flag_clicked do
+              clone
+            end
+        `,
+            opts,
+        );
+    });
+
+    test('Hash.new(0) produces conversion error', async () => {
+        const code = dedent`
+            when_flag_clicked do
+              votes = Hash.new(0)
+            end
+        `;
+        const result = await converter.targetCodeToBlocks(target, code);
+        expect(result).toBeFalsy();
+        expect(converter.errors.length).toBeGreaterThan(0);
+        expect(converter.errors[0].text).toContain('デフォルト値');
+    });
+
+    test('Array.new(5, 0) expands to array literal', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              arr = Array.new(5, 0)
+            end
+        `,
+            dedent`
+            when_flag_clicked do
+              arr = [0, 0, 0, 0, 0]
+            end
+        `,
+            opts,
+        );
+    });
 });

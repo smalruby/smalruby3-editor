@@ -102,6 +102,22 @@ const ControlConverter = {
             return block;
         });
 
+        // clone / self.clone - control_create_clone_of("myself") with @ruby:method:clone
+        // Stage cannot be cloned
+        converter.registerOnSend('self', 'clone', 0, params => {
+            if (converter._context.target && converter._context.target.isStage) {
+                return null; // fall through to ruby_statement (Stage cannot clone)
+            }
+            const block = converter._createBlock('control_create_clone_of', 'statement');
+            const optionBlock = converter._createBlock('control_create_clone_of_menu', 'value', {
+                shadow: true
+            });
+            converter._addField(optionBlock, 'CLONE_OPTION', '_myself_');
+            converter._addInput(block, 'CLONE_OPTION', optionBlock, optionBlock);
+            block.comment = converter._createComment('@ruby:method:clone', block.id);
+            return block;
+        });
+
         // number.times (without block) - returns control_repeat for chaining with with_screen_refresh
         converter.registerOnSend('any', 'times', 0, params => {
             const {receiver} = params;
