@@ -418,8 +418,22 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         );
     });
 
-    // TODO: bare array literal roundtrip needs further work
-    // test('bare array literal', async () => {
-    //     await expectRoundTrip(converter, target, '[12, 47, 35]', null, opts);
-    // });
+    test('bare array literal', async () => {
+        await expectRoundTrip(converter, target, '[12, 47, 35]', null, opts);
+    });
+
+    test('array variable assignment and method', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              ticket = [35, 12, 47]
+              say(ticket.max, 2)
+            end
+        `,
+            null,
+            opts,
+        );
+    });
 });
