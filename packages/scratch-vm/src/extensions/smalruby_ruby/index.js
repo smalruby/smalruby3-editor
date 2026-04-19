@@ -19,6 +19,7 @@ const {
     executeArrayMethod,
     executeHashMethod,
     executeArrayMethodWithBlock,
+    executeNumberMethodWithBlock,
 } = require('./method-executors');
 
 /**
@@ -168,6 +169,47 @@ class SmalrubyRubyBlocks {
                         },
                     },
                 },
+                // --- Number method with block (CONDITIONAL, C-shape) ---
+                {
+                    opcode: 'numberMethodWithBlock',
+                    text: formatMessage({
+                        id: 'smalrubyRuby.numberMethodWithBlock',
+                        default: 'Number [RECEIVER] . [METHOD] do',
+                        description:
+                            'Number method call with block (C-shape)',
+                    }),
+                    blockType: BlockType.CONDITIONAL,
+                    arguments: {
+                        RECEIVER: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 5,
+                        },
+                        METHOD: {
+                            type: ArgumentType.STRING,
+                            menu: 'numberMethodWithBlockMenu',
+                            defaultValue: 'times',
+                        },
+                    },
+                },
+                // --- Block parameter (REPORTER) ---
+                {
+                    opcode: 'blockParam',
+                    text: formatMessage({
+                        id: 'smalrubyRuby.blockParam',
+                        default: 'block param [PARAM]',
+                        description:
+                            'Block parameter for block-accepting methods (each, times, etc.)',
+                    }),
+                    blockType: BlockType.REPORTER,
+                    disableMonitor: true,
+                    arguments: {
+                        PARAM: {
+                            type: ArgumentType.STRING,
+                            menu: 'blockParamMenu',
+                            defaultValue: '_1',
+                        },
+                    },
+                },
                 // --- Return value (REPORTER) ---
                 {
                     opcode: 'returnValue',
@@ -256,6 +298,19 @@ class SmalrubyRubyBlocks {
 
     arrayMethodWithBlock(args, util) {
         executeArrayMethodWithBlock(args, util, this._setReturnValue);
+    }
+
+    numberMethodWithBlock(args, util) {
+        executeNumberMethodWithBlock(args, util, this._setReturnValue);
+    }
+
+    blockParam(args, util) {
+        const param = args.PARAM || '_1';
+        const params = util.thread._smalrubyBlockParams;
+        if (params && params[param] !== undefined) {
+            return params[param];
+        }
+        return '';
     }
 
     // --- Variable names menu ---

@@ -237,7 +237,45 @@ const executeArrayMethodWithBlock = (args, util, setReturnValue) => {
                 util.stackFrame.index = 0;
             }
             if (util.stackFrame.index < items.length) {
-                setReturnValue(util, items[util.stackFrame.index]);
+                const value = items[util.stackFrame.index];
+                setReturnValue(util, value);
+                // Set block params for blockParam REPORTER
+                if (!util.thread._smalrubyBlockParams) {
+                    util.thread._smalrubyBlockParams = {};
+                }
+                util.thread._smalrubyBlockParams._1 = value;
+                util.stackFrame.index++;
+                util.startBranch(1, true);
+            }
+            break;
+        }
+        default:
+            break;
+    }
+};
+
+/**
+ * Execute a number method with block (C-shape).
+ * @param {object} args - Block arguments (RECEIVER, METHOD).
+ * @param {object} util - Block utility.
+ * @param {Function} setReturnValue - Callback to store the return value.
+ */
+const executeNumberMethodWithBlock = (args, util, setReturnValue) => {
+    const method = args.METHOD;
+
+    switch (method) {
+        case 'times': {
+            const times = Math.round(Number(args.RECEIVER) || 0);
+            if (typeof util.stackFrame.index === 'undefined') {
+                util.stackFrame.index = 0;
+            }
+            if (util.stackFrame.index < times) {
+                const value = util.stackFrame.index;
+                setReturnValue(util, value);
+                if (!util.thread._smalrubyBlockParams) {
+                    util.thread._smalrubyBlockParams = {};
+                }
+                util.thread._smalrubyBlockParams._1 = value;
                 util.stackFrame.index++;
                 util.startBranch(1, true);
             }
@@ -253,4 +291,5 @@ module.exports = {
     executeArrayMethod,
     executeHashMethod,
     executeArrayMethodWithBlock,
+    executeNumberMethodWithBlock,
 };
