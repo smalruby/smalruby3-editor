@@ -76,7 +76,7 @@ export function response(ctx) {
   } else {
     protocol = 'unknown';
   }
-  util.log.info({
+  console.log('joinGroup', {
     action: 'joinGroup',
     groupId: groupId,
     domain: domain,

@@ -107,7 +107,7 @@ export function response(ctx) {
 
   // 新規グループ作成時、プロトコル情報を CloudWatch に記録
   // 運用集計用 (CloudWatch Logs Insights で protocol 別に集計可能)
-  util.log.info({
+  console.log('createGroup', {
     action: 'createGroup',
     groupId: ctx.result.id,
     domain: ctx.result.domain,
