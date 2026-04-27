@@ -201,6 +201,29 @@ fields @message
   - `console.info()`, `console.warn()` は**サポート外**（"Invalid function" エラー）
 - WebSocket / unknown も prod で記録したい場合は `fieldLogLevel` を `INFO` または `ALL` に変更（CloudWatch 取り込み量とコストが大幅に増える点に注意）
 
+##### 集計時の注意点
+
+集計値を解釈する際、以下の挙動に注意:
+
+1. **`forcePolling` URL パラメータによる Polling は「フォールバック」ではない**
+   - クライアント側で `?force_polling=1` を指定すると `useWebSocket: false` が送信される（テスト用機能）
+   - サーバー側ではフォールバックと明示的選択を区別できないため、`fallback to Polling` ログメッセージは「protocol=Polling として接続した」と解釈する
+   - 通常の prod 運用では `force_polling` は使われないため、ほぼ「実際のフォールバック件数」と等しい
+2. **Polling 件数 ≠ Polling グループ数**
+   - Polling のグループでは host (createGroup) で 1 件 + 各 member (joinGroup) で 1 件ずつログが出る
+   - 5 メンバーグループが Polling の場合、合計 5 件 (createGroup x 1 + joinGroup x 4) のログが出る
+   - グループ単位で集計したい場合は `groupId` で `dedup` するか `count_distinct(groupId)` を使う:
+     ```
+     fields @message
+     | filter @message like /"protocol":"Polling"/
+     | parse @message /"groupId":"(?<groupId>[^"]+)"/
+     | stats count_distinct(groupId) as polling_groups
+     ```
+3. **`createGroup` の冪等性によるログ欠落**
+   - 同じ `hostId + domain` で `createGroup` を再呼び出ししても、既存グループ再利用時 (`ctx.stash.existingGroup`) はログされない
+   - そのため `createGroup` 件数 = host 接続試行回数ではなく **新規グループ作成回数**
+   - 接続試行回数を見たい場合は `joinGroup` ログを使う（host 自身は joinGroup を呼ばないため、host 数は別途カウントが必要）
+
 ---
 
 #### Lambda ログ

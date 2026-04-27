@@ -72,6 +72,9 @@ export function response(ctx) {
   // - WebSocket / unknown: 正常系。console.log で INFO レベル → stg のみで記録
   // (prod の fieldLogLevel は ERROR、stg は ALL のため)
   // useWebSocket 未送信 (旧クライアント) の場合は 'unknown' とする
+  // 注意: クライアントが ?force_polling=1 URL パラメータで明示的に Polling を
+  // 選択した場合も Polling ログが出る (フォールバックと明示選択を区別不可)。
+  // 集計時の解釈は docs/operations.md を参照
   let protocol;
   if (useWebSocket === true) {
     protocol = 'WebSocket';
