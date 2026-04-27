@@ -105,6 +105,16 @@ export function response(ctx) {
     };
   }
 
+  // 新規グループ作成時、プロトコル情報を CloudWatch に記録
+  // 運用集計用 (CloudWatch Logs Insights で protocol 別に集計可能)
+  util.log.info({
+    action: 'createGroup',
+    groupId: ctx.result.id,
+    domain: ctx.result.domain,
+    hostId: ctx.result.hostId,
+    protocol: ctx.result.useWebSocket ? 'WebSocket' : 'Polling'
+  });
+
   // 新規作成されたグループを返す
   return {
     id: ctx.result.id,

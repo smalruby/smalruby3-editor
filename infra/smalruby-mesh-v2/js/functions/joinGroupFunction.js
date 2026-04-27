@@ -63,8 +63,26 @@ export function response(ctx) {
 
   // TransactWriteItemsは個別のアイテムを返さないため、
   // リクエストパラメータからNode型を構築
-  const { groupId, domain, nodeId } = ctx.args;
+  const { groupId, domain, nodeId, useWebSocket } = ctx.args;
   const group = ctx.stash.group;
+
+  // プロトコル情報を CloudWatch に記録
+  // useWebSocket が未送信 (旧クライアント) の場合は 'unknown' とする
+  let protocol;
+  if (useWebSocket === true) {
+    protocol = 'WebSocket';
+  } else if (useWebSocket === false) {
+    protocol = 'Polling';
+  } else {
+    protocol = 'unknown';
+  }
+  util.log.info({
+    action: 'joinGroup',
+    groupId: groupId,
+    domain: domain,
+    nodeId: nodeId,
+    protocol: protocol
+  });
 
   return {
     id: nodeId,
