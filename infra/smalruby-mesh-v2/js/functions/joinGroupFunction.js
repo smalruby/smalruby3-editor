@@ -67,7 +67,11 @@ export function response(ctx) {
   const group = ctx.stash.group;
 
   // プロトコル情報を CloudWatch に記録
-  // useWebSocket が未送信 (旧クライアント) の場合は 'unknown' とする
+  // - Polling: WebSocket が使えなかった可能性が高い「警告」相当
+  //            console.error で ERROR レベルとして記録 → prod でも記録される
+  // - WebSocket / unknown: 正常系。console.log で INFO レベル → stg のみで記録
+  // (prod の fieldLogLevel は ERROR、stg は ALL のため)
+  // useWebSocket 未送信 (旧クライアント) の場合は 'unknown' とする
   let protocol;
   if (useWebSocket === true) {
     protocol = 'WebSocket';
@@ -76,13 +80,18 @@ export function response(ctx) {
   } else {
     protocol = 'unknown';
   }
-  console.log('joinGroup', {
+  const protocolLog = {
     action: 'joinGroup',
     groupId: groupId,
     domain: domain,
     nodeId: nodeId,
     protocol: protocol
-  });
+  };
+  if (protocol === 'Polling') {
+    console.error('joinGroup fallback to Polling', protocolLog);
+  } else {
+    console.log('joinGroup', protocolLog);
+  }
 
   return {
     id: nodeId,

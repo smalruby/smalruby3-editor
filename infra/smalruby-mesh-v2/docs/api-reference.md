@@ -375,9 +375,9 @@ mutation JoinGroup(
 
 **パラメータ**:
 - `useWebSocket: Boolean` (optional) - クライアントが WebSocket を使用しているかを示すフラグ。サーバー側で CloudWatch ログにプロトコル情報を記録するために使用される。
-  - `true`: WebSocket を使用
-  - `false`: HTTPS ポーリングを使用
-  - 省略 / `null`: 旧クライアント互換 — ログには `protocol: "unknown"` と記録される
+  - `true`: WebSocket を使用 → INFO レベルで記録（stg のみ）
+  - `false`: HTTPS ポーリングを使用 → ERROR レベルで記録（prod でも記録、フォールバック警告として扱う）
+  - 省略 / `null`: 旧クライアント互換 — ログには `protocol: "unknown"` と記録される（INFO レベル、stg のみ）
 
 サーバー側のリゾルバーロジック（Node 型の構築、TTL 設定など）には影響しない。詳細は `operations.md` の「プロトコルログ」セクションを参照。
 

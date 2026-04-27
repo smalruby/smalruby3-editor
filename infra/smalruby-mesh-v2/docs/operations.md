@@ -86,11 +86,25 @@ aws logs filter-log-events \
 - `js/functions/createGroupIfNotExists.js` - 新規グループ作成時のみ記録（既存グループ再利用時は記録しない）
 - `js/functions/joinGroupFunction.js` - 全ノード参加時に記録
 
+**ログレベル設計**:
+
+prod の AppSync `fieldLogLevel` は `ERROR` に固定（コスト最小化）。プロトコル別にログレベルを使い分けて、prod でも必要なログだけ取得する:
+
+| protocol | 想定される状況 | ログ関数 | ログレベル | prod 記録 | stg 記録 |
+|----------|----------------|----------|------------|-----------|----------|
+| `Polling` | WebSocket が使えずフォールバック（警告相当） | `console.error` | ERROR | ✅ | ✅ |
+| `WebSocket` | 正常（フォールバックなし） | `console.log` | INFO | ❌ | ✅ |
+| `unknown` | 旧クライアント（`joinGroup` のみ） | `console.log` | INFO | ❌ | ✅ |
+
+prod では Polling 件数 = 「WebSocket が使えなかった環境のクライアント数」として運用監視できる。
+
 **ログフォーマット**:
 
 ```
-INFO - code.js:NN:N: "createGroup" {"action":"createGroup","groupId":"...","domain":"...","hostId":"...","protocol":"WebSocket|Polling"}
-INFO - code.js:NN:N: "joinGroup" {"action":"joinGroup","groupId":"...","domain":"...","nodeId":"...","protocol":"WebSocket|Polling|unknown"}
+ERROR - code.js:NN:N: "createGroup fallback to Polling" {"action":"createGroup","groupId":"...","domain":"...","hostId":"...","protocol":"Polling"}
+ERROR - code.js:NN:N: "joinGroup fallback to Polling" {"action":"joinGroup","groupId":"...","domain":"...","nodeId":"...","protocol":"Polling"}
+INFO  - code.js:NN:N: "createGroup" {"action":"createGroup","groupId":"...","domain":"...","hostId":"...","protocol":"WebSocket"}
+INFO  - code.js:NN:N: "joinGroup" {"action":"joinGroup","groupId":"...","domain":"...","nodeId":"...","protocol":"WebSocket|unknown"}
 ```
 
 **`protocol` フィールドの値**:
@@ -98,24 +112,64 @@ INFO - code.js:NN:N: "joinGroup" {"action":"joinGroup","groupId":"...","domain":
 | 値 | 説明 |
 |----|------|
 | `WebSocket` | クライアントが `useWebSocket: true` を送信 |
-| `Polling` | クライアントが `useWebSocket: false` を送信 |
+| `Polling` | クライアントが `useWebSocket: false` を送信（WebSocket フォールバック想定） |
 | `unknown` | 旧クライアントが `useWebSocket` を送信していない（`joinGroup` のみ） |
 
 **ログ取得例**:
 
 ```bash
-# 直近 1 時間の protocol ログを取得
+# 直近 1 時間の Polling フォールバック件数（prod でも使える）
 aws logs filter-log-events \
   --log-group-name /aws/appsync/apis/xxx-xxx-xxx \
   --start-time $(($(date +%s) - 3600))000 \
-  --filter-pattern '"protocol"' \
+  --filter-pattern '"fallback to Polling"' \
+  --query 'events[].message' \
+  --output text
+
+# stg のみ: WebSocket / unknown を含む全プロトコルログ
+aws logs filter-log-events \
+  --log-group-name /aws/appsync/apis/xxx-xxx-xxx \
+  --start-time $(($(date +%s) - 3600))000 \
+  --filter-pattern 'protocol' \
   --query 'events[].message' \
   --output text
 ```
 
 ##### 集計クエリ（CloudWatch Logs Insights）
 
-**プロトコル別の集計**:
+**Polling フォールバック件数の集計（prod 用、最重要）**:
+
+```
+fields @message
+| filter @message like /"protocol":"Polling"/
+| parse @message /"action":"(?<action>[^"]+)"/
+| parse @message /"domain":"(?<domain>[^"]+)"/
+| stats count(*) as fallback_count by action
+| sort action
+```
+
+**期間別の Polling フォールバック推移（日次、prod 用）**:
+
+```
+fields @timestamp, @message
+| filter @message like /"protocol":"Polling"/
+| parse @message /"action":"(?<action>[^"]+)"/
+| stats count(*) as fallback_count by bin(1d), action
+| sort @timestamp desc
+```
+
+**ドメイン別の Polling フォールバック分布（どのネットワークが WebSocket をブロックしているか調査用）**:
+
+```
+fields @message
+| filter @message like /"protocol":"Polling"/
+| parse @message /"domain":"(?<domain>[^"]+)"/
+| stats count(*) as count by domain
+| sort count desc
+| limit 20
+```
+
+**プロトコル別の集計（stg のみ、全プロトコル）**:
 
 ```
 fields @message
@@ -126,7 +180,7 @@ fields @message
 | sort action, protocol
 ```
 
-集計結果例:
+集計結果例 (stg):
 
 | action | protocol | count |
 |--------|----------|-------|
@@ -136,47 +190,16 @@ fields @message
 | joinGroup | Polling | 2 |
 | joinGroup | unknown | 4 |
 
-**期間別の推移（日次）**:
-
-```
-fields @timestamp, @message
-| filter @message like /"action":"createGroup"/ or @message like /"action":"joinGroup"/
-| parse @message /"protocol":"(?<protocol>[^"]+)"/
-| stats count(*) as connections by bin(1d), protocol
-| sort @timestamp desc
-```
-
-**ドメイン別のプロトコル分布**:
-
-```
-fields @message
-| filter @message like /"action":"joinGroup"/
-| parse @message /"domain":"(?<domain>[^"]+)"/
-| parse @message /"protocol":"(?<protocol>[^"]+)"/
-| stats count(*) as count by domain, protocol
-| sort count desc
-| limit 20
-```
-
-**「unknown」プロトコル比率の確認（旧クライアント検出用）**:
-
-```
-fields @message
-| filter @message like /"action":"joinGroup"/
-| parse @message /"protocol":"(?<protocol>[^"]+)"/
-| stats count(*) as total, count(protocol="unknown") as unknown by bin(1h)
-| display @timestamp, total, unknown, unknown/total*100 as unknown_pct
-```
-
 **注意事項**:
 
-- AppSync のログレベル（`lib/mesh-v2-stack.ts` の `fieldLogLevel`）に依存する
-  - `stg`, `stg2`: `FieldLogLevel.ALL` → 記録される
-  - `prod`: `FieldLogLevel.ERROR` → INFO レベルのプロトコルログは**出力されない**
-- prod でもプロトコルログを記録したい場合は `fieldLogLevel` を `INFO` または `ALL` に変更（CloudWatch 取り込み量とコストが増える点に注意）
-  - `INFO`: リクエスト/レスポンスの詳細を含まないため、`ALL` より低コスト
-  - `ALL`: リクエスト/レスポンスの詳細も含む（デバッグ向け）
-- AppSync JS resolver では `util.log.info()` ではなく `console.log()` を使用すること（`util.log.info` は JS resolver ではサポート外）
+- prod の `fieldLogLevel` は `ERROR` のため、prod では **Polling のログのみ**が CloudWatch に記録される
+  - WebSocket・unknown のログは prod では記録されない（ログコスト削減のため意図的）
+  - stg は `fieldLogLevel: ALL` のため全プロトコルが記録される
+- AppSync JS resolver では以下の console 関数のみ利用可能:
+  - `console.log()` → INFO レベル
+  - `console.error()` → ERROR レベル
+  - `console.info()`, `console.warn()` は**サポート外**（"Invalid function" エラー）
+- WebSocket / unknown も prod で記録したい場合は `fieldLogLevel` を `INFO` または `ALL` に変更（CloudWatch 取り込み量とコストが大幅に増える点に注意）
 
 ---
 

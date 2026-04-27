@@ -106,14 +106,22 @@ export function response(ctx) {
   }
 
   // 新規グループ作成時、プロトコル情報を CloudWatch に記録
-  // 運用集計用 (CloudWatch Logs Insights で protocol 別に集計可能)
-  console.log('createGroup', {
+  // - Polling: WebSocket が使えなかった可能性が高い「警告」相当
+  //            console.error で ERROR レベルとして記録 → prod でも記録される
+  // - WebSocket: 正常系。console.log で INFO レベル → stg のみで記録
+  // (prod の fieldLogLevel は ERROR、stg は ALL のため)
+  const protocolLog = {
     action: 'createGroup',
     groupId: ctx.result.id,
     domain: ctx.result.domain,
     hostId: ctx.result.hostId,
     protocol: ctx.result.useWebSocket ? 'WebSocket' : 'Polling'
-  });
+  };
+  if (ctx.result.useWebSocket) {
+    console.log('createGroup', protocolLog);
+  } else {
+    console.error('createGroup fallback to Polling', protocolLog);
+  }
 
   // 新規作成されたグループを返す
   return {
