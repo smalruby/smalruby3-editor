@@ -190,7 +190,7 @@ sequenceDiagram
     end
 ```
 
-### イベント通信フロー（ポーリング）
+### イベント通信フロー（ポーリング、issue #554 で `pollGroupData` に統合）
 
 ```mermaid
 sequenceDiagram
@@ -211,11 +211,52 @@ sequenceDiagram
     AppSync-->>Node1: Response
 
     loop 2秒間隔
+        Node2->>AppSync: pollGroupData(groupId, domain, since)
+        AppSync->>Resolver: JS Pipeline Resolver
+        Note over Resolver,DynamoDB: Function 1: fetchEventsForPoll
+        Resolver->>DynamoDB: Query: pk=GROUP#id@domain AND sk > EVENT#since
+        DynamoDB-->>Resolver: events
+        Note over Resolver,DynamoDB: Function 2: fetchNodeStatusesForPoll
+        Resolver->>DynamoDB: Query: pk=DOMAIN#domain AND begins_with(sk, GROUP#id#NODE#)
+        DynamoDB-->>Resolver: nodeStatuses
+        Resolver-->>AppSync: PollGroupData { events, nodeStatuses }
+        AppSync-->>Node2: Response
+    end
+```
+
+ポーリング クライアントは旧来の `getEventsSince` (2s) + `listGroupStatuses`
+(15s, `startPeriodicDataSync` 経由) の 2 系統リクエストを送る代わりに、
+`pollGroupData` を 2 秒間隔で呼ぶことで events と nodeStatuses を同時取得
+する。AppSync 課金は **Pipeline Resolver 全体で 1 op**。WebSocket モード
+では subscription + 15 秒間隔の `listGroupStatuses` を引き続き使用 (フォール
+バック用途)。
+
+### イベント通信フロー（ポーリング、旧設計 — `getEventsSince` 単体）
+
+旧クライアント・デバッグ・テスト用途では引き続き利用可能（後方互換）:
+
+```mermaid
+sequenceDiagram
+    participant Node2 as Node 2 (受信)
+    participant AppSync
+    participant Resolver
+    participant DynamoDB
+
+    loop 2秒間隔（旧）
         Node2->>AppSync: getEventsSince(groupId, domain, since)
         AppSync->>Resolver: JS Resolver (Unit)
         Resolver->>DynamoDB: Query: pk=GROUP#id@domain AND sk > EVENT#since
         DynamoDB-->>Resolver: Items (Event[])
         Resolver-->>AppSync: Event[]
+        AppSync-->>Node2: Response
+    end
+
+    loop 15秒間隔（旧、startPeriodicDataSync 経由）
+        Node2->>AppSync: listGroupStatuses(groupId, domain)
+        AppSync->>Resolver: JS Resolver (Unit)
+        Resolver->>DynamoDB: Query: pk=DOMAIN#domain AND begins_with(sk, GROUP#id#NODE#)
+        DynamoDB-->>Resolver: NodeStatus[]
+        Resolver-->>AppSync: NodeStatus[]
         AppSync-->>Node2: Response
     end
 ```

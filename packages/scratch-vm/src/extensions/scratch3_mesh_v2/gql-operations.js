@@ -175,6 +175,37 @@ const GET_EVENTS_SINCE = gql`
   }
 `;
 
+// issue #554: ポーリング時のイベント+ノードステータス統合取得クエリ
+// getEventsSince + listGroupStatuses を 1 リクエストにまとめる。
+// Polling モードでは pollGroupData を 2 秒間隔で呼び、
+// startPeriodicDataSync (15 秒間隔の listGroupStatuses) を停止する。
+const POLL_GROUP_DATA = gql`
+  query PollGroupData($groupId: ID!, $domain: String!, $since: String!) {
+    pollGroupData(groupId: $groupId, domain: $domain, since: $since) {
+      events {
+        name
+        firedByNodeId
+        groupId
+        domain
+        payload
+        timestamp
+        cursor
+        orderKey
+      }
+      nodeStatuses {
+        nodeId
+        groupId
+        domain
+        data {
+          key
+          value
+        }
+        timestamp
+      }
+    }
+  }
+`;
+
 const ON_MESSAGE_IN_GROUP = gql`
   subscription OnMessageInGroup($groupId: ID!, $domain: String!) {
     onMessageInGroup(groupId: $groupId, domain: $domain) {
@@ -256,6 +287,7 @@ module.exports = {
     FIRE_EVENTS,
     RECORD_EVENTS,
     GET_EVENTS_SINCE,
+    POLL_GROUP_DATA,
     ON_MESSAGE_IN_GROUP,
-    LIST_GROUP_STATUSES
+    LIST_GROUP_STATUSES,
 };

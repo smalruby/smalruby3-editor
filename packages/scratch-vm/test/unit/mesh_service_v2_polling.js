@@ -5,7 +5,7 @@ minilog.suggest.deny('vm', 'debug');
 minilog.suggest.deny('vm', 'info');
 
 const MeshV2Service = require('../../src/extensions/scratch3_mesh_v2/mesh-service');
-const { GET_EVENTS_SINCE, RECORD_EVENTS } = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
+const { POLL_GROUP_DATA, RECORD_EVENTS } = require('../../src/extensions/scratch3_mesh_v2/gql-operations');
 
 const createMockBlocks = () => ({
     runtime: {
@@ -50,11 +50,11 @@ test('MeshV2Service Polling', t => {
 
         service.client = {
             query: options => {
-                st.equal(options.query, GET_EVENTS_SINCE);
+                st.equal(options.query, POLL_GROUP_DATA);
                 st.equal(options.variables.since, 'T1');
                 return Promise.resolve({
                     data: {
-                        getEventsSince: events,
+                        pollGroupData: { events, nodeStatuses: [] },
                     },
                 });
             },
@@ -182,7 +182,7 @@ test('MeshV2Service Polling', t => {
         ];
 
         service.client = {
-            query: () => Promise.resolve({ data: { getEventsSince: events } }),
+            query: () => Promise.resolve({ data: { pollGroupData: { events, nodeStatuses: [] } } }),
         };
 
         await service.pollEvents();
@@ -206,11 +206,48 @@ test('MeshV2Service Polling', t => {
             query: options => {
                 st.ok(options.variables.since);
                 st.ok(new Date(options.variables.since).getTime() > 0);
-                return Promise.resolve({ data: { getEventsSince: [] } });
+                return Promise.resolve({ data: { pollGroupData: { events: [], nodeStatuses: [] } } });
             },
         };
 
         await service.pollEvents();
+        st.end();
+    });
+
+    // issue #554: pollGroupData が events と nodeStatuses を 1 リクエストで取得し、
+    // nodeStatuses は handleDataUpdate に流す
+    t.test('pollEvents handles nodeStatuses via handleDataUpdate (issue #554)', async st => {
+        const blocks = createMockBlocks();
+        const service = new MeshV2Service(blocks, 'node1', 'domain1');
+        service.groupId = 'group1';
+        service.useWebSocket = false;
+        service.lastFetchTime = 'T1';
+
+        const handled = [];
+        service.handleDataUpdate = status => {
+            handled.push(status);
+        };
+
+        const nodeStatuses = [
+            {
+                nodeId: 'node2',
+                groupId: 'group1',
+                domain: 'domain1',
+                data: [{ key: 'k', value: 'v' }],
+                timestamp: 'T2',
+            },
+            { nodeId: 'node3', groupId: 'group1', domain: 'domain1', data: [], timestamp: 'T2' },
+        ];
+
+        service.client = {
+            query: () => Promise.resolve({ data: { pollGroupData: { events: [], nodeStatuses } } }),
+        };
+
+        await service.pollEvents();
+
+        st.equal(handled.length, 2);
+        st.equal(handled[0].nodeId, 'node2');
+        st.equal(handled[1].nodeId, 'node3');
         st.end();
     });
 

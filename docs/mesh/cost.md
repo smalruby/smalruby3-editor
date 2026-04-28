@@ -205,23 +205,44 @@ Each `reportDataByNode` triggers a subscription message to all subscribed nodes 
 
 ---
 
-### Variable Read (HTTPS Polling Mode)
+### Polling Sync (HTTPS Polling Mode) — issue #554 で統合
 
-Timing: Every **2 seconds** (`MESH_POLLING_INTERVAL_SECONDS`) per polling client. This is the `getEventsSince` query.
+Timing: Every **2 seconds** (`MESH_POLLING_INTERVAL_SECONDS`) per polling client.
+Uses the `pollGroupData` Pipeline Resolver which performs **2 DynamoDB Query
+operations internally** (events + node statuses) but is billed as **1 AppSync
+request**.
 
 | Billable Element | Count | Unit Cost | Subtotal |
 |-----------------|-------|-----------|----------|
 | AppSync Request | 1 | $0.000004 | $0.000004 |
-| DynamoDB Read (Query, limit 100) | 1-3 RRU | $0.000000285 | $0.000000855 |
-| **Per poll** | | | **$0.000004855** |
-| **Per minute (30 polls)** | | | **$0.00014565** |
-| **Per hour** | | | **$0.008739** |
+| DynamoDB Read (events Query, limit 100) | 1-3 RRU | $0.000000285 | $0.000000855 |
+| DynamoDB Read (nodeStatuses Query) | 1-10 RRU | $0.000000285 | $0.00000285 |
+| **Per poll** | | | **$0.0000077** |
+| **Per minute (30 polls)** | | | **$0.000231** |
+| **Per hour** | | | **$0.01386** |
 
-> WebSocket mode does not use polling. WebSocket receives subscription messages instead.
+> WebSocket mode does not use this polling. WebSocket receives subscription
+> messages instead and uses `Periodic Data Sync` (below) as a 15-second
+> fallback to refresh node statuses.
 
-#### Periodic Data Sync (HTTPS Mode)
+#### Why a single Pipeline Resolver
 
-Timing: Every **15 seconds** per HTTPS client. Uses `listGroupStatuses` to sync all remote data.
+Issue #554 で `getEventsSince` (2s) と `listGroupStatuses` (15s,
+`startPeriodicDataSync` 経由) を `pollGroupData` Pipeline Resolver に統合。
+AppSync は Pipeline 内の Function 数に関係なく **1 リクエスト = 1 op**
+として課金されるため、AppSync コスト観点では **約 12% 削減**:
+
+- Old: getEventsSince (30/min) + listGroupStatuses (4/min) = **34 ops/min**
+- New: pollGroupData (30/min) = **30 ops/min**
+
+DynamoDB の RCU 消費はノードステータス取得頻度が **15s → 2s** に増えるため
+わずかに増加 (per-poll で +0.5x の RRU)。ただしリアルタイム性向上のメリット
+(同期遅延 15s → 2s) で相殺される設計。
+
+#### Periodic Data Sync (WebSocket Mode のみ)
+
+Timing: Every **15 seconds** per WebSocket client. Uses `listGroupStatuses`
+to refresh node statuses (subscription の取りこぼし時のフォールバック)。
 
 | Billable Element | Count | Unit Cost | Subtotal |
 |-----------------|-------|-----------|----------|
@@ -230,6 +251,9 @@ Timing: Every **15 seconds** per HTTPS client. Uses `listGroupStatuses` to sync 
 | **Per sync** | | | **$0.00000685** |
 | **Per minute (4 syncs)** | | | **$0.0000274** |
 | **Per hour** | | | **$0.001644** |
+
+> Polling モードでは pollGroupData が同じ役割を果たすため、`startPeriodicDataSync`
+> はスキップされる (issue #554)。
 
 ---
 
@@ -278,17 +302,9 @@ Example: 5 events per batch = $0.00001178
 
 ### Event Receive (HTTPS Polling Mode)
 
-Timing: Every **2 seconds** (`MESH_POLLING_INTERVAL_SECONDS`). Uses `getEventsSince` query.
-
-| Billable Element | Count | Unit Cost | Subtotal |
-|-----------------|-------|-----------|----------|
-| AppSync Request | 1 | $0.000004 | $0.000004 |
-| DynamoDB Read (Query, limit 100) | 1-3 RRU | $0.000000285 | $0.000000855 |
-| **Per poll** | | | **$0.000004855** |
-| **Per minute (30 polls)** | | | **$0.00014565** |
-| **Per hour** | | | **$0.008739** |
-
-> Same as "Variable Read (HTTPS Polling Mode)" - the same polling request fetches both events and data changes.
+> Same as `Polling Sync (HTTPS Polling Mode)` above — the unified
+> `pollGroupData` query (issue #554) fetches both events and nodeStatuses
+> per poll. See the table in that section for billing.
 
 ---
 
@@ -354,9 +370,10 @@ Assumptions:
 | 6 connections x 35 min | 210 min | $0.00000008 | $0.000017 |
 | **Total** | | | **$0.026071** |
 
-### Scenario: 1 Group, 5 Members, HTTPS Polling Mode, 35-min Session
+### Scenario: 1 Group, 5 Members, HTTPS Polling Mode, 35-min Session (issue #554 後)
 
 Same assumptions, but using HTTPS polling instead of WebSocket.
+`pollGroupData` (issue #554) で events と nodeStatuses を 1 リクエストに統合。
 
 | Operation | Count | Unit Cost | Subtotal |
 |-----------|-------|-----------|----------|
@@ -372,13 +389,23 @@ Same assumptions, but using HTTPS polling instead of WebSocket.
 | **Events** | | | |
 | recordEventsByNode (5 events/batch) | 50 | $0.00001178 | $0.000589 |
 | **Polling** | | | |
-| getEventsSince (5 clients x 30/min x 35 min) | 5250 | $0.000004855 | $0.025489 |
-| Periodic data sync (5 clients x 4/min x 35 min) | 700 | $0.00000685 | $0.004795 |
+| pollGroupData (5 clients x 30/min x 35 min) | 5250 | $0.0000077 | $0.040425 |
 | **Teardown** | | | |
 | dissolveGroup (5 members) | 1 | $0.00003076 | $0.000031 |
-| **Total** | | | **$0.041927** |
+| **Total** | | | **$0.052068** |
 
-> HTTPS polling mode costs ~60% more than WebSocket mode, primarily due to continuous polling queries.
+#### issue #554 前後の比較
+
+| | Old (`getEventsSince` + `listGroupStatuses`) | New (`pollGroupData`) | 変化 |
+|---|---:|---:|---:|
+| AppSync requests / poll cycle | 2 (events 30/min + status 4/min) | 1 (30/min) | **-12%** |
+| Data sync 遅延 | 最大 15s | 最大 2s | **-87%** |
+| Polling 行 (5 clients × 35min) cost | $0.025489 + $0.004795 = **$0.030284** | **$0.040425** | +33% (DynamoDB RRU 増) |
+| **35min session total** | $0.041927 | $0.052068 | +24% |
+
+> リアルタイム性 (15s → 2s) を取った分 DynamoDB の RRU が増加するが、
+> AppSync request 数自体は減っている。WebSocket モードと比較すると依然
+> 60% 程度高い。WebSocket が使える環境では引き続き WebSocket を優先する。
 
 ---
 
