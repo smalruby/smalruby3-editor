@@ -1,0 +1,55 @@
+.intro {
+    text-align: center;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: hsla(225, 15%, 40%, 1);
+    margin: 1rem 2rem 1.5rem;
+}
+
+.buttonContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 0 2rem 1rem;
+}
+
+.actionButton {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    min-width: 14rem;
+    border: 1px solid hsla(225, 15%, 80%, 1);
+    border-radius: 0.5rem;
+    background-color: hsla(0, 100%, 100%, 1);
+    color: hsla(225, 15%, 40%, 1);
+    cursor: pointer;
+    text-align: left;
+    transition:
+        background-color 0.15s,
+        border-color 0.15s;
+}
+
+.actionButton:hover {
+    background-color: hsla(215, 100%, 95%, 1);
+    border-color: hsla(215, 100%, 65%, 1);
+}
+
+.actionButton:active {
+    background-color: hsla(215, 100%, 90%, 1);
+}
+
+.buttonTitle {
+    font-size: 1rem;
+    font-weight: bold;
+    color: hsla(215, 100%, 65%, 1);
+}
+
+.buttonDescription {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: hsla(225, 15%, 40%, 1);
+}
