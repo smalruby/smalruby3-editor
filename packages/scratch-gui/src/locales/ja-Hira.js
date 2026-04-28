@@ -17,7 +17,7 @@ export default {
     'gui.menuBar.smalrubotS1.flashFirmware': 'ファームウェアかきこみ',
     'gui.smalrubotFirmware.title': 'スモウルボットS1 ファームウェア',
     'gui.smalrubotFirmware.description':
-        'スモウルボットS1のファームウェアをStuduinoきばんにかきこみます。USBケーブルできばんをせつぞくしてから、したのボタンをおしてください。',
+        'スモウルボットS1のファームウェアをStuduinoきばんにかきこみます。USBケーブルできばんをせつぞくしてから、したのボタンをおしてシリアルポートせんたくダイアログで、おつかいのスモウルボット S1 をえらんでください。',
     'gui.smalrubotFirmware.warning': 'ファームウェアかきこみちゅうにUSBケーブルをぬかないでください。',
     'gui.smalrubotFirmware.flashButton': 'ファームウェアかきこみ',
     'gui.smalrubotFirmware.cancelButton': 'キャンセル',

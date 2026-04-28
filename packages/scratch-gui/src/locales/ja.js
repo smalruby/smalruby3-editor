@@ -17,7 +17,7 @@ export default {
     'gui.menuBar.smalrubotS1.flashFirmware': 'ファームウェア書き込み',
     'gui.smalrubotFirmware.title': 'スモウルボットS1 ファームウェア',
     'gui.smalrubotFirmware.description':
-        'スモウルボットS1のファームウェアをStuduino基板に書き込みます。USBケーブルで基板を接続してから、下のボタンを押してください。',
+        'スモウルボットS1のファームウェアをStuduino基板に書き込みます。USBケーブルで基板を接続してから、下のボタンを押してシリアルポート選択ダイアログで、お使いのスモウルボット S1 を選んでください。',
     'gui.smalrubotFirmware.warning': 'ファームウェア書き込み中にUSBケーブルを抜かないでください。',
     'gui.smalrubotFirmware.flashButton': 'ファームウェア書き込み',
     'gui.smalrubotFirmware.cancelButton': 'キャンセル',

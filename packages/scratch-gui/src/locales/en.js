@@ -21,7 +21,7 @@ export default {
     'gui.menuBar.smalrubotS1.flashFirmware': 'Write Firmware',
     'gui.smalrubotFirmware.title': 'SmalrubotS1 Firmware',
     'gui.smalrubotFirmware.description':
-        'Write the SmalrubotS1 firmware to the Studuino board. Connect the board via USB cable, then press the button below.',
+        'Write the SmalrubotS1 firmware to the Studuino board. Connect the board via USB cable, then press the button below and select your Smalrubot S1 in the serial port dialog.',
     'gui.smalrubotFirmware.warning': 'Do not disconnect the USB cable during the firmware write process.',
     'gui.smalrubotFirmware.flashButton': 'Write Firmware',
     'gui.smalrubotFirmware.cancelButton': 'Cancel',
