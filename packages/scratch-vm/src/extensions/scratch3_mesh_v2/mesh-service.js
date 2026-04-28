@@ -487,7 +487,8 @@ class MeshV2Service {
                 variables: {
                     groupId: groupId,
                     domain: domain || this.domain,
-                    nodeId: this.meshId
+                    nodeId: this.meshId,
+                    useWebSocket: this.useWebSocket
                 }
             });
 

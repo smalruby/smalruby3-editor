@@ -63,8 +63,38 @@ export function response(ctx) {
 
   // TransactWriteItemsは個別のアイテムを返さないため、
   // リクエストパラメータからNode型を構築
-  const { groupId, domain, nodeId } = ctx.args;
+  const { groupId, domain, nodeId, useWebSocket } = ctx.args;
   const group = ctx.stash.group;
+
+  // プロトコル情報を CloudWatch に記録
+  // - Polling: WebSocket が使えなかった可能性が高い「警告」相当
+  //            console.error で ERROR レベルとして記録 → prod でも記録される
+  // - WebSocket / unknown: 正常系。console.log で INFO レベル → stg のみで記録
+  // (prod の fieldLogLevel は ERROR、stg は ALL のため)
+  // useWebSocket 未送信 (旧クライアント) の場合は 'unknown' とする
+  // 注意: クライアントが ?force_polling=1 URL パラメータで明示的に Polling を
+  // 選択した場合も Polling ログが出る (フォールバックと明示選択を区別不可)。
+  // 集計時の解釈は docs/operations.md を参照
+  let protocol;
+  if (useWebSocket === true) {
+    protocol = 'WebSocket';
+  } else if (useWebSocket === false) {
+    protocol = 'Polling';
+  } else {
+    protocol = 'unknown';
+  }
+  const protocolLog = {
+    action: 'joinGroup',
+    groupId: groupId,
+    domain: domain,
+    nodeId: nodeId,
+    protocol: protocol
+  };
+  if (protocol === 'Polling') {
+    console.error('joinGroup fallback to Polling', protocolLog);
+  } else {
+    console.log('joinGroup', protocolLog);
+  }
 
   return {
     id: nodeId,

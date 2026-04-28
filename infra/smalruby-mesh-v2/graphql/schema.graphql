@@ -164,6 +164,7 @@ type Mutation {
     groupId: ID!
     domain: String!
     nodeId: ID!
+    useWebSocket: Boolean  # クライアントのプロトコル情報（optional: 旧クライアントは送信しない）
   ): Node!
 
   leaveGroup(

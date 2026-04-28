@@ -78,6 +78,154 @@ aws logs filter-log-events \
 
 ---
 
+#### プロトコルログ
+
+`createGroup` および `joinGroup` mutation 実行時に、クライアントが WebSocket と HTTPS ポーリングのどちらを使用しているかを CloudWatch に記録する。運用担当者がプロトコル別の利用状況を集計できる。
+
+**実装場所**:
+- `js/functions/createGroupIfNotExists.js` - 新規グループ作成時のみ記録（既存グループ再利用時は記録しない）
+- `js/functions/joinGroupFunction.js` - 全ノード参加時に記録
+
+**ログレベル設計**:
+
+prod の AppSync `fieldLogLevel` は `ERROR` に固定（コスト最小化）。プロトコル別にログレベルを使い分けて、prod でも必要なログだけ取得する:
+
+| protocol | 想定される状況 | ログ関数 | ログレベル | prod 記録 | stg 記録 |
+|----------|----------------|----------|------------|-----------|----------|
+| `Polling` | WebSocket が使えずフォールバック（警告相当） | `console.error` | ERROR | ✅ | ✅ |
+| `WebSocket` | 正常（フォールバックなし） | `console.log` | INFO | ❌ | ✅ |
+| `unknown` | 旧クライアント（`joinGroup` のみ） | `console.log` | INFO | ❌ | ✅ |
+
+prod では Polling 件数 = 「WebSocket が使えなかった環境のクライアント数」として運用監視できる。
+
+**ログフォーマット**:
+
+```
+ERROR - code.js:NN:N: "createGroup fallback to Polling" {"action":"createGroup","groupId":"...","domain":"...","hostId":"...","protocol":"Polling"}
+ERROR - code.js:NN:N: "joinGroup fallback to Polling" {"action":"joinGroup","groupId":"...","domain":"...","nodeId":"...","protocol":"Polling"}
+INFO  - code.js:NN:N: "createGroup" {"action":"createGroup","groupId":"...","domain":"...","hostId":"...","protocol":"WebSocket"}
+INFO  - code.js:NN:N: "joinGroup" {"action":"joinGroup","groupId":"...","domain":"...","nodeId":"...","protocol":"WebSocket|unknown"}
+```
+
+**`protocol` フィールドの値**:
+
+| 値 | 説明 |
+|----|------|
+| `WebSocket` | クライアントが `useWebSocket: true` を送信 |
+| `Polling` | クライアントが `useWebSocket: false` を送信（WebSocket フォールバック想定） |
+| `unknown` | 旧クライアントが `useWebSocket` を送信していない（`joinGroup` のみ） |
+
+**ログ取得例**:
+
+```bash
+# 直近 1 時間の Polling フォールバック件数（prod でも使える）
+aws logs filter-log-events \
+  --log-group-name /aws/appsync/apis/xxx-xxx-xxx \
+  --start-time $(($(date +%s) - 3600))000 \
+  --filter-pattern '"fallback to Polling"' \
+  --query 'events[].message' \
+  --output text
+
+# stg のみ: WebSocket / unknown を含む全プロトコルログ
+aws logs filter-log-events \
+  --log-group-name /aws/appsync/apis/xxx-xxx-xxx \
+  --start-time $(($(date +%s) - 3600))000 \
+  --filter-pattern 'protocol' \
+  --query 'events[].message' \
+  --output text
+```
+
+##### 集計クエリ（CloudWatch Logs Insights）
+
+**Polling フォールバック件数の集計（prod 用、最重要）**:
+
+```
+fields @message
+| filter @message like /"protocol":"Polling"/
+| parse @message /"action":"(?<action>[^"]+)"/
+| parse @message /"domain":"(?<domain>[^"]+)"/
+| stats count(*) as fallback_count by action
+| sort action
+```
+
+**期間別の Polling フォールバック推移（日次、prod 用）**:
+
+```
+fields @timestamp, @message
+| filter @message like /"protocol":"Polling"/
+| parse @message /"action":"(?<action>[^"]+)"/
+| stats count(*) as fallback_count by bin(1d), action
+| sort @timestamp desc
+```
+
+**ドメイン別の Polling フォールバック分布（どのネットワークが WebSocket をブロックしているか調査用）**:
+
+```
+fields @message
+| filter @message like /"protocol":"Polling"/
+| parse @message /"domain":"(?<domain>[^"]+)"/
+| stats count(*) as count by domain
+| sort count desc
+| limit 20
+```
+
+**プロトコル別の集計（stg のみ、全プロトコル）**:
+
+```
+fields @message
+| filter @message like /"action":"createGroup"/ or @message like /"action":"joinGroup"/
+| parse @message /"action":"(?<action>[^"]+)"/
+| parse @message /"protocol":"(?<protocol>[^"]+)"/
+| stats count(*) as count by action, protocol
+| sort action, protocol
+```
+
+集計結果例 (stg):
+
+| action | protocol | count |
+|--------|----------|-------|
+| createGroup | WebSocket | 8 |
+| createGroup | Polling | 4 |
+| joinGroup | WebSocket | 2 |
+| joinGroup | Polling | 2 |
+| joinGroup | unknown | 4 |
+
+**注意事項**:
+
+- prod の `fieldLogLevel` は `ERROR` のため、prod では **Polling のログのみ**が CloudWatch に記録される
+  - WebSocket・unknown のログは prod では記録されない（ログコスト削減のため意図的）
+  - stg は `fieldLogLevel: ALL` のため全プロトコルが記録される
+- AppSync JS resolver では以下の console 関数のみ利用可能:
+  - `console.log()` → INFO レベル
+  - `console.error()` → ERROR レベル
+  - `console.info()`, `console.warn()` は**サポート外**（"Invalid function" エラー）
+- WebSocket / unknown も prod で記録したい場合は `fieldLogLevel` を `INFO` または `ALL` に変更（CloudWatch 取り込み量とコストが大幅に増える点に注意）
+
+##### 集計時の注意点
+
+集計値を解釈する際、以下の挙動に注意:
+
+1. **`forcePolling` URL パラメータによる Polling は「フォールバック」ではない**
+   - クライアント側で `?force_polling=1` を指定すると `useWebSocket: false` が送信される（テスト用機能）
+   - サーバー側ではフォールバックと明示的選択を区別できないため、`fallback to Polling` ログメッセージは「protocol=Polling として接続した」と解釈する
+   - 通常の prod 運用では `force_polling` は使われないため、ほぼ「実際のフォールバック件数」と等しい
+2. **Polling 件数 ≠ Polling グループ数**
+   - Polling のグループでは host (createGroup) で 1 件 + 各 member (joinGroup) で 1 件ずつログが出る
+   - 5 メンバーグループが Polling の場合、合計 5 件 (createGroup x 1 + joinGroup x 4) のログが出る
+   - グループ単位で集計したい場合は `groupId` で `dedup` するか `count_distinct(groupId)` を使う:
+     ```
+     fields @message
+     | filter @message like /"protocol":"Polling"/
+     | parse @message /"groupId":"(?<groupId>[^"]+)"/
+     | stats count_distinct(groupId) as polling_groups
+     ```
+3. **`createGroup` の冪等性によるログ欠落**
+   - 同じ `hostId + domain` で `createGroup` を再呼び出ししても、既存グループ再利用時 (`ctx.stash.existingGroup`) はログされない
+   - そのため `createGroup` 件数 = host 接続試行回数ではなく **新規グループ作成回数**
+   - 接続試行回数を見たい場合は `joinGroup` ログを使う（host 自身は joinGroup を呼ばないため、host 数は別途カウントが必要）
+
+---
+
 #### Lambda ログ
 
 **設定**: 自動的に有効化

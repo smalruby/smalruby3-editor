@@ -105,6 +105,27 @@ export function response(ctx) {
     };
   }
 
+  // 新規グループ作成時、プロトコル情報を CloudWatch に記録
+  // - Polling: WebSocket が使えなかった可能性が高い「警告」相当
+  //            console.error で ERROR レベルとして記録 → prod でも記録される
+  // - WebSocket: 正常系。console.log で INFO レベル → stg のみで記録
+  // (prod の fieldLogLevel は ERROR、stg は ALL のため)
+  // 注意: クライアントが ?force_polling=1 URL パラメータで明示的に Polling を
+  // 選択した場合も Polling ログが出る (フォールバックと明示選択を区別不可)。
+  // 集計時の解釈は docs/operations.md を参照
+  const protocolLog = {
+    action: 'createGroup',
+    groupId: ctx.result.id,
+    domain: ctx.result.domain,
+    hostId: ctx.result.hostId,
+    protocol: ctx.result.useWebSocket ? 'WebSocket' : 'Polling'
+  };
+  if (ctx.result.useWebSocket) {
+    console.log('createGroup', protocolLog);
+  } else {
+    console.error('createGroup fallback to Polling', protocolLog);
+  }
+
   // 新規作成されたグループを返す
   return {
     id: ctx.result.id,

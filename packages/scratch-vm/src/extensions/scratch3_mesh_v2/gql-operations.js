@@ -42,8 +42,8 @@ const CREATE_GROUP = gql`
 `;
 
 const JOIN_GROUP = gql`
-  mutation JoinGroup($groupId: ID!, $domain: String!, $nodeId: ID!) {
-    joinGroup(groupId: $groupId, domain: $domain, nodeId: $nodeId) {
+  mutation JoinGroup($groupId: ID!, $domain: String!, $nodeId: ID!, $useWebSocket: Boolean) {
+    joinGroup(groupId: $groupId, domain: $domain, nodeId: $nodeId, useWebSocket: $useWebSocket) {
       id
       name
       groupId
