@@ -1,0 +1,12 @@
+query GetEventsSince($groupId: ID!, $domain: String!, $since: String!) {
+  getEventsSince(groupId: $groupId, domain: $domain, since: $since) {
+    name
+    firedByNodeId
+    groupId
+    domain
+    payload
+    timestamp
+    cursor
+    orderKey
+  }
+}

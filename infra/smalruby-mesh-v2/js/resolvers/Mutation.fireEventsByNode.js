@@ -37,7 +37,9 @@ export function response(ctx) {
                 groupId: groupId,
                 domain: domain,
                 payload: event.payload || null,
-                timestamp: event.firedAt
+                timestamp: event.firedAt,
+                // issue #556: orderKey をパススルー (subscription 受信側で安定ソート用)
+                orderKey: event.orderKey || null
             })),
             firedByNodeId: nodeId,
             groupId: groupId,

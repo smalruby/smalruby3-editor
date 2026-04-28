@@ -134,6 +134,11 @@ class MeshV2Service {
             lastReportTime: Date.now()
         };
 
+        // issue #556: orderKey 生成用のシーケンスカウンタ。
+        // グループ接続後の連番。`<YYYYMMDDHHMMSS>-<NNN>` 形式を構成する NNN 部分。
+        // createGroup / joinGroup で 0 にリセット。
+        this.eventSequence = 0;
+
         // Last sent data to detect changes (confirmed by server)
         this.lastSentData = {};
         // Latest data queued for sending (may not be confirmed yet)
@@ -375,6 +380,8 @@ class MeshV2Service {
 
             this.costTracking.mutationCount++;
             this.lastFetchTime = new Date().toISOString();
+            // issue #556: orderKey の連番をリセット
+            this.eventSequence = 0;
             debug(() => `Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before createGroup)`);
             const result = await this.client.mutate({
                 mutation: CREATE_GROUP,
@@ -481,6 +488,8 @@ class MeshV2Service {
 
             this.costTracking.mutationCount++;
             this.lastFetchTime = new Date().toISOString();
+            // issue #556: orderKey の連番をリセット
+            this.eventSequence = 0;
             debug(() => `Mesh V2: Initialized lastFetchTime to ${this.lastFetchTime} (before joinGroup)`);
             const result = await this.client.mutate({
                 mutation: JOIN_GROUP,
@@ -810,8 +819,18 @@ class MeshV2Service {
     _queueEventsForPlayback (events) {
         if (!events || events.length === 0) return;
 
-        // タイムスタンプでソート（副作用を避けるためコピーを作成）
-        const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        // タイムスタンプでソート（副作用を避けるためコピーを作成）。
+        // issue #556: 同一タイムスタンプ内では orderKey の辞書順で安定ソートする。
+        // どちらか一方でも orderKey がない場合は元の順序を維持（タイムスタンプ比較のみ）。
+        const sortedEvents = [...events].sort((a, b) => {
+            const tDiff = new Date(a.timestamp) - new Date(b.timestamp);
+            if (tDiff !== 0) return tDiff;
+            if (a.orderKey && b.orderKey) {
+                if (a.orderKey < b.orderKey) return -1;
+                if (a.orderKey > b.orderKey) return 1;
+            }
+            return 0;
+        });
 
         // 最初のイベントを基準にオフセットを計算
         const baseTime = new Date(sortedEvents[0].timestamp).getTime();
@@ -1262,12 +1281,39 @@ class MeshV2Service {
         debug(() => `Mesh V2: Queuing event for sending: ${eventName} ` +
             `(queue size: ${this.eventQueue.length})`);
 
-        // キューに追加（発火日時を記録）
+        // キューに追加（発火日時と orderKey を記録）
+        const firedAt = new Date();
         this.eventQueue.push({
             eventName: eventName,
             payload: payload,
-            firedAt: new Date().toISOString()
+            firedAt: firedAt.toISOString(),
+            // issue #556: 同一バッチ内のイベント順序保証用
+            orderKey: this._generateOrderKey(firedAt)
         });
+    }
+
+    /**
+     * Generate a sortable order key for an event.
+     * Format: `<YYYYMMDDHHMMSS>-<NNN>` where NNN is a 0-padded sequence
+     * counter incremented per call (resets on group create/join).
+     *
+     * Same client guarantees lexicographic order = send order across batches.
+     * Cross-client collisions are possible but extremely unlikely; the server
+     * appends a short UUID to the SK to ensure uniqueness.
+     * @param {Date} firedAt - The event fire time.
+     * @returns {string} Sortable order key.
+     * @private
+     */
+    _generateOrderKey (firedAt) {
+        const yyyy = firedAt.getFullYear().toString();
+        const mm = String(firedAt.getMonth() + 1).padStart(2, '0');
+        const dd = String(firedAt.getDate()).padStart(2, '0');
+        const hh = String(firedAt.getHours()).padStart(2, '0');
+        const mi = String(firedAt.getMinutes()).padStart(2, '0');
+        const ss = String(firedAt.getSeconds()).padStart(2, '0');
+        this.eventSequence += 1;
+        const seq = String(this.eventSequence).padStart(3, '0');
+        return `${yyyy}${mm}${dd}${hh}${mi}${ss}-${seq}`;
     }
 
     /**

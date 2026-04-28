@@ -136,6 +136,7 @@ const FIRE_EVENTS = gql`
           domain
           payload
           timestamp
+          orderKey
         }
         firedByNodeId
         groupId
@@ -169,6 +170,7 @@ const GET_EVENTS_SINCE = gql`
       payload
       timestamp
       cursor
+      orderKey
     }
   }
 `;
@@ -196,6 +198,7 @@ const ON_MESSAGE_IN_GROUP = gql`
           domain
           payload
           timestamp
+          orderKey
         }
         firedByNodeId
         groupId

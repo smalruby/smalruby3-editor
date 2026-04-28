@@ -203,23 +203,35 @@ class DynamoDBRepository
     # 最大25アイテムまで
     events.each_slice(25) do |slice|
       put_requests = slice.map do |event|
-        sk = "EVENT##{server_timestamp}##{SecureRandom.uuid}"
+        # SK 設計 (issue #556):
+        # - orderKey 付き:    EVENT#<server_timestamp>#<orderKey>#<short_uuid>
+        #   同一 server_timestamp 内のイベントを orderKey の辞書順で並べる。
+        #   orderKey はクライアント時刻 + 連番なので、同一クライアントが連続送信
+        #   した複数イベントの順序が保証される。
+        #   short_uuid は異なるクライアントが偶然同じ orderKey を送った場合の
+        #   一意性確保用。
+        # - orderKey なし:   EVENT#<server_timestamp>#<uuid> (旧クライアント互換)
+        order_key = event["orderKey"]
+        sk = if order_key && !order_key.empty?
+          "EVENT##{server_timestamp}##{order_key}##{SecureRandom.uuid[0, 8]}"
+        else
+          "EVENT##{server_timestamp}##{SecureRandom.uuid}"
+        end
         last_sk = sk
-        {
-          put_request: {
-            item: {
-              "pk" => "GROUP##{group_id}@#{domain}",
-              "sk" => sk,
-              "eventName" => event["eventName"],
-              "firedByNodeId" => node_id,
-              "groupId" => group_id,
-              "domain" => domain,
-              "payload" => event["payload"],
-              "timestamp" => server_timestamp,
-              "ttl" => ttl
-            }
-          }
+        item = {
+          "pk" => "GROUP##{group_id}@#{domain}",
+          "sk" => sk,
+          "eventName" => event["eventName"],
+          "firedByNodeId" => node_id,
+          "groupId" => group_id,
+          "domain" => domain,
+          "payload" => event["payload"],
+          "timestamp" => server_timestamp,
+          "ttl" => ttl
         }
+        # orderKey が来ていたら属性として保存し、レスポンスでクライアントへ返す
+        item["orderKey"] = order_key if order_key && !order_key.empty?
+        {put_request: {item: item}}
       end
 
       @dynamodb.batch_write_item(

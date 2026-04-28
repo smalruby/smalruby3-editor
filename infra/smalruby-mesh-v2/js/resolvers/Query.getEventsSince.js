@@ -33,6 +33,7 @@ export function response(ctx) {
     domain: item.domain,
     payload: item.payload,
     timestamp: item.timestamp,
-    cursor: item.sk
+    cursor: item.sk,
+    orderKey: item.orderKey || null
   }));
 }

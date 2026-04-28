@@ -62,6 +62,7 @@ type Event {
   payload: String
   timestamp: AWSDateTime!
   cursor: String           # NEW: ポーリング用のカーソル（SK）
+  orderKey: String         # NEW: クライアント側ソートキー (issue #556)
 }
 
 # イベントのバッチ送信用の入力型
@@ -69,6 +70,10 @@ input EventInput {
   eventName: String!
   payload: String
   firedAt: AWSDateTime!  # イベント発火日時（ISO 8601形式、ミリ秒含む）
+  # NEW (issue #556): クライアント側で生成する optional ソートキー
+  # フォーマット: "<YYYYMMDDHHMMSS>-<NNN>" (NNN はクライアント接続後の連番)
+  # 同一サーバータイムスタンプでバッチ書き込みされたイベントの送信順序を保証
+  orderKey: String
 }
 
 # バッチイベント型（複数イベントを含む）
