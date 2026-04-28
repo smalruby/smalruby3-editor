@@ -673,6 +673,35 @@ export default {
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメインめいにむこうなもじがふくまれています。',
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメインめいがながすぎます（さいだい256もじ）。',
 
+    // SmalrubotS1 dedicated flow messages
+    'gui.connection.smalrubotS1Initial.intro':
+        'スモウルボット S1 をどのようにつかいますか？ はじめてのばあいは、まずファームウェアをかきこんでください。',
+    'gui.connection.smalrubotS1Initial.connect': 'せつぞくする（せいとよう）',
+    'gui.connection.smalrubotS1Initial.connectDescription':
+        'ファームウェアがかきこまれているスモウルボット S1 にせつぞくします。',
+    'gui.connection.smalrubotS1Initial.flashFirmware': 'ファームウェアをかきこむ（せんせいよう）',
+    'gui.connection.smalrubotS1Initial.flashFirmwareDescription':
+        'あたらしいスモウルボット S1 にファームウェアをかきこみます。',
+    'gui.connection.smalrubotS1Initial.helpButton': 'ヘルプ',
+    'gui.connection.smalrubotS1Unsupported.title': 'WebSerial にたいおうしていません',
+    'gui.connection.smalrubotS1Unsupported.description':
+        'スモウルボット S1 をつかうには WebSerial API にたいおうしたブラウザがひつようです。' +
+        'Google Chrome、Microsoft Edge、または Opera のデスクトップばんをおつかいください。',
+    'gui.connection.smalrubotS1Unsupported.helpButton': 'ヘルプ',
+    'gui.connection.smalrubotS1Connecting.title': 'せつぞくちゅう...',
+    'gui.connection.smalrubotS1Connecting.description':
+        'シリアルポートせんたくダイアログで、おつかいのスモウルボット S1 をえらんでください。' +
+        'ダイアログがひょうじされないばあいは「もどる」をおしてやりなおしてください。',
+    'gui.connection.smalrubotS1Connected.title': 'せつぞくしました',
+    'gui.connection.smalrubotS1Connected.description': 'スモウルボット S1 をつかうじゅんびができました。',
+    'gui.connection.smalrubotS1Connected.disconnectButton': 'せつだんする',
+    'gui.connection.smalrubotS1Connected.goToEditorButton': 'エディターにもどる',
+    'gui.connection.smalrubotS1Error.title': 'せつぞくにしっぱいしました',
+    'gui.connection.smalrubotS1Error.description':
+        'スモウルボット S1 にせつぞくできませんでした。デバイスがせつぞくされていることをかくにんして、もういちどおためしください。',
+    'gui.connection.smalrubotS1Error.retryButton': 'もういちどためす',
+    'gui.connection.smalrubotS1.backButton': 'もどる',
+
     // MeshV2 Scanning Step messages
     'gui.connection.meshV2Scanning.lookingForHosts': 'ホストをたんさくちゅう',
     'gui.connection.meshV2Scanning.noHostsFound': 'ホストがみつかりませんでした',
