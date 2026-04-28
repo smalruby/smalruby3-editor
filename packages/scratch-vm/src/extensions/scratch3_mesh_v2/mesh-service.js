@@ -1385,23 +1385,9 @@ class MeshV2Service {
 
             const nodeStatuses = result.data.listGroupStatuses;
 
-            // Update remoteData
-            nodeStatuses.forEach(status => {
-                if (status.nodeId === this.meshId) return;
-
-                if (!this.remoteData[status.nodeId]) {
-                    this.remoteData[status.nodeId] = {};
-                }
-                const serverTimestamp = status.timestamp ?
-                    new Date(status.timestamp).getTime() :
-                    (log.warn('Mesh V2: Missing server timestamp, using client time'), Date.now());
-                status.data.forEach(item => {
-                    this.remoteData[status.nodeId][item.key] = {
-                        value: item.value,
-                        timestamp: serverTimestamp
-                    };
-                });
-            });
+            // Reuse handleDataUpdate so polling/subscription/periodic-sync
+            // share a single ingestion path.
+            nodeStatuses.forEach(status => this.handleDataUpdate(status));
 
             debug(() => `Mesh V2: Fetched data from ${nodeStatuses.length} nodes`);
         } catch (error) {
