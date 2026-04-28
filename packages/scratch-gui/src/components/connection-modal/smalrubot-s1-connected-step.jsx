@@ -11,13 +11,15 @@ const SmalrubotS1ConnectedStep = props => (
     <Box className={styles.body}>
         <Box className={styles.activityArea}>
             <Box className={connectedStyles.message}>
-                <div className={connectedStyles.checkmark}>{'✓'}</div>
-                <div className={connectedStyles.title}>
-                    <FormattedMessage
-                        defaultMessage="Connected"
-                        description="Message indicating that the Smalrubot S1 is connected"
-                        id="gui.connection.smalrubotS1Connected.title"
-                    />
+                <div className={connectedStyles.heading}>
+                    <div className={connectedStyles.checkmark}>{'✓'}</div>
+                    <div className={connectedStyles.title}>
+                        <FormattedMessage
+                            defaultMessage="Connected"
+                            description="Message indicating that the Smalrubot S1 is connected"
+                            id="gui.connection.smalrubotS1Connected.title"
+                        />
+                    </div>
                 </div>
                 <div className={connectedStyles.description}>
                     <FormattedMessage

@@ -12,13 +12,15 @@ const SmalrubotS1ConnectingStep = props => (
     <Box className={styles.body}>
         <Box className={styles.activityArea}>
             <Box className={connectingStyles.message}>
-                <div className={connectingStyles.spinner} />
-                <div className={connectingStyles.title}>
-                    <FormattedMessage
-                        defaultMessage="Connecting..."
-                        description="Heading shown while connecting to a Smalrubot S1"
-                        id="gui.connection.smalrubotS1Connecting.title"
-                    />
+                <div className={connectingStyles.heading}>
+                    <div className={connectingStyles.spinner} />
+                    <div className={connectingStyles.title}>
+                        <FormattedMessage
+                            defaultMessage="Connecting..."
+                            description="Heading shown while connecting to a Smalrubot S1"
+                            id="gui.connection.smalrubotS1Connecting.title"
+                        />
+                    </div>
                 </div>
                 <div className={connectingStyles.description}>
                     <FormattedMessage
