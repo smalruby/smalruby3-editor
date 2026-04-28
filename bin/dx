@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# bin/dx — run a one-shot command inside the smalruby3-editor-app docker image.
+#
+# Use this from any directory (worktree or main checkout) to invoke npm/lint/test
+# commands without rebuilding the docker image. The current directory is
+# bind-mounted to /app, and the same node_modules / npm cache volumes used by
+# `docker compose run app` are reused so dependencies don't need to be reinstalled.
+#
+# Usage:
+#   bin/dx bash -c "cd packages/scratch-gui && npm exec jest test/unit/foo.test.js"
+#   bin/dx bash -c "cd packages/scratch-vm && npm run lint"
+#
+# Customize the image with DX_IMAGE if needed:
+#   DX_IMAGE=smalruby3-editor-app:dev bin/dx bash -lc "..."
+#
+# This is a thin wrapper around `docker run`. If the image is missing, build it
+# via the normal flow first: `docker compose build app` from the main checkout.
+set -euo pipefail
+
+IMAGE="${DX_IMAGE:-smalruby3-editor-app:latest}"
+PROJECT="${DX_PROJECT:-smalruby3-editor}"
+
+if ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
+    echo "error: docker image '${IMAGE}' not found." >&2
+    echo "Build it first from the main checkout: docker compose build app" >&2
+    exit 1
+fi
+
+# Mount the same named volumes that docker compose uses for service `app`.
+# These persist node_modules and npm/playwright caches across invocations.
+exec docker run --rm \
+    -v "$(pwd):/app" \
+    -v "${PROJECT}_smalruby3-editor_node_modules:/app/node_modules" \
+    -v "${PROJECT}_smalruby3-editor_root_npm:/root/.npm" \
+    -v "${PROJECT}_smalruby3-editor_root_cache:/root/.cache" \
+    -w /app \
+    --shm-size=4gb \
+    --entrypoint "" \
+    "${IMAGE}" \
+    "$@"
