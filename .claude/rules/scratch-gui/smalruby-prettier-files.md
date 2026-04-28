@@ -186,6 +186,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/containers/backpack.test.jsx`
 - `test/unit/containers/cards.test.jsx`
 - `test/unit/containers/connection-modal-connected-message.test.jsx`
+- `test/unit/containers/connection-modal-smalrubot-s1.test.jsx`
 - `test/unit/containers/connection-modal.test.jsx`
 - `test/unit/containers/google-drive-saver-hoc.test.jsx`
 - `test/unit/containers/google-drive-state-management.test.jsx`

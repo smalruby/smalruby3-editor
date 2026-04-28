@@ -18,9 +18,15 @@ import {
 import {setDomain as setMeshV2Domain} from '../reducers/mesh-v2';
 // === Smalruby: End of meshV2 initial step feature ===
 // === Smalruby: Start of smalrubot firmware flash ===
-import {isFirmwareFlashSupported} from '../lib/smalrubot-firmware-flasher';
+import {isFirmwareFlashSupported, isWebSerialSupported} from '../lib/smalrubot-firmware-flasher';
 import {openSmalrubotFirmwareModal} from '../reducers/smalrubot-firmware';
 // === Smalruby: End of smalrubot firmware flash ===
+
+// === Smalruby: Start of smalrubotS1 dedicated flow ===
+// USB filter for Smalrubot S1 connection (Studuino TA, PL2303 chipset).
+// This filter mirrors `serialPortFilter` in scratch3_smalrubot_s1/index.js.
+const SMALRUBOT_S1_CONNECT_FILTER = {usbVendorId: 0x067b, usbProductId: 0x2303};
+// === Smalruby: End of smalrubotS1 dedicated flow ===
 
 class ConnectionModal extends React.Component {
     constructor (props) {
@@ -43,15 +49,31 @@ class ConnectionModal extends React.Component {
             'handleMeshV2CreateGroup',
             'handleMeshV2JoinGroup',
             'handleMeshV2DomainChange',
-            'handleBackToInitial'
+            'handleBackToInitial',
             // === Smalruby: End of meshV2 initial step feature ===
+            // === Smalruby: Start of smalrubotS1 dedicated flow ===
+            'handleSmalrubotS1ChooseConnect',
+            'handleSmalrubotS1ChooseFlashFirmware',
+            'handleSmalrubotS1BackToInitial',
+            'handleSmalrubotS1Retry',
+            'handleSmalrubotS1Close'
+            // === Smalruby: End of smalrubotS1 dedicated flow ===
         ]);
-        // === Smalruby: Start of meshV2 initial step feature ===
-        // For meshV2, show initial step first unless already connected
-        const initialPhase = props.vm.getPeripheralIsConnected(props.extensionId) ?
-            PHASES.connected :
-            (props.extensionId === 'meshV2' ? PHASES.meshV2Initial : PHASES.scanning);
-        // === Smalruby: End of meshV2 initial step feature ===
+        // Determine the initial phase based on extension and connection state
+        const initialPhase = (() => {
+            const alreadyConnected = props.vm.getPeripheralIsConnected(props.extensionId);
+            // === Smalruby: Start of smalrubotS1 dedicated flow ===
+            if (props.extensionId === 'smalrubotS1') {
+                if (alreadyConnected) return PHASES.smalrubotS1Connected;
+                return isWebSerialSupported() ? PHASES.smalrubotS1Initial : PHASES.smalrubotS1Unsupported;
+            }
+            // === Smalruby: End of smalrubotS1 dedicated flow ===
+            if (alreadyConnected) return PHASES.connected;
+            // === Smalruby: Start of meshV2 initial step feature ===
+            if (props.extensionId === 'meshV2') return PHASES.meshV2Initial;
+            // === Smalruby: End of meshV2 initial step feature ===
+            return PHASES.scanning;
+        })();
         // Track whether the user explicitly changed the domain input.
         // When false and the user clicks Create/Join, we clear the cached
         // domain so createDomain() auto-detects from source IP.
@@ -121,6 +143,19 @@ class ConnectionModal extends React.Component {
             return;
         }
 
+        // === Smalruby: Start of smalrubotS1 dedicated flow ===
+        // smalrubotS1 uses dedicated phases for error display
+        if (this.props.extensionId === 'smalrubotS1') {
+            this.setState({phase: PHASES.smalrubotS1Error});
+            analytics.event({
+                category: 'extensions',
+                action: 'connecting error',
+                label: this.props.extensionId
+            });
+            return;
+        }
+        // === Smalruby: End of smalrubotS1 dedicated flow ===
+
         // Assume errors that come in during scanning phase are the result of not
         // having scratch-link installed.
         if (this.state.phase === PHASES.scanning || this.state.phase === PHASES.unavailable) {
@@ -140,7 +175,11 @@ class ConnectionModal extends React.Component {
     }
     handleConnected () {
         this.setState({
-            phase: PHASES.connected,
+            // === Smalruby: Start of smalrubotS1 dedicated flow ===
+            phase: this.props.extensionId === 'smalrubotS1' ?
+                PHASES.smalrubotS1Connected :
+                PHASES.connected,
+            // === Smalruby: End of smalrubotS1 dedicated flow ===
             // === Smalruby: Start of meshV2 connected message feature ===
             connectedMessage: this.props.vm.getPeripheralConnectedMessage(this.props.extensionId)
             // === Smalruby: End of meshV2 connected message feature ===
@@ -291,6 +330,64 @@ class ConnectionModal extends React.Component {
     }
     // === Smalruby: End of meshV2 back button feature ===
     // === Smalruby: End of meshV2 initial step feature ===
+    // === Smalruby: Start of smalrubotS1 dedicated flow ===
+    handleSmalrubotS1ChooseConnect () {
+        analytics.event({
+            category: 'extensions',
+            action: 'smalrubotS1 choose connect',
+            label: this.props.extensionId
+        });
+        this.setState({phase: PHASES.smalrubotS1Connecting});
+
+        if (typeof navigator === 'undefined' || !navigator.serial) {
+            this.setState({phase: PHASES.smalrubotS1Unsupported});
+            return;
+        }
+
+        navigator.serial.requestPort({filters: [SMALRUBOT_S1_CONNECT_FILTER]})
+            .then(port => {
+                const peripheral = this.props.vm.runtime.peripheralExtensions[this.props.extensionId];
+                if (!peripheral || !peripheral.connectDirect) {
+                    throw new Error('Smalrubot S1 peripheral is not available.');
+                }
+                return peripheral.connectDirect(port);
+            })
+            .catch(error => {
+                // User canceled the picker dialog: silently return to initial step.
+                if (error && (error.name === 'NotFoundError' || error.name === 'AbortError')) {
+                    this.setState({phase: PHASES.smalrubotS1Initial});
+                    return;
+                }
+                // Real connection failure (or no peripheral): show error step.
+                // PERIPHERAL_REQUEST_ERROR may have already set this; setState is idempotent.
+                this.setState({phase: PHASES.smalrubotS1Error});
+            });
+    }
+    handleSmalrubotS1ChooseFlashFirmware () {
+        analytics.event({
+            category: 'extensions',
+            action: 'smalrubotS1 choose flash firmware',
+            label: this.props.extensionId
+        });
+        // Opening firmware modal automatically closes connection modal
+        // via cross-reducer in modals.js
+        this.props.onOpenFirmwareModal();
+    }
+    handleSmalrubotS1BackToInitial () {
+        this.setState({phase: PHASES.smalrubotS1Initial});
+        analytics.event({
+            category: 'extensions',
+            action: 'smalrubotS1 back to initial',
+            label: this.props.extensionId
+        });
+    }
+    handleSmalrubotS1Retry () {
+        this.handleSmalrubotS1ChooseConnect();
+    }
+    handleSmalrubotS1Close () {
+        this.props.onCancel();
+    }
+    // === Smalruby: End of smalrubotS1 dedicated flow ===
     render () {
         const canUpdatePeripheral = ((this.props.extensionId === 'microbit') && isMicroBitUpdateSupported()) ||
             ((this.props.extensionId === 'microbitMore') && isMicroBitMoreUpdateSupported());
@@ -335,6 +432,13 @@ class ConnectionModal extends React.Component {
                 // === Smalruby: Start of smalrubot firmware flash ===
                 onFlashFirmware={canFlashFirmware ? this.handleFlashFirmware : null}
                 // === Smalruby: End of smalrubot firmware flash ===
+                // === Smalruby: Start of smalrubotS1 dedicated flow ===
+                onChooseConnect={this.handleSmalrubotS1ChooseConnect}
+                onChooseFlashFirmware={this.handleSmalrubotS1ChooseFlashFirmware}
+                onBackToInitial={this.handleSmalrubotS1BackToInitial}
+                onRetry={this.handleSmalrubotS1Retry}
+                onClose={this.handleSmalrubotS1Close}
+                // === Smalruby: End of smalrubotS1 dedicated flow ===
                 onSendPeripheralUpdate={canUpdatePeripheral ? this.handleSendUpdate : null}
                 onUpdatePeripheral={canUpdatePeripheral ? this.handleUpdatePeripheral : null}
                 onUseLegacyMesh={this.handleUseLegacyMesh}
