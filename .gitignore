@@ -141,7 +141,12 @@ built-monorepo
 
 # Claude Code local settings
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/
 .*-mcp/
+
+# VSCode local-only settings (machine-specific, e.g. rust-analyzer envFile)
+.vscode/cargo.env.local
 
 /notes
 

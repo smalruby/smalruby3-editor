@@ -106,6 +106,7 @@
     "listcontents",
     "Lvar",
     "Lvasgn",
+    "magnus",
     "Makey",
     "makeymakey",
     "mathop",
