@@ -211,6 +211,24 @@ class Smalrubot {
             });
     }
 
+    connectDirect (serialPort) {
+        debug(() => 'Smalrubot.connectDirect');
+
+        return Promise.resolve()
+            .then(() => {
+                if (this.connectionState !== 'disconnected') {
+                    debug(() => 'Disconnect before connecting: reason=<Already connected>');
+                    return this.disconnect();
+                }
+                return Promise.resolve();
+            })
+            .then(() => {
+                this.serialPort = serialPort;
+                this.setConnectionState('scanned');
+            })
+            .then(() => this.connect());
+    }
+
     requestDisconnect () {
         debug(() => 'Smalrubot.requestDisconnect');
 
@@ -1396,6 +1414,16 @@ class Scratch3SmalrubotS1Blocks {
         }
 
         this.smalrubot.connect();
+    }
+
+    connectDirect (serialPort) {
+        debug(() => `connectDirect: serialPort=<${serialPort}>`);
+
+        if (!this.smalrubot) {
+            return Promise.reject(new Error('Smalrubot not initialized'));
+        }
+
+        return this.smalrubot.connectDirect(serialPort);
     }
 
     disconnect () {

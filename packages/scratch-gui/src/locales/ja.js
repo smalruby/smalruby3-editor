@@ -17,7 +17,7 @@ export default {
     'gui.menuBar.smalrubotS1.flashFirmware': 'ファームウェア書き込み',
     'gui.smalrubotFirmware.title': 'スモウルボットS1 ファームウェア',
     'gui.smalrubotFirmware.description':
-        'スモウルボットS1のファームウェアをStuduino基板に書き込みます。USBケーブルで基板を接続してから、下のボタンを押してください。',
+        'スモウルボットS1のファームウェアをStuduino基板に書き込みます。USBケーブルで基板を接続してから、下のボタンを押してシリアルポート選択ダイアログで、お使いのスモウルボット S1 を選んでください。',
     'gui.smalrubotFirmware.warning': 'ファームウェア書き込み中にUSBケーブルを抜かないでください。',
     'gui.smalrubotFirmware.flashButton': 'ファームウェア書き込み',
     'gui.smalrubotFirmware.cancelButton': 'キャンセル',
@@ -651,6 +651,35 @@ export default {
         'ホスト名が一覧に表示されない場合はドメインを設定してください。{br}学校などの施設の郵便番号が最適です。',
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメイン名に無効な文字が含まれています。',
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。',
+
+    // SmalrubotS1 dedicated flow messages
+    'gui.connection.smalrubotS1Initial.intro':
+        'スモウルボット S1 をどのように使いますか？ はじめての場合は、まずファームウェアを書き込んでください。',
+    'gui.connection.smalrubotS1Initial.connect': '接続する（生徒用）',
+    'gui.connection.smalrubotS1Initial.connectDescription':
+        'ファームウェアが書き込まれているスモウルボット S1 に接続します。',
+    'gui.connection.smalrubotS1Initial.flashFirmware': 'ファームウェアを書き込む（先生用）',
+    'gui.connection.smalrubotS1Initial.flashFirmwareDescription':
+        '新しいスモウルボット S1 にファームウェアを書き込みます。',
+    'gui.connection.smalrubotS1Initial.helpButton': 'ヘルプ',
+    'gui.connection.smalrubotS1Unsupported.title': 'WebSerial に対応していません',
+    'gui.connection.smalrubotS1Unsupported.description':
+        'スモウルボット S1 を使うには WebSerial API に対応したブラウザが必要です。' +
+        'Google Chrome、Microsoft Edge、または Opera のデスクトップ版をお使いください。',
+    'gui.connection.smalrubotS1Unsupported.helpButton': 'ヘルプ',
+    'gui.connection.smalrubotS1Connecting.title': '接続中...',
+    'gui.connection.smalrubotS1Connecting.description':
+        'シリアルポート選択ダイアログで、お使いのスモウルボット S1 を選んでください。' +
+        'ダイアログが表示されない場合は「もどる」を押してやり直してください。',
+    'gui.connection.smalrubotS1Connected.title': '接続しました',
+    'gui.connection.smalrubotS1Connected.description': 'スモウルボット S1 を使う準備ができました。',
+    'gui.connection.smalrubotS1Connected.disconnectButton': '切断する',
+    'gui.connection.smalrubotS1Connected.goToEditorButton': 'エディターに戻る',
+    'gui.connection.smalrubotS1Error.title': '接続に失敗しました',
+    'gui.connection.smalrubotS1Error.description':
+        'スモウルボット S1 に接続できませんでした。デバイスが接続されていることを確認して、もう一度お試しください。',
+    'gui.connection.smalrubotS1Error.retryButton': 'もう一度試す',
+    'gui.connection.smalrubotS1.backButton': 'もどる',
 
     // MeshV2 Scanning Step messages
     'gui.connection.meshV2Scanning.lookingForHosts': 'ホストを探索中',

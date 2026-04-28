@@ -21,7 +21,7 @@ export default {
     'gui.menuBar.smalrubotS1.flashFirmware': 'Write Firmware',
     'gui.smalrubotFirmware.title': 'SmalrubotS1 Firmware',
     'gui.smalrubotFirmware.description':
-        'Write the SmalrubotS1 firmware to the Studuino board. Connect the board via USB cable, then press the button below.',
+        'Write the SmalrubotS1 firmware to the Studuino board. Connect the board via USB cable, then press the button below and select your Smalrubot S1 in the serial port dialog.',
     'gui.smalrubotFirmware.warning': 'Do not disconnect the USB cable during the firmware write process.',
     'gui.smalrubotFirmware.flashButton': 'Write Firmware',
     'gui.smalrubotFirmware.cancelButton': 'Cancel',
@@ -453,6 +453,34 @@ export default {
         'If groups are not displayed in the list, please set a domain.{br}A postal code for your school or facility is recommended.',
     'gui.connection.meshV2Initial.domainInvalidError': 'Domain name contains invalid characters.',
     'gui.connection.meshV2Initial.domainTooLongError': 'Domain name is too long (max 256 characters).',
+
+    // SmalrubotS1 dedicated flow messages
+    'gui.connection.smalrubotS1Initial.intro':
+        'How do you want to use Smalrubot S1? If this is your first time, please write the firmware first.',
+    'gui.connection.smalrubotS1Initial.connect': 'Connect (for students)',
+    'gui.connection.smalrubotS1Initial.connectDescription':
+        'Connect to a Smalrubot S1 with firmware already written.',
+    'gui.connection.smalrubotS1Initial.flashFirmware': 'Write firmware (for teachers)',
+    'gui.connection.smalrubotS1Initial.flashFirmwareDescription': 'Write firmware to a new Smalrubot S1.',
+    'gui.connection.smalrubotS1Initial.helpButton': 'Help',
+    'gui.connection.smalrubotS1Unsupported.title': 'WebSerial is not supported',
+    'gui.connection.smalrubotS1Unsupported.description':
+        'Smalrubot S1 requires WebSerial API support, which is available in Google Chrome, Microsoft Edge, ' +
+        'and Opera on desktop. Please use one of these browsers to use Smalrubot S1.',
+    'gui.connection.smalrubotS1Unsupported.helpButton': 'Help',
+    'gui.connection.smalrubotS1Connecting.title': 'Connecting...',
+    'gui.connection.smalrubotS1Connecting.description':
+        'Please select your Smalrubot S1 in the serial port dialog. ' +
+        'If the dialog does not appear, click "Back" and try again.',
+    'gui.connection.smalrubotS1Connected.title': 'Connected',
+    'gui.connection.smalrubotS1Connected.description': 'Your Smalrubot S1 is ready to use.',
+    'gui.connection.smalrubotS1Connected.disconnectButton': 'Disconnect',
+    'gui.connection.smalrubotS1Connected.goToEditorButton': 'Go to Editor',
+    'gui.connection.smalrubotS1Error.title': 'Connection failed',
+    'gui.connection.smalrubotS1Error.description':
+        'Could not connect to Smalrubot S1. Make sure your device is plugged in and try again.',
+    'gui.connection.smalrubotS1Error.retryButton': 'Try again',
+    'gui.connection.smalrubotS1.backButton': 'Back',
 
     // Ruby Toolbar messages
     'gui.rubyToolbar.executeLine': 'Execute current line',

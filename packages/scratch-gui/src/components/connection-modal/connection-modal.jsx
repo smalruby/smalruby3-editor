@@ -18,6 +18,13 @@ import MeshV2NetworkFilteredStep from './mesh-v2-network-filtered-step.jsx';
 // === Smalruby: Start of meshV2 initial step feature ===
 import MeshV2InitialStep from './mesh-v2-initial-step.jsx';
 // === Smalruby: End of meshV2 initial step feature ===
+// === Smalruby: Start of smalrubotS1 dedicated flow ===
+import SmalrubotS1InitialStep from './smalrubot-s1-initial-step.jsx';
+import SmalrubotS1UnsupportedStep from './smalrubot-s1-unsupported-step.jsx';
+import SmalrubotS1ConnectingStep from './smalrubot-s1-connecting-step.jsx';
+import SmalrubotS1ConnectedStep from './smalrubot-s1-connected-step.jsx';
+import SmalrubotS1ErrorStep from './smalrubot-s1-error-step.jsx';
+// === Smalruby: End of smalrubotS1 dedicated flow ===
 
 import styles from './connection-modal.css';
 
@@ -33,6 +40,13 @@ const PHASES = keyMirror({
     // === Smalruby: Start of meshV2 initial step feature ===
     meshV2Initial: null,
     // === Smalruby: End of meshV2 initial step feature ===
+    // === Smalruby: Start of smalrubotS1 dedicated flow ===
+    smalrubotS1Initial: null,
+    smalrubotS1Unsupported: null,
+    smalrubotS1Connecting: null,
+    smalrubotS1Connected: null,
+    smalrubotS1Error: null,
+    // === Smalruby: End of smalrubotS1 dedicated flow ===
     updatePeripheral: null
 });
 
@@ -74,6 +88,13 @@ const ConnectionModalComponent = props => {
             {/* === Smalruby: Start of meshV2 initial step feature === */}
             {props.phase === PHASES.meshV2Initial && <MeshV2InitialStep {...props} />}
             {/* === Smalruby: End of meshV2 initial step feature === */}
+            {/* === Smalruby: Start of smalrubotS1 dedicated flow === */}
+            {props.phase === PHASES.smalrubotS1Initial && <SmalrubotS1InitialStep {...props} />}
+            {props.phase === PHASES.smalrubotS1Unsupported && <SmalrubotS1UnsupportedStep {...props} />}
+            {props.phase === PHASES.smalrubotS1Connecting && <SmalrubotS1ConnectingStep {...props} />}
+            {props.phase === PHASES.smalrubotS1Connected && <SmalrubotS1ConnectedStep {...props} />}
+            {props.phase === PHASES.smalrubotS1Error && <SmalrubotS1ErrorStep {...props} />}
+            {/* === Smalruby: End of smalrubotS1 dedicated flow === */}
             {props.phase === PHASES.updatePeripheral && <UpdatePeripheralStep {...props} />}
         </Box>
     </Modal>);
@@ -88,6 +109,13 @@ ConnectionModalComponent.propTypes = {
     onCancel: PropTypes.func.isRequired,
     onFlashFirmware: PropTypes.func, // === Smalruby: smalrubot firmware flash ===
     onHelp: PropTypes.func.isRequired,
+    // === Smalruby: Start of smalrubotS1 dedicated flow ===
+    onChooseConnect: PropTypes.func,
+    onChooseFlashFirmware: PropTypes.func,
+    onBackToInitial: PropTypes.func,
+    onRetry: PropTypes.func,
+    onClose: PropTypes.func,
+    // === Smalruby: End of smalrubotS1 dedicated flow ===
     phase: PropTypes.oneOf(Object.keys(PHASES)).isRequired,
     prescanMessage: PropTypes.node,
     scanBeginMessage: PropTypes.node,

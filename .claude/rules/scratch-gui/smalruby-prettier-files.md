@@ -33,6 +33,16 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/connection-modal/mesh-v2-initial-step.jsx`
 - `src/components/connection-modal/mesh-v2-network-filtered-step.jsx`
 - `src/components/connection-modal/mesh-v2-scanning-step.jsx`
+- `src/components/connection-modal/smalrubot-s1-connected-step.css`
+- `src/components/connection-modal/smalrubot-s1-connected-step.jsx`
+- `src/components/connection-modal/smalrubot-s1-connecting-step.css`
+- `src/components/connection-modal/smalrubot-s1-connecting-step.jsx`
+- `src/components/connection-modal/smalrubot-s1-error-step.css`
+- `src/components/connection-modal/smalrubot-s1-error-step.jsx`
+- `src/components/connection-modal/smalrubot-s1-initial-step.css`
+- `src/components/connection-modal/smalrubot-s1-initial-step.jsx`
+- `src/components/connection-modal/smalrubot-s1-unsupported-step.css`
+- `src/components/connection-modal/smalrubot-s1-unsupported-step.jsx`
 - `src/components/menu-bar/tutorial-tooltip.css`
 - `src/components/menu-bar/tutorial-tooltip.jsx`
 
@@ -163,6 +173,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/ruby-tab-furigana-zoom.test.js`
 - `test/integration/ruby-tab.test.js`
 - `test/integration/smalrubot-firmware.test.js`
+- `test/integration/smalrubot-s1-connection-flow.test.js`
 - `test/integration/rubytee-consent.test.js`
 - `test/integration/smalruby-tutorials.test.js`
 - `test/integration/v1-detection-prompt.test.js`
@@ -176,6 +187,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/containers/backpack.test.jsx`
 - `test/unit/containers/cards.test.jsx`
 - `test/unit/containers/connection-modal-connected-message.test.jsx`
+- `test/unit/containers/connection-modal-smalrubot-s1.test.jsx`
 - `test/unit/containers/connection-modal.test.jsx`
 - `test/unit/containers/google-drive-saver-hoc.test.jsx`
 - `test/unit/containers/google-drive-state-management.test.jsx`

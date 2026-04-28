@@ -2,6 +2,7 @@ import {
     parseIntelHex,
     isMacOS,
     isFirmwareFlashSupported,
+    isWebSerialSupported,
     SMALRUBOT_S1_BOARD,
 } from '../../../src/lib/smalrubot-firmware-flasher';
 
@@ -171,6 +172,38 @@ describe('smalrubot-firmware-flasher', () => {
                 configurable: true,
             });
             expect(isFirmwareFlashSupported()).toBe(true);
+        });
+    });
+
+    describe('isWebSerialSupported', () => {
+        const originalNavigator = global.navigator;
+
+        afterEach(() => {
+            Object.defineProperty(global, 'navigator', {
+                value: originalNavigator,
+                writable: true,
+                configurable: true,
+            });
+        });
+
+        test('should return true when WebSerial API is available', () => {
+            Object.defineProperty(global, 'navigator', {
+                value: {
+                    serial: { requestPort: jest.fn() },
+                },
+                writable: true,
+                configurable: true,
+            });
+            expect(isWebSerialSupported()).toBe(true);
+        });
+
+        test('should return false when navigator.serial is missing', () => {
+            Object.defineProperty(global, 'navigator', {
+                value: {},
+                writable: true,
+                configurable: true,
+            });
+            expect(isWebSerialSupported()).toBe(false);
         });
     });
 

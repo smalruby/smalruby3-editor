@@ -91,7 +91,7 @@ const SmalrubotFirmwareModal = ({
                     <React.Fragment>
                         <div className={styles.description}>
                             <FormattedMessage
-                                defaultMessage="Write the SmalrubotS1 firmware to the Studuino board. Connect the board via USB cable, then press the button below."
+                                defaultMessage="Write the SmalrubotS1 firmware to the Studuino board. Connect the board via USB cable, then press the button below and select your Smalrubot S1 in the serial port dialog."
                                 description="Description for the smalrubot firmware flash modal"
                                 id="gui.smalrubotFirmware.description"
                             />
