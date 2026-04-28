@@ -54,6 +54,12 @@ src/components/connection-modal/*
 !src/components/connection-modal/mesh-v2-initial-step.jsx
 !src/components/connection-modal/mesh-v2-network-filtered-step.jsx
 !src/components/connection-modal/mesh-v2-scanning-step.jsx
+!src/components/connection-modal/smalrubot-s1-connected-step.css
+!src/components/connection-modal/smalrubot-s1-connected-step.jsx
+!src/components/connection-modal/smalrubot-s1-connecting-step.css
+!src/components/connection-modal/smalrubot-s1-connecting-step.jsx
+!src/components/connection-modal/smalrubot-s1-error-step.css
+!src/components/connection-modal/smalrubot-s1-error-step.jsx
 !src/components/connection-modal/smalrubot-s1-initial-step.css
 !src/components/connection-modal/smalrubot-s1-initial-step.jsx
 !src/components/connection-modal/smalrubot-s1-unsupported-step.css
