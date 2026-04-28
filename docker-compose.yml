@@ -1,3 +1,5 @@
+name: smalruby3-editor
+
 services:
   app:
     build: .
