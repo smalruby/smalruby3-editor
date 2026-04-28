@@ -63,6 +63,19 @@ docker compose run --rm app bash -c "COMMAND"
 docker compose stop app
 ```
 
+The compose project name is pinned to `smalruby3-editor` (see `name:` at the top of `docker-compose.yml`), so `docker compose run` from a git worktree shares the same image and named volumes as the main checkout — no per-worktree rebuild needed.
+
+### Quick One-Shot Commands: `bin/dx`
+
+For quick lint or single-test invocations, `bin/dx` is a thin `docker run` wrapper that targets the prebuilt `smalruby3-editor-app:latest` image and mounts the same `node_modules` / npm cache volumes used by `docker compose run app`. It bypasses the compose entrypoint (which checks for monorepo setup), so it starts faster than `docker compose run`:
+
+```bash
+bin/dx bash -c "cd packages/scratch-vm && npm run lint"
+bin/dx bash -c "cd packages/scratch-gui && npm exec jest test/unit/your-test.test.js"
+```
+
+`docker compose run` is still preferred when you need the full setup (port mapping, container reuse, etc.). Use `bin/dx` for one-shot commands where startup speed matters.
+
 ## Development Commands
 
 ### Installation
