@@ -65,6 +65,8 @@ docker compose stop app
 
 The compose project name is pinned to `smalruby3-editor` (see `name:` at the top of `docker-compose.yml`), so `docker compose run` from a git worktree shares the same image and named volumes as the main checkout — no per-worktree rebuild needed.
 
+After `git worktree add`, run **`bin/sync-worktree-env`** once to copy the gitignored `.env.*` files (root + per-infra) from the main checkout. Without these, CDK deploys, webpack builds, and mesh v2 integration tests fail. See `.claude/rules/git-workflow.md` for full worktree workflow.
+
 ### Quick One-Shot Commands: `bin/dx`
 
 For quick lint or single-test invocations, `bin/dx` is a thin `docker run` wrapper that targets the prebuilt `smalruby3-editor-app:latest` image and mounts the same `node_modules` / npm cache volumes used by `docker compose run app`. It bypasses the compose entrypoint (which checks for monorepo setup), so it starts faster than `docker compose run`:

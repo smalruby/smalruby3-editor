@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# bin/sync-worktree-env — copy gitignored .env.* files from the main checkout
+# into the current git worktree.
+#
+# Why: `git worktree add` does not copy gitignored files (.env, .env.stg, etc.)
+# because they are not tracked. CDK deploys, webpack builds, and integration
+# tests need these env files. This script copies them from the main checkout
+# in one step.
+#
+# What is copied:
+#   - <repo-root>/.env.<stage>      (root webpack env)
+#   - infra/<project>/.env.<stage>  (CDK per-stage env)
+# where <stage> ∈ {stg, stg2, production}. Symlinks (.env) and tracked files
+# (.env.example) are NOT copied — set up the .env symlink yourself.
+#
+# Usage (from inside the worktree):
+#   bin/sync-worktree-env
+#
+# Idempotent: existing files are not overwritten unless --force is given.
+set -euo pipefail
+
+FORCE=false
+if [[ "${1:-}" == "--force" || "${1:-}" == "-f" ]]; then
+    FORCE=true
+fi
+
+# In a worktree, `git rev-parse --git-common-dir` points to <main>/.git.
+# In the main checkout itself, it returns ".git".
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
+if [[ -z "${GIT_COMMON_DIR}" ]]; then
+    echo "error: not inside a git repository" >&2
+    exit 1
+fi
+
+# Resolve absolute path of the main checkout's working tree
+# (parent of <main>/.git)
+GIT_COMMON_ABS=$(cd "${GIT_COMMON_DIR}" && pwd)
+MAIN_CHECKOUT=$(dirname "${GIT_COMMON_ABS}")
+WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+
+if [[ "${MAIN_CHECKOUT}" == "${WORKTREE_ROOT}" ]]; then
+    echo "info: current directory is the main checkout, nothing to sync."
+    exit 0
+fi
+
+# Files to consider: <relative-path> form. Each will be copied if it exists in
+# main checkout but not in worktree.
+declare -a FILES=(
+    ".env"
+    ".env.stg"
+    ".env.stg2"
+    ".env.production"
+    "infra/smalruby-mesh-v2/.env.stg"
+    "infra/smalruby-mesh-v2/.env.stg2"
+    "infra/smalruby-mesh-v2/.env.production"
+    "infra/smalruby-rubytee-relay/.env.stg"
+    "infra/smalruby-rubytee-relay/.env.stg2"
+    "infra/smalruby-rubytee-relay/.env.production"
+    "infra/smalruby-classroom/.env.stg"
+    "infra/smalruby-classroom/.env.stg2"
+    "infra/smalruby-classroom/.env.production"
+)
+
+copied=0
+skipped_existing=0
+skipped_missing=0
+for rel in "${FILES[@]}"; do
+    src="${MAIN_CHECKOUT}/${rel}"
+    dst="${WORKTREE_ROOT}/${rel}"
+
+    # Don't copy symlinks (.env is per-stage and stage choice is local)
+    if [[ -L "${src}" ]]; then
+        continue
+    fi
+    if [[ ! -f "${src}" ]]; then
+        skipped_missing=$((skipped_missing + 1))
+        continue
+    fi
+    if [[ -e "${dst}" && "${FORCE}" != "true" ]]; then
+        skipped_existing=$((skipped_existing + 1))
+        continue
+    fi
+    mkdir -p "$(dirname "${dst}")"
+    cp -p "${src}" "${dst}"
+    echo "copied: ${rel}"
+    copied=$((copied + 1))
+done
+
+echo ""
+echo "summary: ${copied} copied, ${skipped_existing} kept (already present), ${skipped_missing} not found in main"
+if [[ ${copied} -gt 0 ]]; then
+    echo "note: set up .env symlinks per stage as needed, e.g.:"
+    echo "  (cd infra/smalruby-mesh-v2 && ln -sf .env.stg .env)"
+fi
+
+# host 側 node_modules への symlink を作成。
+# 理由: husky の git hook (commit-msg → npx --no-install commitlint) が
+# host の node_modules/.bin を必要とするが、git worktree では空のため
+# commit が失敗する。docker のマウント (named volume) は影響しない。
+host_node_modules="${WORKTREE_ROOT}/node_modules"
+main_node_modules="${MAIN_CHECKOUT}/node_modules"
+if [[ ! -e "${host_node_modules}" ]] || [[ -d "${host_node_modules}" && -z "$(ls -A "${host_node_modules}" 2>/dev/null)" ]]; then
+    if [[ -d "${main_node_modules}" && -n "$(ls -A "${main_node_modules}" 2>/dev/null)" ]]; then
+        # 空ディレクトリがあれば削除してから symlink を貼る
+        if [[ -d "${host_node_modules}" ]]; then
+            rmdir "${host_node_modules}"
+        fi
+        ln -s "${main_node_modules}" "${host_node_modules}"
+        echo "linked: node_modules -> ${main_node_modules}"
+    else
+        echo "warn: main checkout has no node_modules. Run 'npm install' in main first."
+    fi
+fi

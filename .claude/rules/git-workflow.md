@@ -12,6 +12,61 @@
   - `test/add-coverage` - for test additions
 - All Pull Requests must target `develop` branch
 
+## Git Worktree Setup
+
+Sibling worktrees (e.g. `~/work/smalruby/smalruby3-editor-<feature>/`) are
+recommended for parallel development. The compose project name is pinned to
+`smalruby3-editor`, so `docker compose run` and `bin/dx` from a worktree share
+the main checkout's image and `node_modules` named volume — no rebuild needed.
+
+### Creating a worktree
+
+```bash
+git worktree add ../smalruby3-editor-<feature> -b <type>/<branch-name> develop
+cd ../smalruby3-editor-<feature>
+bin/sync-worktree-env  # copy gitignored .env.* from main checkout
+```
+
+### What `bin/sync-worktree-env` does
+
+`git worktree add` does **not** copy gitignored files. The repo has these
+gitignored env files that are required for CDK deploy / webpack build / mesh
+v2 integration tests:
+
+- `.env` (root, used by webpack at build time)
+- `infra/smalruby-mesh-v2/.env.{stg,stg2,production}`
+- `infra/smalruby-rubytee-relay/.env.{stg,stg2,production}`
+- `infra/smalruby-classroom/.env.{stg,stg2,production}`
+
+The script also **symlinks `node_modules` from the main checkout** into the
+worktree if it is missing/empty. This is required because git worktrees start
+with empty `node_modules` on the host filesystem, but husky git hooks
+(`commit-msg` → `npx --no-install commitlint`) run on the host and need
+`node_modules/.bin` to be populated. (Docker named volumes are unaffected;
+the symlink is only for host-side tools.)
+
+The script is idempotent — running it twice is safe. Pass `--force` to
+overwrite existing env files. Do it once after creating the worktree, then
+set up the `.env` symlink for the stage you want to deploy:
+
+```bash
+(cd infra/smalruby-mesh-v2 && ln -sf .env.stg .env)
+```
+
+### When to re-sync
+
+If `.env.<stage>` is updated in the main checkout (rare, e.g. new env var
+added), re-run `bin/sync-worktree-env --force` in the worktree to pick up
+the change.
+
+### Cleaning up a worktree
+
+```bash
+cd <main-checkout>
+git worktree remove ../smalruby3-editor-<feature>
+git branch -d <type>/<branch-name>  # if branch is merged
+```
+
 ## Commit Message Format
 
 **Enforce Conventional Commits**. All commit messages must follow this format:
