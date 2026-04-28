@@ -9,7 +9,7 @@ import initialStyles from './smalrubot-s1-initial-step.css';
 
 const SmalrubotS1InitialStep = props => (
     <Box className={styles.body}>
-        <Box className={styles.activityArea}>
+        <Box className={initialStyles.activityArea}>
             <div className={initialStyles.intro}>
                 <FormattedMessage
                     defaultMessage={
