@@ -1,0 +1,18 @@
+mutation RecordEventsByNode(
+  $groupId: ID!
+  $domain: String!
+  $nodeId: ID!
+  $events: [EventInput!]!
+) {
+  recordEventsByNode(
+    groupId: $groupId
+    domain: $domain
+    nodeId: $nodeId
+    events: $events
+  ) {
+    groupId
+    domain
+    recordedCount
+    nextSince
+  }
+}

@@ -226,6 +226,40 @@ fields @message
 
 ---
 
+#### イベント順序の調査ログ (issue #556)
+
+ポーリングモード (`recordEventsByNode`) で同一バッチに複数イベントを送信
+すると、DynamoDB の `server_timestamp` が全イベントに同じ値で付与される。
+順序を保証するために、クライアントは `EventInput.orderKey`
+(`<YYYYMMDDHHMMSS>-<NNNNNNN>` 形式) を送信し、サーバーは SK に組み込む:
+
+```
+SK (orderKey 付き): EVENT#<server_timestamp>#<orderKey>#<short_uuid>
+SK (orderKey なし): EVENT#<server_timestamp>#<uuid>  ← 旧クライアント互換
+```
+
+イベント順序が想定外の場合、CloudWatch Logs に出る `RequestFunctionEvaluation`
+ログの `result.attributeValues.sk` から SK を確認できる:
+
+```
+fields @timestamp, @message
+| filter @message like /recordEventsByNode/ and @message like /attributeValues/
+| parse @message /"sk":\{"S":"(?<sk>EVENT#[^"]+)"/
+| display @timestamp, sk
+| sort @timestamp desc
+| limit 50
+```
+
+`SK` の 3 セグメント目が `<orderKey>` で送信順（クライアント側の連番昇順）
+であれば仕様通り。orderKey が `null` の場合は旧クライアント、または
+client 実装に問題がある可能性がある (issue #556 以前のクライアントは
+orderKey を送信しない)。
+
+`orderKey` の桁数仕様: `NNNNNNN` (7 桁、0 詰め)。35 分接続上限内で
+最大 9,999,999 まで対応 (理論最大スループット 2.1M events に対し約 4.7x 余裕)。
+
+---
+
 #### Lambda ログ
 
 **設定**: 自動的に有効化

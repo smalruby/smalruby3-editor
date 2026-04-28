@@ -67,8 +67,31 @@ type Event {
   payload: String
   timestamp: AWSDateTime!
   cursor: String           # NEW: ポーリング用のカーソル（SK）
+  orderKey: String         # NEW (issue #556): クライアント側ソートキー
 }
 ```
+
+##### `orderKey` フィールド (issue #556)
+
+クライアントが `EventInput.orderKey` を送信していたイベントの場合、サーバーは
+DynamoDB の Sort Key と属性に保存し、`Event.orderKey` で返却します。
+ポーリング (`getEventsSince`) や Subscription (`onMessageInGroup` の
+`batchEvent.events`) 経由で受信したクライアントは、同一タイムスタンプの
+イベントを `orderKey` の辞書順でソートすることで送信順を再現できます。
+
+旧クライアントが送信していない場合は `null` が返ります（後方互換）。
+
+##### `EventInput.orderKey` フォーマット
+
+クライアントから送信する場合のフォーマット: `<YYYYMMDDHHMMSS>-<NNNNNNN>`
+
+- `YYYYMMDDHHMMSS`: 14 桁のローカル時刻（人間可読、デバッグ用）
+- `NNNNNNN`: 7 桁 0 詰め連番。クライアントがグループ作成/参加直後に 0 リセット、`fireEvent()` 呼び出しごとに +1
+- 例: `20260428090000-0000001`, `20260428090000-9999999`
+
+**桁数の根拠**: 接続上限 35 分 × min batch interval 100ms × queue 100 件 = **2.1M 件**が理論最大スループット。7 桁 (max 9,999,999) で約 4.7x の余裕。3 桁では 1000 件目で `"1000" < "999"` 辞書順となり順序保証が破綻するため不可。
+
+**サーバー側の扱い**: サーバーは `orderKey` を opaque な文字列として保存します。`#` を含む値も受け付けますが、クライアント側で生成する場合は上記フォーマットに従ってください。同一バッチ内に同じ `orderKey` が複数あっても、SK 末尾の short UUID で一意性が確保されます。
 
 #### NodeStatus
 
@@ -281,6 +304,7 @@ query GetEventsSince($groupId: ID!, $domain: String!, $since: String!) {
     payload
     timestamp
     cursor
+    orderKey
   }
 }
 ```
@@ -288,7 +312,9 @@ query GetEventsSince($groupId: ID!, $domain: String!, $since: String!) {
 **パラメータ**:
 - `since: String!` - 前回の `nextSince` または最後に取得したイベントの `cursor` を指定します。
 
-**戻り値**: イベントの配列。最大 100 件まで取得されます。
+**戻り値**: イベントの配列。最大 100 件まで取得されます。100 件超の場合は最後のイベントの `cursor` を `since` に指定して再 query することでページングできます。
+
+**`orderKey` フィールド** (issue #556): クライアントが `EventInput.orderKey` を送信していたイベントのみ含まれます。受信側クライアントが同一タイムスタンプのイベントを送信順で並べる安定ソートに使用します。詳細は [EventInput](#eventinput) 参照。
 
 ## Mutations
 
@@ -441,6 +467,7 @@ mutation FireEventsByNode(
         firedByNodeId
         payload
         timestamp
+        orderKey   # NEW (issue #556)
       }
       firedByNodeId
       groupId
@@ -453,6 +480,8 @@ mutation FireEventsByNode(
 
 **戻り値**: `MeshMessage` — `batchEvent` フィールドにイベントデータが含まれます。この mutation は `onMessageInGroup` subscription をトリガーします。
 
+`EventInput.orderKey` を送信した場合は `batchEvent.events[].orderKey` でパススルーされ、subscription 受信側のクライアントが安定ソートに使えます (issue #556)。
+
 ### recordEventsByNode
 
 ノードが複数のイベントを一度に送信し、DynamoDB に保存します（ポーリング用）。
@@ -462,7 +491,7 @@ mutation RecordEventsByNode(
   $nodeId: ID!
   $groupId: ID!
   $domain: String!
-  $events: [EventInput!]!
+  $events: [EventInput!]!  # EventInput.orderKey で同一バッチ内の順序保証 (#556)
 ) {
   recordEventsByNode(
     nodeId: $nodeId
@@ -479,6 +508,8 @@ mutation RecordEventsByNode(
 ```
 
 **用途**: WebSocket が使用できない環境でのイベント送信に使用。この mutation は `onMessageInGroup` subscription を**トリガーしません**。
+
+**順序保証** (issue #556): 同一バッチ内のイベントは同じ `server_timestamp` で保存されるため、SK 末尾だけがランダム UUID だと取得時の順序が送信順と一致しません。クライアントは `EventInput.orderKey` (フォーマット: `<YYYYMMDDHHMMSS>-<NNNNNNN>`) を送信することで、SK = `EVENT#<server_timestamp>#<orderKey>#<short_uuid>` 形式で保存され、`getEventsSince` で送信順 = orderKey 辞書順で取得できます。詳細は [Event 型の orderKey](#orderkey-フィールド-issue-556)。
 
 ---
 

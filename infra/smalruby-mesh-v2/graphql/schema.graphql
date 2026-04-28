@@ -62,6 +62,7 @@ type Event {
   payload: String
   timestamp: AWSDateTime!
   cursor: String           # NEW: ポーリング用のカーソル（SK）
+  orderKey: String         # NEW: クライアント側ソートキー (issue #556)
 }
 
 # イベントのバッチ送信用の入力型
@@ -69,6 +70,13 @@ input EventInput {
   eventName: String!
   payload: String
   firedAt: AWSDateTime!  # イベント発火日時（ISO 8601形式、ミリ秒含む）
+  # NEW (issue #556): クライアント側で生成する optional ソートキー
+  # フォーマット: "<YYYYMMDDHHMMSS>-<NNNNNNN>" (NNNNNNN は接続後 7 桁 0 詰め連番)
+  # 同一サーバータイムスタンプでバッチ書き込みされたイベントの送信順序を保証。
+  # 7 桁の根拠: 接続上限 35 分 × min batch interval 100ms × queue 100 件 = 2.1M
+  # 件が理論最大。9,999,999 で約 4.7x 余裕。3 桁だと 1000 件目で破綻
+  # ("1000" < "999" の辞書順)
+  orderKey: String
 }
 
 # バッチイベント型（複数イベントを含む）
