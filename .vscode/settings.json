@@ -8,5 +8,6 @@
   "editor.wordWrap": "on",
   "rust-analyzer.linkedProjects": [
     "ruby/smalruby3/ext/smalruby3_imageutil/Cargo.toml"
-  ]
+  ],
+  "rust-analyzer.cargo.envFile": "${workspaceFolder}/.vscode/cargo.env.local"
 }

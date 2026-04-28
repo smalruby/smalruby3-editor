@@ -145,6 +145,9 @@ built-monorepo
 .claude/worktrees/
 .*-mcp/
 
+# VSCode local-only settings (machine-specific, e.g. rust-analyzer envFile)
+.vscode/cargo.env.local
+
 /notes
 
 # CDK (infra/)
