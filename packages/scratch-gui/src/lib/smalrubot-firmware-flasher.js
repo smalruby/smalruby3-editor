@@ -81,15 +81,21 @@ const isMacOS = () => {
 };
 
 /**
- * Check if firmware flashing is supported on this platform.
- * Requires WebSerial API.
- * @returns {boolean} True if firmware flashing is supported.
+ * Check if the WebSerial API is available in the current environment.
+ * @returns {boolean} True if WebSerial is supported.
  */
-const isFirmwareFlashSupported = () => {
+const isWebSerialSupported = () => {
     if (typeof navigator === 'undefined') return false;
     if (!navigator.serial) return false;
     return true;
 };
+
+/**
+ * Check if firmware flashing is supported on this platform.
+ * Requires WebSerial API.
+ * @returns {boolean} True if firmware flashing is supported.
+ */
+const isFirmwareFlashSupported = () => isWebSerialSupported();
 
 /**
  * STK500v1 protocol implementation for WebSerial.
@@ -451,6 +457,7 @@ export {
     parseIntelHex,
     isMacOS,
     isFirmwareFlashSupported,
+    isWebSerialSupported,
     STK500v1,
     FirmwareFlasher,
     SMALRUBOT_S1_BOARD,

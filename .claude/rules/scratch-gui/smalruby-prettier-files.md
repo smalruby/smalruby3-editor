@@ -33,6 +33,8 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/connection-modal/mesh-v2-initial-step.jsx`
 - `src/components/connection-modal/mesh-v2-network-filtered-step.jsx`
 - `src/components/connection-modal/mesh-v2-scanning-step.jsx`
+- `src/components/connection-modal/smalrubot-s1-unsupported-step.css`
+- `src/components/connection-modal/smalrubot-s1-unsupported-step.jsx`
 - `src/components/menu-bar/tutorial-tooltip.css`
 - `src/components/menu-bar/tutorial-tooltip.jsx`
 
