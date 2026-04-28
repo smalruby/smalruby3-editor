@@ -1294,12 +1294,20 @@ class MeshV2Service {
 
     /**
      * Generate a sortable order key for an event.
-     * Format: `<YYYYMMDDHHMMSS>-<NNN>` where NNN is a 0-padded sequence
-     * counter incremented per call (resets on group create/join).
+     * Format: `<YYYYMMDDHHMMSS>-<NNNNNNN>` where NNNNNNN is a 7-digit
+     * 0-padded sequence counter incremented per call (resets on group
+     * create/join).
      *
      * Same client guarantees lexicographic order = send order across batches.
      * Cross-client collisions are possible but extremely unlikely; the server
      * appends a short UUID to the SK to ensure uniqueness.
+     *
+     * Why 7 digits: connection cap is 35 min = 2100s. Worst-case throughput
+     * is bounded by MAX_EVENT_QUEUE_SIZE (100) draining every
+     * eventBatchInterval (min 100ms) → 1000 events/s max → ~2.1M per
+     * session. 7 digits (max 9,999,999) gives ~4.7x margin even at the
+     * minimum interval. 3 digits would overflow at the 1000th event,
+     * silently breaking lexicographic order ("1000" < "999").
      * @param {Date} firedAt - The event fire time.
      * @returns {string} Sortable order key.
      * @private
@@ -1312,7 +1320,7 @@ class MeshV2Service {
         const mi = String(firedAt.getMinutes()).padStart(2, '0');
         const ss = String(firedAt.getSeconds()).padStart(2, '0');
         this.eventSequence += 1;
-        const seq = String(this.eventSequence).padStart(3, '0');
+        const seq = String(this.eventSequence).padStart(7, '0');
         return `${yyyy}${mm}${dd}${hh}${mi}${ss}-${seq}`;
     }
 

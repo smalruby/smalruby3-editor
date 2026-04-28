@@ -22,7 +22,7 @@ const createMockBlocks = () => ({
 });
 
 test('MeshV2Service orderKey generation (issue #556)', t => {
-    t.test('_generateOrderKey produces YYYYMMDDHHMMSS-NNN format', st => {
+    t.test('_generateOrderKey produces YYYYMMDDHHMMSS-NNNNNNN format', st => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.eventSequence = 0;
@@ -30,9 +30,9 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         const date = new Date('2026-04-28T09:00:00');
         const key = service._generateOrderKey(date);
 
-        // Local-time interpretation: format must be 14 digits + - + 3 digits
-        st.match(key, /^\d{14}-\d{3}$/, 'matches YYYYMMDDHHMMSS-NNN');
-        st.equal(key.endsWith('-001'), true, 'starts at sequence 001');
+        // Local-time interpretation: format must be 14 digits + - + 7 digits
+        st.match(key, /^\d{14}-\d{7}$/, 'matches YYYYMMDDHHMMSS-NNNNNNN');
+        st.equal(key.endsWith('-0000001'), true, 'starts at sequence 0000001');
         st.end();
     });
 
@@ -46,9 +46,9 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         const k2 = service._generateOrderKey(date);
         const k3 = service._generateOrderKey(date);
 
-        st.equal(k1.split('-')[1], '001');
-        st.equal(k2.split('-')[1], '002');
-        st.equal(k3.split('-')[1], '003');
+        st.equal(k1.split('-')[1], '0000001');
+        st.equal(k2.split('-')[1], '0000002');
+        st.equal(k3.split('-')[1], '0000003');
         // Lexicographic sort matches generation order
         st.same([...[k3, k1, k2]].sort(), [k1, k2, k3]);
         st.end();
@@ -62,8 +62,8 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         const k1 = service._generateOrderKey(new Date('2026-04-28T09:00:00'));
         const k2 = service._generateOrderKey(new Date('2026-04-28T09:00:01'));
 
-        st.equal(k1.split('-')[1], '001');
-        st.equal(k2.split('-')[1], '002');
+        st.equal(k1.split('-')[1], '0000001');
+        st.equal(k2.split('-')[1], '0000002');
         st.end();
     });
 
@@ -77,9 +77,30 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         service.fireEvent('hello', '');
         st.equal(service.eventQueue.length, 1);
         const queued = service.eventQueue[0];
-        st.match(queued.orderKey, /^\d{14}-001$/);
+        st.match(queued.orderKey, /^\d{14}-0000001$/);
         st.equal(queued.eventName, 'hello');
         st.ok(queued.firedAt);
+        st.end();
+    });
+
+    t.test('eventSequence above 999 keeps lexicographic order (no overflow)', st => {
+        const blocks = createMockBlocks();
+        const service = new MeshV2Service(blocks, 'node1', 'domain1');
+        service.eventSequence = 998; // next call → 999, then 1000
+
+        const date = new Date('2026-04-28T09:00:00');
+        const k999 = service._generateOrderKey(date);
+        const k1000 = service._generateOrderKey(date);
+        const k9999999 = (() => {
+            service.eventSequence = 9999998;
+            return service._generateOrderKey(date);
+        })();
+
+        st.equal(k999.split('-')[1], '0000999');
+        st.equal(k1000.split('-')[1], '0001000');
+        st.equal(k9999999.split('-')[1], '9999999');
+        // 7-digit padding keeps lexicographic order across the 999→1000 boundary
+        st.ok(k999 < k1000, '0000999 < 0001000 in lex order');
         st.end();
     });
 

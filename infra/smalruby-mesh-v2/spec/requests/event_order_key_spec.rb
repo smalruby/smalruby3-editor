@@ -24,9 +24,9 @@ RSpec.describe "Event ordering with orderKey", type: :request do
   describe "recordEventsByNode mutation with orderKey" do
     it "orderKey を付けて送信した複数イベントが送信順で取得できる" do
       events = [
-        {eventName: "first", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-001"},
-        {eventName: "second", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-002"},
-        {eventName: "third", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-003"}
+        {eventName: "first", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-0000001"},
+        {eventName: "second", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-0000002"},
+        {eventName: "third", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-0000003"}
       ]
 
       record_response = execute_graphql(record_events_query, {
@@ -53,7 +53,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
 
       # orderKey がレスポンスに含まれる
       order_keys = retrieved.map { |e| e["orderKey"] }
-      expect(order_keys).to eq(%w[20260428090000-001 20260428090000-002 20260428090000-003])
+      expect(order_keys).to eq(%w[20260428090000-0000001 20260428090000-0000002 20260428090000-0000003])
     end
 
     it "orderKey を省略しても録画でき、orderKey は null で返る（後方互換）" do
@@ -85,7 +85,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
 
     it "新旧クライアント混在（orderKey あり/なし）のイベントを記録できる" do
       events = [
-        {eventName: "with_key", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-001"},
+        {eventName: "with_key", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-0000001"},
         {eventName: "without_key", payload: nil, firedAt: "2026-04-28T00:00:00.000Z"}
       ]
 
@@ -110,7 +110,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
 
       with_key = retrieved.find { |e| e["name"] == "with_key" }
       without_key = retrieved.find { |e| e["name"] == "without_key" }
-      expect(with_key["orderKey"]).to eq("20260428090000-001")
+      expect(with_key["orderKey"]).to eq("20260428090000-0000001")
       expect(without_key["orderKey"]).to be_nil
     end
   end
@@ -126,7 +126,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
           eventName: "evt#{format("%02d", i)}",
           payload: nil,
           firedAt: "2026-04-28T00:00:00.000Z",
-          orderKey: "20260428090000-#{format("%03d", i)}"
+          orderKey: "20260428090000-#{format("%07d", i)}"
         }
       end
 
@@ -155,10 +155,10 @@ RSpec.describe "Event ordering with orderKey", type: :request do
       total = 150
       events = (1..total).map do |i|
         {
-          eventName: "evt#{format("%03d", i)}",
+          eventName: "evt#{format("%07d", i)}",
           payload: nil,
           firedAt: "2026-04-28T00:00:00.000Z",
-          orderKey: "20260428090000-#{format("%03d", i)}"
+          orderKey: "20260428090000-#{format("%07d", i)}"
         }
       end
 
@@ -183,7 +183,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
 
       # 結合して全件・送信順を確認
       combined_names = (page1 + page2).map { |e| e["name"] }
-      expected_names = (1..total).map { |i| "evt#{format("%03d", i)}" }
+      expected_names = (1..total).map { |i| "evt#{format("%07d", i)}" }
       expect(combined_names).to eq(expected_names)
     end
 
@@ -197,7 +197,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
           eventName: "with_hash",
           payload: nil,
           firedAt: "2026-04-28T00:00:00.000Z",
-          orderKey: "20260428090000-001#injected"
+          orderKey: "20260428090000-0000001#injected"
         }
       ]
 
@@ -216,7 +216,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
       expect(retrieved.size).to eq(1)
       expect(retrieved[0]["name"]).to eq("with_hash")
       # orderKey 属性は元の値そのまま（SK の '#' 分割では破壊されない）
-      expect(retrieved[0]["orderKey"]).to eq("20260428090000-001#injected")
+      expect(retrieved[0]["orderKey"]).to eq("20260428090000-0000001#injected")
 
       # cursor で再 query しても crash しない
       page2 = execute_graphql(get_events_since_query, {
@@ -240,7 +240,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
           eventName: "a#{i}",
           payload: nil,
           firedAt: "2026-04-28T00:00:00.000Z",
-          orderKey: "20260428090000-#{format("%03d", i)}"
+          orderKey: "20260428090000-#{format("%07d", i)}"
         }
       end
       # 同じ orderKey 連番だが nodeId が異なる。SK の short_uuid suffix で
@@ -250,7 +250,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
           eventName: "b#{i}",
           payload: nil,
           firedAt: "2026-04-28T00:00:00.000Z",
-          orderKey: "20260428090000-#{format("%03d", i)}"
+          orderKey: "20260428090000-#{format("%07d", i)}"
         }
       end
 
@@ -311,8 +311,8 @@ RSpec.describe "Event ordering with orderKey", type: :request do
       GRAPHQL
 
       events = [
-        {eventName: "ws_evt1", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-001"},
-        {eventName: "ws_evt2", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-002"}
+        {eventName: "ws_evt1", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-0000001"},
+        {eventName: "ws_evt2", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-0000002"}
       ]
       response = execute_graphql(fire_events_query, {
         groupId: ws_group_id, domain: ws_domain, nodeId: ws_node_id, events: events
@@ -320,7 +320,7 @@ RSpec.describe "Event ordering with orderKey", type: :request do
       expect(response["errors"]).to be_nil
       retrieved = response["data"]["fireEventsByNode"]["batchEvent"]["events"]
       expect(retrieved.map { |e| e["name"] }).to eq(%w[ws_evt1 ws_evt2])
-      expect(retrieved.map { |e| e["orderKey"] }).to eq(%w[20260428090000-001 20260428090000-002])
+      expect(retrieved.map { |e| e["orderKey"] }).to eq(%w[20260428090000-0000001 20260428090000-0000002])
     end
 
     # コーナーケース 6: orderKey の時刻部分が巻き戻る (NTP ずれ等)
@@ -332,8 +332,8 @@ RSpec.describe "Event ordering with orderKey", type: :request do
     it "documents orderKey lexicographic order beats actual send order on clock skew" do
       # 後で送ったが orderKey の時刻部分は早い (NTP 巻き戻し)
       events = [
-        {eventName: "later_send", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090005-001"},
-        {eventName: "earlier_key", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-002"}
+        {eventName: "later_send", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090005-0000001"},
+        {eventName: "earlier_key", payload: nil, firedAt: "2026-04-28T00:00:00.000Z", orderKey: "20260428090000-0000002"}
       ]
 
       record_response = execute_graphql(record_events_query, {

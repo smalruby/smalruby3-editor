@@ -397,26 +397,44 @@ Mesh v2 は Single Table Design を採用し、1つのテーブルにすべて�
 #### 4. イベント (Event)
 
 **PK**: `GROUP#{groupId}@{domain}`
-**SK**: `EVENT#{timestamp}#{eventId}`
+
+**SK** (issue #556 対応):
+- `orderKey` 付き: `EVENT#{server_timestamp}#{orderKey}#{short_uuid}`
+- `orderKey` なし (旧クライアント): `EVENT#{server_timestamp}#{uuid}`
 
 **属性**:
 ```json
 {
   "pk": "GROUP#abc123@192.168.1.1",
-  "sk": "EVENT#2026-01-01T12:00:00.123Z#evt-001",
+  "sk": "EVENT#2026-01-01T12:00:00Z#20260101120000-0000001#a1b2c3d4",
   "eventName": "button_clicked",
   "firedByNodeId": "node-001",
   "groupId": "abc123",
   "domain": "192.168.1.1",
   "payload": "{\"button\":\"A\"}",
-  "timestamp": "2026-01-01T12:00:00.123Z",
+  "timestamp": "2026-01-01T12:00:00Z",
+  "orderKey": "20260101120000-0000001",
   "ttl": 1704067210
 }
 ```
 
 **アクセスパターン**:
-- グループ内イベント一覧: `pk = GROUP#{groupId}@{domain} AND begins_with(sk, "EVENT#")`
-- 時系列イベント取得: Sort Key でソート
+- グループ内イベント以降取得: `pk = GROUP#{groupId}@{domain} AND sk > "EVENT#{since}"` (limit 100)
+- 時系列イベント取得: SK の昇順 (scanIndexForward: true)
+
+##### SK 構造と順序保証 (issue #556)
+
+DynamoDB BatchWriteItem は同一バッチを並列書き込みするため、UUID 末尾だけでは
+取得時に送信順が保証されない。クライアントが `EventInput.orderKey`
+(`<YYYYMMDDHHMMSS>-<NNNNNNN>` 形式) を送信すると、サーバーは SK に組み込み、
+同一 `server_timestamp` 内では `orderKey` の辞書順 = 送信順 でソート可能になる。
+
+`short_uuid` (8 文字) は異なるクライアントが偶然同じ `orderKey` を送ったときの
+一意性確保用。`orderKey` 自体に SK 区切り文字 `#` を含む値も DynamoDB query は
+文字列比較のみなので動作する (cursor 経由のページングも問題なし)。
+
+旧クライアント (`orderKey` 未送信) は従来通り `EVENT#{ts}#{uuid}` で保存され、
+`orderKey` 属性も保存されないため後方互換が保たれる。
 
 ---
 
