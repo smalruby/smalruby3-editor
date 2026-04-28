@@ -18,7 +18,7 @@ const {
     REPORT_DATA,
     FIRE_EVENTS,
     RECORD_EVENTS,
-    GET_EVENTS_SINCE,
+    POLL_GROUP_DATA,
     ON_MESSAGE_IN_GROUP,
     LIST_GROUP_STATUSES,
     SEARCH_GROUPS_BY_NAME_PREFIX
@@ -410,13 +410,17 @@ class MeshV2Service {
             this.costTracking.connectionStartTime = Date.now();
             if (this.useWebSocket) {
                 this.startSubscriptions();
+                // WebSocket モードは subscription でデータ更新をリアルタイム取得し、
+                // 念のため 15 秒ごとの fallback 同期を実行
+                this.startPeriodicDataSync();
             } else {
+                // Polling モードは pollGroupData が events + nodeStatuses を
+                // 同時取得するため、startPeriodicDataSync は不要 (issue #554)
                 this.startPolling();
             }
             this.startHeartbeat();
             this.startEventBatchTimer();
             this.startConnectionTimer();
-            this.startPeriodicDataSync();
 
             await this.sendAllGlobalVariables();
 
@@ -518,13 +522,16 @@ class MeshV2Service {
             this.costTracking.connectionStartTime = Date.now();
             if (this.useWebSocket) {
                 this.startSubscriptions();
+                // WebSocket モードは 15 秒ごとの fallback 同期を実行
+                this.startPeriodicDataSync();
             } else {
+                // Polling モードは pollGroupData が events + nodeStatuses を
+                // 同時取得するため、startPeriodicDataSync は不要 (issue #554)
                 this.startPolling();
             }
             this.startHeartbeat(); // Start heartbeat for member too
             this.startEventBatchTimer();
             this.startConnectionTimer();
-            this.startPeriodicDataSync();
 
             await this.sendAllGlobalVariables();
             await this.fetchAllNodesData();
@@ -727,7 +734,16 @@ class MeshV2Service {
     }
 
     /**
-     * Fetch new events from the server since the last fetch time.
+     * Fetch new events and node statuses from the server since the last fetch time.
+     *
+     * issue #554: ポーリングモードでは pollGroupData クエリを使い、
+     * イベントとノードステータスを 1 リクエストで取得する。これにより:
+     *   - 旧: getEventsSince (2s) + listGroupStatuses (15s, startPeriodicDataSync)
+     *         → 34 query/min (events 30 + status 4)
+     *   - 新: pollGroupData (2s)
+     *         → 30 query/min (12% 削減 + データ同期遅延 15s → 2s に短縮)
+     * AppSync の課金単位は 1 リクエスト = 1 op なので、Pipeline Resolver
+     * 内で複数 DynamoDB アクセスをしても 1 op として課金される。
      */
     async pollEvents () {
         if (!this.groupId || !this.client || this.useWebSocket) return;
@@ -737,12 +753,12 @@ class MeshV2Service {
             this.lastFetchTime = new Date().toISOString();
         }
 
-        debug(() => `Mesh V2: pollEvents for group ${this.groupId}. since=${this.lastFetchTime}`);
+        debug(() => `Mesh V2: pollGroupData for group ${this.groupId}. since=${this.lastFetchTime}`);
 
         try {
             this.costTracking.queryCount++;
             const result = await this.client.query({
-                query: GET_EVENTS_SINCE,
+                query: POLL_GROUP_DATA,
                 variables: {
                     groupId: this.groupId,
                     domain: this.domain,
@@ -751,14 +767,19 @@ class MeshV2Service {
                 fetchPolicy: 'network-only'
             });
 
-            if (result.data && result.data.getEventsSince) {
-                const events = result.data.getEventsSince;
-                if (events.length > 0) {
+            if (result.data && result.data.pollGroupData) {
+                const {events, nodeStatuses} = result.data.pollGroupData;
+
+                // ノードステータスは fetchAllNodesData と同じ処理に流す
+                if (nodeStatuses && nodeStatuses.length > 0) {
+                    nodeStatuses.forEach(status => this.handleDataUpdate(status));
+                }
+
+                if (events && events.length > 0) {
                     debug(() => `Mesh V2: Polled ${events.length} events`);
 
                     // Filter out events from self and sort by timestamp to preserve order
-                    const otherEvents = events
-                        .filter(event => event.firedByNodeId !== this.meshId);
+                    const otherEvents = events.filter(event => event.firedByNodeId !== this.meshId);
 
                     if (otherEvents.length > 0) {
                         this._queueEventsForPlayback(otherEvents);

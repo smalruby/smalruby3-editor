@@ -1,0 +1,24 @@
+query PollGroupData($groupId: ID!, $domain: String!, $since: String!) {
+  pollGroupData(groupId: $groupId, domain: $domain, since: $since) {
+    events {
+      name
+      firedByNodeId
+      groupId
+      domain
+      payload
+      timestamp
+      cursor
+      orderKey
+    }
+    nodeStatuses {
+      nodeId
+      groupId
+      domain
+      data {
+        key
+        value
+      }
+      timestamp
+    }
+  }
+}

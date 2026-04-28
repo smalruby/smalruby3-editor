@@ -316,6 +316,66 @@ query GetEventsSince($groupId: ID!, $domain: String!, $since: String!) {
 
 **`orderKey` フィールド** (issue #556): クライアントが `EventInput.orderKey` を送信していたイベントのみ含まれます。受信側クライアントが同一タイムスタンプのイベントを送信順で並べる安定ソートに使用します。詳細は [EventInput](#eventinput) 参照。
 
+> **注意**: ポーリングモードのクライアントは `getEventsSince` 単体ではなく、
+> [`pollGroupData`](#pollgroupdata-issue-554) を 2 秒間隔で呼ぶことで events
+> と nodeStatuses を同時取得します。`getEventsSince` は引き続き API として
+> 利用可能 (旧クライアントとの後方互換、デバッグ用途)。
+
+### pollGroupData (issue #554)
+
+ポーリング時のイベント取得とノードステータス取得を **1 リクエストに統合**した
+Pipeline Resolver。`getEventsSince` (events) + `listGroupStatuses`
+(nodeStatuses) を 1 つの AppSync リクエストで返します。
+
+```graphql
+query PollGroupData($groupId: ID!, $domain: String!, $since: String!) {
+  pollGroupData(groupId: $groupId, domain: $domain, since: $since) {
+    events {
+      name
+      firedByNodeId
+      groupId
+      domain
+      payload
+      timestamp
+      cursor
+      orderKey
+    }
+    nodeStatuses {
+      nodeId
+      groupId
+      domain
+      data { key value }
+      timestamp
+    }
+  }
+}
+```
+
+**パラメータ**:
+- `since: String!` - `getEventsSince` と同じ。前回の `Event.cursor` または空文字 (`""`) を指定。
+
+**戻り値**: `PollGroupData { events, nodeStatuses }`
+- `events`: `Event[]` (`getEventsSince` 相当、limit 100、`cursor` でページング可能)
+- `nodeStatuses`: `NodeStatus[]` (`listGroupStatuses` 相当、TTL 内のノードのみ)
+
+**用途**:
+- ポーリングモード (`useWebSocket=false`) のクライアントが 2 秒間隔で呼び、events 受信とデータ同期を同時に行う
+- WebSocket モードでは使わない（subscription + 15 秒間隔の `listGroupStatuses` を使う）
+
+**実装**: AppSync Pipeline Resolver。内部で 2 つの DynamoDB Query を直列実行
+（`fetchEventsForPoll` → `fetchNodeStatusesForPoll`）するが、AppSync の課金は
+**1 リクエスト = 1 op**。詳細は `docs/architecture.md` および
+`/docs/mesh/cost.md` の "Polling Sync (HTTPS Polling Mode)" セクション。
+
+**コスト効果**:
+- AppSync requests: 旧 `getEventsSince` (30/min) + `listGroupStatuses`
+  (4/min) = 34 → 新 `pollGroupData` (30/min) = **30 (12% 削減)**
+- データ同期遅延: **15s → 2s** (約 87% 短縮)
+
+**後方互換性**: 既存の `getEventsSince` / `listGroupStatuses` は変更なし。
+旧クライアントは引き続きそれらを使用可能。新クライアント (this PR 以降) は
+`pollGroupData` を使用する。
+
 ## Mutations
 
 ### createDomain

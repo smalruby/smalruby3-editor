@@ -54,13 +54,14 @@ describe('MeshV2Stack', () => {
     // 17. leaveGroup (Lambda)
     // Functions are different resources (AWS::AppSync::Function)
 
-    // Let's count Resolvers again:
-    // listGroupsByDomain, listGroupStatuses, getNodeStatus, listNodesInGroup, createGroup,
-    // joinGroup, renewHeartbeat, sendMemberHeartbeat, reportDataByNode, fireEventsByNode,
-    // recordEventsByNode, getEventsSince, dissolveGroup, createDomain, leaveGroup.
-    // That's 15.
+    // Let's count Resolvers:
+    // listGroupsByDomain, listGroupStatuses, searchGroupsByNamePrefix, getNodeStatus,
+    // listNodesInGroup, createGroup, joinGroup, renewHeartbeat, sendMemberHeartbeat,
+    // reportDataByNode, fireEventsByNode, recordEventsByNode, getEventsSince,
+    // pollGroupData (issue #554), dissolveGroup, createDomain, leaveGroup.
+    // That's 17.
 
-    template.resourceCountIs('AWS::AppSync::Resolver', 15);
+    template.resourceCountIs('AWS::AppSync::Resolver', 17);
 
     template.hasResourceProperties('AWS::AppSync::Resolver', {
       FieldName: 'recordEventsByNode',
@@ -70,6 +71,13 @@ describe('MeshV2Stack', () => {
     template.hasResourceProperties('AWS::AppSync::Resolver', {
       FieldName: 'getEventsSince',
       TypeName: 'Query'
+    });
+
+    // pollGroupData (issue #554): Pipeline Resolver
+    template.hasResourceProperties('AWS::AppSync::Resolver', {
+      FieldName: 'pollGroupData',
+      TypeName: 'Query',
+      Kind: 'PIPELINE'
     });
   });
 });

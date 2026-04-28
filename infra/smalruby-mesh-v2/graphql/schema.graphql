@@ -124,6 +124,14 @@ type RecordEventsPayload {
   nextSince: String!        # NEW: 次回の getEventsSince の since に指定する値
 }
 
+# NEW (issue #554): pollGroupData の統合レスポンス型
+# ポーリングモード時に getEventsSince + listGroupStatuses を 1 回の AppSync
+# リクエストで取得するための型。WebSocket モードでは使用しない。
+type PollGroupData {
+  events: [Event!]!         # since 以降のイベント（getEventsSince 相当、limit 100）
+  nodeStatuses: [NodeStatus!]!  # 全ノードのステータス（listGroupStatuses 相当）
+}
+
 # --- クエリ (Queries) ---
 
 type Query {
@@ -150,6 +158,16 @@ type Query {
     domain: String!
     since: String!
   ): [Event!]!
+
+  # NEW (issue #554): ポーリング時のイベント+ノードステータス統合取得
+  # getEventsSince + listGroupStatuses を 1 回の AppSync リクエストで取得し、
+  # ポーリングクライアントの 1 サイクルで完結させる。WebSocket モード時は
+  # 従来通り subscription + 定期的な listGroupStatuses を使用。
+  pollGroupData(
+    groupId: ID!
+    domain: String!
+    since: String!
+  ): PollGroupData!
 }
 
 # --- ミューテーション (Mutations) ---

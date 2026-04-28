@@ -467,6 +467,40 @@ export class MeshV2Stack extends cdk.Stack {
       code: appsync.Code.fromAsset(path.join(__dirname, '../js/resolvers/Query.getEventsSince.js'))
     });
 
+    // Query: pollGroupData (issue #554)
+    // ポーリング時のイベント取得とノードステータス取得を 1 リクエストに統合
+    const fetchEventsForPollFunction = new appsync.AppsyncFunction(this, 'FetchEventsForPollFunction', {
+      name: 'fetchEventsForPoll',
+      api: this.api,
+      dataSource: dynamoDbDataSource,
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+      code: appsync.Code.fromAsset(path.join(__dirname, '../js/functions/fetchEventsForPoll.js'))
+    });
+
+    const fetchNodeStatusesForPollFunction = new appsync.AppsyncFunction(this, 'FetchNodeStatusesForPollFunction', {
+      name: 'fetchNodeStatusesForPoll',
+      api: this.api,
+      dataSource: dynamoDbDataSource,
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+      code: appsync.Code.fromAsset(path.join(__dirname, '../js/functions/fetchNodeStatusesForPoll.js'))
+    });
+
+    new appsync.Resolver(this, 'PollGroupDataResolver', {
+      api: this.api,
+      typeName: 'Query',
+      fieldName: 'pollGroupData',
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+      pipelineConfig: [fetchEventsForPollFunction, fetchNodeStatusesForPollFunction],
+      code: appsync.Code.fromInline(`
+        export function request(ctx) {
+          return {};
+        }
+        export function response(ctx) {
+          return ctx.prev.result;
+        }
+      `)
+    });
+
     // Mutation: dissolveGroup (Lambda resolver)
     meshV2DataSource.createResolver('DissolveGroupResolver', {
       typeName: 'Mutation',
