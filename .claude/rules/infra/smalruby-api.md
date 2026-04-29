@@ -38,9 +38,22 @@ docker compose run --rm -w /app/infra/smalruby-api infra npx cdk synth
 docker compose run --rm -w /app/infra/smalruby-api infra npx cdk diff
 docker compose run --rm -w /app/infra/smalruby-api infra npx cdk deploy
 
-# Unit tests
+# Unit tests (mocked fetch, fast)
 docker compose run --rm -w /app/infra/smalruby-api infra npm test
+
+# Integration tests (実際の stg エンドポイントへ HTTP 送信)
+docker compose run --rm -w /app/infra/smalruby-api infra npm run test:integration
 ```
+
+## Integration Tests
+
+`lambda/tests/*.integration.test.ts` は **デプロイ済み stg エンドポイント** に対して
+実際の HTTP リクエストを送信して動作を検証する。コーナーケース確認とデグレ防止が目的。
+
+- Issue #573 の **404 透過バグ再発防止** が最重要のテストケース
+- 必要な環境変数: `SMALRUBY_API_ENDPOINT` (`.env.stg` で設定済み、デフォルト `https://stg.api.smalruby.app`)
+- デプロイ後は必ず `npm run test:integration` を実行して 18 テストすべて緑であることを確認する
+- CI では実行しない (npm test のユニットテストとは独立。ローカル/手動運用)
 
 ## Stage Switching
 
