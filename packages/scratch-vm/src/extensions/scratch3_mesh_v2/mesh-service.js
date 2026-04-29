@@ -20,13 +20,13 @@ const {
     RECORD_EVENTS,
     POLL_GROUP_DATA,
     ON_MESSAGE_IN_GROUP,
-    LIST_GROUP_STATUSES,
     SEARCH_GROUPS_BY_NAME_PREFIX
 } = require('./gql-operations');
 
 const {getForcePollingFromUrl} = require('./utils');
 
 const {NetworkFilterMixin} = require('./network-filter');
+const {PeriodicSyncMixin} = require('./periodic-sync');
 
 /**
  * Parses an environment variable as an integer with validation.
@@ -1214,61 +1214,6 @@ class MeshV2Service {
     }
 
     /**
-     * Fetch data from all nodes in the group.
-     * @returns {Promise<void>} A promise that resolves when data is fetched and updated.
-     */
-    async fetchAllNodesData () {
-        if (!this.groupId || !this.client) return;
-
-        try {
-            this.costTracking.queryCount++;
-            const result = await this.client.query({
-                query: LIST_GROUP_STATUSES,
-                variables: {
-                    groupId: this.groupId,
-                    domain: this.domain
-                },
-                fetchPolicy: 'network-only'
-            });
-
-            const nodeStatuses = result.data.listGroupStatuses;
-
-            // Reuse handleDataUpdate so polling/subscription/periodic-sync
-            // share a single ingestion path.
-            nodeStatuses.forEach(status => this.handleDataUpdate(status));
-
-            debug(() => `Mesh V2: Fetched data from ${nodeStatuses.length} nodes`);
-        } catch (error) {
-            log.error(`Mesh V2: Failed to fetch group data: ${error}`);
-        }
-    }
-
-    /**
-     * Start periodic data synchronization to ensure data consistency.
-     */
-    startPeriodicDataSync () {
-        this.stopPeriodicDataSync();
-
-        const interval = this.periodicDataSyncInterval;
-        debug(() => `Mesh V2: Starting periodic data sync timer (Interval: ${interval / 1000}s)`);
-        this.dataSyncTimer = setInterval(() => {
-            debug(() => 'Mesh V2: Periodic data sync');
-            this.fetchAllNodesData();
-        }, interval);
-    }
-
-    /**
-     * Stop periodic data synchronization.
-     */
-    stopPeriodicDataSync () {
-        if (this.dataSyncTimer) {
-            debug(() => 'Mesh V2: Stopping periodic data sync timer');
-            clearInterval(this.dataSyncTimer);
-            this.dataSyncTimer = null;
-        }
-    }
-
-    /**
      * Get all global scalar variables.
      * @returns {Array} Array of {key, value} objects.
      */
@@ -1328,5 +1273,6 @@ class MeshV2Service {
 // Each mixin attaches its methods to MeshV2Service.prototype so `this`
 // references continue to work unchanged.
 Object.assign(MeshV2Service.prototype, NetworkFilterMixin);
+Object.assign(MeshV2Service.prototype, PeriodicSyncMixin);
 
 module.exports = MeshV2Service;
