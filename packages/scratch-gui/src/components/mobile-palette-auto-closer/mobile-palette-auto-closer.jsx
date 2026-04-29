@@ -43,11 +43,17 @@ const MobilePaletteAutoCloserComponent = ({ onHide }) => {
                 return;
             }
             const Events = ScratchBlocks.Events || {};
-            const dragOutsideType = Events.DRAG_OUTSIDE;
+            // 観察した結果 (issue #572 検証):
+            // - フライアウトからブロックを drag → workspace に出した瞬間に
+            //   `create` (Events.CREATE) が発火する
+            // - プロジェクト読み込みや undo でも `create` は発火するので、
+            //   ユーザーが currentGesture を持っている (= 手で drag 中) ときだけ
+            //   反応する
+            const createType = Events.CREATE || 'create';
             const listener = event => {
-                if (dragOutsideType && event.type === dragOutsideType) {
-                    onHide();
-                }
+                if (event.type !== createType) return;
+                if (!workspace.currentGesture_) return;
+                onHide();
             };
             workspace.addChangeListener(listener);
             detach = () => {
