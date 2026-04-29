@@ -1,9 +1,4 @@
-import {
-    UrlLoaderError,
-    fetchProjectInfo,
-    formatLoadError,
-    urlLoaderMessages,
-} from '../../../src/lib/url-loader';
+import { UrlLoaderError, fetchProjectInfo, formatLoadError, urlLoaderMessages } from '../../../src/lib/url-loader';
 
 const mockIntl = {
     formatMessage: msg => msg.defaultMessage,

@@ -17,8 +17,7 @@ const urlLoaderMessages = defineMessages({
     },
     projectNotFound: {
         id: 'gui.urlLoader.projectNotFound',
-        defaultMessage:
-            'Project not found. It may have been unshared, or the URL may be incorrect.',
+        defaultMessage: 'Project not found. It may have been unshared, or the URL may be incorrect.',
         description: 'Shown when the upstream Scratch API returns 404.',
     },
     projectAccessDenied: {
@@ -34,8 +33,7 @@ const urlLoaderMessages = defineMessages({
     networkError: {
         id: 'gui.urlLoader.networkError',
         defaultMessage: 'Network error. Please check your internet connection.',
-        description:
-            'Shown when fetch throws a TypeError (offline, DNS failure, blocked by extension).',
+        description: 'Shown when fetch throws a TypeError (offline, DNS failure, blocked by extension).',
     },
 });
 

@@ -425,8 +425,7 @@ export default {
     // URL Loader messages
     'gui.urlLoader.loadError': 'The project URL that was entered failed to load.',
     'gui.urlLoader.invalidUrl': 'Please enter a valid Scratch project URL or Google Drive URL.',
-    'gui.urlLoader.projectNotFound':
-        'Project not found. It may have been unshared, or the URL may be incorrect.',
+    'gui.urlLoader.projectNotFound': 'Project not found. It may have been unshared, or the URL may be incorrect.',
     'gui.urlLoader.projectAccessDenied': 'Access to this project is denied.',
     'gui.urlLoader.serverError': 'Scratch server-side error. Please try again later.',
     'gui.urlLoader.networkError': 'Network error. Please check your internet connection.',

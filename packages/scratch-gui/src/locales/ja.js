@@ -251,8 +251,7 @@ export default {
     'gui.urlLoader.projectNotFound':
         'プロジェクトが見つかりません。共有が解除されたか、URLが間違っている可能性があります。',
     'gui.urlLoader.projectAccessDenied': 'このプロジェクトにはアクセスできません。',
-    'gui.urlLoader.serverError':
-        'Scratchサーバー側でエラーが発生しました。しばらく経ってから再度お試しください。',
+    'gui.urlLoader.serverError': 'Scratchサーバー側でエラーが発生しました。しばらく経ってから再度お試しください。',
     'gui.urlLoader.networkError': 'ネットワークエラーが発生しました。インターネット接続を確認してください。',
     'gui.urlLoader.title': 'Scratchから読み込む',
     'gui.urlLoader.urlPlaceholder': 'プロジェクトのURLを入力...',

@@ -22,13 +22,8 @@ import intlShape from './intlShape';
 import { loadProjectWithChecks } from './project-loader-utils';
 import { persistRubyVersion } from './settings/ruby-version/persistence';
 import sharedMessages from './shared-messages';
+import { UrlLoaderError, fetchProjectInfo, formatLoadError, urlLoaderMessages } from './url-loader';
 import { extractScratchProjectId, isValidScratchProjectUrl } from './url-parser';
-import {
-    UrlLoaderError,
-    fetchProjectInfo,
-    formatLoadError,
-    urlLoaderMessages,
-} from './url-loader';
 
 const SCRATCH_API_PROXY_ENDPOINT = (process.env.SCRATCH_API_PROXY_ENDPOINT || 'https://api.smalruby.app').replace(
     /\/+$/,
@@ -252,7 +247,8 @@ const URLLoaderHOC = function (WrappedComponent) {
         closeFileMenu: () => dispatch(closeFileMenu()),
         closeUrlLoaderModal: () => dispatch(closeUrlLoaderModal()),
         onError: error => dispatch(projectError(error)),
-        onLoadedProject: (loadingState, canSave, success) => dispatch(onLoadedProject(loadingState, canSave, success)),
+        onLoadedProject: (loadingState, canSave, success) =>
+            dispatch(onLoadedProject(loadingState, canSave, success)),
         onLoadingFinished: () => {
             dispatch(closeLoadingProject());
             dispatch(closeFileMenu());
@@ -268,7 +264,8 @@ const URLLoaderHOC = function (WrappedComponent) {
         setProjectId: projectId => dispatch(setProjectId(projectId)),
     });
 
-    const mergeProps = (stateProps, dispatchProps, ownProps) => Object.assign({}, stateProps, dispatchProps, ownProps);
+    const mergeProps = (stateProps, dispatchProps, ownProps) =>
+        Object.assign({}, stateProps, dispatchProps, ownProps);
 
     return injectIntl(connect(mapStateToProps, mapDispatchToProps, mergeProps)(URLLoaderComponent));
 };
