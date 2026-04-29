@@ -1,24 +1,42 @@
 import React from 'react';
 
 import GUI from '../../containers/gui.jsx';
+import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
+import MobileBottomTabs from '../mobile-bottom-tabs/mobile-bottom-tabs.jsx';
 
 /**
  * 狭幅 viewport 用の独立 GUI シェル (issue #572 Phase 2)。
  *
  * 設計方針:
  * - upstream の <GUI> には手を入れず、別コンポーネントとして並走する
- * - Phase 2-A の段階では中身は <GUI> を素通し (機能・見た目に変化なし)
- * - 後続の PR で順次:
- *   - PR-2B: ボトムタブ × 5 (ブロック / Ruby / スプライト / コスチューム / 音)
- *   - PR-2C: ステージ全画面プレビュー (▶ 起動 + 自動実行、⏹ 停止 + 戻る)
- *   - PR-2D: ブロックパレットドロワー
- *   - PR-2E: ハンバーガーメニュー
- *   をこのコンポーネント内に実装し、徐々に <GUI> から切り離していく。
+ * - 段階的に <MobileGui> 配下の独自 UI を増やし、徐々に <GUI> 内部の
+ *   レイアウトと役割を分担していく。
+ * - 各 PR は機能を一つずつ追加するインクリメンタルな構成にして、
+ *   develop に小さくマージできるようにする。
+ *
+ * 進捗:
+ *   - PR-2A: スケルトン (本コンポーネントの作成、<GUI> 素通し)
+ *   - PR-2B: ボトムタブ × 5 (本 PR、<MobileBottomTabs /> を追加)
+ *   - PR-2C: ステージ全画面プレビュー (予定)
+ *   - PR-2D: ブロックパレットドロワー (予定)
+ *   - PR-2E: ハンバーガーメニュー (予定)
  *
  * 受け取る props は <GUI> と同一 (AppStateHOC / HashParserHOC からの全 props)。
  * @param {object} props - <GUI> と同じ props
- * @returns {JSX.Element} 現状は <GUI> を素通しでレンダリング
+ * @returns {JSX.Element} <GUI> + <MobileBottomTabs />
  */
-const MobileGui = props => <GUI {...props} />;
+const MobileGui = props => (
+    <>
+        <GUI {...props} />
+        {/*
+         * MobileBottomTabs は body 直下に Portal で出すため、
+         * <GUI> 内側の IntlProvider context を使えない。
+         * 別途 ConnectedIntlProvider で包んで FormattedMessage を有効化する。
+         */}
+        <ConnectedIntlProvider>
+            <MobileBottomTabs />
+        </ConnectedIntlProvider>
+    </>
+);
 
 export default MobileGui;
