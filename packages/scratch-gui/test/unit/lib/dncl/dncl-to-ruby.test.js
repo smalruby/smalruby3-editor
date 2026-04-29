@@ -209,6 +209,33 @@ describe('dnclToRuby', () => {
     })
   })
 
+  describe('user-defined function calls', () => {
+    test('bare function call after definition keeps name without @', () => {
+      const dncl = '関数 myfunc(x)\n  返す 5\nと定義する\nmyfunc(3)'
+      const ruby = 'def myfunc(x)\n  return 5\nend\nmyfunc(3)'
+      expect(convert(dncl)).toBe(ruby)
+    })
+
+    test('function call in assignment', () => {
+      expect(
+        convert('関数 myfunc(x)\n  返す 5\nと定義する\na = myfunc(3)'),
+      ).toBe('def myfunc(x)\n  return 5\nend\n@a = myfunc(3)')
+    })
+
+    test('function call inside 表示する', () => {
+      expect(
+        convert('関数 myfunc(x)\n  返す 5\nと定義する\n表示する(myfunc(3))'),
+      ).toBe('def myfunc(x)\n  return 5\nend\nsay(myfunc(3), 1)')
+    })
+
+    test('function called before definition (forward reference)', () => {
+      // detectFunctionNames runs before line conversion, so order should not matter.
+      expect(
+        convert('myfunc(3)\n関数 myfunc(x)\n  返す 5\nと定義する'),
+      ).toBe('myfunc(3)\ndef myfunc(x)\n  return 5\nend')
+    })
+  })
+
   describe('multiline', () => {
     test('multiple statements', () => {
       expect(convert('a = 1\nb = 2')).toBe('@a = 1\n@b = 2')

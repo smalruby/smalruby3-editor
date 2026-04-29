@@ -110,6 +110,14 @@ const RUBY_LITERALS = new Set([
 let arrayNames = new Set()
 
 /**
+ * Track names of user-defined functions within a conversion. These should
+ * not be prefixed with `@` when referenced (they are method calls, not
+ * instance variables).
+ * @type {Set<string>}
+ */
+let functionNames = new Set()
+
+/**
  * Stack tracking for-loop state for increment insertion at `を繰り返す`.
  * Each entry: { varName, stepRuby, ascending, indent }
  * @type {Array<object>}
@@ -158,6 +166,24 @@ const detectArrayNames = (source) => {
 const isArrayName = (name) => arrayNames.has(name)
 
 /**
+ * Detect user-defined function names from `関数 name(...)` definitions.
+ * Runs before line-by-line conversion so calls (including forward
+ * references) can be recognized regardless of definition order.
+ * @param {string} source - The full DNCL source code.
+ */
+const detectFunctionNames = (source) => {
+  functionNames = new Set()
+  const lines = source.split('\n')
+  for (const line of lines) {
+    const trimmed = line.trim()
+    const m = trimmed.match(/^関数\s+(\w+)\s*\(/)
+    if (m) {
+      functionNames.add(m[1])
+    }
+  }
+}
+
+/**
  * Convert a single DNCL token/identifier to its Ruby equivalent.
  * @param {string} name - The identifier.
  * @returns {string} The Ruby variable reference.
@@ -165,6 +191,7 @@ const isArrayName = (name) => arrayNames.has(name)
 const convertIdentifier = (name) => {
   if (DNCL_KEYWORDS.has(name)) return name
   if (RUBY_LITERALS.has(name)) return name
+  if (functionNames.has(name)) return name
   if (/^\d/.test(name)) return name
   if (/^[A-Z]/.test(name)) {
     return mapVarName(name, isArrayName(name))
@@ -707,6 +734,7 @@ const dnclToRuby = (source) => {
   }
 
   detectArrayNames(source)
+  detectFunctionNames(source)
   forLoopStack = []
 
   const lines = source.split('\n')
