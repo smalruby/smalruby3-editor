@@ -97,3 +97,46 @@ dig graphql.api.smalruby.app A +short
 ```
 
 If a custom domain is missing, redeploy the affected stage with the correct `.env` symlink.
+
+## CDK 化 / 旧スタック → CDK 移行のチェックリスト (汎用)
+
+`smalruby-infra` (旧 SAM) → `infra/smalruby-api/` (CDK) のような移行を行う際の
+共通チェックポイント。詳細な実例は `.claude/rules/infra/smalruby-api.md` の
+「ハマりポイント / 学び」を参照。
+
+### 事前
+
+1. **Lambda 関数名の衝突回避**: 旧スタックと新スタックを並走させる前提で、
+   CDK 側の関数名にプロジェクト固有のプレフィックス (`smalruby-<project>-`) を
+   付ける。同名にすると CFN が `already exists` で deploy 失敗する。
+2. **既存カスタムドメインは作り直さず import**: `apigatewayv2.DomainName.fromDomainNameAttributes()`
+   などで参照。ACM 証明書や Route53 レコードを再利用してダウンタイムを
+   数分に圧縮する。
+3. **既存 secret/config 値の引き継ぎ**: ハードコードされていた値があれば
+   prod 環境変数で **同じ値を再使用** する。CRC32 キーのような互換性
+   クリティカルな値は変えると既存ユーザーが壊れる。
+
+### カットオーバー手順
+
+1. stg を CDK で先に立てて `npm run test:integration` を pass させる
+2. 旧スタックの **base path mapping だけ** 解除 (custom domain は残す):
+   `aws apigateway delete-base-path-mapping --domain-name <FQDN> --base-path '(none)'`
+3. 即座に `cdk deploy --context stage=prod`
+4. curl + Playwright で全エンドポイント検証 (CORS preflight、status passthrough、
+   バイナリレスポンス等)
+5. 旧 CFN スタック削除 (`aws cloudformation delete-stack --stack-name ...`)
+
+### Integration test の Origin
+
+両環境 (stg / prod) で実行する integration test の CORS preflight は、
+両方で許可される Origin (`https://smalruby.app` など) を使う。`localhost` は
+prod の CORS 許可リストに入れていないので、テストで期待値にすると prod 実行で
+fail する。
+
+### 検証ハマり
+
+- `cdk deploy` 直後の API Gateway は数十秒〜数分のルーティング反映待ちがある。
+  curl が一時的に 403 (`Forbidden`) を返したら polling で待つ。
+- ブラウザの `response.headers.get('access-control-allow-origin')` は Fetch
+  spec の制約で `null` に見える。fetch 自体が成功している事実が CORS preflight
+  成功の証拠。生のヘッダー値を見たいときは `curl -i -X OPTIONS` で確認する。

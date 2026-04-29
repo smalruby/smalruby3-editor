@@ -115,3 +115,87 @@ rm .env && ln -s .env.prod .env   # → prod
 
 実装場所: `lambda/*.ts`, `lib/smalruby-api-stack.ts`, `bin/smalruby-api.ts`
 ユニットテスト: `lambda/tests/*.test.ts`
+
+## ハマりポイント / 学び (2026-04-29 prod カットオーバー)
+
+### 1. 既存 SAM スタックと CDK スタックを並走させる前提で名前を組む
+
+CDK 側の Lambda 関数名を旧 SAM 側と同じにすると、prod カットオーバー時に CFN
+レベルで `Resource of type 'AWS::Lambda::Function' with identifier 'smalruby-cors-proxy' already exists`
+で deploy が失敗する。SAM スタックは別 CFN スタックなので、まだ存在する間は
+そこにある Lambda 名と衝突する。**最初から CDK 側で固有プレフィックス
+(`smalruby-api-`) を付けておくのが正解**。
+
+別解として「SAM を先に削除してから CDK deploy」もあるが、ドメインマッピング
+切り替えが先か関数移行が先かで `api.smalruby.app` のダウンタイムが伸びる。
+固有プレフィックスにしておけば衝突なしで並走できる。
+
+### 2. 既存 API Gateway カスタムドメインは「import」で再利用する
+
+`api.smalruby.app` のような既に運用中のカスタムドメインは、CDK で新規作成
+しようとすると競合エラーで失敗する。CDK の `apigatewayv2.DomainName.fromDomainNameAttributes()`
+で既存ドメインを参照し、新スタックは `ApiMapping` だけ作るパターンにする。
+
+メリット:
+- 既存 ACM 証明書 (DNS validation 不要) を再利用 → cdk deploy が速い
+- 既存 Route53 A レコードを再利用 → DNS 切り替え不要
+- ダウンタイム = base path mapping swap の数分のみ
+
+`IMPORT_EXISTING_CUSTOM_DOMAIN=true` フラグで切り替え可能 (本プロジェクトの実装)。
+
+### 3. base path mapping は domain と切り離されている
+
+`api.smalruby.app` は API Gateway の **Custom Domain** リソース、その
+`base path mapping` は別リソース。SAM スタックを CFN delete する前に
+mapping だけ `aws apigateway delete-base-path-mapping --base-path '(none)'`
+で外し、その瞬間に `cdk deploy` で新 mapping を作成すれば
+`api.smalruby.app` 自体は残ったまま、ルーティングだけが SAM → CDK へ移る。
+
+### 4. integration test の Origin は両環境で許可される値を使う
+
+CORS preflight テストで `Origin: http://localhost:8601` を期待値にしたら、
+prod では `.env.prod` の `CORS_ALLOWED_ORIGINS` に localhost が含まれない
+(意図的) ため `access-control-allow-origin` が一致せず fail。
+
+教訓: integration test を **両環境で動かす前提** なら、Origin は
+`https://smalruby.app` のように両方で許可される値にする。localhost を
+個別に試したいときは別テストで条件分岐するか、stg 専用にスキップ条件を
+入れる。
+
+### 5. mesh-zone-get の secret key は引き継ぎ必須
+
+旧 SAM 実装の `MeshZoneGet` は secret_key がハードコード
+(`uXM1VAA6MO39yJ+djz4kbpVGy3Rg1V3Z`)。CDK 化に合わせて環境変数化したが、
+**新しい値を使うとすべての既存ユーザーの mesh group identity (CRC32) が
+変わってしまう**。プライベートな mesh ネットワークで他ユーザーと通信できなく
+なる致命的な互換性破壊。
+
+prod カットオーバー時は `.env.prod` で **必ず旧 SAM のハードコード値を引き継ぐ**。
+stg は新規だったので別の random 値を割り当てた。
+
+### 6. CDK で `IDomainName` を import すると `manageRoute53Record` は false に
+
+`apigatewayv2.DomainName.fromDomainNameAttributes()` で import したドメイン
+オブジェクトは CDK 管理外。`new route53.ARecord(...)` で alias を作ると、
+既存の Route53 record と衝突する (`Resource conflict`)。
+
+import 時は ARecord 作成をスキップする条件分岐を入れる
+(`manageRoute53Record` フラグ)。これで prod 時は CDK が DNS 触らない。
+
+### 7. CFN の "Delete initiated" 後の検証は数十秒待つ
+
+`aws cloudformation delete-stack` は非同期。`describe-stacks` が
+`does not exist` を返すまで polling しないと、削除完了を誤認する。
+本ケースでは `until` ループで 15 秒間隔ポーリングを使った。
+
+### 8. 検証は curl と Playwright の両方で
+
+CDK deploy 直後はカスタムドメインの routing 反映に数十秒〜数分のタイムラグが
+あり、初回 curl が 403 (`Forbidden` from API Gateway) を返すことがある。
+焦らずポーリングする。
+
+prod では Playwright で smalruby.app から実際の fetch を実行して、
+`api.smalruby.app` への CORS/route/data flow を end-to-end で確認するのが
+確実。`response.headers.get('access-control-allow-origin')` は Fetch spec
+の制約で JS から `null` に見えるが、fetch が成功している事実が CORS
+preflight 成功の証拠。
