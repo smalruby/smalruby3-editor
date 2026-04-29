@@ -12,6 +12,7 @@ const {
 
 const {
     executeArrayMethodWithBlock,
+    executeHashMethodWithBlock,
     executeNumberMethodWithBlock,
 } = require('./block-method-executors');
 
@@ -126,6 +127,10 @@ class SmalrubyRubyBlocks {
 
     arrayMethodWithBlock(args, util) {
         executeArrayMethodWithBlock(args, util, this._setReturnValue);
+    }
+
+    hashMethodWithBlock(args, util) {
+        executeHashMethodWithBlock(args, util, this._setReturnValue);
     }
 
     numberMethodWithBlock(args, util) {

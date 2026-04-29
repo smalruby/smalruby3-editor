@@ -68,6 +68,78 @@ const executeArrayMethodWithBlock = (args, util, setReturnValue) => {
 };
 
 /**
+ * Look up the keys/values lists referenced by a hash each block.
+ * Hashes are stored as two parallel lists in Scratch (`<name>_keys` and
+ * `<name>_values`). Both list references must be present in args.
+ * @param {object} args - Block arguments.
+ * @param {object} util - Block utility.
+ * @returns {{keys: Array, values: Array}} Snapshot of both list contents.
+ */
+const resolveHashEntries = (args, util) => {
+    if (
+        !args.KEYS_LIST_ID ||
+        !args.VALUES_LIST_ID ||
+        !util.target ||
+        !util.target.lookupOrCreateList
+    ) {
+        return { keys: [], values: [] };
+    }
+    const keysList = util.target.lookupOrCreateList(
+        args.KEYS_LIST_ID,
+        args.KEYS_LIST_NAME,
+    );
+    const valuesList = util.target.lookupOrCreateList(
+        args.VALUES_LIST_ID,
+        args.VALUES_LIST_NAME,
+    );
+    return {
+        keys: keysList && keysList.value ? keysList.value.slice() : [],
+        values: valuesList && valuesList.value ? valuesList.value.slice() : [],
+    };
+};
+
+/**
+ * Execute a hash method with block (C-shape). Currently supports `each` only,
+ * iterating key/value pairs in parallel from the hash's keys and values lists.
+ * Block params are set as `_1` = key, `_2` = value.
+ * @param {object} args - Block arguments (METHOD, KEYS_LIST_ID/NAME, VALUES_LIST_ID/NAME).
+ * @param {object} util - Block utility.
+ * @param {Function} setReturnValue - Callback to store the return value.
+ */
+const executeHashMethodWithBlock = (args, util, setReturnValue) => {
+    const method = args.METHOD;
+
+    switch (method) {
+        case 'each': {
+            if (typeof util.stackFrame.entries === 'undefined') {
+                const entries = resolveHashEntries(args, util);
+                // Iterate up to the shorter list to avoid undefined values
+                // when the two lists are inconsistent.
+                util.stackFrame.entries = {
+                    keys: entries.keys,
+                    values: entries.values,
+                    length: Math.min(entries.keys.length, entries.values.length),
+                };
+                util.stackFrame.index = 0;
+            }
+            const { keys, values, length } = util.stackFrame.entries;
+            if (util.stackFrame.index < length) {
+                const k = keys[util.stackFrame.index];
+                const v = values[util.stackFrame.index];
+                setReturnValue(util, v);
+                setBlockParam(util, '_1', k);
+                setBlockParam(util, '_2', v);
+                util.stackFrame.index++;
+                util.startBranch(1, true);
+            }
+            break;
+        }
+        default:
+            break;
+    }
+};
+
+/**
  * Execute a number method with block (C-shape).
  * @param {object} args - Block arguments (RECEIVER, METHOD).
  * @param {object} util - Block utility.
@@ -98,5 +170,6 @@ const executeNumberMethodWithBlock = (args, util, setReturnValue) => {
 
 module.exports = {
     executeArrayMethodWithBlock,
+    executeHashMethodWithBlock,
     executeNumberMethodWithBlock,
 };
