@@ -17,21 +17,42 @@ const setBlockParam = (util, key, value) => {
 };
 
 /**
+ * Resolve the items to iterate for Array#each. Prefer the LIST referenced by
+ * LIST_ID/LIST_NAME when available, since data_listcontents joins items with
+ * "" (all-single-char) or " " (otherwise) — both lossy for arbitrary values.
+ * Fall back to space-splitting RECEIVER for receivers that aren't lists.
+ * @param {object} args - Block arguments.
+ * @param {object} util - Block utility.
+ * @returns {Array} Snapshot of items to iterate.
+ */
+const resolveArrayItems = (args, util) => {
+    if (args.LIST_ID && util.target && util.target.lookupOrCreateList) {
+        const list = util.target.lookupOrCreateList(args.LIST_ID, args.LIST_NAME);
+        return list && list.value ? list.value.slice() : [];
+    }
+    const recv = String(args.RECEIVER || '');
+    return recv === '' ? [] : recv.split(' ');
+};
+
+/**
  * Execute an array method with block (C-shape).
- * @param {object} args - Block arguments (RECEIVER, METHOD).
+ * @param {object} args - Block arguments (RECEIVER, METHOD, optional LIST_ID/LIST_NAME).
  * @param {object} util - Block utility.
  * @param {Function} setReturnValue - Callback to store the return value.
  */
 const executeArrayMethodWithBlock = (args, util, setReturnValue) => {
     const method = args.METHOD;
-    const toItems = (s) => (s === '' ? [] : String(s).split(' '));
 
     switch (method) {
         case 'each': {
-            const items = toItems(String(args.RECEIVER || ''));
-            if (typeof util.stackFrame.index === 'undefined') {
+            // Snapshot items on the first invocation so mutation during the
+            // loop body (e.g. push from inside the block) doesn't extend it,
+            // matching Ruby Array#each semantics.
+            if (typeof util.stackFrame.items === 'undefined') {
+                util.stackFrame.items = resolveArrayItems(args, util);
                 util.stackFrame.index = 0;
             }
+            const items = util.stackFrame.items;
             if (util.stackFrame.index < items.length) {
                 const value = items[util.stackFrame.index];
                 setReturnValue(util, value);
