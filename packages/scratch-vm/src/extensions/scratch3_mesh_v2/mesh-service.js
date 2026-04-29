@@ -13,8 +13,6 @@ const {
     JOIN_GROUP,
     LEAVE_GROUP,
     DISSOLVE_GROUP,
-    RENEW_HEARTBEAT,
-    SEND_MEMBER_HEARTBEAT,
     REPORT_DATA,
     FIRE_EVENTS,
     RECORD_EVENTS,
@@ -27,6 +25,7 @@ const {NetworkFilterMixin} = require('./network-filter');
 const {PeriodicSyncMixin} = require('./periodic-sync');
 const {PollingClientMixin} = require('./polling-client');
 const {SubscriptionManagerMixin} = require('./subscription-manager');
+const {HeartbeatManagerMixin} = require('./heartbeat-manager');
 
 /**
  * Parses an environment variable as an integer with validation.
@@ -730,122 +729,6 @@ class MeshV2Service {
         }
     }
 
-    startHeartbeat () {
-        this.stopHeartbeat();
-        if (!this.groupId) return;
-
-        debug(() => `Mesh V2: Starting heartbeat timer (Role: ${this.isHost ? 'Host' : 'Member'}, ` +
-            `Interval: ${this.isHost ? this.hostHeartbeatInterval : this.memberHeartbeatInterval}s)`);
-        const interval = (this.isHost ? this.hostHeartbeatInterval : this.memberHeartbeatInterval) * 1000;
-
-        this.heartbeatTimer = setInterval(() => {
-            if (this.isHost) {
-                this.renewHeartbeat();
-            } else {
-                this.sendMemberHeartbeat();
-            }
-        }, interval);
-    }
-
-    stopHeartbeat () {
-        if (this.heartbeatTimer) {
-            debug(() => 'Mesh V2: Stopping heartbeat timer');
-            clearInterval(this.heartbeatTimer);
-            this.heartbeatTimer = null;
-        }
-    }
-
-    async renewHeartbeat () {
-        if (!this.groupId || !this.client || !this.isHost) return;
-
-        try {
-            this.costTracking.mutationCount++;
-            this.costTracking.heartbeatCount++;
-            const result = await this.client.mutate({
-                mutation: RENEW_HEARTBEAT,
-                variables: {
-                    groupId: this.groupId,
-                    domain: this.domain,
-                    hostId: this.meshId
-                }
-            });
-
-            this.expiresAt = result.data.renewHeartbeat.expiresAt;
-            debug(() => `Mesh V2: Heartbeat renewed. Expires at: ${this.expiresAt}`);
-
-            if (result.data.renewHeartbeat.heartbeatIntervalSeconds) {
-                const newInterval = result.data.renewHeartbeat.heartbeatIntervalSeconds;
-                if (newInterval !== this.hostHeartbeatInterval) {
-                    this.hostHeartbeatInterval = newInterval;
-                    this.startHeartbeat(); // Restart with new interval
-                }
-            }
-            this.startConnectionTimer();
-            return result.data.renewHeartbeat;
-        } catch (error) {
-            log.error(`Mesh V2: Heartbeat renewal failed: ${error}`);
-            const reason = this.shouldDisconnectOnError(error);
-            if (reason) {
-                this.cleanupAndDisconnect(reason);
-            }
-        }
-    }
-
-    async sendMemberHeartbeat () {
-        if (!this.groupId || !this.client || this.isHost) return;
-
-        try {
-            this.costTracking.mutationCount++;
-            this.costTracking.heartbeatCount++;
-            const result = await this.client.mutate({
-                mutation: SEND_MEMBER_HEARTBEAT,
-                variables: {
-                    groupId: this.groupId,
-                    domain: this.domain,
-                    nodeId: this.meshId
-                }
-            });
-
-            debug(() => 'Mesh V2: Member heartbeat sent');
-            if (result.data.sendMemberHeartbeat.expiresAt) {
-                this.expiresAt = result.data.sendMemberHeartbeat.expiresAt;
-            }
-
-            return result.data.sendMemberHeartbeat;
-        } catch (error) {
-            log.error(`Mesh V2: Member heartbeat failed: ${error}`);
-            const reason = this.shouldDisconnectOnError(error);
-            if (reason) {
-                this.cleanupAndDisconnect(reason);
-            }
-        }
-    }
-
-    startConnectionTimer () {
-        this.stopConnectionTimer();
-        if (!this.expiresAt) return;
-
-        const timeout = new Date(this.expiresAt).getTime() - Date.now();
-        if (timeout <= 0) {
-            log.warn('Mesh V2: Group is already expired');
-            this.leaveGroup();
-            return;
-        }
-
-        const timeoutMinutes = Math.round(timeout / 60000);
-        this.connectionTimer = setTimeout(() => {
-            log.warn(`Mesh V2: Connection timeout (${timeoutMinutes} minutes)`);
-            this.leaveGroup();
-        }, timeout);
-    }
-
-    stopConnectionTimer () {
-        if (this.connectionTimer) {
-            clearTimeout(this.connectionTimer);
-            this.connectionTimer = null;
-        }
-    }
-
     async sendData (dataArray) {
         if (!this.groupId || !this.client) return;
 
@@ -1107,5 +990,6 @@ Object.assign(MeshV2Service.prototype, NetworkFilterMixin);
 Object.assign(MeshV2Service.prototype, PeriodicSyncMixin);
 Object.assign(MeshV2Service.prototype, PollingClientMixin);
 Object.assign(MeshV2Service.prototype, SubscriptionManagerMixin);
+Object.assign(MeshV2Service.prototype, HeartbeatManagerMixin);
 
 module.exports = MeshV2Service;
