@@ -171,6 +171,44 @@ describe('dnclToRuby', () => {
     })
   })
 
+  describe('nested function calls', () => {
+    test('表示する(乱数(1..10)) keeps closing parens balanced', () => {
+      expect(convert('表示する(乱数(1..10))')).toBe('say(rand(1..10), 1)')
+    })
+
+    test('表示する(整数(x)) places .to_i inside say argument', () => {
+      expect(convert('表示する(整数(x))')).toBe('say(@x.to_i, 1)')
+    })
+
+    test('表示する(絶対値(x)) places .abs inside say argument', () => {
+      expect(convert('表示する(絶対値(x))')).toBe('say(@x.abs, 1)')
+    })
+
+    test('表示する(要素数(A)) keeps array conversion inside say', () => {
+      expect(convert('表示する(要素数(Kouka))')).toBe(
+        'say(@_array_Kouka_.length, 1)',
+      )
+    })
+
+    test('表示する with expression containing 乱数', () => {
+      expect(convert('表示する(乱数(1..10) + 5)')).toBe(
+        'say(rand(1..10) + 5, 1)',
+      )
+    })
+
+    test('含む with 乱数 as second argument', () => {
+      expect(convert('a = 含む(s, 乱数(1..10))')).toBe(
+        '@a = @s.include?(rand(1..10))',
+      )
+    })
+
+    test('含む with 3 args is left unchanged (only 2-arg form is valid)', () => {
+      // Identifier conversion still runs (a → @a, b → @b, s → @s),
+      // but 含む itself stays as-is to avoid generating malformed Ruby.
+      expect(convert('含む(s, a, b)')).toBe('含む(@s, @a, @b)')
+    })
+  })
+
   describe('multiline', () => {
     test('multiple statements', () => {
       expect(convert('a = 1\nb = 2')).toBe('@a = 1\n@b = 2')
