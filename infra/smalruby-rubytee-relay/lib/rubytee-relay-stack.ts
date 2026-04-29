@@ -79,7 +79,7 @@ export class RubyteeRelayStack extends cdk.Stack {
     // Lambda function (esbuild bundling)
     const handlerFn = new lambdaNodejs.NodejsFunction(this, 'RubyteeRelayHandler', {
       functionName: `RubyteeRelayHandler${stageSuffix}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       entry: path.join(__dirname, '../lambda/handler.ts'),
       handler: 'handler',
       timeout: cdk.Duration.seconds(60),
