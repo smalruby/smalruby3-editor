@@ -1,9 +1,9 @@
 .banner {
-    /* position / top / left / width は JS (visualViewport) で実時間に制御。 */
-    /* CSS で fixed/bottom を使うと、scratch-gui の祖先要素レイアウト都合で */
-    /* containing block が viewport ではなく body になり「body の下に飛ぶ」 */
-    /* 不具合が出るため (issue #572 検証で判明)。 */
-    position: absolute;
+    /* top / left / width は JS (visualViewport) で実時間に制御。 */
+    /* position: fixed なので body の縦スクロール領域には影響しない。 */
+    /* fixed の containing block は layout viewport なので、 */
+    /* visualViewport.offsetTop / offsetLeft で visual viewport 位置を補正する。 */
+    position: fixed;
     top: 0;
     left: 0;
     z-index: 9999;

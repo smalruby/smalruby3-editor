@@ -6,23 +6,10 @@ body,
     height: 100%;
     margin: 0;
 
-    /* === Smalruby: Start of responsive min-size override === */
     /* Setting min height/width makes the UI scroll below those sizes */
-    /* Smalruby: keep upstream min-size at >= 768px so iPad portrait and PC */
-    /* keep horizontal scrolling, but free narrower screens (iPhone) so the */
-    /* sprite/backdrop add buttons stay reachable. See issue #572. */
-    /* === Smalruby: End of responsive min-size override === */
+    min-width: 1024px;
+    min-height: 600px; /* Min height to fit sprite/backdrop button */
 }
-
-@media (min-width: 768px) {
-    html,
-    body,
-    .app {
-        min-width: 1024px;
-        min-height: 600px; /* Min height to fit sprite/backdrop button */
-    }
-}
-
 
 /* @todo: move globally? Safe / side FX, for blocks particularly? */
 * { box-sizing: border-box; }

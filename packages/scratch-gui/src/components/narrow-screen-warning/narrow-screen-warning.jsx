@@ -33,11 +33,10 @@ const useIsNarrowScreen = () => {
 };
 
 /**
- * バナーを visual viewport の下端に追従させる。
- * `position: fixed` を使うと scratch-gui のレイアウトの都合で
- * containing block が viewport ではなく body / html になってしまい、
- * 「body より下」に飛ぶ事象がある (issue #572 で観測)。
- * `position: absolute` + `window.visualViewport` で page 座標を直接指定して回避する。
+ * バナーを visual viewport の下端に追従させる (position: fixed 前提)。
+ * fixed の containing block は layout viewport なので、visual viewport との
+ * オフセット (visualViewport.offsetTop / offsetLeft) を加味して位置決めする。
+ * 縦スクロール領域には影響しない (fixed なので body の overflow に乗らない)。
  * @param {object} ref - バナー root への React ref
  * @param {boolean} enabled - 位置追従を有効化するか
  */
@@ -51,13 +50,13 @@ const useVisualViewportPosition = (ref, enabled) => {
         const update = () => {
             const height = el.offsetHeight;
             if (vv) {
-                el.style.top = `${vv.pageTop + vv.height - height}px`;
-                el.style.left = `${vv.pageLeft}px`;
+                // fixed コンテキストなので layout viewport 基準の座標で指定
+                el.style.top = `${vv.offsetTop + vv.height - height}px`;
+                el.style.left = `${vv.offsetLeft}px`;
                 el.style.width = `${vv.width}px`;
             } else {
-                // 古い環境向けフォールバック
-                el.style.top = `${window.scrollY + window.innerHeight - height}px`;
-                el.style.left = `${window.scrollX}px`;
+                el.style.top = `${window.innerHeight - height}px`;
+                el.style.left = '0px';
                 el.style.width = `${window.innerWidth}px`;
             }
         };
