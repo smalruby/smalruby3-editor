@@ -5,6 +5,7 @@ import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
 import MobileBottomTabs from '../mobile-bottom-tabs/mobile-bottom-tabs.jsx';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
 import MobilePaletteAutoCloser from '../mobile-palette-auto-closer/mobile-palette-auto-closer.jsx';
+import MobileSpritePanel from '../mobile-sprite-panel/mobile-sprite-panel.jsx';
 import MobileTopBar from '../mobile-top-bar/mobile-top-bar.jsx';
 
 /**
@@ -23,15 +24,16 @@ import MobileTopBar from '../mobile-top-bar/mobile-top-bar.jsx';
  *   - PR-2C: ステージ全画面プレビュー (<MobileTopBar /> の ▶ で
  *     upstream の isFullScreen mode に入る)
  *   - PR-2D: ブロックパレットドロワー (<MobilePaletteAutoCloser /> で
- *     ブロックドラッグ開始時にパレットを自動クローズ。手動切替は
- *     upstream の <PaletteToggle> を共有 — モバイル時のみ CSS でハンドルを
- *     大きくする)
- *   - PR-2E: ハンバーガーメニュー (本 PR、<MobileDrawer /> + <MobileTopBar />
- *     左端の ☰ ボタン + プロジェクトタイトル表示。新しいプロジェクト /
- *     パソコンから開く / パソコンに保存 / 言語切替 (en/ja/ja-Hira) を提供)
+ *     ブロックドラッグ開始時にパレットを自動クローズ)
+ *   - PR-2E: ハンバーガーメニュー (<MobileDrawer /> + <MobileTopBar /> 左の ☰)
+ *   - PR-2F: スプライト管理 (本 PR、<MobileSpritePanel />)。スプライトタブを
+ *     active にすると upstream <TargetPane> を全画面オーバーレイで表示し、
+ *     スプライト追加 / 削除 / 選択 + ステージ背景管理ができるようにする。
+ *     issue #572 の元症状「I can't add sprites nor costumes on safari on iOS」の解消。
  *
- * ドロワーの開閉状態は React の useState で MobileGui がローカルに保持する。
- * 外部 (URL や永続化) との連携が必要になったときに Redux 化する想定。
+ * 状態管理:
+ * - drawer (ハンバーガー) の open: useState
+ * - sprite tab active: useState (Redux 化していないが、必要になったら検討)
  *
  * 受け取る props は <GUI> と同一 (AppStateHOC / HashParserHOC からの全 props)。
  * @param {object} props - <GUI> と同じ props
@@ -39,24 +41,30 @@ import MobileTopBar from '../mobile-top-bar/mobile-top-bar.jsx';
  */
 const MobileGui = props => {
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [spriteTabActive, setSpriteTabActive] = useState(false);
     const handleOpenDrawer = useCallback(() => setDrawerOpen(true), []);
     const handleCloseDrawer = useCallback(() => setDrawerOpen(false), []);
+    const handleSpriteTabActiveChange = useCallback(active => setSpriteTabActive(active), []);
     return (
         <>
             <GUI {...props} />
             {/*
-             * MobileTopBar / MobileBottomTabs / MobileDrawer は body 直下に
-             * Portal で出すため、<GUI> 内側の IntlProvider context を使えない。
-             * 別途 ConnectedIntlProvider で包んで FormattedMessage を有効化する。
+             * MobileTopBar / MobileBottomTabs / MobileDrawer / MobileSpritePanel
+             * は body 直下に Portal で出すため、<GUI> 内側の IntlProvider
+             * context を使えない。別途 ConnectedIntlProvider で包む。
              * MobilePaletteAutoCloser は描画しないが、connect でディスパッチを
              * 受け取るため同じ Provider 配下に置く。
              */}
             <ConnectedIntlProvider>
                 <>
                     <MobileTopBar onOpenDrawer={handleOpenDrawer} />
-                    <MobileBottomTabs />
+                    <MobileBottomTabs
+                        spriteTabActive={spriteTabActive}
+                        onSpriteTabActiveChange={handleSpriteTabActiveChange}
+                    />
                     <MobilePaletteAutoCloser />
                     <MobileDrawer open={drawerOpen} onClose={handleCloseDrawer} />
+                    <MobileSpritePanel active={spriteTabActive} />
                 </>
             </ConnectedIntlProvider>
         </>

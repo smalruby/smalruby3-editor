@@ -25,6 +25,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/mobile-drawer/`
 - `src/components/mobile-gui/`
 - `src/components/mobile-palette-auto-closer/`
+- `src/components/mobile-sprite-panel/`
 - `src/components/mobile-top-bar/`
 - `src/components/narrow-screen-warning/`
 - `src/components/palette-toggle/`
@@ -192,6 +193,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/mobile-bottom-tabs.test.jsx`
 - `test/unit/components/mobile-drawer.test.jsx`
 - `test/unit/components/mobile-palette-auto-closer.test.jsx`
+- `test/unit/components/mobile-sprite-panel.test.jsx`
 - `test/unit/components/mobile-top-bar.test.jsx`
 - `test/unit/components/narrow-screen-warning.test.jsx`
 - `test/unit/components/palette-toggle.test.jsx`
