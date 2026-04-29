@@ -1,7 +1,7 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { defineMessages, injectIntl } from 'react-intl';
+import { injectIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import { GUIStoragePropType } from '../gui-config';
 import log from '../lib/log';
@@ -23,29 +23,18 @@ import { loadProjectWithChecks } from './project-loader-utils';
 import { persistRubyVersion } from './settings/ruby-version/persistence';
 import sharedMessages from './shared-messages';
 import { extractScratchProjectId, isValidScratchProjectUrl } from './url-parser';
+import {
+    UrlLoaderError,
+    fetchProjectInfo,
+    formatLoadError,
+    urlLoaderMessages,
+} from './url-loader';
 
-const messages = defineMessages({
-    loadError: {
-        id: 'gui.urlLoader.loadError',
-        defaultMessage: 'The project URL that was entered failed to load.',
-        description: 'An error that displays when a project URL fails to load.',
-    },
-    invalidUrl: {
-        id: 'gui.urlLoader.invalidUrl',
-        defaultMessage: 'Please enter a valid Scratch project URL.',
-        description: 'An error that displays when an invalid URL is entered.',
-    },
-});
+const SCRATCH_API_PROXY_ENDPOINT = (process.env.SCRATCH_API_PROXY_ENDPOINT || 'https://api.smalruby.app').replace(
+    /\/+$/,
+    '',
+);
 
-/**
- * Higher Order Component to provide behavior for loading project from URL into editor.
- * @param {React.Component} WrappedComponent the component to add URL loading functionality to
- * @returns {React.Component} WrappedComponent with URL loading functionality added
- *
- * <URLLoaderHOC>
- *     <WrappedComponent />
- * </URLLoaderHOC>
- */
 const URLLoaderHOC = function (WrappedComponent) {
     class URLLoaderComponent extends React.Component {
         constructor(props) {
@@ -57,7 +46,9 @@ const URLLoaderHOC = function (WrappedComponent) {
                 'handleFinishedLoadingUpload',
                 'clearLoadingReferences',
             ]);
+            this.urlLoaderErrorCallback = null;
         }
+
         componentDidUpdate(prevProps) {
             if (this.props.isLoadingUpload && !prevProps.isLoadingUpload) {
                 this.handleFinishedLoadingUpload();
@@ -72,22 +63,17 @@ const URLLoaderHOC = function (WrappedComponent) {
         handleUrlSubmit(url, errorCallback) {
             const { intl, isShowingWithoutId, loadingState, projectChanged, userOwnsProject } = this.props;
 
-            // Validate Scratch project URL
             if (!isValidScratchProjectUrl(url)) {
-                // Instead of alert, pass error to modal via callback
                 if (errorCallback) {
-                    errorCallback(intl.formatMessage(messages.invalidUrl));
+                    errorCallback(intl.formatMessage(urlLoaderMessages.invalidUrl));
                 }
                 return;
             }
 
-            // Store project ID for loading
             this.projectIdToLoad = extractScratchProjectId(url);
             this.projectUrlToLoad = url;
+            this.urlLoaderErrorCallback = errorCallback || null;
 
-            // If user owns the project, or user has changed the project,
-            // we must confirm with the user that they really intend to
-            // replace it.
             let uploadAllowed = true;
             if (userOwnsProject || (projectChanged && isShowingWithoutId)) {
                 // eslint-disable-next-line no-alert
@@ -95,13 +81,14 @@ const URLLoaderHOC = function (WrappedComponent) {
             }
 
             if (uploadAllowed) {
-                // Start the loading process
+                // Keep the modal open during the fetch so that the errorCallback
+                // can post the error back into the *same* modal instance on
+                // failure. The modal is closed in `loadScratchProjectFromUrl`
+                // only after the project has loaded successfully.
                 this.props.requestProjectUpload(loadingState);
-                // Close modal only when validation passes and user confirms
-                this.props.closeUrlLoaderModal();
             } else {
-                // Close modal if user cancels the replacement
                 this.props.closeUrlLoaderModal();
+                this.urlLoaderErrorCallback = null;
             }
         }
 
@@ -115,34 +102,11 @@ const URLLoaderHOC = function (WrappedComponent) {
 
         loadScratchProjectFromUrl(projectId) {
             this.props.onLoadingStarted();
-
-            // Set project ID in Redux state first (like project-fetcher-hoc.jsx)
             this.props.setProjectId(projectId.toString());
 
-            // Use the same approach as project-fetcher-hoc.jsx
-            // First get the project token via the proxy API
-            const options = {
-                method: 'GET',
-                uri: `https://api.smalruby.app/scratch-api-proxy/projects/${projectId}`,
-                json: true,
-            };
-
-            fetch(options.uri, {
-                method: options.method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                    return response.json();
-                })
+            fetchProjectInfo(SCRATCH_API_PROXY_ENDPOINT, projectId)
                 .then(data => {
                     const projectToken = data.project_token;
-
-                    // Now load the project using storage system (like project-fetcher-hoc.jsx)
                     const storage = this.props.storage;
                     storage.setProjectToken?.(projectToken);
 
@@ -162,24 +126,31 @@ const URLLoaderHOC = function (WrappedComponent) {
                             this.props.onSetRubyVersion,
                         );
                     }
-                    throw new Error('Could not find project');
+                    throw new UrlLoaderError('Could not find project', 404);
                 })
                 .then(() => {
-                    // Set project title based on the project data or URL
                     const projectTitle = `Project ${this.projectIdToLoad}`;
                     this.props.onSetProjectTitle(projectTitle);
-
-                    // Use onLoadedProject for LOADING_VM_FILE_UPLOAD state
                     this.props.onLoadedProject(this.props.loadingState, true, true);
+                    // Close the modal only after a successful load.
+                    this.props.closeUrlLoaderModal();
                 })
                 .catch(error => {
                     log.warn('URL loader error:', error);
                     this.props.onError(error);
-                    alert(this.props.intl.formatMessage(messages.loadError)); // eslint-disable-line no-alert
+                    const message = formatLoadError(error, this.props.intl);
+                    if (this.urlLoaderErrorCallback) {
+                        // The modal is still mounted (we did not close it on
+                        // submit), so the callback can put the error back into
+                        // the same modal instance for the user to retry.
+                        this.urlLoaderErrorCallback(message);
+                    } else {
+                        // eslint-disable-next-line no-alert
+                        alert(message);
+                    }
                 })
                 .then(() => {
                     this.props.onLoadingFinished();
-                    // Clear the project reference
                     this.clearLoadingReferences();
                 });
         }
@@ -187,6 +158,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         clearLoadingReferences() {
             this.projectIdToLoad = null;
             this.projectUrlToLoad = null;
+            this.urlLoaderErrorCallback = null;
         }
 
         render() {
@@ -280,8 +252,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         closeFileMenu: () => dispatch(closeFileMenu()),
         closeUrlLoaderModal: () => dispatch(closeUrlLoaderModal()),
         onError: error => dispatch(projectError(error)),
-        onLoadedProject: (loadingState, canSave, success) =>
-            dispatch(onLoadedProject(loadingState, canSave, success)),
+        onLoadedProject: (loadingState, canSave, success) => dispatch(onLoadedProject(loadingState, canSave, success)),
         onLoadingFinished: () => {
             dispatch(closeLoadingProject());
             dispatch(closeFileMenu());
@@ -297,8 +268,7 @@ const URLLoaderHOC = function (WrappedComponent) {
         setProjectId: projectId => dispatch(setProjectId(projectId)),
     });
 
-    const mergeProps = (stateProps, dispatchProps, ownProps) =>
-        Object.assign({}, stateProps, dispatchProps, ownProps);
+    const mergeProps = (stateProps, dispatchProps, ownProps) => Object.assign({}, stateProps, dispatchProps, ownProps);
 
     return injectIntl(connect(mapStateToProps, mapDispatchToProps, mergeProps)(URLLoaderComponent));
 };
