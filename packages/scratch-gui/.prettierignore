@@ -39,6 +39,7 @@ src/components/*
 !src/components/google-drive-save-dialog/
 !src/components/koshien-test-modal/
 !src/components/mobile-bottom-tabs/
+!src/components/mobile-drawer/
 !src/components/mobile-gui/
 !src/components/mobile-palette-auto-closer/
 !src/components/mobile-top-bar/
@@ -252,6 +253,7 @@ test/unit/components/*
 !test/unit/components/action-menu.test.jsx
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
+!test/unit/components/mobile-drawer.test.jsx
 !test/unit/components/mobile-palette-auto-closer.test.jsx
 !test/unit/components/mobile-top-bar.test.jsx
 !test/unit/components/narrow-screen-warning.test.jsx
