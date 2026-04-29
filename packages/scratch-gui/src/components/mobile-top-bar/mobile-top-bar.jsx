@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { connect } from 'react-redux';
 
 import { setFullScreen } from '../../reducers/mode.js';
+import hamburgerIcon from '../mobile-drawer/icon--hamburger.svg';
 import playIcon from './icon--play.svg';
 import stopIcon from './icon--stop.svg';
 import styles from './mobile-top-bar.css';
@@ -56,17 +57,28 @@ const usePositionAtVisualViewportTop = (ref, enabled) => {
  * - 編集中 (isFullScreen=false): ▶ → setFullScreen(true) + vm.start() + vm.greenFlag()
  * - プレビュー中 (isFullScreen=true): ⏹ → setFullScreen(false) + vm.stopAll()
  *
- * Phase 2-E でハンバーガーメニュー / プロジェクトタイトルを左側に追加する予定。
+ * Phase 2-E: 左端に ☰ ハンバーガー、中央にプロジェクトタイトル表示を追加。
+ * - ☰ タップ → onOpenDrawer() で <MobileDrawer> を開く
+ * - プロジェクトタイトルは表示のみ。編集はモバイルでは省略する。
  *
  * 全画面でも上部バーは表示し続ける (要望)。
  * @param {object} props - props
  * @param {object} props.vm - scratch-vm インスタンス
  * @param {boolean} props.isFullScreen - 既に全画面モードか
  * @param {boolean} props.isStarted - VM がすでに start 済みか
+ * @param {string} props.projectTitle - プロジェクトタイトル
  * @param {Function} props.onSetFullScreen - setFullScreen ディスパッチャ
+ * @param {Function} props.onOpenDrawer - ☰ クリックで呼ぶ
  * @returns {JSX.Element|null} Portal でレンダリングされる上部バー
  */
-const MobileTopBarComponent = ({ vm, isFullScreen, isStarted, onSetFullScreen }) => {
+const MobileTopBarComponent = ({
+    vm,
+    isFullScreen,
+    isStarted,
+    projectTitle,
+    onSetFullScreen,
+    onOpenDrawer,
+}) => {
     const ref = useRef(null);
     usePositionAtVisualViewportTop(ref, true);
 
@@ -88,13 +100,39 @@ const MobileTopBarComponent = ({ vm, isFullScreen, isStarted, onSetFullScreen })
         [vm, isFullScreen, isStarted, onSetFullScreen],
     );
 
+    const handleMenuClick = useCallback(
+        e => {
+            onOpenDrawer();
+            const target = e?.currentTarget;
+            if (target) target.blur();
+        },
+        [onOpenDrawer],
+    );
+
     if (typeof document === 'undefined') {
         return null;
     }
 
     return createPortal(
         <div ref={ref} className={styles.topBar} data-testid="mobile-top-bar">
-            <div className={styles.spacer} />
+            <button
+                type="button"
+                className={styles.menuButton}
+                onClick={handleMenuClick}
+                data-testid="mobile-top-bar-menu"
+                aria-label="menu"
+            >
+                <img
+                    alt=""
+                    aria-hidden="true"
+                    className={styles.menuIcon}
+                    draggable={false}
+                    src={hamburgerIcon}
+                />
+            </button>
+            <span className={styles.projectTitle} data-testid="mobile-top-bar-title">
+                {projectTitle}
+            </span>
             <button
                 type="button"
                 className={styles.playButton}
@@ -123,13 +161,16 @@ MobileTopBarComponent.propTypes = {
     }).isRequired,
     isFullScreen: PropTypes.bool.isRequired,
     isStarted: PropTypes.bool.isRequired,
+    projectTitle: PropTypes.string,
     onSetFullScreen: PropTypes.func.isRequired,
+    onOpenDrawer: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = state => ({
     vm: state.scratchGui.vm,
     isFullScreen: state.scratchGui.mode.isFullScreen,
     isStarted: state.scratchGui.vmStatus.started,
+    projectTitle: state.scratchGui.projectTitle,
 });
 
 const mapDispatchToProps = dispatch => ({

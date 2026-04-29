@@ -21,6 +21,43 @@
     flex: 1 1 auto;
 }
 
+.menu-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 0;
+    padding: 4px;
+    margin-right: 8px;
+    cursor: pointer;
+    color: #575e75;
+    -webkit-tap-highlight-color: transparent;
+    flex: 0 0 auto;
+}
+
+.menu-button:focus {
+    outline: 2px solid rgba(76, 151, 255, 0.4);
+    outline-offset: -2px;
+    border-radius: 4px;
+}
+
+.menu-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.project-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #575e75;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    margin-right: 8px;
+}
+
 .play-button {
     display: inline-flex;
     align-items: center;
@@ -29,6 +66,7 @@
     border: 0;
     padding: 4px;
     cursor: pointer;
+    flex: 0 0 auto;
     -webkit-tap-highlight-color: transparent;
 }
 
