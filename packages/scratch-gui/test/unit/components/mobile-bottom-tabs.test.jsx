@@ -21,7 +21,11 @@ const renderWithIntl = ui =>
 describe('MobileBottomTabs', () => {
     test('renders 5 tabs', () => {
         const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent activeTabIndex={BLOCKS_TAB_INDEX} onActivateTab={() => {}} />,
+            <MobileBottomTabsComponent
+                isFullScreen={false}
+                activeTabIndex={BLOCKS_TAB_INDEX}
+                onActivateTab={() => {}}
+            />,
         );
         expect(getByTestId('mobile-bottom-tabs-code')).toBeInTheDocument();
         expect(getByTestId('mobile-bottom-tabs-ruby')).toBeInTheDocument();
@@ -32,7 +36,11 @@ describe('MobileBottomTabs', () => {
 
     test('marks the block tab active when activeTabIndex is BLOCKS', () => {
         const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent activeTabIndex={BLOCKS_TAB_INDEX} onActivateTab={() => {}} />,
+            <MobileBottomTabsComponent
+                isFullScreen={false}
+                activeTabIndex={BLOCKS_TAB_INDEX}
+                onActivateTab={() => {}}
+            />,
         );
         expect(getByTestId('mobile-bottom-tabs-code')).toHaveAttribute('data-active', 'true');
         expect(getByTestId('mobile-bottom-tabs-ruby')).toHaveAttribute('data-active', 'false');
@@ -45,7 +53,11 @@ describe('MobileBottomTabs', () => {
     ])('dispatches activateTab(%s) for the matching tab', (key, expectedIndex) => {
         const onActivate = jest.fn();
         const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent activeTabIndex={BLOCKS_TAB_INDEX} onActivateTab={onActivate} />,
+            <MobileBottomTabsComponent
+                isFullScreen={false}
+                activeTabIndex={BLOCKS_TAB_INDEX}
+                onActivateTab={onActivate}
+            />,
         );
         fireEvent.click(getByTestId(`mobile-bottom-tabs-${key}`));
         expect(onActivate).toHaveBeenCalledWith(expectedIndex);
@@ -54,7 +66,11 @@ describe('MobileBottomTabs', () => {
     test('block tab dispatches activateTab(BLOCKS_TAB_INDEX)', () => {
         const onActivate = jest.fn();
         const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent activeTabIndex={RUBY_TAB_INDEX} onActivateTab={onActivate} />,
+            <MobileBottomTabsComponent
+                isFullScreen={false}
+                activeTabIndex={RUBY_TAB_INDEX}
+                onActivateTab={onActivate}
+            />,
         );
         fireEvent.click(getByTestId('mobile-bottom-tabs-code'));
         expect(onActivate).toHaveBeenCalledWith(BLOCKS_TAB_INDEX);
@@ -63,7 +79,11 @@ describe('MobileBottomTabs', () => {
     test('sprite tab does NOT dispatch activateTab and shows local active state', () => {
         const onActivate = jest.fn();
         const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent activeTabIndex={BLOCKS_TAB_INDEX} onActivateTab={onActivate} />,
+            <MobileBottomTabsComponent
+                isFullScreen={false}
+                activeTabIndex={BLOCKS_TAB_INDEX}
+                onActivateTab={onActivate}
+            />,
         );
         // pre: block tab active
         expect(getByTestId('mobile-bottom-tabs-code')).toHaveAttribute('data-active', 'true');
@@ -77,7 +97,11 @@ describe('MobileBottomTabs', () => {
     test('clicking another tab clears the sprite local active state', () => {
         const onActivate = jest.fn();
         const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent activeTabIndex={BLOCKS_TAB_INDEX} onActivateTab={onActivate} />,
+            <MobileBottomTabsComponent
+                isFullScreen={false}
+                activeTabIndex={BLOCKS_TAB_INDEX}
+                onActivateTab={onActivate}
+            />,
         );
         fireEvent.click(getByTestId('mobile-bottom-tabs-sprite'));
         expect(getByTestId('mobile-bottom-tabs-sprite')).toHaveAttribute('data-active', 'true');

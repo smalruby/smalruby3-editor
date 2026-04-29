@@ -58,21 +58,24 @@ const SPRITE_KEY = 'sprite';
 
 /**
  * 5 つのモバイル用ボトムタブ:
- *   コード / コスチューム / 音 / ルビー / スプライト
+ *   スプライト / コード / コスチューム / 音 / ルビー
  *
  * - コード / コスチューム / 音 / ルビー は upstream の `editorTab` Redux に
  *   ディスパッチして既存タブを切り替える。アイコン・ラベルは upstream の
  *   <Tab> と同じ SVG / 翻訳キーを再利用 (`gui.gui.codeTab` 等)
- * - スプライトタブは mobile 固有の placeholder。`gui.mobileBottomTabs.sprite`
- *   の翻訳のみ Smalruby 側で持つ
+ * - スプライトタブは mobile 固有の placeholder
+ *
+ * 全画面 (isFullScreen=true) のときはステージプレビューに専念するため
+ * ボトムタブを隠す (PR-2C で追加)。
  *
  * 表示位置は `position: fixed` + `visualViewport` API で viewport 下端に追従。
  * @param {object} props - props
  * @param {number} props.activeTabIndex - 現在の editorTab Redux 値
+ * @param {boolean} props.isFullScreen - upstream の fullscreen mode フラグ
  * @param {Function} props.onActivateTab - editorTab を切替えるディスパッチャ
  * @returns {JSX.Element|null} Portal でレンダリングされる固定ボトムバー
  */
-const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
+const MobileBottomTabsComponent = ({ activeTabIndex, isFullScreen, onActivateTab }) => {
     const ref = useRef(null);
     usePositionAtVisualViewportBottom(ref);
     const [spriteActive, setSpriteActive] = useState(false);
@@ -167,6 +170,9 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
     if (typeof document === 'undefined') {
         return null;
     }
+    if (isFullScreen) {
+        return null;
+    }
 
     return createPortal(
         <nav
@@ -196,11 +202,13 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
 
 MobileBottomTabsComponent.propTypes = {
     activeTabIndex: PropTypes.number.isRequired,
+    isFullScreen: PropTypes.bool.isRequired,
     onActivateTab: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = state => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
+    isFullScreen: state.scratchGui.mode.isFullScreen,
 });
 
 const mapDispatchToProps = dispatch => ({
