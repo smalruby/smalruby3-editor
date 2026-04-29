@@ -635,4 +635,7 @@ export default {
     'gui.extensionButton.dnclExtensionDisabled': 'Extensions are not available in Japanese mode.',
     'gui.rubyTab.dnclValidationError':
         'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
+    'gui.narrowScreenWarning.message':
+        '📱 Some operations may be hard to use on narrow screens. We recommend using a PC or tablet for full editing.',
+    'gui.narrowScreenWarning.close': 'Close',
 };

@@ -1,0 +1,45 @@
+.banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #4c97ff;
+    color: white;
+    font-size: 13px;
+    line-height: 1.4;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.message {
+    flex: 1;
+    margin: 0;
+    word-break: break-word;
+}
+
+.close-button {
+    flex-shrink: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+    padding: 6px 12px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    min-width: 56px;
+    min-height: 32px;
+}
+
+.close-button:hover,
+.close-button:focus {
+    background: rgba(255, 255, 255, 0.35);
+    outline: none;
+}
