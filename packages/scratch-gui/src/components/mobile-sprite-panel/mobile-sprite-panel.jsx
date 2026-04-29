@@ -110,9 +110,16 @@ const MobileSpritePanelComponent = ({ active, vm, onNewBackdropClick }) => {
                  * 抑止する (詳細は target-pane.jsx の Smalruby マーカー参照)。
                  * 上流の右ペインの <TargetPane> がモーダルを担当する。
                  */}
+                {/*
+                 * stageSize="middle" を渡すと <SpriteInfo> がフルセット
+                 * (name / x / y / 表示・非表示 / 大きさ / 向き) で描画される。
+                 * "small" にすると name / x / y のみに省略されるが、モバイルで
+                 * もすべての項目を編集できた方が良いので "middle" を採用
+                 * (270px 右ペインと違いモバイルでは 390px+ あるため十分収まる)。
+                 */}
                 <TargetPane
                     vm={vm}
-                    stageSize="small"
+                    stageSize="middle"
                     hideSpriteLibrary
                     onNewBackdropClick={onNewBackdropClick}
                 />
