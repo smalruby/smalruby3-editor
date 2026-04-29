@@ -79,6 +79,19 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
 
     const tabs = [
         {
+            key: SPRITE_KEY,
+            tabIndex: null,
+            iconSrc: spriteIcon,
+            iconKind: 'sprite-fab',
+            label: (
+                <FormattedMessage
+                    defaultMessage="Sprite"
+                    description="Sprite info label"
+                    id="gui.SpriteInfo.sprite"
+                />
+            ),
+        },
+        {
             key: 'code',
             tabIndex: BLOCKS_TAB_INDEX,
             iconSrc: codeIcon,
@@ -87,30 +100,6 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
                     defaultMessage="Code"
                     description="Button to get to the code panel"
                     id="gui.gui.codeTab"
-                />
-            ),
-        },
-        {
-            key: 'ruby',
-            tabIndex: RUBY_TAB_INDEX,
-            iconSrc: rubyIcon,
-            label: (
-                <FormattedMessage
-                    defaultMessage="Ruby"
-                    description="Button to get to the Ruby panel"
-                    id="gui.smalruby3.gui.rubyTab"
-                />
-            ),
-        },
-        {
-            key: SPRITE_KEY,
-            tabIndex: null,
-            iconSrc: spriteIcon,
-            label: (
-                <FormattedMessage
-                    defaultMessage="Sprite"
-                    description="Mobile bottom tab label for the Sprite list"
-                    id="gui.mobileBottomTabs.sprite"
                 />
             ),
         },
@@ -135,6 +124,18 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
                     defaultMessage="Sounds"
                     description="Button to get to the sounds panel"
                     id="gui.gui.soundsTab"
+                />
+            ),
+        },
+        {
+            key: 'ruby',
+            tabIndex: RUBY_TAB_INDEX,
+            iconSrc: rubyIcon,
+            label: (
+                <FormattedMessage
+                    defaultMessage="Ruby"
+                    description="Button to get to the Ruby panel"
+                    id="gui.smalruby3.gui.rubyTab"
                 />
             ),
         },
@@ -185,7 +186,13 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
                     data-active={isActive(tab) ? 'true' : 'false'}
                     onClick={handleClick}
                 >
-                    <img alt="" aria-hidden="true" className={styles.icon} draggable={false} src={tab.iconSrc} />
+                    {tab.iconKind === 'sprite-fab' ? (
+                        <span className={styles.spriteFabIcon} aria-hidden="true">
+                            <img alt="" className={styles.spriteFabImg} draggable={false} src={tab.iconSrc} />
+                        </span>
+                    ) : (
+                        <img alt="" aria-hidden="true" className={styles.icon} draggable={false} src={tab.iconSrc} />
+                    )}
                     <span className={styles.label}>{tab.label}</span>
                 </button>
             ))}

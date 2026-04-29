@@ -637,5 +637,4 @@ export default {
         'This code contains constructs not supported in Japanese mode.\nPlease use only supported instructions before switching modes.',
     'gui.narrowScreenWarning.message': '📱 For full editing, a PC or tablet is recommended.',
     'gui.narrowScreenWarning.close': 'Close',
-    'gui.mobileBottomTabs.sprite': 'Sprite',
 };

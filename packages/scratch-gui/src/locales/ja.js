@@ -918,5 +918,4 @@ export default {
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
     'gui.narrowScreenWarning.message': '📱 本格的な編集は PC・タブレットを推奨します。',
     'gui.narrowScreenWarning.close': '閉じる',
-    'gui.mobileBottomTabs.sprite': 'スプライト',
 };
