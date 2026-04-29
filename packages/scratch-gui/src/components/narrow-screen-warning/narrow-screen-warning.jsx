@@ -4,30 +4,7 @@ import { FormattedMessage } from 'react-intl';
 
 import styles from './narrow-screen-warning.css';
 
-const STORAGE_KEY = 'smalruby:narrowScreenWarningDismissed';
 const NARROW_SCREEN_QUERY = '(max-width: 767px)';
-
-const isDismissed = () => {
-    if (typeof window === 'undefined' || !window.localStorage) {
-        return false;
-    }
-    try {
-        return window.localStorage.getItem(STORAGE_KEY) === 'true';
-    } catch {
-        return false;
-    }
-};
-
-const persistDismissed = () => {
-    if (typeof window === 'undefined' || !window.localStorage) {
-        return;
-    }
-    try {
-        window.localStorage.setItem(STORAGE_KEY, 'true');
-    } catch {
-        /* ignore quota or privacy mode failures */
-    }
-};
 
 const useIsNarrowScreen = () => {
     const [isNarrow, setIsNarrow] = useState(() => {
@@ -57,10 +34,11 @@ const useIsNarrowScreen = () => {
 
 const NarrowScreenWarning = () => {
     const isNarrow = useIsNarrowScreen();
-    const [dismissed, setDismissed] = useState(isDismissed);
+    // 永続化はしない (issue #572 Phase 1 では狭幅利用は鑑賞用途として
+    // 案内し続ける)。dismiss は現在の画面表示のみで、リロードや再訪では再表示。
+    const [dismissed, setDismissed] = useState(false);
 
     const handleClose = useCallback(() => {
-        persistDismissed();
         setDismissed(true);
     }, []);
 
