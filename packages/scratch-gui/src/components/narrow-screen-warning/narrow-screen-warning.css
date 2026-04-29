@@ -1,18 +1,22 @@
 .banner {
-    position: fixed;
-    bottom: 0;
+    /* position / top / left / width は JS (visualViewport) で実時間に制御。 */
+    /* CSS で fixed/bottom を使うと、scratch-gui の祖先要素レイアウト都合で */
+    /* containing block が viewport ではなく body になり「body の下に飛ぶ」 */
+    /* 不具合が出るため (issue #572 検証で判明)。 */
+    position: absolute;
+    top: 0;
     left: 0;
-    right: 0;
     z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 8px 12px;
-    /* iPhone X 系 home indicator / iOS Safari URL bar 領域を避ける */
+    /* iPhone X 系 home indicator 領域を避ける */
     padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
     padding-left: max(12px, env(safe-area-inset-left, 12px));
     padding-right: max(12px, env(safe-area-inset-right, 12px));
+    box-sizing: border-box;
     background: #4c97ff;
     color: white;
     font-size: 12px;

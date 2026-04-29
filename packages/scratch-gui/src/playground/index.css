@@ -23,33 +23,6 @@ body,
     }
 }
 
-/* === Smalruby: Start of narrow viewport overflow clamp === */
-/* iPhone 等の狭幅画面で body 内側のコンテンツ (1024px+ 想定) が body を */
-/* 横方向にあふれさせると、レイアウト viewport も拡張されて position: fixed */
-/* がそれを基準に幅計算してしまう (issue #572 検証中に判明)。 */
-/* body / html を viewport 幅にロックし、編集領域の内部スクロールは */
-/* 元々 overflow-x: auto を持つ gui_body-wrapper が引き続き担う。 */
-/* メニューバーも独立して横スクロール可能にする (要望、issue #572)。 */
-@media (max-width: 767px) {
-    html,
-    body,
-    .app {
-        overflow-x: hidden;
-        max-width: 100vw;
-    }
-    /* MenuBar root (header). menu-bar.css の `.menu-bar` クラスが */
-    /* CSS modules で `menu-bar_menu-bar_<hash>` になるのを部分一致で拾う。 */
-    /* スクロールバーは見た目を損ねるので隠す (タッチ・ホイールでスクロール */
-    /* 自体は可能なまま)。 */
-    [class*="menu-bar_menu-bar"] {
-        overflow-x: auto;
-        scrollbar-width: none; /* Firefox */
-    }
-    [class*="menu-bar_menu-bar"]::-webkit-scrollbar {
-        display: none; /* Chrome / Safari */
-    }
-}
-/* === Smalruby: End of narrow viewport overflow clamp === */
 
 /* @todo: move globally? Safe / side FX, for blocks particularly? */
 * { box-sizing: border-box; }
