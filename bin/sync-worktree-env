@@ -59,6 +59,9 @@ declare -a FILES=(
     "infra/smalruby-classroom/.env.stg"
     "infra/smalruby-classroom/.env.stg2"
     "infra/smalruby-classroom/.env.production"
+    "infra/smalruby-api/.env.stg"
+    "infra/smalruby-api/.env.stg2"
+    "infra/smalruby-api/.env.prod"
 )
 
 copied=0
