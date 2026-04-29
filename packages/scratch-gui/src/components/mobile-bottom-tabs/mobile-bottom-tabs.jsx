@@ -20,12 +20,13 @@ import styles from './mobile-bottom-tabs.css';
 
 /**
  * `position: fixed` 要素を visual viewport の下端に追従させる layout effect。
- * Phase 1 の警告バナーと同じ仕組み。
+ * 表示状態 (enabled) が変わるたびに再計算するために enabled を依存配列に入れる。
  * @param {object} ref - 配置対象 React ref
+ * @param {boolean} enabled - 描画されているか (false のときは ref.current が null)
  */
-const usePositionAtVisualViewportBottom = ref => {
+const usePositionAtVisualViewportBottom = (ref, enabled) => {
     useLayoutEffect(() => {
-        if (!ref.current || typeof window === 'undefined') return () => {};
+        if (!enabled || !ref.current || typeof window === 'undefined') return () => {};
         const el = ref.current;
         const vv = window.visualViewport;
         const update = () => {
@@ -51,7 +52,7 @@ const usePositionAtVisualViewportBottom = ref => {
                 for (const ev of events) t.removeEventListener(ev, update);
             }
         };
-    }, [ref]);
+    }, [enabled, ref]);
 };
 
 const SPRITE_KEY = 'sprite';
@@ -77,7 +78,7 @@ const SPRITE_KEY = 'sprite';
  */
 const MobileBottomTabsComponent = ({ activeTabIndex, isFullScreen, onActivateTab }) => {
     const ref = useRef(null);
-    usePositionAtVisualViewportBottom(ref);
+    usePositionAtVisualViewportBottom(ref, !isFullScreen);
     const [spriteActive, setSpriteActive] = useState(false);
 
     const tabs = [

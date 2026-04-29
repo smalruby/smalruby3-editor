@@ -4,17 +4,19 @@ import { createPortal } from 'react-dom';
 import { connect } from 'react-redux';
 
 import { setFullScreen } from '../../reducers/mode.js';
-import greenFlagIcon from '../green-flag/icon--green-flag.svg';
+import playIcon from './icon--play.svg';
+import stopIcon from './icon--stop.svg';
 import styles from './mobile-top-bar.css';
 
 /**
  * `position: fixed` 要素を visual viewport の上端に追従させる layout effect。
- * `MobileBottomTabs` の下端追従と対をなす。
+ * 表示状態 (enabled) が変わるたびに再計算するために enabled を依存配列に入れる。
  * @param {object} ref - 配置対象 React ref
+ * @param {boolean} enabled - 描画されているか (false のときは ref.current が null)
  */
-const usePositionAtVisualViewportTop = ref => {
+const usePositionAtVisualViewportTop = (ref, enabled) => {
     useLayoutEffect(() => {
-        if (!ref.current || typeof window === 'undefined') return () => {};
+        if (!enabled || !ref.current || typeof window === 'undefined') return () => {};
         const el = ref.current;
         const vv = window.visualViewport;
         const update = () => {
@@ -39,17 +41,19 @@ const usePositionAtVisualViewportTop = ref => {
                 for (const ev of events) t.removeEventListener(ev, update);
             }
         };
-    }, [ref]);
+    }, [enabled, ref]);
 };
 
 /**
  * Mobile 用上部バー。
  *
- * Phase 2-C: 右側に「▶ 実行 = ステージ全画面プレビュー起動」ボタンを置く。
+ * Phase 2-C: 右端に「▶ / ⏹ ボタン」を置く。
+ * - 編集中 (isFullScreen=false): ▶ → setFullScreen(true) + vm.start() + vm.greenFlag()
+ * - プレビュー中 (isFullScreen=true): ⏹ → setFullScreen(false) + vm.stopAll()
+ *
  * Phase 2-E でハンバーガーメニュー / プロジェクトタイトルを左側に追加する予定。
  *
- * 全画面 (isFullScreen=true) のときは upstream の StageHeader が表示され、
- * 自前の上部バーは隠す (ボトムタブと同様)。
+ * 全画面でも上部バーは表示し続ける (要望)。
  * @param {object} props - props
  * @param {object} props.vm - scratch-vm インスタンス
  * @param {boolean} props.isFullScreen - 既に全画面モードか
@@ -59,17 +63,19 @@ const usePositionAtVisualViewportTop = ref => {
  */
 const MobileTopBarComponent = ({ vm, isFullScreen, isStarted, onSetFullScreen }) => {
     const ref = useRef(null);
-    usePositionAtVisualViewportTop(ref);
+    usePositionAtVisualViewportTop(ref, true);
 
-    const handlePlayClick = useCallback(() => {
-        onSetFullScreen(true);
-        if (!isStarted) vm.start();
-        vm.greenFlag();
-    }, [vm, isStarted, onSetFullScreen]);
+    const handleToggleClick = useCallback(() => {
+        if (isFullScreen) {
+            vm.stopAll();
+            onSetFullScreen(false);
+        } else {
+            onSetFullScreen(true);
+            if (!isStarted) vm.start();
+            vm.greenFlag();
+        }
+    }, [vm, isFullScreen, isStarted, onSetFullScreen]);
 
-    if (isFullScreen) {
-        return null;
-    }
     if (typeof document === 'undefined') {
         return null;
     }
@@ -80,11 +86,17 @@ const MobileTopBarComponent = ({ vm, isFullScreen, isStarted, onSetFullScreen })
             <button
                 type="button"
                 className={styles.playButton}
-                onClick={handlePlayClick}
+                onClick={handleToggleClick}
                 data-testid="mobile-top-bar-play"
-                aria-label="run"
+                aria-label={isFullScreen ? 'stop' : 'play'}
             >
-                <img alt="" aria-hidden="true" className={styles.playIcon} draggable={false} src={greenFlagIcon} />
+                <img
+                    alt=""
+                    aria-hidden="true"
+                    className={styles.playIcon}
+                    draggable={false}
+                    src={isFullScreen ? stopIcon : playIcon}
+                />
             </button>
         </div>,
         document.body,
@@ -95,6 +107,7 @@ MobileTopBarComponent.propTypes = {
     vm: PropTypes.shape({
         start: PropTypes.func.isRequired,
         greenFlag: PropTypes.func.isRequired,
+        stopAll: PropTypes.func.isRequired,
     }).isRequired,
     isFullScreen: PropTypes.bool.isRequired,
     isStarted: PropTypes.bool.isRequired,
