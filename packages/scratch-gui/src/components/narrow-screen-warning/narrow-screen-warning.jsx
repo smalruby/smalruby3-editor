@@ -22,13 +22,17 @@ const useVisualViewportPosition = (ref, enabled) => {
 
         const update = () => {
             const height = el.offsetHeight;
+            // MobileGui (Phase 2-B) のボトムタブが viewport 下端を占有している
+            // ときは、その上に積み上げる。タブが無いときは従来どおり下端に貼る。
+            const tabsEl = document.querySelector('[data-testid="mobile-bottom-tabs"]');
+            const tabsHeight = tabsEl ? tabsEl.offsetHeight : 0;
             if (vv) {
                 // fixed コンテキストなので layout viewport 基準の座標で指定
-                el.style.top = `${vv.offsetTop + vv.height - height}px`;
+                el.style.top = `${vv.offsetTop + vv.height - height - tabsHeight}px`;
                 el.style.left = `${vv.offsetLeft}px`;
                 el.style.width = `${vv.width}px`;
             } else {
-                el.style.top = `${window.innerHeight - height}px`;
+                el.style.top = `${window.innerHeight - height - tabsHeight}px`;
                 el.style.left = '0px';
                 el.style.width = `${window.innerWidth}px`;
             }
