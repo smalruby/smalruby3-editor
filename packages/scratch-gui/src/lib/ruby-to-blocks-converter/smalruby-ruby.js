@@ -286,6 +286,29 @@ const SmalrubyRubyConverter = {
             );
             converter._addField(block, 'METHOD', method);
 
+            // When the receiver is a list (data_listcontents), propagate the
+            // LIST id/name as hidden fields so the VM can iterate the list
+            // directly instead of split-by-space-ing the joined string. The
+            // joined string is lossy: single-character items collapse to
+            // "abc" with no separator, and items containing spaces split
+            // incorrectly.
+            if (
+                converter._isBlock(receiver) &&
+                receiver.opcode === 'data_listcontents' &&
+                receiver.fields &&
+                receiver.fields.LIST
+            ) {
+                const listField = receiver.fields.LIST;
+                block.fields.LIST_ID = {
+                    name: 'LIST_ID',
+                    value: listField.id,
+                };
+                block.fields.LIST_NAME = {
+                    name: 'LIST_NAME',
+                    value: listField.value,
+                };
+            }
+
             // Handle block parameters: store mapping in comment
             if (rubyBlockArgs && rubyBlockArgs.length > 0) {
                 const commentParts = [];

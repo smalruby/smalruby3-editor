@@ -384,6 +384,44 @@ describe('Ruby Roundtrip: smalrubyRuby extension', () => {
         );
     });
 
+    test('Array#each with single-char items round-trips', async () => {
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+            when_flag_clicked do
+              ticket = [1, 2, 3]
+              ticket.each do |item|
+                say(item, 1)
+              end
+            end
+        `,
+            null,
+            opts,
+        );
+    });
+
+    test('Array#each receiver list propagates LIST_ID/LIST_NAME on arrayMethodWithBlock', async () => {
+        const code = dedent`
+            when_flag_clicked do
+              ticket = [1, 2, 3]
+              ticket.each do |item|
+                say(item, 1)
+              end
+            end
+        `;
+        const result = await converter.targetCodeToBlocks(target, code);
+        expect(result).toBe(true);
+        const blocks = Object.values(converter._context.blocks);
+        const eachBlock = blocks.find(
+            (b) => b.opcode === 'smalrubyRuby_arrayMethodWithBlock',
+        );
+        expect(eachBlock).toBeDefined();
+        expect(eachBlock.fields.LIST_ID).toBeDefined();
+        expect(eachBlock.fields.LIST_NAME).toBeDefined();
+        expect(eachBlock.fields.LIST_NAME.value).toContain('ticket');
+    });
+
     test('.times do |i| with block parameter', async () => {
         await expectRoundTrip(
             converter,
