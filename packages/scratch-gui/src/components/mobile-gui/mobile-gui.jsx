@@ -3,6 +3,7 @@ import React from 'react';
 import GUI from '../../containers/gui.jsx';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
 import MobileBottomTabs from '../mobile-bottom-tabs/mobile-bottom-tabs.jsx';
+import MobileTopBar from '../mobile-top-bar/mobile-top-bar.jsx';
 
 /**
  * 狭幅 viewport 用の独立 GUI シェル (issue #572 Phase 2)。
@@ -16,25 +17,29 @@ import MobileBottomTabs from '../mobile-bottom-tabs/mobile-bottom-tabs.jsx';
  *
  * 進捗:
  *   - PR-2A: スケルトン (本コンポーネントの作成、<GUI> 素通し)
- *   - PR-2B: ボトムタブ × 5 (本 PR、<MobileBottomTabs /> を追加)
- *   - PR-2C: ステージ全画面プレビュー (予定)
+ *   - PR-2B: ボトムタブ × 5 (<MobileBottomTabs /> を追加)
+ *   - PR-2C: ステージ全画面プレビュー (本 PR、<MobileTopBar /> の ▶ で
+ *     upstream の isFullScreen mode に入る)
  *   - PR-2D: ブロックパレットドロワー (予定)
  *   - PR-2E: ハンバーガーメニュー (予定)
  *
  * 受け取る props は <GUI> と同一 (AppStateHOC / HashParserHOC からの全 props)。
  * @param {object} props - <GUI> と同じ props
- * @returns {JSX.Element} <GUI> + <MobileBottomTabs />
+ * @returns {JSX.Element} <GUI> + <MobileTopBar /> + <MobileBottomTabs />
  */
 const MobileGui = props => (
     <>
         <GUI {...props} />
         {/*
-         * MobileBottomTabs は body 直下に Portal で出すため、
+         * MobileTopBar / MobileBottomTabs は body 直下に Portal で出すため、
          * <GUI> 内側の IntlProvider context を使えない。
          * 別途 ConnectedIntlProvider で包んで FormattedMessage を有効化する。
          */}
         <ConnectedIntlProvider>
-            <MobileBottomTabs />
+            <>
+                <MobileTopBar />
+                <MobileBottomTabs />
+            </>
         </ConnectedIntlProvider>
     </>
 );
