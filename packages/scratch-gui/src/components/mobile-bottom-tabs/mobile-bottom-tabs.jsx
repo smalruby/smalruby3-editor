@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
@@ -70,16 +70,26 @@ const SPRITE_KEY = 'sprite';
  * ボトムタブを隠す (PR-2C で追加)。
  *
  * 表示位置は `position: fixed` + `visualViewport` API で viewport 下端に追従。
+ *
+ * Phase 2-F: スプライトタブの active state を親 (MobileGui) に持ち上げ、
+ * `<MobileSpritePanel>` の表示制御と共有する。
  * @param {object} props - props
  * @param {number} props.activeTabIndex - 現在の editorTab Redux 値
  * @param {boolean} props.isFullScreen - upstream の fullscreen mode フラグ
+ * @param {boolean} props.spriteTabActive - スプライトタブが選択中か (親管理)
+ * @param {Function} props.onSpriteTabActiveChange - スプライトタブの active 切替
  * @param {Function} props.onActivateTab - editorTab を切替えるディスパッチャ
  * @returns {JSX.Element|null} Portal でレンダリングされる固定ボトムバー
  */
-const MobileBottomTabsComponent = ({ activeTabIndex, isFullScreen, onActivateTab }) => {
+const MobileBottomTabsComponent = ({
+    activeTabIndex,
+    isFullScreen,
+    spriteTabActive,
+    onSpriteTabActiveChange,
+    onActivateTab,
+}) => {
     const ref = useRef(null);
     usePositionAtVisualViewportBottom(ref, !isFullScreen);
-    const [spriteActive, setSpriteActive] = useState(false);
 
     const tabs = [
         {
@@ -148,10 +158,10 @@ const MobileBottomTabsComponent = ({ activeTabIndex, isFullScreen, onActivateTab
         event => {
             const key = event.currentTarget.dataset.tabKey;
             if (key === SPRITE_KEY) {
-                setSpriteActive(true);
+                onSpriteTabActiveChange(true);
                 return;
             }
-            setSpriteActive(false);
+            onSpriteTabActiveChange(false);
             const tab = tabs.find(t => t.key === key);
             if (tab && typeof tab.tabIndex === 'number') {
                 onActivateTab(tab.tabIndex);
@@ -159,12 +169,12 @@ const MobileBottomTabsComponent = ({ activeTabIndex, isFullScreen, onActivateTab
         },
         // tabs is recreated each render (new FormattedMessage children) but the
         // `tabIndex` lookup by key is stable, so we don't depend on `tabs` here.
-        [onActivateTab],
+        [onActivateTab, onSpriteTabActiveChange],
     );
 
     const isActive = tab => {
-        if (tab.key === SPRITE_KEY) return spriteActive;
-        if (spriteActive) return false;
+        if (tab.key === SPRITE_KEY) return spriteTabActive;
+        if (spriteTabActive) return false;
         return activeTabIndex === tab.tabIndex;
     };
 
@@ -204,6 +214,8 @@ const MobileBottomTabsComponent = ({ activeTabIndex, isFullScreen, onActivateTab
 MobileBottomTabsComponent.propTypes = {
     activeTabIndex: PropTypes.number.isRequired,
     isFullScreen: PropTypes.bool.isRequired,
+    spriteTabActive: PropTypes.bool.isRequired,
+    onSpriteTabActiveChange: PropTypes.func.isRequired,
     onActivateTab: PropTypes.func.isRequired,
 };
 

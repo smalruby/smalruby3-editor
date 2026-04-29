@@ -1,5 +1,5 @@
 /* eslint-env jest */
-import React from 'react';
+import React, { useState } from 'react';
 import { IntlProvider } from 'react-intl';
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
@@ -18,15 +18,36 @@ const renderWithIntl = ui =>
         </IntlProvider>,
     );
 
+const baseProps = override => ({
+    isFullScreen: false,
+    activeTabIndex: BLOCKS_TAB_INDEX,
+    spriteTabActive: false,
+    onSpriteTabActiveChange: () => {},
+    onActivateTab: () => {},
+    ...override,
+});
+
+/**
+ * 親コンポーネントが持つ spriteTabActive を useState で再現する controlled
+ * wrapper。Phase 2-F でこの状態が MobileGui に持ち上がったため、テストでも
+ * 親側で保持して挙動を検証する。
+ * @param {object} props - test props
+ * @returns {JSX.Element} controlled wrapper
+ */
+const ControlledTabs = props => {
+    const [spriteTabActive, setSpriteTabActive] = useState(false);
+    return (
+        <MobileBottomTabsComponent
+            {...props}
+            spriteTabActive={spriteTabActive}
+            onSpriteTabActiveChange={setSpriteTabActive}
+        />
+    );
+};
+
 describe('MobileBottomTabs', () => {
     test('renders 5 tabs', () => {
-        const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent
-                isFullScreen={false}
-                activeTabIndex={BLOCKS_TAB_INDEX}
-                onActivateTab={() => {}}
-            />,
-        );
+        const { getByTestId } = renderWithIntl(<MobileBottomTabsComponent {...baseProps()} />);
         expect(getByTestId('mobile-bottom-tabs-code')).toBeInTheDocument();
         expect(getByTestId('mobile-bottom-tabs-ruby')).toBeInTheDocument();
         expect(getByTestId('mobile-bottom-tabs-sprite')).toBeInTheDocument();
@@ -35,13 +56,7 @@ describe('MobileBottomTabs', () => {
     });
 
     test('marks the block tab active when activeTabIndex is BLOCKS', () => {
-        const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent
-                isFullScreen={false}
-                activeTabIndex={BLOCKS_TAB_INDEX}
-                onActivateTab={() => {}}
-            />,
-        );
+        const { getByTestId } = renderWithIntl(<MobileBottomTabsComponent {...baseProps()} />);
         expect(getByTestId('mobile-bottom-tabs-code')).toHaveAttribute('data-active', 'true');
         expect(getByTestId('mobile-bottom-tabs-ruby')).toHaveAttribute('data-active', 'false');
     });
@@ -53,11 +68,7 @@ describe('MobileBottomTabs', () => {
     ])('dispatches activateTab(%s) for the matching tab', (key, expectedIndex) => {
         const onActivate = jest.fn();
         const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent
-                isFullScreen={false}
-                activeTabIndex={BLOCKS_TAB_INDEX}
-                onActivateTab={onActivate}
-            />,
+            <MobileBottomTabsComponent {...baseProps({ onActivateTab: onActivate })} />,
         );
         fireEvent.click(getByTestId(`mobile-bottom-tabs-${key}`));
         expect(onActivate).toHaveBeenCalledWith(expectedIndex);
@@ -67,48 +78,55 @@ describe('MobileBottomTabs', () => {
         const onActivate = jest.fn();
         const { getByTestId } = renderWithIntl(
             <MobileBottomTabsComponent
-                isFullScreen={false}
-                activeTabIndex={RUBY_TAB_INDEX}
-                onActivateTab={onActivate}
+                {...baseProps({ onActivateTab: onActivate, activeTabIndex: RUBY_TAB_INDEX })}
             />,
         );
         fireEvent.click(getByTestId('mobile-bottom-tabs-code'));
         expect(onActivate).toHaveBeenCalledWith(BLOCKS_TAB_INDEX);
     });
 
-    test('sprite tab does NOT dispatch activateTab and shows local active state', () => {
+    test('clicking sprite tab calls onSpriteTabActiveChange(true) and does NOT dispatch activateTab', () => {
         const onActivate = jest.fn();
+        const onSpriteTabActiveChange = jest.fn();
+        const { getByTestId } = renderWithIntl(
+            <MobileBottomTabsComponent {...baseProps({ onActivateTab: onActivate, onSpriteTabActiveChange })} />,
+        );
+        fireEvent.click(getByTestId('mobile-bottom-tabs-sprite'));
+        expect(onSpriteTabActiveChange).toHaveBeenCalledWith(true);
+        expect(onActivate).not.toHaveBeenCalled();
+    });
+
+    test('clicking another tab calls onSpriteTabActiveChange(false)', () => {
+        const onActivate = jest.fn();
+        const onSpriteTabActiveChange = jest.fn();
         const { getByTestId } = renderWithIntl(
             <MobileBottomTabsComponent
-                isFullScreen={false}
-                activeTabIndex={BLOCKS_TAB_INDEX}
-                onActivateTab={onActivate}
+                {...baseProps({
+                    onActivateTab: onActivate,
+                    onSpriteTabActiveChange,
+                    spriteTabActive: true,
+                })}
             />,
         );
-        // pre: block tab active
-        expect(getByTestId('mobile-bottom-tabs-code')).toHaveAttribute('data-active', 'true');
-        fireEvent.click(getByTestId('mobile-bottom-tabs-sprite'));
-        expect(onActivate).not.toHaveBeenCalled();
+        fireEvent.click(getByTestId('mobile-bottom-tabs-ruby'));
+        expect(onSpriteTabActiveChange).toHaveBeenCalledWith(false);
+        expect(onActivate).toHaveBeenCalledWith(RUBY_TAB_INDEX);
+    });
+
+    test('sprite tab is data-active=true when spriteTabActive prop is true', () => {
+        const { getByTestId } = renderWithIntl(
+            <MobileBottomTabsComponent {...baseProps({ spriteTabActive: true })} />,
+        );
         expect(getByTestId('mobile-bottom-tabs-sprite')).toHaveAttribute('data-active', 'true');
-        // block is no longer "active" in the bottom-tabs UI while sprite is selected
+        // editorTab-driven tabs are visually inactive while sprite is the focus
         expect(getByTestId('mobile-bottom-tabs-code')).toHaveAttribute('data-active', 'false');
     });
 
-    test('clicking another tab clears the sprite local active state', () => {
-        const onActivate = jest.fn();
-        const { getByTestId } = renderWithIntl(
-            <MobileBottomTabsComponent
-                isFullScreen={false}
-                activeTabIndex={BLOCKS_TAB_INDEX}
-                onActivateTab={onActivate}
-            />,
-        );
+    test('controlled wrapper toggles sprite tab on click and clears on other tab click', () => {
+        const { getByTestId } = renderWithIntl(<ControlledTabs {...baseProps()} />);
         fireEvent.click(getByTestId('mobile-bottom-tabs-sprite'));
         expect(getByTestId('mobile-bottom-tabs-sprite')).toHaveAttribute('data-active', 'true');
         fireEvent.click(getByTestId('mobile-bottom-tabs-ruby'));
         expect(getByTestId('mobile-bottom-tabs-sprite')).toHaveAttribute('data-active', 'false');
-        // ruby tab is now active per the activeTabIndex prop... but our prop is still BLOCKS,
-        // so visually the ruby tab is NOT active either (until parent re-renders with RUBY_TAB_INDEX).
-        // Re-render with RUBY_TAB_INDEX to simulate Redux state having changed.
     });
 });

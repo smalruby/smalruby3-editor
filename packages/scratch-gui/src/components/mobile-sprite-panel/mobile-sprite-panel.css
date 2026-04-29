@@ -1,0 +1,73 @@
+.panel {
+    position: fixed;
+    /* top / left / width / height は JS (visualViewport) で MobileTopBar の
+       高さと MobileBottomTabs の高さを差し引いて設定する。 */
+    top: 0;
+    left: 0;
+    background: white;
+    /* MobileTopBar / MobileBottomTabs (z-index: 9000) より下に置き、
+       両者は常に visible にする。drawer (9501) よりは下。 */
+    z-index: 8500;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/*
+ * upstream の TargetPane は元々 right-rail (272px 幅) 用にデザインされており、
+ * 内部は flex-direction: row でスプライトリスト (横並び) + 72px の
+ * stage-selector-wrapper という構造。モバイルの全画面幅に流し込むと
+ * sprite-selector のグリッドがちょうど良く広がるが、stage-selector が
+ * 右端に縦に張り付いて違和感があるので、column 方向に並び替える。
+ *
+ * 内部構造を class セレクタで掴むため :global([class*="..."]) で upstream の
+ * CSS module 出力をマッチさせる (class 名にハッシュサフィックスが付くので
+ * 部分一致)。
+ */
+.panel :global([class*="target-pane_target-pane"]) {
+    flex-direction: column !important;
+    flex-grow: 1;
+    height: 100%;
+}
+
+/* スプライト一覧側を可能な限り広く取る */
+.panel :global([class*="sprite-selector_sprite-selector"]) {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.panel :global([class*="target-pane_stage-selector-wrapper"]) {
+    flex: 0 0 auto;
+    flex-basis: auto !important;
+    /* 横並びにして「ステージ背景」を一行で見せる */
+    flex-direction: row;
+    align-items: stretch;
+    margin: 0.5rem 0 0 0 !important;
+    gap: 0.5rem;
+}
+
+/*
+ * stage-selector はデフォルトで上下に縦長 (about 72x100px)。モバイルでは
+ * 横一列に並べる Mobile-only セクションヘッダ + スワイプ対応にしたいので、
+ * 個別カードのレイアウトはそのまま使い、ラッパだけ row 方向にする。
+ */
+
+/*
+ * upstream のスプライトライブラリモーダル (`<SpriteLibrary>`) は
+ * react-modal の Overlay z-index がデフォルト 510。Smalruby のモバイル UI
+ * (MobileTopBar / MobileBottomTabs = 9000, MobileDrawer = 9501) より下にあり、
+ * モーダルを開いてもモバイル UI で隠れて操作できないので、Smalruby 側で
+ * 上書きする。スプライトライブラリ・背景ライブラリ両方のモーダルが対象。
+ *
+ * 9999 まで上げてしまうとデスクトップでも他の要素より高くなるが、upstream
+ * モーダル間の優先順位は同じ 9999 のままなので問題ない (もともと 510 同士で
+ * 順位なし)。
+ */
+:global(.ReactModal__Overlay) {
+    z-index: 9999 !important;
+}
+
