@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { connect } from 'react-redux';
 
 import { hidePalette } from '../../reducers/palette-visibility.js';
@@ -7,80 +7,59 @@ import { hidePalette } from '../../reducers/palette-visibility.js';
 /**
  * MobileGui 配下で動くロジック専用コンポーネント (描画なし)。
  *
- * 役割:
- * 1. mobile_gui モードに入った直後にパレットを自動的に閉じる (狭幅では
- *    ブロックパレット + ワークスペース両方を画面に出すと幅が足りない)。
- * 2. Blockly のブロックドラッグ開始時にパレットを自動クローズ
- *    (issue #572 Phase 2-D の主要要件)。
+ * 役割: Blockly のフライアウトからブロックを workspace へドラッグし出した
+ * (= 確実に block drag が成立した) 瞬間にパレットを自動的に閉じる。
+ * scratch-blocks の `Blockly.Events.DRAG_OUTSIDE` を購読する。
  *
- * Blockly workspace は scratch-blocks の `getMainWorkspace()` で取得する。
- * blocks.js の Smalruby マーカー経由で installPaletteAutoCloseHookProvider
- * という形で workspace 取得方法を上から渡してもよいが、ここでは ScratchBlocks
- * を `require` で直接持ってくる方式にする (blocks-gesture-recovery.js と同じ
- * 流儀)。
+ * 設計上の選択:
+ * - DOM レベルの pointerdown / pointermove は flyout 内のリスト・スクロール
+ *   など block drag 以外のジェスチャーも誤って拾ってしまい、Blockly の
+ *   `WorkspaceDragger` が動作中の dispatch によって `contentLeft` が null
+ *   になりクラッシュするケースがあったため採用しなかった。
+ * - DRAG_OUTSIDE は「block が flyout を抜けて workspace に入った」時点なので、
+ *   block drag が確実に成立してからの dispatch で安全。
+ * - 初回マウント時の auto-hide は行わない (起動時はパレット表示のままが直感的、
+ *   要望)。
+ *
+ * Blockly workspace は scratch-blocks の `getMainWorkspace()` で取得する
+ * (blocks-gesture-recovery と同じ方式)。
  * @param {object} props - props
  * @param {Function} props.onHide - hidePalette ディスパッチャ
  * @returns {null} 描画しない
  */
 const MobilePaletteAutoCloserComponent = ({ onHide }) => {
-    // 1) Auto-hide on mount (mobile_gui first entry)
-    const autoHidden = useRef(false);
     useEffect(() => {
-        if (autoHidden.current) return;
-        autoHidden.current = true;
-        onHide();
-    }, [onHide]);
-
-    // 2) Drag-start auto-close: scratch-blocks には明確な BLOCK_DRAG_START
-    //    イベントが無い (DRAG_OUTSIDE / END_DRAG しか expose されていない)
-    //    ため、DOM レベルのポインタ追跡で drag-start を検出する。
-    //
-    //    Blockly のフライアウトを示す SVG 要素 (class="blocklyFlyout") への
-    //    pointerdown を捕捉し、続く pointermove で 5px 以上動いたら drag
-    //    開始とみなして hidePalette() を呼ぶ。タップだけでは閉じない。
-    useEffect(() => {
-        if (typeof document === 'undefined') return () => {};
-        const DRAG_THRESHOLD_PX = 5;
-        let activeMove = null;
-        const onPointerDown = e => {
-            // フライアウト内の要素か判定 (SVG なので closest はキャッチしないこともあり、
-            // クリック対象から祖先を辿って blocklyFlyout クラスを探す)
-            let node = e.target;
-            let inFlyout = false;
-            while (node && node !== document.documentElement) {
-                const cls = node.getAttribute && node.getAttribute('class');
-                if (cls && /\bblocklyFlyout\b/.test(cls)) {
-                    inFlyout = true;
-                    break;
+        if (typeof window === 'undefined') return () => {};
+        let cancelled = false;
+        let detach = () => {};
+        const tryAttach = () => {
+            if (cancelled) return;
+            const ScratchBlocks = require('scratch-blocks');
+            const workspace = ScratchBlocks.getMainWorkspace?.();
+            if (!workspace || !workspace.addChangeListener) {
+                if (typeof window.requestAnimationFrame === 'function') {
+                    window.requestAnimationFrame(tryAttach);
                 }
-                node = node.parentNode;
+                return;
             }
-            if (!inFlyout) return;
-            const startX = e.clientX;
-            const startY = e.clientY;
-            const onMove = me => {
-                const dx = me.clientX - startX;
-                const dy = me.clientY - startY;
-                if (Math.hypot(dx, dy) >= DRAG_THRESHOLD_PX) {
-                    cleanup();
+            const Events = ScratchBlocks.Events || {};
+            const dragOutsideType = Events.DRAG_OUTSIDE;
+            const listener = event => {
+                if (dragOutsideType && event.type === dragOutsideType) {
                     onHide();
                 }
             };
-            const cleanup = () => {
-                if (activeMove !== onMove) return;
-                document.removeEventListener('pointermove', onMove, true);
-                document.removeEventListener('pointerup', cleanup, true);
-                document.removeEventListener('pointercancel', cleanup, true);
-                activeMove = null;
+            workspace.addChangeListener(listener);
+            detach = () => {
+                if (workspace.removeChangeListener) {
+                    workspace.removeChangeListener(listener);
+                }
             };
-            activeMove = onMove;
-            document.addEventListener('pointermove', onMove, true);
-            document.addEventListener('pointerup', cleanup, true);
-            document.addEventListener('pointercancel', cleanup, true);
         };
-        document.addEventListener('pointerdown', onPointerDown, true);
+        tryAttach();
         return () => {
-            document.removeEventListener('pointerdown', onPointerDown, true);
+            cancelled = true;
+            detach();
         };
     }, [onHide]);
 

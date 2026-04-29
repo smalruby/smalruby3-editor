@@ -5,16 +5,14 @@ import { render } from '@testing-library/react';
 import { MobilePaletteAutoCloserComponent } from '../../../src/components/mobile-palette-auto-closer/mobile-palette-auto-closer.jsx';
 
 describe('MobilePaletteAutoCloser', () => {
-    test('calls onHide on mount', () => {
+    test('does NOT call onHide on mount (palette stays visible at startup)', () => {
         const onHide = jest.fn();
         render(<MobilePaletteAutoCloserComponent onHide={onHide} />);
-        expect(onHide).toHaveBeenCalledTimes(1);
+        expect(onHide).not.toHaveBeenCalled();
     });
 
-    test('calls onHide only once even on re-render', () => {
-        const onHide = jest.fn();
-        const { rerender } = render(<MobilePaletteAutoCloserComponent onHide={onHide} />);
-        rerender(<MobilePaletteAutoCloserComponent onHide={onHide} />);
-        expect(onHide).toHaveBeenCalledTimes(1);
+    test('renders nothing (no DOM output)', () => {
+        const { container } = render(<MobilePaletteAutoCloserComponent onHide={() => {}} />);
+        expect(container.firstChild).toBeNull();
     });
 });
