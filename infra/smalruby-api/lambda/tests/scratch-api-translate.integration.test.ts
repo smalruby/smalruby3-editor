@@ -54,11 +54,11 @@ describe('GET /scratch-api-proxy/translate', () => {
         const res = await fetch(`${ENDPOINT}/scratch-api-proxy/translate`, {
             method: 'OPTIONS',
             headers: {
-                Origin: 'http://localhost:8601',
+                Origin: 'https://smalruby.app',
                 'Access-Control-Request-Method': 'GET',
             },
         });
         expect(res.status).toBe(204);
-        expect(res.headers.get('access-control-allow-origin')).toBe('http://localhost:8601');
+        expect(res.headers.get('access-control-allow-origin')).toBe('https://smalruby.app');
     });
 });

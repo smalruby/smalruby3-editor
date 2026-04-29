@@ -78,7 +78,7 @@ export class SmalrubyApiStack extends cdk.Stack {
 
         const corsProxyFn = makeLambda(
             'CorsProxy',
-            `smalruby-cors-proxy${stageSuffix}`,
+            `smalruby-api-cors-proxy${stageSuffix}`,
             'cors-proxy.ts',
             {},
             512,
@@ -87,20 +87,20 @@ export class SmalrubyApiStack extends cdk.Stack {
 
         const meshZoneGetFn = makeLambda(
             'MeshZoneGet',
-            `smalruby-mesh-zone-get${stageSuffix}`,
+            `smalruby-api-mesh-zone${stageSuffix}`,
             'mesh-zone-get.ts',
             { MESH_ZONE_SECRET_KEY: meshZoneSecretKey },
         );
 
         const scratchProjectsFn = makeLambda(
             'ScratchApiProjects',
-            `smalruby-scratch-api-projects${stageSuffix}`,
+            `smalruby-api-scratch-projects${stageSuffix}`,
             'scratch-api-projects.ts',
         );
 
         const scratchTranslateFn = makeLambda(
             'ScratchApiTranslate',
-            `smalruby-scratch-api-translate${stageSuffix}`,
+            `smalruby-api-scratch-translate${stageSuffix}`,
             'scratch-api-translate.ts',
         );
 
@@ -114,23 +114,51 @@ export class SmalrubyApiStack extends cdk.Stack {
                 ? undefined
                 : process.env.SMALRUBY_API_CUSTOM_DOMAIN || defaultCustomDomain;
 
-        let domainName: apigatewayv2.DomainName | undefined;
+        // Optional import of an existing API Gateway custom domain.
+        // Used during the prod cutover from the legacy SAM stack: the
+        // `api.smalruby.app` custom domain (and its ACM certificate / Route53
+        // alias) already exists, so importing it lets us reuse those resources
+        // and minimise downtime — only the base path mapping needs to swap.
+        const importExistingDomain = process.env.IMPORT_EXISTING_CUSTOM_DOMAIN === 'true';
+        const importedRegionalDomainName = process.env.IMPORTED_REGIONAL_DOMAIN_NAME;
+        const importedRegionalHostedZoneId = process.env.IMPORTED_REGIONAL_HOSTED_ZONE_ID;
+
+        let domainName: apigatewayv2.IDomainName | undefined;
         let zone: route53.IHostedZone | undefined;
+        let manageRoute53Record = false;
 
         if (customDomain) {
-            zone = route53.HostedZone.fromLookup(this, 'HostedZone', {
-                domainName: parentZoneName,
-            });
+            if (importExistingDomain) {
+                if (!importedRegionalDomainName || !importedRegionalHostedZoneId) {
+                    throw new Error(
+                        'IMPORT_EXISTING_CUSTOM_DOMAIN=true requires IMPORTED_REGIONAL_DOMAIN_NAME ' +
+                            'and IMPORTED_REGIONAL_HOSTED_ZONE_ID to be set.',
+                    );
+                }
+                // Import the existing custom domain; we do not create a new ACM
+                // cert or Route53 record. The Route53 A record already points
+                // at this regional endpoint, so traffic continues to flow.
+                domainName = apigatewayv2.DomainName.fromDomainNameAttributes(this, 'ApiDomainName', {
+                    name: customDomain,
+                    regionalDomainName: importedRegionalDomainName,
+                    regionalHostedZoneId: importedRegionalHostedZoneId,
+                });
+            } else {
+                zone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+                    domainName: parentZoneName,
+                });
 
-            const certificate = new acm.Certificate(this, 'ApiCertificate', {
-                domainName: customDomain,
-                validation: acm.CertificateValidation.fromDns(zone),
-            });
+                const certificate = new acm.Certificate(this, 'ApiCertificate', {
+                    domainName: customDomain,
+                    validation: acm.CertificateValidation.fromDns(zone),
+                });
 
-            domainName = new apigatewayv2.DomainName(this, 'ApiDomainName', {
-                domainName: customDomain,
-                certificate,
-            });
+                domainName = new apigatewayv2.DomainName(this, 'ApiDomainName', {
+                    domainName: customDomain,
+                    certificate,
+                });
+                manageRoute53Record = true;
+            }
         }
 
         // --- HTTP API ---
@@ -184,8 +212,10 @@ export class SmalrubyApiStack extends cdk.Stack {
 
         cdk.Tags.of(this.api).add('ResourceType', 'APIGatewayHTTPAPI');
 
-        // Route53 Alias record
-        if (customDomain && zone && domainName) {
+        // Route53 Alias record (only when CDK manages the custom domain itself).
+        // When importing an existing custom domain (prod cutover), the Route53
+        // record already exists and is owned by another (or no) stack.
+        if (manageRoute53Record && customDomain && zone && domainName) {
             const subdomain = customDomain === parentZoneName
                 ? ''
                 : customDomain.replace(`.${parentZoneName}`, '');
