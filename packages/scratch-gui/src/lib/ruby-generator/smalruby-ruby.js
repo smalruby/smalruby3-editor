@@ -95,6 +95,20 @@ export default function (Generator) {
         return `${receiver}.${method} do${resolved.paramStr}\n${resolved.branch}`;
     };
 
+    // --- Hash method with block (CONDITIONAL, C-shape) ---
+    Generator.smalrubyRuby_hashMethodWithBlock = function (block) {
+        const order = Generator.ORDER_FUNCTION_CALL;
+        const receiver =
+            Generator.valueToCode(block, 'RECEIVER', order) ||
+            Generator.quote_('');
+        const method = Generator.getFieldValue(block, 'METHOD') || 'each';
+        const branch = Generator.statementToCode(block, 'SUBSTACK') || '';
+        const resolved = resolveBlockParams(block, branch);
+
+        block.isStatement = true;
+        return `${receiver}.${method} do${resolved.paramStr}\n${resolved.branch}`;
+    };
+
     // --- Number method with block (CONDITIONAL, C-shape) ---
     Generator.smalrubyRuby_numberMethodWithBlock = function (block) {
         const receiver =
