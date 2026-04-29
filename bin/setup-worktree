@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# bin/setup-worktree — one-shot setup for a freshly created git worktree.
+#
+# Why: `git worktree add` does not copy gitignored files (.env), per-package
+# `node_modules/`, or the workspace `dist/` directories. Without these:
+#   - webpack/CDK builds fail (missing .env)
+#   - jest tests fail with "Cannot find module 'scratch-blocks'" because
+#     scratch-gui's local node_modules is empty
+#   - jest tests fail with "Cannot find module '@smalruby/scratch-svg-renderer'"
+#     because the workspace package's `dist/` does not exist yet (jest resolves
+#     the bare package name through the package's "main"/"exports" field)
+#
+# This script chains the per-step setup so a worktree is ready for development
+# in a single command.
+#
+# Usage (from inside the worktree):
+#   bin/setup-worktree           # idempotent — safe to re-run
+#   bin/setup-worktree --force   # also overwrite existing .env.* files
+#
+# Steps:
+#   1. bin/sync-worktree-env       — copy .env.* + symlink host node_modules
+#   2. docker compose run app npm install
+#                                  — populate per-package node_modules
+#                                    (root node_modules uses shared docker volume,
+#                                     packages/*/node_modules is host-side)
+#   3. docker compose run app npm run build:dev
+#                                  — build workspace packages (scratch-vm,
+#                                    scratch-render, scratch-svg-renderer, GUI)
+#                                    so their dist/ directories exist for jest
+#                                    module resolution and integration tests
+set -euo pipefail
+
+WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
+GIT_COMMON_ABS=$(cd "${GIT_COMMON_DIR}" && pwd)
+MAIN_CHECKOUT=$(dirname "${GIT_COMMON_ABS}")
+
+if [[ "${MAIN_CHECKOUT}" == "${WORKTREE_ROOT}" ]]; then
+    echo "error: this script is for worktrees, not the main checkout." >&2
+    exit 1
+fi
+
+cd "${WORKTREE_ROOT}"
+
+echo "==> Step 1/3: bin/sync-worktree-env"
+bin/sync-worktree-env "$@"
+
+echo ""
+echo "==> Step 2/3: npm install (inside docker, populates per-package node_modules)"
+docker compose run --rm app npm install
+
+echo ""
+echo "==> Step 3/3: npm run build:dev (workspace packages dist/)"
+docker compose run --rm app npm run build:dev
+
+echo ""
+echo "Setup complete. The worktree is now ready for development and testing."
+echo "Tip: set up the .env symlink per stage you want to deploy, e.g.:"
+echo "  (cd infra/smalruby-mesh-v2 && ln -sf .env.stg .env)"
