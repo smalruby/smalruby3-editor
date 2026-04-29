@@ -112,6 +112,9 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         'process.env.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS': `"${process.env.MESH_PERIODIC_DATA_SYNC_INTERVAL_MS || ''}"`,
         'process.env.MESH_NETWORK_FILTER': `"${process.env.MESH_NETWORK_FILTER || ''}"`,
         'process.env.RUBYTEE_RELAY_ENDPOINT': `"${process.env.RUBYTEE_RELAY_ENDPOINT || ''}"`,
+        // === Smalruby: Start of scratch api proxy endpoint ===
+        'process.env.SCRATCH_API_PROXY_ENDPOINT': `"${process.env.SCRATCH_API_PROXY_ENDPOINT || 'https://api.smalruby.app'}"`,
+        // === Smalruby: End of scratch api proxy endpoint ===
         // === Smalruby: Start of classroom API ===
         'process.env.CLASSROOM_API_ENDPOINT': `"${process.env.CLASSROOM_API_ENDPOINT || ''}"`,
         'process.env.CLASSROOM_REFRESH_INTERVAL_MS': `"${process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000'}"`,

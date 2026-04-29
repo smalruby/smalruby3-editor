@@ -41,11 +41,6 @@ const messages = defineMessages({
         defaultMessage: 'Cancel',
         description: 'Label for cancel button',
         id: 'gui.urlLoader.cancelButton'
-    },
-    invalidUrlError: {
-        defaultMessage: 'Please enter a valid Scratch project URL.',
-        description: 'Error message for invalid URL',
-        id: 'gui.urlLoader.invalidUrl'
     }
 });
 
@@ -125,10 +120,8 @@ class URLLoaderModal extends React.Component {
                             autoFocus
                         />
                         {error && (
-                            <div className={styles.errorMessage}>
-                                <FormattedMessage
-                                    {...messages.invalidUrlError}
-                                />
+                            <div className={styles.errorMessage} data-testid="url-loader-error">
+                                {error}
                             </div>
                         )}
                     </Box>

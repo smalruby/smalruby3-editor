@@ -257,6 +257,13 @@ export default {
         'フォルダピッカーのひょうじにしっぱいしました。もういちどおためしください。',
     'gui.urlLoader.loadError': 'プロジェクトURLのよみこみにしっぱいしました。',
     'gui.urlLoader.invalidUrl': 'ゆうこうなScratchプロジェクトURLまたはGoogle DriveのURLをにゅうりょくしてください。',
+    'gui.urlLoader.projectNotFound':
+        'プロジェクトがみつかりません。きょうゆうがかいじょされたか、URLがまちがっているかもしれません。',
+    'gui.urlLoader.projectAccessDenied': 'このプロジェクトにはアクセスできません。',
+    'gui.urlLoader.serverError':
+        'Scratchサーバーがわでエラーがはっせいしました。しばらくたってからもういちどおためしください。',
+    'gui.urlLoader.networkError':
+        'ネットワークエラーがはっせいしました。インターネットせつぞくをかくにんしてください。',
     'gui.urlLoader.title': 'Scratchからよみこむ',
     'gui.urlLoader.urlPlaceholder': 'プロジェクトのURLをにゅうりょく...',
     'gui.urlLoader.openButton': 'ひらく',

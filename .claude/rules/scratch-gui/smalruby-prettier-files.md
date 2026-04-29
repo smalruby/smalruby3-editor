@@ -119,6 +119,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/rubytee-api.js`
 - `src/lib/rubytee-context.js`
 - `src/lib/url-loader-hoc.jsx`
+- `src/lib/url-loader.js`
 - `src/lib/url-params.js`
 - `src/lib/url-parser.js`
 - `src/lib/version-checker.js`
@@ -203,6 +204,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/furigana-annotator-perf.test.js`
 - `test/unit/lib/furigana-annotator.test.js`
 - `test/unit/lib/google-drive-api.test.js`
+- `test/unit/lib/url-loader.test.js`
 - `test/unit/lib/insert-class.test.js`
 - `test/unit/lib/join-code-history.test.js`
 - `test/unit/lib/layout-constants.test.js`
