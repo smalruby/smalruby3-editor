@@ -29,6 +29,11 @@ const usePositionAtVisualViewportTop = (ref, enabled) => {
                 el.style.left = '0px';
                 el.style.width = `${window.innerWidth}px`;
             }
+            // upstream の stage-header overlay / stage-wrapper full-screen が
+            // この MobileTopBar の高さ分だけ下にずれるよう、CSS 変数を更新。
+            // global CSS (mobile-top-bar.css 内 :global ブロック) で参照する。
+            const h = el.offsetHeight || 0;
+            document.documentElement.style.setProperty('--smalruby-mobile-top-bar-height', `${h}px`);
         };
         update();
         const targets = vv ? [vv, window] : [window];
@@ -65,16 +70,23 @@ const MobileTopBarComponent = ({ vm, isFullScreen, isStarted, onSetFullScreen })
     const ref = useRef(null);
     usePositionAtVisualViewportTop(ref, true);
 
-    const handleToggleClick = useCallback(() => {
-        if (isFullScreen) {
-            vm.stopAll();
-            onSetFullScreen(false);
-        } else {
-            onSetFullScreen(true);
-            if (!isStarted) vm.start();
-            vm.greenFlag();
-        }
-    }, [vm, isFullScreen, isStarted, onSetFullScreen]);
+    const handleToggleClick = useCallback(
+        e => {
+            if (isFullScreen) {
+                vm.stopAll();
+                onSetFullScreen(false);
+            } else {
+                onSetFullScreen(true);
+                if (!isStarted) vm.start();
+                vm.greenFlag();
+            }
+            // upstream の <GreenFlag> と同様、ステージにキーボードイベントを
+            // 渡すためボタンからフォーカスを外す。
+            const target = e?.currentTarget;
+            if (target) target.blur();
+        },
+        [vm, isFullScreen, isStarted, onSetFullScreen],
+    );
 
     if (typeof document === 'undefined') {
         return null;

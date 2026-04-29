@@ -43,3 +43,22 @@
     height: 32px;
     object-fit: contain;
 }
+
+/*
+ * upstream の全画面ステージ要素を MobileTopBar の高さ分だけ下にシフトする。
+ * --smalruby-mobile-top-bar-height は MobileTopBar が JS で documentElement に
+ * 設定する。MobileTopBar が描画されていないときは未定義 (= 0px) になる。
+ *
+ * stage-header overlay は upstream で `position: fixed; top: 0` なので、
+ * MobileTopBar と被らないよう top を上書き。
+ *
+ * stage-wrapper.full-screen は元々 `top: 2.75rem` (stage-menu-height) で、
+ * その上に stage-header が乗る構造なので、両方をまとめて MobileTopBar 分下げる。
+ */
+:global([class*='stage-header_stage-header-wrapper-overlay']) {
+    top: var(--smalruby-mobile-top-bar-height, 0px) !important;
+}
+
+:global([class*='stage-wrapper_full-screen']) {
+    top: calc(2.75rem + var(--smalruby-mobile-top-bar-height, 0px)) !important;
+}
