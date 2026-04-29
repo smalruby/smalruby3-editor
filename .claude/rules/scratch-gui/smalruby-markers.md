@@ -59,6 +59,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/blocks.js` | gesture recovery | ジェスチャー復旧ハンドラーのインストール |
 | `src/playground/render-gui.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/playground/render-gui.jsx` | no_beforeunload URL param | beforeunload 無効化 |
+| `src/playground/render-gui.jsx` | MobileGui dispatcher | ResponsiveGui import + GUI を ResponsiveGui に差し替え (issue #572 Phase 2-A) |
 | `src/playground/render-gui-standalone.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/playground/render-gui-standalone.jsx` | no_beforeunload URL param | beforeunload 無効化 |
 | `src/playground/player.jsx` | URL params for Playwright | URL パラメーター import |
