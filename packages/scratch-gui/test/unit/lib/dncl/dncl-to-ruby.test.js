@@ -207,6 +207,18 @@ describe('dnclToRuby', () => {
       // but 含む itself stays as-is to avoid generating malformed Ruby.
       expect(convert('含む(s, a, b)')).toBe('含む(@s, @a, @b)')
     })
+
+    test('same-name nesting: 表示する(乱数(乱数(1..10)))', () => {
+      expect(convert('表示する(乱数(乱数(1..10)))')).toBe(
+        'say(rand(rand(1..10)), 1)',
+      )
+    })
+
+    test('same-name nesting: 含む(s, 含む(a, b))', () => {
+      expect(convert('含む(s, 含む(a, b))')).toBe(
+        '@s.include?(@a.include?(@b))',
+      )
+    })
   })
 
   describe('user-defined function calls', () => {

@@ -121,6 +121,35 @@ describe('rubyToDncl', () => {
     })
   })
 
+  describe('nested same-name calls', () => {
+    test('rand(rand(rand(1..10))) fully converts', () => {
+      expect(convert('puts(rand(rand(rand(1..10))))')).toBe(
+        '表示する(乱数(乱数(乱数(1..10))))',
+      )
+    })
+
+    test('puts(puts(x)) fully converts', () => {
+      expect(convert('puts(puts(@x))')).toBe('表示する(表示する(x))')
+    })
+
+    test('p(p(x)) fully converts', () => {
+      expect(convert('p(p(@x))')).toBe('表示する(表示する(x))')
+    })
+
+    test('say with nested same-name in args', () => {
+      // say uses splitArgsAtTopLevel; rand(rand(...)) is recognized as a
+      // single argument and the trailing duration `, 1` is stripped.
+      expect(convert('say(rand(rand(1..10)), 1)')).toBe(
+        '表示する(乱数(乱数(1..10)))',
+      )
+    })
+
+    test('p does not match part of map(', () => {
+      // The standalone check ensures map( does not become 表示する(ap(...))
+      expect(convert('@a = @arr.map(&:to_s)')).toBe('a = arr.map(&:to_s)')
+    })
+  })
+
   describe('display: say with any duration', () => {
     test('say with 1 second', () => {
       expect(convert('say(@a, 1)')).toBe('表示する(a)')

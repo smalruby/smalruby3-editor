@@ -1,5 +1,12 @@
 // === Smalruby: This file is Smalruby-specific (Ruby to DNCL reverse transpiler) ===
 
+import {
+  findMatchingClose,
+  replaceCall,
+  skipString,
+  splitArgsAtTopLevel,
+} from './paren-utils'
+
 /** Regex character class for identifiers: word chars + CJK (hiragana, katakana, kanji). */
 const ID = '\\w\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF'
 
@@ -46,81 +53,118 @@ const convertOperators = (segment) => {
 }
 
 /**
- * Convert Ruby built-in method calls back to DNCL.
+ * Replace `p(...)` calls only when `p` is standalone (not part of another
+ * identifier like `map`, `top`). Uses balanced-paren matching with recursive
+ * args processing for same-name nesting.
+ * @param {string} text - Source text.
+ * @returns {string} Text with `p(...)` calls converted to `表示する(...)`.
+ */
+const replaceStandalonePCall = (text) => {
+  let result = ''
+  let i = 0
+  while (i < text.length) {
+    const ch = text[i]
+    if (ch === '"' || ch === "'") {
+      const end = skipString(text, i, ch)
+      result += text.substring(i, end)
+      i = end
+      continue
+    }
+    if (ch === 'p' && text[i + 1] === '(') {
+      const prevChar = i > 0 ? text[i - 1] : ''
+      const isStandalone = !prevChar || !/[a-zA-Z_]/.test(prevChar)
+      if (isStandalone) {
+        const closePos = findMatchingClose(text, i + 1)
+        if (closePos !== -1) {
+          const rawArgs = text.substring(i + 2, closePos)
+          // Recurse so `p(p(x))` fully converts.
+          const args = replaceStandalonePCall(rawArgs)
+          result += `表示する(${args})`
+          i = closePos + 1
+          continue
+        }
+      }
+    }
+    result += ch
+    i++
+  }
+  return result
+}
+
+/**
+ * Convert Ruby built-in method calls back to DNCL. Uses balanced-paren
+ * matching for prefix-call forms so nested same-name calls work.
+ *
+ * Postfix-with-args forms (`.include?`) and postfix-no-args forms
+ * (`.to_i`, `.length` etc.) still use regex because they have a different
+ * shape. Same-name nesting on postfix calls is a known limitation.
  * @param {string} line - A line of code.
  * @returns {string} Line with DNCL functions.
  */
 const convertBuiltins = (line) => {
   let result = line
 
-  // say(args, N) → 表示する(args) — remove trailing ", N" (any duration)
-  result = result.replace(
-    /say\((.+),\s*\d+(?:\.\d+)?\)/g,
-    (_, args) => `表示する(${args})`,
-  )
+  // say(args, N) → 表示する(args). Strip the trailing duration argument
+  // (any number) but only at the top-level comma to handle nested calls.
+  result = replaceCall(result, 'say', (args) => {
+    const parts = splitArgsAtTopLevel(args)
+    if (parts.length >= 2) {
+      const last = parts[parts.length - 1].trim()
+      if (/^\d+(?:\.\d+)?$/.test(last)) {
+        const messageArgs = parts.slice(0, -1).join(', ')
+        return `表示する(${messageArgs})`
+      }
+    }
+    return `表示する(${args})`
+  })
 
-  // puts(args) / p(args) / print(args) → 表示する(args)
-  result = result.replace(
-    /(?:puts|print)\(([^)]*)\)/g,
-    (_, args) => `表示する(${args})`,
-  )
-  // p(args) — only match standalone 'p(' to avoid matching 'map(' etc.
-  result = result.replace(
-    /(?<=^|[^a-zA-Z_])p\(([^)]*)\)/g,
-    (_, args) => `表示する(${args})`,
-  )
+  // puts(args) / print(args) → 表示する(args)
+  result = replaceCall(result, 'puts', (args) => `表示する(${args})`)
+  result = replaceCall(result, 'print', (args) => `表示する(${args})`)
+
+  // p(args) — only match standalone `p(` to avoid `map(`, etc.
+  result = replaceStandalonePCall(result)
 
   // Math.sqrt(expr) → 平方根(expr)
-  result = result.replace(
-    /Math\.sqrt\(([^)]*)\)/g,
-    (_, expr) => `平方根(${expr})`,
-  )
+  result = replaceCall(result, 'Math.sqrt', (expr) => `平方根(${expr})`)
 
   // expr.include?(sub) → 含む(expr, sub)
-  // expr can be a variable (word chars + CJK) or a string literal ("...")
+  // NOTE: same-name nesting (s.include?(t.include?(x))) is not handled by
+  // this regex (postfix-with-args form). This is a known limitation.
   result = result.replace(
     new RegExp(`("[^"]*"|[${ID}]+)\\.include\\?\\(([^)]*)\\)`, 'g'),
     (_, expr, sub) => `含む(${expr}, ${sub})`,
   )
 
-  // expr.to_i → 整数(expr)
+  // Postfix-no-args methods. expr is matched as a word identifier; nested
+  // calls like `rand(...).to_i` are not handled (known limitation).
   result = result.replace(
     new RegExp(`([${ID}]+)\\.to_i`, 'g'),
     (_, expr) => `整数(${expr})`,
   )
-
-  // expr.to_s → 文字列(expr)
   result = result.replace(
     new RegExp(`([${ID}]+)\\.to_s`, 'g'),
     (_, expr) => `文字列(${expr})`,
   )
-
-  // expr.round → 四捨五入(expr)
   result = result.replace(
     new RegExp(`([${ID}]+)\\.round`, 'g'),
     (_, expr) => `四捨五入(${expr})`,
   )
-
-  // expr.floor → 切り捨て(expr)
   result = result.replace(
     new RegExp(`([${ID}]+)\\.floor`, 'g'),
     (_, expr) => `切り捨て(${expr})`,
   )
-
-  // expr.ceil → 切り上げ(expr)
   result = result.replace(
     new RegExp(`([${ID}]+)\\.ceil`, 'g'),
     (_, expr) => `切り上げ(${expr})`,
   )
-
-  // expr.abs → 絶対値(expr)
   result = result.replace(
     new RegExp(`([${ID}]+)\\.abs`, 'g'),
     (_, expr) => `絶対値(${expr})`,
   )
 
   // rand(n) → 乱数(n)
-  result = result.replace(/rand\(([^)]*)\)/g, (_, n) => `乱数(${n})`)
+  result = replaceCall(result, 'rand', (n) => `乱数(${n})`)
 
   // expr.length → 要素数(expr)
   result = result.replace(
@@ -129,28 +173,6 @@ const convertBuiltins = (line) => {
   )
 
   return result
-}
-
-/**
- * Find the end of a string literal.
- * @param {string} line - The source line.
- * @param {number} start - Starting position (at the opening quote).
- * @param {string} quote - The quote character.
- * @returns {number} The position after the closing quote.
- */
-const skipString = (line, start, quote) => {
-  let i = start + 1
-  while (i < line.length) {
-    if (line[i] === '\\') {
-      i += 2
-      continue
-    }
-    if (line[i] === quote) {
-      return i + 1
-    }
-    i++
-  }
-  return i
 }
 
 /**
