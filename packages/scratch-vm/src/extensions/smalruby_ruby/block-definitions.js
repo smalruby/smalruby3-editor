@@ -439,6 +439,10 @@ const menus = {
         acceptReporters: false,
         items: [{ text: 'each', value: 'each' }],
     },
+    hashMethodWithBlockMenu: {
+        acceptReporters: false,
+        items: [{ text: 'each', value: 'each' }],
+    },
     numberMethodWithBlockMenu: {
         acceptReporters: false,
         items: [{ text: 'times', value: 'times' }],
@@ -532,6 +536,24 @@ const getBlocks = () => [
         arguments: {
             RECEIVER: { type: ArgumentType.STRING, defaultValue: '' },
             METHOD: { type: ArgumentType.STRING, menu: 'arrayMethodWithBlockMenu', defaultValue: 'each' },
+        },
+    },
+    // --- Hash method with block (CONDITIONAL, C-shape) ---
+    // Hashes are stored as two parallel lists in Scratch (`<name>_keys` and
+    // `<name>_values`). KEYS_LIST_ID/NAME and VALUES_LIST_ID/NAME are hidden
+    // fields populated by the converter so the executor can iterate both
+    // lists in parallel without going through lossy joined-string receivers.
+    {
+        opcode: 'hashMethodWithBlock',
+        text: formatMessage({
+            id: 'smalrubyRuby.hashMethodWithBlock',
+            default: 'Hash [RECEIVER] . [METHOD] do',
+            description: 'Hash method call with block (C-shape)',
+        }),
+        blockType: BlockType.CONDITIONAL,
+        arguments: {
+            RECEIVER: { type: ArgumentType.STRING, defaultValue: '' },
+            METHOD: { type: ArgumentType.STRING, menu: 'hashMethodWithBlockMenu', defaultValue: 'each' },
         },
     },
     // --- Number method with block (CONDITIONAL, C-shape) ---

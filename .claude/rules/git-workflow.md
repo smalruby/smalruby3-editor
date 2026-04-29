@@ -21,33 +21,49 @@ the main checkout's image and `node_modules` named volume — no rebuild needed.
 
 ### Creating a worktree
 
+**推奨**: `bin/setup-worktree` を一度実行するだけで、env ファイルのコピー、
+node_modules のセットアップ、ワークスペースパッケージのビルドまで一括で
+完了する。
+
 ```bash
 git worktree add ../smalruby3-editor-<feature> -b <type>/<branch-name> develop
 cd ../smalruby3-editor-<feature>
-bin/sync-worktree-env  # copy gitignored .env.* from main checkout
+bin/setup-worktree   # all-in-one setup: env + node_modules + dist/
 ```
 
-### What `bin/sync-worktree-env` does
+**最小限のセットアップだけしたい場合**（lint だけ走らせたい、テストは
+動かさないなど）は `bin/sync-worktree-env` を直接呼んでも良い。
 
-`git worktree add` does **not** copy gitignored files. The repo has these
-gitignored env files that are required for CDK deploy / webpack build / mesh
-v2 integration tests:
+### Why setup is required beyond `git worktree add`
 
-- `.env` (root, used by webpack at build time)
-- `infra/smalruby-mesh-v2/.env.{stg,stg2,production}`
-- `infra/smalruby-rubytee-relay/.env.{stg,stg2,production}`
-- `infra/smalruby-classroom/.env.{stg,stg2,production}`
+`git worktree add` は **gitignore された / build artifact なファイルを
+コピーしない**。以下が手動で必要になる:
 
-The script also **symlinks `node_modules` from the main checkout** into the
-worktree if it is missing/empty. This is required because git worktrees start
-with empty `node_modules` on the host filesystem, but husky git hooks
-(`commit-msg` → `npx --no-install commitlint`) run on the host and need
-`node_modules/.bin` to be populated. (Docker named volumes are unaffected;
-the symlink is only for host-side tools.)
+| 何が無い | 必要になる場面 | 解決方法 |
+|---------|-------------|---------|
+| `.env`, `infra/*/.env.*` | webpack build / CDK deploy / mesh v2 integration test | `bin/sync-worktree-env` |
+| host 側 `node_modules` symlink | husky の commit-msg hook（`npx --no-install commitlint`） | `bin/sync-worktree-env` |
+| `packages/*/node_modules` (per-package) | jest の workspace 依存解決（例: `scratch-blocks` は scratch-gui の local node_modules にある） | `npm install`（docker 経由） |
+| `packages/scratch-vm/dist/`, `packages/scratch-svg-renderer/dist/`, `packages/scratch-render/dist/` | jest が `@smalruby/scratch-vm` 等の bare package import を解決するときに `package.json` の `"main"` / `"exports"` が指す `dist/...` を読む | `npm run build:dev`（docker 経由） |
 
-The script is idempotent — running it twice is safe. Pass `--force` to
-overwrite existing env files. Do it once after creating the worktree, then
-set up the `.env` symlink for the stage you want to deploy:
+`bin/setup-worktree` は上記 4 ステップを順に実行する。
+
+### What `bin/sync-worktree-env` does (低レベル)
+
+`bin/sync-worktree-env` だけを使う場合は以下のみ実行される:
+
+- 以下の gitignored env ファイルを main checkout からコピー:
+  - `.env` (root, used by webpack at build time)
+  - `infra/smalruby-mesh-v2/.env.{stg,stg2,production}`
+  - `infra/smalruby-rubytee-relay/.env.{stg,stg2,production}`
+  - `infra/smalruby-classroom/.env.{stg,stg2,production}`
+- worktree の host 側 `node_modules` を main checkout のものに symlink
+  （host 側 husky hook が `node_modules/.bin` を必要とするため。docker named
+  volume には影響しない）
+
+idempotent — 何度実行しても安全。`--force` で既存ファイルを上書き。
+
+`.env` symlink（stage 切り替え用）は手動で:
 
 ```bash
 (cd infra/smalruby-mesh-v2 && ln -sf .env.stg .env)
@@ -55,9 +71,11 @@ set up the `.env` symlink for the stage you want to deploy:
 
 ### When to re-sync
 
-If `.env.<stage>` is updated in the main checkout (rare, e.g. new env var
-added), re-run `bin/sync-worktree-env --force` in the worktree to pick up
-the change.
+- `.env.<stage>` が main checkout で更新された場合（稀、新しい env var が
+  追加されたなど）: `bin/sync-worktree-env --force` を再実行
+- npm の依存が変わった場合: `docker compose run --rm app npm install` を実行
+- workspace package のソースが変わって他 package のテストが影響を受ける場合:
+  `docker compose run --rm app npm run build:dev` で `dist/` を更新
 
 ### Cleaning up a worktree
 
