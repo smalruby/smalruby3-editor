@@ -2,7 +2,7 @@ html,
 body,
 .app {
     /* probably unecessary, transitional until layout is refactored */
-    width: 100%; 
+    width: 100%;
     height: 100%;
     margin: 0;
 
@@ -10,6 +10,19 @@ body,
     min-width: 1024px;
     min-height: 600px; /* Min height to fit sprite/backdrop button */
 }
+
+/* === Smalruby: Start of narrow viewport vertical scroll lock === */
+/* iPhone 等の狭幅画面で、min-height: 600px と GUI 内部要素の縦方向に */
+/* よって body が viewport より縦に伸びてしまい、ページ全体が縦スクロール */
+/* 可能になっていた。横スクロール (1024px min-width) は残したいので、 */
+/* overflow-y: clip だけ当てる (clip は overflow-x への副作用がない)。 */
+@media (max-width: 767px) {
+    html,
+    body {
+        overflow-y: clip;
+    }
+}
+/* === Smalruby: End of narrow viewport vertical scroll lock === */
 
 /* @todo: move globally? Safe / side FX, for blocks particularly? */
 * { box-sizing: border-box; }

@@ -45,7 +45,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/menu-bar.jsx` | smalrubot firmware menu | SmalrubotS1 メニューの import、ハンドラー、レンダリング、Redux 接続 |
 | `src/components/gui/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダルの import と配置 |
 | `src/components/gui/gui.jsx` | classroom modal | クラスルームモーダルの import と配置 |
+| `src/components/gui/gui.jsx` | narrow screen warning | 狭幅画面警告バナーの import と配置 (issue #572 Phase 1) |
 | `src/components/gui/gui.jsx` | Redux action props prevention | Redux action props の伝播防止 |
+| `src/playground/index.css` | narrow viewport vertical scroll lock | 狭幅画面で縦スクロールを overflow-y: clip で抑止 (issue #572 Phase 1) |
 | `src/containers/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダル state マッピング |
 | `src/containers/gui.jsx` | classroom modal | クラスルームモーダル state マッピング |
 | `src/containers/gui.jsx` | classcode auto-open | クラスコード URL パラメーターによるモーダル自動オープン |
