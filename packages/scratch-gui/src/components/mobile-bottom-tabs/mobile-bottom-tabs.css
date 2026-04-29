@@ -46,8 +46,9 @@
 }
 
 .icon {
-    font-size: 22px;
-    line-height: 1;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
 }
 
 .label {

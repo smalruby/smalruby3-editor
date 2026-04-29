@@ -23,7 +23,7 @@ describe('MobileBottomTabs', () => {
         const { getByTestId } = renderWithIntl(
             <MobileBottomTabsComponent activeTabIndex={BLOCKS_TAB_INDEX} onActivateTab={() => {}} />,
         );
-        expect(getByTestId('mobile-bottom-tabs-block')).toBeInTheDocument();
+        expect(getByTestId('mobile-bottom-tabs-code')).toBeInTheDocument();
         expect(getByTestId('mobile-bottom-tabs-ruby')).toBeInTheDocument();
         expect(getByTestId('mobile-bottom-tabs-sprite')).toBeInTheDocument();
         expect(getByTestId('mobile-bottom-tabs-costume')).toBeInTheDocument();
@@ -34,7 +34,7 @@ describe('MobileBottomTabs', () => {
         const { getByTestId } = renderWithIntl(
             <MobileBottomTabsComponent activeTabIndex={BLOCKS_TAB_INDEX} onActivateTab={() => {}} />,
         );
-        expect(getByTestId('mobile-bottom-tabs-block')).toHaveAttribute('data-active', 'true');
+        expect(getByTestId('mobile-bottom-tabs-code')).toHaveAttribute('data-active', 'true');
         expect(getByTestId('mobile-bottom-tabs-ruby')).toHaveAttribute('data-active', 'false');
     });
 
@@ -56,7 +56,7 @@ describe('MobileBottomTabs', () => {
         const { getByTestId } = renderWithIntl(
             <MobileBottomTabsComponent activeTabIndex={RUBY_TAB_INDEX} onActivateTab={onActivate} />,
         );
-        fireEvent.click(getByTestId('mobile-bottom-tabs-block'));
+        fireEvent.click(getByTestId('mobile-bottom-tabs-code'));
         expect(onActivate).toHaveBeenCalledWith(BLOCKS_TAB_INDEX);
     });
 
@@ -66,12 +66,12 @@ describe('MobileBottomTabs', () => {
             <MobileBottomTabsComponent activeTabIndex={BLOCKS_TAB_INDEX} onActivateTab={onActivate} />,
         );
         // pre: block tab active
-        expect(getByTestId('mobile-bottom-tabs-block')).toHaveAttribute('data-active', 'true');
+        expect(getByTestId('mobile-bottom-tabs-code')).toHaveAttribute('data-active', 'true');
         fireEvent.click(getByTestId('mobile-bottom-tabs-sprite'));
         expect(onActivate).not.toHaveBeenCalled();
         expect(getByTestId('mobile-bottom-tabs-sprite')).toHaveAttribute('data-active', 'true');
         // block is no longer "active" in the bottom-tabs UI while sprite is selected
-        expect(getByTestId('mobile-bottom-tabs-block')).toHaveAttribute('data-active', 'false');
+        expect(getByTestId('mobile-bottom-tabs-code')).toHaveAttribute('data-active', 'false');
     });
 
     test('clicking another tab clears the sprite local active state', () => {

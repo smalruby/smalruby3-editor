@@ -4,6 +4,11 @@ import { createPortal } from 'react-dom';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
 
+import spriteIcon from '../action-menu/icon--sprite.svg';
+import codeIcon from '../gui/icon--code.svg';
+import costumesIcon from '../gui/icon--costumes.svg';
+import rubyIcon from '../gui/icon--ruby.svg';
+import soundsIcon from '../gui/icon--sounds.svg';
 import {
     activateTab,
     BLOCKS_TAB_INDEX,
@@ -53,12 +58,13 @@ const SPRITE_KEY = 'sprite';
 
 /**
  * 5 つのモバイル用ボトムタブ:
- *   ブロック / Ruby / スプライト / コスチューム / 音
+ *   コード / コスチューム / 音 / ルビー / スプライト
  *
- * - ブロック / Ruby / コスチューム / 音 は upstream の `editorTab` Redux に
- *   ディスパッチして既存タブを切り替える
- * - スプライトタブは mobile 固有の状態 (PR-2B では placeholder。実際の
- *   全画面スプライト UI は後続 PR で実装する。今は active 表示のみ)
+ * - コード / コスチューム / 音 / ルビー は upstream の `editorTab` Redux に
+ *   ディスパッチして既存タブを切り替える。アイコン・ラベルは upstream の
+ *   <Tab> と同じ SVG / 翻訳キーを再利用 (`gui.gui.codeTab` 等)
+ * - スプライトタブは mobile 固有の placeholder。`gui.mobileBottomTabs.sprite`
+ *   の翻訳のみ Smalruby 側で持つ
  *
  * 表示位置は `position: fixed` + `visualViewport` API で viewport 下端に追従。
  * @param {object} props - props
@@ -73,33 +79,33 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
 
     const tabs = [
         {
-            key: 'block',
+            key: 'code',
             tabIndex: BLOCKS_TAB_INDEX,
-            icon: '🧱',
+            iconSrc: codeIcon,
             label: (
                 <FormattedMessage
-                    defaultMessage="Block"
-                    description="Mobile bottom tab label for the Block (Code) tab"
-                    id="gui.mobileBottomTabs.block"
+                    defaultMessage="Code"
+                    description="Button to get to the code panel"
+                    id="gui.gui.codeTab"
                 />
             ),
         },
         {
             key: 'ruby',
             tabIndex: RUBY_TAB_INDEX,
-            icon: '💻',
+            iconSrc: rubyIcon,
             label: (
                 <FormattedMessage
                     defaultMessage="Ruby"
-                    description="Mobile bottom tab label for the Ruby tab"
-                    id="gui.mobileBottomTabs.ruby"
+                    description="Button to get to the Ruby panel"
+                    id="gui.smalruby3.gui.rubyTab"
                 />
             ),
         },
         {
             key: SPRITE_KEY,
             tabIndex: null,
-            icon: '🐱',
+            iconSrc: spriteIcon,
             label: (
                 <FormattedMessage
                     defaultMessage="Sprite"
@@ -111,24 +117,24 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
         {
             key: 'costume',
             tabIndex: COSTUMES_TAB_INDEX,
-            icon: '🎨',
+            iconSrc: costumesIcon,
             label: (
                 <FormattedMessage
-                    defaultMessage="Costume"
-                    description="Mobile bottom tab label for the Costume tab"
-                    id="gui.mobileBottomTabs.costume"
+                    defaultMessage="Costumes"
+                    description="Button to get to the costumes panel"
+                    id="gui.gui.costumesTab"
                 />
             ),
         },
         {
             key: 'sound',
             tabIndex: SOUNDS_TAB_INDEX,
-            icon: '🔊',
+            iconSrc: soundsIcon,
             label: (
                 <FormattedMessage
-                    defaultMessage="Sound"
-                    description="Mobile bottom tab label for the Sound tab"
-                    id="gui.mobileBottomTabs.sound"
+                    defaultMessage="Sounds"
+                    description="Button to get to the sounds panel"
+                    id="gui.gui.soundsTab"
                 />
             ),
         },
@@ -179,9 +185,7 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
                     data-active={isActive(tab) ? 'true' : 'false'}
                     onClick={handleClick}
                 >
-                    <span aria-hidden="true" className={styles.icon}>
-                        {tab.icon}
-                    </span>
+                    <img alt="" aria-hidden="true" className={styles.icon} draggable={false} src={tab.iconSrc} />
                     <span className={styles.label}>{tab.label}</span>
                 </button>
             ))}

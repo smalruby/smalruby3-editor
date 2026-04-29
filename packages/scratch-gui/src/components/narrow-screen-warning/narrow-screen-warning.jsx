@@ -2,6 +2,7 @@ import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FormattedMessage } from 'react-intl';
 
+import getUrlParams from '../../lib/url-params.js';
 import useIsNarrowScreen from '../../lib/use-is-narrow-screen.js';
 import styles from './narrow-screen-warning.css';
 
@@ -62,7 +63,10 @@ const NarrowScreenWarning = () => {
     // 案内し続ける)。dismiss は現在の画面表示のみで、リロードや再訪では再表示。
     const [dismissed, setDismissed] = useState(false);
     const ref = useRef(null);
-    const visible = isNarrow && !dismissed;
+    // ?mobile_gui=1 でモバイル専用 UI がアクティブなときは案内不要
+    // (MobileGui 自体が狭幅向けに最適化されているため)。
+    const { mobileGui: mobileGuiOptedIn } = getUrlParams();
+    const visible = isNarrow && !dismissed && !mobileGuiOptedIn;
     useVisualViewportPosition(ref, visible);
 
     const handleClose = useCallback(() => {
