@@ -57,7 +57,7 @@ export class SmalrubyApiStack extends cdk.Stack {
 
             return new lambdaNodejs.NodejsFunction(this, constructId, {
                 functionName,
-                runtime: lambda.Runtime.NODEJS_20_X,
+                runtime: lambda.Runtime.NODEJS_22_X,
                 entry: path.join(__dirname, `../lambda/${entry}`),
                 handler: 'handler',
                 timeout: cdk.Duration.seconds(timeoutSec),
