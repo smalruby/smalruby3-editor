@@ -171,6 +171,71 @@ describe('dnclToRuby', () => {
     })
   })
 
+  describe('nested function calls', () => {
+    test('表示する(乱数(1..10)) keeps closing parens balanced', () => {
+      expect(convert('表示する(乱数(1..10))')).toBe('say(rand(1..10), 1)')
+    })
+
+    test('表示する(整数(x)) places .to_i inside say argument', () => {
+      expect(convert('表示する(整数(x))')).toBe('say(@x.to_i, 1)')
+    })
+
+    test('表示する(絶対値(x)) places .abs inside say argument', () => {
+      expect(convert('表示する(絶対値(x))')).toBe('say(@x.abs, 1)')
+    })
+
+    test('表示する(要素数(A)) keeps array conversion inside say', () => {
+      expect(convert('表示する(要素数(Kouka))')).toBe(
+        'say(@_array_Kouka_.length, 1)',
+      )
+    })
+
+    test('表示する with expression containing 乱数', () => {
+      expect(convert('表示する(乱数(1..10) + 5)')).toBe(
+        'say(rand(1..10) + 5, 1)',
+      )
+    })
+
+    test('含む with 乱数 as second argument', () => {
+      expect(convert('a = 含む(s, 乱数(1..10))')).toBe(
+        '@a = @s.include?(rand(1..10))',
+      )
+    })
+
+    test('含む with 3 args is left unchanged (only 2-arg form is valid)', () => {
+      // Identifier conversion still runs (a → @a, b → @b, s → @s),
+      // but 含む itself stays as-is to avoid generating malformed Ruby.
+      expect(convert('含む(s, a, b)')).toBe('含む(@s, @a, @b)')
+    })
+  })
+
+  describe('user-defined function calls', () => {
+    test('bare function call after definition keeps name without @', () => {
+      const dncl = '関数 myfunc(x)\n  返す 5\nと定義する\nmyfunc(3)'
+      const ruby = 'def myfunc(x)\n  return 5\nend\nmyfunc(3)'
+      expect(convert(dncl)).toBe(ruby)
+    })
+
+    test('function call in assignment', () => {
+      expect(
+        convert('関数 myfunc(x)\n  返す 5\nと定義する\na = myfunc(3)'),
+      ).toBe('def myfunc(x)\n  return 5\nend\n@a = myfunc(3)')
+    })
+
+    test('function call inside 表示する', () => {
+      expect(
+        convert('関数 myfunc(x)\n  返す 5\nと定義する\n表示する(myfunc(3))'),
+      ).toBe('def myfunc(x)\n  return 5\nend\nsay(myfunc(3), 1)')
+    })
+
+    test('function called before definition (forward reference)', () => {
+      // detectFunctionNames runs before line conversion, so order should not matter.
+      expect(
+        convert('myfunc(3)\n関数 myfunc(x)\n  返す 5\nと定義する'),
+      ).toBe('myfunc(3)\ndef myfunc(x)\n  return 5\nend')
+    })
+  })
+
   describe('multiline', () => {
     test('multiple statements', () => {
       expect(convert('a = 1\nb = 2')).toBe('@a = 1\n@b = 2')

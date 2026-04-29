@@ -110,6 +110,14 @@ const RUBY_LITERALS = new Set([
 let arrayNames = new Set()
 
 /**
+ * Track names of user-defined functions within a conversion. These should
+ * not be prefixed with `@` when referenced (they are method calls, not
+ * instance variables).
+ * @type {Set<string>}
+ */
+let functionNames = new Set()
+
+/**
  * Stack tracking for-loop state for increment insertion at `を繰り返す`.
  * Each entry: { varName, stepRuby, ascending, indent }
  * @type {Array<object>}
@@ -158,6 +166,24 @@ const detectArrayNames = (source) => {
 const isArrayName = (name) => arrayNames.has(name)
 
 /**
+ * Detect user-defined function names from `関数 name(...)` definitions.
+ * Runs before line-by-line conversion so calls (including forward
+ * references) can be recognized regardless of definition order.
+ * @param {string} source - The full DNCL source code.
+ */
+const detectFunctionNames = (source) => {
+  functionNames = new Set()
+  const lines = source.split('\n')
+  for (const line of lines) {
+    const trimmed = line.trim()
+    const m = trimmed.match(/^関数\s+(\w+)\s*\(/)
+    if (m) {
+      functionNames.add(m[1])
+    }
+  }
+}
+
+/**
  * Convert a single DNCL token/identifier to its Ruby equivalent.
  * @param {string} name - The identifier.
  * @returns {string} The Ruby variable reference.
@@ -165,6 +191,7 @@ const isArrayName = (name) => arrayNames.has(name)
 const convertIdentifier = (name) => {
   if (DNCL_KEYWORDS.has(name)) return name
   if (RUBY_LITERALS.has(name)) return name
+  if (functionNames.has(name)) return name
   if (/^\d/.test(name)) return name
   if (/^[A-Z]/.test(name)) {
     return mapVarName(name, isArrayName(name))
@@ -340,64 +367,159 @@ const processSegments = (line) => {
 }
 
 /**
- * Convert DNCL built-in function calls to Ruby equivalents.
+ * Find the matching close paren for an open paren at `openParenPos`.
+ * Skips parens inside string literals.
+ * @param {string} text - The text to scan.
+ * @param {number} openParenPos - Position of the open paren `(`.
+ * @returns {number} Position of the matching close paren, or -1 if unmatched.
+ */
+const findMatchingClose = (text, openParenPos) => {
+  let depth = 1
+  let i = openParenPos + 1
+  while (i < text.length) {
+    const ch = text[i]
+    if (ch === '"' || ch === "'") {
+      i = skipString(text, i, ch)
+      continue
+    }
+    if (ch === '(') {
+      depth++
+    } else if (ch === ')') {
+      depth--
+      if (depth === 0) return i
+    }
+    i++
+  }
+  return -1
+}
+
+/**
+ * Replace `name(...)` calls with the result of `transform(args)`.
+ * Uses balanced-paren matching so nested function calls don't confuse the
+ * boundary. Skips occurrences inside string literals.
+ * @param {string} text - Source text.
+ * @param {string} name - Function name to match (e.g. `表示する`).
+ * @param {Function} transform - Receives the raw args string between the
+ *   matching parens and returns the full replacement text.
+ * @returns {string} Text with all occurrences of `name(...)` transformed.
+ */
+const replaceCall = (text, name, transform) => {
+  let result = ''
+  let i = 0
+  while (i < text.length) {
+    const ch = text[i]
+    if (ch === '"' || ch === "'") {
+      const end = skipString(text, i, ch)
+      result += text.substring(i, end)
+      i = end
+      continue
+    }
+    if (text.startsWith(name, i) && text[i + name.length] === '(') {
+      const openPos = i + name.length
+      const closePos = findMatchingClose(text, openPos)
+      if (closePos === -1) {
+        result += ch
+        i++
+        continue
+      }
+      const args = text.substring(openPos + 1, closePos)
+      result += transform(args)
+      i = closePos + 1
+      continue
+    }
+    result += ch
+    i++
+  }
+  return result
+}
+
+/**
+ * Split function args by top-level commas (depth 0). Skips commas inside
+ * nested parens or string literals.
+ * @param {string} args - The args string between the outer parens.
+ * @returns {Array<string>} Array of trimmed argument strings.
+ */
+const splitArgsAtTopLevel = (args) => {
+  const parts = []
+  let depth = 0
+  let current = ''
+  let i = 0
+  while (i < args.length) {
+    const ch = args[i]
+    if (ch === '"' || ch === "'") {
+      const end = skipString(args, i, ch)
+      current += args.substring(i, end)
+      i = end
+      continue
+    }
+    if (ch === '(') {
+      depth++
+      current += ch
+      i++
+      continue
+    }
+    if (ch === ')') {
+      depth--
+      current += ch
+      i++
+      continue
+    }
+    if (ch === ',' && depth === 0) {
+      parts.push(current.trim())
+      current = ''
+      i++
+      continue
+    }
+    current += ch
+    i++
+  }
+  if (current.length > 0 || parts.length > 0) {
+    parts.push(current.trim())
+  }
+  return parts
+}
+
+/**
+ * Convert DNCL built-in function calls to Ruby equivalents. Uses balanced
+ * paren matching so nested calls (e.g. `表示する(乱数(1..10))`) are
+ * correctly delimited.
  * @param {string} text - Text that may contain DNCL function calls.
  * @returns {string} Text with functions converted to Ruby.
  */
 const convertBuiltinFunctions = (text) => {
   let result = text
 
-  // Handle 表示する(...) → say(..., 1)
-  result = result.replace(
-    /表示する\(([^)]*)\)/g,
-    (_, args) => `say(${args}, 1)`,
-  )
+  // 表示する(...) → say(..., 1)
+  result = replaceCall(result, '表示する', (args) => `say(${args}, 1)`)
 
-  // Handle 含む(str, sub) → str.include?(sub)
-  result = result.replace(
-    /含む\(([^,]+),\s*([^)]+)\)/g,
-    (_, str, sub) => `${str}.include?(${sub})`,
-  )
+  // 含む(str, sub) → str.include?(sub) — only the 2-arg form is valid;
+  // any other arity is left unchanged so we don't emit malformed Ruby.
+  result = replaceCall(result, '含む', (args) => {
+    const parts = splitArgsAtTopLevel(args)
+    if (parts.length === 2) {
+      return `${parts[0]}.include?(${parts[1]})`
+    }
+    return `含む(${args})`
+  })
 
-  // Handle 要素数(Name) → Name.length
-  result = result.replace(
-    /要素数\(([^)]*)\)/g,
-    (_, name) => `${name}.length`,
-  )
+  // 要素数(Name) → Name.length
+  result = replaceCall(result, '要素数', (args) => `${args}.length`)
 
-  // Handle 整数(expr) → expr.to_i
-  result = result.replace(/整数\(([^)]*)\)/g, (_, expr) => `${expr}.to_i`)
+  // 整数(expr) → expr.to_i
+  result = replaceCall(result, '整数', (args) => `${args}.to_i`)
 
-  // Handle 文字列(expr) → expr.to_s
-  result = result.replace(
-    /文字列\(([^)]*)\)/g,
-    (_, expr) => `${expr}.to_s`,
-  )
+  // 文字列(expr) → expr.to_s
+  result = replaceCall(result, '文字列', (args) => `${args}.to_s`)
 
-  // Handle 乱数(n) → rand(n)
-  result = result.replace(/乱数\(([^)]*)\)/g, (_, n) => `rand(${n})`)
+  // 乱数(n) → rand(n)
+  result = replaceCall(result, '乱数', (args) => `rand(${args})`)
 
-  // Handle math functions
-  result = result.replace(
-    /四捨五入\(([^)]*)\)/g,
-    (_, expr) => `${expr}.round`,
-  )
-  result = result.replace(
-    /切り捨て\(([^)]*)\)/g,
-    (_, expr) => `${expr}.floor`,
-  )
-  result = result.replace(
-    /切り上げ\(([^)]*)\)/g,
-    (_, expr) => `${expr}.ceil`,
-  )
-  result = result.replace(
-    /絶対値\(([^)]*)\)/g,
-    (_, expr) => `${expr}.abs`,
-  )
-  result = result.replace(
-    /平方根\(([^)]*)\)/g,
-    (_, expr) => `Math.sqrt(${expr})`,
-  )
+  // Math functions
+  result = replaceCall(result, '四捨五入', (args) => `${args}.round`)
+  result = replaceCall(result, '切り捨て', (args) => `${args}.floor`)
+  result = replaceCall(result, '切り上げ', (args) => `${args}.ceil`)
+  result = replaceCall(result, '絶対値', (args) => `${args}.abs`)
+  result = replaceCall(result, '平方根', (args) => `Math.sqrt(${args})`)
 
   return result
 }
@@ -612,6 +734,7 @@ const dnclToRuby = (source) => {
   }
 
   detectArrayNames(source)
+  detectFunctionNames(source)
   forLoopStack = []
 
   const lines = source.split('\n')
