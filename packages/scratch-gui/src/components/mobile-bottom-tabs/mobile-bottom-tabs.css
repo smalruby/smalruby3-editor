@@ -51,24 +51,6 @@
     object-fit: contain;
 }
 
-/* スプライトタブは PC 画面右下のスプライト追加 FAB と同じ見た目: */
-/* 紫の丸背景に白いネコ + アイコン */
-.sprite-fab-icon {
-    display: inline-flex;
-    width: 26px;
-    height: 26px;
-    align-items: center;
-    justify-content: center;
-    background: #855cd6;
-    border-radius: 50%;
-}
-
-.sprite-fab-img {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-}
-
 .label {
     line-height: 1.2;
     word-break: keep-all;

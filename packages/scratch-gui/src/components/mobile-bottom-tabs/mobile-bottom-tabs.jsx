@@ -4,11 +4,11 @@ import { createPortal } from 'react-dom';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
 
-import spriteIcon from '../action-menu/icon--sprite.svg';
 import codeIcon from '../gui/icon--code.svg';
 import costumesIcon from '../gui/icon--costumes.svg';
 import rubyIcon from '../gui/icon--ruby.svg';
 import soundsIcon from '../gui/icon--sounds.svg';
+import spriteIcon from './icon--sprite-cat.svg';
 import {
     activateTab,
     BLOCKS_TAB_INDEX,
@@ -82,7 +82,6 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
             key: SPRITE_KEY,
             tabIndex: null,
             iconSrc: spriteIcon,
-            iconKind: 'sprite-fab',
             label: (
                 <FormattedMessage
                     defaultMessage="Sprite"
@@ -186,13 +185,7 @@ const MobileBottomTabsComponent = ({ activeTabIndex, onActivateTab }) => {
                     data-active={isActive(tab) ? 'true' : 'false'}
                     onClick={handleClick}
                 >
-                    {tab.iconKind === 'sprite-fab' ? (
-                        <span className={styles.spriteFabIcon} aria-hidden="true">
-                            <img alt="" className={styles.spriteFabImg} draggable={false} src={tab.iconSrc} />
-                        </span>
-                    ) : (
-                        <img alt="" aria-hidden="true" className={styles.icon} draggable={false} src={tab.iconSrc} />
-                    )}
+                    <img alt="" aria-hidden="true" className={styles.icon} draggable={false} src={tab.iconSrc} />
                     <span className={styles.label}>{tab.label}</span>
                 </button>
             ))}
