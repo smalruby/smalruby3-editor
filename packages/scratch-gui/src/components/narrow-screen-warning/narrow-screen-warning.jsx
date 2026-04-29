@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FormattedMessage } from 'react-intl';
 
 import styles from './narrow-screen-warning.css';
@@ -67,15 +68,17 @@ const NarrowScreenWarning = () => {
         return null;
     }
 
-    return (
-        <div
-            className={styles.banner}
-            role="status"
-            data-testid="narrow-screen-warning"
-        >
+    if (typeof document === 'undefined') {
+        return null;
+    }
+
+    // GUI 祖先要素 (transform/filter 等) が fixed の containing block を作る
+    // ケースを避けるため、Portal で document.body 直下に飛ばす
+    return createPortal(
+        <div className={styles.banner} role="status" data-testid="narrow-screen-warning">
             <p className={styles.message}>
                 <FormattedMessage
-                    defaultMessage="📱 Some operations may be hard to use on narrow screens. We recommend using a PC or tablet for full editing."
+                    defaultMessage="📱 For full editing, a PC or tablet is recommended."
                     description="Banner shown on narrow screens (e.g. iPhone) suggesting PC/tablet for editing"
                     id="gui.narrowScreenWarning.message"
                 />
@@ -92,7 +95,8 @@ const NarrowScreenWarning = () => {
                     id="gui.narrowScreenWarning.close"
                 />
             </button>
-        </div>
+        </div>,
+        document.body,
     );
 };
 

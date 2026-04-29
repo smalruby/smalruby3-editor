@@ -941,7 +941,6 @@ export default {
     'gui.extensionButton.dnclExtensionDisabled': 'にほんごモードではかくちょうきのうはつかえません。',
     'gui.rubyTab.dnclValidationError':
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
-    'gui.narrowScreenWarning.message':
-        '📱 せまい がめんでは いちぶの そうさが しづらい ばあいが あります。ほんかくてきな へんしゅうは パソコンや タブレットを おすすめします。',
+    'gui.narrowScreenWarning.message': '📱 ほんかくてきな へんしゅうは PC・タブレットが おすすめです。',
     'gui.narrowScreenWarning.close': 'とじる',
 };

@@ -916,7 +916,6 @@ export default {
     'gui.extensionButton.dnclExtensionDisabled': '日本語モードでは拡張機能は使えません。',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
-    'gui.narrowScreenWarning.message':
-        '📱 狭い画面では一部の操作がしづらい場合があります。本格的な編集はパソコンやタブレットを推奨します。',
+    'gui.narrowScreenWarning.message': '📱 本格的な編集は PC・タブレットを推奨します。',
     'gui.narrowScreenWarning.close': '閉じる',
 };

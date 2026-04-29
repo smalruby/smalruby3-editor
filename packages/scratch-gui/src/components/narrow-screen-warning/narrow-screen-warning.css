@@ -8,11 +8,15 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 10px 12px;
+    padding: 8px 12px;
+    /* iPhone X 系 home indicator / iOS Safari URL bar 領域を避ける */
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+    padding-left: max(12px, env(safe-area-inset-left, 12px));
+    padding-right: max(12px, env(safe-area-inset-right, 12px));
     background: #4c97ff;
     color: white;
-    font-size: 13px;
-    line-height: 1.4;
+    font-size: 12px;
+    line-height: 1.35;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.15);
 }
 
