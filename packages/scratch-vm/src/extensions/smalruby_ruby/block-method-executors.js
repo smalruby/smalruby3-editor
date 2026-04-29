@@ -17,19 +17,89 @@ const setBlockParam = (util, key, value) => {
 };
 
 /**
- * Resolve the items to iterate for Array#each. Prefer the LIST referenced by
- * LIST_ID/LIST_NAME when available, since data_listcontents joins items with
- * "" (all-single-char) or " " (otherwise) — both lossy for arbitrary values.
- * Fall back to space-splitting RECEIVER for receivers that aren't lists.
+ * Look up a list variable by id+name (defensive — id is authoritative,
+ * name is used as a fallback).
+ * @param {object} target - VM target.
+ * @param {string} id - List id.
+ * @param {string} name - List name.
+ * @returns {?object} List variable or null.
+ */
+const lookupList = (target, id, name) => {
+    if (!target || !target.lookupOrCreateList) return null;
+    return target.lookupOrCreateList(id, name);
+};
+
+/**
+ * Read the source RECEIVER input block of the currently executing block.
+ * Returns null if the call site is not the standard primitive flow (e.g.
+ * unit tests that invoke the executor directly without a thread).
+ * @param {object} util - Block utility.
+ * @returns {?object} Receiver block or null.
+ */
+const peekReceiverBlock = (util) => {
+    const target = util.target;
+    if (!util.thread || typeof util.thread.peekStack !== 'function') return null;
+    if (!target || !target.blocks || typeof target.blocks.getBlock !== 'function') return null;
+    const blockId = util.thread.peekStack();
+    if (!blockId) return null;
+    const block = target.blocks.getBlock(blockId);
+    if (!block || !block.inputs || !block.inputs.RECEIVER) return null;
+    return target.blocks.getBlock(block.inputs.RECEIVER.block) || null;
+};
+
+/**
+ * Read the comment text attached to the currently executing block.
+ * Returns '' if absent.
+ * @param {object} util - Block utility.
+ * @returns {string} Comment text.
+ */
+const peekBlockCommentText = (util) => {
+    const target = util.target;
+    if (!util.thread || typeof util.thread.peekStack !== 'function') return '';
+    if (!target || !target.blocks || typeof target.blocks.getBlock !== 'function') return '';
+    const blockId = util.thread.peekStack();
+    if (!blockId) return '';
+    const block = target.blocks.getBlock(blockId);
+    if (!block || !block.comment || !target.comments) return '';
+    const comment = target.comments[block.comment];
+    return (comment && comment.text) || '';
+};
+
+/**
+ * Resolve the items to iterate for Array#each.
+ *
+ * Strategy (in order):
+ * 1. Read the source RECEIVER block (data_listcontents) and use its LIST
+ *    field. Survives Blockly XML round-trip because LIST is a standard
+ *    Scratch field on data_listcontents.
+ * 2. Fall back to args.LIST_ID/LIST_NAME (used by unit tests that bypass
+ *    the block container).
+ * 3. Final fallback: space-split args.RECEIVER. Lossy but preserves
+ *    behavior for receivers that aren't lists.
  * @param {object} args - Block arguments.
  * @param {object} util - Block utility.
  * @returns {Array} Snapshot of items to iterate.
  */
 const resolveArrayItems = (args, util) => {
-    if (args.LIST_ID && util.target && util.target.lookupOrCreateList) {
-        const list = util.target.lookupOrCreateList(args.LIST_ID, args.LIST_NAME);
-        return list && list.value ? list.value.slice() : [];
+    const target = util.target;
+
+    const receiverBlock = peekReceiverBlock(util);
+    if (
+        receiverBlock &&
+        receiverBlock.opcode === 'data_listcontents' &&
+        receiverBlock.fields &&
+        receiverBlock.fields.LIST
+    ) {
+        const listField = receiverBlock.fields.LIST;
+        const list = lookupList(target, listField.id, listField.value);
+        if (list && list.value) return list.value.slice();
     }
+
+    if (args.LIST_ID) {
+        const list = lookupList(target, args.LIST_ID, args.LIST_NAME);
+        if (list && list.value) return list.value.slice();
+    }
+
     const recv = String(args.RECEIVER || '');
     return recv === '' ? [] : recv.split(' ');
 };
@@ -68,41 +138,76 @@ const executeArrayMethodWithBlock = (args, util, setReturnValue) => {
 };
 
 /**
- * Look up the keys/values lists referenced by a hash each block.
- * Hashes are stored as two parallel lists in Scratch (`<name>_keys` and
- * `<name>_values`). Both list references must be present in args.
+ * Parse `@ruby:list_ref:<key>:<id>:<name>` directives from a comment text
+ * into a map keyed by the directive name.
+ * @param {string} commentText - Block's comment text.
+ * @returns {Object<string, {id: string, name: string}>} Parsed list refs.
+ */
+const parseListRefsFromComment = (commentText) => {
+    const refs = {};
+    if (!commentText) return refs;
+    // Format: @ruby:list_ref:<KEY>:<id>:<name>
+    // <id> contains arbitrary chars including colons; we split on the last
+    // colon by anchoring the prefix and capturing the remainder.
+    const re = /@ruby:list_ref:([A-Z_]+):([^\n]+)/g;
+    let m;
+    while ((m = re.exec(commentText)) !== null) {
+        const key = m[1];
+        const rest = m[2];
+        // rest is "<id>:<name>". Names cannot contain newlines but may contain
+        // colons in theory; ids are random short strings without ":\n". We split
+        // on the LAST ":" to allow colons in name (defensive).
+        const idx = rest.indexOf(':');
+        if (idx < 0) continue;
+        const id = rest.slice(0, idx);
+        const name = rest.slice(idx + 1);
+        refs[key] = { id, name };
+    }
+    return refs;
+};
+
+/**
+ * Resolve key/value lists for Hash#each.
+ *
+ * Strategy (in order):
+ * 1. Read `@ruby:list_ref:KEYS:<id>:<name>` and `:VALUES:` directives from
+ *    the executing block's comment. Comments are preserved through Blockly
+ *    XML round-trip.
+ * 2. Fall back to args.KEYS_LIST_ID etc. (used by unit tests).
  * @param {object} args - Block arguments.
  * @param {object} util - Block utility.
- * @returns {{keys: Array, values: Array}} Snapshot of both list contents.
+ * @returns {{keys: Array, values: Array}} Snapshot of key/value lists.
  */
 const resolveHashEntries = (args, util) => {
-    if (
-        !args.KEYS_LIST_ID ||
-        !args.VALUES_LIST_ID ||
-        !util.target ||
-        !util.target.lookupOrCreateList
-    ) {
-        return { keys: [], values: [] };
+    const target = util.target;
+
+    const refs = parseListRefsFromComment(peekBlockCommentText(util));
+    if (refs.KEYS && refs.VALUES) {
+        const keysList = lookupList(target, refs.KEYS.id, refs.KEYS.name);
+        const valuesList = lookupList(target, refs.VALUES.id, refs.VALUES.name);
+        return {
+            keys: keysList && keysList.value ? keysList.value.slice() : [],
+            values: valuesList && valuesList.value ? valuesList.value.slice() : [],
+        };
     }
-    const keysList = util.target.lookupOrCreateList(
-        args.KEYS_LIST_ID,
-        args.KEYS_LIST_NAME,
-    );
-    const valuesList = util.target.lookupOrCreateList(
-        args.VALUES_LIST_ID,
-        args.VALUES_LIST_NAME,
-    );
-    return {
-        keys: keysList && keysList.value ? keysList.value.slice() : [],
-        values: valuesList && valuesList.value ? valuesList.value.slice() : [],
-    };
+
+    if (args.KEYS_LIST_ID && args.VALUES_LIST_ID) {
+        const keysList = lookupList(target, args.KEYS_LIST_ID, args.KEYS_LIST_NAME);
+        const valuesList = lookupList(target, args.VALUES_LIST_ID, args.VALUES_LIST_NAME);
+        return {
+            keys: keysList && keysList.value ? keysList.value.slice() : [],
+            values: valuesList && valuesList.value ? valuesList.value.slice() : [],
+        };
+    }
+
+    return { keys: [], values: [] };
 };
 
 /**
  * Execute a hash method with block (C-shape). Currently supports `each` only,
  * iterating key/value pairs in parallel from the hash's keys and values lists.
  * Block params are set as `_1` = key, `_2` = value.
- * @param {object} args - Block arguments (METHOD, KEYS_LIST_ID/NAME, VALUES_LIST_ID/NAME).
+ * @param {object} args - Block arguments (METHOD, optional KEYS_LIST_* / VALUES_LIST_*).
  * @param {object} util - Block utility.
  * @param {Function} setReturnValue - Callback to store the return value.
  */
@@ -113,8 +218,6 @@ const executeHashMethodWithBlock = (args, util, setReturnValue) => {
         case 'each': {
             if (typeof util.stackFrame.entries === 'undefined') {
                 const entries = resolveHashEntries(args, util);
-                // Iterate up to the shorter list to avoid undefined values
-                // when the two lists are inconsistent.
                 util.stackFrame.entries = {
                     keys: entries.keys,
                     values: entries.values,

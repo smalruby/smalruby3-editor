@@ -501,21 +501,33 @@ const SmalrubyRubyConverter = {
                 value: valuesList.name,
             };
 
+            // Encode list refs into the block's comment text so the VM can
+            // recover them at execution time. Hidden block fields like
+            // KEYS_LIST_ID don't survive Blockly's XML round-trip (only
+            // arguments referenced in the block's `text` template are
+            // registered as known fields), but comment text does.
+            const listRefLines = [
+                `@ruby:list_ref:KEYS:${keysList.id}:${keysList.name}`,
+                `@ruby:list_ref:VALUES:${valuesList.id}:${valuesList.name}`,
+            ];
+
             // Handle block parameters (|k, v|): same comment-based mapping as
             // arrayMethodWithBlock, then walk the body replacing variable
             // references with smalrubyRuby_blockParam reporters.
+            const commentParts = listRefLines.slice();
             if (rubyBlockArgs && rubyBlockArgs.length > 0) {
-                const commentParts = [];
                 rubyBlockArgs.forEach((paramName, idx) => {
                     commentParts.push(
                         `@ruby:block_param:${idx + 1}:${paramName}`,
                     );
                 });
-                block.comment = converter._createComment(
-                    commentParts.join('\n'),
-                    block.id,
-                );
+            }
+            block.comment = converter._createComment(
+                commentParts.join('\n'),
+                block.id,
+            );
 
+            if (rubyBlockArgs && rubyBlockArgs.length > 0) {
                 if (rubyBlock) {
                     const varNameToParamIdx = {};
                     rubyBlockArgs.forEach((paramName, idx) => {
