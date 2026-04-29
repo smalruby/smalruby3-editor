@@ -21,6 +21,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`
 - `src/components/koshien-test-modal/`
+- `src/components/mobile-bottom-tabs/`
 - `src/components/mobile-gui/`
 - `src/components/narrow-screen-warning/`
 - `src/components/palette-toggle/`
@@ -185,6 +186,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/version-update-notification.test.js`
 - `test/unit/components/action-menu.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
+- `test/unit/components/mobile-bottom-tabs.test.jsx`
 - `test/unit/components/narrow-screen-warning.test.jsx`
 - `test/unit/components/palette-toggle.test.jsx`
 - `test/unit/components/project-title-input.test.jsx`

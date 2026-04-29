@@ -943,4 +943,9 @@ export default {
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
     'gui.narrowScreenWarning.message': '📱 ほんかくてきな へんしゅうは PC・タブレットが おすすめです。',
     'gui.narrowScreenWarning.close': 'とじる',
+    'gui.mobileBottomTabs.block': 'ブロック',
+    'gui.mobileBottomTabs.ruby': 'ルビー',
+    'gui.mobileBottomTabs.sprite': 'スプライト',
+    'gui.mobileBottomTabs.costume': 'コスチューム',
+    'gui.mobileBottomTabs.sound': 'おと',
 };
