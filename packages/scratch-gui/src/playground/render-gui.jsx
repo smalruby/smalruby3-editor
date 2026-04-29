@@ -10,6 +10,9 @@ import {PLATFORM} from '../lib/platform.js';
 // === Smalruby: Start of URL params for Playwright ===
 import {getUrlParams} from '../lib/url-params.js';
 // === Smalruby: End of URL params for Playwright ===
+// === Smalruby: Start of MobileGui dispatcher ===
+import ResponsiveGui from '../lib/responsive-gui.jsx';
+// === Smalruby: End of MobileGui dispatcher ===
 
 const onClickLogo = () => {
     window.location = 'https://smalruby.jp';
@@ -41,7 +44,11 @@ export default appTarget => {
     const WrappedGui = compose(
         AppStateHOC,
         HashParserHOC
-    )(GUI);
+        // === Smalruby: Start of MobileGui dispatcher ===
+        // ResponsiveGui forwards all HOC-injected props and switches between
+        // <GUI> and <MobileGui> based on the `mobile_gui=1` URL flag + viewport width.
+        // === Smalruby: End of MobileGui dispatcher ===
+    )(ResponsiveGui);
 
     // TODO a hack for testing the backpack, allow backpack host to be set by url param
     const backpackHostMatches = window.location.href.match(/[?&]backpack_host=([^&]*)&?/);

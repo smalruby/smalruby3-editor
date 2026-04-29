@@ -38,6 +38,7 @@ src/components/*
 !src/components/blocks-screenshot-button/
 !src/components/google-drive-save-dialog/
 !src/components/koshien-test-modal/
+!src/components/mobile-gui/
 !src/components/narrow-screen-warning/
 !src/components/palette-toggle/
 !src/components/ruby-script-preview/
@@ -134,6 +135,7 @@ src/lib/*
 !src/lib/prism-parser.js
 !src/lib/project-loader-utils.js
 !src/lib/radix-ui-context-menu.js
+!src/lib/responsive-gui.jsx
 !src/lib/ruby-parser.js
 !src/lib/ruby-screenshot.js
 !src/lib/smalrubot-firmware-flasher.js
@@ -146,6 +148,7 @@ src/lib/*
 !src/lib/url-loader.js
 !src/lib/url-params.js
 !src/lib/url-parser.js
+!src/lib/use-is-narrow-screen.js
 !src/lib/version-checker.js
 
 # Level 3: src/lib/libraries/*
@@ -289,6 +292,8 @@ test/unit/lib/*
 !test/unit/lib/layout-constants.test.js
 !test/unit/lib/legacy-storage.test.js
 !test/unit/lib/make-toolbox-xml.test.js
+!test/unit/lib/responsive-gui.test.jsx
+!test/unit/lib/use-is-narrow-screen.test.js
 !test/unit/lib/module-sync.test.js
 !test/unit/lib/prism-parser.test.js
 !test/unit/lib/removed-trademarks.test.js

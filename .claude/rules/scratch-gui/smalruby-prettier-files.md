@@ -21,6 +21,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`
 - `src/components/koshien-test-modal/`
+- `src/components/mobile-gui/`
 - `src/components/narrow-screen-warning/`
 - `src/components/palette-toggle/`
 - `src/components/ruby-script-preview/`
@@ -111,6 +112,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/prism-parser.js`
 - `src/lib/project-loader-utils.js`
 - `src/lib/radix-ui-context-menu.js`
+- `src/lib/responsive-gui.jsx`
 - `src/lib/ruby-parser.js`
 - `src/lib/ruby-screenshot.js`
 - `src/lib/smalrubot-firmware-flasher.js`
@@ -123,6 +125,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/url-loader.js`
 - `src/lib/url-params.js`
 - `src/lib/url-parser.js`
+- `src/lib/use-is-narrow-screen.js`
 - `src/lib/version-checker.js`
 
 ### src/locales/
@@ -206,7 +209,9 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/furigana-annotator-perf.test.js`
 - `test/unit/lib/furigana-annotator.test.js`
 - `test/unit/lib/google-drive-api.test.js`
+- `test/unit/lib/responsive-gui.test.jsx`
 - `test/unit/lib/url-loader.test.js`
+- `test/unit/lib/use-is-narrow-screen.test.js`
 - `test/unit/lib/insert-class.test.js`
 - `test/unit/lib/join-code-history.test.js`
 - `test/unit/lib/layout-constants.test.js`

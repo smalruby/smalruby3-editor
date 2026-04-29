@@ -1,36 +1,9 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FormattedMessage } from 'react-intl';
 
+import useIsNarrowScreen from '../../lib/use-is-narrow-screen.js';
 import styles from './narrow-screen-warning.css';
-
-const NARROW_SCREEN_QUERY = '(max-width: 767px)';
-
-const useIsNarrowScreen = () => {
-    const [isNarrow, setIsNarrow] = useState(() => {
-        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-            return false;
-        }
-        return window.matchMedia(NARROW_SCREEN_QUERY).matches;
-    });
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-            return () => {};
-        }
-        const mql = window.matchMedia(NARROW_SCREEN_QUERY);
-        const handler = event => setIsNarrow(event.matches);
-        if (typeof mql.addEventListener === 'function') {
-            mql.addEventListener('change', handler);
-            return () => mql.removeEventListener('change', handler);
-        }
-        // Safari < 14 fallback
-        mql.addListener(handler);
-        return () => mql.removeListener(handler);
-    }, []);
-
-    return isNarrow;
-};
 
 /**
  * バナーを visual viewport の下端に追従させる (position: fixed 前提)。

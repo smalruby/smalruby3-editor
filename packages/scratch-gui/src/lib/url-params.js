@@ -22,6 +22,9 @@ const RUBY_ALIASES = ['ruby'];
  * - ruby_version=2     — set the Ruby version (1 or 2); invalid values are ignored
  * - rubyMode=dncl      — activate DNCL mode (aliases: dnclv2, case-insensitive)
  * - rubyMode=rubi      — activate furigana mode (aliases: furigana, case-insensitive)
+ * - mobile_gui=1       — opt-in to the experimental MobileGui (issue #572 Phase 2,
+ *                        narrow viewport only). Off by default; only takes effect when
+ *                        viewport <768px.
  * @returns {object} parsed parameters
  */
 const parseUrlParams = () => {
@@ -34,6 +37,7 @@ const parseUrlParams = () => {
             features: [],
             classcode: null,
             devlogin: false,
+            mobileGui: false,
         };
     }
 
@@ -49,6 +53,7 @@ const parseUrlParams = () => {
             features: [],
             classcode: null,
             devlogin: false,
+            mobileGui: false,
         };
     }
 
@@ -89,7 +94,10 @@ const parseUrlParams = () => {
     // devlogin: bypass Google auth with a secret token (stg/local only)
     const devlogin = params.get('devlogin') || null;
 
-    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features, classcode, devlogin };
+    // mobile_gui: experimental opt-in for the narrow-viewport MobileGui shell (issue #572)
+    const mobileGui = params.get('mobile_gui') === '1' || params.get('mobile_gui') === 'true';
+
+    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features, classcode, devlogin, mobileGui };
 };
 
 // Cache the result so it's only parsed once
