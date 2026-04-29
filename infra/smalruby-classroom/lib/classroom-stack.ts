@@ -191,7 +191,7 @@ export class ClassroomStack extends cdk.Stack {
 
     const handlerFn = new lambdaNodejs.NodejsFunction(this, 'ClassroomHandler', {
       functionName: `ClassroomHandler${stageSuffix}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       entry: path.join(__dirname, '../lambda/handler.ts'),
       handler: 'handler',
       timeout: cdk.Duration.seconds(30),
