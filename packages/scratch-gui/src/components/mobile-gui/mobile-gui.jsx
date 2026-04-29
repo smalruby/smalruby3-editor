@@ -3,6 +3,7 @@ import React from 'react';
 import GUI from '../../containers/gui.jsx';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
 import MobileBottomTabs from '../mobile-bottom-tabs/mobile-bottom-tabs.jsx';
+import MobilePaletteToggle from '../mobile-palette-toggle/mobile-palette-toggle.jsx';
 import MobileTopBar from '../mobile-top-bar/mobile-top-bar.jsx';
 
 /**
@@ -18,9 +19,10 @@ import MobileTopBar from '../mobile-top-bar/mobile-top-bar.jsx';
  * 進捗:
  *   - PR-2A: スケルトン (本コンポーネントの作成、<GUI> 素通し)
  *   - PR-2B: ボトムタブ × 5 (<MobileBottomTabs /> を追加)
- *   - PR-2C: ステージ全画面プレビュー (本 PR、<MobileTopBar /> の ▶ で
+ *   - PR-2C: ステージ全画面プレビュー (<MobileTopBar /> の ▶ で
  *     upstream の isFullScreen mode に入る)
- *   - PR-2D: ブロックパレットドロワー (予定)
+ *   - PR-2D: ブロックパレットドロワー (本 PR、<MobilePaletteToggle /> で
+ *     パレット表示・非表示をトグル、初回エントリーで自動非表示)
  *   - PR-2E: ハンバーガーメニュー (予定)
  *
  * 受け取る props は <GUI> と同一 (AppStateHOC / HashParserHOC からの全 props)。
@@ -38,6 +40,7 @@ const MobileGui = props => (
         <ConnectedIntlProvider>
             <>
                 <MobileTopBar />
+                <MobilePaletteToggle />
                 <MobileBottomTabs />
             </>
         </ConnectedIntlProvider>

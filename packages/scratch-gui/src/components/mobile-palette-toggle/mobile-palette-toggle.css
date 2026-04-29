@@ -1,0 +1,31 @@
+.handle {
+    /* top / left は JS (visualViewport) で設定 */
+    position: fixed;
+    z-index: 8500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 56px;
+    padding: 0;
+    background: rgba(133, 92, 214, 0.92);
+    color: white;
+    border: 0;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.18);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.handle:focus {
+    outline: 2px solid rgba(76, 151, 255, 0.6);
+    outline-offset: 2px;
+}
+
+.handle[data-palette-visible='true'] {
+    /* パレットが見えているときはハンドルがパレットの左端に張り付く想定。 */
+    /* 現状 left は viewport 左端 (= 0) のままだが、将来的に palette 幅に追従する */
+}

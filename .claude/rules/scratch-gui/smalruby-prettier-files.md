@@ -23,6 +23,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/koshien-test-modal/`
 - `src/components/mobile-bottom-tabs/`
 - `src/components/mobile-gui/`
+- `src/components/mobile-palette-toggle/`
 - `src/components/mobile-top-bar/`
 - `src/components/narrow-screen-warning/`
 - `src/components/palette-toggle/`
@@ -188,6 +189,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/action-menu.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
 - `test/unit/components/mobile-bottom-tabs.test.jsx`
+- `test/unit/components/mobile-palette-toggle.test.jsx`
 - `test/unit/components/mobile-top-bar.test.jsx`
 - `test/unit/components/narrow-screen-warning.test.jsx`
 - `test/unit/components/palette-toggle.test.jsx`
