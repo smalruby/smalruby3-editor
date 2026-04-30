@@ -200,20 +200,15 @@
 }
 
 /*
- * ツールバーが出ているとき、上に重なって左の各ペイントツール (mode-selector)
- * の上端が隠れるので、ツール側だけ padding-top で下げてアイコンを露出させる。
- * canvas (controls-container 側) は動かさない (位置不変が要件)。
- *
- * 折りたたみ時は padding なしで上端から並ぶ。
+ * ツールバーの開閉でペイントツール (mode-selector) のアイコン位置が
+ * 上下に動くと、タップしていたツールが指の下から逃げてしまう。
+ * ツールバーが「出ているとき」の位置 (padding-top: 104) を常に維持し、
+ * 折りたたみ時もアイコン位置を変えない (要望)。
  *
  * 104px はツールバーの実測高さ (上 13px paddingTop + 2 行 87px + 下 padding)。
  */
 :global(body.smalruby-mobile-mode [class*="paint-editor_mode-selector"]) {
     padding-top: 104px;
-}
-
-:global(body.smalruby-mobile-mode.smalruby-paint-toolbar-collapsed [class*="paint-editor_mode-selector"]) {
-    padding-top: 0;
 }
 
 /* ------------------------------------------------------------ */
