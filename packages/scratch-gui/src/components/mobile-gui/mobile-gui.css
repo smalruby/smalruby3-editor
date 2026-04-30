@@ -122,6 +122,56 @@
 }
 
 /* ------------------------------------------------------------ */
+/* 4b. paint-editor の縦スクロール構成 (Phase 2-J Stage 1)         */
+/*                                                                */
+/* 横向き iPhone の編集エリア縦 ~390px に対し、コスチュームエディタ */
+/* の最小要求は ~520px (上部 toolbar 104 + 中央 380 + 下部 36)。    */
+/*                                                                */
+/* シンプルな解決: editor-container を高さ 100% + 縦スクロール、    */
+/* editor-container-top を `position: sticky; top: 0` で上端に固定。 */
+/* 中央 + 下部は通常の block で並ぶので、スクロールするとペイント   */
+/* ツール一覧 / canvas / bitmap 切替 + zoom を順に見ていける。       */
+/* 上部ツールバーは常に画面上端に残る。                              */
+/*                                                                */
+/* overscroll-behavior: contain で canvas 内ドラッグからの scroll    */
+/* chain が外側へ伝播するのを防ぐ。                                  */
+/* ------------------------------------------------------------ */
+/*
+ * gui_tabs / tab-panel / asset-panel_wrapper / asset-panel_detail-area は
+ * 上流で flex 子になっており、デフォルトで min-content を維持しようと
+ * するため、内側の paint-editor (508 tall) に押されて editor-wrapper
+ * (= 100vh = 390) より縦に膨らんでしまう。`min-height: 0` + `height: 100%`
+ * でその連鎖を viewport 高さに揃え、最終的に editor-container を 390 に
+ * 収める。
+ */
+:global(body.smalruby-mobile-mode [class*="gui_tabs"]),
+:global(body.smalruby-mobile-mode [class*="gui_tab-panel"]),
+:global(body.smalruby-mobile-mode [class*="asset-panel_wrapper"]),
+:global(body.smalruby-mobile-mode [class*="asset-panel_detail-area"]) {
+    height: 100% !important;
+    min-height: 0 !important;
+}
+
+/*
+ * 注意: `[class*="paint-editor_editor-container"]` は `paint-editor_editor-container_HASH`
+ * (本体) と `paint-editor_editor-container-top_HASH` (上部ツールバー) の **両方** に
+ * マッチしてしまうため、本体だけマッチさせるには末尾 `_` を含めてハッシュ
+ * 直前で区切る必要がある。
+ */
+:global(body.smalruby-mobile-mode [class*="paint-editor_editor-container_"]) {
+    height: 100% !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+}
+
+:global(body.smalruby-mobile-mode [class*="paint-editor_editor-container-top_"]) {
+    position: sticky !important;
+    top: 0;
+    background: white;
+    z-index: 1;
+}
+
+/* ------------------------------------------------------------ */
 /* 5. MobileSideRail (左 48px 固定) のぶん body-wrapper を左にずらす */
 /*                                                                */
 /* Phase 2-J で MobileTopBar / MobileBottomTabs を廃止し、左 48px  */
