@@ -87,6 +87,22 @@ describe('MobileDrawer', () => {
         expect(props.onClose).toHaveBeenCalledTimes(1);
     });
 
+    test('clicking "Reload" calls window.location.reload + onClose', () => {
+        const reload = jest.fn();
+        const originalLocation = window.location;
+        // jsdom の window.location は writable: false なので一時的に置換する。
+        delete window.location;
+        window.location = { ...originalLocation, reload };
+        try {
+            const { getByTestId, props } = renderWithIntl();
+            fireEvent.click(getByTestId('mobile-drawer-reload'));
+            expect(reload).toHaveBeenCalledTimes(1);
+            expect(props.onClose).toHaveBeenCalledTimes(1);
+        } finally {
+            window.location = originalLocation;
+        }
+    });
+
     test('clicking a locale calls onSelectLocale with code + onClose', () => {
         const { getByTestId, props } = renderWithIntl();
         fireEvent.click(getByTestId('mobile-drawer-locale-ja'));

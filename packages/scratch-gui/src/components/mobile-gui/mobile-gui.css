@@ -21,6 +21,13 @@
     min-width: 100% !important;
     width: 100% !important;
     overflow-x: hidden;
+    /*
+     * iOS Safari / Android Chrome の「下にひっぱってリロード (pull-to-refresh)」
+     * を無効化する。スクロール可能な要素が画面に多く存在するため誤発動
+     * しやすく、編集中の状態が失われるストレスが大きい。
+     * 代替の手動リロードは MobileDrawer の「再読み込み」メニュー項目で提供する。
+     */
+    overscroll-behavior-y: none;
 }
 
 /*

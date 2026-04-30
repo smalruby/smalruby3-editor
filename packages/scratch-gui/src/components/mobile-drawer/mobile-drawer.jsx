@@ -36,6 +36,11 @@ const messages = defineMessages({
         description: 'Aria label for the mobile drawer close button',
         id: 'gui.mobile.drawer.close',
     },
+    reload: {
+        defaultMessage: 'Reload',
+        description: 'Mobile drawer item to force a page reload',
+        id: 'gui.mobile.drawer.reload',
+    },
 });
 
 /**
@@ -104,6 +109,13 @@ const MobileDrawerComponent = ({
         },
         [onSelectLocale, onClose],
     );
+
+    const handleClickReload = useCallback(() => {
+        if (typeof window !== 'undefined' && window.location) {
+            window.location.reload();
+        }
+        onClose();
+    }, [onClose]);
 
     if (typeof document === 'undefined') {
         return null;
@@ -189,6 +201,20 @@ const MobileDrawerComponent = ({
                                 </button>
                             )}
                         </SB3Downloader>
+                    </li>
+                    <li>
+                        {/*
+                         * 「下にひっぱってリロード」を mobile-mode で無効化したので、
+                         * 代わりにここから手動でページをリロードできるようにする。
+                         */}
+                        <button
+                            type="button"
+                            className={styles.menuItem}
+                            onClick={handleClickReload}
+                            data-testid="mobile-drawer-reload"
+                        >
+                            <FormattedMessage {...messages.reload} />
+                        </button>
                     </li>
                     <li className={styles.sectionTitle}>
                         <FormattedMessage {...messages.sectionLanguage} />

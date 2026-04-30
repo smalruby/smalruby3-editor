@@ -947,4 +947,5 @@ export default {
     'gui.mobile.drawer.section.file': 'ファイル',
     'gui.mobile.drawer.section.language': 'げんご',
     'gui.mobile.drawer.close': 'メニューをとじる',
+    'gui.mobile.drawer.reload': 'さいよみこみ',
 };

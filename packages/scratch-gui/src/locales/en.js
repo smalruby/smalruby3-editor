@@ -641,4 +641,5 @@ export default {
     'gui.mobile.drawer.section.file': 'File',
     'gui.mobile.drawer.section.language': 'Language',
     'gui.mobile.drawer.close': 'Close menu',
+    'gui.mobile.drawer.reload': 'Reload',
 };
