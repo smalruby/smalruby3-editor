@@ -49,8 +49,9 @@ import './mobile-gui.css';
  * @returns {JSX.Element} <GUI> + 各種 mobile-only コンポーネント
  */
 const MOBILE_MODE_CLASS = 'smalruby-mobile-mode';
+const MOBILE_FULLSCREEN_CLASS = 'smalruby-mobile-fullscreen';
 
-const MobileGui = ({ activeTabIndex, ...props }) => {
+const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [spriteTabActive, setSpriteTabActive] = useState(false);
     const [paintToolbarCollapsed, setPaintToolbarCollapsed] = useState(false);
@@ -114,6 +115,20 @@ const MobileGui = ({ activeTabIndex, ...props }) => {
     // 計算済みになっている。後から CSS 経由で 390px に縮めても再計算は走らず、
     // ズームコントロールが viewport 外に取り残される。class を付けた直後に
     // window の resize を発火して Blockly に再計測を促す。
+    // Redux の isFullScreen を body class に反映。CSS 側で
+    // `.smalruby-mobile-fullscreen` を起点に右ペイン (gui_stage-and-target-wrapper)
+    // の表示を復活させる。以前は CSS `:has()` で同等のことをしていたが
+    // 古い iOS Safari で動作しないことがあったので JS 制御に切り替え。
+    useEffect(() => {
+        if (typeof document === 'undefined') return () => {};
+        if (isFullScreen) {
+            document.body.classList.add(MOBILE_FULLSCREEN_CLASS);
+        } else {
+            document.body.classList.remove(MOBILE_FULLSCREEN_CLASS);
+        }
+        return () => document.body.classList.remove(MOBILE_FULLSCREEN_CLASS);
+    }, [isFullScreen]);
+
     useEffect(() => {
         if (typeof document === 'undefined') return () => {};
         document.documentElement.classList.add(MOBILE_MODE_CLASS);
@@ -184,10 +199,12 @@ const MobileGui = ({ activeTabIndex, ...props }) => {
 
 MobileGui.propTypes = {
     activeTabIndex: PropTypes.number.isRequired,
+    isFullScreen: PropTypes.bool.isRequired,
 };
 
 const mapStateToProps = state => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
+    isFullScreen: state.scratchGui.mode.isFullScreen,
 });
 
 export default connect(mapStateToProps)(MobileGui);
