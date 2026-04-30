@@ -9,7 +9,6 @@ import { COSTUMES_TAB_INDEX } from '../../reducers/editor-tab.js';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
 import MobileOrientationGate from '../mobile-orientation-gate/mobile-orientation-gate.jsx';
 import MobilePaintToolbarToggle from '../mobile-paint-toolbar-toggle/mobile-paint-toolbar-toggle.jsx';
-import MobilePaletteAutoCloser from '../mobile-palette-auto-closer/mobile-palette-auto-closer.jsx';
 import MobileSideRail from '../mobile-side-rail/mobile-side-rail.jsx';
 import MobileSpritePanel from '../mobile-sprite-panel/mobile-sprite-panel.jsx';
 
@@ -33,8 +32,8 @@ import './mobile-gui.css';
  *   - PR-2B: ボトムタブ × 5 (<MobileBottomTabs /> を追加)
  *   - PR-2C: ステージ全画面プレビュー (<MobileTopBar /> の ▶ で
  *     upstream の isFullScreen mode に入る)
- *   - PR-2D: ブロックパレットドロワー (<MobilePaletteAutoCloser /> で
- *     ブロックドラッグ開始時にパレットを自動クローズ)
+ *   - PR-2D: ブロックパレットドロワーのドラッグ開始自動クローズ
+ *     (Phase 2-J で横固定運用に切り替え、十分な横幅を確保できたため revert)
  *   - PR-2E: ハンバーガーメニュー (<MobileDrawer /> + <MobileTopBar /> 左の ☰)
  *   - PR-2F: スプライト管理 (本 PR、<MobileSpritePanel />)。スプライトタブを
  *     active にすると upstream <TargetPane> を全画面オーバーレイで表示し、
@@ -140,11 +139,10 @@ const MobileGui = ({ activeTabIndex, ...props }) => {
         <>
             <GUI {...props} />
             {/*
-             * MobileTopBar / MobileBottomTabs / MobileDrawer / MobileSpritePanel
-             * は body 直下に Portal で出すため、<GUI> 内側の IntlProvider
-             * context を使えない。別途 ConnectedIntlProvider で包む。
-             * MobilePaletteAutoCloser は描画しないが、connect でディスパッチを
-             * 受け取るため同じ Provider 配下に置く。
+             * MobileSideRail / MobileDrawer / MobileSpritePanel /
+             * MobilePaintToolbarToggle / MobileOrientationGate は body 直下に
+             * Portal で出すため、<GUI> 内側の IntlProvider context を使えない。
+             * 別途 ConnectedIntlProvider で包む。
              */}
             <ConnectedIntlProvider>
                 <>
@@ -159,7 +157,6 @@ const MobileGui = ({ activeTabIndex, ...props }) => {
                         spriteTabActive={spriteTabActive}
                         onSpriteTabActiveChange={handleSpriteTabActiveChange}
                     />
-                    <MobilePaletteAutoCloser />
                     <MobileDrawer open={drawerOpen} onClose={handleCloseDrawer} />
                     <MobileSpritePanel active={spriteTabActive} />
                     {/*
