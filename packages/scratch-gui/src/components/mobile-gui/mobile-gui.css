@@ -47,11 +47,35 @@
 }
 
 /* ------------------------------------------------------------ */
-/* 3. upstream の右ペイン全体 (ステージ + sprite selector) を非表示 */
-/* MobileTopBar の ▶ で全画面ステージ、MobileSpritePanel で       */
-/* スプライト管理を提供しているので、右ペインは不要。              */
+/* 3. upstream の右ペインを「ほぼ」非表示にする                    */
+/*                                                                */
+/* ▶ ボタンで全画面 (isFullScreen=true) のときだけ <Stage> は      */
+/* upstream の CSS で `position: fixed` になるので、親 wrapper を   */
+/* `display: none` にすると fullscreen でも render されない。      */
+/* そこで wrapper 自体は残し、flex-basis を 0 / overflow hidden で  */
+/* 編集中は実質非表示にする。`stage-wrapper_full-screen` を持つ    */
+/* 子孫がいる時 (fullscreen) は `display: flex` で復活させる。     */
+/*                                                                */
+/* `gui_target-wrapper` (sprite selector / stage selector) は      */
+/* MobileSpritePanel が同じ役割を担うため常に隠す。                */
 /* ------------------------------------------------------------ */
 :global(body.smalruby-mobile-mode [class*="gui_stage-and-target-wrapper"]) {
+    flex: 0 0 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+}
+
+:global(
+        body.smalruby-mobile-mode
+            [class*="gui_stage-and-target-wrapper"]:has([class*="stage-wrapper_full-screen"])
+    ) {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    overflow: visible !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="gui_target-wrapper"]) {
     display: none !important;
 }
 
