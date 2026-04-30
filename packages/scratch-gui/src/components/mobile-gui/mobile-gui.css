@@ -1,0 +1,149 @@
+/*
+ * MobileGui がマウントされている間だけ documentElement (= <html>) または
+ * <body> に `smalruby-mobile-mode` クラスを付与する想定で、その class を
+ * 起点として upstream <GUI> の幅・配置を mobile viewport (390px+) 用に
+ * 上書きする。
+ *
+ * ポリシー:
+ * - upstream のソースには触らない (Smalruby マーカーを増やさない)
+ * - すべて :global() 経由で documentElement のクラス + 上流 CSS Module の
+ *   ハッシュ済みクラスを部分一致で掴む
+ * - desktop (mobile-mode クラス無し) には何の影響もない
+ */
+
+/* ------------------------------------------------------------ */
+/* 1. body 全体の幅制限を解除                                     */
+/* upstream playground/index.css の `min-width: 1024px` で body が */
+/* 横スクロールするのを mobile-mode のときだけ無効化する。         */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode),
+:global(html.smalruby-mobile-mode) {
+    min-width: 100% !important;
+    width: 100% !important;
+    overflow-x: hidden;
+    /*
+     * iOS Safari / Android Chrome の「下にひっぱってリロード (pull-to-refresh)」
+     * を無効化する。スクロール可能な要素が画面に多く存在するため誤発動
+     * しやすく、編集中の状態が失われるストレスが大きい。
+     * 代替の手動リロードは MobileDrawer の「再読み込み」メニュー項目で提供する。
+     */
+    overscroll-behavior-y: none;
+}
+
+/*
+ * upstream playground/index.css の `.app { min-width: 1024px }` は CSS Modules
+ * 経由で `.index_app_<hash>` に変換される。webpack 側でハッシュは変わるが、
+ * `index_app` プレフィックスは安定しているので部分一致で掴む。
+ *
+ * gui_page-wrapper も height/width 100% を継承するので一緒に押さえる。
+ */
+:global(body.smalruby-mobile-mode [class*="index_app"]),
+:global(body.smalruby-mobile-mode [class*="gui_page-wrapper"]) {
+    min-width: 100% !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+}
+
+/* ------------------------------------------------------------ */
+/* 2. upstream のタブナビゲーション (コード/コスチューム/音/ルビー) */
+/* を非表示                                                       */
+/* MobileBottomTabs が同じ役割を担う。                            */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode [class*="gui_tab-list-container"]) {
+    display: none !important;
+}
+
+/* ------------------------------------------------------------ */
+/* 3. upstream の右ペインを「ほぼ」非表示にする                    */
+/*                                                                */
+/* ▶ ボタンで全画面 (isFullScreen=true) のときだけ <Stage> は      */
+/* upstream の CSS で `position: fixed` になるので、親 wrapper を   */
+/* `display: none` にすると fullscreen でも render されない。      */
+/* そこで wrapper 自体は残し、flex-basis を 0 / overflow hidden で  */
+/* 編集中は実質非表示にする。`stage-wrapper_full-screen` を持つ    */
+/* 子孫がいる時 (fullscreen) は `display: flex` で復活させる。     */
+/*                                                                */
+/* `gui_target-wrapper` (sprite selector / stage selector) は      */
+/* MobileSpritePanel が同じ役割を担うため常に隠す。                */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode [class*="gui_stage-and-target-wrapper"]) {
+    flex: 0 0 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+}
+
+:global(
+        body.smalruby-mobile-mode
+            [class*="gui_stage-and-target-wrapper"]:has([class*="stage-wrapper_full-screen"])
+    ) {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    overflow: visible !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="gui_target-wrapper"]) {
+    display: none !important;
+}
+
+/* ------------------------------------------------------------ */
+/* 3b. upstream の <MenuBar> も非表示                              */
+/* MobileTopBar (☰ + プロジェクトタイトル + ▶) が同等の役割を果たす。 */
+/* MenuBar はデスクトップ前提で密度が高く、モバイルでは破綻する。  */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode [class*="menu-bar_menu-bar_"]) {
+    display: none !important;
+}
+
+/* ------------------------------------------------------------ */
+/* 3c. upstream の <Backpack> も非表示                              */
+/* バックパックは画面下部に常駐する横長エリアで縦サイズを 50px 取る */
+/* が、モバイルではブロック作業エリアを優先する。                   */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode [class*="backpack_backpack-container"]) {
+    display: none !important;
+}
+
+/* ------------------------------------------------------------ */
+/* 4. body-wrapper / editor-wrapper を mobile 全幅で使う          */
+/* upstream は body-wrapper を 1024px 想定で flex で並べているが、 */
+/* 右ペインを display:none にしただけでは flex-basis が残るので   */
+/* width も明示的に上書きする。                                    */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode [class*="gui_body-wrapper"]) {
+    width: 100% !important;
+    min-width: 100% !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="gui_editor-wrapper"]) {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 100% !important;
+}
+
+/* ------------------------------------------------------------ */
+/* 5. MobileTopBar / MobileBottomTabs の高さぶん本体に余白を取る  */
+/*                                                                */
+/* upstream <MenuBar> を非表示にしたので body-wrapper は y=0 から  */
+/* 始まる。MobileTopBar (top, fixed) と MobileBottomTabs (bottom,  */
+/* fixed) を overlay 表示しているので、その高さぶん body-wrapper の */
+/* 上下にパディングを追加してコンテンツが両者に隠れないようにする。 */
+/*                                                                */
+/* MobileTopBar の高さは CSS 変数 --smalruby-mobile-top-bar-height */
+/* に保存される (mobile-top-bar.jsx)。MobileBottomTabs は今のところ */
+/* 固定値 64px (mobile-bottom-tabs.css の min-height)。            */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode [class*="gui_body-wrapper"]) {
+    padding-top: var(--smalruby-mobile-top-bar-height, 0px);
+    padding-bottom: 64px;
+    box-sizing: border-box;
+    height: 100vh;
+}
+
+/*
+ * upstream の `.body-wrapper` は元々 `height: calc(100% - $menu-bar-height)`
+ * (menu-bar 分を引いている)。その body-wrapper の親は page-wrapper で
+ * height: 100%。MenuBar を非表示にしたので body-wrapper の高さも 100% に
+ * したいのだが、CSS Modules 経由で書かれた親側の calc を上書きする方が
+ * 早い。height: 100vh で固定するのが確実。
+ */

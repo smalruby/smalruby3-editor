@@ -922,4 +922,5 @@ export default {
     'gui.mobile.drawer.section.file': 'ファイル',
     'gui.mobile.drawer.section.language': '言語',
     'gui.mobile.drawer.close': 'メニューを閉じる',
+    'gui.mobile.drawer.reload': '再読み込み',
 };
