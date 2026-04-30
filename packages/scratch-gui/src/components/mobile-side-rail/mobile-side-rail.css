@@ -3,7 +3,12 @@
     top: 0;
     left: 0;
     bottom: 0;
-    width: 48px;
+    /*
+     * 56px は「コスチューム」「スプライト」のラベルが省略されない最小幅。
+     * label の font-size を 7px に小さくして、5 文字 (コスチューム) が
+     * ボタン幅 48px (= 56 - 左右マージン 4×2) に収まるようにしている。
+     */
+    width: 56px;
     /*
      * MobileTopBar / MobileBottomTabs と同じ z-index 9000。drawer (9501) の
      * 下、Stage の上。
@@ -53,12 +58,17 @@
 }
 
 .label {
-    font-size: 9px;
+    /*
+     * 7px は「スプライト」「コスチューム」(5 文字、和文 7px = 約 35px) が
+     * 48px ボタン幅に収まる最大サイズ。9px だと「スプラ...」に省略される。
+     */
+    font-size: 7px;
     line-height: 1.1;
     margin-top: 1px;
     white-space: nowrap;
     overflow: hidden;
-    max-width: 44px;
+    /* ボタン (56px - 左右マージン 4×2 = 48px) いっぱい使う */
+    max-width: 48px;
     text-overflow: ellipsis;
 }
 

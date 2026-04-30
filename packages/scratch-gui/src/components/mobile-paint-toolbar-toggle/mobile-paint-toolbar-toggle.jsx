@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import styles from './mobile-paint-toolbar-toggle.css';
 
 const COLLAPSED_CLASS = 'smalruby-paint-toolbar-collapsed';
-const SIDE_RAIL_WIDTH = 48;
+const SIDE_RAIL_WIDTH = 56;
 /*
  * 上部ツールバー (`paint-editor_editor-container-top`) の高さは upstream の
  * 内容上 ~104px 固定 (上 13px padding + 2 行 87px + 下 padding)。トグルの

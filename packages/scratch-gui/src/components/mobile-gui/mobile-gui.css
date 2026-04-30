@@ -212,19 +212,23 @@
 }
 
 /* ------------------------------------------------------------ */
-/* 5. MobileSideRail (左 48px 固定) のぶん body-wrapper を左にずらす */
+/* 5. MobileSideRail (左 56px 固定) のぶん body-wrapper を左にずらす */
 /*                                                                */
-/* Phase 2-J で MobileTopBar / MobileBottomTabs を廃止し、左 48px  */
+/* Phase 2-J で MobileTopBar / MobileBottomTabs を廃止し、左 56px  */
 /* の縦サイドレールに ☰ + ▶ + 5 タブを集約。これにより編集エリアは */
 /* 縦 100vh をフルに使える (上流 paint/sound エディタの縦最低高さに */
 /* 対応)。                                                          */
 /*                                                                */
+/* 56px は「スプライト」「コスチューム」のラベルが ... に省略され */
+/* ない最小幅 (label font-size: 7px 前提)。詳細は                  */
+/* mobile-side-rail.css のコメント参照。                            */
+/*                                                                */
 /* MobileMenuBar 非表示済みなので body-wrapper は y=0 から開始。    */
-/* 縦は 100vh を確保し、横はサイドレール 48px を padding-left で    */
+/* 縦は 100vh を確保し、横はサイドレール 56px を padding-left で    */
 /* 空ける。                                                          */
 /* ------------------------------------------------------------ */
 :global(body.smalruby-mobile-mode [class*="gui_body-wrapper"]) {
-    padding-left: 48px;
+    padding-left: 56px;
     box-sizing: border-box;
     height: 100vh;
 }

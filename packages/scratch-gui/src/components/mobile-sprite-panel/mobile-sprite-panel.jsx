@@ -8,7 +8,7 @@ import { ModalFocusProvider } from '../../contexts/modal-focus-context.jsx';
 import { openBackdropLibrary } from '../../reducers/modals.js';
 import styles from './mobile-sprite-panel.css';
 
-const SIDE_RAIL_WIDTH = 48;
+const SIDE_RAIL_WIDTH = 56;
 
 /**
  * パネルを左サイドレールの右側、viewport 縦 100% に配置する layout effect。
