@@ -57,10 +57,28 @@ const MobileGui = props => {
     // :global ルールがこの class を起点として upstream <GUI> の layout を
     // 上書きする)。MobileGui がアンマウントされたら class を取り除いて
     // デスクトップ挙動に戻す。
+    //
+    // また、Blockly のワークスペース SVG はマウント直後に injectionDiv の
+    // サイズを基にレイアウトを決めるため、その時点でまだ desktop 幅 (~646px) で
+    // 計算済みになっている。後から CSS 経由で 390px に縮めても再計算は走らず、
+    // ズームコントロールが viewport 外に取り残される。class を付けた直後に
+    // window の resize を発火して Blockly に再計測を促す。
     useEffect(() => {
         if (typeof document === 'undefined') return () => {};
         document.documentElement.classList.add(MOBILE_MODE_CLASS);
         document.body.classList.add(MOBILE_MODE_CLASS);
+        if (typeof window !== 'undefined') {
+            // CSS が適用された後の rAF で resize を投げる (同一フレーム内では
+            // class 適用前の幅で測ってしまうため)。
+            const raf = window.requestAnimationFrame(() => {
+                window.dispatchEvent(new Event('resize'));
+            });
+            return () => {
+                window.cancelAnimationFrame(raf);
+                document.documentElement.classList.remove(MOBILE_MODE_CLASS);
+                document.body.classList.remove(MOBILE_MODE_CLASS);
+            };
+        }
         return () => {
             document.documentElement.classList.remove(MOBILE_MODE_CLASS);
             document.body.classList.remove(MOBILE_MODE_CLASS);
