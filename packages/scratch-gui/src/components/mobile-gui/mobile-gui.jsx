@@ -90,6 +90,21 @@ const MobileGui = ({ activeTabIndex, ...props }) => {
         return () => document.removeEventListener('pointerdown', handler, true);
     }, [paintToolbarToggleActive, paintToolbarCollapsed]);
 
+    // ペイントツール (左の mode-selector) をタップしたらツールバーを自動展開
+    // (要望)。すでに展開中なら何もしない (state 変化なしで no-op)。
+    useEffect(() => {
+        if (!paintToolbarToggleActive) return () => {};
+        if (typeof document === 'undefined') return () => {};
+        const handler = event => {
+            const modeSelector = document.querySelector('[class*="paint-editor_mode-selector"]');
+            if (modeSelector && (event.target === modeSelector || modeSelector.contains(event.target))) {
+                setPaintToolbarCollapsed(false);
+            }
+        };
+        document.addEventListener('pointerdown', handler, true);
+        return () => document.removeEventListener('pointerdown', handler, true);
+    }, [paintToolbarToggleActive]);
+
     // マウント中だけ <html>/<body> に mobile-mode class を付ける (mobile-gui.css の
     // :global ルールがこの class を起点として upstream <GUI> の layout を
     // 上書きする)。MobileGui がアンマウントされたら class を取り除いて
