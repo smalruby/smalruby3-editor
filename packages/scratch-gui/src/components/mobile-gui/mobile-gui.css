@@ -26,7 +26,7 @@
      * を超えて縦スクロールが出てしまう。
      */
     min-height: 0 !important;
-    height: 100vh !important;
+    height: 100dvh !important;
     overflow-x: hidden;
     overflow-y: hidden;
     /*
@@ -53,8 +53,8 @@
     max-width: 100vw !important;
     width: 100% !important;
     min-height: 0 !important;
-    max-height: 100vh !important;
-    height: 100vh !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
 }
 
 /* ------------------------------------------------------------ */
@@ -269,5 +269,5 @@
 :global(body.smalruby-mobile-mode [class*="gui_body-wrapper"]) {
     padding-left: 56px;
     box-sizing: border-box;
-    height: 100vh;
+    height: 100dvh;
 }
