@@ -8,41 +8,35 @@ import { ModalFocusProvider } from '../../contexts/modal-focus-context.jsx';
 import { openBackdropLibrary } from '../../reducers/modals.js';
 import styles from './mobile-sprite-panel.css';
 
+const SIDE_RAIL_WIDTH = 48;
+
 /**
- * パネルを top-bar と bottom-tabs の間に正確に配置する layout effect。
+ * パネルを左サイドレールの右側、viewport 縦 100% に配置する layout effect。
  *
- * - top: visualViewport.offsetTop + MobileTopBar の高さ (CSS 変数 `--smalruby-mobile-top-bar-height`)
- * - bottom (= top + height): visualViewport.offsetTop + visualViewport.height - MobileBottomTabs の高さ (固定値)
- *
- * MobileTopBar の高さは JS で documentElement に CSS 変数として設定済み
- * (PR-2C / mobile-top-bar.jsx 参照)。MobileBottomTabs は環境変数化されて
- * いないので 64px 固定で計算する (mobile-bottom-tabs.css の min-height)。
+ * Phase 2-J で MobileTopBar / MobileBottomTabs を廃止し、左 48px の縦
+ * サイドレール (MobileSideRail) に UI を集約した。本パネルもサイドレール
+ * の右隣からビューポート右端まで、縦は 100% で開く。
  *
  * 表示されている (active=true) ときだけ計算し、隠れているときは何もしない。
  * @param {object} ref - パネル要素の React ref
  * @param {boolean} active - 描画中か
  */
-const usePositionBetweenBars = (ref, active) => {
+const usePositionRightOfRail = (ref, active) => {
     useLayoutEffect(() => {
         if (!active || !ref.current || typeof window === 'undefined') return () => {};
         const el = ref.current;
         const vv = window.visualViewport;
         const update = () => {
-            const cs = getComputedStyle(document.documentElement);
-            const topBarHeight = parseFloat(cs.getPropertyValue('--smalruby-mobile-top-bar-height')) || 0;
-            // MobileBottomTabs は 64px (mobile-bottom-tabs.css) 固定。CSS 変数化
-            // した方が綺麗だが、現状は他の場所で参照していないのでハードコード。
-            const bottomTabsHeight = 64;
             if (vv) {
-                el.style.top = `${vv.offsetTop + topBarHeight}px`;
-                el.style.left = `${vv.offsetLeft}px`;
-                el.style.width = `${vv.width}px`;
-                el.style.height = `${vv.height - topBarHeight - bottomTabsHeight}px`;
+                el.style.top = `${vv.offsetTop}px`;
+                el.style.left = `${vv.offsetLeft + SIDE_RAIL_WIDTH}px`;
+                el.style.width = `${vv.width - SIDE_RAIL_WIDTH}px`;
+                el.style.height = `${vv.height}px`;
             } else {
-                el.style.top = `${topBarHeight}px`;
-                el.style.left = '0px';
-                el.style.width = `${window.innerWidth}px`;
-                el.style.height = `${window.innerHeight - topBarHeight - bottomTabsHeight}px`;
+                el.style.top = '0px';
+                el.style.left = `${SIDE_RAIL_WIDTH}px`;
+                el.style.width = `${window.innerWidth - SIDE_RAIL_WIDTH}px`;
+                el.style.height = `${window.innerHeight}px`;
             }
         };
         update();
@@ -91,7 +85,7 @@ const usePositionBetweenBars = (ref, active) => {
  */
 const MobileSpritePanelComponent = ({ active, vm, onNewBackdropClick }) => {
     const ref = useRef(null);
-    usePositionBetweenBars(ref, active);
+    usePositionRightOfRail(ref, active);
 
     if (typeof document === 'undefined') return null;
     if (!active) return null;

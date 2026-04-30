@@ -1,0 +1,98 @@
+.rail {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 48px;
+    /*
+     * MobileTopBar / MobileBottomTabs と同じ z-index 9000。drawer (9501) の
+     * 下、Stage の上。
+     */
+    z-index: 9000;
+    background: white;
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 1px 0 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding-top: max(4px, env(safe-area-inset-top, 4px));
+    padding-bottom: max(4px, env(safe-area-inset-bottom, 4px));
+    box-sizing: border-box;
+}
+
+.button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    padding: 4px 2px;
+    margin: 2px 4px;
+    cursor: pointer;
+    color: #575e75;
+    border-radius: 6px;
+    -webkit-tap-highlight-color: transparent;
+    flex: 0 0 auto;
+}
+
+.button:focus {
+    outline: 2px solid rgba(76, 151, 255, 0.4);
+    outline-offset: -2px;
+}
+
+.button[data-active="true"] {
+    background-color: rgba(133, 92, 214, 0.12);
+    color: #855cd6;
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.label {
+    font-size: 9px;
+    line-height: 1.1;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 44px;
+    text-overflow: ellipsis;
+}
+
+.divider {
+    height: 1px;
+    background: rgba(0, 0, 0, 0.08);
+    margin: 4px 8px;
+}
+
+.spacer {
+    flex: 1 1 auto;
+}
+
+.play-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    padding: 4px;
+    margin: 2px 4px;
+    cursor: pointer;
+    border-radius: 6px;
+    -webkit-tap-highlight-color: transparent;
+    flex: 0 0 auto;
+}
+
+.play-button:focus {
+    outline: 2px solid rgba(76, 151, 255, 0.4);
+    outline-offset: -2px;
+}
+
+.play-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}

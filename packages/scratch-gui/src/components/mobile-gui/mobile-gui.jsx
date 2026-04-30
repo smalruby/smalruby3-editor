@@ -2,12 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import GUI from '../../containers/gui.jsx';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
-import MobileBottomTabs from '../mobile-bottom-tabs/mobile-bottom-tabs.jsx';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
 import MobileOrientationGate from '../mobile-orientation-gate/mobile-orientation-gate.jsx';
 import MobilePaletteAutoCloser from '../mobile-palette-auto-closer/mobile-palette-auto-closer.jsx';
+import MobileSideRail from '../mobile-side-rail/mobile-side-rail.jsx';
 import MobileSpritePanel from '../mobile-sprite-panel/mobile-sprite-panel.jsx';
-import MobileTopBar from '../mobile-top-bar/mobile-top-bar.jsx';
 
 // Side-effect import: グローバル CSS で upstream <GUI> の layout を上書きする。
 // `body.smalruby-mobile-mode` を起点にしたセレクタなので、MobileGui が
@@ -97,8 +96,14 @@ const MobileGui = props => {
              */}
             <ConnectedIntlProvider>
                 <>
-                    <MobileTopBar onOpenDrawer={handleOpenDrawer} />
-                    <MobileBottomTabs
+                    {/*
+                     * Phase 2-J: 上下のメニュー (MobileTopBar / MobileBottomTabs) を
+                     * 廃止し、左 48px サイドレールに ☰ + ▶ + 5 タブを集約。
+                     * 編集エリアが viewport 縦 100% を使えるようになり、上流の
+                     * paint editor / sound editor の縦最小サイズを満たせる。
+                     */}
+                    <MobileSideRail
+                        onOpenDrawer={handleOpenDrawer}
                         spriteTabActive={spriteTabActive}
                         onSpriteTabActiveChange={handleSpriteTabActiveChange}
                     />
