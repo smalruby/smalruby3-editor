@@ -103,19 +103,9 @@ const MobileSideRailComponent = ({
 
     if (typeof document === 'undefined') return null;
 
+    // 順序: コード / コスチューム / 音 / ルビー / スプライト
+    // (PC 版とほぼ同じ並びにする)
     const tabs = [
-        {
-            key: SPRITE_KEY,
-            tabIndex: null,
-            iconSrc: spriteIcon,
-            label: (
-                <FormattedMessage
-                    defaultMessage="Sprite"
-                    description="Sprite info label"
-                    id="gui.SpriteInfo.sprite"
-                />
-            ),
-        },
         {
             key: 'code',
             tabIndex: BLOCKS_TAB_INDEX,
@@ -161,6 +151,18 @@ const MobileSideRailComponent = ({
                     defaultMessage="Ruby"
                     description="Button to get to the Ruby panel"
                     id="gui.smalruby3.gui.rubyTab"
+                />
+            ),
+        },
+        {
+            key: SPRITE_KEY,
+            tabIndex: null,
+            iconSrc: spriteIcon,
+            label: (
+                <FormattedMessage
+                    defaultMessage="Sprite"
+                    description="Sprite info label"
+                    id="gui.SpriteInfo.sprite"
                 />
             ),
         },

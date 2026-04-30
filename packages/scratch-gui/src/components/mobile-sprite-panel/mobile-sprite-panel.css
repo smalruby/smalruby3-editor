@@ -18,43 +18,18 @@
 }
 
 /*
- * upstream の TargetPane は元々 right-rail (272px 幅) 用にデザインされており、
- * 内部は flex-direction: row でスプライトリスト (横並び) + 72px の
- * stage-selector-wrapper という構造。モバイルの全画面幅に流し込むと
- * sprite-selector のグリッドがちょうど良く広がるが、stage-selector が
- * 右端に縦に張り付いて違和感があるので、column 方向に並び替える。
+ * upstream の TargetPane は元々 right-rail 用に flex-direction: row で
+ * スプライトリスト (左) + 72px の stage-selector-wrapper (右) というレイアウト。
+ * 横向きスマホ (Phase 2-I で横固定運用に切り替え済み) なら横幅が十分
+ * (844 - 56 = 788px) あるので、デスクトップと同じ row レイアウトをそのまま
+ * 使える。column 方向への並び替えは廃止。
  *
- * 内部構造を class セレクタで掴むため :global([class*="..."]) で upstream の
- * CSS module 出力をマッチさせる (class 名にハッシュサフィックスが付くので
- * 部分一致)。
+ * height: 100% でサイドレール右の利用可能高さを使い切る。
  */
 .panel :global([class*="target-pane_target-pane"]) {
-    flex-direction: column !important;
     flex-grow: 1;
     height: 100%;
 }
-
-/* スプライト一覧側を可能な限り広く取る */
-.panel :global([class*="sprite-selector_sprite-selector"]) {
-    flex: 1 1 auto;
-    min-height: 0;
-}
-
-.panel :global([class*="target-pane_stage-selector-wrapper"]) {
-    flex: 0 0 auto;
-    flex-basis: auto !important;
-    /* 横並びにして「ステージ背景」を一行で見せる */
-    flex-direction: row;
-    align-items: stretch;
-    margin: 0.5rem 0 0 0 !important;
-    gap: 0.5rem;
-}
-
-/*
- * stage-selector はデフォルトで上下に縦長 (about 72x100px)。モバイルでは
- * 横一列に並べる Mobile-only セクションヘッダ + スワイプ対応にしたいので、
- * 個別カードのレイアウトはそのまま使い、ラッパだけ row 方向にする。
- */
 
 /*
  * upstream のスプライトライブラリモーダル (`<SpriteLibrary>`) は
