@@ -105,6 +105,47 @@
 }
 
 /* ------------------------------------------------------------ */
+/* 3d. scratch-paint (コスチュームエディタ) の min-width を解除    */
+/*                                                                */
+/* upstream `scratch-paint/.../paint-editor.css` は                */
+/*  - .top-align-row { min-width: 524px }                          */
+/*  - .canvas-container { min-width: 402px }                       */
+/* を持っており、390px 幅のモバイルで横スクロールが発生して        */
+/* キャンバスや右端のボタンが画面外に出てしまう。                  */
+/*                                                                */
+/* CSS Module でハッシュ済みの class を [class*="paint-editor_..."] */
+/* で部分一致で掴み、min-width を 0 に上書きする。                  */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode [class*="paint-editor_top-align-row"]),
+:global(body.smalruby-mobile-mode [class*="paint-editor_canvas-container"]) {
+    min-width: 0 !important;
+}
+
+/*
+ * asset-panel (コスチューム/サウンドの一覧 + エディタ) のラッパも
+ * モバイル幅から overflow しないように 100% に揃える。upstream は
+ * `flex-grow: 1` だけでサイズを decide するが、内部の paint-editor が
+ * 524px 想定で min-content を膨らませてしまい、結果 wrapper 自体が
+ * 親 (390px) より広くなる。`max-width: 100%` で頭打ちにする。
+ */
+:global(body.smalruby-mobile-mode [class*="asset-panel_wrapper"]),
+:global(body.smalruby-mobile-mode [class*="asset-panel_detail-area"]),
+:global(body.smalruby-mobile-mode [class*="paint-editor_editor-container"]) {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* selector (左の costume サムネイル列) は upstream で `width: 150px` 固定。
+   モバイルでは 80px に縮めてエディタ領域を確保する。 */
+:global(body.smalruby-mobile-mode [class*="selector_wrapper"]) {
+    width: 80px !important;
+    min-width: 80px !important;
+    flex: 0 0 80px !important;
+}
+
+/* ------------------------------------------------------------ */
 /* 4. body-wrapper / editor-wrapper を mobile 全幅で使う          */
 /* upstream は body-wrapper を 1024px 想定で flex で並べているが、 */
 /* 右ペインを display:none にしただけでは flex-basis が残るので   */
