@@ -1,0 +1,36 @@
+.toggle {
+    position: fixed;
+    /*
+     * 編集エリア (= サイドレール 48px の右隣) の上端に固定。
+     * 高さは 18px の薄いハンドル。クリック領域確保のため横幅は 60px。
+     */
+    top: 0;
+    /* JS で left を計算して設定する (画面幅依存) */
+    width: 60px;
+    height: 18px;
+    background: rgba(133, 92, 214, 0.92);
+    color: white;
+    border: 0;
+    padding: 0;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    /*
+     * paint-editor の editor-container-top は z-index: 1 + sticky。
+     * その上に乗せるため少し上の z-index に。
+     */
+    z-index: 100;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toggle:focus {
+    outline: 2px solid rgba(76, 151, 255, 0.5);
+    outline-offset: -2px;
+}

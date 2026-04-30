@@ -164,11 +164,39 @@
     overscroll-behavior: contain;
 }
 
+/*
+ * 上部ツールバーを「フロート」配置にして、出し入れしても下の canvas が
+ * 上下にぴょこぴょこ動かないようにする。
+ *
+ * - position: absolute で editor-container 直下から流れを抜き、上に重ねる
+ * - editor-container 自身に position: relative を与えて absolute の基準にする
+ * - canvas 等の他の中身は top:0 から並ぶ → ツールバーが重なる形になる
+ *   (ツールバーは不透明背景 + box-shadow で「上に乗っている」感を出す)
+ * - 折りたたみ時は display: none → 何も配置していなかったかのように消える
+ *   → canvas は 1px も動かない
+ */
+:global(body.smalruby-mobile-mode [class*="paint-editor_editor-container_"]) {
+    position: relative;
+}
+
 :global(body.smalruby-mobile-mode [class*="paint-editor_editor-container-top_"]) {
-    position: sticky !important;
+    position: absolute !important;
     top: 0;
+    left: 0;
+    right: 0;
     background: white;
-    z-index: 1;
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    /* 上部ツールバー直下の dashed border は重ねたとき不要なので消す */
+    border-bottom: 0 !important;
+}
+
+/*
+ * MobilePaintToolbarToggle (▼/▲ ハンドル) で折りたたんだときは上部ツール
+ * バーを完全に display: none にする。フロート配置なので canvas は動かない。
+ */
+:global(body.smalruby-mobile-mode.smalruby-paint-toolbar-collapsed [class*="paint-editor_editor-container-top_"]) {
+    display: none !important;
 }
 
 /* ------------------------------------------------------------ */

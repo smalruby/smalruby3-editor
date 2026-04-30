@@ -1,9 +1,14 @@
+import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
+
+import { connect } from 'react-redux';
 
 import GUI from '../../containers/gui.jsx';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
+import { COSTUMES_TAB_INDEX } from '../../reducers/editor-tab.js';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
 import MobileOrientationGate from '../mobile-orientation-gate/mobile-orientation-gate.jsx';
+import MobilePaintToolbarToggle from '../mobile-paint-toolbar-toggle/mobile-paint-toolbar-toggle.jsx';
 import MobilePaletteAutoCloser from '../mobile-palette-auto-closer/mobile-palette-auto-closer.jsx';
 import MobileSideRail from '../mobile-side-rail/mobile-side-rail.jsx';
 import MobileSpritePanel from '../mobile-sprite-panel/mobile-sprite-panel.jsx';
@@ -46,12 +51,18 @@ import './mobile-gui.css';
  */
 const MOBILE_MODE_CLASS = 'smalruby-mobile-mode';
 
-const MobileGui = props => {
+const MobileGui = ({ activeTabIndex, ...props }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [spriteTabActive, setSpriteTabActive] = useState(false);
+    const [paintToolbarCollapsed, setPaintToolbarCollapsed] = useState(false);
     const handleOpenDrawer = useCallback(() => setDrawerOpen(true), []);
     const handleCloseDrawer = useCallback(() => setDrawerOpen(false), []);
     const handleSpriteTabActiveChange = useCallback(active => setSpriteTabActive(active), []);
+    const handleTogglePaintToolbar = useCallback(() => setPaintToolbarCollapsed(v => !v), []);
+
+    // 上部ツールバー出し入れトグルは「コスチュームタブ + スプライトタブ非active」の
+    // ときだけ意味があるので、その時だけ active にする。
+    const paintToolbarToggleActive = activeTabIndex === COSTUMES_TAB_INDEX && !spriteTabActive;
 
     // マウント中だけ <html>/<body> に mobile-mode class を付ける (mobile-gui.css の
     // :global ルールがこの class を起点として upstream <GUI> の layout を
@@ -111,6 +122,17 @@ const MobileGui = props => {
                     <MobileDrawer open={drawerOpen} onClose={handleCloseDrawer} />
                     <MobileSpritePanel active={spriteTabActive} />
                     {/*
+                     * Phase 2-J: コスチュームタブで上部ツールバーを出し入れする
+                     * トグル。折りたたみ中は body class で paint-editor の上部
+                     * ツールバーを display: none にし、canvas + ツールが viewport
+                     * 縦 100% を使えるようにする。
+                     */}
+                    <MobilePaintToolbarToggle
+                        active={paintToolbarToggleActive}
+                        collapsed={paintToolbarCollapsed}
+                        onToggle={handleTogglePaintToolbar}
+                    />
+                    {/*
                      * Phase 2-I: 縦向き時にオーバーレイを出して横にしてもらう。
                      * 上流の paint editor / sound editor の min-width 群が
                      * 390px に収まらないため、横固定運用に倒す。
@@ -122,4 +144,12 @@ const MobileGui = props => {
     );
 };
 
-export default MobileGui;
+MobileGui.propTypes = {
+    activeTabIndex: PropTypes.number.isRequired,
+};
+
+const mapStateToProps = state => ({
+    activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
+});
+
+export default connect(mapStateToProps)(MobileGui);

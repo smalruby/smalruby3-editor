@@ -25,6 +25,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/mobile-drawer/`
 - `src/components/mobile-gui/`
 - `src/components/mobile-orientation-gate/`
+- `src/components/mobile-paint-toolbar-toggle/`
 - `src/components/mobile-palette-auto-closer/`
 - `src/components/mobile-side-rail/`
 - `src/components/mobile-sprite-panel/`
