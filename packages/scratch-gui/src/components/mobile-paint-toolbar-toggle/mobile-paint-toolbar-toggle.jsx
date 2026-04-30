@@ -5,6 +5,13 @@ import styles from './mobile-paint-toolbar-toggle.css';
 
 const COLLAPSED_CLASS = 'smalruby-paint-toolbar-collapsed';
 const SIDE_RAIL_WIDTH = 48;
+/*
+ * 上部ツールバー (`paint-editor_editor-container-top`) の高さは upstream の
+ * 内容上 ~104px 固定 (上 13px padding + 2 行 87px + 下 padding)。トグルの
+ * 縦位置はここを基準にハードコード。動的に測ってもよいが、初回マウント時に
+ * absolute 配置の高さ確定が遅れて 0 が返ることがあったので固定値を採用。
+ */
+const TOOLBAR_HEIGHT = 104;
 
 /**
  * コスチュームタブの上部ツールバー (`paint-editor_editor-container-top`) を
@@ -51,15 +58,19 @@ const MobilePaintToolbarToggle = ({ active, collapsed, onToggle }) => {
         if (!active || !ref.current || typeof window === 'undefined') return () => {};
         const el = ref.current;
         const update = () => {
-            // サイドレール 48px の右、編集エリアの中央付近に置く。
+            // 横位置: サイドレール 48px の右、編集エリアの中央付近に置く。
             const editorWidth = window.innerWidth - SIDE_RAIL_WIDTH;
             const handleWidth = el.offsetWidth || 60;
             el.style.left = `${SIDE_RAIL_WIDTH + Math.max(8, (editorWidth - handleWidth) / 2)}px`;
+            // 縦位置: ツールバーが出ているときはその下端 (= TOOLBAR_HEIGHT)、
+            // 隠れているときは編集エリア上端 (= 0)。ブロックパレットと同じく、
+            // ハンドルが「出し入れ対象の縁」に貼りつく動作。
+            el.style.top = collapsed ? '0px' : `${TOOLBAR_HEIGHT}px`;
         };
         update();
         window.addEventListener('resize', update, { passive: true });
         return () => window.removeEventListener('resize', update);
-    }, [active]);
+    }, [active, collapsed]);
 
     if (typeof document === 'undefined') return null;
     if (!active) return null;

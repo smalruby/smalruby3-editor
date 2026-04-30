@@ -64,6 +64,32 @@ const MobileGui = ({ activeTabIndex, ...props }) => {
     // ときだけ意味があるので、その時だけ active にする。
     const paintToolbarToggleActive = activeTabIndex === COSTUMES_TAB_INDEX && !spriteTabActive;
 
+    // コスチュームタブに入る (active が立つ) たびに、ツールバーを「展開」状態に
+    // リセットする。最初は全機能を見せておきたいため (要望)。
+    useEffect(() => {
+        if (paintToolbarToggleActive) {
+            setPaintToolbarCollapsed(false);
+        }
+    }, [paintToolbarToggleActive]);
+
+    // canvas をクリックしたら (= 描画 / 選択を始めたら) 自動的にツールバーを
+    // 折りたたむ。少しでもユーザーの操作回数を減らすため (要望)。
+    // 既に折りたたまれている / コスチュームタブ非アクティブのときは何もしない。
+    useEffect(() => {
+        if (!paintToolbarToggleActive || paintToolbarCollapsed) return () => {};
+        if (typeof document === 'undefined') return () => {};
+        const handler = event => {
+            const canvas = document.querySelector('[class*="paper-canvas_paper-canvas"]');
+            if (canvas && (event.target === canvas || canvas.contains(event.target))) {
+                setPaintToolbarCollapsed(true);
+            }
+        };
+        // capture フェーズで拾うことで、scratch-paint 側の handler が止めても
+        // 確実に検知できる。
+        document.addEventListener('pointerdown', handler, true);
+        return () => document.removeEventListener('pointerdown', handler, true);
+    }, [paintToolbarToggleActive, paintToolbarCollapsed]);
+
     // マウント中だけ <html>/<body> に mobile-mode class を付ける (mobile-gui.css の
     // :global ルールがこの class を起点として upstream <GUI> の layout を
     // 上書きする)。MobileGui がアンマウントされたら class を取り除いて
