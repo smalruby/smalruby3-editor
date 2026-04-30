@@ -642,4 +642,7 @@ export default {
     'gui.mobile.drawer.section.language': 'Language',
     'gui.mobile.drawer.close': 'Close menu',
     'gui.mobile.drawer.reload': 'Reload',
+    'gui.mobile.orientation.title': 'Please rotate your device',
+    'gui.mobile.orientation.body': 'Smalruby works best in landscape mode on phones.',
+    'gui.mobile.orientation.iosNote': 'On iOS, make sure orientation lock is OFF (Control Center).',
 };

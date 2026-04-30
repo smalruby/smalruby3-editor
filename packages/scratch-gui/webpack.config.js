@@ -325,7 +325,13 @@ const buildWithPwaConfig = buildConfig.clone()
             short_name: 'Smalruby',
             description: 'GraphicaL User Interface for creating and running Smalruby 3.0 projects',
             background_color: '#ffffff',
-            orientation: 'any',
+            // ホーム画面に追加された PWA を「横向き」で起動させる (issue #572 Phase 2-I)。
+            // スマホのコスチューム/サウンドエディタは upstream の min-width 制約で
+            // 縦持ちでは見切れるため、横画面前提で運用する。デスクトップやタブレットの
+            // PWA インストール時もこのヒントが入るが、デスクトップブラウザは
+            // orientation ヒントを無視するので影響なし。タブレットはサポートしている
+            // 場合のみ landscape で起動する。
+            orientation: 'landscape',
             crossorigin: 'use-credentials',
             inject: true,
             ios: {
@@ -387,7 +393,13 @@ const distWithHtmlConfig = buildConfig.clone()
             short_name: 'Smalruby',
             description: 'GraphicaL User Interface for creating and running Smalruby 3.0 projects',
             background_color: '#ffffff',
-            orientation: 'any',
+            // ホーム画面に追加された PWA を「横向き」で起動させる (issue #572 Phase 2-I)。
+            // スマホのコスチューム/サウンドエディタは upstream の min-width 制約で
+            // 縦持ちでは見切れるため、横画面前提で運用する。デスクトップやタブレットの
+            // PWA インストール時もこのヒントが入るが、デスクトップブラウザは
+            // orientation ヒントを無視するので影響なし。タブレットはサポートしている
+            // 場合のみ landscape で起動する。
+            orientation: 'landscape',
             crossorigin: 'use-credentials',
             inject: true,
             ios: {

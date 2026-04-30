@@ -4,6 +4,7 @@ import GUI from '../../containers/gui.jsx';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
 import MobileBottomTabs from '../mobile-bottom-tabs/mobile-bottom-tabs.jsx';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
+import MobileOrientationGate from '../mobile-orientation-gate/mobile-orientation-gate.jsx';
 import MobilePaletteAutoCloser from '../mobile-palette-auto-closer/mobile-palette-auto-closer.jsx';
 import MobileSpritePanel from '../mobile-sprite-panel/mobile-sprite-panel.jsx';
 import MobileTopBar from '../mobile-top-bar/mobile-top-bar.jsx';
@@ -104,6 +105,12 @@ const MobileGui = props => {
                     <MobilePaletteAutoCloser />
                     <MobileDrawer open={drawerOpen} onClose={handleCloseDrawer} />
                     <MobileSpritePanel active={spriteTabActive} />
+                    {/*
+                     * Phase 2-I: 縦向き時にオーバーレイを出して横にしてもらう。
+                     * 上流の paint editor / sound editor の min-width 群が
+                     * 390px に収まらないため、横固定運用に倒す。
+                     */}
+                    <MobileOrientationGate />
                 </>
             </ConnectedIntlProvider>
         </>

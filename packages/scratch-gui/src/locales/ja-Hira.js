@@ -948,4 +948,8 @@ export default {
     'gui.mobile.drawer.section.language': 'げんご',
     'gui.mobile.drawer.close': 'メニューをとじる',
     'gui.mobile.drawer.reload': 'さいよみこみ',
+    'gui.mobile.orientation.title': 'よこむきにしてください',
+    'gui.mobile.orientation.body': 'スマホでは よこむきで つかってください。',
+    'gui.mobile.orientation.iosNote':
+        'iPhone のばあいは、コントロールセンターから「がめんのむきロック」を かいじょしてから よこにしてください。',
 };
