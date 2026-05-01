@@ -18,7 +18,7 @@ import {
 import { persistRubyVersion } from '../../lib/settings/ruby-version/persistence.js';
 import sharedMessages from '../../lib/shared-messages';
 import { openBlockDisplayModal } from '../../reducers/block-display.js';
-import { openTeacherModal } from '../../reducers/classroom.js';
+import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
 import { selectLocale } from '../../reducers/locales.js';
 import { requestNewProject } from '../../reducers/project-state.js';
 import { setRubyVersion } from '../../reducers/settings.js';
@@ -118,7 +118,8 @@ const hasV2Features = vm => {
  * @param {Function} props.onSelectLocale - 言語切替
  * @param {Function} props.onChangeRubyVersion - Ruby version 切替
  * @param {Function} props.onOpenBlockDisplayModal - ブロック表示モーダル
- * @param {Function} props.onOpenTeacherModal - クラスルーム管理モーダル
+ * @param {Function} props.onOpenClassroomModal - クラスルーム参加 / 状態表示モーダル (student 向け)
+ * @param {Function} props.onOpenTeacherModal - クラスルーム管理モーダル (teacher 向け)
  * @param {Function} props.onStartSelectingFileUpload - SBFileUploaderHOC からの注入
  * @param {object} props.intl - react-intl
  * @returns {JSX.Element|null} portal 経由で body 直下にレンダリング
@@ -133,6 +134,7 @@ const MobileDrawerComponent = ({
     onSelectLocale,
     onChangeRubyVersion,
     onOpenBlockDisplayModal,
+    onOpenClassroomModal,
     onOpenTeacherModal,
     onStartSelectingFileUpload,
     intl,
@@ -191,6 +193,11 @@ const MobileDrawerComponent = ({
     }, [onOpenBlockDisplayModal, onClose]);
 
     const handleClickClassroom = useCallback(() => {
+        onOpenClassroomModal();
+        onClose();
+    }, [onOpenClassroomModal, onClose]);
+
+    const handleClickClassroomManagement = useCallback(() => {
         onOpenTeacherModal();
         onClose();
     }, [onOpenTeacherModal, onClose]);
@@ -329,6 +336,22 @@ const MobileDrawerComponent = ({
                                 data-testid="mobile-drawer-classroom"
                             >
                                 <FormattedMessage
+                                    defaultMessage="Class"
+                                    description="Mobile drawer item that opens the student-facing classroom modal (join / status)"
+                                    id="gui.mobile.drawer.classroom"
+                                />
+                            </button>
+                        </li>
+                    )}
+                    {classroomEnabled && (
+                        <li>
+                            <button
+                                type="button"
+                                className={styles.menuItem}
+                                onClick={handleClickClassroomManagement}
+                                data-testid="mobile-drawer-classroom-management"
+                            >
+                                <FormattedMessage
                                     defaultMessage="Class Management..."
                                     description="Class management menu item"
                                     id="gui.menuBar.classroomManagement"
@@ -397,6 +420,7 @@ MobileDrawerComponent.propTypes = {
     onSelectLocale: PropTypes.func.isRequired,
     onChangeRubyVersion: PropTypes.func.isRequired,
     onOpenBlockDisplayModal: PropTypes.func.isRequired,
+    onOpenClassroomModal: PropTypes.func.isRequired,
     onOpenTeacherModal: PropTypes.func.isRequired,
     onStartSelectingFileUpload: PropTypes.func,
     intl: intlShape.isRequired,
@@ -416,6 +440,7 @@ const mapDispatchToProps = dispatch => ({
         persistRubyVersion(rubyVersion);
     },
     onOpenBlockDisplayModal: () => dispatch(openBlockDisplayModal()),
+    onOpenClassroomModal: () => dispatch(openClassroomModal()),
     onOpenTeacherModal: () => dispatch(openTeacherModal()),
 });
 

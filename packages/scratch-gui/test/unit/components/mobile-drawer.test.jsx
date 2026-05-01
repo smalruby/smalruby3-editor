@@ -39,6 +39,7 @@ const baseProps = () => ({
     onSelectLocale: jest.fn(),
     onChangeRubyVersion: jest.fn(),
     onOpenBlockDisplayModal: jest.fn(),
+    onOpenClassroomModal: jest.fn(),
     onOpenTeacherModal: jest.fn(),
     onStartSelectingFileUpload: jest.fn(),
     intl: fakeIntl,
@@ -142,17 +143,28 @@ describe('MobileDrawer', () => {
         expect(props.onClose).toHaveBeenCalledTimes(1);
     });
 
-    test('classroom item is hidden when not configured', () => {
+    test('classroom items are hidden when not configured', () => {
         isClassroomConfigured.mockReturnValue(false);
         const { queryByTestId } = renderWithIntl();
         expect(queryByTestId('mobile-drawer-classroom')).toBeNull();
+        expect(queryByTestId('mobile-drawer-classroom-management')).toBeNull();
     });
 
-    test('classroom item is shown and clicking it calls onOpenTeacherModal + onClose', () => {
+    test('classroom (student) item is shown and clicking it calls onOpenClassroomModal + onClose', () => {
         isClassroomConfigured.mockReturnValue(true);
         const { getByTestId, props } = renderWithIntl();
         fireEvent.click(getByTestId('mobile-drawer-classroom'));
+        expect(props.onOpenClassroomModal).toHaveBeenCalledTimes(1);
+        expect(props.onOpenTeacherModal).not.toHaveBeenCalled();
+        expect(props.onClose).toHaveBeenCalledTimes(1);
+    });
+
+    test('classroom management (teacher) item is shown and clicking it calls onOpenTeacherModal + onClose', () => {
+        isClassroomConfigured.mockReturnValue(true);
+        const { getByTestId, props } = renderWithIntl();
+        fireEvent.click(getByTestId('mobile-drawer-classroom-management'));
         expect(props.onOpenTeacherModal).toHaveBeenCalledTimes(1);
+        expect(props.onOpenClassroomModal).not.toHaveBeenCalled();
         expect(props.onClose).toHaveBeenCalledTimes(1);
     });
 

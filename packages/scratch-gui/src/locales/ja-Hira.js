@@ -948,6 +948,7 @@ export default {
     'gui.mobile.drawer.section.tools': 'ツール',
     'gui.mobile.drawer.section.rubyVersion': 'ルビー バージョン',
     'gui.mobile.drawer.section.language': 'げんご',
+    'gui.mobile.drawer.classroom': 'クラス',
     'gui.mobile.drawer.close': 'メニューをとじる',
     'gui.mobile.drawer.reload': 'さいよみこみ',
     'gui.mobile.orientation.title': 'よこむきにしてください',

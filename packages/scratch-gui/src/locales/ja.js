@@ -923,6 +923,7 @@ export default {
     'gui.mobile.drawer.section.tools': 'ツール',
     'gui.mobile.drawer.section.rubyVersion': 'Ruby バージョン',
     'gui.mobile.drawer.section.language': '言語',
+    'gui.mobile.drawer.classroom': 'クラス',
     'gui.mobile.drawer.close': 'メニューを閉じる',
     'gui.mobile.drawer.reload': '再読み込み',
     'gui.mobile.orientation.title': '横向きにしてください',
