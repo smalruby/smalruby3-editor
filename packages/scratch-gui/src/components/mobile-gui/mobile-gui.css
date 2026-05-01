@@ -281,9 +281,14 @@
 /* 操作不能になる。SP では常に full-screen 化して、本文を viewport */
 /* 全体に展開する。                                                */
 /*                                                                */
-/* 対象となるモーダル: クラス、クラス管理、ブロック表示、URL ローダー、 */
-/* チュートリアル (Tips Library)、Connection Modal (mesh)、        */
-/* スプライト/コスチューム/サウンド/背景ライブラリなど。           */
+/* 対象となるモーダル: クラス、クラス管理、URL ローダー、         */
+/* Connection Modal (mesh)、スプライト/コスチューム/サウンド/      */
+/* 背景ライブラリなど。                                            */
+/*                                                                */
+/* SP では非対応 (ドロワーから削除済み):                            */
+/* - ブロック表示 (PR #594)                                        */
+/* - チュートリアル (Tips Library): カードコンテンツ自体が SP の  */
+/*   レイアウトに合わないため (PR #595)                            */
 /* ------------------------------------------------------------ */
 
 /*
@@ -328,11 +333,28 @@
 }
 
 /*
- * モーダル内部の box (Modal component の Box) を flex column で残り
- * 高さを使わせる。Box が grow しないと中身が切れる。
+ * モーダル内部の box (Modal component の Box) を「縦スクロールコンテナ」と
+ * して扱う。box_box が overflow-y: auto となり、本文が viewport を超えても
+ * 内部でスクロールできる。ヘッダーは下記 sticky ルールで上部に固定する。
+ *
+ * iOS Safari の慣性スクロール対応として `-webkit-overflow-scrolling: touch` も付ける。
  */
 :global(body.smalruby-mobile-mode [class*="modal_modal-content"] [class*="box_box"]) {
     flex: 1 1 auto !important;
     min-height: 0 !important;
     width: 100% !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/*
+ * モーダルヘッダーを box_box のスクロール内で上部に sticky 固定する。
+ * 本文がスクロールしてもタイトルや戻る/×ボタンが常に見えるようにする。
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-content"] [class*="modal_header"]) {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1 !important;
+    flex-shrink: 0 !important;
 }

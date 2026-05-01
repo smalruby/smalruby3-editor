@@ -955,7 +955,6 @@ export default {
     'gui.mobile.drawer.file.save': 'ほぞん',
     'gui.mobile.drawer.file.saveAs': 'なまえをつけてほぞん...',
     'gui.mobile.drawer.edit.turboMode': 'ターボモード',
-    'gui.mobile.drawer.tutorials': 'チュートリアル',
     'gui.mobile.drawer.classroom': 'クラス',
     'gui.mobile.drawer.mesh': 'メッシュ',
     'gui.mobile.drawer.settings.language': 'げんご',

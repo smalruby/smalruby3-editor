@@ -23,11 +23,7 @@ import sharedMessages from '../../lib/shared-messages';
 import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
 import { setConnectionModalExtensionId } from '../../reducers/connection-modal.js';
 import { selectLocale } from '../../reducers/locales.js';
-import {
-    openConnectionModal,
-    openTipsLibrary,
-    openUrlLoaderModal,
-} from '../../reducers/modals.js';
+import { openConnectionModal, openUrlLoaderModal } from '../../reducers/modals.js';
 import { requestNewProject } from '../../reducers/project-state.js';
 import { setRubyVersion } from '../../reducers/settings.js';
 import closeIcon from './icon--close.svg';
@@ -98,11 +94,6 @@ const messages = defineMessages({
         defaultMessage: 'Turbo Mode',
         description: 'Mobile drawer toggle for turbo mode',
         id: 'gui.mobile.drawer.edit.turboMode',
-    },
-    tutorials: {
-        defaultMessage: 'Tutorials',
-        description: 'Mobile drawer item to open the tutorials / tips library',
-        id: 'gui.mobile.drawer.tutorials',
     },
     classroom: {
         defaultMessage: 'Class',
@@ -218,7 +209,6 @@ const hasV2Features = vm => {
  * @param {Function} props.onChangeRubyVersion - Ruby version 切替
  * @param {Function} props.onOpenClassroomModal - 生徒向けクラスモーダル
  * @param {Function} props.onOpenTeacherModal - 教師向けクラス管理モーダル
- * @param {Function} props.onOpenTipsLibrary - チュートリアル一覧
  * @param {Function} props.onOpenMeshModal - メッシュ接続モーダル
  * @param {Function} props.onStartSelectingFileUpload - SBFileUploaderHOC 注入
  * @param {Function} props.onStartSelectingGoogleDrive - GoogleDriveLoaderHOC 注入
@@ -240,7 +230,6 @@ const MobileDrawerComponent = ({
     onChangeRubyVersion,
     onOpenClassroomModal,
     onOpenTeacherModal,
-    onOpenTipsLibrary,
     onOpenMeshModal,
     onStartSelectingFileUpload,
     onStartSelectingGoogleDrive,
@@ -325,11 +314,6 @@ const MobileDrawerComponent = ({
         },
         [activeRubyVersion, vm, onChangeRubyVersion, onClose, intl],
     );
-
-    const handleClickTutorials = useCallback(() => {
-        onOpenTipsLibrary();
-        onClose();
-    }, [onOpenTipsLibrary, onClose]);
 
     const handleClickClassroom = useCallback(() => {
         onOpenClassroomModal();
@@ -548,21 +532,15 @@ const MobileDrawerComponent = ({
                         </TurboMode>
                     </li>
 
-                    {/* ===== チュートリアル / クラス / メッシュ (単独項目) ===== */}
+                    {/* ===== クラス / メッシュ (単独項目) ===== */}
                     {/*
                      * これらは「セクション」ではなく単独のトップレベル項目なので、
-                     * sectionTitle は付けず menuItem だけ並べる。spec の意図に合わせる。
+                     * sectionTitle は付けず menuItem だけ並べる。
+                     *
+                     * チュートリアル (Tips Library) は SP では非対応 (PR #595):
+                     * カードコンテンツの cards.jsx が SP のレイアウトに合わない
+                     * (固定幅、複数列、画像中心) ため。
                      */}
-                    <li>
-                        <button
-                            type="button"
-                            className={styles.menuItem}
-                            onClick={handleClickTutorials}
-                            data-testid="mobile-drawer-tutorials"
-                        >
-                            <FormattedMessage {...messages.tutorials} />
-                        </button>
-                    </li>
                     {classroomEnabled && (
                         <li>
                             <button
@@ -682,7 +660,6 @@ MobileDrawerComponent.propTypes = {
     onChangeRubyVersion: PropTypes.func.isRequired,
     onOpenClassroomModal: PropTypes.func.isRequired,
     onOpenTeacherModal: PropTypes.func.isRequired,
-    onOpenTipsLibrary: PropTypes.func.isRequired,
     onOpenMeshModal: PropTypes.func.isRequired,
     onStartSelectingFileUpload: PropTypes.func.isRequired,
     onStartSelectingGoogleDrive: PropTypes.func.isRequired,
@@ -708,7 +685,6 @@ const mapDispatchToProps = dispatch => ({
     },
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
     onOpenTeacherModal: () => dispatch(openTeacherModal()),
-    onOpenTipsLibrary: () => dispatch(openTipsLibrary()),
     onOpenMeshModal: extensionId => {
         dispatch(setConnectionModalExtensionId(extensionId));
         dispatch(openConnectionModal());
