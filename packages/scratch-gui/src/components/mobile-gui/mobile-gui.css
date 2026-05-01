@@ -151,8 +151,9 @@
  * - サイドレールの右側 (left: 56px) から右端まで横全幅
  * - 画面下部に固定 (position: fixed)
  * - 高さは max 35vh + min 140px で、本文エリアを大きく削らない
- * - z-index は SideRail (9000) の下に置いて、誤タップでサイドレール
- *   操作が阻害されないようにする (8500)
+ * - z-index は 9100。各タブコンテンツ (paint canvas / sound waveform /
+ *   Monaco など) より確実に上に乗せる。SideRail は 9200 で更に上だが、
+ *   横位置が重ならないので視覚衝突なし。
  */
 :global(body.smalruby-mobile-mode.smalruby-mobile-backpack-open [class*="backpack_backpack-container"]) {
     display: flex !important;
@@ -164,10 +165,18 @@
     background: #ffffff !important;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important;
     border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
-    z-index: 8500 !important;
+    /*
+     * z-index は SideRail (9000) より上にして、各タブのコンテンツ (例: paint
+     * editor のキャンバス、sound editor の波形 canvas、ruby tab の Monaco) や
+     * tab-specific overlay より確実に上に乗るようにする。
+     * SideRail とは横位置が重ならない (left:56 〜 right:0 vs left:0 〜 width:56)
+     * ので 9001 (= SideRail+1) でも視覚的衝突なし。
+     */
+    z-index: 9100 !important;
     max-height: 35vh !important;
     min-height: 140px !important;
     padding: 0 0 4px !important;
+    pointer-events: auto !important;
 }
 
 /*
