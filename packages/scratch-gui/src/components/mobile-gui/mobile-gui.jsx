@@ -125,6 +125,12 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
     // バックパック開閉を body class に反映。CSS 側で
     // `.smalruby-mobile-backpack-open` をトリガーに upstream の <Backpack>
     // を画面下部に表示する。デフォルトは hidden (mobile-gui.css の section 6)。
+    //
+    // 加えて、upstream の backpack は collapsed 時に items list (drop-area の
+    // ref 取得元) を JSX で出さないため、collapsed のままだとドラッグ&ドロップが
+    // 動作しない。我々のトグルで開いたときは upstream の「Backpack」ヘッダーを
+    // 自動クリックして expanded にし、drop area を有効化する。閉じたときは
+    // 同様に collapsed に戻して中身の getContents() を停止させる。
     useEffect(() => {
         if (typeof document === 'undefined') return () => {};
         if (backpackOpen) {
@@ -132,7 +138,20 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
         } else {
             document.body.classList.remove(MOBILE_BACKPACK_OPEN_CLASS);
         }
-        return () => document.body.classList.remove(MOBILE_BACKPACK_OPEN_CLASS);
+        // 次フレームで状態同期: backpackOpen と upstream backpack の expanded
+        // 状態を一致させる。
+        const raf = window.requestAnimationFrame(() => {
+            const header = document.querySelector('[class*="backpack_backpack-header"]');
+            if (!header) return;
+            const list = document.querySelector('[class*="backpack_backpack-list"]');
+            const upstreamExpanded = Boolean(list);
+            if (backpackOpen && !upstreamExpanded) header.click();
+            else if (!backpackOpen && upstreamExpanded) header.click();
+        });
+        return () => {
+            window.cancelAnimationFrame(raf);
+            document.body.classList.remove(MOBILE_BACKPACK_OPEN_CLASS);
+        };
     }, [backpackOpen]);
 
     useEffect(() => {
