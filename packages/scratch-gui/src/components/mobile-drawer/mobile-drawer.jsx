@@ -1,13 +1,16 @@
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { defineMessages, FormattedMessage, injectIntl } from 'react-intl';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
 
 import SB3Downloader from '../../containers/sb3-downloader.jsx';
+import TurboMode from '../../containers/turbo-mode.jsx';
 import { isClassroomConfigured } from '../../lib/classroom-api';
+import GoogleDriveLoaderHOC from '../../containers/google-drive-loader-hoc.jsx';
+import GoogleDriveSaverHOC from '../../containers/google-drive-saver-hoc.jsx';
 import intlShape from '../../lib/intlShape';
 import SBFileUploaderHOC from '../../lib/sb-file-uploader-hoc.jsx';
 import {
@@ -17,9 +20,14 @@ import {
 } from '../../lib/settings/ruby-version/index.js';
 import { persistRubyVersion } from '../../lib/settings/ruby-version/persistence.js';
 import sharedMessages from '../../lib/shared-messages';
-import { openBlockDisplayModal } from '../../reducers/block-display.js';
 import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
+import { setConnectionModalExtensionId } from '../../reducers/connection-modal.js';
 import { selectLocale } from '../../reducers/locales.js';
+import {
+    openConnectionModal,
+    openTipsLibrary,
+    openUrlLoaderModal,
+} from '../../reducers/modals.js';
 import { requestNewProject } from '../../reducers/project-state.js';
 import { setRubyVersion } from '../../reducers/settings.js';
 import closeIcon from './icon--close.svg';
@@ -36,38 +44,107 @@ const messages = defineMessages({
         description: 'Section header for file operations in mobile drawer',
         id: 'gui.mobile.drawer.section.file',
     },
-    sectionTools: {
-        defaultMessage: 'Tools',
-        description: 'Section header for Smalruby-specific tools (block display, classroom) in mobile drawer',
-        id: 'gui.mobile.drawer.section.tools',
+    sectionEdit: {
+        defaultMessage: 'Edit',
+        description: 'Section header for edit operations in mobile drawer',
+        id: 'gui.mobile.drawer.section.edit',
     },
-    sectionRubyVersion: {
-        defaultMessage: 'Ruby Version',
-        description: 'Section header for Ruby version selector in mobile drawer',
-        id: 'gui.mobile.drawer.section.rubyVersion',
-    },
-    sectionLanguage: {
-        defaultMessage: 'Language',
-        description: 'Section header for language switcher in mobile drawer',
-        id: 'gui.mobile.drawer.section.language',
+    sectionSettings: {
+        defaultMessage: 'Settings',
+        description: 'Section header for the settings group (language / ruby / class management) in mobile drawer',
+        id: 'gui.mobile.drawer.section.settings',
     },
     closeAriaLabel: {
         defaultMessage: 'Close menu',
         description: 'Aria label for the mobile drawer close button',
         id: 'gui.mobile.drawer.close',
     },
-    reload: {
-        defaultMessage: 'Reload',
-        description: 'Mobile drawer item to force a page reload',
-        id: 'gui.mobile.drawer.reload',
+    fileNew: {
+        defaultMessage: 'New...',
+        description: 'Mobile drawer item to create a new project',
+        id: 'gui.mobile.drawer.file.new',
+    },
+    fileOpenFrom: {
+        defaultMessage: 'Open from',
+        description: 'Mobile drawer parent item that expands to a list of project sources (Google Drive / Device / Scratch)',
+        id: 'gui.mobile.drawer.file.openFrom',
+    },
+    fileOpenFromGoogleDrive: {
+        defaultMessage: 'Google Drive',
+        description: 'Mobile drawer item to load a project from Google Drive',
+        id: 'gui.mobile.drawer.file.openFrom.googleDrive',
+    },
+    fileOpenFromDevice: {
+        defaultMessage: 'Device',
+        description: 'Mobile drawer item to load a project from the local device',
+        id: 'gui.mobile.drawer.file.openFrom.device',
+    },
+    fileOpenFromScratch: {
+        defaultMessage: 'Scratch',
+        description: 'Mobile drawer item to load a project from Scratch by URL / project id',
+        id: 'gui.mobile.drawer.file.openFrom.scratch',
+    },
+    fileSave: {
+        defaultMessage: 'Save',
+        description: 'Mobile drawer item to save the current project (context-sensitive: Google Drive or device)',
+        id: 'gui.mobile.drawer.file.save',
+    },
+    fileSaveAs: {
+        defaultMessage: 'Save As...',
+        description: 'Mobile drawer item to save the current project under a new name (context-sensitive)',
+        id: 'gui.mobile.drawer.file.saveAs',
+    },
+    editTurboMode: {
+        defaultMessage: 'Turbo Mode',
+        description: 'Mobile drawer toggle for turbo mode',
+        id: 'gui.mobile.drawer.edit.turboMode',
+    },
+    tutorials: {
+        defaultMessage: 'Tutorials',
+        description: 'Mobile drawer item to open the tutorials / tips library',
+        id: 'gui.mobile.drawer.tutorials',
+    },
+    classroom: {
+        defaultMessage: 'Class',
+        description: 'Mobile drawer item that opens the student-facing classroom modal (join / status)',
+        id: 'gui.mobile.drawer.classroom',
+    },
+    mesh: {
+        defaultMessage: 'Mesh',
+        description: 'Mobile drawer item that opens the Mesh v2 connection modal (only when meshV2 extension is loaded)',
+        id: 'gui.mobile.drawer.mesh',
+    },
+    settingsLanguage: {
+        defaultMessage: 'Language',
+        description: 'Settings sub-menu header for language switcher in mobile drawer',
+        id: 'gui.mobile.drawer.settings.language',
+    },
+    settingsRuby: {
+        defaultMessage: 'Ruby',
+        description: 'Settings sub-menu header for Ruby version switcher in mobile drawer',
+        id: 'gui.mobile.drawer.settings.ruby',
+    },
+    settingsClassManagement: {
+        defaultMessage: 'Class Management...',
+        description: 'Settings sub-menu item that opens teacher-facing class management modal',
+        id: 'gui.menuBar.classroomManagement',
+    },
+    rubyV1: {
+        defaultMessage: 'Version 1',
+        description: 'Mobile drawer label for Ruby version 1',
+        id: 'gui.mobile.drawer.settings.ruby.v1',
+    },
+    rubyV2: {
+        defaultMessage: 'Version 2',
+        description: 'Mobile drawer label for Ruby version 2',
+        id: 'gui.mobile.drawer.settings.ruby.v2',
     },
 });
 
 /**
  * Smalruby のモバイルで表示する 3 言語のみ。upstream の LanguageMenu は
  * scratch-l10n の 50+ ロケールをすべて出すが、Smalruby が翻訳を持つのは
- * en / ja / ja-Hira のみで、モバイル UI ではリストが長すぎても扱いに困るため
- * 短いリストに固定する。
+ * en / ja / ja-Hira のみ。
  */
 const SUPPORTED_LOCALES = [
     { code: 'ja', label: '日本語' },
@@ -75,7 +152,16 @@ const SUPPORTED_LOCALES = [
     { code: 'en', label: 'English' },
 ];
 
+const RUBY_VERSION_LABELS = { 1: messages.rubyV1, 2: messages.rubyV2 };
 const RUBY_VERSIONS = Object.keys(rubyVersionMap);
+
+/**
+ * 開閉できるサブメニュー (accordion) のキー。
+ */
+const SUBMENU_FILE_OPEN = 'file-open';
+const SUBMENU_SETTINGS = 'settings';
+const SUBMENU_SETTINGS_LANGUAGE = 'settings-language';
+const SUBMENU_SETTINGS_RUBY = 'settings-ruby';
 
 /**
  * v1 への切替で v2 専用機能 (module / class) が使われていないかチェックする
@@ -98,29 +184,47 @@ const hasV2Features = vm => {
 };
 
 /**
- * Mobile 用ドロワー (ハンバーガーメニュー本体, issue #572 Phase 2-E + Phase 3-A)。
+ * Mobile 用ドロワー (ハンバーガーメニュー本体, issue #572 Phase 3-A)。
  *
- * MobileSideRail の ☰ から開閉する。提供する機能:
- * - File: 新規 / パソコンから開く / パソコンに保存 / リロード
- * - Tools (Smalruby 固有): ブロック表示モーダル / クラスルーム管理 (configured 時のみ)
- * - Ruby Version: v1 / v2 切替
- * - Language: en / ja / ja-Hira
+ * MobileSideRail の ☰ から開閉する。Desktop メニューバーと同等の主要機能を
+ * 折りたたみ可能なツリー形式で提供する:
+ *
+ *   ファイル
+ *     ├ 新規作成...
+ *     ├ 次から開く ▾ (Googleドライブ / デバイス / Scratch)
+ *     ├ 保存                         (context-sensitive: Drive or device)
+ *     └ 名前をつけて保存...           (context-sensitive)
+ *   編集
+ *     └ ターボモード (toggle)
+ *   チュートリアル
+ *   クラス                           (classroom configured 時)
+ *   メッシュ                         (meshV2 extension loaded 時)
+ *   設定 ▾
+ *     ├ 言語 ▾ (日本語 / にほんご / English)
+ *     ├ ルビー ▾ (バージョン1 / バージョン2)
+ *     └ クラス管理...                (classroom configured 時)
  *
  * createPortal で document.body 直下に出すため、`<GUI>` の overflow に
  * クリップされない。SSR 時は document が無いので null を返す。
  * @param {object} props - props
  * @param {boolean} props.open - ドロワーが開いているか
- * @param {Function} props.onClose - ドロワーを閉じるコールバック
- * @param {string} props.currentLocale - 現在の locale コード
- * @param {string} props.activeRubyVersion - 現在の Ruby version
- * @param {object} props.vm - scratch-vm (Ruby version 切替時の v2 機能チェック用)
+ * @param {Function} props.onClose - ドロワーを閉じる
+ * @param {string} [props.currentLocale] - 現在の locale (Redux)
+ * @param {string} [props.activeRubyVersion] - 現在の Ruby version (Redux)
+ * @param {boolean} [props.isGoogleDriveFile] - Drive 経由ロード中か (Redux)
+ * @param {object} [props.vm] - scratch-vm (Redux)
  * @param {Function} props.onClickNew - 新しいプロジェクト
  * @param {Function} props.onSelectLocale - 言語切替
  * @param {Function} props.onChangeRubyVersion - Ruby version 切替
- * @param {Function} props.onOpenBlockDisplayModal - ブロック表示モーダル
- * @param {Function} props.onOpenClassroomModal - クラスルーム参加 / 状態表示モーダル (student 向け)
- * @param {Function} props.onOpenTeacherModal - クラスルーム管理モーダル (teacher 向け)
- * @param {Function} props.onStartSelectingFileUpload - SBFileUploaderHOC からの注入
+ * @param {Function} props.onOpenClassroomModal - 生徒向けクラスモーダル
+ * @param {Function} props.onOpenTeacherModal - 教師向けクラス管理モーダル
+ * @param {Function} props.onOpenTipsLibrary - チュートリアル一覧
+ * @param {Function} props.onOpenMeshModal - メッシュ接続モーダル
+ * @param {Function} props.onStartSelectingFileUpload - SBFileUploaderHOC 注入
+ * @param {Function} props.onStartSelectingGoogleDrive - GoogleDriveLoaderHOC 注入
+ * @param {Function} props.onSaveDirectlyToGoogleDrive - GoogleDriveSaverHOC 注入
+ * @param {Function} props.onStartSavingToGoogleDrive - GoogleDriveSaverHOC 注入
+ * @param {Function} props.onStartSelectingUrlLoad - Scratch URL ローダーモーダル
  * @param {object} props.intl - react-intl
  * @returns {JSX.Element|null} portal 経由で body 直下にレンダリング
  */
@@ -129,25 +233,61 @@ const MobileDrawerComponent = ({
     onClose,
     currentLocale,
     activeRubyVersion,
+    isGoogleDriveFile,
     vm,
     onClickNew,
     onSelectLocale,
     onChangeRubyVersion,
-    onOpenBlockDisplayModal,
     onOpenClassroomModal,
     onOpenTeacherModal,
+    onOpenTipsLibrary,
+    onOpenMeshModal,
     onStartSelectingFileUpload,
+    onStartSelectingGoogleDrive,
+    onSaveDirectlyToGoogleDrive,
+    onStartSavingToGoogleDrive,
+    onStartSelectingUrlLoad,
     intl,
 }) => {
+    const [expandedSet, setExpandedSet] = useState(() => new Set());
+    const isExpanded = key => expandedSet.has(key);
+    const toggleExpanded = useCallback(
+        key =>
+            setExpandedSet(prev => {
+                const next = new Set(prev);
+                if (next.has(key)) next.delete(key);
+                else next.add(key);
+                return next;
+            }),
+        [],
+    );
+    const handleToggleSubmenu = useCallback(
+        event => {
+            const key = event.currentTarget.dataset.submenu;
+            if (key) toggleExpanded(key);
+        },
+        [toggleExpanded],
+    );
+
     const handleClickNew = useCallback(() => {
         onClickNew();
         onClose();
     }, [onClickNew, onClose]);
 
-    const handleClickLoad = useCallback(() => {
+    const handleClickLoadFromDevice = useCallback(() => {
         onStartSelectingFileUpload();
         onClose();
     }, [onStartSelectingFileUpload, onClose]);
+
+    const handleClickLoadFromGoogleDrive = useCallback(() => {
+        onStartSelectingGoogleDrive();
+        onClose();
+    }, [onStartSelectingGoogleDrive, onClose]);
+
+    const handleClickLoadFromScratch = useCallback(() => {
+        onStartSelectingUrlLoad();
+        onClose();
+    }, [onStartSelectingUrlLoad, onClose]);
 
     const handleClickLocale = useCallback(
         event => {
@@ -168,9 +308,8 @@ const MobileDrawerComponent = ({
                 return;
             }
             // v1 へ切替時は v2 機能が使われていないか確認する。
-            // koshien 拡張のチェックは settings-menu 側でやっているので、
-            // モバイルでもそちらのフローを尊重したいが、現状 vm.extensionManager の
-            // 直接アクセスができるためここでも同じ guard を入れる。
+            // koshien 拡張のチェックは settings-menu 側でもやっているので、
+            // モバイルでもそちらのフローに合わせて同じ guard を入れる。
             if (version === '2' && vm?.extensionManager?.isExtensionLoaded?.('koshien')) {
                 // eslint-disable-next-line no-alert
                 alert(intl.formatMessage(rubyVersionMessages.koshienCannotChangeRubyVersion));
@@ -187,33 +326,58 @@ const MobileDrawerComponent = ({
         [activeRubyVersion, vm, onChangeRubyVersion, onClose, intl],
     );
 
-    const handleClickBlockDisplay = useCallback(() => {
-        onOpenBlockDisplayModal();
+    const handleClickTutorials = useCallback(() => {
+        onOpenTipsLibrary();
         onClose();
-    }, [onOpenBlockDisplayModal, onClose]);
+    }, [onOpenTipsLibrary, onClose]);
 
     const handleClickClassroom = useCallback(() => {
         onOpenClassroomModal();
         onClose();
     }, [onOpenClassroomModal, onClose]);
 
+    const handleClickMesh = useCallback(() => {
+        onOpenMeshModal('meshV2');
+        onClose();
+    }, [onOpenMeshModal, onClose]);
+
     const handleClickClassroomManagement = useCallback(() => {
         onOpenTeacherModal();
         onClose();
     }, [onOpenTeacherModal, onClose]);
-
-    const handleClickReload = useCallback(() => {
-        if (typeof window !== 'undefined' && window.location) {
-            window.location.reload();
-        }
-        onClose();
-    }, [onClose]);
 
     if (typeof document === 'undefined') {
         return null;
     }
 
     const classroomEnabled = isClassroomConfigured();
+    // メッシュ extension の有効化チェック。Redux state の変化 (drawer 開閉や
+    // 接続状態変化) によって drawer が再レンダリングされるたびに評価される。
+    const meshLoaded = Boolean(vm?.extensionManager?.isExtensionLoaded?.('meshV2'));
+
+    /*
+     * ナビゲーションボタンの共通スタイル + 折りたたみ chevron の表示。
+     * `level` は indent 用 (0=トップ、1=サブ、2=サブサブ)。
+     */
+    const renderToggle = (label, key, level = 0) => (
+        <button
+            type="button"
+            className={classNames(styles.menuItem, styles.toggleItem, {
+                [styles.indented]: level > 0,
+                [styles.indented2]: level > 1,
+            })}
+            onClick={handleToggleSubmenu}
+            data-submenu={key}
+            data-expanded={isExpanded(key) ? 'true' : 'false'}
+            data-testid={`mobile-drawer-toggle-${key}`}
+            aria-expanded={isExpanded(key)}
+        >
+            <span className={styles.toggleLabel}>{label}</span>
+            <span className={styles.toggleChevron} aria-hidden="true">
+                {isExpanded(key) ? '▾' : '▸'}
+            </span>
+        </button>
+    );
 
     return createPortal(
         <>
@@ -247,6 +411,7 @@ const MobileDrawerComponent = ({
                     </button>
                 </header>
                 <ul className={styles.menuList}>
+                    {/* ===== ファイル ===== */}
                     <li className={styles.sectionTitle}>
                         <FormattedMessage {...messages.sectionFile} />
                     </li>
@@ -257,23 +422,51 @@ const MobileDrawerComponent = ({
                             onClick={handleClickNew}
                             data-testid="mobile-drawer-new"
                         >
-                            <FormattedMessage
-                                defaultMessage="New"
-                                description="Menu bar item for creating a new project"
-                                id="gui.menuBar.new"
-                            />
+                            <FormattedMessage {...messages.fileNew} />
                         </button>
                     </li>
                     <li>
-                        <button
-                            type="button"
-                            className={styles.menuItem}
-                            onClick={handleClickLoad}
-                            data-testid="mobile-drawer-load"
-                        >
-                            <FormattedMessage {...sharedMessages.loadFromComputerTitle} />
-                        </button>
+                        {renderToggle(<FormattedMessage {...messages.fileOpenFrom} />, SUBMENU_FILE_OPEN)}
                     </li>
+                    {isExpanded(SUBMENU_FILE_OPEN) && (
+                        <>
+                            <li>
+                                <button
+                                    type="button"
+                                    className={classNames(styles.menuItem, styles.indented)}
+                                    onClick={handleClickLoadFromGoogleDrive}
+                                    data-testid="mobile-drawer-open-google-drive"
+                                >
+                                    <FormattedMessage {...messages.fileOpenFromGoogleDrive} />
+                                </button>
+                            </li>
+                            <li>
+                                <button
+                                    type="button"
+                                    className={classNames(styles.menuItem, styles.indented)}
+                                    onClick={handleClickLoadFromDevice}
+                                    data-testid="mobile-drawer-open-device"
+                                >
+                                    <FormattedMessage {...messages.fileOpenFromDevice} />
+                                </button>
+                            </li>
+                            <li>
+                                <button
+                                    type="button"
+                                    className={classNames(styles.menuItem, styles.indented)}
+                                    onClick={handleClickLoadFromScratch}
+                                    data-testid="mobile-drawer-open-scratch"
+                                >
+                                    <FormattedMessage {...messages.fileOpenFromScratch} />
+                                </button>
+                            </li>
+                        </>
+                    )}
+                    {/*
+                     * 保存: Google Drive 経由で読み込んでいる場合は Drive に直接保存、
+                     * そうでなければ PC ローカル保存。SB3Downloader の callback を
+                     * 介する必要があるので render-prop でラップする。
+                     */}
                     <li>
                         <SB3Downloader>
                             {(_className, downloadProjectCallback) => (
@@ -282,49 +475,92 @@ const MobileDrawerComponent = ({
                                     className={styles.menuItem}
                                     // eslint-disable-next-line react/jsx-no-bind
                                     onClick={() => {
-                                        downloadProjectCallback();
+                                        if (isGoogleDriveFile) {
+                                            onSaveDirectlyToGoogleDrive(true);
+                                        } else {
+                                            downloadProjectCallback();
+                                        }
                                         onClose();
                                     }}
                                     data-testid="mobile-drawer-save"
                                 >
-                                    <FormattedMessage
-                                        defaultMessage="Save to your computer"
-                                        description="Menu bar item for downloading a project to your computer"
-                                        id="gui.menuBar.downloadToComputer"
-                                    />
+                                    <FormattedMessage {...messages.fileSave} />
                                 </button>
                             )}
                         </SB3Downloader>
                     </li>
+                    {/*
+                     * 名前をつけて保存: Drive 経由なら「コピーを Drive に保存」、
+                     * そうでなければ PC ローカルに保存 (= Save と同じだが Save As の
+                     * 体験として分けるために別エントリーにしておく)。
+                     */}
                     <li>
-                        {/*
-                         * 「下にひっぱってリロード」を mobile-mode で無効化したので、
-                         * 代わりにここから手動でページをリロードできるようにする。
-                         */}
-                        <button
-                            type="button"
-                            className={styles.menuItem}
-                            onClick={handleClickReload}
-                            data-testid="mobile-drawer-reload"
-                        >
-                            <FormattedMessage {...messages.reload} />
-                        </button>
+                        <SB3Downloader>
+                            {(_className, downloadProjectCallback) => (
+                                <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    // eslint-disable-next-line react/jsx-no-bind
+                                    onClick={() => {
+                                        if (isGoogleDriveFile) {
+                                            onStartSavingToGoogleDrive();
+                                        } else {
+                                            downloadProjectCallback();
+                                        }
+                                        onClose();
+                                    }}
+                                    data-testid="mobile-drawer-save-as"
+                                >
+                                    <FormattedMessage {...messages.fileSaveAs} />
+                                </button>
+                            )}
+                        </SB3Downloader>
                     </li>
+
+                    {/* ===== 編集 ===== */}
                     <li className={styles.sectionTitle}>
-                        <FormattedMessage {...messages.sectionTools} />
+                        <FormattedMessage {...messages.sectionEdit} />
                     </li>
+                    <li>
+                        <TurboMode>
+                            {(toggleTurboMode, { turboMode }) => (
+                                <button
+                                    type="button"
+                                    className={classNames(styles.menuItem, {
+                                        [styles.toggleOn]: turboMode,
+                                    })}
+                                    // eslint-disable-next-line react/jsx-no-bind
+                                    onClick={() => {
+                                        toggleTurboMode();
+                                        // ターボモードはトグルなのでドロワーは閉じない
+                                        // (連続切替を許容)。upstream も同じ挙動。
+                                    }}
+                                    data-testid="mobile-drawer-turbo-mode"
+                                    data-turbo-mode={turboMode ? 'on' : 'off'}
+                                    aria-pressed={turboMode}
+                                >
+                                    <span className={styles.localeCheck} aria-hidden="true">
+                                        {turboMode ? '✓' : ''}
+                                    </span>
+                                    <FormattedMessage {...messages.editTurboMode} />
+                                </button>
+                            )}
+                        </TurboMode>
+                    </li>
+
+                    {/* ===== チュートリアル / クラス / メッシュ (単独項目) ===== */}
+                    {/*
+                     * これらは「セクション」ではなく単独のトップレベル項目なので、
+                     * sectionTitle は付けず menuItem だけ並べる。spec の意図に合わせる。
+                     */}
                     <li>
                         <button
                             type="button"
                             className={styles.menuItem}
-                            onClick={handleClickBlockDisplay}
-                            data-testid="mobile-drawer-block-display"
+                            onClick={handleClickTutorials}
+                            data-testid="mobile-drawer-tutorials"
                         >
-                            <FormattedMessage
-                                defaultMessage="Block Display..."
-                                description="Block display settings menu item"
-                                id="gui.menuBar.blockDisplay"
-                            />
+                            <FormattedMessage {...messages.tutorials} />
                         </button>
                     </li>
                     {classroomEnabled && (
@@ -335,74 +571,98 @@ const MobileDrawerComponent = ({
                                 onClick={handleClickClassroom}
                                 data-testid="mobile-drawer-classroom"
                             >
-                                <FormattedMessage
-                                    defaultMessage="Class"
-                                    description="Mobile drawer item that opens the student-facing classroom modal (join / status)"
-                                    id="gui.mobile.drawer.classroom"
-                                />
+                                <FormattedMessage {...messages.classroom} />
                             </button>
                         </li>
                     )}
-                    {classroomEnabled && (
+                    {meshLoaded && (
                         <li>
                             <button
                                 type="button"
                                 className={styles.menuItem}
-                                onClick={handleClickClassroomManagement}
-                                data-testid="mobile-drawer-classroom-management"
+                                onClick={handleClickMesh}
+                                data-testid="mobile-drawer-mesh"
                             >
-                                <FormattedMessage
-                                    defaultMessage="Class Management..."
-                                    description="Class management menu item"
-                                    id="gui.menuBar.classroomManagement"
-                                />
+                                <FormattedMessage {...messages.mesh} />
                             </button>
                         </li>
                     )}
-                    <li className={styles.sectionTitle}>
-                        <FormattedMessage {...messages.sectionRubyVersion} />
-                    </li>
-                    {RUBY_VERSIONS.map(version => (
-                        <li key={version}>
-                            <button
-                                type="button"
-                                className={classNames(styles.localeItem, {
-                                    [styles.selected]: activeRubyVersion === version,
-                                })}
-                                onClick={handleClickRubyVersion}
-                                data-ruby-version={version}
-                                data-selected={activeRubyVersion === version ? 'true' : 'false'}
-                                data-testid={`mobile-drawer-ruby-version-${version}`}
-                            >
-                                <span className={styles.localeCheck} aria-hidden="true">
-                                    {activeRubyVersion === version ? '✓' : ''}
-                                </span>
-                                <FormattedMessage {...rubyVersionMap[version].label} />
-                            </button>
-                        </li>
-                    ))}
-                    <li className={styles.sectionTitle}>
-                        <FormattedMessage {...messages.sectionLanguage} />
-                    </li>
-                    {SUPPORTED_LOCALES.map(({ code, label }) => (
-                        <li key={code}>
-                            <button
-                                type="button"
-                                className={classNames(styles.localeItem, {
-                                    [styles.selected]: currentLocale === code,
-                                })}
-                                onClick={handleClickLocale}
-                                data-locale-code={code}
-                                data-selected={currentLocale === code ? 'true' : 'false'}
-                                data-testid={`mobile-drawer-locale-${code}`}
-                            >
-                                <span className={styles.localeCheck} aria-hidden="true">
-                                    {currentLocale === code ? '✓' : ''}
-                                </span>
-                                {label}
-                            </button>
-                        </li>
-                    ))}
+
+                    {/* ===== 設定 (accordion トグル単独 — sectionTitle を兼ねる) ===== */}
+                    <li>{renderToggle(<FormattedMessage {...messages.sectionSettings} />, SUBMENU_SETTINGS)}</li>
+                    {isExpanded(SUBMENU_SETTINGS) && (
+                        <>
+                            {/* 言語 */}
+                            <li>
+                                {renderToggle(
+                                    <FormattedMessage {...messages.settingsLanguage} />,
+                                    SUBMENU_SETTINGS_LANGUAGE,
+                                    1,
+                                )}
+                            </li>
+                            {isExpanded(SUBMENU_SETTINGS_LANGUAGE) &&
+                                SUPPORTED_LOCALES.map(({ code, label }) => (
+                                    <li key={`locale-${code}`}>
+                                        <button
+                                            type="button"
+                                            className={classNames(styles.localeItem, styles.indented2, {
+                                                [styles.selected]: currentLocale === code,
+                                            })}
+                                            onClick={handleClickLocale}
+                                            data-locale-code={code}
+                                            data-selected={currentLocale === code ? 'true' : 'false'}
+                                            data-testid={`mobile-drawer-locale-${code}`}
+                                        >
+                                            <span className={styles.localeCheck} aria-hidden="true">
+                                                {currentLocale === code ? '✓' : ''}
+                                            </span>
+                                            {label}
+                                        </button>
+                                    </li>
+                                ))}
+                            {/* ルビー */}
+                            <li>
+                                {renderToggle(
+                                    <FormattedMessage {...messages.settingsRuby} />,
+                                    SUBMENU_SETTINGS_RUBY,
+                                    1,
+                                )}
+                            </li>
+                            {isExpanded(SUBMENU_SETTINGS_RUBY) &&
+                                RUBY_VERSIONS.map(version => (
+                                    <li key={`ruby-${version}`}>
+                                        <button
+                                            type="button"
+                                            className={classNames(styles.localeItem, styles.indented2, {
+                                                [styles.selected]: activeRubyVersion === version,
+                                            })}
+                                            onClick={handleClickRubyVersion}
+                                            data-ruby-version={version}
+                                            data-selected={activeRubyVersion === version ? 'true' : 'false'}
+                                            data-testid={`mobile-drawer-ruby-version-${version}`}
+                                        >
+                                            <span className={styles.localeCheck} aria-hidden="true">
+                                                {activeRubyVersion === version ? '✓' : ''}
+                                            </span>
+                                            <FormattedMessage {...RUBY_VERSION_LABELS[version]} />
+                                        </button>
+                                    </li>
+                                ))}
+                            {/* クラス管理 */}
+                            {classroomEnabled && (
+                                <li>
+                                    <button
+                                        type="button"
+                                        className={classNames(styles.menuItem, styles.indented)}
+                                        onClick={handleClickClassroomManagement}
+                                        data-testid="mobile-drawer-classroom-management"
+                                    >
+                                        <FormattedMessage {...messages.settingsClassManagement} />
+                                    </button>
+                                </li>
+                            )}
+                        </>
+                    )}
                 </ul>
             </aside>
         </>,
@@ -415,20 +675,27 @@ MobileDrawerComponent.propTypes = {
     onClose: PropTypes.func.isRequired,
     currentLocale: PropTypes.string,
     activeRubyVersion: PropTypes.string,
+    isGoogleDriveFile: PropTypes.bool,
     vm: PropTypes.object,
     onClickNew: PropTypes.func.isRequired,
     onSelectLocale: PropTypes.func.isRequired,
     onChangeRubyVersion: PropTypes.func.isRequired,
-    onOpenBlockDisplayModal: PropTypes.func.isRequired,
     onOpenClassroomModal: PropTypes.func.isRequired,
     onOpenTeacherModal: PropTypes.func.isRequired,
-    onStartSelectingFileUpload: PropTypes.func,
+    onOpenTipsLibrary: PropTypes.func.isRequired,
+    onOpenMeshModal: PropTypes.func.isRequired,
+    onStartSelectingFileUpload: PropTypes.func.isRequired,
+    onStartSelectingGoogleDrive: PropTypes.func.isRequired,
+    onSaveDirectlyToGoogleDrive: PropTypes.func.isRequired,
+    onStartSavingToGoogleDrive: PropTypes.func.isRequired,
+    onStartSelectingUrlLoad: PropTypes.func.isRequired,
     intl: intlShape.isRequired,
 };
 
 const mapStateToProps = state => ({
     currentLocale: state.locales.locale,
     activeRubyVersion: state.scratchGui.settings.rubyVersion,
+    isGoogleDriveFile: Boolean(state.scratchGui.googleDriveFile?.id),
     vm: state.scratchGui.vm,
 });
 
@@ -439,14 +706,21 @@ const mapDispatchToProps = dispatch => ({
         dispatch(setRubyVersion(rubyVersion));
         persistRubyVersion(rubyVersion);
     },
-    onOpenBlockDisplayModal: () => dispatch(openBlockDisplayModal()),
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
     onOpenTeacherModal: () => dispatch(openTeacherModal()),
+    onOpenTipsLibrary: () => dispatch(openTipsLibrary()),
+    onOpenMeshModal: extensionId => {
+        dispatch(setConnectionModalExtensionId(extensionId));
+        dispatch(openConnectionModal());
+    },
+    onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal()),
 });
 
 const MobileDrawer = compose(
     injectIntl,
     SBFileUploaderHOC,
+    GoogleDriveLoaderHOC,
+    GoogleDriveSaverHOC,
     connect(mapStateToProps, mapDispatchToProps),
 )(MobileDrawerComponent);
 
