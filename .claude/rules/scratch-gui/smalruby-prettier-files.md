@@ -124,6 +124,8 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/ruby-screenshot.js`
 - `src/lib/smalrubot-firmware-flasher.js`
 - `src/lib/smalrubot-firmware.hex.js`
+- `src/lib/storage-worker-timeout.js`
+- `src/lib/storage-worker-timeout-hoc.jsx`
 - `src/lib/ruby-script-preview.js`
 - `src/lib/ruby-to-blocks-converter-hoc.jsx`
 - `src/lib/rubytee-api.js`
