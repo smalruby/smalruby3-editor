@@ -34,21 +34,24 @@
     left: 0;
 }
 
-/* 狭幅 (mobile_gui モード相当) ではタップしやすいよう拡大 (issue #572 Phase 2-D)。 */
-@media (max-width: 767px) {
-    .palette-toggle-button {
-        width: 28px;
-        height: 56px;
-        font-size: 16px;
-        font-weight: bold;
-        background-color: rgba(133, 92, 214, 0.92);
-        color: white;
-        border: 0;
-        border-radius: 0 8px 8px 0;
-        box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.18);
-    }
+/*
+ * MobileGui (smalruby-mobile-mode) ではタップしやすいよう拡大し、目立つ
+ * 紫で塗る (issue #572 Phase 2-D / Phase 2-J)。横持ちスマホでも発火する
+ * よう、メディアクエリではなく `body.smalruby-mobile-mode` class を起点
+ * とする。
+ */
+:global(body.smalruby-mobile-mode) .palette-toggle-button {
+    width: 28px;
+    height: 56px;
+    font-size: 16px;
+    font-weight: bold;
+    background-color: rgba(133, 92, 214, 0.92);
+    color: white;
+    border: 0;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.18);
+}
 
-    .palette-toggle-button:hover {
-        background-color: rgba(133, 92, 214, 1);
-    }
+:global(body.smalruby-mobile-mode) .palette-toggle-button:hover {
+    background-color: rgba(133, 92, 214, 1);
 }

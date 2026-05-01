@@ -923,4 +923,8 @@ export default {
     'gui.mobile.drawer.section.language': '言語',
     'gui.mobile.drawer.close': 'メニューを閉じる',
     'gui.mobile.drawer.reload': '再読み込み',
+    'gui.mobile.orientation.title': '横向きにしてください',
+    'gui.mobile.orientation.body': 'スマホでは横向きでお使いください。',
+    'gui.mobile.orientation.iosNote':
+        'iPhone の場合は、コントロールセンターから「画面の向きロック」を解除してから横にしてください。',
 };

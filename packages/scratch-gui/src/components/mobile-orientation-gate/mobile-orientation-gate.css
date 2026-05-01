@@ -1,0 +1,68 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    /*
+     * MobileTopBar / MobileBottomTabs (z-index: 9000) や、ドロワー (9501) より
+     * も上に重ねて操作不能にする (横向きにするまで先に進めない)。
+     */
+    z-index: 10000;
+    background: linear-gradient(180deg, #855cd6 0%, #5b3a99 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    text-align: center;
+    user-select: none;
+    -webkit-user-select: none;
+    /* iOS の safe-area-inset を尊重 */
+    padding-top: max(1.5rem, env(safe-area-inset-top, 1.5rem));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
+    padding-left: max(1.5rem, env(safe-area-inset-left, 1.5rem));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 1.5rem));
+}
+
+.icon-row {
+    font-size: 3rem;
+    line-height: 1;
+    margin-bottom: 1.25rem;
+    /* 端末を回しているのを示すアニメーション */
+    animation: rotate-hint 2.5s ease-in-out infinite;
+    transform-origin: center center;
+}
+
+@keyframes rotate-hint {
+    0%,
+    20% {
+        transform: rotate(0deg);
+    }
+    50%,
+    70% {
+        transform: rotate(90deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.message {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    max-width: 320px;
+}
+
+.note {
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
+    max-width: 320px;
+}

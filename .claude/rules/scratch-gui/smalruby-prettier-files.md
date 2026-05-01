@@ -24,7 +24,9 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/mobile-bottom-tabs/`
 - `src/components/mobile-drawer/`
 - `src/components/mobile-gui/`
-- `src/components/mobile-palette-auto-closer/`
+- `src/components/mobile-orientation-gate/`
+- `src/components/mobile-paint-toolbar-toggle/`
+- `src/components/mobile-side-rail/`
 - `src/components/mobile-sprite-panel/`
 - `src/components/mobile-top-bar/`
 - `src/components/narrow-screen-warning/`
@@ -192,7 +194,8 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/connected-step.test.jsx`
 - `test/unit/components/mobile-bottom-tabs.test.jsx`
 - `test/unit/components/mobile-drawer.test.jsx`
-- `test/unit/components/mobile-palette-auto-closer.test.jsx`
+- `test/unit/components/mobile-orientation-gate.test.jsx`
+- `test/unit/components/mobile-side-rail.test.jsx`
 - `test/unit/components/mobile-sprite-panel.test.jsx`
 - `test/unit/components/mobile-top-bar.test.jsx`
 - `test/unit/components/narrow-screen-warning.test.jsx`

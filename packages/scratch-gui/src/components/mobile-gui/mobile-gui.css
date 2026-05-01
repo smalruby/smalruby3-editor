@@ -20,7 +20,15 @@
 :global(html.smalruby-mobile-mode) {
     min-width: 100% !important;
     width: 100% !important;
+    /*
+     * upstream `playground/index.css` の `min-height: 600px` を解除。
+     * 横向きスマホは 390px しか縦が無く、600 のままだと body が viewport
+     * を超えて縦スクロールが出てしまう。
+     */
+    min-height: 0 !important;
+    height: 100dvh !important;
     overflow-x: hidden;
+    overflow-y: hidden;
     /*
      * iOS Safari / Android Chrome の「下にひっぱってリロード (pull-to-refresh)」
      * を無効化する。スクロール可能な要素が画面に多く存在するため誤発動
@@ -31,17 +39,22 @@
 }
 
 /*
- * upstream playground/index.css の `.app { min-width: 1024px }` は CSS Modules
- * 経由で `.index_app_<hash>` に変換される。webpack 側でハッシュは変わるが、
- * `index_app` プレフィックスは安定しているので部分一致で掴む。
+ * upstream playground/index.css の `.app { min-width: 1024px; min-height: 600px }`
+ * は CSS Modules 経由で `.index_app_<hash>` に変換される。webpack 側で
+ * ハッシュは変わるが、`index_app` プレフィックスは安定しているので
+ * 部分一致で掴む。
  *
  * gui_page-wrapper も height/width 100% を継承するので一緒に押さえる。
+ * 縦も 100vh で固定して、min-height: 600px による viewport 超過を防ぐ。
  */
 :global(body.smalruby-mobile-mode [class*="index_app"]),
 :global(body.smalruby-mobile-mode [class*="gui_page-wrapper"]) {
     min-width: 100% !important;
     max-width: 100vw !important;
     width: 100% !important;
+    min-height: 0 !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
 }
 
 /* ------------------------------------------------------------ */
@@ -73,13 +86,26 @@
     padding: 0 !important;
 }
 
-:global(
-        body.smalruby-mobile-mode
-            [class*="gui_stage-and-target-wrapper"]:has([class*="stage-wrapper_full-screen"])
-    ) {
-    flex: 0 0 auto !important;
+/*
+ * 全画面ステージ時は wrapper を復活させる。Redux の isFullScreen を読んで
+ * MobileGui が body に `smalruby-mobile-fullscreen` class を付け外しする
+ * (mobile-gui.jsx の useEffect)。以前は CSS の :has() を使っていたが
+ * iOS Safari の互換性を上げるため body class ベースに置き換えた。
+ *
+ * 全画面中はエディタ側 (gui_editor-wrapper) を display: none で隠して、
+ * 確実に「切り替わった」とわかる状態にする。stage-wrapper は upstream の
+ * `.full-screen` クラスで position: fixed になっているが、念のため
+ * stage-and-target-wrapper も復活させて、auto width で stage コンテンツが
+ * 描画できるようにしておく。
+ */
+:global(body.smalruby-mobile-mode.smalruby-mobile-fullscreen [class*="gui_stage-and-target-wrapper"]) {
+    flex: 1 1 auto !important;
     width: auto !important;
     overflow: visible !important;
+}
+
+:global(body.smalruby-mobile-mode.smalruby-mobile-fullscreen [class*="gui_editor-wrapper"]) {
+    display: none !important;
 }
 
 :global(body.smalruby-mobile-mode [class*="gui_target-wrapper"]) {
@@ -92,6 +118,19 @@
 /* MenuBar はデスクトップ前提で密度が高く、モバイルでは破綻する。  */
 /* ------------------------------------------------------------ */
 :global(body.smalruby-mobile-mode [class*="menu-bar_menu-bar_"]) {
+    display: none !important;
+}
+
+/* ------------------------------------------------------------ */
+/* 3-ruby. ルビーツールバーの「スプライトを名前で検索」入力欄を非表示 */
+/*                                                                */
+/* ルビーツールバーは横並び密度が高くて、モバイルだとサーチ入力欄    */
+/* (≒ 200px) が他のアイコン (▶ / undo / redo / 検索 / A→A / 矢印 /   */
+/* AI / モード切替) を画面外に押し出してしまう。スプライト検索は    */
+/* MobileSpritePanel にある "<" ">" の前後ボタン + サムネイル一覧で  */
+/* 代替できるため、モバイルでは省略する。                            */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode [class*="ruby-toolbar_commandWrapper"]) {
     display: none !important;
 }
 
@@ -122,28 +161,113 @@
 }
 
 /* ------------------------------------------------------------ */
-/* 5. MobileTopBar / MobileBottomTabs の高さぶん本体に余白を取る  */
+/* 4b. paint-editor の縦スクロール構成 (Phase 2-J Stage 1)         */
 /*                                                                */
-/* upstream <MenuBar> を非表示にしたので body-wrapper は y=0 から  */
-/* 始まる。MobileTopBar (top, fixed) と MobileBottomTabs (bottom,  */
-/* fixed) を overlay 表示しているので、その高さぶん body-wrapper の */
-/* 上下にパディングを追加してコンテンツが両者に隠れないようにする。 */
+/* 横向き iPhone の編集エリア縦 ~390px に対し、コスチュームエディタ */
+/* の最小要求は ~520px (上部 toolbar 104 + 中央 380 + 下部 36)。    */
 /*                                                                */
-/* MobileTopBar の高さは CSS 変数 --smalruby-mobile-top-bar-height */
-/* に保存される (mobile-top-bar.jsx)。MobileBottomTabs は今のところ */
-/* 固定値 64px (mobile-bottom-tabs.css の min-height)。            */
+/* シンプルな解決: editor-container を高さ 100% + 縦スクロール、    */
+/* editor-container-top を `position: sticky; top: 0` で上端に固定。 */
+/* 中央 + 下部は通常の block で並ぶので、スクロールするとペイント   */
+/* ツール一覧 / canvas / bitmap 切替 + zoom を順に見ていける。       */
+/* 上部ツールバーは常に画面上端に残る。                              */
+/*                                                                */
+/* overscroll-behavior: contain で canvas 内ドラッグからの scroll    */
+/* chain が外側へ伝播するのを防ぐ。                                  */
 /* ------------------------------------------------------------ */
-:global(body.smalruby-mobile-mode [class*="gui_body-wrapper"]) {
-    padding-top: var(--smalruby-mobile-top-bar-height, 0px);
-    padding-bottom: 64px;
-    box-sizing: border-box;
-    height: 100vh;
+/*
+ * gui_tabs / tab-panel / asset-panel_wrapper / asset-panel_detail-area は
+ * 上流で flex 子になっており、デフォルトで min-content を維持しようと
+ * するため、内側の paint-editor (508 tall) に押されて editor-wrapper
+ * (= 100vh = 390) より縦に膨らんでしまう。`min-height: 0` + `height: 100%`
+ * でその連鎖を viewport 高さに揃え、最終的に editor-container を 390 に
+ * 収める。
+ */
+:global(body.smalruby-mobile-mode [class*="gui_tabs"]),
+:global(body.smalruby-mobile-mode [class*="gui_tab-panel"]),
+:global(body.smalruby-mobile-mode [class*="asset-panel_wrapper"]),
+:global(body.smalruby-mobile-mode [class*="asset-panel_detail-area"]) {
+    height: 100% !important;
+    min-height: 0 !important;
 }
 
 /*
- * upstream の `.body-wrapper` は元々 `height: calc(100% - $menu-bar-height)`
- * (menu-bar 分を引いている)。その body-wrapper の親は page-wrapper で
- * height: 100%。MenuBar を非表示にしたので body-wrapper の高さも 100% に
- * したいのだが、CSS Modules 経由で書かれた親側の calc を上書きする方が
- * 早い。height: 100vh で固定するのが確実。
+ * 注意: `[class*="paint-editor_editor-container"]` は `paint-editor_editor-container_HASH`
+ * (本体) と `paint-editor_editor-container-top_HASH` (上部ツールバー) の **両方** に
+ * マッチしてしまうため、本体だけマッチさせるには末尾 `_` を含めてハッシュ
+ * 直前で区切る必要がある。
  */
+:global(body.smalruby-mobile-mode [class*="paint-editor_editor-container_"]) {
+    height: 100% !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+}
+
+/*
+ * 上部ツールバーを「フロート」配置にして、出し入れしても下の canvas が
+ * 上下にぴょこぴょこ動かないようにする。
+ *
+ * - position: absolute で editor-container 直下から流れを抜き、上に重ねる
+ * - editor-container 自身に position: relative を与えて absolute の基準にする
+ * - canvas 等の他の中身は top:0 から並ぶ → ツールバーが重なる形になる
+ *   (ツールバーは不透明背景 + box-shadow で「上に乗っている」感を出す)
+ * - 折りたたみ時は display: none → 何も配置していなかったかのように消える
+ *   → canvas は 1px も動かない
+ */
+:global(body.smalruby-mobile-mode [class*="paint-editor_editor-container_"]) {
+    position: relative;
+}
+
+:global(body.smalruby-mobile-mode [class*="paint-editor_editor-container-top_"]) {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    /* 上部ツールバー直下の dashed border は重ねたとき不要なので消す */
+    border-bottom: 0 !important;
+}
+
+/*
+ * MobilePaintToolbarToggle (▼/▲ ハンドル) で折りたたんだときは上部ツール
+ * バーを完全に display: none にする。フロート配置なので canvas は動かない。
+ */
+:global(body.smalruby-mobile-mode.smalruby-paint-toolbar-collapsed [class*="paint-editor_editor-container-top_"]) {
+    display: none !important;
+}
+
+/*
+ * ツールバーの開閉でペイントツール (mode-selector) のアイコン位置が
+ * 上下に動くと、タップしていたツールが指の下から逃げてしまう。
+ * ツールバーが「出ているとき」の位置 (padding-top: 104) を常に維持し、
+ * 折りたたみ時もアイコン位置を変えない (要望)。
+ *
+ * 104px はツールバーの実測高さ (上 13px paddingTop + 2 行 87px + 下 padding)。
+ */
+:global(body.smalruby-mobile-mode [class*="paint-editor_mode-selector"]) {
+    padding-top: 104px;
+}
+
+/* ------------------------------------------------------------ */
+/* 5. MobileSideRail (左 56px 固定) のぶん body-wrapper を左にずらす */
+/*                                                                */
+/* Phase 2-J で MobileTopBar / MobileBottomTabs を廃止し、左 56px  */
+/* の縦サイドレールに ☰ + ▶ + 5 タブを集約。これにより編集エリアは */
+/* 縦 100vh をフルに使える (上流 paint/sound エディタの縦最低高さに */
+/* 対応)。                                                          */
+/*                                                                */
+/* 56px は「スプライト」「コスチューム」のラベルが ... に省略され */
+/* ない最小幅 (label font-size: 7px 前提)。詳細は                  */
+/* mobile-side-rail.css のコメント参照。                            */
+/*                                                                */
+/* MobileMenuBar 非表示済みなので body-wrapper は y=0 から開始。    */
+/* 縦は 100vh を確保し、横はサイドレール 56px を padding-left で    */
+/* 空ける。                                                          */
+/* ------------------------------------------------------------ */
+:global(body.smalruby-mobile-mode [class*="gui_body-wrapper"]) {
+    padding-left: 56px;
+    box-sizing: border-box;
+    height: 100dvh;
+}
