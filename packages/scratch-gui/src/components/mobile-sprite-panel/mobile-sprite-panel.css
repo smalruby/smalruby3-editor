@@ -5,9 +5,20 @@
     top: 0;
     left: 0;
     background: white;
-    /* MobileTopBar / MobileBottomTabs (z-index: 9000) より下に置き、
-       両者は常に visible にする。drawer (9501) よりは下。 */
-    z-index: 8500;
+    /*
+     * z-index は 100。タブコンテンツ (Blockly toolbox 40 等) より上に乗せて
+     * sprite tab 切替時に編集エリアを覆い隠す。
+     *
+     * SideRail (9200) や backpack (200, mobile-gui.css の Phase 3-B) より下に
+     * 置くことで、sprite タブ中でも左サイドレールがタップ可能、かつ画面下端
+     * に開かれた backpack が前面に見える (drop ターゲットとして使える)。
+     * drawer (9501) や modal overlay (10000) よりも当然下。
+     *
+     * 旧 Phase (MobileTopBar / MobileBottomTabs があった時代) では 8500 で
+     * 上下メニュー (9000) より下に置いていたが、それらは Phase 2-J で廃止
+     * されたので低い値に戻して問題ない。
+     */
+    z-index: 100;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     box-sizing: border-box;
