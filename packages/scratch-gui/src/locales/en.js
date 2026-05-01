@@ -1,6 +1,10 @@
 export default {
     'gui.sharedMessages.migrateMeshV1Warning':
         'This project contains legacy Mesh extensions and can only be used until April 30th. Select OK to continue using the legacy Mesh extensions. Select Cancel to use the new Mesh extensions instead.',
+    'gui.sharedMessages.meshV1AutoMigrated':
+        'The legacy Mesh service has ended. The blocks in this project have been automatically replaced with the new Mesh blocks. Please verify that it works as expected.',
+    'gui.sharedMessages.meshV1BackpackAutoMigrated':
+        '{count, plural, one {# legacy Mesh item in your backpack was} other {# legacy Mesh items in your backpack were}} automatically replaced with the new Mesh blocks.',
     'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage',
     'gui.sharedMessages.changedRubyVersionByKoshien':
         'This project contains the Smalruby Koshien extension, so the Ruby version has been changed to version 1.',

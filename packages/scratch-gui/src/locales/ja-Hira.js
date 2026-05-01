@@ -208,6 +208,10 @@ export default {
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターからよみこむ',
     'gui.sharedMessages.migrateMeshV1Warning':
         'このプロジェクトにはじゅうらいのメッシュかくちょうきのうがふくまれていますので4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
+    'gui.sharedMessages.meshV1AutoMigrated':
+        'じゅうらいのメッシュかくちょうきのうのサービスはしゅうりょうしました。プロジェクトのなかのブロックをあたらしいメッシュかくちょうきのうにじどうでおきかえました。どうさをかくにんしてください。',
+    'gui.sharedMessages.meshV1BackpackAutoMigrated':
+        'バックパックのなかのじゅうらいのメッシュブロックを{count}けん、あたらしいメッシュブロックにじどうでおきかえました。',
     'gui.sharedMessages.changedRubyVersionByKoshien':
         'このプロジェクトにはスモウルビーこうしえんかくちょうきのうがふくまれていますのでルビーをバージョン1にへんこうしました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブからよみこむ',

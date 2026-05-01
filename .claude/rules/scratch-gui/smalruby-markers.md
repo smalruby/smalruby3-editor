@@ -73,8 +73,10 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/reducers/editor-tab.js` | initial tab from URL param | 初期タブ URL パラメーター |
 | `src/reducers/settings.js` | URL params for Playwright | URL パラメーター import |
 | `src/reducers/settings.js` | ruby_version URL param | Ruby バージョン URL パラメーター |
+| `src/containers/backpack.jsx` | mesh v1 backpack auto-migration | Skyway 停止 (Issue #592) に伴う localStorage バックパックの自動 v1→v2 マイグレーション |
 
 ## 関連ファイル
 
 マーカーで囲まれたコードが参照するファイル:
 - `src/reducers/smalruby-registry.ts` — gui.ts のマーカーから参照
+- `src/lib/backpack-mesh-v1-migration.js` — backpack.jsx のマーカーから参照
