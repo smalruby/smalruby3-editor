@@ -49,10 +49,6 @@ import gdxforConnectionSmallIconURL from './gdxfor/gdxfor-small.svg';
 import faceSensingIconURL from './faceSensing/faceSensing.png';
 import faceSensingInsetIconURL from './faceSensing/faceSensing-small.svg';
 
-import meshIconURL from './mesh/mesh.png';
-import meshInsetIconURL from './mesh/mesh-small.png';
-import meshConnectionIconURL from './mesh/mesh-illustration.png';
-import meshConnectionSmallIconURL from './mesh/mesh-small.png';
 
 import smalrubotS1IconURL from './smalrubot-s1/smalrubot-s1.png';
 import smalrubotS1InsetIconURL from './smalrubot-s1/smalrubot-s1-small.png';
@@ -447,41 +443,9 @@ export default [
         ),
         helpLink: 'https://scratch.mit.edu/wedo'
     },
-    {
-        name: (
-            <FormattedMessage
-                defaultMessage="Old Mesh"
-                description="Name for the 'Mesh' extension"
-                id="gui.smalruby3.extension.mesh.name"
-            />
-        ),
-        extensionId: 'mesh',
-        iconURL: meshIconURL,
-        insetIconURL: meshInsetIconURL,
-        description: (
-            <FormattedMessage
-                defaultMessage="Allowing users to interact over a computer network."
-                description="Description for the 'Mesh' extension"
-                id="gui.smalruby3.extension.mesh.description"
-            />
-        ),
-        featured: true,
-        defaultHidden: true,
-        bluetoothRequired: false,
-        internetConnectionRequired: true,
-        launchPeripheralConnectionFlow: true,
-        useAutoScan: false,
-        connectionIconURL: meshConnectionIconURL,
-        connectionSmallIconURL: meshConnectionSmallIconURL,
-        connectingMessage: (
-            <FormattedMessage
-                defaultMessage="Connecting"
-                description="Message to help people connect to Mesh network."
-                id="gui.smalruby3.extension.mesh.connectingMessage"
-            />
-        ),
-        helpLink: 'https://github.com/smalruby/smalruby3-gui/wiki/Mesh'
-    },
+    // Mesh v1 (Skyway-backed) reached end of service. Removed from the picker so
+    // it can no longer be added to new projects. Existing v1 blocks (incl. those
+    // restored from the backpack) are auto-migrated to meshV2 — see Issue #592.
     {
         name: (
             <FormattedMessage

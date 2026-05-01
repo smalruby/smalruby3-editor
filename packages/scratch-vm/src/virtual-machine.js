@@ -18,7 +18,13 @@ const formatMessage = require('format-message');
 
 const Variable = require('./engine/variable');
 const newBlockIds = require('./util/new-block-ids');
-const {detectMeshV1Blocks, detectKoshien, migrateMeshV1Blocks} = require('./serialization/smalruby-migration');
+const {
+    detectMeshV1Blocks,
+    detectKoshien,
+    migrateMeshV1Blocks,
+    migrateMeshV1InBlockArray,
+    migrateMeshV1InSprite3Zip,
+} = require('./serialization/smalruby-migration');
 
 const {loadCostume} = require('./import/load-costume.js');
 const {loadSound} = require('./import/load-sound.js');
@@ -420,6 +426,26 @@ class VirtualMachine extends EventEmitter {
         })
             .then(validatedInput => detectKoshien(validatedInput[0]))
             .catch(() => false);
+    }
+
+    /**
+     * Rewrite legacy mesh opcodes in a backpack "code" payload (array of block JSON)
+     * to mesh v2 opcodes. Mutates the array in place.
+     * @param {Array<object>} blockArray Backpack code payload.
+     * @returns {boolean} True if any block was modified.
+     */
+    migrateMeshV1InBackpackBlocks (blockArray) {
+        return migrateMeshV1InBlockArray(blockArray);
+    }
+
+    /**
+     * Rewrite legacy mesh opcodes inside a backpack sprite3 zip buffer.
+     * @param {ArrayBuffer | Uint8Array} zipBuffer Backpack sprite payload.
+     * @returns {Promise<{changed: boolean, buffer: ArrayBuffer | Uint8Array}>} The
+     *     possibly-rewritten buffer (original reference returned when unchanged).
+     */
+    migrateMeshV1InBackpackSprite (zipBuffer) {
+        return migrateMeshV1InSprite3Zip(zipBuffer);
     }
 
     /**
@@ -1312,6 +1338,8 @@ class VirtualMachine extends EventEmitter {
         const sb3 = require('./serialization/sb3');
 
         const copiedBlocks = JSON.parse(JSON.stringify(blocks));
+        // Mesh v1 service is gone; rewrite stray v1 opcodes so we never auto-load v1.
+        migrateMeshV1InBlockArray(copiedBlocks);
         newBlockIds(copiedBlocks);
         const target = this.runtime.getTargetById(targetId);
 

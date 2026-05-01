@@ -18,6 +18,13 @@ import {GUIStoragePropType} from '../gui-config';
 import {connect} from 'react-redux';
 import VM from '@smalruby/scratch-vm';
 
+// === Smalruby: Start of mesh v1 backpack auto-migration ===
+import {injectIntl} from 'react-intl';
+import intlShape from '../lib/intlShape.js';
+import sharedMessages from '../lib/shared-messages';
+import {migrateMeshV1InLocalStorageBackpack} from '../lib/backpack-mesh-v1-migration';
+// === Smalruby: End of mesh v1 backpack auto-migration ===
+
 
 const dragTypes = [DragConstants.COSTUME, DragConstants.SOUND, DragConstants.SPRITE];
 const DroppableBackpack = DropAreaHOC(dragTypes)(BackpackComponent);
@@ -57,6 +64,22 @@ class Backpack extends React.Component {
     componentDidMount () {
         this.props.vm.addListener('BLOCK_DRAG_END', this.handleBlockDragEnd);
         this.props.vm.addListener('BLOCK_DRAG_UPDATE', this.handleBlockDragUpdate);
+        // === Smalruby: Start of mesh v1 backpack auto-migration ===
+        // Skyway shut down — eagerly rewrite any v1 mesh blocks/sprites in
+        // localStorage so users never restore them. One-shot per browser.
+        migrateMeshV1InLocalStorageBackpack(this.props.vm)
+            .then(count => {
+                if (count > 0) {
+                    // eslint-disable-next-line no-alert
+                    alert(this.props.intl.formatMessage(
+                        sharedMessages.meshV1BackpackAutoMigrated,
+                        {count}
+                    ));
+                }
+            })
+            // eslint-disable-next-line no-console
+            .catch(error => console.warn('[Smalruby] backpack mesh v1 migration failed', error));
+        // === Smalruby: End of mesh v1 backpack auto-migration ===
     }
     componentWillUnmount () {
         this.props.vm.removeListener('BLOCK_DRAG_END', this.handleBlockDragEnd);
@@ -244,7 +267,10 @@ Backpack.propTypes = {
     username: PropTypes.string,
     vm: PropTypes.instanceOf(VM),
     ariaRole: PropTypes.string,
-    ariaLabel: PropTypes.string
+    ariaLabel: PropTypes.string,
+    // === Smalruby: Start of mesh v1 backpack auto-migration ===
+    intl: intlShape
+    // === Smalruby: End of mesh v1 backpack auto-migration ===
 };
 
 const getTokenAndUsername = state => {
@@ -277,4 +303,7 @@ const mapStateToProps = state => Object.assign(
 
 const mapDispatchToProps = () => ({});
 
-export default connect(mapStateToProps, mapDispatchToProps)(Backpack);
+// === Smalruby: Start of mesh v1 backpack auto-migration ===
+// Wrap with injectIntl so the eager-migration alert can be localized.
+export default injectIntl(connect(mapStateToProps, mapDispatchToProps)(Backpack));
+// === Smalruby: End of mesh v1 backpack auto-migration ===

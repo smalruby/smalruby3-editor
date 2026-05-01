@@ -94,6 +94,7 @@ upstream (Scratch) ファイルは対象外。
 
 **個別ファイル:**
 - `src/lib/auto-correct.js`
+- `src/lib/backpack-mesh-v1-migration.js`
 - `src/lib/classroom-api.js`
 - `src/lib/google-classroom-auth.js`
 - `src/lib/block-utils.js`
@@ -218,6 +219,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/empty-block-selection.test.js`
 - `test/unit/lib/auto-correct.test.js`
 - `test/unit/lib/backpack-api.test.js`
+- `test/unit/lib/backpack-mesh-v1-migration.test.js`
 - `test/unit/lib/block-display-initialization.test.js`
 - `test/unit/lib/blocks-gesture-recovery.test.js`
 - `test/unit/lib/blocks-screenshot.test.js`

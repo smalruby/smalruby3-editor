@@ -13,12 +13,11 @@ const loadProjectWithChecks = (vm, intl, projectData, currentRubyVersion, onSetR
     vm
         .hasMeshV1Project(projectData)
         .then(hasMeshV1 => {
-            let migrateMeshV1ToV2 = false;
             if (hasMeshV1) {
                 // eslint-disable-next-line no-alert
-                migrateMeshV1ToV2 = !confirm(intl.formatMessage(sharedMessages.migrateMeshV1Warning));
+                alert(intl.formatMessage(sharedMessages.meshV1AutoMigrated));
             }
-            return vm.loadProject(projectData, { migrateMeshV1ToV2 });
+            return vm.loadProject(projectData, { migrateMeshV1ToV2: hasMeshV1 });
         })
         .then(() => vm.hasKoshienProject(projectData))
         .then(hasKoshien => {

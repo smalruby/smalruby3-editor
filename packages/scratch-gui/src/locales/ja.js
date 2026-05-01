@@ -201,6 +201,10 @@ export default {
     'gui.sharedMessages.loadFromComputerTitle': 'コンピューターから読み込む',
     'gui.sharedMessages.migrateMeshV1Warning':
         'このプロジェクトには従来のメッシュ拡張機能が含まれていますので4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
+    'gui.sharedMessages.meshV1AutoMigrated':
+        '従来のメッシュ拡張機能のサービスは終了しました。プロジェクト内のブロックを新しいメッシュ拡張機能に自動で置き換えました。動作を確認してください。',
+    'gui.sharedMessages.meshV1BackpackAutoMigrated':
+        'バックパックの中の従来のメッシュブロックを{count}件、新しいメッシュブロックに自動で置き換えました。',
     'gui.sharedMessages.changedRubyVersionByKoshien':
         'このプロジェクトにはスモウルビー甲子園拡張機能が含まれていますのでルビーをバージョン1に変更しました',
     'gui.menuBar.loadFromGoogleDrive': 'Google ドライブから読み込む',

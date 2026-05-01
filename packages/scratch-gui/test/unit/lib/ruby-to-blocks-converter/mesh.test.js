@@ -17,16 +17,16 @@ describe('RubyToBlocksConverter/Mesh', () => {
         expected = null;
     });
 
-    test('mesh_getSensorValue', async () => {
+    test('mesh_v1.sensor_value aliases to meshV2_getSensorValue (Issue #592)', async () => {
         code = 'mesh_v1.sensor_value(" ")';
         expected = [
             {
-                opcode: 'mesh_getSensorValue',
+                opcode: 'meshV2_getSensorValue',
                 inputs: [
                     {
                         name: 'NAME',
                         block: {
-                            opcode: 'mesh_menu_variableNames',
+                            opcode: 'meshV2_menu_variableNames',
                             fields: [
                                 {
                                     name: 'variableNames',
