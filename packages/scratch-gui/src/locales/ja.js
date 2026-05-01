@@ -920,6 +920,8 @@ export default {
     'gui.narrowScreenWarning.close': '閉じる',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.drawer.section.file': 'ファイル',
+    'gui.mobile.drawer.section.tools': 'ツール',
+    'gui.mobile.drawer.section.rubyVersion': 'Ruby バージョン',
     'gui.mobile.drawer.section.language': '言語',
     'gui.mobile.drawer.close': 'メニューを閉じる',
     'gui.mobile.drawer.reload': '再読み込み',

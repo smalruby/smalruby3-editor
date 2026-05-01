@@ -945,6 +945,8 @@ export default {
     'gui.narrowScreenWarning.close': 'とじる',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.drawer.section.file': 'ファイル',
+    'gui.mobile.drawer.section.tools': 'ツール',
+    'gui.mobile.drawer.section.rubyVersion': 'ルビー バージョン',
     'gui.mobile.drawer.section.language': 'げんご',
     'gui.mobile.drawer.close': 'メニューをとじる',
     'gui.mobile.drawer.reload': 'さいよみこみ',
