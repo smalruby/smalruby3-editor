@@ -73,6 +73,15 @@ const NarrowScreenWarning = () => {
         setDismissed(true);
     }, []);
 
+    const handleTryMobileBeta = useCallback(() => {
+        if (typeof window === 'undefined' || !window.location) return;
+        // 既存の URL を尊重しつつ ?mobile_gui=1 を追加 (既に他のパラメータが
+        // ある場合は & で連結)。クエリ重複を避けるため URLSearchParams で扱う。
+        const url = new URL(window.location.href);
+        url.searchParams.set('mobile_gui', '1');
+        window.location.assign(url.toString());
+    }, []);
+
     if (!visible) {
         return null;
     }
@@ -90,6 +99,19 @@ const NarrowScreenWarning = () => {
                     description="Banner shown on narrow screens (e.g. iPhone) suggesting PC/tablet for editing"
                     id="gui.narrowScreenWarning.message"
                 />
+                {' '}
+                <button
+                    className={styles.tryMobileLink}
+                    type="button"
+                    onClick={handleTryMobileBeta}
+                    data-testid="narrow-screen-warning-try-mobile"
+                >
+                    <FormattedMessage
+                        defaultMessage="Try mobile beta"
+                        description="Inline link in the narrow-screen warning that adds ?mobile_gui=1 to URL and reloads to launch the mobile-optimized UI"
+                        id="gui.narrowScreenWarning.tryMobileBeta"
+                    />
+                </button>
             </p>
             <button
                 className={styles.closeButton}

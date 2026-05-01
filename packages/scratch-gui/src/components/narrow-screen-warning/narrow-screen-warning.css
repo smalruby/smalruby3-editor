@@ -51,3 +51,30 @@
     background: rgba(255, 255, 255, 0.35);
     outline: none;
 }
+
+/*
+ * 「開発中のスマホ版を試してみる」インラインリンク。バナー文中に同居させ、
+ * クリックで `?mobile_gui=1` を付けて遷移する。インライン文字に見せたいので
+ * <button> の border / background を消し、下線付きテキストとして表現する。
+ */
+.try-mobile-link {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-decoration: underline;
+    cursor: pointer;
+    /* タップ時のフォーカスリング (アクセシビリティ用) */
+    border-radius: 2px;
+}
+
+.try-mobile-link:hover,
+.try-mobile-link:focus {
+    text-decoration: none;
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+}
