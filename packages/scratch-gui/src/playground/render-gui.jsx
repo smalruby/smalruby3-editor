@@ -13,6 +13,9 @@ import {getUrlParams} from '../lib/url-params.js';
 // === Smalruby: Start of MobileGui dispatcher ===
 import ResponsiveGui from '../lib/responsive-gui.jsx';
 // === Smalruby: End of MobileGui dispatcher ===
+// === Smalruby: Start of storage worker timeout HOC ===
+import StorageWorkerTimeoutHOC from '../lib/storage-worker-timeout-hoc.jsx';
+// === Smalruby: End of storage worker timeout HOC ===
 
 const onClickLogo = () => {
     window.location = 'https://smalruby.jp';
@@ -43,7 +46,14 @@ export default appTarget => {
     // ability to compose reducers.
     const WrappedGui = compose(
         AppStateHOC,
-        HashParserHOC
+        HashParserHOC,
+        // === Smalruby: Start of storage worker timeout HOC ===
+        // VM がセットアップされたら scratch-storage の FetchWorkerTool に
+        // 5s タイムアウトを当て、ハング時に FetchTool フォールバックを発動させる。
+        // サブディレクトリ deploy + iOS Safari で Worker 内 fetch がハングする
+        // 問題への対策 (詳細は storage-worker-timeout.js)。
+        StorageWorkerTimeoutHOC,
+        // === Smalruby: End of storage worker timeout HOC ===
         // === Smalruby: Start of MobileGui dispatcher ===
         // ResponsiveGui forwards all HOC-injected props and switches between
         // <GUI> and <MobileGui> based on the `mobile_gui=1` URL flag + viewport width.
