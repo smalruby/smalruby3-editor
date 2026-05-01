@@ -48,7 +48,6 @@ const baseProps = () => ({
     onChangeRubyVersion: jest.fn(),
     onOpenClassroomModal: jest.fn(),
     onOpenTeacherModal: jest.fn(),
-    onOpenTipsLibrary: jest.fn(),
     onOpenMeshModal: jest.fn(),
     onStartSelectingFileUpload: jest.fn(),
     onStartSelectingGoogleDrive: jest.fn(),
@@ -198,11 +197,9 @@ describe('MobileDrawer', () => {
         });
     });
 
-    test('clicking "Tutorials" calls onOpenTipsLibrary + onClose', () => {
-        const { getByTestId, props } = renderWithIntl();
-        fireEvent.click(getByTestId('mobile-drawer-tutorials'));
-        expect(props.onOpenTipsLibrary).toHaveBeenCalledTimes(1);
-        expect(props.onClose).toHaveBeenCalledTimes(1);
+    test('tutorials menu item is not rendered (SP unsupported)', () => {
+        const { queryByTestId } = renderWithIntl();
+        expect(queryByTestId('mobile-drawer-tutorials')).toBeNull();
     });
 
     test('classroom is hidden when not configured', () => {

@@ -930,7 +930,6 @@ export default {
     'gui.mobile.drawer.file.save': '保存',
     'gui.mobile.drawer.file.saveAs': '名前をつけて保存...',
     'gui.mobile.drawer.edit.turboMode': 'ターボモード',
-    'gui.mobile.drawer.tutorials': 'チュートリアル',
     'gui.mobile.drawer.classroom': 'クラス',
     'gui.mobile.drawer.mesh': 'メッシュ',
     'gui.mobile.drawer.settings.language': '言語',

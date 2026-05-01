@@ -271,3 +271,90 @@
     box-sizing: border-box;
     height: 100dvh;
 }
+
+/* ------------------------------------------------------------ */
+/* 6. 各種モーダルを SP では全画面化 (Phase 3-A2)                  */
+/*                                                                */
+/* スマホは画面の縦が 390-450px しか無いので、デフォルトの         */
+/* `margin: 100px auto` + `max-height: calc(100vh - 170px)` が    */
+/* 残った body にコンテンツが収まらず、フォーム入力やボタンが      */
+/* 操作不能になる。SP では常に full-screen 化して、本文を viewport */
+/* 全体に展開する。                                                */
+/*                                                                */
+/* 対象となるモーダル: クラス、クラス管理、URL ローダー、         */
+/* Connection Modal (mesh)、スプライト/コスチューム/サウンド/      */
+/* 背景ライブラリなど。                                            */
+/*                                                                */
+/* SP では非対応 (ドロワーから削除済み):                            */
+/* - ブロック表示 (PR #594)                                        */
+/* - チュートリアル (Tips Library): カードコンテンツ自体が SP の  */
+/*   レイアウトに合わないため (PR #595)                            */
+/* ------------------------------------------------------------ */
+
+/*
+ * upstream `modal/modal.css` の `.modal_modal-content_<hash>` を全部覆い、
+ * Smalruby 各モーダルの `.modal-content { width: 500px }` も無効化する。
+ * !important が必要なのは、各 CSS Module の幅指定が同じ要素に当たって
+ * いるため。
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-content"]) {
+    position: fixed !important;
+    inset: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+/*
+ * モーダル overlay も z-index を底上げして MobileSideRail (z 9000) より
+ * 上に乗るようにし、モーダル open 中はサイドレールがクリックされても
+ * 反応しないようにする (誤タップでドロワー開閉してしまうのを防ぐ)。
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-overlay"]) {
+    z-index: 10000 !important;
+}
+
+/*
+ * モーダル本文の高さ制約を viewport いっぱいに開放する。
+ * - classroom-modal は body に `max-height: calc(100vh - 170px)` を
+ *   設定しているのでこれを解除し、flex で残り高さを使う
+ * - 他のモーダルでも `max-height` 指定があれば同様に解除
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-content"] [class*="_body"]) {
+    max-height: none !important;
+    flex: 1 1 auto !important;
+}
+
+/*
+ * モーダル内部の box (Modal component の Box) を「縦スクロールコンテナ」と
+ * して扱う。box_box が overflow-y: auto となり、本文が viewport を超えても
+ * 内部でスクロールできる。ヘッダーは下記 sticky ルールで上部に固定する。
+ *
+ * iOS Safari の慣性スクロール対応として `-webkit-overflow-scrolling: touch` も付ける。
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-content"] [class*="box_box"]) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/*
+ * モーダルヘッダーを box_box のスクロール内で上部に sticky 固定する。
+ * 本文がスクロールしてもタイトルや戻る/×ボタンが常に見えるようにする。
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-content"] [class*="modal_header"]) {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1 !important;
+    flex-shrink: 0 !important;
+}
