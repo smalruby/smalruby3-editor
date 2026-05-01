@@ -12,6 +12,7 @@ import spriteIcon from '../mobile-bottom-tabs/icon--sprite-cat.svg';
 import hamburgerIcon from '../mobile-drawer/icon--hamburger.svg';
 import playIcon from '../mobile-top-bar/icon--play.svg';
 import stopIcon from '../mobile-top-bar/icon--stop.svg';
+import backpackIcon from './icon--backpack.svg';
 import {
     activateTab,
     BLOCKS_TAB_INDEX,
@@ -49,6 +50,8 @@ const SPRITE_KEY = 'sprite';
  * @param {Function} props.onActivateTab - activateTab ディスパッチャ
  * @param {Function} props.onOpenDrawer - drawer を開くコールバック (親管理)
  * @param {Function} props.onSpriteTabActiveChange - スプライトタブ active 切替
+ * @param {boolean} props.backpackOpen - バックパックパネルが開いているか (親管理)
+ * @param {Function} props.onToggleBackpack - バックパックパネル開閉切替 (親管理)
  * @returns {JSX.Element|null} portal で document.body 直下にレンダリング
  */
 const MobileSideRailComponent = ({
@@ -61,6 +64,8 @@ const MobileSideRailComponent = ({
     onActivateTab,
     onOpenDrawer,
     onSpriteTabActiveChange,
+    backpackOpen,
+    onToggleBackpack,
 }) => {
     const handlePlayClick = useCallback(
         e => {
@@ -85,6 +90,15 @@ const MobileSideRailComponent = ({
             if (target) target.blur();
         },
         [onOpenDrawer],
+    );
+
+    const handleBackpackClick = useCallback(
+        e => {
+            onToggleBackpack();
+            const target = e?.currentTarget;
+            if (target) target.blur();
+        },
+        [onToggleBackpack],
     );
 
     const handleTabClick = useCallback(
@@ -221,6 +235,27 @@ const MobileSideRailComponent = ({
                 </button>
             ))}
             <div className={styles.spacer} />
+            {/*
+             * 一番下に「バックパック」トグル。タブとは別カテゴリなので spacer の
+             * 後ろに配置して下端に貼り付ける。toggle 状態は MobileGui (親) で管理。
+             */}
+            <button
+                type="button"
+                className={styles.button}
+                onClick={handleBackpackClick}
+                data-testid="mobile-side-rail-backpack"
+                data-active={backpackOpen ? 'true' : 'false'}
+                aria-pressed={backpackOpen}
+            >
+                <img alt="" aria-hidden="true" className={styles.icon} draggable={false} src={backpackIcon} />
+                <span className={styles.label}>
+                    <FormattedMessage
+                        defaultMessage="Backpack"
+                        description="Mobile side rail toggle button for the backpack panel"
+                        id="gui.mobile.sideRail.backpack"
+                    />
+                </span>
+            </button>
         </nav>,
         document.body,
     );
@@ -240,6 +275,8 @@ MobileSideRailComponent.propTypes = {
     onActivateTab: PropTypes.func.isRequired,
     onOpenDrawer: PropTypes.func.isRequired,
     onSpriteTabActiveChange: PropTypes.func.isRequired,
+    backpackOpen: PropTypes.bool.isRequired,
+    onToggleBackpack: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = state => ({

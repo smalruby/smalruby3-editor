@@ -919,6 +919,7 @@ export default {
     'gui.narrowScreenWarning.message': '📱 本格的な編集は PC・タブレットを推奨します。',
     'gui.narrowScreenWarning.close': '閉じる',
     'gui.mobile.drawer.title': 'メニュー',
+    'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
     'gui.mobile.drawer.section.edit': '編集',
     'gui.mobile.drawer.section.settings': '設定',

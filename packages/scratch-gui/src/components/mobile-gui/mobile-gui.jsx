@@ -50,15 +50,18 @@ import './mobile-gui.css';
  */
 const MOBILE_MODE_CLASS = 'smalruby-mobile-mode';
 const MOBILE_FULLSCREEN_CLASS = 'smalruby-mobile-fullscreen';
+const MOBILE_BACKPACK_OPEN_CLASS = 'smalruby-mobile-backpack-open';
 
 const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [spriteTabActive, setSpriteTabActive] = useState(false);
     const [paintToolbarCollapsed, setPaintToolbarCollapsed] = useState(false);
+    const [backpackOpen, setBackpackOpen] = useState(false);
     const handleOpenDrawer = useCallback(() => setDrawerOpen(true), []);
     const handleCloseDrawer = useCallback(() => setDrawerOpen(false), []);
     const handleSpriteTabActiveChange = useCallback(active => setSpriteTabActive(active), []);
     const handleTogglePaintToolbar = useCallback(() => setPaintToolbarCollapsed(v => !v), []);
+    const handleToggleBackpack = useCallback(() => setBackpackOpen(v => !v), []);
 
     // 上部ツールバー出し入れトグルは「コスチュームタブ + スプライトタブ非active」の
     // ときだけ意味があるので、その時だけ active にする。
@@ -119,6 +122,19 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
     // `.smalruby-mobile-fullscreen` を起点に右ペイン (gui_stage-and-target-wrapper)
     // の表示を復活させる。以前は CSS `:has()` で同等のことをしていたが
     // 古い iOS Safari で動作しないことがあったので JS 制御に切り替え。
+    // バックパック開閉を body class に反映。CSS 側で
+    // `.smalruby-mobile-backpack-open` をトリガーに upstream の <Backpack>
+    // を画面下部に表示する。デフォルトは hidden (mobile-gui.css の section 6)。
+    useEffect(() => {
+        if (typeof document === 'undefined') return () => {};
+        if (backpackOpen) {
+            document.body.classList.add(MOBILE_BACKPACK_OPEN_CLASS);
+        } else {
+            document.body.classList.remove(MOBILE_BACKPACK_OPEN_CLASS);
+        }
+        return () => document.body.classList.remove(MOBILE_BACKPACK_OPEN_CLASS);
+    }, [backpackOpen]);
+
     useEffect(() => {
         if (typeof document === 'undefined') return () => {};
         if (isFullScreen) {
@@ -171,6 +187,8 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
                         onOpenDrawer={handleOpenDrawer}
                         spriteTabActive={spriteTabActive}
                         onSpriteTabActiveChange={handleSpriteTabActiveChange}
+                        backpackOpen={backpackOpen}
+                        onToggleBackpack={handleToggleBackpack}
                     />
                     <MobileDrawer open={drawerOpen} onClose={handleCloseDrawer} />
                     <MobileSpritePanel active={spriteTabActive} />

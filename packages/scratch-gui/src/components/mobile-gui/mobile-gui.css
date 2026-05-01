@@ -135,12 +135,60 @@
 }
 
 /* ------------------------------------------------------------ */
-/* 3c. upstream の <Backpack> も非表示                              */
+/* 3c. upstream の <Backpack> はデフォルトで非表示                  */
 /* バックパックは画面下部に常駐する横長エリアで縦サイズを 50px 取る */
 /* が、モバイルではブロック作業エリアを優先する。                   */
+/*                                                                */
+/* MobileSideRail の「バックパック」ボタンで toggle: 開いているとき  */
+/* (body.smalruby-mobile-backpack-open) だけ画面下部に固定表示する。 */
 /* ------------------------------------------------------------ */
 :global(body.smalruby-mobile-mode [class*="backpack_backpack-container"]) {
     display: none !important;
+}
+
+/*
+ * バックパックを開いた状態 (Phase 3-B):
+ * - サイドレールの右側 (left: 56px) から右端まで横全幅
+ * - 画面下部に固定 (position: fixed)
+ * - 高さは max 35vh + min 140px で、本文エリアを大きく削らない
+ * - z-index は SideRail (9000) の下に置いて、誤タップでサイドレール
+ *   操作が阻害されないようにする (8500)
+ */
+:global(body.smalruby-mobile-mode.smalruby-mobile-backpack-open [class*="backpack_backpack-container"]) {
+    display: flex !important;
+    flex-direction: column !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 56px !important;
+    right: 0 !important;
+    background: #ffffff !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    z-index: 8500 !important;
+    max-height: 35vh !important;
+    min-height: 140px !important;
+    padding: 0 0 4px !important;
+}
+
+/*
+ * 「Backpack」ヘッダー (タップで折りたたみ) を mobile では大きめにして
+ * タップしやすく + 上部マージンを除去 (固定枠の中で詰める)。
+ */
+:global(body.smalruby-mobile-mode.smalruby-mobile-backpack-open [class*="backpack_backpack-header"]) {
+    margin-top: 0 !important;
+    padding: 0.5rem !important;
+    font-size: 0.95rem !important;
+    font-weight: bold !important;
+    flex: 0 0 auto !important;
+}
+
+/*
+ * 展開中のアイテムリストはコンテナの残り高さを使い、横スクロール可能に。
+ */
+:global(body.smalruby-mobile-mode.smalruby-mobile-backpack-open [class*="backpack_backpack-list"]) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    border-right: 0 !important;
 }
 
 /* ------------------------------------------------------------ */

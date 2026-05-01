@@ -944,6 +944,7 @@ export default {
     'gui.narrowScreenWarning.message': '📱 ほんかくてきな へんしゅうは PC・タブレットが おすすめです。',
     'gui.narrowScreenWarning.close': 'とじる',
     'gui.mobile.drawer.title': 'メニュー',
+    'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
     'gui.mobile.drawer.section.edit': 'へんしゅう',
     'gui.mobile.drawer.section.settings': 'せってい',
