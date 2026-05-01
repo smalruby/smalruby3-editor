@@ -271,3 +271,68 @@
     box-sizing: border-box;
     height: 100dvh;
 }
+
+/* ------------------------------------------------------------ */
+/* 6. 各種モーダルを SP では全画面化 (Phase 3-A2)                  */
+/*                                                                */
+/* スマホは画面の縦が 390-450px しか無いので、デフォルトの         */
+/* `margin: 100px auto` + `max-height: calc(100vh - 170px)` が    */
+/* 残った body にコンテンツが収まらず、フォーム入力やボタンが      */
+/* 操作不能になる。SP では常に full-screen 化して、本文を viewport */
+/* 全体に展開する。                                                */
+/*                                                                */
+/* 対象となるモーダル: クラス、クラス管理、ブロック表示、URL ローダー、 */
+/* チュートリアル (Tips Library)、Connection Modal (mesh)、        */
+/* スプライト/コスチューム/サウンド/背景ライブラリなど。           */
+/* ------------------------------------------------------------ */
+
+/*
+ * upstream `modal/modal.css` の `.modal_modal-content_<hash>` を全部覆い、
+ * Smalruby 各モーダルの `.modal-content { width: 500px }` も無効化する。
+ * !important が必要なのは、各 CSS Module の幅指定が同じ要素に当たって
+ * いるため。
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-content"]) {
+    position: fixed !important;
+    inset: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+/*
+ * モーダル overlay も z-index を底上げして MobileSideRail (z 9000) より
+ * 上に乗るようにし、モーダル open 中はサイドレールがクリックされても
+ * 反応しないようにする (誤タップでドロワー開閉してしまうのを防ぐ)。
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-overlay"]) {
+    z-index: 10000 !important;
+}
+
+/*
+ * モーダル本文の高さ制約を viewport いっぱいに開放する。
+ * - classroom-modal は body に `max-height: calc(100vh - 170px)` を
+ *   設定しているのでこれを解除し、flex で残り高さを使う
+ * - 他のモーダルでも `max-height` 指定があれば同様に解除
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-content"] [class*="_body"]) {
+    max-height: none !important;
+    flex: 1 1 auto !important;
+}
+
+/*
+ * モーダル内部の box (Modal component の Box) を flex column で残り
+ * 高さを使わせる。Box が grow しないと中身が切れる。
+ */
+:global(body.smalruby-mobile-mode [class*="modal_modal-content"] [class*="box_box"]) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+}
