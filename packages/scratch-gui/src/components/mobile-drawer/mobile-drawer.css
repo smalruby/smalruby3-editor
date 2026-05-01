@@ -140,3 +140,46 @@
     justify-content: center;
     color: #855cd6;
 }
+
+/*
+ * 折りたたみ可能なサブメニューの親項目。chevron を右端に配置して、開/閉を
+ * 視覚的に示す。
+ */
+.toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.toggle-label {
+    flex: 1 1 auto;
+    text-align: left;
+}
+
+.toggle-chevron {
+    flex: 0 0 auto;
+    margin-left: 0.5rem;
+    color: #855cd6;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+/*
+ * ネストされた子項目のインデント。indented = 1 段、indented2 = 2 段。
+ * accordion 内の項目に追加する。
+ */
+.indented {
+    padding-left: 2rem;
+}
+
+.indented2 {
+    padding-left: 3rem;
+}
+
+/*
+ * トグル中 (例: ターボモード ON) を示す視覚スタイル。
+ */
+.toggle-on {
+    color: #855cd6;
+    font-weight: bold;
+}
