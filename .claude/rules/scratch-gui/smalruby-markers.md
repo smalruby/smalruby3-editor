@@ -52,9 +52,6 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.css` | iPad portrait legal links cleanup | 744〜1023px viewport でフィードバックリンク + セパレータを非表示 (issue #600, #599 で 768→744 拡張) |
 | `src/components/gui/gui.css` | narrow-height vertical chrome compression | max-height: 800px で body-wrapper / tab-list の高さを圧縮 (issue #600) |
 | `src/components/menu-bar/menu-bar.css` | narrow-height menu bar compression | max-height: 800px で menu-bar 48→40px に圧縮 (issue #600) |
-| `src/components/stage-header/stage-header.css` | touch-friendly stage controls | < 1280px viewport でステージサイズボタンを 40×40 に拡大 (issue #600) |
-| `src/components/green-flag/green-flag.css` | touch-friendly green flag | < 1280px viewport で実行ボタンを 40×40 に拡大 (issue #600) |
-| `src/components/stop-all/stop-all.css` | touch-friendly stop button | < 1280px viewport で停止ボタンを 40×40 に拡大 (issue #600) |
 | `src/playground/index.css` | narrow viewport vertical scroll lock | 狭幅画面で縦スクロールを overflow-y: clip で抑止 (issue #572 Phase 1) |
 | `src/playground/index.css` | iPad portrait min-width relax | 744〜1023px viewport の min-width: 1024px を緩めて横スクロールを抑止 (issue #572 Phase 3-C, #599 で 768→744 拡張) |
 | `src/containers/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダル state マッピング |

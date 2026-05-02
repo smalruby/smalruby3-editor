@@ -27,15 +27,3 @@
 .stop-all.is-active {
     opacity: 1;
 }
-
-/*
- * === Smalruby: Start of touch-friendly stop button ===
- * < 1280px (iPad landscape など) ではタッチ向けに 32→40 に拡大 (issue #600)。
- */
-@media (max-width: 1279px) {
-    .stop-all {
-        width: 2.5rem;
-        height: 2.5rem;
-    }
-}
-/* === Smalruby: End of touch-friendly stop button === */
