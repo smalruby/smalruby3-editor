@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 
 import GUI from '../../containers/gui.jsx';
+import codePayload from '../../lib/backpack/code-payload.js';
+import { saveBackpackObject } from '../../lib/backpack-api.js';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
 import { COSTUMES_TAB_INDEX } from '../../reducers/editor-tab.js';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
@@ -165,84 +167,105 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
     }, [isFullScreen]);
 
     /*
-     * モバイルでコードブロックをバックパックに drop できるようにするための
-     * 補助レイヤー (Phase 3-B fix)。
+     * モバイル (mobile_gui=1) でコードブロックをバックパックに drop できる
+     * ようにする補助レイヤー (Phase 3-B fix)。
      *
-     * upstream の `<Backpack>` (containers/backpack.jsx) は、ブロックの
-     * ドラッグが backpack 上にあるかを `mouseenter` / `mouseleave` で
-     * 検知している。しかしモバイルのタッチイベントでは:
-     *   - scratch-blocks の block drag が pointer を capture するため、他要素
-     *     (= backpack) には mouseenter/mouseleave が届かない
-     *   - 結果として `blockDragOverBackpack` が常に false になり、drop が
-     *     handleDrop に渡らない
+     * 背景:
+     * upstream の `<Backpack>` (containers/backpack.jsx) はブロックドロップを
+     * `state.blockDragOverBackpack` フラグで判定している。これは
+     * `mouseenter` / `mouseleave` で更新されるが、scratch-blocks の block
+     * drag は pointer capture を行うため、タッチでは他要素 (= backpack) に
+     * mouseenter/mouseleave が届かず、`blockDragOverBackpack` が常に false。
+     * 結果として drop が upstream の `handleDrop` に渡らない。
      *
-     * 解決: VM の `BLOCK_DRAG_UPDATE` で「ブロックがワークスペース外に出た」
-     * 状態を検知し、その間 document の pointermove / touchmove で実際の
-     * 指/カーソル位置を追い、backpack-list の bounding rect に入ったら
-     * 合成 mouseenter / mouseleave を dispatch する。
+     * さらに synthetic な mouseenter dispatch も試したが、scratch-blocks の
+     * `BLOCK_DRAG_UPDATE` が末尾で `over=false` を吐く挙動 (block を release
+     * 直前の状態で評価する) のため、`blockDragOutsideWorkspace` が false に
+     * 戻ってしまい、合成 mouseenter のロジックも空振りする。
      *
-     * これにより upstream の Backpack 側のロジックを変更せずに、モバイルでも
-     * block drop が機能する。drop が確定した後の保存処理 (handleDrop +
-     * codePayload + saveBackpackObject) は upstream のまま。
+     * 対策: 上記いずれにも依存せず、本コンポーネントから直接保存する:
+     *
+     * 1. document の pointermove / touchmove / mousemove で最後の位置を保持
+     * 2. VM の `BLOCK_DRAG_END` でブロックが drop された瞬間を検知
+     * 3. 最後の位置が backpack-list の bounding rect に入っていれば、
+     *    `codePayload` でブロックを payload 化、`saveBackpackObject` で
+     *    localStorage に保存
+     * 4. 保存後、upstream の `<Backpack>` を一度 collapse → expand させて
+     *    `getContents` を再走、追加した item を一覧に反映させる。
+     *
+     * PC (mobile_gui なし) では `<MobileGui>` 自体がマウントされないので
+     * 副作用なし。upstream の通常 drop 経路 (mouseenter ベース) はそのまま。
      */
     useEffect(() => {
         if (typeof document === 'undefined' || !vm) return () => {};
-        let blockOutsideWorkspace = false;
-        let pointerOverBackpack = false;
-        const fireOnList = type => {
-            const list = document.querySelector('[class*="backpack_backpack-list"]');
-            if (!list) return;
-            // bubbles: false で OK (mouseenter/leave は元々 bubble しない)。
-            // React はネイティブの mouseenter / mouseleave を直接捕捉する。
-            const event = new MouseEvent(type, { bubbles: false, cancelable: false });
-            list.dispatchEvent(event);
-        };
-        const handleBlockDragUpdate = areBlocksOverGui => {
-            const next = Boolean(areBlocksOverGui);
-            if (next === blockOutsideWorkspace) return;
-            blockOutsideWorkspace = next;
-            if (!next && pointerOverBackpack) {
-                fireOnList('mouseleave');
-                pointerOverBackpack = false;
-            }
-        };
-        const handleBlockDragEnd = () => {
-            if (pointerOverBackpack) {
-                // upstream の Backpack は BLOCK_DRAG_END 受領時に
-                // `blockDragOverBackpack` を読んで drop するので、ここでは
-                // mouseleave を投げず保持。次の drag に備えてリセットだけする。
-            }
-            blockOutsideWorkspace = false;
-            pointerOverBackpack = false;
-        };
-        const handlePointerMove = e => {
-            if (!blockOutsideWorkspace) return;
-            const list = document.querySelector('[class*="backpack_backpack-list"]');
-            if (!list) return;
-            const r = list.getBoundingClientRect();
+        let lastX = 0;
+        let lastY = 0;
+        const updatePointer = e => {
             const point = e.touches?.[0] || e;
-            const x = point.clientX;
-            const y = point.clientY;
-            if (typeof x !== 'number' || typeof y !== 'number') return;
-            const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-            if (inside && !pointerOverBackpack) {
-                fireOnList('mouseenter');
-                pointerOverBackpack = true;
-            } else if (!inside && pointerOverBackpack) {
-                fireOnList('mouseleave');
-                pointerOverBackpack = false;
+            if (typeof point.clientX === 'number') {
+                lastX = point.clientX;
+                lastY = point.clientY;
             }
         };
-        vm.addListener('BLOCK_DRAG_UPDATE', handleBlockDragUpdate);
+        const isPointerOverBackpack = () => {
+            const list = document.querySelector('[class*="backpack_backpack-list"]');
+            if (!list) return false;
+            const r = list.getBoundingClientRect();
+            return lastX >= r.left && lastX <= r.right && lastY >= r.top && lastY <= r.bottom;
+        };
+        const refreshBackpackContents = () => {
+            // upstream Backpack の getContents() を呼ぶ手段が外から無いので、
+            // header を 2 回 click して collapse → expand させて再フェッチする。
+            const header = document.querySelector('[class*="backpack_backpack-header"]');
+            if (!header) return;
+            header.click();
+            window.setTimeout(() => header.click(), 30);
+        };
+        const handleBlockDragEnd = (blocks, topBlockId) => {
+            if (!Array.isArray(blocks) || blocks.length === 0) return;
+            if (!isPointerOverBackpack()) return;
+            // codePayload は blockToImage を含み内部で同期 throw する場合が
+            // あるので Promise.resolve でラップしてから .catch でフォールバック。
+            // 失敗してもコード自体の保存は試す (thumbnail 無しは upstream の
+            // getContents が「画像未設定」アイテムとして扱う = 視覚的に劣化
+            // するが機能はする)。
+            Promise.resolve()
+                .then(() => codePayload({ blockObjects: blocks, topBlockId }))
+                .catch(() => ({
+                    type: 'script',
+                    name: 'code',
+                    mime: 'application/json',
+                    // thumbnail 失敗時のフォールバック。upstream の
+                    // getContents は body / thumbnail を空文字でも読み込める
+                    // (リスト表示では「サムネイル無しの script アイテム」)。
+                    body: '',
+                    thumbnail: '',
+                }))
+                .then(payload =>
+                    saveBackpackObject({
+                        host: 'localStorage',
+                        ...payload,
+                    }),
+                )
+                .then(() => {
+                    refreshBackpackContents();
+                })
+                .catch(err => {
+                    // eslint-disable-next-line no-console
+                    console.error('Failed to save block to backpack:', err);
+                });
+        };
+        document.addEventListener('mousemove', updatePointer, { passive: true });
+        document.addEventListener('pointermove', updatePointer, { passive: true });
+        document.addEventListener('touchmove', updatePointer, { passive: true });
+        document.addEventListener('touchstart', updatePointer, { passive: true });
         vm.addListener('BLOCK_DRAG_END', handleBlockDragEnd);
-        // pointermove と touchmove の両方を listen (環境によって発火が異なる)。
-        document.addEventListener('pointermove', handlePointerMove, { passive: true });
-        document.addEventListener('touchmove', handlePointerMove, { passive: true });
         return () => {
-            vm.removeListener('BLOCK_DRAG_UPDATE', handleBlockDragUpdate);
+            document.removeEventListener('mousemove', updatePointer);
+            document.removeEventListener('pointermove', updatePointer);
+            document.removeEventListener('touchmove', updatePointer);
+            document.removeEventListener('touchstart', updatePointer);
             vm.removeListener('BLOCK_DRAG_END', handleBlockDragEnd);
-            document.removeEventListener('pointermove', handlePointerMove);
-            document.removeEventListener('touchmove', handlePointerMove);
         };
     }, [vm]);
 
