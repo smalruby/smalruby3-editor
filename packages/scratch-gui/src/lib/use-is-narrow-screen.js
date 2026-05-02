@@ -6,12 +6,16 @@ import { useEffect, useState } from 'react';
  * issue #572 のレスポンシブ対応で、PC レイアウトと別 UI を出し分ける際の
  * 共通ブレークポイントとして使用する。
  *
- * 検出条件: viewport の幅 ≤ 767px または高さ ≤ 500px。
+ * 検出条件: viewport の幅 ≤ 743px または高さ ≤ 500px。
  * これにより、スマホ縦持ち (例 390x844) も横持ち (例 844x390) も同じ
  * mobile UI が出る (Phase 2-I で横固定運用に切り替えたため)。
+ * iPad mini portrait (744×1133) は閾値を上回って desktop UI を出す
+ * (issue #599)。
  *
- * - スマホ縦持ち (390x844): width 390 ≤ 767 → match
+ * - スマホ縦持ち (390x844): width 390 ≤ 743 → match
  * - スマホ横持ち (844x390): height 390 ≤ 500 → match
+ * - iPad mini portrait (744x1133): 両方 > 閾値 → no match (desktop UI)
+ * - iPad portrait (768x1024): 両方 > 閾値 → no match (desktop UI)
  * - タブレット (820x1180 / 1180x820): 両方 > 閾値 → no match (desktop UI)
  * - PC (1920x1080): 両方 > 閾値 → no match (desktop UI)
  *
@@ -23,7 +27,7 @@ import { useEffect, useState } from 'react';
  * 整合性は保たれる。
  * @returns {boolean} スマホ相当のサイズなら true
  */
-const NARROW_SCREEN_QUERY = '(max-width: 767px), (max-height: 500px)';
+const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';
 
 const useIsNarrowScreen = () => {
     const [isNarrow, setIsNarrow] = useState(() => {

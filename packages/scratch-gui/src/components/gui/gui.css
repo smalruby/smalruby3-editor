@@ -119,7 +119,7 @@
     text-decoration: underline;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 743px) {
     .feedback-link,
     .link-separator {
         display: none;
@@ -128,15 +128,17 @@
 
 /* === Smalruby: Start of iPad portrait legal links cleanup === */
 /*
-    iPad portrait (768〜1023px) ではタブ列が狭く、
-    フィードバックリンク + セパレータを隠してすっきりさせる。
-    プライバシーポリシーはコンプライアンス上残す。
-    iPad landscape (1024+) では両方表示する余裕があるためそのまま
-    (issue #600)。
+    iPad mini / iPad portrait (744〜1023px) ではタブ列が狭く、
+    legal-links がタブ列に重なってプライバシーポリシーの先頭文字が
+    隠れる。すべてのリンク (privacy + separator + feedback) を非表示
+    にして整理する。これらは iPad landscape (1024+) や PC では引き続き
+    表示される。プライバシーポリシーは smalruby.app のフッターからも
+    アクセス可能 (issue #600, #599)。
 */
-@media (min-width: 768px) and (max-width: 1023px) {
-    .feedback-link,
-    .link-separator {
+@media (min-width: 744px) and (max-width: 1023px) {
+    .privacy-link,
+    .link-separator,
+    .feedback-link {
         display: none;
     }
 }
@@ -393,12 +395,13 @@ body .alerts-container {
 
 /* === Smalruby: Start of iPad portrait narrow desktop layout === */
 /*
-    iPad portrait (768x1024) などの narrow desktop 範囲では、
-    editor-wrapper の flex-basis を relax して stage 列の幅に応じて
-    縮められるようにする。stageSize 自体は gui.jsx 側で small に
-    強制するため、stage 列は ~250px に収まる (issue #572 Phase 3-C)。
+    iPad mini portrait (744x1133) / iPad portrait (768x1024) などの
+    narrow desktop 範囲では、editor-wrapper の flex-basis を relax して
+    stage 列の幅に応じて縮められるようにする。stageSize 自体は gui.jsx
+    側で small に強制するため、stage 列は ~250px に収まる
+    (issue #572 Phase 3-C, 閾値を issue #599 で 768→744 に拡張)。
 */
-@media (min-width: 768px) and (max-width: 1023px) {
+@media (min-width: 744px) and (max-width: 1023px) {
     .editor-wrapper {
         flex-basis: 0;
         flex-shrink: 1;
