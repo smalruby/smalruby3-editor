@@ -31,6 +31,25 @@
     color: $ui-white;
 }
 
+/* === Smalruby: Start of narrow-height menu bar compression === */
+/*
+    iPad landscape (1024×768) など縦が短い viewport では menu bar を
+    48px → 40px に圧縮して workspace 縦を稼ぐ。`.body-wrapper` の
+    height calc も同じ閾値で揃える (gui.css 側で) (issue #600)。
+*/
+@media (max-height: 800px) {
+    .menu-bar {
+        height: 2.5rem;
+    }
+    .menu-bar-item {
+        height: 2.5rem;
+    }
+    .menu-bar-menu {
+        margin-top: 2.5rem;
+    }
+}
+/* === Smalruby: End of narrow-height menu bar compression === */
+
 .main-menu {
     display: flex;
     flex-direction: row;

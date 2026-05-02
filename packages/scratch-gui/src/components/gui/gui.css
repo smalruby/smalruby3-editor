@@ -126,6 +126,22 @@
     }
 }
 
+/* === Smalruby: Start of iPad portrait legal links cleanup === */
+/*
+    iPad portrait (768〜1023px) ではタブ列が狭く、
+    フィードバックリンク + セパレータを隠してすっきりさせる。
+    プライバシーポリシーはコンプライアンス上残す。
+    iPad landscape (1024+) では両方表示する余裕があるためそのまま
+    (issue #600)。
+*/
+@media (min-width: 768px) and (max-width: 1023px) {
+    .feedback-link,
+    .link-separator {
+        display: none;
+    }
+}
+/* === Smalruby: End of iPad portrait legal links cleanup === */
+
 .tab {
     flex-grow: 1;
     height: 80%;
@@ -389,3 +405,21 @@ body .alerts-container {
     }
 }
 /* === Smalruby: End of iPad portrait narrow desktop layout === */
+
+/* === Smalruby: Start of narrow-height vertical chrome compression === */
+/*
+    iPad landscape (1024×768) など縦が短い viewport では、
+    menu-bar (48 → 40) と tab-list (44 → 36) を圧縮して
+    workspace の縦スペースを 16px 余分に稼ぐ。menu-bar 側の
+    height は menu-bar.css で揃えている (issue #600)。
+*/
+@media (max-height: 800px) {
+    .body-wrapper {
+        height: calc(100% - 2.5rem);
+    }
+    .tab-list,
+    .tab-list-container {
+        height: 2.25rem;
+    }
+}
+/* === Smalruby: End of narrow-height vertical chrome compression === */
