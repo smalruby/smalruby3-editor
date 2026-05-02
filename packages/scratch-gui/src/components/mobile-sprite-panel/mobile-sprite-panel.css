@@ -1,7 +1,6 @@
 .panel {
     position: fixed;
-    /* top / left / width / height は JS (visualViewport) で MobileTopBar の
-       高さと MobileBottomTabs の高さを差し引いて設定する。 */
+    /* top / left / width / height は JS (visualViewport) で動的に設定する。 */
     top: 0;
     left: 0;
     background: white;
@@ -9,14 +8,10 @@
      * z-index は 100。タブコンテンツ (Blockly toolbox 40 等) より上に乗せて
      * sprite tab 切替時に編集エリアを覆い隠す。
      *
-     * SideRail (9200) や backpack (200, mobile-gui.css の Phase 3-B) より下に
-     * 置くことで、sprite タブ中でも左サイドレールがタップ可能、かつ画面下端
-     * に開かれた backpack が前面に見える (drop ターゲットとして使える)。
+     * SideRail (9200) や backpack (200) より下に置くことで、sprite タブ中でも
+     * 左サイドレールがタップ可能、かつ画面下端に開かれた backpack が前面に
+     * 見える (drop ターゲットとして使える)。
      * drawer (9501) や modal overlay (10000) よりも当然下。
-     *
-     * 旧 Phase (MobileTopBar / MobileBottomTabs があった時代) では 8500 で
-     * 上下メニュー (9000) より下に置いていたが、それらは Phase 2-J で廃止
-     * されたので低い値に戻して問題ない。
      */
     z-index: 100;
     overflow: auto;
@@ -29,11 +24,10 @@
 }
 
 /*
- * upstream の TargetPane は元々 right-rail 用に flex-direction: row で
- * スプライトリスト (左) + 72px の stage-selector-wrapper (右) というレイアウト。
- * 横向きスマホ (Phase 2-I で横固定運用に切り替え済み) なら横幅が十分
- * (844 - 56 = 788px) あるので、デスクトップと同じ row レイアウトをそのまま
- * 使える。column 方向への並び替えは廃止。
+ * upstream の TargetPane は flex-direction: row で
+ * スプライトリスト (左) + 72px の stage-selector-wrapper (右) のレイアウト。
+ * 横向きスマホは横幅が十分 (844 - 56 = 788px) あるので、デスクトップと
+ * 同じ row レイアウトをそのまま使える。
  *
  * height: 100% でサイドレール右の利用可能高さを使い切る。
  */

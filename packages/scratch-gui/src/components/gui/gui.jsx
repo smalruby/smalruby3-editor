@@ -300,8 +300,7 @@ const GUIComponent = props => {
         // === Smalruby: Start of iPad portrait narrow desktop stage size ===
         // 744〜1023px (iPad mini portrait / iPad portrait など) の narrow desktop
         // では、480px / 408px / 360px の stage を維持すると viewport に収まらない
-        // ため、stage を 240x180 (small) に強制する。閾値は issue #599 で 768→744
-        // に拡張 (iPad mini portrait をカバー)。
+        // ため、stage を 240x180 (small) に強制する。
         <MediaQuery maxWidth={1023} minWidth={744}>{isNarrowDesktop => {
             const baseStageSize = resolveStageSize(stageSizeMode, isFullSize);
             const stageSize = isNarrowDesktop ? STAGE_DISPLAY_SIZES.small : baseStageSize;

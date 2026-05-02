@@ -51,16 +51,13 @@ const usePositionAtVisualViewportTop = (ref, enabled) => {
 };
 
 /**
- * Mobile 用上部バー。
+ * Mobile 用上部バー。左端 ☰ + 中央プロジェクトタイトル + 右端 ▶/⏹ の構成。
  *
- * Phase 2-C: 右端に「▶ / ⏹ ボタン」を置く。
+ * - ☰ タップ → onOpenDrawer() で <MobileDrawer> を開く
  * - 編集中 (isFullScreen=false): ▶ → setFullScreen(true) + vm.start() + vm.greenFlag()
  * - プレビュー中 (isFullScreen=true): ⏹ → setFullScreen(false) + vm.stopAll()
  *
- * Phase 2-E: 左端に ☰ ハンバーガー、中央にプロジェクトタイトル表示を追加。
- * - ☰ タップ → onOpenDrawer() で <MobileDrawer> を開く
- * - プロジェクトタイトルは表示のみ。編集はモバイルでは省略する。
- *
+ * プロジェクトタイトルは表示のみ (モバイルでは編集を省略)。
  * 全画面でも上部バーは表示し続ける (要望)。
  * @param {object} props - props
  * @param {object} props.vm - scratch-vm インスタンス

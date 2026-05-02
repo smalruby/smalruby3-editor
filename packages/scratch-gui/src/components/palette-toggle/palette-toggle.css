@@ -1,10 +1,8 @@
 @import "../../css/z-index.css";
 
 /*
- * パレットを出し入れするトグル。SP のコスチュームトグル
- * (mobile-paint-toolbar-toggle, 60×18) と同じ tap 領域 (1080px²) を
- * 確保するため、縦長 18×60 で固定。PC/SP 両方で同サイズ・同スタイル
- * (issue #572 Phase 3-D)。
+ * パレットを出し入れするトグル。指でも掴めるように縦長 18×60 の
+ * tap 領域を確保する。
  */
 .palette-toggle-button {
     position: absolute;

@@ -175,7 +175,7 @@ const hasV2Features = vm => {
 };
 
 /**
- * Mobile 用ドロワー (ハンバーガーメニュー本体, issue #572 Phase 3-A)。
+ * Mobile 用ドロワー (ハンバーガーメニュー本体)。
  *
  * MobileSideRail の ☰ から開閉する。Desktop メニューバーと同等の主要機能を
  * 折りたたみ可能なツリー形式で提供する:
@@ -537,9 +537,8 @@ const MobileDrawerComponent = ({
                      * これらは「セクション」ではなく単独のトップレベル項目なので、
                      * sectionTitle は付けず menuItem だけ並べる。
                      *
-                     * チュートリアル (Tips Library) は SP では非対応 (PR #595):
-                     * カードコンテンツの cards.jsx が SP のレイアウトに合わない
-                     * (固定幅、複数列、画像中心) ため。
+                     * チュートリアル (Tips Library) は SP 非対応:
+                     * cards.jsx が固定幅・複数列・画像中心で SP レイアウトに合わない。
                      */}
                     {classroomEnabled && (
                         <li>

@@ -133,7 +133,7 @@
     隠れる。すべてのリンク (privacy + separator + feedback) を非表示
     にして整理する。これらは iPad landscape (1024+) や PC では引き続き
     表示される。プライバシーポリシーは smalruby.app のフッターからも
-    アクセス可能 (issue #600, #599)。
+    アクセス可能。
 */
 @media (min-width: 744px) and (max-width: 1023px) {
     .privacy-link,
@@ -398,8 +398,7 @@ body .alerts-container {
     iPad mini portrait (744x1133) / iPad portrait (768x1024) などの
     narrow desktop 範囲では、editor-wrapper の flex-basis を relax して
     stage 列の幅に応じて縮められるようにする。stageSize 自体は gui.jsx
-    側で small に強制するため、stage 列は ~250px に収まる
-    (issue #572 Phase 3-C, 閾値を issue #599 で 768→744 に拡張)。
+    側で small に強制するため、stage 列は ~250px に収まる。
 */
 @media (min-width: 744px) and (max-width: 1023px) {
     .editor-wrapper {
@@ -414,7 +413,7 @@ body .alerts-container {
     iPad landscape (1024×768) など縦が短い viewport では、
     menu-bar (48 → 40) と tab-list (44 → 36) を圧縮して
     workspace の縦スペースを 16px 余分に稼ぐ。menu-bar 側の
-    height は menu-bar.css で揃えている (issue #600)。
+    height は menu-bar.css で揃えている。
 */
 @media (max-height: 800px) {
     .body-wrapper {

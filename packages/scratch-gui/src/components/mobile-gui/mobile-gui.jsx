@@ -20,33 +20,13 @@ import MobileSpritePanel from '../mobile-sprite-panel/mobile-sprite-panel.jsx';
 import './mobile-gui.css';
 
 /**
- * 狭幅 viewport 用の独立 GUI シェル (issue #572 Phase 2)。
+ * 狭幅 viewport 用の独立 GUI シェル。
  *
- * 設計方針:
- * - upstream の <GUI> には手を入れず、別コンポーネントとして並走する
- * - 段階的に <MobileGui> 配下の独自 UI を増やし、徐々に <GUI> 内部の
- *   レイアウトと役割を分担していく。
- * - 各 PR は機能を一つずつ追加するインクリメンタルな構成にして、
- *   develop に小さくマージできるようにする。
+ * 設計方針: upstream の <GUI> には手を入れず、本コンポーネントから
+ * `body.smalruby-mobile-mode` 起点の CSS とサイドレール / ドロワー /
+ * スプライトパネル等の mobile-only UI で覆い被せる。
  *
- * 進捗:
- *   - PR-2A: スケルトン (本コンポーネントの作成、<GUI> 素通し)
- *   - PR-2B: ボトムタブ × 5 (<MobileBottomTabs /> を追加)
- *   - PR-2C: ステージ全画面プレビュー (<MobileTopBar /> の ▶ で
- *     upstream の isFullScreen mode に入る)
- *   - PR-2D: ブロックパレットドロワーのドラッグ開始自動クローズ
- *     (Phase 2-J で横固定運用に切り替え、十分な横幅を確保できたため revert)
- *   - PR-2E: ハンバーガーメニュー (<MobileDrawer /> + <MobileTopBar /> 左の ☰)
- *   - PR-2F: スプライト管理 (本 PR、<MobileSpritePanel />)。スプライトタブを
- *     active にすると upstream <TargetPane> を全画面オーバーレイで表示し、
- *     スプライト追加 / 削除 / 選択 + ステージ背景管理ができるようにする。
- *     issue #572 の元症状「I can't add sprites nor costumes on safari on iOS」の解消。
- *
- * 状態管理:
- * - drawer (ハンバーガー) の open: useState
- * - sprite tab active: useState (Redux 化していないが、必要になったら検討)
- *
- * 受け取る props は <GUI> と同一 (AppStateHOC / HashParserHOC からの全 props)。
+ * iOS Safari 等の狭幅 viewport では自動的にこちらがマウントされる。
  * @param {object} props - <GUI> と同じ props
  * @returns {JSX.Element} <GUI> + 各種 mobile-only コンポーネント
  */
@@ -168,8 +148,7 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
 
     /*
      * モバイル (狭幅 viewport で自動的に MobileGui がマウントされる) で
-     * コードブロックをバックパックに drop できるようにする補助レイヤー
-     * (Phase 3-B fix)。
+     * コードブロックをバックパックに drop できるようにする補助レイヤー。
      *
      * 背景:
      * upstream の `<Backpack>` (containers/backpack.jsx) はブロックドロップを
@@ -303,10 +282,9 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
             <ConnectedIntlProvider>
                 <>
                     {/*
-                     * Phase 2-J: 上下のメニュー (MobileTopBar / MobileBottomTabs) を
-                     * 廃止し、左 48px サイドレールに ☰ + ▶ + 5 タブを集約。
-                     * 編集エリアが viewport 縦 100% を使えるようになり、上流の
-                     * paint editor / sound editor の縦最小サイズを満たせる。
+                     * 左 48px サイドレールに ☰ + ▶ + 5 タブを集約することで、
+                     * 編集エリアが viewport 縦 100% を使えるようにし、上流の
+                     * paint editor / sound editor の縦最小サイズを満たす。
                      */}
                     <MobileSideRail
                         onOpenDrawer={handleOpenDrawer}
@@ -318,10 +296,10 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
                     <MobileDrawer open={drawerOpen} onClose={handleCloseDrawer} />
                     <MobileSpritePanel active={spriteTabActive} />
                     {/*
-                     * Phase 2-J: コスチュームタブで上部ツールバーを出し入れする
-                     * トグル。折りたたみ中は body class で paint-editor の上部
-                     * ツールバーを display: none にし、canvas + ツールが viewport
-                     * 縦 100% を使えるようにする。
+                     * コスチュームタブで上部ツールバーを出し入れするトグル。
+                     * 折りたたみ中は body class で paint-editor の上部ツールバーを
+                     * display: none にし、canvas + ツールが viewport 縦 100% を
+                     * 使えるようにする。
                      */}
                     <MobilePaintToolbarToggle
                         active={paintToolbarToggleActive}
@@ -329,7 +307,7 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
                         onToggle={handleTogglePaintToolbar}
                     />
                     {/*
-                     * Phase 2-I: 縦向き時にオーバーレイを出して横にしてもらう。
+                     * 縦向き時にオーバーレイを出して横にしてもらう。
                      * 上流の paint editor / sound editor の min-width 群が
                      * 390px に収まらないため、横固定運用に倒す。
                      */}

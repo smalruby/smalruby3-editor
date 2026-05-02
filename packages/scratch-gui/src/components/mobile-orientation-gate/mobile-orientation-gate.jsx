@@ -51,7 +51,7 @@ const usePortraitOrientation = () => {
 
 /**
  * 縦向き (portrait) の時だけフルスクリーンオーバーレイを表示して、
- * 横向きにするよう案内するゲート (issue #572 Phase 2-I)。
+ * 横向きにするよう案内するゲート。
  *
  * 背景:
  * - upstream の <PaintEditor> や <SoundEditor> は密度が高く、390px 縦持ちでは

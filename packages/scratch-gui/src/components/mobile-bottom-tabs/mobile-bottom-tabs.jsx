@@ -61,18 +61,12 @@ const SPRITE_KEY = 'sprite';
  * 5 つのモバイル用ボトムタブ:
  *   スプライト / コード / コスチューム / 音 / ルビー
  *
- * - コード / コスチューム / 音 / ルビー は upstream の `editorTab` Redux に
- *   ディスパッチして既存タブを切り替える。アイコン・ラベルは upstream の
- *   <Tab> と同じ SVG / 翻訳キーを再利用 (`gui.gui.codeTab` 等)
- * - スプライトタブは mobile 固有の placeholder
+ * コード / コスチューム / 音 / ルビー は upstream の `editorTab` Redux に
+ * ディスパッチして既存タブを切り替える。スプライトタブは mobile 固有で、
+ * active state は親 (MobileGui) で `<MobileSpritePanel>` と共有する。
  *
- * 全画面 (isFullScreen=true) のときはステージプレビューに専念するため
- * ボトムタブを隠す (PR-2C で追加)。
- *
+ * 全画面時はステージプレビューに専念するためボトムタブを隠す。
  * 表示位置は `position: fixed` + `visualViewport` API で viewport 下端に追従。
- *
- * Phase 2-F: スプライトタブの active state を親 (MobileGui) に持ち上げ、
- * `<MobileSpritePanel>` の表示制御と共有する。
  * @param {object} props - props
  * @param {number} props.activeTabIndex - 現在の editorTab Redux 値
  * @param {boolean} props.isFullScreen - upstream の fullscreen mode フラグ

@@ -104,7 +104,7 @@
 /*
  * upstream の getStageDimensions(isFullScreen=true) は width = window.innerWidth
  * (= viewport 幅) で計算するが、stage には 3px の border が content-box で付くため
- * 結果的に viewport 幅 + 6px の box になり左右がはみ出す (issue #572 検証で判明)。
+ * 結果的に viewport 幅 + 6px の box になり左右がはみ出す。
  * 全画面ステージのみ box-sizing を border-box に上書きして、border を box 幅に
  * 含める形にする。stage 内の canvas は影響を受けない (canvas は別の sizing JS で
  * 制御されている)。
