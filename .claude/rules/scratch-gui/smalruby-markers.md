@@ -51,6 +51,8 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.css` | iPad portrait narrow desktop layout | 768〜1023px viewport で editor-wrapper の flex-basis を緩める (issue #572 Phase 3-C) |
 | `src/components/gui/gui.css` | narrow desktop legal links cleanup | 768〜1279px viewport でフィードバックリンク + セパレータを非表示 (issue #600) |
 | `src/components/stage-header/stage-header.css` | touch-friendly stage controls | < 1280px viewport でステージサイズボタンを 40×40 に拡大 (issue #600) |
+| `src/components/green-flag/green-flag.css` | touch-friendly green flag | < 1280px viewport で実行ボタンを 40×40 に拡大 (issue #600) |
+| `src/components/stop-all/stop-all.css` | touch-friendly stop button | < 1280px viewport で停止ボタンを 40×40 に拡大 (issue #600) |
 | `src/playground/index.css` | narrow viewport vertical scroll lock | 狭幅画面で縦スクロールを overflow-y: clip で抑止 (issue #572 Phase 1) |
 | `src/playground/index.css` | iPad portrait min-width relax | 768〜1023px viewport の min-width: 1024px を緩めて横スクロールを抑止 (issue #572 Phase 3-C) |
 | `src/containers/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダル state マッピング |
