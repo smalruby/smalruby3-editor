@@ -52,7 +52,7 @@ const MOBILE_MODE_CLASS = 'smalruby-mobile-mode';
 const MOBILE_FULLSCREEN_CLASS = 'smalruby-mobile-fullscreen';
 const MOBILE_BACKPACK_OPEN_CLASS = 'smalruby-mobile-backpack-open';
 
-const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
+const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [spriteTabActive, setSpriteTabActive] = useState(false);
     const [paintToolbarCollapsed, setPaintToolbarCollapsed] = useState(false);
@@ -164,6 +164,88 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
         return () => document.body.classList.remove(MOBILE_FULLSCREEN_CLASS);
     }, [isFullScreen]);
 
+    /*
+     * モバイルでコードブロックをバックパックに drop できるようにするための
+     * 補助レイヤー (Phase 3-B fix)。
+     *
+     * upstream の `<Backpack>` (containers/backpack.jsx) は、ブロックの
+     * ドラッグが backpack 上にあるかを `mouseenter` / `mouseleave` で
+     * 検知している。しかしモバイルのタッチイベントでは:
+     *   - scratch-blocks の block drag が pointer を capture するため、他要素
+     *     (= backpack) には mouseenter/mouseleave が届かない
+     *   - 結果として `blockDragOverBackpack` が常に false になり、drop が
+     *     handleDrop に渡らない
+     *
+     * 解決: VM の `BLOCK_DRAG_UPDATE` で「ブロックがワークスペース外に出た」
+     * 状態を検知し、その間 document の pointermove / touchmove で実際の
+     * 指/カーソル位置を追い、backpack-list の bounding rect に入ったら
+     * 合成 mouseenter / mouseleave を dispatch する。
+     *
+     * これにより upstream の Backpack 側のロジックを変更せずに、モバイルでも
+     * block drop が機能する。drop が確定した後の保存処理 (handleDrop +
+     * codePayload + saveBackpackObject) は upstream のまま。
+     */
+    useEffect(() => {
+        if (typeof document === 'undefined' || !vm) return () => {};
+        let blockOutsideWorkspace = false;
+        let pointerOverBackpack = false;
+        const fireOnList = type => {
+            const list = document.querySelector('[class*="backpack_backpack-list"]');
+            if (!list) return;
+            // bubbles: false で OK (mouseenter/leave は元々 bubble しない)。
+            // React はネイティブの mouseenter / mouseleave を直接捕捉する。
+            const event = new MouseEvent(type, { bubbles: false, cancelable: false });
+            list.dispatchEvent(event);
+        };
+        const handleBlockDragUpdate = areBlocksOverGui => {
+            const next = Boolean(areBlocksOverGui);
+            if (next === blockOutsideWorkspace) return;
+            blockOutsideWorkspace = next;
+            if (!next && pointerOverBackpack) {
+                fireOnList('mouseleave');
+                pointerOverBackpack = false;
+            }
+        };
+        const handleBlockDragEnd = () => {
+            if (pointerOverBackpack) {
+                // upstream の Backpack は BLOCK_DRAG_END 受領時に
+                // `blockDragOverBackpack` を読んで drop するので、ここでは
+                // mouseleave を投げず保持。次の drag に備えてリセットだけする。
+            }
+            blockOutsideWorkspace = false;
+            pointerOverBackpack = false;
+        };
+        const handlePointerMove = e => {
+            if (!blockOutsideWorkspace) return;
+            const list = document.querySelector('[class*="backpack_backpack-list"]');
+            if (!list) return;
+            const r = list.getBoundingClientRect();
+            const point = e.touches?.[0] || e;
+            const x = point.clientX;
+            const y = point.clientY;
+            if (typeof x !== 'number' || typeof y !== 'number') return;
+            const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+            if (inside && !pointerOverBackpack) {
+                fireOnList('mouseenter');
+                pointerOverBackpack = true;
+            } else if (!inside && pointerOverBackpack) {
+                fireOnList('mouseleave');
+                pointerOverBackpack = false;
+            }
+        };
+        vm.addListener('BLOCK_DRAG_UPDATE', handleBlockDragUpdate);
+        vm.addListener('BLOCK_DRAG_END', handleBlockDragEnd);
+        // pointermove と touchmove の両方を listen (環境によって発火が異なる)。
+        document.addEventListener('pointermove', handlePointerMove, { passive: true });
+        document.addEventListener('touchmove', handlePointerMove, { passive: true });
+        return () => {
+            vm.removeListener('BLOCK_DRAG_UPDATE', handleBlockDragUpdate);
+            vm.removeListener('BLOCK_DRAG_END', handleBlockDragEnd);
+            document.removeEventListener('pointermove', handlePointerMove);
+            document.removeEventListener('touchmove', handlePointerMove);
+        };
+    }, [vm]);
+
     useEffect(() => {
         if (typeof document === 'undefined') return () => {};
         document.documentElement.classList.add(MOBILE_MODE_CLASS);
@@ -237,11 +319,13 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
 MobileGui.propTypes = {
     activeTabIndex: PropTypes.number.isRequired,
     isFullScreen: PropTypes.bool.isRequired,
+    vm: PropTypes.object,
 };
 
 const mapStateToProps = state => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     isFullScreen: state.scratchGui.mode.isFullScreen,
+    vm: state.scratchGui.vm,
 });
 
 export default connect(mapStateToProps)(MobileGui);
