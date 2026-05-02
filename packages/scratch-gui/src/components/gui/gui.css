@@ -374,3 +374,18 @@ body .alerts-container {
 :global(.ReactModal__Body--open) {
     overflow: hidden;
 }
+
+/* === Smalruby: Start of iPad portrait narrow desktop layout === */
+/*
+    iPad portrait (768x1024) などの narrow desktop 範囲では、
+    editor-wrapper の flex-basis を relax して stage 列の幅に応じて
+    縮められるようにする。stageSize 自体は gui.jsx 側で small に
+    強制するため、stage 列は ~250px に収まる (issue #572 Phase 3-C)。
+*/
+@media (min-width: 768px) and (max-width: 1023px) {
+    .editor-wrapper {
+        flex-basis: 0;
+        flex-shrink: 1;
+    }
+}
+/* === Smalruby: End of iPad portrait narrow desktop layout === */
