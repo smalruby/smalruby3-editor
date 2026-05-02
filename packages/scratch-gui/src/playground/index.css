@@ -16,7 +16,7 @@ body,
 /* よって body が viewport より縦に伸びてしまい、ページ全体が縦スクロール */
 /* 可能になっていた。横スクロール (1024px min-width) は残したいので、 */
 /* overflow-y: clip だけ当てる (clip は overflow-x への副作用がない)。 */
-@media (max-width: 767px) {
+@media (max-width: 743px) {
     html,
     body {
         overflow-y: clip;
@@ -25,15 +25,16 @@ body,
 /* === Smalruby: End of narrow viewport vertical scroll lock === */
 
 /* === Smalruby: Start of iPad portrait min-width relax === */
-/* iPad portrait (768x1024) など、横幅が 1024px 未満で 768px 以上の */
-/* デスクトップレイアウト範囲では、min-width: 1024px を緩めて横スクロール */
-/* なしで GUI が表示されるようにする。レイアウト調整は gui.css と     */
-/* gui.jsx の Smalruby マーカーで行う (issue #572 Phase 3-C)。       */
-@media (min-width: 768px) and (max-width: 1023px) {
+/* iPad mini portrait (744x1133) / iPad portrait (768x1024) など、    */
+/* 横幅が 1024px 未満で 744px 以上のデスクトップレイアウト範囲では、 */
+/* min-width: 1024px を緩めて横スクロールなしで GUI が表示されるように  */
+/* する。レイアウト調整は gui.css と gui.jsx の Smalruby マーカーで    */
+/* 行う (issue #572 Phase 3-C, 閾値を issue #599 で 768→744 に拡張)。 */
+@media (min-width: 744px) and (max-width: 1023px) {
     html,
     body,
     .app {
-        min-width: 768px;
+        min-width: 744px;
     }
 }
 /* === Smalruby: End of iPad portrait min-width relax === */
