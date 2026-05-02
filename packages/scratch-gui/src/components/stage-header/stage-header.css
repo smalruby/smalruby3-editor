@@ -98,18 +98,3 @@
         filter: brightness(90%);
     }
 }
-
-/*
- * === Smalruby: Start of touch-friendly stage controls ===
- * iPad landscape (1024×768) など、横幅が 1280px 未満の narrow desktop /
- * tablet 範囲では、ステージサイズトグル・フルスクリーンボタンを少し大きく
- * してタップしやすくする (issue #600)。
- */
-@media (max-width: 1279px) {
-    .stage-button {
-        width: calc(2.5rem + 2px);
-        height: calc(2.5rem + 2px);
-        padding: 0.5rem;
-    }
-}
-/* === Smalruby: End of touch-friendly stage controls === */
