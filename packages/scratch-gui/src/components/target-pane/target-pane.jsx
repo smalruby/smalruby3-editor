@@ -98,10 +98,10 @@ const TargetPane = ({
             <div>
                 {/*
                  * === Smalruby: Start of mobile-sprite-panel suppress-library ===
-                 * MobileSpritePanel (issue #572 Phase 2-F) は upstream <GUI> 配下と
-                 * 別ツリーで <TargetPane> を再描画する。両方で <SpriteLibrary>
-                 * モーダルを描画するとモバイルで二重モーダルになるため、
-                 * mobile copy 側だけ hideSpriteLibrary=true で描画を抑止する。
+                 * MobileSpritePanel は upstream <GUI> 配下と別ツリーで
+                 * <TargetPane> を再描画する。両方で <SpriteLibrary> モーダルを
+                 * 描画するとモバイルで二重モーダルになるため、mobile copy 側
+                 * だけ hideSpriteLibrary=true で描画を抑止する。
                  * === Smalruby: End of mobile-sprite-panel suppress-library ===
                  */}
                 {spriteLibraryVisible && !hideSpriteLibrary ? (

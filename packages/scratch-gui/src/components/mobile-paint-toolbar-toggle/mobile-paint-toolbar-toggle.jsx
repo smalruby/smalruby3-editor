@@ -15,10 +15,10 @@ const TOOLBAR_HEIGHT = 104;
 
 /**
  * コスチュームタブの上部ツールバー (`paint-editor_editor-container-top`) を
- * 出し入れするトグルハンドル (issue #572 Phase 2-J)。
+ * 出し入れするトグルハンドル。
  *
- * 横向き iPhone で paint editor の上部ツールバーは sticky で常駐させる
- * (PR-2J Stage 1) が、それでも canvas の縦スペースを 104px ほど食う。
+ * 横向き iPhone で paint editor の上部ツールバーは sticky で常駐させるが、
+ * それでも canvas の縦スペースを 104px ほど食う。
  * このトグルで折りたたむと canvas + ツールが viewport 縦 100% を使え、
  * もう一度タップで戻せる。ブロックパレットの `<PaletteToggle>` と同じ
  * 「出し入れ」UX。

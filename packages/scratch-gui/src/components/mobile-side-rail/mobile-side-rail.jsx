@@ -26,7 +26,7 @@ import styles from './mobile-side-rail.css';
 const SPRITE_KEY = 'sprite';
 
 /**
- * 横向き専用 Mobile UI の左 48px サイドレール (issue #572 Phase 2-J)。
+ * 横向き専用 Mobile UI の左 48px サイドレール。
  *
  * 上下のメニューバーを廃止し、本コンポーネントに ☰ + ▶/⏹ + 5 タブ
  * (sprite/code/costume/sound/ruby) を集約することで、編集エリアが viewport
@@ -38,8 +38,7 @@ const SPRITE_KEY = 'sprite';
  * - middle: 5 タブ
  * - bottom: 余白 (将来的にプロジェクト保存ステータス等を入れる枠)
  *
- * 構成は MobileTopBar (PR-2C/2E) + MobileBottomTabs (PR-2B/2F) を縦に並べた
- * 等価物。スプライトタブの active state は親 (MobileGui) 管理を継続。
+ * スプライトタブの active state は親 (MobileGui) 管理。
  * @param {object} props - props
  * @param {object} props.vm - scratch-vm
  * @param {boolean} props.isFullScreen - 全画面ステージ中か
@@ -117,8 +116,7 @@ const MobileSideRailComponent = ({
 
     if (typeof document === 'undefined') return null;
 
-    // 順序: コード / コスチューム / 音 / ルビー / スプライト
-    // (PC 版とほぼ同じ並びにする)
+    // 順序は PC 版と揃える: コード / コスチューム / 音 / ルビー / スプライト
     const tabs = [
         {
             key: 'code',

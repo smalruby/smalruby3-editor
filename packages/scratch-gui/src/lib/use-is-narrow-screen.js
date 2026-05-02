@@ -1,30 +1,13 @@
 import { useEffect, useState } from 'react';
 
 /**
- * 「スマホ相当の小さい画面」を検知する React hook。
+ * スマホ相当の狭い viewport を検知する hook。MobileGui と desktop GUI の
+ * 出し分けに使う共通ブレークポイント。
  *
- * issue #572 のレスポンシブ対応で、PC レイアウトと別 UI を出し分ける際の
- * 共通ブレークポイントとして使用する。
- *
- * 検出条件: viewport の幅 ≤ 743px または高さ ≤ 500px。
- * これにより、スマホ縦持ち (例 390x844) も横持ち (例 844x390) も同じ
- * mobile UI が出る (Phase 2-I で横固定運用に切り替えたため)。
- * iPad mini portrait (744×1133) は閾値を上回って desktop UI を出す
- * (issue #599)。
- *
- * - スマホ縦持ち (390x844): width 390 ≤ 743 → match
- * - スマホ横持ち (844x390): height 390 ≤ 500 → match
- * - iPad mini portrait (744x1133): 両方 > 閾値 → no match (desktop UI)
- * - iPad portrait (768x1024): 両方 > 閾値 → no match (desktop UI)
- * - タブレット (820x1180 / 1180x820): 両方 > 閾値 → no match (desktop UI)
- * - PC (1920x1080): 両方 > 閾値 → no match (desktop UI)
- *
- * 高さの閾値は 500 で iPhone 14 Pro Max (横 430) 等を含むが、デスクトップで
- * ウィンドウを縦に縮めても 500 を下回らない範囲としてバランスを取る。
- *
- * 同じ matchMedia インスタンスを各コンポーネントが個別に購読すると、
- * リスナー数 = コンポーネント数になるが、それぞれ独立に最新値を持つので
- * 整合性は保たれる。
+ * 閾値の根拠:
+ * - 幅 743px は iPad mini portrait (744) を除外する境界値
+ * - 高さ 500px はスマホ横持ち (844×390 等) を拾う保険
+ *   (デスクトップで 500 以下に縮めても他の min-height 制約に引っかかる範囲)
  * @returns {boolean} スマホ相当のサイズなら true
  */
 const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';

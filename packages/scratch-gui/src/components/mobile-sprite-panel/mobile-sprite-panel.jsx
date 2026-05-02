@@ -11,11 +11,8 @@ import styles from './mobile-sprite-panel.css';
 const SIDE_RAIL_WIDTH = 56;
 
 /**
- * パネルを左サイドレールの右側、viewport 縦 100% に配置する layout effect。
- *
- * Phase 2-J で MobileTopBar / MobileBottomTabs を廃止し、左 48px の縦
- * サイドレール (MobileSideRail) に UI を集約した。本パネルもサイドレール
- * の右隣からビューポート右端まで、縦は 100% で開く。
+ * パネルを左サイドレール (MobileSideRail) の右隣からビューポート右端まで、
+ * 縦は 100% で配置する layout effect。
  *
  * 表示されている (active=true) ときだけ計算し、隠れているときは何もしない。
  * @param {object} ref - パネル要素の React ref
@@ -54,12 +51,10 @@ const usePositionRightOfRail = (ref, active) => {
 };
 
 /**
- * モバイル用スプライト管理パネル (issue #572 Phase 2-F)。
+ * モバイル用スプライト管理パネル。
  *
- * MobileBottomTabs の「スプライト」タブが active のときだけ overlay として
- * 表示される。upstream の <TargetPane> をそのまま流用し、CSS で flex-direction
- * を column 方向に上書きすることで、狭幅でもスプライト一覧 + ステージ背景が
- * 縦に並ぶレイアウトに変える。
+ * MobileSideRail の「スプライト」タブが active のときだけ overlay として
+ * 表示される。upstream の <TargetPane> をそのまま流用する。
  *
  * <TargetPane> 自体はスプライト追加 (Choose / Paint / Surprise / Upload),
  * スプライト削除 / 複製 / 名前変更 / 位置変更などの全機能を内蔵しているため、
