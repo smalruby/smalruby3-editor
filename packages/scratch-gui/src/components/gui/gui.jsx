@@ -45,7 +45,7 @@ import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
 
-import layout, {STAGE_SIZE_MODES} from '../../lib/layout-constants';
+import layout, {STAGE_DISPLAY_SIZES, STAGE_SIZE_MODES} from '../../lib/layout-constants';
 import {resolveStageSize} from '../../lib/screen-utils';
 import {colorModeMap} from '../../lib/settings/color-mode/index.js';
 import {DEFAULT_THEME, themeMap} from '../../lib/settings/theme/index.js';
@@ -299,11 +299,18 @@ const GUIComponent = props => {
         isRendererSupported = Renderer.isSupported();
     }
 
-    return (<MediaQuery minWidth={layout.fullSizeMinWidth}>{isFullSize => {
-        const stageSize = resolveStageSize(stageSizeMode, isFullSize);
-        const boxStyles = classNames(styles.bodyWrapper, {
-            [styles.bodyWrapperWithoutMenuBar]: menuBarHidden
-        });
+    return (<MediaQuery minWidth={layout.fullSizeMinWidth}>{isFullSize => (
+        // === Smalruby: Start of iPad portrait narrow desktop stage size ===
+        // 768〜1023px (iPad portrait など) の narrow desktop では、
+        // 480px / 408px / 360px の stage を維持すると viewport に収まらないため、
+        // stage を 240x180 (small) に強制する。
+        <MediaQuery maxWidth={1023} minWidth={768}>{isNarrowDesktop => {
+            const baseStageSize = resolveStageSize(stageSizeMode, isFullSize);
+            const stageSize = isNarrowDesktop ? STAGE_DISPLAY_SIZES.small : baseStageSize;
+            // === Smalruby: End of iPad portrait narrow desktop stage size ===
+            const boxStyles = classNames(styles.bodyWrapper, {
+                [styles.bodyWrapperWithoutMenuBar]: menuBarHidden
+            });
 
         return isPlayerOnly ? (
             <StageWrapper
@@ -717,7 +724,8 @@ const GUIComponent = props => {
                 </Box>
             </ModalFocusProvider>
         );
-    }}</MediaQuery>);
+        }}</MediaQuery>
+    )}</MediaQuery>);
 };
 
 GUIComponent.propTypes = {

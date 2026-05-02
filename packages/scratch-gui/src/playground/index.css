@@ -24,5 +24,19 @@ body,
 }
 /* === Smalruby: End of narrow viewport vertical scroll lock === */
 
+/* === Smalruby: Start of iPad portrait min-width relax === */
+/* iPad portrait (768x1024) など、横幅が 1024px 未満で 768px 以上の */
+/* デスクトップレイアウト範囲では、min-width: 1024px を緩めて横スクロール */
+/* なしで GUI が表示されるようにする。レイアウト調整は gui.css と     */
+/* gui.jsx の Smalruby マーカーで行う (issue #572 Phase 3-C)。       */
+@media (min-width: 768px) and (max-width: 1023px) {
+    html,
+    body,
+    .app {
+        min-width: 768px;
+    }
+}
+/* === Smalruby: End of iPad portrait min-width relax === */
+
 /* @todo: move globally? Safe / side FX, for blocks particularly? */
 * { box-sizing: border-box; }
