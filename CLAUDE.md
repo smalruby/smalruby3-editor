@@ -329,6 +329,7 @@ Follow TDD (Test-Driven Development) approach:
   - `infra/smalruby-mesh-v2/`: Mesh v2 networking service (AppSync + DynamoDB)
   - `infra/smalruby-rubytee-relay/`: Rubytee AI relay service (Anthropic Claude + DynamoDB)
   - `infra/smalruby-classroom/`: Classroom service (API Gateway + Lambda + DynamoDB)
+- `docs/`: **Smalruby 独自の機能ドキュメント**（ユーザーストーリー単位の統合ドキュメント）。配置ルールは `.claude/rules/documentation.md` 参照
 - `scripts/`: Monorepo-level build scripts
 - `.github/workflows/`: CI/CD configuration
 - `.claude/rules/`: Package-specific development rules
