@@ -24,3 +24,15 @@
 .green-flag.is-active {
     background-color: $looks-transparent;
 }
+
+/*
+ * === Smalruby: Start of touch-friendly green flag ===
+ * < 1280px (iPad landscape など) ではタッチ向けに 32→40 に拡大 (issue #600)。
+ */
+@media (max-width: 1279px) {
+    .green-flag {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}
+/* === Smalruby: End of touch-friendly green flag === */
