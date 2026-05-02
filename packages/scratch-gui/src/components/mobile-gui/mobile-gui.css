@@ -159,24 +159,33 @@
  *   確認できる。SideRail (9200) とは横位置が重ならないので衝突なし。
  */
 :global(body.smalruby-mobile-mode.smalruby-mobile-backpack-open [class*="backpack_backpack-container"]) {
+    /*
+     * Phase 3-B fix: position: fixed をやめて editor-wrapper の flex column
+     * 内に正しく組み込む。これによって:
+     * - Blockly workspace の injectionDiv が backpack の高さぶん縮む
+     * - scratch-blocks の `areBlocksOverGui` 判定で backpack 領域は
+     *   workspace 外と認識され、`BLOCK_DRAG_END` がブロック付きで発火する
+     * - drop コードを backpack に保存できるようになる
+     *
+     * 横位置は body-wrapper の padding-left: 56 で side rail を避けているので
+     * 個別の left/right 指定は不要 (gui_editor-wrapper 内に flex column で
+     * 自動配置される)。
+     */
     display: flex !important;
     flex-direction: column !important;
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 56px !important;
-    right: 0 !important;
+    position: relative !important;
     background: #ffffff !important;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important;
     border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
     /*
-     * 200 はタブコンテンツ (paint canvas/sound waveform/Monaco 等、いずれも
-     * z-index ≦100) より上、upstream `<DragLayer>` (z-index 1000) より下。
-     * DragLayer がバックパックの上に preview を描けることで、ユーザーが
-     * 「バックパックに向かって drop する」操作を目視で確認できる。
+     * z-index は 200。タブコンテンツ (z-index ≦100) より上、DragLayer
+     * (1000) より下にして drag preview が backpack 上にも見え続ける。
      */
     z-index: 200 !important;
     max-height: 35vh !important;
     min-height: 140px !important;
+    /* flex sibling として固定の縦サイズ確保 (編集エリアを縮めるぶん) */
+    flex: 0 0 auto !important;
     padding: 0 0 4px !important;
     pointer-events: auto !important;
 }
