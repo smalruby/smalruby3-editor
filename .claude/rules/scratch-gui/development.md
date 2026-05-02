@@ -128,6 +128,14 @@ docker compose run --rm app bash -c "cd packages/scratch-gui && npm run format"
 docker compose run --rm app bash -c "cd packages/scratch-gui && npm run format:check"
 ```
 
+## SP / iPad 対応のレビュー観点
+
+`gui.css` / `gui.jsx` / `menu-bar.css` / `playground/index.css` / `mobile-*` コンポーネント / `responsive-gui*` / `use-is-narrow-screen*` / `palette-toggle/` を変更した場合、または新しいモーダルやボタンを追加した場合は、SP (スマホ) と iPad のリグレッション確認が必要。
+
+- 影響範囲とレビュー観点: [`.claude/rules/scratch-gui/sp.md`](sp.md)
+- Playwright での確認手順: [`docs/sp/playwright.md`](../../../docs/sp/playwright.md)
+- 設計意図と画面説明: [`docs/sp/ui-ux.md`](../../../docs/sp/ui-ux.md)
+
 ## Development Notes
 
 - The webpack config loads environment variables from monorepo root `.env` file

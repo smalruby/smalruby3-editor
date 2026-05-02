@@ -1,8 +1,6 @@
 # Smalruby SP/iPad 対応 UI/UX
 
 > **対象**: スマホ (横向き) と iPad (portrait/landscape)。一般 PC ブラウザでも viewport を縮めれば同じ条件で発火する
-> **元 issue**: [#572](https://github.com/smalruby/smalruby3-editor/issues/572) ほか #599 #600 で iPad mini portrait まで拡張
-> **関連 PR**: PR #581〜#603 (Phase 1〜3-C)、#605 (stage 全画面ボタンのタッチ拡大)、#606 (`?mobile_gui=1` 廃止 + viewport 自動判定)
 > **検証 viewport**:
 > - スマホ横向き: 844×390 (iPhone 14)
 > - iPad portrait: 768×1024、iPad mini portrait: 744×1133
@@ -15,7 +13,7 @@
 
 ## 1. 切り替えロジック (どのモードがいつ出るか)
 
-切り替えは **viewport ベースで自動**。URL パラメータでのオプトインは廃止済み (#606)。`useIsNarrowScreen` の `matchMedia` がリアルタイムに反応するので、ブラウザリサイズ・端末回転に追従する。
+切り替えは **viewport ベースで自動**。URL パラメータでのオプトインは設けない。`useIsNarrowScreen` の `matchMedia` がリアルタイムに反応するので、ブラウザリサイズ・端末回転に追従する。
 
 ### 切り替え式
 
@@ -62,7 +60,7 @@ const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';
 ### なぜこういう構造にしたか (設計意図)
 
 - **upstream は 1 行も削らない**: SP/iPad 対応はすべてマーカー付きの加筆で実装。upstream 取り込み時の merge コストを最小化するため (`MEMORY.md` の feedback「upstream Scratch 追従コスト最小化」)。
-- **オプトインフラグを増やさない**: 以前は `?mobile_gui=1` のオプトイン制だったが、ユーザーが flag を知らないと SP で見られない問題があり、PR #606 で **viewport 自動判定** に切り替え。同 PR で「PC 表示が崩れている」警告バナーも撤去 (リサイズ可能な PC ブラウザでの誤検知が多かった)。
+- **オプトインフラグを増やさない**: ユーザーが flag を知らないと SP で見られないため、viewport 自動判定で完結させる。同様に「PC 表示が崩れている」警告バナーも置かない (リサイズ可能な PC ブラウザでの誤検知が多いため)。
 - **MobileGui は別コンポーネントに分離**: desktop GUI の一部だけを CSS で隠すアプローチでは「右ペインも見えないのに React tree には残る → 余計なリスナーや HMR コスト」が累積するため、MobileGui を独立したコンポーネントにして一度差し替える方式にした。
 - **iPad は desktop GUI のまま**: iPad は横幅 768〜1024px 程度あり、MobileGui の縦タブ集約より desktop の従来 UI のほうが学習コストが低い。なので iPad は desktop GUI に CSS/レイアウト調整を当てる方針。
 
@@ -313,7 +311,7 @@ iPad は `useIsNarrowScreen` の閾値超え (短辺 ≥ 744 かつ高さ > 500)
 
 ![iPad mini portrait](screenshots/23-ipad-mini-portrait-744.png)
 
-PR #599 で「744〜1023」レンジに iPad mini portrait を含めるよう拡張。`min-width: 1024px` 解除と stage 列縮小がそのまま効く。
+「744〜1023」レンジに iPad mini portrait (744) も含むよう閾値を引き下げてある。`min-width: 1024px` 解除と stage 列縮小がそのまま効く。
 
 ### 3.5 Desktop reference (1280×800)
 
@@ -325,14 +323,14 @@ PR #599 で「744〜1023」レンジに iPad mini portrait を含めるよう拡
 
 ## 4. 設計原則 (今後の SP 関連 PR で守るべきこと)
 
-ここまでの一連の Phase で確立した運用ルール。今後の SP/iPad 改善は以下を踏襲する。
+SP/iPad 対応で確立した運用ルール。今後の改善も以下を踏襲する。
 
 1. **upstream は触らない、加筆だけする**
    `=== Smalruby: Start of <feature> === / End ===` のマーカーで囲む。一覧は `.claude/rules/scratch-gui/smalruby-markers.md`。SP 対応のために upstream のロジックを書き換えると後の merge で衝突する。
 2. **URL パラメータでのオプトインを増やさない**
-   `?mobile_gui=1` は廃止。viewport で自動判定する。SP ユーザーが flag を知らないと UI が出ない問題を再発させない。
-3. **「PC が崩れている」警告バナーを再導入しない**
-   PR #606 で撤去。リサイズ可能な PC ブラウザでの誤検知が多かった。viewport で勝手に MobileGui に切り替わるならバナー不要。
+   viewport で自動判定する。flag を知らないと UI が出ない構造を作らない。
+3. **「PC が崩れている」警告バナーを置かない**
+   リサイズ可能な PC ブラウザでの誤検知が多い。viewport で MobileGui に切り替わるならバナー不要。
 4. **MobileGui は横向き専用**
    縦は orientation gate で止める。MobileGui 内に縦レイアウトを抱え込まない。
 5. **隠すより「再構成」を優先**
@@ -340,34 +338,16 @@ PR #599 で「744〜1023」レンジに iPad mini portrait を含めるよう拡
 6. **iPad は desktop GUI のまま、CSS で詰める**
    iPad ユーザーは PC 由来の操作慣れがあるので、独自 UI に変えるよりも desktop GUI を縮める方が学習コストが低い。
 7. **タッチ操作のフィッツの法則を意識**
-   PR #605 でステージ全画面ボタンのアイコンを大きくしたように、SP/iPad のタップ要素は最低 44px × 44px を確保する。Blockly 内のような触れない要素を除き、新規追加要素は data-testid + 44px 以上で作る。
+   SP/iPad のタップ要素は最低 44px × 44px を確保する。Blockly 内のような触れない要素を除き、新規追加要素は data-testid + 44px 以上で作る。
 8. **`data-testid` は必ず付ける**
-   後述の Playwright 確認手順で参照される。`<component>-<element>` のケバブケース。新規要素には漏れなく付与する (`.claude/rules/scratch-gui/e2e-test.md`)。
+   Playwright 確認手順で参照される。`<component>-<element>` のケバブケース。新規要素には漏れなく付与する (`.claude/rules/scratch-gui/e2e-test.md`)。
 
 ---
 
 ## 5. 関連ドキュメント
 
 - [`docs/sp/playwright.md`](playwright.md) — Playwright での確認手順と data-testid 一覧
+- `.claude/rules/scratch-gui/sp.md` — SP / iPad 関連 PR のレビュー観点と影響範囲
 - `.claude/rules/scratch-gui/smalruby-markers.md` — upstream ファイルへのマーカー一覧
 - `.claude/rules/scratch-gui/e2e-test.md` — data-testid 命名規則と URL parameter 一覧
 - `.claude/rules/scratch-gui/development.md` — scratch-gui の開発フロー全般
-
-## 6. 関連 PR
-
-| PR    | 内容                                                                  |
-| ----- | --------------------------------------------------------------------- |
-| #581  | (PR-2A) MobileGui スケルトン + ResponsiveGui 切替                     |
-| #582  | (PR-2B) ボトムタブ × 5 (PR-2J で MobileSideRail に統合)               |
-| #584  | (PR-2C) ステージ全画面プレビュー (▶ ボタン)                            |
-| #585  | (PR-2D) ブロックパレットドロワー化                                    |
-| #586  | (PR-2E) ハンバーガーメニュー (`MobileDrawer`)                         |
-| #587  | (PR-2F) スプライト管理パネル (`MobileSpritePanel`)                    |
-| #588  | (PR-2G) コードタブ編集レイアウト (mobile-mode CSS)                    |
-| #590  | (PR-2I) モバイル横固定 + 縦向き案内 (`MobileOrientationGate`)         |
-| #591  | (PR-2J) 左サイドレール集約 + 上部ツールバートグル                     |
-| #599  | iPad mini portrait (744) を iPad portrait レンジに含める拡張           |
-| #600  | iPad landscape の高さ 800px 以下で menu-bar / tab-list を圧縮          |
-| #605  | ステージ全画面ボタンのタッチ拡大 (フィッツの法則)                      |
-| #606  | `?mobile_gui=1` フラグ廃止 + 警告バナー削除 + viewport 自動判定        |
-| #608  | SP/iPad 関連コードのコメント整理 (Phase 進捗マーカー除去)              |

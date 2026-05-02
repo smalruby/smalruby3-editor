@@ -22,7 +22,7 @@
 | `rubyMode`       | `ruby` / `furigana` / `dncl`      | Ruby タブの初期モード                                       |
 | `features`       | カンマ区切り                      | 隠し機能の有効化 (現在は未使用)                             |
 
-`?mobile_gui=1` は **廃止済み** (PR #606)。MobileGui への切替は viewport サイズで自動判定される。
+MobileGui への切替は viewport サイズで自動判定される (URL パラメータでのオプトインは存在しない)。
 
 ベース URL 例:
 
@@ -106,7 +106,7 @@ active 状態は `[data-active="true"]` 属性で表現される。
 
 ### 3.3 MobileBottomTabs (`mobile-bottom-tabs.jsx`)
 
-旧フェーズで使っていたボトムタブ。PR-2J で MobileSideRail に統合済み。残骸として data-testid は残っているが、現在の MobileGui からはレンダリングされない。
+旧構成で使っていたボトムタブ。現在は MobileSideRail に統合済みで MobileGui からはレンダリングされないが、コンポーネント本体は残っているため data-testid も保持されている。
 
 | data-testid                          | 要素   | 役割                |
 | ------------------------------------ | ------ | ------------------- |
