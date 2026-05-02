@@ -126,6 +126,22 @@
     }
 }
 
+/* === Smalruby: Start of narrow desktop legal links cleanup === */
+/*
+    iPad portrait/landscape など 768〜1279px の narrow desktop では、
+    フィードバックリンクとセパレータを隠してタブ列をすっきりさせる。
+    プライバシーポリシーはコンプライアンス上残し、フィードバックは
+    メニューバーや別経路から到達できるため省略しても影響は小さい
+    (issue #600)。
+*/
+@media (min-width: 768px) and (max-width: 1279px) {
+    .feedback-link,
+    .link-separator {
+        display: none;
+    }
+}
+/* === Smalruby: End of narrow desktop legal links cleanup === */
+
 .tab {
     flex-grow: 1;
     height: 80%;
