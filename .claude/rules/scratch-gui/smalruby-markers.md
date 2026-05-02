@@ -49,7 +49,9 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/gui/gui.jsx` | Redux action props prevention | Redux action props の伝播防止 |
 | `src/components/gui/gui.jsx` | iPad portrait narrow desktop stage size | 768〜1023px viewport で stage を small に強制 (issue #572 Phase 3-C) |
 | `src/components/gui/gui.css` | iPad portrait narrow desktop layout | 768〜1023px viewport で editor-wrapper の flex-basis を緩める (issue #572 Phase 3-C) |
-| `src/components/gui/gui.css` | narrow desktop legal links cleanup | 768〜1279px viewport でフィードバックリンク + セパレータを非表示 (issue #600) |
+| `src/components/gui/gui.css` | iPad portrait legal links cleanup | 768〜1023px viewport でフィードバックリンク + セパレータを非表示 (issue #600) |
+| `src/components/gui/gui.css` | narrow-height vertical chrome compression | max-height: 800px で body-wrapper / tab-list の高さを圧縮 (issue #600) |
+| `src/components/menu-bar/menu-bar.css` | narrow-height menu bar compression | max-height: 800px で menu-bar 48→40px に圧縮 (issue #600) |
 | `src/components/stage-header/stage-header.css` | touch-friendly stage controls | < 1280px viewport でステージサイズボタンを 40×40 に拡大 (issue #600) |
 | `src/components/green-flag/green-flag.css` | touch-friendly green flag | < 1280px viewport で実行ボタンを 40×40 に拡大 (issue #600) |
 | `src/components/stop-all/stop-all.css` | touch-friendly stop button | < 1280px viewport で停止ボタンを 40×40 に拡大 (issue #600) |
