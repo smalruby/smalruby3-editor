@@ -101,7 +101,14 @@
 
 .commandWrapper {
     position: relative;
-    min-width: 300px;
+    /*
+     * 旧 min-width: 300px は narrow desktop (iPad landscape 1024×768) で
+     * ruby-toolbar の min-content 幅を ~860px に押し上げ、editor-wrapper が
+     * 必要以上に grow して stage 列が viewport 外にはみ出す原因だった
+     * (issue #602)。min-width を緩めて flex で shrink できるようにする。
+     */
+    min-width: 0;
+    flex: 1 1 auto;
     max-width: 500px;
 }
 
