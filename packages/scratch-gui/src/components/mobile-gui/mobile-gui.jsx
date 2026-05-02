@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 
 import GUI from '../../containers/gui.jsx';
+import codePayload from '../../lib/backpack/code-payload.js';
+import { saveBackpackObject } from '../../lib/backpack-api.js';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
 import { COSTUMES_TAB_INDEX } from '../../reducers/editor-tab.js';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
@@ -50,15 +52,18 @@ import './mobile-gui.css';
  */
 const MOBILE_MODE_CLASS = 'smalruby-mobile-mode';
 const MOBILE_FULLSCREEN_CLASS = 'smalruby-mobile-fullscreen';
+const MOBILE_BACKPACK_OPEN_CLASS = 'smalruby-mobile-backpack-open';
 
-const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
+const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [spriteTabActive, setSpriteTabActive] = useState(false);
     const [paintToolbarCollapsed, setPaintToolbarCollapsed] = useState(false);
+    const [backpackOpen, setBackpackOpen] = useState(false);
     const handleOpenDrawer = useCallback(() => setDrawerOpen(true), []);
     const handleCloseDrawer = useCallback(() => setDrawerOpen(false), []);
     const handleSpriteTabActiveChange = useCallback(active => setSpriteTabActive(active), []);
     const handleTogglePaintToolbar = useCallback(() => setPaintToolbarCollapsed(v => !v), []);
+    const handleToggleBackpack = useCallback(() => setBackpackOpen(v => !v), []);
 
     // 上部ツールバー出し入れトグルは「コスチュームタブ + スプライトタブ非active」の
     // ときだけ意味があるので、その時だけ active にする。
@@ -119,6 +124,38 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
     // `.smalruby-mobile-fullscreen` を起点に右ペイン (gui_stage-and-target-wrapper)
     // の表示を復活させる。以前は CSS `:has()` で同等のことをしていたが
     // 古い iOS Safari で動作しないことがあったので JS 制御に切り替え。
+    // バックパック開閉を body class に反映。CSS 側で
+    // `.smalruby-mobile-backpack-open` をトリガーに upstream の <Backpack>
+    // を画面下部に表示する。デフォルトは hidden (mobile-gui.css の section 6)。
+    //
+    // 加えて、upstream の backpack は collapsed 時に items list (drop-area の
+    // ref 取得元) を JSX で出さないため、collapsed のままだとドラッグ&ドロップが
+    // 動作しない。我々のトグルで開いたときは upstream の「Backpack」ヘッダーを
+    // 自動クリックして expanded にし、drop area を有効化する。閉じたときは
+    // 同様に collapsed に戻して中身の getContents() を停止させる。
+    useEffect(() => {
+        if (typeof document === 'undefined') return () => {};
+        if (backpackOpen) {
+            document.body.classList.add(MOBILE_BACKPACK_OPEN_CLASS);
+        } else {
+            document.body.classList.remove(MOBILE_BACKPACK_OPEN_CLASS);
+        }
+        // 次フレームで状態同期: backpackOpen と upstream backpack の expanded
+        // 状態を一致させる。
+        const raf = window.requestAnimationFrame(() => {
+            const header = document.querySelector('[class*="backpack_backpack-header"]');
+            if (!header) return;
+            const list = document.querySelector('[class*="backpack_backpack-list"]');
+            const upstreamExpanded = Boolean(list);
+            if (backpackOpen && !upstreamExpanded) header.click();
+            else if (!backpackOpen && upstreamExpanded) header.click();
+        });
+        return () => {
+            window.cancelAnimationFrame(raf);
+            document.body.classList.remove(MOBILE_BACKPACK_OPEN_CLASS);
+        };
+    }, [backpackOpen]);
+
     useEffect(() => {
         if (typeof document === 'undefined') return () => {};
         if (isFullScreen) {
@@ -128,6 +165,109 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
         }
         return () => document.body.classList.remove(MOBILE_FULLSCREEN_CLASS);
     }, [isFullScreen]);
+
+    /*
+     * モバイル (mobile_gui=1) でコードブロックをバックパックに drop できる
+     * ようにする補助レイヤー (Phase 3-B fix)。
+     *
+     * 背景:
+     * upstream の `<Backpack>` (containers/backpack.jsx) はブロックドロップを
+     * `state.blockDragOverBackpack` フラグで判定している。これは
+     * `mouseenter` / `mouseleave` で更新されるが、scratch-blocks の block
+     * drag は pointer capture を行うため、タッチでは他要素 (= backpack) に
+     * mouseenter/mouseleave が届かず、`blockDragOverBackpack` が常に false。
+     * 結果として drop が upstream の `handleDrop` に渡らない。
+     *
+     * さらに synthetic な mouseenter dispatch も試したが、scratch-blocks の
+     * `BLOCK_DRAG_UPDATE` が末尾で `over=false` を吐く挙動 (block を release
+     * 直前の状態で評価する) のため、`blockDragOutsideWorkspace` が false に
+     * 戻ってしまい、合成 mouseenter のロジックも空振りする。
+     *
+     * 対策: 上記いずれにも依存せず、本コンポーネントから直接保存する:
+     *
+     * 1. document の pointermove / touchmove / mousemove で最後の位置を保持
+     * 2. VM の `BLOCK_DRAG_END` でブロックが drop された瞬間を検知
+     * 3. 最後の位置が backpack-list の bounding rect に入っていれば、
+     *    `codePayload` でブロックを payload 化、`saveBackpackObject` で
+     *    localStorage に保存
+     * 4. 保存後、upstream の `<Backpack>` を一度 collapse → expand させて
+     *    `getContents` を再走、追加した item を一覧に反映させる。
+     *
+     * PC (mobile_gui なし) では `<MobileGui>` 自体がマウントされないので
+     * 副作用なし。upstream の通常 drop 経路 (mouseenter ベース) はそのまま。
+     */
+    useEffect(() => {
+        if (typeof document === 'undefined' || !vm) return () => {};
+        let lastX = 0;
+        let lastY = 0;
+        const updatePointer = e => {
+            const point = e.touches?.[0] || e;
+            if (typeof point.clientX === 'number') {
+                lastX = point.clientX;
+                lastY = point.clientY;
+            }
+        };
+        const isPointerOverBackpack = () => {
+            const list = document.querySelector('[class*="backpack_backpack-list"]');
+            if (!list) return false;
+            const r = list.getBoundingClientRect();
+            return lastX >= r.left && lastX <= r.right && lastY >= r.top && lastY <= r.bottom;
+        };
+        const refreshBackpackContents = () => {
+            // upstream Backpack の getContents() を呼ぶ手段が外から無いので、
+            // header を 2 回 click して collapse → expand させて再フェッチする。
+            const header = document.querySelector('[class*="backpack_backpack-header"]');
+            if (!header) return;
+            header.click();
+            window.setTimeout(() => header.click(), 30);
+        };
+        const handleBlockDragEnd = (blocks, topBlockId) => {
+            if (!Array.isArray(blocks) || blocks.length === 0) return;
+            if (!isPointerOverBackpack()) return;
+            // codePayload は blockToImage を含み内部で同期 throw する場合が
+            // あるので Promise.resolve でラップしてから .catch でフォールバック。
+            // 失敗してもコード自体の保存は試す (thumbnail 無しは upstream の
+            // getContents が「画像未設定」アイテムとして扱う = 視覚的に劣化
+            // するが機能はする)。
+            Promise.resolve()
+                .then(() => codePayload({ blockObjects: blocks, topBlockId }))
+                .catch(() => ({
+                    type: 'script',
+                    name: 'code',
+                    mime: 'application/json',
+                    // thumbnail 失敗時のフォールバック。upstream の
+                    // getContents は body / thumbnail を空文字でも読み込める
+                    // (リスト表示では「サムネイル無しの script アイテム」)。
+                    body: '',
+                    thumbnail: '',
+                }))
+                .then(payload =>
+                    saveBackpackObject({
+                        host: 'localStorage',
+                        ...payload,
+                    }),
+                )
+                .then(() => {
+                    refreshBackpackContents();
+                })
+                .catch(err => {
+                    // eslint-disable-next-line no-console
+                    console.error('Failed to save block to backpack:', err);
+                });
+        };
+        document.addEventListener('mousemove', updatePointer, { passive: true });
+        document.addEventListener('pointermove', updatePointer, { passive: true });
+        document.addEventListener('touchmove', updatePointer, { passive: true });
+        document.addEventListener('touchstart', updatePointer, { passive: true });
+        vm.addListener('BLOCK_DRAG_END', handleBlockDragEnd);
+        return () => {
+            document.removeEventListener('mousemove', updatePointer);
+            document.removeEventListener('pointermove', updatePointer);
+            document.removeEventListener('touchmove', updatePointer);
+            document.removeEventListener('touchstart', updatePointer);
+            vm.removeListener('BLOCK_DRAG_END', handleBlockDragEnd);
+        };
+    }, [vm]);
 
     useEffect(() => {
         if (typeof document === 'undefined') return () => {};
@@ -171,6 +311,8 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
                         onOpenDrawer={handleOpenDrawer}
                         spriteTabActive={spriteTabActive}
                         onSpriteTabActiveChange={handleSpriteTabActiveChange}
+                        backpackOpen={backpackOpen}
+                        onToggleBackpack={handleToggleBackpack}
                     />
                     <MobileDrawer open={drawerOpen} onClose={handleCloseDrawer} />
                     <MobileSpritePanel active={spriteTabActive} />
@@ -200,11 +342,13 @@ const MobileGui = ({ activeTabIndex, isFullScreen, ...props }) => {
 MobileGui.propTypes = {
     activeTabIndex: PropTypes.number.isRequired,
     isFullScreen: PropTypes.bool.isRequired,
+    vm: PropTypes.object,
 };
 
 const mapStateToProps = state => ({
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     isFullScreen: state.scratchGui.mode.isFullScreen,
+    vm: state.scratchGui.vm,
 });
 
 export default connect(mapStateToProps)(MobileGui);

@@ -27,6 +27,8 @@ const baseProps = override => ({
     onActivateTab: jest.fn(),
     onOpenDrawer: jest.fn(),
     onSpriteTabActiveChange: jest.fn(),
+    backpackOpen: false,
+    onToggleBackpack: jest.fn(),
     ...override,
 });
 
@@ -108,5 +110,24 @@ describe('MobileSideRail', () => {
         const { getByTestId } = renderWithIntl({ activeTabIndex: RUBY_TAB_INDEX });
         expect(getByTestId('mobile-side-rail-ruby')).toHaveAttribute('data-active', 'true');
         expect(getByTestId('mobile-side-rail-code')).toHaveAttribute('data-active', 'false');
+    });
+
+    test('renders backpack toggle button', () => {
+        const { getByTestId } = renderWithIntl();
+        expect(getByTestId('mobile-side-rail-backpack')).toBeInTheDocument();
+        expect(getByTestId('mobile-side-rail-backpack')).toHaveAttribute('data-active', 'false');
+        expect(getByTestId('mobile-side-rail-backpack')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    test('clicking backpack toggle calls onToggleBackpack', () => {
+        const { getByTestId, props } = renderWithIntl();
+        fireEvent.click(getByTestId('mobile-side-rail-backpack'));
+        expect(props.onToggleBackpack).toHaveBeenCalledTimes(1);
+    });
+
+    test('marks backpack toggle data-active=true when backpackOpen prop is true', () => {
+        const { getByTestId } = renderWithIntl({ backpackOpen: true });
+        expect(getByTestId('mobile-side-rail-backpack')).toHaveAttribute('data-active', 'true');
+        expect(getByTestId('mobile-side-rail-backpack')).toHaveAttribute('aria-pressed', 'true');
     });
 });

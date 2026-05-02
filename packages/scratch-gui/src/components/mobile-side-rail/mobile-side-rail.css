@@ -10,10 +10,16 @@
      */
     width: 56px;
     /*
-     * MobileTopBar / MobileBottomTabs と同じ z-index 9000。drawer (9501) の
-     * 下、Stage の上。
+     * 各タブコンテンツ (paint editor / sound editor / Monaco) や、それに
+     * 付随するキャンバス / overlay より上に乗せる必要がある。
+     * drawer (9501) の下、各種モーダル overlay (10000) の下。
+     *
+     * 9200 にしておくと、backpack (9100) より上にも乗るが、横位置は
+     * 重ならない (rail: left:0..56 / backpack: left:56..) ので視覚的衝突なし。
+     * pointer-events を保証することで、上に他要素が来てもタップを阻害しない。
      */
-    z-index: 9000;
+    z-index: 9200;
+    pointer-events: auto;
     background: white;
     border-right: 1px solid rgba(0, 0, 0, 0.12);
     box-shadow: 1px 0 4px rgba(0, 0, 0, 0.05);

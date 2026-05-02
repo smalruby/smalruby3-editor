@@ -946,8 +946,10 @@ export default {
     'gui.rubyTab.dnclValidationError':
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
     'gui.narrowScreenWarning.message': '📱 ほんかくてきな へんしゅうは PC・タブレットが おすすめです。',
+    'gui.narrowScreenWarning.tryMobileBeta': 'かいはつちゅうの スマホばんを ためしてみる',
     'gui.narrowScreenWarning.close': 'とじる',
     'gui.mobile.drawer.title': 'メニュー',
+    'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
     'gui.mobile.drawer.section.edit': 'へんしゅう',
     'gui.mobile.drawer.section.settings': 'せってい',

@@ -135,12 +135,80 @@
 }
 
 /* ------------------------------------------------------------ */
-/* 3c. upstream の <Backpack> も非表示                              */
+/* 3c. upstream の <Backpack> はデフォルトで非表示                  */
 /* バックパックは画面下部に常駐する横長エリアで縦サイズを 50px 取る */
 /* が、モバイルではブロック作業エリアを優先する。                   */
+/*                                                                */
+/* MobileSideRail の「バックパック」ボタンで toggle: 開いているとき  */
+/* (body.smalruby-mobile-backpack-open) だけ画面下部に固定表示する。 */
 /* ------------------------------------------------------------ */
 :global(body.smalruby-mobile-mode [class*="backpack_backpack-container"]) {
     display: none !important;
+}
+
+/*
+ * バックパックを開いた状態 (Phase 3-B):
+ * - サイドレールの右側 (left: 56px) から右端まで横全幅
+ * - 画面下部に固定 (position: fixed)
+ * - 高さは max 35vh + min 140px で、本文エリアを大きく削らない
+ * - z-index は 200。各タブコンテンツ (paint canvas / sound waveform /
+ *   Monaco など、それぞれ z-index ≦100) より確実に上に乗せる一方、
+ *   upstream の `<DragLayer>` (z-index 1000) より下に置く。これによって
+ *   ドラッグ中の preview image (DragLayer 経由で render) が backpack の
+ *   上に見え続け、ユーザーが backpack に向かって drop できることを目視で
+ *   確認できる。SideRail (9200) とは横位置が重ならないので衝突なし。
+ */
+:global(body.smalruby-mobile-mode.smalruby-mobile-backpack-open [class*="backpack_backpack-container"]) {
+    /*
+     * Phase 3-B fix: position: fixed をやめて editor-wrapper の flex column
+     * 内に正しく組み込む。これによって:
+     * - Blockly workspace の injectionDiv が backpack の高さぶん縮む
+     * - scratch-blocks の `areBlocksOverGui` 判定で backpack 領域は
+     *   workspace 外と認識され、`BLOCK_DRAG_END` がブロック付きで発火する
+     * - drop コードを backpack に保存できるようになる
+     *
+     * 横位置は body-wrapper の padding-left: 56 で side rail を避けているので
+     * 個別の left/right 指定は不要 (gui_editor-wrapper 内に flex column で
+     * 自動配置される)。
+     */
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    background: #ffffff !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    /*
+     * z-index は 200。タブコンテンツ (z-index ≦100) より上、DragLayer
+     * (1000) より下にして drag preview が backpack 上にも見え続ける。
+     */
+    z-index: 200 !important;
+    max-height: 35vh !important;
+    min-height: 140px !important;
+    /* flex sibling として固定の縦サイズ確保 (編集エリアを縮めるぶん) */
+    flex: 0 0 auto !important;
+    padding: 0 0 4px !important;
+    pointer-events: auto !important;
+}
+
+/*
+ * 「Backpack」ヘッダー (タップで折りたたみ) を mobile では大きめにして
+ * タップしやすく + 上部マージンを除去 (固定枠の中で詰める)。
+ */
+:global(body.smalruby-mobile-mode.smalruby-mobile-backpack-open [class*="backpack_backpack-header"]) {
+    margin-top: 0 !important;
+    padding: 0.5rem !important;
+    font-size: 0.95rem !important;
+    font-weight: bold !important;
+    flex: 0 0 auto !important;
+}
+
+/*
+ * 展開中のアイテムリストはコンテナの残り高さを使い、横スクロール可能に。
+ */
+:global(body.smalruby-mobile-mode.smalruby-mobile-backpack-open [class*="backpack_backpack-list"]) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    border-right: 0 !important;
 }
 
 /* ------------------------------------------------------------ */
