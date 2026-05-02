@@ -56,7 +56,7 @@ export default appTarget => {
         // === Smalruby: End of storage worker timeout HOC ===
         // === Smalruby: Start of MobileGui dispatcher ===
         // ResponsiveGui forwards all HOC-injected props and switches between
-        // <GUI> and <MobileGui> based on the `mobile_gui=1` URL flag + viewport width.
+        // <GUI> and <MobileGui> based on viewport width (useIsNarrowScreen).
         // === Smalruby: End of MobileGui dispatcher ===
     )(ResponsiveGui);
 

@@ -38,9 +38,6 @@ import SmalrubotFirmwareModal from '../../containers/smalrubot-firmware-modal.js
 // === Smalruby: Start of classroom modal ===
 import ClassroomModal from '../../containers/classroom-modal.jsx';
 // === Smalruby: End of classroom modal ===
-// === Smalruby: Start of narrow screen warning ===
-import NarrowScreenWarning from '../narrow-screen-warning/narrow-screen-warning.jsx';
-// === Smalruby: End of narrow screen warning ===
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
@@ -431,9 +428,6 @@ const GUIComponent = props => {
                     ) : null}
                     {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
-                    {/* === Smalruby: Start of narrow screen warning === */}
-                    <NarrowScreenWarning />
-                    {/* === Smalruby: End of narrow screen warning === */}
                     {!menuBarHidden && <MenuBar
                         ariaRole="banner"
                         ariaLabel={intl.formatMessage(ariaMessages.menuBar)}

@@ -167,8 +167,9 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
     }, [isFullScreen]);
 
     /*
-     * モバイル (mobile_gui=1) でコードブロックをバックパックに drop できる
-     * ようにする補助レイヤー (Phase 3-B fix)。
+     * モバイル (狭幅 viewport で自動的に MobileGui がマウントされる) で
+     * コードブロックをバックパックに drop できるようにする補助レイヤー
+     * (Phase 3-B fix)。
      *
      * 背景:
      * upstream の `<Backpack>` (containers/backpack.jsx) はブロックドロップを
@@ -193,7 +194,7 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
      * 4. 保存後、upstream の `<Backpack>` を一度 collapse → expand させて
      *    `getContents` を再走、追加した item を一覧に反映させる。
      *
-     * PC (mobile_gui なし) では `<MobileGui>` 自体がマウントされないので
+     * PC (広幅 viewport) では `<MobileGui>` 自体がマウントされないので
      * 副作用なし。upstream の通常 drop 経路 (mouseenter ベース) はそのまま。
      */
     useEffect(() => {
