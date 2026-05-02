@@ -920,9 +920,6 @@ export default {
     'gui.extensionButton.dnclExtensionDisabled': '日本語モードでは拡張機能は使えません。',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
-    'gui.narrowScreenWarning.message': '📱 本格的な編集は PC・タブレットを推奨します。',
-    'gui.narrowScreenWarning.tryMobileBeta': '開発中のスマホ版を試してみる',
-    'gui.narrowScreenWarning.close': '閉じる',
     'gui.mobile.drawer.title': 'メニュー',
     'gui.mobile.sideRail.backpack': 'バックパック',
     'gui.mobile.drawer.section.file': 'ファイル',
