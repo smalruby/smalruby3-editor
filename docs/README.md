@@ -87,6 +87,8 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 | [`scratch-vm/`](scratch-vm/) — VM 内部仕様 (Runtime / Sequencer / Thread / Target / Blocks / Extensions / Serialization / Blocks Runtime) | 開発者向け（Issue #620 完了） |
 | [`infra/`](infra/) — AWS CDK インフラ全体 (mesh-v2 / rubytee-relay / classroom / smalruby-api の横断ドキュメント) | 開発者・運用向け（Issue #625） |
 | [`smalruby3-gem/`](smalruby3-gem/) — Ruby SDL2 デスクトップランタイム (`ruby/smalruby3/`) | gem 開発者向け（Issue #625 Phase 2） |
+| [`scratch-render/`](scratch-render/) — WebGL ステージレンダラー内部仕様 | レンダラー開発者向け（Issue #625 Phase 4） |
+| [`scratch-svg-renderer/`](scratch-svg-renderer/) — SVG 前処理パッケージ内部仕様 | レンダラー開発者向け（Issue #625 Phase 4） |
 
 ### その他
 
