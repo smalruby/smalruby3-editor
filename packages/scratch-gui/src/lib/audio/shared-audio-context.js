@@ -27,5 +27,18 @@ if (!bowser.msie) {
  * @returns {AudioContext} The singleton AudioContext
  */
 export default function () {
+    // === Smalruby: lazily create the AudioContext on first request so that
+    // the sound tab works even when the user navigates directly to it via
+    // ?tab=sounds without a prior real mousedown / touchstart / keydown
+    // (e.g. Playwright tests). The browser may suspend the context until
+    // a real user gesture, but createBuffer / createBufferSource still work
+    // and the context resumes automatically once the user interacts.
+    if (!AUDIO_CONTEXT && typeof window !== 'undefined' && !bowser.msie) {
+        const Ctor = window.AudioContext || window.webkitAudioContext;
+        if (Ctor) {
+            AUDIO_CONTEXT = new Ctor();
+            StartAudioContext(AUDIO_CONTEXT);
+        }
+    }
     return AUDIO_CONTEXT;
 }
