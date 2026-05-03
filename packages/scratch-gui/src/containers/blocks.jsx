@@ -23,7 +23,7 @@ import DragConstants from '../lib/drag-constants';
 import defineDynamicBlock from '../lib/define-dynamic-block';
 import {DEFAULT_MODE, getColorsForMode, colorModeMap} from '../lib/settings/color-mode';
 import {CAT_BLOCKS_THEME} from '../lib/settings/theme';
-import {injectExtensionBlockMode, injectExtensionCategoryMode} from '../lib/settings/color-mode/blockHelpers';
+import {injectExtensionBlockIcons, injectExtensionCategoryMode} from '../lib/settings/color-mode/blockHelpers';
 
 import {connect} from 'react-redux';
 import {updateToolbox} from '../reducers/toolbox';
@@ -66,7 +66,7 @@ const DroppableBlocks = DropAreaHOC([
 class Blocks extends React.Component {
     constructor (props) {
         super(props);
-        this.ScratchBlocks = VMScratchBlocks(props.vm, false);
+        this.ScratchBlocks = VMScratchBlocks(props.vm);
         bindAll(this, [
             'attachVM',
             'detachVM',
@@ -116,7 +116,7 @@ class Blocks extends React.Component {
         // === Smalruby: End of deferred flyout rebuild ===
     }
     componentDidMount () {
-        this.ScratchBlocks = VMScratchBlocks(this.props.vm, this.props.useCatBlocks);
+        this.ScratchBlocks = VMScratchBlocks(this.props.vm);
         this.props.onSetScratchBlocks(this.ScratchBlocks);
         this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
         this.ScratchBlocks.StatusIndicatorLabel.statusButtonCallback = this.handleConnectionModalStart;
@@ -189,13 +189,8 @@ class Blocks extends React.Component {
         // the xml can change while e.g. on the costumes tab.
         this._renderedToolboxXML = this.props.toolboxXML;
 
-        // we actually never want the workspace to enable "refresh toolbox" - this basically re-renders the
-        // entire toolbox every time we reset the workspace.  We call updateToolbox as a part of
-        // componentDidUpdate so the toolbox will still correctly be updated
-        this.setToolboxRefreshEnabled = this.workspace.setToolboxRefreshEnabled.bind(this.workspace);
-        this.workspace.setToolboxRefreshEnabled = () => {
-            this.setToolboxRefreshEnabled(false);
-        };
+        // === Smalruby: scratch-blocks v2 removed workspace.setToolboxRefreshEnabled.
+        // The toolbox refresh suppression is handled differently in v2.
 
         // @todo change this when blockly supports UI events
         addFunctionListener(this.workspace, 'translate', this.onWorkspaceMetricsChange);
@@ -323,9 +318,17 @@ class Blocks extends React.Component {
         // focused in this workspace (likely the same block about to be
         // disposed). focusNode pins focus to the workspace root directly,
         // ensuring no block is focused when dispose() runs.
-        this.ScratchBlocks.WidgetDiv.hide();
-        this.ScratchBlocks.getFocusManager().focusNode(this.workspace);
-        this.workspace.dispose();
+        try {
+            this.ScratchBlocks.WidgetDiv?.hide?.();
+            // focusNode requires the workspace to be a focusable IFocusableNode;
+            // skip silently if the workspace is already in a non-focusable state.
+            if (this.workspace?.canBeFocused?.()) {
+                this.ScratchBlocks.getFocusManager().focusNode(this.workspace);
+            }
+        } catch {
+            // Workspace may already be unregistered — fall through to dispose.
+        }
+        this.workspace?.dispose?.();
         clearTimeout(this.toolboxUpdateTimeout);
 
         // Clear the flyout blocks so that they can be recreated on mount.
@@ -388,29 +391,46 @@ class Blocks extends React.Component {
     updateToolbox () {
         this.toolboxUpdateTimeout = false;
 
-        const categoryId = this.workspace.toolbox_.getSelectedCategoryId();
-        const offset = this.workspace.toolbox_.getCategoryScrollOffset();
-        this.workspace.updateToolbox(this.props.toolboxXML);
-        this._renderedToolboxXML = this.props.toolboxXML;
-
-        // In order to catch any changes that mutate the toolbox during "normal runtime"
-        // (variable changes/etc), re-enable toolbox refresh.
-        // Using the setter function will rerender the entire toolbox which we just rendered.
-        this.workspace.toolboxRefreshEnabled_ = true;
-
-        const currentCategoryPos = this.workspace.toolbox_.getCategoryPositionById(categoryId);
-        const currentCategoryLen = this.workspace.toolbox_.getCategoryLengthById(categoryId);
-        if (offset < currentCategoryLen) {
-            this.workspace.toolbox_.setFlyoutScrollPos(currentCategoryPos + offset);
-        } else {
-            this.workspace.toolbox_.setFlyoutScrollPos(currentCategoryPos);
+        const scale = this.workspace.getFlyout().getWorkspace().scale;
+        let selectedCategoryName = null;
+        const selectedItem = this.workspace.getToolbox()?.getSelectedItem?.();
+        if (selectedItem) {
+            selectedCategoryName = selectedItem.getName();
         }
+        const selectedCategoryScrollPosition = selectedCategoryName ?
+            this.workspace
+                .getFlyout()
+                .getCategoryScrollPosition(selectedCategoryName) * scale :
+            0;
+        const offsetWithinCategory =
+            this.workspace.getFlyout().getWorkspace()
+                .getMetrics().viewTop -
+            selectedCategoryScrollPosition;
+
+        this.workspace.updateToolbox(this.props.toolboxXML);
+        if (selectedCategoryName) {
+            this.workspace.getToolbox().runAfterRerender(() => {
+                const newCategoryScrollPosition = this.workspace
+                    .getFlyout()
+                    .getCategoryScrollPosition(selectedCategoryName);
+                if (newCategoryScrollPosition) {
+                    this.workspace
+                        .getFlyout()
+                        .getWorkspace()
+                        .scrollbar.setY(
+                            (newCategoryScrollPosition * scale) + offsetWithinCategory
+                        );
+                }
+            });
+        }
+        this.workspace.getToolbox().forceRerender();
+        this._renderedToolboxXML = this.props.toolboxXML;
 
         const queue = this.toolboxUpdateQueue;
         this.toolboxUpdateQueue = [];
         queue.forEach(fn => fn());
 
-        // Re-apply palette visibility since updateToolbox/setFlyoutScrollPos may re-show the flyout
+        // === Smalruby: Re-apply palette visibility since updateToolbox may re-show the flyout
         if (!this.props.paletteVisible) {
             this._applyPaletteVisibility(false);
         }
@@ -790,7 +810,7 @@ class Blocks extends React.Component {
                     if (blockInfo.info && blockInfo.info.isDynamic) {
                         dynamicBlocksInfo.push(blockInfo);
                     } else if (blockInfo.json) {
-                        staticBlocksJson.push(injectExtensionBlockMode(blockInfo.json, this.props.colorMode));
+                        staticBlocksJson.push(injectExtensionBlockIcons(blockInfo.json, this.props.colorMode));
                     }
                     // otherwise it's a non-block entry such as '---'
                 });
