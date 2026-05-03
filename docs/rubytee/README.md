@@ -36,8 +36,17 @@ API キーをクライアントに直接持たせず、AWS Lambda の専用リ�
 
 1. Ruby タブの **ruby-toolbar** で「ルビティー」ボタン (`ruby-toolbar-rubytee`) をクリック
 2. **初回のみ**: 同意ダイアログ (`rubytee-consent`) が表示される。チェックを入れて「OK」で `localStorage.smalruby:rubyteeConsent = 'true'` が保存される
+
+   ![同意ダイアログ](screenshots/0101-consent-1280x800.png)
+
 3. チャットモーダル (`rubytee-modal`) が開く
+
+   ![空のチャット](screenshots/0201-empty-chat-1280x800.png)
+
 4. 自然言語で要望を入力 → AI が現在のコンテキスト（編集中スプライト、ステージ、コード）を踏まえて Ruby コードを生成
+
+   ![AI 応答](screenshots/0202-with-response-1280x800.png)
+
 5. 生成されたコードは「適用」ボタンでエディタに挿入できる
 6. 「同意をリセット」で同意状態を削除可能
 
