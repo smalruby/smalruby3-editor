@@ -90,9 +90,11 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 
 ### その他
 
+- [`architecture-overview.md`](architecture-overview.md) — モノレポ全体のアーキテクチャ概要 (パッケージ・インフラ・gem の関係 1 枚図)
 - [`adr/`](adr/) — Architecture Decision Records (Smalruby 独自の ADR)
 - `smalruby-language-spec*.md` — Smalruby 言語仕様（機能 docs とは別カテゴリ）
 - `smalruby-dncl-spec.ja.md` — DNCL モードの言語仕様
+- [`../CONTRIBUTING.md`](../CONTRIBUTING.md) — 新規参加者向けの入口
 
 ## ドキュメント執筆テンプレート
 
