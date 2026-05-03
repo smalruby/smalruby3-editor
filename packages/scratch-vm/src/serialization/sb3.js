@@ -1235,7 +1235,10 @@ const parseScratchObject = function (object, runtime, extensions, zip, assets) {
         for (const commentId in object.comments) {
             const comment = object.comments[commentId];
             const newComment = new Comment(
-                commentId,
+                // Pre-Blockly v12 comments used arbitrary IDs; v12 expects an ID derived
+                // from the parent block. Rewrite block-attached comment IDs here so they
+                // match the synthesized id we set on block.comment in deserializeBlocks.
+                comment.blockId ? `${comment.blockId}_comment` : commentId,
                 comment.text,
                 comment.x,
                 comment.y,
