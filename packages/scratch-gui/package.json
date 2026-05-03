@@ -116,7 +116,7 @@
         }
       ],
       "^.+\\.jsx?$": "babel-jest",
-      "node_modules/(@bjorn3/browser_wasi_shim|@ruby/prism)/.*\\.js$": "babel-jest",
+      "node_modules/(@bjorn3/browser_wasi_shim|@ruby/prism|scratch-blocks)/.*\\.m?js$": "babel-jest",
       "^.+\\.mjs$": [
         "babel-jest",
         {
@@ -133,7 +133,7 @@
       ]
     },
     "transformIgnorePatterns": [
-      "node_modules/(?!(intl-messageformat|intl-messageformat-parser|@bjorn3/browser_wasi_shim|@ruby/prism)/)"
+      "node_modules/(?!(intl-messageformat|intl-messageformat-parser|@bjorn3/browser_wasi_shim|@ruby/prism|scratch-blocks)/)"
     ]
   },
   "dependencies": {

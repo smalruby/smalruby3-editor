@@ -285,7 +285,7 @@ class BlockDisplayModal extends React.Component {
             existingComment.text = commentText;
         } else {
             // Create new comment
-            const commentId = Blockly.utils.genUid();
+            const commentId = Blockly.utils.idGenerator.genUid();
             stage.createComment(
                 commentId,
                 null,
