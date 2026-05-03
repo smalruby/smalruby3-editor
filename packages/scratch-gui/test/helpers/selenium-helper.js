@@ -499,10 +499,23 @@ class SeleniumHelper {
 
     /**
      * Get selected browser log entries.
-     * @param {Array.<string>} [whitelist] An optional list of log strings to allow. Default: see implementation.
+     * @param {Array.<string>|{whitelist?: Array.<string>, includeAllLevels?: boolean}} [options]
+     *     Either an array of log substrings to allow (whitelist), or an options object.
+     *     If `options.includeAllLevels` is true, all log levels are returned, not just SEVERE.
      * @returns {Promise<Array.<webdriver.logging.Entry>>} A promise that resolves to the log entries.
      */
-    async getLogs (whitelist) {
+    async getLogs (options) {
+        // === Smalruby: support both upstream's array signature and Smalruby's
+        // {whitelist, includeAllLevels} options-object signature.
+        let whitelist;
+        let includeAllLevels = false;
+        if (Array.isArray(options)) {
+            whitelist = options;
+        } else if (options && typeof options === 'object') {
+            whitelist = options.whitelist;
+            includeAllLevels = options.includeAllLevels === true;
+        }
+
         const outerError = new Error(`getLogs failed with arguments:\n\twhitelist: ${whitelist}`);
         try {
             await this.setTitle(`getLogs ${whitelist}`);
@@ -520,7 +533,8 @@ class SeleniumHelper {
                 for (const element of whitelist) {
                     if (message.indexOf(element) !== -1) {
                         return false;
-                    } else if (entry.level !== 'SEVERE') { // WARNING: this doesn't do what it looks like it does!
+                    } else if (!includeAllLevels && entry.level !== 'SEVERE') {
+                        // WARNING: this doesn't do what it looks like it does!
                         return false;
                     }
                 }
