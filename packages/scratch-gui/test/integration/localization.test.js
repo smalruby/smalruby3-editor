@@ -6,6 +6,7 @@ import {
 } from '../helpers/menu-xpaths';
 
 const {
+    clickBlocksCategory,
     clickText,
     clickXpath,
     findByText,
@@ -47,7 +48,7 @@ describe('Localization', () => {
         await new Promise(resolve => setTimeout(resolve, 1000)); // wait for blocks refresh
 
         // Make sure the blocks are translating
-        await clickText('調べる'); // Sensing category in Japanese
+        await clickBlocksCategory('調べる'); // Sensing category in Japanese
         await new Promise(resolve => setTimeout(resolve, 1000)); // wait for blocks to scroll
         await clickText('答え'); // Find the "answer" block in Japanese
 
@@ -77,7 +78,7 @@ describe('Localization', () => {
     // test for #5445
     test('Loading with locale shows correct translation for string length block parameter', async () => {
         await loadUri(`${uri}?locale=ja`);
-        await clickText('演算'); // Operators category in Japanese
+        await clickBlocksCategory('演算'); // Operators category in Japanese
         await new Promise(resolve => setTimeout(resolve, 1000)); // wait for blocks to scroll
         await clickText('の長さ', scope.blocksTab); // Click "length <apple>" block
         await findByText('3', scope.reportedValue); // Tooltip with result

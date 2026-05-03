@@ -3,6 +3,7 @@ import { SETTINGS_MENU_XPATH } from '../helpers/menu-xpaths';
 import SeleniumHelper from '../helpers/selenium-helper';
 
 const {
+    clickBlocksCategory,
     clickText,
     clickXpath,
     findByText,
@@ -179,7 +180,7 @@ describe('Block Display Modal', () => {
         await driver.sleep(1000);
 
         // Click on Looks category to expand it
-        await clickText('Looks');
+        await clickBlocksCategory('Looks');
         await driver.sleep(1000);
 
         // looks_say should be visible (it was specified in only_blocks)
@@ -274,7 +275,7 @@ describe('Block Display Modal', () => {
         await driver.sleep(1000);
 
         // Click on Looks category to expand it
-        await clickText('Looks');
+        await clickBlocksCategory('Looks');
         await driver.sleep(1000);
 
         // looks_say should be visible (it was specified in only_blocks)
