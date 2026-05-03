@@ -50,7 +50,10 @@ describe('Hardware extension connection modal', () => {
         await expect(logs).toEqual([]);
     });
 
-    test('Message saying Scratch Link is unavailable (BT)', async () => {
+    // === Smalruby: skipped because Smalruby hides the upstream EV3 extension
+    // (`defaultHidden: true` in extensions/index.jsx). Re-enable if EV3 is
+    // ever made visible by default. ===
+    test.skip('Message saying Scratch Link is unavailable (BT)', async () => {
         await loadUri(uri);
 
         await driver.executeScript(websocketFakeoutJs);
