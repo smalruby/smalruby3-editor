@@ -11,7 +11,7 @@ scratch-vm は **Scratch プロジェクトを実行する仮想マシン**。�
 | ドキュメント | 内容 | 状態 |
 |---|---|---|
 | [`architecture.md`](architecture.md) | Runtime / Sequencer / Thread / Target / Blocks の関係、データフロー | ✅ |
-| [`extensions.md`](extensions.md) | 拡張機能の仕組み + Smalruby 独自追加 (`smalruby-extensions.js`) | ⏳ |
+| [`extensions.md`](extensions.md) | 拡張機能の仕組み + Smalruby 独自追加 (`smalruby-extensions.js`) | ✅ |
 | [`serialization.md`](serialization.md) | `.sb3` フォーマット + Smalruby マイグレーション (`smalruby-migration.js`) | ⏳ |
 | [`blocks-runtime.md`](blocks-runtime.md) | ブロック実行モデル (execute / sequencer / thread の協調) | ⏳ |
 
