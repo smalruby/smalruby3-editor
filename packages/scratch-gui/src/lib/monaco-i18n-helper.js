@@ -8,7 +8,7 @@ loader.config({
     },
 });
 
-const loadMonacoLocale = async locale => {
+const loadMonacoLocale = async (locale) => {
     if (locale === 'ja' || locale === 'ja-Hira') {
         try {
             // Import the ESM NLS messages.

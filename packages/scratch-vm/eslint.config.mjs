@@ -43,6 +43,7 @@ export default eslintConfigScratch.defineConfig(
         'dist/**/*',
         'node_modules/**/*',
         'playground/**/*',
+        'tap-snapshots/**/*',
         'src/extension-support/extension-worker.js',
         'src/engine/runtime.js',
         'src/extension-support/extension-manager.js',

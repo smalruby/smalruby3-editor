@@ -30,7 +30,7 @@ const loadSession = () => {
  * Save classroom session to localStorage.
  * @param {object} session - Session data to save
  */
-const saveSession = session => {
+const saveSession = (session) => {
     if (typeof window === 'undefined' || !window.sessionStorage) return;
     try {
         window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));

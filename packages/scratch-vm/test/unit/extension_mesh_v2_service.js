@@ -23,7 +23,7 @@ const createMockBlocks = () => ({
     },
 });
 
-test('MeshV2Service Cost Tracking', t => {
+test('MeshV2Service Cost Tracking', (t) => {
     const blocks = createMockBlocks();
     const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -71,14 +71,14 @@ test('MeshV2Service Cost Tracking', t => {
     };
     service.client = mockClient;
 
-    t.test('initial state', st => {
+    t.test('initial state', (st) => {
         st.equal(service.costTracking.queryCount, 0);
         st.equal(service.costTracking.mutationCount, 0);
         st.equal(service.costTracking.connectionStartTime, null);
         st.end();
     });
 
-    t.test('tracking mutations and queries', async st => {
+    t.test('tracking mutations and queries', async (st) => {
         await service.createDomain();
         st.equal(service.costTracking.mutationCount, 1);
 
@@ -122,7 +122,7 @@ test('MeshV2Service Cost Tracking', t => {
         st.end();
     });
 
-    t.test('tracking received messages', st => {
+    t.test('tracking received messages', (st) => {
         service.costTracking.dataUpdateReceived++;
         service.handleDataUpdate({
             nodeId: 'other',
@@ -145,16 +145,16 @@ test('MeshV2Service Cost Tracking', t => {
         st.end();
     });
 
-    t.test('logging summary in cleanup', st => {
+    t.test('logging summary in cleanup', (st) => {
         // Mock log.info to verify it's called
         const originalLogInfo = log.info;
         const messages = [];
-        log.info = msg => messages.push(msg);
+        log.info = (msg) => messages.push(msg);
 
         service.cleanup();
 
-        st.ok(messages.some(m => m.includes('Mesh V2: Cost Summary')));
-        st.ok(messages.some(m => m.includes('TOTAL ESTIMATED COST')));
+        st.ok(messages.some((m) => m.includes('Mesh V2: Cost Summary')));
+        st.ok(messages.some((m) => m.includes('TOTAL ESTIMATED COST')));
 
         log.info = originalLogInfo;
         st.end();
@@ -163,8 +163,8 @@ test('MeshV2Service Cost Tracking', t => {
     t.end();
 });
 
-test('MeshV2Service Protocol Reporting', t => {
-    const captureMutationVariables = capture => ({
+test('MeshV2Service Protocol Reporting', (t) => {
+    const captureMutationVariables = (capture) => ({
         query: () => Promise.resolve({ data: { listGroupsByDomain: [], listGroupStatuses: [] } }),
         mutate: ({ mutation, variables }) => {
             if (mutation === CREATE_GROUP) {
@@ -203,7 +203,7 @@ test('MeshV2Service Protocol Reporting', t => {
         subscribe: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }),
     });
 
-    t.test('joinGroup sends useWebSocket=true when not forcePolling', async st => {
+    t.test('joinGroup sends useWebSocket=true when not forcePolling', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         const capture = {};
@@ -226,7 +226,7 @@ test('MeshV2Service Protocol Reporting', t => {
         st.end();
     });
 
-    t.test('joinGroup sends useWebSocket=false when forcePolling enabled', async st => {
+    t.test('joinGroup sends useWebSocket=false when forcePolling enabled', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node2', 'domain1');
         // Simulate forcePolling URL parameter
@@ -249,7 +249,7 @@ test('MeshV2Service Protocol Reporting', t => {
         st.end();
     });
 
-    t.test('createGroup sends useWebSocket based on testWebSocket result', async st => {
+    t.test('createGroup sends useWebSocket based on testWebSocket result', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'host1', 'd1');
         const capture = {};
@@ -270,7 +270,7 @@ test('MeshV2Service Protocol Reporting', t => {
         st.end();
     });
 
-    t.test('createGroup sends useWebSocket=false when testWebSocket fails', async st => {
+    t.test('createGroup sends useWebSocket=false when testWebSocket fails', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'host2', 'd1');
         const capture = {};

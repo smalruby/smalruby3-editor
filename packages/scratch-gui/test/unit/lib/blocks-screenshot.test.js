@@ -250,7 +250,7 @@ describe('downloadBlocksAsImage', () => {
 
         let capturedCanvas;
         const realCreateElement = document.createElement.bind(document);
-        jest.spyOn(document, 'createElement').mockImplementation(tag => {
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
             const el = realCreateElement(tag);
             if (tag === 'canvas') capturedCanvas = el;
             return el;
@@ -271,7 +271,7 @@ describe('downloadBlocksAsImage', () => {
 
         let capturedCanvas;
         const realCreateElement = document.createElement.bind(document);
-        jest.spyOn(document, 'createElement').mockImplementation(tag => {
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
             const el = realCreateElement(tag);
             if (tag === 'canvas') capturedCanvas = el;
             return el;

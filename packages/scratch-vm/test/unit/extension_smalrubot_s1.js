@@ -65,7 +65,7 @@ const createMockSerialPort = ({ closeThrows = false } = {}) => {
     return mockPort;
 };
 
-test('Smalrubot S1 Blocks', t => {
+test('Smalrubot S1 Blocks', (t) => {
     // Mock Web Serial API
     // Use global._mockNavigator to avoid Navigator object conversion in Node.js
     const mockNavigator = {
@@ -76,7 +76,7 @@ test('Smalrubot S1 Blocks', t => {
 
     global._mockNavigator = mockNavigator;
 
-    t.test('constructor', st => {
+    t.test('constructor', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         st.type(blocks, SmalrubotS1Blocks);
@@ -84,7 +84,7 @@ test('Smalrubot S1 Blocks', t => {
         st.end();
     });
 
-    t.test('getInfo', st => {
+    t.test('getInfo', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         const info = blocks.getInfo();
@@ -95,7 +95,7 @@ test('Smalrubot S1 Blocks', t => {
         st.end();
     });
 
-    t.test('disconnect handles errors gracefully', st => {
+    t.test('disconnect handles errors gracefully', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         const smalrubot = blocks.smalrubot;
@@ -135,13 +135,13 @@ test('Smalrubot S1 Blocks', t => {
 
                 st.end();
             })
-            .catch(err => {
+            .catch((err) => {
                 st.fail(`disconnect should not throw errors: ${err.message}`);
                 st.end();
             });
     });
 
-    t.test('disconnect from already disconnected state', st => {
+    t.test('disconnect from already disconnected state', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         const smalrubot = blocks.smalrubot;
@@ -155,7 +155,7 @@ test('Smalrubot S1 Blocks', t => {
         });
     });
 
-    t.test('disconnect without serial port', st => {
+    t.test('disconnect without serial port', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         const smalrubot = blocks.smalrubot;
@@ -170,7 +170,7 @@ test('Smalrubot S1 Blocks', t => {
         });
     });
 
-    t.test('disconnect cleans up all resources', st => {
+    t.test('disconnect cleans up all resources', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         const smalrubot = blocks.smalrubot;
@@ -198,7 +198,7 @@ test('Smalrubot S1 Blocks', t => {
         });
     });
 
-    t.test('connectDirect sets serial port and calls connect', st => {
+    t.test('connectDirect sets serial port and calls connect', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         const smalrubot = blocks.smalrubot;
@@ -221,7 +221,7 @@ test('Smalrubot S1 Blocks', t => {
         });
     });
 
-    t.test('connectDirect disconnects first when not in disconnected state', st => {
+    t.test('connectDirect disconnects first when not in disconnected state', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         const smalrubot = blocks.smalrubot;
@@ -251,7 +251,7 @@ test('Smalrubot S1 Blocks', t => {
         });
     });
 
-    t.test('connectDirect propagates connect errors', st => {
+    t.test('connectDirect propagates connect errors', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         const smalrubot = blocks.smalrubot;
@@ -264,14 +264,14 @@ test('Smalrubot S1 Blocks', t => {
                 st.fail('should reject');
                 st.end();
             },
-            err => {
+            (err) => {
                 st.match(err.message, /Connection failed/, 'should propagate the error');
                 st.end();
             },
         );
     });
 
-    t.test('connectDirect rejects when smalrubot is not initialized', st => {
+    t.test('connectDirect rejects when smalrubot is not initialized', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new SmalrubotS1Blocks(mockRuntime);
         blocks.smalrubot = null;
@@ -282,7 +282,7 @@ test('Smalrubot S1 Blocks', t => {
                 st.fail('should reject');
                 st.end();
             },
-            err => {
+            (err) => {
                 st.ok(err, 'should reject with an error');
                 st.end();
             },

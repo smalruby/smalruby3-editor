@@ -12,7 +12,7 @@ import sharedMessages from './shared-messages';
 const loadProjectWithChecks = (vm, intl, projectData, currentRubyVersion, onSetRubyVersion) =>
     vm
         .hasMeshV1Project(projectData)
-        .then(hasMeshV1 => {
+        .then((hasMeshV1) => {
             if (hasMeshV1) {
                 // eslint-disable-next-line no-alert
                 alert(intl.formatMessage(sharedMessages.meshV1AutoMigrated));
@@ -20,7 +20,7 @@ const loadProjectWithChecks = (vm, intl, projectData, currentRubyVersion, onSetR
             return vm.loadProject(projectData, { migrateMeshV1ToV2: hasMeshV1 });
         })
         .then(() => vm.hasKoshienProject(projectData))
-        .then(hasKoshien => {
+        .then((hasKoshien) => {
             if (hasKoshien) {
                 if (currentRubyVersion !== '1') {
                     // eslint-disable-next-line no-alert

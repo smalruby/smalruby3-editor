@@ -10,7 +10,7 @@
  * 2. No changes needed in extension-manager.js - it calls this function
  * @param {object} builtinExtensions - The builtin extensions object to register into
  */
-const registerSmalrubyExtensions = builtinExtensions => {
+const registerSmalrubyExtensions = (builtinExtensions) => {
     // microbitMore extension - Enhanced micro:bit support
     builtinExtensions.microbitMore = () => {
         const formatMessage = require('format-message');

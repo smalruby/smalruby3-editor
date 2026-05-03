@@ -1,6 +1,6 @@
+import { isUniversalHex, separateUniversalHex } from '@microbit/microbit-universal-hex';
 import { WebUSB, DAPLink } from 'dapjs';
 import keyMirror from 'keymirror';
-import { isUniversalHex, separateUniversalHex } from '@microbit/microbit-universal-hex';
 import hexUrl from '../generated/microbit-more-hex-url.cjs';
 import log from './log.js';
 
@@ -26,7 +26,7 @@ const productId = 0x0204;
  * @returns {DeviceVersion} The version of the device.
  * @throws {Error} If the device is not a recognized micro:bit or is V1.
  */
-const getDeviceVersion = device => {
+const getDeviceVersion = (device) => {
     const microBitBoardId = device?.serialNumber?.substring(0, 4) ?? '';
     switch (microBitBoardId) {
         case '9900':
@@ -48,7 +48,7 @@ const getDeviceVersion = device => {
  * @returns {DeviceVersion} The version of the hex file.
  * @throws {Error} If the hex file does not target a recognized micro:bit version.
  */
-const getHexVersion = hex => {
+const getHexVersion = (hex) => {
     switch (hex.boardId) {
         case 0x9900:
         case 0x9901:
@@ -134,7 +134,7 @@ const updateMicroBit = async (device, progress) => {
  * @returns {Promise<void>} A Promise that resolves when the update is completed.
  * @throws {Error} If anything goes wrong while fetching the hex file or updating the micro:bit.
  */
-const selectAndUpdateMicroBit = async progress => {
+const selectAndUpdateMicroBit = async (progress) => {
     const device = await navigator.usb.requestDevice({
         filters: [{ vendorId, productId }],
     });

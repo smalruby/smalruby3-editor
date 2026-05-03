@@ -25,8 +25,8 @@ const originalLastInstance = BlockUtility.lastInstance;
 const mockUtil = null;
 BlockUtility.lastInstance = () => mockUtil;
 
-test('MeshV2Service Batch Events', t => {
-    t.test('fireEvent adds to queue', st => {
+test('MeshV2Service Batch Events', (t) => {
+    t.test('fireEvent adds to queue', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.stopEventBatchTimer(); // Stop timer to prevent interference
@@ -44,7 +44,7 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('fireEvent deduplicates events', st => {
+    t.test('fireEvent deduplicates events', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.client = { mutate: () => Promise.resolve({}) };
@@ -64,7 +64,7 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('fireEvent respects MAX_EVENT_QUEUE_SIZE (FIFO)', st => {
+    t.test('fireEvent respects MAX_EVENT_QUEUE_SIZE (FIFO)', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.client = { mutate: () => Promise.resolve({}) };
@@ -83,14 +83,14 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('processBatchEvents sends events and clears queue', async st => {
+    t.test('processBatchEvents sends events and clears queue', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.stopEventBatchTimer();
         service.groupId = 'group1';
 
         service.client = {
-            mutate: options => {
+            mutate: (options) => {
                 st.equal(options.mutation, FIRE_EVENTS);
                 st.equal(options.variables.events.length, 2);
                 return Promise.resolve({ data: { fireEventsByNode: {} } });
@@ -106,7 +106,7 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('processBatchEvents splits large batches', async st => {
+    t.test('processBatchEvents splits large batches', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.stopEventBatchTimer();
@@ -114,7 +114,7 @@ test('MeshV2Service Batch Events', t => {
 
         let mutateCount = 0;
         service.client = {
-            mutate: options => {
+            mutate: (options) => {
                 mutateCount++;
                 if (mutateCount === 1) {
                     st.equal(options.variables.events.length, 1000);
@@ -136,7 +136,7 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('handleBatchEvent broadcast events with timing', st => {
+    t.test('handleBatchEvent broadcast events with timing', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -165,12 +165,12 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('processNextBroadcast processes events in one frame if timing arrived and within 33ms', st => {
+    t.test('processNextBroadcast processes events in one frame if timing arrived and within 33ms', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
         const broadcasted = [];
-        service.broadcastEvent = event => broadcasted.push(event.name);
+        service.broadcastEvent = (event) => broadcasted.push(event.name);
 
         // 3 events with very short gaps (all < 1ms relative to previous)
         const batchEvent = {
@@ -206,12 +206,12 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('processNextBroadcast respects 33ms window when handling backlog', st => {
+    t.test('processNextBroadcast respects 33ms window when handling backlog', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
         const broadcasted = [];
-        service.broadcastEvent = event => broadcasted.push(event.name);
+        service.broadcastEvent = (event) => broadcasted.push(event.name);
 
         // Events spaced 20ms apart: 0ms, 20ms, 40ms, 60ms
         const batchEvent = {
@@ -257,12 +257,12 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('processNextBroadcast processes many simultaneous events in one frame', st => {
+    t.test('processNextBroadcast processes many simultaneous events in one frame', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
         const broadcasted = [];
-        service.broadcastEvent = event => broadcasted.push(event.name);
+        service.broadcastEvent = (event) => broadcasted.push(event.name);
 
         // 50 events all with the same timestamp
         const events = [];
@@ -294,10 +294,10 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('cleanup does not remove BEFORE_STEP listener', st => {
+    t.test('cleanup does not remove BEFORE_STEP listener', (st) => {
         const blocks = createMockBlocks();
         let offCalled = false;
-        blocks.runtime.off = event => {
+        blocks.runtime.off = (event) => {
             if (event === 'BEFORE_STEP') offCalled = true;
         };
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
@@ -311,7 +311,7 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('processNextBroadcast does nothing when disconnected', st => {
+    t.test('processNextBroadcast does nothing when disconnected', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = null; // Disconnected
@@ -346,7 +346,7 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('cleanup clears event queue', st => {
+    t.test('cleanup clears event queue', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
@@ -364,7 +364,7 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('reportEventStatsIfNeeded logs stats every 10s', st => {
+    t.test('reportEventStatsIfNeeded logs stats every 10s', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
@@ -396,7 +396,7 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('cleanup reports final stats', st => {
+    t.test('cleanup reports final stats', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.eventQueueStats.duplicatesSkipped = 10;
@@ -409,11 +409,11 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('reconnect flow: events processed after reconnect', st => {
+    t.test('reconnect flow: events processed after reconnect', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         const broadcasted = [];
-        service.broadcastEvent = event => broadcasted.push(event.name);
+        service.broadcastEvent = (event) => broadcasted.push(event.name);
 
         // 1. Initial connection
         service.groupId = 'group1';
@@ -446,7 +446,7 @@ test('MeshV2Service Batch Events', t => {
         st.end();
     });
 
-    t.test('cleanup', st => {
+    t.test('cleanup', (st) => {
         // Restore original method
         BlockUtility.lastInstance = originalLastInstance;
         st.end();

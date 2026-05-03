@@ -122,7 +122,7 @@ const playgroundBuilder = webBuilder
         }
     })
     .addModuleRule({
-        test: require.resolve('scratch-blocks/dist/vertical.js'),
+        test: require.resolve('scratch-blocks'),
         loader: 'expose-loader',
         options: {
             exposes: 'Blockly'
@@ -161,7 +161,7 @@ const playgroundBuilder = webBuilder
         new CopyWebpackPlugin({
             patterns: [
                 {
-                    from: path.dirname(require.resolve('scratch-blocks/package.json')) + '/media',
+                    from: '../../node_modules/scratch-blocks/media',
                     to: 'media'
                 },
                 {

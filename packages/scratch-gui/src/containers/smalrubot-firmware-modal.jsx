@@ -24,14 +24,14 @@ const SmalrubotFirmwareModal = () => {
                 (written, total) => {
                     setProgressPercent(Math.floor((written / total) * 200) / 2);
                 },
-                msg => {
+                (msg) => {
                     setStatusMessage(msg);
                 },
             )
             .then(() => {
                 setPhase('success');
             })
-            .catch(err => {
+            .catch((err) => {
                 setPhase('error');
                 setErrorMessage(err.message || String(err));
             });

@@ -21,8 +21,8 @@ const createMockBlocks = () => ({
     opcodeFunctions: { event_broadcast: () => {} },
 });
 
-test('issue #554: pollGroupData integration', t => {
-    t.test('polling mode skips startPeriodicDataSync (createGroup)', async st => {
+test('issue #554: pollGroupData integration', (t) => {
+    t.test('polling mode skips startPeriodicDataSync (createGroup)', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.testWebSocket = () => Promise.resolve(false);
@@ -67,7 +67,7 @@ test('issue #554: pollGroupData integration', t => {
         st.end();
     });
 
-    t.test('WebSocket mode keeps startPeriodicDataSync (createGroup)', async st => {
+    t.test('WebSocket mode keeps startPeriodicDataSync (createGroup)', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.testWebSocket = () => Promise.resolve(true);
@@ -105,7 +105,7 @@ test('issue #554: pollGroupData integration', t => {
         st.end();
     });
 
-    t.test('polling mode skips startPeriodicDataSync (joinGroup)', async st => {
+    t.test('polling mode skips startPeriodicDataSync (joinGroup)', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.forcePolling = true;
@@ -149,7 +149,7 @@ test('issue #554: pollGroupData integration', t => {
         st.end();
     });
 
-    t.test('pollEvents calls POLL_GROUP_DATA query and handles both events and nodeStatuses', async st => {
+    t.test('pollEvents calls POLL_GROUP_DATA query and handles both events and nodeStatuses', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'g1';
@@ -158,7 +158,7 @@ test('issue #554: pollGroupData integration', t => {
 
         let calledMutation = null;
         const handledStatuses = [];
-        service.handleDataUpdate = status => handledStatuses.push(status);
+        service.handleDataUpdate = (status) => handledStatuses.push(status);
 
         const events = [
             {
@@ -182,7 +182,7 @@ test('issue #554: pollGroupData integration', t => {
             },
         ];
         service.client = {
-            query: options => {
+            query: (options) => {
                 calledMutation = options.query;
                 st.equal(options.variables.since, 'T1');
                 return Promise.resolve({

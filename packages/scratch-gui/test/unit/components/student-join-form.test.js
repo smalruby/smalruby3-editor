@@ -1,8 +1,8 @@
 /* eslint-env jest */
-import React from 'react';
-import { IntlProvider } from 'react-intl';
 import '@testing-library/jest-dom';
 import { render, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { IntlProvider } from 'react-intl';
 import StudentJoinForm from '../../../src/components/classroom-modal/student-join-form.jsx';
 
 const renderForm = (props = {}) =>
@@ -12,9 +12,9 @@ const renderForm = (props = {}) =>
         </IntlProvider>,
     );
 
-const getInput = container => container.querySelector('[data-testid="classroom-join-code-input"]');
+const getInput = (container) => container.querySelector('[data-testid="classroom-join-code-input"]');
 
-const getSubmitButton = container => container.querySelector('[data-testid="classroom-join-submit"]');
+const getSubmitButton = (container) => container.querySelector('[data-testid="classroom-join-submit"]');
 
 describe('StudentJoinForm', () => {
     describe('input normalization', () => {

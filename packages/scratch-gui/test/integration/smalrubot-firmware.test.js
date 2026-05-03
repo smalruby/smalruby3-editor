@@ -14,7 +14,7 @@ const loadExtension = async (d, extensionName) => {
     // Click the extension by name
     await clickText(extensionName);
     // Wait for connection modal to appear and close it
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     // Close connection modal if visible
     try {
         const closeButton = await findByXpath(
@@ -24,7 +24,7 @@ const loadExtension = async (d, extensionName) => {
     } catch (_) {
         // Modal may have auto-closed
     }
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 };
 
 describe('SmalrubotS1 firmware flash', () => {
@@ -46,6 +46,6 @@ describe('SmalrubotS1 firmware flash', () => {
 
         // Go back to editor
         await driver.navigate().back();
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
     });
 });

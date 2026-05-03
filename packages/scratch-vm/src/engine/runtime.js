@@ -1664,12 +1664,27 @@ class Runtime extends EventEmitter {
         // We should tune this over time based on user feedback and our budget.
         const secondsPerAction = 4;
 
+        const productionDomains = ['scratch.mit.edu', 'scratch.org'];
+        const isProductionHost = typeof window !== 'undefined' &&
+            productionDomains.some(d =>
+                window.location.hostname === d || window.location.hostname.endsWith(`.${d}`)
+            );
+
         /** @type {Parameters<typeof storage.scratchFetch.createQueue>[1]} */
+        // To override on staging, set `window._scratchExtensionServiceQueueOptions` in the browser console
+        // before the VM initializes (e.g. in a DevTools snippet that runs before page load), then reload.
+        // Example: window._scratchExtensionServiceQueueOptions = { burstLimit: 10, sustainRate: 1 }
+        // This override is ignored on production hosts.
+        // Note to folks who run into this in the wild: this is very temporary! Please don't rely on this in, say,
+        // an extension that implements add-ons for Scratch. Just for example. Anyway... we're trying to tune these
+        // numbers to find a good balance between user experience and our monetary costs. My first attempt was
+        // definitely too low; sorry! Once we're done tuning, we'll probably remove this override.
         const extensionServiceQueueOptions = {
             burstLimit: 3, // How many actions can be sent in a short time if we haven't done any for a while?
             concurrency: 1, // Number of concurrent connections to the service
             queueCostLimit: 10, // Don't queue more actions than can finish before the `fetchWithTimeout` timeout.
-            sustainRate: 1 / secondsPerAction // See `secondsPerAction` above.
+            sustainRate: 1 / secondsPerAction, // See `secondsPerAction` above.
+            ...(!isProductionHost && typeof window !== 'undefined' && window._scratchExtensionServiceQueueOptions)
         };
 
         /** @todo The extensions should probably specify their own queue options (within existing limits) */

@@ -1,16 +1,16 @@
 /* eslint-env jest */
-import React from 'react';
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
+import React from 'react';
 import ResponsiveGui from '../../../src/lib/responsive-gui.jsx';
 
 // Mock GUI / MobileGui as cheap stand-ins so we don't need the full Redux + VM tree.
 jest.mock('../../../src/containers/gui.jsx', () => {
-    const MockGui = props => <div data-testid="mock-gui" data-prop={props.marker || ''} />;
+    const MockGui = (props) => <div data-testid="mock-gui" data-prop={props.marker || ''} />;
     return MockGui;
 });
 jest.mock('../../../src/components/mobile-gui/mobile-gui.jsx', () => {
-    const MockMobileGui = props => <div data-testid="mock-mobile-gui" data-prop={props.marker || ''} />;
+    const MockMobileGui = (props) => <div data-testid="mock-mobile-gui" data-prop={props.marker || ''} />;
     return MockMobileGui;
 });
 

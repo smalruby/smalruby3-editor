@@ -24,7 +24,7 @@ const enrichMembers = (membersData, submissionsData) => {
         }
     }
     const memberIds = new Set();
-    const enriched = (membersData.members || []).map(m => {
+    const enriched = (membersData.members || []).map((m) => {
         memberIds.add(m.memberId);
         const sub = subMap[m.memberId];
         return sub
@@ -136,7 +136,7 @@ const useTeacherClassrooms = ({
     }, []);
 
     const loadClassroomDetail = useCallback(
-        async classroomId => {
+        async (classroomId) => {
             try {
                 await fetchClassroomDetail(idToken, classroomId);
                 return true;
@@ -189,7 +189,7 @@ const useTeacherClassrooms = ({
     );
 
     const handleDeleteClassroom = useCallback(
-        async classroomId => {
+        async (classroomId) => {
             clearError();
             setIsLoading(true);
             try {
@@ -211,7 +211,7 @@ const useTeacherClassrooms = ({
     );
 
     const handleSelectClassroom = useCallback(
-        async classroomId => {
+        async (classroomId) => {
             clearError();
             setIsLoading(true);
             const success = await loadClassroomDetail(classroomId);
@@ -234,7 +234,7 @@ const useTeacherClassrooms = ({
     // --- Lightweight refresh (members only, preserves detail pane state) ---
 
     const refreshMembersOnly = useCallback(
-        async classroomId => {
+        async (classroomId) => {
             try {
                 const [membersData, submissionsData] = await Promise.all([
                     classroomAPI.listMembers(idToken, classroomId),
@@ -281,12 +281,12 @@ const useTeacherClassrooms = ({
     // --- Member management ---
 
     const handleDeleteMember = useCallback(
-        async memberId => {
+        async (memberId) => {
             if (!selectedClassroom) return;
             clearError();
             try {
                 await classroomAPI.deleteMember(idToken, selectedClassroom.classroomId, memberId);
-                setMembers(prev => prev.filter(m => m.memberId !== memberId));
+                setMembers((prev) => prev.filter((m) => m.memberId !== memberId));
                 setSelectedMember(null);
             } catch (err) {
                 if (err.status === 401) {
@@ -299,19 +299,19 @@ const useTeacherClassrooms = ({
         [idToken, selectedClassroom, clearError, showError, handleTeacher401, intl],
     );
 
-    const handleSelectMember = useCallback(memberId => {
+    const handleSelectMember = useCallback((memberId) => {
         setSelectedMember(memberId);
     }, []);
 
     // --- Update classroom settings ---
 
     const handleUpdateAssignmentName = useCallback(
-        async assignmentName => {
+        async (assignmentName) => {
             if (!idToken || !selectedClassroom) return;
             clearError();
             try {
                 await classroomAPI.updateClassroom(idToken, selectedClassroom.classroomId, { assignmentName });
-                setSelectedClassroom(prev => ({ ...prev, assignmentName }));
+                setSelectedClassroom((prev) => ({ ...prev, assignmentName }));
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();
@@ -324,12 +324,12 @@ const useTeacherClassrooms = ({
     );
 
     const handleUpdateStudentCount = useCallback(
-        async studentCount => {
+        async (studentCount) => {
             if (!idToken || !selectedClassroom) return;
             clearError();
             try {
                 await classroomAPI.updateClassroom(idToken, selectedClassroom.classroomId, { studentCount });
-                setSelectedClassroom(prev => ({ ...prev, studentCount }));
+                setSelectedClassroom((prev) => ({ ...prev, studentCount }));
                 // Refresh to reflect new seat grid
                 const detail = await classroomAPI.getClassroom(idToken, selectedClassroom.classroomId);
                 const memberList = await classroomAPI.listMembers(idToken, selectedClassroom.classroomId);

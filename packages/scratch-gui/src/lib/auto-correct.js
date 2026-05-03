@@ -41,7 +41,7 @@ const EXTRA_SYMBOL_MAP = {
  * @param {object} settings - The auto-correct settings.
  * @returns {RegExp|null} A regex, or null if nothing to match.
  */
-const buildPattern = settings => {
+const buildPattern = (settings) => {
     const parts = [];
     if (settings.fullwidthNumbers) {
         parts.push('\uFF10-\uFF19'); // ０-９
@@ -121,7 +121,7 @@ const replaceChar = (ch, settings) => {
  * @param {string} code - Ruby source code.
  * @returns {Array<[number, number]>} Array of [start, end] index pairs.
  */
-const findStringRegions = code => {
+const findStringRegions = (code) => {
     const regions = [];
     let i = 0;
     while (i < code.length) {

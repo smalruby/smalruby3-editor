@@ -11,7 +11,7 @@ const createMockRuntime = () => {
         getEditingTarget: () => ({
             getAllVariableNamesInScopeByType: () => [],
         }),
-        formatMessage: messageData => messageData.default || messageData.defaultMessage,
+        formatMessage: (messageData) => messageData.default || messageData.defaultMessage,
         setup: () => ({
             locale: 'en',
             translations: {
@@ -23,8 +23,8 @@ const createMockRuntime = () => {
     return runtime;
 };
 
-test('Koshien Blocks', t => {
-    t.test('constructor', st => {
+test('Koshien Blocks', (t) => {
+    t.test('constructor', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
         st.type(blocks, KoshienBlocks);
@@ -32,7 +32,7 @@ test('Koshien Blocks', t => {
         st.end();
     });
 
-    t.test('getInfo', st => {
+    t.test('getInfo', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
         const info = blocks.getInfo();
@@ -40,18 +40,18 @@ test('Koshien Blocks', t => {
         st.ok(info.blocks.length > 0);
 
         // Verify setMessage block exists
-        const setMessageBlock = info.blocks.find(b => b.opcode === 'setMessage');
+        const setMessageBlock = info.blocks.find((b) => b.opcode === 'setMessage');
         st.ok(setMessageBlock);
         st.equal(setMessageBlock.text, 'message [MESSAGE]');
         st.end();
     });
 
-    t.test('setMessage', st => {
+    t.test('setMessage', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
 
         let messageSent = null;
-        blocks._client.setMessage = message => {
+        blocks._client.setMessage = (message) => {
             messageSent = message;
             return Promise.resolve();
         };
@@ -64,7 +64,7 @@ test('Koshien Blocks', t => {
         st.end();
     });
 
-    t.test('connectGame', st => {
+    t.test('connectGame', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
 
@@ -77,14 +77,14 @@ test('Koshien Blocks', t => {
         st.end();
     });
 
-    t.test('position', st => {
+    t.test('position', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
         st.equal(blocks.position({ X: 1, Y: 2 }), '1:2');
         st.end();
     });
 
-    t.test('positionOf', st => {
+    t.test('positionOf', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
         st.equal(blocks.positionOf({ POSITION: '3:4', COORDINATE: 'x' }), 3);
@@ -92,7 +92,7 @@ test('Koshien Blocks', t => {
         st.end();
     });
 
-    t.test('object', st => {
+    t.test('object', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new KoshienBlocks(mockRuntime);
         st.equal(blocks.object({ OBJECT: 'wall' }), 1);

@@ -43,7 +43,7 @@ const FETCH_WORKER_TIMEOUT_MS = 5000;
  * @param {object} tool - assetTool.tools の要素
  * @returns {boolean} FetchWorkerTool ならば true
  */
-const isFetchWorkerTool = tool => Boolean(tool && tool.inner && typeof tool.inner === 'object');
+const isFetchWorkerTool = (tool) => Boolean(tool && tool.inner && typeof tool.inner === 'object');
 
 /**
  * `vm.runtime.storage` に対し、FetchWorkerTool への timeout patch を当てる。
@@ -51,7 +51,7 @@ const isFetchWorkerTool = tool => Boolean(tool && tool.inner && typeof tool.inne
  * @param {object} storage - vm.runtime.storage インスタンス
  * @returns {boolean} 適用したか (false = storage が無い / すでに patch 済み)
  */
-const applyStorageWorkerTimeout = storage => {
+const applyStorageWorkerTimeout = (storage) => {
     const tools = storage?.webHelper?.assetTool?.tools;
     if (!tools || !Array.isArray(tools)) return false;
     let patchedAny = false;

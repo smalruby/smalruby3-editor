@@ -106,7 +106,7 @@ const updateRubyCodeTarget = function (target, version) {
 };
 
 const updateRubyCodeErrors = function (errors) {
-    const markers = (errors || []).map(x => ({
+    const markers = (errors || []).map((x) => ({
         startRow: x.row,
         startCol: x.column,
         endRow: x.row,

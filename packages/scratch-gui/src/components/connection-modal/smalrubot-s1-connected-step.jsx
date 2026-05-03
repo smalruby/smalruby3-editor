@@ -7,7 +7,7 @@ import styles from './connection-modal.css';
 import Dots from './dots.jsx';
 import connectedStyles from './smalrubot-s1-connected-step.css';
 
-const SmalrubotS1ConnectedStep = props => (
+const SmalrubotS1ConnectedStep = (props) => (
     <Box className={styles.body}>
         <Box className={styles.activityArea}>
             <Box className={connectedStyles.message}>

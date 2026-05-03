@@ -293,7 +293,7 @@ const setupMethodValidator = function (block, blockInfo, ScratchBlocks, category
         if (currentBlockInfo.text === newConfig.text) return newValue;
 
         ScratchBlocks.Events.setGroup(true);
-        const oldMutation = ScratchBlocks.Xml.domToText(block.mutationToDom());
+        const oldMutation = ScratchBlocks.utils.xml.domToText(block.mutationToDom());
 
         // Build new blockInfo with the selected method's config
         const newBlockInfo = Object.assign({}, currentBlockInfo, {
@@ -321,7 +321,7 @@ const setupMethodValidator = function (block, blockInfo, ScratchBlocks, category
         ));
 
         // Fire mutation change event for undo/redo
-        const newMutation = ScratchBlocks.Xml.domToText(block.mutationToDom());
+        const newMutation = ScratchBlocks.utils.xml.domToText(block.mutationToDom());
         ScratchBlocks.Events.fire(new ScratchBlocks.Events.BlockChange(
             block, 'mutation', null, oldMutation, newMutation
         ));

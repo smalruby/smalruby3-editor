@@ -55,7 +55,7 @@ class GoogleDriveAPI {
     _generateState() {
         const array = new Uint8Array(16);
         window.crypto.getRandomValues(array);
-        return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+        return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
     }
 
     /**
@@ -123,7 +123,7 @@ class GoogleDriveAPI {
             // Generate a random state value for CSRF protection
             const expectedState = this._generateState();
 
-            this.tokenClient.callback = response => {
+            this.tokenClient.callback = (response) => {
                 if (response.error) {
                     reject(new Error(`Authentication failed: ${response.error}`));
                     return;
@@ -222,7 +222,7 @@ class GoogleDriveAPI {
 
             // Download file
             this.downloadFile(fileId, fileName)
-                .then(fileData => {
+                .then((fileData) => {
                     if (this.pickerCallback) {
                         // Wrap callback invocation in try-catch to prevent callback errors
                         // from being caught as download errors
@@ -242,7 +242,7 @@ class GoogleDriveAPI {
                         }
                     }
                 })
-                .catch(error => {
+                .catch((error) => {
                     console.error('[GoogleDriveAPI] Download error caught in handlePickerResponse:', {
                         error: error,
                         errorType: typeof error,

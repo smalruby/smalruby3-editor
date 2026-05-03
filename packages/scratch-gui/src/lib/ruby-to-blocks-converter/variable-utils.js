@@ -1,6 +1,6 @@
 import {defineMessages} from 'react-intl';
 import {Variable} from './constants';
-import Blockly from 'scratch-blocks';
+import * as Blockly from 'scratch-blocks';
 import {RubyToBlocksConverterError} from './errors';
 
 const messages = defineMessages({

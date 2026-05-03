@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (block creation methods for RubyToBlocksConverter) ===
-import Blockly from 'scratch-blocks';
+import * as Blockly from 'scratch-blocks';
 import _ from 'lodash';
 
 /**

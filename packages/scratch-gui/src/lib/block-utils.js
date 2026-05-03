@@ -141,9 +141,9 @@ export const generateBlockOrder = function () {
     const categoryOrder = ['motion', 'looks', 'sound', 'event', 'control', 'sensing', 'operators'];
 
     // Add base blocks (excluding extended blocks) - these get bits 0-98
-    categoryOrder.forEach(categoryId => {
+    categoryOrder.forEach((categoryId) => {
         const categoryBlocks = CATEGORY_BLOCKS[categoryId] || [];
-        categoryBlocks.forEach(blockId => {
+        categoryBlocks.forEach((blockId) => {
             if (!EXTENDED_BLOCKS.includes(blockId)) {
                 baseBlocks.push(blockId);
             }
@@ -164,7 +164,7 @@ export const parseHexFormatToSelectedBlocks = function (hexString) {
     const selectedBlocks = {};
 
     // Always initialize each category
-    Object.keys(CATEGORY_BLOCKS).forEach(categoryId => {
+    Object.keys(CATEGORY_BLOCKS).forEach((categoryId) => {
         selectedBlocks[categoryId] = [];
     });
 
@@ -203,7 +203,7 @@ export const parseHexFormatToSelectedBlocks = function (hexString) {
 
         if (bit === '1') {
             // Find which category this block belongs to
-            Object.keys(CATEGORY_BLOCKS).forEach(categoryId => {
+            Object.keys(CATEGORY_BLOCKS).forEach((categoryId) => {
                 const categoryBlocks = CATEGORY_BLOCKS[categoryId] || [];
                 if (categoryBlocks.includes(blockId)) {
                     if (!selectedBlocks[categoryId].includes(blockId)) {
@@ -222,17 +222,17 @@ export const parseHexFormatToSelectedBlocks = function (hexString) {
  * @param {string} onlyBlocks - The only_blocks parameter value
  * @returns {object} - Selected blocks object with categories initialized based on only_blocks
  */
-export const initializeBlockSelectionFromOnlyBlocks = onlyBlocks => {
+export const initializeBlockSelectionFromOnlyBlocks = (onlyBlocks) => {
     const selectedBlocks = {};
 
     // Always initialize each category
-    Object.keys(CATEGORY_BLOCKS).forEach(categoryId => {
+    Object.keys(CATEGORY_BLOCKS).forEach((categoryId) => {
         selectedBlocks[categoryId] = [];
     });
 
     // If no onlyBlocks parameter provided (null/undefined), select all blocks (default behavior)
     if (onlyBlocks === null || typeof onlyBlocks === 'undefined') {
-        Object.keys(CATEGORY_BLOCKS).forEach(categoryId => {
+        Object.keys(CATEGORY_BLOCKS).forEach((categoryId) => {
             selectedBlocks[categoryId] = [...CATEGORY_BLOCKS[categoryId]];
         });
         return selectedBlocks;
@@ -253,12 +253,12 @@ export const initializeBlockSelectionFromOnlyBlocks = onlyBlocks => {
     // Parse only_blocks parameter (legacy format)
     const patterns = processedBlocks
         .split(/[,.]/)
-        .map(pattern => pattern.trim())
-        .filter(pattern => pattern.length > 0);
+        .map((pattern) => pattern.trim())
+        .filter((pattern) => pattern.length > 0);
 
     // Process patterns to determine which blocks should be initially selected
-    patterns.forEach(pattern => {
-        Object.keys(CATEGORY_BLOCKS).forEach(categoryId => {
+    patterns.forEach((pattern) => {
+        Object.keys(CATEGORY_BLOCKS).forEach((categoryId) => {
             const categoryBlocks = CATEGORY_BLOCKS[categoryId] || [];
 
             // Check if pattern matches category prefix (e.g., "motion_" matches motion category)

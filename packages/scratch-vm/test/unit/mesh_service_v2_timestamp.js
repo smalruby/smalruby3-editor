@@ -15,12 +15,12 @@ const createMockBlocks = () => ({
     },
 });
 
-test('MeshV2Service Timestamp-based getRemoteVariable', t => {
+test('MeshV2Service Timestamp-based getRemoteVariable', (t) => {
     const blocks = createMockBlocks();
     const service = new MeshV2Service(blocks, 'node-self', 'domain1');
     service.groupId = 'group1';
 
-    t.test('should return the latest value based on timestamp', st => {
+    t.test('should return the latest value based on timestamp', (st) => {
         // Setup remoteData with multiple nodes having the same key
         const now = Date.now();
         service.remoteData = {
@@ -40,7 +40,7 @@ test('MeshV2Service Timestamp-based getRemoteVariable', t => {
         st.end();
     });
 
-    t.test('handleDataUpdate should add timestamp from nodeStatus', st => {
+    t.test('handleDataUpdate should add timestamp from nodeStatus', (st) => {
         const serverTimestamp = new Date().toISOString();
         const expectedTimestamp = new Date(serverTimestamp).getTime();
         const nodeStatus = {
@@ -58,7 +58,7 @@ test('MeshV2Service Timestamp-based getRemoteVariable', t => {
         st.end();
     });
 
-    t.test('fetchAllNodesData should add timestamp from status', async st => {
+    t.test('fetchAllNodesData should add timestamp from status', async (st) => {
         const serverTimestamp = new Date().toISOString();
         const expectedTimestamp = new Date(serverTimestamp).getTime();
         service.client = {

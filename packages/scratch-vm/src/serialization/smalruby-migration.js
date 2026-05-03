@@ -13,7 +13,7 @@ const MESH_V2_OPCODE_PREFIX = 'meshV2_';
  * @param {object} block The block JSON.
  * @returns {boolean} True if the block was modified.
  */
-const migrateBlockOpcode = block => {
+const migrateBlockOpcode = (block) => {
     if (!block || typeof block.opcode !== 'string') return false;
     if (!block.opcode.startsWith(MESH_V1_OPCODE_PREFIX)) return false;
     block.opcode = MESH_V2_OPCODE_PREFIX + block.opcode.slice(MESH_V1_OPCODE_PREFIX.length);
@@ -25,7 +25,7 @@ const migrateBlockOpcode = block => {
  * @param {object} projectJSON The project JSON to check.
  * @returns {boolean} True if legacy mesh blocks are found.
  */
-const detectMeshV1Blocks = projectJSON => {
+const detectMeshV1Blocks = (projectJSON) => {
     if (!projectJSON.targets) return false;
     for (const target of projectJSON.targets) {
         for (const blockId in target.blocks) {
@@ -38,7 +38,7 @@ const detectMeshV1Blocks = projectJSON => {
     return false;
 };
 
-const detectKoshien = projectJSON => {
+const detectKoshien = (projectJSON) => {
     if (Array.isArray(projectJSON.extensions)) {
         return projectJSON.extensions.indexOf('koshien') !== -1;
     }
@@ -50,7 +50,7 @@ const detectKoshien = projectJSON => {
  * @param {object} blocksObject The blocks object to mutate.
  * @returns {boolean} True if any block was modified.
  */
-const migrateMeshV1InBlocksObject = blocksObject => {
+const migrateMeshV1InBlocksObject = (blocksObject) => {
     if (!blocksObject || typeof blocksObject !== 'object') return false;
     let changed = false;
     for (const blockId in blocksObject) {
@@ -65,7 +65,7 @@ const migrateMeshV1InBlocksObject = blocksObject => {
  * @param {Array<object>} blockArray The array of block JSON to mutate.
  * @returns {boolean} True if any block was modified.
  */
-const migrateMeshV1InBlockArray = blockArray => {
+const migrateMeshV1InBlockArray = (blockArray) => {
     if (!Array.isArray(blockArray)) return false;
     let changed = false;
     for (const block of blockArray) {
@@ -79,12 +79,12 @@ const migrateMeshV1InBlockArray = blockArray => {
  * @param {object} projectJSON The project JSON to migrate.
  * @returns {object} The migrated project JSON.
  */
-const migrateMeshV1Blocks = projectJSON => {
+const migrateMeshV1Blocks = (projectJSON) => {
     const newProjectJSON = JSON.parse(JSON.stringify(projectJSON));
 
     // Update extensions
     if (Array.isArray(newProjectJSON.extensions)) {
-        newProjectJSON.extensions = newProjectJSON.extensions.map(ext => (ext === 'mesh' ? 'meshV2' : ext));
+        newProjectJSON.extensions = newProjectJSON.extensions.map((ext) => (ext === 'mesh' ? 'meshV2' : ext));
         if (newProjectJSON.extensions.indexOf('meshV2') === -1) {
             newProjectJSON.extensions.push('meshV2');
         }
@@ -110,7 +110,7 @@ const migrateMeshV1Blocks = projectJSON => {
  *     Resolves with the new buffer (re-zipped only if changed). When unchanged,
  *     the original buffer reference is returned to avoid wasted work.
  */
-const migrateMeshV1InSprite3Zip = async zipInput => {
+const migrateMeshV1InSprite3Zip = async (zipInput) => {
     const zip = await JSZip.loadAsync(zipInput);
     const spriteJsonFile = zip.file('sprite.json');
     if (!spriteJsonFile) return { changed: false, buffer: zipInput };
@@ -122,7 +122,7 @@ const migrateMeshV1InSprite3Zip = async zipInput => {
         changed = true;
     }
     if (Array.isArray(spriteJson.extensions)) {
-        const replaced = spriteJson.extensions.map(ext => (ext === 'mesh' ? 'meshV2' : ext));
+        const replaced = spriteJson.extensions.map((ext) => (ext === 'mesh' ? 'meshV2' : ext));
         if (replaced.some((ext, i) => ext !== spriteJson.extensions[i])) {
             spriteJson.extensions = replaced;
             if (spriteJson.extensions.indexOf('meshV2') === -1) {

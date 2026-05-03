@@ -1,7 +1,7 @@
-import React from 'react';
-import { IntlProvider } from 'react-intl';
 import '@testing-library/jest-dom';
 import { render, fireEvent } from '@testing-library/react';
+import React from 'react';
+import { IntlProvider } from 'react-intl';
 import MeshV2ScanningStep from '../../../src/components/connection-modal/mesh-v2-scanning-step.jsx';
 
 const renderWithIntl = (ui, locale = 'en') => render(<IntlProvider locale={locale}>{ui}</IntlProvider>);
@@ -42,7 +42,7 @@ describe('MeshV2ScanningStep hiragana name search', () => {
         const { getAllByRole } = renderWithIntl(<MeshV2ScanningStep {...defaultProps} />);
 
         const allButtons = getAllByRole('button');
-        const hiraganaButtons = allButtons.filter(btn => HIRAGANA_CHARS.includes(btn.textContent));
+        const hiraganaButtons = allButtons.filter((btn) => HIRAGANA_CHARS.includes(btn.textContent));
         expect(hiraganaButtons.length).toBe(16);
     });
 
@@ -53,7 +53,7 @@ describe('MeshV2ScanningStep hiragana name search', () => {
         );
 
         const allButtons = getAllByRole('button');
-        const shiButton = allButtons.find(btn => btn.textContent === 'し');
+        const shiButton = allButtons.find((btn) => btn.textContent === 'し');
         fireEvent.click(shiButton);
         expect(onHiraganaInput).toHaveBeenCalledWith('し');
     });
@@ -64,8 +64,8 @@ describe('MeshV2ScanningStep hiragana name search', () => {
         );
 
         const allButtons = getAllByRole('button');
-        const hiraganaButtons = allButtons.filter(btn => HIRAGANA_CHARS.includes(btn.textContent));
-        hiraganaButtons.forEach(button => {
+        const hiraganaButtons = allButtons.filter((btn) => HIRAGANA_CHARS.includes(btn.textContent));
+        hiraganaButtons.forEach((button) => {
             expect(button).toBeDisabled();
         });
     });
@@ -92,8 +92,8 @@ describe('MeshV2ScanningStep hiragana name search', () => {
 
         // All buttons should be disabled after 6 chars
         const allButtons = container.querySelectorAll('button');
-        const hiraganaButtons = [...allButtons].filter(btn => HIRAGANA_CHARS.includes(btn.textContent));
-        hiraganaButtons.forEach(button => {
+        const hiraganaButtons = [...allButtons].filter((btn) => HIRAGANA_CHARS.includes(btn.textContent));
+        hiraganaButtons.forEach((button) => {
             expect(button).toBeDisabled();
         });
     });

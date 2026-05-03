@@ -22,8 +22,8 @@ const createMockBlocks = () => ({
     },
 });
 
-test('MeshV2Service Data and Event Order', t => {
-    t.test('fireEventsBatch awaits lastDataSendPromise', async st => {
+test('MeshV2Service Data and Event Order', (t) => {
+    t.test('fireEventsBatch awaits lastDataSendPromise', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.stopEventBatchTimer();
@@ -34,10 +34,10 @@ test('MeshV2Service Data and Event Order', t => {
         let eventMutationStarted = false;
 
         service.client = {
-            mutate: options => {
+            mutate: (options) => {
                 if (options.mutation === REPORT_DATA) {
                     dataMutationStarted = true;
-                    return new Promise(resolve => {
+                    return new Promise((resolve) => {
                         setTimeout(() => {
                             dataMutationFinished = true;
                             resolve({
@@ -77,7 +77,7 @@ test('MeshV2Service Data and Event Order', t => {
         st.end();
     });
 
-    t.test('handleDataUpdate uses server timestamp', st => {
+    t.test('handleDataUpdate uses server timestamp', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -98,7 +98,7 @@ test('MeshV2Service Data and Event Order', t => {
         st.end();
     });
 
-    t.test('fireEventsBatch works without preceding data send', async st => {
+    t.test('fireEventsBatch works without preceding data send', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.stopEventBatchTimer();
@@ -107,7 +107,7 @@ test('MeshV2Service Data and Event Order', t => {
         let eventMutationStarted = false;
 
         service.client = {
-            mutate: options => {
+            mutate: (options) => {
                 if (options.mutation === FIRE_EVENTS) {
                     eventMutationStarted = true;
                     return Promise.resolve({ data: { fireEventsByNode: {} } });

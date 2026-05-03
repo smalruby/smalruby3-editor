@@ -41,8 +41,8 @@ const createMockBlocks = () => ({
     },
 });
 
-test('MeshV2Service Global Variables', t => {
-    t.test('getGlobalVariables returns only scalar variables', st => {
+test('MeshV2Service Global Variables', (t) => {
+    t.test('getGlobalVariables returns only scalar variables', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -50,26 +50,26 @@ test('MeshV2Service Global Variables', t => {
 
         st.equal(vars.length, 2);
         st.same(
-            vars.find(v => v.key === 'var1'),
+            vars.find((v) => v.key === 'var1'),
             { key: 'var1', value: '10' },
         );
         st.same(
-            vars.find(v => v.key === 'var2'),
+            vars.find((v) => v.key === 'var2'),
             { key: 'var2', value: 'hello' },
         );
-        st.notOk(vars.find(v => v.key === 'list1'));
+        st.notOk(vars.find((v) => v.key === 'list1'));
 
         st.end();
     });
 
-    t.test('sendAllGlobalVariables calls sendData with all variables', async st => {
+    t.test('sendAllGlobalVariables calls sendData with all variables', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
         service.client = { mutate: () => Promise.resolve({}) };
 
         let sentData = null;
-        service.sendData = data => {
+        service.sendData = (data) => {
             sentData = data;
             return Promise.resolve();
         };
@@ -79,18 +79,18 @@ test('MeshV2Service Global Variables', t => {
         st.ok(sentData);
         st.equal(sentData.length, 2);
         st.same(
-            sentData.find(v => v.key === 'var1'),
+            sentData.find((v) => v.key === 'var1'),
             { key: 'var1', value: '10' },
         );
         st.same(
-            sentData.find(v => v.key === 'var2'),
+            sentData.find((v) => v.key === 'var2'),
             { key: 'var2', value: 'hello' },
         );
 
         st.end();
     });
 
-    t.test('sendAllGlobalVariables does nothing if no variables', async st => {
+    t.test('sendAllGlobalVariables does nothing if no variables', async (st) => {
         const blocks = {
             runtime: {
                 getTargetForStage: () => ({ variables: {} }),
@@ -114,7 +114,7 @@ test('MeshV2Service Global Variables', t => {
         st.end();
     });
 
-    t.test('createGroup calls sendAllGlobalVariables', async st => {
+    t.test('createGroup calls sendAllGlobalVariables', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.client = {
@@ -149,7 +149,7 @@ test('MeshV2Service Global Variables', t => {
         st.end();
     });
 
-    t.test('joinGroup calls sendAllGlobalVariables', async st => {
+    t.test('joinGroup calls sendAllGlobalVariables', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.client = {

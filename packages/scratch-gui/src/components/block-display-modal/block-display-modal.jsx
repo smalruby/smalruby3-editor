@@ -4,7 +4,7 @@ import React from 'react';
 import bindAll from 'lodash.bindall';
 import {defineMessages, FormattedMessage, injectIntl} from 'react-intl';
 import intlShape from '../../lib/intlShape.js';
-import Blockly from 'scratch-blocks';
+import * as Blockly from 'scratch-blocks';
 import {CATEGORY_BLOCKS, generateBlockOrder} from '../../lib/block-utils';
 
 import Box from '../box/box.jsx';

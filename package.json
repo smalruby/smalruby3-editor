@@ -1,6 +1,6 @@
 {
   "name": "scratch-editor",
-  "version": "13.0.0",
+  "version": "13.7.2",
   "private": "true",
   "description": "Scratch editor mono-repository",
   "keywords": [],
@@ -19,7 +19,8 @@
     "packages/scratch-svg-renderer",
     "packages/scratch-render",
     "packages/scratch-vm",
-    "packages/scratch-gui"
+    "packages/scratch-gui",
+    "packages/scratch-media-lib-scripts"
   ],
   "scripts": {
     "build": "cross-env NODE_ENV=production npm run --workspaces build",
@@ -54,7 +55,7 @@
     "dotenv": "^17.2.3",
     "globals": "16.5.0",
     "husky": "8.0.3",
-    "npm": "10.9.5",
+    "npm": "10.9.8",
     "serialport": "^13.0.0",
     "ts-node": "10.9.2"
   },

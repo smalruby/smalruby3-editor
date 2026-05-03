@@ -31,7 +31,7 @@ end`;
         expect(converter.errors).toHaveLength(0);
 
         const blocks = Object.values(converter.blocks);
-        expect(blocks.some(b => b.opcode === 'procedures_definition')).toBe(true);
+        expect(blocks.some((b) => b.opcode === 'procedures_definition')).toBe(true);
     });
 
     test('converts v2 (def method_name) to blocks', async () => {
@@ -42,6 +42,6 @@ end`;
         expect(converter.errors).toHaveLength(0);
 
         const blocks = Object.values(converter.blocks);
-        expect(blocks.some(b => b.opcode === 'procedures_definition')).toBe(true);
+        expect(blocks.some((b) => b.opcode === 'procedures_definition')).toBe(true);
     });
 });

@@ -1,14 +1,14 @@
 import projectData from './project-data';
 import {TranslatorFunction} from '../../gui-config';
 
- 
+
 import popWav from '!arraybuffer-loader!./83a9787d4cb6f3b7632b4ddfebf74367.wav?';
 import hattiMeowWav from '!arraybuffer-loader!./cf51a0c4088942d95bcc20af13202710.wav?';
 import backdrop from '!raw-loader!./cd21514d0531fdffb22204e0ec5ed84a.svg?';
 import hattiCostume from '!raw-loader!./7499cf6ec438d0c7af6f896bc6adc294.svg?';
- 
 
-declare function require(path: 'fastestsmallesttextencoderdecoder'): { TextEncoder: typeof TextEncoder };
+
+declare function require (path: 'fastestsmallesttextencoderdecoder'): {TextEncoder: typeof TextEncoder};
 
 const defaultProject = (translator?: TranslatorFunction) => {
     let _TextEncoder: typeof TextEncoder;

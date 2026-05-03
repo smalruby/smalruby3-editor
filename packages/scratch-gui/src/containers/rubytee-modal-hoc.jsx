@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
+import VM from '@smalruby/scratch-vm';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
-import VM from '@smalruby/scratch-vm';
 import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
 import RubyteeModal from '../components/rubytee-modal/rubytee-modal.jsx';
 import intlShape from '../lib/intlShape.js';
@@ -133,7 +133,7 @@ const collectStateContext = (vm, editingTarget) => {
             'makeymakey',
             'gdxfor',
         ];
-        allExtensions.forEach(id => {
+        allExtensions.forEach((id) => {
             if (vm.extensionManager.isExtensionLoaded(id)) {
                 extensionIds.push(id);
             }
@@ -142,7 +142,7 @@ const collectStateContext = (vm, editingTarget) => {
     context.vm = { extensions: extensionIds };
 
     // Helper to build target state
-    const buildTargetState = target => {
+    const buildTargetState = (target) => {
         if (!target) return null;
         const state = {
             name: target.sprite ? target.sprite.name : target.name || '',
@@ -156,14 +156,14 @@ const collectStateContext = (vm, editingTarget) => {
 
         // Costumes
         if (target.sprite && target.sprite.costumes) {
-            state.costumes = target.sprite.costumes.map(c => ({ name: c.name }));
+            state.costumes = target.sprite.costumes.map((c) => ({ name: c.name }));
         } else {
             state.costumes = [];
         }
 
         // Sounds
         if (target.sprite && target.sprite.sounds) {
-            state.sounds = target.sprite.sounds.map(s => ({ name: s.name }));
+            state.sounds = target.sprite.sounds.map((s) => ({ name: s.name }));
         } else {
             state.sounds = [];
         }
@@ -181,17 +181,17 @@ const collectStateContext = (vm, editingTarget) => {
     }
 
     // Collect stage state
-    const stage = vm.runtime.targets.find(t => t.isStage);
+    const stage = vm.runtime.targets.find((t) => t.isStage);
     if (stage) {
         const stageState = {
             width: 480,
             height: 360,
         };
         if (stage.sprite && stage.sprite.costumes) {
-            stageState.costumes = stage.sprite.costumes.map(c => ({ name: c.name }));
+            stageState.costumes = stage.sprite.costumes.map((c) => ({ name: c.name }));
         }
         if (stage.sprite && stage.sprite.sounds) {
-            stageState.sounds = stage.sprite.sounds.map(s => ({ name: s.name }));
+            stageState.sounds = stage.sprite.sounds.map((s) => ({ name: s.name }));
         }
         context.stage = stageState;
     }
@@ -248,14 +248,14 @@ const RubyteeModalHOC = function (WrappedComponent) {
         _startTimers() {
             this.setState({ loadingSeconds: 0 });
             this._timerInterval = setInterval(() => {
-                this.setState(prev => ({ loadingSeconds: prev.loadingSeconds + 1 }));
+                this.setState((prev) => ({ loadingSeconds: prev.loadingSeconds + 1 }));
             }, 1000);
             this._timeoutTimer = setTimeout(() => {
                 this._clearTimers();
                 // Cancel the in-flight request on timeout
                 this.rubyteeAPI.cancelRequest();
                 // Remove the pending user message from history (last entry)
-                this.setState(prevState => ({
+                this.setState((prevState) => ({
                     isLoading: false,
                     error: this.props.intl.formatMessage(messages.timeoutError),
                     chatHistory: prevState.chatHistory.slice(0, -1),
@@ -339,7 +339,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
 
             // Add user message to local history immediately for UI
             const userMessage = { role: 'user', text: inputValue.trim() };
-            this.setState(prevState => ({
+            this.setState((prevState) => ({
                 chatHistory: [...prevState.chatHistory, userMessage],
             }));
 
@@ -354,7 +354,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 const latestCodes = RubyteeAPI.extractAllCodeBlocks(responseText);
 
                 this._clearTimers();
-                this.setState(prevState => ({
+                this.setState((prevState) => ({
                     chatHistory: [...prevState.chatHistory, modelMessage],
                     latestCodes: latestCodes,
                     isLoading: false,
@@ -364,7 +364,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
 
                 // AbortError means user cancelled — remove pending user message, no error shown
                 if (error.name === 'AbortError') {
-                    this.setState(prevState => ({
+                    this.setState((prevState) => ({
                         isLoading: false,
                         chatHistory: prevState.chatHistory.slice(0, -1),
                     }));
@@ -384,7 +384,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
                 }
 
                 // Remove the pending user message from history on error
-                this.setState(prevState => ({
+                this.setState((prevState) => ({
                     isLoading: false,
                     error: errorMessage,
                     chatHistory: prevState.chatHistory.slice(0, -1),
@@ -403,7 +403,7 @@ const RubyteeModalHOC = function (WrappedComponent) {
             this._clearTimers();
             this.rubyteeAPI.cancelRequest();
             // Remove the pending user message (the last entry added optimistically)
-            this.setState(prevState => ({
+            this.setState((prevState) => ({
                 isLoading: false,
                 chatHistory: prevState.chatHistory.slice(0, -1),
             }));
@@ -415,16 +415,18 @@ const RubyteeModalHOC = function (WrappedComponent) {
             if (code && this._applyRubyteeCode) {
                 const target = this.props.vm && this.props.vm.editingTarget;
                 const validSounds =
-                    target && target.sprite && target.sprite.sounds ? target.sprite.sounds.map(s => s.name) : [];
+                    target && target.sprite && target.sprite.sounds ? target.sprite.sounds.map((s) => s.name) : [];
                 const validCostumes =
-                    target && target.sprite && target.sprite.costumes ? target.sprite.costumes.map(c => c.name) : [];
+                    target && target.sprite && target.sprite.costumes
+                        ? target.sprite.costumes.map((c) => c.name)
+                        : [];
                 const stage =
                     this.props.vm &&
                     this.props.vm.runtime &&
                     this.props.vm.runtime.targets &&
-                    this.props.vm.runtime.targets.find(t => t.isStage);
+                    this.props.vm.runtime.targets.find((t) => t.isStage);
                 const validBackdrops =
-                    stage && stage.sprite && stage.sprite.costumes ? stage.sprite.costumes.map(c => c.name) : [];
+                    stage && stage.sprite && stage.sprite.costumes ? stage.sprite.costumes.map((c) => c.name) : [];
                 code = sanitizeResourceReferences(code, validSounds, validCostumes, validBackdrops);
                 this._applyRubyteeCode(code);
             }

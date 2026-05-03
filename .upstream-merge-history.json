@@ -1,104 +1,23 @@
 {
   "lastMerge": {
-    "date": "2026-03-08",
-    "upstreamCommit": "42ea882750bd1c3b1544df33cfa794efa2a6d907",
-    "smalrubyCommit": "fe2bee4d37263f1d814235843d118b66406f5762",
-    "mergeCommit": "6ac14806a",
-    "notes": "146 upstream commits merged - scratch-blocks v2.0.0, release 13.0.0"
+    "date": "2026-05-03",
+    "upstreamCommit": "352a334b4a0a6b750c2c8ae11072fb5a236a2e26",
+    "targetRelease": "v13.7.2",
+    "scratchWwwProductionSha": "3572d5ad8aa0d62c05ea110aeb44618f061e3823",
+    "scratchGuiVersion": "13.7.2",
+    "smalrubyCommit": "00555922fe9822e4fab8e59d15fc8e18b82f58bc",
+    "mergeCommit": "c187b4060",
+    "notes": "284 upstream commits merged - v13.7.2 production release. scratch-blocks downgrade reverted (v1.3.0 -> v2.1.19); argument-drag bug fixed in upstream issue #3450. ScratchBlocks v1 -> v2 API migration applied (Xml.* -> utils.xml.*, Variables/Procedures -> ScratchVariables/ScratchProcedures, statusButtonCallback on StatusIndicatorLabel, dialog.setPrompt). LegacyBackpackStorage extended with Smalruby localStorage support (markers added)."
   },
-  "postMergeReverts": [
-    {
-      "date": "2026-03-10",
-      "pr": "#271",
-      "reason": "scratch-blocks v2.0.3 caused block argument dragging regression (custom block arguments could not be dragged); downgraded to v1.3.0",
-      "scope": "scratch-blocks v2 API changes",
-      "affectedAreas": [
-        {
-          "category": "scratch-blocks dependency",
-          "files": [
-            "packages/scratch-gui/package.json",
-            "packages/scratch-vm/package.json",
-            "package-lock.json"
-          ],
-          "detail": "scratch-blocks v2.0.3 → v1.3.0; scratch-vm release.config.js removed (semantic-release for npm removed)"
-        },
-        {
-          "category": "ScratchBlocks v2 API → v1 API revert (GUI)",
-          "files": [
-            "packages/scratch-gui/src/containers/blocks.jsx",
-            "packages/scratch-gui/src/containers/backpack.jsx",
-            "packages/scratch-gui/src/containers/custom-procedures.jsx",
-            "packages/scratch-gui/src/lib/blocks.js",
-            "packages/scratch-gui/src/lib/make-toolbox-xml.js",
-            "packages/scratch-gui/src/lib/define-dynamic-block.js",
-            "packages/scratch-gui/src/lib/generator.js",
-            "packages/scratch-gui/src/lib/vm-listener-hoc.jsx",
-            "packages/scratch-gui/src/lib/backpack/block-to-image.js",
-            "packages/scratch-gui/src/components/monitor/monitor.jsx",
-            "packages/scratch-gui/src/components/context-menu/context-menu.jsx",
-            "packages/scratch-gui/src/components/sprite-selector-item/sprite-selector-item.jsx",
-            "packages/scratch-gui/src/components/block-display-modal/block-display-modal.jsx"
-          ],
-          "detail": "Reverted ScratchBlocks.utils.xml.*, ScratchBlocks.dialog.setPrompt(), etc. back to v1 API. See reference-api-migration.md for mapping."
-        },
-        {
-          "category": "ScratchBlocks v2 API → v1 API revert (VM)",
-          "files": [
-            "packages/scratch-vm/src/engine/blocks.js",
-            "packages/scratch-vm/src/engine/adapter.js",
-            "packages/scratch-vm/src/engine/comment.js",
-            "packages/scratch-vm/src/engine/runtime.js",
-            "packages/scratch-vm/src/serialization/sb3.js"
-          ],
-          "detail": "Reverted block.type field access patterns and XML utility usage to v1 API"
-        },
-        {
-          "category": "Color mode / theme (blockHelpers)",
-          "files": [
-            "packages/scratch-gui/src/lib/settings/color-mode/blockHelpers.js",
-            "packages/scratch-gui/src/lib/settings/color-mode/dark/index.js",
-            "packages/scratch-gui/src/lib/settings/color-mode/default/index.js",
-            "packages/scratch-gui/src/lib/settings/color-mode/high-contrast/index.js"
-          ],
-          "detail": "Reverted Colours/zelos theme references to v1 colour registration API"
-        },
-        {
-          "category": "Tests reverted to v1 patterns",
-          "files": [
-            "packages/scratch-gui/test/helpers/selenium-helper.js",
-            "packages/scratch-gui/test/integration/block-display-modal.test.js",
-            "packages/scratch-gui/test/integration/block-palette.test.js",
-            "packages/scratch-gui/test/integration/blocks-standalone.test.js",
-            "packages/scratch-gui/test/integration/blocks.test.js",
-            "packages/scratch-gui/test/integration/localization.test.js",
-            "packages/scratch-gui/test/integration/menu-bar.test.js",
-            "packages/scratch-gui/test/integration/project-loading.test.js",
-            "packages/scratch-gui/test/integration/sprites.test.js",
-            "packages/scratch-gui/test/unit/util/color-modes.test.js",
-            "packages/scratch-gui/test/unit/util/define-dynamic-block.test.js",
-            "packages/scratch-vm/test/unit/engine_adapter.js",
-            "packages/scratch-vm/test/unit/extension_conversion.js",
-            "packages/scratch-vm/test/unit/project_changed_state_blocks.js",
-            "packages/scratch-vm/test/integration/stack-click.js",
-            "packages/scratch-vm/test/fixtures/events.json"
-          ],
-          "detail": "CSS selectors (.blocklyToolbox → .blocklyToolboxDiv), v1 API mocks, v1 DOM structure"
-        },
-        {
-          "category": "Smalruby-specific additions in downgrade PR",
-          "files": [
-            "packages/scratch-gui/src/lib/blocks-screenshot.js",
-            "packages/scratch-gui/src/lib/radix-ui-context-menu.js",
-            "packages/scratch-gui/src/containers/ruby-tab/ruby-tab.css",
-            "packages/scratch-gui/src/components/blocks-screenshot-button/blocks-screenshot-button.css"
-          ],
-          "detail": "Screenshot icon inlining fix, context-menu shim, CSS position adjustments — these are Smalruby-specific and should be preserved on next merge"
-        }
-      ],
-      "nextMergeGuidance": "When upstream stabilizes scratch-blocks v2 and the argument dragging issue is resolved: (1) Accept upstream v2 versions for files in 'ScratchBlocks v2 API' and 'Color mode' categories, (2) Re-apply Smalruby marker blocks only, (3) Accept upstream test changes, (4) Preserve 'Smalruby-specific additions' category files. If upstream is still on v2 with the bug unresolved, resolve conflicts by keeping v1 (ours) for API files."
-    }
-  ],
+  "postMergeReverts": [],
   "previousMerges": [
+    {
+      "date": "2026-03-08",
+      "upstreamCommit": "42ea882750bd1c3b1544df33cfa794efa2a6d907",
+      "smalrubyCommit": "fe2bee4d37263f1d814235843d118b66406f5762",
+      "mergeCommit": "6ac14806a",
+      "notes": "146 upstream commits merged - scratch-blocks v2.0.0, release 13.0.0"
+    },
     {
       "date": "2026-02-14",
       "upstreamCommit": "5f063605b67927f01647f56a8abf28b972a292bd",

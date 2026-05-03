@@ -99,14 +99,14 @@ BlockDisplayModal.propTypes = {
     onSetProjectChanged: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
     selectedBlocks: state.scratchGui.blockDisplay.selectedBlocks,
     scratchBlocks: state.scratchGui.blockDisplay.scratchBlocks,
     vm: state.scratchGui.vm,
 });
 
-const mapDispatchToProps = dispatch => ({
-    onSetSelectedBlocks: blocks => dispatch(setSelectedBlocks(blocks)),
+const mapDispatchToProps = (dispatch) => ({
+    onSetSelectedBlocks: (blocks) => dispatch(setSelectedBlocks(blocks)),
     onRequestClose: () => dispatch(closeBlockDisplayModal()),
     onSetProjectChanged: () => dispatch(setProjectChanged()),
 });

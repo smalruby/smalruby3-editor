@@ -134,6 +134,7 @@ const GUIComponent = props => {
         authorAvatarBadge,
         basePath,
         backdropLibraryVisible,
+        backpackConfigured,
         backpackHost,
         backpackVisible,
         blockDisplayModalVisible,
@@ -180,12 +181,15 @@ const GUIComponent = props => {
         loading,
         logo,
         manuallySaveThumbnails,
+        onSetManualThumbnail,
+        onSetManualThumbnailButtonClick,
         menuBarHidden,
         renderLogin,
         onClickAbout,
         onClickAccountNav,
         onCloseAccountNav,
         onLogOut,
+        onClickLogin,
         onOpenRegistration,
         onToggleLoginOpen,
         onActivateCostumesTab,
@@ -226,6 +230,7 @@ const GUIComponent = props => {
         // === Smalruby: End of Redux action props prevention ===
         rubyTabVisible,
         showComingSoon,
+        showNewFeatureCallouts,
         soundsTabVisible,
         stageSizeMode,
         targetIsStage,
@@ -315,11 +320,6 @@ const GUIComponent = props => {
                 isRendererSupported={isRendererSupported}
                 isRtl={isRtl}
                 loading={loading}
-                manuallySaveThumbnails={
-                    manuallySaveThumbnails &&
-                    userOwnsProject
-                }
-                onUpdateProjectThumbnail={onUpdateProjectThumbnail}
                 stageSize={STAGE_SIZE_MODES.large}
                 vm={vm}
             >
@@ -458,6 +458,7 @@ const GUIComponent = props => {
                         onClickLogo={onClickLogo}
                         onCloseAccountNav={onCloseAccountNav}
                         onLogOut={onLogOut}
+                        onClickLogin={onClickLogin}
                         onOpenRegistration={onOpenRegistration}
                         onProjectTelemetryEvent={onProjectTelemetryEvent}
                         onSeeCommunity={onSeeCommunity}
@@ -675,7 +676,7 @@ const GUIComponent = props => {
                                     />
                                 </TabPanel>
                             </Tabs>
-                            {backpackVisible ? (
+                            {backpackVisible && backpackConfigured ? (
                                 <Backpack
                                     host={backpackHost}
                                     ariaRole="region"
@@ -694,10 +695,19 @@ const GUIComponent = props => {
                                 isFullScreen={isFullScreen}
                                 isRendererSupported={isRendererSupported}
                                 isRtl={isRtl}
+                                isCreating={isCreating}
                                 stageSize={stageSize}
                                 vm={vm}
                                 ariaRole="region"
                                 ariaLabel={intl.formatMessage(ariaMessages.stage)}
+                                manuallySaveThumbnails={manuallySaveThumbnails}
+                                onSetManualThumbnail={onSetManualThumbnail}
+                                onSetManualThumbnailButtonClick={onSetManualThumbnailButtonClick}
+                                loading={loading}
+                                showNewFeatureCallouts={showNewFeatureCallouts}
+                                userOwnsProject={userOwnsProject}
+                                username={username}
+                                onUpdateProjectThumbnail={onUpdateProjectThumbnail}
                             />
                             <Box
                                 className={styles.targetWrapper}
@@ -731,6 +741,7 @@ GUIComponent.propTypes = {
     authorUsername: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]), // can be false
     authorAvatarBadge: PropTypes.number,
     backdropLibraryVisible: PropTypes.bool,
+    backpackConfigured: PropTypes.bool,
     backpackHost: PropTypes.string,
     backpackVisible: PropTypes.bool,
     basePath: PropTypes.string,
@@ -772,6 +783,8 @@ GUIComponent.propTypes = {
     loading: PropTypes.bool,
     logo: PropTypes.string,
     manuallySaveThumbnails: PropTypes.bool,
+    onSetManualThumbnail: PropTypes.func,
+    onSetManualThumbnailButtonClick: PropTypes.func,
     menuBarHidden: PropTypes.bool,
     onActivateCostumesTab: PropTypes.func,
     onActivateRubyTab: PropTypes.func,
@@ -784,6 +797,7 @@ GUIComponent.propTypes = {
     onLogOut: PropTypes.func,
     onNewSpriteClick: PropTypes.func,
     onNewLibraryCostumeClick: PropTypes.func,
+    onClickLogin: PropTypes.func,
     onOpenRegistration: PropTypes.func,
     onRequestCloseBackdropLibrary: PropTypes.func,
     onRequestCloseCostumeLibrary: PropTypes.func,
@@ -858,7 +872,8 @@ const mapStateToProps = state => ({
     blocksId: state.scratchGui.timeTravel.year.toString(),
     stageSizeMode: state.scratchGui.stageSize.stageSize,
     colorMode: state.scratchGui.settings.colorMode,
-    theme: state.scratchGui.settings.theme
+    theme: state.scratchGui.settings.theme,
+    backpackConfigured: !!state.scratchGui.config.storage?.backpackStorage
 });
 
 const mapDispatchToProps = dispatch => ({

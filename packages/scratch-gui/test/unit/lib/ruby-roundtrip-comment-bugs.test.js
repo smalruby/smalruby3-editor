@@ -96,7 +96,7 @@ describe('Ruby Roundtrip/Comment Bugs (#336)', () => {
         RubyBlocks(RubyGenerator);
     });
 
-    const rubyToBlocksToRuby = async code => {
+    const rubyToBlocksToRuby = async (code) => {
         const result = await converter.targetCodeToBlocks(target, code);
 
         if (!result) {

@@ -59,7 +59,7 @@ const setupArrayEach = (listValue, extraArgs = {}) => {
     return { args, util, list, calls, runUntilDone };
 };
 
-test('Array#each: iterates [1, 2, 3] sequentially when LIST_ID is provided', t => {
+test('Array#each: iterates [1, 2, 3] sequentially when LIST_ID is provided', (t) => {
     // RECEIVER would be the joined "123" (single-char items concatenated by data_listcontents).
     // The executor must ignore RECEIVER and use LIST_ID/LIST_NAME to read the list directly.
     const { calls, runUntilDone } = setupArrayEach(['1', '2', '3'], {
@@ -75,7 +75,7 @@ test('Array#each: iterates [1, 2, 3] sequentially when LIST_ID is provided', t =
     t.end();
 });
 
-test('Array#each: iterates strings containing spaces correctly via LIST_ID', t => {
+test('Array#each: iterates strings containing spaces correctly via LIST_ID', (t) => {
     // RECEIVER would be "hello world foo" (joined with space) which would mis-split.
     const { calls, runUntilDone } = setupArrayEach(['hello world', 'foo'], {
         RECEIVER: 'hello world foo',
@@ -89,7 +89,7 @@ test('Array#each: iterates strings containing spaces correctly via LIST_ID', t =
     t.end();
 });
 
-test('Array#each: snapshots list at first call (mutation during iteration is ignored)', t => {
+test('Array#each: snapshots list at first call (mutation during iteration is ignored)', (t) => {
     const harness = setupArrayEach(['a', 'b', 'c']);
     const { args, util, list, calls } = harness;
     const setReturnValue = (u, value) => {
@@ -119,7 +119,7 @@ test('Array#each: snapshots list at first call (mutation during iteration is ign
     t.end();
 });
 
-test('Array#each: empty list does not invoke substack', t => {
+test('Array#each: empty list does not invoke substack', (t) => {
     const { calls, runUntilDone } = setupArrayEach([], { RECEIVER: '' });
 
     runUntilDone();
@@ -183,7 +183,7 @@ const setupHashEach = (keysValue, valuesValue) => {
     return { args, util, keysList, valuesList, calls, runUntilDone };
 };
 
-test('Hash#each: iterates {a: 1, b: 2} with parallel keys/values', t => {
+test('Hash#each: iterates {a: 1, b: 2} with parallel keys/values', (t) => {
     const { calls, runUntilDone } = setupHashEach(['a', 'b'], ['1', '2']);
 
     runUntilDone();
@@ -196,7 +196,7 @@ test('Hash#each: iterates {a: 1, b: 2} with parallel keys/values', t => {
     t.end();
 });
 
-test('Hash#each: handles single-char values that would collapse via data_listcontents', t => {
+test('Hash#each: handles single-char values that would collapse via data_listcontents', (t) => {
     // {a: 1, b: 2, c: 3} — all single-char items → data_listcontents joins
     // with no separator. Verify direct list access is used.
     const { calls, runUntilDone } = setupHashEach(['a', 'b', 'c'], ['1', '2', '3']);
@@ -211,7 +211,7 @@ test('Hash#each: handles single-char values that would collapse via data_listcon
     t.end();
 });
 
-test('Hash#each: empty hash does not invoke substack', t => {
+test('Hash#each: empty hash does not invoke substack', (t) => {
     const { calls, runUntilDone } = setupHashEach([], []);
 
     runUntilDone();
@@ -220,7 +220,7 @@ test('Hash#each: empty hash does not invoke substack', t => {
     t.end();
 });
 
-test('Hash#each: snapshots both lists at first call (mutation ignored)', t => {
+test('Hash#each: snapshots both lists at first call (mutation ignored)', (t) => {
     const harness = setupHashEach(['a', 'b'], ['1', '2']);
     const { args, util, keysList, valuesList, calls } = harness;
     const setReturnValue = (u, value) => {
@@ -247,7 +247,7 @@ test('Hash#each: snapshots both lists at first call (mutation ignored)', t => {
     t.end();
 });
 
-test('Hash#each: keys list shorter than values list — iterate min of both', t => {
+test('Hash#each: keys list shorter than values list — iterate min of both', (t) => {
     // Defensive behavior when the two lists are inconsistent. Iterate up to
     // the shorter length to avoid undefined values.
     const { calls, runUntilDone } = setupHashEach(['a', 'b'], ['1', '2', '3']);
@@ -262,7 +262,7 @@ test('Hash#each: keys list shorter than values list — iterate min of both', t 
     t.end();
 });
 
-test('Array#each: falls back to RECEIVER split when LIST_ID is absent', t => {
+test('Array#each: falls back to RECEIVER split when LIST_ID is absent', (t) => {
     // Backward compatibility: receiver is a string literal or scalar variable,
     // so LIST_ID is not set. Fall back to space-split behavior.
     const calls = [];

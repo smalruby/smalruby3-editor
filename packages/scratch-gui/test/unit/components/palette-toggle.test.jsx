@@ -1,7 +1,7 @@
 /* eslint-env jest */
-import React from 'react';
 import '@testing-library/jest-dom';
 import { render, fireEvent } from '@testing-library/react';
+import React from 'react';
 import PaletteToggle from '../../../src/components/palette-toggle/palette-toggle.jsx';
 
 describe('PaletteToggle', () => {

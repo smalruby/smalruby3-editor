@@ -1,8 +1,8 @@
 /* eslint-env jest */
-import React from 'react';
-import { IntlProvider } from 'react-intl';
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
+import React from 'react';
+import { IntlProvider } from 'react-intl';
 import { MobileSideRailComponent } from '../../../src/components/mobile-side-rail/mobile-side-rail.jsx';
 import {
     BLOCKS_TAB_INDEX,
@@ -17,7 +17,7 @@ const makeFakeVm = () => ({
     stopAll: jest.fn(),
 });
 
-const baseProps = override => ({
+const baseProps = (override) => ({
     vm: makeFakeVm(),
     isFullScreen: false,
     isStarted: false,
@@ -32,7 +32,7 @@ const baseProps = override => ({
     ...override,
 });
 
-const renderWithIntl = props => {
+const renderWithIntl = (props) => {
     const merged = baseProps(props);
     return {
         ...render(

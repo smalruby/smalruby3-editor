@@ -1,7 +1,7 @@
 /* eslint-env jest */
-import React from 'react';
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
+import React from 'react';
 import { MobileSpritePanelComponent } from '../../../src/components/mobile-sprite-panel/mobile-sprite-panel.jsx';
 
 // upstream <TargetPane> は VM や Redux store / IntlProvider に依存する

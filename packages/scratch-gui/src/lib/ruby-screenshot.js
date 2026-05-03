@@ -85,8 +85,8 @@ const cropToWidth = async function (blob, cropWidth) {
     ctx.drawImage(bitmap, 0, 0, cropWidth, height, 0, 0, cropWidth, height);
     bitmap.close();
 
-    return new Promise(resolve => {
-        canvas.toBlob(croppedBlob => {
+    return new Promise((resolve) => {
+        canvas.toBlob((croppedBlob) => {
             resolve(croppedBlob || blob);
         }, 'image/png');
     });
@@ -138,7 +138,7 @@ const downloadRubyAsImage = async function (editor, projectTitle, spriteName) {
         editor.layout();
 
         // Wait for Monaco to render all lines
-        await new Promise(resolve => {
+        await new Promise((resolve) => {
             requestAnimationFrame(() => {
                 requestAnimationFrame(resolve);
             });

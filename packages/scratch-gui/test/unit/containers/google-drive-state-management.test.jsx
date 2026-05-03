@@ -1,9 +1,9 @@
 // === Smalruby: This file is Smalruby-specific (Google Drive state management integration tests) ===
+import VM from '@smalruby/scratch-vm';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import configureStore from 'redux-mock-store';
 import 'web-audio-test-api';
-import VM from '@smalruby/scratch-vm';
 import GoogleDriveSaverHOC from '../../../src/containers/google-drive-saver-hoc.jsx';
 import SBFileUploaderHOC from '../../../src/lib/sb-file-uploader-hoc.jsx';
 import { LoadingState } from '../../../src/reducers/project-state';
@@ -21,7 +21,7 @@ jest.mock('../../../src/lib/google-drive-api', () => ({
 }));
 
 // Mock ruby-to-blocks-converter-hoc to pass through
-jest.mock('../../../src/lib/ruby-to-blocks-converter-hoc.jsx', () => Component => Component);
+jest.mock('../../../src/lib/ruby-to-blocks-converter-hoc.jsx', () => (Component) => Component);
 
 const googleDriveAPI = require('../../../src/lib/google-drive-api').default;
 
@@ -134,7 +134,7 @@ describe('Google Drive state management', () => {
             googleDriveAPI.uploadFile.mockResolvedValue({ id: 'new-file-id' });
 
             let capturedProps;
-            const Component = props => {
+            const Component = (props) => {
                 capturedProps = props;
                 return <div />;
             };
@@ -158,14 +158,14 @@ describe('Google Drive state management', () => {
             const actions = store.getActions();
 
             // Google Drive file metadata should be set
-            const setFileAction = actions.find(a => a.type === 'googleDriveFile/SET_GOOGLE_DRIVE_FILE');
+            const setFileAction = actions.find((a) => a.type === 'googleDriveFile/SET_GOOGLE_DRIVE_FILE');
             expect(setFileAction).toBeDefined();
             expect(setFileAction.fileId).toBe('new-file-id');
             expect(setFileAction.fileName).toBe('renamed-project.sb3');
             expect(setFileAction.folderId).toBe('folder-456');
 
             // Project title should match the new filename (without .sb3)
-            const setTitleAction = actions.find(a => a.type === 'projectTitle/SET_PROJECT_TITLE');
+            const setTitleAction = actions.find((a) => a.type === 'projectTitle/SET_PROJECT_TITLE');
             expect(setTitleAction).toBeDefined();
             expect(setTitleAction.title).toBe('renamed-project');
         });
@@ -198,7 +198,7 @@ describe('Google Drive state management', () => {
             googleDriveAPI.updateFile.mockRejectedValue(authError);
 
             let capturedProps;
-            const Component = props => {
+            const Component = (props) => {
                 capturedProps = props;
                 return <div />;
             };
@@ -249,7 +249,7 @@ describe('Google Drive state management', () => {
             googleDriveAPI.requestAccessToken.mockResolvedValue();
 
             let capturedProps;
-            const Component = props => {
+            const Component = (props) => {
                 capturedProps = props;
                 return <div />;
             };
@@ -276,7 +276,7 @@ describe('Google Drive state management', () => {
             // Should have marked project as unchanged after successful save
             const actions = store.getActions();
             const unchangedAction = actions.find(
-                a => a.type === 'scratch-gui/project-changed/SET_PROJECT_CHANGED' && a.changed === false,
+                (a) => a.type === 'scratch-gui/project-changed/SET_PROJECT_CHANGED' && a.changed === false,
             );
             expect(unchangedAction).toBeDefined();
         });

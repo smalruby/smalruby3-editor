@@ -103,7 +103,7 @@ const useTeacherClassroom = ({
     }, [classrooms, submissions]);
 
     const handleCreateClassroom = useCallback(
-        async formData => {
+        async (formData) => {
             await classrooms.handleCreateClassroom(formData, google.selectedGoogleCourse?.courseId);
             google.clearSelectedCourse();
         },

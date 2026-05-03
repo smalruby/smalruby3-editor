@@ -19,7 +19,7 @@ const createMockRuntime = () => {
             runtime.lastEmittedData = data;
         },
         getOpcodeFunction: () => () => {},
-        createNewGlobalVariable: name => ({ type: Variable.SCALAR_TYPE, name: name || 'var1', value: 0 }),
+        createNewGlobalVariable: (name) => ({ type: Variable.SCALAR_TYPE, name: name || 'var1', value: 0 }),
         _primitives: {},
         extensionManager: {
             isExtensionLoaded: () => false,
@@ -36,7 +36,7 @@ const createMockRuntime = () => {
     const stage = {
         variables: {},
         getCustomVars: () => [],
-        lookupVariableById: id =>
+        lookupVariableById: (id) =>
             stage.variables[id] || { id: id, name: 'var1', value: 0, type: Variable.SCALAR_TYPE },
         lookupVariableByNameAndType: () => null,
         lookupOrCreateVariable: () => ({}),
@@ -48,7 +48,7 @@ const createMockRuntime = () => {
     return runtime;
 };
 
-test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
+test('Mesh V2 Issue #66: Improved error handling for expired groups', (t) => {
     // Set up global window for utils
     global.window = {
         location: {
@@ -57,7 +57,7 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
     };
     global.URLSearchParams = URLSearchParams;
 
-    t.test('connect to expired group (client-side validation)', st => {
+    t.test('connect to expired group (client-side validation)', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const now = Date.now();
@@ -79,7 +79,7 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
         st.end();
     });
 
-    t.test('disconnect when group expires during operation', st => {
+    t.test('disconnect when group expires during operation', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
 
@@ -95,7 +95,7 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
         st.end();
     });
 
-    t.test('disconnect when unauthorized', st => {
+    t.test('disconnect when unauthorized', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const events = [];
@@ -124,7 +124,7 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
         st.end();
     });
 
-    t.test('meshService.shouldDisconnectOnError returns reason', st => {
+    t.test('meshService.shouldDisconnectOnError returns reason', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
 
@@ -141,12 +141,12 @@ test('Mesh V2 Issue #66: Improved error handling for expired groups', t => {
         st.end();
     });
 
-    t.test('meshService.cleanupAndDisconnect passes reason to callback', st => {
+    t.test('meshService.cleanupAndDisconnect passes reason to callback', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
 
         let capturedReason = null;
-        blocks.meshService.setDisconnectCallback(reason => {
+        blocks.meshService.setDisconnectCallback((reason) => {
             capturedReason = reason;
         });
 

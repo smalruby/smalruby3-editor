@@ -1,8 +1,8 @@
 // === Smalruby: This file is Smalruby-specific (Google Drive saver HOC tests) ===
+import VM from '@smalruby/scratch-vm';
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import 'web-audio-test-api';
-import VM from '@smalruby/scratch-vm';
 import GoogleDriveSaverHOC from '../../../src/containers/google-drive-saver-hoc.jsx';
 import { renderWithIntl } from '../../helpers/intl-helpers.jsx';
 
@@ -18,7 +18,7 @@ jest.mock('../../../src/lib/google-drive-api', () => ({
 }));
 
 // Mock ruby-to-blocks-converter-hoc to pass through
-jest.mock('../../../src/lib/ruby-to-blocks-converter-hoc.jsx', () => Component => Component);
+jest.mock('../../../src/lib/ruby-to-blocks-converter-hoc.jsx', () => (Component) => Component);
 
 const googleDriveAPI = require('../../../src/lib/google-drive-api').default;
 
@@ -54,7 +54,7 @@ describe('GoogleDriveSaverHOC', () => {
         googleDriveAPI.uploadFile.mockResolvedValue({ id: 'new-file-id' });
 
         let capturedOnSaveToGoogleDrive;
-        const Component = props => {
+        const Component = (props) => {
             capturedOnSaveToGoogleDrive = props.onSaveToGoogleDrive;
             return <div />;
         };
@@ -76,7 +76,7 @@ describe('GoogleDriveSaverHOC', () => {
 
         // Check that SET_PROJECT_TITLE action was dispatched with filename without .sb3
         const actions = store.getActions();
-        const setTitleAction = actions.find(a => a.type === 'projectTitle/SET_PROJECT_TITLE');
+        const setTitleAction = actions.find((a) => a.type === 'projectTitle/SET_PROJECT_TITLE');
         expect(setTitleAction).toBeDefined();
         expect(setTitleAction.title).toBe('new-project-name');
     });
@@ -110,7 +110,7 @@ describe('GoogleDriveSaverHOC', () => {
         googleDriveAPI.requestAccessToken.mockResolvedValue();
 
         let capturedProps;
-        const Component = props => {
+        const Component = (props) => {
             capturedProps = props;
             return <div />;
         };

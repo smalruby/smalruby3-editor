@@ -32,7 +32,7 @@ export const getCachedTeacherIdToken = () => _cachedTeacherIdToken;
  * Set the cached teacher ID token from outside (e.g. dev auto-login).
  * @param {string|null} token - the token to cache
  */
-export const setCachedTeacherIdToken = token => {
+export const setCachedTeacherIdToken = (token) => {
     _cachedTeacherIdToken = token;
 };
 

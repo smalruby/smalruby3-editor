@@ -21,8 +21,8 @@ const createMockBlocks = () => ({
     },
 });
 
-test('MeshV2Service orderKey generation (issue #556)', t => {
-    t.test('_generateOrderKey produces YYYYMMDDHHMMSS-NNNNNNN format', st => {
+test('MeshV2Service orderKey generation (issue #556)', (t) => {
+    t.test('_generateOrderKey produces YYYYMMDDHHMMSS-NNNNNNN format', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.eventSequence = 0;
@@ -36,7 +36,7 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         st.end();
     });
 
-    t.test('eventSequence increments per call within the same second', st => {
+    t.test('eventSequence increments per call within the same second', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.eventSequence = 0;
@@ -54,7 +54,7 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         st.end();
     });
 
-    t.test('sequence does not reset across seconds (continues monotonically)', st => {
+    t.test('sequence does not reset across seconds (continues monotonically)', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.eventSequence = 0;
@@ -67,7 +67,7 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         st.end();
     });
 
-    t.test('fireEvent attaches orderKey to queued event', st => {
+    t.test('fireEvent attaches orderKey to queued event', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
@@ -83,7 +83,7 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         st.end();
     });
 
-    t.test('eventSequence above 999 keeps lexicographic order (no overflow)', st => {
+    t.test('eventSequence above 999 keeps lexicographic order (no overflow)', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.eventSequence = 998; // next call → 999, then 1000
@@ -104,7 +104,7 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         st.end();
     });
 
-    t.test('createGroup resets eventSequence to 0', async st => {
+    t.test('createGroup resets eventSequence to 0', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.eventSequence = 5;
@@ -133,7 +133,7 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
         st.end();
     });
 
-    t.test('joinGroup resets eventSequence to 0', async st => {
+    t.test('joinGroup resets eventSequence to 0', async (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.eventSequence = 7;
@@ -166,8 +166,8 @@ test('MeshV2Service orderKey generation (issue #556)', t => {
     t.end();
 });
 
-test('MeshV2Service _queueEventsForPlayback stable sort (issue #556)', t => {
-    t.test('events with same timestamp are ordered by orderKey', st => {
+test('MeshV2Service _queueEventsForPlayback stable sort (issue #556)', (t) => {
+    t.test('events with same timestamp are ordered by orderKey', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -179,12 +179,12 @@ test('MeshV2Service _queueEventsForPlayback stable sort (issue #556)', t => {
             { name: 'a', timestamp: '2026-04-28T00:00:00Z', orderKey: '20260428090000-001', firedByNodeId: 'other' },
         ];
         service._queueEventsForPlayback(events);
-        const order = service.pendingBroadcasts.map(b => b.event.name);
+        const order = service.pendingBroadcasts.map((b) => b.event.name);
         st.same(order, ['a', 'b', 'c']);
         st.end();
     });
 
-    t.test('events with different timestamps sort by timestamp first', st => {
+    t.test('events with different timestamps sort by timestamp first', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -209,12 +209,12 @@ test('MeshV2Service _queueEventsForPlayback stable sort (issue #556)', t => {
             },
         ];
         service._queueEventsForPlayback(events);
-        const order = service.pendingBroadcasts.map(b => b.event.name);
+        const order = service.pendingBroadcasts.map((b) => b.event.name);
         st.same(order, ['early', 'middle', 'late']);
         st.end();
     });
 
-    t.test('events without orderKey use timestamp-only comparison (backward compat)', st => {
+    t.test('events without orderKey use timestamp-only comparison (backward compat)', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -226,14 +226,14 @@ test('MeshV2Service _queueEventsForPlayback stable sort (issue #556)', t => {
             { name: 'third', timestamp: '2026-04-28T00:00:00Z', firedByNodeId: 'other' },
         ];
         service._queueEventsForPlayback(events);
-        const order = service.pendingBroadcasts.map(b => b.event.name);
+        const order = service.pendingBroadcasts.map((b) => b.event.name);
         st.same(order, ['first', 'second', 'third']);
         st.end();
     });
 
     t.test(
         'mix of orderKey present and absent: orderKey-having pairs sort, others fall back to original order',
-        st => {
+        (st) => {
             const blocks = createMockBlocks();
             const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -250,7 +250,7 @@ test('MeshV2Service _queueEventsForPlayback stable sort (issue #556)', t => {
                 },
             ];
             service._queueEventsForPlayback(events);
-            const order = service.pendingBroadcasts.map(b => b.event.name);
+            const order = service.pendingBroadcasts.map((b) => b.event.name);
             st.same(order, ['no-key', 'with-key']);
             st.end();
         },

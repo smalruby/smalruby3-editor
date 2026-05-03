@@ -92,7 +92,7 @@ describe('Ruby Roundtrip/Super', () => {
         RubyBlocks(RubyGenerator);
     });
 
-    const rubyToBlocksToRuby = async code => {
+    const rubyToBlocksToRuby = async (code) => {
         // Ruby -> Blocks
         const result = await converter.targetCodeToBlocks(target, code);
 

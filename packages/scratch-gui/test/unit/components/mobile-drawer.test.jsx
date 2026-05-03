@@ -1,8 +1,8 @@
 /* eslint-env jest */
-import React from 'react';
-import { IntlProvider } from 'react-intl';
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
+import React from 'react';
+import { IntlProvider } from 'react-intl';
 import { MobileDrawerComponent } from '../../../src/components/mobile-drawer/mobile-drawer.jsx';
 
 // SB3Downloader と TurboMode は connect されたコンテナで、テスト時に
@@ -33,7 +33,7 @@ const { isClassroomConfigured } = jest.requireMock('../../../src/lib/classroom-a
 
 const fakeIntl = {
     locale: 'en',
-    formatMessage: descriptor => descriptor.defaultMessage,
+    formatMessage: (descriptor) => descriptor.defaultMessage,
 };
 
 const baseProps = () => ({
@@ -57,7 +57,7 @@ const baseProps = () => ({
     intl: fakeIntl,
 });
 
-const renderWithIntl = props => {
+const renderWithIntl = (props) => {
     const merged = { ...baseProps(), ...props };
     return {
         ...render(
@@ -226,7 +226,7 @@ describe('MobileDrawer', () => {
     test('mesh is shown and clicking it calls onOpenMeshModal("meshV2")', () => {
         const vm = {
             runtime: { targets: [] },
-            extensionManager: { isExtensionLoaded: id => id === 'meshV2' },
+            extensionManager: { isExtensionLoaded: (id) => id === 'meshV2' },
         };
         const { getByTestId, props } = renderWithIntl({ vm });
         fireEvent.click(getByTestId('mobile-drawer-mesh'));
@@ -292,7 +292,7 @@ describe('MobileDrawer', () => {
             const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
             const vm = {
                 runtime: { targets: [] },
-                extensionManager: { isExtensionLoaded: ext => ext === 'koshien' },
+                extensionManager: { isExtensionLoaded: (ext) => ext === 'koshien' },
             };
             try {
                 const { getByTestId, props } = renderWithIntl({ activeRubyVersion: '1', vm });

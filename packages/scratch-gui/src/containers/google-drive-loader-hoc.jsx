@@ -87,7 +87,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
 
             // Initialize and show Google Picker
             // Don't show loading modal yet - wait until user selects a file
-            googleDriveAPI.showPicker(this.handlePickerCallback, this.props.locale, title).catch(error => {
+            googleDriveAPI.showPicker(this.handlePickerCallback, this.props.locale, title).catch((error) => {
                 log.error('Failed to show Google Picker:', error);
                 alert(this.props.intl.formatMessage(messages.authError)); // eslint-disable-line no-alert
             });
@@ -148,7 +148,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
                         this.props.onLoadingFinished(this.props.loadingState, true);
                         this.props.onCloseLoadingProject();
                     })
-                    .catch(error => {
+                    .catch((error) => {
                         console.error('[GoogleDriveLoader] Project load failed:', {
                             error: error,
                             errorType: typeof error,
@@ -228,7 +228,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         }),
     };
 
-    const mapStateToProps = state => ({
+    const mapStateToProps = (state) => ({
         isLoadingUpload: getIsLoadingUpload(state.scratchGui.projectState.loadingState),
         loadingState: state.scratchGui.projectState.loadingState,
         locale: state.locales.locale,
@@ -236,7 +236,7 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         vm: state.scratchGui.vm,
     });
 
-    const mapDispatchToProps = dispatch => ({
+    const mapDispatchToProps = (dispatch) => ({
         closeFileMenu: () => dispatch(closeFileMenu()),
         onCloseLoadingProject: () => dispatch(closeLoadingProject()),
         onLoadingFinished: (loadingState, success) => {
@@ -246,8 +246,8 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
         onLoadingStarted: () => dispatch(openLoadingProject()),
         onSetGoogleDriveFile: (fileId, fileName, folderId) =>
             dispatch(setGoogleDriveFile(fileId, fileName, folderId)),
-        onSetProjectTitle: title => dispatch(setProjectTitle(title)),
-        onSetRubyVersion: version => {
+        onSetProjectTitle: (title) => dispatch(setProjectTitle(title)),
+        onSetRubyVersion: (version) => {
             dispatch(setRubyVersion(version));
             persistRubyVersion(version);
         },

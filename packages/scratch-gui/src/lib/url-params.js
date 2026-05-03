@@ -80,8 +80,8 @@ const parseUrlParams = () => {
     const featuresParam = params.get('features') || '';
     const features = featuresParam
         .split(',')
-        .map(f => f.trim().toLowerCase())
-        .filter(f => f.length > 0);
+        .map((f) => f.trim().toLowerCase())
+        .filter((f) => f.length > 0);
 
     // classcode: auto-join a classroom via invite link
     const classcode = (params.get('classcode') || '').trim().toLowerCase() || null;

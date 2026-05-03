@@ -27,7 +27,7 @@ const SEL = {
 /**
  * Click a menu item by matching its textContent via JS.
  */
-const clickMenuItem = async text => {
+const clickMenuItem = async (text) => {
     await driver.executeScript(`
         const items = document.querySelectorAll('${SEL.menuItem}');
         for (const item of items) {

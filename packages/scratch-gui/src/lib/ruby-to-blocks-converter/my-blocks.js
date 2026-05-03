@@ -1,6 +1,6 @@
 import {defineMessages} from 'react-intl';
 import _ from 'lodash';
-import Blockly from 'scratch-blocks';
+import * as Blockly from 'scratch-blocks';
 import Primitive from './primitive';
 import {RubyToBlocksConverterError} from './errors';
 

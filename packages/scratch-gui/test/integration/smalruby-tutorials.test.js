@@ -9,7 +9,7 @@ import SeleniumHelper from '../helpers/selenium-helper';
 const { clickText, clickXpath, findByXpath, getDriver, getLogs, loadUri, scope, textExists } = new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/index.html');
-const uriWithTutorial = id => `${uri}?tutorial=${id}`;
+const uriWithTutorial = (id) => `${uri}?tutorial=${id}`;
 
 let driver;
 
@@ -32,7 +32,7 @@ describe('Smalruby Tutorials', () => {
         await clickText('Code');
 
         const logs = await getLogs({ includeAllLevels: true });
-        const severeLogs = logs.filter(l => l.level.name === 'SEVERE');
+        const severeLogs = logs.filter((l) => l.level.name === 'SEVERE');
         expect(severeLogs).toEqual([]);
     });
 
@@ -41,7 +41,7 @@ describe('Smalruby Tutorials', () => {
         await findByXpath('//div[contains(@class, "card_card_")]');
 
         const logs = await getLogs({ includeAllLevels: true });
-        const severeLogs = logs.filter(l => l.level.name === 'SEVERE');
+        const severeLogs = logs.filter((l) => l.level.name === 'SEVERE');
         expect(severeLogs).toEqual([]);
     });
 

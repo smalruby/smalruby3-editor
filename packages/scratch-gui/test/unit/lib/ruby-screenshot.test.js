@@ -132,12 +132,12 @@ describe('cropToWidth', () => {
         const canvases = [];
         const mockCtx = { drawImage: jest.fn() };
         const realCreateElement = document.createElement.bind(document);
-        jest.spyOn(document, 'createElement').mockImplementation(tag => {
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
             const el = realCreateElement(tag);
             if (tag === 'canvas') {
                 canvases.push(el);
                 el.getContext = jest.fn(() => mockCtx);
-                el.toBlob = jest.fn(cb => cb(new Blob(['cropped'], { type: 'image/png' })));
+                el.toBlob = jest.fn((cb) => cb(new Blob(['cropped'], { type: 'image/png' })));
             }
             return el;
         });
@@ -180,11 +180,11 @@ describe('downloadRubyAsImage', () => {
         global.createImageBitmap = jest.fn(() => Promise.resolve({ width: 2000, height: 400, close: jest.fn() }));
         const mockCtx = { drawImage: jest.fn() };
         const realCreateElement = document.createElement.bind(document);
-        jest.spyOn(document, 'createElement').mockImplementation(tag => {
+        jest.spyOn(document, 'createElement').mockImplementation((tag) => {
             const el = realCreateElement(tag);
             if (tag === 'canvas') {
                 el.getContext = jest.fn(() => mockCtx);
-                el.toBlob = jest.fn(cb => cb(new Blob(['cropped'], { type: 'image/png' })));
+                el.toBlob = jest.fn((cb) => cb(new Blob(['cropped'], { type: 'image/png' })));
             }
             return el;
         });

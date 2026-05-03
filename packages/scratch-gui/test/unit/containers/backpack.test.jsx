@@ -1,9 +1,9 @@
+import VM from '@smalruby/scratch-vm';
+import { render, act, screen } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import VM from '@smalruby/scratch-vm';
-import { render, act, screen } from '@testing-library/react';
 import BackpackContainer from '../../../src/containers/backpack.jsx';
 import * as backpackApi from '../../../src/lib/backpack-api';
 

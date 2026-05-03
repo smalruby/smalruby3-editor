@@ -10,9 +10,9 @@ describe('FuriganaAnnotator', () => {
         annotator = new FuriganaAnnotator();
     });
 
-    const parse = code => prism.parse(code);
-    const annotate = code => annotator.annotate(code, parse(code));
-    const labelsAt = (annotations, line) => (annotations.get(line) || []).map(a => a.label);
+    const parse = (code) => prism.parse(code);
+    const annotate = (code) => annotator.annotate(code, parse(code));
+    const labelsAt = (annotations, line) => (annotations.get(line) || []).map((a) => a.label);
 
     describe('empty / invalid input', () => {
         test('empty code returns empty map', () => {
@@ -58,7 +58,7 @@ describe('FuriganaAnnotator', () => {
         test('string literal annotates as 文字列「...」', () => {
             const anns = annotate('puts "hello"');
             const labels = labelsAt(anns, 1);
-            expect(labels.some(l => l === '文字列「hello」')).toBe(true);
+            expect(labels.some((l) => l === '文字列「hello」')).toBe(true);
         });
     });
 
@@ -924,11 +924,11 @@ describe('FuriganaAnnotator', () => {
     describe('glide dynamic label', () => {
         test('glide with array and secs produces dynamic label', () => {
             const labels = labelsAt(annotate('glide([100, 50], secs: 1)'), 1);
-            expect(labels.some(l => l.includes('秒') && l.includes('x座標') && l.includes('y座標'))).toBe(true);
+            expect(labels.some((l) => l.includes('秒') && l.includes('x座標') && l.includes('y座標'))).toBe(true);
         });
         test('glide without parseable args falls back to default', () => {
             const labels = labelsAt(annotate('glide("_mouse_", secs: 2)'), 1);
-            expect(labels.some(l => l.includes('移動') || l.includes('glide') || l.includes('秒'))).toBe(true);
+            expect(labels.some((l) => l.includes('移動') || l.includes('glide') || l.includes('秒'))).toBe(true);
         });
     });
 
@@ -944,22 +944,22 @@ describe('FuriganaAnnotator', () => {
     describe('go_layers dynamic label', () => {
         test('go_layers forward embeds n', () => {
             const labels = labelsAt(annotate('go_layers(2, "forward")'), 1);
-            expect(labels.some(l => l.includes('2') && l.includes('手前'))).toBe(true);
+            expect(labels.some((l) => l.includes('2') && l.includes('手前'))).toBe(true);
         });
         test('go_layers backward embeds n', () => {
             const labels = labelsAt(annotate('go_layers(3, "backward")'), 1);
-            expect(labels.some(l => l.includes('3') && l.includes('奥'))).toBe(true);
+            expect(labels.some((l) => l.includes('3') && l.includes('奥'))).toBe(true);
         });
     });
 
     describe('when_greater_than dynamic label', () => {
         test('LOUDNESS version produces 音量 label', () => {
             const labels = labelsAt(annotate('when_greater_than("LOUDNESS", 10) do\nend'), 1);
-            expect(labels.some(l => l.includes('音量') && l.includes('10'))).toBe(true);
+            expect(labels.some((l) => l.includes('音量') && l.includes('10'))).toBe(true);
         });
         test('TIMER version produces タイマー label', () => {
             const labels = labelsAt(annotate('when_greater_than("TIMER", 5) do\nend'), 1);
-            expect(labels.some(l => l.includes('タイマー') && l.includes('5'))).toBe(true);
+            expect(labels.some((l) => l.includes('タイマー') && l.includes('5'))).toBe(true);
         });
     });
 

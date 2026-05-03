@@ -5,21 +5,21 @@ import {
     MIGRATED_AT_KEY,
 } from '../../../src/lib/backpack-mesh-v1-migration';
 
-const decodeB64 = b64 => {
+const decodeB64 = (b64) => {
     const binary = atob(b64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
 };
 
-const encodeB64 = bytes => {
+const encodeB64 = (bytes) => {
     let binary = '';
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     return btoa(binary);
 };
 
 const makeFakeVm = () => ({
-    migrateMeshV1InBackpackBlocks: jest.fn(blocks => {
+    migrateMeshV1InBackpackBlocks: jest.fn((blocks) => {
         let changed = false;
         if (Array.isArray(blocks)) {
             for (const b of blocks) {
@@ -31,7 +31,7 @@ const makeFakeVm = () => ({
         }
         return changed;
     }),
-    migrateMeshV1InBackpackSprite: jest.fn(async buf => {
+    migrateMeshV1InBackpackSprite: jest.fn(async (buf) => {
         const zip = await JSZip.loadAsync(buf);
         const json = JSON.parse(await zip.file('sprite.json').async('string'));
         let changed = false;

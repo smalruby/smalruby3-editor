@@ -43,7 +43,7 @@ export const loginWithGoogle = async () => {
         /* global google */
         google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
-            callback: response => {
+            callback: (response) => {
                 cleanup();
                 if (response.credential) {
                     resolve(response.credential);
@@ -53,7 +53,7 @@ export const loginWithGoogle = async () => {
             },
         });
 
-        google.accounts.id.prompt(notification => {
+        google.accounts.id.prompt((notification) => {
             if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
                 signInContainer = document.createElement('div');
                 signInContainer.style.cssText =
@@ -90,7 +90,7 @@ export const silentReauthGoogle = async () => {
                 google.accounts.id.initialize({
                     client_id: GOOGLE_CLIENT_ID,
                     auto_select: true,
-                    callback: response => {
+                    callback: (response) => {
                         if (response.credential) {
                             resolve(response.credential);
                         } else {
@@ -98,7 +98,7 @@ export const silentReauthGoogle = async () => {
                         }
                     },
                 });
-                google.accounts.id.prompt(notification => {
+                google.accounts.id.prompt((notification) => {
                     if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
                         reject(new Error('Silent reauth not available'));
                     }
@@ -143,7 +143,7 @@ export const silentReauthMicrosoft = async () => {
  * @param {string|null} provider - 'google' | 'microsoft' | null
  * @returns {Promise<string|null>} New ID token or null
  */
-export const attemptSilentReauth = async provider => {
+export const attemptSilentReauth = async (provider) => {
     if (provider === 'microsoft') {
         return silentReauthMicrosoft();
     }
@@ -154,7 +154,7 @@ export const attemptSilentReauth = async provider => {
  * Clear auth session for the given provider.
  * @param {string|null} provider - 'google' | 'microsoft' | null
  */
-export const clearAuthSession = provider => {
+export const clearAuthSession = (provider) => {
     if (provider === 'microsoft') {
         clearMicrosoftAuth();
     }

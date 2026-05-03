@@ -17,7 +17,7 @@ describe('RubyGenerator Versioning', () => {
             variables: {},
             blocks: {
                 getScripts: () => ['block1'],
-                getBlock: id => {
+                getBlock: (id) => {
                     if (id === 'block1') {
                         return {
                             id: 'block1',
@@ -42,7 +42,7 @@ describe('RubyGenerator Versioning', () => {
                     }
                     return null;
                 },
-                getInputs: block => block.inputs || {},
+                getInputs: (block) => block.inputs || {},
                 getProcedureParamNamesIdsAndDefaults: () => [[], [], []],
             },
             runtime: {

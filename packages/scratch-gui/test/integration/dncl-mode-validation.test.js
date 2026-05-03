@@ -55,7 +55,7 @@ const waitForActiveState = (d, testId, expected) =>
  * Click the Code tab using a stable selector instead of XPath text matching.
  * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
  */
-const clickCodeTab = d => d.executeScript(`document.querySelector('[role="tab"]').click()`);
+const clickCodeTab = (d) => d.executeScript(`document.querySelector('[role="tab"]').click()`);
 
 /**
  * Load the editor in Ruby mode (not DNCL), clearing any localStorage state.

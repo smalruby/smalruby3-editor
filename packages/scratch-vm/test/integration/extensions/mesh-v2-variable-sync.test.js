@@ -42,7 +42,7 @@ const createMockBlocks = () => ({
 
 const FAR_FUTURE = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
 
-test('MeshV2Service Variable Sync Integration', async t => {
+test('MeshV2Service Variable Sync Integration', async (t) => {
     let reportDataPayload = null;
 
     mockClient.mutate = ({ mutation, variables }) => {
@@ -80,11 +80,11 @@ test('MeshV2Service Variable Sync Integration', async t => {
     t.ok(reportDataPayload, 'REPORT_DATA should be called');
     t.equal(reportDataPayload.length, 2);
     t.same(
-        reportDataPayload.find(v => v.key === 'var1'),
+        reportDataPayload.find((v) => v.key === 'var1'),
         { key: 'var1', value: '10' },
     );
     t.same(
-        reportDataPayload.find(v => v.key === 'var2'),
+        reportDataPayload.find((v) => v.key === 'var2'),
         { key: 'var2', value: 'hello' },
     );
 
@@ -126,7 +126,7 @@ test('MeshV2Service Variable Sync Integration', async t => {
     t.end();
 });
 
-test('MeshV2Service fetch existing nodes data on joinGroup', async t => {
+test('MeshV2Service fetch existing nodes data on joinGroup', async (t) => {
     const blocks = {
         runtime: {
             getTargetForStage: () => ({ variables: {} }),

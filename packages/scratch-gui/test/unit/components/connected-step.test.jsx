@@ -1,5 +1,5 @@
-import React from 'react';
 import '@testing-library/jest-dom';
+import React from 'react';
 import ConnectedStep from '../../../src/components/connection-modal/connected-step.jsx';
 import { renderWithIntl } from '../../helpers/intl-helpers.jsx';
 

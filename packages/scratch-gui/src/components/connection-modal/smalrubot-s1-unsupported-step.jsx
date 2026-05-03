@@ -8,7 +8,7 @@ import Dots from './dots.jsx';
 import helpIcon from './icons/help.svg';
 import unsupportedStyles from './smalrubot-s1-unsupported-step.css';
 
-const SmalrubotS1UnsupportedStep = props => (
+const SmalrubotS1UnsupportedStep = (props) => (
     <Box className={styles.body}>
         <Box className={styles.activityArea}>
             <Box className={unsupportedStyles.message}>

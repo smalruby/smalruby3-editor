@@ -47,7 +47,7 @@ const useTeacherSubmissions = ({
     // --- Open student submission ---
 
     const handleOpenSubmission = useCallback(
-        async projectUrl => {
+        async (projectUrl) => {
             if (!projectUrl || !vm) return;
             clearError();
             setIsLoading(true);
@@ -83,12 +83,12 @@ const useTeacherSubmissions = ({
     }, []);
 
     const handleToggleCodeFullscreen = useCallback(() => {
-        setCodeDisplayFullscreen(prev => !prev);
+        setCodeDisplayFullscreen((prev) => !prev);
     }, []);
 
     // --- Invite link ---
 
-    const handleCopyInviteLink = useCallback(classroom => {
+    const handleCopyInviteLink = useCallback((classroom) => {
         const url = new URL(window.location.href);
         url.searchParams.set('classcode', classroom.joinCode.toLowerCase());
         url.searchParams.delete('features');
@@ -138,7 +138,7 @@ const useTeacherSubmissions = ({
         if (!selectedClassroom || !members || members.length === 0) return;
         clearError();
 
-        const submittedMembers = members.filter(m => m.hasSubmission && m.projectUrl);
+        const submittedMembers = members.filter((m) => m.hasSubmission && m.projectUrl);
         if (submittedMembers.length === 0) return;
 
         setDownloadProgress({ current: 0, total: submittedMembers.length });

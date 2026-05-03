@@ -33,8 +33,8 @@ const ignoredWarnings = [
  * @returns {boolean} True if the message should be ignored.
  */
 const shouldIgnore = (message, ...args) => {
-    const allStrings = [message, ...args].filter(arg => typeof arg === 'string');
-    return allStrings.some(str => ignoredWarnings.some(ignored => str.includes(ignored)));
+    const allStrings = [message, ...args].filter((arg) => typeof arg === 'string');
+    return allStrings.some((str) => ignoredWarnings.some((ignored) => str.includes(ignored)));
 };
 
 /* eslint-disable no-console */

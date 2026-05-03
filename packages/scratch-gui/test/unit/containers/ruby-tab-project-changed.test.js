@@ -1,23 +1,23 @@
+import { render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import { render } from '@testing-library/react';
 import ConnectedRubyTab from '../../../src/containers/ruby-tab.jsx';
 import { legacyConfig } from '../../../src/legacy-config';
 
 // Capture the onChange callback passed to Monaco Editor
 let capturedOnChange = null;
 jest.mock('@monaco-editor/react', () => {
-    const MockEditor = props => {
+    const MockEditor = (props) => {
         capturedOnChange = props.onChange;
         return <div data-testid="mock-editor" />;
     };
     MockEditor.displayName = 'MockEditor';
     return { __esModule: true, default: MockEditor };
 });
-jest.mock('../../../src/lib/ruby-to-blocks-converter-hoc.jsx', () => C => C);
-jest.mock('../../../src/containers/rubytee-modal-hoc.jsx', () => C => C);
+jest.mock('../../../src/lib/ruby-to-blocks-converter-hoc.jsx', () => (C) => C);
+jest.mock('../../../src/containers/rubytee-modal-hoc.jsx', () => (C) => C);
 jest.mock('../../../src/components/ruby-toolbar/ruby-toolbar.jsx', () => {
     const Mock = () => null;
     return { __esModule: true, default: Mock };
@@ -75,7 +75,7 @@ jest.mock('../../../src/lib/insert-class', () => ({
     wrapCurrentCodeWithClass: jest.fn(),
 }));
 jest.mock('../../../src/lib/auto-correct', () => ({
-    autoCorrect: jest.fn(v => v),
+    autoCorrect: jest.fn((v) => v),
     defaultSettings: {},
 }));
 jest.mock('../../../src/lib/ruby-script-preview', () => ({

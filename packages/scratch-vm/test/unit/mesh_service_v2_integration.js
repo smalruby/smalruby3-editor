@@ -7,7 +7,7 @@ minilog.suggest.deny('vm', 'info');
 const MeshV2Service = require('../../src/extensions/scratch3_mesh_v2/mesh-service');
 const BlockUtility = require('../../src/engine/block-utility');
 
-const createMockBlocks = broadcastCallback => ({
+const createMockBlocks = (broadcastCallback) => ({
     runtime: {
         sequencer: {},
         emit: () => {},
@@ -15,15 +15,15 @@ const createMockBlocks = broadcastCallback => ({
         off: () => {},
     },
     opcodeFunctions: {
-        event_broadcast: args => {
+        event_broadcast: (args) => {
             broadcastCallback(args.BROADCAST_OPTION.name);
         },
     },
 });
 
-test('MeshV2Service Integration: Batching and Timing', async t => {
+test('MeshV2Service Integration: Batching and Timing', async (t) => {
     const broadcasted = [];
-    const blocks = createMockBlocks(name => {
+    const blocks = createMockBlocks((name) => {
         broadcasted.push({ name, time: Date.now() });
     });
 
@@ -43,11 +43,11 @@ test('MeshV2Service Integration: Batching and Timing', async t => {
 
     // Link sender and receiver through a mock client
     sender.client = {
-        mutate: options => {
+        mutate: (options) => {
             // Simulate AppSync delivering the batch event to the receiver
             const batchEvent = {
                 firedByNodeId: sender.meshId,
-                events: options.variables.events.map(e => ({
+                events: options.variables.events.map((e) => ({
                     name: e.eventName,
                     firedByNodeId: sender.meshId,
                     payload: e.payload,
@@ -129,7 +129,7 @@ test('MeshV2Service Integration: Batching and Timing', async t => {
     t.end();
 });
 
-test('MeshV2Service Integration: Splitting large batches', async t => {
+test('MeshV2Service Integration: Splitting large batches', async (t) => {
     const blocks = createMockBlocks(() => {});
     const service = new MeshV2Service(blocks, 'sender', 'domain');
     service.stopEventBatchTimer();
@@ -138,7 +138,7 @@ test('MeshV2Service Integration: Splitting large batches', async t => {
 
     let mutateCount = 0;
     service.client = {
-        mutate: options => {
+        mutate: (options) => {
             mutateCount++;
             if (mutateCount === 1) {
                 t.equal(options.variables.events.length, 1000, 'First batch should have 1000 events');

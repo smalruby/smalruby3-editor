@@ -1,4 +1,4 @@
-import ScratchBlocks from 'scratch-blocks';
+import * as ScratchBlocks from 'scratch-blocks';
 import {defaultColors} from './settings/color-mode';
 import {parseHexFormatToSelectedBlocks} from './block-utils';
 

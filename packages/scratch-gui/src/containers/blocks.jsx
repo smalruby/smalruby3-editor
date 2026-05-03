@@ -96,8 +96,8 @@ class Blocks extends React.Component {
             'setLocale',
             'handleDownloadBlocksImage'
         ]);
-        this.ScratchBlocks.prompt = this.handlePromptStart;
-        this.ScratchBlocks.statusButtonCallback = this.handleConnectionModalStart;
+        this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
+        this.ScratchBlocks.StatusIndicatorLabel.statusButtonCallback = this.handleConnectionModalStart;
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
 
         this.state = {
@@ -118,20 +118,56 @@ class Blocks extends React.Component {
     componentDidMount () {
         this.ScratchBlocks = VMScratchBlocks(this.props.vm, this.props.useCatBlocks);
         this.props.onSetScratchBlocks(this.ScratchBlocks);
-        this.ScratchBlocks.prompt = this.handlePromptStart;
-        this.ScratchBlocks.statusButtonCallback = this.handleConnectionModalStart;
+        this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
+        this.ScratchBlocks.StatusIndicatorLabel.statusButtonCallback = this.handleConnectionModalStart;
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
 
         this.ScratchBlocks.FieldColourSlider.activateEyedropper_ = this.props.onActivateColorPicker;
-        this.ScratchBlocks.Procedures.externalProcedureDefCallback = this.props.onActivateCustomProcedures;
+        this.ScratchBlocks.ScratchProcedures.externalProcedureDefCallback = this.props.onActivateCustomProcedures;
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
 
         const workspaceConfig = defaultsDeep({},
             Blocks.defaultOptions,
             this.props.options,
-            {rtl: this.props.isRtl, toolbox: this.props.toolboxXML, colours: getColorsForMode(this.props.colorMode)}
+            {
+                rtl: this.props.isRtl,
+                toolbox: this.props.toolboxXML,
+                theme: new this.ScratchBlocks.Theme(
+                    this.props.colorMode,
+                    getColorsForMode(this.props.colorMode)
+                ),
+                // TODO: use scratch-blocks constants instead of bare strings
+                scratchTheme: this.props.useCatBlocks ? 'catblocks' : 'classic'
+            }
         );
         this.workspace = this.ScratchBlocks.inject(this.blocks, workspaceConfig);
+        this.workspace.registerToolboxCategoryCallback(
+            'VARIABLE',
+            this.ScratchBlocks.ScratchVariables.getVariablesCategory
+        );
+        this.workspace.registerToolboxCategoryCallback(
+            'PROCEDURE',
+            this.ScratchBlocks.ScratchProcedures.getProceduresCategory
+        );
+
+        this.toolboxUpdateChangeListener = event => {
+            if (
+                event.type === this.ScratchBlocks.Events.VAR_CREATE ||
+                event.type === this.ScratchBlocks.Events.VAR_RENAME ||
+                event.type === this.ScratchBlocks.Events.VAR_DELETE ||
+                (event.type === this.ScratchBlocks.Events.BLOCK_DELETE &&
+                    event.oldJson.type === 'procedures_definition') ||
+                // Only refresh the toolbox when procedure block creations are
+                // triggered by undoing a deletion (implied by recordUndo being
+                // false on the event).
+                (event.type === this.ScratchBlocks.Events.BLOCK_CREATE &&
+                    event.json.type === 'procedures_definition' &&
+                    !event.recordUndo)
+            ) {
+                this.requestToolboxUpdate();
+            }
+        };
+        this.workspace.addChangeListener(this.toolboxUpdateChangeListener);
 
         // Register buttons under new callback keys for creating variables,
         // lists, and procedures from extensions.
@@ -139,9 +175,9 @@ class Blocks extends React.Component {
         const toolboxWorkspace = this.workspace.getFlyout().getWorkspace();
 
         const varListButtonCallback = type =>
-            (() => this.ScratchBlocks.Variables.createVariable(this.workspace, null, type));
+            (() => this.ScratchBlocks.ScratchVariables.createVariable(this.workspace, null, type));
         const procButtonCallback = () => {
-            this.ScratchBlocks.Procedures.createProcedureDefCallback_(this.workspace);
+            this.ScratchBlocks.ScratchProcedures.createProcedureDefCallback(this.workspace);
         };
 
         toolboxWorkspace.registerButtonCallback('MAKE_A_VARIABLE', varListButtonCallback(''));
@@ -275,6 +311,20 @@ class Blocks extends React.Component {
     }
     componentWillUnmount () {
         this.detachVM();
+        // Hide any open field editor and move Blockly focus to the workspace
+        // root before disposing. Without this, BlockSvg.dispose() detects the
+        // focused element is inside a block and schedules a stale
+        // setTimeout(() => focusTree(workspace)), which fires after the
+        // workspace is unregistered and throws
+        // "Attempted to focus unregistered tree" (scratch-blocks#3460).
+        //
+        // focusNode(workspace) — not focusTree(workspace) — is used here
+        // because focusTree would restore focus to whatever was previously
+        // focused in this workspace (likely the same block about to be
+        // disposed). focusNode pins focus to the workspace root directly,
+        // ensuring no block is focused when dispose() runs.
+        this.ScratchBlocks.WidgetDiv.hide();
+        this.ScratchBlocks.getFocusManager().focusNode(this.workspace);
         this.workspace.dispose();
         clearTimeout(this.toolboxUpdateTimeout);
 
@@ -463,7 +513,7 @@ class Blocks extends React.Component {
         if (this.props.activeTabIndex === RUBY_TAB_INDEX) {
             return;
         }
-        this.workspace.reportValue(data.id, data.value);
+        this.ScratchBlocks.reportValue(data.id, data.value);
     }
 
     // Extract only_blocks setting from Stage comments
@@ -571,13 +621,19 @@ class Blocks extends React.Component {
             this.onWorkspaceMetricsChange();
         }
 
-        // Remove and reattach the workspace listener (but allow flyout events)
-        this.workspace.removeChangeListener(this.props.vm.blockListener);
-        const dom = this.ScratchBlocks.Xml.textToDom(data.xml);
+        // Disable Blockly events during workspace reload. In Blockly v2, Events.fire()
+        // enqueues events for async dispatch (after rendering), so the old pattern of
+        // removing and re-adding the blockListener no longer prevents spurious events
+        // from reaching the VM — the queued events fire after the listener is re-added.
+        // Disabling events entirely during the load ensures nothing is queued.
+        this.workspace.removeChangeListener(this.toolboxUpdateChangeListener);
         let fromRuby = false;
         try {
-            this.ScratchBlocks.Xml.clearWorkspaceAndLoadFromXml(dom, this.workspace);
+            this.ScratchBlocks.Events.disable();
+            const dom = this.ScratchBlocks.utils.xml.textToDom(data.xml);
+            this.ScratchBlocks.clearWorkspaceAndLoadFromXml(dom, this.workspace);
 
+            // === Smalruby: Start of Ruby-converted block positioning ===
             // When we converted blocks from Ruby, update top block positions.
             if (this.props.vm.editingTarget) {
                 const blocks = this.props.vm.editingTarget.blocks;
@@ -657,6 +713,7 @@ class Blocks extends React.Component {
                     this.updateToolbox();
                 }
             }
+            // === Smalruby: End of Ruby-converted block positioning ===
         } catch (error) {
             // The workspace is likely incomplete. What did update should be
             // functional.
@@ -671,8 +728,9 @@ class Blocks extends React.Component {
                 error.message = `Workspace Update Error: ${error.message}`;
             }
             log.error(error);
+        } finally {
+            this.ScratchBlocks.Events.enable();
         }
-        this.workspace.addChangeListener(this.props.vm.blockListener);
 
         if (!fromRuby &&
             this.props.vm.editingTarget &&
@@ -689,6 +747,15 @@ class Blocks extends React.Component {
         // fresh workspace and we don't want any changes made to another sprites
         // workspace to be 'undone' here.
         this.workspace.clearUndo();
+        // Let events get flushed before readding the toolbox-updater listener
+        // to avoid unneeded refreshes.
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                this.workspace.addChangeListener(
+                    this.toolboxUpdateChangeListener
+                );
+            });
+        });
     }
     handleMonitorsUpdate (monitors) {
         // Update the checkboxes of the relevant monitors.
@@ -1041,6 +1108,7 @@ const mapDispatchToProps = dispatch => ({
     }
 });
 
+export {Blocks};
 export default errorBoundaryHOC('Blocks')(
     connect(
         mapStateToProps,

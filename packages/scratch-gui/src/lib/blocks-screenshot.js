@@ -99,7 +99,7 @@ const inlineImageHrefs = async function (svgElement) {
         const href = img.getAttributeNS(xlinkNS, 'href') || img.getAttribute('href') || '';
         if (href && !href.startsWith('data:')) {
             promises.push(
-                fetchSvgAsDataUri(href).then(dataUri => {
+                fetchSvgAsDataUri(href).then((dataUri) => {
                     if (img.getAttributeNS(xlinkNS, 'href')) {
                         img.setAttributeNS(xlinkNS, 'href', dataUri);
                     } else {
@@ -140,14 +140,14 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     if (parentSvg) {
         const defs = parentSvg.querySelector('defs');
         if (defs) svg.appendChild(defs.cloneNode(true));
-        parentSvg.querySelectorAll('style').forEach(style => {
+        parentSvg.querySelectorAll('style').forEach((style) => {
             svg.appendChild(style.cloneNode(true));
         });
     }
 
     // Include Scratch Blocks' injected styles from document head.
     // These set fill colors for .blocklyText etc. and are not inside the SVG element.
-    document.querySelectorAll('style').forEach(style => {
+    document.querySelectorAll('style').forEach((style) => {
         if ((style.textContent || '').includes('blocklyText')) {
             svg.appendChild(style.cloneNode(true));
         }
@@ -177,7 +177,7 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     const bubbleCanvas = workspace.svgBubbleCanvas_;
     if (bubbleCanvas && bubbleCanvas.children.length > 0) {
         const bubbleClone = bubbleCanvas.cloneNode(true);
-        bubbleClone.querySelectorAll('foreignObject').forEach(fo => fo.remove());
+        bubbleClone.querySelectorAll('foreignObject').forEach((fo) => fo.remove());
         bubbleClone.setAttribute('transform', canvasTransform);
         svg.appendChild(bubbleClone);
     }
@@ -213,7 +213,7 @@ const renderSVGToCanvas = function (svgStr, width, height) {
             URL.revokeObjectURL(url);
             resolve(canvas);
         };
-        img.onerror = err => {
+        img.onerror = (err) => {
             URL.revokeObjectURL(url);
             reject(err);
         };
@@ -315,8 +315,8 @@ const downloadBlocksAsImage = async function (workspace, projectTitle, spriteNam
     const canvas = await renderBlocksToCanvas(workspace, costumeDataUri);
     if (!canvas) return;
 
-    return new Promise(resolve => {
-        canvas.toBlob(blob => {
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
             downloadBlob(buildFilename(projectTitle, spriteName), blob);
             resolve();
         }, 'image/png');

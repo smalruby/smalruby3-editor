@@ -7,12 +7,12 @@
  * This is a regression test for issue #132:
  * "meshV2 connection modal does not show group name after connecting"
  */
+import '@testing-library/jest-dom';
+import { render, act } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import '@testing-library/jest-dom';
-import { render, act } from '@testing-library/react';
 import ConnectionModal from '../../../src/containers/connection-modal.jsx';
 
 // Use the real ConnectionModalComponent but mock sub-steps to avoid full render complexity
@@ -29,7 +29,7 @@ jest.mock('../../../src/components/connection-modal/connection-modal.jsx', () =>
         meshV2Initial: 'meshV2Initial',
         updatePeripheral: 'updatePeripheral',
     };
-    const MockConnectionModalComponent = props => (
+    const MockConnectionModalComponent = (props) => (
         <div data-testid="modal">
             {props.phase === PHASES.connected && (
                 <ConnectedStep
@@ -112,7 +112,7 @@ const createMockVm = ({ isConnected = false, connectedMessage = null } = {}) => 
     return vm;
 };
 
-const renderModal = vm => {
+const renderModal = (vm) => {
     const store = mockStore({
         scratchGui: {
             connectionModal: { extensionId: 'meshV2' },

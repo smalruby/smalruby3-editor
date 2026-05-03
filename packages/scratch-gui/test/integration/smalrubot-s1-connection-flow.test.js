@@ -8,9 +8,9 @@ const uri = path.resolve(__dirname, '../../build/index.html');
 
 let driver;
 
-const findByTestId = async testId => findByXpath(`//*[@data-testid="${testId}"]`);
+const findByTestId = async (testId) => findByXpath(`//*[@data-testid="${testId}"]`);
 
-const clickByTestId = async testId => {
+const clickByTestId = async (testId) => {
     const el = await findByTestId(testId);
     await el.click();
 };
@@ -21,7 +21,7 @@ const activateSmalrubotS1Extension = async () => {
     // Click the smalrubotS1 extension by name
     await clickText('Smalrubot S1');
     // Wait briefly for the connection modal to mount
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
 describe('SmalrubotS1 dedicated connection flow', () => {
@@ -64,7 +64,7 @@ describe('SmalrubotS1 dedicated connection flow', () => {
         }
 
         await clickByTestId('smalrubot-s1-initial-flash-firmware');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         // Connection modal should have closed; firmware modal should appear.
         // Firmware modal exposes a known button id from existing tests.

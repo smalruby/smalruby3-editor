@@ -77,7 +77,7 @@ const dismissTooltip = function () {
     };
 };
 
-const shouldShowTooltip = state => !state.scratchGui.tutorialOnboarding.tooltipDismissed;
+const shouldShowTooltip = (state) => !state.scratchGui.tutorialOnboarding.tooltipDismissed;
 
 export {
     reducer as default,
