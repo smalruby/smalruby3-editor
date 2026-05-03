@@ -5,7 +5,7 @@ import {
     getColorsForMode,
     HIGH_CONTRAST_MODE
 } from '../../../src/lib/settings/color-mode';
-import {injectExtensionBlockMode, injectExtensionCategoryMode} from '../../../src/lib/settings/color-mode/blockHelpers';
+import {injectExtensionBlockIcons, injectExtensionCategoryMode} from '../../../src/lib/settings/color-mode/blockHelpers';
 import {detectColorMode, persistColorMode} from '../../../src/lib/settings/color-mode/persistence';
 
 jest.mock('../../../src/lib/settings/color-mode/default', () => ({
@@ -86,7 +86,7 @@ describe('color modes', () => {
                 colourTertiary: '#0B8E69'
             };
 
-            const updated = injectExtensionBlockMode(blockInfoJson, DARK_MODE);
+            const updated = injectExtensionBlockIcons(blockInfoJson, DARK_MODE);
 
             expect(updated).toEqual({
                 type: 'dummy_block',
@@ -112,7 +112,7 @@ describe('color modes', () => {
                 colourTertiary: '#0B8E69'
             };
 
-            const updated = injectExtensionBlockMode(blockInfoJson, DARK_MODE);
+            const updated = injectExtensionBlockIcons(blockInfoJson, DARK_MODE);
 
             expect(updated).toEqual({
                 type: 'pen_block',
@@ -138,7 +138,7 @@ describe('color modes', () => {
                 colourTertiary: '#0B8E69'
             };
 
-            const updated = injectExtensionBlockMode(blockInfoJson, DEFAULT_MODE);
+            const updated = injectExtensionBlockIcons(blockInfoJson, DEFAULT_MODE);
 
             expect(updated).toEqual({
                 type: 'dummy_block',
