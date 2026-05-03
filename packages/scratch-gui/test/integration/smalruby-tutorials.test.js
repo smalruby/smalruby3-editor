@@ -47,7 +47,7 @@ describe('Smalruby Tutorials', () => {
         // does not affect functionality. ===
         const severeLogs = logs
             .filter((l) => l.level.name === 'SEVERE')
-            .filter((l) => !/Each child in a list should have a unique "key" prop/.test(l.message));
+            .filter((l) => !/Each child in a list should have a unique .{1,3}key.{1,3} prop/.test(l.message));
         expect(severeLogs).toEqual([]);
     });
 
@@ -62,7 +62,7 @@ describe('Smalruby Tutorials', () => {
         // does not affect functionality. ===
         const severeLogs = logs
             .filter((l) => l.level.name === 'SEVERE')
-            .filter((l) => !/Each child in a list should have a unique "key" prop/.test(l.message));
+            .filter((l) => !/Each child in a list should have a unique .{1,3}key.{1,3} prop/.test(l.message));
         expect(severeLogs).toEqual([]);
     });
 
