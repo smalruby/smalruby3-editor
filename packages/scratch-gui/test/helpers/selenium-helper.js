@@ -17,7 +17,7 @@ import packageJson from '../../package.json';
 const {Button, By, until} = webdriver;
 
 const USE_HEADLESS = process.env.USE_HEADLESS !== 'no';
-const IS_ROOT_USER = process.getuid() === 0;
+const IS_ROOT_USER = process.getuid && process.getuid() === 0;
 
 // The main reason for this timeout is so that we can control the timeout message and report details;
 // if we hit the Jasmine default timeout then we get a terse message that we can't control.
@@ -97,12 +97,32 @@ const enhanceError = async (outerError, cause, driver) => {
     return outerError;
 };
 
+const scopes = {
+    blocklyFlyoutScope: '*[contains(concat(" ", @class, " "), " blocklyFlyout ")]',
+    blocksTab: "*[@id='panel:r0:0']",
+    categoryContainer: '*[contains(concat(" ", @class, " "), " blocklyToolboxCategoryContainer ")]',
+    costumesTab: "*[@id='panel:r0:1']",
+    modal: '*[contains(concat(" ", @class, " "), " ReactModalPortal ")]',
+    reportedValue: '*[contains(concat(" ", @class, " "), " blocklyDropDownContent ")]',
+    soundsTab: "*[@id='panel:r0:2']",
+    spriteTile: '*[contains(concat(" ", @class), " sprite-selector-item")]',
+    menuBar: '*[contains(concat(" ", @class), " menu-bar_menu-bar_")]',
+    monitors: '*[contains(concat(" ", @class), " stage_monitor-wrapper_")]',
+    contextMenu: '*[contains(concat(" ", @class), " context-menu")]'
+};
+
+
 class SeleniumHelper {
     constructor () {
         bindAll(this, [
             'clickText',
             'clickButton',
             'clickXpath',
+            'scopeForBlockId',
+            'scopeForBlockText',
+            'scopeForCategoryId',
+            'scopeForCategoryText',
+            'scopeForFlyoutBlock',
             'clickBlocksCategory',
             'elementIsVisible',
             'findByText',
@@ -113,19 +133,21 @@ class SeleniumHelper {
             'getSauceDriver',
             'getLogs',
             'loadUri',
-            'waitForLoadingFinished',
             'rightClickText',
+            // === Smalruby: extra helpers used by smalruby tests ===
+            'waitForLoadingFinished',
             'notExistsByXpath',
             'urlFor'
         ]);
+
+        // === Smalruby: expose `until` so test files can compose custom waits ===
+        this.until = until;
 
         this.Key = webdriver.Key; // map Key constants, for sending special keys
 
         // this type declaration suppresses IDE type warnings throughout this file
         /** @type {webdriver.ThenableWebDriver} */
         this.driver = null;
-
-        this.until = until;
     }
 
     /**
@@ -162,21 +184,13 @@ class SeleniumHelper {
      * work if the whole "class" attribute starts with "foo" -- it will fail if another class is listed first.
      */
     get scope () {
-        return {
-            blocksTab: "*[@id='panel:r0:0']",
-            costumesTab: "*[@id='panel:r0:1']",
-            modal: '*[contains(concat(" ", @class, " "), " ReactModalPortal ")]',
-            reportedValue: '*[contains(concat(" ", @class, " "), " blocklyDropDownContent ")]',
-            soundsTab: "*[@id='panel:r0:2']",
-            spriteTile: '*[contains(concat(" ", @class), " sprite-selector-item")]',
-            menuBar: '*[contains(concat(" ", @class), " menu-bar_menu-bar_")]',
-            monitors: '*[contains(concat(" ", @class), " stage_monitor-wrapper_")]',
-            contextMenu: '*[contains(concat(" ", @class), " context-menu")]'
-        };
+        return scopes;
     }
 
     /**
      * Build Chrome capabilities for the Selenium driver.
+     * Honours USE_HEADLESS and adds the no-sandbox flag when running as root
+     * (CI image runs Chromium as root which Chrome refuses by default).
      * @returns {webdriver.Capabilities} The Chrome capabilities.
      */
     _buildChromeCapabilities () {
@@ -186,11 +200,11 @@ class SeleniumHelper {
             args.push('--headless=new');
         }
 
+        // === Smalruby: no-sandbox when running as root in containerised CI ===
         if (IS_ROOT_USER) {
             args.push('--no-sandbox');
             args.push('--disable-setuid-sandbox');
         }
-
         args.push('--disable-dev-shm-usage');
         args.push('--disable-extensions');
 
@@ -209,38 +223,29 @@ class SeleniumHelper {
     }
 
     /**
-     * Instantiate a new Selenium driver with retry on session creation failure.
-     * ChromeDriver can intermittently fail to start in CI (version mismatch,
-     * resource contention), so we retry up to `retries` times.
-     * @param {number} [retries=2] Maximum number of retry attempts.
+     * Instantiate a new Selenium driver, retrying transient session-start failures.
+     * @param {number} [retries=2] - Maximum number of retry attempts.
      * @returns {Promise<webdriver.ThenableWebDriver>} The new driver.
      */
     async getDriver (retries = 2) {
         const chromeCapabilities = this._buildChromeCapabilities();
-
+        let lastError;
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
-                this.driver = new webdriver.Builder()
+                this.driver = await new webdriver.Builder()
                     .forBrowser('chrome')
                     .withCapabilities(chromeCapabilities)
                     .build();
-                // Verify the session is actually alive
-                await this.driver.getSession();
                 return this.driver;
-            } catch (e) {
+            } catch (err) {
+                lastError = err;
                 if (attempt < retries) {
-                    const delayMs = 1000 * (attempt + 1);
-                    console.warn(
-                        `getDriver: session creation failed (attempt ${attempt + 1}/${retries + 1}), ` +
-                        `retrying in ${delayMs}ms...`,
-                        e.message
-                    );
-                    await new Promise(resolve => setTimeout(resolve, delayMs));
-                } else {
-                    throw e;
+                    // brief wait before retry
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
         }
+        throw lastError;
     }
 
     /**
@@ -326,38 +331,7 @@ class SeleniumHelper {
      * @param {string} uri The URI to load.
      * @returns {Promise} A promise that resolves when the URI is loaded.
      */
-    async loadUri (uri, notWaitForLoading = false) {
-        const test = 'test=1';
-        if (uri.indexOf('test=') < 0) {
-            if (uri.indexOf('?') >= 0) {
-                uri = uri.replace('?', `?${test}&`);
-            } else if (uri.indexOf('#') >= 0) {
-                uri = uri.replace('#', `?${test}#`);
-            } else {
-                uri = `${uri}?${test}`;
-            }
-        }
-        const locale = 'locale=en';
-        if (uri.indexOf('locale=') < 0) {
-            if (uri.indexOf('?') >= 0) {
-                uri = uri.replace('?', `?${locale}&`);
-            } else if (uri.indexOf('#') >= 0) {
-                uri = uri.replace('#', `?${locale}#`);
-            } else {
-                uri = `${uri}?${locale}`;
-            }
-        }
-        const showAllExtensions = 'showAllExtensions=true';
-        if (uri.indexOf('showAllExtensions=') < 0) {
-            if (uri.indexOf('?') >= 0) {
-                uri = uri.replace('?', `?${showAllExtensions}&`);
-            } else if (uri.indexOf('#') >= 0) {
-                uri = uri.replace('#', `?${showAllExtensions}#`);
-            } else {
-                uri = `${uri}?${showAllExtensions}`;
-            }
-        }
-
+    async loadUri (uri) {
         const outerError = new Error(`loadUri failed with arguments:\n\turi: ${uri}`);
         try {
             await this.setTitle(`loadUri ${uri}`);
@@ -378,25 +352,13 @@ class SeleniumHelper {
                 async () => await this.driver.executeScript('return document.readyState;') === 'complete',
                 DEFAULT_TIMEOUT_MILLISECONDS
             );
-
-            if (!notWaitForLoading && uri.split(/[?#]/)[0].endsWith('build/index.html')) {
-                await this.waitForLoadingFinished();
-            }
         } catch (cause) {
             throw await enhanceError(outerError, cause, this.driver);
         }
     }
 
     /**
-     * Wait for the loading background to disappear.
-     * @returns {Promise} A promise that resolves when the loading background is gone.
-     */
-    async waitForLoadingFinished () {
-        return this.notExistsByXpath('//div[contains(@class, "loader_background")]');
-    }
-
-    /**
-     * Click an element by xpath, waiting for it to be clickable.
+     * Click an element by xpath.
      * @param {string} xpath The xpath to click.
      * @returns {Promise<void>} A promise that resolves when the element is clicked.
      */
@@ -404,16 +366,8 @@ class SeleniumHelper {
         const outerError = new Error(`clickXpath failed with arguments:\n\txpath: ${xpath}`);
         try {
             await this.setTitle(`clickXpath ${xpath}`);
-            const el = await this.driver.wait(until.elementLocated(By.xpath(xpath)), DEFAULT_TIMEOUT_MILLISECONDS);
-            await this.driver.wait(until.elementIsVisible(el), DEFAULT_TIMEOUT_MILLISECONDS);
-            await this.driver.wait(async () => {
-                try {
-                    await el.click();
-                    return true;
-                } catch (e) {
-                    return false;
-                }
-            }, DEFAULT_TIMEOUT_MILLISECONDS);
+            const el = await this.findByXpath(xpath);
+            return el.click();
         } catch (cause) {
             throw await enhanceError(outerError, cause, this.driver);
         }
@@ -437,7 +391,58 @@ class SeleniumHelper {
     }
 
     /**
-     * Click a category in the blocks pane.
+     * Calculate an XPath expression to find a block in the blocks panel.
+     * Clicking this the element at this XPath should run the block.
+     * @param {string} blockId The identifier (opcode) of the block to find. Example: 'motion_movesteps'.
+     * @returns {string} An XPath expression that finds the block.
+     */
+    scopeForBlockId (blockId) {
+        return `*[contains(concat(" ", @class, " "), " blocklyBlock ") and contains(concat(" ", @class, " "), " ${
+            blockId} ")]`;
+    }
+
+    /**
+     * Calculate an XPath expression to find a block in the flyout.
+     * Clicking this the element at this XPath should run the block.
+     * @param {string} blockId The identifier (opcode) of the block to find. Example: 'motion_movesteps'.
+     * @returns {string} An XPath expression that finds the block in the flyout.
+     */
+    scopeForFlyoutBlock (blockId) {
+        return `${scopes.blocklyFlyoutScope}//${this.scopeForBlockId(blockId)}`;
+    }
+
+    /**
+     * Calculate an XPath expression to find a block in the blocks panel.
+     * Clicking this the element at this XPath should run the block.
+     * @param {string} blockText The text of the block to find. Depends on the current language!
+     * @returns {string} An XPath expression that finds the block.
+     */
+    scopeForBlockText (blockText) {
+        return `*[contains(text(), "${blockText}")]/ancestor::*[contains(concat(" ", @class, " "), " blocklyBlock ")]`;
+    }
+
+    /**
+     * Calculate an XPath expression to find a category in the blocks panel.
+     * Clicking this the element at this XPath should scroll the category into view.
+     * @param {string} categoryId The ID of the category to find. Example: 'motion'.
+     * @returns {string} An XPath expression that finds the category.
+     */
+    scopeForCategoryId (categoryId) {
+        return `*[@id="${categoryId}"]/ancestor::${scopes.categoryContainer}`;
+    }
+
+    /**
+     * Calculate an XPath expression to find a category in the blocks panel.
+     * Clicking this the element at this XPath should scroll the category into view.
+     * @param {string} categoryText The text of the category to find. Depends on the current language!
+     * @returns {string} An XPath expression that finds the category.
+     */
+    scopeForCategoryText (categoryText) {
+        return `*[contains(text(), "${categoryText}")]/ancestor::${scopes.categoryContainer}`;
+    }
+
+    /**
+     * Click a category in the blocks pane, then wait to allow scroll time.
      * @param {string} categoryText The text of the category to click.
      * @returns {Promise<void>} A promise that resolves when the category is clicked.
      */
@@ -448,12 +453,13 @@ class SeleniumHelper {
         // then finally click the toolbox text.
         try {
             await this.setTitle(`clickBlocksCategory ${categoryText}`);
-            await this.findByXpath('//div[contains(concat(" ", @class), " blocks_blocks_")]');
-            await this.driver.sleep(100);
-            await this.clickText(categoryText, 'div[contains(concat(" ", @class), " blocks_blocks_")]');
+
+            const desiredCategoryContainer = this.scopeForCategoryText(categoryText);
+            await this.clickXpath(`//${desiredCategoryContainer}`);
+
             await this.driver.sleep(500); // Wait for scroll to finish
         } catch (cause) {
-            throw await enhanceError(outerError, cause, this.driver);
+            throw await enhanceError(outerError, cause);
         }
     }
 
@@ -493,56 +499,31 @@ class SeleniumHelper {
 
     /**
      * Get selected browser log entries.
-     * @param {object|Array.<string>} [options] Options object or legacy whitelist array.
-     * @param {Array.<string>} [options.whitelist] List of log strings to exclude.
-     * Default: ['The play() request was interrupted by a call to pause()']
-     * @param {boolean} [options.includeAllLevels] If true, include all log levels
-     * (INFO, WARNING, SEVERE). If false, only SEVERE. Default: false
-     * @returns {Promise<Array.<webdriver.logging.Entry>>} A promise that resolves
-     * to the log entries.
-     * @example
-     * // Get SEVERE logs only (default)
-     * const logs = await getLogs();
-     *
-     * // Get all log levels for debugging
-     * const allLogs = await getLogs({includeAllLevels: true});
-     *
-     * // Legacy usage (backward compatible)
-     * const logs = await getLogs(['known warning']);
+     * @param {Array.<string>} [whitelist] An optional list of log strings to allow. Default: see implementation.
+     * @returns {Promise<Array.<webdriver.logging.Entry>>} A promise that resolves to the log entries.
      */
-    async getLogs (options = {}) {
-        // Backward compatibility: if array is passed, treat it as whitelist
-        if (Array.isArray(options)) {
-            options = {whitelist: options};
-        }
-
-        const {
-            whitelist = ['The play() request was interrupted by a call to pause()'],
-            includeAllLevels = false
-        } = options;
-
-        const outerError = new Error(`getLogs failed with arguments:\n\toptions: ${JSON.stringify(options)}`);
+    async getLogs (whitelist) {
+        const outerError = new Error(`getLogs failed with arguments:\n\twhitelist: ${whitelist}`);
         try {
-            await this.setTitle(`getLogs ${JSON.stringify(options)}`);
+            await this.setTitle(`getLogs ${whitelist}`);
+            if (!whitelist) {
+                // Default whitelist
+                whitelist = [
+                    'The play() request was interrupted by a call to pause()'
+                ];
+            }
             const entries = await this.driver.manage()
                 .logs()
                 .get('browser');
-
             return entries.filter(entry => {
                 const message = entry.message;
-
-                // Check whitelist: if message contains any whitelisted string, exclude it
                 for (const element of whitelist) {
                     if (message.indexOf(element) !== -1) {
                         return false;
+                    } else if (entry.level !== 'SEVERE') { // WARNING: this doesn't do what it looks like it does!
+                        return false;
                     }
                 }
-
-                // If includeAllLevels is false, only include SEVERE level logs
-                if (!includeAllLevels && entry.level !== 'SEVERE') {
-                    return false;
-                }
-
                 return true;
             });
         } catch (cause) {
@@ -550,33 +531,62 @@ class SeleniumHelper {
         }
     }
 
-    notExistsByXpath (xpath, timeoutMessage = `notExistsByXpath timed out for path: ${xpath}`) {
-        return this.driver.wait(async () => {
-            const elements = await this.driver.findElements(By.xpath(xpath));
-            if (elements.length === 0) return true;
-            const displays = await Promise.all(elements.map(async i => {
-                try {
-                    return await i.isDisplayed();
-                } catch (e) {
-                    return false;
-                }
-            }));
-            return displays.every(d => !d);
-        }, DEFAULT_TIMEOUT_MILLISECONDS, timeoutMessage);
+    // === Smalruby: Start of extra helpers used by smalruby integration tests ===
+
+    /**
+     * Wait for the loading overlay to finish before interacting with the page.
+     * Looks for the loader element and waits until it disappears.
+     * @returns {Promise<void>} Resolves when loading is no longer visible.
+     */
+    async waitForLoadingFinished () {
+        const outerError = new Error('waitForLoadingFinished failed');
+        try {
+            // The loader uses a class like loader_loader_xxxxx
+            const loaderXpath = '//*[contains(@class, "loader_loader")]';
+            const elements = await this.driver.findElements(By.xpath(loaderXpath));
+            if (elements.length === 0) return;
+            await this.driver.wait(
+                until.stalenessOf(elements[0]),
+                DEFAULT_TIMEOUT_MILLISECONDS,
+            );
+        } catch (cause) {
+            throw await enhanceError(outerError, cause, this.driver);
+        }
     }
 
     /**
-     * Generate a URL for the given path.
-     * @param {string} pathName The path to generate a URL for.
-     * @returns {string} The URL.
+     * Assert that no element matching the given xpath is currently in the DOM.
+     * @param {string} xpath - Xpath query to check.
+     * @returns {Promise<void>} Resolves if no element exists.
      */
-    urlFor (pathName) {
-        const buildPath = path.resolve(__dirname, '../../build/index.html');
-        if (pathName === '/') {
-            return buildPath;
+    async notExistsByXpath (xpath) {
+        const outerError = new Error(`notExistsByXpath failed for ${xpath}`);
+        try {
+            const elements = await this.driver.findElements(By.xpath(xpath));
+            if (elements.length !== 0) {
+                throw new Error(`expected no element matching ${xpath}, found ${elements.length}`);
+            }
+        } catch (cause) {
+            throw await enhanceError(outerError, cause, this.driver);
         }
-        return `${buildPath}${pathName}`;
     }
+
+    /**
+     * Build a URL relative to the test root index. Supports passing an extra
+     * path / query string (e.g. `?no_beforeunload=1&tab=ruby`).
+     * @param {string} [pathAndQuery] - Path + query appended to the base URL.
+     * @returns {string} Absolute URL string.
+     */
+    urlFor (pathAndQuery = '') {
+        const base = process.env.ROOT_URL ?? `file://${path.resolve(__dirname, '../../build/index.html')}`;
+        if (!pathAndQuery) return base;
+        if (pathAndQuery.startsWith('?') || pathAndQuery.startsWith('#')) {
+            return `${base}${pathAndQuery}`;
+        }
+        return `${base.replace(/\/$/, '')}/${pathAndQuery.replace(/^\//, '')}`;
+    }
+
+    // === Smalruby: End of extra helpers ===
 }
 
 export default SeleniumHelper;

@@ -166,9 +166,9 @@ describe('DNCL mode validation on switch', () => {
 
         // Verify block palette (toolbox) is visible and has multiple categories
         const categoryCount = await driver.executeScript(
-            `const toolbox = document.querySelector('.blocklyToolboxDiv');` +
+            `const toolbox = document.querySelector('.blocklyToolbox');` +
                 `if (!toolbox || toolbox.style.display === 'none') return 0;` +
-                `return toolbox.querySelectorAll('.scratchCategoryMenuItem').length;`,
+                `return toolbox.querySelectorAll('.blocklyToolboxCategory').length;`,
         );
         // Non-DNCL mode should have more categories than DNCL mode (which filters heavily)
         expect(categoryCount).toBeGreaterThan(3);
@@ -199,9 +199,9 @@ describe('DNCL mode validation on switch', () => {
 
         // Verify block palette has full categories
         const categoryCount = await driver.executeScript(
-            `const toolbox = document.querySelector('.blocklyToolboxDiv');` +
+            `const toolbox = document.querySelector('.blocklyToolbox');` +
                 `if (!toolbox || toolbox.style.display === 'none') return 0;` +
-                `return toolbox.querySelectorAll('.scratchCategoryMenuItem').length;`,
+                `return toolbox.querySelectorAll('.blocklyToolboxCategory').length;`,
         );
         expect(categoryCount).toBeGreaterThan(3);
     });
