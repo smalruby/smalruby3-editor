@@ -372,10 +372,7 @@ StageHeaderComponent.propTypes = {
 
 StageHeaderComponent.defaultProps = {
     stageSizeMode: STAGE_SIZE_MODES.large,
-    // === Smalruby: standalone editor — the user is always the project owner
-    // and we want the thumbnail-save button visible by default.
-    userOwnsProject: true,
-    manuallySaveThumbnails: true
+    userOwnsProject: false
 };
 
 export default StageHeaderComponent;
