@@ -8,13 +8,24 @@ const EXPORT_PADDING = 16;
 /**
  * Returns the blocks bounding box for the given workspace, or null if the
  * workspace is empty (no blocks placed).
- * Scratch Blocks returns {x, y, width, height} in workspace coordinates.
+ *
+ * Scratch Blocks v1 returned {x, y, width, height} but v2 returns
+ * {top, bottom, left, right}. Both are normalised here to the
+ * {x, y, width, height} shape the rest of this module expects.
  * @param {object} workspace - Scratch Blocks / Blockly workspace instance
  * @returns {{x: number, y: number, width: number, height: number}|null} Bounding box or null for empty workspace
  */
 const getBlocksBoundingBox = function (workspace) {
     const bbox = workspace.getBlocksBoundingBox();
     if (!bbox) return null;
+    // v2: {top, bottom, left, right}
+    if (typeof bbox.left === 'number' && typeof bbox.right === 'number') {
+        const width = bbox.right - bbox.left;
+        const height = bbox.bottom - bbox.top;
+        if (width === 0 && height === 0) return null;
+        return { x: bbox.left, y: bbox.top, width, height };
+    }
+    // v1: {x, y, width, height}
     if (bbox.width === 0 && bbox.height === 0) return null;
     return bbox;
 };
@@ -133,6 +144,14 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
     svg.setAttribute('width', String(width));
     svg.setAttribute('height', String(height));
+    // Carry over the theme classes from the workspace's injectionDiv so that
+    // Scratch Blocks v2's theme-scoped CSS selectors
+    // (e.g. ".scratch-renderer.default-theme .blocklyText") match inside the
+    // exported SVG. Without this, all block text renders as the default colour.
+    const injectionDiv = workspace.getInjectionDiv && workspace.getInjectionDiv();
+    if (injectionDiv) {
+        svg.setAttribute('class', injectionDiv.className);
+    }
 
     // Include <defs> and <style> from parent SVG (for block shapes, filters, etc.)
     const blockCanvas = workspace.svgBlockCanvas_;
@@ -167,6 +186,11 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     const canvasTransform = `translate(${tx}, ${ty}) scale(${scale})`;
 
     const canvasClone = blockCanvas.cloneNode(true);
+    // Scratch Blocks v2 positions the block canvas via CSS style.transform
+    // (e.g. "translate(311px, 0px) scale(0.675)") instead of the SVG transform
+    // attribute v1 used. Clear the inherited CSS transform so it doesn't
+    // override the SVG transform we set below for export positioning.
+    canvasClone.style.transform = '';
     canvasClone.setAttribute('transform', canvasTransform);
     svg.appendChild(canvasClone);
 
@@ -178,6 +202,8 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     if (bubbleCanvas && bubbleCanvas.children.length > 0) {
         const bubbleClone = bubbleCanvas.cloneNode(true);
         bubbleClone.querySelectorAll('foreignObject').forEach((fo) => fo.remove());
+        // Same v2 transform fix as for the block canvas (see above).
+        bubbleClone.style.transform = '';
         bubbleClone.setAttribute('transform', canvasTransform);
         svg.appendChild(bubbleClone);
     }
