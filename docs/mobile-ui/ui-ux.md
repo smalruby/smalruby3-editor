@@ -346,8 +346,8 @@ SP/iPad 対応で確立した運用ルール。今後の改善も以下を踏襲
 
 ## 5. 関連ドキュメント
 
-- [`docs/sp/playwright.md`](playwright.md) — Playwright での確認手順と data-testid 一覧
-- `.claude/rules/scratch-gui/sp.md` — SP / iPad 関連 PR のレビュー観点と影響範囲
+- [`docs/mobile-ui/playwright.md`](playwright.md) — Playwright での確認手順と data-testid 一覧
+- `.claude/rules/scratch-gui/mobile-ui.md` — SP / iPad 関連 PR のレビュー観点と影響範囲
 - `.claude/rules/scratch-gui/smalruby-markers.md` — upstream ファイルへのマーカー一覧
 - `.claude/rules/scratch-gui/e2e-test.md` — data-testid 命名規則と URL parameter 一覧
 - `.claude/rules/scratch-gui/development.md` — scratch-gui の開発フロー全般

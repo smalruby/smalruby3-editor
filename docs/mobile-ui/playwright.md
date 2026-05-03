@@ -1,6 +1,6 @@
 # Playwright での SP/iPad 確認
 
-[`docs/sp/ui-ux.md`](ui-ux.md) と対になるドキュメント。**SP/iPad 対応のリグレッション確認** や **新規 SP 機能の動作確認** を Playwright (MCP / 通常 CLI どちらでも) で行うときに参照する。
+[`docs/mobile-ui/ui-ux.md`](ui-ux.md) と対になるドキュメント。**SP/iPad 対応のリグレッション確認** や **新規 SP 機能の動作確認** を Playwright (MCP / 通常 CLI どちらでも) で行うときに参照する。
 
 このドキュメントの目的:
 
@@ -36,7 +36,7 @@ http://localhost:8601?no_beforeunload=1&tab=ruby&ruby_version=2
 
 ## 2. Viewport プリセット
 
-[`docs/sp/ui-ux.md`](ui-ux.md) の §1 にある切替表とセットで使うプリセット。
+[`docs/mobile-ui/ui-ux.md`](ui-ux.md) の §1 にある切替表とセットで使うプリセット。
 
 | プリセット名             | サイズ      | 出るモード                  | スクリーンショット番号 |
 | ------------------------ | ----------- | --------------------------- | ---------------------- |
@@ -316,4 +316,4 @@ ui-ux.md §4 「設計原則」に違反していないかをチェック:
 - [ ] **新規追加要素には data-testid がある**: 該当 PR の diff を grep
 - [ ] **新規追加 CSS は upstream ファイルではマーカーで囲まれている**: `git diff` で `=== Smalruby:` の有無
 
-検証用スクリーンショットは `docs/sp/screenshots/` を up-to-date に保つ。命名規則は `<番号>-<機能>.png`。
+検証用スクリーンショットは `docs/mobile-ui/screenshots/` を up-to-date に保つ。命名規則は `docs/_screenshot-guidelines.md` を参照。
