@@ -84,7 +84,7 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 
 | ドキュメント | 内容 |
 |---|---|
-| [`scratch-vm/`](scratch-vm/) — VM 内部仕様 (Runtime / Sequencer / Thread / Target / Blocks / Extensions / Serialization) | 開発者向け（Issue #620、Phase 1 完了） |
+| [`scratch-vm/`](scratch-vm/) — VM 内部仕様 (Runtime / Sequencer / Thread / Target / Blocks / Extensions / Serialization / Blocks Runtime) | 開発者向け（Issue #620 完了） |
 
 ### その他
 
