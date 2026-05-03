@@ -34,6 +34,20 @@ ruby-toolbar 上部のセグメントで切替：
 
 ふりがな・DNCL は独立した機能として個別ドキュメントあり（[`docs/furigana/`](../furigana/), [`docs/dncl/`](../dncl/)）。
 
+同じコードを 3 モードで表示した比較：
+
+**Ruby モード**（プレーンな Ruby）
+
+![Ruby モード](screenshots/0101-ruby-mode-1280x800.png)
+
+**ふりがなモード**（Ruby + 日本語ふりがな）
+
+![ふりがなモード](screenshots/0102-furigana-mode-1280x800.png)
+
+**日本語 (DNCL) モード**（日本語キーワードに変換）
+
+![DNCL モード](screenshots/0103-dncl-mode-1280x800.png)
+
 ### ruby-toolbar の操作
 
 | ボタン | 機能 |
