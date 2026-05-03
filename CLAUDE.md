@@ -203,7 +203,7 @@ Smalruby supports loading and saving projects to Google Drive. Setup requires:
 - OAuth 2.0 client credentials
 - Environment variables: `GOOGLE_CLIENT_ID`, `GOOGLE_API_KEY`
 
-See `packages/scratch-gui/docs/google-api-setup.md` for detailed setup instructions.
+See `docs/google-drive/google-api-setup.md` for detailed setup instructions.
 
 ### Custom Extensions
 

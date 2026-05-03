@@ -9,16 +9,16 @@ paths:
   - "packages/scratch-gui/src/components/gui/gui.jsx"
   - "packages/scratch-gui/src/components/menu-bar/menu-bar.css"
   - "packages/scratch-gui/src/playground/index.css"
-  - "docs/sp/**"
+  - "docs/mobile-ui/**"
 description: "SP (スマホ) / iPad 対応のレビュー観点・影響範囲・Playwright 確認手順。Mobile* コンポーネント、responsive-gui、useIsNarrowScreen、iPad 用 narrow-desktop CSS を触るときに参照。"
 ---
 
 # SP / iPad Responsive Support
 
-> **設計意図と全画面の説明は [`docs/sp/ui-ux.md`](../../../docs/sp/ui-ux.md) を参照。**
-> **Playwright での確認手順と data-testid 一覧は [`docs/sp/playwright.md`](../../../docs/sp/playwright.md) に集約。**
+> **設計意図と全画面の説明は [`docs/mobile-ui/ui-ux.md`](../../../docs/mobile-ui/ui-ux.md) を参照。**
+> **Playwright での確認手順と data-testid 一覧は [`docs/mobile-ui/playwright.md`](../../../docs/mobile-ui/playwright.md) に集約。**
 
-このファイルは SP / iPad 対応に関する **開発・レビュー時のチェックリスト** をまとめたもの。`docs/sp/` は対外ドキュメント (設計意図 + 操作手順)、本ファイルはコードを書く側のルール。
+このファイルは SP / iPad 対応に関する **開発・レビュー時のチェックリスト** をまとめたもの。`docs/mobile-ui/` は対外ドキュメント (設計意図 + 操作手順)、本ファイルはコードを書く側のルール。
 
 ---
 
@@ -63,7 +63,7 @@ URL パラメータ `?mobile_gui=1` のような **オプトインフラグは�
 
 ### 2.2 設計原則 (SP 関連 PR で必ず守る)
 
-[`docs/sp/ui-ux.md`](../../../docs/sp/ui-ux.md) §4 と整合:
+[`docs/mobile-ui/ui-ux.md`](../../../docs/mobile-ui/ui-ux.md) §4 と整合:
 
 1. **upstream は加筆だけ**: `=== Smalruby: Start of <feature> === / End ===` で囲む。一覧 `.claude/rules/scratch-gui/smalruby-markers.md` を更新する。
 2. **オプトインフラグ (`?mobile_gui=1` 等) を増やさない**: viewport 自動判定で完結させる。
@@ -76,24 +76,24 @@ URL パラメータ `?mobile_gui=1` のような **オプトインフラグは�
 
 ### 2.3 PR 説明・レビューコメントで触れるべき項目
 
-- どの viewport プリセットで動作確認したか (`docs/sp/playwright.md` §2 のプリセット名で記述)
+- どの viewport プリセットで動作確認したか (`docs/mobile-ui/playwright.md` §2 のプリセット名で記述)
 - iPad portrait / iPad landscape にも影響あるかどうか、ない場合はその根拠
 - 上記 §2.2 の設計原則に違反していないか
-- 新しい `data-testid` を追加した場合、`docs/sp/playwright.md` §3 の表に追記したか
+- 新しい `data-testid` を追加した場合、`docs/mobile-ui/playwright.md` §3 の表に追記したか
 
 ---
 
 ## 3. Playwright での動作確認
 
-**SP / iPad 関連の動作確認は必ず [`docs/sp/playwright.md`](../../../docs/sp/playwright.md) を最初に参照する。** viewport プリセット、data-testid 一覧、共通操作パターン、リグレッションチェックリストはすべてそちらに集約してある。重複を避けるためここでは要点のみ:
+**SP / iPad 関連の動作確認は必ず [`docs/mobile-ui/playwright.md`](../../../docs/mobile-ui/playwright.md) を最初に参照する。** viewport プリセット、data-testid 一覧、共通操作パターン、リグレッションチェックリストはすべてそちらに集約してある。重複を避けるためここでは要点のみ:
 
 - viewport プリセット: iPhone 14 横 (844×390)、iPad portrait (768×1024)、iPad landscape (1024×768) を最低限カバー
 - MobileGui への切替確認: `mobile-side-rail` testid の visibility
 - iPad モードの切替確認: 768×1024 で `mobile-side-rail` が DOM に **存在しない**こと + upstream menu-bar が visible
 - 縦持ちゲート: 390×844 で `mobile-orientation-gate` が出ること
-- リグレッションチェックリストは `docs/sp/playwright.md` §8
+- リグレッションチェックリストは `docs/mobile-ui/playwright.md` §8
 
-dev server を起動 → `docs/sp/playwright.md` の操作パターンを使う、というフローを徹底する。XPath や title 属性で要素を指す書き方は避ける (data-testid で統一済み)。
+dev server を起動 → `docs/mobile-ui/playwright.md` の操作パターンを使う、というフローを徹底する。XPath や title 属性で要素を指す書き方は避ける (data-testid で統一済み)。
 
 ---
 
@@ -123,8 +123,8 @@ upstream ファイル内のマーカーは `.claude/rules/scratch-gui/smalruby-m
 
 ## 5. 関連ドキュメント
 
-- [`docs/sp/ui-ux.md`](../../../docs/sp/ui-ux.md) — 設計意図 + 全画面の説明 (対外ドキュメント)
-- [`docs/sp/playwright.md`](../../../docs/sp/playwright.md) — Playwright での確認手順と data-testid 一覧
+- [`docs/mobile-ui/ui-ux.md`](../../../docs/mobile-ui/ui-ux.md) — 設計意図 + 全画面の説明 (対外ドキュメント)
+- [`docs/mobile-ui/playwright.md`](../../../docs/mobile-ui/playwright.md) — Playwright での確認手順と data-testid 一覧
 - `.claude/rules/scratch-gui/smalruby-markers.md` — upstream マーカー一覧
 - `.claude/rules/scratch-gui/e2e-test.md` — data-testid 命名規則 (SP に限らない一般則)
 - `.claude/rules/scratch-gui/development.md` — scratch-gui の基本コマンド

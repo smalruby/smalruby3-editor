@@ -4,7 +4,7 @@ paths:
   - "packages/scratch-gui/src/lib/ruby-generator/**"
   - "packages/scratch-gui/src/lib/furigana-annotator*"
   - "packages/scratch-gui/src/locales/**"
-  - "packages/scratch-gui/docs/furigana-mapping*"
+  - "docs/furigana/furigana-mapping*"
   - "packages/scratch-gui/test/unit/lib/furigana-annotator*"
 description: "拡張機能の Ruby メソッド定義方針と Ruby ふりがなの設計方針。新しい拡張機能の Ruby 対応やふりがな追加時に使用。"
 ---

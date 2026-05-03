@@ -1,5 +1,8 @@
 # Smalruby Classroom
 
+> **🆕 Smalruby 独自** — upstream に存在しない、Smalruby のために新規追加された機能
+> 日本の学校での利用に特化したクラス管理・作品提出機能。upstream の Scratch には存在しない。
+
 Smalruby Classroom は、日本の学校の授業で Smalruby を使うための**クラス管理・作品提出機能**です。
 
 先生が Google または Microsoft アカウントでログインしてクラスを作り、生徒は参加コードと席番号でクラスに参加します。生徒はプロジェクトをワンクリックで提出でき、先生はリアルタイムで一覧・確認・返却できます。
