@@ -1,135 +1,101 @@
-# smalruby3-editor: The Smalruby 3 Editor Monorepo
+# smalruby3-editor
 
-This is the development repository for **Smalruby 3**, a Ruby-based visual programming environment forked from [Scratch 3.0](https://github.com/scratchfoundation/scratch-editor).
+**Smalruby 3** は、MIT の [Scratch 3.0](https://github.com/scratchfoundation/scratch-editor) を fork した Ruby ベースのビジュアルプログラミング環境のモノレポです。
 
-If you'd like to use Scratch, please visit the [Scratch website](https://scratch.mit.edu/). You can build your own
-Scratch project by pressing "Create" on that website or by visiting <https://scratch.mit.edu/projects/editor/>.
+公式サイト: <https://smalruby.app>
 
-This is a source code repository for the packages that make up the Smalruby editor and a few additional support
-packages. Use this if you'd like to learn about how the Smalruby editor works or to contribute to its development.
+## はじめに
 
-## What's in this repository?
+| あなたが知りたいこと | 読むべきドキュメント |
+|---|---|
+| **新しく参加した。何から読めばいい？** | [`CONTRIBUTING.md`](CONTRIBUTING.md) → [`docs/architecture-overview.md`](docs/architecture-overview.md) |
+| **○○機能はどう動いている？** | [`docs/README.md`](docs/README.md) (42+ 機能の索引) |
+| **VM の内部実装が知りたい** | [`docs/scratch-vm/`](docs/scratch-vm/) |
+| **AWS インフラの全体像** | [`docs/infra/`](docs/infra/) |
+| **デスクトップ Ruby 実行 (smalruby3 gem)** | [`docs/smalruby3-gem/`](docs/smalruby3-gem/) |
+| **Smalruby Ruby の言語仕様** | [`docs/smalruby-language-spec.ja.md`](docs/smalruby-language-spec.ja.md) |
+| **AI アシスタントへの指示 (Claude Code 等)** | [`CLAUDE.md`](CLAUDE.md) + [`.claude/rules/`](.claude/rules/) |
 
-The `packages` directory in this repository contains:
+## モノレポ構成
 
-- `scratch-gui`: **Smalruby 3 GUI**. The React-based web interface, customized for Smalruby (e.g., Ruby mode, custom extensions). Forked from `scratch-gui`.
-- `scratch-vm`: **Smalruby 3 VM**. The virtual machine that runs projects, with @ruby/prism integration for Ruby parsing. Forked from `scratch-vm`.
-- `scratch-render` draws backdrops, sprites, and clones on the stage.
-- `scratch-svg-renderer` processes SVG (vector) images for use with projects.
-
-_Please add to this list as more packages are migrated to the monorepo._
-
-The `infra` directory contains AWS CDK infrastructure projects:
-
-- `infra/smalruby-mesh-v2`: **Mesh v2**. AWS CDK project for the serverless mesh networking service (AppSync + DynamoDB), enabling real-time communication between Smalruby instances.
-
-Each package has its own `README.md` file with more information about that package.
-
-## Development
-
-### Installation
-
-To install dependencies for all packages in the monorepo:
-
-```bash
-npm install
+```
+smalruby3-editor/
+├── packages/                    npm workspaces (Web フロントエンド + VM)
+│   ├── scratch-gui/             React UI、Monaco Ruby エディタ
+│   ├── scratch-vm/              ブロック実行 VM
+│   ├── scratch-render/          WebGL ステージレンダラー
+│   ├── scratch-svg-renderer/    SVG 前処理
+│   └── task-herder/             非同期タスクキュー
+│
+├── infra/                       AWS CDK インフラ (各々独立プロジェクト)
+│   ├── smalruby-mesh-v2/        リアルタイム通信 (AppSync + DynamoDB)
+│   ├── smalruby-rubytee-relay/  AI チャット (Lambda + Anthropic Claude)
+│   ├── smalruby-classroom/      クラス管理 (Lambda + DDB + S3)
+│   └── smalruby-api/            共通 API (CORS proxy / Mesh zone / Scratch proxy)
+│
+├── ruby/                        Ruby SDL2 デスクトップランタイム
+│   ├── smalruby3/               smalruby3 gem (本体)
+│   ├── ruby-sdl2/               SDL2 Ruby バインディング (submodule, fork)
+│   └── rsdl/                    macOS SDL2 ラッパー (submodule, fork)
+│
+├── docs/                        Smalruby 独自ドキュメント (機能 / 内部仕様 / インフラ)
+├── .claude/                     Claude Code 用ルール・スキル・設定
+├── scripts/                     モノレポ全体のビルドスクリプト
+└── .github/workflows/           CI/CD 設定
 ```
 
-**Note**: We strictly recommend using the Docker environment for development to ensure consistency. Please refer to the [root README](../../README.md) for Docker instructions.
+詳細図は [`docs/architecture-overview.md`](docs/architecture-overview.md) 参照。
 
-### Build
+## クイックスタート
 
-To build all packages:
+### 必要なもの
 
-```bash
-npm run build
-```
+- **Docker** (推奨。すべての開発作業に使用)
+- Git (submodule サポート)
 
-To build in development mode (faster, with source maps):
-
-```bash
-npm run build:dev
-```
-
-### Running the Development Server
-
-To start the GUI development server (typically on http://localhost:8601):
+### セットアップ
 
 ```bash
-npm start
+git clone --recurse-submodules git@github.com:smalruby/smalruby3-editor.git
+cd smalruby3-editor
+
+# 環境変数 (.env)
+cp .env.example .env
+# .env を編集: GOOGLE_CLIENT_ID, MESH_GRAPHQL_ENDPOINT, RUBYTEE_RELAY_ENDPOINT 等
+
+# 依存インストール + ビルド (Docker 経由)
+docker compose run --rm app npm install
+docker compose run --rm app npm run build:dev
 ```
 
-### Testing
-
-To run all tests (lint, unit, integration):
+### 開発サーバー起動
 
 ```bash
-npm test
+docker compose up app          # http://localhost:8601
 ```
 
-To run unit tests only:
+詳細な開発フロー・テスト・PR 作成手順は [`CONTRIBUTING.md`](CONTRIBUTING.md) を参照。
 
-```bash
-npm run test:unit
-```
+## 主な機能
 
-To run integration tests only:
+- **ブロックプログラミング** — Scratch 3 ベースの GUI
+- **Ruby モード** — Monaco エディタで Ruby を書き、ブロックと相互変換
+- **ふりがなモード / DNCL モード** — 日本語学習者向け表示モード
+- **Rubytee (AI アシスタント)** — Anthropic Claude API でコード生成支援
+- **Mesh v2** — 複数のスモウルビー間でリアルタイム通信
+- **Smalruby Classroom** — 教室での課題提出・管理
+- **Smalrubot S1 / micro:bit / LEGO 等** — 多数の物理デバイス連携
+- **Google Drive 連携** — 自分の Drive に作品保存
+- **デスクトップ実行** — Ruby SDL2 でネイティブ実行 (smalruby3 gem)
 
-```bash
-npm run test:integration
-```
+各機能の詳細は [`docs/README.md`](docs/README.md) を参照。
 
-## Smalruby Specific Features
+## ライセンス
 
-### Language Specification
+各パッケージの LICENSE ファイルを参照。
 
-Smalruby supports a subset of Ruby syntax. See the language specification for details:
+upstream の Scratch は Scratch Foundation のもの。Smalruby は同 Foundation のオープンソース活動に感謝しつつ、独自の進化を続けています。
 
-- **[Language Specification](docs/smalruby-language-spec.md)** ([Japanese](docs/smalruby-language-spec.ja.md)) — Core syntax and built-in methods
-- **[Extension Methods](docs/smalruby-language-spec-extensions.md)** ([Japanese](docs/smalruby-language-spec-extensions.ja.md)) — Pen, Music, Translate, micro:bit, and more
-- **[Version 1 API Differences](docs/smalruby-language-spec-v1-diff.md)** ([Japanese](docs/smalruby-language-spec-v1-diff.ja.md)) — Changes from v1 to v2
+## 寄付
 
-### Ruby Mode
-Smalruby 3 integrates [@ruby/prism](https://github.com/ruby/prism) to parse Ruby code within the browser. The `scratch-gui` package provides the Ruby code editor (using Monaco Editor) with Ruby-to-blocks conversion and blocks-to-Ruby generation.
-
-### Google Drive Integration
-Smalruby 3 supports loading and saving projects directly to Google Drive.
-For setup instructions, please see [Google API Setup Guide](packages/scratch-gui/docs/google-api-setup.md).
-
-### AWS Infrastructure (infra/)
-
-AWS CDK infrastructure projects are managed in the `infra/` directory. Use the `infra` Docker service for CDK operations:
-
-```bash
-# Install dependencies
-docker compose run --rm infra npm install
-
-# Deploy Mesh v2 to staging
-docker compose run --rm infra npx cdk deploy --context stage=stg
-
-# Show deployment diff
-docker compose run --rm infra npx cdk diff --context stage=stg
-```
-
-AWS credentials must be set via environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`) before running these commands.
-
-## Monorepo migration
-
-### What's going on?
-
-We're migrating the Smalruby editor packages into this monorepo, following the upstream Scratch Editor structure. This allows us to manage all packages in one place.
-
-### Why are there only a few packages in this repo?
-
-We're migrating packages in stages.
-
-## Thank you!
-
-Smalruby is based on Scratch from the Scratch Foundation.
-Scratch would not be what it is today without help from the global community of Scratchers and open-source contributors. Thank you for your contributions and support. _[Scratch on!](https://scratch.mit.edu/projects/65347738/fullscreen/)_
-
-## Donate
-
-We provide [Scratch](https://scratch.mit.edu) free of charge, and want to keep it that way! Please consider making a
-[donation](https://secure.donationpay.org/scratchfoundation/) to support our continued engineering, design, community,
-and resource development efforts. Donations of any size are appreciated. Thank you!
+[Scratch](https://scratch.mit.edu) は無料で提供されています。継続的な開発のため、[寄付](https://secure.donationpay.org/scratchfoundation/) を検討してください。
