@@ -18,12 +18,12 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 
 | 機能 | upstream 区分 | 状態 |
 |---|---|---|
-| `project-management/` — プロジェクト新規作成・読込・保存・タイトル編集・URL ローダー・SB3 ダウンロード | 🔧 改良 | ⏳ |
-| `block-editor/` — ブロックパレット・ツールボックス・ワークスペース・変数モニター・カスタムブロック | 🔧 改良 | ⏳ |
-| `stage/` — ステージ表示・緑旗/停止・ステージサイズ・背景・watermark・表示モード | ⬆️ そのまま | ⏳ |
-| `sprite/` — スプライト一覧・選択・追加・座標/向き/サイズ編集 | ⬆️ そのまま | ⏳ |
-| `costume/` — コスチュームタブ・ペイントエディタ・コスチュームライブラリ・コスチューム操作ブロック | ⬆️ そのまま | ⏳ |
-| `sound/` — 音タブ・サウンドエディタ・サウンドライブラリ・録音・音操作ブロック | ⬆️ そのまま | ⏳ |
+| [`project-management/`](project-management/) — プロジェクト新規作成・読込・保存・タイトル編集・URL ローダー・SB3 ダウンロード | 🔧 改良 | ✅ |
+| [`block-editor/`](block-editor/) — ブロックパレット・ツールボックス・ワークスペース・変数モニター・カスタムブロック | 🔧 改良 | ✅ |
+| [`stage/`](stage/) — ステージ表示・緑旗/停止・ステージサイズ・背景・watermark・表示モード | 🔧 改良 | ✅ |
+| [`sprite/`](sprite/) — スプライト一覧・選択・追加・座標/向き/サイズ編集 | ⬆️ そのまま | ✅ |
+| [`costume/`](costume/) — コスチュームタブ・ペイントエディタ・コスチュームライブラリ・コスチューム操作ブロック | ⬆️ そのまま | ✅ |
+| [`sound/`](sound/) — 音タブ・サウンドエディタ・サウンドライブラリ・録音・音操作ブロック | ⬆️ そのまま | ✅ |
 
 ### B. Smalruby 独自エディタ機能
 
@@ -42,43 +42,43 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 | [`google-drive/`](google-drive/) — Google Drive 保存・読込 | 🆕 独自 | ✅ |
 | [`classroom/`](classroom/) — クラスルーム機能 | 🆕 独自 | ✅ |
 | [`mesh-v2/`](mesh-v2/) — Mesh v2 ネットワーク | 🆕 独自 | ✅ |
-| `device-connection/` — connection-modal 共通基盤 | 🔧 改良 | ⏳ |
+| [`device-connection/`](device-connection/) — connection-modal 共通基盤 | 🔧 改良 | ✅ |
 
 ### D. 拡張機能
 
 | 機能 | upstream 区分 | 状態 |
 |---|---|---|
-| `extension-music/` | ⬆️ そのまま | ⏳ |
-| `extension-pen/` | ⬆️ そのまま | ⏳ |
-| `extension-video-sensing/` | ⬆️ そのまま | ⏳ |
-| `extension-face-sensing/` | ⬆️ そのまま | ⏳ |
-| `extension-text2speech/` | ⬆️ そのまま | ⏳ |
-| `extension-translate/` | ⬆️ そのまま | ⏳ |
-| `extension-makeymakey/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
-| `extension-microbit/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
+| [`extension-music/`](extension-music/) | ⬆️ そのまま (Smalruby ランタイム ✅) | ✅ |
+| [`extension-pen/`](extension-pen/) | ⬆️ そのまま (Smalruby ランタイム ✅) | ✅ |
+| [`extension-video-sensing/`](extension-video-sensing/) | ⬆️ そのまま | ✅ |
+| [`extension-face-sensing/`](extension-face-sensing/) | ⬆️ そのまま | ✅ |
+| [`extension-text2speech/`](extension-text2speech/) | ⬆️ そのまま | ✅ |
+| [`extension-translate/`](extension-translate/) | ⬆️ そのまま | ✅ |
+| [`extension-makeymakey/`](extension-makeymakey/) (`defaultHidden: true`) | ⬆️ そのまま | ✅ |
+| [`extension-microbit/`](extension-microbit/) (`defaultHidden: true`) | ⬆️ そのまま | ✅ |
 | [`extension-microbit-more/`](extension-microbit-more/) | 🆕 独自 | ✅ |
-| `extension-gdxfor/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
-| `extension-ev3/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
-| `extension-boost/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
-| `extension-wedo2/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
+| [`extension-gdxfor/`](extension-gdxfor/) (`defaultHidden: true`) | ⬆️ そのまま | ✅ |
+| [`extension-ev3/`](extension-ev3/) (`defaultHidden: true`) | ⬆️ そのまま | ✅ |
+| [`extension-boost/`](extension-boost/) (`defaultHidden: true`) | ⬆️ そのまま | ✅ |
+| [`extension-wedo2/`](extension-wedo2/) (`defaultHidden: true`) | ⬆️ そのまま | ✅ |
 | [`extension-mesh-v2/`](extension-mesh-v2/) | 🆕 独自 | ✅ |
 | [`extension-smalrubot-s1/`](extension-smalrubot-s1/) | 🆕 独自 | ✅ |
 | [`extension-koshien/`](extension-koshien/) | 🆕 独自 | ✅ |
 | [`extension-smalruby-ruby/`](extension-smalruby-ruby/) | 🆕 独自 | ✅ |
 | [`extension-tm2scratch/`](extension-tm2scratch/) | 🆕 独自 | ✅ |
 | [`extension-g2s/`](extension-g2s/) | 🆕 独自 | ✅ |
-| `extension-speech2text/` | ⬆️ そのまま | ⏳ |
+| [`extension-speech2text/`](extension-speech2text/) | ⬆️ そのまま (GUI 未登録) | ✅ |
 
 ### E. UI 基盤・体験
 
 | 機能 | upstream 区分 | 状態 |
 |---|---|---|
 | [`mobile-ui/`](mobile-ui/) — モバイル/タブレット UI 全般（旧 `docs/sp/`） | 🆕 独自 | ✅ |
-| `menu-bar/` — メニューバー・言語切替・アカウントメニュー・tutorial-tooltip | 🔧 改良 | ⏳ |
-| `tutorial/` — cards・tips-library・tutorial-onboarding・classroom-tutorial | 🔧 改良 | ⏳ |
-| `alerts/` — alerts・crash-message・error-boundary・coming-soon・browser/webgl-modal | ⬆️ そのまま | ⏳ |
-| `settings/` — テーマ・フォント・各種設定 | ⬆️ そのまま | ⏳ |
-| `screenshot/` — blocks-screenshot・ruby-screenshot | 🆕 独自 | ⏳ |
+| [`menu-bar/`](menu-bar/) — メニューバー・言語切替・アカウントメニュー・tutorial-tooltip | 🔧 改良 | ✅ |
+| [`tutorial/`](tutorial/) — cards・tips-library・tutorial-onboarding・classroom-tutorial | 🔧 改良 | ✅ |
+| [`alerts/`](alerts/) — alerts・crash-message・error-boundary・coming-soon・browser/webgl-modal | ⬆️ そのまま | ✅ |
+| [`settings/`](settings/) — Ruby バージョン切替・各種設定永続化 | 🔧 改良 | ✅ |
+| [`screenshot/`](screenshot/) — blocks-screenshot・ruby-screenshot | 🆕 独自 | ✅ |
 
 ### その他
 
