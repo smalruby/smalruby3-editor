@@ -56,17 +56,17 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 | `extension-translate/` | ⬆️ そのまま | ⏳ |
 | `extension-makeymakey/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
 | `extension-microbit/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
-| `extension-microbit-more/` | 🆕 独自 | ⏳ |
+| [`extension-microbit-more/`](extension-microbit-more/) | 🆕 独自 | ✅ |
 | `extension-gdxfor/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
 | `extension-ev3/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
 | `extension-boost/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
 | `extension-wedo2/` (`defaultHidden: true`) | ⬆️ そのまま | ⏳ |
-| `extension-mesh-v2/` | 🆕 独自 | ⏳ |
-| `extension-smalrubot-s1/` | 🆕 独自 | ⏳ |
-| `extension-koshien/` | 🆕 独自 | ⏳ |
-| `extension-smalruby-ruby/` | 🆕 独自 | ⏳ |
-| `extension-tm2scratch/` | 🆕 独自 | ⏳ |
-| `extension-g2s/` | 🆕 独自 | ⏳ |
+| [`extension-mesh-v2/`](extension-mesh-v2/) | 🆕 独自 | ✅ |
+| [`extension-smalrubot-s1/`](extension-smalrubot-s1/) | 🆕 独自 | ✅ |
+| [`extension-koshien/`](extension-koshien/) | 🆕 独自 | ✅ |
+| [`extension-smalruby-ruby/`](extension-smalruby-ruby/) | 🆕 独自 | ✅ |
+| [`extension-tm2scratch/`](extension-tm2scratch/) | 🆕 独自 | ✅ |
+| [`extension-g2s/`](extension-g2s/) | 🆕 独自 | ✅ |
 | `extension-speech2text/` | ⬆️ そのまま | ⏳ |
 
 ### E. UI 基盤・体験
