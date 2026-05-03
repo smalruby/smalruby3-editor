@@ -80,6 +80,12 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 | [`settings/`](settings/) — Ruby バージョン切替・各種設定永続化 | 🔧 改良 | ✅ |
 | [`screenshot/`](screenshot/) — blocks-screenshot・ruby-screenshot | 🆕 独自 | ✅ |
 
+### F. 開発者向け（パッケージ内部仕様）
+
+| ドキュメント | 内容 |
+|---|---|
+| [`scratch-vm/`](scratch-vm/) — VM 内部仕様 (Runtime / Sequencer / Thread / Target / Blocks / Extensions / Serialization) | 開発者向け（Issue #620、Phase 1 完了） |
+
 ### その他
 
 - [`adr/`](adr/) — Architecture Decision Records (Smalruby 独自の ADR)
