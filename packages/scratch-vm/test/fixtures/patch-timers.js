@@ -8,7 +8,6 @@
  *   vm.quit();
  *   timers.restore();
  *   for (const id of timers.getLiveTimers()) { ... }
- *
  * @returns {{
  *   origSetTimeout: typeof setTimeout,
  *   restore: function(): void,

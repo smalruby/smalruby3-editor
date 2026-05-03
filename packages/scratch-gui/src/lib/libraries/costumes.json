@@ -2031,42 +2031,6 @@
         ]
     },
     {
-        "name": "Cat-a",
-        "assetId": "bcf454acf82e4504149f7ffe07081dbc",
-        "md5ext": "bcf454acf82e4504149f7ffe07081dbc.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 48,
-        "rotationCenterY": 50,
-        "tags": [
-            "animals",
-            "cat",
-            "kitten",
-            "kitty",
-            "mammal",
-            "orange",
-            "scratch cat"
-        ]
-    },
-    {
-        "name": "Cat-b",
-        "assetId": "0fb9be3e8397c983338cb71dc84d0b25",
-        "md5ext": "0fb9be3e8397c983338cb71dc84d0b25.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 46,
-        "rotationCenterY": 53,
-        "tags": [
-            "animals",
-            "cat",
-            "kitten",
-            "kitty",
-            "mammal",
-            "orange",
-            "scratch cat"
-        ]
-    },
-    {
         "name": "Catcher-a",
         "assetId": "895cdda4f2bd9d6f50ff07188e7ce395",
         "md5ext": "895cdda4f2bd9d6f50ff07188e7ce395.svg",
@@ -5122,62 +5086,6 @@
         ]
     },
     {
-        "name": "Giga-a",
-        "assetId": "92161a11e851ecda94cbbb985018fed6",
-        "md5ext": "92161a11e851ecda94cbbb985018fed6.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 72,
-        "rotationCenterY": 96,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "happy"
-        ]
-    },
-    {
-        "name": "Giga-b",
-        "assetId": "bc706a7648342aaacac9050378b40c43",
-        "md5ext": "bc706a7648342aaacac9050378b40c43.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 72,
-        "rotationCenterY": 96,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "happy"
-        ]
-    },
-    {
-        "name": "Giga-c",
-        "assetId": "337b338b2b10176221e638ac537854e6",
-        "md5ext": "337b338b2b10176221e638ac537854e6.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 73,
-        "rotationCenterY": 96,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "happy"
-        ]
-    },
-    {
-        "name": "Giga-d",
-        "assetId": "db15886cfdcb5e2f4459e9074e3990a1",
-        "md5ext": "db15886cfdcb5e2f4459e9074e3990a1.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 73,
-        "rotationCenterY": 96,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "mad"
-        ]
-    },
-    {
         "name": "Giraffe-a",
         "assetId": "43e89629fb9df7051eaf307c695424fc",
         "md5ext": "43e89629fb9df7051eaf307c695424fc.svg",
@@ -5897,51 +5805,6 @@
             "fantasy",
             "ipzy",
             "emotions"
-        ]
-    },
-    {
-        "name": "Gobo-a",
-        "assetId": "f505a4e9eab5e40e2669a4462dba4c90",
-        "md5ext": "f505a4e9eab5e40e2669a4462dba4c90.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 47,
-        "rotationCenterY": 55,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "jenkins",
-            "ganglia"
-        ]
-    },
-    {
-        "name": "Gobo-b",
-        "assetId": "5c0896569305ab177d87caa31aad2a72",
-        "md5ext": "5c0896569305ab177d87caa31aad2a72.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 47,
-        "rotationCenterY": 55,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "jenkins",
-            "ganglia"
-        ]
-    },
-    {
-        "name": "Gobo-c",
-        "assetId": "9d8021c216fb92cc708e1e96f3ed2b52",
-        "md5ext": "9d8021c216fb92cc708e1e96f3ed2b52.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 47,
-        "rotationCenterY": 55,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "jenkins",
-            "ganglia"
         ]
     },
     {
@@ -8349,61 +8212,6 @@
         ]
     },
     {
-        "name": "Nano-a",
-        "assetId": "a62e560863c0e49b12e5d57e13d084f1",
-        "md5ext": "a62e560863c0e49b12e5d57e13d084f1.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 61,
-        "rotationCenterY": 60,
-        "tags": [
-            "fantasy",
-            "drawing"
-        ]
-    },
-    {
-        "name": "Nano-b",
-        "assetId": "d12aead3e3c2917e7eba8b2b90a7afd2",
-        "md5ext": "d12aead3e3c2917e7eba8b2b90a7afd2.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 61,
-        "rotationCenterY": 60,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "happy"
-        ]
-    },
-    {
-        "name": "Nano-c",
-        "assetId": "8f2f4a70e87262ef478ce60567b6208a",
-        "md5ext": "8f2f4a70e87262ef478ce60567b6208a.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 61,
-        "rotationCenterY": 60,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "happy"
-        ]
-    },
-    {
-        "name": "Nano-d",
-        "assetId": "a4e2034751fa650fd5fd69432c110104",
-        "md5ext": "a4e2034751fa650fd5fd69432c110104.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 61,
-        "rotationCenterY": 60,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "angry"
-        ]
-    },
-    {
         "name": "Neigh Pony",
         "assetId": "592816f56409d582603c485cbefcbbb8",
         "md5ext": "592816f56409d582603c485cbefcbbb8.svg",
@@ -9052,61 +8860,6 @@
         ]
     },
     {
-        "name": "Pico-a",
-        "assetId": "e7ce31db37f7abd2901499db2e9ad83a",
-        "md5ext": "e7ce31db37f7abd2901499db2e9ad83a.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 55,
-        "rotationCenterY": 66,
-        "tags": [
-            "fantasy",
-            "drawing"
-        ]
-    },
-    {
-        "name": "Pico-b",
-        "assetId": "a7597b1f0c13455d335a3d4fe77da528",
-        "md5ext": "a7597b1f0c13455d335a3d4fe77da528.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 55,
-        "rotationCenterY": 66,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "happy"
-        ]
-    },
-    {
-        "name": "Pico-c",
-        "assetId": "bcc0e8a5dda3a813608902b887c87bb4",
-        "md5ext": "bcc0e8a5dda3a813608902b887c87bb4.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 55,
-        "rotationCenterY": 66,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "happy"
-        ]
-    },
-    {
-        "name": "Pico-d",
-        "assetId": "d6dfa2efe58939af4c85755feb3c0375",
-        "md5ext": "d6dfa2efe58939af4c85755feb3c0375.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 55,
-        "rotationCenterY": 66,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "angry"
-        ]
-    },
-    {
         "name": "Pitcher-a",
         "assetId": "bceae719ba1ec230afec56f14a1e4d52",
         "md5ext": "bceae719ba1ec230afec56f14a1e4d52.svg",
@@ -9290,7 +9043,7 @@
         "rotationCenterY": 75,
         "tags": [
             "people",
-            "☥",
+            "\u2625",
             "fantasy"
         ]
     },
@@ -12198,61 +11951,6 @@
         "tags": [
             "ball",
             "sports"
-        ]
-    },
-    {
-        "name": "Tera-a",
-        "assetId": "18f9a11ecdbd3ad8719beb176c484d41",
-        "md5ext": "18f9a11ecdbd3ad8719beb176c484d41.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 49,
-        "rotationCenterY": 63,
-        "tags": [
-            "fantasy",
-            "drawing"
-        ]
-    },
-    {
-        "name": "Tera-b",
-        "assetId": "365d4de6c99d71f1370f7c5e636728af",
-        "md5ext": "365d4de6c99d71f1370f7c5e636728af.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 49,
-        "rotationCenterY": 64,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "happy"
-        ]
-    },
-    {
-        "name": "Tera-c",
-        "assetId": "2daca5f43efc2d29fb089879448142e9",
-        "md5ext": "2daca5f43efc2d29fb089879448142e9.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 49,
-        "rotationCenterY": 63,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "happy"
-        ]
-    },
-    {
-        "name": "Tera-d",
-        "assetId": "5456a723f3b35eaa946b974a59888793",
-        "md5ext": "5456a723f3b35eaa946b974a59888793.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 49,
-        "rotationCenterY": 63,
-        "tags": [
-            "fantasy",
-            "drawing",
-            "angry"
         ]
     },
     {

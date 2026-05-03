@@ -5,17 +5,26 @@ import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import BackpackContainer from '../../../src/containers/backpack.jsx';
-import * as backpackApi from '../../../src/lib/backpack-api';
 
 const mockStore = configureStore();
 
-const makeStore = (vm, storageStore = jest.fn()) =>
+const makeBackpackStorage = (overrides = {}) => ({
+    setSession: jest.fn(),
+    setHostAndRegisterWebStore: jest.fn(),
+    list: jest.fn().mockResolvedValue([]),
+    save: jest.fn().mockResolvedValue({}),
+    delete: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+});
+
+const makeStore = (vm, { storageStore = jest.fn(), backpackStorage } = {}) =>
     mockStore({
         scratchGui: {
             config: {
                 storage: {
                     scratchStorage: { store: storageStore },
                     setBackpackHost: jest.fn(),
+                    backpackStorage: backpackStorage ?? makeBackpackStorage(),
                 },
             },
             vm,
@@ -39,17 +48,19 @@ describe('Backpack container', () => {
     beforeEach(() => {
         localStorage.clear();
         vm = new VM();
-        jest.spyOn(backpackApi, 'getBackpackContents').mockResolvedValue([]);
     });
 
     afterEach(() => {
         jest.restoreAllMocks();
     });
 
-    test('getContents is called when toggling open with localStorage host', async () => {
-        // With no session and no URL params, token/username should fall back to
-        // 'localToken'/'localUser' so that getContents() is not gated by null check.
-        const store = makeStore(vm);
+    test('list is called when toggling open with localStorage host', async () => {
+        // backpackStorage.list now drives the contents fetch (upstream v13.7.2).
+        // For the localStorage path, LegacyBackpackStorage routes through
+        // backpackApi.getBackpackContents — but that detail is exercised in
+        // the LegacyBackpackStorage tests, not here.
+        const backpackStorage = makeBackpackStorage();
+        const store = makeStore(vm, { backpackStorage });
         renderBackpack(store);
 
         // Click the backpack header to toggle open
@@ -57,15 +68,19 @@ describe('Backpack container', () => {
             screen.getByText('Backpack').click();
         });
 
-        expect(backpackApi.getBackpackContents).toHaveBeenCalled();
-        const callArgs = backpackApi.getBackpackContents.mock.calls[0][0];
-        expect(callArgs.token).toBeTruthy();
-        expect(callArgs.username).toBeTruthy();
+        expect(backpackStorage.list).toHaveBeenCalled();
+        const [callArgs] = backpackStorage.list.mock.calls[0];
+        expect(callArgs).toEqual(
+            expect.objectContaining({
+                limit: expect.any(Number),
+                offset: expect.any(Number),
+            }),
+        );
     });
 
     test('handleDrop skips presave to asset server when host is localStorage', () => {
         const storageStoreMock = jest.fn();
-        const store = makeStore(vm, storageStoreMock);
+        const store = makeStore(vm, { storageStore: storageStoreMock });
 
         renderBackpack(store);
 
