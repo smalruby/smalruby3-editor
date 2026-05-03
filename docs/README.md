@@ -80,11 +80,12 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 | [`settings/`](settings/) — Ruby バージョン切替・各種設定永続化 | 🔧 改良 | ✅ |
 | [`screenshot/`](screenshot/) — blocks-screenshot・ruby-screenshot | 🆕 独自 | ✅ |
 
-### F. 開発者向け（パッケージ内部仕様）
+### F. 開発者向け（パッケージ内部仕様 / インフラ）
 
 | ドキュメント | 内容 |
 |---|---|
 | [`scratch-vm/`](scratch-vm/) — VM 内部仕様 (Runtime / Sequencer / Thread / Target / Blocks / Extensions / Serialization / Blocks Runtime) | 開発者向け（Issue #620 完了） |
+| [`infra/`](infra/) — AWS CDK インフラ全体 (mesh-v2 / rubytee-relay / classroom / smalruby-api の横断ドキュメント) | 開発者・運用向け（Issue #625） |
 
 ### その他
 
