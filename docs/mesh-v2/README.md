@@ -33,6 +33,10 @@
 
    ![メッシュメニューの接続状態](screenshots/0202-menu-status-with-timer-1280x800.png)
 
+   メッシュカテゴリのブロックは少なく、`センサーの値` で他ノードのグローバル変数を読み取るのが基本。
+
+   ![メッシュ ブロックパレット](screenshots/0301-block-palette-only-1280x800.png)
+
 6. 接続後、`broadcast` ブロックでイベント送信、グローバル変数の自動同期、`mesh.sensor_value(name)` で他ノードの値読み取りが可能に
 7. グループの最大接続時間は **35 分**（`MESH_MAX_CONNECTION_TIME_SECONDS`）
 

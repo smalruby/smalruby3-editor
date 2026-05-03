@@ -54,6 +54,12 @@
 | モーター速度 | `setMotorSpeed(:left, 50)` |
 | アームキャリブレーション | `setArmCalibration(:zero)` |
 
+### ブロックパレット
+
+接続後はブロックパレットの **Smalrubot S1** カテゴリに専用ブロックが表示される：
+
+![Smalrubot S1 ブロックパレット](screenshots/0301-block-palette-1280x800.png)
+
 ## 主要ファイル
 
 ### scratch-gui

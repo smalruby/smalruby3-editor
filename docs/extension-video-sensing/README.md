@@ -20,6 +20,10 @@ Web カメラからの映像で**動きを検知**し、スプライト上の動
 - 拡張機能登録: `packages/scratch-gui/src/lib/libraries/extensions/index.jsx` の `extensionId: 'videoSensing'`
 - VM 実装: `packages/scratch-vm/src/extensions/scratch3_video_sensing/`
 
+## ブロックパレット
+
+![ブロックパレット](screenshots/0101-block-palette-1280x800.png)
+
 ## 関連ブロック（主要 opcode）
 
 | opcode | 説明 |

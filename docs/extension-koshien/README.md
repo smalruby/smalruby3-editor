@@ -59,6 +59,10 @@
 
 なし（Koshien 競技サーバは別リポジトリで管理）。
 
+## ブロックパレット
+
+![ブロックパレット](screenshots/0101-block-palette-1280x800.png)
+
 ## 関連ブロック（主要 opcode）
 
 | opcode | 説明 |

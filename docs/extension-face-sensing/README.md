@@ -20,6 +20,10 @@ Web カメラからの映像で**顔のランドマーク（目・口・鼻な�
 - 拡張機能登録: `packages/scratch-gui/src/lib/libraries/extensions/index.jsx` の `extensionId: 'faceSensing'`
 - VM 実装: `packages/scratch-vm/src/extensions/scratch3_face_sensing/`
 
+## ブロックパレット
+
+![ブロックパレット](screenshots/0101-block-palette-1280x800.png)
+
 ## 関連ブロック（主要 opcode）
 
 | opcode | 説明 |
