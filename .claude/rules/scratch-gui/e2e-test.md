@@ -1,6 +1,6 @@
 # E2E Testing (Playwright MCP & Selenium Integration Tests)
 
-> **SP / iPad 対応の動作確認は最初に [`docs/sp/playwright.md`](../../../docs/sp/playwright.md) を参照する。** viewport プリセット、Mobile* 系コンポーネントの data-testid 一覧、共通操作パターン、リグレッションチェックリストがすべて集約してある。本ファイルは SP に限らない一般則 (data-testid 命名規則、Ruby Toolbar / Classroom Modal の testid、Monaco 操作) を扱う。レビュー観点や影響範囲は [`.claude/rules/scratch-gui/sp.md`](sp.md) を参照。
+> **SP / iPad 対応の動作確認は最初に [`docs/mobile-ui/playwright.md`](../../../docs/mobile-ui/playwright.md) を参照する。** viewport プリセット、Mobile* 系コンポーネントの data-testid 一覧、共通操作パターン、リグレッションチェックリストがすべて集約してある。本ファイルは SP に限らない一般則 (data-testid 命名規則、Ruby Toolbar / Classroom Modal の testid、Monaco 操作) を扱う。レビュー観点や影響範囲は [`.claude/rules/scratch-gui/mobile-ui.md`](mobile-ui.md) を参照。
 
 ## data-testid Convention
 

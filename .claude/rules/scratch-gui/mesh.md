@@ -72,7 +72,7 @@ mesh-service.js は **mixin パターン** で各 manager を `Object.assign(Mes
 - `infra/smalruby-mesh-v2/docs/architecture.md` — システム全体図
 - `infra/smalruby-mesh-v2/docs/api-reference.md` — GraphQL スキーマ
 - `infra/smalruby-mesh-v2/docs/operations.md` — CloudWatch ログ運用
-- `docs/mesh/cost.md` — コスト試算
+- `docs/mesh-v2/cost.md` — コスト試算
 
 ## 開発の流れ
 

@@ -30,7 +30,7 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 | 機能 | upstream 区分 | 状態 |
 |---|---|---|
 | `ruby-editor/` — Ruby タブ・Monaco・ruby-toolbar・ruby-generator・ruby-to-blocks-converter | 🆕 独自 | ⏳ |
-| [`furigana/`](furigana/) — ふりがな表示モード（マッピング表のみ既存） | 🆕 独自 | ✏️ |
+| [`furigana/`](furigana/) — ふりがな表示モード | 🆕 独自 | ✅ |
 | `dncl/` — 日本語プログラミング (DNCL) モード | 🆕 独自 | ⏳ |
 | `rubytee/` — AI アシスタント (scratch-gui + infra 統合) | 🆕 独自 | ⏳ |
 | `backpack/` — バックパック (mesh v1 → v2 移行ロジック含む) | 🔧 改良 | ⏳ |
@@ -39,9 +39,9 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 
 | 機能 | upstream 区分 | 状態 |
 |---|---|---|
-| [`google-drive/`](google-drive/) — Google Drive 保存・読込（API setup のみ既存） | 🆕 独自 | ✏️ |
-| [`classroom/`](classroom/) — クラスルーム機能（既存・充実） | 🆕 独自 | ✅ |
-| [`mesh-v2/`](mesh-v2/) — Mesh v2 ネットワーク (cost.md のみ既存) | 🆕 独自 | ✏️ |
+| [`google-drive/`](google-drive/) — Google Drive 保存・読込 | 🆕 独自 | ✅ |
+| [`classroom/`](classroom/) — クラスルーム機能 | 🆕 独自 | ✅ |
+| [`mesh-v2/`](mesh-v2/) — Mesh v2 ネットワーク | 🆕 独自 | ✅ |
 | `device-connection/` — connection-modal 共通基盤 | 🔧 改良 | ⏳ |
 
 ### D. 拡張機能
@@ -73,7 +73,7 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 
 | 機能 | upstream 区分 | 状態 |
 |---|---|---|
-| [`mobile-ui/`](mobile-ui/) — モバイル/タブレット UI 全般（旧 `docs/sp/`） | 🆕 独自 | ✏️ |
+| [`mobile-ui/`](mobile-ui/) — モバイル/タブレット UI 全般（旧 `docs/sp/`） | 🆕 独自 | ✅ |
 | `menu-bar/` — メニューバー・言語切替・アカウントメニュー・tutorial-tooltip | 🔧 改良 | ⏳ |
 | `tutorial/` — cards・tips-library・tutorial-onboarding・classroom-tutorial | 🔧 改良 | ⏳ |
 | `alerts/` — alerts・crash-message・error-boundary・coming-soon・browser/webgl-modal | ⬆️ そのまま | ⏳ |
