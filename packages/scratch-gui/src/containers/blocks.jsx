@@ -1058,7 +1058,11 @@ Blocks.defaultOptions = {
     zoom: {
         controls: true,
         wheel: true,
+        pinch: true,
         startScale: BLOCKS_DEFAULT_SCALE
+    },
+    move: {
+        wheel: true
     },
     grid: {
         spacing: 40,
@@ -1067,7 +1071,9 @@ Blocks.defaultOptions = {
     },
     comments: true,
     collapse: false,
-    sounds: false
+    sounds: false,
+    trashcan: false,
+    modalInputs: false
 };
 
 Blocks.defaultProps = {
