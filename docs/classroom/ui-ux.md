@@ -51,7 +51,7 @@ stateDiagram-v2
 
 メニューバーの右端に「クラス」ボタンが表示されます（`CLASSROOM_API_ENDPOINT` 環境変数が設定されている場合）。
 
-![メニューバー](images/01-menu-bar.png)
+![メニューバー](screenshots/0101-menu-bar.png)
 
 **パーツ:**
 
@@ -91,7 +91,7 @@ stateDiagram-v2
 
 Google または Microsoft アカウントでサインインする画面。先生は「設定 → クラス管理」メニューからアクセスします。
 
-![先生ログイン画面](images/04-teacher-login.png)
+![先生ログイン画面](screenshots/0201-teacher-login.png)
 
 **パーツ:**
 
@@ -116,7 +116,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 先生のメイン画面。作成したクラスがカード形式で一覧表示されます。
 
-![ダッシュボード](images/05-teacher-dashboard.png)
+![ダッシュボード](screenshots/0202-teacher-dashboard.png)
 
 **パーツ:**
 
@@ -155,7 +155,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 
 クラス名・人数・課題名を入力してクラスを作成する画面。
 
-![クラス作成画面](images/06-teacher-create.png)
+![クラス作成画面](screenshots/0203-teacher-create.png)
 
 **パーツ:**
 
@@ -186,15 +186,15 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 ### 空席のみの状態
 
-![クラス詳細 — 空席のみ](images/07-teacher-detail.png)
+![クラス詳細 — 空席のみ](screenshots/0204-teacher-detail.png)
 
 ### 提出があった状態（5番が緑 = 提出済み）
 
-![クラス詳細 — 提出あり](images/13-teacher-detail-submitted.png)
+![クラス詳細 — 提出あり](screenshots/0205-teacher-detail-submitted.png)
 
 ### メンバー詳細パネル（右側）
 
-![メンバー詳細パネル](images/14-teacher-member-detail.png)
+![メンバー詳細パネル](screenshots/0206-teacher-member-detail.png)
 
 **左カラム パーツ:**
 
@@ -280,7 +280,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 生徒が既にクラスに参加している場合（localStorage にセッション情報あり）は、この画面をスキップして**ステータス**画面に直接遷移します。
 
-![参加コード入力画面](images/03-student-join.png)
+![参加コード入力画面](screenshots/0301-student-join.png)
 
 **パーツ:**
 
@@ -303,7 +303,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 クラスの座席がグリッド表示され、空いている出席番号を選択します。
 
-![出席番号選択画面](images/08-student-seat.png)
+![出席番号選択画面](screenshots/0302-student-seat.png)
 
 **パーツ:**
 
@@ -333,7 +333,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 参加が成功したときの確認画面。メニューバーにもクラス情報が表示されます。
 プロジェクト名が課題名に自動変更されます。
 
-![参加完了画面](images/09-student-joined.png)
+![参加完了画面](screenshots/0303-student-joined.png)
 
 **パーツ:**
 
@@ -357,11 +357,11 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 ### 未提出の状態
 
-![ステータス画面（未提出）](images/10-student-status.png)
+![ステータス画面（未提出）](screenshots/0304-student-status.png)
 
 ### 提出済みの状態
 
-![ステータス画面（提出済み）](images/12-student-submitted.png)
+![ステータス画面（提出済み）](screenshots/0305-student-submitted.png)
 
 **情報テーブル:**
 
@@ -412,7 +412,7 @@ Google Classroom からインポートした場合は「インポート元: {コ
 
 提出前の確認画面。プロジェクトのサムネイルがプレビュー表示されます。
 
-![提出確認画面](images/11-student-submit-confirm.png)
+![提出確認画面](screenshots/0306-student-submit-confirm.png)
 
 **パーツ:**
 

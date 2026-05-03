@@ -19,7 +19,7 @@ Smalruby Classroom は、日本の学校の授業で Smalruby を使うための
 | [テスト](testing.md) | data-testid 一覧、Playwright / 結合テスト |
 | [Microsoft 認証](microsoft-authentication.md) | MSAL.js 統合、サイレント再認証、Azure Portal 設定 |
 
-![Smalruby メニューバーの「クラス」ボタン](images/01-menu-bar.png)
+![Smalruby メニューバーの「クラス」ボタン](screenshots/0101-menu-bar.png)
 
 ## クイックスタート
 

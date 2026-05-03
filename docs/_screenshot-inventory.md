@@ -1,108 +1,110 @@
-# Screenshot Inventory: 既存未追跡 PNG の棚卸し
+# Screenshot Inventory: 既存未追跡 PNG の棚卸し（処理済み）
 
-Issue #616 時点で、リポジトリ root に **130 枚の未追跡 PNG** が放置されていた。これらは過去 Issue (#572, #599, #600, #602) の Playwright 作業時の中間ファイル。本ドキュメントで棚卸しと処理方針を示す。
+Issue #616 時点で、リポジトリ root に **130 枚の未追跡 PNG** が放置されていた（過去 Issue #572, #599, #600, #602 の Playwright 作業時の中間ファイル）。本 PR で棚卸しに従って処理を実行した。
 
-> **本リストは 2026-05-03 時点のスナップショット**。掃除後はこのドキュメント自体を削除して構わない（または Issue #616 への参照リンクのみ残す）。
+> **本ドキュメントは作業履歴**。今後 Phase B 以降ではこのドキュメントを参照することはないため、Phase D 完了後に削除して構わない。
 
-## 結論サマリ
+## 処理結果
 
-| 処理 | 件数 | 説明 |
+| 処理 | 件数 | 結果 |
 |---|---|---|
-| **削除推奨** | 約 122 件 | 過去 Issue の中間ファイル。実装は既にコミット済み、視覚的価値なし |
-| **採用検討** | 約 8 件 | 完成済みの UI を映していて、機能 docs に転用できる可能性あり |
+| **削除実施** | 117 件 | 過去 Issue (#572/#599/#600/#602) の中間ファイル。視覚的価値なし |
+| **機能 docs に転用** | 13 件 | 完成済みの UI、4 桁命名で移動 |
+| **`docs/classroom/images/` → `screenshots/` 改名** | 13 件 | 4 桁命名にリネーム |
 
-> **本 PR では削除を実行しない**。ユーザーが各候補を確認の上、別途 `rm` する。
+## 実施内容
 
-## 削除推奨 (約 122 件)
+### A. `docs/classroom/images/` → `docs/classroom/screenshots/` に統一
 
-### Issue #572 (Mobile UI Phase 2/3 関連) — 約 90 件
+中項目: 01 全般 / 02 先生フロー / 03 生徒フロー
 
-`phase-2*-*.png`, `phase3c-*.png`, `phase3d-*.png` 系統。中間バージョン (`v2`, `v3`, `v4`) が大量にある。
+| Before | After |
+|---|---|
+| `images/01-menu-bar.png` | `screenshots/0101-menu-bar.png` |
+| `images/04-teacher-login.png` | `screenshots/0201-teacher-login.png` |
+| `images/05-teacher-dashboard.png` | `screenshots/0202-teacher-dashboard.png` |
+| `images/06-teacher-create.png` | `screenshots/0203-teacher-create.png` |
+| `images/07-teacher-detail.png` | `screenshots/0204-teacher-detail.png` |
+| `images/13-teacher-detail-submitted.png` | `screenshots/0205-teacher-detail-submitted.png` |
+| `images/14-teacher-member-detail.png` | `screenshots/0206-teacher-member-detail.png` |
+| `images/03-student-join.png` | `screenshots/0301-student-join.png` |
+| `images/08-student-seat.png` | `screenshots/0302-student-seat.png` |
+| `images/09-student-joined.png` | `screenshots/0303-student-joined.png` |
+| `images/10-student-status.png` | `screenshots/0304-student-status.png` |
+| `images/12-student-submitted.png` | `screenshots/0305-student-submitted.png` |
+| `images/11-student-submit-confirm.png` | `screenshots/0306-student-submit-confirm.png` |
 
-完成版の Mobile UI スクショは既に `docs/mobile-ui/screenshots/` に整理済み (Issue #572 完了時に実施)。
+`docs/classroom/README.md` および `docs/classroom/ui-ux.md` の参照もすべて更新済み。`docs/classroom/images/` ディレクトリは空になったので削除。
 
-該当ファイル例:
-```
-phase-2c-fullscreen.png
-phase-2c-v2-fullscreen.png
-phase-2c-v3-fullscreen-shifted.png
-phase-2c-v4-no-overflow.png
-phase-2d-initial.png
-phase-2d-palette-open.png
-phase-2d-v2-existing-toggle.png
-... (合計 54 件の phase-2* + 12 件の phase3c-* + 8 件の phase3d-*)
-```
+### B. 機能 docs に転用 (13 件)
 
-### Issue #599, #600, #602 (iPad portrait, narrow-height, ruby tab fix) — 約 24 件
+#### `docs/backpack/screenshots/` (7 件)
 
-`599-*.png`, `600-*.png`, `602-*.png` 系統。バグ修正の before/after 比較画像。
+中項目: 01 メイン状態 / 02 コスチュームタブ上 / 03 PC 表示
 
-該当ファイル例:
-```
-599-baseline-768x1024.png
-599-below-threshold-720.png
-599-final-ipad-mini-744.png
-600-after-improvements-1024x768.png
-600-baseline-1024x768.png
-600-phase2-*.png  (7 件)
-602-code-tab-1024.png
-602-fixed-ruby-tab-1024.png
-602-ruby-tab-1280.png
-602-ruby-tab-768.png
-```
+| Before | After |
+|---|---|
+| `backpack-closed.png` | `0101-backpack-closed.png` |
+| `backpack-opened.png` | `0102-backpack-opened.png` |
+| `backpack-expanded.png` | `0103-backpack-expanded.png` |
+| `backpack-auto-expanded.png` | `0104-backpack-auto-expanded.png` |
+| `backpack-on-costume-tab.png` | `0201-on-costume-tab.png` |
+| `backpack-on-costume-real.png` | `0202-on-costume-tab-real.png` |
+| `pc-backpack-open.png` | `0301-pc-open.png` |
 
-### その他の中間ファイル — 約 8 件
+#### `docs/tutorial/screenshots/` (1 件)
 
-- `cleanup-1024x768.png`, `cleanup-844x390.png`
-- `revert-touch-button-1024.png`
-- `stage-button-icon-fixed-1024.png`, `stage-toggle-fixed-1024.png`
-- `auto-mobile-*.png` × 4 (auto-mobile prefix)
-- `mobile-drawer-3a-*.png`, `mobile-drawer-expanded.png`
+| Before | After |
+|---|---|
+| `tutorials-modal-fullscreen.png` | `0101-tutorials-modal.png` |
 
-## 採用検討 (約 8 件)
+#### `docs/classroom/screenshots/` (2 件追加)
 
-完成済みの UI を映しており、機能ドキュメントに転用できる可能性あり。実物を確認した上で判断。
+| Before | After |
+|---|---|
+| `classroom-modal-fullscreen.png` | `0102-modal-fullscreen.png` (中項目 01 全般) |
+| `classroom-management-fullscreen.png` | `0207-management-fullscreen.png` (中項目 02 先生フロー) |
 
-| ファイル | 候補ドキュメント | 備考 |
-|---|---|---|
-| `tutorials-modal-fullscreen.png` | `docs/tutorial/screenshots/` | チュートリアルモーダル全画面 |
-| `classroom-modal-fullscreen.png` | `docs/classroom/images/` | 既存 classroom docs に追加 |
-| `classroom-management-fullscreen.png` | `docs/classroom/images/` | クラス管理画面 |
-| `classroom-mgmt-300h.png` | (削除候補) | 中間状態か |
-| `classroom-mgmt-scrollreset.png` | (削除候補) | バグ修正中間か |
-| `url-loader-modal.png` | `docs/project-management/screenshots/` | URL ローダーモーダル |
-| `url-loader-200h-scrolled.png` | (削除候補) | 中間状態か |
-| `narrow-warning-with-link.png` | `docs/mobile-ui/screenshots/` | 縦持ち警告 |
-| `backpack-opened.png`, `backpack-closed.png`, `backpack-expanded.png`, `backpack-auto-expanded.png`, `backpack-on-costume-real.png`, `backpack-on-costume-tab.png`, `pc-backpack-open.png` | `docs/backpack/screenshots/` | バックパック UI |
-| `sprite-drag-during.png` | `docs/sprite/screenshots/` | スプライトドラッグ中 |
-| `ipad-portrait-baseline.png` | (削除候補) | issue #572 ベースライン |
+#### `docs/project-management/screenshots/` (1 件)
 
-## 処理コマンド (参考)
+| Before | After |
+|---|---|
+| `url-loader-modal.png` | `0101-url-loader-modal.png` |
 
-ユーザーが判断後に実行する例：
+#### `docs/mobile-ui/screenshots/` (1 件追加)
 
-```bash
-# 削除推奨をすべて削除
-cd /Users/kouji/work/smalruby/smalruby3-editor
-rm phase-2*.png phase3c-*.png phase3d-*.png
-rm 599-*.png 600-*.png 602-*.png
-rm cleanup-*.png revert-*.png stage-button-*.png stage-toggle-*.png
-rm auto-mobile-*.png mobile-drawer-3a-*.png mobile-drawer-expanded.png
-rm ipad-portrait-baseline.png
-rm classroom-mgmt-300h.png classroom-mgmt-scrollreset.png url-loader-200h-scrolled.png
+| Before | After |
+|---|---|
+| `narrow-warning-with-link.png` | `0101-narrow-warning-with-link.png` |
 
-# 採用検討の移動例（採用と判断したものだけ）
-mkdir -p docs/backpack/screenshots
-mv backpack-opened.png docs/backpack/screenshots/01-backpack-opened.png
-mv backpack-expanded.png docs/backpack/screenshots/02-backpack-expanded.png
-# ... 他も同様
-mv tutorials-modal-fullscreen.png docs/tutorial/screenshots/01-tutorials-modal.png
-mv classroom-modal-fullscreen.png docs/classroom/images/classroom-modal-fullscreen.png
-mv url-loader-modal.png docs/project-management/screenshots/01-url-loader-modal.png
-mv narrow-warning-with-link.png docs/mobile-ui/screenshots/12-narrow-warning-with-link.png
-mv sprite-drag-during.png docs/sprite/screenshots/01-sprite-drag-during.png
-```
+#### `docs/sprite/screenshots/` (1 件)
+
+| Before | After |
+|---|---|
+| `sprite-drag-during.png` | `0101-sprite-drag-during.png` |
+
+### C. 削除 (117 件)
+
+過去 Issue の中間ファイル群を削除：
+
+- `599-*.png` × 6 (Issue #599 iPad mini portrait)
+- `600-*.png` × 14 (Issue #600 narrow-height)
+- `602-*.png` × 4 (Issue #602 ruby-tab fix)
+- `phase-2*-*.png` × 54 (Issue #572 Mobile UI Phase 2 各ステップ)
+- `phase3c-*.png` × 12 (Issue #572 Phase 3-C iPad portrait)
+- `phase3d-*.png` × 8 (Issue #572 Phase 3-D palette toggle)
+- `auto-mobile-*.png` × 4
+- `mobile-drawer-3a-*.png` × 5, `mobile-drawer-3a.png`, `mobile-drawer-expanded.png`
+- `cleanup-*.png` × 2
+- `revert-touch-button-1024.png`, `stage-button-icon-fixed-1024.png`, `stage-toggle-fixed-1024.png`
+- `ipad-portrait-baseline.png`
+- `classroom-mgmt-300h.png`, `classroom-mgmt-scrollreset.png`
+- `url-loader-200h-scrolled.png`
+
+合計 **117 件削除**。
 
 ## 今後の運用
 
-Phase A 完了後（本 PR マージ後）は **`tmp/` が `.gitignore` 対象**になるため、Playwright スクリーンショットは `tmp/` に出力すれば repo を汚染しない。詳細は [`_screenshot-guidelines.md`](_screenshot-guidelines.md) 参照。
+本 PR で `.gitignore` に `/tmp/` を追加したため、Phase B 以降の Playwright 撮影は `tmp/` に出力する運用とする。詳細は [`_screenshot-guidelines.md`](_screenshot-guidelines.md) 参照。
+
+転用した 13 件は **画像ファイルとしてリポジトリに追加** したのみで、機能ドキュメント (`README.md`) からの参照リンクはまだ張られていない。Phase B（視覚価値の高い機能の撮影）で各機能の本格的な撮影を進めながら、転用ファイルを README.md から参照するか、不要なら削除する判断を行う。

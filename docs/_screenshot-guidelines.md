@@ -4,37 +4,77 @@
 
 ## 配置場所
 
-各機能のスクリーンショットは **`docs/<feature>/screenshots/`** 配下に置く。
+各機能のスクリーンショットは **`docs/<feature>/screenshots/`** 配下に置く。**例外なく統一する**。
 
 ```
 docs/
 ├── mobile-ui/
 │   └── screenshots/
-│       ├── 02-code-palette-open.png
-│       ├── 03-code-palette-closed.png
+│       ├── 0101-portrait-gate.png
+│       ├── 0102-overview.png
 │       └── ...
 ├── classroom/
-│   └── images/   ← 既存。screenshots/ に統一しない（既存リンク維持のため）
+│   └── screenshots/
+│       ├── 0101-menu-bar.png
+│       ├── 0201-teacher-login.png
+│       └── ...
 └── rubytee/
     └── screenshots/
         └── ...
 ```
 
-> 例外: `docs/classroom/` は既存ドキュメントが `images/` を使っているため維持する（リンク互換性のため）。新規機能では `screenshots/` を使う。
-
 ## 命名規則
 
-`<番号>-<内容>-<viewport>.png`
+`<番号4桁>-<内容>[-<viewport>].png`
 
-- **番号**: 2 桁ゼロ埋め。順番にユーザーの操作フローを追うと自然な順序になるよう付ける
-- **内容**: ケバブケースで簡潔に内容を表す（英語または日本語ローマ字）
-- **viewport**: 撮影時の viewport サイズ。viewport 非依存のスクショは省略可
+### 番号 (4 桁)
+
+**上 2 桁 = 中項目 (subcategory)、下 2 桁 = 中項目内の連番**
+
+- 中項目で機能をグループ分けする (例: 全般 / 先生フロー / 生徒フロー)
+- 中項目内の連番は **飛び番号 OK**（後から追加しても番号を振り直さない）
+- 例: `0101`, `0102`, `0103`, ..., `0109`, `0201`, `0202`, ..., `0901` (小項目を後から追加しても既存ファイル名は変えない)
+
+```
+0101  ← 中項目 01 の 1 番目
+0102  ← 中項目 01 の 2 番目
+0103  ← 中項目 01 の 3 番目
+0201  ← 中項目 02 の 1 番目
+0301  ← 中項目 03 の 1 番目
+0901  ← 中項目 09 の 1 番目（飛び番号 OK）
+```
+
+**メリット**: 後からスクリーンショットを追加しても、既存ファイル名や doc 内の参照を変更する必要がない。
+
+### 内容
+
+ケバブケースで簡潔に内容を表す（英語または日本語ローマ字）。
+
+### viewport (省略可)
+
+撮影時の viewport サイズ。viewport 非依存のスクリーンショット（モーダル全体など）は省略可。
 
 例:
-- `01-overview-1280x800.png` — Desktop での全体表示
-- `02-modal-open-1024x768.png` — モーダル開いた状態 (iPad landscape)
-- `03-mobile-portrait-390x844.png` — モバイル縦向き
-- `costume-tab.png` — viewport 関係なし、特定タブの状態のみ
+- `0101-overview-1280x800.png` — 中項目 01「全般」の 1 番目、Desktop 全体表示
+- `0102-modal-open-1024x768.png` — 中項目 01 の 2 番目、モーダル開（iPad landscape）
+- `0301-mobile-portrait-390x844.png` — 中項目 03 の 1 番目、モバイル縦向き
+- `0501-costume-tab.png` — 中項目 05 の 1 番目、viewport 非依存
+
+### 中項目の決め方
+
+中項目は機能ごとに**ユーザー視点で意味のあるグループ**で決める。READMEの章立てと整合させると後から見つけやすい。
+
+例（`docs/classroom/`）:
+- `01` 全般・エントリポイント (例: メニューバーボタン)
+- `02` 先生フロー (login → dashboard → create → detail)
+- `03` 生徒フロー (join → seat → joined → status → submit)
+
+例（`docs/mobile-ui/`）:
+- `01` 切替判定 (orientation gate, narrow-screen warning)
+- `02` MobileGui の各タブ (code, costume, sound, ruby)
+- `03` ドロワー / ツールバー / スプライトパネル
+- `04` iPad portrait/landscape / desktop
+- `05` 検証用ベースライン
 
 ## Viewport プリセット
 
@@ -76,7 +116,7 @@ Playwright MCP の `browser_resize` で viewport を指定。
 
 ### 5. レビュー → 確定 → `docs/<feature>/screenshots/` に移動
 
-満足する 1 枚だけを `docs/<feature>/screenshots/` に `git mv tmp/xxx.png docs/<feature>/screenshots/01-overview-1280x800.png` のように移動。途中経過の `v2`, `v3` 等は `tmp/` に残して、後で削除。
+満足する 1 枚だけを `docs/<feature>/screenshots/` に `git mv tmp/xxx.png docs/<feature>/screenshots/0101-overview-1280x800.png` のように移動。途中経過の `v2`, `v3` 等は `tmp/` に残して、後で削除。
 
 ## 一時ファイルの保存場所
 
@@ -99,7 +139,7 @@ mkdir -p tmp
 
 ### Ruby タブの 3 モード
 
-![ふりがなモード](screenshots/01-furigana-mode-1280x800.png)
+![ふりがなモード](screenshots/0101-furigana-mode-1280x800.png)
 
 ruby-toolbar 上部のセグメントで切替...
 ```
@@ -109,8 +149,9 @@ ruby-toolbar 上部のセグメントで切替...
 スクリーンショットの PR では以下を確認：
 
 - [ ] viewport プリセットに従っているか
-- [ ] 命名規則 (`<番号>-<内容>-<viewport>.png`) に従っているか
-- [ ] `docs/<feature>/screenshots/` に配置されているか
+- [ ] 命名規則 (`<番号4桁>-<内容>-<viewport>.png`) に従っているか
+- [ ] 4 桁の **上 2 桁が中項目 / 下 2 桁が連番** になっているか
+- [ ] `docs/<feature>/screenshots/` に配置されているか（`images/` 等の旧名を使っていないか）
 - [ ] 機能 README.md から参照されているか（孤立ファイルを残さない）
 - [ ] 同等のスクショが複数残っていないか（`v2`, `v3` の中間ファイルが混入していないか）
 
