@@ -6,17 +6,8 @@
 import path from 'path';
 import SeleniumHelper from '../helpers/selenium-helper';
 
-const {
-    clickText,
-    clickXpath,
-    findByXpath,
-    getDriver,
-    getLogs,
-    loadUri,
-    scope,
-    textExists,
-    waitForLoadingFinished,
-} = new SeleniumHelper();
+const { clickText, clickXpath, findByXpath, getDriver, getLogs, loadUri, scope, textExists, waitForLoadingFinished } =
+    new SeleniumHelper();
 
 const uri = path.resolve(__dirname, '../../build/index.html');
 const uriWithTutorial = (id) => `${uri}?tutorial=${id}`;
@@ -37,7 +28,9 @@ describe('Smalruby Tutorials', () => {
         // === Smalruby: clear any persistent localStorage state from prior runs
         // and wait for the editor to finish loading before looking for the
         // first-time-user tooltip.
-        await driver.executeScript(`window.localStorage.removeItem('smalruby:tutorialSeen'); window.localStorage.removeItem('smalruby:rubyTabUsed');`);
+        await driver.executeScript(
+            `window.localStorage.removeItem('smalruby:tutorialSeen'); window.localStorage.removeItem('smalruby:rubyTabUsed');`,
+        );
         await driver.navigate().refresh();
         await waitForLoadingFinished();
         await clickText('Try Ruby!');
