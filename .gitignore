@@ -150,6 +150,9 @@ built-monorepo
 
 /notes
 
+# Scratch directory for Playwright screenshots and other ephemeral work files (Issue #616)
+/tmp/
+
 # CDK (infra/)
 infra/**/cdk.out/
 infra/**/cdk.out.*/
