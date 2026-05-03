@@ -950,9 +950,15 @@ class Blocks extends React.Component {
             ...props
         } = this.props;
 
-        // Calculate toggle button position based on toolbox width (toolbox + flyout combined)
+        // Calculate toggle button position based on toolbox + flyout combined width.
+        // In scratch-blocks v2 toolbox.getWidth() returns only the category-column
+        // width, so we add the flyout width separately to land on the visual edge
+        // of the open palette (matching docs/mobile-ui/screenshots/02-code-palette-open.png).
         const toolbox = this.workspace ? this.workspace.getToolbox() : null;
-        const toggleButtonLeft = paletteVisible && toolbox ? toolbox.getWidth() : 0;
+        const flyout = this.workspace ? this.workspace.getFlyout() : null;
+        const toggleButtonLeft = paletteVisible && toolbox ?
+            toolbox.getWidth() + (flyout?.getWidth?.() ?? 0) :
+            0;
 
         return (
             <React.Fragment>
