@@ -116,7 +116,7 @@
     Probably will need different solutions for language support later, so
     make the change here instead of in scratch-blocks.
 */
-.blocks :global(.scratchCategoryMenuItemLabel) {
+.blocks :global(.blocklyToolboxCategoryLabel) {
     font-size: 0.65rem;
 }
 

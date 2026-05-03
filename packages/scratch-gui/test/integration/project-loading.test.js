@@ -85,7 +85,7 @@ describe('Loading scratch gui', () => {
             await clickText('Costumes');
             await clickXpath(FILE_MENU_XPATH);
             await clickXpath('//li[span[text()="New"]]');
-            await findByXpath('//div[@class="scratchCategoryMenu"]');
+            await findByXpath('//div[contains(@class, "blocklyToolbox")]');
             await clickText('Operators', scope.blocksTab);
         });
 
@@ -93,7 +93,7 @@ describe('Loading scratch gui', () => {
             await loadUri(uri);
             await clickXpath(FILE_MENU_XPATH);
             await clickXpath('//li[span[text()="New"]]');
-            await findByXpath('//*[div[@class="scratchCategoryMenu"]]');
+            await findByXpath('//*[div[contains(@class, "blocklyToolbox")]]');
             await clickText('Operators', scope.blocksTab);
         });
 
@@ -108,7 +108,7 @@ describe('Loading scratch gui', () => {
             driver.switchTo()
                 .alert()
                 .accept();
-            await findByXpath('//*[div[@class="scratchCategoryMenu"]]');
+            await findByXpath('//*[div[contains(@class, "blocklyToolbox")]]');
             await clickText('Operators', scope.blocksTab);
         });
     });
