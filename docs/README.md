@@ -29,11 +29,11 @@ smalruby3-editor の機能ドキュメントは **ユーザーストーリー単
 
 | 機能 | upstream 区分 | 状態 |
 |---|---|---|
-| `ruby-editor/` — Ruby タブ・Monaco・ruby-toolbar・ruby-generator・ruby-to-blocks-converter | 🆕 独自 | ⏳ |
+| [`ruby-editor/`](ruby-editor/) — Ruby タブ・Monaco・ruby-toolbar・ruby-generator・ruby-to-blocks-converter | 🆕 独自 | ✅ |
 | [`furigana/`](furigana/) — ふりがな表示モード | 🆕 独自 | ✅ |
-| `dncl/` — 日本語プログラミング (DNCL) モード | 🆕 独自 | ⏳ |
-| `rubytee/` — AI アシスタント (scratch-gui + infra 統合) | 🆕 独自 | ⏳ |
-| `backpack/` — バックパック (mesh v1 → v2 移行ロジック含む) | 🔧 改良 | ⏳ |
+| [`dncl/`](dncl/) — 日本語プログラミング (DNCL) モード | 🆕 独自 | ✅ |
+| [`rubytee/`](rubytee/) — AI アシスタント (scratch-gui + infra 統合) | 🆕 独自 | ✅ |
+| [`backpack/`](backpack/) — バックパック (mesh v1 → v2 移行ロジック含む) | 🔧 改良 | ✅ |
 
 ### C. 統合・連携機能
 
