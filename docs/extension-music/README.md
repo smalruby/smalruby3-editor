@@ -21,6 +21,10 @@
 - Ruby Generator: `packages/scratch-gui/src/lib/ruby-generator/music.js`
 - Ruby ランタイム: `ruby/smalruby3/lib/smalruby3/extension/music.rb`
 
+## ブロックパレット
+
+![ブロックパレット](screenshots/0101-block-palette-1280x800.png)
+
 ## 関連ブロック（主要 opcode）
 
 | opcode | 説明 |

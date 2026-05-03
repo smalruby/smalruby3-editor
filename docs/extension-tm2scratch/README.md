@@ -50,6 +50,10 @@ Google の **Teachable Machine** で訓練した機械学習モデル（画像�
 
 なし（モデル URL は Teachable Machine の Google Cloud Storage 等から直接ロード）。
 
+## ブロックパレット
+
+![ブロックパレット](screenshots/0101-block-palette-1280x800.png)
+
 ## 関連ブロック（主要 opcode）
 
 ### 画像分類

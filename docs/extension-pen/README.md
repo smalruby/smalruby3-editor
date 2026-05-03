@@ -22,6 +22,10 @@
 - Ruby Generator: `packages/scratch-gui/src/lib/ruby-generator/pen.js`
 - Ruby ランタイム: `ruby/smalruby3/lib/smalruby3/extension/pen.rb`
 
+## ブロックパレット
+
+![ブロックパレット](screenshots/0101-block-palette-1280x800.png)
+
 ## 関連ブロック（主要 opcode）
 
 | opcode | 説明 |

@@ -206,8 +206,9 @@ Before creating a PR, ensure:
 2. ✅ Linting passes (`npm run lint`)
 3. ✅ Build succeeds (`npm run build`)
 4. ✅ Code follows existing patterns
-5. ✅ Documentation is updated (if needed)
-6. ✅ Commit messages follow Conventional Commits
+5. ✅ **`docs/<feature>/README.md` updated** if behavior / files / settings / blocks / markers changed
+6. ✅ **`docs/<feature>/screenshots/` updated** if UI changed visually (詳細: `.claude/rules/documentation.md` の「開発ワークフローの DoD」)
+7. ✅ Commit messages follow Conventional Commits
 
 ## GitHub Operations
 
