@@ -36,7 +36,7 @@ const modes = {
 const getCategoryColor = (colorMode, category) => {
     const colors = getColorsForMode(colorMode);
     return {
-        background: colors[categoryColorMap[category]].primary,
+        background: colors[categoryColorMap[category]].colourPrimary,
         text: colors.text
     };
 };

@@ -438,7 +438,8 @@ const ProjectSaverHOC = function (WrappedComponent) {
             isManualUpdating: getIsManualUpdating(loadingState),
             loadingState: loadingState,
             locale: state.locales.locale,
-            manuallySaveThumbnails: ownProps.manuallySaveThumbnails ?? false,
+            // === Smalruby: standalone editor — show the thumbnail-save button by default
+            manuallySaveThumbnails: ownProps.manuallySaveThumbnails ?? true,
             onUpdateProjectThumbnail:
                 ownProps.onUpdateProjectThumbnail ??
                 storage.saveProjectThumbnail?.bind(storage),
