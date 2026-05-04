@@ -16,7 +16,15 @@ export default function (Generator) {
         if (isBang) {
             const varName =
                 Generator.getFieldValue(block, 'RECEIVER') || '';
-            receiver = Generator.variableNameByName(varName) || 'nil';
+            // Array bang methods (sort!, reverse!) reference the LIST
+            // variant; string bang methods reference the SCALAR variant.
+            // target-applier.js (issue #634) drops the eager SCALAR
+            // entry when an array literal also creates a same-name LIST,
+            // so try both stores.
+            receiver =
+                Generator.variableNameByName(varName) ||
+                Generator.listNameByName(varName) ||
+                'nil';
         } else {
             receiver =
                 Generator.valueToCode(block, 'RECEIVER', order) ||
