@@ -703,6 +703,20 @@ class Blocks extends React.Component {
                     // causes multiple comment bubbles to stack on top of each
                     // other in scratch-blocks v2 (it preserves explicit
                     // comment coords instead of auto-positioning per block).
+                    // Helper: walk up to the top-level (root statement) block
+                    // for x-alignment. Comments on nested input blocks (e.g.
+                    // a variable input inside a say block) would otherwise
+                    // misalign because each nested block has a different x.
+                    const getRootBlockX = wsBlock => {
+                        let cur = wsBlock;
+                        while (cur && typeof cur.getParent === 'function' && cur.getParent()) {
+                            cur = cur.getParent();
+                        }
+                        if (cur && typeof cur.getRelativeToSurfaceXY === 'function') {
+                            return cur.getRelativeToSurfaceXY().x;
+                        }
+                        return 0;
+                    };
                     const allBlocks = this.workspace.getAllBlocks(false);
                     allBlocks.forEach(wsBlock => {
                         const commentText = typeof wsBlock.getCommentText === 'function' ?
@@ -714,7 +728,14 @@ class Blocks extends React.Component {
                             const commentId = blockData && blockData.comment;
                             if (targetComments && commentId && targetComments[commentId]) {
                                 const blockXY = wsBlock.getRelativeToSurfaceXY();
-                                targetComments[commentId].x = blockXY.x + 220;
+                                const rootX = getRootBlockX(wsBlock);
+                                const rtl = this.workspace.RTL;
+                                const dx = rtl ? 20 : -220;
+                                // Align x to the root (top-level) block so
+                                // every `@ruby:*` comment in a single script
+                                // shares the same left edge regardless of how
+                                // deeply nested its source block is.
+                                targetComments[commentId].x = rootX + dx;
                                 targetComments[commentId].y = blockXY.y;
                             }
                         }
@@ -826,9 +847,23 @@ class Blocks extends React.Component {
                         if (!commentIcon) return;
                         if (typeof commentIcon.setBubbleLocation === 'function') {
                             const blockXY = wsBlock.getRelativeToSurfaceXY();
+                            // Align x to the top-level ancestor so nested
+                            // input blocks' comments share the same left edge.
+                            let rootBlock = wsBlock;
+                            while (
+                                rootBlock &&
+                                typeof rootBlock.getParent === 'function' &&
+                                rootBlock.getParent()
+                            ) {
+                                rootBlock = rootBlock.getParent();
+                            }
+                            const rootX = rootBlock && typeof rootBlock.getRelativeToSurfaceXY === 'function' ?
+                                rootBlock.getRelativeToSurfaceXY().x : 0;
+                            const rtl = ws.RTL;
+                            const dx = rtl ? 20 : -220;
                             commentIcon.setBubbleLocation(
                                 new this.ScratchBlocks.utils.Coordinate(
-                                    blockXY.x + 220, blockXY.y
+                                    rootX + dx, blockXY.y
                                 )
                             );
                         }
