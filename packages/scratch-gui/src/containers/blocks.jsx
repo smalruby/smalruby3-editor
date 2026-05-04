@@ -664,6 +664,7 @@ class Blocks extends React.Component {
         // Disabling events entirely during the load ensures nothing is queued.
         this.workspace.removeChangeListener(this.toolboxUpdateChangeListener);
         let fromRuby = false;
+        const rubyCommentIconsToMinimize = [];
         try {
             this.ScratchBlocks.Events.disable();
             const dom = this.ScratchBlocks.utils.xml.textToDom(data.xml);
@@ -685,17 +686,46 @@ class Blocks extends React.Component {
                 if (fromRuby) {
                     this.workspace.cleanUp();
 
+                    // Block-attached comments are rendered as comment icons
+                    // on the block in scratch-blocks v2 (no longer as separate
+                    // WorkspaceComment objects), so workspace.getTopComments()
+                    // does not return them. Collect block IDs whose comment
+                    // starts with `@ruby:` and apply setBubbleVisible(false)
+                    // + setBubbleLocation in the finally block — calling them
+                    // while Events are disabled is a no-op in v2, and stale
+                    // icon references can be invalidated by Blockly during
+                    // workspace settling.
+                    //
+                    // Also propagate the comment x/y in the VM target back to
+                    // a block-relative offset (right of the block at the
+                    // block's y). The Ruby converter creates every `@ruby:*`
+                    // comment at the same workspace coord (200, 0), which
+                    // causes multiple comment bubbles to stack on top of each
+                    // other in scratch-blocks v2 (it preserves explicit
+                    // comment coords instead of auto-positioning per block).
+                    const allBlocks = this.workspace.getAllBlocks(false);
+                    allBlocks.forEach(wsBlock => {
+                        const commentText = typeof wsBlock.getCommentText === 'function' ?
+                            wsBlock.getCommentText() : null;
+                        if (commentText && commentText.startsWith('@ruby:')) {
+                            rubyCommentIconsToMinimize.push(wsBlock.id);
+                            const targetComments = this.props.vm.editingTarget.comments;
+                            const blockData = blocks.getBlock(wsBlock.id);
+                            const commentId = blockData && blockData.comment;
+                            if (targetComments && commentId && targetComments[commentId]) {
+                                const blockXY = wsBlock.getRelativeToSurfaceXY();
+                                targetComments[commentId].x = blockXY.x + 220;
+                                targetComments[commentId].y = blockXY.y;
+                            }
+                        }
+                    });
+
                     // Re-calculate the position of the comments.
                     const firstTopBlock = this.workspace.getTopBlocks(true)[0];
                     this.workspace.getTopComments(false).forEach(comment => {
                         if (comment.blockId) {
                             const block = this.workspace.getBlockById(comment.blockId);
                             if (block) {
-                                // Minimize @ruby:return comments (internal metadata)
-                                if (comment.text && comment.text.startsWith('@ruby:return')) {
-                                    comment.setMinimized(true);
-                                }
-
                                 const blockXY = block.getRelativeToSurfaceXY();
                                 const commentHW = comment.getHeightWidth();
                                 const rtl = this.workspace.RTL;
@@ -766,6 +796,49 @@ class Blocks extends React.Component {
             log.error(error);
         } finally {
             this.ScratchBlocks.Events.enable();
+            // === Smalruby: Start of @ruby:* comment minimize ===
+            // setBubbleVisible(false) only takes effect when Events are enabled,
+            // because scratch-blocks v2 gates the visibility update on its
+            // event dispatch path. Apply the collected minimizations now that
+            // the event system is back online.
+            if (rubyCommentIconsToMinimize.length > 0 && this.workspace) {
+                // Defer: scratch-blocks v2 finishes its post-load rendering
+                // pass after onWorkspaceUpdate returns, and a synchronous
+                // setBubbleVisible(false) call is overridden by that pass.
+                // Re-fetch icons by block ID inside the timer because the
+                // icon references collected synchronously can be detached
+                // before this point. Also nudge the bubble location to be
+                // adjacent to its own block — the Ruby converter places
+                // every `@ruby:*` comment at the same workspace coord
+                // (200, 0), which makes scratch-blocks v2 stack the
+                // comment bubbles on top of each other.
+                const blockIds = rubyCommentIconsToMinimize;
+                const ws = this.workspace;
+                setTimeout(() => {
+                    blockIds.forEach(blockId => {
+                        const wsBlock = ws.getBlockById && ws.getBlockById(blockId);
+                        if (!wsBlock || typeof wsBlock.getIcons !== 'function') return;
+                        const icons = wsBlock.getIcons();
+                        const commentIcon = icons.find(icon => {
+                            const t = icon.getType && icon.getType();
+                            return t && t.name === 'comment';
+                        });
+                        if (!commentIcon) return;
+                        if (typeof commentIcon.setBubbleLocation === 'function') {
+                            const blockXY = wsBlock.getRelativeToSurfaceXY();
+                            commentIcon.setBubbleLocation(
+                                new this.ScratchBlocks.utils.Coordinate(
+                                    blockXY.x + 220, blockXY.y
+                                )
+                            );
+                        }
+                        if (typeof commentIcon.setBubbleVisible === 'function') {
+                            commentIcon.setBubbleVisible(false);
+                        }
+                    });
+                }, 100);
+            }
+            // === Smalruby: End of @ruby:* comment minimize ===
         }
 
         if (!fromRuby &&

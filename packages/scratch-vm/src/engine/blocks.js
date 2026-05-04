@@ -1112,12 +1112,25 @@ class Blocks {
         if (!block) return;
         // Encode properties of this block.
         const tagName = (block.shadow) ? 'shadow' : 'block';
+        // === Smalruby: Start of XML coords guard ===
+        // Smalruby の Ruby → blocks 変換は x/y を undefined のまま返し、
+        // blocks.jsx の `fromRuby` 検出で `typeof topBlock.x === 'undefined'`
+        // を見て workspace.cleanUp() で再レイアウトする。
+        // しかし scratch-blocks v2 は `x="undefined"` を含む XML を読み込むと
+        // NaN → 0 として扱った上で move イベントを発火し、VM 側の
+        // block.x を 0 に書き換えてしまう。結果として `fromRuby` 検出が
+        // 効かず、ブロックとコメントが workspace 原点付近に積み重なる。
+        // x/y が finite number のときだけ XML 属性を出力することで、v2 に
+        // 「位置未指定」を正しく伝え、上記再レイアウト経路を再び動かす。
+        const hasCoords = block.topLevel &&
+            Number.isFinite(block.x) && Number.isFinite(block.y);
         let xmlString =
             `<${tagName}
                 id="${block.id}"
                 type="${block.opcode}"
-                ${block.topLevel ? `x="${block.x}" y="${block.y}"` : ''}
+                ${hasCoords ? `x="${block.x}" y="${block.y}"` : ''}
             >`;
+        // === Smalruby: End of XML coords guard ===
         const commentId = block.comment;
         if (commentId) {
             if (comments) {
