@@ -37,8 +37,9 @@ const makeMockWorkspace = ({ boundingBox = null, scale = 1, bubbleChildren = 0, 
     return {
         getBlocksBoundingBox: jest.fn(() => boundingBox),
         scale,
-        svgBlockCanvas_: group,
-        svgBubbleCanvas_: bubbleGroup,
+        // scratch-blocks v2 exposes the canvases as methods.
+        getCanvas: jest.fn(() => group),
+        getBubbleCanvas: jest.fn(() => bubbleGroup),
     };
 };
 
@@ -79,7 +80,7 @@ describe('mergeWithBubbleBBox', () => {
 
     test('returns original bbox when workspace has no bubble canvas', () => {
         const workspace = makeMockWorkspace({ boundingBox: { x: 10, y: 20, width: 200, height: 100 } });
-        delete workspace.svgBubbleCanvas_;
+        workspace.getBubbleCanvas = jest.fn(() => null);
         const bbox = { x: 10, y: 20, width: 200, height: 100 };
         expect(mergeWithBubbleBBox(workspace, bbox)).toEqual(bbox);
     });
@@ -90,7 +91,7 @@ describe('mergeWithBubbleBBox', () => {
             bubbleChildren: 2,
         });
         // Mock getBBox to return a region outside the block bbox
-        workspace.svgBubbleCanvas_.getBBox = jest.fn(() => ({
+        workspace.getBubbleCanvas().getBBox = jest.fn(() => ({
             x: 250,
             y: 10,
             width: 80,
