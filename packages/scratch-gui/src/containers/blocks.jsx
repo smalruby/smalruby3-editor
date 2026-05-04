@@ -523,16 +523,19 @@ class Blocks extends React.Component {
         }
     }
     onScriptGlowOn (data) {
-        this.workspace.glowStack(data.id, true);
+        this.ScratchBlocks.glowStack(data.id, true);
     }
     onScriptGlowOff (data) {
-        this.workspace.glowStack(data.id, false);
+        this.ScratchBlocks.glowStack(data.id, false);
     }
-    onBlockGlowOn (data) {
-        this.workspace.glowBlock(data.id, true);
+    onBlockGlowOn (/* data */) {
+        // No-op in scratch-blocks v2: per-block glow is not supported
+        // by the Blockly v12 WorkspaceSvg API. Upstream upstreamed the
+        // same no-op pattern; per-block glow may return in a future
+        // scratch-blocks release.
     }
-    onBlockGlowOff (data) {
-        this.workspace.glowBlock(data.id, false);
+    onBlockGlowOff (/* data */) {
+        // No-op (see onBlockGlowOn).
     }
     onVisualReport (data) {
         // Don't show visual report in Code tab when Ruby tab is active
