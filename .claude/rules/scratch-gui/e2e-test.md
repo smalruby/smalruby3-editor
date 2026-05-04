@@ -211,6 +211,33 @@ await page.waitForTimeout(500);
 
 この問題は通常のブラウザ操作では発生しない（Playwright 環境固有）。
 
+## ❌ Playwright で Blockly / React のライブメソッドを monkey-patch しない
+
+`browser_evaluate` で **稼働中の Blockly / React lifecycle メソッドを書き換えて、その内側の処理を再トリガーする** と、Playwright MCP が無応答になり、ユーザの interrupt がない限り抜けられなくなります。少なくとも 2 回踏みました（gesture 調査 と toolbox `forceRerender` + `flyout.show` wrap）。
+
+### やってはいけないこと
+
+| アンチパターン | なぜ詰むか |
+|---|---|
+| `flyout.show` / `toolbox.show` / `workspace.setVisible` などを wrap して同じ操作を内側で呼ぶ | wrapper → orig → React `componentDidUpdate` → 別の `forceRerender` → wrapper … と相互再帰しイベントループが詰まる |
+| `pointerdown` を dispatch だけして対応する `pointerup` を出さない | Blockly の Gesture が global の `pointermove` / `pointerup` listener を `document` に張った「ドラッグ進行中」状態のまま固まり、後続のクリックや React 状態が破綻 |
+| `forceRerender()` / `setSelectedItem()` / `inject()` 等の重い lifecycle 入口を eval から呼ぶ | それ自体は OK だが、wrapper や warning ハンドラがそこに絡むと相互再帰しがち |
+
+### 守るルール
+
+1. **Probe は read-only にする** — フィールド読み取り / 関数呼び出しの戻り値を取るだけ。書き込み・wrap はしない。
+2. **静的解析を優先** — どこから API が呼ばれるかを知りたいなら、`curl http://localhost:8601/gui.js` した bundle を grep する方が安全で速い。Smalruby のソースなら `node_modules/scratch-blocks/src` を直接 grep。
+3. **イベントペアを必ず対称に dispatch する** — `pointerdown` を出したら同じ eval 内で `pointerup` も。失敗時は `workspace.cancelCurrentGesture()` で必ずリセット。
+4. **probe は bounded time にする** — `await new Promise(r => setTimeout(r, X))` の `X` は 1500ms 以下を上限とする。再帰やループは書かない。
+5. **応答が遅いと感じたら早めに interrupt** — Playwright MCP transport は応答待ちで永遠に止まりうる。ユーザの Esc / 中断指示に頼らず、自分で別アプローチに切り替える判断を早めに行う。
+
+### 推奨パターン
+
+- runtime プロパティを覗きたい → `Object.keys(obj).filter(...)` / `Object.getOwnPropertyNames(proto)` で **読み取りのみ**。
+- どの API が存在するかチェックしたい → `typeof obj.method` を返すだけ。
+- ライブの workspace 状態をログしたい → 既存の **公開 listener フック点** (`workspace.addChangeListener`) を使う。`flyout.show` などの内部メソッドは触らない。
+- イベント順序を観測したい → addChangeListener + 配列 push で十分。原関数は wrap しない。
+
 ## Monaco Editor の操作
 
 ```javascript

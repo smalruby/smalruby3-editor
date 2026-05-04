@@ -38,7 +38,7 @@ const getBlocksBoundingBox = function (workspace) {
  * @returns {{x: number, y: number, width: number, height: number}} Merged bounding box
  */
 const mergeWithBubbleBBox = function (workspace, blockBbox) {
-    const bubbleCanvas = workspace.svgBubbleCanvas_;
+    const bubbleCanvas = workspace.getBubbleCanvas();
     if (!bubbleCanvas || bubbleCanvas.children.length === 0) {
         return blockBbox;
     }
@@ -154,7 +154,7 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     }
 
     // Include <defs> and <style> from parent SVG (for block shapes, filters, etc.)
-    const blockCanvas = workspace.svgBlockCanvas_;
+    const blockCanvas = workspace.getCanvas();
     const parentSvg = blockCanvas.ownerSVGElement || (blockCanvas.closest && blockCanvas.closest('svg'));
     if (parentSvg) {
         const defs = parentSvg.querySelector('defs');
@@ -198,7 +198,7 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     // Remove <foreignObject> elements which contain HTML <textarea> for editing;
     // they cause tainted canvas errors when the SVG is loaded via blob URL.
     // The visible comment text is already in <text> elements, so nothing is lost.
-    const bubbleCanvas = workspace.svgBubbleCanvas_;
+    const bubbleCanvas = workspace.getBubbleCanvas();
     if (bubbleCanvas && bubbleCanvas.children.length > 0) {
         const bubbleClone = bubbleCanvas.cloneNode(true);
         bubbleClone.querySelectorAll('foreignObject').forEach((fo) => fo.remove());
