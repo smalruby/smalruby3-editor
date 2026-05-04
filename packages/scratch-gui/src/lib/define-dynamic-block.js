@@ -267,8 +267,31 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
 
 /**
  * Rebuild the block's inputs based on new blockInfo.
- * Follows the procedures_call updateDisplay_ pattern:
- * pause rendering → disconnect → remove → create → render.
+ * Follows the procedures_call updateDisplay_ pattern (scratch-blocks v2):
+ * disconnect → remove → create → dispose orphans. **Do NOT toggle
+ * `block.rendered` and do NOT call `block.initSvg()` / `block.render()`
+ * manually** — Blockly v12's `Input.appendField` is now responsible for
+ * initialising fresh fields based on the block state:
+ *
+ *   appendField(field, name) {
+ *     field.setSourceBlock(this.sourceBlock);
+ *     this.sourceBlock.initialized && this.initField(field);
+ *     this.sourceBlock.rendered && this.sourceBlock.queueRender();
+ *   }
+ *   initField(field) {
+ *     this.sourceBlock.rendered ? field.init() : field.initModel();
+ *   }
+ *
+ * If we set `block.rendered = false` before `appendField` runs, only
+ * `field.initModel()` is called and the SVG `<text>` element of a fresh
+ * `FieldDropdown` is never created. The follow-up `block.initSvg()` is
+ * a no-op because `block.initialized` is already `true` (initSvg has a
+ * one-shot guard), so the missing text element is never repaired and
+ * the next render throws `Field.getTextContent()` "The text content is
+ * null." (issue #634).
+ *
+ * scratch-blocks v2's own `procedures.ts updateDisplay_` does exactly
+ * the no-rendered-toggle pattern below.
  * @param {object} block - the scratch-blocks Block instance.
  * @param {object} newBlockInfo - the new blockInfo to build from.
  * @param {object} ScratchBlocks - the ScratchBlocks namespace.
@@ -276,9 +299,6 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
  * @param {object} categoryInfo - extension category info (for resolving dynamic menus).
  */
 const updateBlockDisplay = function (block, newBlockInfo, ScratchBlocks, skipShadows, categoryInfo) {
-    const wasRendered = block.rendered;
-    block.rendered = false;
-
     const connectionMap = disconnectOldBlocks(block);
     removeAllInputs(block);
     createAllInputs(block, newBlockInfo, connectionMap, ScratchBlocks, skipShadows, categoryInfo);
@@ -293,10 +313,21 @@ const updateBlockDisplay = function (block, newBlockInfo, ScratchBlocks, skipSha
         }
     }
 
-    block.rendered = wasRendered;
-    if (wasRendered && !block.isInsertionMarker()) {
+    // For freshly-built blocks (block.initialized === false), the
+    // appendField calls above did NOT trigger field.init() because
+    // Blockly v12's `Input.initField` checks `block.initialized` first.
+    // Call `block.initSvg()` to walk inputList and run `field.init()`
+    // for every field, which creates each field's SVG `<text>` element
+    // (the missing `getTextContent()` target — issue #634).
+    //
+    // `initSvg()` is idempotent via its one-shot guard, so calling it on
+    // an already-initialized block is a no-op. `render()` then re-measures
+    // and lays out the block with the new inputs/fields.
+    if (block.initSvg && !block.isInsertionMarker()) {
         block.initSvg();
-        block.render();
+        if (block.render) {
+            block.render();
+        }
     }
 };
 
