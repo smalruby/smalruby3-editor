@@ -266,6 +266,25 @@ const VariablesConverter = {
                 } else {
                     prefixedName = variable.originalName;
                 }
+                // === Smalruby: Drop the scalar entry created eagerly by
+                // `_onVasgn` (assignments.js) before this handler ran.
+                // For `a = [1, 2, 3]`, `_onVasgn` calls
+                // `_lookupOrCreateVariable(varName)` before visiting the
+                // RHS, which registers `a` as a SCALAR in
+                // `_context.localVariables` (and as a sprite-level scalar
+                // via target-applier). The list created below is the
+                // intended canonical entry, so the eager scalar must be
+                // removed to keep a single `_a_1_` on the target —
+                // otherwise scratch-blocks v2 sees two same-name variables
+                // and fails to render the workspace XML for any block that
+                // references the list (issue #634). ===
+                if (variable && !converter._isBlock(variable)) {
+                    if (variable.scope === 'local') {
+                        delete converter._context.localVariables[variable.name];
+                    } else if (variable.scope === 'global' || variable.scope === 'instance') {
+                        delete converter._context.variables[variable.name];
+                    }
+                }
                 const listVar = converter._lookupOrCreateList(prefixedName);
 
                 // Create clear block
