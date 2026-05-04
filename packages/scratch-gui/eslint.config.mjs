@@ -53,6 +53,16 @@ export default eslintConfigScratch.defineConfig(
             // TypeScript resolver; these are valid at runtime via webpack's loader pipeline
             'import-x/no-unresolved': ['error', {ignore: ['^!']}],
 
+            // === Smalruby: Start of react lifecycle typo detection ===
+            // getDerivedStateFromProps / getDerivedStateFromError must be static
+            // methods. React silently ignores them when defined as instance methods,
+            // and the warning is stripped from production builds — so this issue
+            // only surfaces in development. Catching it at lint time is far more
+            // reliable. (See PlayButton fix where instance method silently broke
+            // touchStarted state reset.)
+            'react/no-typos': 'error',
+            // === Smalruby: End of react lifecycle typo detection ===
+
             // BEGIN: these caused trouble after upgrading eslint-plugin-react from 7.24.0 to 7.33.2
             'react/forbid-prop-types': 'warn',
             'react/no-unknown-property': 'warn',
