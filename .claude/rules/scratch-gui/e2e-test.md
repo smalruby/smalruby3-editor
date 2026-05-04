@@ -149,6 +149,24 @@ await page.evaluate(() => {
 await page.getByTestId('ruby-toolbar-mode-dncl').click();
 ```
 
+## スクリーンショット / 一時ファイルの保存先は `tmp/` 配下
+
+`mcp__playwright__browser_take_screenshot` の `filename` パラメータ、および Playwright デバッグ中に生成する一時ファイル (console ログ、HAR、抽出した DOM など) は **必ずプロジェクトルートの `tmp/` 配下を指定する**。
+
+- `.gitignore` で `/tmp/` が除外されており、検証用の一時ファイルを置くための公式の場所
+- プロジェクトルート直下に保存するとリポジトリが汚れ、複数セッションを跨ぐと数十枚の `test-*.png` が散乱する
+- `tmp/` ディレクトリは作成済み
+
+```javascript
+// ✅ 正しい
+mcp__playwright__browser_take_screenshot({ filename: 'tmp/issue-634-after-fix.png' })
+
+// ❌ ダメ — プロジェクトルートに保存される
+mcp__playwright__browser_take_screenshot({ filename: 'issue-634-after-fix.png' })
+```
+
+`.playwright-mcp/` ディレクトリは Playwright MCP が自動生成するスナップショット (yml) や、`browser_take_screenshot` の **デフォルト保存先** として使われることがある別物。意図的に Read 用の固有ファイル名を残したいときは `tmp/` を使うこと。
+
 ## URL Parameters for Testing
 
 Playwright MCP でテストする際は以下の URL パラメータを使用:
