@@ -83,22 +83,6 @@ const VariableUtils = {
             variable = this._context[storeName][transformedName];
 
             if (!variable) {
-                // === Smalruby (issue #634): Before creating a new variable
-                // of the requested type, check the *other* store for an
-                // existing entry with the same transformed name. This
-                // happens at top-level (no scope tracking) when the
-                // converter sees `a = [1, 2, 3]` (registers `a` in `lists`)
-                // followed by `puts(a.max)` — the second `_lookupOrCreateVariable('a')`
-                // would otherwise create a parallel scalar and target-applier
-                // would push two same-name variables to the VM, breaking
-                // scratch-blocks v2's workspace XML render. Reuse the
-                // existing canonical variable so there is exactly one
-                // `_a_1_` per local name. ===
-                const otherStore = type === Variable.SCALAR_TYPE ? 'lists' : 'localVariables';
-                const otherVar = this._context[otherStore][transformedName];
-                if (otherVar) {
-                    return otherVar;
-                }
                 variable = {
                     id: Blockly.utils.idGenerator.genUid(),
                     name: transformedName,

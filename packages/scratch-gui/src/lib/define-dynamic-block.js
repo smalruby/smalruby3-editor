@@ -39,37 +39,6 @@ const buildInterpolationArgs = function (blockInfo) {
 // === Smalruby: Start of argumentsByMethod support ===
 
 /**
- * Create a vertical separator field instance compatible with both
- * scratch-blocks v1 (constructor on namespace) and v2 (fieldRegistry).
- *
- * In v2 the class is no longer exported as
- * `ScratchBlocks.FieldVerticalSeparator`; it is only registered via
- * `Blockly.fieldRegistry`. Calling the v1-style constructor throws
- * "ScratchBlocks.FieldVerticalSeparator is not a constructor".
- *
- * The throw aborts `defineDynamicBlock.domToMutation` mid-flight, which in
- * turn causes the surrounding XML parser to drop the `<next>` chain after
- * the failing block — every block in a Ruby-converted script that uses an
- * extension block with an icon (smalrubyRuby_arrayMethod /
- * smalrubyRuby_hashMethod / smalrubyRuby_stringMethod) ends up as a
- * detached top-level workspace block. Combined with the recyclable flyout
- * dispose path also crashing on the same blocks, this manifests as the
- * "toolbox/workspace renders blank" symptom (issue #634).
- * @param {object} ScratchBlocks - the ScratchBlocks namespace.
- * @returns {object|null} a Field instance, or null if neither path works.
- */
-const makeVerticalSeparator = function (ScratchBlocks) {
-    if (typeof ScratchBlocks.FieldVerticalSeparator === 'function') {
-        return new ScratchBlocks.FieldVerticalSeparator();
-    }
-    if (ScratchBlocks.fieldRegistry &&
-        typeof ScratchBlocks.fieldRegistry.fromJson === 'function') {
-        return ScratchBlocks.fieldRegistry.fromJson({type: 'field_vertical_separator'});
-    }
-    return null;
-};
-
-/**
  * Parse block text template into an array of components.
  * Each component is either {type: 'label', text} or {type: 'arg', name}.
  * @param {string} text - block text with [ARG_NAME] placeholders.
@@ -212,8 +181,7 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                             label.src, label.width, label.height
                         ));
                     } else if (label.fieldVerticalSeparator) {
-                        const sep = makeVerticalSeparator(ScratchBlocks);
-                        if (sep) input.appendField(sep);
+                        input.appendField(new ScratchBlocks.FieldVerticalSeparator());
                     }
                 }
                 pendingLabels = [];
@@ -258,8 +226,7 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                     label.src, label.width, label.height
                 ));
             } else if (label.fieldVerticalSeparator) {
-                const sep = makeVerticalSeparator(ScratchBlocks);
-                if (sep) dummyInput.appendField(sep);
+                dummyInput.appendField(new ScratchBlocks.FieldVerticalSeparator());
             }
         }
     }
