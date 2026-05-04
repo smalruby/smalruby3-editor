@@ -99,7 +99,6 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/block-utils.js`
 - `src/lib/blocks-gesture-recovery.js`
 - `src/lib/blocks-screenshot.js`
-- `src/lib/define-ruby-blocks.js`
 - `src/lib/furigana-annotator.js`
 - `src/lib/furigana-call-helpers.js`
 - `src/lib/furigana-extension-handlers.js`

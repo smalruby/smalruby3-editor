@@ -188,7 +188,7 @@ const CORE_EXTENSIONS = [
     'motion',
     'operator',
     'procedures',
-    'ruby', // Ruby blocks are built-in (defined via defineRubyBlocks), not an extension
+    'ruby', // Ruby blocks are built-in (registered by scratch-vm's smalruby_ruby extension), not a loadable extension
     'sensing',
     'sound'
 ];
