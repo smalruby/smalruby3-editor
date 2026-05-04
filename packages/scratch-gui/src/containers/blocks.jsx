@@ -367,6 +367,13 @@ class Blocks extends React.Component {
             if (flyout.svgGroup_) flyout.svgGroup_.style.display = 'none';
         }
         this.ScratchBlocks.svgResize(this.workspace);
+        // Re-render so the palette-toggle button picks up the now-correct
+        // toolbox.getWidth() + flyout.getWidth() — render() runs *before*
+        // this method, so the first render after a paletteVisible change
+        // sees stale flyout dimensions and lands the toggle on top of the
+        // blocks (issue: toggle button at toolbox.getWidth() instead of
+        // toolbox.getWidth() + flyout.getWidth() after re-open).
+        this.forceUpdate();
     }
     requestToolboxUpdate () {
         clearTimeout(this.toolboxUpdateTimeout);

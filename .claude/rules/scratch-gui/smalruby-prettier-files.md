@@ -190,6 +190,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/smalrubot-s1-connection-flow.test.js`
 - `test/integration/rubytee-consent.test.js`
 - `test/integration/smalruby-tutorials.test.js`
+- `test/integration/palette-toggle-position.test.js`
 - `test/integration/v1-detection-prompt.test.js`
 - `test/integration/version-update-notification.test.js`
 - `test/integration/workspace-glow-regression.test.js`
