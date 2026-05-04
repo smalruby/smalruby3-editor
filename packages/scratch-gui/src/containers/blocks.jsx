@@ -436,8 +436,39 @@ class Blocks extends React.Component {
                 }
             });
         }
-        this.workspace.getToolbox().forceRerender();
+        // === Smalruby: Start of forceRerender error guard ===
+        // scratch-blocks v2 throws "Cannot read properties of undefined
+        // (reading '2')" inside the toolbox flyout's recycling/dispose path
+        // (clearOldBlocks → disposeItem → block.dispose) for some Ruby
+        // converted scripts (e.g. `a = [1,2,3]; a.each do |i| puts i end`
+        // creates a list variable that, when the dynamic Variables category
+        // re-renders, hits a v2 bug). If forceRerender throws and we don't
+        // mark _renderedToolboxXML as updated, componentDidUpdate immediately
+        // queues another updateToolbox via requestToolboxUpdate(), causing
+        // an infinite loop that floods the console and freezes the UI.
+        //
+        // Always update _renderedToolboxXML so the loop is broken, and
+        // swallow the v2 internal error: the toolbox shows previously
+        // recycled / fallback content, but the editor stays usable.
+        // Recycling is also disabled across the call to take the
+        // non-recycling dispose path when possible.
         this._renderedToolboxXML = this.props.toolboxXML;
+        const flyout = this.workspace.getFlyout();
+        const recyclingWasEnabled = flyout && typeof flyout.recyclingEnabled === 'function' ?
+            flyout.recyclingEnabled() : true;
+        if (flyout && typeof flyout.setRecyclingEnabled === 'function') {
+            flyout.setRecyclingEnabled(false);
+        }
+        try {
+            this.workspace.getToolbox().forceRerender();
+        } catch (err) {
+            log.error('Toolbox forceRerender failed (scratch-blocks v2):', err);
+        } finally {
+            if (flyout && typeof flyout.setRecyclingEnabled === 'function') {
+                flyout.setRecyclingEnabled(recyclingWasEnabled);
+            }
+        }
+        // === Smalruby: End of forceRerender error guard ===
 
         const queue = this.toolboxUpdateQueue;
         this.toolboxUpdateQueue = [];
