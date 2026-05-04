@@ -741,40 +741,34 @@ class Blocks extends React.Component {
                         }
                     });
 
-                    // Re-calculate the position of the comments.
+                    // Workspace-level comments (e.g. `@ruby:class`) have no
+                    // blockId — they are returned by getTopComments() and are
+                    // separate WorkspaceComment objects in scratch-blocks v2.
+                    // Collapse `@ruby:*` ones via the v2 API (setCollapsed,
+                    // replacing v1's setMinimized) and align them to the
+                    // left of the first top block.
                     const firstTopBlock = this.workspace.getTopBlocks(true)[0];
                     this.workspace.getTopComments(false).forEach(comment => {
-                        if (comment.blockId) {
-                            const block = this.workspace.getBlockById(comment.blockId);
-                            if (block) {
-                                const blockXY = block.getRelativeToSurfaceXY();
-                                const commentHW = comment.getHeightWidth();
-                                const rtl = this.workspace.RTL;
-                                const x = rtl ? 20 : -commentHW.width - 20;
-                                const y = blockXY.y;
-                                comment.moveTo(x, y);
+                        if (!firstTopBlock || comment.blockId) return;
+                        const text = typeof comment.getText === 'function' ?
+                            comment.getText() : comment.text;
+                        if (!text || !text.startsWith('@ruby:')) return;
+                        if (typeof comment.setCollapsed === 'function') {
+                            comment.setCollapsed(true);
+                        }
+                        const blockXY = firstTopBlock.getRelativeToSurfaceXY();
+                        const rtl = this.workspace.RTL;
+                        const dx = rtl ? 20 : -220;
+                        const x = blockXY.x + dx;
+                        const y = blockXY.y;
+                        if (typeof comment.moveTo === 'function') {
+                            comment.moveTo(new this.ScratchBlocks.utils.Coordinate(x, y));
+                        }
 
-                                const targetComments = this.props.vm.editingTarget.comments;
-                                if (targetComments && targetComments[comment.id]) {
-                                    targetComments[comment.id].x = x;
-                                    targetComments[comment.id].y = y;
-                                }
-                            }
-                        } else if (firstTopBlock) {
-                            // Workspace-level comments (e.g. @ruby:class) have no blockId.
-                            // Place them to the left of the first top block, at the same y.
-                            const blockXY = firstTopBlock.getRelativeToSurfaceXY();
-                            const commentHW = comment.getHeightWidth();
-                            const rtl = this.workspace.RTL;
-                            const x = rtl ? 20 : -commentHW.width - 20;
-                            const y = blockXY.y;
-                            comment.moveTo(x, y);
-
-                            const targetComments = this.props.vm.editingTarget.comments;
-                            if (targetComments && targetComments[comment.id]) {
-                                targetComments[comment.id].x = x;
-                                targetComments[comment.id].y = y;
-                            }
+                        const targetComments = this.props.vm.editingTarget.comments;
+                        if (targetComments && targetComments[comment.id]) {
+                            targetComments[comment.id].x = x;
+                            targetComments[comment.id].y = y;
                         }
                     });
 
