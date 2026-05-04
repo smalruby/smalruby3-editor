@@ -39,6 +39,25 @@ const buildInterpolationArgs = function (blockInfo) {
 // === Smalruby: Start of argumentsByMethod support ===
 
 /**
+ * Build a FieldVerticalSeparator instance compatible with both v1 and v2
+ * scratch-blocks. v2 only registers the field via `fieldRegistry`, so the
+ * v1-style `new ScratchBlocks.FieldVerticalSeparator()` constructor call
+ * throws "is not a constructor" at runtime.
+ * @param {object} ScratchBlocks - the ScratchBlocks namespace.
+ * @returns {object|null} the field instance, or null if unavailable.
+ */
+const makeVerticalSeparator = function (ScratchBlocks) {
+    if (typeof ScratchBlocks.FieldVerticalSeparator === 'function') {
+        return new ScratchBlocks.FieldVerticalSeparator();
+    }
+    if (ScratchBlocks.fieldRegistry &&
+        typeof ScratchBlocks.fieldRegistry.fromJson === 'function') {
+        return ScratchBlocks.fieldRegistry.fromJson({type: 'field_vertical_separator'});
+    }
+    return null;
+};
+
+/**
  * Parse block text template into an array of components.
  * Each component is either {type: 'label', text} or {type: 'arg', name}.
  * @param {string} text - block text with [ARG_NAME] placeholders.
@@ -181,7 +200,8 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                             label.src, label.width, label.height
                         ));
                     } else if (label.fieldVerticalSeparator) {
-                        input.appendField(new ScratchBlocks.FieldVerticalSeparator());
+                        const sep = makeVerticalSeparator(ScratchBlocks);
+                        if (sep) input.appendField(sep);
                     }
                 }
                 pendingLabels = [];
@@ -226,7 +246,8 @@ const createAllInputs = function (block, blockInfo, connectionMap, ScratchBlocks
                     label.src, label.width, label.height
                 ));
             } else if (label.fieldVerticalSeparator) {
-                dummyInput.appendField(new ScratchBlocks.FieldVerticalSeparator());
+                const sep = makeVerticalSeparator(ScratchBlocks);
+                if (sep) dummyInput.appendField(sep);
             }
         }
     }

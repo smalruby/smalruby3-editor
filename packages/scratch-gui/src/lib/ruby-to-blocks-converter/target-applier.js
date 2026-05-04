@@ -54,10 +54,31 @@ const TargetApplier = {
         // Map of old variable IDs to new IDs (for reusing existing variables)
         const variableIdMap = {};
 
-        ['variables', 'lists', 'localVariables'].forEach(storeName => {
+        // === Smalruby (issue #634): Skip the second occurrence of any
+        // (name, scope) pair across stores. The converter's `_onVasgn`
+        // eagerly creates a SCALAR in `_context.localVariables` before
+        // visiting the RHS, so an array-literal handler that subsequently
+        // creates a LIST in `_context.lists` ends up with two variables
+        // sharing the same name (e.g. `_a_1_`) but different types and
+        // ids. target-applier would push both to the VM target, and
+        // scratch-blocks v2 then fails to parse the workspace XML for
+        // any block referencing the list. Iterate `lists` first so list
+        // wins over the eager scalar; the second iteration of
+        // localVariables drops the duplicate. ===
+        const seenVarKeys = new Set();
+        ['lists', 'variables', 'localVariables'].forEach(storeName => {
             Object.keys(this._context[storeName]).forEach(name => {
                 const variable = this._context[storeName][name];
                 if (variable.isArgument) return;
+
+                const dedupeKey = `${variable.scope}:${variable.name}`;
+                if (seenVarKeys.has(dedupeKey)) {
+                    // Older entry from another store wins; remap any later
+                    // references through variableIdMap so block fields stay
+                    // consistent.
+                    return;
+                }
+                seenVarKeys.add(dedupeKey);
 
                 const oldId = variable.id;
                 let existingVar = null;
