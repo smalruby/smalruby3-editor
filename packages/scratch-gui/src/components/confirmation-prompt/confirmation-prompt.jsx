@@ -103,6 +103,7 @@ const ConfirmationPrompt = ({
 
     const cancelButton = (
         <button
+            key="cancel"
             onClick={handleCancel}
             className={classNames(styles.cancelButton, cancelButtonConfig.className ?? '')}
         >
@@ -119,6 +120,7 @@ const ConfirmationPrompt = ({
 
     const confirmButton = (
         <button
+            key="confirm"
             onClick={handleConfirm}
             className={classNames(styles.confirmButton, confirmButtonConfig.className ?? '')}
         >
