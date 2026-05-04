@@ -75,11 +75,8 @@ describe('Localization', () => {
         expect(logs).toEqual([]);
     });
 
-    // === Smalruby: skipped after the upstream Blockly v12 / scratch-blocks v2
-    // upgrade — relies on the flyout-click report tooltip which does not open
-    // reliably in our headless Selenium runs. Tracking under follow-up issue. ===
     // test for #5445
-    test.skip('Loading with locale shows correct translation for string length block parameter', async () => {
+    test('Loading with locale shows correct translation for string length block parameter', async () => {
         await loadUri(`${uri}?locale=ja`);
         await clickBlocksCategory('演算'); // Operators category in Japanese
         await new Promise(resolve => setTimeout(resolve, 1000)); // wait for blocks to scroll

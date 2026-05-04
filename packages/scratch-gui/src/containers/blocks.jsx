@@ -97,6 +97,9 @@ class Blocks extends React.Component {
             'handleDownloadBlocksImage'
         ]);
         this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
+        this.ScratchBlocks.ScratchVariables.setPromptHandler(
+            this.handlePromptStart
+        );
         this.ScratchBlocks.StatusIndicatorLabel.statusButtonCallback = this.handleConnectionModalStart;
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
 
@@ -119,6 +122,9 @@ class Blocks extends React.Component {
         this.ScratchBlocks = VMScratchBlocks(this.props.vm);
         this.props.onSetScratchBlocks(this.ScratchBlocks);
         this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
+        this.ScratchBlocks.ScratchVariables.setPromptHandler(
+            this.handlePromptStart
+        );
         this.ScratchBlocks.StatusIndicatorLabel.statusButtonCallback = this.handleConnectionModalStart;
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
 

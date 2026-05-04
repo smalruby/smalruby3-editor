@@ -17,6 +17,7 @@ const {
     waitForLoadingFinished,
     rightClickText,
     scope,
+    scopeForFlyoutBlock,
     until
 } = new SeleniumHelper();
 
@@ -33,12 +34,7 @@ describe('Working with the blocks', () => {
         await driver.quit();
     });
 
-    // === Smalruby: skipped after the upstream Blockly v12 / scratch-blocks v2
-    // upgrade. Clicking a flyout block in the Smalruby build no longer
-    // surfaces the result tooltip via Blockly.DropDownDiv (the
-    // `valueReportBox` never opens in headless Selenium runs even though the
-    // VM emits VISUAL_REPORT). Tracking under follow-up issue. ===
-    test.skip('Blocks report when clicked in the toolbox', async () => {
+    test('Blocks report when clicked in the toolbox', async () => {
         await loadUri(uri);
         await clickText('Code');
         await clickBlocksCategory('Operators');
@@ -63,9 +59,7 @@ describe('Working with the blocks', () => {
         expect(logs).toEqual([]);
     });
 
-    // === Smalruby: skipped after the upstream Blockly v12 / scratch-blocks v2
-    // upgrade — relies on the flyout-click report tooltip, see note above. ===
-    test.skip('Creating variables', async () => {
+    test('Creating variables', async () => {
         await loadUri(uri);
         await clickText('Code');
         await clickBlocksCategory('Variables');
@@ -114,9 +108,7 @@ describe('Working with the blocks', () => {
         expect(logs).toEqual([]);
     });
 
-    // === Smalruby: skipped after the upstream Blockly v12 / scratch-blocks v2
-    // upgrade — relies on the flyout-click report tooltip, see note above. ===
-    test.skip('Creating a list', async () => {
+    test('Creating a list', async () => {
         await loadUri(uri);
         await clickText('Code');
         await clickBlocksCategory('Variables');
@@ -133,7 +125,7 @@ describe('Working with the blocks', () => {
         await driver.sleep(100);
         await clickText('add', scope.blocksTab);
         await driver.sleep(100);
-        await clickText('list1', scope.blocksTab);
+        await clickText('list1', scopeForFlyoutBlock('data_listcontents'));
         await findByText('thing thing thing', scope.reportedValue); // Tooltip with result
         await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
@@ -146,7 +138,7 @@ describe('Working with the blocks', () => {
         await clickText('list1', scope.monitors); // Blur the input to submit
 
         // Check that the list value has been propagated.
-        await clickText('list1', scope.blocksTab);
+        await clickText('list1', scopeForFlyoutBlock('data_listcontents'));
         await findByText('thing thing thing thing2', scope.reportedValue); // Tooltip with result
         await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
@@ -299,11 +291,8 @@ describe('Working with the blocks', () => {
         await clickText('my\u00A0variable');
     });
 
-    // === Smalruby: skipped after the upstream Blockly v12 / scratch-blocks v2
-    // upgrade — relies on Make-a-List input that does not appear reliably in
-    // headless Selenium runs after the upstream toolbox refactor. ===
     // Regression test for switching editor tabs causing toolbox to stop updating
-    test.skip('Creating variables after adding extensions updates the toolbox', async () => {
+    test('Creating variables after adding extensions updates the toolbox', async () => {
         await loadUri(uri);
         await clickText('Costumes');
         await clickText('Code');
@@ -312,25 +301,21 @@ describe('Working with the blocks', () => {
         const el = await findByXpath("//input[@name='New list name:']");
         await el.sendKeys('list1');
         await clickButton('OK');
-        await clickText('list1', scope.blocksTab);
+        await clickText('list1', scopeForFlyoutBlock('data_listcontents'));
     });
 
-    // === Smalruby: skipped after the upstream Blockly v12 / scratch-blocks v2
-    // upgrade — relies on the flyout-click report tooltip, see note above. ===
-    test.skip('Use variable blocks after switching languages', async () => {
+    test('Use variable blocks after switching languages', async () => {
         const myVariable = 'my\u00A0variable';
-        const changeVariableByScope = "*[@data-id='data_changevariableby']";
-
         await loadUri(uri);
 
         await clickText('Code');
         await clickBlocksCategory('Variables');
 
         // change "my variable" by 1
-        await clickText('change', changeVariableByScope);
+        await clickText('change', scopeForFlyoutBlock('data_changevariableby'));
 
         // check reported value 1
-        await clickText(myVariable, scope.blocksTab);
+        await clickText(myVariable, scopeForFlyoutBlock('data_variable'));
         await findByText('1', scope.reportedValue);
         await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
@@ -343,21 +328,19 @@ describe('Working with the blocks', () => {
         await clickBlocksCategory('Variablen');
 
         // make sure "my variable" is still 1
-        await clickText(myVariable);
+        await clickText(myVariable, scopeForFlyoutBlock('data_variable'));
         await findByText('1', scope.reportedValue);
         await driver.actions().sendKeys(Key.ESCAPE).perform(); // Close tooltip
 
         // change step from 1 to 10
-        await clickText('1', changeVariableByScope);
-        await driver.actions()
-            .sendKeys('10')
-            .perform();
+        await clickText('1', scopeForFlyoutBlock('data_changevariableby'));
+        await driver.actions().sendKeys('10').perform();
 
         // change "my variable" by 10
-        await clickText('ändere', changeVariableByScope);
+        await clickText('ändere', scopeForFlyoutBlock('data_changevariableby'));
 
         // check it is turned up to 11
-        await clickText(myVariable);
+        await clickText(myVariable, scopeForFlyoutBlock('data_variable'));
         await findByText('11', scope.reportedValue);
     });
 });
