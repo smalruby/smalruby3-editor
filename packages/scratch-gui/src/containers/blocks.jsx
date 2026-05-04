@@ -665,6 +665,7 @@ class Blocks extends React.Component {
         this.workspace.removeChangeListener(this.toolboxUpdateChangeListener);
         let fromRuby = false;
         const rubyCommentIconsToMinimize = [];
+        const rubyWorkspaceCommentsToCollapse = [];
         try {
             this.ScratchBlocks.Events.disable();
             const dom = this.ScratchBlocks.utils.xml.textToDom(data.xml);
@@ -753,9 +754,12 @@ class Blocks extends React.Component {
                         const text = typeof comment.getText === 'function' ?
                             comment.getText() : comment.text;
                         if (!text || !text.startsWith('@ruby:')) return;
-                        if (typeof comment.setCollapsed === 'function') {
-                            comment.setCollapsed(true);
-                        }
+                        // Defer setCollapsed(true) to the finally block:
+                        // calling it while Events are disabled is a no-op,
+                        // and a synchronous call here is overridden by
+                        // scratch-blocks v2's post-load rendering pass.
+                        rubyWorkspaceCommentsToCollapse.push(comment.id);
+
                         const blockXY = firstTopBlock.getRelativeToSurfaceXY();
                         const rtl = this.workspace.RTL;
                         const dx = rtl ? 20 : -220;
@@ -816,7 +820,9 @@ class Blocks extends React.Component {
             // because scratch-blocks v2 gates the visibility update on its
             // event dispatch path. Apply the collected minimizations now that
             // the event system is back online.
-            if (rubyCommentIconsToMinimize.length > 0 && this.workspace) {
+            if (this.workspace &&
+                (rubyCommentIconsToMinimize.length > 0 ||
+                    rubyWorkspaceCommentsToCollapse.length > 0)) {
                 // Defer: scratch-blocks v2 finishes its post-load rendering
                 // pass after onWorkspaceUpdate returns, and a synchronous
                 // setBubbleVisible(false) call is overridden by that pass.
@@ -863,6 +869,16 @@ class Blocks extends React.Component {
                         }
                         if (typeof commentIcon.setBubbleVisible === 'function') {
                             commentIcon.setBubbleVisible(false);
+                        }
+                    });
+                    // Workspace-level comments (@ruby:class etc.) need
+                    // setCollapsed(true) for the v2 collapse path. Re-fetch
+                    // by ID since references collected during onWorkspaceUpdate
+                    // can be detached.
+                    rubyWorkspaceCommentsToCollapse.forEach(commentId => {
+                        const wsComment = ws.getCommentById && ws.getCommentById(commentId);
+                        if (wsComment && typeof wsComment.setCollapsed === 'function') {
+                            wsComment.setCollapsed(true);
                         }
                     });
                 }, 100);
