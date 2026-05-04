@@ -220,6 +220,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/backpack-api.test.js`
 - `test/unit/lib/backpack-mesh-v1-migration.test.js`
 - `test/unit/lib/block-display-initialization.test.js`
+- `test/unit/lib/blockly-private-api.test.js`
 - `test/unit/lib/blocks-gesture-recovery.test.js`
 - `test/unit/lib/blocks-screenshot.test.js`
 - `test/unit/lib/furigana-annotator-perf.test.js`
