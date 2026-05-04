@@ -192,6 +192,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/smalruby-tutorials.test.js`
 - `test/integration/v1-detection-prompt.test.js`
 - `test/integration/version-update-notification.test.js`
+- `test/integration/workspace-glow-regression.test.js`
 - `test/unit/components/action-menu.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
 - `test/unit/components/mobile-bottom-tabs.test.jsx`
