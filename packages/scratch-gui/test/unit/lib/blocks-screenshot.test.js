@@ -5,6 +5,7 @@ import {
     buildFilename,
     buildExportSVG,
     downloadBlocksAsImage,
+    stripExternalCssUrls,
     EXPORT_PADDING,
 } from '../../../src/lib/blocks-screenshot';
 import downloadBlob from '../../../src/lib/download-blob';
@@ -12,7 +13,13 @@ import downloadBlob from '../../../src/lib/download-blob';
 jest.mock('../../../src/lib/download-blob', () => jest.fn());
 
 // Helper: create a mock Blockly workspace
-const makeMockWorkspace = ({ boundingBox = null, scale = 1, bubbleChildren = 0, withForeignObject = false } = {}) => {
+const makeMockWorkspace = ({
+    boundingBox = null,
+    scale = 1,
+    bubbleChildren = 0,
+    withForeignObject = false,
+    blockCanvasForeignObjectCount = 0,
+} = {}) => {
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS, 'svg');
     const group = document.createElementNS(svgNS, 'g');
@@ -34,6 +41,15 @@ const makeMockWorkspace = ({ boundingBox = null, scale = 1, bubbleChildren = 0, 
         fo.appendChild(body);
         bubbleGroup.appendChild(fo);
     }
+    // In scratch-blocks v2, block comments live inside the block canvas (not
+    // the bubble canvas) and contain `<foreignObject>` for the editing UI.
+    for (let i = 0; i < blockCanvasForeignObjectCount; i++) {
+        const fo = document.createElementNS(svgNS, 'foreignObject');
+        fo.setAttribute('class', 'blocklyCommentForeignObject');
+        const body = document.createElementNS('http://www.w3.org/1999/xhtml', 'body');
+        fo.appendChild(body);
+        group.appendChild(fo);
+    }
     return {
         getBlocksBoundingBox: jest.fn(() => boundingBox),
         scale,
@@ -42,6 +58,45 @@ const makeMockWorkspace = ({ boundingBox = null, scale = 1, bubbleChildren = 0, 
         getBubbleCanvas: jest.fn(() => bubbleGroup),
     };
 };
+
+// ---- stripExternalCssUrls ----
+
+describe('stripExternalCssUrls', () => {
+    test('strips relative cursor / sprite urls', () => {
+        const css = '.x { cursor: url("./static/blocks-media/default/handclosed.cur"), default; }';
+        expect(stripExternalCssUrls(css)).toBe('.x { cursor: none, default; }');
+    });
+
+    test('strips background-image with relative url', () => {
+        const css = '.y { background: url(./static/sprites.png) no-repeat; }';
+        expect(stripExternalCssUrls(css)).toBe('.y { background: none no-repeat; }');
+    });
+
+    test('strips absolute http urls (canvas would taint them too)', () => {
+        const css = '.z { cursor: url(https://cdn.example.com/c.cur), default; }';
+        expect(stripExternalCssUrls(css)).toBe('.z { cursor: none, default; }');
+    });
+
+    test('keeps in-document references like url(#filter)', () => {
+        const css = '.a { filter: url(#blocklyDragShadowFilter); }';
+        expect(stripExternalCssUrls(css)).toBe('.a { filter: url(#blocklyDragShadowFilter); }');
+    });
+
+    test('keeps data: URIs', () => {
+        const css = '.b { background: url(data:image/svg+xml;base64,PHN2Z); }';
+        expect(stripExternalCssUrls(css)).toBe(css);
+    });
+
+    test('handles css with no url() refs unchanged', () => {
+        const css = '.blocklyText { fill: #fff; font-size: 12pt; }';
+        expect(stripExternalCssUrls(css)).toBe(css);
+    });
+
+    test('handles multiple urls in one rule', () => {
+        const css = '.c { cursor: url(./a.cur) 0 0, url(#fb) 0 0, default; }';
+        expect(stripExternalCssUrls(css)).toBe('.c { cursor: none 0 0, url(#fb) 0 0, default; }');
+    });
+});
 
 // ---- getBlocksBoundingBox ----
 
@@ -182,6 +237,16 @@ describe('buildExportSVG', () => {
             boundingBox: { x: 0, y: 0, width: 200, height: 100 },
             bubbleChildren: 1,
             withForeignObject: true,
+        });
+        const bbox = { x: 0, y: 0, width: 200, height: 100 };
+        const svgStr = await buildExportSVG(workspace, bbox, 1, 232, 132);
+        expect(svgStr).not.toMatch(/foreignObject/);
+    });
+
+    test('strips foreignObject elements from block canvas clone (v2 comments)', async () => {
+        const workspace = makeMockWorkspace({
+            boundingBox: { x: 0, y: 0, width: 200, height: 100 },
+            blockCanvasForeignObjectCount: 4,
         });
         const bbox = { x: 0, y: 0, width: 200, height: 100 };
         const svgStr = await buildExportSVG(workspace, bbox, 1, 232, 132);
