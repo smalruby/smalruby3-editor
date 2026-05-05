@@ -256,9 +256,69 @@ const normalizeAndOr = (line) => {
 }
 
 /**
+ * Process the leading indent zone of `body` to expand `｜` / `⎿`
+ * markers. Each marker (with its surrounding whitespace) becomes 2
+ * spaces of indent, so 1 marker = 1 indent level (= 2 spaces of Ruby
+ * indent).
+ *
+ * Returns the rewritten line plus the count of `⎿` markers, which the
+ * caller uses to decide how many block-closer lines to emit after the
+ * current line.
+ * @param {string} body - The line content (already free of `(N)` prefix).
+ * @returns {{ line: string, closeCount: number }} The processed line and
+ *   the number of blocks the next outdent should close.
+ */
+const processIndentMarkers = (body) => {
+  // Find the prefix consisting of leading whitespace + ｜ / ⎿ markers.
+  const m = body.match(/^([\s｜⎿]*)(.*)$/)
+  if (!m) return { line: body, closeCount: 0 }
+  const prefix = m[1]
+  const rest = m[2]
+  const markers = prefix.match(/[｜⎿]/g) || []
+  if (markers.length === 0) return { line: body, closeCount: 0 }
+  const closeCount = markers.filter((c) => c === '⎿').length
+  const newPrefix = ' '.repeat(2 * markers.length)
+  return { line: `${newPrefix}${rest}`, closeCount }
+}
+
+/**
+ * Determine the block type opened by the given DNCL line, if any.
+ * Recognizes the line patterns AFTER Phase 3 normalization (so `:`
+ * and `繰り返す` suffixes are already stripped).
+ *
+ * `そうでなくもし` and `そうでなければ` are NOT new blocks — they're
+ * continuations of an existing `if` block — so they return `null`.
+ * @param {string} body - The line content with indent stripped.
+ * @returns {string|null} `'if'`, `'loop'`, `'func'`, or `null`.
+ */
+const detectBlockType = (body) => {
+  // Continuations: not new blocks.
+  if (/^そうでなくもし\s+.*\s+(?:なら|ならば)$/.test(body)) return null
+  if (body === 'そうでなければ') return null
+  // Openers.
+  if (/^もし\s+.*\s+(?:なら|ならば)$/.test(body)) return 'if'
+  if (/\sの間$/.test(body)) return 'loop'
+  if (/\sずつ(?:増やしながら|減らしながら)$/.test(body)) return 'loop'
+  if (/^関数\s+\w+\s*\(/.test(body)) return 'func'
+  return null
+}
+
+/**
+ * Map a block type to its DNCL closer keyword.
+ * @param {string} type - `'if'`, `'loop'`, or `'func'`.
+ * @returns {string} The matching closer keyword.
+ */
+const closerForBlockType = (type) => {
+  if (type === 'loop') return 'を繰り返す'
+  if (type === 'func') return 'と定義する'
+  return 'を実行する'
+}
+
+/**
  * Run the DNCLv2 pre-processor on a single line. Applies all Phase 3
- * transformations in order. Phase 4 (indent markers + implicit `end`)
- * will be added later as a separate multi-line pass.
+ * per-line transformations and returns the result; indent-marker /
+ * `⎿`-based close handling lives in `dnclV2Preprocess` (which has the
+ * multi-line block stack).
  * @param {string} line - The source line.
  * @returns {string} The pre-processed line (may contain `\n` if a
  *   comma-separated multi-assignment was split).
@@ -274,10 +334,41 @@ const preprocessLine = (line) => {
 
 /**
  * Pre-process a multi-line DNCLv2 source string into Smalruby DNCL form.
- * Phase 3 implementation — see file header for what's covered.
+ * See file header for the complete list of normalizations.
+ *
+ * Phase 4 piece (this multi-line pass): walk the source while tracking
+ * an open-block stack. For each `⎿` on a line, emit the matching closer
+ * (`を実行する` / `を繰り返す` / `と定義する`) at the popped block's
+ * indent. Lines without `⎿` are passed through; explicit Smalruby
+ * closers (`を実行する` etc.) still work.
  * @param {string} source - The DNCLv2 source.
  * @returns {string} The pre-processed source.
  */
-const dnclV2Preprocess = (source) => source.split('\n').map(preprocessLine).join('\n')
+const dnclV2Preprocess = (source) => {
+  const stack = []
+  const out = []
+  for (const rawLine of source.split('\n')) {
+    // Phase 3 per-line transformations (may produce `\n` from multi-assignment).
+    const phase3 = preprocessLine(rawLine)
+    for (const line of phase3.split('\n')) {
+      const { line: marked, closeCount } = processIndentMarkers(line)
+      out.push(marked)
+      // Detect block opener AFTER marker stripping so the indent reflects
+      // the expanded form.
+      const indentMatch = marked.match(/^(\s*)/)
+      const indent = indentMatch ? indentMatch[1] : ''
+      const body = marked.substring(indent.length)
+      const type = detectBlockType(body)
+      if (type) stack.push({ type, indent })
+      // Emit closers for each `⎿` on this line.
+      for (let i = 0; i < closeCount; i++) {
+        const popped = stack.pop()
+        if (!popped) break
+        out.push(`${popped.indent}${closerForBlockType(popped.type)}`)
+      }
+    }
+  }
+  return out.join('\n')
+}
 
 export { dnclV2Preprocess }

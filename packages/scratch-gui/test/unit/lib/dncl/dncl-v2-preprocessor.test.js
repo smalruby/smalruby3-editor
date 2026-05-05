@@ -198,6 +198,146 @@ describe('DNCLv2 pre-processor: end-to-end DNCLv2 example fragment', () => {
     });
 });
 
+describe('DNCLv2 pre-processor: ｜ / ⎿ indent markers (Phase 4)', () => {
+    test('single ｜ becomes 2 spaces of indent', () => {
+        // `｜` with surrounding spaces is replaced by 2 spaces of indent.
+        const input = ['(7) もし a > 0 ならば:', '(8)  ｜ a = 1'].join('\n');
+        const out = dnclV2Preprocess(input);
+        expect(out).toContain('  a = 1');
+        // The `｜` itself should not appear in the output.
+        expect(out).not.toContain('｜');
+    });
+
+    test('double ｜ becomes 4 spaces of indent', () => {
+        const input = [
+            '(7) もし a > 0 ならば:',
+            '(8)  ｜ もし b > 0 ならば:',
+            '(9)  ｜  ｜ a = 1',
+        ].join('\n');
+        const out = dnclV2Preprocess(input);
+        expect(out).toContain('    a = 1');
+        expect(out).not.toContain('｜');
+    });
+
+    test('single ⎿ becomes 2 spaces of indent AND emits a closer', () => {
+        // The `⎿` says "this is the last line of one block — close it".
+        // The closer keyword depends on the block opener type.
+        const input = ['(7) もし a > 0 ならば:', '(8)  ⎿ a = 1'].join('\n');
+        const out = dnclV2Preprocess(input);
+        const lines = out.split('\n');
+        // Three output lines: the if header, the body, and the auto-emitted
+        // を実行する.
+        expect(lines).toEqual(['もし a > 0 ならば', '  a = 1', 'を実行する']);
+    });
+
+    test('double ⎿ closes 2 blocks at once', () => {
+        const input = [
+            '(7) もし a > 0 ならば:',
+            '(8)  ｜ もし b > 0 ならば:',
+            '(9)  ⎿  ⎿ a = 1',
+        ].join('\n');
+        const out = dnclV2Preprocess(input);
+        const lines = out.split('\n');
+        expect(lines).toEqual([
+            'もし a > 0 ならば',
+            '  もし b > 0 ならば',
+            '    a = 1',
+            '  を実行する',
+            'を実行する',
+        ]);
+    });
+
+    test('⎿ on while loop emits を繰り返す', () => {
+        const input = [
+            '(7) a > 0 の間繰り返す:',
+            '(8)  ⎿ a = a - 1',
+        ].join('\n');
+        const out = dnclV2Preprocess(input);
+        const lines = out.split('\n');
+        expect(lines).toEqual(['a > 0 の間', '  a = a - 1', 'を繰り返す']);
+    });
+
+    test('⎿ on for loop emits を繰り返す', () => {
+        const input = [
+            '(1) i を 1 から 10 まで 1 ずつ増やしながら繰り返す:',
+            '(2)  ⎿ 表示する(i)',
+        ].join('\n');
+        const out = dnclV2Preprocess(input);
+        const lines = out.split('\n');
+        expect(lines).toEqual([
+            'i を 1 から 10 まで 1 ずつ増やしながら',
+            '  表示する(i)',
+            'を繰り返す',
+        ]);
+    });
+
+    test('⎿ on function definition emits と定義する', () => {
+        const input = ['(1) 関数 f(x)', '(2)  ⎿ 返す x + 1'].join('\n');
+        const out = dnclV2Preprocess(input);
+        const lines = out.split('\n');
+        expect(lines).toEqual(['関数 f(x)', '  返す x + 1', 'と定義する']);
+    });
+
+    test('そうでなくもし / そうでなければ are NOT new blocks (no new push)', () => {
+        const input = [
+            '(1) もし a > 0 ならば:',
+            '(2)  ｜ a = 1',
+            '(3) そうでなくもし a < 0 ならば:',
+            '(4)  ｜ a = -1',
+            '(5) そうでなければ:',
+            '(6)  ⎿ a = 0',
+        ].join('\n');
+        const out = dnclV2Preprocess(input);
+        const lines = out.split('\n');
+        // Only ONE close (the original もし block), not three.
+        expect(lines).toEqual([
+            'もし a > 0 ならば',
+            '  a = 1',
+            'そうでなくもし a < 0 ならば',
+            '  a = -1',
+            'そうでなければ',
+            '  a = 0',
+            'を実行する',
+        ]);
+    });
+
+    test('full nested DNCLv2 example block (Issue #640 lines 7-15)', () => {
+        const input = [
+            '(7)  hidari <= migi and owari == 0 の間繰り返す:',
+            '(8)   ｜ aida = (hidari+migi) ÷ 2',
+            '(9)   ｜ もし Data[aida] == atai ならば:',
+            '(10)  ｜  ｜ 表示する(atai, "は", aida, "番目にありました")',
+            '(11)  ｜  ｜ owari = 1',
+            '(12)  ｜ そうでなくもし Data[aida] < atai ならば:',
+            '(13)  ｜  ｜ hidari = aida + 1',
+            '(14)  ｜ そうでなければ:',
+            '(15)  ⎿  ⎿ migi = aida - 1',
+        ].join('\n');
+        const out = dnclV2Preprocess(input);
+        const lines = out.split('\n');
+        expect(lines).toEqual([
+            'hidari <= migi かつ owari == 0 の間',
+            '  aida = (hidari+migi) ÷ 2',
+            '  もし Data[aida] == atai ならば',
+            '    表示する(atai, "は", aida, "番目にありました")',
+            '    owari = 1',
+            '  そうでなくもし Data[aida] < atai ならば',
+            '    hidari = aida + 1',
+            '  そうでなければ',
+            '    migi = aida - 1',
+            '  を実行する',
+            'を繰り返す',
+        ]);
+    });
+
+    test('lines without ⎿ do NOT auto-emit closers', () => {
+        // Normal Smalruby DNCL with explicit を実行する still works.
+        const input = ['もし a > 0 ならば', '  a = 1', 'を実行する'].join('\n');
+        const out = dnclV2Preprocess(input);
+        expect(out).toBe(input);
+    });
+});
+
 describe('DNCLv2 pre-processor: idempotency', () => {
     test('Smalruby DNCL passes through unchanged', () => {
         const src = [
