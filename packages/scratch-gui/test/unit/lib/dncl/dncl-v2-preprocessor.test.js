@@ -330,6 +330,34 @@ describe('DNCLv2 pre-processor: ｜ / ⎿ indent markers (Phase 4)', () => {
         ]);
     });
 
+    test('ASCII pipe `|` is also accepted as indent marker (auto-correct compat)', () => {
+        // Smalruby's auto-correct (on by default) converts the full-width
+        // pipe `｜` to ASCII `|` before our pre-processor sees it. The
+        // pre-processor must accept both so DNCLv2 paste-and-run still works
+        // when auto-correct is enabled.
+        const input = ['(7) もし a > 0 ならば:', '(8)  | a = 1'].join('\n');
+        const out = dnclV2Preprocess(input);
+        expect(out).toContain('  a = 1');
+        expect(out).not.toContain('|');
+    });
+
+    test('mixed ASCII `|` and ⎿ markers (typical auto-correct output)', () => {
+        const input = [
+            '(7) もし a > 0 ならば:',
+            '(8)  | もし b > 0 ならば:',
+            '(9)  ⎿  ⎿ a = 1',
+        ].join('\n');
+        const out = dnclV2Preprocess(input);
+        const lines = out.split('\n');
+        expect(lines).toEqual([
+            'もし a > 0 ならば',
+            '  もし b > 0 ならば',
+            '    a = 1',
+            '  を実行する',
+            'を実行する',
+        ]);
+    });
+
     test('lines without ⎿ do NOT auto-emit closers', () => {
         // Normal Smalruby DNCL with explicit を実行する still works.
         const input = ['もし a > 0 ならば', '  a = 1', 'を実行する'].join('\n');

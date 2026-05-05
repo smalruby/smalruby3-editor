@@ -269,12 +269,17 @@ const normalizeAndOr = (line) => {
  *   the number of blocks the next outdent should close.
  */
 const processIndentMarkers = (body) => {
-  // Find the prefix consisting of leading whitespace + ｜ / ⎿ markers.
-  const m = body.match(/^([\s｜⎿]*)(.*)$/)
+  // Find the prefix consisting of leading whitespace + indent markers.
+  // We accept BOTH the full-width pipe `｜` (U+FF5C, used in DNCLv2 sources)
+  // and the ASCII pipe `|` (U+007C). The Smalruby auto-correct feature
+  // (on by default) converts `｜` to `|` on input, so the marker that
+  // reaches us may be either one. The hook character `⎿` (U+23BF, Box
+  // Drawing) is in a Unicode block auto-correct doesn't touch.
+  const m = body.match(/^([\s｜|⎿]*)(.*)$/)
   if (!m) return { line: body, closeCount: 0 }
   const prefix = m[1]
   const rest = m[2]
-  const markers = prefix.match(/[｜⎿]/g) || []
+  const markers = prefix.match(/[｜|⎿]/g) || []
   if (markers.length === 0) return { line: body, closeCount: 0 }
   const closeCount = markers.filter((c) => c === '⎿').length
   const newPrefix = ' '.repeat(2 * markers.length)
