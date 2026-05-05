@@ -47,7 +47,7 @@ describe('Block palette', () => {
             await clickXpath('//button[@title="ブロックパレットを隠す"]');
             await findByXpath('//button[@title="ブロックパレットを表示する"]');
             const toolboxVisible = await driver.executeScript(
-                'const el = document.querySelector(".blocklyToolboxDiv"); return el ? el.style.display !== "none" : true;',
+                'const el = document.querySelector(".blocklyToolbox"); return el ? el.style.display !== "none" : true;',
             );
             expect(toolboxVisible).toBe(false);
             const extensionButtonVisible = await driver.executeScript(
@@ -66,7 +66,7 @@ describe('Block palette', () => {
             await clickXpath('//button[@title="ブロックパレットを表示する"]');
             await findByXpath('//button[@title="ブロックパレットを隠す"]');
             const toolboxVisible = await driver.executeScript(
-                'const el = document.querySelector(".blocklyToolboxDiv"); return el ? el.style.display !== "none" : true;',
+                'const el = document.querySelector(".blocklyToolbox"); return el ? el.style.display !== "none" : true;',
             );
             expect(toolboxVisible).toBe(true);
             const logs = await getLogs();

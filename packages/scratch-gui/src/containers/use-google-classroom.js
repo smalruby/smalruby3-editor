@@ -62,7 +62,7 @@ const useGoogleClassroom = ({
         }
     }, [idToken, clearError, showError, intl, setIsLoading]);
 
-    const handleSelectGoogleCourse = useCallback(course => {
+    const handleSelectGoogleCourse = useCallback((course) => {
         setSelectedGoogleCourse(course);
     }, []);
 
@@ -97,12 +97,12 @@ const useGoogleClassroom = ({
                     description,
                 );
                 if (result.alternateLink) {
-                    setSelectedClassroom(prev => ({
+                    setSelectedClassroom((prev) => ({
                         ...prev,
                         googleClassroomAlternateLink: result.alternateLink,
                     }));
-                    setClassrooms(prev =>
-                        prev.map(c =>
+                    setClassrooms((prev) =>
+                        prev.map((c) =>
                             c.classroomId === selectedClassroom.classroomId
                                 ? {
                                       ...c,

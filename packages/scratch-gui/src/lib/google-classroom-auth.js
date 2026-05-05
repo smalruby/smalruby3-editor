@@ -27,7 +27,7 @@ let _initPromise = null;
 const _generateState = () => {
     const array = new Uint8Array(16);
     window.crypto.getRandomValues(array);
-    return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
 };
 
 /**
@@ -81,7 +81,7 @@ export const requestClassroomAccessToken = async () => {
     return new Promise((resolve, reject) => {
         const expectedState = _generateState();
 
-        _tokenClient.callback = response => {
+        _tokenClient.callback = (response) => {
             if (response.error) {
                 reject(new Error(`Google Classroom authentication failed: ${response.error}`));
                 return;

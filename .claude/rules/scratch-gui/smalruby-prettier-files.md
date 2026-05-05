@@ -99,7 +99,6 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/block-utils.js`
 - `src/lib/blocks-gesture-recovery.js`
 - `src/lib/blocks-screenshot.js`
-- `src/lib/define-ruby-blocks.js`
 - `src/lib/furigana-annotator.js`
 - `src/lib/furigana-call-helpers.js`
 - `src/lib/furigana-extension-handlers.js`
@@ -190,8 +189,10 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/smalrubot-s1-connection-flow.test.js`
 - `test/integration/rubytee-consent.test.js`
 - `test/integration/smalruby-tutorials.test.js`
+- `test/integration/palette-toggle-position.test.js`
 - `test/integration/v1-detection-prompt.test.js`
 - `test/integration/version-update-notification.test.js`
+- `test/integration/workspace-glow-regression.test.js`
 - `test/unit/components/action-menu.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
 - `test/unit/components/mobile-bottom-tabs.test.jsx`
@@ -219,6 +220,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/backpack-api.test.js`
 - `test/unit/lib/backpack-mesh-v1-migration.test.js`
 - `test/unit/lib/block-display-initialization.test.js`
+- `test/unit/lib/blockly-private-api.test.js`
 - `test/unit/lib/blocks-gesture-recovery.test.js`
 - `test/unit/lib/blocks-screenshot.test.js`
 - `test/unit/lib/furigana-annotator-perf.test.js`

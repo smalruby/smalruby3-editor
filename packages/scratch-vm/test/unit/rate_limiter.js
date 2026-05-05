@@ -1,14 +1,14 @@
 const test = require('tap').test;
 const RateLimiter = require('../../src/extensions/scratch3_mesh_v2/rate-limiter');
 
-test('RateLimiter Basic', t => {
+test('RateLimiter Basic', (t) => {
     const limiter = new RateLimiter(10);
     let count = 0;
 
     const pendingResolves = [];
-    const slowSendFn = data => {
+    const slowSendFn = (data) => {
         count += data;
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             pendingResolves.push(resolve);
         });
     };
@@ -35,7 +35,7 @@ test('RateLimiter Basic', t => {
     });
 });
 
-test('RateLimiter Merge Feature', t => {
+test('RateLimiter Merge Feature', (t) => {
     const limiter = new RateLimiter(10, {
         enableMerge: true,
         mergeKeyField: 'key',
@@ -44,10 +44,10 @@ test('RateLimiter Merge Feature', t => {
     const sentData = [];
     const pendingResolves = [];
 
-    const slowSendFn = data => {
+    const slowSendFn = (data) => {
         // Clone data to avoid reference changes in tests
         sentData.push(JSON.parse(JSON.stringify(data)));
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             pendingResolves.push(resolve);
         });
     };
@@ -80,7 +80,7 @@ test('RateLimiter Merge Feature', t => {
     });
 });
 
-test('RateLimiter Merge Different Keys in same Send', t => {
+test('RateLimiter Merge Different Keys in same Send', (t) => {
     const limiter = new RateLimiter(10, {
         enableMerge: true,
 
@@ -90,7 +90,7 @@ test('RateLimiter Merge Different Keys in same Send', t => {
     const pendingResolves = [];
 
     const slowSendFn = () =>
-        new Promise(resolve => {
+        new Promise((resolve) => {
             pendingResolves.push(resolve);
         });
 
@@ -112,9 +112,9 @@ test('RateLimiter Merge Different Keys in same Send', t => {
 
     t.equal(limiter.queue[0].data.length, 2);
 
-    const v1 = limiter.queue[0].data.find(i => i.key === 'v1');
+    const v1 = limiter.queue[0].data.find((i) => i.key === 'v1');
 
-    const v2 = limiter.queue[0].data.find(i => i.key === 'v2');
+    const v2 = limiter.queue[0].data.find((i) => i.key === 'v2');
 
     t.equal(v1.value, 2);
 

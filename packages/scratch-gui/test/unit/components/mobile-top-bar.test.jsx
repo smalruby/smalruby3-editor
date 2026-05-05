@@ -1,7 +1,7 @@
 /* eslint-env jest */
-import React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
+import React from 'react';
 import { MobileTopBarComponent } from '../../../src/components/mobile-top-bar/mobile-top-bar.jsx';
 
 const makeFakeVm = () => ({

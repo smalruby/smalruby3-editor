@@ -24,10 +24,10 @@ import useTeacherClassroom, { getCachedTeacherIdToken, setCachedTeacherIdToken }
 const ClassroomModal = ({ mode = 'student' }) => {
     const dispatch = useDispatch();
     const intl = useIntl();
-    const classroomState = useSelector(state => state.scratchGui.classroom);
-    const vm = useSelector(state => state.scratchGui.vm);
-    const projectTitle = useSelector(state => state.scratchGui.projectTitle);
-    const scratchBlocks = useSelector(state => state.scratchGui.blockDisplay?.scratchBlocks);
+    const classroomState = useSelector((state) => state.scratchGui.classroom);
+    const vm = useSelector((state) => state.scratchGui.vm);
+    const projectTitle = useSelector((state) => state.scratchGui.projectTitle);
+    const scratchBlocks = useSelector((state) => state.scratchGui.blockDisplay?.scratchBlocks);
 
     // Auto-login with dev bypass token from URL (e.g. ?devlogin=<secret>)
     if (mode === 'teacher') {
@@ -159,7 +159,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
     // --- Student: Join with code ---
 
     const handleJoinWithCode = useCallback(
-        async joinCode => {
+        async (joinCode) => {
             clearError();
             setIsLoading(true);
             try {
@@ -188,7 +188,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
         [clearError, showError, intl],
     );
 
-    const handleSelectSeat = useCallback(seatNumber => {
+    const handleSelectSeat = useCallback((seatNumber) => {
         setSelectedSeat(seatNumber);
     }, []);
 
@@ -231,7 +231,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
             setPhase('student-joined');
         } catch (err) {
             if (err.status === 409) {
-                setTakenSeats(prev => [...prev, selectedSeat]);
+                setTakenSeats((prev) => [...prev, selectedSeat]);
                 setSelectedSeat(null);
             }
             showError(translateError(intl, err, 'seat'));

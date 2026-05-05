@@ -1,7 +1,7 @@
 // === Smalruby: This file is Smalruby-specific (Rubytee consent integration tests) ===
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-import { render, screen, fireEvent } from '@testing-library/react';
 import RubyteeConsent from '../../src/components/rubytee-consent/rubytee-consent.jsx';
 
 // Japanese messages for integration testing with real locale

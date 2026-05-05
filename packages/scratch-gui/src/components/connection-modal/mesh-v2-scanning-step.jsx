@@ -31,12 +31,12 @@ HiraganaButton.propTypes = {
     onInput: PropTypes.func.isRequired,
 };
 
-const HiraganaNameSearch = props => (
+const HiraganaNameSearch = (props) => (
     <div className={styles.nameSearchSection}>
         <div className={styles.hiraganaButtonGrid}>
             {[HIRAGANA_BUTTONS_ROW1, HIRAGANA_BUTTONS_ROW2].map((row, rowIdx) => (
                 <div className={styles.hiraganaButtonRow} key={rowIdx}>
-                    {row.map(char => (
+                    {row.map((char) => (
                         <HiraganaButton
                             char={char}
                             disabled={props.hiraganaInput.length >= 6}
@@ -64,7 +64,7 @@ HiraganaNameSearch.propTypes = {
     onHiraganaInput: PropTypes.func.isRequired,
 };
 
-const MeshV2ScanningStep = props => (
+const MeshV2ScanningStep = (props) => (
     <Box className={styles.body}>
         <Box className={styles.activityArea}>
             {props.scanning ? (
@@ -81,7 +81,7 @@ const MeshV2ScanningStep = props => (
                     </div>
                 ) : (
                     <div className={styles.peripheralTilePane}>
-                        {props.peripheralList.map(peripheral => (
+                        {props.peripheralList.map((peripheral) => (
                             <PeripheralTile
                                 connectionSmallIconURL={props.connectionSmallIconURL}
                                 key={peripheral.peripheralId}

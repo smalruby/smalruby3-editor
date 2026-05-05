@@ -27,7 +27,7 @@ const createMockRuntime = () => {
     return runtime;
 };
 
-test('Mesh and Mesh V2 Coexistence', t => {
+test('Mesh and Mesh V2 Coexistence', (t) => {
     // Set up global window for utils
     global.window = {
         location: {
@@ -38,7 +38,7 @@ test('Mesh and Mesh V2 Coexistence', t => {
 
     const mockRuntime = createMockRuntime();
 
-    t.test('integration: extension IDs are different', st => {
+    t.test('integration: extension IDs are different', (st) => {
         const meshV1 = new MeshBlocks(mockRuntime);
         const meshV2 = new MeshV2Blocks(mockRuntime);
 
@@ -51,7 +51,7 @@ test('Mesh and Mesh V2 Coexistence', t => {
         st.end();
     });
 
-    t.test('integration: block opcodes can overlap without conflict', st => {
+    t.test('integration: block opcodes can overlap without conflict', (st) => {
         const meshV1 = new MeshBlocks(mockRuntime);
         const meshV2 = new MeshV2Blocks(mockRuntime);
 
@@ -59,8 +59,8 @@ test('Mesh and Mesh V2 Coexistence', t => {
         const info2 = meshV2.getInfo();
 
         // Both extensions have getSensorValue opcode
-        const block1 = info1.blocks.find(b => b.opcode === 'getSensorValue');
-        const block2 = info2.blocks.find(b => b.opcode === 'getSensorValue');
+        const block1 = info1.blocks.find((b) => b.opcode === 'getSensorValue');
+        const block2 = info2.blocks.find((b) => b.opcode === 'getSensorValue');
 
         st.ok(block1, 'Old Mesh has getSensorValue');
         st.ok(block2, 'New Mesh has getSensorValue');

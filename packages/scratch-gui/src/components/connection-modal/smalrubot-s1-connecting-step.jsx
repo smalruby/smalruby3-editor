@@ -8,7 +8,7 @@ import Dots from './dots.jsx';
 import backIcon from './icons/back.svg';
 import connectingStyles from './smalrubot-s1-connecting-step.css';
 
-const SmalrubotS1ConnectingStep = props => (
+const SmalrubotS1ConnectingStep = (props) => (
     <Box className={styles.body}>
         <Box className={styles.activityArea}>
             <Box className={connectingStyles.message}>

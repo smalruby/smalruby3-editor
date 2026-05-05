@@ -12,7 +12,7 @@ import Dots from './dots.jsx';
 import backIcon from './icons/back.svg';
 import copyIcon from './icons/copy.svg';
 
-const MeshV2NetworkFilteredStep = props => {
+const MeshV2NetworkFilteredStep = (props) => {
     const [copied, setCopied] = React.useState(false);
 
     const networkInfoMessage = `スモウルビーのメッシュ機能を使うため、ネットワークの制限を解除してください。

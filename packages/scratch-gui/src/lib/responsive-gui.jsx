@@ -9,7 +9,7 @@ import useIsNarrowScreen from './use-is-narrow-screen.js';
  * @param {object} props - <GUI> / <MobileGui> に渡す props
  * @returns {JSX.Element} 選択された GUI コンポーネント
  */
-const ResponsiveGui = props => {
+const ResponsiveGui = (props) => {
     const isNarrow = useIsNarrowScreen();
     if (isNarrow) {
         return <MobileGui {...props} />;

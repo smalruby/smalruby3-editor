@@ -126,7 +126,7 @@ const nodeHandlers = {
     _handleArrayNode(node) {
         this._addAnnotation(node.location, '配列');
         if (node.elements) {
-            node.elements.forEach(el => this._walkNode(el));
+            node.elements.forEach((el) => this._walkNode(el));
         }
     },
 
@@ -271,13 +271,13 @@ const nodeHandlers = {
             this._addAnnotation(node.endKeywordLoc, '分岐終了');
         }
         if (node.predicate) this._walkNode(node.predicate);
-        if (node.conditions) node.conditions.forEach(c => this._walkNode(c));
+        if (node.conditions) node.conditions.forEach((c) => this._walkNode(c));
         if (node.elseClause) this._walkNode(node.elseClause);
     },
 
     _handleWhenNode(node) {
         this._addAnnotation(node.keywordLoc, 'のとき');
-        if (node.conditions) node.conditions.forEach(c => this._walkNode(c));
+        if (node.conditions) node.conditions.forEach((c) => this._walkNode(c));
         if (node.statements) this._walkNode(node.statements);
     },
 

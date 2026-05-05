@@ -13,8 +13,8 @@ const createMockBlocks = () => ({
     },
 });
 
-test('MeshV2Service Cost Tracking', t => {
-    t.test('startSubscriptions increments counters for all received messages', st => {
+test('MeshV2Service Cost Tracking', (t) => {
+    t.test('startSubscriptions increments counters for all received messages', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
@@ -22,7 +22,7 @@ test('MeshV2Service Cost Tracking', t => {
         let subCallback;
         service.client = {
             subscribe: () => ({
-                subscribe: callbacks => {
+                subscribe: (callbacks) => {
                     subCallback = callbacks.next;
                     return { unsubscribe: () => {} };
                 },
@@ -74,7 +74,7 @@ test('MeshV2Service Cost Tracking', t => {
         st.end();
     });
 
-    t.test('cleanup calculates connection cost with multiplier 1', st => {
+    t.test('cleanup calculates connection cost with multiplier 1', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -87,7 +87,7 @@ test('MeshV2Service Cost Tracking', t => {
         // non-private or checking the logs.
 
         // Let's add a small helper to get the connection cost for verification
-        const getEstimatedCost = srv => {
+        const getEstimatedCost = (srv) => {
             const connectionDurationMinutes = (Date.now() - srv.costTracking.connectionStartTime) / 1000 / 60;
             const queryCost = srv.costTracking.queryCount * 0.000004;
             const mutationCost = srv.costTracking.mutationCount * 0.000004;

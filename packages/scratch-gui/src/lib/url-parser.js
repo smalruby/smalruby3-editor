@@ -7,7 +7,7 @@
  * @param {string} url - Scratch project URL
  * @returns {string|null} - Project ID or null if invalid
  */
-export const extractScratchProjectId = url => {
+export const extractScratchProjectId = (url) => {
     if (!url || typeof url !== 'string') {
         return null;
     }
@@ -34,4 +34,4 @@ export const extractScratchProjectId = url => {
  * @param {string} url - URL to validate
  * @returns {boolean} - True if valid Scratch project URL
  */
-export const isValidScratchProjectUrl = url => extractScratchProjectId(url) !== null;
+export const isValidScratchProjectUrl = (url) => extractScratchProjectId(url) !== null;

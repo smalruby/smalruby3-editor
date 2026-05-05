@@ -1,8 +1,8 @@
+import { render, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import { render, fireEvent, act } from '@testing-library/react';
 import Cards from '../../../src/containers/cards.jsx';
 import { cardsInitialState } from '../../../src/reducers/cards';
 
@@ -10,7 +10,7 @@ import { cardsInitialState } from '../../../src/reducers/cards';
 let capturedProps = {};
 jest.mock('../../../src/components/cards/cards.jsx', () => {
     // eslint-disable-next-line no-undef
-    const MockCards = jest.fn(props => {
+    const MockCards = jest.fn((props) => {
         capturedProps = props;
         return null;
     });
@@ -20,7 +20,7 @@ jest.mock('../../../src/components/cards/cards.jsx', () => {
 // Need to mock the translate-image module
 jest.mock('../../../src/lib/libraries/decks/translate-image.js', () => ({
     loadImageData: jest.fn(),
-    translateImage: jest.fn(key => key),
+    translateImage: jest.fn((key) => key),
 }));
 
 const mockStore = configureStore();
@@ -107,12 +107,12 @@ describe('Cards container - start tutorial', () => {
         const actions = store.getActions();
 
         // Should dispatch SET_PENDING_PROJECT_TITLE with the deck name
-        const setPendingTitleAction = actions.find(a => a.type === 'scratch-gui/cards/SET_PENDING_PROJECT_TITLE');
+        const setPendingTitleAction = actions.find((a) => a.type === 'scratch-gui/cards/SET_PENDING_PROJECT_TITLE');
         expect(setPendingTitleAction).toBeTruthy();
         expect(setPendingTitleAction.title).toBe('Test Tutorial');
 
         // Should dispatch START_FETCHING_NEW (from requestNewProject(false))
-        expect(actions.some(a => a.type === 'scratch-gui/project-state/START_FETCHING_NEW')).toBe(true);
+        expect(actions.some((a) => a.type === 'scratch-gui/project-state/START_FETCHING_NEW')).toBe(true);
 
         confirmSpy.mockRestore();
     });
@@ -133,7 +133,7 @@ describe('Cards container - start tutorial', () => {
 
         // Should NOT dispatch any project actions since user cancelled
         const actions = store.getActions();
-        expect(actions.some(a => a.type === 'scratch-gui/project-state/START_FETCHING_NEW')).toBe(false);
+        expect(actions.some((a) => a.type === 'scratch-gui/project-state/START_FETCHING_NEW')).toBe(false);
 
         confirmSpy.mockRestore();
     });
@@ -188,7 +188,7 @@ describe('Cards container - next button lock', () => {
 
         // Should NOT dispatch NEXT_STEP
         const actions = store.getActions();
-        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(false);
+        expect(actions.some((a) => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(false);
     });
 
     test('unlocks onNextStep after 5 seconds', () => {
@@ -204,7 +204,7 @@ describe('Cards container - next button lock', () => {
         });
 
         const actions = store.getActions();
-        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
+        expect(actions.some((a) => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
     });
 
     test('unlocks onNextStep when startTutorial button is clicked', () => {
@@ -220,7 +220,7 @@ describe('Cards container - next button lock', () => {
         });
 
         const actions = store.getActions();
-        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
+        expect(actions.some((a) => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
     });
 
     test('unlocks onNextStep when insertCode button is clicked', () => {
@@ -238,7 +238,7 @@ describe('Cards container - next button lock', () => {
         });
 
         const actions = store.getActions();
-        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
+        expect(actions.some((a) => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
     });
 
     test('does not lock onNextStep when step has no action button', () => {
@@ -267,7 +267,7 @@ describe('Cards container - next button lock', () => {
         });
 
         const actions = store.getActions();
-        expect(actions.some(a => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
+        expect(actions.some((a) => a.type === 'scratch-gui/cards/NEXT_STEP')).toBe(true);
     });
 });
 // === Smalruby: End of next-button lock ===

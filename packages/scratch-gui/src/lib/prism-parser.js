@@ -80,7 +80,7 @@ export const loadPrism = () => {
         return Promise.resolve(prismInstance);
     }
     if (!prismLoadingPromise) {
-        prismLoadingPromise = _doLoadPrism().then(instance => {
+        prismLoadingPromise = _doLoadPrism().then((instance) => {
             prismInstance = instance;
             return instance;
         });

@@ -1,8 +1,8 @@
 /* eslint-env jest */
-import React, { useState } from 'react';
-import { IntlProvider } from 'react-intl';
 import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
+import React, { useState } from 'react';
+import { IntlProvider } from 'react-intl';
 import { MobileBottomTabsComponent } from '../../../src/components/mobile-bottom-tabs/mobile-bottom-tabs.jsx';
 import {
     BLOCKS_TAB_INDEX,
@@ -11,14 +11,14 @@ import {
     SOUNDS_TAB_INDEX,
 } from '../../../src/reducers/editor-tab.js';
 
-const renderWithIntl = ui =>
+const renderWithIntl = (ui) =>
     render(
         <IntlProvider locale="en" messages={{}}>
             {ui}
         </IntlProvider>,
     );
 
-const baseProps = override => ({
+const baseProps = (override) => ({
     isFullScreen: false,
     activeTabIndex: BLOCKS_TAB_INDEX,
     spriteTabActive: false,
@@ -34,7 +34,7 @@ const baseProps = override => ({
  * @param {object} props - test props
  * @returns {JSX.Element} controlled wrapper
  */
-const ControlledTabs = props => {
+const ControlledTabs = (props) => {
     const [spriteTabActive, setSpriteTabActive] = useState(false);
     return (
         <MobileBottomTabsComponent

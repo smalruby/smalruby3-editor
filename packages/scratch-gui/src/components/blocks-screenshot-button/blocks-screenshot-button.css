@@ -1,12 +1,15 @@
 @import "../../css/z-index.css";
 
-/* Position above the Scratch Blocks zoom controls.
-   bottom = scrollbar(11) + MARGIN_BOTTOM(12) + HEIGHT(124) + gap(8) - 1 = 154px
-   right  = MARGIN_SIDE(12) + scrollbar(11) - 1 = 22px */
+/* Position is set at runtime by `blocks-screenshot-button.jsx` so the camera
+   button stays anchored to the actual scratch-blocks v2 zoom controls
+   regardless of scrollbar width or window resize. The CSS values below are
+   only used until the first measurement settles in (typically the next
+   animation frame), so they are sized to match the v2 zoom-controls layout
+   (MARGIN_VERTICAL=20, MARGIN_HORIZONTAL=20, total height 124, gap 8). */
 .screenshotButton {
     position: absolute;
-    bottom: 154px;
-    right: 22px;
+    bottom: 152px;
+    right: 20px;
     width: 36px;
     height: 36px;
     padding: 0;

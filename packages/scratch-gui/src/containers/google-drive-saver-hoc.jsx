@@ -380,7 +380,7 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
         targetCodeToBlocks: PropTypes.func,
     };
 
-    const mapStateToProps = state => ({
+    const mapStateToProps = (state) => ({
         googleDriveFile: state.scratchGui.googleDriveFile,
         locale: state.locales.locale,
         projectChanged: state.scratchGui.projectChanged,
@@ -388,12 +388,12 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
         saveProjectSb3: state.scratchGui.vm.saveProjectSb3.bind(state.scratchGui.vm),
     });
 
-    const mapDispatchToProps = dispatch => ({
+    const mapDispatchToProps = (dispatch) => ({
         closeFileMenu: () => dispatch(closeFileMenu()),
         onSetGoogleDriveFile: (fileId, fileName, folderId) =>
             dispatch(setGoogleDriveFile(fileId, fileName, folderId)),
         // === Smalruby: Start of sync project title on copy save ===
-        onSetProjectTitle: title => dispatch(setProjectTitle(title)),
+        onSetProjectTitle: (title) => dispatch(setProjectTitle(title)),
         // === Smalruby: End of sync project title on copy save ===
         onSetProjectUnchanged: () => dispatch(setProjectUnchanged()),
     });

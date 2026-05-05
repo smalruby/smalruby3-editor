@@ -9,7 +9,7 @@ const langs = {
     'ja-Hira': jaHira,
 };
 
-Object.keys(langs).forEach(lang => {
+Object.keys(langs).forEach((lang) => {
     if (messages[lang]) {
         Object.assign(messages[lang], langs[lang]);
     }

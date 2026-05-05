@@ -1,8 +1,8 @@
+import '@testing-library/jest-dom';
+import { render, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import '@testing-library/jest-dom';
-import { render, fireEvent } from '@testing-library/react';
 
 // Mock the ConnectionModalComponent to capture props
 jest.mock('../../../src/components/connection-modal/connection-modal.jsx', () => {
@@ -22,7 +22,7 @@ jest.mock('../../../src/components/connection-modal/connection-modal.jsx', () =>
         smalrubotS1Connected: 'smalrubotS1Connected',
         smalrubotS1Error: 'smalrubotS1Error',
     };
-    const MockComponent = props => (
+    const MockComponent = (props) => (
         <div data-testid="connection-modal-component">
             <div data-testid="phase">{props.phase}</div>
             <button data-testid="trigger-choose-connect" onClick={props.onChooseConnect} />

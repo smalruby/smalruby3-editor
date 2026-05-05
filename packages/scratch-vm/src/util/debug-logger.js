@@ -1,7 +1,7 @@
 const log = require('./log');
 
-const debugLogger = debugFlag => {
-    const debug = func => {
+const debugLogger = (debugFlag) => {
+    const debug = (func) => {
         if (debugFlag) {
             const message = func();
             if (message) {

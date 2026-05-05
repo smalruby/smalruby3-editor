@@ -48,7 +48,7 @@ const SMALRUBOT_S1_BOARD = {
  * @param {string} hexText - Intel HEX format text.
  * @returns {Uint8Array} Parsed binary data.
  */
-const parseIntelHex = hexText => {
+const parseIntelHex = (hexText) => {
     const result = [];
     for (const line of hexText.split(/\r?\n/)) {
         const t = line.trim();
@@ -193,7 +193,7 @@ class STK500v1 {
     }
 
     _delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     // -- STK500v1 Commands --
@@ -237,10 +237,10 @@ class STK500v1 {
             for (let i = 0; i < 3; i++) {
                 if (resp[i + 1] !== expectedSig[i]) {
                     const got = Array.from(resp.subarray(1, 4))
-                        .map(b => b.toString(16).padStart(2, '0'))
+                        .map((b) => b.toString(16).padStart(2, '0'))
                         .join(' ');
                     const exp = Array.from(expectedSig)
-                        .map(b => b.toString(16).padStart(2, '0'))
+                        .map((b) => b.toString(16).padStart(2, '0'))
                         .join(' ');
                     throw new Error(`Signature mismatch: got [${got}], expected [${exp}]`);
                 }
@@ -335,7 +335,7 @@ class STK500v1 {
      * @param {Function} [onStatus] - Status message callback.
      */
     async flash(hexData, board, onProgress, onStatus) {
-        const status = msg => {
+        const status = (msg) => {
             if (this.debug) this._log(msg);
             if (onStatus) onStatus(msg);
         };
@@ -420,7 +420,7 @@ class FirmwareFlasher {
         this.debug = options.debug || false;
         this._logger =
             options.logger ||
-            (msg => {
+            ((msg) => {
                 // eslint-disable-next-line no-console
                 console.log('[FirmwareFlasher]', msg);
             });

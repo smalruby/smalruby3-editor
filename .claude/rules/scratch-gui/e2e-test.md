@@ -165,6 +165,32 @@ http://localhost:8601?no_beforeunload=1&tab=ruby&ruby_version=2&rubyMode=ruby
 | `rubyMode` | `ruby`, `furigana`, `dncl` | Ruby タブの初期モード |
 | `features` | カンマ区切り | 隠し機能の有効化（現在は未使用） |
 
+### ❌ `?tab=sounds` で直接アクセスしてはいけない（AudioContext autoplay policy）
+
+**やらないこと**: Playwright や手動デバッグで `?tab=sounds` を URL に直接指定してロードする。
+
+**理由**: `SharedAudioContext` は upstream の設計により、ユーザー gesture (mousedown/touchstart/keydown) が発生するまで `AudioContext` を作成しない。`?tab=sounds` で直接遷移すると最初の gesture 前に `SoundEditor` が render され、`AudioBufferPlayer.constructor` が `audioContext.createBuffer()` を呼ぶときに `AudioContext` が `undefined` で TypeError になる。
+
+**過去にハマったパターン**:
+
+- 「`?tab=sounds` 直接アクセスでクラッシュするから」と言って `SharedAudioContext` を gesture 前に lazy 作成するように改造すると、Chrome の autoplay policy で **新しく作られる `AudioContext` は `state: 'suspended'`** になる。
+- `StartAudioContext` ライブラリは gesture 後に `resume()` を呼ぶが、`resume()` は **async**（数 ms〜数十 ms の遅延）なので、同じ click handler の中で即座に `source.start()` を呼ぶ sound block (例: 旗を押した直後の音再生) は **suspended state に当たって無音**。
+- 結果: 「音タブで再生ボタンを押しても音が出ない」「旗を押した瞬間の音再生ブロックが無音」という不具合が再発する。
+- 過去に少なくとも 2 回試され、毎回同じ原因で revert している（直近: PR #630 の commit `cc2a8dab7e` → `79dd6be827` で revert）。
+- Playwright の Chromium は autoplay policy が緩く `state: 'running'` で見えるため、Playwright での検証は信用できない。実機 (本番 Chrome) で旗→音再生フローを必ず確認する必要がある。
+
+**正しいやり方**:
+
+| やりたいこと | 推奨手順 |
+|---|---|
+| 音タブの状態確認 | 通常ロード（`?tab=ruby` などまたはデフォルト = コードタブ）で開いてから、音タブの DOM (`li[role="tab"]` で「音」テキストを含む要素) を **クリック**で切り替える。これは user gesture なので AudioContext が正しく `state: 'running'` で作成される。 |
+| 自動テストでの音タブ移動 | Selenium の `clickText('音')` / `clickText('Sounds')` を使う。`loadUri(uri + '?tab=sounds')` のような直接遷移は禁止。 |
+| Playwright MCP でのスクリーンショット | `browser_navigate` で通常 URL を開いてから `browser_evaluate` で `tabs.find(t => t.textContent.includes('音')).click()` のように DOM クリックで切り替える。 |
+
+**修正していいケース**:
+
+`SharedAudioContext` の lazy 作成は **絶対にしない**。upstream の挙動を維持する。直接アクセス時のクラッシュを直したい場合は、`AudioContext` ではなく **`AudioBufferPlayer` 側を `audioContext` が `undefined` でも crash しない null-safe 実装にする**方向で検討する（が、その場合も実機での旗→音テストを必須）。
+
 ### クラスルーム機能
 
 クラスルーム機能は `CLASSROOM_API_ENDPOINT` 環境変数が設定されていれば常に有効です（`?features=classroom` は不要）。
@@ -184,6 +210,33 @@ await page.waitForTimeout(500);
 ```
 
 この問題は通常のブラウザ操作では発生しない（Playwright 環境固有）。
+
+## ❌ Playwright で Blockly / React のライブメソッドを monkey-patch しない
+
+`browser_evaluate` で **稼働中の Blockly / React lifecycle メソッドを書き換えて、その内側の処理を再トリガーする** と、Playwright MCP が無応答になり、ユーザの interrupt がない限り抜けられなくなります。少なくとも 2 回踏みました（gesture 調査 と toolbox `forceRerender` + `flyout.show` wrap）。
+
+### やってはいけないこと
+
+| アンチパターン | なぜ詰むか |
+|---|---|
+| `flyout.show` / `toolbox.show` / `workspace.setVisible` などを wrap して同じ操作を内側で呼ぶ | wrapper → orig → React `componentDidUpdate` → 別の `forceRerender` → wrapper … と相互再帰しイベントループが詰まる |
+| `pointerdown` を dispatch だけして対応する `pointerup` を出さない | Blockly の Gesture が global の `pointermove` / `pointerup` listener を `document` に張った「ドラッグ進行中」状態のまま固まり、後続のクリックや React 状態が破綻 |
+| `forceRerender()` / `setSelectedItem()` / `inject()` 等の重い lifecycle 入口を eval から呼ぶ | それ自体は OK だが、wrapper や warning ハンドラがそこに絡むと相互再帰しがち |
+
+### 守るルール
+
+1. **Probe は read-only にする** — フィールド読み取り / 関数呼び出しの戻り値を取るだけ。書き込み・wrap はしない。
+2. **静的解析を優先** — どこから API が呼ばれるかを知りたいなら、`curl http://localhost:8601/gui.js` した bundle を grep する方が安全で速い。Smalruby のソースなら `node_modules/scratch-blocks/src` を直接 grep。
+3. **イベントペアを必ず対称に dispatch する** — `pointerdown` を出したら同じ eval 内で `pointerup` も。失敗時は `workspace.cancelCurrentGesture()` で必ずリセット。
+4. **probe は bounded time にする** — `await new Promise(r => setTimeout(r, X))` の `X` は 1500ms 以下を上限とする。再帰やループは書かない。
+5. **応答が遅いと感じたら早めに interrupt** — Playwright MCP transport は応答待ちで永遠に止まりうる。ユーザの Esc / 中断指示に頼らず、自分で別アプローチに切り替える判断を早めに行う。
+
+### 推奨パターン
+
+- runtime プロパティを覗きたい → `Object.keys(obj).filter(...)` / `Object.getOwnPropertyNames(proto)` で **読み取りのみ**。
+- どの API が存在するかチェックしたい → `typeof obj.method` を返すだけ。
+- ライブの workspace 状態をログしたい → 既存の **公開 listener フック点** (`workspace.addChangeListener`) を使う。`flyout.show` などの内部メソッドは触らない。
+- イベント順序を観測したい → addChangeListener + 配列 push で十分。原関数は wrap しない。
 
 ## Monaco Editor の操作
 

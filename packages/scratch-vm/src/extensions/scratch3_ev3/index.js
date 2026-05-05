@@ -858,6 +858,7 @@ class EV3 {
             }
             this._updateDevices = false;
 
+         
         } else if (!this._sensorPorts.includes(undefined) && !this._motorPorts.includes(undefined)) {
 
             // PARSE SENSOR VALUES

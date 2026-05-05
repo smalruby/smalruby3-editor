@@ -8,12 +8,12 @@ describe('installGestureRecovery', () => {
 
     beforeEach(() => {
         mockGesture = {
-            cancel: jest.fn(),
             isDragging: jest.fn(() => true),
         };
 
         mockWorkspace = {
             currentGesture_: null,
+            cancelCurrentGesture: jest.fn(),
         };
 
         mockScratchBlocks = {
@@ -47,7 +47,7 @@ describe('installGestureRecovery', () => {
 
             listeners['doc:visibilitychange']();
 
-            expect(mockGesture.cancel).toHaveBeenCalledTimes(1);
+            expect(mockWorkspace.cancelCurrentGesture).toHaveBeenCalledTimes(1);
         });
 
         test('should not cancel when page becomes visible', () => {
@@ -60,7 +60,7 @@ describe('installGestureRecovery', () => {
 
             listeners['doc:visibilitychange']();
 
-            expect(mockGesture.cancel).not.toHaveBeenCalled();
+            expect(mockWorkspace.cancelCurrentGesture).not.toHaveBeenCalled();
         });
 
         test('should not error when no workspace', () => {
@@ -93,7 +93,17 @@ describe('installGestureRecovery', () => {
 
             listeners['win:blur']();
 
-            expect(mockGesture.cancel).toHaveBeenCalledTimes(1);
+            expect(mockWorkspace.cancelCurrentGesture).toHaveBeenCalledTimes(1);
+        });
+
+        test('should still call public cancel API even when no gesture (no-op safety)', () => {
+            mockWorkspace.currentGesture_ = null;
+
+            listeners['win:blur']();
+
+            // The public cancelCurrentGesture is safe to call when no gesture
+            // is active, so we always invoke it (Blockly handles the no-op).
+            expect(mockWorkspace.cancelCurrentGesture).toHaveBeenCalledTimes(1);
         });
 
         test('should not error when no active gesture', () => {
@@ -110,7 +120,7 @@ describe('installGestureRecovery', () => {
 
             listeners['doc:pointerdown']({});
 
-            expect(mockGesture.cancel).toHaveBeenCalledTimes(1);
+            expect(mockWorkspace.cancelCurrentGesture).toHaveBeenCalledTimes(1);
         });
 
         test('should not cancel gesture that is not dragging', () => {
@@ -119,7 +129,7 @@ describe('installGestureRecovery', () => {
 
             listeners['doc:pointerdown']({});
 
-            expect(mockGesture.cancel).not.toHaveBeenCalled();
+            expect(mockWorkspace.cancelCurrentGesture).not.toHaveBeenCalled();
         });
 
         test('should not error when no active gesture', () => {

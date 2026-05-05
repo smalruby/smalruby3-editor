@@ -12,7 +12,7 @@ describe('initializeBlockSelectionFromOnlyBlocks', () => {
         const result = initializeBlockSelectionFromOnlyBlocks(null);
 
         // All categories should have all their blocks selected
-        Object.keys(CATEGORY_BLOCKS).forEach(categoryId => {
+        Object.keys(CATEGORY_BLOCKS).forEach((categoryId) => {
             expect(result[categoryId]).toEqual(CATEGORY_BLOCKS[categoryId]);
         });
     });
@@ -55,7 +55,7 @@ describe('initializeBlockSelectionFromOnlyBlocks', () => {
     test('empty string returns empty selections', () => {
         const result = initializeBlockSelectionFromOnlyBlocks('');
 
-        Object.keys(CATEGORY_BLOCKS).forEach(categoryId => {
+        Object.keys(CATEGORY_BLOCKS).forEach((categoryId) => {
             expect(result[categoryId]).toEqual([]);
         });
     });

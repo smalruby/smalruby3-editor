@@ -1,10 +1,10 @@
-import React from 'react';
 import { fireEvent, act } from '@testing-library/react';
+import React from 'react';
 import ActionMenu from '../../../src/components/action-menu/action-menu';
 import { renderWithIntl } from '../../helpers/intl-helpers.jsx';
 
 // Mock ReactTooltip
-const ReactTooltip = props => <div className="mock-tooltip">{props.children}</div>;
+const ReactTooltip = (props) => <div className="mock-tooltip">{props.children}</div>;
 ReactTooltip.hide = jest.fn();
 ReactTooltip.show = jest.fn();
 jest.mock('react-tooltip', () => ({

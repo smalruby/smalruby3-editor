@@ -159,7 +159,7 @@ class FuriganaAnnotator {
 
     _walkChildren(node) {
         if (typeof node.childNodes === 'function') {
-            node.childNodes().forEach(child => {
+            node.childNodes().forEach((child) => {
                 if (child) this._walkNode(child);
             });
         }
@@ -288,7 +288,7 @@ class FuriganaAnnotator {
 
         if (node.arguments_) {
             if (methodUnit) this._argUnit = methodUnit;
-            node.arguments_.arguments_.forEach(arg => this._walkNode(arg));
+            node.arguments_.arguments_.forEach((arg) => this._walkNode(arg));
             if (methodUnit) this._argUnit = null;
         }
         if (this._stringLabelMap) this._stringLabelMap = null;

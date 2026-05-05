@@ -14,7 +14,7 @@ import { applyStorageWorkerTimeout } from './storage-worker-timeout.js';
  * @param {React.ComponentType} WrappedComponent - ラップ対象 (通常 ResponsiveGui)
  * @returns {React.ComponentType} HOC でラップされたコンポーネント
  */
-const StorageWorkerTimeoutHOC = WrappedComponent => {
+const StorageWorkerTimeoutHOC = (WrappedComponent) => {
     const Wrapped = ({ vm, ...rest }) => {
         useEffect(() => {
             if (!vm) return () => {};
@@ -35,7 +35,7 @@ const StorageWorkerTimeoutHOC = WrappedComponent => {
         vm: PropTypes.object,
     };
     Wrapped.displayName = `StorageWorkerTimeoutHOC(${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
-    return connect(state => ({ vm: state.scratchGui.vm }))(Wrapped);
+    return connect((state) => ({ vm: state.scratchGui.vm }))(Wrapped);
 };
 
 export default StorageWorkerTimeoutHOC;

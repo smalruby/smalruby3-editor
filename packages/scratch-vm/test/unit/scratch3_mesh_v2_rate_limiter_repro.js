@@ -6,12 +6,12 @@ const log = require('../../src/util/log');
 log.debug = () => {};
 log.info = () => {};
 
-test('RateLimiter stack overflow reproduction', { timeout: 60000 }, async t => {
+test('RateLimiter stack overflow reproduction', { timeout: 60000 }, async (t) => {
     // intervalMs: 250ms, enableMerge: true
     const limiter = new RateLimiter(250, { enableMerge: true });
 
     // Immediate sendFunction
-    const sendFunction = d => Promise.resolve(d);
+    const sendFunction = (d) => Promise.resolve(d);
 
     const promises = [];
 

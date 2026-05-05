@@ -38,7 +38,7 @@ const reducer = (state, action) => {
     }
 };
 
-const markClassroomTutorialSeen = name => ({
+const markClassroomTutorialSeen = (name) => ({
     type: MARK_SEEN,
     name,
 });

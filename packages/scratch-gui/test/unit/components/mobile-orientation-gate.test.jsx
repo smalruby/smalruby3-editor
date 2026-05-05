@@ -1,8 +1,8 @@
 /* eslint-env jest */
-import React from 'react';
-import { IntlProvider } from 'react-intl';
 import '@testing-library/jest-dom';
 import { act, render } from '@testing-library/react';
+import React from 'react';
+import { IntlProvider } from 'react-intl';
 import MobileOrientationGate from '../../../src/components/mobile-orientation-gate/mobile-orientation-gate.jsx';
 
 /**
@@ -14,7 +14,7 @@ const installMatchMedia = () => {
     const original = window.matchMedia;
     let listeners = [];
     let matches = false;
-    window.matchMedia = jest.fn().mockImplementation(query => {
+    window.matchMedia = jest.fn().mockImplementation((query) => {
         if (query !== '(orientation: portrait)') {
             // 他のクエリは default false を返す
             return { matches: false, addEventListener: () => {}, removeEventListener: () => {} };
@@ -23,14 +23,14 @@ const installMatchMedia = () => {
             matches,
             addEventListener: (_event, handler) => listeners.push(handler),
             removeEventListener: (_event, handler) => {
-                listeners = listeners.filter(h => h !== handler);
+                listeners = listeners.filter((h) => h !== handler);
             },
         };
     });
     return {
-        setMatches: next => {
+        setMatches: (next) => {
             matches = next;
-            listeners.forEach(h => h({ matches: next }));
+            listeners.forEach((h) => h({ matches: next }));
         },
         restore: () => {
             window.matchMedia = original;
@@ -38,7 +38,7 @@ const installMatchMedia = () => {
     };
 };
 
-const renderWithIntl = ui =>
+const renderWithIntl = (ui) =>
     render(
         <IntlProvider locale="en" messages={{}}>
             {ui}

@@ -7,7 +7,7 @@ import { targetCodeToBlocks } from './ruby-to-blocks-converter';
  * @param {object} target - A Scratch RenderedTarget
  * @returns {Set<string>} Set of module names found in the target
  */
-export const getModuleNamesFromTarget = target => {
+export const getModuleNamesFromTarget = (target) => {
     const moduleNames = new Set();
     if (!target || !target.comments) return moduleNames;
 

@@ -7,14 +7,14 @@
 const STORAGE_KEY = 'smalrubyBackpack';
 const MIGRATED_AT_KEY = 'smalruby:meshV1BackpackMigratedAt';
 
-const decodeBase64 = b64 => {
+const decodeBase64 = (b64) => {
     const binary = atob(b64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
 };
 
-const encodeBase64 = bytes => {
+const encodeBase64 = (bytes) => {
     let binary = '';
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
     return btoa(binary);
@@ -58,7 +58,7 @@ const migrateSpriteItem = async (item, vm) => {
  * @param {VirtualMachine} vm Scratch VM instance (provides the migration helpers).
  * @returns {Promise<number>} Number of migrated items (0 if already migrated or empty).
  */
-const migrateMeshV1InLocalStorageBackpack = async vm => {
+const migrateMeshV1InLocalStorageBackpack = async (vm) => {
     if (typeof window === 'undefined' || !window.localStorage) return 0;
     if (window.localStorage.getItem(MIGRATED_AT_KEY)) return 0;
 

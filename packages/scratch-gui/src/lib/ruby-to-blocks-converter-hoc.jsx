@@ -1,8 +1,8 @@
+import VM from '@smalruby/scratch-vm';
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import VM from '@smalruby/scratch-vm';
 import { NullRubyToBlocksConverter, targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { showAlertWithTimeout } from '../reducers/alerts';
 import { activateTab, RUBY_TAB_INDEX } from '../reducers/editor-tab';
@@ -78,19 +78,19 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
         vm: PropTypes.instanceOf(VM),
     };
 
-    const mapStateToProps = state => ({
+    const mapStateToProps = (state) => ({
         editingTarget: state.scratchGui.targets.editingTarget,
         rubyCode: state.scratchGui.rubyCode,
         rubyVersion: state.scratchGui.settings.rubyVersion,
         vm: state.scratchGui.vm,
     });
 
-    const mapDispatchToProps = dispatch => ({
+    const mapDispatchToProps = (dispatch) => ({
         convertedRubyCodeState: () => dispatch(convertedRubyCode()),
         onActivateRubyTab: () => dispatch(activateTab(RUBY_TAB_INDEX)),
-        onHighlightTarget: id => dispatch(highlightTarget(id)),
+        onHighlightTarget: (id) => dispatch(highlightTarget(id)),
         onShowConvertRubyToBlocksErrorAlert: () => showAlertWithTimeout(dispatch, 'convertRubyToBlocksError'),
-        updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors)),
+        updateRubyCodeErrorsState: (errors) => dispatch(updateRubyCodeErrors(errors)),
     });
 
     // Allow incoming props to override redux-provided props. Used to mock in tests.

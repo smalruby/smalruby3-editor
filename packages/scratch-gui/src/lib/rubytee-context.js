@@ -28,17 +28,17 @@ const buildStateSection = (sprite, stage, vm) => {
         parts.push(`### 現在編集中のスプライト: "${sprite.name}"`);
         parts.push(`- 座標: (${sprite.x}, ${sprite.y}), 向き: ${sprite.direction}度, 大きさ: ${sprite.size}%`);
 
-        const costumeNames = (sprite.costumes || []).map(c => c.name);
+        const costumeNames = (sprite.costumes || []).map((c) => c.name);
         parts.push(
-            `- コスチューム一覧: ${costumeNames.length > 0 ? costumeNames.map(n => `"${n}"`).join(', ') : '（なし）'}`,
+            `- コスチューム一覧: ${costumeNames.length > 0 ? costumeNames.map((n) => `"${n}"`).join(', ') : '（なし）'}`,
         );
         parts.push('  - **switch_costume() にはこの中の名前のみ指定可能です**');
 
-        const soundNames = (sprite.sounds || []).map(s => s.name);
+        const soundNames = (sprite.sounds || []).map((s) => s.name);
         parts.push(
             `- サウンド一覧: ${
                 soundNames.length > 0
-                    ? soundNames.map(n => `"${n}"`).join(', ')
+                    ? soundNames.map((n) => `"${n}"`).join(', ')
                     : '（なし — play() / play_until_done() は使えません）'
             }`,
         );
@@ -56,15 +56,15 @@ const buildStateSection = (sprite, stage, vm) => {
         parts.push('### ステージ');
         parts.push(`- サイズ: ${stage.width}x${stage.height}`);
 
-        const stageCostumes = (stage.costumes || []).map(c => c.name);
+        const stageCostumes = (stage.costumes || []).map((c) => c.name);
         parts.push(
-            `- 背景一覧: ${stageCostumes.length > 0 ? stageCostumes.map(n => `"${n}"`).join(', ') : '（なし）'}`,
+            `- 背景一覧: ${stageCostumes.length > 0 ? stageCostumes.map((n) => `"${n}"`).join(', ') : '（なし）'}`,
         );
         parts.push('  - **switch_backdrop() / when_backdrop_switches() にはこの中の名前のみ指定可能です**');
 
-        const stageSounds = (stage.sounds || []).map(s => s.name);
+        const stageSounds = (stage.sounds || []).map((s) => s.name);
         if (stageSounds.length > 0) {
-            parts.push(`- ステージのサウンド一覧: ${stageSounds.map(n => `"${n}"`).join(', ')}`);
+            parts.push(`- ステージのサウンド一覧: ${stageSounds.map((n) => `"${n}"`).join(', ')}`);
         }
         parts.push('');
     }

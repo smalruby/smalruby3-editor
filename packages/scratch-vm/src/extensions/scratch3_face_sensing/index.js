@@ -97,7 +97,7 @@ class Scratch3FaceSensingBlocks {
             solutionPath: '/chunks/mediapipe/face_detection',
             maxFaces: 1
         };
-    
+
         FaceDetection.createDetector(model, detectorConfig)
             .catch(() => {
                 const fallbackConfig = {
@@ -261,7 +261,7 @@ class Scratch3FaceSensingBlocks {
      */
     _loop () {
         setTimeout(this._loop.bind(this), Math.max(this.runtime.currentStepTime, Scratch3FaceSensingBlocks.INTERVAL));
-   
+
         // Close the alert if the face detector is created and the video loading has either succeeded or failed.
         // The alert will remain open until the permissions are set
         if (!this._firstTime && this._videoLoadingCompleted) {

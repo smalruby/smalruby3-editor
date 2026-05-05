@@ -3,6 +3,7 @@ import SeleniumHelper from '../helpers/selenium-helper';
 
 const {
     clickButton,
+    clickBlocksCategory,
     clickText,
     clickXpath,
     findByXpath,
@@ -76,13 +77,13 @@ describe('blocks example', () => {
     // skipping per https://github.com/LLK/scratch-gui/issues/4902 until we have better approach
     test.skip('Change categories', async () => {
         await loadUri(`${uri}`);
-        await clickText('Looks');
-        await clickText('Sound');
-        await clickText('Events');
-        await clickText('Control');
-        await clickText('Sensing');
-        await clickText('Operators');
-        await clickText('Variables');
+        await clickBlocksCategory('Looks');
+        await clickBlocksCategory('Sound');
+        await clickBlocksCategory('Events');
+        await clickBlocksCategory('Control');
+        await clickBlocksCategory('Sensing');
+        await clickBlocksCategory('Operators');
+        await clickBlocksCategory('Variables');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for scroll animation
         await clickText('Make a Variable');
         let el = await findByXpath("//input[@name='New variable name:']");

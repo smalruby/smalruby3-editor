@@ -1,6 +1,6 @@
 import {defineMessages} from 'react-intl';
 import _ from 'lodash';
-import Blockly from 'scratch-blocks';
+import * as Blockly from 'scratch-blocks';
 import Primitive from './primitive';
 import {RubyToBlocksConverterError} from './errors';
 
@@ -216,7 +216,7 @@ const MyBlocksConverter = {
                 procedure.argumentVariables.push(variable);
                 procedure.procCode.push('%s');
                 procedure.argumentDefaults.push('');
-                const inputId = Blockly.utils.genUid();
+                const inputId = Blockly.utils.idGenerator.genUid();
                 procedure.argumentIds.push(inputId);
                 const inputBlock = converter._createBlock('argument_reporter_string_number', 'value', {
                     fields: {

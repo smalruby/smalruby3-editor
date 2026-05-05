@@ -100,7 +100,7 @@ const URLLoaderHOC = function (WrappedComponent) {
             this.props.setProjectId(projectId.toString());
 
             fetchProjectInfo(SCRATCH_API_PROXY_ENDPOINT, projectId)
-                .then(data => {
+                .then((data) => {
                     const projectToken = data.project_token;
                     const storage = this.props.storage;
                     storage.setProjectToken?.(projectToken);
@@ -111,7 +111,7 @@ const URLLoaderHOC = function (WrappedComponent) {
                         storage.scratchStorage.DataFormat.JSON,
                     );
                 })
-                .then(projectAsset => {
+                .then((projectAsset) => {
                     if (projectAsset) {
                         return loadProjectWithChecks(
                             this.props.vm,
@@ -130,7 +130,7 @@ const URLLoaderHOC = function (WrappedComponent) {
                     // Close the modal only after a successful load.
                     this.props.closeUrlLoaderModal();
                 })
-                .catch(error => {
+                .catch((error) => {
                     log.warn('URL loader error:', error);
                     this.props.onError(error);
                     const message = formatLoadError(error, this.props.intl);
@@ -242,11 +242,11 @@ const URLLoaderHOC = function (WrappedComponent) {
         };
     };
 
-    const mapDispatchToProps = dispatch => ({
-        cancelFileUpload: loadingState => dispatch(onLoadedProject(loadingState, false, false)),
+    const mapDispatchToProps = (dispatch) => ({
+        cancelFileUpload: (loadingState) => dispatch(onLoadedProject(loadingState, false, false)),
         closeFileMenu: () => dispatch(closeFileMenu()),
         closeUrlLoaderModal: () => dispatch(closeUrlLoaderModal()),
-        onError: error => dispatch(projectError(error)),
+        onError: (error) => dispatch(projectError(error)),
         onLoadedProject: (loadingState, canSave, success) =>
             dispatch(onLoadedProject(loadingState, canSave, success)),
         onLoadingFinished: () => {
@@ -254,14 +254,14 @@ const URLLoaderHOC = function (WrappedComponent) {
             dispatch(closeFileMenu());
         },
         onLoadingStarted: () => dispatch(openLoadingProject()),
-        onSetProjectTitle: title => dispatch(setProjectTitle(title)),
-        onSetRubyVersion: version => {
+        onSetProjectTitle: (title) => dispatch(setProjectTitle(title)),
+        onSetRubyVersion: (version) => {
             dispatch(setRubyVersion(version));
             persistRubyVersion(version);
         },
         openUrlLoaderModal: () => dispatch(openUrlLoaderModal()),
-        requestProjectUpload: loadingState => dispatch(requestProjectUpload(loadingState)),
-        setProjectId: projectId => dispatch(setProjectId(projectId)),
+        requestProjectUpload: (loadingState) => dispatch(requestProjectUpload(loadingState)),
+        setProjectId: (projectId) => dispatch(setProjectId(projectId)),
     });
 
     const mergeProps = (stateProps, dispatchProps, ownProps) =>

@@ -23,7 +23,7 @@ import DragConstants from '../lib/drag-constants';
 import defineDynamicBlock from '../lib/define-dynamic-block';
 import {DEFAULT_MODE, getColorsForMode, colorModeMap} from '../lib/settings/color-mode';
 import {CAT_BLOCKS_THEME} from '../lib/settings/theme';
-import {injectExtensionBlockMode, injectExtensionCategoryMode} from '../lib/settings/color-mode/blockHelpers';
+import {injectExtensionBlockIcons, injectExtensionCategoryMode} from '../lib/settings/color-mode/blockHelpers';
 
 import {connect} from 'react-redux';
 import {updateToolbox} from '../reducers/toolbox';
@@ -66,7 +66,7 @@ const DroppableBlocks = DropAreaHOC([
 class Blocks extends React.Component {
     constructor (props) {
         super(props);
-        this.ScratchBlocks = VMScratchBlocks(props.vm, false);
+        this.ScratchBlocks = VMScratchBlocks(props.vm);
         bindAll(this, [
             'attachVM',
             'detachVM',
@@ -96,8 +96,11 @@ class Blocks extends React.Component {
             'setLocale',
             'handleDownloadBlocksImage'
         ]);
-        this.ScratchBlocks.prompt = this.handlePromptStart;
-        this.ScratchBlocks.statusButtonCallback = this.handleConnectionModalStart;
+        this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
+        this.ScratchBlocks.ScratchVariables.setPromptHandler(
+            this.handlePromptStart
+        );
+        this.ScratchBlocks.StatusIndicatorLabel.statusButtonCallback = this.handleConnectionModalStart;
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
 
         this.state = {
@@ -116,22 +119,61 @@ class Blocks extends React.Component {
         // === Smalruby: End of deferred flyout rebuild ===
     }
     componentDidMount () {
-        this.ScratchBlocks = VMScratchBlocks(this.props.vm, this.props.useCatBlocks);
+        this.ScratchBlocks = VMScratchBlocks(this.props.vm);
         this.props.onSetScratchBlocks(this.ScratchBlocks);
-        this.ScratchBlocks.prompt = this.handlePromptStart;
-        this.ScratchBlocks.statusButtonCallback = this.handleConnectionModalStart;
+        this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
+        this.ScratchBlocks.ScratchVariables.setPromptHandler(
+            this.handlePromptStart
+        );
+        this.ScratchBlocks.StatusIndicatorLabel.statusButtonCallback = this.handleConnectionModalStart;
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
 
         this.ScratchBlocks.FieldColourSlider.activateEyedropper_ = this.props.onActivateColorPicker;
-        this.ScratchBlocks.Procedures.externalProcedureDefCallback = this.props.onActivateCustomProcedures;
+        this.ScratchBlocks.ScratchProcedures.externalProcedureDefCallback = this.props.onActivateCustomProcedures;
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
 
         const workspaceConfig = defaultsDeep({},
             Blocks.defaultOptions,
             this.props.options,
-            {rtl: this.props.isRtl, toolbox: this.props.toolboxXML, colours: getColorsForMode(this.props.colorMode)}
+            {
+                rtl: this.props.isRtl,
+                toolbox: this.props.toolboxXML,
+                theme: new this.ScratchBlocks.Theme(
+                    this.props.colorMode,
+                    getColorsForMode(this.props.colorMode)
+                ),
+                // TODO: use scratch-blocks constants instead of bare strings
+                scratchTheme: this.props.useCatBlocks ? 'catblocks' : 'classic'
+            }
         );
         this.workspace = this.ScratchBlocks.inject(this.blocks, workspaceConfig);
+        this.workspace.registerToolboxCategoryCallback(
+            'VARIABLE',
+            this.ScratchBlocks.ScratchVariables.getVariablesCategory
+        );
+        this.workspace.registerToolboxCategoryCallback(
+            'PROCEDURE',
+            this.ScratchBlocks.ScratchProcedures.getProceduresCategory
+        );
+
+        this.toolboxUpdateChangeListener = event => {
+            if (
+                event.type === this.ScratchBlocks.Events.VAR_CREATE ||
+                event.type === this.ScratchBlocks.Events.VAR_RENAME ||
+                event.type === this.ScratchBlocks.Events.VAR_DELETE ||
+                (event.type === this.ScratchBlocks.Events.BLOCK_DELETE &&
+                    event.oldJson.type === 'procedures_definition') ||
+                // Only refresh the toolbox when procedure block creations are
+                // triggered by undoing a deletion (implied by recordUndo being
+                // false on the event).
+                (event.type === this.ScratchBlocks.Events.BLOCK_CREATE &&
+                    event.json.type === 'procedures_definition' &&
+                    !event.recordUndo)
+            ) {
+                this.requestToolboxUpdate();
+            }
+        };
+        this.workspace.addChangeListener(this.toolboxUpdateChangeListener);
 
         // Register buttons under new callback keys for creating variables,
         // lists, and procedures from extensions.
@@ -139,9 +181,9 @@ class Blocks extends React.Component {
         const toolboxWorkspace = this.workspace.getFlyout().getWorkspace();
 
         const varListButtonCallback = type =>
-            (() => this.ScratchBlocks.Variables.createVariable(this.workspace, null, type));
+            (() => this.ScratchBlocks.ScratchVariables.createVariable(this.workspace, null, type));
         const procButtonCallback = () => {
-            this.ScratchBlocks.Procedures.createProcedureDefCallback_(this.workspace);
+            this.ScratchBlocks.ScratchProcedures.createProcedureDefCallback(this.workspace);
         };
 
         toolboxWorkspace.registerButtonCallback('MAKE_A_VARIABLE', varListButtonCallback(''));
@@ -153,13 +195,8 @@ class Blocks extends React.Component {
         // the xml can change while e.g. on the costumes tab.
         this._renderedToolboxXML = this.props.toolboxXML;
 
-        // we actually never want the workspace to enable "refresh toolbox" - this basically re-renders the
-        // entire toolbox every time we reset the workspace.  We call updateToolbox as a part of
-        // componentDidUpdate so the toolbox will still correctly be updated
-        this.setToolboxRefreshEnabled = this.workspace.setToolboxRefreshEnabled.bind(this.workspace);
-        this.workspace.setToolboxRefreshEnabled = () => {
-            this.setToolboxRefreshEnabled(false);
-        };
+        // === Smalruby: scratch-blocks v2 removed workspace.setToolboxRefreshEnabled.
+        // The toolbox refresh suppression is handled differently in v2.
 
         // @todo change this when blockly supports UI events
         addFunctionListener(this.workspace, 'translate', this.onWorkspaceMetricsChange);
@@ -275,7 +312,29 @@ class Blocks extends React.Component {
     }
     componentWillUnmount () {
         this.detachVM();
-        this.workspace.dispose();
+        // Hide any open field editor and move Blockly focus to the workspace
+        // root before disposing. Without this, BlockSvg.dispose() detects the
+        // focused element is inside a block and schedules a stale
+        // setTimeout(() => focusTree(workspace)), which fires after the
+        // workspace is unregistered and throws
+        // "Attempted to focus unregistered tree" (scratch-blocks#3460).
+        //
+        // focusNode(workspace) — not focusTree(workspace) — is used here
+        // because focusTree would restore focus to whatever was previously
+        // focused in this workspace (likely the same block about to be
+        // disposed). focusNode pins focus to the workspace root directly,
+        // ensuring no block is focused when dispose() runs.
+        try {
+            this.ScratchBlocks.WidgetDiv?.hide?.();
+            // focusNode requires the workspace to be a focusable IFocusableNode;
+            // skip silently if the workspace is already in a non-focusable state.
+            if (this.workspace?.canBeFocused?.()) {
+                this.ScratchBlocks.getFocusManager().focusNode(this.workspace);
+            }
+        } catch {
+            // Workspace may already be unregistered — fall through to dispose.
+        }
+        this.workspace?.dispose?.();
         clearTimeout(this.toolboxUpdateTimeout);
 
         // Clear the flyout blocks so that they can be recreated on mount.
@@ -308,6 +367,13 @@ class Blocks extends React.Component {
             if (flyout.svgGroup_) flyout.svgGroup_.style.display = 'none';
         }
         this.ScratchBlocks.svgResize(this.workspace);
+        // Re-render so the palette-toggle button picks up the now-correct
+        // toolbox.getWidth() + flyout.getWidth() — render() runs *before*
+        // this method, so the first render after a paletteVisible change
+        // sees stale flyout dimensions and lands the toggle on top of the
+        // blocks (issue: toggle button at toolbox.getWidth() instead of
+        // toolbox.getWidth() + flyout.getWidth() after re-open).
+        this.forceUpdate();
     }
     requestToolboxUpdate () {
         clearTimeout(this.toolboxUpdateTimeout);
@@ -338,29 +404,77 @@ class Blocks extends React.Component {
     updateToolbox () {
         this.toolboxUpdateTimeout = false;
 
-        const categoryId = this.workspace.toolbox_.getSelectedCategoryId();
-        const offset = this.workspace.toolbox_.getCategoryScrollOffset();
-        this.workspace.updateToolbox(this.props.toolboxXML);
-        this._renderedToolboxXML = this.props.toolboxXML;
-
-        // In order to catch any changes that mutate the toolbox during "normal runtime"
-        // (variable changes/etc), re-enable toolbox refresh.
-        // Using the setter function will rerender the entire toolbox which we just rendered.
-        this.workspace.toolboxRefreshEnabled_ = true;
-
-        const currentCategoryPos = this.workspace.toolbox_.getCategoryPositionById(categoryId);
-        const currentCategoryLen = this.workspace.toolbox_.getCategoryLengthById(categoryId);
-        if (offset < currentCategoryLen) {
-            this.workspace.toolbox_.setFlyoutScrollPos(currentCategoryPos + offset);
-        } else {
-            this.workspace.toolbox_.setFlyoutScrollPos(currentCategoryPos);
+        const scale = this.workspace.getFlyout().getWorkspace().scale;
+        let selectedCategoryName = null;
+        const selectedItem = this.workspace.getToolbox()?.getSelectedItem?.();
+        if (selectedItem) {
+            selectedCategoryName = selectedItem.getName();
         }
+        const selectedCategoryScrollPosition = selectedCategoryName ?
+            this.workspace
+                .getFlyout()
+                .getCategoryScrollPosition(selectedCategoryName) * scale :
+            0;
+        const offsetWithinCategory =
+            this.workspace.getFlyout().getWorkspace()
+                .getMetrics().viewTop -
+            selectedCategoryScrollPosition;
+
+        this.workspace.updateToolbox(this.props.toolboxXML);
+        if (selectedCategoryName) {
+            this.workspace.getToolbox().runAfterRerender(() => {
+                const newCategoryScrollPosition = this.workspace
+                    .getFlyout()
+                    .getCategoryScrollPosition(selectedCategoryName);
+                if (newCategoryScrollPosition) {
+                    this.workspace
+                        .getFlyout()
+                        .getWorkspace()
+                        .scrollbar.setY(
+                            (newCategoryScrollPosition * scale) + offsetWithinCategory
+                        );
+                }
+            });
+        }
+        // === Smalruby: Start of forceRerender error guard ===
+        // scratch-blocks v2 throws "Cannot read properties of undefined
+        // (reading '2')" inside the toolbox flyout's recycling/dispose path
+        // (clearOldBlocks → disposeItem → block.dispose) for some Ruby
+        // converted scripts (e.g. `a = [1,2,3]; a.each do |i| puts i end`
+        // creates a list variable that, when the dynamic Variables category
+        // re-renders, hits a v2 bug). If forceRerender throws and we don't
+        // mark _renderedToolboxXML as updated, componentDidUpdate immediately
+        // queues another updateToolbox via requestToolboxUpdate(), causing
+        // an infinite loop that floods the console and freezes the UI.
+        //
+        // Always update _renderedToolboxXML so the loop is broken, and
+        // swallow the v2 internal error: the toolbox shows previously
+        // recycled / fallback content, but the editor stays usable.
+        // Recycling is also disabled across the call to take the
+        // non-recycling dispose path when possible.
+        this._renderedToolboxXML = this.props.toolboxXML;
+        const flyout = this.workspace.getFlyout();
+        const recyclingWasEnabled = flyout && typeof flyout.recyclingEnabled === 'function' ?
+            flyout.recyclingEnabled() : true;
+        if (flyout && typeof flyout.setRecyclingEnabled === 'function') {
+            flyout.setRecyclingEnabled(false);
+        }
+        try {
+            this.workspace.getToolbox().forceRerender();
+        } catch (err) {
+            log.error('Toolbox forceRerender failed (scratch-blocks v2):', err);
+        } finally {
+            if (flyout && typeof flyout.setRecyclingEnabled === 'function') {
+                flyout.setRecyclingEnabled(recyclingWasEnabled);
+            }
+        }
+        // === Smalruby: End of forceRerender error guard ===
 
         const queue = this.toolboxUpdateQueue;
         this.toolboxUpdateQueue = [];
         queue.forEach(fn => fn());
 
-        // Re-apply palette visibility since updateToolbox/setFlyoutScrollPos may re-show the flyout
+        // === Smalruby: Re-apply palette visibility since updateToolbox may re-show the flyout
         if (!this.props.paletteVisible) {
             this._applyPaletteVisibility(false);
         }
@@ -447,23 +561,26 @@ class Blocks extends React.Component {
         }
     }
     onScriptGlowOn (data) {
-        this.workspace.glowStack(data.id, true);
+        this.ScratchBlocks.glowStack(data.id, true);
     }
     onScriptGlowOff (data) {
-        this.workspace.glowStack(data.id, false);
+        this.ScratchBlocks.glowStack(data.id, false);
     }
-    onBlockGlowOn (data) {
-        this.workspace.glowBlock(data.id, true);
+    onBlockGlowOn (/* data */) {
+        // No-op in scratch-blocks v2: per-block glow is not supported
+        // by the Blockly v12 WorkspaceSvg API. Upstream upstreamed the
+        // same no-op pattern; per-block glow may return in a future
+        // scratch-blocks release.
     }
-    onBlockGlowOff (data) {
-        this.workspace.glowBlock(data.id, false);
+    onBlockGlowOff (/* data */) {
+        // No-op (see onBlockGlowOn).
     }
     onVisualReport (data) {
         // Don't show visual report in Code tab when Ruby tab is active
         if (this.props.activeTabIndex === RUBY_TAB_INDEX) {
             return;
         }
-        this.workspace.reportValue(data.id, data.value);
+        this.ScratchBlocks.reportValue(data.id, data.value);
     }
 
     // Extract only_blocks setting from Stage comments
@@ -571,13 +688,21 @@ class Blocks extends React.Component {
             this.onWorkspaceMetricsChange();
         }
 
-        // Remove and reattach the workspace listener (but allow flyout events)
-        this.workspace.removeChangeListener(this.props.vm.blockListener);
-        const dom = this.ScratchBlocks.Xml.textToDom(data.xml);
+        // Disable Blockly events during workspace reload. In Blockly v2, Events.fire()
+        // enqueues events for async dispatch (after rendering), so the old pattern of
+        // removing and re-adding the blockListener no longer prevents spurious events
+        // from reaching the VM — the queued events fire after the listener is re-added.
+        // Disabling events entirely during the load ensures nothing is queued.
+        this.workspace.removeChangeListener(this.toolboxUpdateChangeListener);
         let fromRuby = false;
+        const rubyCommentIconsToMinimize = [];
+        const rubyWorkspaceCommentsToCollapse = [];
         try {
-            this.ScratchBlocks.Xml.clearWorkspaceAndLoadFromXml(dom, this.workspace);
+            this.ScratchBlocks.Events.disable();
+            const dom = this.ScratchBlocks.utils.xml.textToDom(data.xml);
+            this.ScratchBlocks.clearWorkspaceAndLoadFromXml(dom, this.workspace);
 
+            // === Smalruby: Start of Ruby-converted block positioning ===
             // When we converted blocks from Ruby, update top block positions.
             if (this.props.vm.editingTarget) {
                 const blocks = this.props.vm.editingTarget.blocks;
@@ -593,45 +718,92 @@ class Blocks extends React.Component {
                 if (fromRuby) {
                     this.workspace.cleanUp();
 
-                    // Re-calculate the position of the comments.
+                    // Block-attached comments are rendered as comment icons
+                    // on the block in scratch-blocks v2 (no longer as separate
+                    // WorkspaceComment objects), so workspace.getTopComments()
+                    // does not return them. Collect block IDs whose comment
+                    // starts with `@ruby:` and apply setBubbleVisible(false)
+                    // + setBubbleLocation in the finally block — calling them
+                    // while Events are disabled is a no-op in v2, and stale
+                    // icon references can be invalidated by Blockly during
+                    // workspace settling.
+                    //
+                    // Also propagate the comment x/y in the VM target back to
+                    // a block-relative offset (right of the block at the
+                    // block's y). The Ruby converter creates every `@ruby:*`
+                    // comment at the same workspace coord (200, 0), which
+                    // causes multiple comment bubbles to stack on top of each
+                    // other in scratch-blocks v2 (it preserves explicit
+                    // comment coords instead of auto-positioning per block).
+                    // Helper: walk up to the top-level (root statement) block
+                    // for x-alignment. Comments on nested input blocks (e.g.
+                    // a variable input inside a say block) would otherwise
+                    // misalign because each nested block has a different x.
+                    const getRootBlockX = wsBlock => {
+                        let cur = wsBlock;
+                        while (cur && typeof cur.getParent === 'function' && cur.getParent()) {
+                            cur = cur.getParent();
+                        }
+                        if (cur && typeof cur.getRelativeToSurfaceXY === 'function') {
+                            return cur.getRelativeToSurfaceXY().x;
+                        }
+                        return 0;
+                    };
+                    const allBlocks = this.workspace.getAllBlocks(false);
+                    allBlocks.forEach(wsBlock => {
+                        const commentText = typeof wsBlock.getCommentText === 'function' ?
+                            wsBlock.getCommentText() : null;
+                        if (commentText && commentText.startsWith('@ruby:')) {
+                            rubyCommentIconsToMinimize.push(wsBlock.id);
+                            const targetComments = this.props.vm.editingTarget.comments;
+                            const blockData = blocks.getBlock(wsBlock.id);
+                            const commentId = blockData && blockData.comment;
+                            if (targetComments && commentId && targetComments[commentId]) {
+                                const blockXY = wsBlock.getRelativeToSurfaceXY();
+                                const rootX = getRootBlockX(wsBlock);
+                                const rtl = this.workspace.RTL;
+                                const dx = rtl ? 20 : -220;
+                                // Align x to the root (top-level) block so
+                                // every `@ruby:*` comment in a single script
+                                // shares the same left edge regardless of how
+                                // deeply nested its source block is.
+                                targetComments[commentId].x = rootX + dx;
+                                targetComments[commentId].y = blockXY.y;
+                            }
+                        }
+                    });
+
+                    // Workspace-level comments (e.g. `@ruby:class`) have no
+                    // blockId — they are returned by getTopComments() and are
+                    // separate WorkspaceComment objects in scratch-blocks v2.
+                    // Collapse `@ruby:*` ones via the v2 API (setCollapsed,
+                    // replacing v1's setMinimized) and align them to the
+                    // left of the first top block.
                     const firstTopBlock = this.workspace.getTopBlocks(true)[0];
                     this.workspace.getTopComments(false).forEach(comment => {
-                        if (comment.blockId) {
-                            const block = this.workspace.getBlockById(comment.blockId);
-                            if (block) {
-                                // Minimize @ruby:return comments (internal metadata)
-                                if (comment.text && comment.text.startsWith('@ruby:return')) {
-                                    comment.setMinimized(true);
-                                }
+                        if (!firstTopBlock || comment.blockId) return;
+                        const text = typeof comment.getText === 'function' ?
+                            comment.getText() : comment.text;
+                        if (!text || !text.startsWith('@ruby:')) return;
+                        // Defer setCollapsed(true) to the finally block:
+                        // calling it while Events are disabled is a no-op,
+                        // and a synchronous call here is overridden by
+                        // scratch-blocks v2's post-load rendering pass.
+                        rubyWorkspaceCommentsToCollapse.push(comment.id);
 
-                                const blockXY = block.getRelativeToSurfaceXY();
-                                const commentHW = comment.getHeightWidth();
-                                const rtl = this.workspace.RTL;
-                                const x = rtl ? 20 : -commentHW.width - 20;
-                                const y = blockXY.y;
-                                comment.moveTo(x, y);
+                        const blockXY = firstTopBlock.getRelativeToSurfaceXY();
+                        const rtl = this.workspace.RTL;
+                        const dx = rtl ? 20 : -220;
+                        const x = blockXY.x + dx;
+                        const y = blockXY.y;
+                        if (typeof comment.moveTo === 'function') {
+                            comment.moveTo(new this.ScratchBlocks.utils.Coordinate(x, y));
+                        }
 
-                                const targetComments = this.props.vm.editingTarget.comments;
-                                if (targetComments && targetComments[comment.id]) {
-                                    targetComments[comment.id].x = x;
-                                    targetComments[comment.id].y = y;
-                                }
-                            }
-                        } else if (firstTopBlock) {
-                            // Workspace-level comments (e.g. @ruby:class) have no blockId.
-                            // Place them to the left of the first top block, at the same y.
-                            const blockXY = firstTopBlock.getRelativeToSurfaceXY();
-                            const commentHW = comment.getHeightWidth();
-                            const rtl = this.workspace.RTL;
-                            const x = rtl ? 20 : -commentHW.width - 20;
-                            const y = blockXY.y;
-                            comment.moveTo(x, y);
-
-                            const targetComments = this.props.vm.editingTarget.comments;
-                            if (targetComments && targetComments[comment.id]) {
-                                targetComments[comment.id].x = x;
-                                targetComments[comment.id].y = y;
-                            }
+                        const targetComments = this.props.vm.editingTarget.comments;
+                        if (targetComments && targetComments[comment.id]) {
+                            targetComments[comment.id].x = x;
+                            targetComments[comment.id].y = y;
                         }
                     });
 
@@ -657,6 +829,7 @@ class Blocks extends React.Component {
                     this.updateToolbox();
                 }
             }
+            // === Smalruby: End of Ruby-converted block positioning ===
         } catch (error) {
             // The workspace is likely incomplete. What did update should be
             // functional.
@@ -671,8 +844,78 @@ class Blocks extends React.Component {
                 error.message = `Workspace Update Error: ${error.message}`;
             }
             log.error(error);
+        } finally {
+            this.ScratchBlocks.Events.enable();
+            // === Smalruby: Start of @ruby:* comment minimize ===
+            // setBubbleVisible(false) only takes effect when Events are enabled,
+            // because scratch-blocks v2 gates the visibility update on its
+            // event dispatch path. Apply the collected minimizations now that
+            // the event system is back online.
+            if (this.workspace &&
+                (rubyCommentIconsToMinimize.length > 0 ||
+                    rubyWorkspaceCommentsToCollapse.length > 0)) {
+                // Defer: scratch-blocks v2 finishes its post-load rendering
+                // pass after onWorkspaceUpdate returns, and a synchronous
+                // setBubbleVisible(false) call is overridden by that pass.
+                // Re-fetch icons by block ID inside the timer because the
+                // icon references collected synchronously can be detached
+                // before this point. Also nudge the bubble location to be
+                // adjacent to its own block — the Ruby converter places
+                // every `@ruby:*` comment at the same workspace coord
+                // (200, 0), which makes scratch-blocks v2 stack the
+                // comment bubbles on top of each other.
+                const blockIds = rubyCommentIconsToMinimize;
+                const ws = this.workspace;
+                setTimeout(() => {
+                    blockIds.forEach(blockId => {
+                        const wsBlock = ws.getBlockById && ws.getBlockById(blockId);
+                        if (!wsBlock || typeof wsBlock.getIcons !== 'function') return;
+                        const icons = wsBlock.getIcons();
+                        const commentIcon = icons.find(icon => {
+                            const t = icon.getType && icon.getType();
+                            return t && t.name === 'comment';
+                        });
+                        if (!commentIcon) return;
+                        if (typeof commentIcon.setBubbleLocation === 'function') {
+                            const blockXY = wsBlock.getRelativeToSurfaceXY();
+                            // Align x to the top-level ancestor so nested
+                            // input blocks' comments share the same left edge.
+                            let rootBlock = wsBlock;
+                            while (
+                                rootBlock &&
+                                typeof rootBlock.getParent === 'function' &&
+                                rootBlock.getParent()
+                            ) {
+                                rootBlock = rootBlock.getParent();
+                            }
+                            const rootX = rootBlock && typeof rootBlock.getRelativeToSurfaceXY === 'function' ?
+                                rootBlock.getRelativeToSurfaceXY().x : 0;
+                            const rtl = ws.RTL;
+                            const dx = rtl ? 20 : -220;
+                            commentIcon.setBubbleLocation(
+                                new this.ScratchBlocks.utils.Coordinate(
+                                    rootX + dx, blockXY.y
+                                )
+                            );
+                        }
+                        if (typeof commentIcon.setBubbleVisible === 'function') {
+                            commentIcon.setBubbleVisible(false);
+                        }
+                    });
+                    // Workspace-level comments (@ruby:class etc.) need
+                    // setCollapsed(true) for the v2 collapse path. Re-fetch
+                    // by ID since references collected during onWorkspaceUpdate
+                    // can be detached.
+                    rubyWorkspaceCommentsToCollapse.forEach(commentId => {
+                        const wsComment = ws.getCommentById && ws.getCommentById(commentId);
+                        if (wsComment && typeof wsComment.setCollapsed === 'function') {
+                            wsComment.setCollapsed(true);
+                        }
+                    });
+                }, 100);
+            }
+            // === Smalruby: End of @ruby:* comment minimize ===
         }
-        this.workspace.addChangeListener(this.props.vm.blockListener);
 
         if (!fromRuby &&
             this.props.vm.editingTarget &&
@@ -689,6 +932,15 @@ class Blocks extends React.Component {
         // fresh workspace and we don't want any changes made to another sprites
         // workspace to be 'undone' here.
         this.workspace.clearUndo();
+        // Let events get flushed before readding the toolbox-updater listener
+        // to avoid unneeded refreshes.
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                this.workspace.addChangeListener(
+                    this.toolboxUpdateChangeListener
+                );
+            });
+        });
     }
     handleMonitorsUpdate (monitors) {
         // Update the checkboxes of the relevant monitors.
@@ -723,7 +975,7 @@ class Blocks extends React.Component {
                     if (blockInfo.info && blockInfo.info.isDynamic) {
                         dynamicBlocksInfo.push(blockInfo);
                     } else if (blockInfo.json) {
-                        staticBlocksJson.push(injectExtensionBlockMode(blockInfo.json, this.props.colorMode));
+                        staticBlocksJson.push(injectExtensionBlockIcons(blockInfo.json, this.props.colorMode));
                     }
                     // otherwise it's a non-block entry such as '---'
                 });
@@ -766,7 +1018,8 @@ class Blocks extends React.Component {
         }
 
         this.withToolboxUpdates(() => {
-            this.workspace.toolbox_.setSelectedCategoryById(categoryId);
+            const toolbox = this.workspace.getToolbox();
+            toolbox.setSelectedItem(toolbox.getToolboxItemById(categoryId));
         });
     }
     setBlocks (blocks) {
@@ -789,7 +1042,7 @@ class Blocks extends React.Component {
         this.props.onOpenConnectionModal(extensionId);
     }
     handleStatusButtonUpdate () {
-        this.ScratchBlocks.refreshStatusButtons(this.workspace);
+        this.workspace.getFlyout().refreshStatusButtons();
     }
     handleOpenSoundRecorder () {
         this.props.onOpenSoundRecorder();
@@ -862,9 +1115,15 @@ class Blocks extends React.Component {
             ...props
         } = this.props;
 
-        // Calculate toggle button position based on toolbox width (toolbox + flyout combined)
+        // Calculate toggle button position based on toolbox + flyout combined width.
+        // In scratch-blocks v2 toolbox.getWidth() returns only the category-column
+        // width, so we add the flyout width separately to land on the visual edge
+        // of the open palette (matching docs/mobile-ui/screenshots/02-code-palette-open.png).
         const toolbox = this.workspace ? this.workspace.getToolbox() : null;
-        const toggleButtonLeft = paletteVisible && toolbox ? toolbox.getWidth() : 0;
+        const flyout = this.workspace ? this.workspace.getFlyout() : null;
+        const toggleButtonLeft = paletteVisible && toolbox ?
+            toolbox.getWidth() + (flyout?.getWidth?.() ?? 0) :
+            0;
 
         return (
             <React.Fragment>
@@ -971,7 +1230,11 @@ Blocks.defaultOptions = {
     zoom: {
         controls: true,
         wheel: true,
+        pinch: true,
         startScale: BLOCKS_DEFAULT_SCALE
+    },
+    move: {
+        wheel: true
     },
     grid: {
         spacing: 40,
@@ -980,7 +1243,9 @@ Blocks.defaultOptions = {
     },
     comments: true,
     collapse: false,
-    sounds: false
+    sounds: false,
+    trashcan: false,
+    modalInputs: false
 };
 
 Blocks.defaultProps = {
@@ -1041,6 +1306,7 @@ const mapDispatchToProps = dispatch => ({
     }
 });
 
+export {Blocks};
 export default errorBoundaryHOC('Blocks')(
     connect(
         mapStateToProps,

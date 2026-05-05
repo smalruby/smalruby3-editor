@@ -7,7 +7,7 @@ import styles from './connection-modal.css';
 import helpIcon from './icons/help.svg';
 import initialStyles from './smalrubot-s1-initial-step.css';
 
-const SmalrubotS1InitialStep = props => (
+const SmalrubotS1InitialStep = (props) => (
     <Box className={styles.body}>
         <Box className={initialStyles.activityArea}>
             <div className={initialStyles.intro}>

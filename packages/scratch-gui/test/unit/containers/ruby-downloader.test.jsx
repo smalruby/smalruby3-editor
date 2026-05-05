@@ -1,7 +1,7 @@
+import { render, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import { render, fireEvent, waitFor } from '@testing-library/react';
 import RubyDownloader from '../../../src/containers/ruby-downloader';
 import _RubyGenerator from '../../../src/lib/ruby-generator';
 import { targetCodeToBlocks as _targetCodeToBlocks } from '../../../src/lib/ruby-to-blocks-converter';

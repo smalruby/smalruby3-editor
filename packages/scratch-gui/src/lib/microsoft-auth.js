@@ -127,8 +127,8 @@ export const isMicrosoftAuthAvailable = () => Boolean(MICROSOFT_CLIENT_ID);
  */
 export const clearMicrosoftAuth = () => {
     // Clear all MSAL-related entries from sessionStorage
-    const msalKeys = Object.keys(sessionStorage).filter(k => k.startsWith('msal.'));
-    msalKeys.forEach(k => sessionStorage.removeItem(k));
+    const msalKeys = Object.keys(sessionStorage).filter((k) => k.startsWith('msal.'));
+    msalKeys.forEach((k) => sessionStorage.removeItem(k));
 
     // Reset the MSAL instance so a fresh one is created on next login
     _msalInstance = null;

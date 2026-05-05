@@ -118,7 +118,7 @@ const SMALRUBOT_S1_POSITION_LABELS = {
  * @param {string} content - string literal value
  * @returns {string|null} furigana label or null
  */
-const KOSHIEN_POSITION_LABEL_FN = content => {
+const KOSHIEN_POSITION_LABEL_FN = (content) => {
     const match = content.match(/^(-?\d+):(-?\d+)$/);
     if (match) return `x:${match[1]},y:${match[2]}`;
     return null;

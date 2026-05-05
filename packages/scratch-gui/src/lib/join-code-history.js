@@ -23,7 +23,7 @@ const loadHistory = () => {
         if (!Array.isArray(entries)) return [];
 
         const now = new Date();
-        const valid = entries.filter(e => {
+        const valid = entries.filter((e) => {
             if (!e.joinCode || !e.joinedAt) return false;
             if (e.expiresAt && new Date(e.expiresAt) <= now) return false;
             return true;
@@ -44,7 +44,7 @@ const loadHistory = () => {
  * Add or update a join code entry in the history.
  * @param {object} entry - { joinCode, className, assignmentName, expiresAt }
  */
-const addToHistory = entry => {
+const addToHistory = (entry) => {
     if (typeof window === 'undefined' || !window.localStorage) return;
     if (!entry.joinCode) return;
 
@@ -52,7 +52,7 @@ const addToHistory = entry => {
         const entries = loadHistory();
 
         // Remove existing entry with same joinCode
-        const filtered = entries.filter(e => e.joinCode !== entry.joinCode);
+        const filtered = entries.filter((e) => e.joinCode !== entry.joinCode);
 
         // Add new entry at the top
         filtered.unshift({

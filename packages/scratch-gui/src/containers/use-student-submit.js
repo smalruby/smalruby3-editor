@@ -46,7 +46,7 @@ const useStudentSubmit = ({
         clearError();
         setThumbnailDataUrl(null);
         if (vm && vm.renderer) {
-            getProjectThumbnail(vm, dataUrl => {
+            getProjectThumbnail(vm, (dataUrl) => {
                 setThumbnailDataUrl(dataUrl);
             });
         }
@@ -59,8 +59,8 @@ const useStudentSubmit = ({
         if (!workspace) return [];
 
         const originalTargetId = vm.editingTarget?.id;
-        const allTargets = vm.runtime.targets.filter(t => !t.isOriginal === false || t.isOriginal);
-        const targetsWithBlocks = allTargets.filter(t => {
+        const allTargets = vm.runtime.targets.filter((t) => !t.isOriginal === false || t.isOriginal);
+        const targetsWithBlocks = allTargets.filter((t) => {
             const blocks = t.blocks._blocks;
             return blocks && Object.keys(blocks).length > 0;
         });
@@ -75,7 +75,7 @@ const useStudentSubmit = ({
             });
 
             vm.setEditingTarget(target.id);
-            await new Promise(resolve => {
+            await new Promise((resolve) => {
                 setTimeout(() => requestAnimationFrame(resolve), 100);
             });
 
@@ -84,7 +84,7 @@ const useStudentSubmit = ({
                 const canvas = await renderBlocksToCanvas(workspace, costumeDataUri);
                 if (!canvas) continue;
 
-                const blob = await new Promise(resolve => {
+                const blob = await new Promise((resolve) => {
                     canvas.toBlob(resolve, 'image/png');
                 });
                 if (blob) blobs.push(blob);
@@ -134,7 +134,7 @@ const useStudentSubmit = ({
             await classroomAPI.uploadToPresignedUrl(submissionData.uploadUrl, sb3Data, 'application/octet-stream');
 
             if (thumbnailDataUrl) {
-                const thumbnailBlob = await fetch(thumbnailDataUrl).then(r => r.blob());
+                const thumbnailBlob = await fetch(thumbnailDataUrl).then((r) => r.blob());
                 await classroomAPI.uploadToPresignedUrl(
                     submissionData.thumbnailUploadUrl,
                     thumbnailBlob,

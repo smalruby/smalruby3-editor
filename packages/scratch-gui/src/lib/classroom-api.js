@@ -275,7 +275,7 @@ class ClassroomAPI {
                 // Exponential backoff: 500ms, 1000ms, 2000ms + jitter
                 const delay = 500 * Math.pow(2, attempt);
                 const jitter = Math.random() * 200;
-                await new Promise(r => setTimeout(r, delay + jitter));
+                await new Promise((r) => setTimeout(r, delay + jitter));
                 continue;
             }
 

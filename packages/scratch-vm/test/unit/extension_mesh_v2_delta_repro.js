@@ -14,7 +14,7 @@ const createMockBlocks = () => ({
     },
 });
 
-test('MeshV2Service Delta Transmission Redundancy Repro', t => {
+test('MeshV2Service Delta Transmission Redundancy Repro', (t) => {
     const blocks = createMockBlocks();
     const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -26,7 +26,7 @@ test('MeshV2Service Delta Transmission Redundancy Repro', t => {
             mutationCount++;
             reportedPayloads.push(JSON.parse(JSON.stringify(variables.data)));
             // 送信に少し時間がかかることをシミュレート
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 setTimeout(() => {
                     resolve({
                         data: {
@@ -47,16 +47,16 @@ test('MeshV2Service Delta Transmission Redundancy Repro', t => {
     // インターバルを1000msに設定
     service.dataRateLimiter.intervalMs = 1000;
 
-    t.test('should NOT send redundant data if value changes back before transmission', async st => {
+    t.test('should NOT send redundant data if value changes back before transmission', async (st) => {
         // 1. データAを1にセット
         const p1 = service.sendData([{ key: 'A', value: '1' }]);
 
         // 2. 少し待って、データAを991にセット
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const p2 = service.sendData([{ key: 'A', value: '991' }]);
 
         // 3. さらに少し待って、データAを1にセット
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const p3 = service.sendData([{ key: 'A', value: '1' }]);
 
         // 全ての送信が完了するのを待つ
@@ -73,7 +73,7 @@ test('MeshV2Service Delta Transmission Redundancy Repro', t => {
         st.end();
     });
 
-    t.test('should send data if value changes and stays changed', async st => {
+    t.test('should send data if value changes and stays changed', async (st) => {
         mutationCount = 0;
         reportedPayloads = [];
         service.lastSentData = {};
@@ -83,11 +83,11 @@ test('MeshV2Service Delta Transmission Redundancy Repro', t => {
         const p1 = service.sendData([{ key: 'A', value: '1' }]);
 
         // 2. 少し待って、データAを991にセット
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const p2 = service.sendData([{ key: 'A', value: '991' }]);
 
         // 3. さらに少し待って、データAを992にセット (1ではない)
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const p3 = service.sendData([{ key: 'A', value: '992' }]);
 
         // 全ての送信が完了するのを待つ

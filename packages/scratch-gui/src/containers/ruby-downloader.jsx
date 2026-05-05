@@ -1,9 +1,9 @@
 /* eslint-disable no-console */
+import VM from '@smalruby/scratch-vm';
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import VM from '@smalruby/scratch-vm';
 import RubyGenerator from '../lib/ruby-generator';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { setKoshienFileHandle, clearKoshienFileHandle } from '../reducers/koshien-file';
@@ -57,7 +57,7 @@ class RubyDownloader extends React.Component {
     }
     saveRuby() {
         const idToTarget = {};
-        this.props.vm.runtime.targets.forEach(target => {
+        this.props.vm.runtime.targets.forEach((target) => {
             idToTarget[target.id] = target;
         });
         const targets = [idToTarget[this.props.stage.id]];
@@ -201,7 +201,7 @@ RubyDownloader.defaultProps = {
     className: '',
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
     koshienFileHandle: state.scratchGui.koshienFile.fileHandle,
     projectFilename: getProjectFilename(state.scratchGui.projectTitle, projectTitleInitialState),
     sprites: state.scratchGui.targets.sprites,
@@ -211,8 +211,8 @@ const mapStateToProps = state => ({
     rubyVersion: state.scratchGui.settings.rubyVersion,
 });
 
-const mapDispatchToProps = dispatch => ({
-    onSetKoshienFileHandle: fileHandle => dispatch(setKoshienFileHandle(fileHandle)),
+const mapDispatchToProps = (dispatch) => ({
+    onSetKoshienFileHandle: (fileHandle) => dispatch(setKoshienFileHandle(fileHandle)),
     onClearKoshienFileHandle: () => dispatch(clearKoshienFileHandle()),
     onConvertedRubyCode: () => dispatch(convertedRubyCode()),
 });

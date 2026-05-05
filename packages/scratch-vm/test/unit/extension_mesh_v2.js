@@ -20,7 +20,7 @@ const createMockRuntime = () => {
             runtime.lastEmittedData = data;
         },
         getOpcodeFunction: () => () => {},
-        createNewGlobalVariable: name => ({ type: Variable.SCALAR_TYPE, name: name || 'var1', value: 0 }),
+        createNewGlobalVariable: (name) => ({ type: Variable.SCALAR_TYPE, name: name || 'var1', value: 0 }),
         _primitives: {},
         extensionManager: {
             isExtensionLoaded: () => false,
@@ -37,7 +37,7 @@ const createMockRuntime = () => {
     const stage = {
         variables: {},
         getCustomVars: () => [],
-        lookupVariableById: id =>
+        lookupVariableById: (id) =>
             stage.variables[id] || { id: id, name: 'var1', value: 0, type: Variable.SCALAR_TYPE },
         lookupVariableByNameAndType: () => null,
         lookupOrCreateVariable: () => ({}),
@@ -49,7 +49,7 @@ const createMockRuntime = () => {
     return runtime;
 };
 
-test('Mesh V2 Blocks', t => {
+test('Mesh V2 Blocks', (t) => {
     // Set up global window for utils
     global.window = {
         location: {
@@ -58,7 +58,7 @@ test('Mesh V2 Blocks', t => {
     };
     global.URLSearchParams = URLSearchParams;
 
-    t.test('constructor', st => {
+    t.test('constructor', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         st.type(blocks, MeshV2Blocks);
@@ -68,7 +68,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('getInfo', st => {
+    t.test('getInfo', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const info = blocks.getInfo();
@@ -78,7 +78,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('scan', st => {
+    t.test('scan', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const now = Date.now();
@@ -112,14 +112,14 @@ test('Mesh V2 Blocks', t => {
         });
     });
 
-    t.test('connect as host', st => {
+    t.test('connect as host', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         blocks.domain = null;
         blocks.meshService.domain = null;
 
         // Mock service methods
-        blocks.meshService.createGroup = name => {
+        blocks.meshService.createGroup = (name) => {
             st.equal(name, blocks.nodeId);
             // Simulate server returning auto-generated domain
             blocks.meshService.domain = 'auto-domain';
@@ -136,7 +136,7 @@ test('Mesh V2 Blocks', t => {
         });
     });
 
-    t.test('connect as peer', st => {
+    t.test('connect as peer', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         blocks.domain = null;
@@ -161,7 +161,7 @@ test('Mesh V2 Blocks', t => {
         });
     });
 
-    t.test('connect as host failure', st => {
+    t.test('connect as host failure', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
 
@@ -178,7 +178,7 @@ test('Mesh V2 Blocks', t => {
         });
     });
 
-    t.test('connect as peer failure', st => {
+    t.test('connect as peer failure', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         blocks.discoveredGroups = [{ id: 'group1', name: 'Group 1', domain: 'scanned-domain' }];
@@ -196,7 +196,7 @@ test('Mesh V2 Blocks', t => {
         });
     });
 
-    t.test('connection state transitions', st => {
+    t.test('connection state transitions', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
 
@@ -223,7 +223,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('connection state: error emits PERIPHERAL_DISCONNECTED', st => {
+    t.test('connection state: error emits PERIPHERAL_DISCONNECTED', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const events = [];
@@ -248,7 +248,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('connection state: connected to error emits PERIPHERAL_CONNECTION_LOST_ERROR', st => {
+    t.test('connection state: connected to error emits PERIPHERAL_CONNECTION_LOST_ERROR', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const events = [];
@@ -276,34 +276,37 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('connection state: connected to disconnected (unexpected) emits PERIPHERAL_CONNECTION_LOST_ERROR', st => {
-        const mockRuntime = createMockRuntime();
-        const blocks = new MeshV2Blocks(mockRuntime);
-        const events = [];
+    t.test(
+        'connection state: connected to disconnected (unexpected) emits PERIPHERAL_CONNECTION_LOST_ERROR',
+        (st) => {
+            const mockRuntime = createMockRuntime();
+            const blocks = new MeshV2Blocks(mockRuntime);
+            const events = [];
 
-        // Track all emitted events
-        const originalEmit = mockRuntime.emit;
-        mockRuntime.emit = (event, data) => {
-            events.push({ event, data });
-            return originalEmit(event, data);
-        };
+            // Track all emitted events
+            const originalEmit = mockRuntime.emit;
+            mockRuntime.emit = (event, data) => {
+                events.push({ event, data });
+                return originalEmit(event, data);
+            };
 
-        // Transition to connected state first
-        blocks.setConnectionState('connected');
-        events.length = 0; // Clear events
+            // Transition to connected state first
+            blocks.setConnectionState('connected');
+            events.length = 0; // Clear events
 
-        // Transition to disconnected state unexpectedly (e.g. from service callback)
-        blocks.setConnectionState('disconnected');
+            // Transition to disconnected state unexpectedly (e.g. from service callback)
+            blocks.setConnectionState('disconnected');
 
-        // Verify PERIPHERAL_CONNECTION_LOST_ERROR and PERIPHERAL_DISCONNECTED were emitted
-        st.equal(events.length, 2);
-        st.equal(events[0].event, 'PERIPHERAL_CONNECTION_LOST_ERROR');
-        st.equal(events[1].event, 'PERIPHERAL_DISCONNECTED');
+            // Verify PERIPHERAL_CONNECTION_LOST_ERROR and PERIPHERAL_DISCONNECTED were emitted
+            st.equal(events.length, 2);
+            st.equal(events[0].event, 'PERIPHERAL_CONNECTION_LOST_ERROR');
+            st.equal(events[1].event, 'PERIPHERAL_DISCONNECTED');
 
-        st.end();
-    });
+            st.end();
+        },
+    );
 
-    t.test('connection state: connected to disconnected (explicit) NO connection lost error', st => {
+    t.test('connection state: connected to disconnected (explicit) NO connection lost error', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const events = [];
@@ -329,7 +332,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('disconnect from error state', st => {
+    t.test('disconnect from error state', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
 
@@ -349,10 +352,10 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('getSensorValue', st => {
+    t.test('getSensorValue', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
-        blocks.meshService.getRemoteVariable = name => {
+        blocks.meshService.getRemoteVariable = (name) => {
             if (name === 'var1') return 'val1';
             return null;
         };
@@ -362,7 +365,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('variable synchronization', st => {
+    t.test('variable synchronization', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const stage = mockRuntime.getTargetForStage();
@@ -374,7 +377,7 @@ test('Mesh V2 Blocks', t => {
         blocks.connect('some-group');
 
         let dataSent = null;
-        blocks.meshService.sendData = data => {
+        blocks.meshService.sendData = (data) => {
             dataSent = data;
             return Promise.resolve();
         };
@@ -399,7 +402,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('calculateRssi', st => {
+    t.test('calculateRssi', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
         const now = Date.now();
@@ -441,7 +444,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('shouldDisconnectOnError', st => {
+    t.test('shouldDisconnectOnError', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);
 
@@ -510,7 +513,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('menuMessage returns structured object when not connected', st => {
+    t.test('menuMessage returns structured object when not connected', (st) => {
         const runtime = createMockRuntime();
         const blocks = new MeshV2Blocks(runtime);
         const message = blocks.menuMessage();
@@ -523,7 +526,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('menuMessage returns structured object when connected', st => {
+    t.test('menuMessage returns structured object when connected', (st) => {
         const runtime = createMockRuntime();
         const blocks = new MeshV2Blocks(runtime);
         blocks.meshService = {
@@ -544,7 +547,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('menuMessage uses domain from extension', st => {
+    t.test('menuMessage uses domain from extension', (st) => {
         const runtime = createMockRuntime();
         const blocks = new MeshV2Blocks(runtime);
         blocks.domain = '100-0014';
@@ -555,7 +558,7 @@ test('Mesh V2 Blocks', t => {
         st.end();
     });
 
-    t.test('menuMessage shows "Not set" when domain is not set', st => {
+    t.test('menuMessage shows "Not set" when domain is not set', (st) => {
         const runtime = createMockRuntime();
         const blocks = new MeshV2Blocks(runtime);
         blocks.domain = null;

@@ -235,6 +235,11 @@ export default {
     'gui.smalruby3.alerts.rubyVersionChangeFailed':
         'ルビーのバージョンをへんこうできません：さきにルビーのコードのエラーをなおしてください。',
     'gui.stageHeader.stageSizeMiddle': 'ちゅうサイズのステージにきりかえる',
+    'gui.stageHeader.saveThumbnail': 'サムネイルをほぞん',
+    'gui.stageHeader.saveThumbnailMessage': 'サムネイルをせっていしてもよいですか？',
+    'gui.stageHeader.thumbnailTooltipTitle': 'おしらせ 👋',
+    'gui.stageHeader.thumbnailTooltipBody':
+        '「<b>サムネイルをほぞん</b>」がここにいどうしました。ステージのスナップショットをとって、プロジェクトのサムネイルとしてせっていできます。',
 
     'gui.koshienTestModal.title': 'スモウルビーこうしえんのAIをためす',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトのよみこみにしっぱいしました。',

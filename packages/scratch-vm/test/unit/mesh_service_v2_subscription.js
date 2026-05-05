@@ -19,8 +19,8 @@ const createMockBlocks = () => ({
     },
 });
 
-test('MeshV2Service Subscription Integration', t => {
-    t.test('startSubscriptions subscribes to ON_MESSAGE_IN_GROUP', st => {
+test('MeshV2Service Subscription Integration', (t) => {
+    t.test('startSubscriptions subscribes to ON_MESSAGE_IN_GROUP', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
@@ -32,7 +32,7 @@ test('MeshV2Service Subscription Integration', t => {
             subscribe: ({ query }) => {
                 subscribedQuery = query;
                 return {
-                    subscribe: observer => {
+                    subscribe: (observer) => {
                         subscriptionObserver = observer;
                         return { unsubscribe: () => {} };
                     },
@@ -47,7 +47,7 @@ test('MeshV2Service Subscription Integration', t => {
         st.end();
     });
 
-    t.test('Routes NodeStatus to handleDataUpdate', st => {
+    t.test('Routes NodeStatus to handleDataUpdate', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
@@ -55,7 +55,7 @@ test('MeshV2Service Subscription Integration', t => {
         let subscriptionObserver = null;
         service.client = {
             subscribe: () => ({
-                subscribe: observer => {
+                subscribe: (observer) => {
                     subscriptionObserver = observer;
                     return { unsubscribe: () => {} };
                 },
@@ -66,7 +66,7 @@ test('MeshV2Service Subscription Integration', t => {
 
         // Spy on handleDataUpdate
         let handleDataUpdateCalled = false;
-        service.handleDataUpdate = payload => {
+        service.handleDataUpdate = (payload) => {
             handleDataUpdateCalled = true;
             st.equal(payload.__typename, 'NodeStatus');
             st.equal(payload.nodeId, 'node2');
@@ -89,7 +89,7 @@ test('MeshV2Service Subscription Integration', t => {
         st.end();
     });
 
-    t.test('Routes BatchEvent to handleBatchEvent', st => {
+    t.test('Routes BatchEvent to handleBatchEvent', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
@@ -97,7 +97,7 @@ test('MeshV2Service Subscription Integration', t => {
         let subscriptionObserver = null;
         service.client = {
             subscribe: () => ({
-                subscribe: observer => {
+                subscribe: (observer) => {
                     subscriptionObserver = observer;
                     return { unsubscribe: () => {} };
                 },
@@ -108,7 +108,7 @@ test('MeshV2Service Subscription Integration', t => {
 
         // Spy on handleBatchEvent
         let handleBatchEventCalled = false;
-        service.handleBatchEvent = payload => {
+        service.handleBatchEvent = (payload) => {
             handleBatchEventCalled = true;
             st.equal(payload.__typename, 'BatchEvent');
             st.equal(payload.firedByNodeId, 'node2');
@@ -131,7 +131,7 @@ test('MeshV2Service Subscription Integration', t => {
         st.end();
     });
 
-    t.test('Routes GroupDissolvePayload to cleanupAndDisconnect', st => {
+    t.test('Routes GroupDissolvePayload to cleanupAndDisconnect', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
@@ -139,7 +139,7 @@ test('MeshV2Service Subscription Integration', t => {
         let subscriptionObserver = null;
         service.client = {
             subscribe: () => ({
-                subscribe: observer => {
+                subscribe: (observer) => {
                     subscriptionObserver = observer;
                     return { unsubscribe: () => {} };
                 },
@@ -171,7 +171,7 @@ test('MeshV2Service Subscription Integration', t => {
         st.end();
     });
 
-    t.test('Ignores unknown types', st => {
+    t.test('Ignores unknown types', (st) => {
         const blocks = createMockBlocks();
         const service = new MeshV2Service(blocks, 'node1', 'domain1');
         service.groupId = 'group1';
@@ -179,7 +179,7 @@ test('MeshV2Service Subscription Integration', t => {
         let subscriptionObserver = null;
         service.client = {
             subscribe: () => ({
-                subscribe: observer => {
+                subscribe: (observer) => {
                     subscriptionObserver = observer;
                     return { unsubscribe: () => {} };
                 },

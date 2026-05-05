@@ -7,7 +7,7 @@ const INDENT = '  ';
  * @param {string} string The string to quote.
  * @returns {string} The quoted string.
  */
-const quote = string => {
+const quote = (string) => {
     const escapeChars = {
         '\\': '\\\\',
         '"': '\\"',
@@ -37,7 +37,7 @@ const prefixLines = (text, prefix = INDENT) => prefix + text.replace(/(?!\n$)\n/
  * @param {string} name The name to check.
  * @returns {boolean} Whether the name is a valid class name.
  */
-const isValidClassName = name => /^[A-Z][\p{L}\p{N}_]*$/u.test(name);
+const isValidClassName = (name) => /^[A-Z][\p{L}\p{N}_]*$/u.test(name);
 
 /**
  * Check if code already contains a class definition.
@@ -46,7 +46,7 @@ const isValidClassName = name => /^[A-Z][\p{L}\p{N}_]*$/u.test(name);
  * @param {string} code The code to check.
  * @returns {boolean} Whether the code contains a class definition.
  */
-const hasClassDefinition = code => {
+const hasClassDefinition = (code) => {
     const lines = code.split('\n');
     for (const line of lines) {
         const trimmed = line.trimStart();
@@ -123,7 +123,7 @@ const wrapCurrentCodeWithClass = (code, target) => {
         if (isValidClassName(spriteName)) {
             className = spriteName;
         } else {
-            const sprites = target.runtime.targets.filter(t => !t.isStage);
+            const sprites = target.runtime.targets.filter((t) => !t.isStage);
             const index = sprites.indexOf(target) + 1;
             className = `Sprite${index}`;
             setLines.push(`set_name ${quote(spriteName)}`);
@@ -139,7 +139,7 @@ const wrapCurrentCodeWithClass = (code, target) => {
 
     let setCode = '';
     if (setLines.length > 0) {
-        setCode = setLines.map(line => `${INDENT}${line}\n`).join('');
+        setCode = setLines.map((line) => `${INDENT}${line}\n`).join('');
     }
 
     // Split code into hat/def blocks vs other top-level code
@@ -172,7 +172,7 @@ const wrapCurrentCodeWithClass = (code, target) => {
             const commented = outsideSections
                 .join('\n\n')
                 .split('\n')
-                .map(line => (line.trim().length > 0 ? `# ${line}` : ''))
+                .map((line) => (line.trim().length > 0 ? `# ${line}` : ''))
                 .join('\n');
             outsideCode = `\n${commented}\n`;
         }

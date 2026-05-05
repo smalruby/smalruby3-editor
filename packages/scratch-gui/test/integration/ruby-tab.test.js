@@ -1,4 +1,5 @@
 import path from 'path';
+import { By } from 'selenium-webdriver';
 import { FILE_MENU_XPATH, EDIT_MENU_XPATH } from '../helpers/menu-xpaths';
 import RubyHelper from '../helpers/ruby-helper';
 import SeleniumHelper from '../helpers/selenium-helper';
@@ -123,6 +124,18 @@ describe('convert Code from Ruby', () => {
 
             // Fix the code
             await fillInRubyProgram('move(10)');
+
+            // === Smalruby: dismiss the lingering alert close button so it
+            // does not intercept the next Go-button click in v2's overlay
+            // layout. The convert-error alert renders next to the green flag
+            // and its close button overlaps the click target.
+            const closeButtons = await driver.findElements(
+                By.xpath('//div[contains(@class, "alert_alert-close-button")]'),
+            );
+            if (closeButtons.length > 0) {
+                await closeButtons[0].click();
+                await driver.sleep(200);
+            }
 
             // Execute the fixed code
             await clickXpath('//img[@title="Go"]');

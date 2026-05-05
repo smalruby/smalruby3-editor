@@ -3,7 +3,7 @@ import defaultsDeep from 'lodash.defaultsdeep';
 import PropTypes from 'prop-types';
 import React from 'react';
 import CustomProceduresComponent from '../components/custom-procedures/custom-procedures.jsx';
-import ScratchBlocks from 'scratch-blocks';
+import * as ScratchBlocks from 'scratch-blocks';
 import {connect} from 'react-redux';
 
 class CustomProcedures extends React.Component {
@@ -25,6 +25,21 @@ class CustomProcedures extends React.Component {
     }
     componentWillUnmount () {
         if (this.workspace) {
+            // When BlockSvg.dispose() runs with the focused element inside the
+            // block, it schedules setTimeout(() => focusTree(workspace)) to
+            // return focus somewhere sensible.  For procedures_declaration
+            // (no parent block), that setTimeout fires *after* the workspace
+            // is unregistered, throwing "Attempted to focus unregistered tree".
+            //
+            // Fix: hide any open field editor (releases ephemeral focus) then
+            // move Blockly focus to the main workspace before disposing.
+            // BlockSvg.dispose() then sees the focused element is not inside
+            // any dialog block and skips the stale focusTree setTimeout.
+            ScratchBlocks.WidgetDiv.hide();
+            const mainWorkspace = ScratchBlocks.getMainWorkspace();
+            if (mainWorkspace) {
+                ScratchBlocks.getFocusManager().focusTree(mainWorkspace);
+            }
             this.workspace.dispose();
         }
     }

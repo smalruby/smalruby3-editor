@@ -5,20 +5,12 @@ import {installGestureRecovery} from './blocks-gesture-recovery.js';
 /**
  * Connect scratch blocks with the vm
  * @param {VirtualMachine} vm - The scratch vm
- * @param {Bool} useCatBlocks - Whether to use cat blocks rendering of ScratchBlocks
  * @returns {ScratchBlocks} ScratchBlocks connected with the vm
  */
-export default function (vm, useCatBlocks) {
+export default function (vm) {
     const ScratchBlocks = require('scratch-blocks');
 
-    // TODO: Set theme from editor settings
-    if (useCatBlocks) {
-        ScratchBlocks.setTheme(ScratchBlocks.Themes.CAT_BLOCKS);
-    } else {
-        ScratchBlocks.setTheme(ScratchBlocks.Themes.CLASSIC);
-    }
-    
-    const jsonForMenuBlock = function (name, menuOptionsFn, colors, start) {
+    const jsonForMenuBlock = function (name, menuOptionsFn, category, start) {
         return {
             message0: '%1',
             args0: [
@@ -32,15 +24,12 @@ export default function (vm, useCatBlocks) {
             ],
             inputsInline: true,
             output: 'String',
-            colour: colors.secondary,
-            colourSecondary: colors.secondary,
-            colourTertiary: colors.tertiary,
-            colourQuaternary: colors.quaternary,
-            outputShape: ScratchBlocks.OUTPUT_SHAPE_ROUND
+            outputShape: ScratchBlocks.OUTPUT_SHAPE_ROUND,
+            extensions: [`colours_${category}`]
         };
     };
 
-    const jsonForHatBlockMenu = function (hatName, name, menuOptionsFn, colors, start) {
+    const jsonForHatBlockMenu = function (hatName, name, menuOptionsFn, category, start) {
         return {
             message0: hatName,
             args0: [
@@ -52,14 +41,9 @@ export default function (vm, useCatBlocks) {
                     }
                 }
             ],
-            colour: colors.primary,
-            colourSecondary: colors.secondary,
-            colourTertiary: colors.tertiary,
-            colourQuaternary: colors.quaternary,
-            extensions: ['shape_hat']
+            extensions: [`colours_${category}`, 'shape_hat']
         };
     };
-
 
     const jsonForSensingMenus = function (menuOptionsFn) {
         return {
@@ -71,7 +55,6 @@ export default function (vm, useCatBlocks) {
                     options: function () {
                         return menuOptionsFn();
                     }
-
                 },
                 {
                     type: 'input_value',
@@ -79,11 +62,8 @@ export default function (vm, useCatBlocks) {
                 }
             ],
             output: true,
-            colour: ScratchBlocks.Colours.sensing.primary,
-            colourSecondary: ScratchBlocks.Colours.sensing.secondary,
-            colourTertiary: ScratchBlocks.Colours.sensing.tertiary,
-            colourQuaternary: ScratchBlocks.Colours.sensing.quaternary,
-            outputShape: ScratchBlocks.OUTPUT_SHAPE_ROUND
+            outputShape: ScratchBlocks.OUTPUT_SHAPE_ROUND,
+            extensions: ['colours_sensing']
         };
     };
 
@@ -94,7 +74,7 @@ export default function (vm, useCatBlocks) {
         }
         menu.push([
             ScratchBlocks.ScratchMsgs.translate('SOUND_RECORD', 'record...'),
-            ScratchBlocks.recordSoundCallback
+            'SOUND_RECORD'
         ]);
         return menu;
     };
@@ -155,43 +135,38 @@ export default function (vm, useCatBlocks) {
         return [[myself, '_myself_']].concat(spriteMenu());
     };
 
-    const soundColors = ScratchBlocks.Colours.sounds;
-
-    const looksColors = ScratchBlocks.Colours.looks;
-
-    const motionColors = ScratchBlocks.Colours.motion;
-
-    const sensingColors = ScratchBlocks.Colours.sensing;
-
-    const controlColors = ScratchBlocks.Colours.control;
-
-    const eventColors = ScratchBlocks.Colours.event;
-
     ScratchBlocks.Blocks.sound_sounds_menu.init = function () {
-        const json = jsonForMenuBlock('SOUND_MENU', soundsMenu, soundColors, []);
+        const json = jsonForMenuBlock('SOUND_MENU', soundsMenu, 'sounds', []);
         this.jsonInit(json);
+        this.getField('SOUND_MENU').setValidator(newValue => {
+            if (newValue === 'SOUND_RECORD') {
+                ScratchBlocks.recordSoundCallback();
+                return null;
+            }
+            return newValue;
+        });
     };
 
     ScratchBlocks.Blocks.looks_costume.init = function () {
-        const json = jsonForMenuBlock('COSTUME', costumesMenu, looksColors, []);
+        const json = jsonForMenuBlock('COSTUME', costumesMenu, 'looks', []);
         this.jsonInit(json);
     };
 
     ScratchBlocks.Blocks.looks_backdrops.init = function () {
-        const json = jsonForMenuBlock('BACKDROP', backdropsMenu, looksColors, []);
+        const json = jsonForMenuBlock('BACKDROP', backdropsMenu, 'looks', []);
         this.jsonInit(json);
     };
 
     ScratchBlocks.Blocks.event_whenbackdropswitchesto.init = function () {
         const json = jsonForHatBlockMenu(
             ScratchBlocks.Msg.EVENT_WHENBACKDROPSWITCHESTO,
-            'BACKDROP', backdropNamesMenu, eventColors, []);
+            'BACKDROP', backdropNamesMenu, 'event', []);
         this.jsonInit(json);
     };
 
     ScratchBlocks.Blocks.motion_pointtowards_menu.init = function () {
         const mouse = ScratchBlocks.ScratchMsgs.translate('MOTION_POINTTOWARDS_POINTER', 'mouse-pointer');
-        const json = jsonForMenuBlock('TOWARDS', spriteMenu, motionColors, [
+        const json = jsonForMenuBlock('TOWARDS', spriteMenu, 'motion', [
             [mouse, '_mouse_']
         ]);
         this.jsonInit(json);
@@ -200,7 +175,7 @@ export default function (vm, useCatBlocks) {
     ScratchBlocks.Blocks.motion_goto_menu.init = function () {
         const random = ScratchBlocks.ScratchMsgs.translate('MOTION_GOTO_RANDOM', 'random position');
         const mouse = ScratchBlocks.ScratchMsgs.translate('MOTION_GOTO_POINTER', 'mouse-pointer');
-        const json = jsonForMenuBlock('TO', spriteMenu, motionColors, [
+        const json = jsonForMenuBlock('TO', spriteMenu, 'motion', [
             [random, '_random_'],
             [mouse, '_mouse_']
         ]);
@@ -210,7 +185,7 @@ export default function (vm, useCatBlocks) {
     ScratchBlocks.Blocks.motion_glideto_menu.init = function () {
         const random = ScratchBlocks.ScratchMsgs.translate('MOTION_GLIDETO_RANDOM', 'random position');
         const mouse = ScratchBlocks.ScratchMsgs.translate('MOTION_GLIDETO_POINTER', 'mouse-pointer');
-        const json = jsonForMenuBlock('TO', spriteMenu, motionColors, [
+        const json = jsonForMenuBlock('TO', spriteMenu, 'motion', [
             [random, '_random_'],
             [mouse, '_mouse_']
         ]);
@@ -219,7 +194,7 @@ export default function (vm, useCatBlocks) {
 
     ScratchBlocks.Blocks.sensing_of_object_menu.init = function () {
         const stage = ScratchBlocks.ScratchMsgs.translate('SENSING_OF_STAGE', 'Stage');
-        const json = jsonForMenuBlock('OBJECT', spriteMenu, sensingColors, [
+        const json = jsonForMenuBlock('OBJECT', spriteMenu, 'sensing', [
             [stage, '_stage_']
         ]);
         this.jsonInit(json);
@@ -309,7 +284,7 @@ export default function (vm, useCatBlocks) {
 
     ScratchBlocks.Blocks.sensing_distancetomenu.init = function () {
         const mouse = ScratchBlocks.ScratchMsgs.translate('SENSING_DISTANCETO_POINTER', 'mouse-pointer');
-        const json = jsonForMenuBlock('DISTANCETOMENU', spriteMenu, sensingColors, [
+        const json = jsonForMenuBlock('DISTANCETOMENU', spriteMenu, 'sensing', [
             [mouse, '_mouse_']
         ]);
         this.jsonInit(json);
@@ -318,7 +293,7 @@ export default function (vm, useCatBlocks) {
     ScratchBlocks.Blocks.sensing_touchingobjectmenu.init = function () {
         const mouse = ScratchBlocks.ScratchMsgs.translate('SENSING_TOUCHINGOBJECT_POINTER', 'mouse-pointer');
         const edge = ScratchBlocks.ScratchMsgs.translate('SENSING_TOUCHINGOBJECT_EDGE', 'edge');
-        const json = jsonForMenuBlock('TOUCHINGOBJECTMENU', spriteMenu, sensingColors, [
+        const json = jsonForMenuBlock('TOUCHINGOBJECTMENU', spriteMenu, 'sensing', [
             [mouse, '_mouse_'],
             [edge, '_edge_']
         ]);
@@ -326,16 +301,16 @@ export default function (vm, useCatBlocks) {
     };
 
     ScratchBlocks.Blocks.control_create_clone_of_menu.init = function () {
-        const json = jsonForMenuBlock('CLONE_OPTION', cloneMenu, controlColors, []);
+        const json = jsonForMenuBlock('CLONE_OPTION', cloneMenu, 'control', []);
         this.jsonInit(json);
     };
 
-    ScratchBlocks.VerticalFlyout.getCheckboxState = function (blockId) {
+    ScratchBlocks.CheckboxBubble.prototype.isChecked = function (blockId) {
         const monitoredBlock = vm.runtime.monitorBlocks._blocks[blockId];
         return monitoredBlock ? monitoredBlock.isMonitored : false;
     };
 
-    ScratchBlocks.FlyoutExtensionCategoryHeader.getExtensionState = function (extensionId) {
+    ScratchBlocks.StatusIndicatorLabel.prototype.getExtensionState = function (extensionId) {
         if (vm.getPeripheralIsConnected(extensionId)) {
             return ScratchBlocks.StatusButtonState.READY;
         }
@@ -349,13 +324,13 @@ export default function (vm, useCatBlocks) {
     // Use a collator's compare instead of localeCompare which internally
     // creates a collator. Using this is a lot faster in browsers that create a
     // collator for every localeCompare call.
-    const collator = new Intl.Collator([], {
-        sensitivity: 'base',
-        numeric: true
-    });
-    ScratchBlocks.scratchBlocksUtils.compareStrings = function (str1, str2) {
-        return collator.compare(str1, str2);
-    };
+    // const collator = new Intl.Collator([], {
+    //     sensitivity: 'base',
+    //     numeric: true
+    // });
+    // ScratchBlocks.scratchBlocksUtils.compareStrings = function (str1, str2) {
+    //     return collator.compare(str1, str2);
+    // };
 
     // Blocks wants to know if 3D CSS transforms are supported. The cross
     // section of browsers Scratch supports and browsers that support 3D CSS

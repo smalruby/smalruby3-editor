@@ -2,39 +2,15 @@
 @import "../../css/units.css";
 @import "../../css/z-index.css";
 
-.downloadButton {
-    z-index: $z-index-add-button;
-    width: 2.75rem;
-    height: 2.75rem;
-    border: none;
-    border-radius: 100%;
-    background-color: $looks-secondary;
-    box-shadow: 0 0 0 4px $looks-transparent;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    padding: 0;
-}
-
-.downloadIcon {
-    width: 28px;
-    height: 28px;
-}
-
-.downloadWrapper {
-    position: absolute;
-    bottom: 22px;
-    right: 70px; /* 22px (zoom margin) + 36px (zoom width) + 12px (gap) */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
 .zoomControlsWrapper {
     position: absolute;
-    bottom: 22px;
-    right: 22px; /* Match Blockly zoom controls position */
+    /* Match the on-screen position of the Code tab's scratch-blocks v2 zoom
+       controls. ScratchZoomControls uses MARGIN_VERTICAL = MARGIN_HORIZONTAL = 20
+       inside the workspace's view metrics, which exclude the scratch-blocks
+       scrollbar (11px on desktop). Add that scrollbar offset here so the icons
+       sit at the same screen X/Y when switching tabs. */
+    bottom: 31px;
+    right: 31px;
     display: flex;
     flex-direction: column;
     align-items: center;

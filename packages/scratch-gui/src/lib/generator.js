@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import Blockly from 'scratch-blocks';
+import * as Blockly from 'scratch-blocks';
 import log from './log';
 
 /**
@@ -79,7 +79,8 @@ class Generator {
      * @returns {string} Category name.
      */
     static get NAME_TYPE() {
-        return Blockly.NAME_TYPE;
+        // === Smalruby: Blockly v2 removed NAME_TYPE; use the same string the v1 constant resolved to. ===
+        return Blockly.Names?.NameType?.DEVELOPER_VARIABLE ?? 'DEVELOPER_VARIABLE';
     }
 
     /**
@@ -98,7 +99,7 @@ class Generator {
         const comments = (this.cache_.comments = {});
         const targetCommentTexts = (this.cache_.targetCommentTexts = []);
         if (target) {
-            Object.keys(target.comments).forEach(commentId => {
+            Object.keys(target.comments).forEach((commentId) => {
                 const comment = target.comments[commentId];
                 if (comment.blockId) {
                     comments[comment.blockId] = comment;
@@ -114,7 +115,7 @@ class Generator {
     }
 
     getScripts() {
-        return this.currentTarget.blocks.getScripts().filter(blockId => !this.getBlock(blockId).shadow);
+        return this.currentTarget.blocks.getScripts().filter((blockId) => !this.getBlock(blockId).shadow);
     }
 
     /**
@@ -139,7 +140,7 @@ class Generator {
             const codes = [];
             const proceduresCodes = [];
             const scripts = this.getScripts();
-            scripts.forEach(topBlockId => {
+            scripts.forEach((topBlockId) => {
                 const block = this.getBlock(topBlockId);
                 let line = this.blockToCode(block);
                 if (_.isArray(line)) {
@@ -200,7 +201,7 @@ class Generator {
         this.initTargets(options);
 
         const codes = [];
-        targets.forEach(target => {
+        targets.forEach((target) => {
             const code = this.targetToCode_(target, options);
             if (code.length > 0) {
                 codes.push(code);
@@ -242,7 +243,7 @@ class Generator {
     getDescendants(block, ignoreShadows) {
         const blocks = [block];
         const childBlocks = this.getChildren(block);
-        childBlocks.forEach(child => {
+        childBlocks.forEach((child) => {
             if (!ignoreShadows || !child.shadow) {
                 blocks.push(...this.getDescendants(child, ignoreShadows));
             }

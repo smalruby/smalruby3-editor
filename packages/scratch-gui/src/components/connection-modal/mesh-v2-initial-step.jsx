@@ -19,12 +19,12 @@ const messages = defineMessages({
     },
 });
 
-const MeshV2InitialStep = props => {
+const MeshV2InitialStep = (props) => {
     const [domain, setDomain] = React.useState(props.domain || '');
     const [error, setError] = React.useState(null);
     const intl = useIntl();
 
-    const validate = React.useCallback(domainValue => {
+    const validate = React.useCallback((domainValue) => {
         if (!domainValue) return null;
 
         if (domainValue.length > 256) {
@@ -41,7 +41,7 @@ const MeshV2InitialStep = props => {
     }, []);
 
     const handleDomainChange = React.useCallback(
-        event => {
+        (event) => {
             const newDomain = event.target.value;
             const validationError = validate(newDomain);
             setDomain(newDomain);

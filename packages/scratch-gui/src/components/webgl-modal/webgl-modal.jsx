@@ -32,7 +32,6 @@ const WebGlModal = props => {
                         <FormattedMessage {...messages.label} />
                     </h2>
                     <p>
-                        {   }
                         <FormattedMessage
                             defaultMessage="Unfortunately it looks like your browser or computer <a>{webGlLink}</a>. This technology is needed for Scratch 3.0 to run."
                             description="WebGL missing message"

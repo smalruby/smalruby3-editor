@@ -25,7 +25,7 @@ const useIsNarrowScreen = () => {
             return () => {};
         }
         const mql = window.matchMedia(NARROW_SCREEN_QUERY);
-        const handler = event => setIsNarrow(event.matches);
+        const handler = (event) => setIsNarrow(event.matches);
         if (typeof mql.addEventListener === 'function') {
             mql.addEventListener('change', handler);
             return () => mql.removeEventListener('change', handler);

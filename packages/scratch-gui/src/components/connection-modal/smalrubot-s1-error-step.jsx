@@ -8,7 +8,7 @@ import Dots from './dots.jsx';
 import backIcon from './icons/back.svg';
 import errorStyles from './smalrubot-s1-error-step.css';
 
-const SmalrubotS1ErrorStep = props => (
+const SmalrubotS1ErrorStep = (props) => (
     <Box className={styles.body}>
         <Box className={styles.activityArea}>
             <Box className={errorStyles.message}>

@@ -7,7 +7,7 @@
 const shouldIncludeBlockExactMatch = function (blockType, allowedPatterns) {
     if (!allowedPatterns || allowedPatterns.length === 0) return true;
 
-    return allowedPatterns.some(pattern => {
+    return allowedPatterns.some((pattern) => {
         // Check if pattern is a category prefix (ends with underscore)
         if (pattern.endsWith('_')) {
             return blockType.startsWith(pattern);
@@ -65,7 +65,7 @@ describe('shouldIncludeBlock exact match logic', () => {
         // when looks_say is specified due to startsWith logic
         const currentShouldIncludeBlock = function (blockType, allowedPatterns) {
             if (!allowedPatterns || allowedPatterns.length === 0) return true;
-            return allowedPatterns.some(pattern => blockType === pattern || blockType.startsWith(pattern));
+            return allowedPatterns.some((pattern) => blockType === pattern || blockType.startsWith(pattern));
         };
 
         // This currently returns true (problematic behavior)

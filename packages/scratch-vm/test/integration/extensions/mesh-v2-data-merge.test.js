@@ -14,7 +14,7 @@ const mockClient = {
 
 require('../../../src/extensions/scratch3_mesh_v2/mesh-client').getClient = () => mockClient;
 
-test('MeshV2Service Data Merge Integration', async t => {
+test('MeshV2Service Data Merge Integration', async (t) => {
     let mutateCount = 0;
     const mutations = [];
 
@@ -24,7 +24,7 @@ test('MeshV2Service Data Merge Integration', async t => {
             mutateCount++;
             mutations.push(JSON.parse(JSON.stringify(variables.data)));
             // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await new Promise((resolve) => setTimeout(resolve, 50));
         }
         return { data: {} };
     };
@@ -60,7 +60,7 @@ test('MeshV2Service Data Merge Integration', async t => {
     t.end();
 });
 
-test('MeshV2Service Multiple Variables Merge Integration', async t => {
+test('MeshV2Service Multiple Variables Merge Integration', async (t) => {
     let mutateCount = 0;
     const mutations = [];
 
@@ -68,7 +68,7 @@ test('MeshV2Service Multiple Variables Merge Integration', async t => {
         if (mutation === REPORT_DATA) {
             mutateCount++;
             mutations.push(JSON.parse(JSON.stringify(variables.data)));
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await new Promise((resolve) => setTimeout(resolve, 50));
         }
         return { data: {} };
     };
@@ -105,8 +105,8 @@ test('MeshV2Service Multiple Variables Merge Integration', async t => {
     const lastMutation = mutations[1];
     t.equal(lastMutation.length, 2, 'Merged payload should have 2 unique keys');
 
-    const v1Item = lastMutation.find(i => i.key === 'v1');
-    const v2Item = lastMutation.find(i => i.key === 'v2');
+    const v1Item = lastMutation.find((i) => i.key === 'v1');
+    const v2Item = lastMutation.find((i) => i.key === 'v2');
 
     t.equal(v1Item.value, 3, 'v1 should have the latest value');
     t.equal(v2Item.value, 20, 'v2 should have the latest value');
@@ -114,7 +114,7 @@ test('MeshV2Service Multiple Variables Merge Integration', async t => {
     t.end();
 });
 
-test('MeshV2Service Data Unchanged Detection', async t => {
+test('MeshV2Service Data Unchanged Detection', async (t) => {
     let mutateCount = 0;
 
     mockClient.mutate = () => {

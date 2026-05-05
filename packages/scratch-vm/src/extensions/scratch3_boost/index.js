@@ -1028,7 +1028,7 @@ class Boost {
         const portID = data[3];
 
         switch (messageType) {
-        
+
         case BoostMessage.HUB_PROPERTIES: {
             const property = data[3];
             switch (property) {

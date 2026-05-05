@@ -1,5 +1,5 @@
 // === Smalruby: This file is Smalruby-specific (block creation methods for RubyToBlocksConverter) ===
-import Blockly from 'scratch-blocks';
+import * as Blockly from 'scratch-blocks';
 import _ from 'lodash';
 
 /**
@@ -12,7 +12,7 @@ const BlockCreation = {
     },
 
     _createComment (text, blockId, x = 0, y = 0, minimized = true) {
-        const id = Blockly.utils.genUid();
+        const id = Blockly.utils.idGenerator.genUid();
         this._context.comments[id] = {
             id: id,
             text: text,
@@ -32,7 +32,7 @@ const BlockCreation = {
 
     _createBlock (opcode, type, attributes = {}) {
         const block = Object.assign({
-            id: Blockly.utils.genUid(),
+            id: Blockly.utils.idGenerator.genUid(),
             opcode: opcode,
             inputs: {},
             fields: {},
@@ -139,7 +139,7 @@ const BlockCreation = {
         }
 
         const newBlock = Object.assign({}, block, {
-            id: Blockly.utils.genUid(),
+            id: Blockly.utils.idGenerator.genUid(),
             parent: null,
             next: null,
             inputs: {},

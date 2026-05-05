@@ -14,7 +14,7 @@ const createMockBlocks = () => ({
     },
 });
 
-test('MeshV2Service Delta Transmission', t => {
+test('MeshV2Service Delta Transmission', (t) => {
     const blocks = createMockBlocks();
     const service = new MeshV2Service(blocks, 'node1', 'domain1');
 
@@ -43,7 +43,7 @@ test('MeshV2Service Delta Transmission', t => {
     // Set a very short interval for rate limiter to speed up tests
     service.dataRateLimiter.intervalMs = 0;
 
-    t.test('should send all data initially', async st => {
+    t.test('should send all data initially', async (st) => {
         const data = [
             { key: 'v1', value: '1' },
             { key: 'v2', value: '2' },
@@ -56,7 +56,7 @@ test('MeshV2Service Delta Transmission', t => {
         st.end();
     });
 
-    t.test('should skip sending if data is unchanged', async st => {
+    t.test('should skip sending if data is unchanged', async (st) => {
         mutationCount = 0;
         reportedData = null;
 
@@ -70,7 +70,7 @@ test('MeshV2Service Delta Transmission', t => {
         st.end();
     });
 
-    t.test('should only send changed items (delta)', async st => {
+    t.test('should only send changed items (delta)', async (st) => {
         mutationCount = 0;
         reportedData = null;
 
@@ -87,7 +87,7 @@ test('MeshV2Service Delta Transmission', t => {
         st.end();
     });
 
-    t.test('should send new items', async st => {
+    t.test('should send new items', async (st) => {
         mutationCount = 0;
         reportedData = null;
 
@@ -103,7 +103,7 @@ test('MeshV2Service Delta Transmission', t => {
         st.end();
     });
 
-    t.test('should handle single item sendData calls from index.js', async st => {
+    t.test('should handle single item sendData calls from index.js', async (st) => {
         mutationCount = 0;
         reportedData = null;
 
