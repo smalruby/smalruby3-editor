@@ -232,7 +232,15 @@ end
     });
 
     test('complex expression with float literals is preserved', async () => {
-        await expectRoundTrip('1.0 / ((1.0 / 3435.0) * Math.log(20.0) + 1.0 / 298.0) - 273.0');
+        // Inner `(1.0 / 3435.0)` parens are dropped on round-trip because
+        // the generator now omits unnecessary parens for the LEFT side of
+        // left-associative operators (Issue #640 Phase 1). The result
+        // `1.0 / 3435.0 * Math.log(20.0)` is semantically identical:
+        // both forms parse as `(1.0 / 3435.0) * Math.log(20.0)`.
+        await expectRoundTrip(
+            '1.0 / ((1.0 / 3435.0) * Math.log(20.0) + 1.0 / 298.0) - 273.0',
+            '1.0 / (1.0 / 3435.0 * Math.log(20.0) + 1.0 / 298.0) - 273.0',
+        );
     });
 
     test('Japanese local variable names round-trip correctly', async () => {
