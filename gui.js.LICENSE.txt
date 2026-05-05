@@ -212,9 +212,9 @@ and limitations under the License.
 
 /*! ./writer */
 
-/*! @azure/msal-browser v5.6.3 2026-04-01 */
+/*! @azure/msal-browser v5.9.0 2026-04-28 */
 
-/*! @azure/msal-common v16.4.1 2026-04-01 */
+/*! @azure/msal-common v16.5.2 2026-04-28 */
 
 /*! @license DOMPurify 3.3.1 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.3.1/LICENSE */
 
@@ -739,6 +739,20 @@ and limitations under the License.
  *  @author Yotam Mann
  *  @license http://opensource.org/licenses/MIT MIT License
  *  @copyright 2016 Yotam Mann
+ */
+
+/**
+ * @license
+ *
+ * The APCA contrast prediction algorithm is based of the formulas published
+ * in the APCA-1.0.98G specification by Myndex. The specification is available at:
+ * https://raw.githubusercontent.com/Myndex/apca-w3/master/images/APCAw3_0.1.17_APCA0.0.98G.svg
+ *
+ * Note that the APCA implementation is still beta, so please update to
+ * future versions of chroma.js when they become available.
+ *
+ * You can read more about the APCA Readability Criterion at
+ * https://readtech.org/ARC/
  */
 
 /**
