@@ -246,6 +246,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/ruby-roundtrip-comment-bugs.test.js`
 - `test/unit/lib/ruby-roundtrip-gets.test.js`
 - `test/unit/lib/ruby-roundtrip-method-return.test.js`
+- `test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - `test/unit/lib/ruby-roundtrip-super.test.js`
 - `test/unit/lib/ruby-screenshot.test.js`
 - `test/unit/lib/smalrubot-firmware-flasher.test.js`

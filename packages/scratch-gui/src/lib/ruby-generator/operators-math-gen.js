@@ -1,5 +1,20 @@
 // === Smalruby: This file is Smalruby-specific (Ruby code generator for arithmetic and math function blocks) ===
 /**
+ * Register an `[outerOrder, innerOrder]` pair in `Generator.ORDER_OVERRIDES`
+ * so that `valueToCode` skips parens for that combination. Used to suppress
+ * unnecessary parens on the LEFT side of left-associative operators
+ * (`+`, `-`, `*`, `/`, `%`).
+ * @param {object} Generator The RubyGenerator instance.
+ * @param {number} outerOrder The synthesized outer order (typically `order + 0.5`).
+ * @param {number} innerOrder The inner block's natural order (e.g. ORDER_ADDITIVE).
+ */
+const registerLeftAssocOverride = (Generator, outerOrder, innerOrder) => {
+    if (!Generator.ORDER_OVERRIDES.some(p => p[0] === outerOrder && p[1] === innerOrder)) {
+        Generator.ORDER_OVERRIDES.push([outerOrder, innerOrder]);
+    }
+};
+
+/**
  * Define Ruby code generator for Arithmetic and Math Function Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
  * @returns {RubyGenerator} same as param.
@@ -13,7 +28,9 @@ export default function (Generator) {
         }
 
         const order = Generator.ORDER_ADDITIVE;
-        const num1 = Generator.valueToCode(block, 'NUM1', order) || 0;
+        const leftSideOrder = order + 0.5;
+        registerLeftAssocOverride(Generator, leftSideOrder, order);
+        const num1 = Generator.valueToCode(block, 'NUM1', leftSideOrder) || 0;
         const num2 = Generator.valueToCode(block, 'NUM2', order) || 0;
         return [`${num1} + ${num2}`, order];
     };
@@ -27,21 +44,27 @@ export default function (Generator) {
         }
 
         const order = Generator.ORDER_ADDITIVE;
-        const num1 = Generator.valueToCode(block, 'NUM1', order) || 0;
+        const leftSideOrder = order + 0.5;
+        registerLeftAssocOverride(Generator, leftSideOrder, order);
+        const num1 = Generator.valueToCode(block, 'NUM1', leftSideOrder) || 0;
         const num2 = Generator.valueToCode(block, 'NUM2', order) || 0;
         return [`${num1} - ${num2}`, Generator.ORDER_ADDITIVE];
     };
 
     Generator.operator_multiply = function (block) {
         const order = Generator.ORDER_MULTIPLICATIVE;
-        const num1 = Generator.valueToCode(block, 'NUM1', order) || 0;
+        const leftSideOrder = order + 0.5;
+        registerLeftAssocOverride(Generator, leftSideOrder, order);
+        const num1 = Generator.valueToCode(block, 'NUM1', leftSideOrder) || 0;
         const num2 = Generator.valueToCode(block, 'NUM2', order) || 0;
         return [`${num1} * ${num2}`, order];
     };
 
     Generator.operator_divide = function (block) {
         const order = Generator.ORDER_MULTIPLICATIVE;
-        const num1 = Generator.valueToCode(block, 'NUM1', order) || 0;
+        const leftSideOrder = order + 0.5;
+        registerLeftAssocOverride(Generator, leftSideOrder, order);
+        const num1 = Generator.valueToCode(block, 'NUM1', leftSideOrder) || 0;
         let num2 = Generator.valueToCode(block, 'NUM2', order) || 0.0;
         // guard 0 deviding.
         if (Number(num2) === 0) {
