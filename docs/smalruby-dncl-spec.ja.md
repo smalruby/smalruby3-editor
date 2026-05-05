@@ -12,17 +12,46 @@ smalruby の日本語モード（DNCLモード）は、大学入学共通テス�
 ### 動作の仕組み
 
 ```
-DNCL コード → (dncl-to-ruby.js) → Ruby コード → (ruby-to-blocks-converter) → Scratch ブロック → 実行
+DNCL コード → (dncl-v2-preprocessor.js) → Smalruby DNCL → (dncl-to-ruby.js) → Ruby コード → (ruby-to-blocks-converter) → Scratch ブロック → 実行
 ```
 
-ブロック → Ruby → DNCL の逆方向の変換も可能です（`ruby-to-dncl.js`）。
+最初に **DNCLv2 pre-processor** が DNCLv2 形式の構文（行番号、`｜` / `⎿` インデントマーカー、末尾コロン、`の間繰り返す` / `増やしながら繰り返す` の `繰り返す` 接尾辞、同一行複数代入、`and` / `or`、関数定義 opener 形式 `NAME(ARGS) を定義する`）を **Smalruby DNCL に正規化**します。Smalruby DNCL の入力はそのまま通過します。
+
+ブロック → Ruby → DNCL の逆方向の変換も可能です（`ruby-to-dncl.js`）。turn-around 後は Smalruby DNCL 形式に正規化されます（DNCLv2 形式の `(N)` / `｜` / `⎿` / 末尾コロンは復元されません）。
 
 ### 標準 DNCL（DNCLv2）との主な違い
 
-- **ブロック終端が日本語キーワード**（`を実行する`、`を繰り返す`、`と定義する`）であり、コロン `:` は使わない
-- **条件分岐の末尾にコロンがない**（`もし 条件 ならば` であり、`もし 条件 ならば:` ではない）
-- 内部的に Scratch ブロックに変換されるため、**使用できる機能が Scratch の範囲に限定される**
-- 変数に `@` や `$` プレフィックスは使えない（Ruby の変数記法は自動的に処理される）
+DNCLv2 形式の構文は **pre-processor がサポート** するため、コピペで実行可能です。turn-around した結果は Smalruby 形式に正規化されます。
+
+- **ブロック終端**:
+  - DNCLv2: インデント戻り（または `⎿` マーカー）で暗黙終了
+  - Smalruby: `を実行する` / `を繰り返す` / `と定義する` の日本語キーワードで明示終了
+  - **DNCLv2 入力時**: pre-processor が `⎿` の数だけ Smalruby の終端キーワードを自動挿入
+- **条件分岐の末尾コロン**:
+  - DNCLv2: `もし 条件 ならば:`
+  - Smalruby: `もし 条件 ならば`（コロンなし）
+  - **DNCLv2 入力時**: pre-processor がコロンを削除
+- **`繰り返す` 接尾辞**:
+  - DNCLv2: `条件 の間繰り返す:` / `i を ... 増やしながら繰り返す:`
+  - Smalruby: `条件 の間` / `i を ... 増やしながら`
+  - **DNCLv2 入力時**: pre-processor が `繰り返す` 接尾辞を削除
+- **関数定義**:
+  - DNCLv2: `名前(引数) を定義する:` ... `⎿`
+  - Smalruby: `関数 名前(引数)` ... `と定義する`
+  - **DNCLv2 入力時**: pre-processor が opener と `⎿` を変換
+- **論理演算子**:
+  - DNCLv2: `a > 0 and b == 1` / `a > 0 or b > 0`
+  - Smalruby: `a > 0 かつ b == 1` / `a > 0 または b > 0`
+  - **DNCLv2 入力時**: pre-processor が whole-word 一致で変換
+- **同一行複数代入**:
+  - DNCLv2: `a = X , b = Y`
+  - Smalruby: 2 行に分けて記述
+  - **DNCLv2 入力時**: pre-processor が複数行に分割
+- **その他**:
+  - 内部的に Scratch ブロックに変換されるため、**使用できる機能が Scratch の範囲に限定される**
+  - 変数に `@` や `$` プレフィックスは使えない（Ruby の変数記法は自動的に処理される）
+
+詳細な対応一覧は [`docs/dncl/README.md`](dncl/README.md) の「DNCLv2 互換」セクションを参照してください。
 
 ## 2. プログラム構造
 

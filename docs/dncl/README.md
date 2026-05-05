@@ -9,10 +9,12 @@ Ruby タブで **日本語のプログラミング言語（DNCL モード）** �
 DNCL は大学入学共通テスト手順記述標準言語（DNCLv2）を参考にした日本語ベースの記法で、Smalruby ではこれを内部的に Ruby コードにトランスパイルしてから Scratch ブロックに変換して実行する。
 
 ```
-DNCL コード → Ruby コード → Scratch ブロック → 実行
+DNCL コード → (DNCLv2 pre-processor) → Smalruby DNCL → Ruby コード → Scratch ブロック → 実行
 ```
 
-ブロック → Ruby → DNCL の逆方向変換にも対応しているため、ビジュアルブロックで作った作品を日本語コードで読むことも可能。
+**DNCLv2 互換**: 共通テスト 例題サイト（[nodai2hitc.github.io/ictl_example](https://nodai2hitc.github.io/ictl_example/)）で公開されている DNCLv2 形式のプログラムを **そのままコピペして実行** できる。`(N) ` 行番号、`｜` / `⎿` インデントマーカー、`もし ... ならば:` 末尾コロン、`の間繰り返す:` / `増やしながら繰り返す:` 形式、`hidari = 0 , migi = kazu - 1` のような同一行複数代入、`and` / `or`、`NAME(ARGS) を定義する` 形式の関数定義などをサポート。詳細は「DNCLv2 互換」セクション参照。
+
+ブロック → Ruby → DNCL の逆方向変換にも対応しているため、ビジュアルブロックで作った作品を日本語コードで読むことも可能（turn-around 後は Smalruby DNCL 形式に正規化される）。
 
 ## ユーザーストーリー
 
@@ -47,10 +49,11 @@ DNCL モードと**ふりがな**は排他（DNCL 自体が日本語のためふ
 
 | ファイル | 役割 |
 |---|---|
-| `dncl-to-ruby.js` | DNCL → Ruby 変換のエントリポイント |
+| `dncl-to-ruby.js` | DNCL → Ruby 変換のエントリポイント（pre-processor → validator → line converter） |
+| `dncl-v2-preprocessor.js` | **DNCLv2 → Smalruby DNCL 正規化**（行番号、コロン、`｜` / `⎿`、複数代入、`and` / `or`、関数定義 opener） |
 | `dncl-line-converter.js` | 行単位の DNCL → Ruby 変換 |
 | `dncl-identifier-converter.js` | 識別子（変数名）の変換 |
-| `dncl-builtins.js` | DNCL 組み込み関数の定義（`表示する`, `入力する` など）|
+| `dncl-builtins.js` | DNCL 組み込み関数の定義（`表示する`, `要素数` など）。`表示する` 多引数は `puts(... + ...)` に展開 |
 | `dncl-keywords.js` | DNCL キーワード定義（`もし`, `ならば`, `を繰り返す` など）|
 | `dncl-validator.js` | DNCL コードの構文検証 |
 | `dncl-state.js` | パーサー状態管理 |
@@ -60,7 +63,7 @@ DNCL モードと**ふりがな**は排他（DNCL 自体が日本語のためふ
 | `ruby-to-dncl.js` | Ruby → DNCL 逆変換のエントリポイント |
 | `ruby-to-dncl-line-converter.js` | 行単位の Ruby → DNCL 変換 |
 | `ruby-to-dncl-identifier.js` | 識別子の逆変換 |
-| `ruby-to-dncl-builtins.js` | 組み込み関数の逆変換 |
+| `ruby-to-dncl-builtins.js` | 組み込み関数の逆変換。`puts(... + ...)` の左寄せ `+` チェーンを `表示する(...)` 多引数にフラット化（display fragment 限定） |
 
 #### Monaco Editor 言語定義
 
@@ -99,14 +102,44 @@ DNCL モードは特定のブロックに紐づくものではなく、**Ruby �
 - `?rubyMode=dncl` または `?rubyMode=ja` または `?rubyMode=japanese` — DNCL モード強制 ON
 - `?rubyMode=furigana` または `?rubyMode=ruby` — DNCL モード強制 OFF
 
-## DNCLv2 との主な違い
+## DNCLv2 互換
 
-Smalruby の DNCL モードは標準 DNCL（DNCLv2）と以下が異なる：
+Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる。これは「pre-processor が DNCLv2 構文を Smalruby DNCL に正規化してから既存パイプラインに流す」設計で実現している（`dncl-v2-preprocessor.js`）。
 
-- **ブロック終端が日本語キーワード**（`を実行する`, `を繰り返す`, `と定義する`）。コロン `:` は使わない
-- **条件分岐の末尾にコロンがない**（`もし 条件 ならば`）
+### 対応する DNCLv2 構文
+
+| DNCLv2 構文 | 例 | 正規化後 |
+|---|---|---|
+| 行番号 | `(1) Data = [1, 2, 3]` | `Data = [1, 2, 3]` |
+| 末尾コロン | `もし a > 0 ならば:` | `もし a > 0 ならば` |
+| `の間繰り返す` | `a > 0 の間繰り返す:` | `a > 0 の間` |
+| `増やしながら繰り返す` | `i を ... 増やしながら繰り返す:` | `i を ... 増やしながら` |
+| `減らしながら繰り返す` | `i を ... 減らしながら繰り返す:` | `i を ... 減らしながら` |
+| インデントマーカー (`｜`) | `  ｜ a = 1` | `  a = 1`（2 スペース/marker） |
+| 暗黙の `end` (`⎿`) | `  ⎿ a = 1` (1 marker) | `  a = 1` + 自動で `を実行する` 追加 |
+| 同一行複数 `⎿` | `  ⎿  ⎿ a = 1` | 2 個の `end` を一度に追加 |
+| 同一行複数代入 | `a = X , b = Y` | 2 行に分割 |
+| `and` / `or` | `a > 0 and b == 1` | `a > 0 かつ b == 1` |
+| 関数定義 | `calc(x) を定義する:` | `関数 calc(x)` |
+| `表示する` 多引数 | `表示する(a, "は", b)` | `puts(@a.to_s + "は" + @b.to_s)`（1 つの吹き出し）|
+
+### 対応しない DNCLv2 機能
+
+以下は **未対応**（必要なら別 issue で対応）:
+
+- `要素数 N の配列 A` 形式の配列宣言
+- `変数 に 式 を入れる` 形式の自然言語代入
+- 全角ブラケット `［］`
+
+### Smalruby 独自の差分
+
+- **ブロック終端が日本語キーワード**（`を実行する`, `を繰り返す`, `と定義する`）。turn-around 後はこの形式に正規化される
 - Scratch ブロックに変換されるため、**使える機能が Scratch の範囲に限定される**
 - 変数に `@`, `$` プレフィックスは使えない（Ruby の変数記法は自動処理）
+
+### 動作確認用例題
+
+完全な DNCLv2 例題（線形探索）の round-trip テスト: `test/unit/lib/dncl/dncl-v2-example.test.js`
 
 ## 言語仕様
 
@@ -123,6 +156,13 @@ Smalruby の DNCL モードは標準 DNCL（DNCLv2）と以下が異なる：
 ## テスト
 
 - 単体テスト: `packages/scratch-gui/test/unit/lib/dncl/`
+  - `dncl-v2-preprocessor.test.js` — DNCLv2 正規化テスト（53 cases）
+  - `dncl-v2-example.test.js` — DNCLv2 例題の end-to-end 変換テスト
+  - `dncl-display-multi-arg.test.js` — `表示する` 多引数 / `puts(... + ...)` round-trip
+  - `dncl-to-ruby.test.js` — DNCL → Ruby 変換ユニットテスト
+  - `ruby-to-dncl.test.js` — Ruby → DNCL 逆変換ユニットテスト
+  - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
+- Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - 結合テスト: `packages/scratch-gui/test/integration/dncl-mode-validation.test.js`
 
 ## 関連ドキュメント
