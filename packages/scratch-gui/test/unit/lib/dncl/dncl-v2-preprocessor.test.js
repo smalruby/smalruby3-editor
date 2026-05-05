@@ -69,10 +69,10 @@ describe('DNCLv2 pre-processor: trailing colons', () => {
         );
     });
 
-    test('strips colon after を定義する (DNCLv2 function definition)', () => {
-        expect(dnclV2Preprocess('myfunc(x) を定義する:')).toBe(
-            'myfunc(x) を定義する',
-        );
+    test('strips colon after を定義する (and converts to 関数 form)', () => {
+        // The pipeline strips the colon AND converts the DNCLv2 opener
+        // (`NAME(ARGS) を定義する`) to the Smalruby form (`関数 NAME(ARGS)`).
+        expect(dnclV2Preprocess('myfunc(x) を定義する:')).toBe('関数 myfunc(x)');
     });
 
     test('does not strip colon inside string', () => {
@@ -335,6 +335,46 @@ describe('DNCLv2 pre-processor: ｜ / ⎿ indent markers (Phase 4)', () => {
         const input = ['もし a > 0 ならば', '  a = 1', 'を実行する'].join('\n');
         const out = dnclV2Preprocess(input);
         expect(out).toBe(input);
+    });
+});
+
+describe('DNCLv2 pre-processor: function definition (Phase 5)', () => {
+    test('NAME(ARGS) を定義する → 関数 NAME(ARGS) (single-line opener)', () => {
+        expect(dnclV2Preprocess('myfunc(x) を定義する')).toBe('関数 myfunc(x)');
+    });
+
+    test('NAME(ARGS) を定義する: → 関数 NAME(ARGS) (with trailing colon)', () => {
+        expect(dnclV2Preprocess('myfunc(x) を定義する:')).toBe('関数 myfunc(x)');
+    });
+
+    test('two-arg function definition', () => {
+        expect(dnclV2Preprocess('add(a, b) を定義する')).toBe('関数 add(a, b)');
+    });
+
+    test('zero-arg function definition', () => {
+        expect(dnclV2Preprocess('hello() を定義する')).toBe('関数 hello()');
+    });
+
+    test('full DNCLv2 function definition with body and ⎿', () => {
+        const input = [
+            '(1) calc(x) を定義する:',
+            '(2)  ⎿ 返す x + 1',
+        ].join('\n');
+        const out = dnclV2Preprocess(input);
+        const lines = out.split('\n');
+        expect(lines).toEqual(['関数 calc(x)', '  返す x + 1', 'と定義する']);
+    });
+
+    test('does NOT convert `関数 ... と定義する` (already Smalruby form)', () => {
+        const input = ['関数 myfunc(x)', '  返す x + 1', 'と定義する'].join('\n');
+        expect(dnclV2Preprocess(input)).toBe(input);
+    });
+
+    test('does NOT match `を定義する` mid-line (only end-of-line)', () => {
+        // `a = "calc(x) を定義する"` should not be touched
+        expect(dnclV2Preprocess('a = "calc(x) を定義する"')).toBe(
+            'a = "calc(x) を定義する"',
+        );
     });
 });
 

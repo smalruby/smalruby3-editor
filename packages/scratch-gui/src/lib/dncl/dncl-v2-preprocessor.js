@@ -315,6 +315,25 @@ const closerForBlockType = (type) => {
 }
 
 /**
+ * Convert a DNCLv2 function-definition opener to the Smalruby form:
+ *   `NAME(ARGS) を定義する` → `関数 NAME(ARGS)`
+ *
+ * Only matches at end-of-line so `a = "calc(x) を定義する"` is left alone.
+ * The trailing whitespace (if any) after `を定義する` is preserved.
+ * @param {string} line - The line to inspect.
+ * @returns {string} The converted line.
+ */
+const normalizeFunctionDefOpener = (line) => 
+  // Match: identifier + `(...)` + spaces + `を定義する` at end of line.
+  // The function name uses ASCII identifier chars + CJK ranges, matching
+  // what the existing DNCL converter accepts.
+   line.replace(
+    /^(\s*)([a-zA-Z_぀-ゟ゠-ヿ一-鿿][a-zA-Z0-9_぀-ゟ゠-ヿ一-鿿]*\s*\([^)]*\))\s+を定義する(\s*)$/,
+    '$1関数 $2$3',
+  )
+
+
+/**
  * Run the DNCLv2 pre-processor on a single line. Applies all Phase 3
  * per-line transformations and returns the result; indent-marker /
  * `⎿`-based close handling lives in `dnclV2Preprocess` (which has the
@@ -327,6 +346,7 @@ const preprocessLine = (line) => {
   let out = stripLineNumber(line)
   out = stripTrailingColon(out)
   out = normalizeKurikaesuSuffix(out)
+  out = normalizeFunctionDefOpener(out)
   out = normalizeAndOr(out)
   out = splitMultiAssignment(out)
   return out
