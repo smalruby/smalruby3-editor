@@ -96,6 +96,29 @@ const fetchSvgAsDataUri = async function (url) {
 };
 
 /**
+ * Strips CSS `url(...)` references from a style sheet text. The exported SVG
+ * is loaded via a `blob:` URL, so relative URLs inside CSS (cursor sprites,
+ * spritesheet backgrounds, etc.) cannot be resolved and — more importantly —
+ * any reachable image still gets the blob origin slapped on it, which taints
+ * the canvas and blocks `toBlob()`.
+ *
+ * The references this strips are purely interactive chrome (cursor pointers,
+ * drag sprites, etc.) that aren't drawn in a static export anyway, so removal
+ * is lossless visually. Patterns like `url(#blocklyDragShadowFilter)` are
+ * intra-document refs and are kept.
+ * @param {string} cssText - The original CSS rules string.
+ * @returns {string} The CSS with external `url(...)` references stripped.
+ */
+const stripExternalCssUrls = function (cssText) {
+    return cssText.replace(/url\((['"]?)([^'")]+)\1\)/g, (match, quote, ref) => {
+        if (!ref || ref.startsWith('#') || ref.startsWith('data:')) {
+            return match;
+        }
+        return 'none';
+    });
+};
+
+/**
  * Replaces relative image hrefs in an SVG element with inlined data URIs.
  * This is necessary because when the SVG is serialized to a blob, relative
  * paths lose their base URL context and the images fail to load.
@@ -108,17 +131,25 @@ const inlineImageHrefs = async function (svgElement) {
     const promises = [];
     for (const img of images) {
         const href = img.getAttributeNS(xlinkNS, 'href') || img.getAttribute('href') || '';
-        if (href && !href.startsWith('data:')) {
-            promises.push(
-                fetchSvgAsDataUri(href).then((dataUri) => {
-                    if (img.getAttributeNS(xlinkNS, 'href')) {
-                        img.setAttributeNS(xlinkNS, 'href', dataUri);
-                    } else {
-                        img.setAttribute('href', dataUri);
-                    }
-                }),
-            );
+        if (!href) {
+            // Empty href on `<image>` falls back to the document URL (blob://
+            // when the SVG is loaded for rasterisation), which taints the
+            // canvas and breaks `toBlob()`. These elements are usually hidden
+            // dropdown placeholders inside dynamic blocks (display:none), so
+            // dropping them is visually lossless.
+            img.remove();
+            continue;
         }
+        if (href.startsWith('data:')) continue;
+        promises.push(
+            fetchSvgAsDataUri(href).then((dataUri) => {
+                if (img.getAttributeNS(xlinkNS, 'href')) {
+                    img.setAttributeNS(xlinkNS, 'href', dataUri);
+                } else {
+                    img.setAttribute('href', dataUri);
+                }
+            }),
+        );
     }
     await Promise.all(promises);
 };
@@ -153,6 +184,16 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
         svg.setAttribute('class', injectionDiv.className);
     }
 
+    // Helper: clone a <style> tag with external url() refs stripped.
+    // Cursor / spritesheet image refs are interactive chrome that's not part
+    // of the static export. Leaving them in taints the canvas (blob origin)
+    // and breaks `toBlob()` (issue: comments-screenshot SecurityError).
+    const cloneStyleSafe = (style) => {
+        const cloned = style.cloneNode(false);
+        cloned.textContent = stripExternalCssUrls(style.textContent || '');
+        return cloned;
+    };
+
     // Include <defs> and <style> from parent SVG (for block shapes, filters, etc.)
     const blockCanvas = workspace.getCanvas();
     const parentSvg = blockCanvas.ownerSVGElement || (blockCanvas.closest && blockCanvas.closest('svg'));
@@ -160,7 +201,7 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
         const defs = parentSvg.querySelector('defs');
         if (defs) svg.appendChild(defs.cloneNode(true));
         parentSvg.querySelectorAll('style').forEach((style) => {
-            svg.appendChild(style.cloneNode(true));
+            svg.appendChild(cloneStyleSafe(style));
         });
     }
 
@@ -168,7 +209,7 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     // These set fill colors for .blocklyText etc. and are not inside the SVG element.
     document.querySelectorAll('style').forEach((style) => {
         if ((style.textContent || '').includes('blocklyText')) {
-            svg.appendChild(style.cloneNode(true));
+            svg.appendChild(cloneStyleSafe(style));
         }
     });
 
@@ -192,17 +233,20 @@ const buildExportSVG = async function (workspace, bbox, scale, width, height, pa
     // override the SVG transform we set below for export positioning.
     canvasClone.style.transform = '';
     canvasClone.setAttribute('transform', canvasTransform);
+    // In scratch-blocks v2, block comments are nested inside the block canvas
+    // and contain `<foreignObject>` elements (HTML <textarea> for editing).
+    // Foreign objects taint the canvas via blob:// origin once the SVG is
+    // rasterised, so strip them here. The visible comment text is rendered
+    // separately via SVG `<text>` elements, so this is visually lossless.
+    canvasClone.querySelectorAll('foreignObject').forEach((fo) => fo.remove());
     svg.appendChild(canvasClone);
 
-    // Clone bubble canvas (comment bubbles) with the same transform.
-    // Remove <foreignObject> elements which contain HTML <textarea> for editing;
-    // they cause tainted canvas errors when the SVG is loaded via blob URL.
-    // The visible comment text is already in <text> elements, so nothing is lost.
+    // Clone bubble canvas (workspace-level comment bubbles) with the same transform.
+    // Same foreignObject-strip rule as for the block canvas.
     const bubbleCanvas = workspace.getBubbleCanvas();
     if (bubbleCanvas && bubbleCanvas.children.length > 0) {
         const bubbleClone = bubbleCanvas.cloneNode(true);
         bubbleClone.querySelectorAll('foreignObject').forEach((fo) => fo.remove());
-        // Same v2 transform fix as for the block canvas (see above).
         bubbleClone.style.transform = '';
         bubbleClone.setAttribute('transform', canvasTransform);
         svg.appendChild(bubbleClone);
@@ -358,6 +402,7 @@ export {
     renderSVGToCanvas,
     renderBlocksToCanvas,
     inlineImageHrefs,
+    stripExternalCssUrls,
     downloadBlocksAsImage,
     EXPORT_PADDING,
 };
