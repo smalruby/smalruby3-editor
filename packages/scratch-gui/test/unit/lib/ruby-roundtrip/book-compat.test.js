@@ -327,53 +327,111 @@ describe('Ruby Roundtrip: Book code compatibility (v1)', () => {
     });
 
     test('Program 18: heptagon', async () => {
-        await expectRoundTrip(converter, target, dedent`
-            self.when(:flag_clicked) do
-              pen_down
-              7.times do
-                move(50)
-                turn_left(180)
-                turn_right((180 * (7 - 2)) / 7)
-                wait
-              end
-            end
-        `);
+        // The outer parens around `(180 * (7 - 2))` are dropped on
+        // round-trip because the generator now omits unnecessary parens
+        // for the LEFT side of left-associative `*` / `/` (Issue #640
+        // Phase 1). `180 * (7 - 2) / 7` is semantically identical:
+        // both forms parse as `((180 * (7 - 2)) / 7)` left-to-right.
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+                self.when(:flag_clicked) do
+                  pen_down
+                  7.times do
+                    move(50)
+                    turn_left(180)
+                    turn_right((180 * (7 - 2)) / 7)
+                    wait
+                  end
+                end
+            `,
+            dedent`
+                self.when(:flag_clicked) do
+                  pen_down
+                  7.times do
+                    move(50)
+                    turn_left(180)
+                    turn_right(180 * (7 - 2) / 7)
+                    wait
+                  end
+                end
+            `,
+        );
     });
 
     test('Program 19: N-gon with variable', async () => {
-        await expectRoundTrip(converter, target, dedent`
-            self.when(:flag_clicked) do
-              pen_down
-              $へんのかず = 5
-              $へんのかず.times do
-                move(70)
-                turn_right(180)
-                turn_right((180 * ($へんのかず - 2)) / $へんのかず)
-                wait
-              end
-            end
-        `);
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+                self.when(:flag_clicked) do
+                  pen_down
+                  $へんのかず = 5
+                  $へんのかず.times do
+                    move(70)
+                    turn_right(180)
+                    turn_right((180 * ($へんのかず - 2)) / $へんのかず)
+                    wait
+                  end
+                end
+            `,
+            dedent`
+                self.when(:flag_clicked) do
+                  pen_down
+                  $へんのかず = 5
+                  $へんのかず.times do
+                    move(70)
+                    turn_right(180)
+                    turn_right(180 * ($へんのかず - 2) / $へんのかず)
+                    wait
+                  end
+                end
+            `,
+        );
     });
 
     test('Program 20: nested N-gon with color change', async () => {
-        await expectRoundTrip(converter, target, dedent`
-            self.when(:flag_clicked) do
-              pen_down
-              $へんのかず = 8
-              $へんのかず.times do
-                $へんのかず.times do
-                  self.color += 10
-                  move(70)
-                  turn_left(180)
-                  turn_right((180 * ($へんのかず - 2)) / $へんのかず)
-                  wait
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+                self.when(:flag_clicked) do
+                  pen_down
+                  $へんのかず = 8
+                  $へんのかず.times do
+                    $へんのかず.times do
+                      self.color += 10
+                      move(70)
+                      turn_left(180)
+                      turn_right((180 * ($へんのかず - 2)) / $へんのかず)
+                      wait
+                    end
+                    turn_left(180)
+                    turn_right((180 * ($へんのかず - 2)) / $へんのかず)
+                    wait
+                  end
                 end
-                turn_left(180)
-                turn_right((180 * ($へんのかず - 2)) / $へんのかず)
-                wait
-              end
-            end
-        `);
+            `,
+            dedent`
+                self.when(:flag_clicked) do
+                  pen_down
+                  $へんのかず = 8
+                  $へんのかず.times do
+                    $へんのかず.times do
+                      self.color += 10
+                      move(70)
+                      turn_left(180)
+                      turn_right(180 * ($へんのかず - 2) / $へんのかず)
+                      wait
+                    end
+                    turn_left(180)
+                    turn_right(180 * ($へんのかず - 2) / $へんのかず)
+                    wait
+                  end
+                end
+            `,
+        );
     });
 
     // --- micro:bit ---

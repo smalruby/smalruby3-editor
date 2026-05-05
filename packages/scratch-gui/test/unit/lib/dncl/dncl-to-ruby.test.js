@@ -77,19 +77,27 @@ describe('dnclToRuby', () => {
 
   describe('表示する (display)', () => {
     test('single argument', () => {
-      expect(convert('表示する(a)')).toBe('say(@a, 1)')
+      expect(convert('表示する(a)')).toBe('puts(@a)')
     })
 
-    test('multiple arguments', () => {
-      expect(convert('表示する(a, b, c)')).toBe('say(@a, @b, @c, 1)')
+    test('multiple arguments concatenate with `+` and wrap non-strings with `.to_s`', () => {
+      expect(convert('表示する(a, b, c)')).toBe(
+        'puts(@a.to_s + @b.to_s + @c.to_s)',
+      )
     })
 
     test('string argument', () => {
-      expect(convert('表示する("hello")')).toBe('say("hello", 1)')
+      expect(convert('表示する("hello")')).toBe('puts("hello")')
     })
 
     test('expression argument', () => {
-      expect(convert('表示する(a + 1)')).toBe('say(@a + 1, 1)')
+      expect(convert('表示する(a + 1)')).toBe('puts(@a + 1)')
+    })
+
+    test('multi-arg with mixed strings and variables', () => {
+      expect(convert('表示する(a, "は", b, "番目")')).toBe(
+        'puts(@a.to_s + "は" + @b.to_s + "番目")',
+      )
     })
   })
 
@@ -173,26 +181,26 @@ describe('dnclToRuby', () => {
 
   describe('nested function calls', () => {
     test('表示する(乱数(1..10)) keeps closing parens balanced', () => {
-      expect(convert('表示する(乱数(1..10))')).toBe('say(rand(1..10), 1)')
+      expect(convert('表示する(乱数(1..10))')).toBe('puts(rand(1..10))')
     })
 
-    test('表示する(整数(x)) places .to_i inside say argument', () => {
-      expect(convert('表示する(整数(x))')).toBe('say(@x.to_i, 1)')
+    test('表示する(整数(x)) places .to_i inside puts argument', () => {
+      expect(convert('表示する(整数(x))')).toBe('puts(@x.to_i)')
     })
 
-    test('表示する(絶対値(x)) places .abs inside say argument', () => {
-      expect(convert('表示する(絶対値(x))')).toBe('say(@x.abs, 1)')
+    test('表示する(絶対値(x)) places .abs inside puts argument', () => {
+      expect(convert('表示する(絶対値(x))')).toBe('puts(@x.abs)')
     })
 
-    test('表示する(要素数(A)) keeps array conversion inside say', () => {
+    test('表示する(要素数(A)) keeps array conversion inside puts', () => {
       expect(convert('表示する(要素数(Kouka))')).toBe(
-        'say(@_array_Kouka_.length, 1)',
+        'puts(@_array_Kouka_.length)',
       )
     })
 
     test('表示する with expression containing 乱数', () => {
       expect(convert('表示する(乱数(1..10) + 5)')).toBe(
-        'say(rand(1..10) + 5, 1)',
+        'puts(rand(1..10) + 5)',
       )
     })
 
@@ -210,7 +218,7 @@ describe('dnclToRuby', () => {
 
     test('same-name nesting: 表示する(乱数(乱数(1..10)))', () => {
       expect(convert('表示する(乱数(乱数(1..10)))')).toBe(
-        'say(rand(rand(1..10)), 1)',
+        'puts(rand(rand(1..10)))',
       )
     })
 
@@ -237,7 +245,7 @@ describe('dnclToRuby', () => {
     test('function call inside 表示する', () => {
       expect(
         convert('関数 myfunc(x)\n  返す 5\nと定義する\n表示する(myfunc(3))'),
-      ).toBe('def myfunc(x)\n  return 5\nend\nsay(myfunc(3), 1)')
+      ).toBe('def myfunc(x)\n  return 5\nend\nputs(myfunc(3))')
     })
 
     test('function called before definition (forward reference)', () => {
@@ -338,7 +346,7 @@ describe('dnclToRuby', () => {
         convert(
           'i を 1 から 10 まで 1 ずつ増やしながら\n  表示する(i)\nを繰り返す',
         ),
-      ).toBe('@i = 1\nwhile @i <= 10\n  say(@i, 1)\n  @i += 1\nend')
+      ).toBe('@i = 1\nwhile @i <= 10\n  puts(@i)\n  @i += 1\nend')
     })
 
     test('descending for loop', () => {
@@ -346,7 +354,7 @@ describe('dnclToRuby', () => {
         convert(
           'i を 10 から 0 まで 1 ずつ減らしながら\n  表示する(i)\nを繰り返す',
         ),
-      ).toBe('@i = 10\nwhile @i >= 0\n  say(@i, 1)\n  @i += -1\nend')
+      ).toBe('@i = 10\nwhile @i >= 0\n  puts(@i)\n  @i += -1\nend')
     })
 
     test('for loop with expression bounds', () => {
@@ -354,7 +362,7 @@ describe('dnclToRuby', () => {
         convert(
           'i を 0 から n まで 2 ずつ増やしながら\n  表示する(i)\nを繰り返す',
         ),
-      ).toBe('@i = 0\nwhile @i <= @n\n  say(@i, 1)\n  @i += 2\nend')
+      ).toBe('@i = 0\nwhile @i <= @n\n  puts(@i)\n  @i += 2\nend')
     })
 
     test('nested for loops', () => {
@@ -370,7 +378,7 @@ describe('dnclToRuby', () => {
         'while @i <= 3',
         '  @j = 1',
         '  while @j <= 3',
-        '    say(@i, 1)',
+        '    puts(@i)',
         '    @j += 1',
         '  end',
         '  @i += 1',

@@ -211,7 +211,18 @@ export default function (Generator) {
         }
 
         const order = Generator.ORDER_ADDITIVE;
-        const rightStr = Generator.valueToCode(block, 'STRING1', order) || Generator.quote_('');
+        // `+` is left-associative, so an inner `+` chain on the LEFT side
+        // (STRING1) does not need parens — `(a + b) + c` and `a + b + c`
+        // produce the same block tree. Request the left child at a slightly
+        // higher precedence (`order + 0.5`) and register the matching pair
+        // in `ORDER_OVERRIDES` so `valueToCode` skips the parens for the
+        // same-precedence join. The right side stays at `order` so that
+        // `a + (b + c)` keeps its semantically meaningful parens.
+        const leftSideOrder = order + 0.5;
+        if (!Generator.ORDER_OVERRIDES.some(p => p[0] === leftSideOrder && p[1] === order)) {
+            Generator.ORDER_OVERRIDES.push([leftSideOrder, order]);
+        }
+        const rightStr = Generator.valueToCode(block, 'STRING1', leftSideOrder) || Generator.quote_('');
         const leftStr = Generator.valueToCode(block, 'STRING2', order) || Generator.quote_('');
         return [`${rightStr} + ${leftStr}`, order];
     };

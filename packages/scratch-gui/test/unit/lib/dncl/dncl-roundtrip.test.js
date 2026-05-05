@@ -173,18 +173,22 @@ describe('DNCL round-trip (DNCL → Ruby → DNCL)', () => {
       return dnclToRuby(dncl).ruby
     }
 
-    test('say(rand(1..10), 1) survives both directions', () => {
-      expect(rubyRoundtrip('say(rand(1..10), 1)')).toBe('say(rand(1..10), 1)')
+    test('say(rand(1..10), 1) → puts(rand(1..10)) (表示する uses puts)', () => {
+      // 表示する → puts (Issue #640): the say() output is normalized to
+      // puts() in the new direction, so round-trip lands on puts().
+      expect(rubyRoundtrip('say(rand(1..10), 1)')).toBe('puts(rand(1..10))')
     })
 
-    test('say(rand(1..10) + 5, 1) survives both directions', () => {
+    test('say(rand(1..10) + 5, 1) → puts(rand(1..10) + 5) (single expr, not flattened)', () => {
+      // Operands are not all string-literal-or-.to_s, so the `+` chain
+      // stays as a single expression in DNCL. Round-trips to puts(...).
       expect(rubyRoundtrip('say(rand(1..10) + 5, 1)')).toBe(
-        'say(rand(1..10) + 5, 1)',
+        'puts(rand(1..10) + 5)',
       )
     })
 
-    test('say(@x.to_i, 1) survives both directions', () => {
-      expect(rubyRoundtrip('say(@x.to_i, 1)')).toBe('say(@x.to_i, 1)')
+    test('say(@x.to_i, 1) → puts(@x.to_i)', () => {
+      expect(rubyRoundtrip('say(@x.to_i, 1)')).toBe('puts(@x.to_i)')
     })
   })
 

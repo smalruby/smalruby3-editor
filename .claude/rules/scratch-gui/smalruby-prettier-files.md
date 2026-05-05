@@ -80,7 +80,7 @@ upstream (Scratch) ファイルは対象外。
 ### src/lib/
 
 **Smalruby 固有ディレクトリ:**
-- `src/lib/dncl/`
+- `src/lib/dncl/` (新規追加: `dncl-v2-preprocessor.js`)
 - `src/lib/ruby-generator/`
 - `src/lib/ruby-to-blocks-converter/`
 - `src/lib/settings/`
@@ -246,6 +246,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/ruby-roundtrip-comment-bugs.test.js`
 - `test/unit/lib/ruby-roundtrip-gets.test.js`
 - `test/unit/lib/ruby-roundtrip-method-return.test.js`
+- `test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - `test/unit/lib/ruby-roundtrip-super.test.js`
 - `test/unit/lib/ruby-screenshot.test.js`
 - `test/unit/lib/smalrubot-firmware-flasher.test.js`

@@ -1,6 +1,22 @@
 // === Smalruby: This file is Smalruby-specific (DNCL→Ruby builtin conversion) ===
 
-import { replaceCall, splitArgsAtTopLevel } from './paren-utils'
+import { replaceCall, skipString, splitArgsAtTopLevel } from './paren-utils'
+
+/**
+ * Check whether an argument string is exactly a string literal — either
+ * `"..."` or `'...'`. Used by `表示する` multi-arg conversion to decide
+ * whether to wrap with `.to_s`.
+ * @param {string} arg - The argument expression (will be trimmed).
+ * @returns {boolean} True if the argument is a single string literal.
+ */
+const isStringLiteral = (arg) => {
+  const trimmed = arg.trim()
+  if (trimmed.length < 2) return false
+  const first = trimmed[0]
+  if (first !== '"' && first !== "'") return false
+  const end = skipString(trimmed, 0, first)
+  return end === trimmed.length
+}
 
 /**
  * Convert DNCL built-in function calls to Ruby equivalents. Uses balanced
@@ -15,8 +31,22 @@ import { replaceCall, splitArgsAtTopLevel } from './paren-utils'
 const convertBuiltinFunctions = (text) => {
   let result = text
 
-  // 表示する(...) → say(..., 1)
-  result = replaceCall(result, '表示する', (args) => `say(${args}, 1)`)
+  // 表示する(args) → puts(...)
+  // - 1 arg: puts(arg) — single-bubble display
+  // - N args: puts(arg1' + arg2' + ...) — concatenated into one bubble.
+  //   String literals are kept as-is; non-string args are wrapped in `.to_s`
+  //   so that the `+` chain converts to `operator_join` blocks (Ruby
+  //   block-block `+` would otherwise route to `operator_add` / math add).
+  result = replaceCall(result, '表示する', (args) => {
+    const parts = splitArgsAtTopLevel(args)
+    if (parts.length <= 1) {
+      return `puts(${args})`
+    }
+    const wrapped = parts.map((p) =>
+      isStringLiteral(p) ? p.trim() : `${p.trim()}.to_s`,
+    )
+    return `puts(${wrapped.join(' + ')})`
+  })
 
   // 含む(str, sub) → str.include?(sub) — only the 2-arg form is valid;
   // any other arity is left unchanged so we don't emit malformed Ruby.
