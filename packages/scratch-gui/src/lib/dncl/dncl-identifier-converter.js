@@ -5,6 +5,7 @@ import {
   addArrayName,
   isArrayName,
   isFunctionName,
+  isFunctionParam,
   mapVarName,
 } from './dncl-state'
 import { skipString } from './paren-utils'
@@ -34,6 +35,12 @@ const convertIdentifier = (name) => {
   if (DNCL_KEYWORDS.has(name)) return name
   if (RUBY_LITERALS.has(name)) return name
   if (isFunctionName(name)) return name
+  // Inside a `関数 ... と定義する` block, a parameter name should stay as
+  // a bare local identifier — Ruby's method parameter — not be prefixed
+  // with `@` (instance variable). Without this check, the def body
+  // would silently reference the sprite's instance vars instead of the
+  // arguments it was called with. (Issue #642)
+  if (isFunctionParam(name)) return name
   if (/^\d/.test(name)) return name
   if (/^[A-Z]/.test(name)) {
     return mapVarName(name, isArrayName(name))
