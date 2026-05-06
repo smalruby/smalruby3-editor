@@ -8,6 +8,10 @@ import {connect} from 'react-redux';
 
 import ControlsComponent from '../components/controls/controls.jsx';
 
+// === Smalruby: Start of block_run analytics ===
+import analytics from '../lib/analytics';
+// === Smalruby: End of block_run analytics ===
+
 import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 
 class Controls extends React.Component {
@@ -35,6 +39,17 @@ class Controls extends React.Component {
                         this.props.vm.start();
                     }
                     this.props.vm.greenFlag();
+                    // === Smalruby: Start of block_run analytics ===
+                    try {
+                        analytics.event({
+                            category: 'block_run',
+                            action: 'green_flag',
+                            label: this.props.turbo ? 'turbo' : 'normal'
+                        });
+                    } catch (_e) {
+                        // Swallow analytics failures so the editor never breaks.
+                    }
+                    // === Smalruby: End of block_run analytics ===
                 }
             });
     }

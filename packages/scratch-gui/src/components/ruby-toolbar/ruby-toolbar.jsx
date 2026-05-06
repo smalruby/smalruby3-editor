@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import {useIntl} from 'react-intl';
 import VM from '@smalruby/scratch-vm';
 
+import analytics from '../../lib/analytics';
+
 import styles from './ruby-toolbar.css';
 import messages from './messages.js';
 import TargetSelector from './target-selector.jsx';
@@ -65,32 +67,74 @@ const RubyToolbar = props => {
         if (props.onDownload) props.onDownload();
     }, [props]);
 
+    const trackFuriganaToggle = useCallback(
+        (next) => {
+            try {
+                analytics.event({
+                    category: 'furigana_toggle',
+                    action: 'toggle',
+                    label: next ? 'on' : 'off',
+                });
+            } catch (_e) {
+                // Swallow analytics failures so the editor never breaks.
+            }
+        },
+        [],
+    );
+
+    const trackModeSwitch = useCallback((mode) => {
+        try {
+            analytics.event({
+                category: 'mode_switch',
+                action: 'change',
+                label: mode,
+            });
+        } catch (_e) {
+            // Swallow analytics failures so the editor never breaks.
+        }
+    }, []);
+
     const handleToggleFurigana = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
-        if (props.onToggleFurigana) props.onToggleFurigana();
-    }, [props]);
+        if (props.onToggleFurigana) {
+            trackFuriganaToggle(!props.furiganaEnabled);
+            props.onToggleFurigana();
+        }
+    }, [props, trackFuriganaToggle]);
 
     // === Smalruby: Start of mode selection handlers ===
     const handleSelectFuriganaMode = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
+        trackModeSwitch('furigana');
         // Switch to Ruby mode with furigana ON
         if (props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
-        if (!props.furiganaEnabled && props.onToggleFurigana) props.onToggleFurigana();
-    }, [props]);
+        if (!props.furiganaEnabled && props.onToggleFurigana) {
+            trackFuriganaToggle(true);
+            props.onToggleFurigana();
+        }
+    }, [props, trackModeSwitch, trackFuriganaToggle]);
 
     const handleSelectRubyMode = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
+        trackModeSwitch('ruby');
         // Switch to Ruby mode with furigana OFF
         if (props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
-        if (props.furiganaEnabled && props.onToggleFurigana) props.onToggleFurigana();
-    }, [props]);
+        if (props.furiganaEnabled && props.onToggleFurigana) {
+            trackFuriganaToggle(false);
+            props.onToggleFurigana();
+        }
+    }, [props, trackModeSwitch, trackFuriganaToggle]);
 
     const handleSelectDnclMode = useCallback(() => {
         if (props.onDismissBubble) props.onDismissBubble();
+        trackModeSwitch('dncl');
         // Switch to DNCL mode (disable furigana since DNCL is already in Japanese)
         if (!props.dnclMode && props.onToggleDnclMode) props.onToggleDnclMode();
-        if (props.furiganaEnabled && props.onToggleFurigana) props.onToggleFurigana();
-    }, [props]);
+        if (props.furiganaEnabled && props.onToggleFurigana) {
+            trackFuriganaToggle(false);
+            props.onToggleFurigana();
+        }
+    }, [props, trackModeSwitch, trackFuriganaToggle]);
     // === Smalruby: End of mode selection handlers ===
 
     const handleToggleAutoCorrect = useCallback(() => {

@@ -112,6 +112,23 @@ class ConnectionModal extends React.Component {
     }
     handleDisconnect () {
         try {
+            // === Smalruby: Start of mesh_v2/smalrubot_s1 disconnect analytics ===
+            try {
+                if (this.props.extensionId === 'meshV2') {
+                    analytics.event({
+                        category: 'mesh_v2',
+                        action: 'disconnect'
+                    });
+                } else if (this.props.extensionId === 'smalrubotS1') {
+                    analytics.event({
+                        category: 'smalrubot_s1',
+                        action: 'disconnect'
+                    });
+                }
+            } catch (_e) {
+                // Swallow analytics failures so the editor never breaks.
+            }
+            // === Smalruby: End of mesh_v2/smalrubot_s1 disconnect analytics ===
             this.props.vm.disconnectPeripheral(this.props.extensionId);
         } finally {
             this.props.onCancel();
@@ -189,6 +206,28 @@ class ConnectionModal extends React.Component {
             action: 'connected',
             label: this.props.extensionId
         });
+        // === Smalruby: Start of mesh_v2/smalrubot_s1 connect analytics ===
+        try {
+            if (this.props.extensionId === 'meshV2') {
+                const meshExt = this.props.vm.runtime.peripheralExtensions.meshV2;
+                const meshLabel = meshExt && meshExt._service && meshExt._service.useWebSocket === false ?
+                    'polling' :
+                    'websocket';
+                analytics.event({
+                    category: 'mesh_v2',
+                    action: 'connect',
+                    label: meshLabel
+                });
+            } else if (this.props.extensionId === 'smalrubotS1') {
+                analytics.event({
+                    category: 'smalrubot_s1',
+                    action: 'connect'
+                });
+            }
+        } catch (_e) {
+            // Swallow analytics failures so the editor never breaks.
+        }
+        // === Smalruby: End of mesh_v2/smalrubot_s1 connect analytics ===
     }
     handleHelp () {
         window.open(this.state.extension.helpLink, '_blank');
