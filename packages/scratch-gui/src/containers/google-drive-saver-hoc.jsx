@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import { connect } from 'react-redux';
+import analytics from '../lib/analytics';
 import googleDriveAPI from '../lib/google-drive-api';
 import intlShape from '../lib/intlShape.js';
 import log from '../lib/log';
@@ -128,6 +129,16 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
 
             // Set status to saved
             this.setState({ saveDirectStatus: 'saved' });
+
+            try {
+                analytics.event({
+                    category: 'google_drive',
+                    action: 'save',
+                    label: 'overwrite',
+                });
+            } catch (_e) {
+                // Swallow analytics failures so the editor never breaks.
+            }
 
             // Reset status to idle after 3 seconds
             setTimeout(() => {
@@ -316,6 +327,16 @@ const GoogleDriveSaverHOC = function (WrappedComponent) {
 
                 // Set status to saved
                 this.setState({ saveStatus: 'saved' });
+
+                try {
+                    analytics.event({
+                        category: 'google_drive',
+                        action: 'save',
+                        label: 'new_file',
+                    });
+                } catch (_e) {
+                    // Swallow analytics failures so the editor never breaks.
+                }
 
                 // Reset status to idle after 3 seconds
                 setTimeout(() => {

@@ -5,6 +5,7 @@ import React from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import RubyteeConsent from '../components/rubytee-consent/rubytee-consent.jsx';
 import RubyteeModal from '../components/rubytee-modal/rubytee-modal.jsx';
+import analytics from '../lib/analytics';
 import intlShape from '../lib/intlShape.js';
 import RubyteeAPI, { RateLimitError } from '../lib/rubytee-api';
 
@@ -359,6 +360,15 @@ const RubyteeModalHOC = function (WrappedComponent) {
                     latestCodes: latestCodes,
                     isLoading: false,
                 }));
+                try {
+                    analytics.event({
+                        category: 'rubytee',
+                        action: 'use',
+                        label: latestCodes && latestCodes.length > 0 ? 'with_code' : 'no_code',
+                    });
+                } catch (_e) {
+                    // Swallow analytics failures so the editor never breaks.
+                }
             } catch (error) {
                 this._clearTimers();
 

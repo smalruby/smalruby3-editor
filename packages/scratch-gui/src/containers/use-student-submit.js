@@ -5,6 +5,7 @@
  * project upload, and progress tracking.
  */
 import { useCallback, useState } from 'react';
+import analytics from '../lib/analytics';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
@@ -153,6 +154,15 @@ const useStudentSubmit = ({
             setSubmitProgress(null);
             dispatch(setSubmissionStatus('submitted', submissionData.submittedAt));
             setPhase('student-status');
+            try {
+                analytics.event({
+                    category: 'classroom',
+                    action: 'submit',
+                    label: screenshotBlobs && screenshotBlobs.length > 0 ? 'with_screenshots' : 'no_screenshots',
+                });
+            } catch (_e) {
+                // Swallow analytics failures so the editor never breaks.
+            }
         } catch (err) {
             setSubmitProgress(null);
             if (err.status === 401) {

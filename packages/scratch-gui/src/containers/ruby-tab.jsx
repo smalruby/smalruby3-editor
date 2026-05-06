@@ -9,6 +9,7 @@ import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-moda
 import cameraIcon from '../components/blocks-screenshot-button/icon--camera.svg';
 import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-preview.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
+import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
 import { DnclSourceMap } from '../lib/dncl/dncl-source-map';
@@ -1141,6 +1142,16 @@ const RubyTab = (props) => {
                 editorRef.current.layout();
             }
             onMarkRubyTabUsed();
+            try {
+                const mode = dnclModeRef.current ? 'dncl' : furiganaEnabledRef.current ? 'furigana' : 'ruby';
+                analytics.event({
+                    category: 'ruby_tab',
+                    action: 'open',
+                    label: mode,
+                });
+            } catch (_e) {
+                // Swallow analytics failures so the editor never breaks.
+            }
         }
 
         updateDebugGlobals(vm, {

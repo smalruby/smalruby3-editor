@@ -55,4 +55,32 @@ describe('analytics (GA4 dataLayer wrapper)', () => {
         }
         expect(window.dataLayer.map((entry) => entry.event)).toEqual(categories);
     });
+
+    test('Phase 2 GA event categories are stable identifiers', () => {
+        const categories = ['ruby_tab', 'rubytee', 'classroom', 'google_drive'];
+        for (const category of categories) {
+            analytics.event({ category, action: 'noop' });
+        }
+        expect(window.dataLayer.map((entry) => entry.event)).toEqual(categories);
+    });
+
+    test('Phase 2 expected (action, label) pairs', () => {
+        const cases = [
+            { category: 'ruby_tab', action: 'open', label: 'ruby' },
+            { category: 'ruby_tab', action: 'open', label: 'furigana' },
+            { category: 'ruby_tab', action: 'open', label: 'dncl' },
+            { category: 'rubytee', action: 'use', label: 'with_code' },
+            { category: 'rubytee', action: 'use', label: 'no_code' },
+            { category: 'classroom', action: 'join', label: 'with_assignment' },
+            { category: 'classroom', action: 'join', label: 'no_assignment' },
+            { category: 'classroom', action: 'submit', label: 'with_screenshots' },
+            { category: 'classroom', action: 'submit', label: 'no_screenshots' },
+            { category: 'google_drive', action: 'save', label: 'overwrite' },
+            { category: 'google_drive', action: 'save', label: 'new_file' },
+        ];
+        for (const c of cases) {
+            analytics.event(c);
+        }
+        expect(window.dataLayer).toEqual(cases.map((c) => ({ event: c.category, action: c.action, label: c.label })));
+    });
 });
