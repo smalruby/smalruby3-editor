@@ -7,6 +7,7 @@ import {
   convertJapaneseStrings,
   processSegments,
 } from './dncl-identifier-converter'
+import { enterFunctionScope, exitFunctionScope } from './dncl-state'
 
 /**
  * Stack tracking for-loop state for increment insertion at `を繰り返す`.
@@ -93,8 +94,11 @@ const convertLine = (line) => {
     return `${indent}end`
   }
 
-  // と定義する → end
+  // と定義する → end (closes a `関数 ... と定義する` block — pop the
+  // function-parameter scope so subsequent identifier conversion at top
+  // level reverts to instance-variable prefixing). See Issue #642.
   if (trimmed === 'と定義する') {
+    exitFunctionScope()
     return `${indent}end`
   }
 
@@ -136,8 +140,16 @@ const convertLine = (line) => {
   }
 
   // 関数 name(params) → def name(params)
+  // Enter a function-parameter scope so references to the params inside
+  // the body are emitted as bare local variables (not `@params`).
+  // See Issue #642.
   const funcMatch = trimmed.match(/^関数\s+(\w+)\(([^)]*)\)$/)
   if (funcMatch) {
+    const params = funcMatch[2]
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    enterFunctionScope(params)
     return `${indent}def ${funcMatch[1]}(${funcMatch[2]})`
   }
 

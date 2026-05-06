@@ -403,16 +403,20 @@ describe('dnclToRuby', () => {
   })
 
   describe('control flow: function', () => {
-    test('function definition', () => {
+    test('function definition: param stays as local Ruby variable', () => {
+      // Issue #642: previously the body would emit `return @x * 2`,
+      // wrongly referencing the sprite's instance variable instead of
+      // the function parameter `x`. Now the param-scope tracker keeps
+      // it as `return x * 2`.
       expect(
         convert('関数 f(x)\n  返す x * 2\nと定義する'),
-      ).toBe('def f(x)\n  return @x * 2\nend')
+      ).toBe('def f(x)\n  return x * 2\nend')
     })
 
-    test('function with multiple params', () => {
+    test('function with multiple params: each param stays as local', () => {
       expect(
         convert('関数 add(a, b)\n  返す a + b\nと定義する'),
-      ).toBe('def add(a, b)\n  return @a + @b\nend')
+      ).toBe('def add(a, b)\n  return a + b\nend')
     })
   })
 })

@@ -18,6 +18,27 @@ let arrayNames = new Set()
 let functionNames = new Set()
 
 /**
+ * Stack of currently-open function parameter scopes. Each entry is a
+ * `Set<string>` of the parameter names of one in-progress function
+ * definition. Pushed by `enterFunctionScope` when the converter visits
+ * `関数 name(p1, p2)`, popped by `exitFunctionScope` when it visits
+ * `と定義する` / `を定義する`.
+ *
+ * `convertIdentifier` consults this stack so that references to function
+ * parameters inside the body stay as bare local-variable names (Ruby
+ * method parameters) instead of being prefixed with `@` (instance
+ * variable). Without this, `関数 maximum(a, b) ... 返す a と定義する`
+ * would compile to `def maximum(a, b); return \@a; end` — the param `a`
+ * never used and the sprite's instance var `\@a` returned instead.
+ *
+ * Reset via `resetFunctionScopes` at the start of each `dnclToRuby`
+ * invocation so a stale half-open scope from a previous (failed)
+ * conversion never leaks.
+ * @type {Array<Set<string>>}
+ */
+let functionParamsStack = []
+
+/**
  * Map an identifier from DNCL to Ruby variable name.
  * - Lowercase identifiers → `@name`
  * - Uppercase identifiers with array value → `@_array_Name_`
@@ -108,11 +129,55 @@ const addArrayName = (name) => {
   arrayNames.add(name)
 }
 
+/**
+ * Push a new function-parameter scope onto the stack. Called when the
+ * converter enters `関数 name(p1, p2, ...)`.
+ * @param {Array<string>} params - Parameter names declared on the def line.
+ */
+const enterFunctionScope = (params) => {
+  functionParamsStack.push(new Set(params))
+}
+
+/**
+ * Pop the top function-parameter scope. Called when the converter
+ * encounters `と定義する` (or DNCLv2 `を定義する`).
+ */
+const exitFunctionScope = () => {
+  functionParamsStack.pop()
+}
+
+/**
+ * Check whether `name` matches a parameter of any currently-open
+ * function definition. Walks the stack from innermost outward so nested
+ * defs (should they ever appear) work correctly.
+ * @param {string} name - The identifier to look up.
+ * @returns {boolean} True if `name` shadows a parameter in scope.
+ */
+const isFunctionParam = (name) => {
+  for (let i = functionParamsStack.length - 1; i >= 0; i--) {
+    if (functionParamsStack[i].has(name)) return true
+  }
+  return false
+}
+
+/**
+ * Reset the function-parameter scope stack. Called at the start of each
+ * `dnclToRuby` so a stale partial scope from a previous run cannot
+ * affect the new conversion.
+ */
+const resetFunctionScopes = () => {
+  functionParamsStack = []
+}
+
 export {
   addArrayName,
   detectArrayNames,
   detectFunctionNames,
+  enterFunctionScope,
+  exitFunctionScope,
   isArrayName,
   isFunctionName,
+  isFunctionParam,
   mapVarName,
+  resetFunctionScopes,
 }

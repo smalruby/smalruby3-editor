@@ -1,7 +1,11 @@
 // === Smalruby: This file is Smalruby-specific (DNCL to Ruby transpiler) ===
 
 import { convertLine, resetForLoopStack } from './dncl-line-converter'
-import { detectArrayNames, detectFunctionNames } from './dncl-state'
+import {
+  detectArrayNames,
+  detectFunctionNames,
+  resetFunctionScopes,
+} from './dncl-state'
 import { dnclV2Preprocess } from './dncl-v2-preprocessor'
 import { validateDncl } from './dncl-validator'
 
@@ -32,6 +36,7 @@ const dnclToRuby = (source) => {
   detectArrayNames(normalized)
   detectFunctionNames(normalized)
   resetForLoopStack()
+  resetFunctionScopes()
 
   const lines = normalized.split('\n')
   const rubyLines = lines.map((line) => convertLine(line))
