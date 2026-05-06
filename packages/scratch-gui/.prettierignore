@@ -266,6 +266,7 @@ test/unit/components/*
 !test/unit/components/mobile-top-bar.test.jsx
 !test/unit/components/palette-toggle.test.jsx
 !test/unit/components/project-title-input.test.jsx
+!test/unit/components/ruby-toolbar-analytics.test.jsx
 !test/unit/components/scanning-step-name-search.test.js
 !test/unit/components/student-join-form.test.js
 
@@ -293,6 +294,7 @@ test/unit/lib/*
 !test/unit/lib/ruby-roundtrip/
 !test/unit/lib/ruby-to-blocks-converter/
 # Individual Smalruby files
+!test/unit/lib/analytics.test.js
 !test/unit/lib/auto-correct.test.js
 !test/unit/lib/backpack-api.test.js
 !test/unit/lib/backpack-mesh-v1-migration.test.js

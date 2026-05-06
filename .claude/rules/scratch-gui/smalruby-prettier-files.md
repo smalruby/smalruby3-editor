@@ -202,6 +202,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/mobile-sprite-panel.test.jsx`
 - `test/unit/components/mobile-top-bar.test.jsx`
 - `test/unit/components/palette-toggle.test.jsx`
+- `test/unit/components/ruby-toolbar-analytics.test.jsx`
 - `test/unit/components/project-title-input.test.jsx`
 - `test/unit/components/scanning-step-name-search.test.js`
 - `test/unit/components/student-join-form.test.js`
@@ -216,6 +217,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/containers/ruby-tab-project-changed.test.js`
 - `test/unit/containers/rubytee-modal-hoc-sanitize.test.js`
 - `test/unit/empty-block-selection.test.js`
+- `test/unit/lib/analytics.test.js`
 - `test/unit/lib/auto-correct.test.js`
 - `test/unit/lib/backpack-api.test.js`
 - `test/unit/lib/backpack-mesh-v1-migration.test.js`
