@@ -102,6 +102,41 @@ DNCL モードは特定のブロックに紐づくものではなく、**Ruby �
 - `?rubyMode=dncl` または `?rubyMode=ja` または `?rubyMode=japanese` — DNCL モード強制 ON
 - `?rubyMode=furigana` または `?rubyMode=ruby` — DNCL モード強制 OFF
 
+## Block ↔ Ruby ↔ DNCL の変換マトリクス
+
+Smalruby の Ruby タブは **3 つのモード** (Ruby / DNCL / ふりがな) を切り替えられ、それぞれが内部の Ruby 表現を異なる形式で表示します。さらに **Scratch ブロックタブ** とも双方向変換します。
+
+ほとんどの構文は **3 方向すべてが round-trip 安定** ですが、いくつかの **意図的に不可逆な変換** があり、設計の根拠とともに本セクションで明示します。
+
+### `表示する` (display) の変換マトリクス
+
+| 方向 | 変換結果 | 備考 |
+|---|---|---|
+| Block `looks_sayforsecs(msg, n)` → **Ruby** | `say(msg, n)` | 秒数を保持 |
+| Block `looks_sayforsecs(msg, n)` → **DNCL** | `表示する(msg)` | **秒数 n は無視** |
+| **DNCL** `表示する(args)` → Ruby | `puts(args)` | **不可逆: `say` には戻さない** |
+| **DNCL** `表示する(args)` → Block | `looks_sayforsecs(...)` + `@ruby:method:puts` コメント + secs=1 | Ruby に戻すと `puts(args)` |
+
+### 不可逆な変換とその理由
+
+#### 1. Block `say(msg, n)` → DNCL `表示する(msg)` （秒数喪失）
+
+**理由**: DNCL は「Console に値を表示する」という抽象的な操作を表現する言語で、秒数 (Scratch の吹き出し表示時間) は概念として持っていません。
+
+**結果**: Block で秒数を 2 にしても DNCL では `表示する(msg)` (秒数情報なし) になり、再度 Ruby/Block に戻すと **秒数は 1 (デフォルト)** にリセットされます。
+
+#### 2. DNCL `表示する` → Ruby `puts` （`say` には戻さない）
+
+**理由**: `puts` の方が「Console に出力する」という意味に近く、DNCL の `表示する` のセマンティクスと一致します。`say` は Scratch の吹き出し演出を含むため、DNCL の純粋な「表示」とは概念的に異なります。
+
+**結果**: 一度 DNCL モードを経由した `say(msg, n)` は **`puts(msg)` に変換されたまま戻らない**。秒数情報も失われます。
+
+これは「DNCL モードに切り替えると、その時点でブロックが『表示する』ブロックに正規化される」という設計意図を反映した仕様で、教育的な観点で「DNCL 的な書き方」に揃えるためのものです。
+
+### 変換マトリクスを lock-in するテスト
+
+このマトリクスを保証する単体テスト: `packages/scratch-gui/test/unit/lib/dncl/dncl-say-block-roundtrip.test.js`
+
 ## DNCLv2 互換
 
 Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる。これは「pre-processor が DNCLv2 構文を Smalruby DNCL に正規化してから既存パイプラインに流す」設計で実現している（`dncl-v2-preprocessor.js`）。
