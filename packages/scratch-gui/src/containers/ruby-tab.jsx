@@ -1019,6 +1019,19 @@ const RubyTab = (props) => {
             return;
         }
 
+        // Snapshot the current Ruby tab mode before any wasDncl reset path
+        // mutates dnclModeRef.current later in this effect. This is used
+        // for the `ruby_tab/open` GA event so it observes the user-intended
+        // mode rather than the transient ruby state during DNCL re-application.
+        const rubyTabOpenLabel =
+            isVisible && !prev.isVisible
+                ? dnclModeRef.current
+                    ? 'dncl'
+                    : furiganaEnabledRef.current
+                      ? 'furigana'
+                      : 'ruby'
+                : null;
+
         // Ruby version change
         if (rubyVersion !== prev.rubyVersion) {
             if (rubyVersion === lastProcessedVersionRef.current) {
@@ -1143,11 +1156,10 @@ const RubyTab = (props) => {
             }
             onMarkRubyTabUsed();
             try {
-                const mode = dnclModeRef.current ? 'dncl' : furiganaEnabledRef.current ? 'furigana' : 'ruby';
                 analytics.event({
                     category: 'ruby_tab',
                     action: 'open',
-                    label: mode,
+                    label: rubyTabOpenLabel,
                 });
             } catch (_e) {
                 // Swallow analytics failures so the editor never breaks.
