@@ -118,15 +118,19 @@ const convertLine = (line) => {
   }
 
   // i を N1 から N2 まで N3 ずつ増やしながら → @i = N1 + while @i <= N2
+  // The bound expressions are run through `convertBuiltinFunctions` first
+  // so that `要素数(...)`, `整数(...)`, etc. inside the bounds get converted
+  // (Issue #644). `processSegments` alone only handles identifier/operator
+  // conversion, not builtin function calls.
   const forAscMatch = trimmed.match(
     /^(\w+)\s+を\s+(.+?)\s+から\s+(.+?)\s+まで\s+(.+?)\s+ずつ増やしながら$/,
   )
   if (forAscMatch) {
     const [, loopVar, from, to, step] = forAscMatch
     const varName = convertIdentifier(loopVar)
-    const fromRuby = processSegments(from)
-    const toRuby = processSegments(to)
-    const stepRuby = processSegments(step)
+    const fromRuby = processSegments(convertBuiltinFunctions(from))
+    const toRuby = processSegments(convertBuiltinFunctions(to))
+    const stepRuby = processSegments(convertBuiltinFunctions(step))
     forLoopStack.push({ varName, stepRuby, ascending: true, indent })
     return `${indent}${varName} = ${fromRuby}\n${indent}while ${varName} <= ${toRuby}`
   }
@@ -138,9 +142,9 @@ const convertLine = (line) => {
   if (forDescMatch) {
     const [, loopVar, from, to, step] = forDescMatch
     const varName = convertIdentifier(loopVar)
-    const fromRuby = processSegments(from)
-    const toRuby = processSegments(to)
-    const stepRuby = processSegments(step)
+    const fromRuby = processSegments(convertBuiltinFunctions(from))
+    const toRuby = processSegments(convertBuiltinFunctions(to))
+    const stepRuby = processSegments(convertBuiltinFunctions(step))
     forLoopStack.push({ varName, stepRuby, ascending: false, indent })
     return `${indent}${varName} = ${fromRuby}\n${indent}while ${varName} >= ${toRuby}`
   }
