@@ -1,6 +1,17 @@
 // === Smalruby: This file is Smalruby-specific (DNCL→Ruby conversion state) ===
 
 const CJK_ID_TAIL = 'a-zA-Z0-9_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF'
+const CJK_ID_HEAD = 'a-zA-Z_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FFF'
+
+/**
+ * Regex source for a DNCL identifier: starts with an ASCII letter,
+ * underscore, hiragana, katakana, or CJK ideograph; continues with the
+ * same plus digits. Used by every place that needs to match a function
+ * name in source text (definition headers, call-site forward-reference
+ * detection, etc.) so CJK names like `関数 最大値(...)` are recognized
+ * the same way as ASCII ones. (Issue #643)
+ */
+const DNCL_IDENT_PATTERN = `[${CJK_ID_HEAD}][${CJK_ID_TAIL}]*`
 
 /**
  * Track which uppercase identifiers are arrays within a conversion. Reset
@@ -97,9 +108,12 @@ const detectArrayNames = (source) => {
 const detectFunctionNames = (source) => {
   functionNames = new Set()
   const lines = source.split('\n')
+  // CJK-aware function name regex (Issue #643). Built once outside the
+  // loop because RegExp construction is non-trivial.
+  const re = new RegExp(`^関数\\s+(${DNCL_IDENT_PATTERN})\\s*\\(`)
   for (const line of lines) {
     const trimmed = line.trim()
-    const m = trimmed.match(/^関数\s+(\w+)\s*\(/)
+    const m = trimmed.match(re)
     if (m) {
       functionNames.add(m[1])
     }
@@ -171,6 +185,7 @@ const resetFunctionScopes = () => {
 
 export {
   addArrayName,
+  DNCL_IDENT_PATTERN,
   detectArrayNames,
   detectFunctionNames,
   enterFunctionScope,

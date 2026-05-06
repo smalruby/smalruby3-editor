@@ -7,7 +7,22 @@ import {
   convertJapaneseStrings,
   processSegments,
 } from './dncl-identifier-converter'
-import { enterFunctionScope, exitFunctionScope } from './dncl-state'
+import {
+  DNCL_IDENT_PATTERN,
+  enterFunctionScope,
+  exitFunctionScope,
+} from './dncl-state'
+
+/**
+ * Pre-compiled regex matching `関数 NAME(args)` in DNCL source. Built
+ * from `DNCL_IDENT_PATTERN` so CJK function names like `関数 最大値`
+ * are recognized — the previous `\\w+` pattern was ASCII-only and let
+ * such names fall through to identifier conversion, producing the
+ * broken `関数 \@最大値(\@a, \@b)`. (Issue #643)
+ */
+const FUNC_DEF_RE = new RegExp(
+  `^関数\\s+(${DNCL_IDENT_PATTERN})\\(([^)]*)\\)$`,
+)
 
 /**
  * Stack tracking for-loop state for increment insertion at `を繰り返す`.
@@ -143,7 +158,7 @@ const convertLine = (line) => {
   // Enter a function-parameter scope so references to the params inside
   // the body are emitted as bare local variables (not `@params`).
   // See Issue #642.
-  const funcMatch = trimmed.match(/^関数\s+(\w+)\(([^)]*)\)$/)
+  const funcMatch = trimmed.match(FUNC_DEF_RE)
   if (funcMatch) {
     const params = funcMatch[2]
       .split(',')
