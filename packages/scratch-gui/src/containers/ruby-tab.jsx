@@ -9,6 +9,7 @@ import AutoCorrectModal from '../components/auto-correct-modal/auto-correct-moda
 import cameraIcon from '../components/blocks-screenshot-button/icon--camera.svg';
 import RubyScriptPreview from '../components/ruby-script-preview/ruby-script-preview.jsx';
 import RubyToolbar from '../components/ruby-toolbar/ruby-toolbar.jsx';
+import analytics from '../lib/analytics';
 import { autoCorrect, defaultSettings as defaultAutoCorrectSettings } from '../lib/auto-correct';
 import collectMetadata from '../lib/collect-metadata.js';
 import { DnclSourceMap } from '../lib/dncl/dncl-source-map';
@@ -1018,6 +1019,19 @@ const RubyTab = (props) => {
             return;
         }
 
+        // Snapshot the current Ruby tab mode before any wasDncl reset path
+        // mutates dnclModeRef.current later in this effect. This is used
+        // for the `ruby_tab/open` GA event so it observes the user-intended
+        // mode rather than the transient ruby state during DNCL re-application.
+        const rubyTabOpenLabel =
+            isVisible && !prev.isVisible
+                ? dnclModeRef.current
+                    ? 'dncl'
+                    : furiganaEnabledRef.current
+                      ? 'furigana'
+                      : 'ruby'
+                : null;
+
         // Ruby version change
         if (rubyVersion !== prev.rubyVersion) {
             if (rubyVersion === lastProcessedVersionRef.current) {
@@ -1141,6 +1155,15 @@ const RubyTab = (props) => {
                 editorRef.current.layout();
             }
             onMarkRubyTabUsed();
+            try {
+                analytics.event({
+                    category: 'ruby_tab',
+                    action: 'open',
+                    label: rubyTabOpenLabel,
+                });
+            } catch (_e) {
+                // Swallow analytics failures so the editor never breaks.
+            }
         }
 
         updateDebugGlobals(vm, {

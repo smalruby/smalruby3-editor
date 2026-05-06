@@ -4,6 +4,7 @@ import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import ClassroomTeacherModalComponent from '../components/classroom-teacher-modal/classroom-teacher-modal.jsx';
+import analytics from '../lib/analytics';
 import classroomAPI from '../lib/classroom-api.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
@@ -213,6 +214,15 @@ const ClassroomModal = ({ mode = 'student' }) => {
                     joinedAt: new Date().toISOString(),
                 }),
             );
+            try {
+                analytics.event({
+                    category: 'classroom',
+                    action: 'join',
+                    label: data.assignmentName ? 'with_assignment' : 'no_assignment',
+                });
+            } catch (_e) {
+                // Swallow analytics failures so the editor never breaks.
+            }
             if (data.assignmentName) {
                 dispatch(setProjectTitle(data.assignmentName));
             }
