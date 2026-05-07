@@ -7,6 +7,9 @@ import PropTypes from 'prop-types';
 import queryString from 'query-string';
 import React from 'react';
 import VMScratchBlocks from '../lib/blocks';
+// === Smalruby: Start of comment icon patch import ===
+import {setPendingCommentIconApply} from '../lib/scratch-blocks-comment-icon-patch.js';
+// === Smalruby: End of comment icon patch import ===
 import VM from '@smalruby/scratch-vm';
 
 import analytics from '../lib/analytics';
@@ -719,8 +722,33 @@ class Blocks extends React.Component {
         // Disabling events entirely during the load ensures nothing is queued.
         this.workspace.removeChangeListener(this.toolboxUpdateChangeListener);
         let fromRuby = false;
-        const rubyCommentIconsToMinimize = [];
         const rubyWorkspaceCommentsToCollapse = [];
+
+        // === Smalruby: Start of pre-load collapse map ===
+        // Populate the pending-apply map *before* clearWorkspaceAndLoadFromXml so
+        // the patched ScratchCommentIcon constructor sets `setCollapsed(true)`
+        // synchronously while the bubble is being created. Without this, the
+        // bubble briefly renders expanded (at the default right-of-block
+        // location) before any post-load setBubbleVisible(false) we might
+        // schedule — that is the visible flash users were seeing on every
+        // ruby→code conversion *and* every plain code→ruby→code tab toggle.
+        //
+        // Source of truth: VM target.comments[*].minimized — already true for
+        // every Ruby-converted comment (block-creation.js sets
+        // `minimized: true` by default).
+        const pendingCommentApply = new Map();
+        if (this.props.vm.editingTarget && this.props.vm.editingTarget.comments) {
+            const targetComments = this.props.vm.editingTarget.comments;
+            for (const cid in targetComments) {
+                const c = targetComments[cid];
+                if (c && c.minimized && c.blockId) {
+                    pendingCommentApply.set(c.blockId, {collapsed: true, location: null});
+                }
+            }
+        }
+        setPendingCommentIconApply(pendingCommentApply);
+        // === Smalruby: End of pre-load collapse map ===
+
         try {
             this.ScratchBlocks.Events.disable();
             const dom = this.ScratchBlocks.utils.xml.textToDom(data.xml);
@@ -778,7 +806,6 @@ class Blocks extends React.Component {
                         const commentText = typeof wsBlock.getCommentText === 'function' ?
                             wsBlock.getCommentText() : null;
                         if (commentText && commentText.startsWith('@ruby:')) {
-                            rubyCommentIconsToMinimize.push(wsBlock.id);
                             const targetComments = this.props.vm.editingTarget.comments;
                             const blockData = blocks.getBlock(wsBlock.id);
                             const commentId = blockData && blockData.comment;
@@ -790,9 +817,29 @@ class Blocks extends React.Component {
                                 // Align x to the root (top-level) block so
                                 // every `@ruby:*` comment in a single script
                                 // shares the same left edge regardless of how
-                                // deeply nested its source block is.
-                                targetComments[commentId].x = rootX + dx;
-                                targetComments[commentId].y = blockXY.y;
+                                // deeply nested its source block is. Persisting
+                                // these into the VM means subsequent loads will
+                                // place the bubble correctly via XML restore.
+                                const x = rootX + dx;
+                                const y = blockXY.y;
+                                targetComments[commentId].x = x;
+                                targetComments[commentId].y = y;
+                                // Apply position to the live bubble synchronously
+                                // — collapse was already applied by the patched
+                                // icon constructor during XML deserialization.
+                                if (typeof wsBlock.getIcons === 'function') {
+                                    const icons = wsBlock.getIcons();
+                                    const commentIcon = icons.find(icon => {
+                                        const t = icon.getType && icon.getType();
+                                        return t && t.name === 'comment';
+                                    });
+                                    if (commentIcon &&
+                                        typeof commentIcon.setBubbleLocation === 'function') {
+                                        commentIcon.setBubbleLocation(
+                                            new this.ScratchBlocks.utils.Coordinate(x, y)
+                                        );
+                                    }
+                                }
                             }
                         }
                     });
@@ -870,75 +917,29 @@ class Blocks extends React.Component {
             log.error(error);
         } finally {
             this.ScratchBlocks.Events.enable();
-            // === Smalruby: Start of @ruby:* comment minimize ===
-            // setBubbleVisible(false) only takes effect when Events are enabled,
-            // because scratch-blocks v2 gates the visibility update on its
-            // event dispatch path. Apply the collected minimizations now that
-            // the event system is back online.
-            if (this.workspace &&
-                (rubyCommentIconsToMinimize.length > 0 ||
-                    rubyWorkspaceCommentsToCollapse.length > 0)) {
-                // Defer: scratch-blocks v2 finishes its post-load rendering
-                // pass after onWorkspaceUpdate returns, and a synchronous
-                // setBubbleVisible(false) call is overridden by that pass.
-                // Re-fetch icons by block ID inside the timer because the
-                // icon references collected synchronously can be detached
-                // before this point. Also nudge the bubble location to be
-                // adjacent to its own block — the Ruby converter places
-                // every `@ruby:*` comment at the same workspace coord
-                // (200, 0), which makes scratch-blocks v2 stack the
-                // comment bubbles on top of each other.
-                const blockIds = rubyCommentIconsToMinimize;
+            // === Smalruby: Start of pre-load collapse map cleanup ===
+            setPendingCommentIconApply(null);
+            // === Smalruby: End of pre-load collapse map cleanup ===
+            // === Smalruby: Start of @ruby:* workspace comment collapse ===
+            // Block-attached `@ruby:*` comments are already collapsed by the
+            // patched ScratchCommentIcon constructor (see lib/scratch-blocks-
+            // comment-icon-patch.js). Workspace-level comments (e.g.
+            // `@ruby:class` not attached to any block) use a different class
+            // (Blockly.comments.RenderedWorkspaceComment), so collapse them
+            // here. Calling setCollapsed synchronously after Events.enable
+            // works for these because v2's deserializer does not re-set
+            // their collapsed state on an extra render pass the way it does
+            // for fresh comment-icon bubbles.
+            if (this.workspace && rubyWorkspaceCommentsToCollapse.length > 0) {
                 const ws = this.workspace;
-                setTimeout(() => {
-                    blockIds.forEach(blockId => {
-                        const wsBlock = ws.getBlockById && ws.getBlockById(blockId);
-                        if (!wsBlock || typeof wsBlock.getIcons !== 'function') return;
-                        const icons = wsBlock.getIcons();
-                        const commentIcon = icons.find(icon => {
-                            const t = icon.getType && icon.getType();
-                            return t && t.name === 'comment';
-                        });
-                        if (!commentIcon) return;
-                        if (typeof commentIcon.setBubbleLocation === 'function') {
-                            const blockXY = wsBlock.getRelativeToSurfaceXY();
-                            // Align x to the top-level ancestor so nested
-                            // input blocks' comments share the same left edge.
-                            let rootBlock = wsBlock;
-                            while (
-                                rootBlock &&
-                                typeof rootBlock.getParent === 'function' &&
-                                rootBlock.getParent()
-                            ) {
-                                rootBlock = rootBlock.getParent();
-                            }
-                            const rootX = rootBlock && typeof rootBlock.getRelativeToSurfaceXY === 'function' ?
-                                rootBlock.getRelativeToSurfaceXY().x : 0;
-                            const rtl = ws.RTL;
-                            const dx = rtl ? 20 : -220;
-                            commentIcon.setBubbleLocation(
-                                new this.ScratchBlocks.utils.Coordinate(
-                                    rootX + dx, blockXY.y
-                                )
-                            );
-                        }
-                        if (typeof commentIcon.setBubbleVisible === 'function') {
-                            commentIcon.setBubbleVisible(false);
-                        }
-                    });
-                    // Workspace-level comments (@ruby:class etc.) need
-                    // setCollapsed(true) for the v2 collapse path. Re-fetch
-                    // by ID since references collected during onWorkspaceUpdate
-                    // can be detached.
-                    rubyWorkspaceCommentsToCollapse.forEach(commentId => {
-                        const wsComment = ws.getCommentById && ws.getCommentById(commentId);
-                        if (wsComment && typeof wsComment.setCollapsed === 'function') {
-                            wsComment.setCollapsed(true);
-                        }
-                    });
-                }, 100);
+                rubyWorkspaceCommentsToCollapse.forEach(commentId => {
+                    const wsComment = ws.getCommentById && ws.getCommentById(commentId);
+                    if (wsComment && typeof wsComment.setCollapsed === 'function') {
+                        wsComment.setCollapsed(true);
+                    }
+                });
             }
-            // === Smalruby: End of @ruby:* comment minimize ===
+            // === Smalruby: End of @ruby:* workspace comment collapse ===
         }
 
         if (!fromRuby &&
