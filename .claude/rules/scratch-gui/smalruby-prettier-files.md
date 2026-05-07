@@ -128,7 +128,6 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/ruby-script-preview.js`
 - `src/lib/ruby-to-blocks-converter-hoc.jsx`
 - `src/lib/scratch-blocks-comment-icon-patch.js`
-- `src/lib/scratch-blocks-comment-event-translator.js`
 - `src/lib/rubytee-api.js`
 - `src/lib/rubytee-context.js`
 - `src/lib/url-loader-hoc.jsx`

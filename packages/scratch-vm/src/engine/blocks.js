@@ -432,11 +432,21 @@ class Blocks {
             this.emitProjectChanged();
             break;
         }
+        case 'block_comment_create':
         case 'comment_create':
             if (this.runtime.getEditingTarget()) {
                 const currTarget = this.runtime.getEditingTarget();
-                currTarget.createComment(e.commentId, e.blockId, e.text,
-                    e.xy.x, e.xy.y, e.width, e.height, e.minimized);
+                // Modern (Blockly v12) `block_comment_create` events carry
+                // x/y/width/height under e.json and have no `text`/`minimized`
+                // payload. The legacy v1 `comment_create` shape used
+                // e.xy/e.width/e.height/e.text/e.minimized. Normalize both.
+                const xy = e.json || e.xy || {};
+                const width = (e.json && e.json.width) || e.width;
+                const height = (e.json && e.json.height) || e.height;
+                const text = e.text || '';
+                const minimized = e.minimized || false;
+                currTarget.createComment(e.commentId, e.blockId, text,
+                    xy.x, xy.y, width, height, minimized);
 
                 if (currTarget.comments[e.commentId].x === null &&
                     currTarget.comments[e.commentId].y === null) {
@@ -446,12 +456,13 @@ class Blocks {
                     // comments, then the auto positioning should have taken place.
                     // Update the x and y position of these comments to match the
                     // one from the event.
-                    currTarget.comments[e.commentId].x = e.xy.x;
-                    currTarget.comments[e.commentId].y = e.xy.y;
+                    currTarget.comments[e.commentId].x = xy.x;
+                    currTarget.comments[e.commentId].y = xy.y;
                 }
             }
             this.emitProjectChanged();
             break;
+        case 'block_comment_change':
         case 'comment_change':
             if (this.runtime.getEditingTarget()) {
                 const currTarget = this.runtime.getEditingTarget();
@@ -461,25 +472,57 @@ class Blocks {
                 }
                 const comment = currTarget.comments[e.commentId];
                 const change = e.newContents_;
-                if (Object.prototype.hasOwnProperty.call(change, 'minimized')) {
-                    comment.minimized = change.minimized;
-                }
-                if (Object.prototype.hasOwnProperty.call(change, 'width') &&
-                    Object.prototype.hasOwnProperty.call(change, 'height')) {
-                    comment.width = change.width;
-                    comment.height = change.height;
-                }
-                if (Object.prototype.hasOwnProperty.call(change, 'text')) {
-                    comment.text = change.text;
+                // Modern Blockly v12 fires `block_comment_change` with
+                // e.newContents_ as a plain string (the new text). Legacy
+                // v1 used a structured object. Handle both.
+                if (typeof change === 'string') {
+                    comment.text = change;
+                } else if (change && typeof change === 'object') {
+                    if (Object.prototype.hasOwnProperty.call(change, 'minimized')) {
+                        comment.minimized = change.minimized;
+                    }
+                    if (Object.prototype.hasOwnProperty.call(change, 'width') &&
+                        Object.prototype.hasOwnProperty.call(change, 'height')) {
+                        comment.width = change.width;
+                        comment.height = change.height;
+                    }
+                    if (Object.prototype.hasOwnProperty.call(change, 'text')) {
+                        comment.text = change.text;
+                    }
                 }
                 this.emitProjectChanged();
             }
             break;
+        case 'block_comment_collapse':
+            if (this.runtime.getEditingTarget()) {
+                const currTarget = this.runtime.getEditingTarget();
+                if (!Object.prototype.hasOwnProperty.call(currTarget.comments, e.commentId)) {
+                    log.warn(`Cannot collapse comment with id ${e.commentId} because it does not exist.`);
+                    return;
+                }
+                currTarget.comments[e.commentId].minimized = !!e.newCollapsed;
+                this.emitProjectChanged();
+            }
+            break;
+        case 'block_comment_resize':
+            if (this.runtime.getEditingTarget()) {
+                const currTarget = this.runtime.getEditingTarget();
+                if (!Object.prototype.hasOwnProperty.call(currTarget.comments, e.commentId)) {
+                    log.warn(`Cannot resize comment with id ${e.commentId} because it does not exist.`);
+                    return;
+                }
+                const newSize = e.newSize || {};
+                currTarget.comments[e.commentId].width = newSize.width;
+                currTarget.comments[e.commentId].height = newSize.height;
+                this.emitProjectChanged();
+            }
+            break;
+        case 'block_comment_move':
         case 'comment_move':
             if (this.runtime.getEditingTarget()) {
                 const currTarget = this.runtime.getEditingTarget();
                 if (currTarget && !Object.prototype.hasOwnProperty.call(currTarget.comments, e.commentId)) {
-                    log.warn(`Cannot change comment with id ${e.commentId} because it does not exist.`);
+                    log.warn(`Cannot move comment with id ${e.commentId} because it does not exist.`);
                     return;
                 }
                 const comment = currTarget.comments[e.commentId];
@@ -490,6 +533,7 @@ class Blocks {
                 this.emitProjectChanged();
             }
             break;
+        case 'block_comment_delete':
         case 'comment_delete':
             if (this.runtime.getEditingTarget()) {
                 const currTarget = this.runtime.getEditingTarget();

@@ -393,3 +393,9 @@ This command provides:
 **Manual merge is NOT recommended** - use the slash command to ensure consistent process and complete documentation.
 
 See `.claude/skills/upstream-merge/SKILL.md` for detailed workflow documentation.
+
+### Cherry-Picking Individual Upstream Commits
+
+upstream の個別コミットを直接取り込む (cherry-pick) 場合は、**リリース済みかどうかを必ず確認** する。未リリースのコミットを取り込むのは「我々が再現できる致命的なバグ修正であり、取り込まないと壊れる構造的問題に限る」。
+
+判断基準・確認手順・取り込み時の必須事項は `.claude/rules/upstream-cherry-pick.md` を参照。
