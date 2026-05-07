@@ -128,13 +128,30 @@ const baseConfig = new ScratchWebpackConfigBuilder(
     }))
     .addPlugin(new CopyWebpackPlugin({
         patterns: [
+            // scratch-blocks v2 (Blockly v12) re-exports some media (e.g.
+            // `disconnect.mp3`) from the underlying `blockly/media` folder
+            // rather than re-shipping them in `scratch-blocks/media`. Copy
+            // those first so that the scratch-blocks-specific assets below
+            // overwrite anything they need to customise.
             {
-                from: '../../node_modules/scratch-blocks/media',
-                to: 'static/blocks-media/default'
+                from: '../../node_modules/blockly/media',
+                to: 'static/blocks-media/default',
+                noErrorOnMissing: true
+            },
+            {
+                from: '../../node_modules/blockly/media',
+                to: 'static/blocks-media/high-contrast',
+                noErrorOnMissing: true
             },
             {
                 from: '../../node_modules/scratch-blocks/media',
-                to: 'static/blocks-media/high-contrast'
+                to: 'static/blocks-media/default',
+                force: true
+            },
+            {
+                from: '../../node_modules/scratch-blocks/media',
+                to: 'static/blocks-media/high-contrast',
+                force: true
             },
             {
                 // overwrite some of the default block media with high-contrast versions

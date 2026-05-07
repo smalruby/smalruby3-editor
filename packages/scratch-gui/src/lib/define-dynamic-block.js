@@ -422,12 +422,25 @@ const defineDynamicBlock = (ScratchBlocks, categoryInfo, staticBlockInfo, extend
         this.needsBlockInfoUpdate = true;
     },
     mutationToDom: function () {
-        const container = document.createElement('mutation');
-        container.setAttribute('blockInfo', this.blockInfoText);
+        // `document.createElement('mutation')` creates an HTMLUnknownElement,
+        // which lowercases attribute names. After XMLSerializer round-trip
+        // (used by Blockly v2's JSON serialization for `extraState`), the
+        // camelCase attribute name `blockInfo` becomes `blockinfo`, and
+        // `getAttribute('blockInfo')` then returns `null` when re-parsed as
+        // XML. Use Blockly's `utils.xml.createElement` so the element is in
+        // the XML namespace and attribute case is preserved through the
+        // round-trip — and also fall back to lowercase `blockinfo` on the
+        // read side for any state already written with the lowercase form.
+        const xmlUtils = ScratchBlocks.utils && ScratchBlocks.utils.xml;
+        const container = xmlUtils && typeof xmlUtils.createElement === 'function' ?
+            xmlUtils.createElement('mutation') :
+            document.createElement('mutation');
+        container.setAttribute('blockinfo', this.blockInfoText);
         return container;
     },
     domToMutation: function (xmlElement) {
-        const blockInfoText = xmlElement.getAttribute('blockInfo');
+        const blockInfoText =
+            xmlElement.getAttribute('blockinfo') || xmlElement.getAttribute('blockInfo');
         if (!blockInfoText) return;
 
         // === Smalruby: Start of argumentsByMethod support ===

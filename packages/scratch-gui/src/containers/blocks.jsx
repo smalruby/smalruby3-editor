@@ -478,6 +478,30 @@ class Blocks extends React.Component {
         if (!this.props.paletteVisible) {
             this._applyPaletteVisibility(false);
         }
+
+        // === Smalruby: scroll the flyout to a newly added extension category.
+        // `handleExtensionAdded` flags the extension id; once the toolbox has
+        // been rebuilt (now), look the category up and scroll to it.
+        const pendingId = this._pendingScrollToCategoryId;
+        if (pendingId) {
+            this._pendingScrollToCategoryId = null;
+            const toolbox = this.workspace?.getToolbox?.();
+            const items = toolbox?.getToolboxItems?.() || [];
+            const item = items.find(it => it.toolboxItemDef_?.id === pendingId);
+            const name = item?.toolboxItemDef_?.name || item?.name_;
+            if (item && name) {
+                if (typeof toolbox.selectCategoryByName === 'function') {
+                    toolbox.selectCategoryByName(name);
+                }
+                // ContinuousToolbox.selectCategoryByName updates the toolbox
+                // selection but does not scroll the flyout. The continuous
+                // flyout exposes scrollToCategory(item) for that.
+                const flyout = this.workspace.getFlyout?.();
+                if (flyout && typeof flyout.scrollToCategory === 'function') {
+                    flyout.scrollToCategory(item);
+                }
+            }
+        }
     }
 
     withToolboxUpdates (fn) {
@@ -1006,6 +1030,18 @@ class Blocks extends React.Component {
         if (toolboxXML) {
             this.props.updateToolboxState(toolboxXML);
         }
+
+        // After the toolbox finishes its async rebuild, scroll the flyout to
+        // the newly added extension category. In scratch-blocks v1 the flyout
+        // automatically focused the just-added category, but the v2
+        // continuous toolbox does not do this on its own — the flyout stays
+        // scrolled to wherever it was, so the user never sees the new blocks.
+        //
+        // `updateToolboxState` only dispatches the Redux update; the actual
+        // `workspace.updateToolbox(...)` rebuild happens later from
+        // `componentDidUpdate` -> `requestToolboxUpdate` (setTimeout 0). Mark
+        // the pending category and let the post-rebuild path scroll to it.
+        this._pendingScrollToCategoryId = categoryInfo.id;
     }
     handleBlocksInfoUpdate (categoryInfo) {
         // @todo Later we should replace this to avoid all the warnings from redefining blocks.
@@ -1066,8 +1102,15 @@ class Blocks extends React.Component {
     handleCustomProceduresClose (data) {
         this.props.onRequestCloseCustomProcedures(data);
         const ws = this.workspace;
-        ws.refreshToolboxSelection_();
-        ws.toolbox_.scrollToCategoryById('myBlocks');
+        // scratch-blocks v2 renamed `refreshToolboxSelection_` → `refreshToolboxSelection`
+        // and replaced `toolbox_.scrollToCategoryById(id)` with `getToolbox().scrollToCategory(id)`.
+        if (typeof ws.refreshToolboxSelection === 'function') {
+            ws.refreshToolboxSelection();
+        }
+        const toolbox = ws.getToolbox?.();
+        if (toolbox && typeof toolbox.scrollToCategory === 'function') {
+            toolbox.scrollToCategory('myBlocks');
+        }
     }
     handleDrop (dragInfo) {
         fetch(dragInfo.payload.bodyUrl)
