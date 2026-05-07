@@ -496,9 +496,9 @@ class Blocks extends React.Component {
                 // ContinuousToolbox.selectCategoryByName updates the toolbox
                 // selection but does not scroll the flyout. The continuous
                 // flyout exposes scrollToCategory(item) for that.
-                const flyout = this.workspace.getFlyout?.();
-                if (flyout && typeof flyout.scrollToCategory === 'function') {
-                    flyout.scrollToCategory(item);
+                const pendingFlyout = this.workspace.getFlyout?.();
+                if (pendingFlyout && typeof pendingFlyout.scrollToCategory === 'function') {
+                    pendingFlyout.scrollToCategory(item);
                 }
             }
         }
@@ -1102,14 +1102,45 @@ class Blocks extends React.Component {
     handleCustomProceduresClose (data) {
         this.props.onRequestCloseCustomProcedures(data);
         const ws = this.workspace;
-        // scratch-blocks v2 renamed `refreshToolboxSelection_` → `refreshToolboxSelection`
-        // and replaced `toolbox_.scrollToCategoryById(id)` with `getToolbox().scrollToCategory(id)`.
+        // scratch-blocks v2 renamed `refreshToolboxSelection_` → `refreshToolboxSelection`.
         if (typeof ws.refreshToolboxSelection === 'function') {
             ws.refreshToolboxSelection();
         }
+        // The new `procedures_definition` block has been created on the
+        // workspace by `createProcedureCallbackFactory`. The "My Blocks"
+        // toolbox category is dynamic (`custom="PROCEDURE"`), and its
+        // `procedures_call` flyout entry only appears after the toolbox is
+        // rebuilt. In scratch-blocks v1 `ContinuousToolbox.refreshSelection`
+        // rebuilt the flyout on every BLOCK_CREATE; v2 made that a no-op,
+        // so we must explicitly force a rebuild here. Defer until after the
+        // pending block-create renders flush, otherwise `forceRerender`
+        // sees the workspace mid-update.
         const toolbox = ws.getToolbox?.();
-        if (toolbox && typeof toolbox.scrollToCategory === 'function') {
-            toolbox.scrollToCategory('myBlocks');
+        const myBlocksId = 'myBlocks';
+        const scrollMyBlocks = () => {
+            const items = toolbox?.getToolboxItems?.() || [];
+            const item = items.find(it => it.toolboxItemDef_?.toolboxitemid === myBlocksId);
+            const name = item?.toolboxItemDef_?.name || item?.name_;
+            if (name && typeof toolbox.selectCategoryByName === 'function') {
+                toolbox.selectCategoryByName(name);
+            }
+            const flyout = ws.getFlyout?.();
+            if (item && flyout && typeof flyout.scrollToCategory === 'function') {
+                flyout.scrollToCategory(item);
+            }
+        };
+        if (toolbox && typeof toolbox.forceRerender === 'function') {
+            setTimeout(() => {
+                try {
+                    toolbox.forceRerender();
+                } catch (err) {
+                    // forceRerender can throw if dispose paths race; the
+                    // surrounding scroll still works without a rebuild.
+                }
+                scrollMyBlocks();
+            }, 0);
+        } else {
+            scrollMyBlocks();
         }
     }
     handleDrop (dragInfo) {
