@@ -122,6 +122,48 @@ export const installCommentIconPatch = function (ScratchBlocks) {
             }
             return super.setBubbleLocation(coord);
         }
+
+        // Re-fire `block_comment_change` after `block_comment_create` so the
+        // VM sees the latest text *after* it has registered the comment.
+        //
+        // ScratchBlockPaster.paste deserializes the block via super.paste(),
+        // which restores the bubble text via loadState → setText → fires
+        // `block_comment_change` (oldText='', newText=current). At that
+        // moment the comment does not yet exist in `target.comments`, so
+        // VM's change handler logs a warning and discards it. Then
+        // fireCreateEvent fires `block_comment_create` whose payload does
+        // NOT carry text (upstream limitation), so the VM creates the
+        // comment with text=''.
+        //
+        // To bridge the gap, this override re-fires the change event with
+        // the current bubble text *immediately after* the create event.
+        // The VM's create handler runs first, registers the comment, and
+        // the subsequent change event then sets the text correctly.
+        fireCreateEvent() {
+            const result = super.fireCreateEvent();
+            try {
+                const bubble = typeof this.getBubble === 'function' ? this.getBubble() : null;
+                if (!bubble) return result;
+                const text =
+                    typeof this.getText === 'function'
+                        ? this.getText()
+                        : typeof bubble.getText === 'function'
+                          ? bubble.getText()
+                          : '';
+                if (!text) return result;
+                const Events = ScratchBlocks.Events;
+                if (!Events || typeof Events.fire !== 'function' || typeof Events.get !== 'function') {
+                    return result;
+                }
+                const ChangeEvent = Events.get('block_comment_change');
+                if (!ChangeEvent) return result;
+                Events.fire(new ChangeEvent(bubble, '', text));
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.warn('[smalruby] PatchedCommentIcon.fireCreateEvent text refire failed:', e);
+            }
+            return result;
+        }
     }
     PatchedCommentIcon.__smalrubyCommentIconPatched = true;
 
