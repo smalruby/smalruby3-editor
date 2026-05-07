@@ -51,26 +51,39 @@ export const installCommentIconPatch = function (ScratchBlocks) {
     if (!Existing) return;
     if (Existing.__smalrubyCommentIconPatched) return;
 
+    // After applyCommentTagNodes installs the icon, Blockly v12 schedules a
+    // `setTimeout(..., 1)` that calls `setBubbleLocation(x, y)` and then
+    // `setBubbleVisible(true)` using the x/y/pinned values from the XML
+    // attributes. For block-attached @ruby:* comments those XML coords are
+    // (0, 0) (the converter's default), so all bubbles get repositioned to
+    // the same workspace point a few ms after rendering — which the user
+    // saw as bubbles "stacking" on top of each other.
+    //
+    // POST_LOAD_SUPPRESS_MS opens a window on each new icon during which
+    // programmatic setBubbleLocation calls are suppressed. After that
+    // window closes the icon behaves normally (so user-initiated drags
+    // through `setBubbleLocation` still work). Empirically the deferred
+    // call lands ~100 ms after the constructor in dev builds, so 500 ms
+    // gives comfortable buffer while still being well below any plausible
+    // user-drag latency.
+    const POST_LOAD_SUPPRESS_MS = 500;
+
     class PatchedCommentIcon extends Existing {
         constructor(sourceBlock) {
             super(sourceBlock);
             try {
                 this.__smalrubyCollapseLock = false;
+                this.__smalrubyPostLoadUntil = 0;
                 if (!pendingApply) return;
                 const apply = pendingApply.get(sourceBlock && sourceBlock.id);
                 if (!apply) return;
                 this.__smalrubyCollapseLock = !!apply.collapsed;
+                this.__smalrubyPostLoadUntil = Date.now() + POST_LOAD_SUPPRESS_MS;
                 const bubble = typeof this.getBubble === 'function' ? this.getBubble() : null;
                 if (!bubble) return;
                 if (apply.collapsed && typeof bubble.setCollapsed === 'function') {
                     bubble.setCollapsed(true);
                 }
-                // Position correction is intentionally NOT done here. The
-                // bubble's anchor (block right edge) gets re-applied by
-                // Blockly's internal render-management before the first paint,
-                // so any moveTo() in the constructor is overridden anyway.
-                // The "right→left" flash is hidden by the conversion overlay
-                // in `containers/blocks.jsx` instead.
             } catch (e) {
                 // Defensive: never let a patch error break workspace deserialization.
                 // eslint-disable-next-line no-console
@@ -78,23 +91,36 @@ export const installCommentIconPatch = function (ScratchBlocks) {
             }
         }
 
-        // Blockly v12's XML deserializer calls `setBubbleVisible(true)` for
-        // every <comment> element — both synchronously inside domToBlock
-        // and again from a deferred render-management callback that fires
-        // *after* clearWorkspaceAndLoadFromXml returns. Either call re-expands
-        // a bubble we just collapsed, producing the visible flash that users
-        // saw on every Ruby→Code conversion and every Code↔Ruby tab toggle.
-        //
-        // While the icon's `__smalrubyCollapseLock` is set, suppress these
-        // programmatic show requests. The user-initiated expand path goes
-        // through the bubble's chevron and calls `bubble.setCollapsed(false)`
-        // directly — it does NOT route through setBubbleVisible — so users
-        // can still click to expand normally.
+        // Suppress Blockly v12's automatic setBubbleVisible(true) call that
+        // fires both synchronously during XML deserialization and again from
+        // a deferred render-management callback (the same setTimeout(1) path
+        // mentioned above). Without this override the bubble would re-expand
+        // the moment the user lands on the Code tab. The user-initiated
+        // expand path goes through the bubble's chevron → `bubble.setCollapsed(false)`
+        // — it does NOT route through setBubbleVisible — so users can still
+        // click to expand normally.
         setBubbleVisible(visible) {
             if (visible && this.__smalrubyCollapseLock) {
                 return Promise.resolve();
             }
             return super.setBubbleVisible(visible);
+        }
+
+        // See POST_LOAD_SUPPRESS_MS comment above. Block the deferred
+        // setBubbleLocation that Blockly v12 fires from the XML deserializer
+        // (which would re-position our @ruby:* bubbles to the converter's
+        // default (0, 0) workspace coordinate, stacking them on top of each
+        // other). After the suppression window closes the call is forwarded
+        // normally, so user drags still work.
+        setBubbleLocation(coord) {
+            if (
+                this.__smalrubyCollapseLock &&
+                this.__smalrubyPostLoadUntil &&
+                Date.now() < this.__smalrubyPostLoadUntil
+            ) {
+                return;
+            }
+            return super.setBubbleLocation(coord);
         }
     }
     PatchedCommentIcon.__smalrubyCommentIconPatched = true;
