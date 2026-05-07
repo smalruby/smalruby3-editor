@@ -5,6 +5,8 @@ import React from 'react';
 import CustomProceduresComponent from '../components/custom-procedures/custom-procedures.jsx';
 import * as ScratchBlocks from 'scratch-blocks';
 import {connect} from 'react-redux';
+import {DEFAULT_MODE, getColorsForMode} from '../lib/settings/color-mode';
+import {CAT_BLOCKS_THEME} from '../lib/settings/theme';
 
 class CustomProcedures extends React.Component {
     constructor (props) {
@@ -46,10 +48,22 @@ class CustomProcedures extends React.Component {
     setBlocks (blocksRef) {
         if (!blocksRef) return;
         this.blocks = blocksRef;
+        // scratch-blocks v2 renders blocks with the default (black) theme
+        // unless an explicit theme is supplied to `inject`. The main editor
+        // workspace passes `theme` + `scratchTheme`; we mirror that here so
+        // the procedure declaration block in the modal uses the same colours
+        // as the rest of the editor.
         const workspaceConfig = defaultsDeep({},
             CustomProcedures.defaultOptions,
             this.props.options,
-            {rtl: this.props.isRtl}
+            {
+                rtl: this.props.isRtl,
+                theme: new ScratchBlocks.Theme(
+                    this.props.colorMode || DEFAULT_MODE,
+                    getColorsForMode(this.props.colorMode || DEFAULT_MODE),
+                ),
+                scratchTheme: this.props.useCatBlocks ? 'catblocks' : 'classic',
+            }
         );
 
         // @todo This is a hack to make there be no toolbox.
@@ -173,6 +187,8 @@ CustomProcedures.propTypes = {
     isRtl: PropTypes.bool,
     mutator: PropTypes.instanceOf(Element),
     onRequestClose: PropTypes.func.isRequired,
+    colorMode: PropTypes.string,
+    useCatBlocks: PropTypes.bool,
     options: PropTypes.shape({
         media: PropTypes.string,
         zoom: PropTypes.shape({
@@ -202,7 +218,9 @@ CustomProcedures.defaultProps = {
 
 const mapStateToProps = state => ({
     isRtl: state.locales.isRtl,
-    mutator: state.scratchGui.customProcedures.mutator
+    mutator: state.scratchGui.customProcedures.mutator,
+    colorMode: state.scratchGui.settings.colorMode,
+    useCatBlocks: state.scratchGui.settings.theme === CAT_BLOCKS_THEME,
 });
 
 export default connect(
