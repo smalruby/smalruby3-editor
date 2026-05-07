@@ -70,6 +70,17 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/blocks.jsx` | pre-load collapse map | XML 読み込み前に minimized=true のコメントを Map に集めてパッチに渡す |
 | `src/containers/blocks.jsx` | pre-load collapse map cleanup | finally で pending state をクリア |
 | `src/containers/blocks.jsx` | @ruby:* workspace comment collapse | workspace-level `@ruby:*` コメントを setCollapsed で折り畳む |
+| `src/containers/blocks.jsx` | conversion overlay state | onWorkspaceUpdate 中の途中描画を隠す「変換中」オーバーレイの React state |
+| `src/containers/blocks.jsx` | conversion overlay timers | オーバーレイ表示タイマー (最低 400ms) の instance 変数 |
+| `src/containers/blocks.jsx` | conversion overlay helpers | _showReloadOverlay / _scheduleReloadOverlayHide メソッド |
+| `src/containers/blocks.jsx` | conversion overlay show | clearWorkspaceAndLoadFromXml 直前にオーバーレイを表示 |
+| `src/containers/blocks.jsx` | conversion overlay schedule-hide | finally で hide をスケジュール |
+| `src/containers/blocks.jsx` | conversion overlay scu | shouldComponentUpdate に isReloading の差分検出を追加 |
+| `src/components/blocks/blocks.jsx` | conversion overlay imports | FormattedMessage の import |
+| `src/components/blocks/blocks.jsx` | conversion overlay prop | isReloading prop を destructure |
+| `src/components/blocks/blocks.jsx` | conversion overlay render | overlay の DOM レンダー |
+| `src/components/blocks/blocks.jsx` | conversion overlay propType | isReloading の propTypes |
+| `src/components/blocks/blocks.css` | conversion overlay styles | reload-overlay / reload-overlay-spinner / reload-overlay-label のスタイル |
 | `src/playground/render-gui.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/playground/render-gui.jsx` | no_beforeunload URL param | beforeunload 無効化 |
 | `src/playground/render-gui.jsx` | MobileGui dispatcher | ResponsiveGui import + GUI を ResponsiveGui に差し替え (issue #572 Phase 2-A) |

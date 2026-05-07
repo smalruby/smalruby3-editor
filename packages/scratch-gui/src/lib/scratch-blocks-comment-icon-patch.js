@@ -62,17 +62,15 @@ export const installCommentIconPatch = function (ScratchBlocks) {
                 this.__smalrubyCollapseLock = !!apply.collapsed;
                 const bubble = typeof this.getBubble === 'function' ? this.getBubble() : null;
                 if (!bubble) return;
-                if (
-                    apply.location &&
-                    typeof bubble.moveTo === 'function' &&
-                    ScratchBlocks.utils &&
-                    ScratchBlocks.utils.Coordinate
-                ) {
-                    bubble.moveTo(new ScratchBlocks.utils.Coordinate(apply.location.x, apply.location.y));
-                }
                 if (apply.collapsed && typeof bubble.setCollapsed === 'function') {
                     bubble.setCollapsed(true);
                 }
+                // Position correction is intentionally NOT done here. The
+                // bubble's anchor (block right edge) gets re-applied by
+                // Blockly's internal render-management before the first paint,
+                // so any moveTo() in the constructor is overridden anyway.
+                // The "right→left" flash is hidden by the conversion overlay
+                // in `containers/blocks.jsx` instead.
             } catch (e) {
                 // Defensive: never let a patch error break workspace deserialization.
                 // eslint-disable-next-line no-console
