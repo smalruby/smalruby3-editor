@@ -107,16 +107,8 @@ class Blocks extends React.Component {
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
 
         this.state = {
-            prompt: null,
-            // === Smalruby: Start of conversion overlay state ===
-            isReloading: false,
-            // === Smalruby: End of conversion overlay state ===
+            prompt: null
         };
-        // === Smalruby: Start of conversion overlay timers ===
-        this._reloadOverlayHideTimer = null;
-        this._reloadOverlayShownAt = 0;
-        this._reloadOverlayActive = false;
-        // === Smalruby: End of conversion overlay timers ===
         this.onTargetsUpdate = debounce(this.onTargetsUpdate, 100);
         this.toolboxUpdateQueue = [];
         this._pendingScrollCenter = false;
@@ -130,7 +122,6 @@ class Blocks extends React.Component {
         // === Smalruby: End of deferred flyout rebuild ===
     }
     componentDidMount () {
-        this._isMounted = true;
         this.ScratchBlocks = VMScratchBlocks(this.props.vm);
         this.props.onSetScratchBlocks(this.ScratchBlocks);
         this.ScratchBlocks.dialog.setPrompt(this.handlePromptStart);
@@ -231,9 +222,6 @@ class Blocks extends React.Component {
     shouldComponentUpdate (nextProps, nextState) {
         return (
             this.state.prompt !== nextState.prompt ||
-            // === Smalruby: Start of conversion overlay scu ===
-            this.state.isReloading !== nextState.isReloading ||
-            // === Smalruby: End of conversion overlay scu ===
             this.props.isVisible !== nextProps.isVisible ||
             this._renderedToolboxXML !== nextProps.toolboxXML ||
             this.props.extensionLibraryVisible !== nextProps.extensionLibraryVisible ||
@@ -326,11 +314,6 @@ class Blocks extends React.Component {
         }
     }
     componentWillUnmount () {
-        this._isMounted = false;
-        if (this._reloadOverlayHideTimer) {
-            clearTimeout(this._reloadOverlayHideTimer);
-            this._reloadOverlayHideTimer = null;
-        }
         this.detachVM();
         // Hide any open field editor and move Blockly focus to the workspace
         // root before disposing. Without this, BlockSvg.dispose() detects the
@@ -721,36 +704,6 @@ class Blocks extends React.Component {
             return null;
         }
     }
-    // === Smalruby: Start of conversion overlay helpers ===
-    _showReloadOverlay () {
-        // Track via an instance flag (not state) because setState is async —
-        // we call _scheduleReloadOverlayHide inside the same synchronous call
-        // and `this.state.isReloading` would not yet reflect the update.
-        this._reloadOverlayShownAt = Date.now();
-        this._reloadOverlayActive = true;
-        if (!this.state.isReloading) {
-            this.setState({isReloading: true});
-        }
-        if (this._reloadOverlayHideTimer) {
-            clearTimeout(this._reloadOverlayHideTimer);
-            this._reloadOverlayHideTimer = null;
-        }
-    }
-    _scheduleReloadOverlayHide () {
-        // Hold the overlay for at least RELOAD_OVERLAY_MIN_MS so it does not
-        // itself flicker when XML deserialization completes very quickly.
-        if (!this._reloadOverlayActive) return;
-        const RELOAD_OVERLAY_MIN_MS = 400;
-        const elapsed = Date.now() - this._reloadOverlayShownAt;
-        const remaining = Math.max(0, RELOAD_OVERLAY_MIN_MS - elapsed);
-        if (this._reloadOverlayHideTimer) clearTimeout(this._reloadOverlayHideTimer);
-        this._reloadOverlayHideTimer = setTimeout(() => {
-            this._reloadOverlayHideTimer = null;
-            this._reloadOverlayActive = false;
-            if (this._isMounted) this.setState({isReloading: false});
-        }, remaining);
-    }
-    // === Smalruby: End of conversion overlay helpers ===
     onWorkspaceUpdate (data) {
         // When we change sprites, update the toolbox to have the new sprite's blocks
         const toolboxXML = this.getToolboxXML();
@@ -794,22 +747,6 @@ class Blocks extends React.Component {
             }
         }
         setPendingCommentIconApply(pendingCommentApply);
-
-        // === Smalruby: Start of conversion overlay show ===
-        // Show the "🔄変換中" overlay before clearWorkspaceAndLoadFromXml so
-        // the user does not see Blockly's intermediate render where the
-        // @ruby:* comment bubble briefly appears at the right of the block
-        // before our post-load setBubbleLocation moves it to the left. The
-        // bubble's anchor (block right edge) is re-applied by Blockly's
-        // render queue even when we move it in the icon constructor, so
-        // reliably hiding that intermediate frame from a JS-only patch is
-        // impractical. Hold the overlay for at least RELOAD_OVERLAY_MIN_MS
-        // (a few hundred ms) to avoid the overlay itself flickering.
-        const hasMinimizedRubyComments = pendingCommentApply.size > 0;
-        if (hasMinimizedRubyComments) {
-            this._showReloadOverlay();
-        }
-        // === Smalruby: End of conversion overlay show ===
         // === Smalruby: End of pre-load collapse map ===
 
         try {
@@ -818,7 +755,13 @@ class Blocks extends React.Component {
             this.ScratchBlocks.clearWorkspaceAndLoadFromXml(dom, this.workspace);
 
             // === Smalruby: Start of Ruby-converted block positioning ===
-            // When we converted blocks from Ruby, update top block positions.
+            // When we converted blocks from Ruby, repositioning is left to
+            // Blockly's `cleanUp()` only. Comment positions are intentionally
+            // NOT touched — Blockly v12's bubble follows its block via the
+            // anchor mechanism, and any explicit setBubbleLocation /
+            // target.comments x/y override we did before would corrupt the
+            // bubble's y after the user moved the block. Trust Blockly's
+            // built-in positioning.
             if (this.props.vm.editingTarget) {
                 const blocks = this.props.vm.editingTarget.blocks;
                 const scripts = blocks.getScripts();
@@ -833,112 +776,18 @@ class Blocks extends React.Component {
                 if (fromRuby) {
                     this.workspace.cleanUp();
 
-                    // Block-attached comments are rendered as comment icons
-                    // on the block in scratch-blocks v2 (no longer as separate
-                    // WorkspaceComment objects), so workspace.getTopComments()
-                    // does not return them. Collect block IDs whose comment
-                    // starts with `@ruby:` and apply setBubbleVisible(false)
-                    // + setBubbleLocation in the finally block — calling them
-                    // while Events are disabled is a no-op in v2, and stale
-                    // icon references can be invalidated by Blockly during
-                    // workspace settling.
-                    //
-                    // Also propagate the comment x/y in the VM target back to
-                    // a block-relative offset (right of the block at the
-                    // block's y). The Ruby converter creates every `@ruby:*`
-                    // comment at the same workspace coord (200, 0), which
-                    // causes multiple comment bubbles to stack on top of each
-                    // other in scratch-blocks v2 (it preserves explicit
-                    // comment coords instead of auto-positioning per block).
-                    // Helper: walk up to the top-level (root statement) block
-                    // for x-alignment. Comments on nested input blocks (e.g.
-                    // a variable input inside a say block) would otherwise
-                    // misalign because each nested block has a different x.
-                    const getRootBlockX = wsBlock => {
-                        let cur = wsBlock;
-                        while (cur && typeof cur.getParent === 'function' && cur.getParent()) {
-                            cur = cur.getParent();
-                        }
-                        if (cur && typeof cur.getRelativeToSurfaceXY === 'function') {
-                            return cur.getRelativeToSurfaceXY().x;
-                        }
-                        return 0;
-                    };
-                    const allBlocks = this.workspace.getAllBlocks(false);
-                    allBlocks.forEach(wsBlock => {
-                        const commentText = typeof wsBlock.getCommentText === 'function' ?
-                            wsBlock.getCommentText() : null;
-                        if (commentText && commentText.startsWith('@ruby:')) {
-                            const targetComments = this.props.vm.editingTarget.comments;
-                            const blockData = blocks.getBlock(wsBlock.id);
-                            const commentId = blockData && blockData.comment;
-                            if (targetComments && commentId && targetComments[commentId]) {
-                                const blockXY = wsBlock.getRelativeToSurfaceXY();
-                                const rootX = getRootBlockX(wsBlock);
-                                const rtl = this.workspace.RTL;
-                                const dx = rtl ? 20 : -220;
-                                // Align x to the root (top-level) block so
-                                // every `@ruby:*` comment in a single script
-                                // shares the same left edge regardless of how
-                                // deeply nested its source block is. Persisting
-                                // these into the VM means subsequent loads will
-                                // place the bubble correctly via XML restore.
-                                const x = rootX + dx;
-                                const y = blockXY.y;
-                                targetComments[commentId].x = x;
-                                targetComments[commentId].y = y;
-                                // Apply position to the live bubble synchronously
-                                // — collapse was already applied by the patched
-                                // icon constructor during XML deserialization.
-                                if (typeof wsBlock.getIcons === 'function') {
-                                    const icons = wsBlock.getIcons();
-                                    const commentIcon = icons.find(icon => {
-                                        const t = icon.getType && icon.getType();
-                                        return t && t.name === 'comment';
-                                    });
-                                    if (commentIcon &&
-                                        typeof commentIcon.setBubbleLocation === 'function') {
-                                        commentIcon.setBubbleLocation(
-                                            new this.ScratchBlocks.utils.Coordinate(x, y)
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    });
-
-                    // Workspace-level comments (e.g. `@ruby:class`) have no
-                    // blockId — they are returned by getTopComments() and are
-                    // separate WorkspaceComment objects in scratch-blocks v2.
-                    // Collapse `@ruby:*` ones via the v2 API (setCollapsed,
-                    // replacing v1's setMinimized) and align them to the
-                    // left of the first top block.
-                    const firstTopBlock = this.workspace.getTopBlocks(true)[0];
+                    // Identify workspace-level `@ruby:*` comments so we can
+                    // collapse them in the finally block (a synchronous
+                    // setCollapsed call here is overridden by v2's post-load
+                    // render pass when Events are disabled). Their position
+                    // is left to whatever Blockly + the existing VM data
+                    // dictate — we no longer override it.
                     this.workspace.getTopComments(false).forEach(comment => {
-                        if (!firstTopBlock || comment.blockId) return;
+                        if (comment.blockId) return;
                         const text = typeof comment.getText === 'function' ?
                             comment.getText() : comment.text;
                         if (!text || !text.startsWith('@ruby:')) return;
-                        // Defer setCollapsed(true) to the finally block:
-                        // calling it while Events are disabled is a no-op,
-                        // and a synchronous call here is overridden by
-                        // scratch-blocks v2's post-load rendering pass.
                         rubyWorkspaceCommentsToCollapse.push(comment.id);
-
-                        const blockXY = firstTopBlock.getRelativeToSurfaceXY();
-                        const rtl = this.workspace.RTL;
-                        const dx = rtl ? 20 : -220;
-                        const x = blockXY.x + dx;
-                        const y = blockXY.y;
-                        if (typeof comment.moveTo === 'function') {
-                            comment.moveTo(new this.ScratchBlocks.utils.Coordinate(x, y));
-                        }
-
-                        const targetComments = this.props.vm.editingTarget.comments;
-                        if (targetComments && targetComments[comment.id]) {
-                            targetComments[comment.id].x = x;
-                            targetComments[comment.id].y = y;
-                        }
                     });
 
                     this.workspace.getTopBlocks(false).forEach(wsTopBlock => {
@@ -1003,12 +852,6 @@ class Blocks extends React.Component {
                 });
             }
             // === Smalruby: End of @ruby:* workspace comment collapse ===
-            // === Smalruby: Start of conversion overlay schedule-hide ===
-            // Always schedule hide in finally — show is unconditional when
-            // there are any minimized Ruby comments, regardless of whether
-            // this is a fresh fromRuby conversion or just a tab-toggle reload.
-            this._scheduleReloadOverlayHide();
-            // === Smalruby: End of conversion overlay schedule-hide ===
         }
 
         if (!fromRuby &&
@@ -1275,7 +1118,6 @@ class Blocks extends React.Component {
                     componentRef={this.setBlocks}
                     onDrop={this.handleDrop}
                     {...props}
-                    isReloading={this.state.isReloading}
                 />
                 {toolbox ? (
                     <PaletteToggle

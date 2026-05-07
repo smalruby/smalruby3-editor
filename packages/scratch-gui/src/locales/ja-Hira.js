@@ -1,5 +1,4 @@
 export default {
-    'gui.blocks.converting': 'へんかんちゅう…',
     'gui.modal.reload': 'さいよみこみ',
     'gui.modal.stop': 'ちゅうし',
     'gui.menuBar.loadFromUrl': 'Scratchからよみこむ',
