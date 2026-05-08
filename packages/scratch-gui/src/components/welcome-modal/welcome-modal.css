@@ -180,10 +180,10 @@
 }
 
 .dialog.narrow .card {
-    flex: 0 0 70%;
-    max-width: 70%;
+    flex: 0 0 35%;
+    max-width: 35%;
     scroll-snap-align: start;
-    padding: 0.75rem;
+    padding: 0.75rem 0.5rem;
 }
 
 .dialog.narrow .card-emoji {
