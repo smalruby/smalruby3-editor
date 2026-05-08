@@ -7,9 +7,6 @@ import PropTypes from 'prop-types';
 import queryString from 'query-string';
 import React from 'react';
 import VMScratchBlocks from '../lib/blocks';
-// === Smalruby: Start of comment icon patch import ===
-import {setPendingCommentIconApply} from '../lib/scratch-blocks-comment-icon-patch.js';
-// === Smalruby: End of comment icon patch import ===
 import VM from '@smalruby/scratch-vm';
 
 import analytics from '../lib/analytics';
@@ -722,32 +719,6 @@ class Blocks extends React.Component {
         // Disabling events entirely during the load ensures nothing is queued.
         this.workspace.removeChangeListener(this.toolboxUpdateChangeListener);
         let fromRuby = false;
-        const rubyWorkspaceCommentsToCollapse = [];
-
-        // === Smalruby: Start of pre-load collapse map ===
-        // Populate the pending-apply map *before* clearWorkspaceAndLoadFromXml so
-        // the patched ScratchCommentIcon constructor sets `setCollapsed(true)`
-        // synchronously while the bubble is being created. Without this, the
-        // bubble briefly renders expanded (at the default right-of-block
-        // location) before any post-load setBubbleVisible(false) we might
-        // schedule — that is the visible flash users were seeing on every
-        // ruby→code conversion *and* every plain code→ruby→code tab toggle.
-        //
-        // Source of truth: VM target.comments[*].minimized — already true for
-        // every Ruby-converted comment (block-creation.js sets
-        // `minimized: true` by default).
-        const pendingCommentApply = new Map();
-        if (this.props.vm.editingTarget && this.props.vm.editingTarget.comments) {
-            const targetComments = this.props.vm.editingTarget.comments;
-            for (const cid in targetComments) {
-                const c = targetComments[cid];
-                if (c && c.minimized && c.blockId) {
-                    pendingCommentApply.set(c.blockId, {collapsed: true});
-                }
-            }
-        }
-        setPendingCommentIconApply(pendingCommentApply);
-        // === Smalruby: End of pre-load collapse map ===
 
         try {
             this.ScratchBlocks.Events.disable();
@@ -775,20 +746,6 @@ class Blocks extends React.Component {
                 }
                 if (fromRuby) {
                     this.workspace.cleanUp();
-
-                    // Identify workspace-level `@ruby:*` comments so we can
-                    // collapse them in the finally block (a synchronous
-                    // setCollapsed call here is overridden by v2's post-load
-                    // render pass when Events are disabled). Their position
-                    // is left to whatever Blockly + the existing VM data
-                    // dictate — we no longer override it.
-                    this.workspace.getTopComments(false).forEach(comment => {
-                        if (comment.blockId) return;
-                        const text = typeof comment.getText === 'function' ?
-                            comment.getText() : comment.text;
-                        if (!text || !text.startsWith('@ruby:')) return;
-                        rubyWorkspaceCommentsToCollapse.push(comment.id);
-                    });
 
                     this.workspace.getTopBlocks(false).forEach(wsTopBlock => {
                         const topBlock = blocks.getBlock(wsTopBlock.id);
@@ -829,29 +786,6 @@ class Blocks extends React.Component {
             log.error(error);
         } finally {
             this.ScratchBlocks.Events.enable();
-            // === Smalruby: Start of pre-load collapse map cleanup ===
-            setPendingCommentIconApply(null);
-            // === Smalruby: End of pre-load collapse map cleanup ===
-            // === Smalruby: Start of @ruby:* workspace comment collapse ===
-            // Block-attached `@ruby:*` comments are already collapsed by the
-            // patched ScratchCommentIcon constructor (see lib/scratch-blocks-
-            // comment-icon-patch.js). Workspace-level comments (e.g.
-            // `@ruby:class` not attached to any block) use a different class
-            // (Blockly.comments.RenderedWorkspaceComment), so collapse them
-            // here. Calling setCollapsed synchronously after Events.enable
-            // works for these because v2's deserializer does not re-set
-            // their collapsed state on an extra render pass the way it does
-            // for fresh comment-icon bubbles.
-            if (this.workspace && rubyWorkspaceCommentsToCollapse.length > 0) {
-                const ws = this.workspace;
-                rubyWorkspaceCommentsToCollapse.forEach(commentId => {
-                    const wsComment = ws.getCommentById && ws.getCommentById(commentId);
-                    if (wsComment && typeof wsComment.setCollapsed === 'function') {
-                        wsComment.setCollapsed(true);
-                    }
-                });
-            }
-            // === Smalruby: End of @ruby:* workspace comment collapse ===
         }
 
         if (!fromRuby &&

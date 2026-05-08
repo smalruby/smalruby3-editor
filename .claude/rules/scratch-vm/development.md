@@ -214,6 +214,7 @@ The mesh v2 extension uses AWS AppSync for real-time collaboration:
 |----------|--------|------|
 | `src/extension-support/extension-manager.js` | extension registration | Smalruby 拡張機能の登録 |
 | `src/blocks/scratch3_operators.js` | regex support | operator_contains で正規表現マッチングをサポート |
+| `src/engine/comment.js` | toXML modernization | Blockly v12 対応: `pinned="${!minimized}"` (cherry-pick from upstream spork@29bdbd1fe) + (0,0) 時の x/y 属性省略 (Smalruby 独自) |
 
 ### 関連ファイル
 
