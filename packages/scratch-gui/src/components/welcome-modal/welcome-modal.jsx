@@ -1,6 +1,7 @@
-import React from 'react';
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import {defineMessages, FormattedMessage} from 'react-intl';
+import React from 'react';
+import { defineMessages, FormattedMessage } from 'react-intl';
 
 import styles from './welcome-modal.css';
 
@@ -15,7 +16,12 @@ const messages = defineMessages({
         defaultMessage:
             'Smalruby is a free programming environment from Japan. ' +
             'Build with blocks, then move on to Ruby — all in your browser.',
-        description: 'Welcome modal lead paragraph',
+        description: 'Welcome modal lead paragraph (desktop)',
+    },
+    leadShort: {
+        id: 'gui.welcomeModal.leadShort',
+        defaultMessage: 'Build with blocks, step up to Ruby — all in your browser.',
+        description: 'Welcome modal lead paragraph (compact, narrow screens)',
     },
     cardBlocksTitle: {
         id: 'gui.welcomeModal.cardBlocksTitle',
@@ -49,8 +55,8 @@ const messages = defineMessages({
     },
     startTutorial: {
         id: 'gui.welcomeModal.startTutorial',
-        defaultMessage: "Start the first tutorial",
-        description: 'Welcome modal primary CTA — opens the tutorials library',
+        defaultMessage: 'Start the first tutorial',
+        description: 'Welcome modal primary CTA on desktop — opens the tutorials library',
     },
     learnMore: {
         id: 'gui.welcomeModal.learnMore',
@@ -64,7 +70,14 @@ const messages = defineMessages({
     },
 });
 
-const WelcomeModal = ({onStartTutorial, onLearnMore, onLater}) => (
+/*
+ * Tutorials library (`tipsLibrary` / cards.jsx) is fixed-width and image-heavy
+ * and is not optimized for narrow viewports — see mobile-drawer.jsx for the
+ * same caveat. On SP we therefore promote `/about.html` (which is fully
+ * responsive after PR #660) to the primary CTA, and hide the tutorial entry
+ * point. Desktop keeps the original "Start the first tutorial" CTA.
+ */
+const WelcomeModal = ({ isNarrow, onStartTutorial, onLearnMore, onLater }) => (
     <div
         className={styles.overlay}
         role="dialog"
@@ -72,79 +85,106 @@ const WelcomeModal = ({onStartTutorial, onLearnMore, onLater}) => (
         aria-labelledby="welcome-modal-title"
         data-testid="welcome-modal"
     >
-        <div className={styles.dialog}>
-            <h2
-                className={styles.title}
-                id="welcome-modal-title"
-            >
-                <FormattedMessage {...messages.title} />
-            </h2>
-            <p className={styles.lead}>
-                <FormattedMessage {...messages.lead} />
-            </p>
-            <div className={styles.cards}>
-                <div className={styles.card}>
-                    <div className={styles.cardEmoji}>{'🧩'}</div>
-                    <h3 className={styles.cardTitle}>
-                        <FormattedMessage {...messages.cardBlocksTitle} />
-                    </h3>
-                    <p className={styles.cardDesc}>
-                        <FormattedMessage {...messages.cardBlocksDesc} />
-                    </p>
-                </div>
-                <div className={styles.card}>
-                    <div className={styles.cardEmoji}>{'💎'}</div>
-                    <h3 className={styles.cardTitle}>
-                        <FormattedMessage {...messages.cardRubyTitle} />
-                    </h3>
-                    <p className={styles.cardDesc}>
-                        <FormattedMessage {...messages.cardRubyDesc} />
-                    </p>
-                </div>
-                <div className={styles.card}>
-                    <div className={styles.cardEmoji}>{'🌐'}</div>
-                    <h3 className={styles.cardTitle}>
-                        <FormattedMessage {...messages.cardMeshTitle} />
-                    </h3>
-                    <p className={styles.cardDesc}>
-                        <FormattedMessage {...messages.cardMeshDesc} />
-                    </p>
+        <div className={classNames(styles.dialog, { [styles.narrow]: isNarrow })}>
+            <div className={styles.dialogBody}>
+                <h2 className={styles.title} id="welcome-modal-title">
+                    <FormattedMessage {...messages.title} />
+                </h2>
+                <p className={styles.lead}>
+                    <FormattedMessage {...(isNarrow ? messages.leadShort : messages.lead)} />
+                </p>
+                <div className={styles.cards}>
+                    <div className={styles.card}>
+                        <div className={styles.cardEmoji}>{'🧩'}</div>
+                        <h3 className={styles.cardTitle}>
+                            <FormattedMessage {...messages.cardBlocksTitle} />
+                        </h3>
+                        <p className={styles.cardDesc}>
+                            <FormattedMessage {...messages.cardBlocksDesc} />
+                        </p>
+                    </div>
+                    <div className={styles.card}>
+                        <div className={styles.cardEmoji}>{'💎'}</div>
+                        <h3 className={styles.cardTitle}>
+                            <FormattedMessage {...messages.cardRubyTitle} />
+                        </h3>
+                        <p className={styles.cardDesc}>
+                            <FormattedMessage {...messages.cardRubyDesc} />
+                        </p>
+                    </div>
+                    <div className={styles.card}>
+                        <div className={styles.cardEmoji}>{'🌐'}</div>
+                        <h3 className={styles.cardTitle}>
+                            <FormattedMessage {...messages.cardMeshTitle} />
+                        </h3>
+                        <p className={styles.cardDesc}>
+                            <FormattedMessage {...messages.cardMeshDesc} />
+                        </p>
+                    </div>
                 </div>
             </div>
             <div className={styles.buttons}>
-                <button
-                    className={styles.primaryButton}
-                    onClick={onStartTutorial}
-                    data-testid="welcome-modal-start-tutorial"
-                >
-                    <FormattedMessage {...messages.startTutorial} />
-                </button>
-                <div className={styles.secondaryButtons}>
+                {isNarrow ? (
                     <button
-                        className={styles.linkButton}
+                        className={styles.primaryButton}
                         onClick={onLearnMore}
                         data-testid="welcome-modal-learn-more"
                     >
                         <FormattedMessage {...messages.learnMore} />
                     </button>
-                    <button
-                        className={styles.linkButton}
-                        onClick={onLater}
-                        data-testid="welcome-modal-later"
-                    >
-                        <FormattedMessage {...messages.later} />
-                    </button>
-                </div>
+                ) : (
+                    <>
+                        <button
+                            className={styles.primaryButton}
+                            onClick={onStartTutorial}
+                            data-testid="welcome-modal-start-tutorial"
+                        >
+                            <FormattedMessage {...messages.startTutorial} />
+                        </button>
+                        <div className={styles.secondaryButtons}>
+                            <button
+                                className={styles.linkButton}
+                                onClick={onLearnMore}
+                                data-testid="welcome-modal-learn-more"
+                            >
+                                <FormattedMessage {...messages.learnMore} />
+                            </button>
+                            <button
+                                className={styles.linkButton}
+                                onClick={onLater}
+                                data-testid="welcome-modal-later"
+                            >
+                                <FormattedMessage {...messages.later} />
+                            </button>
+                        </div>
+                    </>
+                )}
+                {isNarrow && (
+                    <div className={styles.secondaryButtons}>
+                        <button
+                            className={styles.linkButton}
+                            onClick={onLater}
+                            data-testid="welcome-modal-later"
+                        >
+                            <FormattedMessage {...messages.later} />
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     </div>
 );
 
 WelcomeModal.propTypes = {
-    onStartTutorial: PropTypes.func.isRequired,
-    onLearnMore: PropTypes.func.isRequired,
+    isNarrow: PropTypes.bool,
     onLater: PropTypes.func.isRequired,
+    onLearnMore: PropTypes.func.isRequired,
+    onStartTutorial: PropTypes.func.isRequired,
 };
 
-export {messages};
+WelcomeModal.defaultProps = {
+    isNarrow: false,
+};
+
+export { messages };
 export default WelcomeModal;
