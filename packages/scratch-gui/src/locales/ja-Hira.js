@@ -38,6 +38,7 @@ export default {
     'gui.classroom.title': 'クラス',
     'gui.menuBar.classroom': 'クラス',
     'gui.menuBar.classroomManagement': 'クラスかんり...',
+    'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
     'gui.classroom.management.title': 'クラスかんり',
     'gui.classroom.roleSelect.prompt': 'どちらでつかいますか？',
     'gui.classroom.roleSelect.teacher': 'せんせい',
