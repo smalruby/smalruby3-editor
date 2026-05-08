@@ -60,31 +60,64 @@ export const installCommentIconPatch = function (ScratchBlocks) {
     // Blockly v12's applyCommentTagNodes (function `ji` in scratch-blocks
     // v2.1.19) schedules a `setTimeout(..., 1)` that calls
     // `setBubbleLocation(parsedX, parsedY)` using the XML's x/y attributes.
-    // For `@ruby:*` block-attached comments, the saved x/y in VM is the
-    // bubble's anchor position at *save* time, but block width can change
-    // between saves and reloads (e.g. before/after full SVG render — block
-    // width starts at the JSON-default and grows to its rendered width
-    // after layout). The post-reload natural anchor therefore lands at a
-    // different spot than the saved x/y, and the deferred setBubbleLocation
-    // visibly snaps the bubble away from where the user just saw it.
     //
-    // POST_LOAD_SUPPRESS_MS opens a window after each icon construction
-    // during which we drop programmatic setBubbleLocation calls. After
-    // that window the icon behaves normally so user-initiated drags and
-    // legitimate programmatic moves still work.
+    // We need to handle two opposite cases on workspace re-load:
+    //
+    // (a) Block was previously moved → bubble's saved x/y was captured by
+    //     anchor-follow at save-time, but block width may have changed
+    //     between saves and reloads (the JSON-default width applies until
+    //     the SVG is fully laid out). The post-reload natural anchor lands
+    //     at a different spot than the saved x/y, so the deferred
+    //     setBubbleLocation visibly snaps the bubble away from where the
+    //     user just saw it. We want to SUPPRESS that snap.
+    //
+    // (b) User explicitly dragged the bubble away from its anchor → the
+    //     saved x/y is the user's chosen position (typically far from the
+    //     natural anchor). We want to APPLY the saved x/y so the manual
+    //     drag persists across tab toggles.
+    //
+    // We can't distinguish the two from the deferred call alone (Blockly
+    // fires the same `block_comment_move` event from both onLocationChange
+    // (anchor-follow) and bubble.endDrag (user drag)). Instead we use a
+    // distance heuristic: at construction time the bubble is placed at its
+    // default anchor offset, so we compare the requested setBubbleLocation
+    // coord to the bubble's current position.
+    //
+    // - Distance ≤ SNAP_THRESHOLD_PX → assume case (a), suppress
+    // - Distance > SNAP_THRESHOLD_PX → assume case (b), apply
+    //
+    // The threshold covers typical block-width variations (~80–100 px
+    // between default JSON width and rendered SVG width) while still
+    // detecting deliberate user drags.
     const POST_LOAD_SUPPRESS_MS = 500;
+    const SNAP_THRESHOLD_PX = 100;
 
     class PatchedCommentIcon extends Existing {
         constructor(sourceBlock) {
             super(sourceBlock);
-            // Track the construction time so setBubbleLocation can ignore
-            // the deferred call from XML deserialization.
+            // Track the construction time so setBubbleLocation can detect
+            // the deferred call from XML deserialization vs later calls.
             this.__smalrubyPostLoadUntil = Date.now() + POST_LOAD_SUPPRESS_MS;
         }
 
         setBubbleLocation(coord) {
             if (this.__smalrubyPostLoadUntil && Date.now() < this.__smalrubyPostLoadUntil) {
-                return;
+                try {
+                    const bubble = typeof this.getBubble === 'function' ? this.getBubble() : null;
+                    if (bubble && typeof bubble.getRelativeToSurfaceXY === 'function' && coord) {
+                        const cur = bubble.getRelativeToSurfaceXY();
+                        const dx = (coord.x || 0) - (cur.x || 0);
+                        const dy = (coord.y || 0) - (cur.y || 0);
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq <= SNAP_THRESHOLD_PX * SNAP_THRESHOLD_PX) {
+                            // Saved x/y is close to natural anchor — assume
+                            // stale anchor-follow data and skip the snap.
+                            return;
+                        }
+                    }
+                } catch (_e) {
+                    // fall through to super
+                }
             }
             return super.setBubbleLocation(coord);
         }
