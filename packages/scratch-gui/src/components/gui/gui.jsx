@@ -62,6 +62,21 @@ import {setTheme} from '../../reducers/settings.js';
 import {PLATFORM} from '../../lib/platform.js';
 import {ModalFocusProvider} from '../../contexts/modal-focus-context.jsx';
 
+// === Smalruby: Start of about menu ===
+const aboutMenuMessages = defineMessages({
+    aboutSmalruby: {
+        id: 'gui.menuBar.aboutSmalruby',
+        defaultMessage: 'About Smalruby',
+        description: 'Menu item that opens the Smalruby introduction page (/about.html)'
+    },
+    showWelcomeAgain: {
+        id: 'gui.menuBar.showWelcomeAgain',
+        defaultMessage: 'Show welcome again',
+        description: 'Menu item that re-opens the first-visit welcome modal'
+    }
+});
+// === Smalruby: End of about menu ===
+
 const ariaMessages = defineMessages({
     menuBar: {
         id: 'gui.aria.menuBar',
@@ -464,29 +479,17 @@ const GUIComponent = props => {
                         showComingSoon={showComingSoon}
                         // === Smalruby: Start of about menu ===
                         // 外部から onClickAbout が渡された場合 (Desktop 版など) は
-                        // それを優先。それ以外では Smalruby 用の About メニュー
-                        // (about.html リンク + ウェルカムモーダル再表示) を表示する。
+                        // それを優先。それ以外では Smalruby 用の About メニューを表示する。
+                        // title は文字列にする (menu-bar.jsx は title を React key に使うため)。
                         onClickAbout={onClickAbout || [
                             {
-                                title: (
-                                    <FormattedMessage
-                                        defaultMessage="About Smalruby"
-                                        description="Menu item that opens the Smalruby introduction page (/about.html)"
-                                        id="gui.menuBar.aboutSmalruby"
-                                    />
-                                ),
+                                title: intl.formatMessage(aboutMenuMessages.aboutSmalruby),
                                 onClick: () => {
                                     window.open('about.html', '_blank', 'noopener,noreferrer');
                                 }
                             },
                             {
-                                title: (
-                                    <FormattedMessage
-                                        defaultMessage="Show welcome again"
-                                        description="Menu item that re-opens the first-visit welcome modal"
-                                        id="gui.menuBar.showWelcomeAgain"
-                                    />
-                                ),
+                                title: intl.formatMessage(aboutMenuMessages.showWelcomeAgain),
                                 onClick: onShowWelcomeModal
                             }
                         ]}
