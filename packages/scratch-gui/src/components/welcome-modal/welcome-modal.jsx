@@ -34,6 +34,11 @@ const messages = defineMessages({
         defaultMessage: 'Drag blocks to make games and animations.',
         description: 'Welcome modal card 1 description',
     },
+    cardBlocksDescShort: {
+        id: 'gui.welcomeModal.cardBlocksDescShort',
+        defaultMessage: 'Make games and animations.',
+        description: 'Welcome modal card 1 description (compact, narrow screens)',
+    },
     cardRubyTitle: {
         id: 'gui.welcomeModal.cardRubyTitle',
         defaultMessage: 'Step up to Ruby',
@@ -44,6 +49,11 @@ const messages = defineMessages({
         defaultMessage: 'Switch to text code with furigana support.',
         description: 'Welcome modal card 2 description',
     },
+    cardRubyDescShort: {
+        id: 'gui.welcomeModal.cardRubyDescShort',
+        defaultMessage: 'Step up with furigana support.',
+        description: 'Welcome modal card 2 description (compact, narrow screens)',
+    },
     cardMeshTitle: {
         id: 'gui.welcomeModal.cardMeshTitle',
         defaultMessage: 'Connect with friends',
@@ -53,6 +63,11 @@ const messages = defineMessages({
         id: 'gui.welcomeModal.cardMeshDesc',
         defaultMessage: 'Use Mesh to share data between devices in real time.',
         description: 'Welcome modal card 3 description',
+    },
+    cardMeshDescShort: {
+        id: 'gui.welcomeModal.cardMeshDescShort',
+        defaultMessage: 'Connect multiple devices to play.',
+        description: 'Welcome modal card 3 description (compact, narrow screens)',
     },
     startTutorial: {
         id: 'gui.welcomeModal.startTutorial',
@@ -130,7 +145,7 @@ const WelcomeModal = ({ isNarrow, onStartTutorial, onLearnMore, onLater }) => {
                         <Card
                             icon={<div className={styles.cardEmoji}>{'🧩'}</div>}
                             titleMessage={messages.cardBlocksTitle}
-                            descMessage={messages.cardBlocksDesc}
+                            descMessage={isNarrow ? messages.cardBlocksDescShort : messages.cardBlocksDesc}
                         />
                         <Card
                             icon={
@@ -142,12 +157,12 @@ const WelcomeModal = ({ isNarrow, onStartTutorial, onLearnMore, onLater }) => {
                                 />
                             }
                             titleMessage={messages.cardRubyTitle}
-                            descMessage={messages.cardRubyDesc}
+                            descMessage={isNarrow ? messages.cardRubyDescShort : messages.cardRubyDesc}
                         />
                         <Card
                             icon={<div className={styles.cardEmoji}>{'🌐'}</div>}
                             titleMessage={messages.cardMeshTitle}
-                            descMessage={messages.cardMeshDesc}
+                            descMessage={isNarrow ? messages.cardMeshDescShort : messages.cardMeshDesc}
                         />
                     </div>
                 </div>
