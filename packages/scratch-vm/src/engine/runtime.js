@@ -1441,8 +1441,19 @@ class Runtime extends EventEmitter {
 
             return {
                 id: categoryInfo.id,
-                xml: `<category name="${name}" id="${categoryInfo.id}" ${statusButtonXML} ${colorXML} ${menuIconXML}>${
+                // === Smalruby: Start of toolboxitemid for extension categories ===
+                // Blockly v12's ContinuousToolbox parses category id from the
+                // `toolboxitemid` attribute (`iI.id_ = e.toolboxitemid || genUid()`).
+                // When only `id` is present, Blockly falls back to an auto-generated
+                // `blockly-XXX` id, which then propagates to the StatusIndicatorLabel
+                // (`extensionId = E.id`). The connection-modal subsequently opens with
+                // a bogus extensionId and never finds the real extension — modal stays
+                // at scanning, status icon stays "!", and `vm.connectPeripheral` is a
+                // no-op. Emit `toolboxitemid` (preferred by v12) alongside the legacy
+                // `id` attribute so the StatusIndicatorLabel receives the real id.
+                xml: `<category name="${name}" toolboxitemid="${categoryInfo.id}" id="${categoryInfo.id}" ${statusButtonXML} ${colorXML} ${menuIconXML}>${
                     paletteBlocks.map(block => block.xml).join('')}</category>`
+                // === Smalruby: End of toolboxitemid for extension categories ===
             };
         });
     }
