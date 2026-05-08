@@ -72,6 +72,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/playground/render-gui.jsx` | no_beforeunload URL param | beforeunload 無効化 |
 | `src/playground/render-gui.jsx` | MobileGui dispatcher | ResponsiveGui import + GUI を ResponsiveGui に差し替え (issue #572 Phase 2-A) |
 | `src/playground/render-gui.jsx` | storage worker timeout HOC | scratch-storage の FetchWorkerTool に 5s タイムアウトを当てる HOC import と compose 配置 (subdir deploy + iOS Safari の Worker hang 対策) |
+| `src/playground/render-gui.jsx` | about menu | About メニュー項目（`/about.html` を新規タブで開く）の定義と GUI への注入 |
 | `src/components/target-pane/target-pane.jsx` | mobile-sprite-panel suppress-library | MobileSpritePanel が同一ツリーで TargetPane を再描画する際の SpriteLibrary 二重表示を `hideSpriteLibrary` prop で抑止 (issue #572 Phase 2-F) |
 | `src/playground/render-gui-standalone.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/playground/render-gui-standalone.jsx` | no_beforeunload URL param | beforeunload 無効化 |
