@@ -478,9 +478,7 @@ const GUIComponent = props => {
                         renderLogin={renderLogin}
                         showComingSoon={showComingSoon}
                         // === Smalruby: Start of about menu ===
-                        // 外部から onClickAbout が渡された場合 (Desktop 版など) は
-                        // それを優先。それ以外では Smalruby 用の About メニューを表示する。
-                        // title は文字列にする (menu-bar.jsx は title を React key に使うため)。
+                        // title は文字列にする — menu-bar.jsx が title を React の key に使うため。
                         onClickAbout={onClickAbout || [
                             {
                                 title: intl.formatMessage(aboutMenuMessages.aboutSmalruby),
