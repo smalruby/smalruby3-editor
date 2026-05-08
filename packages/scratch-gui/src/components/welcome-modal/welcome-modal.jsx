@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { defineMessages, FormattedMessage } from 'react-intl';
 
+import rubyIcon from './icon-ruby.svg';
 import styles from './welcome-modal.css';
 
 const messages = defineMessages({
@@ -104,7 +105,12 @@ const WelcomeModal = ({ isNarrow, onStartTutorial, onLearnMore, onLater }) => (
                         </p>
                     </div>
                     <div className={styles.card}>
-                        <div className={styles.cardEmoji}>{'💎'}</div>
+                        <img
+                            alt=""
+                            aria-hidden="true"
+                            className={styles.cardIcon}
+                            src={rubyIcon}
+                        />
                         <h3 className={styles.cardTitle}>
                             <FormattedMessage {...messages.cardRubyTitle} />
                         </h3>

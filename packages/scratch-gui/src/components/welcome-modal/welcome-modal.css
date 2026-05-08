@@ -69,6 +69,15 @@
     margin-bottom: 0.5rem;
 }
 
+/* SVG icon used in place of an emoji (Ruby logo). Sized to visually match
+   the 2rem emojis above. */
+.card-icon {
+    display: block;
+    width: 2rem;
+    height: 2rem;
+    margin: 0 auto 0.5rem;
+}
+
 .card-title {
     font-size: 0.95rem;
     font-weight: bold;
@@ -179,6 +188,11 @@
 
 .dialog.narrow .card-emoji {
     font-size: 1.5rem;
+}
+
+.dialog.narrow .card-icon {
+    width: 1.5rem;
+    height: 1.5rem;
 }
 
 .dialog.narrow .card-title {
