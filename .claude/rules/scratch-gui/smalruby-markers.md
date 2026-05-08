@@ -86,6 +86,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/reducers/editor-tab.js` | initial tab from URL param | 初期タブ URL パラメーター |
 | `src/reducers/settings.js` | URL params for Playwright | URL パラメーター import |
 | `src/reducers/settings.js` | ruby_version URL param | Ruby バージョン URL パラメーター |
+| `src/lib/url-params.js` | welcome URL param | `?welcome=1` でウェルカムモーダルを初回ロード時に自動表示 |
 | `src/containers/backpack.jsx` | mesh v1 backpack auto-migration | Skyway 停止 (Issue #592) に伴う localStorage バックパックの自動 v1→v2 マイグレーション |
 | `src/containers/controls.jsx` | block_run analytics | 緑旗クリック時に GA4 イベントを発火 (issue #645 Phase 1) |
 | `src/containers/connection-modal.jsx` | mesh_v2/smalrubot_s1 connect analytics | 接続成功時に拡張別カテゴリ (`mesh_v2` / `smalrubot_s1`) で GA4 イベントを発火 (issue #645 Phase 1) |

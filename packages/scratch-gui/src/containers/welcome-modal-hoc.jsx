@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import WelcomeModal from '../components/welcome-modal/welcome-modal.jsx';
+import { getUrlParams } from '../lib/url-params.js';
 import useIsNarrowScreen from '../lib/use-is-narrow-screen.js';
 import { openTipsLibrary } from '../reducers/modals.js';
 
@@ -9,12 +10,8 @@ export const WELCOME_MODAL_SHOW_EVENT = 'smalruby:show-welcome-modal';
 
 // 自動表示は当面オフ。メニューや MobileDrawer のヘルプから明示的に選んだ
 // ときだけ smalruby:show-welcome-modal イベントで開く運用 (#658)。
-// 動作確認用に ?welcome=show を付けたときだけ初回ロードで開く。
-const shouldShowOnLoad = () => {
-    if (typeof window === 'undefined') return false;
-    const search = new URLSearchParams(window.location.search);
-    return search.get('welcome') === 'show';
-};
+// 動作確認用に ?welcome=1 を付けたときだけ初回ロードで開く。
+const shouldShowOnLoad = () => getUrlParams().showWelcome;
 
 const isPortrait = () => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
