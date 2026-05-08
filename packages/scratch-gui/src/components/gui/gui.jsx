@@ -38,6 +38,9 @@ import SmalrubotFirmwareModal from '../../containers/smalrubot-firmware-modal.js
 // === Smalruby: Start of classroom modal ===
 import ClassroomModal from '../../containers/classroom-modal.jsx';
 // === Smalruby: End of classroom modal ===
+// === Smalruby: Start of welcome modal ===
+import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
+// === Smalruby: End of welcome modal ===
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
@@ -427,6 +430,9 @@ const GUIComponent = props => {
                     ) : null}
                     {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
+                    {/* === Smalruby: Start of welcome modal === */}
+                    <WelcomeModalHOC />
+                    {/* === Smalruby: End of welcome modal === */}
                     {!menuBarHidden && <MenuBar
                         ariaRole="banner"
                         ariaLabel={intl.formatMessage(ariaMessages.menuBar)}

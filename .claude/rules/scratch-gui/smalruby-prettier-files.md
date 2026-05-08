@@ -35,6 +35,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/rubytee-consent/`
 - `src/components/rubytee-modal/`
 - `src/components/url-loader-modal/`
+- `src/components/welcome-modal/`
 
 **混在ディレクトリ内の個別ファイル:**
 - `src/components/connection-modal/mesh-v2-initial-step.css`
@@ -76,6 +77,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/containers/ruby-tab.jsx`
 - `src/containers/smalrubot-firmware-modal.jsx`
 - `src/containers/rubytee-modal-hoc.jsx`
+- `src/containers/welcome-modal-hoc.jsx`
 
 ### src/lib/
 
