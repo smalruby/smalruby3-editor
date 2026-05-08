@@ -719,15 +719,20 @@ class Blocks extends React.Component {
         // Disabling events entirely during the load ensures nothing is queued.
         this.workspace.removeChangeListener(this.toolboxUpdateChangeListener);
         let fromRuby = false;
-        const rubyCommentIconsToMinimize = [];
-        const rubyWorkspaceCommentsToCollapse = [];
+
         try {
             this.ScratchBlocks.Events.disable();
             const dom = this.ScratchBlocks.utils.xml.textToDom(data.xml);
             this.ScratchBlocks.clearWorkspaceAndLoadFromXml(dom, this.workspace);
 
             // === Smalruby: Start of Ruby-converted block positioning ===
-            // When we converted blocks from Ruby, update top block positions.
+            // When we converted blocks from Ruby, repositioning is left to
+            // Blockly's `cleanUp()` only. Comment positions are intentionally
+            // NOT touched — Blockly v12's bubble follows its block via the
+            // anchor mechanism, and any explicit setBubbleLocation /
+            // target.comments x/y override we did before would corrupt the
+            // bubble's y after the user moved the block. Trust Blockly's
+            // built-in positioning.
             if (this.props.vm.editingTarget) {
                 const blocks = this.props.vm.editingTarget.blocks;
                 const scripts = blocks.getScripts();
@@ -741,95 +746,6 @@ class Blocks extends React.Component {
                 }
                 if (fromRuby) {
                     this.workspace.cleanUp();
-
-                    // Block-attached comments are rendered as comment icons
-                    // on the block in scratch-blocks v2 (no longer as separate
-                    // WorkspaceComment objects), so workspace.getTopComments()
-                    // does not return them. Collect block IDs whose comment
-                    // starts with `@ruby:` and apply setBubbleVisible(false)
-                    // + setBubbleLocation in the finally block — calling them
-                    // while Events are disabled is a no-op in v2, and stale
-                    // icon references can be invalidated by Blockly during
-                    // workspace settling.
-                    //
-                    // Also propagate the comment x/y in the VM target back to
-                    // a block-relative offset (right of the block at the
-                    // block's y). The Ruby converter creates every `@ruby:*`
-                    // comment at the same workspace coord (200, 0), which
-                    // causes multiple comment bubbles to stack on top of each
-                    // other in scratch-blocks v2 (it preserves explicit
-                    // comment coords instead of auto-positioning per block).
-                    // Helper: walk up to the top-level (root statement) block
-                    // for x-alignment. Comments on nested input blocks (e.g.
-                    // a variable input inside a say block) would otherwise
-                    // misalign because each nested block has a different x.
-                    const getRootBlockX = wsBlock => {
-                        let cur = wsBlock;
-                        while (cur && typeof cur.getParent === 'function' && cur.getParent()) {
-                            cur = cur.getParent();
-                        }
-                        if (cur && typeof cur.getRelativeToSurfaceXY === 'function') {
-                            return cur.getRelativeToSurfaceXY().x;
-                        }
-                        return 0;
-                    };
-                    const allBlocks = this.workspace.getAllBlocks(false);
-                    allBlocks.forEach(wsBlock => {
-                        const commentText = typeof wsBlock.getCommentText === 'function' ?
-                            wsBlock.getCommentText() : null;
-                        if (commentText && commentText.startsWith('@ruby:')) {
-                            rubyCommentIconsToMinimize.push(wsBlock.id);
-                            const targetComments = this.props.vm.editingTarget.comments;
-                            const blockData = blocks.getBlock(wsBlock.id);
-                            const commentId = blockData && blockData.comment;
-                            if (targetComments && commentId && targetComments[commentId]) {
-                                const blockXY = wsBlock.getRelativeToSurfaceXY();
-                                const rootX = getRootBlockX(wsBlock);
-                                const rtl = this.workspace.RTL;
-                                const dx = rtl ? 20 : -220;
-                                // Align x to the root (top-level) block so
-                                // every `@ruby:*` comment in a single script
-                                // shares the same left edge regardless of how
-                                // deeply nested its source block is.
-                                targetComments[commentId].x = rootX + dx;
-                                targetComments[commentId].y = blockXY.y;
-                            }
-                        }
-                    });
-
-                    // Workspace-level comments (e.g. `@ruby:class`) have no
-                    // blockId — they are returned by getTopComments() and are
-                    // separate WorkspaceComment objects in scratch-blocks v2.
-                    // Collapse `@ruby:*` ones via the v2 API (setCollapsed,
-                    // replacing v1's setMinimized) and align them to the
-                    // left of the first top block.
-                    const firstTopBlock = this.workspace.getTopBlocks(true)[0];
-                    this.workspace.getTopComments(false).forEach(comment => {
-                        if (!firstTopBlock || comment.blockId) return;
-                        const text = typeof comment.getText === 'function' ?
-                            comment.getText() : comment.text;
-                        if (!text || !text.startsWith('@ruby:')) return;
-                        // Defer setCollapsed(true) to the finally block:
-                        // calling it while Events are disabled is a no-op,
-                        // and a synchronous call here is overridden by
-                        // scratch-blocks v2's post-load rendering pass.
-                        rubyWorkspaceCommentsToCollapse.push(comment.id);
-
-                        const blockXY = firstTopBlock.getRelativeToSurfaceXY();
-                        const rtl = this.workspace.RTL;
-                        const dx = rtl ? 20 : -220;
-                        const x = blockXY.x + dx;
-                        const y = blockXY.y;
-                        if (typeof comment.moveTo === 'function') {
-                            comment.moveTo(new this.ScratchBlocks.utils.Coordinate(x, y));
-                        }
-
-                        const targetComments = this.props.vm.editingTarget.comments;
-                        if (targetComments && targetComments[comment.id]) {
-                            targetComments[comment.id].x = x;
-                            targetComments[comment.id].y = y;
-                        }
-                    });
 
                     this.workspace.getTopBlocks(false).forEach(wsTopBlock => {
                         const topBlock = blocks.getBlock(wsTopBlock.id);
@@ -870,75 +786,6 @@ class Blocks extends React.Component {
             log.error(error);
         } finally {
             this.ScratchBlocks.Events.enable();
-            // === Smalruby: Start of @ruby:* comment minimize ===
-            // setBubbleVisible(false) only takes effect when Events are enabled,
-            // because scratch-blocks v2 gates the visibility update on its
-            // event dispatch path. Apply the collected minimizations now that
-            // the event system is back online.
-            if (this.workspace &&
-                (rubyCommentIconsToMinimize.length > 0 ||
-                    rubyWorkspaceCommentsToCollapse.length > 0)) {
-                // Defer: scratch-blocks v2 finishes its post-load rendering
-                // pass after onWorkspaceUpdate returns, and a synchronous
-                // setBubbleVisible(false) call is overridden by that pass.
-                // Re-fetch icons by block ID inside the timer because the
-                // icon references collected synchronously can be detached
-                // before this point. Also nudge the bubble location to be
-                // adjacent to its own block — the Ruby converter places
-                // every `@ruby:*` comment at the same workspace coord
-                // (200, 0), which makes scratch-blocks v2 stack the
-                // comment bubbles on top of each other.
-                const blockIds = rubyCommentIconsToMinimize;
-                const ws = this.workspace;
-                setTimeout(() => {
-                    blockIds.forEach(blockId => {
-                        const wsBlock = ws.getBlockById && ws.getBlockById(blockId);
-                        if (!wsBlock || typeof wsBlock.getIcons !== 'function') return;
-                        const icons = wsBlock.getIcons();
-                        const commentIcon = icons.find(icon => {
-                            const t = icon.getType && icon.getType();
-                            return t && t.name === 'comment';
-                        });
-                        if (!commentIcon) return;
-                        if (typeof commentIcon.setBubbleLocation === 'function') {
-                            const blockXY = wsBlock.getRelativeToSurfaceXY();
-                            // Align x to the top-level ancestor so nested
-                            // input blocks' comments share the same left edge.
-                            let rootBlock = wsBlock;
-                            while (
-                                rootBlock &&
-                                typeof rootBlock.getParent === 'function' &&
-                                rootBlock.getParent()
-                            ) {
-                                rootBlock = rootBlock.getParent();
-                            }
-                            const rootX = rootBlock && typeof rootBlock.getRelativeToSurfaceXY === 'function' ?
-                                rootBlock.getRelativeToSurfaceXY().x : 0;
-                            const rtl = ws.RTL;
-                            const dx = rtl ? 20 : -220;
-                            commentIcon.setBubbleLocation(
-                                new this.ScratchBlocks.utils.Coordinate(
-                                    rootX + dx, blockXY.y
-                                )
-                            );
-                        }
-                        if (typeof commentIcon.setBubbleVisible === 'function') {
-                            commentIcon.setBubbleVisible(false);
-                        }
-                    });
-                    // Workspace-level comments (@ruby:class etc.) need
-                    // setCollapsed(true) for the v2 collapse path. Re-fetch
-                    // by ID since references collected during onWorkspaceUpdate
-                    // can be detached.
-                    rubyWorkspaceCommentsToCollapse.forEach(commentId => {
-                        const wsComment = ws.getCommentById && ws.getCommentById(commentId);
-                        if (wsComment && typeof wsComment.setCollapsed === 'function') {
-                            wsComment.setCollapsed(true);
-                        }
-                    });
-                }, 100);
-            }
-            // === Smalruby: End of @ruby:* comment minimize ===
         }
 
         if (!fromRuby &&

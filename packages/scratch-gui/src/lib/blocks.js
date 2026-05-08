@@ -1,6 +1,9 @@
 // === Smalruby: Start of gesture recovery import ===
 import {installGestureRecovery} from './blocks-gesture-recovery.js';
 // === Smalruby: End of gesture recovery import ===
+// === Smalruby: Start of comment icon patch import ===
+import {installCommentIconPatch} from './scratch-blocks-comment-icon-patch.js';
+// === Smalruby: End of comment icon patch import ===
 
 /**
  * Connect scratch blocks with the vm
@@ -345,6 +348,10 @@ export default function (vm) {
     // === Smalruby: Start of gesture recovery ===
     installGestureRecovery(ScratchBlocks);
     // === Smalruby: End of gesture recovery ===
+
+    // === Smalruby: Start of comment icon patch ===
+    installCommentIconPatch(ScratchBlocks);
+    // === Smalruby: End of comment icon patch ===
 
     return ScratchBlocks;
 }

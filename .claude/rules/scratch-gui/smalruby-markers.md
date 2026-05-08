@@ -64,6 +64,8 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `eslint.config.mjs` | prettier integration | eslintConfigPrettier を最後に置いて prettier と競合する整形ルールを無効化 |
 | `src/lib/blocks.js` | gesture recovery import | ジェスチャー復旧モジュールの import |
 | `src/lib/blocks.js` | gesture recovery | ジェスチャー復旧ハンドラーのインストール |
+| `src/lib/blocks.js` | comment icon patch import | ScratchCommentIcon パッチモジュールの import |
+| `src/lib/blocks.js` | comment icon patch | ScratchCommentIcon.fireCreateEvent をオーバーライドして create 後に block_comment_change を re-fire (Blockly v12 の create payload に text が含まれない問題のフォロー) |
 | `src/playground/render-gui.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/playground/render-gui.jsx` | no_beforeunload URL param | beforeunload 無効化 |
 | `src/playground/render-gui.jsx` | MobileGui dispatcher | ResponsiveGui import + GUI を ResponsiveGui に差し替え (issue #572 Phase 2-A) |

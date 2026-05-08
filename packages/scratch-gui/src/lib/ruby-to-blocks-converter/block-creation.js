@@ -12,7 +12,21 @@ const BlockCreation = {
     },
 
     _createComment (text, blockId, x = 0, y = 0, minimized = true) {
-        const id = Blockly.utils.idGenerator.genUid();
+        // For block-attached comments, scratch-blocks v2 hardcodes the bubble
+        // ID to `${block.id}_comment` (see ScratchCommentBubble constructor).
+        // The XML <comment id="..."> attribute is ignored by Blockly v12's
+        // applyCommentTagNodes during deserialization. Match that format
+        // here so the converter's comment ID equals what Blockly will use
+        // after a workspace reload — otherwise `block_comment_*` events fire
+        // with the bubble's auto-generated ID, the VM looks them up under
+        // the converter's random ID and finds nothing, and the events are
+        // silently discarded (e.g. moving a block doesn't update
+        // `target.comments[id].x/y`, so subsequent tab toggles snap the
+        // bubble back to its previous position).
+        // Workspace-level comments (blockId === null) keep a random ID
+        // because Blockly preserves their `<comment id>` attribute through
+        // serialization.
+        const id = blockId ? `${blockId}_comment` : Blockly.utils.idGenerator.genUid();
         this._context.comments[id] = {
             id: id,
             text: text,
