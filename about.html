@@ -705,6 +705,82 @@
         }
 
         /* ============================================================
+           Share Section
+           ============================================================ */
+        .share-section {
+            background: #fff;
+            padding: 4rem 1rem;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+        .share-section h2 {
+            font-size: 1.6rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        .share-section .share-lead {
+            text-align: center;
+            color: var(--text-light);
+            margin-bottom: 2.5rem;
+            font-size: 0.95rem;
+        }
+        .share-grid {
+            display: grid;
+            grid-template-columns: minmax(200px, 280px) 1fr;
+            gap: 2.5rem;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        @media (max-width: 600px) {
+            .share-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+        .share-qr {
+            text-align: center;
+        }
+        .share-qr img {
+            width: 100%;
+            max-width: 240px;
+            height: auto;
+            border: 8px solid #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            background: #fff;
+        }
+        .share-qr-caption {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 0.75rem;
+        }
+        .share-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .share-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1.25rem;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+        .share-btn i { font-size: 1.2rem; width: 1.4rem; text-align: center; }
+        .share-btn-x { background: #000; }
+        .share-btn-line { background: #06c755; }
+        .share-btn-facebook { background: #1877f2; }
+        .share-btn-mail { background: #6b7280; }
+
+        /* ============================================================
            Footer
            ============================================================ */
         footer {
@@ -1119,6 +1195,43 @@
             <img src="static/smalruby-assets/ddaccfcda466a4887299feddc899fea7.png" alt="シマラビー">
             <img src="static/smalruby-assets/851e679b8f113ee90e0d686c33fbc940.png" alt="シマキャット">
             <img src="assets/hatti-greeting.png" alt="ハッチー">
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+     SHARE
+     ================================================================ -->
+<section class="share-section" id="share">
+    <div class="container reveal">
+        <h2>友達や先生に紹介する</h2>
+        <p class="share-lead">QRコードを印刷したチラシや、SNSのリンク共有でスモウルビーを広めてください。</p>
+        <div class="share-grid">
+            <div class="share-qr">
+                <img src="assets/smalruby-app-qr.svg" alt="https://smalruby.app/ のQRコード" loading="lazy">
+                <div class="share-qr-caption">スマホで読み取るとスモウルビーが開きます</div>
+            </div>
+            <div class="share-buttons">
+                <a class="share-btn share-btn-x"
+                   href="https://x.com/intent/tweet?text=%E3%82%B9%E3%83%A2%E3%82%A6%E3%83%AB%E3%83%93%E3%83%BC%20%E2%80%94%20%E3%83%96%E3%83%AD%E3%83%83%E3%82%AF%E3%81%8B%E3%82%89Ruby%E3%83%BBDNCL%E3%81%BE%E3%81%A7%E5%AF%BE%E5%BF%9C%E3%81%97%E3%81%9F%E7%84%A1%E6%96%99%E3%81%AE%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%9F%E3%83%B3%E3%82%B0%E5%AD%A6%E7%BF%92%E7%92%B0%E5%A2%83&url=https%3A%2F%2Fsmalruby.app%2Fabout.html"
+                   target="_blank" rel="noopener">
+                    <i class="fab fa-x-twitter"></i> X (Twitter) で共有
+                </a>
+                <a class="share-btn share-btn-line"
+                   href="https://social-plugins.line.me/lineit/share?url=https%3A%2F%2Fsmalruby.app%2Fabout.html"
+                   target="_blank" rel="noopener">
+                    <i class="fab fa-line"></i> LINE で送る
+                </a>
+                <a class="share-btn share-btn-facebook"
+                   href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fsmalruby.app%2Fabout.html"
+                   target="_blank" rel="noopener">
+                    <i class="fab fa-facebook"></i> Facebook で共有
+                </a>
+                <a class="share-btn share-btn-mail"
+                   href="mailto:?subject=%E3%82%B9%E3%83%A2%E3%82%A6%E3%83%AB%E3%83%93%E3%83%BC%E3%82%92%E7%B4%B9%E4%BB%8B%E3%81%97%E3%81%BE%E3%81%99&body=%E3%83%96%E3%83%AD%E3%83%83%E3%82%AF%E3%81%8B%E3%82%89Ruby%E3%83%BBDNCL%E3%81%BE%E3%81%A7%E5%AF%BE%E5%BF%9C%E3%81%97%E3%81%9F%E7%84%A1%E6%96%99%E3%81%AE%E3%83%97%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%9F%E3%83%B3%E3%82%B0%E5%AD%A6%E7%BF%92%E7%92%B0%E5%A2%83%E3%81%A7%E3%81%99%E3%80%82%0A%0Ahttps%3A%2F%2Fsmalruby.app%2Fabout.html">
+                    <i class="fas fa-envelope"></i> メールで送る
+                </a>
+            </div>
         </div>
     </div>
 </section>
