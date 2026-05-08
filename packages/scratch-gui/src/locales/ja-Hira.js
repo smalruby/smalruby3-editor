@@ -39,6 +39,7 @@ export default {
     'gui.menuBar.classroom': 'クラス',
     'gui.menuBar.classroomManagement': 'クラスかんり...',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
+    'gui.menuBar.showWelcomeAgain': 'ウェルカムをもういちどみる',
     'gui.welcomeModal.title': 'スモウルビーへようこそ',
     'gui.welcomeModal.lead':
         'スモウルビーは、ブラウザだけでつかえるむりょうのプログラミングかんきょうです。' +

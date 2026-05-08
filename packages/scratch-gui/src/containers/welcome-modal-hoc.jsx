@@ -2,54 +2,18 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import WelcomeModal from '../components/welcome-modal/welcome-modal.jsx';
-import { getUrlParams } from '../lib/url-params.js';
 import useIsNarrowScreen from '../lib/use-is-narrow-screen.js';
 import { openTipsLibrary } from '../reducers/modals.js';
 
-const STORAGE_KEY = 'smalruby:welcomeSeen';
 export const WELCOME_MODAL_SHOW_EVENT = 'smalruby:show-welcome-modal';
 
-const readSeen = () => {
-    try {
-        return (
-            typeof window !== 'undefined' &&
-            window.localStorage &&
-            window.localStorage.getItem(STORAGE_KEY) === 'true'
-        );
-    } catch {
-        return false;
-    }
-};
-
-const writeSeen = () => {
-    try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem(STORAGE_KEY, 'true');
-        }
-    } catch {
-        // ignore quota / privacy mode errors
-    }
-};
-
-const clearSeen = () => {
-    try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.removeItem(STORAGE_KEY);
-        }
-    } catch {
-        // ignore
-    }
-};
-
-const shouldSuppressOnLoad = () => {
-    if (readSeen()) return true;
-    const params = getUrlParams();
-    if (params.classcode) return true;
-    if (typeof window !== 'undefined') {
-        const search = new URLSearchParams(window.location.search);
-        if (search.get('welcome') === 'skip') return true;
-    }
-    return false;
+// 自動表示は当面オフ。メニューや MobileDrawer のヘルプから明示的に選んだ
+// ときだけ smalruby:show-welcome-modal イベントで開く運用 (#658)。
+// 動作確認用に ?welcome=show を付けたときだけ初回ロードで開く。
+const shouldShowOnLoad = () => {
+    if (typeof window === 'undefined') return false;
+    const search = new URLSearchParams(window.location.search);
+    return search.get('welcome') === 'show';
 };
 
 const isPortrait = () => {
@@ -78,7 +42,7 @@ const usePortrait = () => {
 };
 
 const WelcomeModalContainer = ({ onOpenTipsLibrary }) => {
-    const [visible, setVisible] = useState(() => !shouldSuppressOnLoad());
+    const [visible, setVisible] = useState(shouldShowOnLoad);
     const isNarrow = useIsNarrowScreen();
     const portrait = usePortrait();
 
@@ -86,7 +50,6 @@ const WelcomeModalContainer = ({ onOpenTipsLibrary }) => {
     useEffect(() => {
         if (typeof window === 'undefined') return () => {};
         const handler = () => {
-            clearSeen();
             setVisible(true);
         };
         window.addEventListener(WELCOME_MODAL_SHOW_EVENT, handler);
@@ -94,7 +57,6 @@ const WelcomeModalContainer = ({ onOpenTipsLibrary }) => {
     }, []);
 
     const handleStartTutorial = useCallback(() => {
-        writeSeen();
         setVisible(false);
         onOpenTipsLibrary();
     }, [onOpenTipsLibrary]);
@@ -102,7 +64,6 @@ const WelcomeModalContainer = ({ onOpenTipsLibrary }) => {
     const handleLearnMore = useCallback(() => {
         // SP では Primary CTA。閉じてから about.html を新規タブで開き、
         // タブを切り替えて戻ってきたときにエディタが見えている状態にする。
-        writeSeen();
         setVisible(false);
         if (typeof window !== 'undefined') {
             window.open('about.html', '_blank', 'noopener,noreferrer');
@@ -110,7 +71,6 @@ const WelcomeModalContainer = ({ onOpenTipsLibrary }) => {
     }, []);
 
     const handleLater = useCallback(() => {
-        writeSeen();
         setVisible(false);
     }, []);
 

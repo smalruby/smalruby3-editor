@@ -35,6 +35,18 @@ const aboutMenuItems = [
         onClick: () => {
             window.open('about.html', '_blank', 'noopener,noreferrer');
         }
+    },
+    {
+        title: (
+            <FormattedMessage
+                defaultMessage="Show welcome again"
+                description="Menu item that re-opens the first-visit welcome modal"
+                id="gui.menuBar.showWelcomeAgain"
+            />
+        ),
+        onClick: () => {
+            window.dispatchEvent(new Event('smalruby:show-welcome-modal'));
+        }
     }
 ];
 // === Smalruby: End of about menu ===
