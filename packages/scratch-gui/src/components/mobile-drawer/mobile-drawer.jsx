@@ -23,7 +23,7 @@ import sharedMessages from '../../lib/shared-messages';
 import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
 import { setConnectionModalExtensionId } from '../../reducers/connection-modal.js';
 import { selectLocale } from '../../reducers/locales.js';
-import { openConnectionModal, openUrlLoaderModal } from '../../reducers/modals.js';
+import { openConnectionModal, openUrlLoaderModal, openWelcomeModal } from '../../reducers/modals.js';
 import { requestNewProject } from '../../reducers/project-state.js';
 import { setRubyVersion } from '../../reducers/settings.js';
 import closeIcon from './icon--close.svg';
@@ -130,6 +130,21 @@ const messages = defineMessages({
         description: 'Mobile drawer label for Ruby version 2',
         id: 'gui.mobile.drawer.settings.ruby.v2',
     },
+    sectionHelp: {
+        defaultMessage: 'Help',
+        description: 'Section header for help / about Smalruby in mobile drawer',
+        id: 'gui.mobile.drawer.section.help',
+    },
+    helpAbout: {
+        defaultMessage: 'About Smalruby',
+        description: 'Mobile drawer item that opens the Smalruby about page in a new tab',
+        id: 'gui.menuBar.aboutSmalruby',
+    },
+    helpShowWelcome: {
+        defaultMessage: 'Show welcome again',
+        description: 'Mobile drawer item that re-opens the first-visit welcome modal',
+        id: 'gui.mobile.drawer.help.showWelcome',
+    },
 });
 
 /**
@@ -153,6 +168,7 @@ const SUBMENU_FILE_OPEN = 'file-open';
 const SUBMENU_SETTINGS = 'settings';
 const SUBMENU_SETTINGS_LANGUAGE = 'settings-language';
 const SUBMENU_SETTINGS_RUBY = 'settings-ruby';
+const SUBMENU_HELP = 'help';
 
 /**
  * v1 への切替で v2 専用機能 (module / class) が使われていないかチェックする
@@ -215,6 +231,7 @@ const hasV2Features = vm => {
  * @param {Function} props.onSaveDirectlyToGoogleDrive - GoogleDriveSaverHOC 注入
  * @param {Function} props.onStartSavingToGoogleDrive - GoogleDriveSaverHOC 注入
  * @param {Function} props.onStartSelectingUrlLoad - Scratch URL ローダーモーダル
+ * @param {Function} props.onOpenWelcomeModal - ウェルカムモーダルを開く (#658)
  * @param {object} props.intl - react-intl
  * @returns {JSX.Element|null} portal 経由で body 直下にレンダリング
  */
@@ -236,6 +253,7 @@ const MobileDrawerComponent = ({
     onSaveDirectlyToGoogleDrive,
     onStartSavingToGoogleDrive,
     onStartSelectingUrlLoad,
+    onOpenWelcomeModal,
     intl,
 }) => {
     const [expandedSet, setExpandedSet] = useState(() => new Set());
@@ -329,6 +347,18 @@ const MobileDrawerComponent = ({
         onOpenTeacherModal();
         onClose();
     }, [onOpenTeacherModal, onClose]);
+
+    const handleClickAbout = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            window.open('about.html', '_blank', 'noopener,noreferrer');
+        }
+        onClose();
+    }, [onClose]);
+
+    const handleClickShowWelcome = useCallback(() => {
+        onOpenWelcomeModal();
+        onClose();
+    }, [onOpenWelcomeModal, onClose]);
 
     if (typeof document === 'undefined') {
         return null;
@@ -640,6 +670,33 @@ const MobileDrawerComponent = ({
                             )}
                         </>
                     )}
+
+                    {/* ===== ヘルプ (accordion トグル) ===== */}
+                    <li>{renderToggle(<FormattedMessage {...messages.sectionHelp} />, SUBMENU_HELP)}</li>
+                    {isExpanded(SUBMENU_HELP) && (
+                        <>
+                            <li>
+                                <button
+                                    type="button"
+                                    className={classNames(styles.menuItem, styles.indented)}
+                                    onClick={handleClickAbout}
+                                    data-testid="mobile-drawer-help-about"
+                                >
+                                    <FormattedMessage {...messages.helpAbout} />
+                                </button>
+                            </li>
+                            <li>
+                                <button
+                                    type="button"
+                                    className={classNames(styles.menuItem, styles.indented)}
+                                    onClick={handleClickShowWelcome}
+                                    data-testid="mobile-drawer-help-show-welcome"
+                                >
+                                    <FormattedMessage {...messages.helpShowWelcome} />
+                                </button>
+                            </li>
+                        </>
+                    )}
                 </ul>
             </aside>
         </>,
@@ -665,6 +722,7 @@ MobileDrawerComponent.propTypes = {
     onSaveDirectlyToGoogleDrive: PropTypes.func.isRequired,
     onStartSavingToGoogleDrive: PropTypes.func.isRequired,
     onStartSelectingUrlLoad: PropTypes.func.isRequired,
+    onOpenWelcomeModal: PropTypes.func.isRequired,
     intl: intlShape.isRequired,
 };
 
@@ -689,6 +747,7 @@ const mapDispatchToProps = dispatch => ({
         dispatch(openConnectionModal());
     },
     onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal()),
+    onOpenWelcomeModal: () => dispatch(openWelcomeModal()),
 });
 
 const MobileDrawer = compose(

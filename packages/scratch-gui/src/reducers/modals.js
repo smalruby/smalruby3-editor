@@ -14,6 +14,7 @@ const MODAL_CONNECTION = 'connectionModal';
 const MODAL_URL_LOADER = 'urlLoaderModal';
 const MODAL_KOSHIEN_TEST = 'koshienTestModal';
 const MODAL_TIPS_LIBRARY = 'tipsLibrary';
+const MODAL_WELCOME = 'welcomeModal';
 
 const initialState = {
     [MODAL_BACKDROP_LIBRARY]: false,
@@ -28,7 +29,8 @@ const initialState = {
     [MODAL_CONNECTION]: false,
     [MODAL_URL_LOADER]: false,
     [MODAL_KOSHIEN_TEST]: false,
-    [MODAL_TIPS_LIBRARY]: false
+    [MODAL_TIPS_LIBRARY]: false,
+    [MODAL_WELCOME]: false
 };
 
 const reducer = function (state, action) {
@@ -104,6 +106,9 @@ const openKoshienTestModal = function () {
 const openTipsLibrary = function () {
     return openModal(MODAL_TIPS_LIBRARY);
 };
+const openWelcomeModal = function () {
+    return openModal(MODAL_WELCOME);
+};
 const closeBackdropLibrary = function () {
     return closeModal(MODAL_BACKDROP_LIBRARY);
 };
@@ -143,6 +148,9 @@ const closeKoshienTestModal = function () {
 const closeTipsLibrary = function () {
     return closeModal(MODAL_TIPS_LIBRARY);
 };
+const closeWelcomeModal = function () {
+    return closeModal(MODAL_WELCOME);
+};
 export {
     reducer as default,
     initialState as modalsInitialState,
@@ -159,6 +167,7 @@ export {
     openUrlLoaderModal,
     openKoshienTestModal,
     openTipsLibrary,
+    openWelcomeModal,
     closeBackdropLibrary,
     closeCostumeLibrary,
     closeDebugModal,
@@ -171,5 +180,6 @@ export {
     closeConnectionModal,
     closeUrlLoaderModal,
     closeKoshienTestModal,
-    closeTipsLibrary
+    closeTipsLibrary,
+    closeWelcomeModal
 };

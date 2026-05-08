@@ -22,6 +22,7 @@ const RUBY_ALIASES = ['ruby'];
  * - ruby_version=2     — set the Ruby version (1 or 2); invalid values are ignored
  * - rubyMode=dncl      — activate DNCL mode (aliases: dnclv2, case-insensitive)
  * - rubyMode=rubi      — activate furigana mode (aliases: furigana, case-insensitive)
+ * - welcome=1          — auto-open the welcome modal on load
  * @returns {object} parsed parameters
  */
 const parseUrlParams = () => {
@@ -34,6 +35,7 @@ const parseUrlParams = () => {
             features: [],
             classcode: null,
             devlogin: false,
+            showWelcome: false,
         };
     }
 
@@ -49,6 +51,7 @@ const parseUrlParams = () => {
             features: [],
             classcode: null,
             devlogin: false,
+            showWelcome: false,
         };
     }
 
@@ -89,7 +92,24 @@ const parseUrlParams = () => {
     // devlogin: bypass Google auth with a secret token (stg/local only)
     const devlogin = params.get('devlogin') || null;
 
-    return { noBeforeUnload, initialTab, rubyVersion, rubyMode, features, classcode, devlogin };
+    // === Smalruby: Start of welcome URL param ===
+    // welcome: any truthy value auto-opens the welcome modal on load
+    // (used for testing / first-time demo; normally users open it from the
+    // About menu or MobileDrawer help section)
+    const welcomeParam = params.get('welcome');
+    const showWelcome = welcomeParam === '1' || welcomeParam === 'true';
+    // === Smalruby: End of welcome URL param ===
+
+    return {
+        noBeforeUnload,
+        initialTab,
+        rubyVersion,
+        rubyMode,
+        features,
+        classcode,
+        devlogin,
+        showWelcome,
+    };
 };
 
 // Cache the result so it's only parsed once

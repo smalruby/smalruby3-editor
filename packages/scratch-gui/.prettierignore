@@ -52,6 +52,7 @@ src/components/*
 !src/components/rubytee-consent/
 !src/components/rubytee-modal/
 !src/components/url-loader-modal/
+!src/components/welcome-modal/
 # Mixed directories
 !src/components/connection-modal/
 !src/components/menu-bar/
@@ -101,6 +102,7 @@ src/containers/*
 !src/containers/ruby-tab.jsx
 !src/containers/smalrubot-firmware-modal.jsx
 !src/containers/rubytee-modal-hoc.jsx
+!src/containers/welcome-modal-hoc.jsx
 
 # ============================================================
 # Level 2: src/lib/*

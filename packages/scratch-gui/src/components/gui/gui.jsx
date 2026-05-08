@@ -38,6 +38,9 @@ import SmalrubotFirmwareModal from '../../containers/smalrubot-firmware-modal.js
 // === Smalruby: Start of classroom modal ===
 import ClassroomModal from '../../containers/classroom-modal.jsx';
 // === Smalruby: End of classroom modal ===
+// === Smalruby: Start of welcome modal ===
+import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
+// === Smalruby: End of welcome modal ===
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
@@ -58,6 +61,21 @@ import {setPlatform} from '../../reducers/platform.js';
 import {setTheme} from '../../reducers/settings.js';
 import {PLATFORM} from '../../lib/platform.js';
 import {ModalFocusProvider} from '../../contexts/modal-focus-context.jsx';
+
+// === Smalruby: Start of about menu ===
+const aboutMenuMessages = defineMessages({
+    aboutSmalruby: {
+        id: 'gui.menuBar.aboutSmalruby',
+        defaultMessage: 'About Smalruby',
+        description: 'Menu item that opens the Smalruby introduction page (/about.html)'
+    },
+    showWelcomeAgain: {
+        id: 'gui.menuBar.showWelcomeAgain',
+        defaultMessage: 'Show welcome again',
+        description: 'Menu item that re-opens the first-visit welcome modal'
+    }
+});
+// === Smalruby: End of about menu ===
 
 const ariaMessages = defineMessages({
     menuBar: {
@@ -186,6 +204,9 @@ const GUIComponent = props => {
         menuBarHidden,
         renderLogin,
         onClickAbout,
+        // === Smalruby: Start of welcome modal ===
+        onShowWelcomeModal,
+        // === Smalruby: End of welcome modal ===
         onClickAccountNav,
         onCloseAccountNav,
         onLogOut,
@@ -427,6 +448,9 @@ const GUIComponent = props => {
                     ) : null}
                     {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
+                    {/* === Smalruby: Start of welcome modal === */}
+                    <WelcomeModalHOC />
+                    {/* === Smalruby: End of welcome modal === */}
                     {!menuBarHidden && <MenuBar
                         ariaRole="banner"
                         ariaLabel={intl.formatMessage(ariaMessages.menuBar)}
@@ -453,7 +477,23 @@ const GUIComponent = props => {
                         logo={logo}
                         renderLogin={renderLogin}
                         showComingSoon={showComingSoon}
-                        onClickAbout={onClickAbout}
+                        // === Smalruby: Start of about menu ===
+                        // 外部から onClickAbout が渡された場合 (Desktop 版など) は
+                        // それを優先。それ以外では Smalruby 用の About メニューを表示する。
+                        // title は文字列にする (menu-bar.jsx は title を React key に使うため)。
+                        onClickAbout={onClickAbout || [
+                            {
+                                title: intl.formatMessage(aboutMenuMessages.aboutSmalruby),
+                                onClick: () => {
+                                    window.open('about.html', '_blank', 'noopener,noreferrer');
+                                }
+                            },
+                            {
+                                title: intl.formatMessage(aboutMenuMessages.showWelcomeAgain),
+                                onClick: onShowWelcomeModal
+                            }
+                        ]}
+                        // === Smalruby: End of about menu ===
                         onClickAccountNav={onClickAccountNav}
                         onClickLogo={onClickLogo}
                         onCloseAccountNav={onCloseAccountNav}
@@ -808,6 +848,9 @@ GUIComponent.propTypes = {
     onRequestCloseUrlLoaderModal: PropTypes.func,
     onSeeCommunity: PropTypes.func,
     onShare: PropTypes.func,
+    // === Smalruby: Start of welcome modal ===
+    onShowWelcomeModal: PropTypes.func,
+    // === Smalruby: End of welcome modal ===
     onShowPrivacyPolicy: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
     onStartSelectingUrlLoad: PropTypes.func,

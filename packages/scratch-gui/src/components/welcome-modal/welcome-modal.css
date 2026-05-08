@@ -1,0 +1,204 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+@import "../../css/z-index.css";
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: $ui-black-transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: $z-index-modal;
+    padding: 1rem;
+}
+
+.dialog {
+    background: white;
+    border-radius: 12px;
+    width: 640px;
+    max-width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px $ui-black-transparent;
+    overflow: hidden;
+}
+
+.dialog-body {
+    padding: 1.5rem 2rem 0;
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+.title {
+    font-size: 1.5rem;
+    margin: 0 0 0.5rem 0;
+    color: $text-primary;
+    text-align: center;
+}
+
+.lead {
+    margin: 0 0 1.25rem 0;
+    color: $text-primary;
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.card {
+    background: $ui-primary;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.card-emoji {
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+/* SVG icon used in place of an emoji (Ruby logo). Sized to visually match
+   the 2rem emojis above. */
+.card-icon {
+    display: block;
+    width: 2rem;
+    height: 2rem;
+    margin: 0 auto 0.5rem;
+}
+
+.card-title {
+    font-size: 0.95rem;
+    font-weight: bold;
+    margin: 0 0 0.25rem 0;
+    color: $text-primary;
+}
+
+.card-desc {
+    font-size: 0.8rem;
+    margin: 0;
+    color: $text-primary;
+    line-height: 1.4;
+}
+
+/* Sticky CTA area at the bottom of the dialog. */
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+    padding: 1rem 2rem 1.25rem;
+    background: white;
+    border-top: 1px solid $ui-black-transparent-10;
+    flex-shrink: 0;
+}
+
+.primary-button {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    background: $motion-primary;
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    min-height: 44px;
+}
+
+.primary-button:hover {
+    opacity: 0.9;
+}
+
+.secondary-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.link-button {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: transparent;
+    color: $motion-primary;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    min-height: 44px;
+}
+
+.link-button:hover {
+    opacity: 0.7;
+}
+
+/* ============================================================
+   Narrow screen (SP) layout
+   ============================================================ */
+.dialog.narrow {
+    max-height: 95vh;
+    border-radius: 8px;
+}
+
+.dialog.narrow .dialog-body {
+    padding: 1.25rem 1rem 0.5rem;
+}
+
+.dialog.narrow .title {
+    font-size: 1.2rem;
+}
+
+.dialog.narrow .lead {
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+}
+
+.dialog.narrow .buttons {
+    padding: 0.75rem 1rem 0.9rem;
+}
+
+/* SP では 3 カードを横スクロール (scroll-snap) で並べ、縦領域を稼ぐ */
+.dialog.narrow .cards {
+    display: flex;
+    grid-template-columns: none;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    margin: 0 -1rem 0.75rem;
+    padding: 0 1rem 0.5rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.dialog.narrow .card {
+    flex: 0 0 70%;
+    max-width: 70%;
+    scroll-snap-align: start;
+    padding: 0.75rem;
+}
+
+.dialog.narrow .card-emoji {
+    font-size: 1.5rem;
+}
+
+.dialog.narrow .card-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.dialog.narrow .card-title {
+    font-size: 0.85rem;
+}
+
+.dialog.narrow .card-desc {
+    font-size: 0.75rem;
+}
