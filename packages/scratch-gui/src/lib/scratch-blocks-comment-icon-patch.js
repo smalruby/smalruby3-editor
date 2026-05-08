@@ -1,33 +1,38 @@
-// === Smalruby: This file is Smalruby-specific (re-fire block_comment_change/collapse after create so VM picks up the bubble's current text and collapsed state) ===
+// === Smalruby: This file is Smalruby-specific (work around two Blockly v12 quirks: (1) block_comment_create payload omits text/collapsed, (2) deferred setBubbleLocation snaps bubbles to stale saved x/y) ===
 
 /**
- * Why this patch still exists after upstream's spork@29bdbd1fe fix:
+ * Why this patch exists:
  *
- * Blockly v12's `block_comment_create` event payload carries only
- * commentId/blockId/x/y/width/height — it does NOT carry text or
- * collapsed state. When ScratchBlockPaster.paste() deserializes a
- * duplicated block, super.paste() restores the bubble's text and
- * collapsed state via `loadState → setText / setCollapsed` — both
- * of which fire their own events (`block_comment_change` and
- * `block_comment_collapse`) BEFORE the create event. At that moment
- * the comment doesn't yet exist in `target.comments`, so the VM
- * listener silently discards them. The subsequent create event then
- * registers the comment with text='' and minimized=false (defaults).
+ * 1. `fireCreateEvent` re-fire (text + collapsed):
+ *    Blockly v12's `block_comment_create` event payload carries only
+ *    commentId/blockId/x/y/width/height — it does NOT carry text or
+ *    collapsed state. ScratchBlockPaster.paste() restores the bubble's
+ *    text via `setText` and collapsed state via `setCollapsed`, both
+ *    of which fire `block_comment_change` / `block_comment_collapse`
+ *    BEFORE the create event. At that moment the comment doesn't
+ *    exist in target.comments yet, so the VM discards them. The
+ *    subsequent create event registers the comment with empty text
+ *    and minimized=false. We re-fire both events with the current
+ *    bubble state immediately after the create event so the VM sees
+ *    the actual values AFTER it has registered the comment.
  *
- * To bridge the gap, we override `fireCreateEvent` on the registered
- * comment icon class to re-fire `block_comment_change` AND
- * `block_comment_collapse` with the bubble's current state
- * immediately after the create event. The VM processes create first
- * (registering the comment), then the re-fired events correctly
- * apply the text and collapsed state.
+ * 2. `setBubbleLocation` post-load suppression:
+ *    Blockly v12's applyCommentTagNodes (`ji` in scratch-blocks v2.1.19)
+ *    schedules a `setTimeout(..., 1)` that calls
+ *    `setBubbleLocation(parsedX, parsedY)` from the XML attributes.
+ *    Block widths can change between save and reload (default JSON
+ *    width vs post-render SVG width), so the saved x/y from the VM
+ *    is often "stale" relative to the current natural anchor position.
+ *    The deferred call visibly snaps the bubble away from where the
+ *    user just saw it on tab switch. We suppress that one call in a
+ *    short post-load window so the bubble stays at its natural anchor
+ *    position, which matches "where it was right after the tab toggle".
  *
- * Earlier revisions of this file also patched constructor (sync
- * setCollapsed), `setBubbleVisible`, and `setBubbleLocation` to work
- * around scratch-blocks v2's XML deserializer. Those are no longer
- * needed because we updated `packages/scratch-vm/src/engine/comment.js`
- * to emit `pinned="${!minimized}"` and omit x/y for (0, 0) — which
- * makes Blockly's deserializer correctly initialize collapsed state
- * and skip its programmatic reposition. See the
+ * Earlier revisions of this file also patched the constructor (sync
+ * setCollapsed) and `setBubbleVisible`. Those are no longer needed
+ * because we updated `packages/scratch-vm/src/engine/comment.js` to
+ * emit `pinned="${!minimized}"`, which makes Blockly's deserializer
+ * correctly initialize collapsed state without our help. See the
  * `Smalruby: toXML modernization` block in comment.js for details.
  */
 
@@ -52,7 +57,38 @@ export const installCommentIconPatch = function (ScratchBlocks) {
     if (!Existing) return;
     if (Existing.__smalrubyCommentIconPatched) return;
 
+    // Blockly v12's applyCommentTagNodes (function `ji` in scratch-blocks
+    // v2.1.19) schedules a `setTimeout(..., 1)` that calls
+    // `setBubbleLocation(parsedX, parsedY)` using the XML's x/y attributes.
+    // For `@ruby:*` block-attached comments, the saved x/y in VM is the
+    // bubble's anchor position at *save* time, but block width can change
+    // between saves and reloads (e.g. before/after full SVG render — block
+    // width starts at the JSON-default and grows to its rendered width
+    // after layout). The post-reload natural anchor therefore lands at a
+    // different spot than the saved x/y, and the deferred setBubbleLocation
+    // visibly snaps the bubble away from where the user just saw it.
+    //
+    // POST_LOAD_SUPPRESS_MS opens a window after each icon construction
+    // during which we drop programmatic setBubbleLocation calls. After
+    // that window the icon behaves normally so user-initiated drags and
+    // legitimate programmatic moves still work.
+    const POST_LOAD_SUPPRESS_MS = 500;
+
     class PatchedCommentIcon extends Existing {
+        constructor(sourceBlock) {
+            super(sourceBlock);
+            // Track the construction time so setBubbleLocation can ignore
+            // the deferred call from XML deserialization.
+            this.__smalrubyPostLoadUntil = Date.now() + POST_LOAD_SUPPRESS_MS;
+        }
+
+        setBubbleLocation(coord) {
+            if (this.__smalrubyPostLoadUntil && Date.now() < this.__smalrubyPostLoadUntil) {
+                return;
+            }
+            return super.setBubbleLocation(coord);
+        }
+
         // Re-fire `block_comment_change` (text) and `block_comment_collapse`
         // (collapsed state) after `block_comment_create` so the VM sees the
         // bubble's actual state *after* it has registered the comment.
