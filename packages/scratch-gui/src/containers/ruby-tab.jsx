@@ -136,6 +136,12 @@ const RubyTab = (props) => {
         const urlRubyMode = getUrlParams().rubyMode;
         if (urlRubyMode === 'furigana') return true;
         if (urlRubyMode === 'ruby' || urlRubyMode === 'dncl') return false;
+        // DNCL mode shows Japanese pseudo-code, not Ruby — furigana annotations
+        // are meaningless and visually distracting in that view. Force off.
+        if (typeof window !== 'undefined' && window.localStorage &&
+            window.localStorage.getItem(DNCL_MODE_KEY) === 'true') {
+            return false;
+        }
         return loadBool(FURIGANA_ENABLED_KEY, true);
     });
     const [autoCorrectEnabled, setAutoCorrectEnabled] = useState(() => loadBool(AUTO_CORRECT_ENABLED_KEY, true));
@@ -251,6 +257,9 @@ const RubyTab = (props) => {
 
     const renderFurigana = () => {
         if (!editorRef.current || !monacoRef.current) return;
+        // Furigana annotations target Ruby source; in DNCL mode the editor
+        // shows Japanese pseudo-code, so suppress rendering entirely.
+        if (dnclModeRef.current) return;
         const code = editorRef.current.getValue() || '';
         const prism = getPrism();
         if (prism) {
@@ -262,6 +271,7 @@ const RubyTab = (props) => {
         } else {
             loadPrism().then((loadedPrism) => {
                 if (!furiganaEnabledRef.current) return;
+                if (dnclModeRef.current) return;
                 if (!editorRef.current || !monacoRef.current) return;
                 const currentCode = editorRef.current.getValue() || '';
                 const t0 = performance.now();
@@ -280,7 +290,7 @@ const RubyTab = (props) => {
         const delay = Math.max(50, furiganaLastMsRef.current * 2);
         furiganaDebounceTimerRef.current = setTimeout(() => {
             furiganaDebounceTimerRef.current = null;
-            if (furiganaEnabledRef.current) {
+            if (furiganaEnabledRef.current && !dnclModeRef.current) {
                 renderFurigana();
             }
         }, delay);
@@ -639,6 +649,15 @@ const RubyTab = (props) => {
         isModeSwitchRef.current = false;
         setDnclMode(enabling);
         onSetDnclMode(enabling);
+
+        // Furigana is meaningless in DNCL view (Japanese pseudo-code, not Ruby).
+        // Clear annotations on enable; restore them on disable when the user
+        // had furigana on.
+        if (enabling) {
+            furiganaRendererRef.current?.clear(editorRef.current);
+        } else if (furiganaEnabledRef.current) {
+            renderFurigana();
+        }
     }, [vm, rubyCode.target, intl, rubyVersion, dnclValidationErrorMessage, onSetDnclMode]);
 
     const handleToggleFurigana = useCallback(() => {
