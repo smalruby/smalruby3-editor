@@ -74,7 +74,10 @@ const isMetadataOnly = function (text) {
     // User comments may be merged with an inline marker (e.g.
     // `@ruby:comment_position:inline\n<user text>`) — those lines after the
     // marker do NOT start with `@ruby:`, so the comment stays visible.
-    const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+    const lines = text
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
     if (lines.length === 0) return false;
     return lines.every((l) => l.startsWith('@ruby:'));
 };

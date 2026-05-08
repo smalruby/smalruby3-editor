@@ -138,8 +138,11 @@ const RubyTab = (props) => {
         if (urlRubyMode === 'ruby' || urlRubyMode === 'dncl') return false;
         // DNCL mode shows Japanese pseudo-code, not Ruby — furigana annotations
         // are meaningless and visually distracting in that view. Force off.
-        if (typeof window !== 'undefined' && window.localStorage &&
-            window.localStorage.getItem(DNCL_MODE_KEY) === 'true') {
+        if (
+            typeof window !== 'undefined' &&
+            window.localStorage &&
+            window.localStorage.getItem(DNCL_MODE_KEY) === 'true'
+        ) {
             return false;
         }
         return loadBool(FURIGANA_ENABLED_KEY, true);
