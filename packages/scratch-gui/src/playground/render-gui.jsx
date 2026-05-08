@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDomClient from 'react-dom/client';
-import {FormattedMessage} from 'react-intl';
 import {compose} from 'redux';
 
 import AppStateHOC from '../lib/app-state-hoc.jsx';
@@ -21,35 +20,6 @@ import StorageWorkerTimeoutHOC from '../lib/storage-worker-timeout-hoc.jsx';
 const onClickLogo = () => {
     window.location = 'https://smalruby.jp';
 };
-
-// === Smalruby: Start of about menu ===
-const aboutMenuItems = [
-    {
-        title: (
-            <FormattedMessage
-                defaultMessage="About Smalruby"
-                description="Menu item that opens the Smalruby introduction page (/about.html)"
-                id="gui.menuBar.aboutSmalruby"
-            />
-        ),
-        onClick: () => {
-            window.open('about.html', '_blank', 'noopener,noreferrer');
-        }
-    },
-    {
-        title: (
-            <FormattedMessage
-                defaultMessage="Show welcome again"
-                description="Menu item that re-opens the first-visit welcome modal"
-                id="gui.menuBar.showWelcomeAgain"
-            />
-        ),
-        onClick: () => {
-            window.dispatchEvent(new Event('smalruby:show-welcome-modal'));
-        }
-    }
-];
-// === Smalruby: End of about menu ===
 
 const handleTelemetryModalCancel = () => {
     log('User canceled telemetry modal');
@@ -136,9 +106,6 @@ export default appTarget => {
                 backpackHost={backpackHost}
                 canSave={false}
                 onClickLogo={onClickLogo}
-                // === Smalruby: Start of about menu ===
-                onClickAbout={aboutMenuItems}
-                // === Smalruby: End of about menu ===
             />
     );
 };

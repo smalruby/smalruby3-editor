@@ -29,7 +29,8 @@ import {
     closeDebugModal,
     closeKoshienTestModal,
     closeUrlLoaderModal,
-    closeTipsLibrary
+    closeTipsLibrary,
+    openWelcomeModal
 } from '../reducers/modals';
 
 import {setPlatform} from '../reducers/platform';
@@ -346,8 +347,11 @@ const mapDispatchToProps = dispatch => ({
     onShowConvertRubyToBlocksErrorAlert: () => showAlertWithTimeout(dispatch, 'convertRubyToBlocksError'),
     updateRubyCodeErrorsState: errors => dispatch(updateRubyCodeErrors(errors)),
     // === Smalruby: Start of classcode auto-open ===
-    onOpenClassroomModal: () => dispatch(openClassroomModal())
+    onOpenClassroomModal: () => dispatch(openClassroomModal()),
     // === Smalruby: End of classcode auto-open ===
+    // === Smalruby: Start of welcome modal ===
+    onShowWelcomeModal: () => dispatch(openWelcomeModal())
+    // === Smalruby: End of welcome modal ===
 });
 
 const ConnectedGUI = injectIntl(connect(

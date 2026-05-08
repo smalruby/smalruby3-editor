@@ -189,6 +189,9 @@ const GUIComponent = props => {
         menuBarHidden,
         renderLogin,
         onClickAbout,
+        // === Smalruby: Start of welcome modal ===
+        onShowWelcomeModal,
+        // === Smalruby: End of welcome modal ===
         onClickAccountNav,
         onCloseAccountNav,
         onLogOut,
@@ -459,7 +462,35 @@ const GUIComponent = props => {
                         logo={logo}
                         renderLogin={renderLogin}
                         showComingSoon={showComingSoon}
-                        onClickAbout={onClickAbout}
+                        // === Smalruby: Start of about menu ===
+                        // 外部から onClickAbout が渡された場合 (Desktop 版など) は
+                        // それを優先。それ以外では Smalruby 用の About メニュー
+                        // (about.html リンク + ウェルカムモーダル再表示) を表示する。
+                        onClickAbout={onClickAbout || [
+                            {
+                                title: (
+                                    <FormattedMessage
+                                        defaultMessage="About Smalruby"
+                                        description="Menu item that opens the Smalruby introduction page (/about.html)"
+                                        id="gui.menuBar.aboutSmalruby"
+                                    />
+                                ),
+                                onClick: () => {
+                                    window.open('about.html', '_blank', 'noopener,noreferrer');
+                                }
+                            },
+                            {
+                                title: (
+                                    <FormattedMessage
+                                        defaultMessage="Show welcome again"
+                                        description="Menu item that re-opens the first-visit welcome modal"
+                                        id="gui.menuBar.showWelcomeAgain"
+                                    />
+                                ),
+                                onClick: onShowWelcomeModal
+                            }
+                        ]}
+                        // === Smalruby: End of about menu ===
                         onClickAccountNav={onClickAccountNav}
                         onClickLogo={onClickLogo}
                         onCloseAccountNav={onCloseAccountNav}
@@ -814,6 +845,9 @@ GUIComponent.propTypes = {
     onRequestCloseUrlLoaderModal: PropTypes.func,
     onSeeCommunity: PropTypes.func,
     onShare: PropTypes.func,
+    // === Smalruby: Start of welcome modal ===
+    onShowWelcomeModal: PropTypes.func,
+    // === Smalruby: End of welcome modal ===
     onShowPrivacyPolicy: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
     onStartSelectingUrlLoad: PropTypes.func,

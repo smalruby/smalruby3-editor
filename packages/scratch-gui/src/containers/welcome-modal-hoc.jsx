@@ -1,27 +1,24 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { connect } from 'react-redux';
 import WelcomeModal from '../components/welcome-modal/welcome-modal.jsx';
 import { getUrlParams } from '../lib/url-params.js';
 import useIsNarrowScreen from '../lib/use-is-narrow-screen.js';
-import { openTipsLibrary } from '../reducers/modals.js';
+import { closeWelcomeModal, openTipsLibrary, openWelcomeModal } from '../reducers/modals.js';
 
-export const WELCOME_MODAL_SHOW_EVENT = 'smalruby:show-welcome-modal';
+/*
+ * 自動表示は当面オフ。メニューや MobileDrawer のヘルプから明示的に選んだ
+ * ときだけ Redux の `welcomeModal` を open に切り替える運用 (#658)。
+ * 動作確認用に ?welcome=1 を付けたときだけ初回ロードで開く。
+ */
 
-// 自動表示は当面オフ。メニューや MobileDrawer のヘルプから明示的に選んだ
-// ときだけ smalruby:show-welcome-modal イベントで開く運用 (#658)。
-// 動作確認用に ?welcome=1 を付けたときだけ初回ロードで開く。
-const shouldShowOnLoad = () => getUrlParams().showWelcome;
-
-const isPortrait = () => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-        return false;
-    }
-    return window.matchMedia('(orientation: portrait)').matches;
-};
-
-const usePortrait = () => {
-    const [portrait, setPortrait] = useState(isPortrait);
+const usePortraitMatch = () => {
+    const [portrait, setPortrait] = React.useState(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+            return false;
+        }
+        return window.matchMedia('(orientation: portrait)').matches;
+    });
     useEffect(() => {
         if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
             return () => {};
@@ -38,40 +35,37 @@ const usePortrait = () => {
     return portrait;
 };
 
-const WelcomeModalContainer = ({ onOpenTipsLibrary }) => {
-    const [visible, setVisible] = useState(shouldShowOnLoad);
+const WelcomeModalContainer = ({ isOpen, onCloseWelcomeModal, onOpenTipsLibrary, onOpenWelcomeModal }) => {
     const isNarrow = useIsNarrowScreen();
-    const portrait = usePortrait();
+    const portrait = usePortraitMatch();
 
-    // Re-show on demand (e.g. from the mobile drawer "Show welcome again" item).
+    // ?welcome=1 のときだけ初回ロードで dispatch して開く。
+    // 初回マウント時のみ判定。再表示はメニューからの dispatch で行う。
+    const onOpenRef = React.useRef(onOpenWelcomeModal);
+    onOpenRef.current = onOpenWelcomeModal;
     useEffect(() => {
-        if (typeof window === 'undefined') return () => {};
-        const handler = () => {
-            setVisible(true);
-        };
-        window.addEventListener(WELCOME_MODAL_SHOW_EVENT, handler);
-        return () => window.removeEventListener(WELCOME_MODAL_SHOW_EVENT, handler);
-    }, []);
-
-    const handleStartTutorial = useCallback(() => {
-        setVisible(false);
-        onOpenTipsLibrary();
-    }, [onOpenTipsLibrary]);
-
-    const handleLearnMore = useCallback(() => {
-        // SP では Primary CTA。閉じてから about.html を新規タブで開き、
-        // タブを切り替えて戻ってきたときにエディタが見えている状態にする。
-        setVisible(false);
-        if (typeof window !== 'undefined') {
-            window.open('about.html', '_blank', 'noopener,noreferrer');
+        if (getUrlParams().showWelcome) {
+            onOpenRef.current();
         }
     }, []);
 
-    const handleLater = useCallback(() => {
-        setVisible(false);
-    }, []);
+    const handleStartTutorial = React.useCallback(() => {
+        onCloseWelcomeModal();
+        onOpenTipsLibrary();
+    }, [onCloseWelcomeModal, onOpenTipsLibrary]);
 
-    if (!visible) return null;
+    const handleLearnMore = React.useCallback(() => {
+        onCloseWelcomeModal();
+        if (typeof window !== 'undefined') {
+            window.open('about.html', '_blank', 'noopener,noreferrer');
+        }
+    }, [onCloseWelcomeModal]);
+
+    const handleLater = React.useCallback(() => {
+        onCloseWelcomeModal();
+    }, [onCloseWelcomeModal]);
+
+    if (!isOpen) return null;
 
     // 縦持ちのスマホでは MobileOrientationGate が全画面で「横向きにしてください」を
     // 表示しているため、その上に WelcomeModal を重ねない。横向きに回転して
@@ -89,11 +83,20 @@ const WelcomeModalContainer = ({ onOpenTipsLibrary }) => {
 };
 
 WelcomeModalContainer.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onCloseWelcomeModal: PropTypes.func.isRequired,
     onOpenTipsLibrary: PropTypes.func.isRequired,
+    onOpenWelcomeModal: PropTypes.func.isRequired,
 };
 
+const mapStateToProps = (state) => ({
+    isOpen: Boolean(state.scratchGui.modals.welcomeModal),
+});
+
 const mapDispatchToProps = (dispatch) => ({
+    onOpenWelcomeModal: () => dispatch(openWelcomeModal()),
+    onCloseWelcomeModal: () => dispatch(closeWelcomeModal()),
     onOpenTipsLibrary: () => dispatch(openTipsLibrary()),
 });
 
-export default connect(null, mapDispatchToProps)(WelcomeModalContainer);
+export default connect(mapStateToProps, mapDispatchToProps)(WelcomeModalContainer);

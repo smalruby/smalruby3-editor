@@ -23,7 +23,7 @@ import sharedMessages from '../../lib/shared-messages';
 import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
 import { setConnectionModalExtensionId } from '../../reducers/connection-modal.js';
 import { selectLocale } from '../../reducers/locales.js';
-import { openConnectionModal, openUrlLoaderModal } from '../../reducers/modals.js';
+import { openConnectionModal, openUrlLoaderModal, openWelcomeModal } from '../../reducers/modals.js';
 import { requestNewProject } from '../../reducers/project-state.js';
 import { setRubyVersion } from '../../reducers/settings.js';
 import closeIcon from './icon--close.svg';
@@ -169,7 +169,6 @@ const SUBMENU_SETTINGS = 'settings';
 const SUBMENU_SETTINGS_LANGUAGE = 'settings-language';
 const SUBMENU_SETTINGS_RUBY = 'settings-ruby';
 const SUBMENU_HELP = 'help';
-const WELCOME_MODAL_SHOW_EVENT = 'smalruby:show-welcome-modal';
 
 /**
  * v1 への切替で v2 専用機能 (module / class) が使われていないかチェックする
@@ -232,6 +231,7 @@ const hasV2Features = vm => {
  * @param {Function} props.onSaveDirectlyToGoogleDrive - GoogleDriveSaverHOC 注入
  * @param {Function} props.onStartSavingToGoogleDrive - GoogleDriveSaverHOC 注入
  * @param {Function} props.onStartSelectingUrlLoad - Scratch URL ローダーモーダル
+ * @param {Function} props.onOpenWelcomeModal - ウェルカムモーダルを開く (#658)
  * @param {object} props.intl - react-intl
  * @returns {JSX.Element|null} portal 経由で body 直下にレンダリング
  */
@@ -253,6 +253,7 @@ const MobileDrawerComponent = ({
     onSaveDirectlyToGoogleDrive,
     onStartSavingToGoogleDrive,
     onStartSelectingUrlLoad,
+    onOpenWelcomeModal,
     intl,
 }) => {
     const [expandedSet, setExpandedSet] = useState(() => new Set());
@@ -355,13 +356,9 @@ const MobileDrawerComponent = ({
     }, [onClose]);
 
     const handleClickShowWelcome = useCallback(() => {
-        // welcome-modal-hoc が `WELCOME_MODAL_SHOW_EVENT` を購読していて、
-        // 受け取り次第 localStorage の seen フラグをクリアして再表示する。
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new Event(WELCOME_MODAL_SHOW_EVENT));
-        }
+        onOpenWelcomeModal();
         onClose();
-    }, [onClose]);
+    }, [onOpenWelcomeModal, onClose]);
 
     if (typeof document === 'undefined') {
         return null;
@@ -725,6 +722,7 @@ MobileDrawerComponent.propTypes = {
     onSaveDirectlyToGoogleDrive: PropTypes.func.isRequired,
     onStartSavingToGoogleDrive: PropTypes.func.isRequired,
     onStartSelectingUrlLoad: PropTypes.func.isRequired,
+    onOpenWelcomeModal: PropTypes.func.isRequired,
     intl: intlShape.isRequired,
 };
 
@@ -749,6 +747,7 @@ const mapDispatchToProps = dispatch => ({
         dispatch(openConnectionModal());
     },
     onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal()),
+    onOpenWelcomeModal: () => dispatch(openWelcomeModal()),
 });
 
 const MobileDrawer = compose(
