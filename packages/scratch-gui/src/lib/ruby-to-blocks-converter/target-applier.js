@@ -195,6 +195,69 @@ const TargetApplier = {
                 target.blocks.createBlock(this._context.blocks[blockId]);
             });
 
+            // === Smalruby: align attached comment x/y with their anchor
+            // block so the saved sb3 places bubbles where they visually
+            // appear in Smalruby.
+            //
+            // Background: Blockly v12 treats `target.comments[id].x/y` as
+            // workspace absolute coordinates. The converter creates fresh
+            // comments at the default (0, 0). Blockly v12 renders bubbles at
+            // each block's natural anchor in the workspace, but does not
+            // write that natural anchor back to the VM data model — so a
+            // .sb3 export keeps (0, 0) for every bubble. Reopening the file
+            // in any viewer that doesn't apply Smalruby's metadata-hide
+            // CSS (most importantly scratch.mit.edu) then stacks every
+            // bubble at the workspace origin.
+            //
+            // Approximate the anchor: walk up the parent chain to the
+            // nearest non-value block (so a comment on `operator_join`
+            // inherits the position of its enclosing `looks_sayforsecs`),
+            // count the hops from the topLevel ancestor, and emit a
+            // (topLevel.x + offset, topLevel.y + depth * step) coordinate.
+            // Multiple comments anchored to the same non-value block
+            // cluster at the same y; that matches what Blockly already
+            // renders for stacked value-block annotations. ===
+            const ANCHOR_DX = 350;
+            const ANCHOR_DY_STEP = 48;
+            const blockTypes = this._context.blockTypes || {};
+            const isValueType = (t) => t && t.indexOf('value') === 0;
+            const findAnchorBlock = (startId) => {
+                const blocks = this._context.blocks;
+                let cur = blocks[startId];
+                let guard = 0;
+                while (cur && guard < 500) {
+                    const t = blockTypes[cur.id];
+                    if (!isValueType(t)) return cur;
+                    if (!cur.parent) return cur;
+                    cur = blocks[cur.parent];
+                    guard++;
+                }
+                return cur || null;
+            };
+            const findTopLevelAndDepth = (startBlock) => {
+                const blocks = this._context.blocks;
+                let cur = startBlock;
+                let depth = 0;
+                let guard = 0;
+                while (cur && !cur.topLevel && cur.parent && guard < 500) {
+                    cur = blocks[cur.parent];
+                    if (!isValueType(blockTypes[cur?.id])) depth++;
+                    guard++;
+                }
+                return { topLevel: cur && cur.topLevel ? cur : null, depth };
+            };
+            Object.values(this._context.comments).forEach(comment => {
+                if (!comment.blockId) return;
+                const anchor = findAnchorBlock(comment.blockId);
+                if (!anchor) return;
+                const { topLevel, depth } = findTopLevelAndDepth(anchor);
+                if (!topLevel) return;
+                const baseX = (typeof topLevel.x === 'number' ? topLevel.x : 0) + ANCHOR_DX;
+                const baseY = typeof topLevel.y === 'number' ? topLevel.y : 0;
+                comment.x = baseX;
+                comment.y = baseY + depth * ANCHOR_DY_STEP;
+            });
+
             Object.keys(this._context.comments).forEach(commentId => {
                 const comment = this._context.comments[commentId];
                 target.createComment(
