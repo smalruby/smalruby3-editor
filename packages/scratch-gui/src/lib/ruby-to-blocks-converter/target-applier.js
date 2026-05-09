@@ -195,6 +195,45 @@ const TargetApplier = {
                 target.blocks.createBlock(this._context.blocks[blockId]);
             });
 
+            // === Smalruby: distribute attached comment x/y near their topLevel
+            // parent block. Blockly v12 treats stored x/y as workspace absolute
+            // coordinates, so leaving them at the converter's default (0, 0)
+            // makes every bubble stack at the workspace origin in any viewer
+            // that doesn't apply Smalruby's metadata-hide CSS (e.g.
+            // scratch.mit.edu). Group comments by their topLevel ancestor and
+            // arrange them in a vertical strip to the right of that block. ===
+            const ANCHOR_DX = 350;
+            const ANCHOR_DY_STEP = 35;
+            const findTopLevel = (startBlockId) => {
+                const blocks = this._context.blocks;
+                let cur = blocks[startBlockId];
+                let guard = 0;
+                while (cur && !cur.topLevel && cur.parent && guard < 1000) {
+                    cur = blocks[cur.parent];
+                    guard++;
+                }
+                return cur && cur.topLevel ? cur : null;
+            };
+            const commentsByTopLevel = new Map();
+            Object.keys(this._context.comments).forEach(commentId => {
+                const comment = this._context.comments[commentId];
+                if (!comment.blockId) return; // workspace-level comments untouched
+                const top = findTopLevel(comment.blockId);
+                if (!top) return;
+                const list = commentsByTopLevel.get(top.id) || [];
+                list.push(comment);
+                commentsByTopLevel.set(top.id, list);
+            });
+            commentsByTopLevel.forEach((list, topId) => {
+                const top = this._context.blocks[topId];
+                const baseX = (top && typeof top.x === 'number' ? top.x : 0) + ANCHOR_DX;
+                const baseY = (top && typeof top.y === 'number' ? top.y : 0);
+                list.forEach((comment, idx) => {
+                    comment.x = baseX;
+                    comment.y = baseY + idx * ANCHOR_DY_STEP;
+                });
+            });
+
             Object.keys(this._context.comments).forEach(commentId => {
                 const comment = this._context.comments[commentId];
                 target.createComment(
