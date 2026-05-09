@@ -246,16 +246,28 @@ const TargetApplier = {
                 }
                 return { topLevel: cur && cur.topLevel ? cur : null, depth };
             };
+            // Hybrid layout: comments primarily land at their anchor's
+            // (depth × ANCHOR_DY_STEP) offset, but when several comments
+            // share the same anchor block (e.g. multiple value-block
+            // annotations on a single looks_sayforsecs) we fan them out
+            // with ANCHOR_OVERLAP_DX / ANCHOR_OVERLAP_DY so the bubbles
+            // don't visually merge in viewers that don't apply the
+            // metadata-hide CSS.
+            const ANCHOR_OVERLAP_DX = 24;
+            const ANCHOR_OVERLAP_DY = 16;
+            const anchorCounts = new Map();
             Object.values(this._context.comments).forEach(comment => {
                 if (!comment.blockId) return;
                 const anchor = findAnchorBlock(comment.blockId);
                 if (!anchor) return;
                 const { topLevel, depth } = findTopLevelAndDepth(anchor);
                 if (!topLevel) return;
+                const idx = anchorCounts.get(anchor.id) || 0;
+                anchorCounts.set(anchor.id, idx + 1);
                 const baseX = (typeof topLevel.x === 'number' ? topLevel.x : 0) + ANCHOR_DX;
                 const baseY = typeof topLevel.y === 'number' ? topLevel.y : 0;
-                comment.x = baseX;
-                comment.y = baseY + depth * ANCHOR_DY_STEP;
+                comment.x = baseX + idx * ANCHOR_OVERLAP_DX;
+                comment.y = baseY + depth * ANCHOR_DY_STEP + idx * ANCHOR_OVERLAP_DY;
             });
 
             Object.keys(this._context.comments).forEach(commentId => {
