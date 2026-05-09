@@ -55,7 +55,10 @@ const ensureMetaCommentHideStyle = function () {
     if (document.getElementById('smalruby-hide-meta-comments')) return;
     const style = document.createElement('style');
     style.id = 'smalruby-hide-meta-comments';
-    style.textContent = 'g.blocklyComment[data-smalruby-meta="true"]{display:none!important;}';
+    // TEMPORARY: CSS hide disabled so we can visually verify bubble x/y
+    // placement (matches how scratch.mit.edu would render the saved sb3).
+    // Re-enable before merging.
+    style.textContent = '/* g.blocklyComment[data-smalruby-meta="true"]{display:none!important;} */';
     document.head.appendChild(style);
 };
 
