@@ -1243,6 +1243,11 @@ const RubyTab = (props) => {
                             fixedOverflowWidgets: true,
                             wordBasedSuggestions: 'off',
                             autoIndent: 'full',
+                            // Android Chrome でキーボード出現により親 div の高さが
+                            // 縮んだとき、Monaco を ResizeObserver で自動再レイアウト
+                            // させる。未設定だと内部キャッシュ寸法のままになり、
+                            // キーボードに隠れた領域に caret が残って入力できない。
+                            automaticLayout: true,
                         }}
                         theme="vs"
                         value={dnclMode ? dnclDisplayCode : code}

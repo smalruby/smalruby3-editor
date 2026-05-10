@@ -12,7 +12,13 @@
     <!-- End Google Tag Manager -->
     <% } %>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <%# === Smalruby: Start of interactive-widget viewport for Android keyboard === %>
+    <%# `interactive-widget=resizes-content` を指定すると Android Chrome 108+ で %>
+    <%# ソフトウェアキーボード出現時に layout viewport が縮むようになり、`100dvh` %>
+    <%# などの dynamic viewport unit が正しく追従する。SP モード Ruby tab で %>
+    <%# キーボードが画面の大部分を占拠して入力できない問題への対策。 %>
+    <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+    <%# === Smalruby: End of interactive-widget viewport for Android keyboard === %>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="google" value="notranslate">
