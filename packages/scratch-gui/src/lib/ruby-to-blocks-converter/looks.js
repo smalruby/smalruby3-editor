@@ -110,7 +110,7 @@ const LooksConverter = {
                     } else if (symbolVar) {
                         converter._addTextInput(block, 'MESSAGE', symbolVar, 'Hello!');
                         block.comment = converter.createComment(
-                            `@ruby:method:${methodName}`, block.id, 200, 0
+                            `@ruby:method:${methodName}`, block.id
                         );
                     } else {
                         converter._addTextInput(
@@ -118,7 +118,7 @@ const LooksConverter = {
                             converter._isNumber(arg) ? arg.toString() : arg, 'Hello!'
                         );
                         block.comment = converter.createComment(
-                            `@ruby:method:${methodName}`, block.id, 200, 0
+                            `@ruby:method:${methodName}`, block.id
                         );
                     }
                     converter._addNumberInput(block, 'SECS', 'math_number', 1, 1);
@@ -169,7 +169,7 @@ const LooksConverter = {
                         }
                     }
 
-                    block.comment = converter.createComment(commentText, block.id, 200, 0);
+                    block.comment = converter.createComment(commentText, block.id);
 
                     if (!firstBlock) {
                         firstBlock = block;
