@@ -11,7 +11,6 @@ class Menu extends React.Component {
             'addListeners',
             'removeListeners',
             'handleClick',
-            'handlePointerUp',
             'ref'
         ]);
     }
@@ -26,55 +25,56 @@ class Menu extends React.Component {
         this.removeListeners();
     }
     addListeners () {
-        // === Smalruby: Start of iPad menu item click fix ===
-        // Menu item clicks: listen on `click` (bubble) so React's onClick on the
-        // <li> fires first. iPadOS Safari has a delay between `pointerup` and
-        // `click`; closing the menu in `pointerup` (even via setTimeout(0))
-        // unmounts the <li> before iOS dispatches `click`, so React onClick is
-        // skipped and the file picker never opens (issue: iPad Load from
-        // Computer doing nothing).
-        document.addEventListener('click', this.handleClick);
-        // Outside clicks: keep `pointerup` because the Blockly workspace
-        // suppresses compat events like `click` on workspace interactions.
-        document.addEventListener('pointerup', this.handlePointerUp);
-        // === Smalruby: End of iPad menu item click fix ===
+        // The Blockly workspace suppresses compat events like `mouseup`.
+        // Listen for `pointerup` instead.
+        document.addEventListener('pointerup', this.handleClick);
     }
     removeListeners () {
-        // === Smalruby: Start of iPad menu item click fix ===
-        document.removeEventListener('click', this.handleClick);
-        document.removeEventListener('pointerup', this.handlePointerUp);
-        // === Smalruby: End of iPad menu item click fix ===
+        document.removeEventListener('pointerup', this.handleClick);
     }
     handleClick (e) {
-        if (!this.props.open || !this.menu) return;
+        if (!this.props.open) return;
 
-        // Check if clicked element is a menu item (li element within menu).
-        // Runs in document bubble phase, after React's synthetic onClick on
-        // the <li> has already fired — so closing the menu here is safe.
+        // Check if clicked element is a menu item (li element within menu)
         let target = e.target;
         while (target && target !== this.menu) {
             if (target.tagName === 'LI' && this.menu.contains(target)) {
+                // Check if this menu item should close the menu
                 const closeOnClick = target.getAttribute('data-close-on-click');
+                // Default to true if attribute is not set (null)
+                // closeOnClick can be "true" or "false" as a string
                 if (closeOnClick === 'false') {
+                    // Don't close the menu for this item
                     return;
                 }
-                this.props.onRequestClose();
+                // === Smalruby: Start of iPad menu item click fix ===
+                // Defer the close long enough for the native click event +
+                // React's synthetic onClick to fire. On iPadOS Safari there
+                // is a non-trivial gap between `pointerup` and `click`
+                // (typically ~16–32ms with optimal viewport, can be longer);
+                // closing on pointerup with setTimeout(0) unmounts the <li>
+                // before iOS dispatches `click`, causing React's onClick to
+                // be skipped (e.g. ファイル → コンピュータから読み込む does
+                // nothing). 100ms is comfortably above the click latency on
+                // all observed devices while still feeling instantaneous.
+                setTimeout(() => {
+                    this.props.onRequestClose();
+                }, 100);
+                // === Smalruby: End of iPad menu item click fix ===
                 return;
             }
             target = target.parentElement;
         }
-    }
-    handlePointerUp (e) {
-        if (!this.props.open || !this.menu) return;
-        // Inside-menu pointerup is handled by `click` (handleClick) so the
-        // menu item's React onClick gets a chance to run first.
-        if (this.menu.contains(e.target)) return;
-        // Outside-menu close: defer so the menu button's own onClick toggle
-        // can run first. If the button already closed the menu, this becomes
-        // a no-op via the open check.
-        setTimeout(() => {
-            if (this.props.open) this.props.onRequestClose();
-        }, 0);
+
+        // Clicked outside the menu, close it after React event handlers execute
+        // In React 18, document mouseup fires before React synthetic click events,
+        // so delaying here allows the menu button's onClick (toggle) to run first.
+        // If the button's toggle already closed the menu, onRequestClose becomes a no-op.
+        if (!this.menu.contains(e.target)) {
+            setTimeout(() => {
+                this.props.onRequestClose();
+            }, 0);
+        }
     }
     ref (c) {
         this.menu = c;
