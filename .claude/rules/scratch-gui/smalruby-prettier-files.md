@@ -64,6 +64,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/containers/block-display-modal.jsx`
 - `src/containers/classroom-error-utils.js`
 - `src/containers/classroom-modal.jsx`
+- `src/containers/classroom-teacher-modal.jsx`
 - `src/containers/use-google-classroom.js`
 - `src/containers/use-student-submit.js`
 - `src/containers/use-teacher-auth.js`
