@@ -176,6 +176,18 @@ await teacher.fill('[data-testid="classroom-count-input"]', '5');
 await teacher.fill('[data-testid="classroom-assignment-name-input"]', assignmentName);
 await teacher.click('[data-testid="classroom-create-submit"]');
 
+// === Pre-bind a custom domain on the teacher tab so we can later assert it
+// is restored on unbind (i.e. domain returns to "myhome", not null). ===
+const TEACHER_PRE_DOMAIN = 'pre-teacher';
+log(`setting teacher pre-bind domain: ${TEACHER_PRE_DOMAIN}`);
+await teacher.evaluate((d) => {
+    window.__store.dispatch({ type: 'scratch-gui/mesh-v2/SET_DOMAIN', domain: d });
+    const ext = window.__store.getState().scratchGui.vm?.runtime?.peripheralExtensions?.meshV2;
+    if (ext && typeof ext.setDomain === 'function') ext.setDomain(d);
+    window.localStorage.setItem('mesh_v2_domain', d);
+}, TEACHER_PRE_DOMAIN);
+await sleep(200);
+
 // After creation we are back at the dashboard (not auto-selected). Click the
 // newly created class in the sidebar to select it — that triggers our binding.
 log('waiting for new class to appear in sidebar, then clicking it...');
@@ -258,7 +270,18 @@ const pickedSeat = await student.evaluate(() => {
 });
 log('student in seat-select phase, picked seat:', pickedSeat.seat, 'states:', pickedSeat.states);
 if (!pickedSeat.seat) throw new Error('no free seat available');
+
+// Pre-bind a custom domain before SET_SESSION fires, so we can assert restore-on-leave.
+const STUDENT_PRE_DOMAIN = 'pre-student';
+log(`setting student pre-bind domain: ${STUDENT_PRE_DOMAIN}`);
+await student.evaluate((d) => {
+    window.__store.dispatch({ type: 'scratch-gui/mesh-v2/SET_DOMAIN', domain: d });
+    const ext = window.__store.getState().scratchGui.vm?.runtime?.peripheralExtensions?.meshV2;
+    if (ext && typeof ext.setDomain === 'function') ext.setDomain(d);
+    window.localStorage.setItem('mesh_v2_domain', d);
+}, STUDENT_PRE_DOMAIN);
 await sleep(200);
+
 await student.click('[data-testid="classroom-confirm-seat"]');
 
 await student.waitForSelector('[data-testid="classroom-phase-student-joined"]', { timeout: 20000 });
@@ -343,11 +366,17 @@ if (confirmBtn) await confirmBtn.click();
 await student.waitForSelector('[data-testid="classroom-phase-student-join"]', { timeout: 15000 });
 await sleep(500);
 const studentAfter = await dumpDomainState(student, 'student AFTER leave (via UI)');
-console.assert(studentAfter.redux === null, `FAIL: student redux not null, got ${studentAfter.redux}`);
-console.assert(studentAfter.ls === null, `FAIL: student localStorage not cleared, got ${studentAfter.ls}`);
 console.assert(
-    studentAfter.ext === null || studentAfter.ext === '(extension not loaded)',
-    `FAIL: student ext domain not null, got ${studentAfter.ext}`,
+    studentAfter.redux === STUDENT_PRE_DOMAIN,
+    `FAIL: student redux did not restore to ${STUDENT_PRE_DOMAIN}, got ${studentAfter.redux}`,
+);
+console.assert(
+    studentAfter.ls === STUDENT_PRE_DOMAIN,
+    `FAIL: student localStorage did not restore to ${STUDENT_PRE_DOMAIN}, got ${studentAfter.ls}`,
+);
+console.assert(
+    studentAfter.ext === STUDENT_PRE_DOMAIN || studentAfter.ext === '(extension not loaded)',
+    `FAIL: student ext domain did not restore to ${STUDENT_PRE_DOMAIN}, got ${studentAfter.ext}`,
 );
 
 await dumpDomainState(teacher, 'teacher BEFORE logout');
@@ -362,11 +391,17 @@ if (logoutConfirm) await logoutConfirm.click();
 await teacher.waitForSelector('[data-testid="classroom-phase-teacher-login"]', { timeout: 15000 });
 await sleep(500);
 const teacherAfter = await dumpDomainState(teacher, 'teacher AFTER logout (via UI)');
-console.assert(teacherAfter.redux === null, `FAIL: teacher redux not null, got ${teacherAfter.redux}`);
-console.assert(teacherAfter.ls === null, `FAIL: teacher localStorage not cleared, got ${teacherAfter.ls}`);
 console.assert(
-    teacherAfter.ext === null || teacherAfter.ext === '(extension not loaded)',
-    `FAIL: teacher ext domain not null, got ${teacherAfter.ext}`,
+    teacherAfter.redux === TEACHER_PRE_DOMAIN,
+    `FAIL: teacher redux did not restore to ${TEACHER_PRE_DOMAIN}, got ${teacherAfter.redux}`,
+);
+console.assert(
+    teacherAfter.ls === TEACHER_PRE_DOMAIN,
+    `FAIL: teacher localStorage did not restore to ${TEACHER_PRE_DOMAIN}, got ${teacherAfter.ls}`,
+);
+console.assert(
+    teacherAfter.ext === TEACHER_PRE_DOMAIN || teacherAfter.ext === '(extension not loaded)',
+    `FAIL: teacher ext domain did not restore to ${TEACHER_PRE_DOMAIN}, got ${teacherAfter.ext}`,
 );
 
 log('--- summary ---');
