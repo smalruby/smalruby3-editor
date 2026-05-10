@@ -69,20 +69,20 @@ describe('RubyToBlocksConverter/Operators', () => {
     });
 
     test('to_i', async () => {
+        // `.to_i` now maps to operator_mathop(floor) so the runtime actually
+        // truncates. The `@ruby:method:to_i` marker preserves the source
+        // method name on round-trip; legacy operator_add(x, 0) projects with
+        // the same marker still emit `.to_i` via the generator's compat path.
         code = 'x.to_i';
         expected = [
             {
-                opcode: 'operator_add',
+                opcode: 'operator_mathop',
+                fields: [{name: 'OPERATOR', value: 'floor'}],
                 inputs: [
                     {
-                        name: 'NUM1',
+                        name: 'NUM',
                         block: (await rubyToExpected(converter, target, 'x'))[0],
                         shadow: expectedInfo.makeNumber('')
-                    },
-                    {
-                        name: 'NUM2',
-                        block: expectedInfo.makeNumber(0),
-                        shadow: expectedInfo.makeNumber(0)
                     }
                 ],
                 comment: {
@@ -96,16 +96,12 @@ describe('RubyToBlocksConverter/Operators', () => {
         code = '"123".to_i';
         expected = [
             {
-                opcode: 'operator_add',
+                opcode: 'operator_mathop',
+                fields: [{name: 'OPERATOR', value: 'floor'}],
                 inputs: [
                     {
-                        name: 'NUM1',
+                        name: 'NUM',
                         block: expectedInfo.makeText('123')
-                    },
-                    {
-                        name: 'NUM2',
-                        block: expectedInfo.makeNumber(0),
-                        shadow: expectedInfo.makeNumber(0)
                     }
                 ],
                 comment: {

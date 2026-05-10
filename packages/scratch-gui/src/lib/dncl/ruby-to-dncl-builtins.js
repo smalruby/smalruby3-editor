@@ -5,6 +5,7 @@ import {
   replaceCall,
   skipString,
   splitArgsAtTopLevel,
+  stripIntegerDivisionToI,
 } from './paren-utils'
 import { ID } from './ruby-to-dncl-identifier'
 
@@ -243,6 +244,12 @@ const convertBuiltins = (line) => {
     new RegExp(`("[^"]*"|[${ID}]+)\\.include\\?\\(([^)]*)\\)`, 'g'),
     (_, expr, sub) => `含む(${expr}, ${sub})`,
   )
+
+  // Strip `(EXPR / EXPR).to_i` patterns first — DNCL `/` already truncates,
+  // so the wrapper is the inverse of the int-division wrap performed during
+  // DNCL → Ruby conversion. Without this, the `(a / b).to_i` round-trips as
+  // `整数((a / b))` which obscures the original DNCL.
+  result = stripIntegerDivisionToI(result)
 
   // Postfix-no-args methods. expr is matched as a word identifier; nested
   // calls like `rand(...).to_i` are not handled (known limitation).

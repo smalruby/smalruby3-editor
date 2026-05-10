@@ -8,7 +8,7 @@ import {
   isFunctionParam,
   mapVarName,
 } from './dncl-state'
-import { skipString } from './paren-utils'
+import { skipString, wrapIntegerDivisions } from './paren-utils'
 
 /**
  * Check if a character is the start of an identifier.
@@ -76,6 +76,9 @@ const convertOperators = (segment) => {
     (_, left, right) => `(${left} / ${right}).to_i`,
   )
 
+  // DNCL `÷` is the explicit "商の整数値を返す" operator — normalize to `/`.
+  // Both `÷` and bare `/` are treated as integer division (E in #665 follow-up):
+  // `wrapIntegerDivisions` below adds the `.to_i` truncation in a single pass.
   result = result.replace(/÷/g, '/')
   result = result.replace(/≦/g, '<=')
   result = result.replace(/≧/g, '>=')
@@ -88,6 +91,12 @@ const convertOperators = (segment) => {
 
   // でない is postfix: "expr でない" → "!expr"
   result = result.replace(/(\S+)\s+でない/g, (_, expr) => `!${expr}`)
+
+  // DNCL convention: `/` (and `÷`, normalized to `/` above) is integer
+  // division — emulate Ruby's int/int = int truncation by wrapping each
+  // top-level `/` with `.to_i`. The Ruby-side blocks converter maps
+  // `.to_i` to the floor mathop block for actual runtime truncation.
+  result = wrapIntegerDivisions(result)
 
   return result
 }

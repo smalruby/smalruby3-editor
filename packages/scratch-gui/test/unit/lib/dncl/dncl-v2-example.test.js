@@ -89,7 +89,7 @@ describe('DNCLv2 end-to-end: linear search example (Issue #640)', () => {
             '@migi = @kazu - 1',
             '@owari = 0',
             'while @hidari <= @migi && @owari == 0',
-            '  @aida = (@hidari+@migi) / 2 # 演算子÷は商の整数値を返す',
+            '  @aida = ((@hidari+@migi) / 2).to_i # 演算子÷は商の整数値を返す',
             '  if @_array_Data_[@aida] == @atai',
             '    puts(@atai.to_s + "は" + @aida.to_s + "番目にありました")',
             '    @owari = 1',
