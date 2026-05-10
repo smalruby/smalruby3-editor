@@ -307,12 +307,14 @@ const wrapIntegerDivisions = (line) => {
       // Already wrapped? Detect the surrounding `(... / ...).to_i` shape
       // produced by an earlier pass (or by the `//` rewrite upstream) so we
       // don't emit `((... / ...).to_i).to_i`.
+      const CLOSE_PAREN_TO_I = ').to_i'
       if (
         leftStart > 0 &&
         s[leftStart - 1] === '(' &&
-        s.substring(rightEnd, rightEnd + 6) === ').to_i'
+        s.substring(rightEnd, rightEnd + CLOSE_PAREN_TO_I.length) ===
+          CLOSE_PAREN_TO_I
       ) {
-        i = rightEnd + 6
+        i = rightEnd + CLOSE_PAREN_TO_I.length
         continue
       }
       const replacement = `(${leftOperand} / ${rightOperand}).to_i`
@@ -381,12 +383,17 @@ const stripIntegerDivisionToI = (line) => {
     }
     if (ch === '(') {
       const close = findMatchingClose(line, i)
-      if (close !== -1 && line.substring(close + 1, close + 6) === '.to_i') {
+      const TO_I_SUFFIX = '.to_i'
+      if (
+        close !== -1 &&
+        line.substring(close + 1, close + 1 + TO_I_SUFFIX.length) ===
+          TO_I_SUFFIX
+      ) {
         const inner = line.substring(i + 1, close)
         if (containsTopLevelSlash(inner)) {
           // Recursively strip nested wrappers in `inner` before emitting.
           result += stripIntegerDivisionToI(inner)
-          i = close + 6 // past `.to_i`
+          i = close + 1 + TO_I_SUFFIX.length // past `).to_i`
           continue
         }
       }
