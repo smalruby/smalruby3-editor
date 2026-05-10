@@ -96,10 +96,17 @@ export default function (Generator) {
         const order = Generator.ORDER_FUNCTION_CALL;
         const num = Generator.valueToCode(block, 'NUM', Generator.ORDER_NONE) || '0';
         const operator = Generator.getFieldValue(block, 'OPERATOR') || null;
+        const comment = Generator.getCommentText(block);
         switch (operator) {
         case 'abs':
             return [`${num}.abs`, order];
         case 'floor':
+            // `.to_i` and `.floor` both compile to operator_mathop(floor);
+            // the `@ruby:method:to_i` marker distinguishes the two on
+            // round-trip so we restore the source method name.
+            if (comment === '@ruby:method:to_i') {
+                return [`${num}.to_i`, order];
+            }
             return [`${num}.floor`, order];
         case 'ceiling':
             return [`${num}.ceil`, order];

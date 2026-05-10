@@ -144,4 +144,264 @@ const splitArgsAtTopLevel = (args) => {
   return parts
 }
 
-export { skipString, findMatchingClose, replaceCall, splitArgsAtTopLevel }
+/**
+ * Wrap every top-level `/` in `line` with `.to_i` so that DNCL division
+ * truncates like Ruby integer-division. Skips occurrences inside string
+ * literals and inside the `//` integer-divide alias (which is handled
+ * elsewhere). Operands are determined by walking outward across balanced
+ * parens / brackets and stopping at lower-precedence boundaries (operators,
+ * commas, assignment, statement edges).
+ *
+ * Examples:
+ *   `a / b`             → `(a / b).to_i`
+ *   `(a + b) / c`       → `((a + b) / c).to_i`
+ *   `a + b / c`         → `a + (b / c).to_i`
+ *   `Data[i + 1] / 2`   → `(Data[i + 1] / 2).to_i`
+ *   `a / b * c`         → `(a / b).to_i * c`
+ * @param {string} line - A Ruby-form line (post DNCL transforms).
+ * @returns {string} The line with every `/` wrapped in `.to_i`.
+ */
+const wrapIntegerDivisions = (line) => {
+  // Operator characters that, if they appear as the FIRST char of the
+  // captured left operand, indicate we walked into a no-op sequence —
+  // skip wrapping in that case. `(` / `[` / `{` are NOT boundaries because
+  // a parenthesized / indexed expression is a valid left operand.
+  const INVALID_LEFT_FIRST = new Set([
+    '+',
+    '-',
+    '*',
+    '/',
+    '%',
+    '<',
+    '>',
+    '=',
+    '!',
+    '&',
+    '|',
+    '?',
+    ':',
+    ',',
+    ';',
+    '\n',
+  ])
+
+  // Walk LEFT from `endExclusive - 1` in `s` to find the start of the
+  // operand. Skips balanced (), [], {} and string literals.
+  const findLeftOperandStart = (s, endExclusive) => {
+    let i = endExclusive - 1
+    while (i >= 0 && /\s/.test(s[i])) i--
+    if (i < 0) return null
+    while (i >= 0) {
+      const ch = s[i]
+      if (ch === ')' || ch === ']' || ch === '}') {
+        const close = ch
+        const open = close === ')' ? '(' : close === ']' ? '[' : '{'
+        let depth = 1
+        i--
+        while (i >= 0 && depth > 0) {
+          const c = s[i]
+          if (c === '"' || c === "'") {
+            // Skip string backwards.
+            i--
+            while (i >= 0 && s[i] !== c) {
+              if (i > 0 && s[i - 1] === '\\') i--
+              i--
+            }
+            i--
+            continue
+          }
+          if (c === close) depth++
+          else if (c === open) depth--
+          i--
+        }
+        // i is one before the matching open; continue back to absorb
+        // any preceding identifier (function/array name) or chained dot.
+        continue
+      }
+      if (/[\w@$.]/.test(ch)) {
+        i--
+        continue
+      }
+      // Stop at boundary or whitespace before boundary.
+      break
+    }
+    // i is one before the operand's first char.
+    let start = i + 1
+    // Trim leading whitespace.
+    while (start < endExclusive && /\s/.test(s[start])) start++
+    return start
+  }
+
+  // Walk RIGHT from `startInclusive` in `s` to find the index just past
+  // the end of the operand. Skips balanced parens / strings.
+  const findRightOperandEnd = (s, startInclusive) => {
+    let i = startInclusive
+    while (i < s.length && /\s/.test(s[i])) i++
+    if (i >= s.length) return null
+    // Optional unary +/- sign.
+    if (s[i] === '+' || s[i] === '-') i++
+    while (i < s.length) {
+      const ch = s[i]
+      if (ch === '(' || ch === '[' || ch === '{') {
+        const open = ch
+        const close = open === '(' ? ')' : open === '[' ? ']' : '}'
+        let depth = 1
+        i++
+        while (i < s.length && depth > 0) {
+          const c = s[i]
+          if (c === '"' || c === "'") {
+            i = skipString(s, i, c)
+            continue
+          }
+          if (c === open) depth++
+          else if (c === close) depth--
+          i++
+        }
+        continue
+      }
+      if (ch === '"' || ch === "'") {
+        i = skipString(s, i, ch)
+        continue
+      }
+      if (/[\w@$.]/.test(ch)) {
+        i++
+        continue
+      }
+      break
+    }
+    return i
+  }
+
+  // Iteratively wrap each `/` (left-to-right). After each wrap, the
+  // result string changes length so we re-scan from the start.
+  let s = line
+  let i = 0
+  while (i < s.length) {
+    const ch = s[i]
+    if (ch === '"' || ch === "'") {
+      i = skipString(s, i, ch)
+      continue
+    }
+    if (ch === '#') {
+      // Rest of line is a comment.
+      break
+    }
+    if (ch === '/' && s[i - 1] !== '/' && s[i + 1] !== '/') {
+      // Skip if this `/` is already inside a `(... / ...).to_i` we
+      // produced earlier — detect by checking the trailing `.to_i`.
+      // We only care that the left/right operand isn't itself a
+      // freshly-generated wrapper.
+      const leftStart = findLeftOperandStart(s, i)
+      const rightEnd = findRightOperandEnd(s, i + 1)
+      if (leftStart === null || rightEnd === null || leftStart >= i) {
+        i++
+        continue
+      }
+      const leftOperand = s.substring(leftStart, i).trimEnd()
+      const rightOperand = s.substring(i + 1, rightEnd).trimStart()
+      // Skip if leftOperand is empty or starts with a non-operand char.
+      if (!leftOperand || INVALID_LEFT_FIRST.has(leftOperand[0])) {
+        i++
+        continue
+      }
+      // Already wrapped? Detect the surrounding `(... / ...).to_i` shape
+      // produced by an earlier pass (or by the `//` rewrite upstream) so we
+      // don't emit `((... / ...).to_i).to_i`.
+      if (
+        leftStart > 0 &&
+        s[leftStart - 1] === '(' &&
+        s.substring(rightEnd, rightEnd + 6) === ').to_i'
+      ) {
+        i = rightEnd + 6
+        continue
+      }
+      const replacement = `(${leftOperand} / ${rightOperand}).to_i`
+      s = s.substring(0, leftStart) + replacement + s.substring(rightEnd)
+      // Resume scanning AFTER the inserted `.to_i` so we don't re-process
+      // the same `/`.
+      i = leftStart + replacement.length
+      continue
+    }
+    i++
+  }
+  return s
+}
+
+/**
+ * Inverse of `wrapIntegerDivisions`: strip `(EXPR).to_i` when EXPR contains
+ * a top-level `/`. DNCL division is integer division by convention so the
+ * explicit `.to_i` is redundant — preserving it would surface as
+ * `整数((... / ...))` after the standard `.to_i → 整数()` rewrite, which
+ * obscures the original intent.
+ *
+ * Examples:
+ *   `(a / b).to_i`             → `a / b`
+ *   `(Data[i] / 2).to_i`       → `Data[i] / 2`
+ *   `(answer).to_i`            → `(answer).to_i` (no `/`, untouched)
+ *   `(a + (b / c).to_i).to_i`  → `(a + (b / c).to_i).to_i` (outer EXPR
+ *     contains no top-level `/`; the inner one is reachable on its own and
+ *     gets stripped on a subsequent pass)
+ * @param {string} line - Ruby-form line.
+ * @returns {string} Line with redundant int-division `.to_i` wrappers stripped.
+ */
+const stripIntegerDivisionToI = (line) => {
+  const containsTopLevelSlash = (s) => {
+    let depth = 0
+    let i = 0
+    while (i < s.length) {
+      const ch = s[i]
+      if (ch === '"' || ch === "'") {
+        i = skipString(s, i, ch)
+        continue
+      }
+      if (ch === '(' || ch === '[' || ch === '{') depth++
+      else if (ch === ')' || ch === ']' || ch === '}') depth--
+      else if (
+        ch === '/' &&
+        depth === 0 &&
+        s[i - 1] !== '/' &&
+        s[i + 1] !== '/'
+      ) {
+        return true
+      }
+      i++
+    }
+    return false
+  }
+
+  let result = ''
+  let i = 0
+  while (i < line.length) {
+    const ch = line[i]
+    if (ch === '"' || ch === "'") {
+      const end = skipString(line, i, ch)
+      result += line.substring(i, end)
+      i = end
+      continue
+    }
+    if (ch === '(') {
+      const close = findMatchingClose(line, i)
+      if (close !== -1 && line.substring(close + 1, close + 6) === '.to_i') {
+        const inner = line.substring(i + 1, close)
+        if (containsTopLevelSlash(inner)) {
+          // Recursively strip nested wrappers in `inner` before emitting.
+          result += stripIntegerDivisionToI(inner)
+          i = close + 6 // past `.to_i`
+          continue
+        }
+      }
+    }
+    result += ch
+    i++
+  }
+  return result
+}
+
+export {
+  skipString,
+  findMatchingClose,
+  replaceCall,
+  splitArgsAtTopLevel,
+  wrapIntegerDivisions,
+  stripIntegerDivisionToI,
+}

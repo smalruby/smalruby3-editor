@@ -38,8 +38,15 @@ describe('dnclToRuby', () => {
   })
 
   describe('operators', () => {
+    // Both `÷` and `/` are integer division in DNCL (and `//` is the
+    // explicit alias). All three produce `(... / ...).to_i` on the Ruby
+    // side; the runtime truncates via the floor mathop block.
     test('division with ÷', () => {
-      expect(convert('a = 10 ÷ 3')).toBe('@a = 10 / 3')
+      expect(convert('a = 10 ÷ 3')).toBe('@a = (10 / 3).to_i')
+    })
+
+    test('division with /', () => {
+      expect(convert('a = 10 / 3')).toBe('@a = (10 / 3).to_i')
     })
 
     test('integer division with //', () => {

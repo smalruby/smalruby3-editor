@@ -365,13 +365,17 @@ const OperatorsConverter = {
         converter.registerOnSend(['variable', 'number', 'string', 'block'], 'to_i', 0, params => {
             const {receiver} = params;
 
-            const block = converter._createBlock('operator_add', 'value');
+            // Map `.to_i` to `operator_mathop(floor, x)` so the runtime
+            // actually truncates (the previous `operator_add(x, 0)` was a
+            // pass-through). The `@ruby:method:to_i` marker lets the
+            // generator emit `.to_i` instead of `.floor` on round-trip.
+            const block = converter._createBlock('operator_mathop', 'value');
+            converter._addField(block, 'OPERATOR', 'floor');
             if (converter._isString(receiver)) {
-                converter._addTextInput(block, 'NUM1', receiver, '');
+                converter._addTextInput(block, 'NUM', receiver, '');
             } else {
-                converter._addNumberInput(block, 'NUM1', 'math_number', receiver, '');
+                converter._addNumberInput(block, 'NUM', 'math_number', receiver, '');
             }
-            converter._addNumberInput(block, 'NUM2', 'math_number', 0, '');
             block.comment = converter._createComment('@ruby:method:to_i', block.id);
             return block;
         });
