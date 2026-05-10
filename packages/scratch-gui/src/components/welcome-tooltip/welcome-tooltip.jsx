@@ -48,10 +48,14 @@ const WelcomeTooltip = ({ onClick }) => {
         setVisible(false);
     }, []);
 
-    const handleClick = useCallback(() => {
-        dismiss();
-        onClick();
-    }, [dismiss, onClick]);
+    const handleClick = useCallback(
+        (e) => {
+            e.stopPropagation();
+            dismiss();
+            onClick();
+        },
+        [dismiss, onClick],
+    );
 
     const handleClose = useCallback(
         (e) => {

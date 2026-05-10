@@ -286,6 +286,7 @@ class MenuBar extends React.Component {
             'handleMeshV2MenuClick',
             'handleSmalrubotS1FirmwareFlash',
             'handleClickTutorials',
+            'handleClickWelcomeTooltip', // === Smalruby: welcome tooltip ===
             'handleUpdateAvailable',
             'handleUpdateNotificationClick'
         ]);
@@ -488,6 +489,11 @@ class MenuBar extends React.Component {
             this.props.onOpenTipsLibrary();
         }
     }
+    // === Smalruby: Start of welcome tooltip ===
+    handleClickWelcomeTooltip () {
+        this.props.onShowWelcomeModal();
+    }
+    // === Smalruby: End of welcome tooltip ===
     getSaveAIAsHandler (downloadProjectCallback) {
         return () => {
             // Set AI save status to 'saving'
@@ -648,8 +654,14 @@ class MenuBar extends React.Component {
                 className={classNames(styles.menuBarItem, styles.hoverable, {
                     [styles.active]: this.props.aboutMenuOpen
                 })}
+                // === Smalruby: Start of welcome tooltip ===
+                style={{position: 'relative'}}
+                // === Smalruby: End of welcome tooltip ===
                 onClick={this.props.onRequestOpenAbout}
             >
+                {/* === Smalruby: Start of welcome tooltip === */}
+                <WelcomeTooltip onClick={this.handleClickWelcomeTooltip} />
+                {/* === Smalruby: End of welcome tooltip === */}
                 <img
                     className={styles.aboutIcon}
                     src={aboutIcon}
@@ -1107,9 +1119,6 @@ class MenuBar extends React.Component {
                             {this.props.showTutorialTooltip ? (
                                 <TutorialTooltip onClick={this.handleClickTutorials} />
                             ) : null}
-                            {/* === Smalruby: Start of welcome tooltip === */}
-                            <WelcomeTooltip onClick={this.props.onShowWelcomeModal} />
-                            {/* === Smalruby: End of welcome tooltip === */}
                         </div>
                         <div
                             aria-label={this.props.intl.formatMessage(ariaMessages.debug)}
