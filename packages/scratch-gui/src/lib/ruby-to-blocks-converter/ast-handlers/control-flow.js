@@ -68,7 +68,7 @@ const ControlFlowHandlers = {
                             comment.minimized = true;
                         }
                     } else {
-                        const commentId = this._createComment(commentText, b.id, 0, 0, true);
+                        const commentId = this._createComment(commentText, b.id);
                         b.comment = commentId;
                     }
                 });
@@ -86,7 +86,7 @@ const ControlFlowHandlers = {
                     comment.minimized = true;
                 }
             } else {
-                const commentId = this._createComment(commentText, block.id, 0, 0, true);
+                const commentId = this._createComment(commentText, block.id);
                 block.comment = commentId;
             }
         } else if (variableHint && !hasElsif && this._isBlock(block)) {
@@ -96,7 +96,7 @@ const ControlFlowHandlers = {
                 const existingComment = this._context.comments[block.comment];
                 if (existingComment) existingComment.text += `,${varCommentText}`;
             } else {
-                const commentId = this._createComment(varCommentText, block.id, 0, 0, true);
+                const commentId = this._createComment(varCommentText, block.id);
                 block.comment = commentId;
             }
         }
@@ -166,7 +166,7 @@ const ControlFlowHandlers = {
             );
 
             // Add comment to condition block
-            const condCommentId = this._createComment(commentText, condBlock.id, 0, 0, true);
+            const condCommentId = this._createComment(commentText, condBlock.id);
             condBlock.comment = condCommentId;
 
             const elseStatement = convertWhen(index + 1);
@@ -185,7 +185,7 @@ const ControlFlowHandlers = {
                         comment.minimized = true;
                     }
                 } else {
-                    const blockCommentId = this._createComment(commentText, block.id, 0, 0, true);
+                    const blockCommentId = this._createComment(commentText, block.id);
                     block.comment = blockCommentId;
                 }
             }
@@ -235,7 +235,7 @@ const ControlFlowHandlers = {
                 const existingComment = this._context.comments[block.comment];
                 if (existingComment) existingComment.text += `,${varCommentText}`;
             } else {
-                const commentId = this._createComment(varCommentText, block.id, 0, 0, true);
+                const commentId = this._createComment(varCommentText, block.id);
                 block.comment = commentId;
             }
         }
@@ -303,7 +303,7 @@ const ControlFlowHandlers = {
                     comment.minimized = true;
                 }
             } else {
-                const commentId = this._createComment(commentText2, block.id, 0, 0, true);
+                const commentId = this._createComment(commentText2, block.id);
                 block.comment = commentId;
             }
         }
@@ -352,7 +352,7 @@ const ControlFlowHandlers = {
             if (variableHint) {
                 commentText += `,@ruby:variable:${variableHint}`;
             }
-            const commentId = this._createComment(commentText, block.id, 0, 0, true);
+            const commentId = this._createComment(commentText, block.id);
             block.comment = commentId;
         }
 
