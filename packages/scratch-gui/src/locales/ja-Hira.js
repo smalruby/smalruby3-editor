@@ -1,6 +1,8 @@
 export default {
     'gui.modal.reload': 'さいよみこみ',
     'gui.modal.stop': 'ちゅうし',
+    'gui.confirmationPrompt.confirm': 'はい',
+    'gui.confirmationPrompt.cancel': 'いいえ',
     'gui.menuBar.loadFromUrl': 'Scratchからよみこむ',
     'gui.menuBar.colorMode': 'カラーモード',
     'gui.menuBar.rubyVersion': 'ルビー',
