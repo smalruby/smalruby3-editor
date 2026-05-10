@@ -36,6 +36,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/rubytee-modal/`
 - `src/components/url-loader-modal/`
 - `src/components/welcome-modal/`
+- `src/components/welcome-tooltip/`
 
 **混在ディレクトリ内の個別ファイル:**
 - `src/components/connection-modal/mesh-v2-initial-step.css`
@@ -208,6 +209,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/mobile-sprite-panel.test.jsx`
 - `test/unit/components/mobile-top-bar.test.jsx`
 - `test/unit/components/palette-toggle.test.jsx`
+- `test/unit/components/welcome-tooltip.test.jsx`
 - `test/unit/components/ruby-toolbar-analytics.test.jsx`
 - `test/unit/components/project-title-input.test.jsx`
 - `test/unit/components/scanning-step-name-search.test.js`

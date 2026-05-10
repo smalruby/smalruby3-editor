@@ -636,6 +636,7 @@ export default {
     'gui.menuBar.updateConfirm':
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',
     'gui.menuBar.tutorialTooltip': 'Try Ruby!',
+    'gui.welcomeTooltip.label': 'Welcome to Smalruby',
     'gui.aria.clearButton': 'Clear',
     'gui.extensionButton.dnclExtensionDisabled': 'Extensions are not available in Japanese mode.',
     'gui.rubyTab.dnclValidationError':

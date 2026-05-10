@@ -53,6 +53,7 @@ src/components/*
 !src/components/rubytee-modal/
 !src/components/url-loader-modal/
 !src/components/welcome-modal/
+!src/components/welcome-tooltip/
 # Mixed directories
 !src/components/connection-modal/
 !src/components/menu-bar/
@@ -271,6 +272,7 @@ test/unit/components/*
 !test/unit/components/mobile-sprite-panel.test.jsx
 !test/unit/components/mobile-top-bar.test.jsx
 !test/unit/components/palette-toggle.test.jsx
+!test/unit/components/welcome-tooltip.test.jsx
 !test/unit/components/project-title-input.test.jsx
 !test/unit/components/ruby-toolbar-analytics.test.jsx
 !test/unit/components/scanning-step-name-search.test.js

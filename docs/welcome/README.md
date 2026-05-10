@@ -55,19 +55,31 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 
 ## 起動条件
 
-ウェルカムモーダルは **自動表示しない** 運用（リリース後の様子見期間）。表示は以下のいずれかの場合のみ:
+ウェルカムモーダルは **自動表示しない**（既存ユーザーに突然モーダルを出さないため）。代わりに、メニューバーの `?` ボタン横に **ウェルカムバルーン**（吹き出し）を表示し、クリックでモーダルを開く。
 
+### バルーンの表示条件
+
+- 初回訪問時にメニューバー上の `?`（チュートリアル）ボタンの右側に「スモウルビーへようこそ」バルーンを表示
+- バルーンクリックでウェルカムモーダルが開く（同時にバルーンは永続的に非表示）
+- バルーン右端の `×` でも閉じられる（モーダルは開かない）
+- 初回表示から **5 日経過すると自動的に非表示**（クリックされなくても消える）
+
+### モーダル本体の表示トリガー
+
+- ウェルカムバルーンをクリック
 - About メニュー → 「ウェルカムをもう一度見る」
 - MobileDrawer → ヘルプ → 「ウェルカムをもう一度見る」
 - URL パラメータ `?welcome=1` （実機検証 / Playwright 用）
 
-`?classcode=<code>` 起動時はクラスルームフローが優先されるため、ウェルカムは表示されない（そもそも自動表示しないので結果は同じ）。
+`?classcode=<code>` 起動時はクラスルームフローが優先されるため、ウェルカムは表示されない。
 
 ## 主要ファイル
 
 - **scratch-gui**:
   - `src/components/welcome-modal/welcome-modal.{jsx,css}` — モーダル本体
   - `src/components/welcome-modal/icon-ruby.svg` — Ruby カードの公式ロゴアイコン
+  - `src/components/welcome-tooltip/welcome-tooltip.{jsx,css}` — `?` ボタン横のウェルカムバルーン（5 日後に自動非表示）
+  - `src/components/menu-bar/menu-bar.jsx` — `WelcomeTooltip` の配置と `openWelcomeModal` の dispatch（マーカー）
   - `src/containers/welcome-modal-hoc.jsx` — Redux 接続。`isOpen` を読み、CTA で dispatch
   - `src/components/gui/gui.jsx` — About メニュー項目の構築（マーカー）と HOC のレンダリング
   - `src/containers/gui.jsx` — `onShowWelcomeModal` を `openWelcomeModal()` にマップ
@@ -80,14 +92,21 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 
 ## 設定・データ永続化
 
-- **Redux state**: `state.scratchGui.modals.welcomeModal` (boolean) — 表示状態
-- **URL パラメータ**: `?welcome=1` または `?welcome=true` で初回ロード時に自動表示
-- **localStorage**: 使用しない（自動表示停止後は seen フラグ不要）
+- **Redux state**: `state.scratchGui.modals.welcomeModal` (boolean) — モーダル表示状態
+- **URL パラメータ**: `?welcome=1` または `?welcome=true` でモーダルを初回ロード時に自動表示
+- **localStorage**:
+  - `smalruby:welcomeTooltipFirstShownAt` — バルーンを最初に表示した時刻（ms）。バルーンは 5 日経過後に自動非表示
+  - `smalruby:welcomeTooltipDismissed` — `'true'` でバルーンが永続的に非表示（クリック / `×` / 5 日経過のいずれかで設定）
+  - 注: モーダル本体は seen フラグを持たない（初回モーダル自動表示は行わないため）
 
 ## 関連動作
 
 | 操作 | 結果 |
 |---|---|
+| ウェルカムバルーン → クリック | `dispatch(openWelcomeModal())` + `localStorage.setItem('smalruby:welcomeTooltipDismissed', 'true')` |
+| ウェルカムバルーン → `×` | バルーンを閉じる（モーダルは開かない） + dismissed フラグセット |
+| ウェルカムバルーン初回表示 | `localStorage.setItem('smalruby:welcomeTooltipFirstShownAt', Date.now())` |
+| 初回表示から 5 日経過 | バルーン自動非表示 + dismissed フラグセット |
 | About メニュー → スモウルビーについて | `window.open('about.html', '_blank', 'noopener,noreferrer')` |
 | About メニュー → ウェルカムをもう一度見る | `dispatch(openWelcomeModal())` |
 | ウェルカムモーダル → 最初のチュートリアル (PC) | `dispatch(closeWelcomeModal())` → `dispatch(openTipsLibrary())` |
