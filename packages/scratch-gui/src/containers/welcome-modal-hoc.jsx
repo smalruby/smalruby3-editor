@@ -2,9 +2,18 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import WelcomeModal from '../components/welcome-modal/welcome-modal.jsx';
+import analytics from '../lib/analytics';
 import { getUrlParams } from '../lib/url-params.js';
 import useIsNarrowScreen from '../lib/use-is-narrow-screen.js';
 import { closeWelcomeModal, openTipsLibrary, openWelcomeModal } from '../reducers/modals.js';
+
+const sendModalEvent = (action, label) => {
+    try {
+        analytics.event({ category: 'welcome', action, label });
+    } catch (_e) {
+        // Swallow analytics failures so the editor never breaks.
+    }
+};
 
 const PORTRAIT_QUERY = '(orientation: portrait)';
 
@@ -45,12 +54,18 @@ const WelcomeModalContainer = ({ isOpen, onCloseWelcomeModal, onOpenTipsLibrary,
         }
     }, []);
 
+    useEffect(() => {
+        if (isOpen) sendModalEvent('modal_shown', 'modal');
+    }, [isOpen]);
+
     const handleStartTutorial = useCallback(() => {
+        sendModalEvent('modal_action', 'start_tutorial');
         onCloseWelcomeModal();
         onOpenTipsLibrary();
     }, [onCloseWelcomeModal, onOpenTipsLibrary]);
 
     const handleLearnMore = useCallback(() => {
+        sendModalEvent('modal_action', 'learn_more');
         onCloseWelcomeModal();
         if (typeof window !== 'undefined') {
             window.open('about.html', '_blank', 'noopener,noreferrer');
@@ -58,6 +73,7 @@ const WelcomeModalContainer = ({ isOpen, onCloseWelcomeModal, onOpenTipsLibrary,
     }, [onCloseWelcomeModal]);
 
     const handleLater = useCallback(() => {
+        sendModalEvent('modal_action', 'later');
         onCloseWelcomeModal();
     }, [onCloseWelcomeModal]);
 

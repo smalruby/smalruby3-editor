@@ -35,12 +35,18 @@ import GoogleDriveSaverHOC from '../../containers/google-drive-saver-hoc.jsx';
 import GoogleDriveSaveDialog from '../google-drive-save-dialog/google-drive-save-dialog.jsx';
 import SettingsMenu from './settings-menu.jsx';
 import TutorialTooltip from './tutorial-tooltip.jsx';
+// === Smalruby: Start of welcome tooltip ===
+import WelcomeTooltip from '../welcome-tooltip/welcome-tooltip.jsx';
+// === Smalruby: End of welcome tooltip ===
 
 import {
     openDebugModal,
     openKoshienTestModal,
     openUrlLoaderModal,
-    openConnectionModal
+    openConnectionModal,
+    // === Smalruby: Start of welcome tooltip ===
+    openWelcomeModal,
+    // === Smalruby: End of welcome tooltip ===
 } from '../../reducers/modals';
 import {
     setDomain as setMeshV2Domain
@@ -280,6 +286,7 @@ class MenuBar extends React.Component {
             'handleMeshV2MenuClick',
             'handleSmalrubotS1FirmwareFlash',
             'handleClickTutorials',
+            'handleClickWelcomeTooltip', // === Smalruby: welcome tooltip ===
             'handleUpdateAvailable',
             'handleUpdateNotificationClick'
         ]);
@@ -482,6 +489,11 @@ class MenuBar extends React.Component {
             this.props.onOpenTipsLibrary();
         }
     }
+    // === Smalruby: Start of welcome tooltip ===
+    handleClickWelcomeTooltip () {
+        this.props.onShowWelcomeModal();
+    }
+    // === Smalruby: End of welcome tooltip ===
     getSaveAIAsHandler (downloadProjectCallback) {
         return () => {
             // Set AI save status to 'saving'
@@ -642,8 +654,14 @@ class MenuBar extends React.Component {
                 className={classNames(styles.menuBarItem, styles.hoverable, {
                     [styles.active]: this.props.aboutMenuOpen
                 })}
+                // === Smalruby: Start of welcome tooltip ===
+                style={{position: 'relative'}}
+                // === Smalruby: End of welcome tooltip ===
                 onClick={this.props.onRequestOpenAbout}
             >
+                {/* === Smalruby: Start of welcome tooltip === */}
+                <WelcomeTooltip onClick={this.handleClickWelcomeTooltip} />
+                {/* === Smalruby: End of welcome tooltip === */}
                 <img
                     className={styles.aboutIcon}
                     src={aboutIcon}
@@ -1725,6 +1743,7 @@ MenuBar.propTypes = {
     onActivateRubyTab: PropTypes.func,
     onActivateTutorial: PropTypes.func,
     showTutorialTooltip: PropTypes.bool,
+    onShowWelcomeModal: PropTypes.func, // === Smalruby: welcome tooltip ===
     onClickMeshV2: PropTypes.func,
     onClickSmalrubotS1: PropTypes.func, // === Smalruby: smalrubot firmware menu ===
     onClickMode: PropTypes.func,
@@ -1889,6 +1908,9 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     // === Smalruby: Start of classroom button ===
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
     // === Smalruby: End of classroom button ===
+    // === Smalruby: Start of welcome tooltip ===
+    onShowWelcomeModal: () => dispatch(openWelcomeModal()),
+    // === Smalruby: End of welcome tooltip ===
     onClickLogin: ownProps.onClickLogin ?? (() => dispatch(openLoginMenu())),
     onRequestCloseLogin: () => dispatch(closeLoginMenu()),
     onClickMode: () => dispatch(openModeMenu()),

@@ -971,6 +971,7 @@ export default {
     'gui.menuBar.updateConfirm':
         'あたらしいバージョンのスモウルビーがりようかのうです。いますぐこうしんするばあいは「OK」を、あとにするばあいは「キャンセル」をおしてください。',
     'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!',
+    'gui.welcomeTooltip.label': 'スモウルビーへようこそ',
     'gui.aria.clearButton': 'クリア',
     'gui.extensionButton.dnclExtensionDisabled': 'にほんごモードではかくちょうきのうはつかえません。',
     'gui.rubyTab.dnclValidationError':
