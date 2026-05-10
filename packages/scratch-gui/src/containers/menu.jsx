@@ -47,12 +47,20 @@ class Menu extends React.Component {
                     // Don't close the menu for this item
                     return;
                 }
-                // Clicked on a menu item, close the menu after React event handlers execute
-                // In React 18, document listeners may fire before React synthetic events,
-                // so we need to delay closing the menu to allow MenuItem onClick to execute
+                // === Smalruby: Start of iPad menu item click fix ===
+                // Defer the close long enough for the native click event +
+                // React's synthetic onClick to fire. On iPadOS Safari there
+                // is a non-trivial gap between `pointerup` and `click`
+                // (typically ~16–32ms with optimal viewport, can be longer);
+                // closing on pointerup with setTimeout(0) unmounts the <li>
+                // before iOS dispatches `click`, causing React's onClick to
+                // be skipped (e.g. ファイル → コンピュータから読み込む does
+                // nothing). 100ms is comfortably above the click latency on
+                // all observed devices while still feeling instantaneous.
                 setTimeout(() => {
                     this.props.onRequestClose();
-                }, 0);
+                }, 100);
+                // === Smalruby: End of iPad menu item click fix ===
                 return;
             }
             target = target.parentElement;
