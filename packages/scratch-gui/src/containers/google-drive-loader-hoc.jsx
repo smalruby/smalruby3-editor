@@ -62,6 +62,21 @@ const GoogleDriveLoaderHOC = function (WrappedComponent) {
             ]);
         }
 
+        componentDidMount() {
+            // Eagerly initialize Google Drive API on mount so that the user
+            // click that opens the picker doesn't have to await script loads
+            // and gapi/GIS init. On iOS Safari those awaits consume the user
+            // gesture, causing the OAuth popup that GIS opens during
+            // tokenClient.requestAccessToken() to be blocked. Pre-initializing
+            // means showPicker can call tokenClient.requestAccessToken()
+            // synchronously inside the click handler's call stack.
+            if (googleDriveAPI.constructor.isConfigured()) {
+                googleDriveAPI.initialize().catch((error) => {
+                    log.warn('Google Drive API pre-initialization failed; will retry on user click:', error);
+                });
+            }
+        }
+
         componentDidUpdate(prevProps) {
             if (this.props.isLoadingUpload && !prevProps.isLoadingUpload) {
                 this.handleFinishedLoadingUpload();
