@@ -44,18 +44,19 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-name-input` | input | クラス名入力 |
 | `classroom-count-input` | input | 人数入力 |
-| `classroom-create-submit` | button | 作成実行 |
+| `classroom-assignment-name-input` | input | 課題名入力 |
+| `classroom-create-submit` | button | 作成実行（クラス名・人数・課題名の **3 つすべて必須**。1 つでも空だと disabled）|
 
-### クラス一覧 (ダッシュボード)
+**作成後の挙動**: `classroom-create-submit` を押すと API 呼び出し成功後 `phase` は `teacher-dashboard` に戻り、新しいクラスはサイドバー一覧 (`classroom-sidebar-item-{id}`) に追加される。`teacher-class-detail` には自動遷移せず、サイドバーの該当アイテムをクリックして明示的に選択する必要がある。
+
+### サイドバー (先生・常時表示、login 以外のフェーズで visible)
+
+サイドバーはクラス管理モーダル左側に常時表示される（teacher-login 以外）。「クラス一覧 (ダッシュボード)」ではなく **サイドバー** に登録済みクラスがリスト表示される。
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-list` | ul | クラス一覧 |
-| `classroom-empty-message` | div | クラスなしメッセージ |
-| `classroom-item-{id}` | li | クラスカード |
-| `classroom-item-name-{id}` | span | クラス名 |
-| `classroom-item-code-{id}` | span | 参加コード |
-| `classroom-item-details-{id}` | button | 詳細ボタン |
+| `classroom-sidebar-group-{className}` | div | クラス名でグルーピングされたヘッダ（例: 「6年A組」）|
+| `classroom-sidebar-item-{classroomId}` | li | サイドバーの個別クラス項目。`data-classroom-id` 属性も持つ。クリックで `selectedClassroom` が更新され `teacher-class-detail` フェーズへ遷移。表示テキストは `assignmentName · 人数 · 参加コード(小文字)` |
 
 ### クラス詳細 (先生)
 
@@ -191,6 +192,14 @@ http://localhost:8601?no_beforeunload=1&devlogin=<DEV_BYPASS_TOKEN>
 ```
 
 `devlogin=<DEV_BYPASS_TOKEN>` を指定すると、Google ログインをバイパスして `DEV_BYPASS_TOKEN` で先生としてログインできます（stg/ローカル環境のみ）。先生ダッシュボードへは「⚙ 設定 → クラス管理」からアクセスしてください。
+
+### tools/playwright-verify/ の手動 E2E スクリプト
+
+クラス管理を絡めた end-to-end の動作確認は [`tools/playwright-verify/`](../../tools/playwright-verify/README.md) にあるスクリプトで自動化されています（CI には組み込まれていません。手動で `node ...` で実行）。
+
+代表例: `tools/playwright-verify/mesh-v2-classroom-binding.mjs` は教師タブで devlogin → クラス作成 → サイドバーで選択、生徒タブで `?classcode=` 経由参加 という 2 タブのフローを自動で回し、Mesh v2 ドメインがクラスの参加コードに揃うことを確認します。
+
+スクリプトを書く際の落とし穴と対処は `tools/playwright-verify/README.md` を参照してください（ログインバイパスの方法、Redux store の取り出し方、サイドバー testid、tutorial overlay の dismiss 等）。
 
 ### data-testid を使ったテスト例
 

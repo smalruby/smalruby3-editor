@@ -709,6 +709,8 @@ export default {
     'gui.connection.meshV2Initial.joinGroupDescription': 'グループにさんか',
     'gui.connection.meshV2Initial.domainHelp':
         'ホストがいちらんにひょうじされないばあいはドメインをせっていしてください。{br}がっこうなどのしせつのゆうびんばんごうがさいてきです。',
+    'gui.connection.meshV2Initial.domainLockedHelp':
+        'クラスにさんかしているため、ドメインはさんかコードにこていされています。クラスからぬけるとドメインをへんこうできます。',
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメインめいにむこうなもじがふくまれています。',
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメインめいがながすぎます（さいだい256もじ）。',
 

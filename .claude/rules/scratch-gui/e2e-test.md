@@ -91,7 +91,13 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `classroom-create` | button | クラス作成（ダッシュボード） |
 | `classroom-name-input` | input | クラス名入力 |
 | `classroom-count-input` | input | 人数入力 |
-| `classroom-create-submit` | button | クラス作成実行 |
+| `classroom-assignment-name-input` | input | 課題名入力 |
+| `classroom-create-submit` | button | クラス作成実行（クラス名・人数・課題名 3 つすべて必須） |
+| `classroom-sidebar-item-{classroomId}` | li | サイドバーのクラス項目（クリックで選択・teacher-class-detail へ） |
+
+**先生フロー自動化のコツ**:
+- `classroom-create-submit` 後は `teacher-class-detail` には**自動遷移しない**。`teacher-dashboard` に戻ってから `classroom-sidebar-item-{id}` を明示的にクリックする必要がある
+- Google ログインを毎回手作業でやらない: `?devlogin=<DEV_BYPASS_TOKEN>` で stg/ローカル環境ではバイパスできる（`.env` の `DEV_BYPASS_TOKEN`、教師として自動ログイン）
 | `classroom-join-code-input` | input | 参加コード入力 |
 | `classroom-join-submit` | button | 参加コード送信 |
 | `classroom-seat-{n}` | button | 席番号 n のボタン |

@@ -16,6 +16,8 @@ import {
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
+    setTeacherSelection,
+    clearTeacherSelection,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import translateError from './classroom-error-utils.js';
@@ -114,6 +116,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
             teacher.setClassrooms([]);
             teacher.setSelectedClassroom(null);
             teacher.setMembers([]);
+            dispatch(clearTeacherSelection());
             setPhase('teacher-login');
         } else {
             dispatch(clearClassroomSession());
@@ -121,6 +124,22 @@ const ClassroomModal = ({ mode = 'student' }) => {
             setPhase('student-join');
         }
     }, [mode, clearError, dispatch, teacher]);
+
+    // Sync teacher's selectedClassroom into Redux so the Mesh v2 binding
+    // (mesh-v2-classroom-binding.jsx) and the connection modal can react to it.
+    useEffect(() => {
+        if (mode !== 'teacher') return;
+        if (teacher.selectedClassroom && teacher.selectedClassroom.joinCode) {
+            dispatch(
+                setTeacherSelection({
+                    classroomId: teacher.selectedClassroom.classroomId,
+                    joinCode: teacher.selectedClassroom.joinCode,
+                    className: teacher.selectedClassroom.className || teacher.selectedClassroom.name || null,
+                    assignmentName: teacher.selectedClassroom.assignmentName || null,
+                }),
+            );
+        }
+    }, [mode, dispatch, teacher.selectedClassroom]);
 
     // Handle relogin request from Alert "参加しなおす" button
     useEffect(() => {
@@ -317,6 +336,13 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     // --- Teacher modal (separate fullscreen modal) ---
 
+    // Wrap the teacher logout so we also clear teacherSelection from Redux —
+    // the underlying handleTeacherLogout only resets local hook state.
+    const handleTeacherLogoutWithReduxClear = useCallback(() => {
+        dispatch(clearTeacherSelection());
+        teacher.handleTeacherLogout();
+    }, [dispatch, teacher]);
+
     if (mode === 'teacher') {
         const teacherContainerProps = {
             phase,
@@ -338,7 +364,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
             onMicrosoftLogin: teacher.handleMicrosoftLogin,
             isMicrosoftAuthAvailable: teacher.isMicrosoftAuthAvailable,
             authProvider: teacher.authProvider,
-            onTeacherLogout: teacher.handleTeacherLogout,
+            onTeacherLogout: handleTeacherLogoutWithReduxClear,
             onShowCreateForm: teacher.handleShowCreateForm,
             onCreateClassroom: teacher.handleCreateClassroom,
             onSelectClassroom: teacher.handleSelectClassroom,

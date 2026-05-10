@@ -6,6 +6,8 @@ const SET_SESSION = 'scratch-gui/classroom/SET_SESSION';
 const CLEAR_SESSION = 'scratch-gui/classroom/CLEAR_SESSION';
 const SET_SUBMISSION_STATUS = 'scratch-gui/classroom/SET_SUBMISSION_STATUS';
 const REQUEST_RELOGIN = 'scratch-gui/classroom/REQUEST_RELOGIN';
+const SET_TEACHER_SELECTION = 'scratch-gui/classroom/SET_TEACHER_SELECTION';
+const CLEAR_TEACHER_SELECTION = 'scratch-gui/classroom/CLEAR_TEACHER_SELECTION';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
@@ -51,6 +53,10 @@ const clearStoredSession = () => {
     }
 };
 
+// teacherSelection is intentionally NOT persisted across page reloads. The
+// teacher idToken (use-teacher-auth.js) is module-scope in-memory only and
+// clears on reload, so persisting the selection in sessionStorage would leave
+// the Mesh domain bound to a class the teacher is no longer logged in for.
 const storedSession = loadSession();
 
 const initialState = {
@@ -68,6 +74,7 @@ const initialState = {
     submissionStatus: storedSession?.submissionStatus || null,
     lastSubmittedAt: storedSession?.lastSubmittedAt || null,
     reloginRequested: false,
+    teacherSelection: null,
 };
 
 const reducer = (state, action) => {
@@ -128,6 +135,17 @@ const reducer = (state, action) => {
         }
         case REQUEST_RELOGIN:
             return { ...state, reloginRequested: true };
+        case SET_TEACHER_SELECTION: {
+            const selection = {
+                classroomId: action.classroomId,
+                joinCode: action.joinCode,
+                className: action.className || null,
+                assignmentName: action.assignmentName || null,
+            };
+            return { ...state, teacherSelection: selection };
+        }
+        case CLEAR_TEACHER_SELECTION:
+            return { ...state, teacherSelection: null };
         default:
             return state;
     }
@@ -170,6 +188,16 @@ const setSubmissionStatus = (submissionStatus, lastSubmittedAt) => ({
     lastSubmittedAt,
 });
 
+const setTeacherSelection = ({ classroomId, joinCode, className, assignmentName }) => ({
+    type: SET_TEACHER_SELECTION,
+    classroomId,
+    joinCode,
+    className,
+    assignmentName,
+});
+
+const clearTeacherSelection = () => ({ type: CLEAR_TEACHER_SELECTION });
+
 export default reducer;
 export {
     initialState as classroomInitialState,
@@ -181,4 +209,6 @@ export {
     clearClassroomSession,
     requestRelogin,
     setSubmissionStatus,
+    setTeacherSelection,
+    clearTeacherSelection,
 };

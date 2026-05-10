@@ -112,6 +112,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/insert-class.js`
 - `src/lib/join-code-history.js`
 - `src/lib/log-suppression.js`
+- `src/lib/mesh-v2-classroom-binding.jsx`
 - `src/lib/microsoft-auth.js`
 - `src/lib/microbit-more-update.js`
 - `src/lib/teacher-auth.js`
@@ -242,6 +243,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/join-code-history.test.js`
 - `test/unit/lib/layout-constants.test.js`
 - `test/unit/lib/legacy-storage.test.js`
+- `test/unit/lib/mesh-v2-classroom-binding.test.js`
 - `test/unit/lib/make-toolbox-xml.test.js`
 - `test/unit/lib/module-sync.test.js`
 - `test/unit/lib/prism-parser.test.js`
