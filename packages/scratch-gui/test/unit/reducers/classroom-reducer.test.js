@@ -107,8 +107,9 @@ describe('classroom reducer', () => {
     });
 
     describe('teacher selection', () => {
-        beforeEach(() => {
-            window.sessionStorage.clear();
+        test('initial state has null teacherSelection (not persisted across reload)', () => {
+            const state = reducer(undefined, { type: 'UNKNOWN' });
+            expect(state.teacherSelection).toBeNull();
         });
 
         test('should set teacher selection', () => {
@@ -129,21 +130,6 @@ describe('classroom reducer', () => {
             });
         });
 
-        test('should persist teacher selection to sessionStorage', () => {
-            reducer(
-                classroomInitialState,
-                setTeacherSelection({
-                    classroomId: 'class-9',
-                    joinCode: 'XUZK93',
-                    className: '6年1組',
-                    assignmentName: null,
-                }),
-            );
-            const stored = JSON.parse(window.sessionStorage.getItem('smalruby:classroom-teacher-selection'));
-            expect(stored.classroomId).toBe('class-9');
-            expect(stored.joinCode).toBe('XUZK93');
-        });
-
         test('should clear teacher selection', () => {
             const withSelection = {
                 ...classroomInitialState,
@@ -156,7 +142,6 @@ describe('classroom reducer', () => {
             };
             const state = reducer(withSelection, clearTeacherSelection());
             expect(state.teacherSelection).toBeNull();
-            expect(window.sessionStorage.getItem('smalruby:classroom-teacher-selection')).toBeNull();
         });
 
         test('should preserve teacher selection on student session clear', () => {
