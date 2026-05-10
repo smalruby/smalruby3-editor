@@ -62,7 +62,7 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 - 初回訪問時にメニューバー上の `?`（チュートリアル）ボタンの右側に「スモウルビーへようこそ」バルーンを表示
 - バルーンクリックでウェルカムモーダルが開く（同時にバルーンは永続的に非表示）
 - バルーン右端の `×` でも閉じられる（モーダルは開かない）
-- 初回表示から **5 日経過すると自動的に非表示**（クリックされなくても消える）
+- 初回表示から **5 日経過すると次回起動時に自動的に非表示**（起動時のみチェック、滞在中は消えない）
 
 ### モーダル本体の表示トリガー
 
@@ -106,7 +106,7 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 | ウェルカムバルーン → クリック | `dispatch(openWelcomeModal())` + `localStorage.setItem('smalruby:welcomeTooltipDismissed', 'true')` |
 | ウェルカムバルーン → `×` | バルーンを閉じる（モーダルは開かない） + dismissed フラグセット |
 | ウェルカムバルーン初回表示 | `localStorage.setItem('smalruby:welcomeTooltipFirstShownAt', Date.now())` |
-| 初回表示から 5 日経過 | バルーン自動非表示 + dismissed フラグセット |
+| 初回表示から 5 日経過後の起動時 | バルーン非表示 + dismissed フラグセット（起動時のみチェック） |
 | About メニュー → スモウルビーについて | `window.open('about.html', '_blank', 'noopener,noreferrer')` |
 | About メニュー → ウェルカムをもう一度見る | `dispatch(openWelcomeModal())` |
 | ウェルカムモーダル → 最初のチュートリアル (PC) | `dispatch(closeWelcomeModal())` → `dispatch(openTipsLibrary())` |

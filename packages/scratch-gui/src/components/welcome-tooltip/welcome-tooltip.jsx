@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 import styles from './welcome-tooltip.css';
 
@@ -42,23 +42,6 @@ export const computeInitialVisibility = (now = Date.now()) => {
 
 const WelcomeTooltip = ({ onClick }) => {
     const [visible, setVisible] = useState(() => computeInitialVisibility());
-
-    useEffect(() => {
-        if (!visible) return () => {};
-        const firstShownAt = Number(safeGet(STORAGE_KEY_FIRST_SHOWN_AT));
-        if (!firstShownAt) return () => {};
-        const remaining = FIVE_DAYS_MS - (Date.now() - firstShownAt);
-        if (remaining <= 0) {
-            safeSet(STORAGE_KEY_DISMISSED, 'true');
-            setVisible(false);
-            return () => {};
-        }
-        const timer = setTimeout(() => {
-            safeSet(STORAGE_KEY_DISMISSED, 'true');
-            setVisible(false);
-        }, remaining);
-        return () => clearTimeout(timer);
-    }, [visible]);
 
     const dismiss = useCallback(() => {
         safeSet(STORAGE_KEY_DISMISSED, 'true');
