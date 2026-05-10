@@ -686,6 +686,8 @@ export default {
     'gui.connection.meshV2Initial.joinGroupDescription': 'グループに参加',
     'gui.connection.meshV2Initial.domainHelp':
         'ホスト名が一覧に表示されない場合はドメインを設定してください。{br}学校などの施設の郵便番号が最適です。',
+    'gui.connection.meshV2Initial.domainLockedHelp':
+        'クラスに参加しているため、ドメインは参加コードに固定されています。クラスから抜けるとドメインを変更できます。',
     'gui.connection.meshV2Initial.domainInvalidError': 'ドメイン名に無効な文字が含まれています。',
     'gui.connection.meshV2Initial.domainTooLongError': 'ドメイン名が長すぎます（最大256文字）。',
 

@@ -444,6 +444,7 @@ class ConnectionModal extends React.Component {
                 connectionTipIconURL={this.state.extension && this.state.extension.connectionTipIconURL}
                 // === Smalruby: Start of meshV2 initial step feature ===
                 domain={this.props.meshV2Domain}
+                domainReadOnly={this.props.meshV2DomainReadOnly}
                 // === Smalruby: End of meshV2 initial step feature ===
                 extensionId={this.props.extensionId}
                 name={this.state.extension && this.state.extension.name}
@@ -490,6 +491,7 @@ ConnectionModal.propTypes = {
     extensionId: PropTypes.string.isRequired,
     // === Smalruby: Start of meshV2 initial step feature ===
     meshV2Domain: PropTypes.string,
+    meshV2DomainReadOnly: PropTypes.bool,
     onDomainChange: PropTypes.func.isRequired,
     // === Smalruby: End of meshV2 initial step feature ===
     onCancel: PropTypes.func.isRequired,
@@ -501,12 +503,22 @@ ConnectionModal.propTypes = {
     vm: PropTypes.instanceOf(VM).isRequired
 };
 
-const mapStateToProps = state => ({
-    extensionId: state.scratchGui.connectionModal.extensionId,
+const mapStateToProps = state => {
     // === Smalruby: Start of meshV2 initial step feature ===
-    meshV2Domain: state.scratchGui.meshV2.domain
+    const classroom = state.scratchGui.classroom;
+    const meshV2DomainReadOnly = !!(
+        (classroom && classroom.role === 'student' && classroom.joinCode) ||
+        (classroom && classroom.teacherSelection && classroom.teacherSelection.joinCode)
+    );
     // === Smalruby: End of meshV2 initial step feature ===
-});
+    return {
+        extensionId: state.scratchGui.connectionModal.extensionId,
+        // === Smalruby: Start of meshV2 initial step feature ===
+        meshV2Domain: state.scratchGui.meshV2.domain,
+        meshV2DomainReadOnly
+        // === Smalruby: End of meshV2 initial step feature ===
+    };
+};
 
 const mapDispatchToProps = dispatch => ({
     onCancel: () => {

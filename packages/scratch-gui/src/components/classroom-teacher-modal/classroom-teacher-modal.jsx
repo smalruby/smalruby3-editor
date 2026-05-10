@@ -198,13 +198,13 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         // Default: dashboard (no class selected)
         if (isLoading) {
             return (
-                <div className={styles.mainEmpty}>
+                <div className={styles.mainEmpty} data-testid="classroom-phase-teacher-dashboard">
                     <Spinner large level="primary" />
                 </div>
             );
         }
         return (
-            <div className={styles.mainEmpty}>
+            <div className={styles.mainEmpty} data-testid="classroom-phase-teacher-dashboard">
                 <ClassroomTutorial name="classCreation">
                     <FormattedMessage
                         defaultMessage={

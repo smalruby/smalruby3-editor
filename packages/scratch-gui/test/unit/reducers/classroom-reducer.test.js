@@ -5,6 +5,8 @@ import reducer, {
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
+    setTeacherSelection,
+    clearTeacherSelection,
 } from '../../../src/reducers/classroom';
 
 describe('classroom reducer', () => {
@@ -102,5 +104,76 @@ describe('classroom reducer', () => {
         const state = reducer(withSubmission, clearClassroomSession());
         expect(state.submissionStatus).toBeNull();
         expect(state.lastSubmittedAt).toBeNull();
+    });
+
+    describe('teacher selection', () => {
+        beforeEach(() => {
+            window.sessionStorage.clear();
+        });
+
+        test('should set teacher selection', () => {
+            const state = reducer(
+                classroomInitialState,
+                setTeacherSelection({
+                    classroomId: 'class-9',
+                    joinCode: 'XUZK93',
+                    className: '6年1組',
+                    assignmentName: '宿題1',
+                }),
+            );
+            expect(state.teacherSelection).toEqual({
+                classroomId: 'class-9',
+                joinCode: 'XUZK93',
+                className: '6年1組',
+                assignmentName: '宿題1',
+            });
+        });
+
+        test('should persist teacher selection to sessionStorage', () => {
+            reducer(
+                classroomInitialState,
+                setTeacherSelection({
+                    classroomId: 'class-9',
+                    joinCode: 'XUZK93',
+                    className: '6年1組',
+                    assignmentName: null,
+                }),
+            );
+            const stored = JSON.parse(window.sessionStorage.getItem('smalruby:classroom-teacher-selection'));
+            expect(stored.classroomId).toBe('class-9');
+            expect(stored.joinCode).toBe('XUZK93');
+        });
+
+        test('should clear teacher selection', () => {
+            const withSelection = {
+                ...classroomInitialState,
+                teacherSelection: {
+                    classroomId: 'class-9',
+                    joinCode: 'XUZK93',
+                    className: null,
+                    assignmentName: null,
+                },
+            };
+            const state = reducer(withSelection, clearTeacherSelection());
+            expect(state.teacherSelection).toBeNull();
+            expect(window.sessionStorage.getItem('smalruby:classroom-teacher-selection')).toBeNull();
+        });
+
+        test('should preserve teacher selection on student session clear', () => {
+            const state = {
+                ...classroomInitialState,
+                role: 'student',
+                sessionToken: 'token',
+                teacherSelection: {
+                    classroomId: 'class-9',
+                    joinCode: 'XUZK93',
+                    className: null,
+                    assignmentName: null,
+                },
+            };
+            const next = reducer(state, clearClassroomSession());
+            expect(next.role).toBeNull();
+            expect(next.teacherSelection).toEqual(state.teacherSelection);
+        });
     });
 });

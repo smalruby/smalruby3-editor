@@ -44,18 +44,19 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 |------------|------|------|
 | `classroom-name-input` | input | クラス名入力 |
 | `classroom-count-input` | input | 人数入力 |
-| `classroom-create-submit` | button | 作成実行 |
+| `classroom-assignment-name-input` | input | 課題名入力 |
+| `classroom-create-submit` | button | 作成実行（クラス名・人数・課題名の **3 つすべて必須**。1 つでも空だと disabled）|
 
-### クラス一覧 (ダッシュボード)
+**作成後の挙動**: `classroom-create-submit` を押すと API 呼び出し成功後 `phase` は `teacher-dashboard` に戻り、新しいクラスはサイドバー一覧 (`classroom-sidebar-item-{id}`) に追加される。`teacher-class-detail` には自動遷移せず、サイドバーの該当アイテムをクリックして明示的に選択する必要がある。
+
+### サイドバー (先生・常時表示、login 以外のフェーズで visible)
+
+サイドバーはクラス管理モーダル左側に常時表示される（teacher-login 以外）。「クラス一覧 (ダッシュボード)」ではなく **サイドバー** に登録済みクラスがリスト表示される。
 
 | data-testid | 要素 | 説明 |
 |------------|------|------|
-| `classroom-list` | ul | クラス一覧 |
-| `classroom-empty-message` | div | クラスなしメッセージ |
-| `classroom-item-{id}` | li | クラスカード |
-| `classroom-item-name-{id}` | span | クラス名 |
-| `classroom-item-code-{id}` | span | 参加コード |
-| `classroom-item-details-{id}` | button | 詳細ボタン |
+| `classroom-sidebar-group-{className}` | div | クラス名でグルーピングされたヘッダ（例: 「6年A組」）|
+| `classroom-sidebar-item-{classroomId}` | li | サイドバーの個別クラス項目。`data-classroom-id` 属性も持つ。クリックで `selectedClassroom` が更新され `teacher-class-detail` フェーズへ遷移。表示テキストは `assignmentName · 人数 · 参加コード(小文字)` |
 
 ### クラス詳細 (先生)
 

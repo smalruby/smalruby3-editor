@@ -6,8 +6,11 @@ const SET_SESSION = 'scratch-gui/classroom/SET_SESSION';
 const CLEAR_SESSION = 'scratch-gui/classroom/CLEAR_SESSION';
 const SET_SUBMISSION_STATUS = 'scratch-gui/classroom/SET_SUBMISSION_STATUS';
 const REQUEST_RELOGIN = 'scratch-gui/classroom/REQUEST_RELOGIN';
+const SET_TEACHER_SELECTION = 'scratch-gui/classroom/SET_TEACHER_SELECTION';
+const CLEAR_TEACHER_SELECTION = 'scratch-gui/classroom/CLEAR_TEACHER_SELECTION';
 
 const STORAGE_KEY = 'smalruby:classroom';
+const TEACHER_SELECTION_STORAGE_KEY = 'smalruby:classroom-teacher-selection';
 
 /**
  * Load classroom session from localStorage.
@@ -51,7 +54,34 @@ const clearStoredSession = () => {
     }
 };
 
+const loadTeacherSelection = () => {
+    if (typeof window === 'undefined' || !window.sessionStorage) return null;
+    try {
+        const raw = window.sessionStorage.getItem(TEACHER_SELECTION_STORAGE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (data && data.classroomId && data.joinCode) return data;
+        return null;
+    } catch {
+        return null;
+    }
+};
+
+const saveTeacherSelection = (selection) => {
+    if (typeof window === 'undefined' || !window.sessionStorage) return;
+    try {
+        if (selection) {
+            window.sessionStorage.setItem(TEACHER_SELECTION_STORAGE_KEY, JSON.stringify(selection));
+        } else {
+            window.sessionStorage.removeItem(TEACHER_SELECTION_STORAGE_KEY);
+        }
+    } catch {
+        // Ignore storage errors
+    }
+};
+
 const storedSession = loadSession();
+const storedTeacherSelection = loadTeacherSelection();
 
 const initialState = {
     modalVisible: false,
@@ -68,6 +98,7 @@ const initialState = {
     submissionStatus: storedSession?.submissionStatus || null,
     lastSubmittedAt: storedSession?.lastSubmittedAt || null,
     reloginRequested: false,
+    teacherSelection: storedTeacherSelection,
 };
 
 const reducer = (state, action) => {
@@ -128,6 +159,19 @@ const reducer = (state, action) => {
         }
         case REQUEST_RELOGIN:
             return { ...state, reloginRequested: true };
+        case SET_TEACHER_SELECTION: {
+            const selection = {
+                classroomId: action.classroomId,
+                joinCode: action.joinCode,
+                className: action.className || null,
+                assignmentName: action.assignmentName || null,
+            };
+            saveTeacherSelection(selection);
+            return { ...state, teacherSelection: selection };
+        }
+        case CLEAR_TEACHER_SELECTION:
+            saveTeacherSelection(null);
+            return { ...state, teacherSelection: null };
         default:
             return state;
     }
@@ -170,6 +214,16 @@ const setSubmissionStatus = (submissionStatus, lastSubmittedAt) => ({
     lastSubmittedAt,
 });
 
+const setTeacherSelection = ({ classroomId, joinCode, className, assignmentName }) => ({
+    type: SET_TEACHER_SELECTION,
+    classroomId,
+    joinCode,
+    className,
+    assignmentName,
+});
+
+const clearTeacherSelection = () => ({ type: CLEAR_TEACHER_SELECTION });
+
 export default reducer;
 export {
     initialState as classroomInitialState,
@@ -181,4 +235,6 @@ export {
     clearClassroomSession,
     requestRelogin,
     setSubmissionStatus,
+    setTeacherSelection,
+    clearTeacherSelection,
 };

@@ -45,6 +45,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/components/menu-bar/menu-bar.jsx` | smalrubot firmware menu | SmalrubotS1 メニューの import、ハンドラー、レンダリング、Redux 接続 |
 | `src/components/gui/gui.jsx` | smalrubot firmware modal | SmalrubotS1 ファームウェアモーダルの import と配置 |
 | `src/components/gui/gui.jsx` | classroom modal | クラスルームモーダルの import と配置 |
+| `src/components/gui/gui.jsx` | meshV2 classroom binding | クラス状態に応じて Mesh v2 ドメインを参加コードに固定する常時マウントの binding |
 | `src/components/gui/gui.jsx` | welcome modal | 初回訪問者向けウェルカムモーダル HOC の import と配置、`onShowWelcomeModal` prop |
 | `src/containers/gui.jsx` | welcome modal | `onShowWelcomeModal` を Redux `openWelcomeModal()` にマップ |
 | `src/components/gui/gui.jsx` | Redux action props prevention | Redux action props の伝播防止 |

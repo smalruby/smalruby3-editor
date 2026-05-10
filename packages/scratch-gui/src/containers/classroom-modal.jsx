@@ -16,6 +16,8 @@ import {
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
+    setTeacherSelection,
+    clearTeacherSelection,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
 import translateError from './classroom-error-utils.js';
@@ -114,6 +116,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
             teacher.setClassrooms([]);
             teacher.setSelectedClassroom(null);
             teacher.setMembers([]);
+            dispatch(clearTeacherSelection());
             setPhase('teacher-login');
         } else {
             dispatch(clearClassroomSession());
@@ -121,6 +124,22 @@ const ClassroomModal = ({ mode = 'student' }) => {
             setPhase('student-join');
         }
     }, [mode, clearError, dispatch, teacher]);
+
+    // Sync teacher's selectedClassroom into Redux + sessionStorage so it survives modal close.
+    // This drives the Mesh v2 domain binding (see mesh-v2-classroom-binding.jsx).
+    useEffect(() => {
+        if (mode !== 'teacher') return;
+        if (teacher.selectedClassroom && teacher.selectedClassroom.joinCode) {
+            dispatch(
+                setTeacherSelection({
+                    classroomId: teacher.selectedClassroom.classroomId,
+                    joinCode: teacher.selectedClassroom.joinCode,
+                    className: teacher.selectedClassroom.className || teacher.selectedClassroom.name || null,
+                    assignmentName: teacher.selectedClassroom.assignmentName || null,
+                }),
+            );
+        }
+    }, [mode, dispatch, teacher.selectedClassroom]);
 
     // Handle relogin request from Alert "参加しなおす" button
     useEffect(() => {

@@ -17,12 +17,26 @@ const messages = defineMessages({
         description: 'Placeholder text for domain input field',
         id: 'gui.connection.meshV2Initial.domainPlaceholder',
     },
+    domainLockedHelp: {
+        defaultMessage:
+            'The domain is locked to the join code of the current classroom. Leave the classroom to change it.',
+        description: 'Help text shown when the domain input is locked because a classroom is active',
+        id: 'gui.connection.meshV2Initial.domainLockedHelp',
+    },
 });
 
 const MeshV2InitialStep = (props) => {
     const [domain, setDomain] = React.useState(props.domain || '');
     const [error, setError] = React.useState(null);
     const intl = useIntl();
+    const readOnly = !!props.domainReadOnly;
+
+    React.useEffect(() => {
+        if (readOnly) {
+            setDomain(props.domain || '');
+            setError(null);
+        }
+    }, [readOnly, props.domain]);
 
     const validate = React.useCallback((domainValue) => {
         if (!domainValue) return null;
@@ -116,6 +130,8 @@ const MeshV2InitialStep = (props) => {
                         type="text"
                         value={domain}
                         placeholder={intl.formatMessage(messages.domainPlaceholder)}
+                        readOnly={readOnly}
+                        disabled={readOnly}
                         onChange={handleDomainChange}
                     />
                     {error === 'tooLong' && (
@@ -137,17 +153,21 @@ const MeshV2InitialStep = (props) => {
                         </div>
                     )}
                     <div className={initialStepStyles.domainHelp}>
-                        <FormattedMessage
-                            defaultMessage={
-                                'If groups are not displayed in the list, please set a domain. {br}' +
-                                'A postal code for your school or facility is recommended.'
-                            }
-                            description="Help text for domain input"
-                            id="gui.connection.meshV2Initial.domainHelp"
-                            values={{
-                                br: <br />,
-                            }}
-                        />
+                        {readOnly ? (
+                            <FormattedMessage {...messages.domainLockedHelp} />
+                        ) : (
+                            <FormattedMessage
+                                defaultMessage={
+                                    'If groups are not displayed in the list, please set a domain. {br}' +
+                                    'A postal code for your school or facility is recommended.'
+                                }
+                                description="Help text for domain input"
+                                id="gui.connection.meshV2Initial.domainHelp"
+                                values={{
+                                    br: <br />,
+                                }}
+                            />
+                        )}
                     </div>
                 </Box>
             </Box>
@@ -157,6 +177,7 @@ const MeshV2InitialStep = (props) => {
 
 MeshV2InitialStep.propTypes = {
     domain: PropTypes.string,
+    domainReadOnly: PropTypes.bool,
     onCreateGroup: PropTypes.func.isRequired,
     onDomainChange: PropTypes.func.isRequired,
     onJoinGroup: PropTypes.func.isRequired,
