@@ -165,6 +165,46 @@ export const installCommentIconPatch = function (ScratchBlocks) {
             // Track the construction time so setBubbleLocation can detect
             // the deferred call from XML deserialization vs later calls.
             this.__smalrubyPostLoadUntil = Date.now() + POST_LOAD_SUPPRESS_MS;
+
+            // Capture the natural anchor position into the VM data model so
+            // that a saved sb3 reflects where Blockly actually rendered each
+            // bubble. Without this, freshly converted comments stay at the
+            // converter's default (0, 0) in target.comments[]; viewers that
+            // don't apply Smalruby's metadata-hide CSS (most importantly
+            // scratch.mit.edu) then stack every bubble at the workspace
+            // origin when reopening the file.
+            //
+            // Run twice — once on the next tick (covers immediate render),
+            // and again at the end of the post-load suppress window
+            // (covers Blockly's own deferred layout pass) — so we capture
+            // the final natural anchor regardless of which timing wins.
+            const captureNaturalAnchor = () => {
+                try {
+                    const bubble = typeof this.getBubble === 'function' ? this.getBubble() : null;
+                    if (!bubble || typeof bubble.getRelativeToSurfaceXY !== 'function') return;
+                    const xy = bubble.getRelativeToSurfaceXY();
+                    if (typeof xy?.x !== 'number' || typeof xy?.y !== 'number') return;
+                    const block = sourceBlock;
+                    if (!block || !block.id) return;
+                    const vm = typeof window !== 'undefined' && window.smalruby ? window.smalruby.vm : null;
+                    if (!vm) return;
+                    // Locate the right target: prefer the editing target,
+                    // fall back to scanning all targets for the comment.
+                    const commentId = `${block.id}_comment`;
+                    const targets = [vm.editingTarget, ...vm.runtime.targets].filter(Boolean);
+                    for (const t of targets) {
+                        if (t.comments && Object.prototype.hasOwnProperty.call(t.comments, commentId)) {
+                            t.comments[commentId].x = xy.x;
+                            t.comments[commentId].y = xy.y;
+                            break;
+                        }
+                    }
+                } catch (_e) {
+                    // non-fatal
+                }
+            };
+            setTimeout(captureNaturalAnchor, 0);
+            setTimeout(captureNaturalAnchor, POST_LOAD_SUPPRESS_MS + 50);
         }
 
         setBubbleLocation(coord) {
