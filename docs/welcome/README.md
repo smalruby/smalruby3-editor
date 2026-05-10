@@ -116,6 +116,21 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 | `?welcome=1` で起動 | マウント時に `dispatch(openWelcomeModal())` |
 | 縦持ち SP（narrow + portrait） | `MobileOrientationGate` 優先で render しない |
 
+## GA4 イベント
+
+すべて `category: 'welcome'` で `window.dataLayer.push` される。
+
+| action | label | 発火タイミング |
+|---|---|---|
+| `balloon_shown` | `balloon` | バルーンを初回表示したとき（`firstShownAt` を記録した瞬間） |
+| `balloon_clicked` | `balloon` | バルーン本体をクリックしてモーダルが開いたとき |
+| `balloon_closed` | `balloon` | バルーンの `×` を押して閉じたとき |
+| `balloon_expired` | `balloon` | 初回表示から 5 日経過した起動時にバルーンが自動非表示になったとき |
+| `modal_shown` | `modal` | ウェルカムモーダルが表示されたとき（バルーン経由 / About メニュー / MobileDrawer / `?welcome=1` のいずれでも） |
+| `modal_action` | `start_tutorial` / `learn_more` / `later` | モーダル内の各 CTA を押したとき |
+
+実装: `src/lib/analytics.js`（共通の GA4 ラッパー）を使い、`src/components/welcome-tooltip/welcome-tooltip.jsx` と `src/containers/welcome-modal-hoc.jsx` から発火する。`analytics.event(...)` の例外は握りつぶしてエディタが落ちないようにしている。
+
 ## about.html の特徴
 
 - 1525 行の単一 HTML（フォント・CSS インライン、Font Awesome を CDN 経由で読み込む）

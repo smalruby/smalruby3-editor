@@ -1,7 +1,16 @@
 import PropTypes from 'prop-types';
 import React, { useCallback, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
+import analytics from '../../lib/analytics';
 import styles from './welcome-tooltip.css';
+
+const sendEvent = (action) => {
+    try {
+        analytics.event({ category: 'welcome', action, label: 'balloon' });
+    } catch (_e) {
+        // Swallow analytics failures so the editor never breaks.
+    }
+};
 
 const STORAGE_KEY_FIRST_SHOWN_AT = 'smalruby:welcomeTooltipFirstShownAt';
 const STORAGE_KEY_DISMISSED = 'smalruby:welcomeTooltipDismissed';
@@ -31,10 +40,12 @@ export const computeInitialVisibility = (now = Date.now()) => {
     const firstShownAt = Number(safeGet(STORAGE_KEY_FIRST_SHOWN_AT));
     if (!firstShownAt) {
         safeSet(STORAGE_KEY_FIRST_SHOWN_AT, String(now));
+        sendEvent('balloon_shown');
         return true;
     }
     if (now - firstShownAt > FIVE_DAYS_MS) {
         safeSet(STORAGE_KEY_DISMISSED, 'true');
+        sendEvent('balloon_expired');
         return false;
     }
     return true;
@@ -51,6 +62,7 @@ const WelcomeTooltip = ({ onClick }) => {
     const handleClick = useCallback(
         (e) => {
             e.stopPropagation();
+            sendEvent('balloon_clicked');
             dismiss();
             onClick();
         },
@@ -60,6 +72,7 @@ const WelcomeTooltip = ({ onClick }) => {
     const handleClose = useCallback(
         (e) => {
             e.stopPropagation();
+            sendEvent('balloon_closed');
             dismiss();
         },
         [dismiss],

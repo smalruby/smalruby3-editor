@@ -20,7 +20,10 @@ const renderTooltip = (props) =>
 describe('WelcomeTooltip', () => {
     beforeEach(() => {
         localStorage.clear();
+        window.dataLayer = [];
     });
+
+    const lastEvent = () => window.dataLayer[window.dataLayer.length - 1];
 
     test('renders on first visit and records firstShownAt', () => {
         const { queryByTestId } = renderTooltip({ onClick: jest.fn() });
@@ -84,6 +87,35 @@ describe('WelcomeTooltip', () => {
             localStorage.setItem(STORAGE_KEY_FIRST_SHOWN_AT, String(now - FIVE_DAYS_MS - 1));
             expect(computeInitialVisibility(now)).toBe(false);
             expect(localStorage.getItem(STORAGE_KEY_DISMISSED)).toBe('true');
+        });
+    });
+
+    describe('analytics', () => {
+        test('fires balloon_shown on first visit', () => {
+            renderTooltip({ onClick: jest.fn() });
+            expect(lastEvent()).toMatchObject({
+                event: 'welcome',
+                action: 'balloon_shown',
+                label: 'balloon',
+            });
+        });
+
+        test('fires balloon_expired when over 5 days', () => {
+            localStorage.setItem(STORAGE_KEY_FIRST_SHOWN_AT, String(Date.now() - FIVE_DAYS_MS - 1));
+            renderTooltip({ onClick: jest.fn() });
+            expect(lastEvent()).toMatchObject({ event: 'welcome', action: 'balloon_expired' });
+        });
+
+        test('fires balloon_clicked when clicked', () => {
+            const { getByTestId } = renderTooltip({ onClick: jest.fn() });
+            fireEvent.click(getByTestId('welcome-tooltip').querySelector('[role="button"]'));
+            expect(lastEvent()).toMatchObject({ event: 'welcome', action: 'balloon_clicked' });
+        });
+
+        test('fires balloon_closed when × clicked', () => {
+            const { getByTestId } = renderTooltip({ onClick: jest.fn() });
+            fireEvent.click(getByTestId('welcome-tooltip-close'));
+            expect(lastEvent()).toMatchObject({ event: 'welcome', action: 'balloon_closed' });
         });
     });
 });
