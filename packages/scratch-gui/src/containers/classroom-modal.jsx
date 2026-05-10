@@ -125,8 +125,8 @@ const ClassroomModal = ({ mode = 'student' }) => {
         }
     }, [mode, clearError, dispatch, teacher]);
 
-    // Sync teacher's selectedClassroom into Redux + sessionStorage so it survives modal close.
-    // This drives the Mesh v2 domain binding (see mesh-v2-classroom-binding.jsx).
+    // Sync teacher's selectedClassroom into Redux so the Mesh v2 binding
+    // (mesh-v2-classroom-binding.jsx) and the connection modal can react to it.
     useEffect(() => {
         if (mode !== 'teacher') return;
         if (teacher.selectedClassroom && teacher.selectedClassroom.joinCode) {
@@ -336,6 +336,13 @@ const ClassroomModal = ({ mode = 'student' }) => {
 
     // --- Teacher modal (separate fullscreen modal) ---
 
+    // Wrap the teacher logout so we also clear teacherSelection from Redux —
+    // the underlying handleTeacherLogout only resets local hook state.
+    const handleTeacherLogoutWithReduxClear = useCallback(() => {
+        dispatch(clearTeacherSelection());
+        teacher.handleTeacherLogout();
+    }, [dispatch, teacher]);
+
     if (mode === 'teacher') {
         const teacherContainerProps = {
             phase,
@@ -357,7 +364,7 @@ const ClassroomModal = ({ mode = 'student' }) => {
             onMicrosoftLogin: teacher.handleMicrosoftLogin,
             isMicrosoftAuthAvailable: teacher.isMicrosoftAuthAvailable,
             authProvider: teacher.authProvider,
-            onTeacherLogout: teacher.handleTeacherLogout,
+            onTeacherLogout: handleTeacherLogoutWithReduxClear,
             onShowCreateForm: teacher.handleShowCreateForm,
             onCreateClassroom: teacher.handleCreateClassroom,
             onSelectClassroom: teacher.handleSelectClassroom,

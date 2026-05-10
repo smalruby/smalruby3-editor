@@ -313,26 +313,61 @@ const teacherInput = await teacher.evaluate(() => {
 log('teacher meshV2 input:', teacherInput);
 await teacher.screenshot({ path: resolve(__dirname, '.screenshots', 'teacher-bound.png') });
 
-// === Restore-previous-domain test ===
-// Student side: clear classroom session — domain should restore to whatever
-// it was before binding (null in this test since the student tab started fresh).
+// === Restore-previous-domain test (Redux + extension._domain + localStorage) ===
 log('--- restore previous domain test ---');
-await student.evaluate(() =>
-    window.__store.dispatch({ type: 'scratch-gui/classroom/CLEAR_SESSION' }),
-);
-await sleep(500);
-const studentRestored = await getState(student, 'scratchGui.meshV2.domain');
-log(`student domain after leave: ${studentRestored} (expected: null = pre-bind value)`);
-console.assert(studentRestored === null, `FAIL: student domain not restored, got ${studentRestored}`);
 
-// Teacher side: clear teacherSelection — same expectation.
-await teacher.evaluate(() =>
-    window.__store.dispatch({ type: 'scratch-gui/classroom/CLEAR_TEACHER_SELECTION' }),
-);
+const dumpDomainState = async (page, label) => {
+    const snap = await page.evaluate(() => {
+        const reduxDomain = window.__store.getState().scratchGui.meshV2.domain;
+        const ext = window.__store.getState().scratchGui.vm?.runtime?.peripheralExtensions?.meshV2;
+        const extDomain = ext ? ext.domain : '(extension not loaded)';
+        const ls = window.localStorage.getItem('mesh_v2_domain');
+        return { redux: reduxDomain, ext: extDomain, ls };
+    });
+    log(`${label}: redux=${snap.redux}, ext=${snap.ext}, localStorage=${snap.ls}`);
+    return snap;
+};
+
+await dumpDomainState(student, 'student BEFORE leave');
+// Use actual UI: open classroom modal → student-status phase has a Leave button.
+// First close any open mesh modal so we can interact with classroom modal.
+await student.evaluate(() => window.__store.dispatch({ type: 'scratch-gui/modals/CLOSE_MODAL', modal: 'connectionModal' }));
+await sleep(200);
+await student.evaluate(() => window.__store.dispatch({ type: 'scratch-gui/classroom/OPEN_MODAL' }));
+await student.waitForSelector('[data-testid="classroom-phase-student-status"]', { timeout: 10000 });
+await student.click('[data-testid="classroom-leave"]');
+// Confirmation may appear; accept any confirm dialog.
+await sleep(300);
+const confirmBtn = await student.$('[data-testid="classroom-leave-confirm"]');
+if (confirmBtn) await confirmBtn.click();
+await student.waitForSelector('[data-testid="classroom-phase-student-join"]', { timeout: 15000 });
 await sleep(500);
-const teacherRestored = await getState(teacher, 'scratchGui.meshV2.domain');
-log(`teacher domain after logout: ${teacherRestored} (expected: null = pre-bind value)`);
-console.assert(teacherRestored === null, `FAIL: teacher domain not restored, got ${teacherRestored}`);
+const studentAfter = await dumpDomainState(student, 'student AFTER leave (via UI)');
+console.assert(studentAfter.redux === null, `FAIL: student redux not null, got ${studentAfter.redux}`);
+console.assert(studentAfter.ls === null, `FAIL: student localStorage not cleared, got ${studentAfter.ls}`);
+console.assert(
+    studentAfter.ext === null || studentAfter.ext === '(extension not loaded)',
+    `FAIL: student ext domain not null, got ${studentAfter.ext}`,
+);
+
+await dumpDomainState(teacher, 'teacher BEFORE logout');
+// Use actual UI: close mesh modal, open classroom-teacher-modal, click logout.
+await teacher.evaluate(() => window.__store.dispatch({ type: 'scratch-gui/modals/CLOSE_MODAL', modal: 'connectionModal' }));
+await sleep(200);
+await teacher.evaluate(() => window.__store.dispatch({ type: 'scratch-gui/classroom/OPEN_TEACHER_MODAL' }));
+await teacher.waitForSelector('[data-testid="classroom-teacher-logout"]', { timeout: 10000 });
+await teacher.click('[data-testid="classroom-teacher-logout"]');
+const logoutConfirm = await teacher.$('[data-testid="classroom-teacher-logout-confirm"]');
+if (logoutConfirm) await logoutConfirm.click();
+await teacher.waitForSelector('[data-testid="classroom-phase-teacher-login"]', { timeout: 15000 });
+await sleep(500);
+const teacherAfter = await dumpDomainState(teacher, 'teacher AFTER logout (via UI)');
+console.assert(teacherAfter.redux === null, `FAIL: teacher redux not null, got ${teacherAfter.redux}`);
+console.assert(teacherAfter.ls === null, `FAIL: teacher localStorage not cleared, got ${teacherAfter.ls}`);
+console.assert(
+    teacherAfter.ext === null || teacherAfter.ext === '(extension not loaded)',
+    `FAIL: teacher ext domain not null, got ${teacherAfter.ext}`,
+);
 
 log('--- summary ---');
 log('joinCode:', joinCode, '→ expected mesh domain:', expectedDomain);
