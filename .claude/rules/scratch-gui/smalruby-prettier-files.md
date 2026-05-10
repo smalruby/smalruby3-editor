@@ -230,6 +230,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/blocks-gesture-recovery.test.js`
 - `test/unit/lib/blocks-screenshot.test.js`
 - `test/unit/lib/calculate-popup-position.test.js`
+- `test/unit/lib/calculate-popup-position-regression.test.js`
 - `test/unit/lib/furigana-annotator-perf.test.js`
 - `test/unit/lib/furigana-annotator.test.js`
 - `test/unit/lib/google-drive-api.test.js`
