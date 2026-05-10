@@ -57,8 +57,11 @@ URL パラメータ `?force_polling=1` でクライアント側から強制 poll
 - 接続モーダルのドメイン入力欄は読み取り専用になる（クラスを抜けると編集可能に戻る）
 - 同じクラスの先生・生徒は自動的に同じドメインに集まるため、グループ検索・参加が容易になる
 - 先生の「選択中のクラス」は Redux 上に保持される（モーダルを閉じても維持／ページリロードでクリア。先生 idToken のキャッシュ仕様と整合）
+- **連動解除時の挙動**: 生徒がクラスから退出 / 先生がログアウトすると、Mesh ドメインは**連動前の値に戻る**（連動開始時にスタッシュ）。連動前にユーザーが手動で設定したドメインや URL `?mesh=` のデフォルト値が復元される
 
 実装: `packages/scratch-gui/src/lib/mesh-v2-classroom-binding.jsx`
+
+end-to-end 動作確認: [`tools/playwright-verify/mesh-v2-classroom-binding.mjs`](../../tools/playwright-verify/README.md) — 2 タブ (教師 + 生徒) を自動で操作してドメイン連動を検証する手動 E2E スクリプト。
 
 ## 主要ファイル
 
