@@ -37,6 +37,69 @@
  */
 
 /**
+ * Inject a global CSS rule that hides Blockly comment SVG nodes carrying
+ * the Smalruby metadata marker (`data-smalruby-meta="true"`). The rule is
+ * appended once to <head> so it covers comments created later (the patched
+ * icon below stamps the marker after fireCreateEvent / setText).
+ *
+ * Smalruby's converter attaches comments such as `@ruby:method:to_s` to
+ * blocks so the generator can round-trip them back to Ruby. In Blockly
+ * v11 these were tiny icons — invisible noise. Blockly v12 renders the
+ * collapsed state as a horizontal bar with the comment text, which clutters
+ * the workspace (e.g. an array literal of 10 elements produces 11 stacked
+ * bars). The comment data must remain on the block for round-tripping;
+ * only the visual is suppressed.
+ */
+const ensureMetaCommentHideStyle = function () {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById('smalruby-hide-meta-comments')) return;
+    const style = document.createElement('style');
+    style.id = 'smalruby-hide-meta-comments';
+    style.textContent = 'g.blocklyComment[data-smalruby-meta="true"]{display:none!important;}';
+    document.head.appendChild(style);
+};
+
+/**
+ * Stamp `data-smalruby-meta="true"` onto the bubble's SVG group when the
+ * comment text is Smalruby internal metadata (`@ruby:` prefix). The CSS
+ * rule installed by `ensureMetaCommentHideStyle` does the actual hiding.
+ * Safe to call multiple times — sets / clears the attribute based on
+ * the current text.
+ * @param {object} bubble - The Blockly comment bubble
+ * @param {string} text - The current comment text
+ */
+const isMetadataOnly = function (text) {
+    if (typeof text !== 'string' || text.length === 0) return false;
+    // A comment is metadata-only when every non-empty line starts with `@ruby:`.
+    // User comments may be merged with an inline marker (e.g.
+    // `@ruby:comment_position:inline\n<user text>`) — those lines after the
+    // marker do NOT start with `@ruby:`, so the comment stays visible.
+    const lines = text
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+    if (lines.length === 0) return false;
+    return lines.every((l) => l.startsWith('@ruby:'));
+};
+
+const applyMetaMarkerToBubble = function (bubble, text) {
+    if (!bubble) return;
+    const isMeta = isMetadataOnly(text);
+    const candidates = [];
+    if (typeof bubble.getSvgRoot === 'function') candidates.push(bubble.getSvgRoot());
+    if (bubble.svgRoot_) candidates.push(bubble.svgRoot_);
+    if (bubble.svgRoot) candidates.push(bubble.svgRoot);
+    for (const el of candidates) {
+        if (!el || !el.setAttribute) continue;
+        if (isMeta) {
+            el.setAttribute('data-smalruby-meta', 'true');
+        } else {
+            el.removeAttribute('data-smalruby-meta');
+        }
+    }
+};
+
+/**
  * Install the ScratchCommentIcon patch. Idempotent.
  * Survives minification because:
  * - `Blockly.registry`, `Blockly.icons.IconType.COMMENT` are public APIs
@@ -47,6 +110,7 @@
  * @param {object} ScratchBlocks - the scratch-blocks module (Blockly v12 + scratch additions)
  */
 export const installCommentIconPatch = function (ScratchBlocks) {
+    ensureMetaCommentHideStyle();
     if (!ScratchBlocks || !ScratchBlocks.registry || !ScratchBlocks.icons) return;
     const Type = ScratchBlocks.registry.Type;
     const IconType = ScratchBlocks.icons.IconType;
@@ -98,6 +162,46 @@ export const installCommentIconPatch = function (ScratchBlocks) {
             // Track the construction time so setBubbleLocation can detect
             // the deferred call from XML deserialization vs later calls.
             this.__smalrubyPostLoadUntil = Date.now() + POST_LOAD_SUPPRESS_MS;
+
+            // Capture the natural anchor position into the VM data model so
+            // that a saved sb3 reflects where Blockly actually rendered each
+            // bubble. Without this, freshly converted comments stay at the
+            // converter's default (0, 0) in target.comments[]; viewers that
+            // don't apply Smalruby's metadata-hide CSS (most importantly
+            // scratch.mit.edu) then stack every bubble at the workspace
+            // origin when reopening the file.
+            //
+            // Run twice — once on the next tick (covers immediate render),
+            // and again at the end of the post-load suppress window
+            // (covers Blockly's own deferred layout pass) — so we capture
+            // the final natural anchor regardless of which timing wins.
+            const captureNaturalAnchor = () => {
+                try {
+                    const bubble = typeof this.getBubble === 'function' ? this.getBubble() : null;
+                    if (!bubble || typeof bubble.getRelativeToSurfaceXY !== 'function') return;
+                    const xy = bubble.getRelativeToSurfaceXY();
+                    if (typeof xy?.x !== 'number' || typeof xy?.y !== 'number') return;
+                    const block = sourceBlock;
+                    if (!block || !block.id) return;
+                    const vm = typeof window !== 'undefined' && window.smalruby ? window.smalruby.vm : null;
+                    if (!vm) return;
+                    // Locate the right target: prefer the editing target,
+                    // fall back to scanning all targets for the comment.
+                    const commentId = `${block.id}_comment`;
+                    const targets = [vm.editingTarget, ...vm.runtime.targets].filter(Boolean);
+                    for (const t of targets) {
+                        if (t.comments && Object.prototype.hasOwnProperty.call(t.comments, commentId)) {
+                            t.comments[commentId].x = xy.x;
+                            t.comments[commentId].y = xy.y;
+                            break;
+                        }
+                    }
+                } catch (_e) {
+                    // non-fatal
+                }
+            };
+            setTimeout(captureNaturalAnchor, 0);
+            setTimeout(captureNaturalAnchor, POST_LOAD_SUPPRESS_MS + 50);
         }
 
         setBubbleLocation(coord) {
@@ -149,9 +253,23 @@ export const installCommentIconPatch = function (ScratchBlocks) {
                     const CollapseEvent = Events.get('block_comment_collapse');
                     if (CollapseEvent) Events.fire(new CollapseEvent(bubble, true));
                 }
+                applyMetaMarkerToBubble(bubble, text);
             } catch (e) {
                 // eslint-disable-next-line no-console
                 console.warn('[smalruby] PatchedCommentIcon.fireCreateEvent state refire failed:', e);
+            }
+            return result;
+        }
+
+        // Re-apply the meta marker on text change so a comment that is
+        // edited away from `@ruby:...` becomes visible (and vice versa).
+        setText(text) {
+            const result = super.setText(text);
+            try {
+                const bubble = typeof this.getBubble === 'function' ? this.getBubble() : null;
+                applyMetaMarkerToBubble(bubble, text);
+            } catch (_e) {
+                // non-fatal
             }
             return result;
         }

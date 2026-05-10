@@ -234,21 +234,29 @@ const CommentHandler = {
             return;
         }
 
-        const inlineMarker = isInline ? '@ruby:comment_position:inline\n' : '';
+        // Place the user text FIRST, with any `@ruby:` metadata appended on
+        // following lines. Blockly v12 renders the collapsed comment as a
+        // single-line bar showing the first line — putting user text first
+        // keeps that bar readable. The Ruby generator's scrub_() filters
+        // by full-line equality / `startsWith('@ruby:')`, so line order
+        // doesn't affect round-tripping. (See ruby-generator/scrub.js.)
+        const inlineMarker = isInline ? '@ruby:comment_position:inline' : '';
 
         if (block.comment) {
             // Block already has a comment - merge
             const existingComment = this._context.comments[block.comment];
             if (existingComment) {
-                // Put user text before metadata lines
                 const lines = existingComment.text.split('\n');
                 const metadataLines = lines.filter(l => l.startsWith('@ruby:'));
-                const newText = `${inlineMarker}${userText}\n${metadataLines.join('\n')}`;
-                existingComment.text = newText;
+                if (isInline && !metadataLines.includes(inlineMarker)) {
+                    metadataLines.unshift(inlineMarker);
+                }
+                const trailing = metadataLines.length > 0 ? `\n${metadataLines.join('\n')}` : '';
+                existingComment.text = `${userText}${trailing}`;
             }
         } else {
             // Create new comment for this block
-            const commentText = isInline ? `${inlineMarker}${userText}` : userText;
+            const commentText = isInline ? `${userText}\n${inlineMarker}` : userText;
             block.comment = this._createComment(commentText, block.id);
         }
     }

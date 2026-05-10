@@ -54,6 +54,13 @@ const OperatorsMath = {
                     if (variable && variable.dataType === 'string') return null;
                 }
 
+                // Skip when receiver is itself a string-result block (operator_join):
+                // a chained `+` like `(a.to_s + " ") + b.to_s` is string concatenation,
+                // not arithmetic. Defer to the dedicated string `+` handler.
+                if (operator === '+' && converter._isBlock(receiver) && receiver.opcode === 'operator_join') {
+                    return null;
+                }
+
                 // Boolean values are not valid operands for numeric arithmetic
                 if (converter._isTrue(rh) || converter._isFalse(rh)) return null;
 
