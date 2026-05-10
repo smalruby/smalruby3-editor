@@ -15,7 +15,7 @@
 .tooltip {
     position: relative;
     padding: 0.5rem 0.875rem;
-    background-color: $ui-blue;
+    background-color: $motion-primary;
     color: $ui-white;
     border-radius: 0.5rem;
     font-size: 0.8125rem;
@@ -43,7 +43,7 @@
     height: 0;
     border-top: 0.4rem solid transparent;
     border-bottom: 0.4rem solid transparent;
-    border-right: 0.4rem solid $ui-blue;
+    border-right: 0.4rem solid $motion-primary;
 }
 
 .close {
