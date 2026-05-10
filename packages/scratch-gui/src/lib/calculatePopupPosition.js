@@ -13,10 +13,43 @@ export const PopupAlign = {
     CENTER: 'center'
 };
 
+// === Smalruby: Start of viewport-aware popup flip ===
+// LEFT/RIGHT 配置で配置側にポップアップ幅 + spaceForArrow が収まらない場合は反対側にフリップする。
+// MobileSpritePanel など狭幅レイアウトで、左端列のスプライト削除確認ポップアップが
+// 画面外にはみ出して押せない問題への対策 (issue #671)。
+const getViewportWidth = () => {
+    if (typeof window === 'undefined') return Infinity;
+    if (window.visualViewport && typeof window.visualViewport.width === 'number') {
+        return window.visualViewport.width;
+    }
+    return window.innerWidth;
+};
+
+const flipSideIfOverflow = (side, targetRect, popupWidth, spaceForArrow) => {
+    const required = popupWidth + spaceForArrow;
+    if (side === PopupSide.LEFT) {
+        if (targetRect.left < required) {
+            const viewportWidth = getViewportWidth();
+            if (viewportWidth - targetRect.right >= required) {
+                return PopupSide.RIGHT;
+            }
+        }
+    } else if (side === PopupSide.RIGHT) {
+        const viewportWidth = getViewportWidth();
+        if (viewportWidth - targetRect.right < required) {
+            if (targetRect.left >= required) {
+                return PopupSide.LEFT;
+            }
+        }
+    }
+    return side;
+};
+// === Smalruby: End of viewport-aware popup flip ===
+
 const calculatePopupPosition = ({
     relativeElementRef,
     popupRef,
-    side,
+    side: requestedSide,
     align = PopupAlign.CENTER,
     popupWidth,
     spaceForArrow,
@@ -32,6 +65,10 @@ const calculatePopupPosition = ({
 
     const modalHeight = popupRef.current.getBoundingClientRect().height;
     const targetRect = el.getBoundingClientRect();
+
+    // === Smalruby: Start of viewport-aware popup flip ===
+    const side = flipSideIfOverflow(requestedSide, targetRect, popupWidth, spaceForArrow);
+    // === Smalruby: End of viewport-aware popup flip ===
 
     let top = 0;
     let left = 0;

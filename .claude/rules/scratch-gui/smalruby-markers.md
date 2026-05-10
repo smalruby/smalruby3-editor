@@ -92,6 +92,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/controls.jsx` | block_run analytics | 緑旗クリック時に GA4 イベントを発火 (issue #645 Phase 1) |
 | `src/containers/connection-modal.jsx` | mesh_v2/smalrubot_s1 connect analytics | 接続成功時に拡張別カテゴリ (`mesh_v2` / `smalrubot_s1`) で GA4 イベントを発火 (issue #645 Phase 1) |
 | `src/containers/connection-modal.jsx` | mesh_v2/smalrubot_s1 disconnect analytics | 切断時に拡張別カテゴリで GA4 イベントを発火 (issue #645 Phase 1) |
+| `src/lib/calculatePopupPosition.js` | viewport-aware popup flip | LEFT/RIGHT 配置で配置側にポップアップが収まらない場合、反対側にフリップする (issue #671: SP モードのスプライト削除確認ポップアップが画面外で押せない問題への対策) |
 | `src/containers/menu.jsx` | iPad menu item click fix | メニュー項目クリック時の `setTimeout` 遅延を 0 → 100ms に拡大。iPadOS Safari は `pointerup` から `click` 発火まで ~16–32ms 程度のラグがあり、setTimeout(0) で close すると `<li>` が click 発火前に unmount され React onClick が skip される問題への対応 |
 
 ## 関連ファイル
