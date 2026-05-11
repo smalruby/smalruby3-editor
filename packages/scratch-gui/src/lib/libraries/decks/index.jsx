@@ -19,6 +19,7 @@ import libraryChat3Mesh3 from './thumbnails/chat-3-mesh-3.jpg';
 import libraryChat3Mesh1ExternalKairyudo from './thumbnails/chat3-mesh1-external-kairyudo.png';
 // Ruby Basics 1: 計算してみよう
 import libraryRubyBasics1Numbers from './thumbnails/ruby-basics-1-numbers.jpg';
+import libraryRubyBasics1TryRuby from './thumbnails/ruby-basics-1-tryruby.png';
 import {CATEGORIES} from '../tutorial-tags';
 
 // Green flag icon for inline use in tutorial step titles
@@ -1372,14 +1373,19 @@ end`,
                 animationTarget: 'nextButton'
             },
             {
-                title: (
-                    <FormattedMessage
-                        defaultMessage="ここで書いたputsのコードは、本物のRubyでも同じように動くよ！もっと学ぶならTryRubyへ →"
-                        description="Ruby Basics 1 Step 6: TryRuby pointer"
-                        id="gui.howtos.ruby-basics-1-numbers.step6.title"
-                    />
-                ),
-                image: 'rubyBasics1Step6'
+                externalResources: {
+                    tryruby: {
+                        url: 'https://try.ruby-lang.org/ja/',
+                        img: libraryRubyBasics1TryRuby,
+                        name: (
+                            <FormattedMessage
+                                defaultMessage="TryRuby でもっとRubyを学ぶ — ここで書いたputsはそのまま動きます"
+                                description="External resource: TryRuby online playground"
+                                id="gui.howtos.ruby-basics-1-numbers.external.tryruby.name"
+                            />
+                        )
+                    }
+                }
             }
         ],
         urlId: 'rubyBasics1Numbers'

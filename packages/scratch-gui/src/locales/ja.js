@@ -934,8 +934,8 @@ export default {
     'gui.howtos.ruby-basics-1-numbers.step3.title': '{greenFlag}を押すと、ネコが「8」としゃべるよ',
     'gui.howtos.ruby-basics-1-numbers.step4.title': '他の計算も試してみよう（かけ算・わり算・ひき算）',
     'gui.howtos.ruby-basics-1-numbers.step5.title': '数字を好きなものに変えて、自分だけの計算をしてみよう',
-    'gui.howtos.ruby-basics-1-numbers.step6.title':
-        'ここで書いたputsのコードは、本物のRubyでも同じように動くよ！もっと学ぶならTryRubyへ →',
+    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name':
+        'TryRuby でもっとRubyを学ぶ — ここで書いたputsはそのまま動きます',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.all-tutorials': 'チュートリアル',

@@ -75,7 +75,6 @@ import rubyBasics1Step2 from './steps/ruby-basics-1-2-first-puts.png';
 import rubyBasics1Step3 from './steps/ruby-basics-1-3-result.png';
 import rubyBasics1Step4 from './steps/ruby-basics-1-4-more-math.png';
 import rubyBasics1Step5 from './steps/ruby-basics-1-5-modify.png';
-import rubyBasics1Step6 from './steps/ruby-basics-1-6-tryruby.png';
 
 const enImages = {
     // Getting Started
@@ -144,8 +143,7 @@ const enImages = {
     rubyBasics1Step2: rubyBasics1Step2,
     rubyBasics1Step3: rubyBasics1Step3,
     rubyBasics1Step4: rubyBasics1Step4,
-    rubyBasics1Step5: rubyBasics1Step5,
-    rubyBasics1Step6: rubyBasics1Step6
+    rubyBasics1Step5: rubyBasics1Step5
 };
 
 export {enImages};

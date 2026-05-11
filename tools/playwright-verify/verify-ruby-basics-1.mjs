@@ -119,6 +119,60 @@ log('step titles seen:', JSON.stringify(titles));
 const seen = new Set(titles.filter(Boolean));
 log(`distinct step titles surfaced: ${seen.size}`);
 
+// Verify the externalResources step renders the TryRuby link.
+// Try navigating to the last step by clicking right-button repeatedly via
+// direct DOM dispatch on the active card.
+await page.evaluate(() => {
+    // Try to fast-forward via internal Redux store
+    const root = document.querySelector('#app') || document.body;
+    const c = root._reactRootContainer || root.__reactContainer$;
+    // Best effort — fall back to no-op
+    void c;
+});
+
+// Direct check: search the DOM for any anchor to try.ruby-lang.org. The
+// externalResources step renders an <a href> when reached. We can also
+// inspect the deck source via decksLibraryContent at runtime.
+const linkInfo = await page.evaluate(() => {
+    const anchor = document.querySelector('a[href*="try.ruby-lang.org"]');
+    return anchor
+        ? { href: anchor.getAttribute('href'), text: anchor.textContent.trim().slice(0, 80) }
+        : null;
+});
+log('TryRuby anchor on current step:', JSON.stringify(linkInfo));
+// We can't easily fast-forward to the externalResources step in this
+// minimal script (Cards uses store dispatch), but we can at least confirm
+// the deck's last step references the URL by inspecting the deck JSON.
+const deckHasUrl = await page.evaluate(() => {
+    return new Promise((resolve) => {
+        let req;
+        window.webpackChunkGUI.push([
+            ['__probe__'],
+            {},
+            (r) => {
+                req = r;
+                let found = false;
+                for (const id in req.c) {
+                    const m = req.c[id]?.exports?.default;
+                    if (m && typeof m === 'object' && m['ruby-basics-1-numbers']) {
+                        const last = m['ruby-basics-1-numbers'].steps.slice(-1)[0];
+                        const url = last?.externalResources?.tryruby?.url;
+                        if (url && url.includes('try.ruby-lang.org')) found = true;
+                        break;
+                    }
+                }
+                resolve(found);
+            },
+        ]);
+    });
+});
+log('deck has TryRuby external URL:', deckHasUrl);
+if (!deckHasUrl) {
+    console.error('FAIL: ruby-basics-1-numbers does not declare a TryRuby externalResources URL');
+    process.exit(1);
+}
+log('OK: TryRuby external link is wired into the deck');
+
 await page.screenshot({ path: 'tmp/ruby1-final.png', fullPage: true });
 log('PASS: ruby-basics-1-numbers deck verified');
 await browser.close();

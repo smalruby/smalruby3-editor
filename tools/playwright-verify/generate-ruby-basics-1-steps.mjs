@@ -1,16 +1,14 @@
-// Generate step screenshots for the `ruby-basics-1-numbers` deck.
+// Render step images for the `ruby-basics-1-numbers` deck using ImageMagick.
 //
-// Outputs to `packages/scratch-gui/src/lib/libraries/decks/steps/`:
-//   ruby-basics-1-1-intro.png
-//   ruby-basics-1-2-first-puts.png
-//   ruby-basics-1-3-result.png
-//   ruby-basics-1-4-more-math.png
-//   ruby-basics-1-5-modify.png
-//   ruby-basics-1-6-tryruby.png
+// We render the Ruby code as a stylized "editor" block (dark background,
+// monospace font, syntax-ish colors) rather than relying on the live Monaco
+// editor. Monaco 0.55.1 has an internal `_acceptDeleteRange` crash that's
+// triggered by certain rapid setValue calls during automated runs, which
+// leaves visible ERROR markers in screenshots.
 //
-// Each screenshot captures the Ruby tab in a different code state.
+// This generator is deterministic and produces clean, focused images.
 
-import { chromium } from 'playwright';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -20,95 +18,190 @@ const STEPS_DIR = path.join(
     REPO_ROOT,
     'packages/scratch-gui/src/lib/libraries/decks/steps',
 );
+const THUMBS_DIR = path.join(
+    REPO_ROOT,
+    'packages/scratch-gui/src/lib/libraries/decks/thumbnails',
+);
 
-const URL = 'http://localhost:8601/?no_beforeunload=1&tab=ruby&rubyMode=ruby&ruby_version=2';
+const FONT_BOLD = '.Hiragino-Kaku-Gothic-Interface-W6';
+const FONT_REG = '.Hiragino-Kaku-Gothic-Interface-W3';
 
-const log = (...args) => console.log('[gen]', ...args);
+// 16:9-ish editor card at 720x420 — matches Mesh step image aspect roughly
+const W = 720;
+const H = 420;
 
-const browser = await chromium.launch({ headless: true });
-const context = await browser.newContext({
-    viewport: { width: 1280, height: 800 },
-    locale: 'ja-JP',
-});
-const page = await context.newPage();
+const render = (codeLines, headerText, outFile) => {
+    const args = [
+        '-size', `${W}x${H}`,
+        'canvas:#1e1e2e',
+        // Top bar
+        '-fill', '#313244',
+        '-draw', `rectangle 0,0 ${W},44`,
+        // 3 traffic-light dots
+        '-fill', '#f38ba8', '-draw', 'circle 22,22 22,32',
+        '-fill', '#f9e2af', '-draw', 'circle 46,22 46,32',
+        '-fill', '#a6e3a1', '-draw', 'circle 70,22 70,32',
+        // Header label
+        '-fill', '#cdd6f4', '-font', FONT_BOLD, '-pointsize', '16',
+        '-gravity', 'NorthWest',
+        '-annotate', '+110+12', headerText,
+    ];
 
-page.on('pageerror', (err) => console.error('[pageerror]', err.message));
+    // Render code lines starting from y=70
+    const lineY0 = 80;
+    const lineH = 28;
+    const xLineNum = 16;
+    const xCode = 60;
+    codeLines.forEach((rawLine, idx) => {
+        const y = lineY0 + idx * lineH;
+        // Line number
+        args.push(
+            '-fill', '#6c7086',
+            '-font', '.SF-NS-Mono',
+            '-pointsize', '14',
+            '-gravity', 'NorthWest',
+            '-annotate', `+${xLineNum}+${y}`,
+            String(idx + 1).padStart(2, ' '),
+        );
 
-await page.goto(URL);
-await page.evaluate(() => localStorage.clear());
-await page.reload();
-await page.waitForTimeout(2000);
-
-// Dismiss welcome modal if visible
-const laterBtn = page.locator('[data-testid="welcome-modal-later"]');
-if (await laterBtn.count()) {
-    await laterBtn.click();
-    await page.waitForTimeout(500);
-}
-
-// Helper: set Monaco editor value and screenshot Ruby tab panel.
-const setCodeAndScreenshot = async (code, filename) => {
-    await page.evaluate((c) => {
-        if (window.monaco && monaco.editor.getEditors().length > 0) {
-            monaco.editor.getEditors()[0].setValue(c);
+        // Color tokens: simple heuristic
+        // - words starting with `#`: comment (gray-green)
+        // - `puts`/`when_flag_clicked`/`do`/`end`: keyword (purple)
+        // - numbers: number (orange)
+        // - strings "...": green
+        // - everything else: foreground
+        // For simplicity we render the whole line in one color picked by
+        // whether it starts with `#` (comment) or has a keyword.
+        let color = '#cdd6f4';
+        if (rawLine.trim().startsWith('#')) {
+            color = '#94e2d5';
+        } else if (/\b(puts|when_flag_clicked|do|end)\b/.test(rawLine)) {
+            color = '#cba6f7';
         }
-    }, code);
-    await page.waitForTimeout(700);
-    const out = path.join(STEPS_DIR, filename);
-    // Target the Ruby tab panel by role
-    const panel = page.locator('[role="tabpanel"]').last();
-    await panel.screenshot({ path: out });
-    log(`wrote ${filename}`);
+        args.push(
+            '-fill', color,
+            '-font', '.SF-NS-Mono', '-pointsize', '16',
+            '-gravity', 'NorthWest',
+            '-annotate', `+${xCode}+${y}`,
+            rawLine.replace(/\\/g, '\\\\'),
+        );
+    });
+
+    args.push(outFile);
+    execFileSync('magick', args, { stdio: 'inherit' });
+    console.log('wrote', path.relative(REPO_ROOT, outFile));
 };
 
-// Step 1 — intro: editor empty with a friendly comment
-await setCodeAndScreenshot(
-    '# Ruby で計算してみよう！\n# `puts` を使うとネコが結果をしゃべるよ\n',
-    'ruby-basics-1-1-intro.png',
-);
-
-// Step 2 — first puts: simple addition
-await setCodeAndScreenshot(
-    'when_flag_clicked do\n  puts 2 + 6\nend\n',
-    'ruby-basics-1-2-first-puts.png',
-);
-
-// Step 3 — result: cat will say "8" after flag press
-// Take a screenshot focused on the stage with the code present.
-// (We can't trigger a real flag click in the headless run easily, so show the
-// code + stage layout. The stage cat is the default cat sprite.)
-await setCodeAndScreenshot(
-    'when_flag_clicked do\n  puts 2 + 6  # ← 緑の旗を押すとネコが「8」としゃべる\nend\n',
-    'ruby-basics-1-3-result.png',
-);
-
-// Step 4 — more math: multiple puts
-await setCodeAndScreenshot(
-    'when_flag_clicked do\n  puts 4 * 10    # かけ算\n  puts 30 / 4    # わり算\n  puts 5 - 12    # ひき算\nend\n',
-    'ruby-basics-1-4-more-math.png',
-);
-
-// Step 5 — modify: encourage editing the numbers
-await setCodeAndScreenshot(
-    'when_flag_clicked do\n  puts 100 + 50  # ← 数字を好きに変えてみよう！\n  puts 7 * 7\nend\n',
-    'ruby-basics-1-5-modify.png',
-);
-
-// Step 6 — TryRuby link: closing message
-await setCodeAndScreenshot(
+// Step 1 — intro
+render(
     [
-        '# 🎉 すごい！Ruby で計算ができるようになったね！',
-        '#',
-        '# ここで書いた `puts` のコードは',
-        '# 本物の Ruby (TryRuby など) でも同じように動くよ。',
-        '#',
-        '# 👉 もっと深く Ruby を学ぶなら:',
-        '#    https://try.ruby-lang.org/ja/',
+        '# Ruby で計算してみよう！',
+        '# puts を使うと結果を表示できるよ',
         '',
-        'puts "やったね！"\n',
-    ].join('\n'),
-    'ruby-basics-1-6-tryruby.png',
+        '# 次のステップで puts 2 + 6 を実行してみよう',
+    ],
+    'ruby-basics-1 · Step 1: イントロ',
+    path.join(STEPS_DIR, 'ruby-basics-1-1-intro.png'),
 );
 
-await browser.close();
-log('done');
+// Step 2 — first puts
+render(
+    [
+        'when_flag_clicked do',
+        '  puts 2 + 6',
+        'end',
+    ],
+    'ruby-basics-1 · Step 2: 最初の計算',
+    path.join(STEPS_DIR, 'ruby-basics-1-2-first-puts.png'),
+);
+
+// Step 3 — run, cat says 8
+render(
+    [
+        'when_flag_clicked do',
+        '  puts 2 + 6',
+        'end',
+        '',
+        '# → ネコが「8」としゃべるよ',
+    ],
+    'ruby-basics-1 · Step 3: 実行',
+    path.join(STEPS_DIR, 'ruby-basics-1-3-result.png'),
+);
+
+// Step 4 — more math
+render(
+    [
+        'when_flag_clicked do',
+        '  puts 4 * 10    # かけ算 → 40',
+        '  puts 30 / 4    # わり算 → 7',
+        '  puts 5 - 12    # ひき算 → -7',
+        'end',
+    ],
+    'ruby-basics-1 · Step 4: 他の計算',
+    path.join(STEPS_DIR, 'ruby-basics-1-4-more-math.png'),
+);
+
+// Step 5 — modify
+render(
+    [
+        'when_flag_clicked do',
+        '  puts 100 + 50  # ← 好きな数字に変えてみよう！',
+        '  puts 7 * 7',
+        '  puts 1000 / 8',
+        'end',
+    ],
+    'ruby-basics-1 · Step 5: 自由に編集',
+    path.join(STEPS_DIR, 'ruby-basics-1-5-modify.png'),
+);
+
+// TryRuby promotional image — used as the externalResources step image
+// (lives in thumbnails/, not steps/, to mirror the chat-3-mesh-3 Kairyudo
+// external resource pattern).
+const tryRubyImage = path.join(THUMBS_DIR, 'ruby-basics-1-tryruby.png');
+execFileSync('magick', [
+    '-size', `${W}x${H}`,
+    'canvas:#cc342d',
+    // Top accent
+    '-fill', '#ffffff', '-font', FONT_BOLD, '-pointsize', '28',
+    '-gravity', 'NorthWest', '-annotate', '+40+40', 'TryRuby',
+    // Subtitle
+    '-fill', '#ffffff', '-font', FONT_REG, '-pointsize', '16',
+    '-gravity', 'NorthWest', '-annotate', '+40+80',
+    'https://try.ruby-lang.org/ja/',
+    // Body — explain the bridge
+    '-fill', '#ffffff', '-font', FONT_REG, '-pointsize', '18',
+    '-gravity', 'NorthWest', '-annotate', '+40+150',
+    'ここで学んだ puts のコードは',
+    '-fill', '#ffffff', '-font', FONT_REG, '-pointsize', '18',
+    '-gravity', 'NorthWest', '-annotate', '+40+180',
+    '本物の Ruby でも同じように動きます',
+    // Sample code-ish line
+    '-fill', '#ffe5b4', '-font', '.SF-NS-Mono', '-pointsize', '18',
+    '-gravity', 'NorthWest', '-annotate', '+40+250',
+    '> puts 2 + 6',
+    '-fill', '#ffe5b4', '-font', '.SF-NS-Mono', '-pointsize', '18',
+    '-gravity', 'NorthWest', '-annotate', '+40+280',
+    '=> 8',
+    '-fill', '#ffffff', '-font', FONT_BOLD, '-pointsize', '20',
+    '-gravity', 'SouthEast', '-annotate', '+30+30',
+    '→ もっと学ぶ',
+    tryRubyImage,
+], { stdio: 'inherit' });
+console.log('wrote', path.relative(REPO_ROOT, tryRubyImage));
+
+// Refresh the thumbnail so it looks consistent with the new style
+execFileSync('magick', [
+    '-size', '600x375',
+    'canvas:#1e1e2e',
+    '-fill', '#cba6f7', '-font', FONT_BOLD, '-pointsize', '60',
+    '-gravity', 'NorthWest', '-annotate', '+40+90', 'Ruby のきほん',
+    '-fill', '#a6e3a1', '-font', '.SF-NS-Mono', '-pointsize', '46',
+    '-gravity', 'NorthWest', '-annotate', '+40+200', 'puts 2 + 6',
+    '-fill', '#fab387', '-font', '.SF-NS-Mono', '-pointsize', '36',
+    '-gravity', 'NorthWest', '-annotate', '+40+270', '=> 8',
+    '-quality', '92',
+    path.join(THUMBS_DIR, 'ruby-basics-1-numbers.jpg'),
+], { stdio: 'inherit' });
+console.log('wrote thumbnail');
+
+console.log('done');
