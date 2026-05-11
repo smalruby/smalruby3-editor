@@ -160,5 +160,5 @@ infra/**/tmp/
 infra/**/.cdk.staging/
 infra/**/cdk-out-*/
 
-# devcontainer の個人用 mount override (initialize.sh が空 stub を生成する)
-.devcontainer/docker-compose.local.yml
+# devcontainer の個人別設定 (各自で .example からコピーして mounts を編集する)
+.devcontainer/devcontainer.json
