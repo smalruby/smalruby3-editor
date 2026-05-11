@@ -936,6 +936,7 @@ export default {
     'gui.howtos.ruby-basics-1-numbers.step5.title': '数字を好きなものに変えて、自分だけの計算をしてみよう',
     'gui.howtos.ruby-basics-1-numbers.external.tryruby.name':
         'TryRuby でもっとRubyを学ぶ — ここで書いたputsはそのまま動きます',
+    'gui.howtos.ruby-basics-1-numbers.external.tutorials.name': 'スモウルビーで他のチュートリアルを試す — 一覧を開く',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.all-tutorials': 'チュートリアル',

@@ -143,35 +143,55 @@ log('TryRuby anchor on current step:', JSON.stringify(linkInfo));
 // We can't easily fast-forward to the externalResources step in this
 // minimal script (Cards uses store dispatch), but we can at least confirm
 // the deck's last step references the URL by inspecting the deck JSON.
-const deckHasUrl = await page.evaluate(() => {
+const closingStepInfo = await page.evaluate(() => {
     return new Promise((resolve) => {
-        let req;
         window.webpackChunkGUI.push([
             ['__probe__'],
             {},
-            (r) => {
-                req = r;
-                let found = false;
+            (req) => {
                 for (const id in req.c) {
                     const m = req.c[id]?.exports?.default;
                     if (m && typeof m === 'object' && m['ruby-basics-1-numbers']) {
                         const last = m['ruby-basics-1-numbers'].steps.slice(-1)[0];
-                        const url = last?.externalResources?.tryruby?.url;
-                        if (url && url.includes('try.ruby-lang.org')) found = true;
-                        break;
+                        const ext = last?.externalResources || {};
+                        resolve({
+                            tryRubyUrl: ext.tryruby?.url || null,
+                            tryRubyHasImg: !!ext.tryruby?.img,
+                            tutorialsAction: ext.smalrubyTutorials?.action || null,
+                            tutorialsHasImg: !!ext.smalrubyTutorials?.img,
+                            keys: Object.keys(ext),
+                        });
+                        return;
                     }
                 }
-                resolve(found);
+                resolve(null);
             },
         ]);
     });
 });
-log('deck has TryRuby external URL:', deckHasUrl);
-if (!deckHasUrl) {
-    console.error('FAIL: ruby-basics-1-numbers does not declare a TryRuby externalResources URL');
+log('closing step externalResources:', JSON.stringify(closingStepInfo));
+
+if (!closingStepInfo) {
+    console.error('FAIL: ruby-basics-1-numbers deck not found in bundle');
     process.exit(1);
 }
-log('OK: TryRuby external link is wired into the deck');
+if (closingStepInfo.tryRubyUrl !== 'https://try.ruby-lang.org/') {
+    console.error('FAIL: TryRuby URL is not the canonical root URL');
+    process.exit(1);
+}
+if (!closingStepInfo.tryRubyHasImg) {
+    console.error('FAIL: TryRuby card has no image');
+    process.exit(1);
+}
+if (closingStepInfo.tutorialsAction !== 'openTipsLibrary') {
+    console.error('FAIL: Smalruby tutorials card does not have action=openTipsLibrary');
+    process.exit(1);
+}
+if (!closingStepInfo.tutorialsHasImg) {
+    console.error('FAIL: Smalruby tutorials card has no image');
+    process.exit(1);
+}
+log('OK: closing step offers both TryRuby (external) and Smalruby tutorials (internal action)');
 
 await page.screenshot({ path: 'tmp/ruby1-final.png', fullPage: true });
 log('PASS: ruby-basics-1-numbers deck verified');

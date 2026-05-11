@@ -968,6 +968,8 @@ export default {
     'gui.howtos.ruby-basics-1-numbers.step5.title': 'すうじをすきなものにかえて、じぶんだけのけいさんをしてみよう',
     'gui.howtos.ruby-basics-1-numbers.external.tryruby.name':
         'TryRuby でもっとRubyをまなぶ — ここでかいたputsはそのままうごきます',
+    'gui.howtos.ruby-basics-1-numbers.external.tutorials.name':
+        'スモウルビーでほかのチュートリアルをためす — いちらんをひらく',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',

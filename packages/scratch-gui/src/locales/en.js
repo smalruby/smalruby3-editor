@@ -644,6 +644,8 @@ export default {
     'gui.howtos.ruby-basics-1-numbers.step5.title': 'Change the numbers to whatever you like and do your own math',
     'gui.howtos.ruby-basics-1-numbers.external.tryruby.name':
         'Learn more on TryRuby — the `puts` code you wrote here works the same way',
+    'gui.howtos.ruby-basics-1-numbers.external.tutorials.name':
+        'Try another Smalruby tutorial — open the tutorial library',
     'gui.menuBar.updateTooltip': 'Try the new Smalruby!',
     'gui.menuBar.updateConfirm':
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',
