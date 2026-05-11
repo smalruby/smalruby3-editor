@@ -1375,7 +1375,7 @@ end`,
             {
                 externalResources: {
                     tryruby: {
-                        url: 'https://try.ruby-lang.org/ja/',
+                        url: 'https://try.ruby-lang.org/',
                         img: libraryRubyBasics1TryRuby,
                         name: (
                             <FormattedMessage

@@ -167,7 +167,7 @@ execFileSync('magick', [
     // Subtitle
     '-fill', '#ffffff', '-font', FONT_REG, '-pointsize', '16',
     '-gravity', 'NorthWest', '-annotate', '+40+80',
-    'https://try.ruby-lang.org/ja/',
+    'https://try.ruby-lang.org/',
     // Body — explain the bridge
     '-fill', '#ffffff', '-font', FONT_REG, '-pointsize', '18',
     '-gravity', 'NorthWest', '-annotate', '+40+150',

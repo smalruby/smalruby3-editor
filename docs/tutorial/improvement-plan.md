@@ -161,7 +161,7 @@ end
 
 `ruby-basics-7-next` の最終ステップで:
 - 「Smalruby で書いた `puts` のコードは、TryRuby や本物の Ruby でもそのまま動くよ」と橋渡しメッセージ
-- 「TryRuby を開く」ボタン (新規タブで https://try.ruby-lang.org/ja/ を開く)
+- 「TryRuby を開く」ボタン (新規タブで https://try.ruby-lang.org/ を開く — TryRuby は URL パスでの言語指定を受け付けないため必ずルートを使う)
 - step 構造は既存の `deckIds` ナビゲーション拡張で実装するか、`code` フィールドを使わず外部 URL を持つ新しい step プロパティ (`externalUrl`) を追加するかは実装時に判断。後者の場合 `cards.jsx` の対応も必要。
 
 ### 画像戦略
