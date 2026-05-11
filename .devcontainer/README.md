@@ -10,22 +10,50 @@ NaCl Claude Code 利用ガイドライン **階層 B（OSS / 自社開発）** �
 - 既存の `bin/dx` / `bin/setup-worktree` / git worktree 運用と共存する
 - VS Code Dev Containers と devpod の両方で動作する標準準拠
 
-## マウント一覧
+## マウント構成
+
+devcontainer のマウントは **共有用** と **個人用** を 2 つの compose ファイルに
+分けている。
+
+### `docker-compose.devcontainer.yml` (commit、全員共通)
 
 | ホスト側 | コンテナ内 | 用途 |
 |---|---|---|
 | `<repo root>` | `/app` | 作業ディレクトリ（既存 compose と同じ） |
-| `~/ghq` | `/ghq` | submodule の origin/upstream、関連 OSS の参照・push |
 | `~/.gitconfig` | `/root/.gitconfig` (ro) | git ユーザー名・コミット署名 |
-| `~/.config/gh` | `/root/.config/gh` | gh CLI の設定 (ホスト名・ユーザー名) |
+| `~/.config/gh` | `/root/.config/gh` | gh CLI 設定 |
+
+### `docker-compose.local.yml` (`.gitignore`、各自で `*.example` からコピー)
+
+ghq の有無、Claude Code の利用有無などはユーザーによって違うため、個人ごとに
+override する。`.devcontainer/docker-compose.local.yml.example` をコピーして
+自分の環境に合わせる:
+
+```bash
+cp .devcontainer/docker-compose.local.yml.example \
+   .devcontainer/docker-compose.local.yml
+# 不要な mount をコメントアウトして使う
+```
+
+template には以下がデフォルトで含まれる:
+
+| ホスト側 | コンテナ内 | 用途 |
+|---|---|---|
+| `~/ghq` | `/ghq` | 関連 OSS の参照・push (使わない人はコメントアウト) |
 | `~/.claude.json` | `/root/.claude.json` | Claude Code 認証 |
 | `~/.claude/settings.json` | 同上 (ro) | Claude Code グローバル設定 |
 | `~/.claude/skills` | 同上 (ro) | 自作 skills |
-| `~/.claude/plugins` | 同上 (ro) | Claude Code プラグイン |
+| `~/.claude/plugins` | 同上 (ro) | プラグイン |
 | `~/.claude/statusline-command.sh` | 同上 (ro) | カスタム statusline |
-| `~/.claude/projects/-app` | `/root/.claude/projects/-app` | このプロジェクト固有の memory のみ (後述) |
+| `~/.claude/projects/-app` | `/root/.claude/projects/-app` | このプロジェクト固有 memory |
 
-**マウントしないもの**: `~/.ssh`, `~/.aws`, `~/Documents`, `~/Downloads`, `~/Desktop`, `~/Library`, 他案件ディレクトリ、**`~/.claude/projects/`, `~/.claude/sessions/`, `~/.claude/history.jsonl`, `~/.claude/file-history/`, `~/.claude/shell-snapshots/`** (他プロジェクトの転写・履歴の漏れを防ぐ)。
+`docker-compose.local.yml` が無い場合は `initialize.sh` が空の stub を自動生成
+するので、Claude Code を使わない・ghq を使わない人は何もせずそのまま動作する。
+
+**マウントしないもの (全員)**: `~/.ssh`, `~/.aws`, `~/Documents`, `~/Downloads`,
+`~/Desktop`, `~/Library`, 他案件ディレクトリ、**`~/.claude/projects/`,
+`~/.claude/sessions/`, `~/.claude/history.jsonl`, `~/.claude/file-history/`,
+`~/.claude/shell-snapshots/`** (他プロジェクトの転写・履歴の漏れを防ぐ)。
 
 ### Claude Code の認証・設定・memory 共有について
 

@@ -1,0 +1,55 @@
+# .devcontainer/docker-compose.local.yml
+#
+# 個人ごとに devcontainer を拡張するための override。`.gitignore` 対象。
+# 使い方: このファイルを `docker-compose.local.yml` にコピーし、自分の環境に
+# 合わせて編集する。
+#
+#     cp .devcontainer/docker-compose.local.yml.example \
+#        .devcontainer/docker-compose.local.yml
+#
+# devcontainer.json はこのファイルを dockerComposeFile に含めるため、Reopen
+# in Container すると自動で適用される。空のままでも害はない。
+#
+# 注意:
+# - bind mount のソースが存在しないと devcontainer の起動が失敗するため、
+#   不要なエントリはコメントアウトしておく。
+# - Claude Code を使わない人は claude セクションを丸ごと省略してよい。
+# - ghq を使わない人は ghq セクションを省略してよい。
+
+services:
+  app:
+    volumes:
+      # --- ghq (関連 OSS の参照) ---
+      # 自分の ghq root が ~/ghq でない場合は source を書き換える。
+      - type: bind
+        source: ${HOME}/ghq
+        target: /ghq
+
+      # --- Claude Code: グローバル設定・認証のみ共有 ---
+      # 他プロジェクトの transcripts / sessions / history は意図的に
+      # マウントしないことで漏れを防ぐ。詳細は README.md 参照。
+      - type: bind
+        source: ${HOME}/.claude.json
+        target: /root/.claude.json
+      - type: bind
+        source: ${HOME}/.claude/settings.json
+        target: /root/.claude/settings.json
+        read_only: true
+      - type: bind
+        source: ${HOME}/.claude/skills
+        target: /root/.claude/skills
+        read_only: true
+      - type: bind
+        source: ${HOME}/.claude/plugins
+        target: /root/.claude/plugins
+        read_only: true
+      - type: bind
+        source: ${HOME}/.claude/statusline-command.sh
+        target: /root/.claude/statusline-command.sh
+        read_only: true
+      # このプロジェクトの memory のみ共有。initialize.sh が
+      # ${HOME}/.claude/projects/-app を host slug へのシンボリックリンクと
+      # して作成する。
+      - type: bind
+        source: ${HOME}/.claude/projects/-app
+        target: /root/.claude/projects/-app

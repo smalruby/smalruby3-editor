@@ -3,9 +3,8 @@ services:
     # devcontainer 用に長寿命化（既存 compose は `npm start` で短命）
     command: sleep infinity
     volumes:
-      - type: bind
-        source: ${HOME}/ghq
-        target: /ghq
+      # 全開発者で共通のマウント。個人依存のもの (~/ghq, ~/.claude 等) は
+      # docker-compose.local.yml に置く (gitignore、各自で .example からコピー)。
       - type: bind
         source: ${HOME}/.gitconfig
         target: /root/.gitconfig
@@ -13,31 +12,3 @@ services:
       - type: bind
         source: ${HOME}/.config/gh
         target: /root/.config/gh
-
-      # Claude Code: グローバル設定・認証のみ共有 (per-project な transcripts /
-      # sessions / history はマウントしないことで他プロジェクトの漏れを防ぐ)
-      - type: bind
-        source: ${HOME}/.claude.json
-        target: /root/.claude.json
-      - type: bind
-        source: ${HOME}/.claude/settings.json
-        target: /root/.claude/settings.json
-        read_only: true
-      - type: bind
-        source: ${HOME}/.claude/skills
-        target: /root/.claude/skills
-        read_only: true
-      - type: bind
-        source: ${HOME}/.claude/plugins
-        target: /root/.claude/plugins
-        read_only: true
-      - type: bind
-        source: ${HOME}/.claude/statusline-command.sh
-        target: /root/.claude/statusline-command.sh
-        read_only: true
-      # このプロジェクトの memory のみ共有 (他プロジェクトの転写は隔離)。
-      # ホスト側の `-app` シンボリックリンクは initialize.sh が作成し、
-      # ホスト本来の slug (`-Users-<host-path>`) を指すようにする。
-      - type: bind
-        source: ${HOME}/.claude/projects/-app
-        target: /root/.claude/projects/-app

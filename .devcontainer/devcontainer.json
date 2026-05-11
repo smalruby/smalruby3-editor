@@ -1,6 +1,10 @@
 {
   "name": "smalruby3-editor (Claude Code)",
-  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.devcontainer.yml"],
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "docker-compose.devcontainer.yml",
+    "docker-compose.local.yml"
+  ],
   "service": "app",
   "workspaceFolder": "/app",
   "overrideCommand": false,
