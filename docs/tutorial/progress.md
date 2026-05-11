@@ -8,9 +8,9 @@
 
 | Phase | Issue | 状態 | 規模 | 画像 |
 |---|---|---|---|---|
-| Phase 1 — Mesh 再分類 | [#678](https://github.com/smalruby/smalruby3-editor/issues/678) | 🟢 実装完了 (レビュー待ち) | 1 PR | 不要 |
-| 基盤 — `setup` プロパティ | (Phase 2 sub-issue 内) | ⚪️ 未着手 | 1 PR | 不要 |
-| Phase 2 — Ruby 拡充 | [#679](https://github.com/smalruby/smalruby3-editor/issues/679) | ⚪️ 未着手 | 2〜3 PR | ~50 枚 |
+| Phase 1 — Mesh 再分類 | [#678](https://github.com/smalruby/smalruby3-editor/issues/678) | ✅ マージ済み (PR #683) | 1 PR | 不要 |
+| 基盤 — `setup` プロパティ | (Phase 2 sub-issue 内) | 🟢 実装完了 (レビュー待ち) | 1 PR | 不要 |
+| Phase 2 — Ruby 拡充 | [#679](https://github.com/smalruby/smalruby3-editor/issues/679) | ⚪️ deck 着手前 (基盤マージ後に開始) | 2〜3 PR | ~50 枚 |
 | Phase 3 — Block 4 シリーズ | [#680](https://github.com/smalruby/smalruby3-editor/issues/680) | ⚪️ 未着手 (書誌情報待ち) | 4 PR | ~76 枚 |
 | Phase 4 — DNCL | [#681](https://github.com/smalruby/smalruby3-editor/issues/681) | ⚪️ 未着手 | 3〜4 PR | ~70 枚 |
 
@@ -52,11 +52,13 @@
 
 ### 基盤 (Phase 2 前半): `setup` プロパティ
 
-- [ ] deck 定義の type 拡張 (`{ tab, rubyMode, extensions, rubyVersion }`)
-- [ ] `tips-library.jsx` または `cards` reducer で deck 起動時に setup を適用
-- [ ] `activateTab` / `setDnclMode` / `vm.extensionManager.loadExtensionURL` の冪等な呼び出し
-- [ ] ロード失敗時のグレースフルデグレード
-- [ ] ふりがなフラグも考慮した rubyMode の動作 (`smalruby:furiganaEnabled` との同期)
+- [x] `src/lib/deck-setup.js` 新規追加 (`applyDeckSetup` ヘルパー)
+- [x] deck 定義の type 拡張 (`{ tab, rubyMode, extensions, rubyVersion }`) — `rubyVersion` は将来用フックのみ
+- [x] `tips-library.jsx` で deck 起動時に setup を適用 (vm prop 接続含む)
+- [x] `activateTab` / `setDnclMode` / `vm.extensionManager.loadExtensionURL` の冪等な呼び出し
+- [x] ロード失敗時のグレースフルデグレード (`console.warn` のみ、deck は開く)
+- [x] ふりがなフラグも考慮した rubyMode の動作 (`smalruby:furiganaEnabled` localStorage の同期)
+- [x] `test/unit/lib/deck-setup.test.js` で 10 ケースの単体テスト (全 pass)
 
 ### Phase 3 着手前に必要 (外部要因)
 
