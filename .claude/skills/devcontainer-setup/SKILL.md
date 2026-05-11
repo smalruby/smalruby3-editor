@@ -51,12 +51,12 @@ fi
 - multiSelect: true
 - options:
   - "ghq (~/ghq → /ghq)" — 関連 OSS の参照
-  - "Claude Code 認証 (~/.claude.json)" — ログイン状態を引き継ぐ
-  - "Claude Code 設定・skills (~/.claude/settings.json, ~/.claude/skills, plugins, statusline-command.sh)" — グローバル設定を共有
-  - "Claude Code memory (~/.claude/projects/-app)" — このプロジェクト固有 memory を共有 (他プロジェクト transcripts は隔離される)
+  - "Claude Code 設定・skills (~/.claude/settings.json, skills, plugins, statusline-command.sh, projects/-app)" — host で開発した skills + このプロジェクトの memory を container に持ち込む。container 内 Claude の初回起動時にログインが必要 (auth は意図的に共有しない)
 
-Claude 系は 3 つで 1 セットとして提示するのが分かりやすい (バラバラに選ぶと
-認証だけあって memory が無い、といった中途半端な状態になる)。
+**重要**: `~/.claude.json` の bind は **オプションから外している**。container と
+host の auth/version 分離のため、container は別途ログインする設計。auto-update
+抑止のため containerEnv.DISABLE_AUTOUPDATER=1 は常に有効。詳細は
+.devcontainer/README.md の「Claude Code 認証は マウントしない」セクション参照。
 
 ### Step 4: ホスト側の状態確認
 
@@ -64,7 +64,7 @@ Claude 系は 3 つで 1 セットとして提示するのが分かりやすい 
 
 ```bash
 [[ -d "$HOME/ghq" ]] || 警告: ~/ghq が無いので作成するか確認
-[[ -f "$HOME/.claude.json" ]] || 警告: Claude Code を起動して認証してから再実行を推奨
+[[ -d "$HOME/.claude/skills" ]] || 警告: Claude Code を起動したことが無い可能性
 [[ -f "$HOME/.claude/settings.json" ]] || 警告: 同上
 ```
 

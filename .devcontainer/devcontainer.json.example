@@ -44,6 +44,12 @@
         "GH_TOKEN": "${localEnv:GH_TOKEN}"
     },
 
+    "containerEnv": {
+        // container 内 Claude が host の ~/.claude.json のバージョンを
+        // 勝手に書き換えるのを防ぐ。host との version drift 防止。
+        "DISABLE_AUTOUPDATER": "1"
+    },
+
     "forwardPorts": [8601],
 
     "initializeCommand": ".devcontainer/initialize.sh",
@@ -69,10 +75,22 @@
         // 関連 OSS の参照 (smalruby/ruby-sdl2, scratchfoundation/scratch-editor 等)
         // ,"source=${localEnv:HOME}/ghq,target=/ghq,type=bind"
 
-        // Claude Code の認証・設定・skills を引き継ぐ
-        // 他プロジェクトの transcripts (~/.claude/projects/*, ~/.claude/sessions/,
-        // ~/.claude/history.jsonl, ~/.claude/file-history/) はマウントしないことで隔離する。
-        // ,"source=${localEnv:HOME}/.claude.json,target=/root/.claude.json,type=bind"
+        // ---- Claude Code 関連 (Anthropic 公式 + 安全側を考慮した設計) ----
+        //
+        // - **認証 (~/.claude.json) は mount しない**。container 内で初回 `claude` 起動時に
+        //   別途ログインする。container の auth state は container 内 fs に残り、
+        //   `devpod delete` または devcontainer rebuild まで永続。host の ~/.claude.json
+        //   は触らない (auto-update でも host が汚れない)。
+        // - **DISABLE_AUTOUPDATER=1** (上記 containerEnv) で auto-update も止める。
+        //   host との version drift を防ぐ。
+        // - skills / plugins / settings / statusline は host から **read-only**
+        //   bind で持ち込む。container 内では書き換えできないので汚染しない。
+        // - **memory のみ bind rw** で host と共有 (このプロジェクト固有の memory
+        //   なので host 側 Claude と相互に読み書きする想定)。
+        // - その他 (~/.claude/projects/*, sessions, history, file-history) は
+        //   マウントしないことで他プロジェクトの transcripts を隔離。
+
+        // host の skills / plugins / 設定を読むだけ (container は書き換え不可)
         // ,"source=${localEnv:HOME}/.claude/settings.json,target=/root/.claude/settings.json,type=bind,readonly"
         // ,"source=${localEnv:HOME}/.claude/skills,target=/root/.claude/skills,type=bind,readonly"
         // ,"source=${localEnv:HOME}/.claude/plugins,target=/root/.claude/plugins,type=bind,readonly"

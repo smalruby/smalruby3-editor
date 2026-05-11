@@ -95,12 +95,28 @@ devpod delete smalruby3-editor
 | ホスト側 | コンテナ内 | 用途 |
 |---|---|---|
 | `~/ghq` | `/ghq` | 関連 OSS の参照・push |
-| `~/.claude.json` | `/root/.claude.json` | Claude Code 認証 |
-| `~/.claude/settings.json` | 同上 (ro) | Claude Code グローバル設定 |
+| `~/.claude/settings.json` | 同上 (ro) | Claude Code グローバル設定 (host で編集、container は読むだけ) |
 | `~/.claude/skills` | 同上 (ro) | 自作 skills |
 | `~/.claude/plugins` | 同上 (ro) | プラグイン |
 | `~/.claude/statusline-command.sh` | 同上 (ro) | カスタム statusline |
-| `~/.claude/projects/-app` | `/root/.claude/projects/-app` | このプロジェクト固有 memory |
+| `~/.claude/projects/-app` | `/root/.claude/projects/-app` (rw) | このプロジェクト固有 memory (host と共有) |
+
+### Claude Code 認証は **マウントしない** (重要)
+
+`~/.claude.json` は host のものを意図的に共有しない。理由:
+
+- container 内 Claude が auto-update すると host の version 表記を書き換える (host
+  側 Claude との不整合発生源になる)
+- host secrets / API tokens を container に持ち込まないという Anthropic 公式の
+  原則とも整合する
+
+代わりに container 内では **初回 `claude` 起動時にログインを行う**。container fs に
+保存された auth は `devpod stop` / `devpod up` を跨いで永続。`devpod delete` または
+devcontainer rebuild で消えるが、再ログインは数十秒で済む。
+
+加えて **`DISABLE_AUTOUPDATER=1`** を `containerEnv` に設定済み。container 内
+Claude は自動アップデートしない。version 固定は IDE 側で features が install する
+最新版を build 時に決め打ちする扱い。
 
 **マウントしないもの (全員)**: `~/.ssh`, `~/.aws`, `~/Documents`, `~/Downloads`,
 `~/Desktop`, `~/Library`, 他案件ディレクトリ、**`~/.claude/projects/`,
