@@ -17,9 +17,23 @@ NaCl Claude Code 利用ガイドライン **階層 B（OSS / 自社開発）** �
 | `<repo root>` | `/app` | 作業ディレクトリ（既存 compose と同じ） |
 | `~/ghq` | `/ghq` | submodule の origin/upstream、関連 OSS の参照・push |
 | `~/.gitconfig` | `/root/.gitconfig` (ro) | git ユーザー名・コミット署名 |
-| `~/.config/gh` | `/root/.config/gh` | fine-grained PAT を含む gh CLI 認証情報 |
+| `~/.config/gh` | `/root/.config/gh` | gh CLI の設定 (ホスト名・ユーザー名) |
 
 **マウントしないもの**: `~/.ssh`, `~/.aws`, `~/Documents`, `~/Downloads`, `~/Desktop`, `~/Library`, 他案件ディレクトリ。
+
+### gh CLI の認証トークンについて (macOS 必須手順)
+
+macOS の `gh` は PAT を **Keychain** に保存するため、`~/.config/gh` を
+bind mount しても `oauth_token` がコンテナに渡らない。devcontainer 起動前に
+ホスト側のシェルで以下を実行して `GH_TOKEN` 環境変数として注入する:
+
+```bash
+export GH_TOKEN=$(gh auth token)
+```
+
+devcontainer.json の `remoteEnv.GH_TOKEN: "${localEnv:GH_TOKEN}"` 経由で
+コンテナ内 `gh` が PAT を読み取れるようになる。未設定で devcontainer を
+起動した場合、`initialize.sh` が警告を出す (devcontainer 自体は起動する)。
 
 ## 起動方法
 
@@ -75,6 +89,6 @@ docker compose -f docker-compose.yml -f .devcontainer/docker-compose.devcontaine
 
 ## トラブルシューティング
 
-- **gh auth が効かない**: `~/.config/gh/hosts.yml` がホスト側に存在するか確認。fine-grained PAT は keychain ではなく hosts.yml に書かれるケースもある
+- **gh auth が効かない**: macOS では PAT が keychain に格納されるため、`export GH_TOKEN=$(gh auth token)` を実行してから devcontainer を起動する (上記「gh CLI の認証トークンについて」参照)
 - **`/ghq` が空**: `ghq root` の出力が `~/ghq` 以外を指していないか確認
 - **ポート 8601 が見えない**: VS Code は `forwardPorts` で自動転送。devpod / 直接 compose では `docker-compose.yml` の `ports` 設定で `localhost:8601` に公開される

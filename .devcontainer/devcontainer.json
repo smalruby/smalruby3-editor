@@ -9,9 +9,11 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "remoteEnv": {
-    "GHQ_ROOT": "/ghq"
+    "GHQ_ROOT": "/ghq",
+    "GH_TOKEN": "${localEnv:GH_TOKEN}"
   },
   "forwardPorts": [8601],
+  "initializeCommand": ".devcontainer/initialize.sh",
   "postCreateCommand": "bin/setup-worktree || true",
   "customizations": {
     "vscode": {
