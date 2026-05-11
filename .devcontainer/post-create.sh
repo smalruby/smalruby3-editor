@@ -36,10 +36,18 @@ else
 fi
 
 # --- 2) Claude Code のインストール (npm 経由) ---
+# devpod 環境ではここでまれに "node: bad option: ..." を出して exit 1 する
+# ことがあるが、container 自体は正常で、手動で再実行すれば成功する。
+# devcontainer up が失敗扱いにならないよう non-fatal にする。
 if ! command -v claude >/dev/null 2>&1; then
     echo "post-create: installing Claude Code..."
-    npm install -g @anthropic-ai/claude-code 2>&1 | tail -3
-    echo "post-create: Claude Code installed: $(claude --version 2>&1 | head -1)"
+    if npm install -g @anthropic-ai/claude-code 2>&1 | tail -3 && command -v claude >/dev/null 2>&1; then
+        echo "post-create: Claude Code installed: $(claude --version 2>&1 | head -1)"
+    else
+        echo "post-create: WARNING: Claude Code install failed (devpod-related)." >&2
+        echo "post-create:          Install manually inside the container:" >&2
+        echo "post-create:              npm install -g @anthropic-ai/claude-code" >&2
+    fi
 else
     echo "post-create: Claude Code already installed: $(claude --version 2>&1 | head -1)"
 fi
