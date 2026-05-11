@@ -132,7 +132,8 @@ docker compose -f docker-compose.yml -f .devcontainer/docker-compose.devcontaine
 
 - **gh auth が効かない**: macOS では PAT が keychain に格納されるため、`export GH_TOKEN=$(gh auth token)` を実行してから devcontainer を起動する (上記「gh CLI の認証トークンについて」参照)
 - **`/ghq` が空**: `ghq root` の出力が `~/ghq` 以外を指していないか確認
-- **ポート 8601 が見えない**: VS Code は `forwardPorts` で自動転送。devpod / 直接 compose では `docker-compose.yml` の `ports` 設定で `localhost:8601` に公開される
+- **ポート 8601 が見えない**: devcontainer 側はホスト bind を `!reset` で無効化している (重要: 通常 compose との衝突防止)。IDE 側の `forwardPorts: [8601]` が自動転送するため、VS Code / devpod 経由なら `localhost:8601` で開く
+- **devpod up が `Could not resolve host` で失敗する**: 通常 compose (`docker compose up app`) と devpod 用の compose プロジェクトが同時に host port を取り合うと、後発側がネットワーク attach に失敗し、DNS が壊れた孤立コンテナになる。`docker compose stop app` で通常側を止めてから `devpod up .` を再実行する。本リポジトリでは `ports: !reset []` で host bind を無効化しているため再現しないはずだが、過去状態の container が残っていると同じ症状が出る可能性がある
 
 ## なぜ devcontainer features を使わないか
 
