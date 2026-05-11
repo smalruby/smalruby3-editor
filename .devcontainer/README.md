@@ -18,8 +18,20 @@ NaCl Claude Code 利用ガイドライン **階層 B（OSS / 自社開発）** �
 | `~/ghq` | `/ghq` | submodule の origin/upstream、関連 OSS の参照・push |
 | `~/.gitconfig` | `/root/.gitconfig` (ro) | git ユーザー名・コミット署名 |
 | `~/.config/gh` | `/root/.config/gh` | gh CLI の設定 (ホスト名・ユーザー名) |
+| `~/.claude.json` | `/root/.claude.json` | Claude Code 認証 |
+| `~/.claude/settings.json` | 同上 (ro) | Claude Code グローバル設定 |
+| `~/.claude/skills` | 同上 (ro) | 自作 skills |
+| `~/.claude/plugins` | 同上 (ro) | Claude Code プラグイン |
+| `~/.claude/statusline-command.sh` | 同上 (ro) | カスタム statusline |
+| `~/.claude/projects/-app` | `/root/.claude/projects/-app` | このプロジェクト固有の memory のみ (後述) |
 
-**マウントしないもの**: `~/.ssh`, `~/.aws`, `~/Documents`, `~/Downloads`, `~/Desktop`, `~/Library`, 他案件ディレクトリ。
+**マウントしないもの**: `~/.ssh`, `~/.aws`, `~/Documents`, `~/Downloads`, `~/Desktop`, `~/Library`, 他案件ディレクトリ、**`~/.claude/projects/`, `~/.claude/sessions/`, `~/.claude/history.jsonl`, `~/.claude/file-history/`, `~/.claude/shell-snapshots/`** (他プロジェクトの転写・履歴の漏れを防ぐ)。
+
+### Claude Code の認証・設定・memory 共有について
+
+`~/.claude` のうち、共有して安全なもの（グローバル設定・自作 skills・認証）だけを bind mount し、**他プロジェクトの transcripts や履歴は意図的に隔離** する設計。
+
+このプロジェクトのメモリ (`~/.claude/projects/<host slug>/memory/`) はホスト側スラッグがユーザーのパスに依存するため、`initialize.sh` がホスト側に **`~/.claude/projects/-app` → `~/.claude/projects/<host slug>`** のシンボリックリンクを作成する。コンテナ内では workspace=`/app` のため slug=`-app` で固定され、リンク経由で同じ memory を読み書きできる。他のマシンや他の worktree に切り替えても、`initialize.sh` がそのときの host slug にリンクを張り直す。
 
 ### gh CLI の認証トークンについて (macOS 必須手順)
 

@@ -35,4 +35,32 @@ MSG
     fi
 fi
 
+# Per-project Claude memory bridge:
+#   コンテナ内では workspaceFolder=/app なので claude が使う project slug は常に `-app`。
+#   ホスト側の本来の slug は HOME と workspace のパスから生成される (例:
+#   `-Users-kouji-work-smalruby-smalruby3-editor`)。
+#   ホスト側に `-app` シンボリックリンクを張って同じディレクトリを指すようにし、
+#   compose が `${HOME}/.claude/projects/-app` をマウントできるようにする。
+#   これにより、このプロジェクトの memory だけ container と host で透明に共有され、
+#   他プロジェクトの transcripts/sessions は隔離される。
+WORKSPACE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+HOST_PROJECT_SLUG="$(printf '%s' "${WORKSPACE_DIR}" | sed 's:/:-:g')"
+HOST_PROJECT_DIR="${HOME}/.claude/projects/${HOST_PROJECT_SLUG}"
+ALIAS_DIR="${HOME}/.claude/projects/-app"
+
+mkdir -p "${HOST_PROJECT_DIR}/memory"
+
+if [[ -L "${ALIAS_DIR}" ]]; then
+    # 既存リンク。target が今回と違うなら張り替え (worktree 切替対応)
+    CURRENT_TARGET="$(readlink "${ALIAS_DIR}")"
+    if [[ "${CURRENT_TARGET}" != "${HOST_PROJECT_DIR}" ]]; then
+        rm "${ALIAS_DIR}"
+        ln -s "${HOST_PROJECT_DIR}" "${ALIAS_DIR}"
+    fi
+elif [[ -e "${ALIAS_DIR}" ]]; then
+    echo "warning: ${ALIAS_DIR} exists as a non-symlink; not touching it" >&2
+else
+    ln -s "${HOST_PROJECT_DIR}" "${ALIAS_DIR}"
+fi
+
 exit 0
