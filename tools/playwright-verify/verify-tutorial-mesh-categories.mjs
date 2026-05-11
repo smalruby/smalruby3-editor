@@ -60,7 +60,11 @@ log('category titles =', JSON.stringify(titles));
 
 await page.screenshot({ path: 'tmp/tutorial-mesh-categories.png', fullPage: true });
 
-const expected = ['メッセージを送ってみよう', 'ふたりで会話しよう', 'みんなで会話しよう'];
+const expected = [
+    '通信入門 ① メッセージを送ってみよう',
+    '通信入門 ② ふたりで会話しよう',
+    '通信入門 ③ みんなで会話しよう (メッシュ)',
+];
 const missing = expected.filter((t) => !titles.includes(t));
 if (missing.length) {
     console.error('MISSING titles:', missing);

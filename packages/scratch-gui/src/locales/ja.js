@@ -885,7 +885,7 @@ export default {
         'ペンギンのRubyコードを「ルビーを入力する」で入力しよう — メッセージ名がネコと逆になっているよ',
     'gui.howtos.chat-2-sprites-3.step8.title': 'ネコやペンギンを押して実行しよう！',
     // Chat Tutorial 3 Mesh 1
-    'gui.howtos.chat-3-mesh-1.name': 'メッシュ拡張機能でつながろう',
+    'gui.howtos.chat-3-mesh-1.name': 'メッシュでつながろう',
     'gui.howtos.chat-3-mesh-1.step1.title': 'メッシュ拡張機能を使って他の人のスモウルビーとつながろう',
     'gui.howtos.chat-3-mesh-1.step2.title':
         '2人以上のグループをつくってメッシュ拡張機能を選ぶ（1人でも2つのスモウルビーを使えばできる）',
@@ -941,9 +941,9 @@ export default {
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': '始めましょう',
-    'gui.library.meshStep1': 'メッセージを送ってみよう',
-    'gui.library.meshStep2': 'ふたりで会話しよう',
-    'gui.library.meshStep3': 'みんなで会話しよう',
+    'gui.library.meshStep1': '通信入門 ① メッセージを送ってみよう',
+    'gui.library.meshStep2': '通信入門 ② ふたりで会話しよう',
+    'gui.library.meshStep3': '通信入門 ③ みんなで会話しよう (メッシュ)',
     'gui.menuBar.updateTooltip': '新しいスモウルビーを使ってみよう！',
     'gui.menuBar.updateConfirm':
         '新しいバージョンのスモウルビーが利用可能です。いますぐ更新する場合は「OK」を、あとにする場合は「キャンセル」を押してください。',

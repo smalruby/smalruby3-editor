@@ -12,7 +12,7 @@ import libraryChat1Basic3 from './thumbnails/chat-1-basic-3.jpg';
 import libraryChat2Sprites1 from './thumbnails/chat-2-sprites-1.jpg';
 import libraryChat2Sprites2 from './thumbnails/chat-2-sprites-2.jpg';
 import libraryChat2Sprites3 from './thumbnails/chat-2-sprites-3.jpg';
-// Chat Tutorial 3 Mesh 1: メッシュ拡張機能でつながろう
+// Chat Tutorial 3 Mesh 1: メッシュでつながろう
 import libraryChat3Mesh1 from './thumbnails/chat-3-mesh-1.jpg';
 import libraryChat3Mesh2 from './thumbnails/chat-3-mesh-2.jpg';
 import libraryChat3Mesh3 from './thumbnails/chat-3-mesh-3.jpg';
@@ -861,11 +861,11 @@ end`,
         urlId: 'chat2Sprites3'
     },
 
-    // ─── Chat Tutorial 3 Mesh 1: メッシュ拡張機能でつながろう ───────────────
+    // ─── Chat Tutorial 3 Mesh 1: メッシュでつながろう ───────────────
     'chat-3-mesh-1': {
         name: (
             <FormattedMessage
-                defaultMessage="メッシュ拡張機能でつながろう"
+                defaultMessage="メッシュでつながろう"
                 description="Name for Chat Tutorial 3 Mesh 1"
                 id="gui.howtos.chat-3-mesh-1.name"
             />

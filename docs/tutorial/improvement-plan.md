@@ -45,10 +45,10 @@ export const CATEGORIES = {
     // 既存
     gettingStarted: 'gettingStarted',
 
-    // Phase 1: chatApp を 3 つに分割 (ストーリー型)
-    meshStep1: 'meshStep1', // メッセージを送ってみよう
-    meshStep2: 'meshStep2', // ふたりで会話しよう
-    meshStep3: 'meshStep3', // みんなで会話しよう
+    // Phase 1: chatApp を 3 つに分割 (「通信入門」シリーズ番号付け型)
+    meshStep1: 'meshStep1', // 通信入門 ① メッセージを送ってみよう
+    meshStep2: 'meshStep2', // 通信入門 ② ふたりで会話しよう
+    meshStep3: 'meshStep3', // 通信入門 ③ みんなで会話しよう (メッシュ)
 
     // Phase 3: Block 軸 (教科ラベル型)
     blockBasics: 'blockBasics',   // はじめての操作
@@ -90,10 +90,10 @@ export const CATEGORIES = {
 **ファイル変更**:
 
 1. `tutorial-tags.js` — `chatApp` 削除、`meshStep1/2/3` を追加。
-2. `tag-messages.js` — `gui.libraryCategories.meshStep1/2/3` を追加。
-   - `meshStep1`: 「メッセージを送ってみよう」
-   - `meshStep2`: 「ふたりで会話しよう」
-   - `meshStep3`: 「みんなで会話しよう」
+2. `tag-messages.js` — `gui.libraryCategories.meshStep1/2/3` を追加。3 カテゴリは「通信入門」シリーズとして番号付けし、連続性を可視化する:
+   - `meshStep1`: 「通信入門 ① メッセージを送ってみよう」(同じスプライト内で broadcast)
+   - `meshStep2`: 「通信入門 ② ふたりで会話しよう」(2 スプライト間で broadcast)
+   - `meshStep3`: 「通信入門 ③ みんなで会話しよう (メッシュ)」(複数デバイス間で Mesh 通信)
 3. `decks/index.jsx` — 9 deck の `category` 参照を以下にマップ:
    - `chat-1-basic-{1,2,3}` → `CATEGORIES.meshStep1`
    - `chat-2-sprites-{1,2,3}` → `CATEGORIES.meshStep2`

@@ -526,9 +526,9 @@ export default {
     'gui.libraryTags.mesh': 'Mesh',
     'gui.libraryTags.firstTime': 'First Time',
     'gui.libraryCategories.gettingStarted': 'Getting Started',
-    'gui.library.meshStep1': 'Send a Message',
-    'gui.library.meshStep2': 'Chat Between Two Sprites',
-    'gui.library.meshStep3': 'Chat Across Devices (Mesh)',
+    'gui.library.meshStep1': 'Intro to Communication ① Send a Message',
+    'gui.library.meshStep2': 'Intro to Communication ② Chat Between Two Sprites',
+    'gui.library.meshStep3': 'Intro to Communication ③ Chat Across Devices (Mesh)',
     'gui.howtos.chat-1-basic-1.name': "Let's Send a Message!",
     'gui.howtos.chat-1-basic-1.step1.title': "Let's send a message to a remote block!",
     'gui.howtos.chat-1-basic-1.step2.title': 'First, insert the code and run the program',
@@ -596,7 +596,7 @@ export default {
     'gui.howtos.chat-2-sprites-3.step7.title': 'Press "Insert Ruby code" for Penguin — message names are reversed!',
     'gui.howtos.chat-2-sprites-3.step8.title': 'Click Cat or Penguin to run!',
     // Chat Tutorial 3 Mesh 1
-    'gui.howtos.chat-3-mesh-1.name': "Let's Connect with the Mesh Extension!",
+    'gui.howtos.chat-3-mesh-1.name': "Let's Connect with Mesh!",
     'gui.howtos.chat-3-mesh-1.step1.title': "Connect to other people's Smalruby using the Mesh extension",
     'gui.howtos.chat-3-mesh-1.step2.title':
         'Form a group and select the Mesh extension (even one person can do it with two Smalruby windows)',

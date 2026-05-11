@@ -46,6 +46,7 @@
 - **`tag-messages.js` は更新しない** — `gui.libraryCategories.*` のメッセージ ID は library.jsx の rendering path から参照されておらず、`tag-messages.js` の `gettingStarted` / `chatApp` エントリは vestigial。新カテゴリも追加しない。本物の rendering 経路 (`gui.library.*` を持つ local messages in library.jsx) のみを更新する。
 - **deck ID はリネームしない** — `chat-1-basic-1` 等の既存 ID は URL 互換性のためそのまま維持。`category:` 参照のみ更新。
 - **`tags: ['mesh']` も維持** — タグフィルタは引き続き "Mesh" 1 つで全 9 deck をまとめて絞り込めることを期待する利用者がいる可能性があるため、新カテゴリ追加と並行してタグは維持する。
+- **カテゴリ名は「通信入門」共通プレフィックス + ① ② ③ 番号付け** — PR レビューで「3 カテゴリの関係性が伝わらない」と指摘を受け、ストーリー型単独名から番号付きシリーズ名に変更。Step 3 の Lv1 deck 名も「メッシュ拡張機能でつながろう」→「メッシュでつながろう」に短縮し Lv2/Lv3 と表記揃え。
 
 ## Phase 2 以降の TODO 抜粋
 

@@ -37,17 +37,17 @@ const messages = defineMessages({
     },
     [CATEGORIES.meshStep1]: {
         id: `gui.library.meshStep1`,
-        defaultMessage: 'メッセージを送ってみよう',
+        defaultMessage: '通信入門 ① メッセージを送ってみよう',
         description: 'Label for Mesh tutorial step 1 — send a message between same-sprite scripts'
     },
     [CATEGORIES.meshStep2]: {
         id: `gui.library.meshStep2`,
-        defaultMessage: 'ふたりで会話しよう',
+        defaultMessage: '通信入門 ② ふたりで会話しよう',
         description: 'Label for Mesh tutorial step 2 — chat between two sprites'
     },
     [CATEGORIES.meshStep3]: {
         id: `gui.library.meshStep3`,
-        defaultMessage: 'みんなで会話しよう',
+        defaultMessage: '通信入門 ③ みんなで会話しよう (メッシュ)',
         description: 'Label for Mesh tutorial step 3 — chat across devices via Mesh extension'
     },
     membershipTag: {
