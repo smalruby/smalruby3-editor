@@ -926,6 +926,15 @@ export default {
         '自分のスプライトを押して実行！他の人の「送信メッセージ」は「センサーの値」で取り出せるよ',
     'gui.howtos.chat-3-mesh-3.external.kairyudo.name':
         '開隆堂 やってみよう！プログラミング「チャットアプリを制作しよう」',
+    // Ruby Basics 1: putsで計算してみよう
+    'gui.library.rubyBasics': 'Ruby のきほん',
+    'gui.howtos.ruby-basics-1-numbers.name': 'Rubyで計算してみよう',
+    'gui.howtos.ruby-basics-1-numbers.step1.title': 'Rubyで計算してみよう！',
+    'gui.howtos.ruby-basics-1-numbers.step2.title': 'まずは「puts 2 + 6」を実行してみよう',
+    'gui.howtos.ruby-basics-1-numbers.step3.title': '{greenFlag}を押すと、ネコが「8」としゃべるよ',
+    'gui.howtos.ruby-basics-1-numbers.step4.title': '他の計算も試してみよう（かけ算・わり算・ひき算）',
+    'gui.howtos.ruby-basics-1-numbers.step5.title': '数字を好きなものに変えて、自分だけの計算をしてみよう',
+    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': '外部サイト「try ruby」で詳しくRubyを学ぶ',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.all-tutorials': 'チュートリアル',

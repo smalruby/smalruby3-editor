@@ -634,6 +634,15 @@ export default {
     'gui.howtos.chat-3-mesh-3.step8.title':
         'Click your sprite to run! Use "sensor value" to get other people\'s "sent message"',
     'gui.howtos.chat-3-mesh-3.external.kairyudo.name': 'Kairyudo: Try Programming! "Create a Chat App"',
+    // Ruby Basics 1: calculate with puts
+    'gui.library.rubyBasics': 'Ruby Basics',
+    'gui.howtos.ruby-basics-1-numbers.name': "Let's Do Math with Ruby",
+    'gui.howtos.ruby-basics-1-numbers.step1.title': "Let's do math with Ruby!",
+    'gui.howtos.ruby-basics-1-numbers.step2.title': 'Try running `puts 2 + 6` first',
+    'gui.howtos.ruby-basics-1-numbers.step3.title': 'Press {greenFlag} and the cat will say "8"',
+    'gui.howtos.ruby-basics-1-numbers.step4.title': 'Try other operations too (multiply / divide / subtract)',
+    'gui.howtos.ruby-basics-1-numbers.step5.title': 'Change the numbers to whatever you like and do your own math',
+    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': 'Learn more about Ruby on the external "try ruby" site',
     'gui.menuBar.updateTooltip': 'Try the new Smalruby!',
     'gui.menuBar.updateConfirm':
         'A new version of Smalruby is available. Press "OK" to update now, or "Cancel" to update later.',

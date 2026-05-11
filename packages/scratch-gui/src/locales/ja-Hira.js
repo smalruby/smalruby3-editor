@@ -958,6 +958,15 @@ export default {
         'じぶんのスプライトをおしてじっこう！ほかのひとの「そうしんメッセージ」は「センサーのあたい」でとりだせるよ',
     'gui.howtos.chat-3-mesh-3.external.kairyudo.name':
         'かいりゅうどう やってみよう！プログラミング「チャットアプリをせいさくしよう」',
+    // Ruby Basics 1: putsでけいさんしてみよう
+    'gui.library.rubyBasics': 'Ruby のきほん',
+    'gui.howtos.ruby-basics-1-numbers.name': 'Rubyでけいさんしてみよう',
+    'gui.howtos.ruby-basics-1-numbers.step1.title': 'Rubyでけいさんしてみよう！',
+    'gui.howtos.ruby-basics-1-numbers.step2.title': 'まずは「puts 2 + 6」をじっこうしてみよう',
+    'gui.howtos.ruby-basics-1-numbers.step3.title': '{greenFlag}をおすと、ネコが「8」としゃべるよ',
+    'gui.howtos.ruby-basics-1-numbers.step4.title': 'ほかのけいさんもためしてみよう（かけざん・わりざん・ひきざん）',
+    'gui.howtos.ruby-basics-1-numbers.step5.title': 'すうじをすきなものにかえて、じぶんだけのけいさんをしてみよう',
+    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
