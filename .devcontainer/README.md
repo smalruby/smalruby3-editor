@@ -9,6 +9,7 @@ NaCl Claude Code 利用ガイドライン **階層 B（OSS / 自社開発）** �
 - ホスト全体ではなく、**作業に必要なディレクトリのみ** をマウントする（物理アクセス範囲の制限）
 - 既存の `bin/dx` / `bin/setup-worktree` / git worktree 運用と共存する
 - VS Code Dev Containers と devpod の両方で動作する標準準拠
+- **devcontainer features は使わず**、`gh` / `claude` のインストールは `post-create.sh` で行う (devpod の features+compose 連携バグ回避のため。後述)
 
 ## マウント構成
 
@@ -132,3 +133,22 @@ docker compose -f docker-compose.yml -f .devcontainer/docker-compose.devcontaine
 - **gh auth が効かない**: macOS では PAT が keychain に格納されるため、`export GH_TOKEN=$(gh auth token)` を実行してから devcontainer を起動する (上記「gh CLI の認証トークンについて」参照)
 - **`/ghq` が空**: `ghq root` の出力が `~/ghq` 以外を指していないか確認
 - **ポート 8601 が見えない**: VS Code は `forwardPorts` で自動転送。devpod / 直接 compose では `docker-compose.yml` の `ports` 設定で `localhost:8601` に公開される
+
+## なぜ devcontainer features を使わないか
+
+devcontainer.json の `features` (例: `ghcr.io/anthropics/devcontainer-features/claude-code`,
+`ghcr.io/devcontainers/features/github-cli`) は、内部的に既存 Dockerfile を
+**`Dockerfile-with-features` というラッパー** に書き換えてビルドする。
+
+`dockerComposeFile` 形式の devcontainer の場合、devpod はこのラッパービルド時に
+**build context を破壊する**ことが分かった (本プロジェクトでの事例:
+`COPY entrypoint.sh /app/entrypoint.sh` が "/entrypoint.sh: not found" で失敗)。
+VS Code Dev Containers では同じ設定で動作するため、devpod 固有の挙動と思われる。
+
+回避策として、features は使わず、`post-create.sh` で同等のインストールを行う:
+
+- `gh` CLI: apt 経由 (公式リポジトリの GPG キー登録 → install)
+- `claude` (Claude Code): `npm install -g @anthropic-ai/claude-code`
+
+これにより VS Code でも devpod でも同じ手順で動作する。`postCreateCommand` は
+コンテナ作成ごとに 1 回走るが、`gh` / `claude` が既にあれば再インストールしない。
