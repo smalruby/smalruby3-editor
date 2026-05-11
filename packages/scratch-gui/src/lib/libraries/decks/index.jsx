@@ -20,7 +20,6 @@ import libraryChat3Mesh1ExternalKairyudo from './thumbnails/chat3-mesh1-external
 // Ruby Basics 1: 計算してみよう
 import libraryRubyBasics1Numbers from './thumbnails/ruby-basics-1-numbers.jpg';
 import libraryRubyBasics1TryRuby from './thumbnails/ruby-basics-1-tryruby.png';
-import libraryRubyBasics1MoreTutorials from './thumbnails/ruby-basics-1-more-tutorials.png';
 import {CATEGORIES} from '../tutorial-tags';
 
 // Green flag icon for inline use in tutorial step titles
@@ -1380,24 +1379,9 @@ end`,
                         img: libraryRubyBasics1TryRuby,
                         name: (
                             <FormattedMessage
-                                defaultMessage="TryRuby でもっとRubyを学ぶ — ここで書いたputsはそのまま動きます"
+                                defaultMessage="外部サイト「try ruby」で詳しくRubyを学ぶ"
                                 description="External resource: TryRuby online playground"
                                 id="gui.howtos.ruby-basics-1-numbers.external.tryruby.name"
-                            />
-                        )
-                    },
-                    smalrubyTutorials: {
-                        // Smalruby: action='openTipsLibrary' is handled by the
-                        // Smalruby-marked extension in src/components/cards/cards.jsx
-                        // and reopens the tutorial library so the user can pick
-                        // another deck instead of leaving the editor.
-                        action: 'openTipsLibrary',
-                        img: libraryRubyBasics1MoreTutorials,
-                        name: (
-                            <FormattedMessage
-                                defaultMessage="スモウルビーで他のチュートリアルを試す — 一覧を開く"
-                                description="Internal resource: reopen the tutorial library"
-                                id="gui.howtos.ruby-basics-1-numbers.external.tutorials.name"
                             />
                         )
                     }

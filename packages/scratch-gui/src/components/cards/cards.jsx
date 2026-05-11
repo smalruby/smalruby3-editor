@@ -359,50 +359,22 @@ const PreviewExternalStep = ({externalResources, onShowAll}) => (
         </div>
         <div className={styles.resources}>
             {Object.keys(externalResources).slice(0, 2)
-                .map(id => {
-                    const res = externalResources[id];
-                    // === Smalruby: Start of internal resource action ===
-                    // Allow externalResources entries to declare action='openTipsLibrary'
-                    // (and omit `url`) to render an internal-action card that
-                    // reopens the tutorial library. Used by the "Ruby Basics"
-                    // closing screen so users have a clear path back to the
-                    // tutorial picker (= the Smalruby tutorial top) instead of
-                    // only being offered external links.
-                    if (res.action === 'openTipsLibrary') {
-                        return (
-                            <button
-                                className={styles.resource}
-                                key={`resource-preview-${id}`}
-                                type="button"
-                                onClick={onShowAll}
-                            >
-                                <img
-                                    className={styles.resourceImage}
-                                    draggable={false}
-                                    src={res.img}
-                                />
-                                <div className={styles.resourceName}>{res.name}</div>
-                            </button>
-                        );
-                    }
-                    // === Smalruby: End of internal resource action ===
-                    return (
-                        <a
-                            className={styles.resource}
-                            key={`resource-preview-${id}`}
-                            href={res.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            <img
-                                className={styles.resourceImage}
-                                draggable={false}
-                                src={res.img}
-                            />
-                            <div className={styles.resourceName}>{res.name}</div>
-                        </a>
-                    );
-                })}
+                .map(id => (
+                    <a
+                        className={styles.resource}
+                        key={`resource-preview-${id}`}
+                        href={externalResources[id].url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <img
+                            className={styles.resourceImage}
+                            draggable={false}
+                            src={externalResources[id].img}
+                        />
+                        <div className={styles.resourceName}>{externalResources[id].name}</div>
+                    </a>
+                ))}
         </div>
         <div className={styles.seeAll}>
             <div
@@ -424,10 +396,7 @@ PreviewExternalStep.propTypes = {
         id: PropTypes.shape({
             name: PropTypes.node.isRequired,
             img: PropTypes.string.isRequired,
-            // === Smalruby: url is optional when action='openTipsLibrary' ===
-            url: PropTypes.string,
-            action: PropTypes.oneOf(['openTipsLibrary'])
-            // === Smalruby ===
+            url: PropTypes.string.isRequired
         })
     }).isRequired,
     onShowAll: PropTypes.func.isRequired

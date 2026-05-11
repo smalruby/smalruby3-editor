@@ -34,7 +34,6 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/connection-modal.jsx` | meshV2 connected message feature | Mesh v2 接続済みメッセージ |
 | `src/containers/connection-modal.jsx` | meshV2 back button feature | Mesh v2 戻るボタン |
 | `src/components/cards/cards.jsx` | tutorial glow animation | チュートリアル UI のハイライト |
-| `src/components/cards/cards.jsx` | internal resource action | externalResources の `action: 'openTipsLibrary'` でチュートリアル一覧を再表示する内部アクションを受け付ける拡張 (PreviewExternalStep) |
 | `src/components/connection-modal/connection-modal.jsx` | smalrubot firmware flash | SmalrubotS1 ファームウェアボタン propType |
 | `src/components/connection-modal/connection-modal.jsx` | network filter detection feature | ネットワークフィルター検出 |
 | `src/components/connection-modal/error-step.jsx` | smalrubot firmware flash | エラーステップのファームウェアボタン |

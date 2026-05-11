@@ -157,8 +157,6 @@ const closingStepInfo = await page.evaluate(() => {
                         resolve({
                             tryRubyUrl: ext.tryruby?.url || null,
                             tryRubyHasImg: !!ext.tryruby?.img,
-                            tutorialsAction: ext.smalrubyTutorials?.action || null,
-                            tutorialsHasImg: !!ext.smalrubyTutorials?.img,
                             keys: Object.keys(ext),
                         });
                         return;
@@ -183,15 +181,7 @@ if (!closingStepInfo.tryRubyHasImg) {
     console.error('FAIL: TryRuby card has no image');
     process.exit(1);
 }
-if (closingStepInfo.tutorialsAction !== 'openTipsLibrary') {
-    console.error('FAIL: Smalruby tutorials card does not have action=openTipsLibrary');
-    process.exit(1);
-}
-if (!closingStepInfo.tutorialsHasImg) {
-    console.error('FAIL: Smalruby tutorials card has no image');
-    process.exit(1);
-}
-log('OK: closing step offers both TryRuby (external) and Smalruby tutorials (internal action)');
+log('OK: closing step has TryRuby external link; built-in もっと見る button leads back to library');
 
 await page.screenshot({ path: 'tmp/ruby1-final.png', fullPage: true });
 log('PASS: ruby-basics-1-numbers deck verified');

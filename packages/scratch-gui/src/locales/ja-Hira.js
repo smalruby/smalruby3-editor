@@ -966,10 +966,7 @@ export default {
     'gui.howtos.ruby-basics-1-numbers.step3.title': '{greenFlag}をおすと、ネコが「8」としゃべるよ',
     'gui.howtos.ruby-basics-1-numbers.step4.title': 'ほかのけいさんもためしてみよう（かけざん・わりざん・ひきざん）',
     'gui.howtos.ruby-basics-1-numbers.step5.title': 'すうじをすきなものにかえて、じぶんだけのけいさんをしてみよう',
-    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name':
-        'TryRuby でもっとRubyをまなぶ — ここでかいたputsはそのままうごきます',
-    'gui.howtos.ruby-basics-1-numbers.external.tutorials.name':
-        'スモウルビーでほかのチュートリアルをためす — いちらんをひらく',
+    'gui.howtos.ruby-basics-1-numbers.external.tryruby.name': 'がいぶサイト「try ruby」でくわしくRubyをまなぶ',
     // Mesh tag
     'gui.libraryTags.mesh': 'メッシュ',
     'gui.cards.insert-ruby': 'ルビーをにゅうりょくする',
