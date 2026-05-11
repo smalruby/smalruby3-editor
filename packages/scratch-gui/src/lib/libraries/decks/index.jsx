@@ -17,6 +17,8 @@ import libraryChat3Mesh1 from './thumbnails/chat-3-mesh-1.jpg';
 import libraryChat3Mesh2 from './thumbnails/chat-3-mesh-2.jpg';
 import libraryChat3Mesh3 from './thumbnails/chat-3-mesh-3.jpg';
 import libraryChat3Mesh1ExternalKairyudo from './thumbnails/chat3-mesh1-external-kairyudo.png';
+// Ruby Basics 1: 計算してみよう
+import libraryRubyBasics1Numbers from './thumbnails/ruby-basics-1-numbers.jpg';
 import {CATEGORIES} from '../tutorial-tags';
 
 // Green flag icon for inline use in tutorial step titles
@@ -1272,6 +1274,115 @@ end`,
             }
         ],
         urlId: 'chat3Mesh3'
+    },
+
+    // ─── Ruby Basics 1: Rubyで計算してみよう ──────────────────────────────────
+    'ruby-basics-1-numbers': {
+        name: (
+            <FormattedMessage
+                defaultMessage="Rubyで計算してみよう"
+                description="Name for Ruby Basics 1: do arithmetic with puts"
+                id="gui.howtos.ruby-basics-1-numbers.name"
+            />
+        ),
+        tags: ['ruby'],
+        category: CATEGORIES.rubyBasics,
+        img: libraryRubyBasics1Numbers,
+        nameMessageId: 'gui.howtos.ruby-basics-1-numbers.name',
+        // Auto-switch to the Ruby tab in Ruby (not DNCL/furigana) mode when
+        // the user opens this tutorial — see docs/tutorial/improvement-plan.md
+        // "チュートリアル起動時の環境セットアップ".
+        setup: {
+            tab: 'ruby',
+            rubyMode: 'ruby'
+        },
+        allowedBlocks: {
+            motion: [],
+            looks: ['looks_sayforsecs', 'looks_say'],
+            sound: [],
+            event: ['event_whenflagclicked'],
+            control: [],
+            sensing: [],
+            operators: []
+        },
+        steps: [
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="Rubyで計算してみよう！"
+                        description="Ruby Basics 1 Step 1: Intro to arithmetic with puts"
+                        id="gui.howtos.ruby-basics-1-numbers.step1.title"
+                    />
+                ),
+                image: 'rubyBasics1Step1',
+                startTutorial: true,
+                animationTarget: 'startTutorialButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="まずは「puts 2 + 6」を実行してみよう"
+                        description="Ruby Basics 1 Step 2: Insert first puts code"
+                        id="gui.howtos.ruby-basics-1-numbers.step2.title"
+                    />
+                ),
+                image: 'rubyBasics1Step2',
+                code: `when_flag_clicked do
+  puts 2 + 6
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="{greenFlag}を押すと、ネコが「8」としゃべるよ"
+                        description="Ruby Basics 1 Step 3: Run the program"
+                        id="gui.howtos.ruby-basics-1-numbers.step3.title"
+                        values={{greenFlag: <GreenFlagIcon />}}
+                    />
+                ),
+                image: 'rubyBasics1Step3',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="他の計算も試してみよう（かけ算・わり算・ひき算）"
+                        description="Ruby Basics 1 Step 4: More arithmetic operations"
+                        id="gui.howtos.ruby-basics-1-numbers.step4.title"
+                    />
+                ),
+                image: 'rubyBasics1Step4',
+                code: `when_flag_clicked do
+  puts 4 * 10
+  puts 30 / 4
+  puts 5 - 12
+end`,
+                animationTarget: 'insertCodeButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="数字を好きなものに変えて、自分だけの計算をしてみよう"
+                        description="Ruby Basics 1 Step 5: Modify the numbers"
+                        id="gui.howtos.ruby-basics-1-numbers.step5.title"
+                    />
+                ),
+                image: 'rubyBasics1Step5',
+                animationTarget: 'nextButton'
+            },
+            {
+                title: (
+                    <FormattedMessage
+                        defaultMessage="ここで書いたputsのコードは、本物のRubyでも同じように動くよ！もっと学ぶならTryRubyへ →"
+                        description="Ruby Basics 1 Step 6: TryRuby pointer"
+                        id="gui.howtos.ruby-basics-1-numbers.step6.title"
+                    />
+                ),
+                image: 'rubyBasics1Step6'
+            }
+        ],
+        urlId: 'rubyBasics1Numbers'
     }
 };
 

@@ -69,6 +69,14 @@ import chat3Mesh3Step5 from './steps/chat3-mesh3-5-base-code.png';
 import chat3Mesh3Step6 from './steps/chat3-mesh3-6-change-sensor.png';
 import chat3Mesh3Step7 from './steps/chat3-mesh3-7-member-code.png';
 
+// Ruby Basics 1: 計算してみよう
+import rubyBasics1Step1 from './steps/ruby-basics-1-1-intro.png';
+import rubyBasics1Step2 from './steps/ruby-basics-1-2-first-puts.png';
+import rubyBasics1Step3 from './steps/ruby-basics-1-3-result.png';
+import rubyBasics1Step4 from './steps/ruby-basics-1-4-more-math.png';
+import rubyBasics1Step5 from './steps/ruby-basics-1-5-modify.png';
+import rubyBasics1Step6 from './steps/ruby-basics-1-6-tryruby.png';
+
 const jaImages = {
     // Getting Started
     introRubyTab: introRubyTab,
@@ -130,7 +138,14 @@ const jaImages = {
     // Chat Tutorial 3 Mesh 3
     chat3Mesh3Step5: chat3Mesh3Step5,
     chat3Mesh3Step6: chat3Mesh3Step6,
-    chat3Mesh3Step7: chat3Mesh3Step7
+    chat3Mesh3Step7: chat3Mesh3Step7,
+    // Ruby Basics 1: 計算してみよう
+    rubyBasics1Step1: rubyBasics1Step1,
+    rubyBasics1Step2: rubyBasics1Step2,
+    rubyBasics1Step3: rubyBasics1Step3,
+    rubyBasics1Step4: rubyBasics1Step4,
+    rubyBasics1Step5: rubyBasics1Step5,
+    rubyBasics1Step6: rubyBasics1Step6
 };
 
 export {jaImages};

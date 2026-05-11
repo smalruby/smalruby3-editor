@@ -50,6 +50,11 @@ const messages = defineMessages({
         defaultMessage: '通信入門 ③ みんなで会話しよう (メッシュ)',
         description: 'Label for Mesh tutorial step 3 — chat across devices via Mesh extension'
     },
+    [CATEGORIES.rubyBasics]: {
+        id: `gui.library.rubyBasics`,
+        defaultMessage: 'Ruby のきほん',
+        description: 'Label for Ruby Basics tutorial category — TryRuby-inspired puts-centric series'
+    },
     membershipTag: {
         defaultMessage: 'Membership',
         description: 'Tag for filtering a library for member only assets',

@@ -8,7 +8,9 @@ export const CATEGORIES = {
     // Phase 1).
     meshStep1: 'meshStep1', // 通信入門 ① メッセージを送ってみよう
     meshStep2: 'meshStep2', // 通信入門 ② ふたりで会話しよう
-    meshStep3: 'meshStep3'  // 通信入門 ③ みんなで会話しよう (メッシュ)
+    meshStep3: 'meshStep3', // 通信入門 ③ みんなで会話しよう (メッシュ)
+    // Phase 2: Ruby basics — TryRuby-inspired, puts-centric series
+    rubyBasics: 'rubyBasics' // Ruby のきほん
 };
 
 export default [

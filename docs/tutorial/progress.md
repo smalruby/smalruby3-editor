@@ -9,8 +9,8 @@
 | Phase | Issue | 状態 | 規模 | 画像 |
 |---|---|---|---|---|
 | Phase 1 — Mesh 再分類 | [#678](https://github.com/smalruby/smalruby3-editor/issues/678) | ✅ マージ済み (PR #683) | 1 PR | 不要 |
-| 基盤 — `setup` プロパティ | (Phase 2 sub-issue 内) | 🟢 実装完了 (レビュー待ち) | 1 PR | 不要 |
-| Phase 2 — Ruby 拡充 | [#679](https://github.com/smalruby/smalruby3-editor/issues/679) | ⚪️ deck 着手前 (基盤マージ後に開始) | 2〜3 PR | ~50 枚 |
+| 基盤 — `setup` プロパティ | (Phase 2 sub-issue 内) | ✅ マージ済み (PR #684) | 1 PR | 不要 |
+| Phase 2 — Ruby 拡充 | [#679](https://github.com/smalruby/smalruby3-editor/issues/679) | 🟡 1/7 deck 実装中 (`ruby-basics-1-numbers`) | 2〜3 PR | ~50 枚 |
 | Phase 3 — Block 4 シリーズ | [#680](https://github.com/smalruby/smalruby3-editor/issues/680) | ⚪️ 未着手 (書誌情報待ち) | 4 PR | ~76 枚 |
 | Phase 4 — DNCL | [#681](https://github.com/smalruby/smalruby3-editor/issues/681) | ⚪️ 未着手 | 3〜4 PR | ~70 枚 |
 
