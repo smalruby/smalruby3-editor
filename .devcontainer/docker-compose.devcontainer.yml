@@ -1,0 +1,15 @@
+services:
+  app:
+    # devcontainer 用に長寿命化（既存 compose は `npm start` で短命）
+    command: sleep infinity
+    volumes:
+      - type: bind
+        source: ${HOME}/ghq
+        target: /ghq
+      - type: bind
+        source: ${HOME}/.gitconfig
+        target: /root/.gitconfig
+        read_only: true
+      - type: bind
+        source: ${HOME}/.config/gh
+        target: /root/.config/gh

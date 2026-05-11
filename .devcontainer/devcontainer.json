@@ -1,0 +1,25 @@
+{
+  "name": "smalruby3-editor (Claude Code)",
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.devcontainer.yml"],
+  "service": "app",
+  "workspaceFolder": "/app",
+  "overrideCommand": false,
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "remoteEnv": {
+    "GHQ_ROOT": "/ghq"
+  },
+  "forwardPorts": [8601],
+  "postCreateCommand": "bin/setup-worktree || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}
