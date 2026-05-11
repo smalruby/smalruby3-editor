@@ -941,7 +941,9 @@ export default {
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': '始めましょう',
-    'gui.library.chatApp': 'チャットアプリをつくろう',
+    'gui.library.meshStep1': 'メッセージを送ってみよう',
+    'gui.library.meshStep2': 'ふたりで会話しよう',
+    'gui.library.meshStep3': 'みんなで会話しよう',
     'gui.menuBar.updateTooltip': '新しいスモウルビーを使ってみよう！',
     'gui.menuBar.updateConfirm':
         '新しいバージョンのスモウルビーが利用可能です。いますぐ更新する場合は「OK」を、あとにする場合は「キャンセル」を押してください。',

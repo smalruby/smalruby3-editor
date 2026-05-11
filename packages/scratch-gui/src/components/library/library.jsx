@@ -35,10 +35,20 @@ const messages = defineMessages({
         defaultMessage: 'Getting Started',
         description: 'Label for getting started category'
     },
-    [CATEGORIES.chatApp]: {
-        id: `gui.library.chatApp`,
-        defaultMessage: 'Build a Chat App',
-        description: 'Label for chat app tutorial category'
+    [CATEGORIES.meshStep1]: {
+        id: `gui.library.meshStep1`,
+        defaultMessage: 'メッセージを送ってみよう',
+        description: 'Label for Mesh tutorial step 1 — send a message between same-sprite scripts'
+    },
+    [CATEGORIES.meshStep2]: {
+        id: `gui.library.meshStep2`,
+        defaultMessage: 'ふたりで会話しよう',
+        description: 'Label for Mesh tutorial step 2 — chat between two sprites'
+    },
+    [CATEGORIES.meshStep3]: {
+        id: `gui.library.meshStep3`,
+        defaultMessage: 'みんなで会話しよう',
+        description: 'Label for Mesh tutorial step 3 — chat across devices via Mesh extension'
     },
     membershipTag: {
         defaultMessage: 'Membership',
