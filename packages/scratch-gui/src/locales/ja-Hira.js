@@ -912,7 +912,7 @@ export default {
         'ペンギンのRubyコードを「ルビーをにゅうりょくする」でにゅうりょくしよう — メッセージめいがネコとぎゃくになっているよ',
     'gui.howtos.chat-2-sprites-3.step8.title': 'ネコやペンギンをおしてじっこうしよう！',
     // Chat Tutorial 3 Mesh 1
-    'gui.howtos.chat-3-mesh-1.name': 'メッシュかくちょうきのうでつながろう',
+    'gui.howtos.chat-3-mesh-1.name': 'メッシュでつながろう',
     'gui.howtos.chat-3-mesh-1.step1.title': 'メッシュかくちょうきのうをつかってほかのひとのスモウルビーとつながろう',
     'gui.howtos.chat-3-mesh-1.step2.title':
         '2にんいじょうのグループをつくってメッシュかくちょうきのうをえらぶ（1にんでも2つのスモウルビーをつかえばできる）',
@@ -966,7 +966,9 @@ export default {
     'gui.libraryTags.ruby': 'ルビー',
     'gui.libraryTags.firstTime': 'はじめて',
     'gui.libraryCategories.gettingStarted': 'はじめましょう',
-    'gui.library.chatApp': 'チャットアプリをつくろう',
+    'gui.library.meshStep1': 'つうしんにゅうもん ① メッセージをおくってみよう',
+    'gui.library.meshStep2': 'つうしんにゅうもん ② ふたりでかいわしよう',
+    'gui.library.meshStep3': 'つうしんにゅうもん ③ みんなでかいわしよう (メッシュ)',
     'gui.menuBar.updateTooltip': 'あたらしいスモウルビーをつかってみよう！',
     'gui.menuBar.updateConfirm':
         'あたらしいバージョンのスモウルビーがりようかのうです。いますぐこうしんするばあいは「OK」を、あとにするばあいは「キャンセル」をおしてください。',
