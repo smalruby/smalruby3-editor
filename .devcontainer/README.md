@@ -77,7 +77,7 @@ docker compose -f docker-compose.yml -f .devcontainer/docker-compose.devcontaine
 |---|---|
 | `docker compose run --rm app ...` | 変更なし。devcontainer を立てなくても従来通り動く |
 | `bin/dx` | 変更なし（devcontainer 内では二重 docker を避けるラッパーを後続フェーズで検討） |
-| `bin/setup-worktree` | `postCreateCommand` で自動実行（`|| true` で初回失敗を許容） |
+| `bin/setup-worktree` | `.devcontainer/post-create.sh` 経由で **worktree のときだけ** 実行（main checkout では skip） |
 | git worktree | compose の `name: smalruby3-editor` 固定で named volume を共有 |
 
 ## AWS CDK deploy について

@@ -14,7 +14,7 @@
   },
   "forwardPorts": [8601],
   "initializeCommand": ".devcontainer/initialize.sh",
-  "postCreateCommand": "bin/setup-worktree || true",
+  "postCreateCommand": ".devcontainer/post-create.sh",
   "customizations": {
     "vscode": {
       "extensions": [
