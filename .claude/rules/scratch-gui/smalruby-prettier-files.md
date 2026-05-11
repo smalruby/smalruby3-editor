@@ -99,6 +99,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/auto-correct.js`
 - `src/lib/backpack-mesh-v1-migration.js`
 - `src/lib/classroom-api.js`
+- `src/lib/deck-setup.js`
 - `src/lib/google-classroom-auth.js`
 - `src/lib/block-utils.js`
 - `src/lib/blocks-gesture-recovery.js`
@@ -232,6 +233,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/block-display-initialization.test.js`
 - `test/unit/lib/blockly-private-api.test.js`
 - `test/unit/lib/blocks-gesture-recovery.test.js`
+- `test/unit/lib/deck-setup.test.js`
 - `test/unit/lib/blocks-screenshot.test.js`
 - `test/unit/lib/calculate-popup-position.test.js`
 - `test/unit/lib/calculate-popup-position-regression.test.js`

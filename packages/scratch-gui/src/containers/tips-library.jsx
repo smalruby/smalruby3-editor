@@ -9,10 +9,13 @@ import tutorialTags from '../lib/libraries/tutorial-tags';
 
 import analytics from '../lib/analytics';
 import {PLATFORM} from '../lib/platform.js';
+import {applyDeckSetup} from '../lib/deck-setup';
 
 import LibraryComponent from '../components/library/library.jsx';
 
 import {connect} from 'react-redux';
+
+import VM from '@smalruby/scratch-vm';
 
 import {
     closeTipsLibrary
@@ -37,7 +40,7 @@ class TipsLibrary extends React.PureComponent {
             'handleItemSelect'
         ]);
     }
-    handleItemSelect (item) {
+    async handleItemSelect (item) {
         analytics.event({
             category: 'library',
             action: 'Select How-to',
@@ -62,6 +65,15 @@ class TipsLibrary extends React.PureComponent {
         if (this.props.onTutorialSelect) {
             this.props.onTutorialSelect();
         }
+
+        // === Smalruby: apply deck setup (tab / Ruby mode / extensions) before
+        // activating the deck so that the tutorial opens with the right
+        // environment already in place. ===
+        const deck = decksLibraryContent[item.id];
+        if (deck && deck.setup) {
+            await applyDeckSetup(deck.setup, this.props.onApplyDeckSetup, this.props.vm);
+        }
+
         this.props.onActivateDeck(item.id);
     }
     render () {
@@ -125,21 +137,25 @@ TipsLibrary.propTypes = {
     onTutorialSelect: PropTypes.func,
     intl: intlShape.isRequired,
     onActivateDeck: PropTypes.func.isRequired,
+    onApplyDeckSetup: PropTypes.func.isRequired,
     onRequestClose: PropTypes.func,
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     platform: PropTypes.oneOf(Object.keys(PLATFORM)),
     visible: PropTypes.bool,
-    hideTutorialProjects: PropTypes.bool
+    hideTutorialProjects: PropTypes.bool,
+    vm: PropTypes.instanceOf(VM)
 };
 
 const mapStateToProps = state => ({
     visible: state.scratchGui.modals.tipsLibrary,
     projectId: state.scratchGui.projectState.projectId,
-    platform: state.scratchGui.platform.platform
+    platform: state.scratchGui.platform.platform,
+    vm: state.scratchGui.vm
 });
 
 const mapDispatchToProps = dispatch => ({
     onActivateDeck: id => dispatch(activateDeck(id)),
+    onApplyDeckSetup: dispatch,
     onRequestClose: () => dispatch(closeTipsLibrary())
 });
 
