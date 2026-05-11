@@ -1,5 +1,14 @@
 services:
   app:
+    # build context を明示的に repo root に固定。
+    # 基底の docker-compose.yml は `build: .` だが、merge 後の context 解決を
+    # devpod / VS Code Dev Containers の両方で安定させるため、この overlay の
+    # 場所からの相対パスとして `..` (= repo root) を明示する。
+    # これがないと devpod が build context を `.devcontainer/` 配下と
+    # 誤認し、`COPY entrypoint.sh /app/entrypoint.sh` が "not found" で失敗する。
+    build:
+      context: .
+      dockerfile: Dockerfile
     # devcontainer 用に長寿命化（既存 compose は `npm start` で短命）
     command: sleep infinity
     volumes:
