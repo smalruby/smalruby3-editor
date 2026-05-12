@@ -6,7 +6,7 @@
 #
 # - worktree であれば bin/setup-worktree を実行 (env コピー + npm install + build:dev)
 # - main checkout であれば既存の node_modules / dist / .env がそのままあるので
-#   何もしない (husky hooks も既にインストール済みのはず)
+#   何もしない (gh / claude のインストールは devcontainer features が build 時に行う)
 
 set -euo pipefail
 

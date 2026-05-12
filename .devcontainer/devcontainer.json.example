@@ -1,0 +1,112 @@
+// .devcontainer/devcontainer.json
+//
+// このファイルは TEMPLATE です。`.devcontainer/devcontainer.json` は
+// `.gitignore` 対象。各自で以下のようにコピーして使う:
+//
+//     cp .devcontainer/devcontainer.json.example .devcontainer/devcontainer.json
+//     # 必要に応じて mounts セクションをコメントアウト/編集
+//
+// 詳細は .devcontainer/README.md を参照。
+//
+// ## 設計方針
+// - **Dockerfile-only** 構成 (docker-compose は使わない)。devpod でも features が
+//   そのまま動く。
+// - 既存 docker-compose の named volume (`smalruby3-editor_*_node_modules` 等) を
+//   そのまま mount することで、`docker compose run app npm install` と
+//   devcontainer 起動の **両方が同じ deps を共有** する (起動高速化、git
+//   worktree 切替時もインストール不要)。
+// - 個人マウント (~/.claude*, ~/ghq 等) はテンプレートではコメントアウト。
+//   使うものだけアンコメントする。
+{
+    "name": "smalruby3-editor",
+
+    // 既存の Dockerfile をそのまま使う (context = repo root, dockerfile も repo root)
+    "build": {
+        "context": "..",
+        "dockerfile": "../Dockerfile"
+    },
+
+    "workspaceFolder": "/app",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
+
+    // entrypoint.sh の "build if not built" 処理を抑止して container を長寿命化
+    "overrideCommand": true,
+
+    "features": {
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+
+    "remoteEnv": {
+        // macOS の gh は PAT を keychain に保存するため、devcontainer 起動前に
+        //   export GH_TOKEN=$(gh auth token)
+        // が必要。詳細は README.md。
+        "GH_TOKEN": "${localEnv:GH_TOKEN}"
+    },
+
+    "containerEnv": {
+        // container 内 Claude が host の ~/.claude.json のバージョンを
+        // 勝手に書き換えるのを防ぐ。host との version drift 防止。
+        "DISABLE_AUTOUPDATER": "1"
+    },
+
+    "forwardPorts": [8601],
+
+    "initializeCommand": ".devcontainer/initialize.sh",
+    "postCreateCommand": ".devcontainer/post-create.sh",
+
+    "mounts": [
+        // ----- 全員共通 (必須) -----
+        // git の identity (commit author 等)
+        "source=${localEnv:HOME}/.gitconfig,target=/root/.gitconfig,type=bind,readonly",
+        // gh CLI 設定 (PAT 本体は GH_TOKEN env で渡す。これは hosts.yml のユーザ情報のみ)
+        "source=${localEnv:HOME}/.config/gh,target=/root/.config/gh,type=bind",
+
+        // ----- 既存 docker-compose との volume 共有 -----
+        // `docker compose run app npm install` で生成された node_modules を
+        // devcontainer でもそのまま使う。volume 名は <project_name>_<volume_name>
+        // 形式で、project_name は docker-compose.yml の `name:` 指定で固定済み。
+        "source=smalruby3-editor_smalruby3-editor_node_modules,target=/app/node_modules,type=volume",
+        "source=smalruby3-editor_smalruby3-editor_root_npm,target=/root/.npm,type=volume",
+        "source=smalruby3-editor_smalruby3-editor_root_cache,target=/root/.cache,type=volume"
+
+        // ----- 個人マウント (必要なものだけアンコメント) -----
+
+        // 関連 OSS の参照 (smalruby/ruby-sdl2, scratchfoundation/scratch-editor 等)
+        // ,"source=${localEnv:HOME}/ghq,target=/ghq,type=bind"
+
+        // ---- Claude Code 関連 (Anthropic 公式 + 安全側を考慮した設計) ----
+        //
+        // - **認証 (~/.claude.json) は mount しない**。container 内で初回 `claude` 起動時に
+        //   別途ログインする。container の auth state は container 内 fs に残り、
+        //   `devpod delete` または devcontainer rebuild まで永続。host の ~/.claude.json
+        //   は触らない (auto-update でも host が汚れない)。
+        // - **DISABLE_AUTOUPDATER=1** (上記 containerEnv) で auto-update も止める。
+        //   host との version drift を防ぐ。
+        // - skills / plugins / settings / statusline は host から **read-only**
+        //   bind で持ち込む。container 内では書き換えできないので汚染しない。
+        // - **memory のみ bind rw** で host と共有 (このプロジェクト固有の memory
+        //   なので host 側 Claude と相互に読み書きする想定)。
+        // - その他 (~/.claude/projects/*, sessions, history, file-history) は
+        //   マウントしないことで他プロジェクトの transcripts を隔離。
+
+        // host の skills / plugins / 設定を読むだけ (container は書き換え不可)
+        // ,"source=${localEnv:HOME}/.claude/settings.json,target=/root/.claude/settings.json,type=bind,readonly"
+        // ,"source=${localEnv:HOME}/.claude/skills,target=/root/.claude/skills,type=bind,readonly"
+        // ,"source=${localEnv:HOME}/.claude/plugins,target=/root/.claude/plugins,type=bind,readonly"
+        // ,"source=${localEnv:HOME}/.claude/statusline-command.sh,target=/root/.claude/statusline-command.sh,type=bind,readonly"
+
+        // このプロジェクト固有の Claude memory (initialize.sh が `-app` シンボリックリンクを作る)
+        // ,"source=${localEnv:HOME}/.claude/projects/-app,target=/root/.claude/projects/-app,type=bind"
+    ],
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode"
+            ]
+        }
+    }
+}
