@@ -160,6 +160,36 @@ upstream が追加した新しいファイルや、revert 対象外のファイ�
 
 ---
 
+### sprites.json / costumes.json (Smalruby 独自エントリ消失リスク)
+
+**コンフリクトとして検出されないケースが多い** ため要注意。upstream の
+`packages/scratch-gui/src/lib/libraries/sprites.json` /
+`packages/scratch-gui/src/lib/libraries/costumes.json` が更新されると、
+git の auto-merge が成功してしまい、**Smalruby 独自エントリ (Shimaraby,
+Shimacat) が静かに消失する** ことがある (issue #688 で発生)。
+
+**マージ後に必ず実行する確認**:
+
+```bash
+# Shimaraby / Shimacat が残っていることを確認
+docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest test/unit/lib/smalruby-original-sprites.test.js"
+
+# トレードマーク sprite が混入していないことを確認
+docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest test/unit/lib/removed-trademarks.test.js"
+```
+
+**消失している場合の復元**: 過去コミット `f2b5c09e5b` (sprites) /
+`1c3f91a216` (costumes) を参照し、エントリを再追加する。アセット PNG は
+`packages/scratch-gui/static/smalruby-assets/` に保持されている。
+
+**トレードマーク sprite が紛れ込んでいる場合**: 対象は
+`Cat`, `Cat Flying`, `Gobo`, `Pico`, `Pico Walking`, `Nano`, `Tera`,
+`Giga`, `Giga Walking`。`removed-trademarks.test.js` の `trademarkNames`
+配列が現状のリストなので、増えた場合は配列を更新してから sprites.json /
+costumes.json から削除する。
+
+---
+
 ## Unexpected Conflicts
 
 上記以外のファイルでコンフリクトが発生した場合:
