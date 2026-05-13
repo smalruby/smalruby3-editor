@@ -2001,36 +2001,6 @@
         ]
     },
     {
-        "name": "Cat Flying-a",
-        "assetId": "a1ab94c8172c3b97ed9a2bf7c32172cd",
-        "md5ext": "a1ab94c8172c3b97ed9a2bf7c32172cd.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 55,
-        "rotationCenterY": 37,
-        "tags": [
-            "animals",
-            "cat",
-            "kitty",
-            "kitten"
-        ]
-    },
-    {
-        "name": "Cat Flying-b",
-        "assetId": "6667936a2793aade66c765c329379ad0",
-        "md5ext": "6667936a2793aade66c765c329379ad0.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 44,
-        "rotationCenterY": 46,
-        "tags": [
-            "animals",
-            "cat",
-            "kitty",
-            "kitten"
-        ]
-    },
-    {
         "name": "Catcher-a",
         "assetId": "895cdda4f2bd9d6f50ff07188e7ce395",
         "md5ext": "895cdda4f2bd9d6f50ff07188e7ce395.svg",

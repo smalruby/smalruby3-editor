@@ -3769,61 +3769,6 @@
         "blocks": {}
     },
     {
-        "name": "Cat Flying",
-        "tags": [
-            "animals",
-            "cat",
-            "kitty",
-            "kitten"
-        ],
-        "isStage": false,
-        "costumes": [
-            {
-                "name": "Cat Flying-a",
-                "assetId": "a1ab94c8172c3b97ed9a2bf7c32172cd",
-                "md5ext": "a1ab94c8172c3b97ed9a2bf7c32172cd.svg",
-                "dataFormat": "svg",
-                "bitmapResolution": 1,
-                "rotationCenterX": 55,
-                "rotationCenterY": 37,
-                "tags": [
-                    "animals",
-                    "cat",
-                    "kitty",
-                    "kitten"
-                ]
-            },
-            {
-                "name": "Cat Flying-b",
-                "assetId": "6667936a2793aade66c765c329379ad0",
-                "md5ext": "6667936a2793aade66c765c329379ad0.svg",
-                "dataFormat": "svg",
-                "bitmapResolution": 1,
-                "rotationCenterX": 44,
-                "rotationCenterY": 46,
-                "tags": [
-                    "animals",
-                    "cat",
-                    "kitty",
-                    "kitten"
-                ]
-            }
-        ],
-        "sounds": [
-            {
-                "name": "Pop",
-                "assetId": "83a9787d4cb6f3b7632b4ddfebf74367",
-                "md5ext": "83a9787d4cb6f3b7632b4ddfebf74367.wav",
-                "dataFormat": "wav",
-                "tags": [],
-                "rate": 44100,
-                "sampleCount": 1032
-            }
-        ],
-        "variables": {},
-        "blocks": {}
-    },
-    {
         "name": "Catcher",
         "tags": [
             "baseball",

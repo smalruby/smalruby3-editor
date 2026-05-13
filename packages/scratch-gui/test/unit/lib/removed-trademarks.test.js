@@ -7,7 +7,7 @@
 import costumeLibraryContent from '../../../src/lib/libraries/costumes.json';
 import spriteLibraryContent from '../../../src/lib/libraries/sprites.json';
 
-const trademarkNames = ['Cat', 'Cat-Flying', 'Gobo', 'Pico', 'Pico Walking', 'Nano', 'Tera', 'Giga', 'Giga Walking'];
+const trademarkNames = ['Cat', 'Cat Flying', 'Gobo', 'Pico', 'Pico Walking', 'Nano', 'Tera', 'Giga', 'Giga Walking'];
 
 describe('Removed trademarks (ex: Scratch Cat)', () => {
     test('Removed trademark sprites', () => {
