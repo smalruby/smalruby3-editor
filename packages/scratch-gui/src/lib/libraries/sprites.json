@@ -3769,61 +3769,6 @@
         "blocks": {}
     },
     {
-        "name": "Cat Flying",
-        "tags": [
-            "animals",
-            "cat",
-            "kitty",
-            "kitten"
-        ],
-        "isStage": false,
-        "costumes": [
-            {
-                "name": "Cat Flying-a",
-                "assetId": "a1ab94c8172c3b97ed9a2bf7c32172cd",
-                "md5ext": "a1ab94c8172c3b97ed9a2bf7c32172cd.svg",
-                "dataFormat": "svg",
-                "bitmapResolution": 1,
-                "rotationCenterX": 55,
-                "rotationCenterY": 37,
-                "tags": [
-                    "animals",
-                    "cat",
-                    "kitty",
-                    "kitten"
-                ]
-            },
-            {
-                "name": "Cat Flying-b",
-                "assetId": "6667936a2793aade66c765c329379ad0",
-                "md5ext": "6667936a2793aade66c765c329379ad0.svg",
-                "dataFormat": "svg",
-                "bitmapResolution": 1,
-                "rotationCenterX": 44,
-                "rotationCenterY": 46,
-                "tags": [
-                    "animals",
-                    "cat",
-                    "kitty",
-                    "kitten"
-                ]
-            }
-        ],
-        "sounds": [
-            {
-                "name": "Pop",
-                "assetId": "83a9787d4cb6f3b7632b4ddfebf74367",
-                "md5ext": "83a9787d4cb6f3b7632b4ddfebf74367.wav",
-                "dataFormat": "wav",
-                "tags": [],
-                "rate": 44100,
-                "sampleCount": 1032
-            }
-        ],
-        "variables": {},
-        "blocks": {}
-    },
-    {
         "name": "Catcher",
         "tags": [
             "baseball",
@@ -17738,6 +17683,90 @@
             }
         ],
         "variables": {},
+        "blocks": {}
+    },
+    {
+        "name": "Shimacat",
+        "tags": [
+            "animals"
+        ],
+        "isStage": false,
+        "variables": {},
+        "costumes": [
+            {
+                "assetId": "851e679b8f113ee90e0d686c33fbc940",
+                "name": "shimacat-a",
+                "bitmapResolution": 2,
+                "md5ext": "851e679b8f113ee90e0d686c33fbc940.png",
+                "dataFormat": "png",
+                "rotationCenterX": 90,
+                "rotationCenterY": 100,
+                "rawURL": "static/smalruby-assets/851e679b8f113ee90e0d686c33fbc940.png"
+            },
+            {
+                "assetId": "57613248603bb9c5b4b767b72cd4fdef",
+                "name": "shimacat-b",
+                "bitmapResolution": 2,
+                "md5ext": "57613248603bb9c5b4b767b72cd4fdef.png",
+                "dataFormat": "png",
+                "rotationCenterX": 90,
+                "rotationCenterY": 100,
+                "rawURL": "static/smalruby-assets/57613248603bb9c5b4b767b72cd4fdef.png"
+            }
+        ],
+        "sounds": [
+            {
+                "assetId": "83c36d806dc92327b9e7049a565c6bff",
+                "name": "Meow",
+                "dataFormat": "wav",
+                "format": "",
+                "rate": 44100,
+                "sampleCount": 37376,
+                "md5ext": "83c36d806dc92327b9e7049a565c6bff.wav"
+            }
+        ],
+        "blocks": {}
+    },
+    {
+        "name": "Shimaraby",
+        "tags": [
+            "animals"
+        ],
+        "isStage": false,
+        "variables": {},
+        "costumes": [
+            {
+                "assetId": "ddaccfcda466a4887299feddc899fea7",
+                "name": "shimaraby-a",
+                "bitmapResolution": 2,
+                "md5ext": "ddaccfcda466a4887299feddc899fea7.png",
+                "dataFormat": "png",
+                "rotationCenterX": 63,
+                "rotationCenterY": 100,
+                "rawURL": "static/smalruby-assets/ddaccfcda466a4887299feddc899fea7.png"
+            },
+            {
+                "assetId": "bd0ff11c925936ed5e0363112103cd0b",
+                "name": "shimaraby-b",
+                "bitmapResolution": 2,
+                "md5ext": "bd0ff11c925936ed5e0363112103cd0b.png",
+                "dataFormat": "png",
+                "rotationCenterX": 63,
+                "rotationCenterY": 100,
+                "rawURL": "static/smalruby-assets/bd0ff11c925936ed5e0363112103cd0b.png"
+            }
+        ],
+        "sounds": [
+            {
+                "assetId": "3b8236bbb288019d93ae38362e865972",
+                "name": "Chirp",
+                "dataFormat": "wav",
+                "format": "adpcm",
+                "rate": 22050,
+                "sampleCount": 6097,
+                "md5ext": "3b8236bbb288019d93ae38362e865972.wav"
+            }
+        ],
         "blocks": {}
     },
     {

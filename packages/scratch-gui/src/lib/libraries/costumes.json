@@ -2001,36 +2001,6 @@
         ]
     },
     {
-        "name": "Cat Flying-a",
-        "assetId": "a1ab94c8172c3b97ed9a2bf7c32172cd",
-        "md5ext": "a1ab94c8172c3b97ed9a2bf7c32172cd.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 55,
-        "rotationCenterY": 37,
-        "tags": [
-            "animals",
-            "cat",
-            "kitty",
-            "kitten"
-        ]
-    },
-    {
-        "name": "Cat Flying-b",
-        "assetId": "6667936a2793aade66c765c329379ad0",
-        "md5ext": "6667936a2793aade66c765c329379ad0.svg",
-        "dataFormat": "svg",
-        "bitmapResolution": 1,
-        "rotationCenterX": 44,
-        "rotationCenterY": 46,
-        "tags": [
-            "animals",
-            "cat",
-            "kitty",
-            "kitten"
-        ]
-    },
-    {
         "name": "Catcher-a",
         "assetId": "895cdda4f2bd9d6f50ff07188e7ce395",
         "md5ext": "895cdda4f2bd9d6f50ff07188e7ce395.svg",
@@ -10008,6 +9978,58 @@
             "carnivore",
             "chomp"
         ]
+    },
+    {
+        "name": "Shimacat-a",
+        "tags": [
+            "animals"
+        ],
+        "assetId": "851e679b8f113ee90e0d686c33fbc940",
+        "bitmapResolution": 2,
+        "dataFormat": "png",
+        "md5ext": "851e679b8f113ee90e0d686c33fbc940.png",
+        "rotationCenterX": 90,
+        "rotationCenterY": 100,
+        "rawURL": "static/smalruby-assets/851e679b8f113ee90e0d686c33fbc940.png"
+    },
+    {
+        "name": "Shimacat-b",
+        "tags": [
+            "animals"
+        ],
+        "assetId": "57613248603bb9c5b4b767b72cd4fdef",
+        "bitmapResolution": 2,
+        "dataFormat": "png",
+        "md5ext": "57613248603bb9c5b4b767b72cd4fdef.png",
+        "rotationCenterX": 90,
+        "rotationCenterY": 100,
+        "rawURL": "static/smalruby-assets/57613248603bb9c5b4b767b72cd4fdef.png"
+    },
+    {
+        "name": "Shimaraby-a",
+        "tags": [
+            "animals"
+        ],
+        "assetId": "ddaccfcda466a4887299feddc899fea7",
+        "bitmapResolution": 2,
+        "dataFormat": "png",
+        "md5ext": "ddaccfcda466a4887299feddc899fea7.png",
+        "rotationCenterX": 63,
+        "rotationCenterY": 100,
+        "rawURL": "static/smalruby-assets/ddaccfcda466a4887299feddc899fea7.png"
+    },
+    {
+        "name": "Shimaraby-b",
+        "tags": [
+            "animals"
+        ],
+        "assetId": "bd0ff11c925936ed5e0363112103cd0b",
+        "bitmapResolution": 2,
+        "dataFormat": "png",
+        "md5ext": "bd0ff11c925936ed5e0363112103cd0b.png",
+        "rotationCenterX": 63,
+        "rotationCenterY": 100,
+        "rawURL": "static/smalruby-assets/bd0ff11c925936ed5e0363112103cd0b.png"
     },
     {
         "name": "Shirt-a",

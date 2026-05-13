@@ -265,6 +265,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/ruby-roundtrip-puts-concat.test.js`
 - `test/unit/lib/ruby-roundtrip-super.test.js`
 - `test/unit/lib/ruby-screenshot.test.js`
+- `test/unit/lib/smalruby-original-sprites.test.js`
 - `test/unit/lib/smalrubot-firmware-flasher.test.js`
 - `test/unit/lib/ruby-script-preview.test.js`
 - `test/unit/lib/ruby-to-blocks-converter-version.test.js`

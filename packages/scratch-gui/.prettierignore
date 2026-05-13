@@ -349,6 +349,7 @@ test/unit/lib/*
 !test/unit/lib/rubytee-context.test.js
 !test/unit/lib/screen-utils.test.js
 !test/unit/lib/smalrubot-firmware-flasher.test.js
+!test/unit/lib/smalruby-original-sprites.test.js
 !test/unit/lib/setup-prism.js
 !test/unit/lib/version-checker.test.js
 
