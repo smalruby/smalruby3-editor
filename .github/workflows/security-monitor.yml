@@ -1,0 +1,216 @@
+name: security-monitor
+
+# Subdomain takeover 防御の自動監視。
+# 詳細は docs/security/github-pages-subdomain-takeover.md を参照。
+
+on:
+  schedule:
+    # 毎日 19:00 UTC = 04:00 JST
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: security-monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: GitHub Pages subdomain takeover defense check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dig
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y dnsutils
+
+      - name: Run checks
+        id: checks
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          ERRORS=()
+
+          check_dns_txt() {
+            local domain="$1"
+            local txt
+            txt=$(dig +short "_github-pages-challenge-smalruby.$domain" TXT)
+            if [ -z "$txt" ]; then
+              ERRORS+=("DNS verification TXT missing for $domain — Org-level domain verification at risk")
+            else
+              echo "✓ DNS verification TXT present for $domain"
+            fi
+          }
+
+          check_caa() {
+            local domain="$1"
+            shift
+            local caa
+            caa=$(dig +short "$domain" CAA)
+            if [ -z "$caa" ]; then
+              ERRORS+=("CAA records missing entirely for $domain — any CA can issue certificates")
+              return
+            fi
+            local missing=()
+            for required in "$@"; do
+              if ! echo "$caa" | grep -qF "$required"; then
+                missing+=("$required")
+              fi
+            done
+            if [ ${#missing[@]} -gt 0 ]; then
+              ERRORS+=("CAA $domain: missing entries — $(IFS=', '; echo "${missing[*]}")")
+            else
+              echo "✓ CAA records OK for $domain"
+            fi
+          }
+
+          check_pages() {
+            local repo="$1"
+            local expect_verified="$2"
+            local data
+            data=$(gh api "repos/smalruby/$repo/pages" 2>/dev/null)
+            if [ -z "$data" ]; then
+              ERRORS+=("Pages $repo: API returned empty (repo deleted / Pages disabled / API access denied)")
+              return
+            fi
+            local https protected cname
+            https=$(echo "$data" | jq -r '.https_enforced')
+            protected=$(echo "$data" | jq -r '.protected_domain_state // "n/a"')
+            cname=$(echo "$data" | jq -r '.cname // "(none)"')
+            if [ "$https" != "true" ]; then
+              ERRORS+=("Pages $repo (cname=$cname): https_enforced=$https (expected: true)")
+            fi
+            if [ "$expect_verified" = "yes" ] && [ "$protected" != "verified" ]; then
+              ERRORS+=("Pages $repo (cname=$cname): protected_domain_state=$protected (expected: verified)")
+            fi
+            echo "✓ Pages $repo: cname=$cname https=$https protected=$protected"
+          }
+
+          check_content() {
+            local url="$1"
+            local needle="$2"
+            local http body
+            http=$(curl -sL --max-time 15 -o /tmp/body.html -w '%{http_code}' "$url")
+            if [ "$http" != "200" ]; then
+              ERRORS+=("Content check $url: HTTP $http (expected: 200) — possible DNS or Pages disruption")
+              return
+            fi
+            if ! grep -qi "$needle" /tmp/body.html; then
+              ERRORS+=("Content check $url: did not contain '$needle' — possible takeover or unrelated content")
+            else
+              echo "✓ Content check $url: '$needle' present, HTTP 200"
+            fi
+          }
+
+          echo "=== Layer 1: DNS verification TXT records ==="
+          check_dns_txt smalruby.app
+          check_dns_txt smalruby.jp
+          echo ""
+
+          echo "=== Layer 6: CAA records ==="
+          check_caa smalruby.app \
+            '0 issue "letsencrypt.org"' \
+            '0 issue "amazon.com"' \
+            '0 issue "amazontrust.com"' \
+            '0 issue "awstrust.com"' \
+            '0 issue "amazonaws.com"' \
+            '0 issuewild ";"'
+          check_caa smalruby.jp \
+            '0 issue "letsencrypt.org"' \
+            '0 issuewild ";"'
+          echo ""
+
+          echo "=== Layer 1+2: Pages settings (verified + https_enforced) ==="
+          check_pages smalruby.app yes
+          check_pages smalruby.github.com yes
+          check_pages smalruby3-editor no
+          check_pages smalruby3-gui no
+          check_pages dxruby_sdl no
+          echo ""
+
+          echo "=== Content sanity (takeover detection) ==="
+          check_content https://smalruby.app/ smalruby
+          check_content https://smalruby.jp/ smalruby
+          echo ""
+
+          if [ ${#ERRORS[@]} -eq 0 ]; then
+            echo "✅ All checks passed"
+            exit 0
+          fi
+
+          echo "❌ ${#ERRORS[@]} error(s) detected:"
+          printf '  - %s\n' "${ERRORS[@]}"
+          {
+            echo "errors<<ERRORS_EOF"
+            printf -- '- %s\n' "${ERRORS[@]}"
+            echo "ERRORS_EOF"
+          } >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Ensure security label exists
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create security \
+            --repo "${{ github.repository }}" \
+            --color d73a4a \
+            --description "Security-related issue" 2>/dev/null || true
+
+      - name: Open or update alert issue
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ERRORS: ${{ steps.checks.outputs.errors }}
+        run: |
+          TITLE="[security-monitor] Subdomain takeover defense check failed"
+          REPO="${{ github.repository }}"
+          RUN_URL="${{ github.server_url }}/$REPO/actions/runs/${{ github.run_id }}"
+
+          BODY=$(cat <<EOF
+          security-monitor workflow が異常を検知しました。
+
+          ## 検知されたエラー
+
+          $ERRORS
+
+          ## 対応手順
+
+          [docs/security/github-pages-subdomain-takeover.md](https://github.com/$REPO/blob/develop/docs/security/github-pages-subdomain-takeover.md) の「緊急時対応」セクションを参照してください。
+
+          一次対応の優先順:
+
+          1. 影響範囲確認 — どの check が失敗したか上記エラーから特定
+          2. DNS verification TXT が消えていれば DNS provider で再追加
+          3. CAA レコードが消えていれば再追加
+          4. Pages 設定が変わっていれば再設定 (cname 再投入 / https_enforced を ON)
+          5. コンテンツが書き換わっていれば即座に DNS を一時切離し、原因リポジトリを特定
+
+          ## ワークフロー実行ログ
+
+          $RUN_URL
+
+          ---
+
+          このイシューは security-monitor が自動作成しました。問題解消後は手動で close してください (次回 cron 実行で正常になれば、新規イシューは作成されません)。
+          EOF
+          )
+
+          existing=$(gh issue list --repo "$REPO" \
+            --label security --state open \
+            --search "in:title \"$TITLE\"" \
+            --json number --jq '.[0].number // empty')
+
+          if [ -z "$existing" ]; then
+            gh issue create --repo "$REPO" \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label security
+          else
+            gh issue comment "$existing" --repo "$REPO" \
+              --body "$BODY"
+          fi
