@@ -1,0 +1,114 @@
+name: security-monitor
+
+# Subdomain takeover 防御の自動監視。
+# チェックロジックは scripts/security-monitor.sh に集約 (ローカル実行可能)。
+# 詳細は docs/security/github-pages-subdomain-takeover.md を参照。
+
+on:
+  schedule:
+    # 毎日 19:00 UTC = 04:00 JST
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: security-monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: GitHub Pages subdomain takeover defense check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Install dig
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y dnsutils
+
+      - name: Run checks
+        id: checks
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ERROR_FILE: ${{ runner.temp }}/security-monitor-errors.txt
+        run: ./scripts/security-monitor.sh
+
+      - name: Ensure security label exists
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create security \
+            --repo "${{ github.repository }}" \
+            --color d73a4a \
+            --description "Security-related issue" 2>/dev/null || true
+
+      - name: Open or update alert issue
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ERROR_FILE: ${{ runner.temp }}/security-monitor-errors.txt
+        run: |
+          TITLE="[security-monitor] Subdomain takeover defense check failed"
+          REPO="${{ github.repository }}"
+          RUN_URL="${{ github.server_url }}/$REPO/actions/runs/${{ github.run_id }}"
+
+          if [ -s "$ERROR_FILE" ]; then
+            ERRORS=$(cat "$ERROR_FILE")
+          else
+            ERRORS="- (詳細不明: ERROR_FILE が空。Run log を参照)"
+          fi
+
+          BODY=$(cat <<EOF
+          security-monitor workflow が異常を検知しました。
+
+          ## 検知されたエラー
+
+          $ERRORS
+
+          ## 対応手順
+
+          [docs/security/github-pages-subdomain-takeover.md](https://github.com/$REPO/blob/develop/docs/security/github-pages-subdomain-takeover.md) の「緊急時対応」セクションを参照してください。
+
+          一次対応の優先順:
+
+          1. 影響範囲確認 — どの check が失敗したか上記エラーから特定
+          2. DNS verification TXT が消えていれば DNS provider で再追加
+          3. CAA レコードが消えていれば再追加
+          4. Pages 設定が変わっていれば再設定 (cname 再投入 / https_enforced を ON)
+          5. コンテンツが書き換わっていれば即座に DNS を一時切離し、原因リポジトリを特定
+
+          再現方法 (ローカル):
+
+          \`\`\`
+          ./scripts/security-monitor.sh
+          \`\`\`
+
+          ## ワークフロー実行ログ
+
+          $RUN_URL
+
+          ---
+
+          このイシューは security-monitor が自動作成しました。問題解消後は手動で close してください (次回 cron 実行で正常になれば、新規イシューは作成されません)。
+          EOF
+          )
+
+          existing=$(gh issue list --repo "$REPO" \
+            --label security --state open \
+            --search "in:title \"$TITLE\"" \
+            --json number --jq '.[0].number // empty')
+
+          if [ -z "$existing" ]; then
+            gh issue create --repo "$REPO" \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label security
+          else
+            gh issue comment "$existing" --repo "$REPO" \
+              --body "$BODY"
+          fi
