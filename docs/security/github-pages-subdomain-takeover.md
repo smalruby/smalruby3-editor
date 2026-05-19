@@ -155,14 +155,29 @@ cname なしの 3 つは `smalruby.github.io/<repo>/` 経由で配信される�
 
 ### 自動化されているチェック
 
-`.github/workflows/security-monitor.yml` で毎日 04:00 JST に以下を自動チェックし、異常があれば `smalruby/smalruby3-editor` リポジトリに Issue を起票:
+実体は `scripts/security-monitor.sh` (純 bash、ローカル実行可能)。CI から `.github/workflows/security-monitor.yml` 経由で毎日 04:00 JST に呼ばれる。13 check:
 
-- DNS verification TXT の残存
-- CAA レコードの内容
-- 全 Pages リポジトリの `https_enforced` と `protected_domain_state`
-- `smalruby.app` / `smalruby.jp` のコンテンツに `Smalruby` 文字列が含まれるか (改竄検知)
+- DNS verification TXT の残存 (2 domain)
+- CAA レコードの内容 (`smalruby.app` 6 entries / `smalruby.jp` 2 entries)
+- 全 Pages リポジトリの `https_enforced` と `protected_domain_state` (5 repo)
+- `smalruby.app` / `smalruby.jp` のコンテンツに `smalruby` 文字列が含まれるか (改竄検知)
 
-手動実行: GitHub Actions の "security-monitor" workflow → "Run workflow"
+異常があれば `smalruby/smalruby3-editor` リポジトリに `security` ラベル付き Issue を自動起票 (同タイトルの open issue があれば新規作成せずコメント追記)。
+
+#### ローカルから手動チェック
+
+CI を待たずに今すぐ確認したいとき、CI と完全に同じスクリプトを手元で実行できる:
+
+```bash
+gh auth status                       # 認証済みであること
+./scripts/security-monitor.sh        # 13 check を実行
+```
+
+すべての check に ✓ が出れば green (exit 0)。失敗があれば標準出力に詳細が表示される (exit 1)。
+
+#### GitHub UI からのオンデマンド実行
+
+cron を待たずに CI 環境で実行したいとき: GitHub Actions の "security-monitor" workflow → "Run workflow"。`workflow_dispatch` 経由の失敗は Issue を起票しない (手動デバッグ前提)。
 
 ### 月次の手動チェック (自動化されていない項目)
 
