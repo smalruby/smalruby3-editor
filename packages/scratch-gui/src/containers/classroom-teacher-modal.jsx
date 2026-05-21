@@ -164,6 +164,9 @@ const ClassroomTeacherModal = () => {
         onConfirmGoogleImport: teacher.handleConfirmGoogleImport,
         onUpdateAssignmentName: teacher.handleUpdateAssignmentName,
         onUpdateStudentCount: teacher.handleUpdateStudentCount,
+        kickRequestsBySeat: teacher.kickRequestsBySeat,
+        onApproveKickRequest: teacher.handleApproveKickRequest,
+        onRejectKickRequest: teacher.handleRejectKickRequest,
     };
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
 };

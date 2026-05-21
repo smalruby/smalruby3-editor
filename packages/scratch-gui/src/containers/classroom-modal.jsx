@@ -4,6 +4,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import analytics from '../lib/analytics';
 import classroomAPI from '../lib/classroom-api.js';
+import {
+    loadPendingKickRequest,
+    savePendingKickRequest,
+    clearPendingKickRequest,
+} from '../lib/classroom-kick-request-storage.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
@@ -15,7 +20,8 @@ import {
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
-import translateError from './classroom-error-utils.js';
+import { decideClasscodeAction } from './classroom-classcode-utils.js';
+import translateError, { extractKickReason } from './classroom-error-utils.js';
 import useStudentSubmit from './use-student-submit.js';
 
 const ClassroomModal = () => {
@@ -115,6 +121,31 @@ const ClassroomModal = () => {
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [pendingClassroomInfo, setPendingClassroomInfo] = useState(null);
     const [joinedInfo, setJoinedInfo] = useState(null);
+    // Set to {joinCode, className, seatNumber} when the student arrives at the
+    // seat-selection screen because the teacher kicked them. The seat-selector
+    // shows a dismissible banner so the student knows the reason rather than
+    // seeing the generic "session expired" alert.
+    const [kickedNotice, setKickedNotice] = useState(null);
+    const handleDismissKickedNotice = useCallback(() => setKickedNotice(null), []);
+
+    // --- Kick-request state ---
+    // The student can tap an occupied seat to ask the teacher to free it.
+    // `kickRequestDialogSeat` is the seat number while the confirm dialog is
+    // open (replaces the grid). `kickRequestPending` is the saved request
+    // after submission (persisted to localStorage so it survives reload).
+    // Once submitted, polling watches the seat grid and clears the pending
+    // state when the teacher acts (approve or reject + TTL).
+    const [kickRequestDialogSeat, setKickRequestDialogSeat] = useState(null);
+    const [kickRequestPending, setKickRequestPending] = useState(() => loadPendingKickRequest());
+    const [kickRequestError, setKickRequestError] = useState(null);
+    // Set when polling detects that a previously-pending request has
+    // disappeared from the server's activeKickRequestIds *and* the target
+    // seat is still occupied — meaning the teacher rejected the request (or
+    // the TTL of 1h ran out). The seat-selector shows a dismissible "依頼は
+    // 受理されませんでした" banner so the student doesn't watch the
+    // pending banner forever.
+    const [kickRequestRejectedNotice, setKickRequestRejectedNotice] = useState(null);
+    const handleDismissKickRequestRejectedNotice = useCallback(() => setKickRequestRejectedNotice(null), []);
 
     // --- Join with code ---
 
@@ -151,6 +182,96 @@ const ClassroomModal = () => {
     const handleSelectSeat = useCallback((seatNumber) => {
         setSelectedSeat(seatNumber);
     }, []);
+
+    // --- Kick-request handlers ---
+
+    const handleRequestKick = useCallback(
+        (seatNumber) => {
+            if (!pendingJoinCode) return;
+            if (kickRequestPending) return; // one outstanding request at a time
+            setKickRequestError(null);
+            setKickRequestRejectedNotice(null);
+            setKickRequestDialogSeat(seatNumber);
+        },
+        [pendingJoinCode, kickRequestPending],
+    );
+
+    const handleCancelKickRequest = useCallback(() => {
+        setKickRequestDialogSeat(null);
+        setKickRequestError(null);
+    }, []);
+
+    const handleConfirmKickRequest = useCallback(
+        async (reason) => {
+            if (!pendingJoinCode || !kickRequestDialogSeat) return;
+            setKickRequestError(null);
+            setIsLoading(true);
+            try {
+                const result = await classroomAPI.createKickRequest(pendingJoinCode, kickRequestDialogSeat, reason);
+                const record = {
+                    requestId: result.requestId,
+                    joinCode: pendingJoinCode,
+                    seatNumber: kickRequestDialogSeat,
+                    reason: reason || null,
+                    createdAt: new Date().toISOString(),
+                };
+                savePendingKickRequest(record);
+                setKickRequestPending(record);
+                setKickRequestDialogSeat(null);
+            } catch (err) {
+                setKickRequestError(translateError(intl, err));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [pendingJoinCode, kickRequestDialogSeat, intl],
+    );
+
+    // Polling: while in student-seat with a pending kick request, re-fetch
+    // the lookup every 5s. When the seat is no longer in `takenSeats`, the
+    // teacher approved the request (or it was rejected then the seat freed
+    // up some other way) and we clear the pending state so the student can
+    // re-pick the seat.
+    useEffect(() => {
+        if (phase !== 'student-seat' || !kickRequestPending || !pendingJoinCode) {
+            return () => {
+                // No polling needed; cleanup is a no-op.
+            };
+        }
+        let cancelled = false;
+        const tick = async () => {
+            try {
+                const data = await classroomAPI.lookupClassroom(pendingJoinCode);
+                if (cancelled) return;
+                setTakenSeats(data.takenSeats || []);
+                const seatStillTaken = (data.takenSeats || []).includes(kickRequestPending.seatNumber);
+                const requestStillActive = (data.activeKickRequestIds || []).includes(kickRequestPending.requestId);
+                if (!seatStillTaken) {
+                    // Seat freed → teacher approved (or any equivalent outcome).
+                    clearPendingKickRequest();
+                    setKickRequestPending(null);
+                    setKickRequestRejectedNotice(null);
+                } else if (!requestStillActive) {
+                    // Request is gone but seat is still taken → the teacher
+                    // explicitly rejected, or the 1h TTL expired. Either way
+                    // the student should re-pick a different seat (or send a
+                    // new request) rather than stare at the pending banner.
+                    clearPendingKickRequest();
+                    setKickRequestRejectedNotice({
+                        seatNumber: kickRequestPending.seatNumber,
+                    });
+                    setKickRequestPending(null);
+                }
+            } catch {
+                // Network blip — try again on next tick.
+            }
+        };
+        const id = setInterval(tick, 5000);
+        return () => {
+            cancelled = true;
+            clearInterval(id);
+        };
+    }, [phase, kickRequestPending, pendingJoinCode]);
 
     // --- Confirm join ---
 
@@ -197,6 +318,10 @@ const ClassroomModal = () => {
                 assignmentName: data.assignmentName || null,
                 seatNumber: data.seatNumber,
             });
+            setKickedNotice(null);
+            clearPendingKickRequest();
+            setKickRequestPending(null);
+            setKickRequestRejectedNotice(null);
             setPhase('student-joined');
         } catch (err) {
             if (err.status === 409) {
@@ -222,13 +347,25 @@ const ClassroomModal = () => {
                 dispatch(setSubmissionStatus(result.submission.status, result.submission.submittedAt));
                 setStudentTeacherComment(result.submission.teacherComment || null);
             }
-        } catch {
-            dispatch(clearClassroomSession());
-            showSessionExpiredError(translateError(intl, { status: 401 }, 'session'));
+        } catch (err) {
+            const kick = extractKickReason(err);
+            if (kick) {
+                // Teacher removed the student. Clear the dead session, jump
+                // straight to seat selection for the same classroom, and let
+                // the seat-selector show a "you were removed" banner so the
+                // student knows what happened instead of seeing the generic
+                // "session expired" alert.
+                dispatch(clearClassroomSession());
+                setKickedNotice(kick);
+                handleJoinWithCode(kick.joinCode);
+            } else {
+                dispatch(clearClassroomSession());
+                showSessionExpiredError(translateError(intl, { status: 401 }, 'session'));
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [classroomState.sessionToken, dispatch, showSessionExpiredError, intl]);
+    }, [classroomState.sessionToken, dispatch, showSessionExpiredError, intl, handleJoinWithCode]);
 
     useEffect(() => {
         if (phase === 'student-status' && classroomState.sessionToken) {
@@ -262,15 +399,25 @@ const ClassroomModal = () => {
         window.history.replaceState({}, '', url.toString());
         clearClasscode();
 
-        if (classroomState.sessionToken && classroomState.joinCode === code) {
+        const action = decideClasscodeAction(classroomState, code);
+        if (action.type === 'same_class') {
             setPhase('student-status');
             return;
         }
-
-        if (classroomState.sessionToken) {
+        if (action.type === 'switch_class') {
+            // Best-effort release of the old seat before switching. We do not
+            // await this so the new lookup UI is not blocked by a slow API
+            // call (or by a 401 in case the old session already expired on
+            // the server). Without this call, opening a new classcode URL
+            // while still holding an old session would leave the previous
+            // seat occupied until TTL.
+            classroomAPI.leaveClassroom(action.leaveSessionToken, action.leaveClassroomId).catch(() => {
+                // Ignore — we have no UI to surface this to and the new
+                // join takes precedence either way.
+            });
             dispatch(clearClassroomSession());
         }
-
+        // 'fresh_join' and 'switch_class' both fall through to a join lookup.
         handleJoinWithCode(code);
     }, []); // Run once on mount
 
@@ -284,6 +431,11 @@ const ClassroomModal = () => {
             isLoading={isLoading}
             joinCodeHistory={joinCodeHistory}
             joinedInfo={joinedInfo}
+            kickedNotice={kickedNotice}
+            kickRequestDialogSeat={kickRequestDialogSeat}
+            kickRequestError={kickRequestError}
+            kickRequestPending={kickRequestPending}
+            kickRequestRejectedNotice={kickRequestRejectedNotice}
             phase={phase}
             seatCount={seatCount}
             selectedSeat={selectedSeat}
@@ -291,13 +443,18 @@ const ClassroomModal = () => {
             takenSeats={takenSeats}
             teacherComment={studentTeacherComment}
             thumbnailDataUrl={submit.thumbnailDataUrl}
+            onCancelKickRequest={handleCancelKickRequest}
             onCancelSubmit={submit.handleCancelSubmit}
             onClose={handleClose}
             onConfirmJoin={handleConfirmJoin}
+            onConfirmKickRequest={handleConfirmKickRequest}
             onConfirmSubmit={submit.handleConfirmSubmit}
+            onDismissKickRequestRejectedNotice={handleDismissKickRequestRejectedNotice}
+            onDismissKickedNotice={handleDismissKickedNotice}
             onJoinWithCode={handleJoinWithCode}
             onLeaveClassroom={handleLeaveClassroom}
             onRefreshStudentStatus={refreshStudentStatus}
+            onRequestKick={handleRequestKick}
             onSelectSeat={handleSelectSeat}
             onSelectTeacher={handleSelectTeacher}
             onStartSubmit={submit.handleStartSubmit}

@@ -9,7 +9,14 @@ import reducer, {
     clearTeacherSelection,
 } from '../../../src/reducers/classroom';
 
+const STORAGE_KEY = 'smalruby:classroom';
+
 describe('classroom reducer', () => {
+    beforeEach(() => {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+    });
+
     test('should return initial state', () => {
         const state = reducer(undefined, { type: 'UNKNOWN' });
         expect(state.modalVisible).toBe(false);
@@ -159,6 +166,159 @@ describe('classroom reducer', () => {
             const next = reducer(state, clearClassroomSession());
             expect(next.role).toBeNull();
             expect(next.teacherSelection).toEqual(state.teacherSelection);
+        });
+    });
+
+    describe('storage persistence (localStorage)', () => {
+        const baseSession = {
+            role: 'student',
+            classroomId: 'class-123',
+            className: '2年A組',
+            assignmentName: '宿題1',
+            joinCode: 'abc234',
+            seatNumber: 5,
+            memberId: 'seat-05',
+            sessionToken: 'token-abc',
+            joinedAt: '2026-05-21T01:00:00.000Z',
+        };
+
+        test('writes session to localStorage (not sessionStorage) on SET_SESSION', () => {
+            reducer(classroomInitialState, setClassroomSession(baseSession));
+            const stored = window.localStorage.getItem(STORAGE_KEY);
+            expect(stored).not.toBeNull();
+            expect(JSON.parse(stored)).toMatchObject({
+                role: 'student',
+                classroomId: 'class-123',
+                seatNumber: 5,
+                sessionToken: 'token-abc',
+            });
+            expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+        });
+
+        test('removes session from localStorage on CLEAR_SESSION', () => {
+            reducer(classroomInitialState, setClassroomSession(baseSession));
+            expect(window.localStorage.getItem(STORAGE_KEY)).not.toBeNull();
+
+            reducer(
+                {
+                    ...classroomInitialState,
+                    role: 'student',
+                    sessionToken: 'token-abc',
+                },
+                clearClassroomSession(),
+            );
+            expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+        });
+
+        test('clears any leftover sessionStorage on CLEAR_SESSION', () => {
+            window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(baseSession));
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(baseSession));
+
+            reducer(
+                {
+                    ...classroomInitialState,
+                    role: 'student',
+                    sessionToken: 'token-abc',
+                },
+                clearClassroomSession(),
+            );
+            expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+            expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+        });
+
+        test('persists submission status updates to localStorage', () => {
+            reducer(classroomInitialState, setClassroomSession(baseSession));
+            const stateWithSession = {
+                ...classroomInitialState,
+                role: 'student',
+                sessionToken: 'token-abc',
+                classroomId: 'class-123',
+                seatNumber: 5,
+                memberId: 'seat-05',
+                joinCode: 'abc234',
+                className: '2年A組',
+                assignmentName: '宿題1',
+                joinedAt: baseSession.joinedAt,
+            };
+            reducer(stateWithSession, setSubmissionStatus('submitted', '2026-05-21T01:30:00.000Z'));
+
+            const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+            expect(stored.submissionStatus).toBe('submitted');
+            expect(stored.lastSubmittedAt).toBe('2026-05-21T01:30:00.000Z');
+        });
+    });
+
+    describe('module-load migration (sessionStorage → localStorage)', () => {
+        const legacySession = {
+            role: 'student',
+            classroomId: 'class-legacy',
+            className: '6年2組',
+            assignmentName: '宿題X',
+            joinCode: 'legacy',
+            seatNumber: 7,
+            memberId: 'seat-07',
+            sessionToken: 'legacy-token',
+            joinedAt: '2026-05-20T00:00:00.000Z',
+        };
+
+        beforeEach(() => {
+            jest.resetModules();
+            window.localStorage.clear();
+            window.sessionStorage.clear();
+        });
+
+        test('migrates legacy sessionStorage session to localStorage and clears sessionStorage on load', () => {
+            window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(legacySession));
+
+            // Re-import to trigger module-load migration logic.
+            const { classroomInitialState: freshInitialState } = require('../../../src/reducers/classroom');
+
+            expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+            const migrated = window.localStorage.getItem(STORAGE_KEY);
+            expect(migrated).not.toBeNull();
+            expect(JSON.parse(migrated)).toMatchObject({
+                classroomId: 'class-legacy',
+                seatNumber: 7,
+                sessionToken: 'legacy-token',
+            });
+
+            // Initial state should reflect the restored session.
+            expect(freshInitialState.role).toBe('student');
+            expect(freshInitialState.classroomId).toBe('class-legacy');
+            expect(freshInitialState.sessionToken).toBe('legacy-token');
+        });
+
+        test('does not overwrite an existing localStorage session with sessionStorage value', () => {
+            const newSession = { ...legacySession, sessionToken: 'localstorage-token' };
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(newSession));
+            window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(legacySession));
+
+            const { classroomInitialState: freshInitialState } = require('../../../src/reducers/classroom');
+
+            const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+            expect(stored.sessionToken).toBe('localstorage-token');
+            // Stale sessionStorage value is cleared either way to avoid future confusion.
+            expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+            expect(freshInitialState.sessionToken).toBe('localstorage-token');
+        });
+
+        test('initial state is null when neither storage has a session', () => {
+            const { classroomInitialState: freshInitialState } = require('../../../src/reducers/classroom');
+            expect(freshInitialState.role).toBeNull();
+            expect(freshInitialState.classroomId).toBeNull();
+            expect(freshInitialState.sessionToken).toBeNull();
+        });
+
+        test('ignores malformed sessionStorage payload without throwing', () => {
+            window.sessionStorage.setItem(STORAGE_KEY, '{ not valid json');
+
+            const { classroomInitialState: freshInitialState } = require('../../../src/reducers/classroom');
+
+            expect(freshInitialState.role).toBeNull();
+            expect(freshInitialState.sessionToken).toBeNull();
+            // Malformed legacy data should still be cleared so it stops surfacing.
+            expect(window.sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+            expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
         });
     });
 });

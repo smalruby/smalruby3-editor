@@ -142,6 +142,11 @@ const useTeacherClassroom = ({
         handleUpdateAssignmentName: classrooms.handleUpdateAssignmentName,
         handleUpdateStudentCount: classrooms.handleUpdateStudentCount,
 
+        // Kick requests (Phase 4-6)
+        kickRequestsBySeat: classrooms.kickRequestsBySeat,
+        handleApproveKickRequest: classrooms.handleApproveKickRequest,
+        handleRejectKickRequest: classrooms.handleRejectKickRequest,
+
         // Submissions
         codeDisplayClassroom: submissions.codeDisplayClassroom,
         codeDisplayFullscreen: submissions.codeDisplayFullscreen,

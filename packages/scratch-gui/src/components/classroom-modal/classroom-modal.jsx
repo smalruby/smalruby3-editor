@@ -27,6 +27,11 @@ const ClassroomModal = ({
     takenSeats,
     selectedSeat,
     joinedInfo,
+    kickedNotice,
+    kickRequestDialogSeat,
+    kickRequestPending,
+    kickRequestRejectedNotice,
+    kickRequestError,
     error,
     errorActionHandler,
     errorActionLabel,
@@ -38,6 +43,11 @@ const ClassroomModal = ({
     onSelectSeat,
     onConfirmJoin,
     onClose,
+    onDismissKickRequestRejectedNotice,
+    onDismissKickedNotice,
+    onRequestKick,
+    onConfirmKickRequest,
+    onCancelKickRequest,
     onLeaveClassroom,
     onStartSubmit,
     onConfirmSubmit,
@@ -79,10 +89,20 @@ const ClassroomModal = ({
                         error={error}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
+                        kickedNotice={kickedNotice}
+                        kickRequestDialogSeat={kickRequestDialogSeat}
+                        kickRequestError={kickRequestError}
+                        kickRequestPending={kickRequestPending}
+                        kickRequestRejectedNotice={kickRequestRejectedNotice}
                         seatCount={seatCount}
                         selectedSeat={selectedSeat}
                         takenSeats={takenSeats}
+                        onCancelKickRequest={onCancelKickRequest}
                         onConfirmJoin={onConfirmJoin}
+                        onConfirmKickRequest={onConfirmKickRequest}
+                        onDismissKickRequestRejectedNotice={onDismissKickRequestRejectedNotice}
+                        onDismissKickedNotice={onDismissKickedNotice}
+                        onRequestKick={onRequestKick}
                         onSelectSeat={onSelectSeat}
                     />
                 )}
@@ -147,11 +167,31 @@ ClassroomModal.propTypes = {
         className: PropTypes.string,
         seatNumber: PropTypes.number,
     }),
+    kickedNotice: PropTypes.shape({
+        joinCode: PropTypes.string,
+        className: PropTypes.string,
+        seatNumber: PropTypes.number,
+    }),
+    kickRequestDialogSeat: PropTypes.number,
+    kickRequestError: PropTypes.string,
+    kickRequestPending: PropTypes.shape({
+        requestId: PropTypes.string,
+        joinCode: PropTypes.string,
+        seatNumber: PropTypes.number,
+    }),
+    kickRequestRejectedNotice: PropTypes.shape({
+        seatNumber: PropTypes.number,
+    }),
+    onCancelKickRequest: PropTypes.func,
     onCancelSubmit: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     onConfirmJoin: PropTypes.func.isRequired,
+    onConfirmKickRequest: PropTypes.func,
     onConfirmSubmit: PropTypes.func.isRequired,
+    onDismissKickRequestRejectedNotice: PropTypes.func,
+    onDismissKickedNotice: PropTypes.func,
     onJoinWithCode: PropTypes.func.isRequired,
+    onRequestKick: PropTypes.func,
     onLeaveClassroom: PropTypes.func.isRequired,
     onRefreshStudentStatus: PropTypes.func.isRequired,
     onSelectSeat: PropTypes.func.isRequired,

@@ -45,6 +45,7 @@ export default {
     'gui.connection.error.flashFirmwareButton': 'Write Firmware',
     'gui.classroom.title': 'Classroom',
     'gui.menuBar.classroom': 'Classroom',
+    'gui.menuBar.classroomJoined': 'Class: Seat {seatNumber}',
     'gui.menuBar.classroomManagement': 'Class Management...',
     'gui.menuBar.aboutSmalruby': 'About Smalruby',
     'gui.classroom.management.title': 'Class Management',
@@ -77,6 +78,23 @@ export default {
         'Teachers can find the join code in {settingsIcon} Settings → Class Management.',
     'gui.classroom.studentSeat.prompt': 'Select your seat number',
     'gui.classroom.studentSeat.join': 'Join',
+    'gui.classroom.kicked.banner.title': 'You were removed from this class by your teacher.',
+    'gui.classroom.kicked.banner.subtitle': 'Pick your seat again to rejoin {className}.',
+    'gui.classroom.kickRequest.title': 'Ask the teacher to free seat {seatNumber}?',
+    'gui.classroom.kickRequest.body':
+        'Use this when you think seat {seatNumber} is your seat but someone else picked it by mistake. Your teacher will see the request and decide.',
+    'gui.classroom.kickRequest.reasonPlaceholder':
+        'Optional: tell the teacher why you need this seat (max 200 chars).',
+    'gui.classroom.kickRequest.cancel': 'Cancel',
+    'gui.classroom.kickRequest.submit': 'Send request',
+    'gui.classroom.kickRequest.pendingBanner': 'Waiting for the teacher to free seat {seatNumber}...',
+    'gui.classroom.kickRequest.rejectedBanner':
+        'The teacher did not free seat {seatNumber} this time. Try a different seat, or send a new request.',
+    'gui.classroom.kickRequest.teacherTitle':
+        '{count, plural, one {# kick request from a student} other {# kick requests from students}}',
+    'gui.classroom.kickRequest.noReason': '(no reason given)',
+    'gui.classroom.kickRequest.approve': 'Approve (kick this student)',
+    'gui.classroom.kickRequest.reject': 'Reject',
     'gui.classroom.studentJoined.success': 'Joined successfully!',
     'gui.classroom.studentJoined.seat': 'Seat {seatNumber}',
     'gui.classroom.studentJoined.start': 'Start',

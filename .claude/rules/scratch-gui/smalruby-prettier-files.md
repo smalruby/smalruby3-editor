@@ -63,6 +63,7 @@ upstream (Scratch) ファイルは対象外。
 
 **個別ファイル:**
 - `src/containers/block-display-modal.jsx`
+- `src/containers/classroom-classcode-utils.js`
 - `src/containers/classroom-error-utils.js`
 - `src/containers/classroom-modal.jsx`
 - `src/containers/classroom-teacher-modal.jsx`
@@ -99,6 +100,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/auto-correct.js`
 - `src/lib/backpack-mesh-v1-migration.js`
 - `src/lib/classroom-api.js`
+- `src/lib/classroom-kick-request-storage.js`
 - `src/lib/deck-setup.js`
 - `src/lib/google-classroom-auth.js`
 - `src/lib/block-utils.js`
@@ -217,6 +219,8 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/student-join-form.test.js`
 - `test/unit/containers/backpack.test.jsx`
 - `test/unit/containers/cards.test.jsx`
+- `test/unit/containers/classroom-classcode-utils.test.js`
+- `test/unit/containers/classroom-error-utils.test.js`
 - `test/unit/containers/connection-modal-connected-message.test.jsx`
 - `test/unit/containers/connection-modal-smalrubot-s1.test.jsx`
 - `test/unit/containers/connection-modal.test.jsx`
@@ -233,6 +237,8 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/block-display-initialization.test.js`
 - `test/unit/lib/blockly-private-api.test.js`
 - `test/unit/lib/blocks-gesture-recovery.test.js`
+- `test/unit/lib/classroom-api.test.js`
+- `test/unit/lib/classroom-kick-request-storage.test.js`
 - `test/unit/lib/deck-setup.test.js`
 - `test/unit/lib/blocks-screenshot.test.js`
 - `test/unit/lib/calculate-popup-position.test.js`

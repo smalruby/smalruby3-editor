@@ -11,51 +11,96 @@ const CLEAR_TEACHER_SELECTION = 'scratch-gui/classroom/CLEAR_TEACHER_SELECTION';
 
 const STORAGE_KEY = 'smalruby:classroom';
 
-/**
- * Load classroom session from localStorage.
- * @returns {object|null} Stored session or null
- */
-const loadSession = () => {
-    if (typeof window === 'undefined' || !window.sessionStorage) return null;
+const hasLocalStorage = () => typeof window !== 'undefined' && !!window.localStorage;
+const hasSessionStorage = () => typeof window !== 'undefined' && !!window.sessionStorage;
+
+const parseStoredSession = (raw) => {
+    if (!raw) return null;
     try {
-        const raw = window.sessionStorage.getItem(STORAGE_KEY);
-        if (!raw) return null;
         const data = JSON.parse(raw);
         if (data && data.sessionToken && data.classroomId) return data;
-        return null;
     } catch {
-        return null;
+        // fall through
     }
+    return null;
 };
 
-/**
- * Save classroom session to localStorage.
- * @param {object} session - Session data to save
- */
-const saveSession = (session) => {
-    if (typeof window === 'undefined' || !window.sessionStorage) return;
+// One-shot migration from the legacy sessionStorage location to localStorage.
+// Older builds persisted the student session to sessionStorage, which meant a
+// fresh tab opened from a `?classcode=` link had no session and the student's
+// own seat appeared occupied. We promote the legacy value to localStorage on
+// load, and always clear the legacy key so it stops resurfacing.
+const migrateLegacySessionStorage = () => {
+    if (!hasSessionStorage()) return;
+    let legacyRaw = null;
     try {
-        window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        legacyRaw = window.sessionStorage.getItem(STORAGE_KEY);
     } catch {
-        // Ignore storage errors
+        return;
     }
-};
-
-/**
- * Clear classroom session from localStorage.
- */
-const clearStoredSession = () => {
-    if (typeof window === 'undefined' || !window.sessionStorage) return;
+    if (legacyRaw === null) return;
     try {
         window.sessionStorage.removeItem(STORAGE_KEY);
     } catch {
+        // ignore
+    }
+    if (!hasLocalStorage()) return;
+    const existing = (() => {
+        try {
+            return window.localStorage.getItem(STORAGE_KEY);
+        } catch {
+            return null;
+        }
+    })();
+    if (existing) return;
+    const parsed = parseStoredSession(legacyRaw);
+    if (!parsed) return;
+    try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    } catch {
+        // ignore
+    }
+};
+
+const loadSession = () => {
+    migrateLegacySessionStorage();
+    if (!hasLocalStorage()) return null;
+    try {
+        return parseStoredSession(window.localStorage.getItem(STORAGE_KEY));
+    } catch {
+        return null;
+    }
+};
+
+const saveSession = (session) => {
+    if (!hasLocalStorage()) return;
+    try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    } catch {
         // Ignore storage errors
+    }
+};
+
+const clearStoredSession = () => {
+    if (hasLocalStorage()) {
+        try {
+            window.localStorage.removeItem(STORAGE_KEY);
+        } catch {
+            // ignore
+        }
+    }
+    if (hasSessionStorage()) {
+        try {
+            window.sessionStorage.removeItem(STORAGE_KEY);
+        } catch {
+            // ignore
+        }
     }
 };
 
 // teacherSelection is intentionally NOT persisted across page reloads. The
 // teacher idToken (use-teacher-auth.js) is module-scope in-memory only and
-// clears on reload, so persisting the selection in sessionStorage would leave
+// clears on reload, so persisting the selection in localStorage would leave
 // the Mesh domain bound to a class the teacher is no longer logged in for.
 const storedSession = loadSession();
 

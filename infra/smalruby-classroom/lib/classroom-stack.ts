@@ -16,6 +16,7 @@ export class ClassroomStack extends cdk.Stack {
   public readonly classroomsTable: dynamodb.Table;
   public readonly membershipsTable: dynamodb.Table;
   public readonly submissionsTable: dynamodb.Table;
+  public readonly kickRequestsTable: dynamodb.Table;
   public readonly submissionsBucket: s3.Bucket;
   public readonly api: apigatewayv2.HttpApi;
 
@@ -156,6 +157,44 @@ export class ClassroomStack extends cdk.Stack {
 
     cdk.Tags.of(this.submissionsTable).add('ResourceType', 'DynamoDB');
 
+    // Kick requests table — short-lived (1h TTL) records of students asking
+    // the teacher to free up a specific seat. PK is classroomId; SK is the
+    // requestId (UUID) so multiple pending requests for the same seat
+    // coexist. A GSI on (classroomId, seatNumber) lets the approve handler
+    // delete sibling requests for the same seat in one query after kick.
+    this.kickRequestsTable = new dynamodb.Table(this, 'KickRequestsTable', {
+      tableName: `ClassroomKickRequests${stageSuffix}`,
+      partitionKey: {
+        name: 'classroomId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'requestId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      timeToLiveAttribute: 'ttl',
+    });
+
+    this.kickRequestsTable.addGlobalSecondaryIndex({
+      indexName: 'classroomId-seatNumber-index',
+      partitionKey: {
+        name: 'classroomId',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'seatNumber',
+        type: dynamodb.AttributeType.NUMBER,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    cdk.Tags.of(this.kickRequestsTable).add('ResourceType', 'DynamoDB');
+
     // --- S3 Bucket for submissions ---
 
     this.submissionsBucket = new s3.Bucket(this, 'SubmissionsBucket', {
@@ -201,6 +240,7 @@ export class ClassroomStack extends cdk.Stack {
         CLASSROOMS_TABLE_NAME: this.classroomsTable.tableName,
         MEMBERSHIPS_TABLE_NAME: this.membershipsTable.tableName,
         SUBMISSIONS_TABLE_NAME: this.submissionsTable.tableName,
+        KICK_REQUESTS_TABLE_NAME: this.kickRequestsTable.tableName,
         SUBMISSIONS_BUCKET_NAME: this.submissionsBucket.bucketName,
         GOOGLE_CLIENT_ID: googleClientId,
         MICROSOFT_CLIENT_ID: microsoftClientId,
@@ -225,6 +265,7 @@ export class ClassroomStack extends cdk.Stack {
     this.classroomsTable.grantReadWriteData(handlerFn);
     this.membershipsTable.grantReadWriteData(handlerFn);
     this.submissionsTable.grantReadWriteData(handlerFn);
+    this.kickRequestsTable.grantReadWriteData(handlerFn);
     this.submissionsBucket.grantPut(handlerFn);
     this.submissionsBucket.grantRead(handlerFn);
 
@@ -323,6 +364,31 @@ export class ClassroomStack extends cdk.Stack {
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/members/{memberId}',
       methods: [apigatewayv2.HttpMethod.DELETE],
+      integration,
+    });
+
+    // Kick requests — students ask the teacher to free a specific seat.
+    this.api.addRoutes({
+      path: '/classrooms/lookup/kick-request',
+      methods: [apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/kick-requests',
+      methods: [apigatewayv2.HttpMethod.GET],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/kick-requests/{requestId}',
+      methods: [apigatewayv2.HttpMethod.DELETE],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/kick-requests/{requestId}/approve',
+      methods: [apigatewayv2.HttpMethod.POST],
       integration,
     });
 

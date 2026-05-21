@@ -39,6 +39,7 @@ export default {
     'gui.connection.error.flashFirmwareButton': 'ファームウェアかきこみ',
     'gui.classroom.title': 'クラス',
     'gui.menuBar.classroom': 'クラス',
+    'gui.menuBar.classroomJoined': 'クラス:しゅっせきばんごう{seatNumber}',
     'gui.menuBar.classroomManagement': 'クラスかんり...',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
     'gui.menuBar.showWelcomeAgain': 'ウェルカムをもういちどみる',
@@ -92,6 +93,24 @@ export default {
     'gui.classroom.studentJoin.teacherLink': 'せんせいのかたはこちら（クラスかんり）',
     'gui.classroom.studentSeat.prompt': 'しゅっせきばんごうをえらんでください',
     'gui.classroom.studentSeat.join': 'さんかする',
+    'gui.classroom.kicked.banner.title': 'せんせいによってクラスからたいしつさせられました。',
+    'gui.classroom.kicked.banner.subtitle':
+        '「{className}」にもういちどさんかするには、しゅっせきばんごうをえらびなおしてください。',
+    'gui.classroom.kickRequest.title': 'しゅっせきばんごう{seatNumber}のひとにたいしつをいらいしますか？',
+    'gui.classroom.kickRequest.body':
+        'しゅっせきばんごう{seatNumber}がじぶんのせきで、ほかのひとがまちがってえらんでしまったときにつかってください。せんせいにいらいがおくられ、しょうにんするかどうかをきめてもらいます。',
+    'gui.classroom.kickRequest.reasonPlaceholder': 'にんい：せんせいへひとこと（200もじまで）',
+    'gui.classroom.kickRequest.cancel': 'キャンセル',
+    'gui.classroom.kickRequest.submit': 'いらいをおくる',
+    'gui.classroom.kickRequest.pendingBanner':
+        'しゅっせきばんごう{seatNumber}のたいしつをせんせいにいらいちゅうです…',
+    'gui.classroom.kickRequest.rejectedBanner':
+        'しゅっせきばんごう{seatNumber}のたいしつはじゅりされませんでした。べつのせきをえらぶか、もういちどいらいをだしてください。',
+    'gui.classroom.kickRequest.teacherTitle':
+        '{count, plural, one {# けんのたいしつリクエストがとどいています} other {# けんのたいしつリクエストがとどいています}}',
+    'gui.classroom.kickRequest.noReason': '（りゆうのにゅうりょくなし）',
+    'gui.classroom.kickRequest.approve': 'しょうにん（このせいとをたいしつさせる）',
+    'gui.classroom.kickRequest.reject': 'きゃっか',
     'gui.classroom.studentJoined.success': 'さんかしました！',
     'gui.classroom.studentJoined.seat': 'しゅっせきばんごう{seatNumber}',
     'gui.classroom.studentJoined.start': 'はじめる',

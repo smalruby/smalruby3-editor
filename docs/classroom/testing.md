@@ -163,9 +163,28 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-menu-button` | div | クラスボタン（コンテナ） |
-| `classroom-menu-label` | span | メニューバーのクラス表示テキスト |
-| `classroom-menu-class-name` | span | 課題名（またはクラス名） |
-| `classroom-menu-seat-number` | span | 出席番号（0埋め2桁） |
+| `classroom-menu-label` | span | メニューバーのクラス表示テキスト全体（参加中は「クラス:出席番号NN」、未参加時は「クラス」）|
+| `classroom-menu-seat-number` | span | 出席番号（0埋め2桁、参加中のみレンダリングされる） |
+
+### 強制退室通知 / 退室リクエスト (Issue #692)
+
+| data-testid | 要素 | 説明 |
+|------------|------|------|
+| `classroom-kicked-banner` | div | 生徒の seat 画面に表示する「先生によって退室させられました」バナー |
+| `classroom-kicked-banner-dismiss` | button | バナーの × |
+| `kick-request-confirm-dialog` | div | 「使用中の席」をタップしたとき表示される退室依頼ダイアログ |
+| `kick-request-reason-input` | textarea | 任意のひと言入力欄（200 字制限）|
+| `kick-request-submit` | button | 依頼を送信 |
+| `kick-request-cancel` | button | ダイアログを閉じる |
+| `kick-request-error` | div | 依頼送信エラー表示 |
+| `kick-request-pending-banner` | div | 「先生に依頼中です…」バナー（5 秒ごとに lookupClassroom を polling）|
+| `kick-request-rejected-banner` | div | 「依頼は受理されませんでした」バナー (却下 / TTL 期限切れ検出時に pending と差し替え) |
+| `kick-request-rejected-banner-dismiss` | button | × ボタン |
+| `classroom-seat-kick-request-{seatNumber}` | span | 先生クラス詳細の座席グリッドに表示する赤いバッジ「!」|
+| `classroom-member-kick-request-panel` | div | 先生メンバー詳細パネルに表示される依頼一覧 |
+| `classroom-kick-request-row-{requestId}` | div | 1 リクエストの行 |
+| `classroom-kick-request-approve-{requestId}` | button | 承認（kick + リクエスト削除）|
+| `classroom-kick-request-reject-{requestId}` | button | 却下（リクエストのみ削除）|
 
 ### 汎用
 

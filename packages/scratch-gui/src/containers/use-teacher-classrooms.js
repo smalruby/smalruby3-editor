@@ -89,6 +89,11 @@ const useTeacherClassrooms = ({
     const [selectedClassroom, setSelectedClassroom] = useState(null);
     const [members, setMembers] = useState([]);
     const [selectedMember, setSelectedMember] = useState(null);
+    // Pending kick requests for the currently selected classroom, indexed by
+    // seatNumber. We keep an array per seat because the backend lets several
+    // students send overlapping requests for the same seat (no abuse cap),
+    // and the teacher should see them all. Cleared on classroom switch.
+    const [kickRequestsBySeat, setKickRequestsBySeat] = useState({});
 
     const refreshTimerRef = useRef(null);
 
@@ -125,14 +130,26 @@ const useTeacherClassrooms = ({
 
     // --- Fetch classroom detail ---
 
+    const groupKickRequestsBySeat = (kickRequestsData) => {
+        const bySeat = {};
+        for (const req of kickRequestsData?.requests || []) {
+            const seat = req.seatNumber;
+            if (!bySeat[seat]) bySeat[seat] = [];
+            bySeat[seat].push(req);
+        }
+        return bySeat;
+    };
+
     const fetchClassroomDetail = useCallback(async (token, classroomId) => {
-        const [classroomData, membersData, submissionsData] = await Promise.all([
+        const [classroomData, membersData, submissionsData, kickRequestsData] = await Promise.all([
             classroomAPI.getClassroom(token, classroomId),
             classroomAPI.listMembers(token, classroomId),
             classroomAPI.listSubmissions(token, classroomId),
+            classroomAPI.listKickRequests(token, classroomId).catch(() => ({ requests: [] })),
         ]);
         setSelectedClassroom(classroomData);
         setMembers(enrichMembers(membersData, submissionsData));
+        setKickRequestsBySeat(groupKickRequestsBySeat(kickRequestsData));
     }, []);
 
     const loadClassroomDetail = useCallback(
@@ -236,11 +253,13 @@ const useTeacherClassrooms = ({
     const refreshMembersOnly = useCallback(
         async (classroomId) => {
             try {
-                const [membersData, submissionsData] = await Promise.all([
+                const [membersData, submissionsData, kickRequestsData] = await Promise.all([
                     classroomAPI.listMembers(idToken, classroomId),
                     classroomAPI.listSubmissions(idToken, classroomId),
+                    classroomAPI.listKickRequests(idToken, classroomId).catch(() => ({ requests: [] })),
                 ]);
                 setMembers(enrichMembers(membersData, submissionsData));
+                setKickRequestsBySeat(groupKickRequestsBySeat(kickRequestsData));
             } catch (err) {
                 if (err.status === 401) {
                     await handleTeacher401();
@@ -271,6 +290,7 @@ const useTeacherClassrooms = ({
         clearError();
         setSelectedClassroom(null);
         setMembers([]);
+        setKickRequestsBySeat({});
         if (idToken) {
             setPhase('teacher-dashboard');
         } else {
@@ -346,11 +366,53 @@ const useTeacherClassrooms = ({
         [idToken, selectedClassroom, clearError, showError, handleTeacher401, intl],
     );
 
+    // --- Kick request actions ---
+
+    const handleApproveKickRequest = useCallback(
+        async (requestId) => {
+            if (!selectedClassroom) return;
+            clearError();
+            try {
+                await classroomAPI.approveKickRequest(idToken, selectedClassroom.classroomId, requestId);
+                // Backend approval also runs the kick → refresh both members
+                // and kick-requests in one shot.
+                await refreshMembersOnly(selectedClassroom.classroomId);
+                setSelectedMember(null);
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    showError(translateError(intl, err));
+                }
+            }
+        },
+        [idToken, selectedClassroom, clearError, showError, handleTeacher401, intl, refreshMembersOnly],
+    );
+
+    const handleRejectKickRequest = useCallback(
+        async (requestId) => {
+            if (!selectedClassroom) return;
+            clearError();
+            try {
+                await classroomAPI.rejectKickRequest(idToken, selectedClassroom.classroomId, requestId);
+                await refreshMembersOnly(selectedClassroom.classroomId);
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    showError(translateError(intl, err));
+                }
+            }
+        },
+        [idToken, selectedClassroom, clearError, showError, handleTeacher401, intl, refreshMembersOnly],
+    );
+
     /** Reset all classroom state (used by logout). */
     const resetClassrooms = useCallback(() => {
         setClassrooms([]);
         setSelectedClassroom(null);
         setMembers([]);
+        setKickRequestsBySeat({});
     }, []);
 
     return {
@@ -361,6 +423,7 @@ const useTeacherClassrooms = ({
         members,
         setMembers,
         selectedMember,
+        kickRequestsBySeat,
         loadClassroomDetail,
         handleCreateClassroom,
         handleDeleteClassroom,
@@ -371,6 +434,8 @@ const useTeacherClassrooms = ({
         handleSelectMember,
         handleUpdateAssignmentName,
         handleUpdateStudentCount,
+        handleApproveKickRequest,
+        handleRejectKickRequest,
         resetClassrooms,
     };
 };

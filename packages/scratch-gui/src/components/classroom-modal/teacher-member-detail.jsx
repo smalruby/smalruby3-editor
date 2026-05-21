@@ -12,6 +12,9 @@ const TeacherMemberDetail = ({
     onDeleteMember,
     onOpenSubmission,
     onReturnSubmission,
+    kickRequestsForSelectedSeat,
+    onApproveKickRequest,
+    onRejectKickRequest,
 }) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [commentText, setCommentText] = useState('');
@@ -56,6 +59,22 @@ const TeacherMemberDetail = ({
     const handleCommentChange = useCallback((e) => {
         setCommentText(e.target.value);
     }, []);
+
+    const handleApproveKickClick = useCallback(
+        (e) => {
+            const requestId = e.currentTarget.dataset.requestId;
+            if (requestId && onApproveKickRequest) onApproveKickRequest(requestId);
+        },
+        [onApproveKickRequest],
+    );
+
+    const handleRejectKickClick = useCallback(
+        (e) => {
+            const requestId = e.currentTarget.dataset.requestId;
+            if (requestId && onRejectKickRequest) onRejectKickRequest(requestId);
+        },
+        [onRejectKickRequest],
+    );
 
     const handlePrevImage = useCallback(() => {
         setCurrentImageIndex((prev) => Math.max(0, prev - 1));
@@ -183,6 +202,72 @@ const TeacherMemberDetail = ({
                         />
                     </button>
                 </div>
+                {kickRequestsForSelectedSeat && kickRequestsForSelectedSeat.length > 0 && (
+                    <div
+                        className={styles.kickRequestPanel}
+                        data-testid="classroom-member-kick-request-panel"
+                    >
+                        <div className={styles.kickRequestPanelTitle}>
+                            <FormattedMessage
+                                defaultMessage="{count, plural, one {# kick request from a student} other {# kick requests from students}}"
+                                description="Header in the member-detail panel listing pending kick requests"
+                                id="gui.classroom.kickRequest.teacherTitle"
+                                values={{ count: kickRequestsForSelectedSeat.length }}
+                            />
+                        </div>
+                        {kickRequestsForSelectedSeat.map((req) => (
+                            <div
+                                className={styles.kickRequestPanelRow}
+                                data-testid={`classroom-kick-request-row-${req.requestId}`}
+                                key={req.requestId}
+                            >
+                                <div className={styles.kickRequestPanelReason}>
+                                    {req.reason ? (
+                                        <span>「{req.reason}」</span>
+                                    ) : (
+                                        <em>
+                                            <FormattedMessage
+                                                defaultMessage="(no reason given)"
+                                                description="Placeholder shown when a kick request has no reason text"
+                                                id="gui.classroom.kickRequest.noReason"
+                                            />
+                                        </em>
+                                    )}
+                                </div>
+                                <div className={styles.kickRequestPanelButtons}>
+                                    <button
+                                        className={styles.kickRequestApproveButton}
+                                        data-request-id={req.requestId}
+                                        data-testid={`classroom-kick-request-approve-${req.requestId}`}
+                                        disabled={isLoading}
+                                        onClick={handleApproveKickClick}
+                                        type="button"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Approve (kick this student)"
+                                            description="Approve button in the teacher's kick-request panel"
+                                            id="gui.classroom.kickRequest.approve"
+                                        />
+                                    </button>
+                                    <button
+                                        className={styles.kickRequestRejectButton}
+                                        data-request-id={req.requestId}
+                                        data-testid={`classroom-kick-request-reject-${req.requestId}`}
+                                        disabled={isLoading}
+                                        onClick={handleRejectKickClick}
+                                        type="button"
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Reject"
+                                            description="Reject button in the teacher's kick-request panel"
+                                            id="gui.classroom.kickRequest.reject"
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
                 {selectedMemberData.hasSubmission && (
                     <div className={styles.memberDetailBody}>
                         {/* Image carousel */}
@@ -372,10 +457,20 @@ const TeacherMemberDetail = ({
 
 TeacherMemberDetail.propTypes = {
     isLoading: PropTypes.bool,
+    kickRequestsForSelectedSeat: PropTypes.arrayOf(
+        PropTypes.shape({
+            requestId: PropTypes.string.isRequired,
+            seatNumber: PropTypes.number,
+            reason: PropTypes.string,
+            createdAt: PropTypes.string,
+        }),
+    ),
     memberMap: PropTypes.object.isRequired,
     members: PropTypes.arrayOf(PropTypes.object).isRequired,
+    onApproveKickRequest: PropTypes.func,
     onDeleteMember: PropTypes.func.isRequired,
     onOpenSubmission: PropTypes.func.isRequired,
+    onRejectKickRequest: PropTypes.func,
     onReturnSubmission: PropTypes.func.isRequired,
     selectedMember: PropTypes.string,
 };

@@ -78,6 +78,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         onConfirmGoogleImport,
         onUpdateAssignmentName,
         onUpdateStudentCount,
+        kickRequestsBySeat,
+        onApproveKickRequest,
+        onRejectKickRequest,
     } = containerProps;
 
     const renderMain = () => {
@@ -118,10 +121,12 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         errorActionLabel={errorActionLabel}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
+                        kickRequestsBySeat={kickRequestsBySeat}
                         members={members}
                         noBackButton
                         selectedClassroom={selectedClassroom}
                         selectedMember={selectedMember}
+                        onApproveKickRequest={onApproveKickRequest}
                         onCloseCodeDisplay={onCloseCodeDisplay}
                         onCopyInviteLink={onCopyInviteLink}
                         onDeleteClassroom={onDeleteClassroom}
@@ -129,14 +134,11 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         onDownloadAll={onDownloadAll}
                         onOpenSubmission={onOpenSubmission}
                         onRefresh={onRefreshDetail}
+                        onRejectKickRequest={onRejectKickRequest}
                         onReturnSubmission={onReturnSubmission}
                         onSelectMember={onSelectMember}
                         onShowCodeDisplay={onShowCodeDisplay}
-                        onShowPostAssignment={
-                            authProvider === 'google'
-                                ? onShowPostAssignment
-                                : null
-                        }
+                        onShowPostAssignment={authProvider === 'google' ? onShowPostAssignment : null}
                         onToggleCodeFullscreen={onToggleCodeFullscreen}
                         onUpdateAssignmentName={onUpdateAssignmentName}
                         onUpdateStudentCount={onUpdateStudentCount}
