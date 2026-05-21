@@ -20,7 +20,9 @@ smalruby3-editor/
 │   │   │   │   ├── classroom-modal.css
 │   │   │   │   ├── class-code-display.jsx ← 参加コード表示（全画面対応）
 │   │   │   │   ├── google-course-list.jsx ← GC コースタイルグリッド
-│   │   │   │   ├── teacher-class-detail.jsx ← 先生クラス詳細
+│   │   │   │   ├── kick-request-confirm-dialog.jsx ← 退室依頼ダイアログ (#692)
+│   │   │   │   ├── teacher-class-detail.jsx ← 先生クラス詳細 (退室リクエストバッジ + 退室通知バナー)
+│   │   │   │   ├── teacher-member-detail.jsx ← メンバー詳細パネル (承認/却下ボタン)
 │   │   │   │   ├── teacher-create-form.jsx ← クラス作成フォーム
 │   │   │   │   └── teacher-post-assignment.jsx ← 課題配信
 │   │   │   ├── classroom-teacher-modal/ ← 先生用フルスクリーンモーダル
@@ -43,7 +45,8 @@ smalruby3-editor/
 │   │   │   ├── classroom-error-utils.js ← エラーメッセージ変換
 │   │   │   └── alert.jsx             ← Alert コンテナ（参加しなおす対応）
 │   │   ├── lib/
-│   │   │   ├── classroom-api.js       ← API クライアント (20メソッド, リトライ付き)
+│   │   │   ├── classroom-api.js       ← API クライアント (24メソッド, リトライ付き)
+│   │   │   ├── classroom-kick-request-storage.js ← 退室依頼の localStorage 永続化 (#692)
 │   │   │   ├── google-classroom-auth.js ← Google Classroom OAuth
 │   │   │   └── alerts/index.jsx       ← Alert 定義（classroomSessionExpired 追加）
 │   │   ├── reducers/

@@ -164,8 +164,11 @@ sequenceDiagram
 | `GET` | `/classrooms/{id}` | クラス詳細 |
 | `PATCH` | `/classrooms/{id}` | クラス更新 |
 | `DELETE` | `/classrooms/{id}` | クラス削除 (アーカイブ) |
-| `GET` | `/classrooms/{id}/members` | メンバー一覧 |
-| `DELETE` | `/classrooms/{id}/members/{memberId}` | メンバー削除 |
+| `GET` | `/classrooms/{id}/members` | メンバー一覧 (kicked 行は除外) |
+| `DELETE` | `/classrooms/{id}/members/{memberId}` | メンバー削除 = ソフト kick (1h tombstone を残し、`kicked: true` をマーク)。verify-session が 410 reason='kicked' を返せるようにするための仕様。lookup の takenSeats も即座に空く |
+| `GET` | `/classrooms/{id}/kick-requests` | 退室リクエスト一覧 (Issue #692) |
+| `POST` | `/classrooms/{id}/kick-requests/{requestId}/approve` | 承認 = `handleDeleteMember` (= kick) + 同席への全リクエスト削除 |
+| `DELETE` | `/classrooms/{id}/kick-requests/{requestId}` | 却下 = リクエストのみ削除、メンバーは残る |
 | `GET` | `/classrooms/{id}/submissions` | 提出一覧 (ダウンロード URL 付き) |
 | `PATCH` | `/classrooms/{id}/submissions/{subId}` | 提出の返却・コメント |
 
@@ -174,8 +177,9 @@ sequenceDiagram
 | Method | Path | 認証 | 説明 |
 |--------|------|------|------|
 | `POST` | `/classrooms/lookup` | 不要 | 参加コードでクラス検索 |
+| `POST` | `/classrooms/lookup/kick-request` | 不要 | 「使用中の席」を空けてもらう依頼を先生に送信 (Issue #692) |
 | `POST` | `/classrooms/join` | 不要 | クラスに参加 (→ sessionToken 取得) |
-| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得 |
+| `POST` | `/classrooms/verify-session` | Session Token | セッション検証 + 提出状況取得。kick された生徒には 410 + `{reason: 'kicked', joinCode, className, seatNumber}` を返す |
 | `POST` | `/classrooms/{id}/submissions` | Session Token | 提出 (Presigned URL 取得) |
 | `DELETE` | `/classrooms/{id}/members/me` | Session Token | 自主退出 |
 
@@ -229,6 +233,34 @@ erDiagram
 
 **GSI:**
 - `sessionToken-index` — セッショントークンでの認証
+
+### ClassroomKickRequests テーブル (Issue #692)
+
+```mermaid
+erDiagram
+    ClassroomKickRequests {
+        string classroomId PK "UUID"
+        string requestId SK "UUID"
+        number seatNumber "1-50"
+        string reason "任意・最大200文字"
+        string sourceIpHash "abuse trace用 (sha256 16桁)"
+        string createdAt "ISO8601"
+        number ttl "Unix timestamp (1h)"
+    }
+```
+
+**GSI:**
+- `classroomId-seatNumber-index` — 承認時に同席への全リクエストを batch-delete するため
+
+短命 (TTL 1 時間) のレコード。生徒が「使用中の席を空けてください」と先生に依頼するときに作成される。同一席への複数依頼を許容する仕様 (規制なし)。
+
+### Memberships の kick tombstone (Issue #692)
+
+`handleDeleteMember` (= 教師 kick) は **行を物理削除しない**:
+- `kicked: true, kickedAt, kickJoinCode, kickClassName, kickSeatNumber, ttl: now+1h` をセット
+- これにより、kick された生徒の次回 `verify-session` 呼出で 410 reason='kicked' を返せる
+- `listMembers` / `lookup takenSeats` は `FilterExpression: attribute_not_exists(kicked) OR kicked <> :true` で tombstone を除外
+- `joinClassroom` の `ConditionExpression: attribute_not_exists(memberId) OR kicked = :true` で新生徒が kicked 行を上書き可能 (tombstone はその時点で消滅)
 
 ### ClassroomSubmissions テーブル
 

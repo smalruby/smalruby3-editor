@@ -110,6 +110,19 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 |------------|------|----------|
 | `classroom-menu-label` | span | メニューバーのクラス表示テキスト全体（参加中は「クラス:出席番号NN」、未参加は「クラス」） |
 | `classroom-menu-seat-number` | span | 出席番号（0埋め2桁、参加中のみレンダリング） |
+| `classroom-kicked-banner` | div | 先生に kick されたときに seat 画面で表示される警告バナー (#692) |
+| `classroom-kicked-banner-dismiss` | button | バナーの × |
+| `kick-request-confirm-dialog` | div | 「使用中の席」をタップすると現れる退室依頼ダイアログ (#692) |
+| `kick-request-reason-input` | textarea | ひと言入力欄 (任意、最大 200 字) |
+| `kick-request-submit` | button | 依頼を送る |
+| `kick-request-cancel` | button | キャンセル |
+| `kick-request-error` | div | 依頼送信エラー表示 |
+| `kick-request-pending-banner` | div | 依頼後に表示される「先生に依頼中です…」バナー |
+| `classroom-seat-kick-request-{N}` | span | 先生クラス詳細の座席に表示される赤いバッジ |
+| `classroom-member-kick-request-panel` | div | メンバー詳細パネル内の依頼セクション |
+| `classroom-kick-request-row-{requestId}` | div | 1 依頼の行 |
+| `classroom-kick-request-approve-{requestId}` | button | 承認 = kick + リクエスト削除 |
+| `classroom-kick-request-reject-{requestId}` | button | 却下 = リクエストのみ削除 |
 | `classroom-list` | ul | クラス一覧 |
 | `classroom-item-{id}` | li | クラス一覧の各項目 |
 | `classroom-item-name-{id}` | span | クラス名 |
