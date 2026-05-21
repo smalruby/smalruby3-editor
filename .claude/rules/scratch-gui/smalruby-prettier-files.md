@@ -63,6 +63,7 @@ upstream (Scratch) ファイルは対象外。
 
 **個別ファイル:**
 - `src/containers/block-display-modal.jsx`
+- `src/containers/classroom-classcode-utils.js`
 - `src/containers/classroom-error-utils.js`
 - `src/containers/classroom-modal.jsx`
 - `src/containers/classroom-teacher-modal.jsx`
@@ -217,6 +218,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/student-join-form.test.js`
 - `test/unit/containers/backpack.test.jsx`
 - `test/unit/containers/cards.test.jsx`
+- `test/unit/containers/classroom-classcode-utils.test.js`
 - `test/unit/containers/classroom-error-utils.test.js`
 - `test/unit/containers/connection-modal-connected-message.test.jsx`
 - `test/unit/containers/connection-modal-smalrubot-s1.test.jsx`

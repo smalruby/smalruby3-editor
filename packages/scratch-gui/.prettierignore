@@ -88,6 +88,7 @@ src/containers/*
 !src/containers/ruby-tab/
 # Individual Smalruby files
 !src/containers/block-display-modal.jsx
+!src/containers/classroom-classcode-utils.js
 !src/containers/classroom-error-utils.js
 !src/containers/classroom-modal.jsx
 !src/containers/classroom-teacher-modal.jsx
@@ -284,6 +285,7 @@ test/unit/containers/*
 !test/unit/containers/ruby-tab/
 !test/unit/containers/backpack.test.jsx
 !test/unit/containers/cards.test.jsx
+!test/unit/containers/classroom-classcode-utils.test.js
 !test/unit/containers/classroom-error-utils.test.js
 !test/unit/containers/connection-modal-connected-message.test.jsx
 !test/unit/containers/connection-modal-smalrubot-s1.test.jsx

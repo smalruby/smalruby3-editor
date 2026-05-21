@@ -15,6 +15,7 @@ import {
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
+import { decideClasscodeAction } from './classroom-classcode-utils.js';
 import translateError, { extractKickReason } from './classroom-error-utils.js';
 import useStudentSubmit from './use-student-submit.js';
 
@@ -281,15 +282,25 @@ const ClassroomModal = () => {
         window.history.replaceState({}, '', url.toString());
         clearClasscode();
 
-        if (classroomState.sessionToken && classroomState.joinCode === code) {
+        const action = decideClasscodeAction(classroomState, code);
+        if (action.type === 'same_class') {
             setPhase('student-status');
             return;
         }
-
-        if (classroomState.sessionToken) {
+        if (action.type === 'switch_class') {
+            // Best-effort release of the old seat before switching. We do not
+            // await this so the new lookup UI is not blocked by a slow API
+            // call (or by a 401 in case the old session already expired on
+            // the server). Without this call, opening a new classcode URL
+            // while still holding an old session would leave the previous
+            // seat occupied until TTL.
+            classroomAPI.leaveClassroom(action.leaveSessionToken, action.leaveClassroomId).catch(() => {
+                // Ignore — we have no UI to surface this to and the new
+                // join takes precedence either way.
+            });
             dispatch(clearClassroomSession());
         }
-
+        // 'fresh_join' and 'switch_class' both fall through to a join lookup.
         handleJoinWithCode(code);
     }, []); // Run once on mount
 
