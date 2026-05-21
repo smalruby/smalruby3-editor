@@ -185,6 +185,29 @@ class GoogleAPIError extends Error {
   }
 }
 
+// Tombstone error: the member's row exists but is flagged kicked. Surface this
+// to the student so the UI can show a specific "you were removed by the
+// teacher" banner instead of the generic "session expired" alert.
+class KickedError extends Error {
+  joinCode: string;
+  className: string;
+  seatNumber: number;
+  constructor(joinCode: string, className: string, seatNumber: number) {
+    super('You were removed from the classroom by the teacher');
+    this.name = 'KickedError';
+    this.joinCode = joinCode;
+    this.className = className;
+    this.seatNumber = seatNumber;
+  }
+}
+
+// Kick tombstone TTL: how long after a teacher kick we keep the row around so
+// the kicked student's next verify-session can read the reason. Anything beyond
+// this (1 hour) and we don't bother — the student will hit the regular "session
+// expired" path. The tombstone is also consumed proactively when another
+// student joins the seat.
+const KICK_TOMBSTONE_TTL_SECONDS = parseInt(process.env.KICK_TOMBSTONE_TTL_SECONDS || '3600', 10);
+
 // --- Google Classroom API proxy ---
 
 async function callGoogleClassroomAPI(
@@ -557,7 +580,12 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
   const sessionToken = generateSessionToken();
   const now = new Date().toISOString();
 
-  // Atomic put with condition to prevent race condition on seat assignment
+  // Atomic put with condition to prevent race condition on seat assignment.
+  // We allow overwriting a row that the teacher previously kicked (kicked=true)
+  // so the seat opens up immediately after a kick — the tombstone is consumed
+  // here. The new row deliberately omits the kick attributes; verifying the
+  // old session token afterwards will fall through to the standard 401 path
+  // because the row no longer matches that sessionToken in the GSI.
   try {
     await docClient.send(new PutCommand({
       TableName: MEMBERSHIPS_TABLE,
@@ -571,7 +599,8 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
         lastActiveAt: now,
         ttl: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
       },
-      ConditionExpression: 'attribute_not_exists(classroomId) AND attribute_not_exists(memberId)',
+      ConditionExpression: 'attribute_not_exists(memberId) OR kicked = :kicked',
+      ExpressionAttributeValues: { ':kicked': true },
     }));
   } catch (err: unknown) {
     if (err && typeof err === 'object' && 'name' in err && err.name === 'ConditionalCheckFailedException') {
@@ -603,12 +632,15 @@ async function handleListMembers(teacherSub: string, classroomId: string): Promi
     throw new AuthError('Not authorized to view this classroom');
   }
 
-  // Fetch members and submissions in parallel
+  // Fetch members and submissions in parallel. Kicked rows are tombstones
+  // (kicked=true) — filter them out so the teacher's seat grid sees the seat
+  // as empty immediately after the kick.
   const [membersResult, submissionsResult] = await Promise.all([
     docClient.send(new QueryCommand({
       TableName: MEMBERSHIPS_TABLE,
       KeyConditionExpression: 'classroomId = :cid',
-      ExpressionAttributeValues: { ':cid': classroomId },
+      FilterExpression: 'attribute_not_exists(kicked) OR kicked <> :true',
+      ExpressionAttributeValues: { ':cid': classroomId, ':true': true },
     })),
     docClient.send(new QueryCommand({
       TableName: SUBMISSIONS_TABLE,
@@ -717,11 +749,13 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
     throw new NotFoundError('This classroom is no longer active');
   }
 
-  // Get taken seats
+  // Get taken seats. Exclude kicked tombstones so a freshly kicked seat
+  // appears available immediately to a new student picking from the grid.
   const membersResult = await docClient.send(new QueryCommand({
     TableName: MEMBERSHIPS_TABLE,
     KeyConditionExpression: 'classroomId = :cid',
-    ExpressionAttributeValues: { ':cid': classroom.classroomId },
+    FilterExpression: 'attribute_not_exists(kicked) OR kicked <> :true',
+    ExpressionAttributeValues: { ':cid': classroom.classroomId, ':true': true },
     ProjectionExpression: 'memberId',
   }));
 
@@ -753,10 +787,44 @@ async function handleDeleteMember(teacherSub: string, classroomId: string, membe
     throw new AuthError('Not authorized to modify this classroom');
   }
 
-  await docClient.send(new DeleteCommand({
-    TableName: MEMBERSHIPS_TABLE,
-    Key: { classroomId, memberId },
-  }));
+  // Soft-kick: mark the row as kicked instead of hard-deleting so the next
+  // verify-session call can return reason='kicked'. Hard-delete would yield
+  // the same 401 as a TTL expiry and the student would see a generic message.
+  // The tombstone TTL is shortened to KICK_TOMBSTONE_TTL_SECONDS (1h) so we
+  // don't keep dead rows around forever; the seat is freed immediately because
+  // handleLookupClassroom / handleListMembers / handleJoinClassroom all treat
+  // `kicked === true` as "gone".
+  const seatMatch = memberId.match(/^seat-(\d+)$/);
+  const seatNumber = seatMatch ? parseInt(seatMatch[1], 10) : 0;
+  try {
+    await docClient.send(new UpdateCommand({
+      TableName: MEMBERSHIPS_TABLE,
+      Key: { classroomId, memberId },
+      UpdateExpression:
+        'SET kicked = :true, kickedAt = :now, kickJoinCode = :jc, kickClassName = :cn, kickSeatNumber = :sn, #ttl = :ttl',
+      ConditionExpression: 'attribute_exists(memberId)',
+      ExpressionAttributeNames: { '#ttl': 'ttl' },
+      ExpressionAttributeValues: {
+        ':true': true,
+        ':now': new Date().toISOString(),
+        ':jc': classroom.Item.joinCode,
+        ':cn': classroom.Item.className,
+        ':sn': seatNumber,
+        ':ttl': Math.floor(Date.now() / 1000) + KICK_TOMBSTONE_TTL_SECONDS,
+      },
+    }));
+  } catch (err: unknown) {
+    // If the row was already gone (e.g. student left first), nothing to do.
+    if (
+      err &&
+      typeof err === 'object' &&
+      'name' in err &&
+      err.name === 'ConditionalCheckFailedException'
+    ) {
+      return { statusCode: 204, body: '' };
+    }
+    throw err;
+  }
 
   return { statusCode: 204, body: '' };
 }
@@ -777,6 +845,16 @@ export async function verifySessionToken(sessionToken: string): Promise<{ classr
   }
 
   const item = result.Items[0];
+  // Surface kick tombstones as a distinct error so callers can return 410
+  // with the reason. Non-verify-session callers (e.g. submission endpoints)
+  // also benefit: a kicked student shouldn't be able to submit any more.
+  if (item.kicked === true) {
+    throw new KickedError(
+      (item.kickJoinCode as string) || '',
+      (item.kickClassName as string) || '',
+      (item.kickSeatNumber as number) || 0,
+    );
+  }
   return { classroomId: item.classroomId as string, memberId: item.memberId as string };
 }
 
@@ -1261,7 +1339,11 @@ async function handlePostAssignment(
 }
 
 async function handleVerifySession(sessionToken: string): Promise<APIGatewayProxyStructuredResultV2> {
-  // verifySessionToken will throw AuthError if invalid
+  // verifySessionToken throws AuthError for unknown/expired tokens and
+  // KickedError when the row exists but the teacher removed the student.
+  // KickedError is caught in the top-level handler and converted to a 410
+  // response with reason='kicked' + joinCode/className/seatNumber so the
+  // student UI can navigate back to seat selection with the right context.
   const session = await verifySessionToken(sessionToken);
 
   // Update lastActiveAt and extend TTL on each verify call
@@ -1455,6 +1537,19 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     }
     if (err instanceof ConflictError) {
       return { statusCode: 409, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
+    }
+    if (err instanceof KickedError) {
+      return {
+        statusCode: 410,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          error: err.message,
+          reason: 'kicked',
+          joinCode: err.joinCode,
+          className: err.className,
+          seatNumber: err.seatNumber,
+        }),
+      };
     }
     if (err instanceof GoogleAPIError) {
       if (err.statusCode === 401) {

@@ -489,3 +489,113 @@ describeIfToken('教師フロー — クラス CRUD', () => {
         expect(status).toBe(204);
     });
 });
+
+// ---------------------------------------------------------------------------
+// 教師フロー — 強制退室 (kick) と verify-session の reason 透過
+// ---------------------------------------------------------------------------
+describeIfToken('教師フロー — 強制退室 (kick) と verify-session の reason 透過', () => {
+    let classroomId: string;
+    let joinCode: string;
+    let sessionTokenA: string;
+    let memberIdA: string;
+
+    test('セットアップ: クラス作成', async () => {
+        const { status, data } = await request(
+            'POST',
+            '/classrooms',
+            { className: 'Kick Test クラス', assignmentName: 'Kick 課題', studentCount: 5 },
+            teacherHeaders,
+        );
+        expect(status).toBe(201);
+        classroomId = data.classroomId as string;
+        joinCode = data.joinCode as string;
+    });
+
+    test('セットアップ: 生徒A が席1で参加', async () => {
+        const { status, data } = await request('POST', '/classrooms/join', {
+            joinCode,
+            seatNumber: 1,
+            nickname: '生徒A',
+        });
+        expect(status).toBe(200);
+        sessionTokenA = data.sessionToken as string;
+        memberIdA = data.memberId as string;
+    });
+
+    test('生徒A の verify-session は 200', async () => {
+        const { status } = await request('POST', '/classrooms/verify-session', null, {
+            Authorization: `Bearer ${sessionTokenA}`,
+        });
+        expect(status).toBe(200);
+    });
+
+    test('教師が生徒A を kick (DELETE /classrooms/{id}/members/{memberId}) → 204', async () => {
+        const { status } = await request(
+            'DELETE',
+            `/classrooms/${classroomId}/members/${memberIdA}`,
+            null,
+            teacherHeaders,
+        );
+        expect(status).toBe(204);
+    });
+
+    test('生徒A の verify-session は 410 reason=kicked + joinCode/className/seatNumber を返す', async () => {
+        const { status, data } = await request('POST', '/classrooms/verify-session', null, {
+            Authorization: `Bearer ${sessionTokenA}`,
+        });
+        expect(status).toBe(410);
+        expect(data.reason).toBe('kicked');
+        expect(data.joinCode).toBe(joinCode);
+        expect(data.className).toBe('Kick Test クラス');
+        expect(data.seatNumber).toBe(1);
+    });
+
+    test('kick された席はメンバー一覧 (listMembers) には出てこない', async () => {
+        const { status, data } = await request(
+            'GET',
+            `/classrooms/${classroomId}/members`,
+            null,
+            teacherHeaders,
+        );
+        expect(status).toBe(200);
+        const members = data.members as Array<{ memberId: string }>;
+        expect(members.find(m => m.memberId === memberIdA)).toBeUndefined();
+    });
+
+    test('kick された席は lookup の takenSeats に含まれない (席が空く)', async () => {
+        const { status, data } = await request('POST', '/classrooms/lookup', { joinCode });
+        expect(status).toBe(200);
+        const takenSeats = data.takenSeats as number[];
+        expect(takenSeats).not.toContain(1);
+    });
+
+    test('別の生徒B が同じ席1で join できる (kicked 行が上書きされる)', async () => {
+        const { status, data } = await request('POST', '/classrooms/join', {
+            joinCode,
+            seatNumber: 1,
+            nickname: '生徒B',
+        });
+        expect(status).toBe(200);
+        expect(data.seatNumber).toBe(1);
+        expect(data.sessionToken).toBeDefined();
+        expect(data.sessionToken).not.toBe(sessionTokenA);
+    });
+
+    test('上書き後、元の sessionToken (A) は 401 になる (tombstone は B の join で消滅)', async () => {
+        const { status } = await request('POST', '/classrooms/verify-session', null, {
+            Authorization: `Bearer ${sessionTokenA}`,
+        });
+        expect(status).toBe(401);
+    });
+
+    // Cleanup
+    test('クリーンアップ: クラス削除', async () => {
+        const { status } = await request(
+            'DELETE',
+            `/classrooms/${classroomId}`,
+            null,
+            teacherHeaders,
+        );
+        expect(status).toBe(204);
+    });
+});
