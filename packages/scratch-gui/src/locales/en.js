@@ -88,6 +88,11 @@ export default {
     'gui.classroom.kickRequest.cancel': 'Cancel',
     'gui.classroom.kickRequest.submit': 'Send request',
     'gui.classroom.kickRequest.pendingBanner': 'Waiting for the teacher to free seat {seatNumber}...',
+    'gui.classroom.kickRequest.teacherTitle':
+        '{count, plural, one {# kick request from a student} other {# kick requests from students}}',
+    'gui.classroom.kickRequest.noReason': '(no reason given)',
+    'gui.classroom.kickRequest.approve': 'Approve (kick this student)',
+    'gui.classroom.kickRequest.reject': 'Reject',
     'gui.classroom.studentJoined.success': 'Joined successfully!',
     'gui.classroom.studentJoined.seat': 'Seat {seatNumber}',
     'gui.classroom.studentJoined.start': 'Start',

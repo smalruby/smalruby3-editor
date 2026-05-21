@@ -38,6 +38,9 @@ const TeacherClassDetail = ({
     onUpdateStudentCount,
     codeDisplayClassroom,
     codeDisplayFullscreen,
+    kickRequestsBySeat,
+    onApproveKickRequest,
+    onRejectKickRequest,
 }) => {
     const intl = useIntl();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -400,6 +403,8 @@ const TeacherClassDetail = ({
                                             seated &&
                                                 styles.memberCellSeated,
                                         );
+                                        const seatKickRequests =
+                                            (kickRequestsBySeat && kickRequestsBySeat[seatNum]) || [];
                                         return (
                                             <button
                                                 className={cellClass}
@@ -409,6 +414,15 @@ const TeacherClassDetail = ({
                                                 onClick={handleCellClick}
                                             >
                                                 {seatNum}
+                                                {seatKickRequests.length > 0 && (
+                                                    <span
+                                                        className={styles.seatKickRequestBadge}
+                                                        data-testid={`classroom-seat-kick-request-${seatNum}`}
+                                                        title="退室リクエストあり"
+                                                    >
+                                                        !
+                                                    </span>
+                                                )}
                                             </button>
                                         );
                                     },
@@ -567,11 +581,19 @@ const TeacherClassDetail = ({
                         <div className={styles.detailRightPane}>
                             <TeacherMemberDetail
                                 isLoading={isLoading}
+                                kickRequestsForSelectedSeat={(() => {
+                                    if (!selectedMember || !kickRequestsBySeat) return [];
+                                    const match = selectedMember.match(/^seat-(\d+)$/);
+                                    if (!match) return [];
+                                    return kickRequestsBySeat[parseInt(match[1], 10)] || [];
+                                })()}
                                 memberMap={memberMap}
                                 members={members}
                                 selectedMember={selectedMember}
+                                onApproveKickRequest={onApproveKickRequest}
                                 onDeleteMember={onDeleteMember}
                                 onOpenSubmission={onOpenSubmission}
+                                onRejectKickRequest={onRejectKickRequest}
                                 onReturnSubmission={onReturnSubmission}
                             />
                         </div>
@@ -611,6 +633,9 @@ TeacherClassDetail.propTypes = {
     onToggleCodeFullscreen: PropTypes.func.isRequired,
     onUpdateAssignmentName: PropTypes.func,
     onUpdateStudentCount: PropTypes.func,
+    kickRequestsBySeat: PropTypes.object,
+    onApproveKickRequest: PropTypes.func,
+    onRejectKickRequest: PropTypes.func,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };
