@@ -394,17 +394,21 @@
 }
 
 /*
- * モーダル内部の box (Modal component の Box) を「縦スクロールコンテナ」と
- * して扱う。box_box が overflow-y: auto となり、本文が viewport を超えても
- * 内部でスクロールできる。ヘッダーは下記 sticky ルールで上部に固定する。
+ * モーダル直下の outerBox だけを「縦スクロールコンテナ」として扱う。
+ * `> [class*="box_box"]` の直下セレクターで modal-content の直接の子 Box
+ * (= Modal component が wrap する outerBox) にのみ適用する。
+ *
+ * descendant selector (スペース) にすると、Scratch が全コンテナに Box を
+ * 使うため prompt の label / buttonRow などネストされた Box 全てに
+ * height: 100% が当たり、それぞれが ~342px に膨張して OK ボタンが
+ * 画面外に押し出される (#698)。
  *
  * iOS Safari の慣性スクロール対応として `-webkit-overflow-scrolling: touch` も付ける。
  */
-:global(body.smalruby-mobile-mode [class*="modal_modal-content"] [class*="box_box"]) {
+:global(body.smalruby-mobile-mode [class*="modal_modal-content"] > [class*="box_box"]) {
     flex: 1 1 auto !important;
     min-height: 0 !important;
     width: 100% !important;
-    height: 100% !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
 }
