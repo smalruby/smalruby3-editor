@@ -150,5 +150,4 @@ describe('MobileOrientationGate', () => {
             mm.restore();
         }
     });
-
 });

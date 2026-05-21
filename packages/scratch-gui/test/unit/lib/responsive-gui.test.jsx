@@ -51,5 +51,4 @@ describe('ResponsiveGui', () => {
         const { getByTestId } = render(<ResponsiveGui marker="passed-through" />);
         expect(getByTestId('mock-gui')).toHaveAttribute('data-prop', 'passed-through');
     });
-
 });
