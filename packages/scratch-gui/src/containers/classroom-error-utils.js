@@ -47,5 +47,26 @@ const translateError = (intl, err, context = 'general') => {
     );
 };
 
-export { translateError };
+/**
+ * If the error represents a kick (verify-session returned 410 with
+ * reason='kicked'), return the kick context so the UI can navigate the
+ * student back into seat selection for the same classroom. Returns null
+ * otherwise.
+ * @param {*} err - Value thrown from a classroom API call
+ * @returns {?{joinCode: string, className: string, seatNumber: number}}
+ *   Kick context, or null if the error is not a kick.
+ */
+const extractKickReason = (err) => {
+    if (!err || typeof err !== 'object') return null;
+    if (err.status !== 410) return null;
+    const body = err.body;
+    if (!body || body.reason !== 'kicked') return null;
+    return {
+        joinCode: body.joinCode || '',
+        className: body.className || '',
+        seatNumber: body.seatNumber || 0,
+    };
+};
+
+export { translateError, extractKickReason };
 export default translateError;

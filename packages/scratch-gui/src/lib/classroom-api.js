@@ -283,6 +283,10 @@ class ClassroomAPI {
                 const errorData = await response.json().catch(() => ({}));
                 lastError = new Error(errorData.error || `API error ${response.status}`);
                 lastError.status = response.status;
+                // Surface the parsed body so callers can read response-specific
+                // fields (e.g. 410 + reason='kicked' carries joinCode/className/
+                // seatNumber that the kick-banner UI needs).
+                lastError.body = errorData;
                 throw lastError;
             }
 

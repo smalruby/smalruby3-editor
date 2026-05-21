@@ -15,7 +15,7 @@ import {
     setSubmissionStatus,
 } from '../reducers/classroom.js';
 import { setProjectTitle } from '../reducers/project-title.js';
-import translateError from './classroom-error-utils.js';
+import translateError, { extractKickReason } from './classroom-error-utils.js';
 import useStudentSubmit from './use-student-submit.js';
 
 const ClassroomModal = () => {
@@ -115,6 +115,12 @@ const ClassroomModal = () => {
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [pendingClassroomInfo, setPendingClassroomInfo] = useState(null);
     const [joinedInfo, setJoinedInfo] = useState(null);
+    // Set to {joinCode, className, seatNumber} when the student arrives at the
+    // seat-selection screen because the teacher kicked them. The seat-selector
+    // shows a dismissible banner so the student knows the reason rather than
+    // seeing the generic "session expired" alert.
+    const [kickedNotice, setKickedNotice] = useState(null);
+    const handleDismissKickedNotice = useCallback(() => setKickedNotice(null), []);
 
     // --- Join with code ---
 
@@ -197,6 +203,7 @@ const ClassroomModal = () => {
                 assignmentName: data.assignmentName || null,
                 seatNumber: data.seatNumber,
             });
+            setKickedNotice(null);
             setPhase('student-joined');
         } catch (err) {
             if (err.status === 409) {
@@ -222,13 +229,25 @@ const ClassroomModal = () => {
                 dispatch(setSubmissionStatus(result.submission.status, result.submission.submittedAt));
                 setStudentTeacherComment(result.submission.teacherComment || null);
             }
-        } catch {
-            dispatch(clearClassroomSession());
-            showSessionExpiredError(translateError(intl, { status: 401 }, 'session'));
+        } catch (err) {
+            const kick = extractKickReason(err);
+            if (kick) {
+                // Teacher removed the student. Clear the dead session, jump
+                // straight to seat selection for the same classroom, and let
+                // the seat-selector show a "you were removed" banner so the
+                // student knows what happened instead of seeing the generic
+                // "session expired" alert.
+                dispatch(clearClassroomSession());
+                setKickedNotice(kick);
+                handleJoinWithCode(kick.joinCode);
+            } else {
+                dispatch(clearClassroomSession());
+                showSessionExpiredError(translateError(intl, { status: 401 }, 'session'));
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [classroomState.sessionToken, dispatch, showSessionExpiredError, intl]);
+    }, [classroomState.sessionToken, dispatch, showSessionExpiredError, intl, handleJoinWithCode]);
 
     useEffect(() => {
         if (phase === 'student-status' && classroomState.sessionToken) {
@@ -284,6 +303,7 @@ const ClassroomModal = () => {
             isLoading={isLoading}
             joinCodeHistory={joinCodeHistory}
             joinedInfo={joinedInfo}
+            kickedNotice={kickedNotice}
             phase={phase}
             seatCount={seatCount}
             selectedSeat={selectedSeat}
@@ -295,6 +315,7 @@ const ClassroomModal = () => {
             onClose={handleClose}
             onConfirmJoin={handleConfirmJoin}
             onConfirmSubmit={submit.handleConfirmSubmit}
+            onDismissKickedNotice={handleDismissKickedNotice}
             onJoinWithCode={handleJoinWithCode}
             onLeaveClassroom={handleLeaveClassroom}
             onRefreshStudentStatus={refreshStudentStatus}

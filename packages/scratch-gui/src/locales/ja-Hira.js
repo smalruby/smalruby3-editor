@@ -92,6 +92,9 @@ export default {
     'gui.classroom.studentJoin.teacherLink': 'せんせいのかたはこちら（クラスかんり）',
     'gui.classroom.studentSeat.prompt': 'しゅっせきばんごうをえらんでください',
     'gui.classroom.studentSeat.join': 'さんかする',
+    'gui.classroom.kicked.banner.title': 'せんせいによってクラスからたいしつさせられました。',
+    'gui.classroom.kicked.banner.subtitle':
+        '「{className}」にもういちどさんかするには、しゅっせきばんごうをえらびなおしてください。',
     'gui.classroom.studentJoined.success': 'さんかしました！',
     'gui.classroom.studentJoined.seat': 'しゅっせきばんごう{seatNumber}',
     'gui.classroom.studentJoined.start': 'はじめる',

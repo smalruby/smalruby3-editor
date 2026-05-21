@@ -77,6 +77,8 @@ export default {
         'Teachers can find the join code in {settingsIcon} Settings → Class Management.',
     'gui.classroom.studentSeat.prompt': 'Select your seat number',
     'gui.classroom.studentSeat.join': 'Join',
+    'gui.classroom.kicked.banner.title': 'You were removed from this class by your teacher.',
+    'gui.classroom.kicked.banner.subtitle': 'Pick your seat again to rejoin {className}.',
     'gui.classroom.studentJoined.success': 'Joined successfully!',
     'gui.classroom.studentJoined.seat': 'Seat {seatNumber}',
     'gui.classroom.studentJoined.start': 'Start',

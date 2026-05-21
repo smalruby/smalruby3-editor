@@ -91,6 +91,8 @@ export default {
     'gui.classroom.studentJoin.teacherLink': '先生の方はこちら（クラス管理）',
     'gui.classroom.studentSeat.prompt': '出席番号を選んでください',
     'gui.classroom.studentSeat.join': '参加する',
+    'gui.classroom.kicked.banner.title': '先生によってクラスから退室させられました。',
+    'gui.classroom.kicked.banner.subtitle': '「{className}」に再度参加するには出席番号を選びなおしてください。',
     'gui.classroom.studentJoined.success': '参加しました！',
     'gui.classroom.studentJoined.seat': '出席番号{seatNumber}',
     'gui.classroom.studentJoined.start': 'はじめる',

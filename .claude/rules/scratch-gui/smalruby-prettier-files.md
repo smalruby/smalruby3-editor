@@ -217,6 +217,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/student-join-form.test.js`
 - `test/unit/containers/backpack.test.jsx`
 - `test/unit/containers/cards.test.jsx`
+- `test/unit/containers/classroom-error-utils.test.js`
 - `test/unit/containers/connection-modal-connected-message.test.jsx`
 - `test/unit/containers/connection-modal-smalrubot-s1.test.jsx`
 - `test/unit/containers/connection-modal.test.jsx`
@@ -233,6 +234,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/block-display-initialization.test.js`
 - `test/unit/lib/blockly-private-api.test.js`
 - `test/unit/lib/blocks-gesture-recovery.test.js`
+- `test/unit/lib/classroom-api.test.js`
 - `test/unit/lib/deck-setup.test.js`
 - `test/unit/lib/blocks-screenshot.test.js`
 - `test/unit/lib/calculate-popup-position.test.js`

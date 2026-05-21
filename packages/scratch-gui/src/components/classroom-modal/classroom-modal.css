@@ -515,6 +515,38 @@
     margin-top: 0.5rem;
 }
 
+.kicked-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    background-color: #fff4e5;
+    border: 1px solid #ffa000;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+    color: #4a3500;
+}
+
+.kicked-banner-text {
+    flex: 1;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.kicked-banner-dismiss {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: #4a3500;
+    padding: 0 0.2rem;
+}
+
+.kicked-banner-dismiss:hover {
+    color: #000;
+}
+
 .error-box {
     background-color: #fff0f3;
     border: 1px solid #ff6680;

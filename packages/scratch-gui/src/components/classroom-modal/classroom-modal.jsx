@@ -27,6 +27,7 @@ const ClassroomModal = ({
     takenSeats,
     selectedSeat,
     joinedInfo,
+    kickedNotice,
     error,
     errorActionHandler,
     errorActionLabel,
@@ -38,6 +39,7 @@ const ClassroomModal = ({
     onSelectSeat,
     onConfirmJoin,
     onClose,
+    onDismissKickedNotice,
     onLeaveClassroom,
     onStartSubmit,
     onConfirmSubmit,
@@ -79,10 +81,12 @@ const ClassroomModal = ({
                         error={error}
                         errorTitle={errorTitle}
                         isLoading={isLoading}
+                        kickedNotice={kickedNotice}
                         seatCount={seatCount}
                         selectedSeat={selectedSeat}
                         takenSeats={takenSeats}
                         onConfirmJoin={onConfirmJoin}
+                        onDismissKickedNotice={onDismissKickedNotice}
                         onSelectSeat={onSelectSeat}
                     />
                 )}
@@ -147,10 +151,16 @@ ClassroomModal.propTypes = {
         className: PropTypes.string,
         seatNumber: PropTypes.number,
     }),
+    kickedNotice: PropTypes.shape({
+        joinCode: PropTypes.string,
+        className: PropTypes.string,
+        seatNumber: PropTypes.number,
+    }),
     onCancelSubmit: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired,
     onConfirmJoin: PropTypes.func.isRequired,
     onConfirmSubmit: PropTypes.func.isRequired,
+    onDismissKickedNotice: PropTypes.func,
     onJoinWithCode: PropTypes.func.isRequired,
     onLeaveClassroom: PropTypes.func.isRequired,
     onRefreshStudentStatus: PropTypes.func.isRequired,
