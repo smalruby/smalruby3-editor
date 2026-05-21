@@ -97,6 +97,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/connection-modal.jsx` | mesh_v2/smalrubot_s1 disconnect analytics | 切断時に拡張別カテゴリで GA4 イベントを発火 (issue #645 Phase 1) |
 | `src/lib/calculatePopupPosition.js` | viewport-aware popup flip | LEFT/RIGHT 配置で配置側にポップアップが収まらない場合、反対側にフリップする (issue #671: SP モードのスプライト削除確認ポップアップが画面外で押せない問題への対策) |
 | `src/containers/menu.jsx` | iPad menu item click fix | メニュー項目クリック時の `setTimeout` 遅延を 0 → 100ms に拡大。iPadOS Safari は `pointerup` から `click` 発火まで ~16–32ms 程度のラグがあり、setTimeout(0) で close すると `<li>` が click 発火前に unmount され React onClick が skip される問題への対応 |
+| `src/containers/blocks.jsx` | palette-toggle initial render | `componentDidMount` 末尾で `_applyPaletteVisibility` を呼び `forceUpdate()` を起動。`this.workspace` はインスタンス変数なので `inject()` 後に再レンダーが走らず、初回 `render()` で workspace=null のまま PaletteToggle がスキップされる問題への対応 (issue #695) |
 
 ## 関連ファイル
 

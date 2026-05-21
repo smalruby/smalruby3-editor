@@ -215,6 +215,16 @@ class Blocks extends React.Component {
                 this.handleCategorySelected('faceSensing');
             });
         });
+
+        // === Smalruby: Start of palette-toggle initial render ===
+        // this.workspace is an instance variable, not React state, so inject()
+        // above does not trigger a re-render. The first render() ran before
+        // componentDidMount with workspace=null, skipping PaletteToggle.
+        // Call _applyPaletteVisibility here to forceUpdate() after workspace is
+        // ready, so PaletteToggle appears immediately on mount (e.g. after the
+        // ResponsiveGui swaps MobileGui ↔ GUI on viewport orientation change).
+        this._applyPaletteVisibility(this.props.paletteVisible);
+        // === Smalruby: End of palette-toggle initial render ===
     }
     shouldComponentUpdate (nextProps, nextState) {
         return (

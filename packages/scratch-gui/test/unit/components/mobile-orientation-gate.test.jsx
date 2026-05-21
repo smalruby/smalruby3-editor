@@ -151,18 +151,4 @@ describe('MobileOrientationGate', () => {
         }
     });
 
-    test('dispatches a window resize event when the dismiss button is clicked', () => {
-        const mm = installMatchMedia();
-        mm.setMatches(true);
-        const resizeSpy = jest.fn();
-        window.addEventListener('resize', resizeSpy);
-        try {
-            const { getByTestId } = renderWithIntl(<MobileOrientationGate />);
-            fireEvent.click(getByTestId('mobile-orientation-gate-dismiss'));
-            expect(resizeSpy).toHaveBeenCalledTimes(1);
-        } finally {
-            window.removeEventListener('resize', resizeSpy);
-            mm.restore();
-        }
-    });
 });

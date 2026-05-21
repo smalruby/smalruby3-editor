@@ -120,14 +120,6 @@ const MobileOrientationGate = () => {
                 // sessionStorage に書けなくても dismiss 自体は state で機能する
             }
         }
-        // Blockly に再レイアウトを促す。gate に覆われた状態で初期化された
-        // toolbox / flyout の幅計測は不正で、そのままだと Blocks コンポーネントの
-        // shouldComponentUpdate が dismiss を検知せず PaletteToggle が描画されない。
-        // 実機の portrait → landscape 回転時はブラウザが自動で resize を撃つため
-        // 発生しないが、dismiss は viewport が変わらないので明示的に発火させる。
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new Event('resize'));
-        }
     }, []);
     if (typeof document === 'undefined') return null;
     if (!isPortrait) return null;
