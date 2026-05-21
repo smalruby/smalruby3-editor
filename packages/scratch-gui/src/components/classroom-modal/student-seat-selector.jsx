@@ -17,10 +17,12 @@ const StudentSeatSelector = ({
     kickedNotice,
     kickRequestDialogSeat,
     kickRequestPending,
+    kickRequestRejectedNotice,
     kickRequestError,
     onSelectSeat,
     onConfirmJoin,
     onDismissKickedNotice,
+    onDismissKickRequestRejectedNotice,
     onRequestKick,
     onConfirmKickRequest,
     onCancelKickRequest,
@@ -102,6 +104,34 @@ const StudentSeatSelector = ({
                     />
                 </div>
             )}
+            {!kickRequestPending && kickRequestRejectedNotice && (
+                <div
+                    className={styles.kickRequestRejectedBanner}
+                    data-testid="kick-request-rejected-banner"
+                >
+                    <div className={styles.kickRequestRejectedText}>
+                        <FormattedMessage
+                            defaultMessage="The teacher did not free seat {seatNumber} this time. Try a different seat, or send a new request."
+                            description="Banner shown after the teacher rejected (or the TTL expired) the kick request"
+                            id="gui.classroom.kickRequest.rejectedBanner"
+                            values={{
+                                seatNumber: String(kickRequestRejectedNotice.seatNumber).padStart(2, '0'),
+                            }}
+                        />
+                    </div>
+                    {onDismissKickRequestRejectedNotice && (
+                        <button
+                            aria-label="dismiss"
+                            className={styles.kickedBannerDismiss}
+                            data-testid="kick-request-rejected-banner-dismiss"
+                            onClick={onDismissKickRequestRejectedNotice}
+                            type="button"
+                        >
+                            ×
+                        </button>
+                    )}
+                </div>
+            )}
             <div className={styles.phaseTitle}>
                 <FormattedMessage
                     defaultMessage="Select your seat number"
@@ -171,9 +201,13 @@ StudentSeatSelector.propTypes = {
         joinCode: PropTypes.string,
         seatNumber: PropTypes.number,
     }),
+    kickRequestRejectedNotice: PropTypes.shape({
+        seatNumber: PropTypes.number,
+    }),
     onCancelKickRequest: PropTypes.func,
     onConfirmJoin: PropTypes.func.isRequired,
     onConfirmKickRequest: PropTypes.func,
+    onDismissKickRequestRejectedNotice: PropTypes.func,
     onDismissKickedNotice: PropTypes.func,
     onRequestKick: PropTypes.func,
     onSelectSeat: PropTypes.func.isRequired,

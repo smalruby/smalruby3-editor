@@ -619,6 +619,24 @@
     color: #4a3500;
 }
 
+.kick-request-rejected-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    background-color: #fdecea;
+    border: 1px solid #f44336;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+    color: #5d1a1a;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.kick-request-rejected-text {
+    flex: 1;
+}
+
 .kick-request-pending-banner {
     display: flex;
     align-items: center;
@@ -837,9 +855,13 @@
     position: relative;
 }
 
+/* Seat colors: align with the student-side seat selector so the same visual
+ * mapping holds across roles — blue means "available", grey means "occupied
+ * but no submission yet". Submitted / returned keep their own colors since
+ * they're teacher-only states the student never sees. */
 .member-cell-joined {
-    background-color: #4c97ff;
-    color: white;
+    background-color: #d9d9d9;
+    color: #555;
 }
 
 .member-cell-submitted {
@@ -853,8 +875,8 @@
 }
 
 .member-cell-empty {
-    background-color: #e8e8e8;
-    color: #999;
+    background-color: #4c97ff;
+    color: white;
     cursor: default;
 }
 

@@ -767,6 +767,40 @@ describeIfToken('教師フロー — 退室リクエスト (kick request)', () =
         expect(verifyA.data.reason).toBe('kicked');
     });
 
+    test('POST /classrooms/lookup — activeKickRequestIds に未承認/未却下のリクエスト ID が含まれる', async () => {
+        // セットアップ: A は既に kick 済み (前のテストで承認された) → 新しい状況を作るため
+        // B を新しい席に参加させて kick request を作る
+        const joinB = await request('POST', '/classrooms/join', {
+            joinCode,
+            seatNumber: 4,
+            nickname: 'B-for-active-ids',
+        });
+        expect(joinB.status).toBe(200);
+
+        const reqC = await request('POST', '/classrooms/lookup/kick-request', {
+            joinCode,
+            seatNumber: 4,
+        });
+        expect(reqC.status).toBe(201);
+        const reqId = reqC.data.requestId as string;
+
+        const lookup = await request('POST', '/classrooms/lookup', { joinCode });
+        expect(lookup.status).toBe(200);
+        expect(lookup.data.activeKickRequestIds).toEqual(expect.arrayContaining([reqId]));
+
+        // 却下 → activeKickRequestIds から消える
+        const rejectRes = await request(
+            'DELETE',
+            `/classrooms/${classroomId}/kick-requests/${reqId}`,
+            null,
+            teacherHeaders,
+        );
+        expect(rejectRes.status).toBe(204);
+
+        const lookup2 = await request('POST', '/classrooms/lookup', { joinCode });
+        expect(lookup2.data.activeKickRequestIds).not.toContain(reqId);
+    });
+
     test('POST /classrooms/lookup/kick-request — kick 済みの席に対するリクエストは席が空くので拒否される (404 — 席に占有者なし)', async () => {
         const { status } = await request('POST', '/classrooms/lookup/kick-request', {
             joinCode,

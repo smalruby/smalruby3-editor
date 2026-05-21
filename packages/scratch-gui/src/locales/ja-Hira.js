@@ -104,6 +104,8 @@ export default {
     'gui.classroom.kickRequest.submit': 'いらいをおくる',
     'gui.classroom.kickRequest.pendingBanner':
         'しゅっせきばんごう{seatNumber}のたいしつをせんせいにいらいちゅうです…',
+    'gui.classroom.kickRequest.rejectedBanner':
+        'しゅっせきばんごう{seatNumber}のたいしつはじゅりされませんでした。べつのせきをえらぶか、もういちどいらいをだしてください。',
     'gui.classroom.kickRequest.teacherTitle':
         '{count, plural, one {# けんのたいしつリクエストがとどいています} other {# けんのたいしつリクエストがとどいています}}',
     'gui.classroom.kickRequest.noReason': '（りゆうのにゅうりょくなし）',

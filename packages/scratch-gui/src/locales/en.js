@@ -88,6 +88,8 @@ export default {
     'gui.classroom.kickRequest.cancel': 'Cancel',
     'gui.classroom.kickRequest.submit': 'Send request',
     'gui.classroom.kickRequest.pendingBanner': 'Waiting for the teacher to free seat {seatNumber}...',
+    'gui.classroom.kickRequest.rejectedBanner':
+        'The teacher did not free seat {seatNumber} this time. Try a different seat, or send a new request.',
     'gui.classroom.kickRequest.teacherTitle':
         '{count, plural, one {# kick request from a student} other {# kick requests from students}}',
     'gui.classroom.kickRequest.noReason': '(no reason given)',

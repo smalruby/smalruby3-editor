@@ -769,6 +769,20 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
     return match ? parseInt(match[1], 10) : 0;
   }).filter(n => n > 0);
 
+  // Active kick request IDs for the classroom. The student polls this list
+  // alongside takenSeats so it can tell "the teacher rejected my request /
+  // the TTL ran out" (my requestId is no longer in the list AND my target
+  // seat is still occupied) from "the teacher approved" (my target seat is
+  // now free). Without this round-trip, a rejected student would just watch
+  // the pending banner for up to an hour.
+  const kickRequestResult = await docClient.send(new QueryCommand({
+    TableName: KICK_REQUESTS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroom.classroomId },
+    ProjectionExpression: 'requestId',
+  }));
+  const activeKickRequestIds = (kickRequestResult.Items || []).map(item => item.requestId as string);
+
   return {
     statusCode: 200,
     body: JSON.stringify({
@@ -777,6 +791,7 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
       assignmentName: classroom.assignmentName || null,
       studentCount: classroom.studentCount,
       takenSeats,
+      activeKickRequestIds,
       expiresAt: classroom.ttl ? new Date((classroom.ttl as number) * 1000).toISOString() : null,
     }),
   };

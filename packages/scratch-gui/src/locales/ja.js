@@ -101,6 +101,8 @@ export default {
     'gui.classroom.kickRequest.cancel': 'キャンセル',
     'gui.classroom.kickRequest.submit': '依頼を送る',
     'gui.classroom.kickRequest.pendingBanner': '出席番号{seatNumber}の退室を先生に依頼中です…',
+    'gui.classroom.kickRequest.rejectedBanner':
+        '出席番号{seatNumber}の退室は受理されませんでした。別の席を選ぶか、もう一度依頼を出してください。',
     'gui.classroom.kickRequest.teacherTitle':
         '{count, plural, one {# 件の退室リクエストが届いています} other {# 件の退室リクエストが届いています}}',
     'gui.classroom.kickRequest.noReason': '（理由の入力なし）',
