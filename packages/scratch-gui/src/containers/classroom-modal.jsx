@@ -4,6 +4,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import ClassroomModalComponent from '../components/classroom-modal/classroom-modal.jsx';
 import analytics from '../lib/analytics';
 import classroomAPI from '../lib/classroom-api.js';
+import {
+    loadPendingKickRequest,
+    savePendingKickRequest,
+    clearPendingKickRequest,
+} from '../lib/classroom-kick-request-storage.js';
 import { loadHistory, addToHistory } from '../lib/join-code-history.js';
 import { getUrlParams, clearClasscode } from '../lib/url-params.js';
 import { showAlertWithTimeout } from '../reducers/alerts.js';
@@ -123,6 +128,17 @@ const ClassroomModal = () => {
     const [kickedNotice, setKickedNotice] = useState(null);
     const handleDismissKickedNotice = useCallback(() => setKickedNotice(null), []);
 
+    // --- Kick-request state ---
+    // The student can tap an occupied seat to ask the teacher to free it.
+    // `kickRequestDialogSeat` is the seat number while the confirm dialog is
+    // open (replaces the grid). `kickRequestPending` is the saved request
+    // after submission (persisted to localStorage so it survives reload).
+    // Once submitted, polling watches the seat grid and clears the pending
+    // state when the teacher acts (approve or reject + TTL).
+    const [kickRequestDialogSeat, setKickRequestDialogSeat] = useState(null);
+    const [kickRequestPending, setKickRequestPending] = useState(() => loadPendingKickRequest());
+    const [kickRequestError, setKickRequestError] = useState(null);
+
     // --- Join with code ---
 
     const handleJoinWithCode = useCallback(
@@ -158,6 +174,81 @@ const ClassroomModal = () => {
     const handleSelectSeat = useCallback((seatNumber) => {
         setSelectedSeat(seatNumber);
     }, []);
+
+    // --- Kick-request handlers ---
+
+    const handleRequestKick = useCallback(
+        (seatNumber) => {
+            if (!pendingJoinCode) return;
+            if (kickRequestPending) return; // one outstanding request at a time
+            setKickRequestError(null);
+            setKickRequestDialogSeat(seatNumber);
+        },
+        [pendingJoinCode, kickRequestPending],
+    );
+
+    const handleCancelKickRequest = useCallback(() => {
+        setKickRequestDialogSeat(null);
+        setKickRequestError(null);
+    }, []);
+
+    const handleConfirmKickRequest = useCallback(
+        async (reason) => {
+            if (!pendingJoinCode || !kickRequestDialogSeat) return;
+            setKickRequestError(null);
+            setIsLoading(true);
+            try {
+                const result = await classroomAPI.createKickRequest(pendingJoinCode, kickRequestDialogSeat, reason);
+                const record = {
+                    requestId: result.requestId,
+                    joinCode: pendingJoinCode,
+                    seatNumber: kickRequestDialogSeat,
+                    reason: reason || null,
+                    createdAt: new Date().toISOString(),
+                };
+                savePendingKickRequest(record);
+                setKickRequestPending(record);
+                setKickRequestDialogSeat(null);
+            } catch (err) {
+                setKickRequestError(translateError(intl, err));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [pendingJoinCode, kickRequestDialogSeat, intl],
+    );
+
+    // Polling: while in student-seat with a pending kick request, re-fetch
+    // the lookup every 5s. When the seat is no longer in `takenSeats`, the
+    // teacher approved the request (or it was rejected then the seat freed
+    // up some other way) and we clear the pending state so the student can
+    // re-pick the seat.
+    useEffect(() => {
+        if (phase !== 'student-seat' || !kickRequestPending || !pendingJoinCode) {
+            return () => {
+                // No polling needed; cleanup is a no-op.
+            };
+        }
+        let cancelled = false;
+        const tick = async () => {
+            try {
+                const data = await classroomAPI.lookupClassroom(pendingJoinCode);
+                if (cancelled) return;
+                setTakenSeats(data.takenSeats || []);
+                if (!(data.takenSeats || []).includes(kickRequestPending.seatNumber)) {
+                    clearPendingKickRequest();
+                    setKickRequestPending(null);
+                }
+            } catch {
+                // Network blip — try again on next tick.
+            }
+        };
+        const id = setInterval(tick, 5000);
+        return () => {
+            cancelled = true;
+            clearInterval(id);
+        };
+    }, [phase, kickRequestPending, pendingJoinCode]);
 
     // --- Confirm join ---
 
@@ -205,6 +296,8 @@ const ClassroomModal = () => {
                 seatNumber: data.seatNumber,
             });
             setKickedNotice(null);
+            clearPendingKickRequest();
+            setKickRequestPending(null);
             setPhase('student-joined');
         } catch (err) {
             if (err.status === 409) {
@@ -315,6 +408,9 @@ const ClassroomModal = () => {
             joinCodeHistory={joinCodeHistory}
             joinedInfo={joinedInfo}
             kickedNotice={kickedNotice}
+            kickRequestDialogSeat={kickRequestDialogSeat}
+            kickRequestError={kickRequestError}
+            kickRequestPending={kickRequestPending}
             phase={phase}
             seatCount={seatCount}
             selectedSeat={selectedSeat}
@@ -322,14 +418,17 @@ const ClassroomModal = () => {
             takenSeats={takenSeats}
             teacherComment={studentTeacherComment}
             thumbnailDataUrl={submit.thumbnailDataUrl}
+            onCancelKickRequest={handleCancelKickRequest}
             onCancelSubmit={submit.handleCancelSubmit}
             onClose={handleClose}
             onConfirmJoin={handleConfirmJoin}
+            onConfirmKickRequest={handleConfirmKickRequest}
             onConfirmSubmit={submit.handleConfirmSubmit}
             onDismissKickedNotice={handleDismissKickedNotice}
             onJoinWithCode={handleJoinWithCode}
             onLeaveClassroom={handleLeaveClassroom}
             onRefreshStudentStatus={refreshStudentStatus}
+            onRequestKick={handleRequestKick}
             onSelectSeat={handleSelectSeat}
             onSelectTeacher={handleSelectTeacher}
             onStartSubmit={submit.handleStartSubmit}

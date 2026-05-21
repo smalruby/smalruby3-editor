@@ -96,6 +96,14 @@ export default {
     'gui.classroom.kicked.banner.title': 'せんせいによってクラスからたいしつさせられました。',
     'gui.classroom.kicked.banner.subtitle':
         '「{className}」にもういちどさんかするには、しゅっせきばんごうをえらびなおしてください。',
+    'gui.classroom.kickRequest.title': 'しゅっせきばんごう{seatNumber}のひとにたいしつをいらいしますか？',
+    'gui.classroom.kickRequest.body':
+        'しゅっせきばんごう{seatNumber}がじぶんのせきで、ほかのひとがまちがってえらんでしまったときにつかってください。せんせいにいらいがおくられ、しょうにんするかどうかをきめてもらいます。',
+    'gui.classroom.kickRequest.reasonPlaceholder': 'にんい：せんせいへひとこと（200もじまで）',
+    'gui.classroom.kickRequest.cancel': 'キャンセル',
+    'gui.classroom.kickRequest.submit': 'いらいをおくる',
+    'gui.classroom.kickRequest.pendingBanner':
+        'しゅっせきばんごう{seatNumber}のたいしつをせんせいにいらいちゅうです…',
     'gui.classroom.studentJoined.success': 'さんかしました！',
     'gui.classroom.studentJoined.seat': 'しゅっせきばんごう{seatNumber}',
     'gui.classroom.studentJoined.start': 'はじめる',

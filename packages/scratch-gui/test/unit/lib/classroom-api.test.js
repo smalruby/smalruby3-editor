@@ -73,3 +73,57 @@ describe('ClassroomAPI._request error handling', () => {
         });
     });
 });
+
+describe('ClassroomAPI.createKickRequest', () => {
+    let classroomAPI;
+
+    beforeEach(() => {
+        jest.resetModules();
+        global.fetch = jest.fn();
+        classroomAPI = require('../../../src/lib/classroom-api.js').default;
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('POSTs to /classrooms/lookup/kick-request with joinCode + seatNumber + reason', async () => {
+        global.fetch.mockResolvedValue({
+            ok: true,
+            status: 201,
+            json: jest.fn().mockResolvedValue({ requestId: 'req-1' }),
+        });
+        await classroomAPI.createKickRequest('abcdef', 5, 'これは私の席です');
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toContain('/classrooms/lookup/kick-request');
+        expect(opts.method).toBe('POST');
+        expect(JSON.parse(opts.body)).toEqual({
+            joinCode: 'abcdef',
+            seatNumber: 5,
+            reason: 'これは私の席です',
+        });
+    });
+
+    test('omits reason from the body when none is provided', async () => {
+        global.fetch.mockResolvedValue({
+            ok: true,
+            status: 201,
+            json: jest.fn().mockResolvedValue({ requestId: 'req-2' }),
+        });
+        await classroomAPI.createKickRequest('abcdef', 3);
+        const [, opts] = global.fetch.mock.calls[0];
+        expect(JSON.parse(opts.body)).toEqual({ joinCode: 'abcdef', seatNumber: 3 });
+    });
+
+    test('does not send any Authorization header (anonymous endpoint)', async () => {
+        global.fetch.mockResolvedValue({
+            ok: true,
+            status: 201,
+            json: jest.fn().mockResolvedValue({ requestId: 'r' }),
+        });
+        await classroomAPI.createKickRequest('abcdef', 1);
+        const [, opts] = global.fetch.mock.calls[0];
+        expect(opts.headers.Authorization).toBeUndefined();
+    });
+});

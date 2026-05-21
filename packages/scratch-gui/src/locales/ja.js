@@ -94,6 +94,13 @@ export default {
     'gui.classroom.studentSeat.join': '参加する',
     'gui.classroom.kicked.banner.title': '先生によってクラスから退室させられました。',
     'gui.classroom.kicked.banner.subtitle': '「{className}」に再度参加するには出席番号を選びなおしてください。',
+    'gui.classroom.kickRequest.title': '出席番号{seatNumber}の人に退室を依頼しますか？',
+    'gui.classroom.kickRequest.body':
+        '出席番号{seatNumber}が自分の席で、他の人が間違って選んでしまったときに使ってください。先生に依頼が送られ、承認するかどうかを決めてもらいます。',
+    'gui.classroom.kickRequest.reasonPlaceholder': '任意：先生へひと言（200文字まで）',
+    'gui.classroom.kickRequest.cancel': 'キャンセル',
+    'gui.classroom.kickRequest.submit': '依頼を送る',
+    'gui.classroom.kickRequest.pendingBanner': '出席番号{seatNumber}の退室を先生に依頼中です…',
     'gui.classroom.studentJoined.success': '参加しました！',
     'gui.classroom.studentJoined.seat': '出席番号{seatNumber}',
     'gui.classroom.studentJoined.start': 'はじめる',

@@ -527,6 +527,84 @@
     color: #4a3500;
 }
 
+.kick-request-pending-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #e3f2fd;
+    border: 1px solid #2196f3;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+    color: #0d47a1;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.kick-request-dialog {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin: 0 auto;
+    max-width: 28rem;
+}
+
+.kick-request-dialog-title {
+    font-size: 1.05rem;
+    margin: 0 0 0.6rem 0;
+    color: #1a1a4e;
+}
+
+.kick-request-dialog-body {
+    font-size: 0.9rem;
+    color: #575e75;
+    margin: 0 0 0.8rem 0;
+    line-height: 1.5;
+}
+
+.kick-request-reason-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+    font-family: inherit;
+    padding: 0.5rem;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+.kick-request-dialog-error {
+    margin-top: 0.5rem;
+    color: #d32f2f;
+    font-size: 0.85rem;
+}
+
+.kick-request-dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.secondary-button {
+    background-color: #fff;
+    color: #575e75;
+    border: 1px solid #b8b8b8;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.secondary-button:hover {
+    background-color: #f0f0f0;
+}
+
+.secondary-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .kicked-banner-text {
     flex: 1;
     font-size: 0.9rem;

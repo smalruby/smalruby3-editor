@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React, { useCallback } from 'react';
 
 import ErrorDisplay from './error-display.jsx';
+import KickRequestConfirmDialog from './kick-request-confirm-dialog.jsx';
 
 import styles from './classroom-modal.css';
 
@@ -14,16 +15,45 @@ const StudentSeatSelector = ({
     error,
     errorTitle,
     kickedNotice,
+    kickRequestDialogSeat,
+    kickRequestPending,
+    kickRequestError,
     onSelectSeat,
     onConfirmJoin,
     onDismissKickedNotice,
+    onRequestKick,
+    onConfirmKickRequest,
+    onCancelKickRequest,
 }) => {
     const handleSeatClick = useCallback(
         (e) => {
-            onSelectSeat(parseInt(e.currentTarget.dataset.seat, 10));
+            const n = parseInt(e.currentTarget.dataset.seat, 10);
+            const taken = e.currentTarget.dataset.taken === '1';
+            if (taken) {
+                // Tapping an occupied seat asks the teacher to free it.
+                if (onRequestKick) onRequestKick(n);
+                return;
+            }
+            onSelectSeat(n);
         },
-        [onSelectSeat],
+        [onSelectSeat, onRequestKick],
     );
+
+    // When the confirm dialog is open we hide the grid to avoid mid-tap
+    // misclicks on seats that are still rendered behind a modal-ish overlay.
+    if (kickRequestDialogSeat) {
+        return (
+            <div data-testid="classroom-phase-student-seat">
+                <KickRequestConfirmDialog
+                    error={kickRequestError}
+                    isLoading={isLoading}
+                    seatNumber={kickRequestDialogSeat}
+                    onCancel={onCancelKickRequest}
+                    onConfirm={onConfirmKickRequest}
+                />
+            </div>
+        );
+    }
 
     return (
         <div data-testid="classroom-phase-student-seat">
@@ -59,6 +89,19 @@ const StudentSeatSelector = ({
                     )}
                 </div>
             )}
+            {kickRequestPending && (
+                <div
+                    className={styles.kickRequestPendingBanner}
+                    data-testid="kick-request-pending-banner"
+                >
+                    <FormattedMessage
+                        defaultMessage="Waiting for the teacher to free seat {seatNumber}..."
+                        description="Banner shown while a pending kick request is outstanding"
+                        id="gui.classroom.kickRequest.pendingBanner"
+                        values={{ seatNumber: String(kickRequestPending.seatNumber).padStart(2, '0') }}
+                    />
+                </div>
+            )}
             <div className={styles.phaseTitle}>
                 <FormattedMessage
                     defaultMessage="Select your seat number"
@@ -70,12 +113,18 @@ const StudentSeatSelector = ({
                 {Array.from({ length: seatCount }, (_, i) => i + 1).map(n => {
                     const isTaken = takenSeats.includes(n);
                     const isSelected = selectedSeat === n;
+                    // Taken seats become tappable when an onRequestKick handler is
+                    // provided AND we're not already waiting on a different one.
+                    // We still let the student tap their own pending seat (it just
+                    // does nothing — we suppress in container) to avoid confusion.
+                    const canRequestKick = isTaken && onRequestKick && !kickRequestPending;
                     return (
                         <button
                             className={`${styles.seatButton} ${isTaken ? styles.seatTaken : ''} ${isSelected ? styles.seatSelected : ''}`}
                             data-seat={n}
+                            data-taken={canRequestKick ? '1' : '0'}
                             data-testid={`classroom-seat-${n}`}
-                            disabled={isTaken}
+                            disabled={isTaken && !canRequestKick}
                             key={n}
                             onClick={handleSeatClick}
                         >
@@ -84,10 +133,7 @@ const StudentSeatSelector = ({
                     );
                 })}
             </div>
-            <div
-                data-testid="classroom-selected-seat"
-                style={{ display: 'none' }}
-            >
+            <div data-testid="classroom-selected-seat" style={{ display: 'none' }}>
                 {selectedSeat}
             </div>
             <div className={styles.buttonRow}>
@@ -118,8 +164,18 @@ StudentSeatSelector.propTypes = {
         className: PropTypes.string,
         seatNumber: PropTypes.number,
     }),
+    kickRequestDialogSeat: PropTypes.number,
+    kickRequestError: PropTypes.string,
+    kickRequestPending: PropTypes.shape({
+        requestId: PropTypes.string,
+        joinCode: PropTypes.string,
+        seatNumber: PropTypes.number,
+    }),
+    onCancelKickRequest: PropTypes.func,
     onConfirmJoin: PropTypes.func.isRequired,
+    onConfirmKickRequest: PropTypes.func,
     onDismissKickedNotice: PropTypes.func,
+    onRequestKick: PropTypes.func,
     onSelectSeat: PropTypes.func.isRequired,
     seatCount: PropTypes.number.isRequired,
     selectedSeat: PropTypes.number,

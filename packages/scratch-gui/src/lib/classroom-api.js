@@ -92,6 +92,56 @@ class ClassroomAPI {
     }
 
     /**
+     * Ask the teacher to free up a specific seat (kick request). Anonymous —
+     * the request only carries joinCode + seatNumber + optional reason. Used
+     * by students who want a seat that is currently occupied by someone who
+     * (likely) picked the wrong seat number.
+     * @param {string} joinCode - 6-digit join code
+     * @param {number} seatNumber - Seat the student wants freed
+     * @param {string} [reason] - Optional short message to the teacher
+     * @returns {Promise<object>} {requestId, classroomId, seatNumber}
+     */
+    async createKickRequest(joinCode, seatNumber, reason) {
+        const body = { joinCode, seatNumber };
+        if (reason) body.reason = reason;
+        return this._request('POST', '/classrooms/lookup/kick-request', body);
+    }
+
+    /**
+     * List pending kick requests for a classroom (teacher only).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @returns {Promise<object>} {requests: [{requestId, seatNumber, reason, createdAt}]}
+     */
+    async listKickRequests(idToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/kick-requests`, null, idToken);
+    }
+
+    /**
+     * Approve a kick request: removes the seat occupant and clears all
+     * sibling requests for that seat (teacher only).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @param {string} requestId - Kick request ID
+     * @returns {Promise<null>} Resolves to null on success (HTTP 204).
+     */
+    async approveKickRequest(idToken, classroomId, requestId) {
+        return this._request('POST', `/classrooms/${classroomId}/kick-requests/${requestId}/approve`, null, idToken);
+    }
+
+    /**
+     * Reject a kick request: deletes the request but leaves the occupant in
+     * place (teacher only).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @param {string} requestId - Kick request ID
+     * @returns {Promise<null>} Resolves to null on success (HTTP 204).
+     */
+    async rejectKickRequest(idToken, classroomId, requestId) {
+        return this._request('DELETE', `/classrooms/${classroomId}/kick-requests/${requestId}`, null, idToken);
+    }
+
+    /**
      * Join a classroom as a student.
      * @param {string} joinCode - 6-digit join code
      * @param {number} seatNumber - Selected seat number
