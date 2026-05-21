@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import React from 'react';
 import ResponsiveGui from '../../../src/lib/responsive-gui.jsx';
 
@@ -50,5 +50,42 @@ describe('ResponsiveGui', () => {
         mockUseIsNarrowScreen.mockReturnValue(false);
         const { getByTestId } = render(<ResponsiveGui marker="passed-through" />);
         expect(getByTestId('mock-gui')).toHaveAttribute('data-prop', 'passed-through');
+    });
+
+    test('does not dispatch a resize event on the initial render', () => {
+        mockUseIsNarrowScreen.mockReturnValue(true);
+        const resizeSpy = jest.fn();
+        window.addEventListener('resize', resizeSpy);
+        try {
+            render(<ResponsiveGui marker="X" />);
+            expect(resizeSpy).not.toHaveBeenCalled();
+        } finally {
+            window.removeEventListener('resize', resizeSpy);
+        }
+    });
+
+    test('dispatches a resize event when toggling between narrow and wide viewports', () => {
+        mockUseIsNarrowScreen.mockReturnValue(true);
+        const resizeSpy = jest.fn();
+        window.addEventListener('resize', resizeSpy);
+        try {
+            const { rerender } = render(<ResponsiveGui marker="X" />);
+            // initial mount should not trigger resize
+            expect(resizeSpy).not.toHaveBeenCalled();
+            // switch to wide → MobileGui unmounts, GUI mounts
+            mockUseIsNarrowScreen.mockReturnValue(false);
+            act(() => {
+                rerender(<ResponsiveGui marker="X" />);
+            });
+            expect(resizeSpy).toHaveBeenCalledTimes(1);
+            // switch back to narrow
+            mockUseIsNarrowScreen.mockReturnValue(true);
+            act(() => {
+                rerender(<ResponsiveGui marker="X" />);
+            });
+            expect(resizeSpy).toHaveBeenCalledTimes(2);
+        } finally {
+            window.removeEventListener('resize', resizeSpy);
+        }
     });
 });
