@@ -599,3 +599,216 @@ describeIfToken('教師フロー — 強制退室 (kick) と verify-session の 
         expect(status).toBe(204);
     });
 });
+
+// ---------------------------------------------------------------------------
+// 教師フロー — 退室リクエスト (kick request)
+// ---------------------------------------------------------------------------
+describeIfToken('教師フロー — 退室リクエスト (kick request)', () => {
+    let classroomId: string;
+    let joinCode: string;
+    let sessionTokenA: string;
+    let requestId: string;
+    let request2Id: string;
+
+    test('セットアップ: クラス作成', async () => {
+        const { status, data } = await request(
+            'POST',
+            '/classrooms',
+            { className: 'Kick Request Test', assignmentName: '退室依頼テスト', studentCount: 5 },
+            teacherHeaders,
+        );
+        expect(status).toBe(201);
+        classroomId = data.classroomId as string;
+        joinCode = data.joinCode as string;
+    });
+
+    test('セットアップ: 生徒A が席1で参加', async () => {
+        const { status, data } = await request('POST', '/classrooms/join', {
+            joinCode,
+            seatNumber: 1,
+            nickname: '生徒A',
+        });
+        expect(status).toBe(200);
+        sessionTokenA = data.sessionToken as string;
+    });
+
+    test('GET /classrooms/{id}/kick-requests — 初期状態は空', async () => {
+        const { status, data } = await request(
+            'GET',
+            `/classrooms/${classroomId}/kick-requests`,
+            null,
+            teacherHeaders,
+        );
+        expect(status).toBe(200);
+        expect(data.requests).toEqual([]);
+    });
+
+    test('POST /classrooms/lookup/kick-request — joinCode + seatNumber でリクエスト送信 (認証不要)', async () => {
+        const { status, data } = await request('POST', '/classrooms/lookup/kick-request', {
+            joinCode,
+            seatNumber: 1,
+            reason: 'これは私の席です',
+        });
+        expect(status).toBe(201);
+        expect(data.requestId).toBeDefined();
+        expect(data.classroomId).toBe(classroomId);
+        expect(data.seatNumber).toBe(1);
+        requestId = data.requestId as string;
+    });
+
+    test('POST /classrooms/lookup/kick-request — 不正な joinCode で 404', async () => {
+        const { status } = await request('POST', '/classrooms/lookup/kick-request', {
+            joinCode: 'zzzzzz',
+            seatNumber: 1,
+        });
+        expect(status).toBe(404);
+    });
+
+    test('POST /classrooms/lookup/kick-request — 範囲外の seatNumber で 400', async () => {
+        const { status } = await request('POST', '/classrooms/lookup/kick-request', {
+            joinCode,
+            seatNumber: 99,
+        });
+        expect(status).toBe(400);
+    });
+
+    test('GET /classrooms/{id}/kick-requests — リクエスト 1 件返る (reason 付き)', async () => {
+        const { status, data } = await request(
+            'GET',
+            `/classrooms/${classroomId}/kick-requests`,
+            null,
+            teacherHeaders,
+        );
+        expect(status).toBe(200);
+        const requests = data.requests as Array<{
+            requestId: string;
+            seatNumber: number;
+            reason: string | null;
+            createdAt: string;
+        }>;
+        expect(requests).toHaveLength(1);
+        expect(requests[0].requestId).toBe(requestId);
+        expect(requests[0].seatNumber).toBe(1);
+        expect(requests[0].reason).toBe('これは私の席です');
+    });
+
+    test('POST /classrooms/lookup/kick-request — 同じ席に対する 2 回目のリクエストは別レコードとして許可される (abuse 規制なし、複数件許可仕様)', async () => {
+        const { status, data } = await request('POST', '/classrooms/lookup/kick-request', {
+            joinCode,
+            seatNumber: 1,
+        });
+        expect(status).toBe(201);
+        expect(data.requestId).toBeDefined();
+        expect(data.requestId).not.toBe(requestId);
+        request2Id = data.requestId as string;
+    });
+
+    test('GET /classrooms/{id}/kick-requests — リクエスト 2 件返る', async () => {
+        const { status, data } = await request(
+            'GET',
+            `/classrooms/${classroomId}/kick-requests`,
+            null,
+            teacherHeaders,
+        );
+        expect(status).toBe(200);
+        const requests = data.requests as Array<{ requestId: string }>;
+        expect(requests.map(r => r.requestId).sort()).toEqual([requestId, request2Id].sort());
+    });
+
+    test('DELETE /classrooms/{id}/kick-requests/{requestId} — 教師が却下 → リクエスト削除のみでメンバー残る', async () => {
+        const { status } = await request(
+            'DELETE',
+            `/classrooms/${classroomId}/kick-requests/${request2Id}`,
+            null,
+            teacherHeaders,
+        );
+        expect(status).toBe(204);
+
+        // 却下後: リクエストは 1 件に減る
+        const list = await request(
+            'GET',
+            `/classrooms/${classroomId}/kick-requests`,
+            null,
+            teacherHeaders,
+        );
+        const requests = list.data.requests as Array<{ requestId: string }>;
+        expect(requests.map(r => r.requestId)).toEqual([requestId]);
+
+        // メンバー A はまだ参加中 (kick されていない)
+        const verifyA = await request('POST', '/classrooms/verify-session', null, {
+            Authorization: `Bearer ${sessionTokenA}`,
+        });
+        expect(verifyA.status).toBe(200);
+    });
+
+    test('POST /classrooms/{id}/kick-requests/{requestId}/approve — 教師が承認 → 該当メンバー kick + リクエスト削除', async () => {
+        const { status } = await request(
+            'POST',
+            `/classrooms/${classroomId}/kick-requests/${requestId}/approve`,
+            null,
+            teacherHeaders,
+        );
+        expect(status).toBe(204);
+
+        // 承認後: リクエスト一覧は空
+        const list = await request(
+            'GET',
+            `/classrooms/${classroomId}/kick-requests`,
+            null,
+            teacherHeaders,
+        );
+        expect(list.data.requests).toEqual([]);
+
+        // メンバー A の verify-session は 410 reason=kicked を返す (Phase 1 と同じ挙動)
+        const verifyA = await request('POST', '/classrooms/verify-session', null, {
+            Authorization: `Bearer ${sessionTokenA}`,
+        });
+        expect(verifyA.status).toBe(410);
+        expect(verifyA.data.reason).toBe('kicked');
+    });
+
+    test('POST /classrooms/lookup/kick-request — kick 済みの席に対するリクエストは席が空くので拒否される (404 — 席に占有者なし)', async () => {
+        const { status } = await request('POST', '/classrooms/lookup/kick-request', {
+            joinCode,
+            seatNumber: 1,
+        });
+        expect(status).toBe(404);
+    });
+
+    test('認証エラー: 生徒がリクエスト一覧を見ようとすると 401', async () => {
+        const { status } = await request(
+            'GET',
+            `/classrooms/${classroomId}/kick-requests`,
+            null,
+            { Authorization: `Bearer ${sessionTokenA}` },
+        );
+        expect(status).toBe(401);
+    });
+
+    test('認証エラー: 生徒が承認エンドポイントを叩こうとすると 401', async () => {
+        const { status } = await request(
+            'POST',
+            `/classrooms/${classroomId}/kick-requests/anything/approve`,
+            null,
+            { Authorization: `Bearer ${sessionTokenA}` },
+        );
+        expect(status).toBe(401);
+    });
+
+    test('認証エラー: 別教師トークンで kick-requests を見ようとすると 401', async () => {
+        // 別 teacherSub をシミュレートできないので、無効トークンで代替
+        const { status } = await request(
+            'GET',
+            `/classrooms/${classroomId}/kick-requests`,
+            null,
+            { Authorization: 'Bearer invalid-teacher-token' },
+        );
+        expect(status).toBe(401);
+    });
+
+    // Cleanup
+    test('クリーンアップ: クラス削除', async () => {
+        const { status } = await request('DELETE', `/classrooms/${classroomId}`, null, teacherHeaders);
+        expect(status).toBe(204);
+    });
+});

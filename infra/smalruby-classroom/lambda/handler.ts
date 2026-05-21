@@ -20,6 +20,7 @@ import * as crypto from 'crypto';
 const CLASSROOMS_TABLE = process.env.CLASSROOMS_TABLE_NAME || 'Classrooms';
 const MEMBERSHIPS_TABLE = process.env.MEMBERSHIPS_TABLE_NAME || 'ClassroomMemberships';
 const SUBMISSIONS_TABLE = process.env.SUBMISSIONS_TABLE_NAME || 'ClassroomSubmissions';
+const KICK_REQUESTS_TABLE = process.env.KICK_REQUESTS_TABLE_NAME || 'ClassroomKickRequests';
 const SUBMISSIONS_BUCKET = process.env.SUBMISSIONS_BUCKET_NAME || 'smalruby-classroom-submissions';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || '';
@@ -56,6 +57,10 @@ const PRESIGNED_URL_DOWNLOAD_EXPIRY = parseInt(process.env.PRESIGNED_URL_DOWNLOA
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_SCREENSHOT_COUNT = 20;
 const MAX_TEACHER_COMMENT_LENGTH = 500;
+// Kick request TTL: short-lived (1h) since the student is actively waiting
+// for the teacher to act. Expired requests are removed by DynamoDB TTL.
+const KICK_REQUEST_TTL_SECONDS = parseInt(process.env.KICK_REQUEST_TTL_SECONDS || '3600', 10);
+const MAX_KICK_REQUEST_REASON_LENGTH = 200;
 
 // --- DynamoDB Client ---
 
@@ -829,6 +834,209 @@ async function handleDeleteMember(teacherSub: string, classroomId: string, membe
   return { statusCode: 204, body: '' };
 }
 
+// --- Kick request handlers ---
+
+export function validateKickRequestReason(reason: unknown): string | undefined {
+  if (reason === undefined || reason === null || reason === '') return undefined;
+  if (typeof reason !== 'string') {
+    throw new ValidationError('Kick request reason must be a string');
+  }
+  const trimmed = reason.trim();
+  if (trimmed.length > MAX_KICK_REQUEST_REASON_LENGTH) {
+    throw new ValidationError(`Kick request reason must be ${MAX_KICK_REQUEST_REASON_LENGTH} characters or less`);
+  }
+  return trimmed || undefined;
+}
+
+// Lookup classroom by joinCode + ensure a non-kicked occupant exists at the
+// given seat. Used by handleCreateKickRequest to refuse requests for seats
+// that are already empty (so the teacher doesn't see noise from misclicks
+// or stale UI). Returns the classroom row.
+async function findClassroomWithSeatOccupied(
+  joinCode: string,
+  seatNumber: number,
+): Promise<Record<string, unknown>> {
+  const classroomResult = await docClient.send(new QueryCommand({
+    TableName: CLASSROOMS_TABLE,
+    IndexName: 'joinCode-index',
+    KeyConditionExpression: 'joinCode = :jc',
+    ExpressionAttributeValues: { ':jc': joinCode },
+    Limit: 1,
+  }));
+  if (!classroomResult.Items || classroomResult.Items.length === 0) {
+    throw new NotFoundError('Invalid join code');
+  }
+  const classroom = classroomResult.Items[0];
+  if (classroom.status !== 'active') {
+    throw new NotFoundError('This classroom is no longer active');
+  }
+  if (seatNumber < 1 || seatNumber > (classroom.studentCount as number)) {
+    throw new ValidationError(`Seat number must be between 1 and ${classroom.studentCount}`);
+  }
+  const memberId = `seat-${String(seatNumber).padStart(2, '0')}`;
+  const memberResult = await docClient.send(new GetCommand({
+    TableName: MEMBERSHIPS_TABLE,
+    Key: { classroomId: classroom.classroomId, memberId },
+  }));
+  if (!memberResult.Item || memberResult.Item.kicked === true) {
+    // Seat already empty (or only holds a kick tombstone) — nothing to free up.
+    throw new NotFoundError(`Seat ${seatNumber} is not currently occupied`);
+  }
+  return classroom;
+}
+
+async function handleCreateKickRequest(
+  sourceIp: string,
+  body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  // Reuse the join endpoint's IP-based rate limit — same threat model
+  // (anonymous endpoint, abuse risk if open). The body fields are validated
+  // independently below so we surface friendlier errors than the limit.
+  checkJoinRateLimit(sourceIp);
+  const joinCode = validateJoinCode(body.joinCode);
+  const seatRaw = body.seatNumber;
+  const seatNumber =
+    typeof seatRaw === 'number' ? seatRaw : parseInt(String(seatRaw), 10);
+  if (isNaN(seatNumber)) {
+    throw new ValidationError('Seat number is required');
+  }
+  const reason = validateKickRequestReason(body.reason);
+  const classroom = await findClassroomWithSeatOccupied(joinCode, seatNumber);
+  if (seatNumber < 1 || seatNumber > (classroom.studentCount as number)) {
+    throw new ValidationError(`Seat number must be between 1 and ${classroom.studentCount}`);
+  }
+
+  const requestId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await docClient.send(new PutCommand({
+    TableName: KICK_REQUESTS_TABLE,
+    Item: {
+      classroomId: classroom.classroomId,
+      requestId,
+      seatNumber,
+      reason: reason || null,
+      sourceIpHash: crypto.createHash('sha256').update(sourceIp).digest('hex').slice(0, 16),
+      createdAt: now,
+      ttl: Math.floor(Date.now() / 1000) + KICK_REQUEST_TTL_SECONDS,
+    },
+  }));
+
+  return {
+    statusCode: 201,
+    body: JSON.stringify({
+      requestId,
+      classroomId: classroom.classroomId,
+      seatNumber,
+    }),
+  };
+}
+
+async function handleListKickRequests(
+  teacherSub: string,
+  classroomId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  // Verify ownership: only the owning teacher may list requests.
+  const classroom = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+    throw new AuthError('Not authorized to view kick requests for this classroom');
+  }
+
+  const result = await docClient.send(new QueryCommand({
+    TableName: KICK_REQUESTS_TABLE,
+    KeyConditionExpression: 'classroomId = :cid',
+    ExpressionAttributeValues: { ':cid': classroomId },
+  }));
+  const requests = (result.Items || []).map(item => ({
+    requestId: item.requestId,
+    seatNumber: item.seatNumber,
+    reason: item.reason || null,
+    createdAt: item.createdAt,
+  }));
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ requests }),
+  };
+}
+
+async function handleApproveKickRequest(
+  teacherSub: string,
+  classroomId: string,
+  requestId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  // Verify ownership and read the request to learn which seat to kick.
+  const classroom = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+    throw new AuthError('Not authorized to modify kick requests for this classroom');
+  }
+  const reqResult = await docClient.send(new GetCommand({
+    TableName: KICK_REQUESTS_TABLE,
+    Key: { classroomId, requestId },
+  }));
+  if (!reqResult.Item) {
+    // Request already gone (TTL or someone else acted on it). Treat as success.
+    return { statusCode: 204, body: '' };
+  }
+  const seatNumber = reqResult.Item.seatNumber as number;
+  const memberId = `seat-${String(seatNumber).padStart(2, '0')}`;
+
+  // Reuse the existing kick logic so kicked students get the same
+  // 410 reason='kicked' from verify-session that a direct DELETE
+  // /members/{memberId} would produce.
+  await handleDeleteMember(teacherSub, classroomId, memberId);
+
+  // Delete all requests targeting this seat (including the approved one
+  // and any duplicates the same seat may have accumulated). Otherwise
+  // the teacher would see ghost rows asking to kick a seat that is now
+  // empty.
+  const siblings = await docClient.send(new QueryCommand({
+    TableName: KICK_REQUESTS_TABLE,
+    IndexName: 'classroomId-seatNumber-index',
+    KeyConditionExpression: 'classroomId = :cid AND seatNumber = :sn',
+    ExpressionAttributeValues: { ':cid': classroomId, ':sn': seatNumber },
+    ProjectionExpression: 'requestId',
+  }));
+  if (siblings.Items && siblings.Items.length > 0) {
+    for (let i = 0; i < siblings.Items.length; i += 25) {
+      const batch = siblings.Items.slice(i, i + 25);
+      await docClient.send(new BatchWriteCommand({
+        RequestItems: {
+          [KICK_REQUESTS_TABLE]: batch.map(item => ({
+            DeleteRequest: { Key: { classroomId, requestId: item.requestId as string } },
+          })),
+        },
+      }));
+    }
+  }
+
+  return { statusCode: 204, body: '' };
+}
+
+async function handleRejectKickRequest(
+  teacherSub: string,
+  classroomId: string,
+  requestId: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const classroom = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+    throw new AuthError('Not authorized to modify kick requests for this classroom');
+  }
+  await docClient.send(new DeleteCommand({
+    TableName: KICK_REQUESTS_TABLE,
+    Key: { classroomId, requestId },
+  }));
+  return { statusCode: 204, body: '' };
+}
+
 // --- Session Token Auth ---
 
 export async function verifySessionToken(sessionToken: string): Promise<{ classroomId: string; memberId: string }> {
@@ -1424,6 +1632,14 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const sourceIp = event.requestContext.http.sourceIp || 'unknown';
       result = await handleLookupClassroom(sourceIp, body);
 
+    } else if (method === 'POST' && path === '/classrooms/lookup/kick-request') {
+      // Student-initiated request to free up a seat occupied by someone else.
+      // No auth header: the request only carries joinCode + seatNumber, and
+      // the rate limiter prevents abuse. Approving/listing requires teacher
+      // auth (separate routes below).
+      const sourceIp = event.requestContext.http.sourceIp || 'unknown';
+      result = await handleCreateKickRequest(sourceIp, body);
+
     } else if (method === 'POST' && path === '/classrooms/verify-session') {
       const token = extractBearerToken(event.headers?.authorization);
       result = await handleVerifySession(token);
@@ -1464,6 +1680,26 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       const teacherSub = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       result = await handleListMembers(teacherSub, classroomId);
+
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/kick-requests$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleListKickRequests(teacherSub, classroomId);
+
+    } else if (method === 'POST' && /^\/classrooms\/[^/]+\/kick-requests\/[^/]+\/approve$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      const requestId = event.pathParameters?.requestId || '';
+      result = await handleApproveKickRequest(teacherSub, classroomId, requestId);
+
+    } else if (method === 'DELETE' && /^\/classrooms\/[^/]+\/kick-requests\/[^/]+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const teacherSub = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      const requestId = event.pathParameters?.requestId || '';
+      result = await handleRejectKickRequest(teacherSub, classroomId, requestId);
 
     } else if (method === 'DELETE' && /^\/classrooms\/[^/]+\/members\/[^/]+$/.test(path)) {
       const classroomId = event.pathParameters?.classroomId || '';
