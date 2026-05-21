@@ -992,4 +992,5 @@ export default {
     'gui.mobile.orientation.body': 'スマホでは横向きでお使いください。',
     'gui.mobile.orientation.iosNote':
         'iPhone の場合は、コントロールセンターから「画面の向きロック」を解除してから横にしてください。',
+    'gui.mobile.orientation.dismiss': 'このまま使う',
 };

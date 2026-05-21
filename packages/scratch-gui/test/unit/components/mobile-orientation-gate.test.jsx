@@ -1,9 +1,11 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-import MobileOrientationGate from '../../../src/components/mobile-orientation-gate/mobile-orientation-gate.jsx';
+import MobileOrientationGate, {
+    DISMISS_STORAGE_KEY,
+} from '../../../src/components/mobile-orientation-gate/mobile-orientation-gate.jsx';
 
 /**
  * `(orientation: portrait)` の `matchMedia` をテスト用に差し替えるヘルパ。
@@ -46,6 +48,10 @@ const renderWithIntl = (ui) =>
     );
 
 describe('MobileOrientationGate', () => {
+    afterEach(() => {
+        window.sessionStorage.clear();
+    });
+
     test('does not render the overlay when in landscape', () => {
         const mm = installMatchMedia();
         try {
@@ -77,6 +83,68 @@ describe('MobileOrientationGate', () => {
             expect(queryByTestId('mobile-orientation-gate')).toBeInTheDocument();
             // rotate back to landscape
             act(() => mm.setMatches(false));
+            expect(queryByTestId('mobile-orientation-gate')).not.toBeInTheDocument();
+        } finally {
+            mm.restore();
+        }
+    });
+
+    test('shows a dismiss button when in portrait', () => {
+        const mm = installMatchMedia();
+        mm.setMatches(true);
+        try {
+            const { getByTestId } = renderWithIntl(<MobileOrientationGate />);
+            expect(getByTestId('mobile-orientation-gate-dismiss')).toBeInTheDocument();
+        } finally {
+            mm.restore();
+        }
+    });
+
+    test('hides the overlay when the dismiss button is clicked', () => {
+        const mm = installMatchMedia();
+        mm.setMatches(true);
+        try {
+            const { getByTestId, queryByTestId } = renderWithIntl(<MobileOrientationGate />);
+            fireEvent.click(getByTestId('mobile-orientation-gate-dismiss'));
+            expect(queryByTestId('mobile-orientation-gate')).not.toBeInTheDocument();
+        } finally {
+            mm.restore();
+        }
+    });
+
+    test('persists the dismiss in sessionStorage', () => {
+        const mm = installMatchMedia();
+        mm.setMatches(true);
+        try {
+            const { getByTestId } = renderWithIntl(<MobileOrientationGate />);
+            fireEvent.click(getByTestId('mobile-orientation-gate-dismiss'));
+            expect(window.sessionStorage.getItem(DISMISS_STORAGE_KEY)).toBe('true');
+        } finally {
+            mm.restore();
+        }
+    });
+
+    test('does not render the overlay when sessionStorage has the dismiss flag', () => {
+        window.sessionStorage.setItem(DISMISS_STORAGE_KEY, 'true');
+        const mm = installMatchMedia();
+        mm.setMatches(true);
+        try {
+            const { queryByTestId } = renderWithIntl(<MobileOrientationGate />);
+            expect(queryByTestId('mobile-orientation-gate')).not.toBeInTheDocument();
+        } finally {
+            mm.restore();
+        }
+    });
+
+    test('stays dismissed when orientation toggles after a dismiss click', () => {
+        const mm = installMatchMedia();
+        mm.setMatches(true);
+        try {
+            const { getByTestId, queryByTestId } = renderWithIntl(<MobileOrientationGate />);
+            fireEvent.click(getByTestId('mobile-orientation-gate-dismiss'));
+            // rotate to landscape, then back to portrait
+            act(() => mm.setMatches(false));
+            act(() => mm.setMatches(true));
             expect(queryByTestId('mobile-orientation-gate')).not.toBeInTheDocument();
         } finally {
             mm.restore();

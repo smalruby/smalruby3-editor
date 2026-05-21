@@ -1016,4 +1016,5 @@ export default {
     'gui.mobile.orientation.body': 'スマホでは よこむきで つかってください。',
     'gui.mobile.orientation.iosNote':
         'iPhone のばあいは、コントロールセンターから「がめんのむきロック」を かいじょしてから よこにしてください。',
+    'gui.mobile.orientation.dismiss': 'このまま つかう',
 };
