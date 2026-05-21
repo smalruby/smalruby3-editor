@@ -66,3 +66,36 @@
     color: rgba(255, 255, 255, 0.85);
     max-width: 320px;
 }
+
+.dismiss-button {
+    margin-top: 1.75rem;
+    /*
+     * フィッツの法則のタッチターゲット最低 44x44px を確保。
+     * 紫グラデーション背景に対して白枠 + 白テキストで視認性を確保する。
+     */
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.625rem 1.5rem;
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1.2;
+    transition:
+        background-color 0.15s ease,
+        transform 0.15s ease;
+}
+
+.dismiss-button:hover,
+.dismiss-button:focus {
+    background: rgba(255, 255, 255, 0.22);
+    outline: none;
+}
+
+.dismiss-button:active {
+    transform: scale(0.97);
+}

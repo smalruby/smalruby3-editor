@@ -1,9 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { defineMessages, FormattedMessage } from 'react-intl';
 import styles from './mobile-orientation-gate.css';
 
 const PORTRAIT_QUERY = '(orientation: portrait)';
+
+/**
+ * sessionStorage key — true なら現在のブラウザセッション中は警告を表示しない。
+ *
+ * sessionStorage を使う理由: PC でウィンドウを縦長にリサイズしただけで警告が
+ * 出るユースケースで dismiss できるようにしつつ、実機スマホで誤タップしても
+ * リロード or 次回起動で復活させたい。永続化 (localStorage) は意図せず警告が
+ * 消えたままになるのを避けるため採用しない。
+ */
+const DISMISS_STORAGE_KEY = 'smalruby:mobileOrientationGateDismissed';
 
 const messages = defineMessages({
     title: {
@@ -21,6 +31,11 @@ const messages = defineMessages({
         description: 'Mobile orientation gate note for iOS users about orientation lock',
         id: 'gui.mobile.orientation.iosNote',
     },
+    dismiss: {
+        defaultMessage: 'Use as is',
+        description: 'Mobile orientation gate button to dismiss the warning for the current session',
+        id: 'gui.mobile.orientation.dismiss',
+    },
 });
 
 /**
@@ -37,7 +52,7 @@ const usePortraitOrientation = () => {
     useEffect(() => {
         if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
         const mql = window.matchMedia(PORTRAIT_QUERY);
-        const handler = event => setIsPortrait(event.matches);
+        const handler = (event) => setIsPortrait(event.matches);
         if (typeof mql.addEventListener === 'function') {
             mql.addEventListener('change', handler);
             return () => mql.removeEventListener('change', handler);
@@ -50,6 +65,21 @@ const usePortraitOrientation = () => {
 };
 
 /**
+ * sessionStorage に保持された dismiss 状態を読む。SSR / sessionStorage が
+ * 使えない環境では false を返す。
+ * @returns {boolean} dismiss 済みなら true
+ */
+const readDismissedFromStorage = () => {
+    if (typeof window === 'undefined' || !window.sessionStorage) return false;
+    try {
+        return window.sessionStorage.getItem(DISMISS_STORAGE_KEY) === 'true';
+    } catch (e) {
+        // sessionStorage が disable な環境 (Safari private mode 等) では throw する
+        return false;
+    }
+};
+
+/**
  * 縦向き (portrait) の時だけフルスクリーンオーバーレイを表示して、
  * 横向きにするよう案内するゲート。
  *
@@ -58,10 +88,14 @@ const usePortraitOrientation = () => {
  *   どうしてもボタンが画面外にはみ出してしまう (524px / 600px+ の min-width
  *   群が編集機能の核なので削れない)
  * - スマホは横向き運用に割り切ることで開発コストを抑える
+ * - PC ブラウザでウィンドウを縦長にリサイズした場合も発火するので、ユーザーが
+ *   「このまま使う」で当該セッション中は閉じられるようにしている
  *
  * 動作:
  * - `(orientation: portrait)` メディアクエリで横向き / 縦向きをリアルタイム検出
  * - 縦向き → オーバーレイ表示、横向き → オーバーレイ消失
+ * - 「このまま使う」ボタン押下で sessionStorage に dismiss フラグを書き、
+ *   同一セッション中は再表示しない (リロードで復活)
  * - 自動回転: PWA (manifest `orientation: landscape-primary`) ホーム画面起動時のみ
  *   有効 (Android Chrome / iOS の home screen)。通常の Safari タブでは
  *   ユーザーが手動で回転する必要がある。
@@ -76,8 +110,20 @@ const usePortraitOrientation = () => {
  */
 const MobileOrientationGate = () => {
     const isPortrait = usePortraitOrientation();
+    const [dismissed, setDismissed] = useState(readDismissedFromStorage);
+    const handleDismiss = useCallback(() => {
+        setDismissed(true);
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+            try {
+                window.sessionStorage.setItem(DISMISS_STORAGE_KEY, 'true');
+            } catch (e) {
+                // sessionStorage に書けなくても dismiss 自体は state で機能する
+            }
+        }
+    }, []);
     if (typeof document === 'undefined') return null;
     if (!isPortrait) return null;
+    if (dismissed) return null;
     return createPortal(
         <div className={styles.overlay} role="alert" data-testid="mobile-orientation-gate">
             <div className={styles.iconRow} aria-hidden="true">
@@ -92,10 +138,18 @@ const MobileOrientationGate = () => {
             <div className={styles.note}>
                 <FormattedMessage {...messages.iosNote} />
             </div>
+            <button
+                type="button"
+                className={styles.dismissButton}
+                onClick={handleDismiss}
+                data-testid="mobile-orientation-gate-dismiss"
+            >
+                <FormattedMessage {...messages.dismiss} />
+            </button>
         </div>,
         document.body,
     );
 };
 
 export default MobileOrientationGate;
-export { usePortraitOrientation };
+export { DISMISS_STORAGE_KEY, usePortraitOrientation };
