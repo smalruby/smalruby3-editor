@@ -38,6 +38,7 @@ export default {
     'gui.connection.error.flashFirmwareButton': 'ファームウェア書き込み',
     'gui.classroom.title': 'クラス',
     'gui.menuBar.classroom': 'クラス',
+    'gui.menuBar.classroomJoined': 'クラス:出席番号{seatNumber}',
     'gui.menuBar.classroomManagement': 'クラス管理...',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
     'gui.menuBar.showWelcomeAgain': 'ウェルカムをもう一度見る',

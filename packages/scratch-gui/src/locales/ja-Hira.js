@@ -39,6 +39,7 @@ export default {
     'gui.connection.error.flashFirmwareButton': 'ファームウェアかきこみ',
     'gui.classroom.title': 'クラス',
     'gui.menuBar.classroom': 'クラス',
+    'gui.menuBar.classroomJoined': 'クラス:しゅっせきばんごう{seatNumber}',
     'gui.menuBar.classroomManagement': 'クラスかんり...',
     'gui.menuBar.aboutSmalruby': 'スモウルビーについて',
     'gui.menuBar.showWelcomeAgain': 'ウェルカムをもういちどみる',

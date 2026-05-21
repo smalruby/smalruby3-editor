@@ -163,9 +163,8 @@ Playwright MCP および Selenium integration tests で使用する `data-testid
 | data-testid | 要素 | 説明 |
 |------------|------|------|
 | `classroom-menu-button` | div | クラスボタン（コンテナ） |
-| `classroom-menu-label` | span | メニューバーのクラス表示テキスト |
-| `classroom-menu-class-name` | span | 課題名（またはクラス名） |
-| `classroom-menu-seat-number` | span | 出席番号（0埋め2桁） |
+| `classroom-menu-label` | span | メニューバーのクラス表示テキスト全体（参加中は「クラス:出席番号NN」、未参加時は「クラス」）|
+| `classroom-menu-seat-number` | span | 出席番号（0埋め2桁、参加中のみレンダリングされる） |
 
 ### 汎用
 

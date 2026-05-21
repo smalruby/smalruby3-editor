@@ -108,9 +108,8 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 
 | data-testid | 要素 | 値の内容 |
 |------------|------|----------|
-| `classroom-menu-label` | span | メニューバーのクラス表示テキスト |
-| `classroom-menu-class-name` | span | 課題名（またはクラス名） |
-| `classroom-menu-seat-number` | span | 出席番号（0埋め2桁） |
+| `classroom-menu-label` | span | メニューバーのクラス表示テキスト全体（参加中は「クラス:出席番号NN」、未参加は「クラス」） |
+| `classroom-menu-seat-number` | span | 出席番号（0埋め2桁、参加中のみレンダリング） |
 | `classroom-list` | ul | クラス一覧 |
 | `classroom-item-{id}` | li | クラス一覧の各項目 |
 | `classroom-item-name-{id}` | span | クラス名 |

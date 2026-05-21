@@ -45,6 +45,7 @@ export default {
     'gui.connection.error.flashFirmwareButton': 'Write Firmware',
     'gui.classroom.title': 'Classroom',
     'gui.menuBar.classroom': 'Classroom',
+    'gui.menuBar.classroomJoined': 'Class: Seat {seatNumber}',
     'gui.menuBar.classroomManagement': 'Class Management...',
     'gui.menuBar.aboutSmalruby': 'About Smalruby',
     'gui.classroom.management.title': 'Class Management',

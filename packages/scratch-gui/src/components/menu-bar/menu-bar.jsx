@@ -1266,20 +1266,19 @@ class MenuBar extends React.Component {
                                     onClick={this.props.onOpenClassroomModal}
                                 >
                                     <span data-testid="classroom-menu-label">
-                                        {this.props.classroomClassName ? (
-                                            <React.Fragment>
-                                                <span data-testid="classroom-menu-class-name">
-                                                    {this.props.classroomAssignmentName || this.props.classroomClassName}
-                                                </span>
-                                                {this.props.classroomSeatNumber && (
-                                                    <React.Fragment>
-                                                        {' / '}
+                                        {this.props.classroomClassName && this.props.classroomSeatNumber ? (
+                                            <FormattedMessage
+                                                defaultMessage="Class: Seat {seatNumber}"
+                                                description="Menu bar label shown while the student is in a class. The number after the colon is the student's seat number."
+                                                id="gui.menuBar.classroomJoined"
+                                                values={{
+                                                    seatNumber: (
                                                         <span data-testid="classroom-menu-seat-number">
                                                             {String(this.props.classroomSeatNumber).padStart(2, '0')}
                                                         </span>
-                                                    </React.Fragment>
-                                                )}
-                                            </React.Fragment>
+                                                    ),
+                                                }}
+                                            />
                                         ) : (
                                             <FormattedMessage
                                                 defaultMessage="Classroom"
