@@ -144,7 +144,15 @@ class Blocks extends React.Component {
         // Wrap externalProcedureDefCallback to cancel any pending variable
         // prompt before opening the custom procedures modal. (#698)
         this.ScratchBlocks.ScratchProcedures.externalProcedureDefCallback = (data, callback) => {
+            // eslint-disable-next-line no-console
+            console.log('[#698 debug] externalProcedureDefCallback called', {
+                hasPendingPrompt: !!this._pendingPromptTimer,
+                t: Date.now(),
+                stack: new Error().stack
+            });
             if (this._pendingPromptTimer) {
+                // eslint-disable-next-line no-console
+                console.log('[#698 debug] cancelling pending variable prompt');
                 clearTimeout(this._pendingPromptTimer);
                 this._pendingPromptTimer = null;
             }
@@ -945,6 +953,13 @@ class Blocks extends React.Component {
     // externalProcedureDefCallback fires in the same rAF+setTimeout cycle
     // (iOS touch bleed), the pending prompt is cancelled before it shows. (#698)
     handlePromptStart (message, defaultValue, callback, optTitle, optVarType) {
+        // eslint-disable-next-line no-console
+        console.log('[#698 debug] handlePromptStart called', {
+            title: optTitle,
+            varType: optVarType,
+            t: Date.now(),
+            stack: new Error().stack
+        });
         if (this._pendingPromptTimer) clearTimeout(this._pendingPromptTimer);
         this._pendingPromptArgs = [message, defaultValue, callback, optTitle, optVarType];
         this._pendingPromptTimer = setTimeout(() => {
@@ -952,6 +967,8 @@ class Blocks extends React.Component {
             this._pendingPromptArgs = null;
             this._pendingPromptTimer = null;
             if (!args) return;
+            // eslint-disable-next-line no-console
+            console.log('[#698 debug] handlePromptStart timer fired — showing modal', {t: Date.now()});
             const [msg, defVal, cb, title, varType] = args;
             const p = {prompt: {callback: cb, message: msg, defaultValue: defVal}};
             p.prompt.title = title ? title :
