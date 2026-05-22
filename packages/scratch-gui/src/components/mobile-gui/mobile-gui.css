@@ -371,6 +371,12 @@
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
+    /*
+     * モーダルコンテンツの背景色を白に設定する。
+     * prompt 等のモーダルはコンテンツ高さが 100dvh より短い場合があり、
+     * 残領域がオーバーレイ (青) を透かして見えてしまうのを防ぐ。
+     */
+    background-color: #ffffff !important;
 }
 
 /*
