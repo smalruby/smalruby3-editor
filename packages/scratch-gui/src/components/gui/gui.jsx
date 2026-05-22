@@ -674,13 +674,13 @@ const GUIComponent = props => {
                                             vm={vm}
                                             colorMode={colorMode}
                                         />
+                                        {/* === Smalruby: Start of DNCL mode notice === */}
+                                        <DnclModeNotice
+                                            dnclMode={dnclMode}
+                                            onExitDnclMode={onRequestExitDnclMode}
+                                        />
+                                        {/* === Smalruby: End of DNCL mode notice === */}
                                     </Box>
-                                    {/* === Smalruby: Start of DNCL mode notice === */}
-                                    <DnclModeNotice
-                                        dnclMode={dnclMode}
-                                        onExitDnclMode={onRequestExitDnclMode}
-                                    />
-                                    {/* === Smalruby: End of DNCL mode notice === */}
                                     {/* === Smalruby: Start of DNCL extension button === */}
                                     <ExtensionsButton
                                         intl={intl}
