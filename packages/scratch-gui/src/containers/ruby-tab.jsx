@@ -30,7 +30,10 @@ import RubyToBlocksConverterHOC from '../lib/ruby-to-blocks-converter-hoc.jsx';
 import { containsV1Code } from '../lib/ruby-to-blocks-converter/v1-detection';
 import { getUrlParams } from '../lib/url-params';
 import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
-import { setDnclMode as setDnclModeAction } from '../reducers/dncl-mode';
+import {
+    setDnclMode as setDnclModeAction,
+    clearExternalExitDnclModeRequest,
+} from '../reducers/dncl-mode';
 import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX } from '../reducers/editor-tab';
 import { setAiSaveStatus, clearAiSaveStatus } from '../reducers/koshien-file';
 import { closeFileMenu } from '../reducers/menus.js';
@@ -123,6 +126,8 @@ const RubyTab = (props) => {
         v1PromptDismissed,
         onDismissV1Prompt,
         onSetDnclMode,
+        exitDnclModeExternallyRequested,
+        onClearExitDnclModeRequest,
     } = props;
 
     // --- State ---
@@ -1161,12 +1166,17 @@ const RubyTab = (props) => {
                 updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
                 // Schedule DNCL switch after React re-renders with the new
                 // Ruby code and the Monaco editor value prop is committed.
+                // Skip if an external exit was requested (e.g. from extension button).
                 if (wasDncl) {
-                    requestAnimationFrame(() => {
-                        setTimeout(() => {
-                            handleToggleDnclMode();
-                        }, 0);
-                    });
+                    if (exitDnclModeExternallyRequested) {
+                        onClearExitDnclModeRequest?.();
+                    } else {
+                        requestAnimationFrame(() => {
+                            setTimeout(() => {
+                                handleToggleDnclMode();
+                            }, 0);
+                        });
+                    }
                 }
             }
         }
@@ -1328,6 +1338,8 @@ RubyTab.propTypes = {
     v1PromptDismissed: PropTypes.bool,
     onDismissV1Prompt: PropTypes.func,
     onSetDnclMode: PropTypes.func,
+    exitDnclModeExternallyRequested: PropTypes.bool,
+    onClearExitDnclModeRequest: PropTypes.func,
 };
 
 const mapStateToProps = (state) => ({
@@ -1340,6 +1352,7 @@ const mapStateToProps = (state) => ({
     locale: state.locales.locale,
     activeTabIndex: state.scratchGui.editorTab.activeTabIndex,
     v1PromptDismissed: state.scratchGui.settings.v1PromptDismissed,
+    exitDnclModeExternallyRequested: state.scratchGui.dnclMode.exitDnclModeExternallyRequested,
 });
 
 const mapDispatchToProps = (dispatch) => ({
@@ -1359,6 +1372,7 @@ const mapDispatchToProps = (dispatch) => ({
     onMarkRubyTabUsed: () => dispatch(markRubyTabUsed()),
     onDismissV1Prompt: () => dispatch(dismissV1Prompt()),
     onSetDnclMode: (dnclMode) => dispatch(setDnclModeAction(dnclMode)),
+    onClearExitDnclModeRequest: () => dispatch(clearExternalExitDnclModeRequest()),
 });
 
 const ConnectedRubyTab = RubyteeModalHOC(
