@@ -15,33 +15,38 @@ const messages = defineMessages({
         description: 'Button to add an extension in the target pane',
         defaultMessage: 'Add Extension'
     },
-    // === Smalruby: Start of DNCL extension alert ===
-    dnclExtensionDisabled: {
-        id: 'gui.extensionButton.dnclExtensionDisabled',
-        description: 'Alert message when extension button is clicked in DNCL mode',
-        defaultMessage: 'Extensions are not available in Japanese mode.'
+    // === Smalruby: Start of DNCL extension confirm ===
+    dnclExtensionConfirm: {
+        id: 'gui.extensionButton.dnclExtensionConfirm',
+        description: 'Confirm dialog when extension button is clicked in DNCL mode',
+        defaultMessage: 'Extensions are not available in Japanese mode.\nReturn to Ruby furigana mode to enable extensions.\nSwitch now?'
     }
-    // === Smalruby: End of DNCL extension alert ===
+    // === Smalruby: End of DNCL extension confirm ===
 });
 
 const ExtensionButton = props => {
     const {
         intl,
         dnclMode,
-        onExtensionButtonClick
+        onExtensionButtonClick,
+        onRequestExitDnclMode
     } = props;
     const {captureFocus} = useContext(ModalFocusContext);
 
     const handleExtensionButtonClick = useCallback(() => {
-        // === Smalruby: Start of DNCL extension alert ===
+        // === Smalruby: Start of DNCL extension confirm ===
         if (dnclMode) {
-            window.alert(intl.formatMessage(messages.dnclExtensionDisabled)); // eslint-disable-line no-alert
+            // eslint-disable-next-line no-alert
+            const confirmed = window.confirm(intl.formatMessage(messages.dnclExtensionConfirm));
+            if (!confirmed) return;
+            onRequestExitDnclMode?.();
+            onExtensionButtonClick?.();
             return;
         }
-        // === Smalruby: End of DNCL extension alert ===
+        // === Smalruby: End of DNCL extension confirm ===
         captureFocus();
         onExtensionButtonClick?.();
-    }, [captureFocus, onExtensionButtonClick, dnclMode, intl]);
+    }, [captureFocus, onExtensionButtonClick, onRequestExitDnclMode, dnclMode, intl]);
 
     return (
         <Box className={styles.extensionButtonContainer}>
@@ -68,7 +73,8 @@ const ExtensionButton = props => {
 ExtensionButton.propTypes = {
     dnclMode: PropTypes.bool,
     intl: intlShape.isRequired,
-    onExtensionButtonClick: PropTypes.func
+    onExtensionButtonClick: PropTypes.func,
+    onRequestExitDnclMode: PropTypes.func
 };
 
 const ExtensionButtonIntl = injectIntl(ExtensionButton);
