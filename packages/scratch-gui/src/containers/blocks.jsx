@@ -117,6 +117,17 @@ class Blocks extends React.Component {
         // so that all blocks get correct measurements.
         this._hasBeenVisible = false;
         // === Smalruby: End of deferred flyout rebuild ===
+        // === Smalruby: Start of iOS flyout touch bleed fix ===
+        // On iOS Safari, tapping "ブロックを作る" in the Blockly flyout can
+        // spuriously fire the "変数を作る" callback first due to SVG touch
+        // event propagation. These are used by handlePromptStart and the
+        // externalProcedureDefCallback wrapper below to cancel the spurious
+        // variable prompt when a procedure modal is about to open. (#698)
+        this._pendingPromptTimer = null;
+        this._pendingPromptArgs = null;
+        this._procedureJustActivated = false;
+        this._procedureActivatedTimer = null;
+        // === Smalruby: End of iOS flyout touch bleed fix ===
     }
     componentDidMount () {
         this.ScratchBlocks = VMScratchBlocks(this.props.vm);
@@ -129,7 +140,28 @@ class Blocks extends React.Component {
         this.ScratchBlocks.recordSoundCallback = this.handleOpenSoundRecorder;
 
         this.ScratchBlocks.FieldColourSlider.activateEyedropper_ = this.props.onActivateColorPicker;
-        this.ScratchBlocks.ScratchProcedures.externalProcedureDefCallback = this.props.onActivateCustomProcedures;
+        // === Smalruby: Start of iOS flyout touch bleed fix ===
+        // On iOS Safari with MobileGui, tapping "ブロックを作る" can also fire
+        // the "変数を作る" callback due to Blockly flyout event propagation.
+        // Wrap externalProcedureDefCallback to cancel any pending variable
+        // prompt before opening the custom procedures modal. (#698)
+        this.ScratchBlocks.ScratchProcedures.externalProcedureDefCallback = (data, callback) => {
+            if (this._pendingPromptTimer) {
+                clearTimeout(this._pendingPromptTimer);
+                this._pendingPromptTimer = null;
+            }
+            this._pendingPromptArgs = null;
+            // Set a flag so handlePromptStart (which may fire up to ~200ms after
+            // this callback) knows to skip showing the variable modal. (#698)
+            this._procedureJustActivated = true;
+            if (this._procedureActivatedTimer) clearTimeout(this._procedureActivatedTimer);
+            this._procedureActivatedTimer = setTimeout(() => {
+                this._procedureJustActivated = false;
+                this._procedureActivatedTimer = null;
+            }, 300);
+            this.props.onActivateCustomProcedures(data, callback);
+        };
+        // === Smalruby: End of iOS flyout touch bleed fix ===
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
 
         const workspaceConfig = defaultsDeep({},
@@ -918,19 +950,34 @@ class Blocks extends React.Component {
     setBlocks (blocks) {
         this.blocks = blocks;
     }
+    // === Smalruby: Start of iOS flyout touch bleed fix ===
+    // Defer opening the variable/list prompt by 50ms so that if
+    // externalProcedureDefCallback fires in the same rAF+setTimeout cycle
+    // (iOS touch bleed), the pending prompt is cancelled before it shows. (#698)
     handlePromptStart (message, defaultValue, callback, optTitle, optVarType) {
-        const p = {prompt: {callback, message, defaultValue}};
-        p.prompt.title = optTitle ? optTitle :
-            this.ScratchBlocks.Msg.VARIABLE_MODAL_TITLE;
-        p.prompt.varType = typeof optVarType === 'string' ?
-            optVarType : this.ScratchBlocks.SCALAR_VARIABLE_TYPE;
-        p.prompt.showVariableOptions = // This flag means that we should show variable/list options about scope
-            optVarType !== this.ScratchBlocks.BROADCAST_MESSAGE_VARIABLE_TYPE &&
-            p.prompt.title !== this.ScratchBlocks.Msg.RENAME_VARIABLE_MODAL_TITLE &&
-            p.prompt.title !== this.ScratchBlocks.Msg.RENAME_LIST_MODAL_TITLE;
-        p.prompt.showCloudOption = (optVarType === this.ScratchBlocks.SCALAR_VARIABLE_TYPE) && this.props.canUseCloud;
-        this.setState(p);
+        if (this._pendingPromptTimer) clearTimeout(this._pendingPromptTimer);
+        this._pendingPromptArgs = [message, defaultValue, callback, optTitle, optVarType];
+        this._pendingPromptTimer = setTimeout(() => {
+            const args = this._pendingPromptArgs;
+            this._pendingPromptArgs = null;
+            this._pendingPromptTimer = null;
+            if (!args) return;
+            if (this._procedureJustActivated) return;
+            const [msg, defVal, cb, title, varType] = args;
+            const p = {prompt: {callback: cb, message: msg, defaultValue: defVal}};
+            p.prompt.title = title ? title :
+                this.ScratchBlocks.Msg.VARIABLE_MODAL_TITLE;
+            p.prompt.varType = typeof varType === 'string' ?
+                varType : this.ScratchBlocks.SCALAR_VARIABLE_TYPE;
+            p.prompt.showVariableOptions = // This flag means that we should show variable/list options about scope
+                varType !== this.ScratchBlocks.BROADCAST_MESSAGE_VARIABLE_TYPE &&
+                p.prompt.title !== this.ScratchBlocks.Msg.RENAME_VARIABLE_MODAL_TITLE &&
+                p.prompt.title !== this.ScratchBlocks.Msg.RENAME_LIST_MODAL_TITLE;
+            p.prompt.showCloudOption = (varType === this.ScratchBlocks.SCALAR_VARIABLE_TYPE) && this.props.canUseCloud;
+            this.setState(p);
+        }, 50);
     }
+    // === Smalruby: End of iOS flyout touch bleed fix ===
     handleConnectionModalStart (extensionId) {
         this.props.onOpenConnectionModal(extensionId);
     }
