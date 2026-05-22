@@ -125,6 +125,8 @@ class Blocks extends React.Component {
         // variable prompt when a procedure modal is about to open. (#698)
         this._pendingPromptTimer = null;
         this._pendingPromptArgs = null;
+        this._procedureJustActivated = false;
+        this._procedureActivatedTimer = null;
         // === Smalruby: End of iOS flyout touch bleed fix ===
     }
     componentDidMount () {
@@ -157,6 +159,14 @@ class Blocks extends React.Component {
                 this._pendingPromptTimer = null;
             }
             this._pendingPromptArgs = null;
+            // Set a flag so handlePromptStart (which may fire up to ~200ms after
+            // this callback) knows to skip showing the variable modal. (#698)
+            this._procedureJustActivated = true;
+            if (this._procedureActivatedTimer) clearTimeout(this._procedureActivatedTimer);
+            this._procedureActivatedTimer = setTimeout(() => {
+                this._procedureJustActivated = false;
+                this._procedureActivatedTimer = null;
+            }, 300);
             this.props.onActivateCustomProcedures(data, callback);
         };
         // === Smalruby: End of iOS flyout touch bleed fix ===
@@ -957,6 +967,7 @@ class Blocks extends React.Component {
         console.log('[#698 debug] handlePromptStart called', {
             title: optTitle,
             varType: optVarType,
+            procedureJustActivated: this._procedureJustActivated,
             t: Date.now(),
             stack: new Error().stack
         });
@@ -967,6 +978,11 @@ class Blocks extends React.Component {
             this._pendingPromptArgs = null;
             this._pendingPromptTimer = null;
             if (!args) return;
+            if (this._procedureJustActivated) {
+                // eslint-disable-next-line no-console
+                console.log('[#698 debug] handlePromptStart suppressed — procedure modal just opened', {t: Date.now()});
+                return;
+            }
             // eslint-disable-next-line no-console
             console.log('[#698 debug] handlePromptStart timer fired — showing modal', {t: Date.now()});
             const [msg, defVal, cb, title, varType] = args;
