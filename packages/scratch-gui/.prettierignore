@@ -37,6 +37,7 @@ src/components/*
 !src/components/smalrubot-firmware-modal/
 !src/components/blocks-screenshot-button/
 !src/components/google-drive-save-dialog/
+!src/components/dncl-mode-notice/
 !src/components/koshien-test-modal/
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-drawer/
@@ -267,6 +268,8 @@ test/unit/*
 # Level 3: test/unit/components/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
+!test/unit/components/dncl-mode-notice.test.jsx
+!test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
@@ -362,6 +365,7 @@ test/unit/lib/*
 # Level 3: test/unit/reducers/*
 test/unit/reducers/*
 !test/unit/reducers/cards_reducer.test.js
+!test/unit/reducers/dncl-mode-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js
 !test/unit/reducers/menus-reducer.test.js
 !test/unit/reducers/palette-visibility-reducer.test.js

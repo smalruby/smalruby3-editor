@@ -13,6 +13,7 @@ upstream (Scratch) ファイルは対象外。
 
 **Smalruby 固有ディレクトリ（ディレクトリ内の全ファイルが対象）:**
 - `src/components/auto-correct-modal/`
+- `src/components/dncl-mode-notice/`
 - `src/components/block-display-modal/`
 - `src/components/classroom-modal/`
 - `src/components/classroom-teacher-modal/`
@@ -204,6 +205,8 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/version-update-notification.test.js`
 - `test/integration/workspace-glow-regression.test.js`
 - `test/unit/components/action-menu.test.jsx`
+- `test/unit/components/dncl-mode-notice.test.jsx`
+- `test/unit/components/extension-button-dncl.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
 - `test/unit/components/mobile-bottom-tabs.test.jsx`
 - `test/unit/components/mobile-drawer.test.jsx`
@@ -284,6 +287,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/make-toolbox-xml-hex.test.js`
 - `test/unit/only-blocks-initialization.test.js`
 - `test/unit/reducers/cards_reducer.test.js`
+- `test/unit/reducers/dncl-mode-reducer.test.js`
 - `test/unit/reducers/classroom-reducer.test.js`
 - `test/unit/reducers/menus-reducer.test.js`
 - `test/unit/reducers/palette-visibility-reducer.test.js`

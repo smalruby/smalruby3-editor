@@ -1,0 +1,34 @@
+.notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background-color: #fff3cd;
+    border-bottom: 1px solid #ffc107;
+    font-size: 12px;
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.message {
+    color: #856404;
+    font-weight: 500;
+    flex: 1;
+}
+
+.exitButton {
+    background: none;
+    border: 1px solid #856404;
+    border-radius: 4px;
+    color: #856404;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 3px 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.exitButton:hover {
+    background-color: #ffc107;
+    color: #fff;
+}

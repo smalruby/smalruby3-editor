@@ -3,8 +3,8 @@ import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-import { ModalFocusContext } from '../../../src/contexts/modal-focus-context.jsx';
 import ExtensionButton from '../../../src/components/extension-button/extension-button.jsx';
+import { ModalFocusContext } from '../../../src/contexts/modal-focus-context.jsx';
 
 const mockFocusContext = { captureFocus: jest.fn(), restoreFocus: jest.fn() };
 
