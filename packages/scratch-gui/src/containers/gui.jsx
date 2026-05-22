@@ -37,6 +37,10 @@ import {setPlatform} from '../reducers/platform';
 import {setTheme} from '../reducers/settings';
 import {setDynamicAssets} from '../reducers/dynamic-assets';
 import {showAlertWithTimeout} from '../reducers/alerts';
+import { // === Smalruby: DNCL mode notice ===
+    setDnclMode,
+    requestExternalExitDnclMode,
+} from '../reducers/dncl-mode'; // === Smalruby: DNCL mode notice ===
 import {highlightTarget} from '../reducers/targets';
 import {
     rubyCodeShape,
@@ -328,6 +332,12 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch => ({
     onExtensionButtonClick: () => dispatch(openExtensionLibrary()),
+    // === Smalruby: Start of DNCL mode notice ===
+    onRequestExitDnclMode: () => {
+        dispatch(setDnclMode(false));
+        dispatch(requestExternalExitDnclMode());
+    },
+    // === Smalruby: End of DNCL mode notice ===
     onActivateTab: tab => dispatch(activateTab(tab)),
     onUpdateDynamicAssets: dynamicAssets => dispatch(setDynamicAssets(dynamicAssets)),
     onActivateCostumesTab: () => dispatch(activateTab(COSTUMES_TAB_INDEX)),

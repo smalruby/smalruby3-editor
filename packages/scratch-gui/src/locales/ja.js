@@ -976,7 +976,10 @@ export default {
     'gui.menuBar.tutorialTooltip': 'ルビーを試してみよう!',
     'gui.welcomeTooltip.label': 'スモウルビーへようこそ',
     'gui.aria.clearButton': 'クリア',
-    'gui.extensionButton.dnclExtensionDisabled': '日本語モードでは拡張機能は使えません。',
+    'gui.extensionButton.dnclExtensionConfirm':
+        '日本語モードでは拡張機能は使えません。\nRubyふりがなモードに戻すと拡張機能が使えるようになります。\n戻しますか？',
+    'gui.dnclModeNotice.message': '日本語モード：ブロックが制限されています',
+    'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードに戻す',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
     'gui.mobile.drawer.title': 'メニュー',

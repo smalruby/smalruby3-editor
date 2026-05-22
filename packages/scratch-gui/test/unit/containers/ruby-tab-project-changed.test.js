@@ -122,6 +122,7 @@ describe('Ruby tab projectChanged on edit', () => {
                 alerts: { alertsList: [] },
                 tutorialOnboarding: { rubyTabUsed: true },
                 koshienFile: { aiSaveStatus: null },
+                dnclMode: { dnclMode: false, exitDnclModeExternallyRequested: false },
             },
             locales: { locale: 'en' },
         });

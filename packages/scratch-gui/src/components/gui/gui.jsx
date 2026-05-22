@@ -24,6 +24,9 @@ import Watermark from '../../containers/watermark.jsx';
 
 import Backpack from '../../containers/backpack.jsx';
 import ExtensionsButton from '../extension-button/extension-button.jsx';
+// === Smalruby: Start of DNCL mode notice ===
+import DnclModeNotice from '../dncl-mode-notice/dncl-mode-notice.jsx';
+// === Smalruby: End of DNCL mode notice ===
 import WebGlModal from '../../containers/webgl-modal.jsx';
 import TipsLibrary from '../../containers/tips-library.jsx';
 import Cards from '../../containers/cards.jsx';
@@ -252,6 +255,7 @@ const GUIComponent = props => {
         onSetPlatform,
         onSetTheme,
         onOpenClassroomModal,
+        onRequestExitDnclMode,
         // === Smalruby: End of Redux action props prevention ===
         rubyTabVisible,
         showComingSoon,
@@ -670,12 +674,19 @@ const GUIComponent = props => {
                                             vm={vm}
                                             colorMode={colorMode}
                                         />
+                                        {/* === Smalruby: Start of DNCL mode notice === */}
+                                        <DnclModeNotice
+                                            dnclMode={dnclMode}
+                                            onExitDnclMode={onRequestExitDnclMode}
+                                        />
+                                        {/* === Smalruby: End of DNCL mode notice === */}
                                     </Box>
                                     {/* === Smalruby: Start of DNCL extension button === */}
                                     <ExtensionsButton
                                         intl={intl}
                                         dnclMode={dnclMode}
                                         onExtensionButtonClick={onExtensionButtonClick}
+                                        onRequestExitDnclMode={onRequestExitDnclMode}
                                     />
                                     {/* === Smalruby: End of DNCL extension button === */}
                                     <Box className={styles.watermark}>
@@ -835,6 +846,7 @@ GUIComponent.propTypes = {
     onClickLogo: PropTypes.func,
     onCloseAccountNav: PropTypes.func,
     onExtensionButtonClick: PropTypes.func,
+    onRequestExitDnclMode: PropTypes.func, // === Smalruby: DNCL mode notice ===
     onLogOut: PropTypes.func,
     onNewSpriteClick: PropTypes.func,
     onNewLibraryCostumeClick: PropTypes.func,

@@ -1003,7 +1003,10 @@ export default {
     'gui.menuBar.tutorialTooltip': 'ルビーをためしてみよう!',
     'gui.welcomeTooltip.label': 'スモウルビーへようこそ',
     'gui.aria.clearButton': 'クリア',
-    'gui.extensionButton.dnclExtensionDisabled': 'にほんごモードではかくちょうきのうはつかえません。',
+    'gui.extensionButton.dnclExtensionConfirm':
+        'にほんごモードではかくちょうきのうはつかえません。\nRubyふりがなモードにもどすとかくちょうきのうがつかえるようになります。\nもどしますか？',
+    'gui.dnclModeNotice.message': 'にほんごモード：ブロックがせいげんされています',
+    'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードにもどす',
     'gui.rubyTab.dnclValidationError':
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
     'gui.mobile.drawer.title': 'メニュー',

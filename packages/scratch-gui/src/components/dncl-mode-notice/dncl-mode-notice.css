@@ -1,0 +1,38 @@
+.notice {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    background-color: rgba(255, 243, 205, 0.95);
+    border-bottom: 1px solid #ffc107;
+    border-left: 1px solid #ffc107;
+    font-size: 12px;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.message {
+    color: #856404;
+    font-weight: 500;
+    flex: 1;
+}
+
+.exitButton {
+    background: none;
+    border: 1px solid #856404;
+    border-radius: 4px;
+    color: #856404;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 3px 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.exitButton:hover {
+    background-color: #ffc107;
+    color: #fff;
+}

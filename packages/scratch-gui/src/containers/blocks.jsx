@@ -270,7 +270,8 @@ class Blocks extends React.Component {
             this.props.stageSize !== nextProps.stageSize ||
             this.props.selectedBlocks !== nextProps.selectedBlocks ||
             this.props.tutorialAllowedBlocks !== nextProps.tutorialAllowedBlocks ||
-            this.props.paletteVisible !== nextProps.paletteVisible
+            this.props.paletteVisible !== nextProps.paletteVisible ||
+            this.props.dnclMode !== nextProps.dnclMode // === Smalruby: DNCL block filtering ===
         );
     }
     componentDidUpdate (prevProps) {
