@@ -6,7 +6,7 @@
     z-index: 10;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     padding: 6px 12px;
     background-color: rgba(255, 243, 205, 0.95);
     border-bottom: 1px solid #ffc107;
