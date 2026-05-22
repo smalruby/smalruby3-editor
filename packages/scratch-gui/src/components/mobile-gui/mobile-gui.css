@@ -423,3 +423,46 @@
     z-index: 1 !important;
     flex-shrink: 0 !important;
 }
+
+/*
+ * 「ブロックを作る」モーダルを iPhone 横向き (375px 高さ) でも画面内に収める。
+ * デフォルトは workspace=200px、options-row=143px 等で合計 ~544px あり、
+ * OK ボタンが完全に画面外に押し出される (#698 Fix 2)。
+ * workspace を 110px に縮め、body の padding・card・button を圧縮する。
+ */
+:global(body.smalruby-mobile-mode [class*="custom-procedures_workspace"]) {
+    min-height: 110px !important;
+    max-height: 110px !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="custom-procedures_body"]) {
+    padding: 0.5rem 1rem !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="custom-procedures_option-card"]) {
+    padding: 0.5rem !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="custom-procedures_option-icon"]) {
+    max-height: 28px !important;
+    margin-bottom: 0.25rem !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="custom-procedures_option-title"]) {
+    font-size: 0.75rem !important;
+    line-height: 1.2 !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="custom-procedures_checkbox-row"]) {
+    margin-top: 0.5rem !important;
+    font-size: 0.8rem !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="custom-procedures_button-row"]) {
+    margin-top: 0.5rem !important;
+}
+
+:global(body.smalruby-mobile-mode [class*="custom-procedures_button-row"] button) {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.8rem !important;
+}
