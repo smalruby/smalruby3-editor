@@ -1,15 +1,14 @@
 .notice {
     position: absolute;
     top: 0;
-    left: 0;
     right: 0;
     z-index: 10;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     padding: 6px 12px;
     background-color: rgba(255, 243, 205, 0.95);
     border-bottom: 1px solid #ffc107;
+    border-left: 1px solid #ffc107;
     font-size: 12px;
     gap: 8px;
     pointer-events: auto;
