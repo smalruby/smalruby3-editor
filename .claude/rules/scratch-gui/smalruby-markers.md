@@ -101,6 +101,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/menu.jsx` | iPad menu item click fix | メニュー項目クリック時の `setTimeout` 遅延を 0 → 100ms に拡大。iPadOS Safari は `pointerup` から `click` 発火まで ~16–32ms 程度のラグがあり、setTimeout(0) で close すると `<li>` が click 発火前に unmount され React onClick が skip される問題への対応 |
 | `src/containers/blocks.jsx` | palette-toggle initial render | `componentDidMount` 末尾で `_applyPaletteVisibility` を呼び `forceUpdate()` を起動。`this.workspace` はインスタンス変数なので `inject()` 後に再レンダーが走らず、初回 `render()` で workspace=null のまま PaletteToggle がスキップされる問題への対応 (issue #695) |
 | `src/containers/blocks.jsx` | iOS flyout touch bleed fix | MobileGui (SP) で「ブロックを作る」タップ時に iOS の SVG タッチイベントが「変数を作る」にも伝播する問題の修正。`handlePromptStart` を 50ms 遅延して `externalProcedureDefCallback` が先に呼ばれた場合にキャンセル (issue #698) |
+| `src/containers/blocks.jsx` | DNCL block filtering | `shouldComponentUpdate` に `dnclMode` を追加して日本語モード切り替え時に即時再レンダリングを保証。import・`getToolboxXML` 内フィルター・`mapStateToProps` への `dnclMode` 追加も含む |
 
 ## 関連ファイル
 
