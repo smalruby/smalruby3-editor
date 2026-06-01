@@ -4,6 +4,7 @@
 # Runs inside the container after creation (devcontainer.json の
 # postCreateCommand から呼ばれる)。
 #
+# - tmux 設定と tpm を常にセットアップ
 # - worktree であれば bin/setup-worktree を実行 (env コピー + npm install + build:dev)
 # - main checkout であれば既存の node_modules / dist / .env がそのままあるので
 #   何もしない (gh / claude のインストールは devcontainer features が build 時に行う)
@@ -12,6 +13,28 @@ set -euo pipefail
 
 cd /app
 
+# ----- tmux セットアップ -----
+# .devcontainer/tmux.conf を ~/.tmux.conf にインストールし、
+# tpm (TMUX Plugin Manager) とプラグインをセットアップする。
+# 既に ~/.tmux.conf が存在する場合は上書きしない。
+TMUX_CONF_SRC="/app/.devcontainer/tmux.conf"
+TMUX_CONF_DST="${HOME}/.tmux.conf"
+TPM_DIR="${HOME}/.tmux/plugins/tpm"
+
+if [[ -f "${TMUX_CONF_SRC}" && ! -f "${TMUX_CONF_DST}" ]]; then
+    cp "${TMUX_CONF_SRC}" "${TMUX_CONF_DST}"
+    echo "post-create: installed ${TMUX_CONF_DST}"
+fi
+
+if [[ ! -d "${TPM_DIR}" ]]; then
+    echo "post-create: installing tpm..."
+    git clone --depth=1 https://github.com/tmux-plugins/tpm "${TPM_DIR}"
+    # tmux サーバが不要な非インタラクティブインストール
+    "${TPM_DIR}/bin/install_plugins" || true
+    echo "post-create: tpm plugins installed"
+fi
+
+# ----- git / worktree セットアップ -----
 GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || echo "")
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || echo "")
 
