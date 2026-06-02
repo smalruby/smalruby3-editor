@@ -89,6 +89,36 @@ try {
     });
     await sleep(300);
 
+    // Optionally switch UI locale (LOCALE=ja / ja-Hira / en) to verify i18n.
+    if (process.env.LOCALE) {
+        await page.evaluate((locale) => {
+            const findStore = () => {
+                const all = [document.body, ...document.body.querySelectorAll('*')];
+                for (const el of all) {
+                    const k = Object.keys(el).find((x) => x.startsWith('__reactContainer'));
+                    if (!k) continue;
+                    const stack = [el[k].stateNode.current];
+                    const seen = new WeakSet();
+                    while (stack.length) {
+                        const f = stack.pop();
+                        if (!f || seen.has(f)) continue;
+                        seen.add(f);
+                        const p = f.memoizedProps;
+                        if (p?.store?.dispatch) return p.store;
+                        if (p?.value?.store?.dispatch) return p.value.store;
+                        if (f.child) stack.push(f.child);
+                        if (f.sibling) stack.push(f.sibling);
+                    }
+                }
+                return null;
+            };
+            const store = findStore();
+            if (store) store.dispatch({ type: 'scratch-gui/locales/SELECT_LOCALE', locale });
+        }, process.env.LOCALE);
+        await sleep(500);
+        log(`locale set to ${process.env.LOCALE}`);
+    }
+
     log('creating a class...');
     await page.click('[data-testid="classroom-create"]');
     await page.waitForSelector('[data-testid="classroom-phase-teacher-create"]', { timeout: 10000 });

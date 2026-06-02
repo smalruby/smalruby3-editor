@@ -162,6 +162,14 @@ export default {
     'gui.classroom.teacherDetail.seated': 'ちゃくせきちゅう',
     'gui.classroom.teacherDetail.notSeated': 'りせき',
     'gui.classroom.teacherDetail.downloadAll': 'ぜんさくひんダウンロード',
+    'gui.classroom.coTeachers.title': 'きょうどうかんりしゃ',
+    'gui.classroom.coTeachers.hint':
+        'ほかのせんせいをメールアドレスでしょうたいして、このクラスをいっしょにかんりできます。あなたとおなじことができます。',
+    'gui.classroom.coTeachers.empty': 'まだきょうどうかんりしゃがいません。',
+    'gui.classroom.coTeachers.remove': 'かいじょ',
+    'gui.classroom.coTeachers.invite': 'しょうたい',
+    'gui.classroom.coTeachers.emailPlaceholder': 'teacher@example.com',
+    'gui.classroom.management.coManagedBadge': 'きょうどうかんり',
     'gui.classroom.teacherCreate.hint':
         '1つのじゅぎょうに1つのクラスをつくります。クラスめい（れい：「5-2」）、にんずう、かだいめい（れい：「だい3かい チャットアプリをつくろう」）をにゅうりょくしてください。',
     'gui.classroom.teacherCreate.className': 'クラスめい',
