@@ -34,6 +34,18 @@ RUN \
     tmux \
     vim
 
+# AWS CLI v2 — needed to deploy the CDK infra projects (infra/*) from inside
+# the container. CDK itself comes from each project's npm devDependencies, but
+# the aws CLI is not an npm package so it is installed here for reproducibility.
+RUN \
+  set -eux \
+  && apt install -y --no-install-recommends unzip \
+  && curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip \
+  && unzip -q /tmp/awscliv2.zip -d /tmp \
+  && /tmp/aws/install \
+  && rm -rf /tmp/aws /tmp/awscliv2.zip \
+  && aws --version
+
 # Install Playwright and its dependencies
 RUN npx playwright install chromium --with-deps
 
