@@ -12,6 +12,9 @@ import {
   getCorsHeaders,
   verifyTeacherIdToken,
   verifyMicrosoftIdToken,
+  normalizeEmail,
+  validateCoTeacherEmail,
+  canManageClassroom,
 } from '../handler';
 import { jwtVerify } from 'jose';
 
@@ -331,6 +334,71 @@ describe('verifyTeacherIdToken', () => {
     // with "not configured" — proving the routing works
     await expect(verifyTeacherIdToken(fakeToken))
       .rejects.toThrow('Microsoft authentication is not configured');
+  });
+});
+
+describe('normalizeEmail', () => {
+  test('trims and lowercases', () => {
+    expect(normalizeEmail('  Foo.Bar@Example.COM ')).toBe('foo.bar@example.com');
+  });
+});
+
+describe('validateCoTeacherEmail', () => {
+  test('accepts and normalizes a valid email', () => {
+    expect(validateCoTeacherEmail('Teacher@School.JP')).toBe('teacher@school.jp');
+  });
+
+  test('rejects non-string', () => {
+    expect(() => validateCoTeacherEmail(undefined)).toThrow('email is required');
+    expect(() => validateCoTeacherEmail(123)).toThrow('email is required');
+  });
+
+  test('rejects malformed addresses', () => {
+    expect(() => validateCoTeacherEmail('not-an-email')).toThrow();
+    expect(() => validateCoTeacherEmail('a@b')).toThrow(); // no dot in domain
+    expect(() => validateCoTeacherEmail('a b@c.com')).toThrow(); // space
+    expect(() => validateCoTeacherEmail('')).toThrow();
+  });
+
+  test('rejects overly long addresses', () => {
+    const long = `${'a'.repeat(250)}@x.com`;
+    expect(() => validateCoTeacherEmail(long)).toThrow();
+  });
+});
+
+describe('canManageClassroom', () => {
+  const owner = { sub: 'owner-sub', email: 'owner@example.com' };
+  const coTeacher = { sub: 'co-sub', email: 'co@example.com' };
+  const stranger = { sub: 'x-sub', email: 'x@example.com' };
+
+  test('owner can manage (by teacherSub)', () => {
+    const classroom = { teacherSub: 'owner-sub', coTeacherEmails: [] };
+    expect(canManageClassroom(classroom, owner)).toBe(true);
+  });
+
+  test('co-teacher can manage (by email)', () => {
+    const classroom = { teacherSub: 'owner-sub', coTeacherEmails: ['co@example.com'] };
+    expect(canManageClassroom(classroom, coTeacher)).toBe(true);
+  });
+
+  test('stranger cannot manage', () => {
+    const classroom = { teacherSub: 'owner-sub', coTeacherEmails: ['co@example.com'] };
+    expect(canManageClassroom(classroom, stranger)).toBe(false);
+  });
+
+  test('identity without email cannot match co-teacher list', () => {
+    const classroom = { teacherSub: 'owner-sub', coTeacherEmails: ['co@example.com'] };
+    expect(canManageClassroom(classroom, { sub: 'co-sub', email: null })).toBe(false);
+  });
+
+  test('undefined classroom is not manageable', () => {
+    expect(canManageClassroom(undefined, owner)).toBe(false);
+  });
+
+  test('missing coTeacherEmails is treated as empty', () => {
+    const classroom = { teacherSub: 'owner-sub' };
+    expect(canManageClassroom(classroom, coTeacher)).toBe(false);
+    expect(canManageClassroom(classroom, owner)).toBe(true);
   });
 });
 
