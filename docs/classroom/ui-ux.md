@@ -257,18 +257,29 @@ Google Classroom からインポートした場合は「インポート元: {コ
 | 前の画像ボタン | `classroom-member-detail-prev` | — |
 | 次の画像ボタン | `classroom-member-detail-next` | — |
 
-**共同管理者セクション (co-teachers):**
+**メンバー / 共同管理者タブ:**
 
-座席グリッドの下・フッター（全作品DL / クラス削除）の上に表示。owner または co-teacher が、別の先生を **email で招待**して共同管理できる（→ [architecture.md の共同管理](architecture.md#共同管理co-teacher)）。
+クラス詳細はタブ切替。座席グリッドと共同管理者を縦に積むと下にはみ出すため、参加コード表示の下にタブバーを置く。
+
+| 要素 | テキスト | data-testid | 操作 |
+|------|---------|-------------|------|
+| メンバータブ | 「メンバー」 | `classroom-tab-members` | 凡例 + 人数 + 更新 + 座席グリッドを表示（既定）|
+| 共同管理者タブ | 「共同管理者」 | `classroom-tab-co-teachers` | 共同管理者セクションを表示。owner/co-teacher のみ表示 |
+
+クラスを切り替えるとメンバータブに戻る。
+
+**共同管理者セクション (co-teachers タブ内):**
+
+owner または co-teacher が、別の先生を **email で招待**して共同管理できる（→ [architecture.md の共同管理](architecture.md#共同管理co-teacher)）。
 
 | 要素 | テキスト例 | data-testid | 操作 |
 |------|----------|-------------|------|
-| セクション全体 | 見出し「Co-teachers」 | `classroom-co-teachers` | — |
-| 未登録表示 | 「No co-teachers yet.」 | `classroom-co-teachers-empty` | co-teacher が0件時 |
+| セクション全体 | — | `classroom-co-teachers` | co-teachers タブ選択時のみ描画 |
+| 未登録表示 | 「まだ共同管理者がいません。」 | `classroom-co-teachers-empty` | co-teacher が0件時 |
 | 一覧の各項目 | 「co@example.com」 | `classroom-co-teacher-item-{email}` | — |
-| 解除ボタン | 「Remove」 | `classroom-co-teacher-remove-{email}` | 共同管理者を解除 |
+| 解除ボタン | 「解除」 | `classroom-co-teacher-remove-{email}` | 共同管理者を解除 |
 | 招待入力 | email 入力 (placeholder: teacher@example.com) | `classroom-co-teacher-invite-input` | Enter でも招待 |
-| 招待ボタン | 「Invite」 | `classroom-co-teacher-invite-submit` | email 未入力時は disabled |
+| 招待ボタン | 「招待」 | `classroom-co-teacher-invite-submit` | email 未入力時は disabled |
 
 招待された先生は次回ログイン時、ダッシュボードに該当クラスが**「共同管理」バッジ**付きで表示される（即時反映・承認不要）。
 
