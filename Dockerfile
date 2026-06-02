@@ -23,9 +23,14 @@ RUN \
 RUN \
   set -eux \
   && apt install -y --no-install-recommends \
+    iputils-ping \
     jq \
     less \
+    lsof \
     lv \
+    netcat-openbsd \
+    openssh-client \
+    procps \
     tmux \
     vim
 
