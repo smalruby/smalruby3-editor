@@ -157,6 +157,14 @@ export default {
     'gui.classroom.teacherDetail.seated': '着席中',
     'gui.classroom.teacherDetail.notSeated': '離席',
     'gui.classroom.teacherDetail.downloadAll': '全作品ダウンロード',
+    'gui.classroom.coTeachers.title': '共同管理者',
+    'gui.classroom.coTeachers.hint':
+        'ほかの先生をメールアドレスで招待して、このクラスを一緒に管理できます。あなたと同じことができます。',
+    'gui.classroom.coTeachers.empty': 'まだ共同管理者がいません。',
+    'gui.classroom.coTeachers.remove': '解除',
+    'gui.classroom.coTeachers.invite': '招待',
+    'gui.classroom.coTeachers.emailPlaceholder': 'teacher@example.com',
+    'gui.classroom.management.coManagedBadge': '共同管理',
     'gui.classroom.teacherCreate.hint':
         '1つの授業に1つのクラスを作ります。クラス名（例：「5-2」）、人数、課題名（例：「第3回 チャットアプリを作ろう」）を入力してください。',
     'gui.classroom.teacherCreate.className': 'クラス名',

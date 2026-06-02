@@ -355,6 +355,20 @@ export class ClassroomStack extends cdk.Stack {
       integration,
     });
 
+    // Co-teacher management — owner or existing co-teacher may invite/remove
+    // additional teachers by email.
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/co-teachers',
+      methods: [apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.POST],
+      integration,
+    });
+
+    this.api.addRoutes({
+      path: '/classrooms/{classroomId}/co-teachers/{email}',
+      methods: [apigatewayv2.HttpMethod.DELETE],
+      integration,
+    });
+
     this.api.addRoutes({
       path: '/classrooms/{classroomId}/members',
       methods: [apigatewayv2.HttpMethod.GET],

@@ -127,3 +127,53 @@ describe('ClassroomAPI.createKickRequest', () => {
         expect(opts.headers.Authorization).toBeUndefined();
     });
 });
+
+describe('ClassroomAPI co-teacher methods', () => {
+    let classroomAPI;
+
+    beforeEach(() => {
+        jest.resetModules();
+        global.fetch = jest.fn();
+        classroomAPI = require('../../../src/lib/classroom-api.js').default;
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    const mockOk = (body) =>
+        global.fetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: jest.fn().mockResolvedValue(body),
+        });
+
+    test('listCoTeachers GETs the co-teachers route with the teacher token', async () => {
+        mockOk({ ownerSub: 'owner', coTeacherEmails: ['a@b.com'] });
+        const data = await classroomAPI.listCoTeachers('id-token', 'class-1');
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toContain('/classrooms/class-1/co-teachers');
+        expect(opts.method).toBe('GET');
+        expect(opts.headers.Authorization).toBe('Bearer id-token');
+        expect(data.coTeacherEmails).toEqual(['a@b.com']);
+    });
+
+    test('addCoTeacher POSTs the email in the body', async () => {
+        mockOk({ coTeacherEmails: ['new@example.com'] });
+        await classroomAPI.addCoTeacher('id-token', 'class-1', 'new@example.com');
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(url).toContain('/classrooms/class-1/co-teachers');
+        expect(opts.method).toBe('POST');
+        expect(JSON.parse(opts.body)).toEqual({ email: 'new@example.com' });
+    });
+
+    test('removeCoTeacher DELETEs with the email URL-encoded in the path', async () => {
+        mockOk({ coTeacherEmails: [] });
+        await classroomAPI.removeCoTeacher('id-token', 'class-1', 'a+b@example.com');
+        const [url, opts] = global.fetch.mock.calls[0];
+        expect(opts.method).toBe('DELETE');
+        expect(url).toContain('/classrooms/class-1/co-teachers/');
+        expect(url).toContain(encodeURIComponent('a+b@example.com'));
+        expect(url).not.toContain('a+b@example.com'); // raw '+'/'@' must be encoded
+    });
+});

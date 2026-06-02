@@ -1537,3 +1537,109 @@
     color: #999;
     margin-bottom: 1rem;
 }
+
+/* --- Class detail tabs (Members / Co-teachers) --- */
+
+.detail-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid #e9edf2;
+    margin-bottom: 0.75rem;
+}
+
+.detail-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.95rem;
+    color: #575e75;
+    cursor: pointer;
+}
+
+.detail-tab:hover {
+    color: #855cd6;
+}
+
+.detail-tab-active {
+    color: #855cd6;
+    font-weight: bold;
+    border-bottom-color: #855cd6;
+}
+
+/* --- Co-teachers (shared classroom management) --- */
+
+.co-teachers-section {
+    padding-top: 0.25rem;
+}
+
+.co-teachers-hint {
+    font-size: 0.8rem;
+    color: #575e75;
+    margin: 0.25rem 0 0.75rem;
+}
+
+.co-teachers-empty {
+    font-size: 0.85rem;
+    color: #999;
+    margin-bottom: 0.75rem;
+}
+
+.co-teachers-list {
+    list-style: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+}
+
+.co-teacher-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0.6rem;
+    background: #f9f9f9;
+    border: 1px solid #e9edf2;
+    border-radius: 0.4rem;
+    margin-bottom: 0.4rem;
+}
+
+.co-teacher-email {
+    font-size: 0.9rem;
+    color: #575e75;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.co-teacher-remove {
+    background: none;
+    border: none;
+    color: #e1453a;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.4rem;
+}
+
+.co-teacher-remove:disabled {
+    color: #ccc;
+    cursor: default;
+}
+
+.co-teacher-invite-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.co-teacher-invite-input {
+    flex: 1 1 auto;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid #c9cdd3;
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.co-teacher-invite-input:focus {
+    border-color: #4c97ff;
+    outline: none;
+}

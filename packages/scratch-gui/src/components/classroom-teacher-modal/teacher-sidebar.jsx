@@ -114,6 +114,18 @@ const TeacherSidebar = ({
                             >
                                 <span className={styles.sidebarItemName}>
                                     {c.assignmentName || '-'}
+                                    {c.role === 'co-teacher' && (
+                                        <span
+                                            className={styles.sidebarItemCoManagedBadge}
+                                            data-testid={`classroom-item-co-managed-badge-${c.classroomId}`}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Co-managed"
+                                                description="Badge on classes the teacher co-manages (is not the owner of)"
+                                                id="gui.classroom.management.coManagedBadge"
+                                            />
+                                        </span>
+                                    )}
                                 </span>
                                 <span className={styles.sidebarItemMeta}>
                                     {`${c.studentCount} · ${c.joinCode.toLowerCase()}`}

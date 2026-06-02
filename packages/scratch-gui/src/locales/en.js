@@ -145,6 +145,14 @@ export default {
     'gui.classroom.teacherDetail.seated': 'Seated',
     'gui.classroom.teacherDetail.notSeated': 'Not seated',
     'gui.classroom.teacherDetail.downloadAll': 'Download All',
+    'gui.classroom.coTeachers.title': 'Co-teachers',
+    'gui.classroom.coTeachers.hint':
+        'Invite other teachers by email to co-manage this class. They have the same permissions as you.',
+    'gui.classroom.coTeachers.empty': 'No co-teachers yet.',
+    'gui.classroom.coTeachers.remove': 'Remove',
+    'gui.classroom.coTeachers.invite': 'Invite',
+    'gui.classroom.coTeachers.emailPlaceholder': 'teacher@example.com',
+    'gui.classroom.management.coManagedBadge': 'Co-managed',
     'gui.classroom.teacherCreate.hint':
         'Create one class per lesson. Enter the class name (e.g. "5-2"), student count, and assignment name (e.g. "Lesson 3: Build a Chat App").',
     'gui.classroom.teacherCreate.className': 'Class Name',

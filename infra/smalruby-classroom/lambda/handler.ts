@@ -5,6 +5,7 @@ import {
   PutCommand,
   GetCommand,
   QueryCommand,
+  ScanCommand,
   DeleteCommand,
   UpdateCommand,
   BatchWriteCommand,
@@ -261,7 +262,18 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
   return JSON.parse(payload);
 }
 
-export async function verifyGoogleIdToken(idToken: string): Promise<string> {
+/**
+ * A verified teacher's identity. `sub` is the provider's stable user id
+ * (Google sub / Microsoft oid) and is the classroom owner key. `email` is the
+ * verified email claim (lowercased), used to match co-teacher invitations.
+ * `email` may be null when the provider does not supply one.
+ */
+export interface TeacherIdentity {
+  sub: string;
+  email: string | null;
+}
+
+export async function verifyGoogleIdToken(idToken: string): Promise<TeacherIdentity> {
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken,
@@ -271,14 +283,16 @@ export async function verifyGoogleIdToken(idToken: string): Promise<string> {
     if (!payload || !payload.sub) {
       throw new AuthError('Invalid token payload');
     }
-    return payload.sub;
+    // Only trust the email when Google marks it verified.
+    const email = payload.email && payload.email_verified ? normalizeEmail(payload.email) : null;
+    return { sub: payload.sub, email };
   } catch (err) {
     if (err instanceof AuthError) throw err;
     throw new AuthError('Invalid or expired Google ID token');
   }
 }
 
-export async function verifyMicrosoftIdToken(idToken: string): Promise<string> {
+export async function verifyMicrosoftIdToken(idToken: string): Promise<TeacherIdentity> {
   if (!MICROSOFT_CLIENT_ID) {
     throw new AuthError('Microsoft authentication is not configured');
   }
@@ -296,7 +310,11 @@ export async function verifyMicrosoftIdToken(idToken: string): Promise<string> {
     if (!oid) {
       throw new AuthError('Invalid Microsoft token payload');
     }
-    return oid;
+    // Microsoft puts the email in `email` or, failing that, `preferred_username`
+    // (which is the UPN, normally an email address).
+    const rawEmail = (payload.email || payload.preferred_username) as string | undefined;
+    const email = rawEmail && rawEmail.includes('@') ? normalizeEmail(rawEmail) : null;
+    return { sub: oid, email };
   } catch (err) {
     if (err instanceof AuthError) throw err;
     throw new AuthError('Invalid or expired Microsoft ID token');
@@ -307,10 +325,10 @@ export async function verifyMicrosoftIdToken(idToken: string): Promise<string> {
  * Verify a teacher ID token from either Google or Microsoft.
  * Detects the provider by inspecting the JWT issuer claim.
  */
-export async function verifyTeacherIdToken(idToken: string): Promise<string> {
+export async function verifyTeacherIdToken(idToken: string): Promise<TeacherIdentity> {
   // Dev bypass: accept DEV_BYPASS_TOKEN in non-production environments only
   if (DEV_BYPASS_TOKEN && idToken === DEV_BYPASS_TOKEN && STAGE !== 'prod') {
-    return 'dev-test-teacher';
+    return { sub: 'dev-test-teacher', email: 'dev-test-teacher@example.com' };
   }
 
   let payload: Record<string, unknown>;
@@ -327,6 +345,48 @@ export async function verifyTeacherIdToken(idToken: string): Promise<string> {
   return verifyGoogleIdToken(idToken);
 }
 
+/** Normalize an email for storage/comparison: trim + lowercase. */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/**
+ * Validate a co-teacher email supplied by a teacher when inviting. Returns the
+ * normalized email or throws ValidationError. Intentionally lenient (a single
+ * `@` with non-empty local/domain parts and a dot in the domain) — exact
+ * deliverability is not checked; a wrong address is recoverable via removal.
+ */
+export function validateCoTeacherEmail(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new ValidationError('email is required');
+  }
+  const email = normalizeEmail(value);
+  if (email.length === 0 || email.length > 254) {
+    throw new ValidationError('email must be between 1 and 254 characters');
+  }
+  // Basic shape check: local@domain.tld, no spaces.
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new ValidationError('email is not a valid email address');
+  }
+  return email;
+}
+
+/**
+ * Whether the given teacher identity may manage the classroom: either they are
+ * the owner (teacherSub) or their verified email is in the classroom's
+ * coTeacherEmails list. Used by every teacher-facing ownership check.
+ */
+export function canManageClassroom(
+  classroom: Record<string, unknown> | undefined,
+  identity: TeacherIdentity,
+): boolean {
+  if (!classroom) return false;
+  if (classroom.teacherSub === identity.sub) return true;
+  if (!identity.email) return false;
+  const coTeacherEmails = classroom.coTeacherEmails;
+  return Array.isArray(coTeacherEmails) && coTeacherEmails.includes(identity.email);
+}
+
 function extractBearerToken(authHeader?: string): string {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new AuthError('Authorization header with Bearer token is required');
@@ -336,7 +396,7 @@ function extractBearerToken(authHeader?: string): string {
 
 // --- Route handlers ---
 
-async function handleCreateClassroom(teacherSub: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+async function handleCreateClassroom(identity: TeacherIdentity, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
   const className = validateClassName(body.className);
   let assignmentName = validateClassName(body.assignmentName); // reuse same validator (1-50 chars)
   const studentCount = validateStudentCount(body.studentCount);
@@ -347,7 +407,7 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
     TableName: CLASSROOMS_TABLE,
     IndexName: 'teacherSub-index',
     KeyConditionExpression: 'teacherSub = :ts',
-    ExpressionAttributeValues: { ':ts': teacherSub },
+    ExpressionAttributeValues: { ':ts': identity.sub },
   }));
   if (existingClassrooms.Items) {
     const sameClassAssignments = existingClassrooms.Items
@@ -391,7 +451,7 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
     TableName: CLASSROOMS_TABLE,
     Item: {
       classroomId,
-      teacherSub,
+      teacherSub: identity.sub,
       className,
       assignmentName,
       joinCode,
@@ -410,32 +470,68 @@ async function handleCreateClassroom(teacherSub: string, body: Record<string, un
   };
 }
 
-async function handleListClassrooms(teacherSub: string): Promise<APIGatewayProxyStructuredResultV2> {
-  const result = await docClient.send(new QueryCommand({
+/** Read the coTeacherEmails list from a classroom item, defaulting to []. */
+function readCoTeacherEmails(item: Record<string, unknown>): string[] {
+  return Array.isArray(item.coTeacherEmails) ? (item.coTeacherEmails as string[]) : [];
+}
+
+/**
+ * Shape a classroom item for the teacher-facing list/detail responses, adding
+ * the co-teacher list and the requesting teacher's role (owner vs co-teacher).
+ */
+function mapClassroomSummary(item: Record<string, unknown>, identity: TeacherIdentity) {
+  return {
+    classroomId: item.classroomId,
+    className: item.className,
+    assignmentName: item.assignmentName || null,
+    joinCode: item.joinCode,
+    studentCount: item.studentCount,
+    googleClassroomCourseId: item.googleClassroomCourseId || null,
+    googleClassroomAlternateLink: item.googleClassroomAlternateLink || null,
+    createdAt: item.createdAt,
+    expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
+    coTeacherEmails: readCoTeacherEmails(item),
+    role: item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
+  };
+}
+
+async function handleListClassrooms(identity: TeacherIdentity): Promise<APIGatewayProxyStructuredResultV2> {
+  // Classes the teacher owns — fast GSI query on teacherSub.
+  const owned = await docClient.send(new QueryCommand({
     TableName: CLASSROOMS_TABLE,
     IndexName: 'teacherSub-index',
     KeyConditionExpression: 'teacherSub = :ts',
-    ExpressionAttributeValues: { ':ts': teacherSub },
+    ExpressionAttributeValues: { ':ts': identity.sub },
   }));
 
-  const classrooms = (result.Items || [])
-    .filter(item => item.status === 'active')
-    .map(item => ({
-      classroomId: item.classroomId,
-      className: item.className,
-      assignmentName: item.assignmentName || null,
-      joinCode: item.joinCode,
-      studentCount: item.studentCount,
-      googleClassroomCourseId: item.googleClassroomCourseId || null,
-      googleClassroomAlternateLink: item.googleClassroomAlternateLink || null,
-      createdAt: item.createdAt,
-      expiresAt: item.ttl ? new Date((item.ttl as number) * 1000).toISOString() : null,
+  // Classes the teacher co-manages — matched by verified email. DynamoDB cannot
+  // index a list attribute with a GSI, so we Scan + filter on coTeacherEmails.
+  // The classrooms table is small (single org, 30-day TTL) so this is fine;
+  // revisit with a reverse-index table (email -> classroomId) if it grows large.
+  let coManaged: Record<string, unknown>[] = [];
+  if (identity.email) {
+    const scan = await docClient.send(new ScanCommand({
+      TableName: CLASSROOMS_TABLE,
+      FilterExpression: 'contains(coTeacherEmails, :email)',
+      ExpressionAttributeValues: { ':email': identity.email },
     }));
+    coManaged = scan.Items || [];
+  }
 
+  // Merge by classroomId (owned wins) and keep only active classes.
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const item of [...(owned.Items || []), ...coManaged]) {
+    const id = item.classroomId as string;
+    if (item.status === 'active' && !byId.has(id)) {
+      byId.set(id, item);
+    }
+  }
+
+  const classrooms = Array.from(byId.values()).map(item => mapClassroomSummary(item, identity));
   return { statusCode: 200, body: JSON.stringify({ classrooms }) };
 }
 
-async function handleGetClassroom(teacherSub: string, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
+async function handleGetClassroom(identity: TeacherIdentity, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
   const result = await docClient.send(new GetCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
@@ -444,7 +540,7 @@ async function handleGetClassroom(teacherSub: string, classroomId: string): Prom
   if (!result.Item || result.Item.status !== 'active') {
     throw new NotFoundError('Classroom not found');
   }
-  if (result.Item.teacherSub !== teacherSub) {
+  if (!canManageClassroom(result.Item, identity)) {
     throw new AuthError('Not authorized to view this classroom');
   }
 
@@ -461,17 +557,110 @@ async function handleGetClassroom(teacherSub: string, classroomId: string): Prom
       status: result.Item.status,
       createdAt: result.Item.createdAt,
       expiresAt: result.Item.ttl ? new Date((result.Item.ttl as number) * 1000).toISOString() : null,
+      coTeacherEmails: readCoTeacherEmails(result.Item),
+      role: result.Item.teacherSub === identity.sub ? 'owner' : 'co-teacher',
     }),
   };
 }
 
-async function handleUpdateClassroom(teacherSub: string, classroomId: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+// --- Co-teacher management ---
+// A classroom is owned by one teacher (teacherSub) and may be co-managed by
+// additional teachers identified by email (coTeacherEmails). Co-teachers are
+// fully equal to the owner for every operation. The owner is NOT stored in
+// coTeacherEmails, so these endpoints can never add/remove the owner — the
+// creator always retains management (no "zero admins" state).
+
+const MAX_CO_TEACHERS = 10;
+
+async function handleListCoTeachers(identity: TeacherIdentity, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!result.Item || result.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  if (!canManageClassroom(result.Item, identity)) {
+    throw new AuthError('Not authorized to view co-teachers for this classroom');
+  }
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      ownerSub: result.Item.teacherSub,
+      coTeacherEmails: readCoTeacherEmails(result.Item),
+    }),
+  };
+}
+
+async function handleAddCoTeacher(identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
+  const email = validateCoTeacherEmail(body.email);
+
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!result.Item || result.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  if (!canManageClassroom(result.Item, identity)) {
+    throw new AuthError('Not authorized to manage co-teachers for this classroom');
+  }
+
+  const existing = readCoTeacherEmails(result.Item);
+  if (existing.includes(email)) {
+    // Idempotent: already invited.
+    return { statusCode: 200, body: JSON.stringify({ coTeacherEmails: existing }) };
+  }
+  if (existing.length >= MAX_CO_TEACHERS) {
+    throw new ValidationError(`A classroom may have at most ${MAX_CO_TEACHERS} co-teachers`);
+  }
+
+  const updated = [...existing, email];
+  await docClient.send(new UpdateCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+    UpdateExpression: 'SET coTeacherEmails = :list, updatedAt = :now',
+    ExpressionAttributeValues: { ':list': updated, ':now': new Date().toISOString() },
+  }));
+
+  return { statusCode: 200, body: JSON.stringify({ coTeacherEmails: updated }) };
+}
+
+async function handleRemoveCoTeacher(identity: TeacherIdentity, classroomId: string, emailParam: string): Promise<APIGatewayProxyStructuredResultV2> {
+  const email = normalizeEmail(decodeURIComponent(emailParam));
+
+  const result = await docClient.send(new GetCommand({
+    TableName: CLASSROOMS_TABLE,
+    Key: { classroomId },
+  }));
+  if (!result.Item || result.Item.status !== 'active') {
+    throw new NotFoundError('Classroom not found');
+  }
+  if (!canManageClassroom(result.Item, identity)) {
+    throw new AuthError('Not authorized to manage co-teachers for this classroom');
+  }
+
+  const existing = readCoTeacherEmails(result.Item);
+  const updated = existing.filter(e => e !== email);
+  if (updated.length !== existing.length) {
+    await docClient.send(new UpdateCommand({
+      TableName: CLASSROOMS_TABLE,
+      Key: { classroomId },
+      UpdateExpression: 'SET coTeacherEmails = :list, updatedAt = :now',
+      ExpressionAttributeValues: { ':list': updated, ':now': new Date().toISOString() },
+    }));
+  }
+
+  return { statusCode: 200, body: JSON.stringify({ coTeacherEmails: updated }) };
+}
+
+async function handleUpdateClassroom(identity: TeacherIdentity, classroomId: string, body: Record<string, unknown>): Promise<APIGatewayProxyStructuredResultV2> {
   // Verify ownership
   const classroom = await docClient.send(new GetCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
     throw new AuthError('Not authorized to update this classroom');
   }
 
@@ -627,13 +816,13 @@ async function handleJoinClassroom(sourceIp: string, body: Record<string, unknow
   };
 }
 
-async function handleListMembers(teacherSub: string, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
+async function handleListMembers(identity: TeacherIdentity, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
   // Verify ownership
   const classroom = await docClient.send(new GetCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
     throw new AuthError('Not authorized to view this classroom');
   }
 
@@ -686,13 +875,13 @@ async function handleListMembers(teacherSub: string, classroomId: string): Promi
   };
 }
 
-async function handleDeleteClassroom(teacherSub: string, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
+async function handleDeleteClassroom(identity: TeacherIdentity, classroomId: string): Promise<APIGatewayProxyStructuredResultV2> {
   // Verify ownership
   const classroom = await docClient.send(new GetCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
     throw new AuthError('Not authorized to delete this classroom');
   }
   if (classroom.Item.status !== 'active') {
@@ -797,13 +986,13 @@ async function handleLookupClassroom(sourceIp: string, body: Record<string, unkn
   };
 }
 
-async function handleDeleteMember(teacherSub: string, classroomId: string, memberId: string): Promise<APIGatewayProxyStructuredResultV2> {
+async function handleDeleteMember(identity: TeacherIdentity, classroomId: string, memberId: string): Promise<APIGatewayProxyStructuredResultV2> {
   // Verify ownership
   const classroom = await docClient.send(new GetCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
     throw new AuthError('Not authorized to modify this classroom');
   }
 
@@ -947,7 +1136,7 @@ async function handleCreateKickRequest(
 }
 
 async function handleListKickRequests(
-  teacherSub: string,
+  identity: TeacherIdentity,
   classroomId: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   // Verify ownership: only the owning teacher may list requests.
@@ -955,7 +1144,7 @@ async function handleListKickRequests(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
     throw new AuthError('Not authorized to view kick requests for this classroom');
   }
 
@@ -978,7 +1167,7 @@ async function handleListKickRequests(
 }
 
 async function handleApproveKickRequest(
-  teacherSub: string,
+  identity: TeacherIdentity,
   classroomId: string,
   requestId: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -987,7 +1176,7 @@ async function handleApproveKickRequest(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
     throw new AuthError('Not authorized to modify kick requests for this classroom');
   }
   const reqResult = await docClient.send(new GetCommand({
@@ -1004,7 +1193,7 @@ async function handleApproveKickRequest(
   // Reuse the existing kick logic so kicked students get the same
   // 410 reason='kicked' from verify-session that a direct DELETE
   // /members/{memberId} would produce.
-  await handleDeleteMember(teacherSub, classroomId, memberId);
+  await handleDeleteMember(identity, classroomId, memberId);
 
   // Delete all requests targeting this seat (including the approved one
   // and any duplicates the same seat may have accumulated). Otherwise
@@ -1034,7 +1223,7 @@ async function handleApproveKickRequest(
 }
 
 async function handleRejectKickRequest(
-  teacherSub: string,
+  identity: TeacherIdentity,
   classroomId: string,
   requestId: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -1042,7 +1231,7 @@ async function handleRejectKickRequest(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
     throw new AuthError('Not authorized to modify kick requests for this classroom');
   }
   await docClient.send(new DeleteCommand({
@@ -1223,14 +1412,14 @@ async function handleCreateSubmission(
 }
 
 async function handleListSubmissions(
-  teacherSub: string, classroomId: string
+  identity: TeacherIdentity, classroomId: string
 ): Promise<APIGatewayProxyStructuredResultV2> {
   // Verify ownership
   const classroom = await docClient.send(new GetCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
     throw new AuthError('Not authorized to view submissions');
   }
 
@@ -1300,14 +1489,14 @@ async function handleListSubmissions(
 }
 
 async function handleUpdateSubmission(
-  teacherSub: string, classroomId: string, submissionId: string, body: Record<string, unknown>
+  identity: TeacherIdentity, classroomId: string, submissionId: string, body: Record<string, unknown>
 ): Promise<APIGatewayProxyStructuredResultV2> {
   // Verify ownership
   const classroom = await docClient.send(new GetCommand({
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!classroom.Item || classroom.Item.teacherSub !== teacherSub) {
+  if (!classroom.Item || !canManageClassroom(classroom.Item, identity)) {
     throw new AuthError('Not authorized to update submissions');
   }
 
@@ -1407,7 +1596,7 @@ async function handleListGoogleCourses(accessToken: string): Promise<APIGatewayP
 }
 
 async function handleImportGoogleClassroom(
-  teacherSub: string,
+  identity: TeacherIdentity,
   accessToken: string,
   body: Record<string, unknown>,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -1467,7 +1656,7 @@ async function handleImportGoogleClassroom(
     TableName: CLASSROOMS_TABLE,
     Item: {
       classroomId,
-      teacherSub,
+      teacherSub: identity.sub,
       className: course.name + (course.section ? ` (${course.section})` : ''),
       joinCode,
       studentCount,
@@ -1495,7 +1684,7 @@ async function handleImportGoogleClassroom(
 }
 
 async function handlePostAssignment(
-  teacherSub: string,
+  identity: TeacherIdentity,
   accessToken: string,
   classroomId: string,
   body: Record<string, unknown>,
@@ -1505,7 +1694,7 @@ async function handlePostAssignment(
     TableName: CLASSROOMS_TABLE,
     Key: { classroomId },
   }));
-  if (!result.Item || result.Item.teacherSub !== teacherSub) {
+  if (!result.Item || !canManageClassroom(result.Item, identity)) {
     throw new NotFoundError('Classroom not found');
   }
   const courseId = result.Item.googleClassroomCourseId as string;
@@ -1631,13 +1820,13 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     // Route matching
     if (method === 'POST' && path === '/classrooms') {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
-      result = await handleCreateClassroom(teacherSub, body);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleCreateClassroom(identity, body);
 
     } else if (method === 'GET' && path === '/classrooms') {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
-      result = await handleListClassrooms(teacherSub);
+      const identity = await verifyTeacherIdToken(token);
+      result = await handleListClassrooms(identity);
 
     } else if (method === 'POST' && path === '/classrooms/join') {
       const sourceIp = event.requestContext.http.sourceIp || 'unknown';
@@ -1668,53 +1857,72 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
 
     } else if (method === 'POST' && path === '/classrooms/google-import') {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const accessToken = extractGoogleAccessToken(event.headers);
-      result = await handleImportGoogleClassroom(teacherSub, accessToken, body);
+      result = await handleImportGoogleClassroom(identity, accessToken, body);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
-      result = await handleGetClassroom(teacherSub, classroomId);
+      result = await handleGetClassroom(identity, classroomId);
 
     } else if (method === 'PATCH' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
-      result = await handleUpdateClassroom(teacherSub, classroomId, body);
+      result = await handleUpdateClassroom(identity, classroomId, body);
 
     } else if (method === 'DELETE' && /^\/classrooms\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
-      result = await handleDeleteClassroom(teacherSub, classroomId);
+      result = await handleDeleteClassroom(identity, classroomId);
+
+    } else if (method === 'GET' && /^\/classrooms\/[^/]+\/co-teachers$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleListCoTeachers(identity, classroomId);
+
+    } else if (method === 'POST' && /^\/classrooms\/[^/]+\/co-teachers$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      result = await handleAddCoTeacher(identity, classroomId, body);
+
+    } else if (method === 'DELETE' && /^\/classrooms\/[^/]+\/co-teachers\/.+$/.test(path)) {
+      const token = extractBearerToken(event.headers?.authorization);
+      const identity = await verifyTeacherIdToken(token);
+      const classroomId = event.pathParameters?.classroomId || '';
+      const email = event.pathParameters?.email || '';
+      result = await handleRemoveCoTeacher(identity, classroomId, email);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/members$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
-      result = await handleListMembers(teacherSub, classroomId);
+      result = await handleListMembers(identity, classroomId);
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/kick-requests$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
-      result = await handleListKickRequests(teacherSub, classroomId);
+      result = await handleListKickRequests(identity, classroomId);
 
     } else if (method === 'POST' && /^\/classrooms\/[^/]+\/kick-requests\/[^/]+\/approve$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       const requestId = event.pathParameters?.requestId || '';
-      result = await handleApproveKickRequest(teacherSub, classroomId, requestId);
+      result = await handleApproveKickRequest(identity, classroomId, requestId);
 
     } else if (method === 'DELETE' && /^\/classrooms\/[^/]+\/kick-requests\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       const requestId = event.pathParameters?.requestId || '';
-      result = await handleRejectKickRequest(teacherSub, classroomId, requestId);
+      result = await handleRejectKickRequest(identity, classroomId, requestId);
 
     } else if (method === 'DELETE' && /^\/classrooms\/[^/]+\/members\/[^/]+$/.test(path)) {
       const classroomId = event.pathParameters?.classroomId || '';
@@ -1735,8 +1943,8 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
       } else {
         // Teacher removal via ID token
         const token = extractBearerToken(event.headers?.authorization);
-        const teacherSub = await verifyTeacherIdToken(token);
-        result = await handleDeleteMember(teacherSub, classroomId, memberId);
+        const identity = await verifyTeacherIdToken(token);
+        result = await handleDeleteMember(identity, classroomId, memberId);
       }
 
     } else if (method === 'POST' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
@@ -1750,23 +1958,23 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
 
     } else if (method === 'GET' && /^\/classrooms\/[^/]+\/submissions$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
-      result = await handleListSubmissions(teacherSub, classroomId);
+      result = await handleListSubmissions(identity, classroomId);
 
     } else if (method === 'PATCH' && /^\/classrooms\/[^/]+\/submissions\/[^/]+$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const classroomId = event.pathParameters?.classroomId || '';
       const submissionId = event.pathParameters?.submissionId || '';
-      result = await handleUpdateSubmission(teacherSub, classroomId, submissionId, body);
+      result = await handleUpdateSubmission(identity, classroomId, submissionId, body);
 
     } else if (method === 'POST' && /^\/classrooms\/[^/]+\/google-assignment$/.test(path)) {
       const token = extractBearerToken(event.headers?.authorization);
-      const teacherSub = await verifyTeacherIdToken(token);
+      const identity = await verifyTeacherIdToken(token);
       const accessToken = extractGoogleAccessToken(event.headers);
       const classroomId = event.pathParameters?.classroomId || '';
-      result = await handlePostAssignment(teacherSub, accessToken, classroomId, body);
+      result = await handlePostAssignment(identity, accessToken, classroomId, body);
 
     } else {
       result = { statusCode: 404, body: JSON.stringify({ error: 'Not found' }) };
