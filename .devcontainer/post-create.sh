@@ -43,11 +43,6 @@ if [[ ! -d "${PLUGINS_DIR}/tmux-sensible" ]]; then
     echo "post-create: tmux-sensible installed"
 fi
 
-if [[ ! -d "${PLUGINS_DIR}/tmux-yank" ]]; then
-    echo "post-create: installing tmux-yank..."
-    git clone --depth=1 https://github.com/tmux-plugins/tmux-yank "${PLUGINS_DIR}/tmux-yank"
-    echo "post-create: tmux-yank installed"
-fi
 
 # ----- SSH ログイン時の tmux 自動アタッチ -----
 # SSH_TTY が set されている（対話ログイン）ときだけ tmux に入る。
