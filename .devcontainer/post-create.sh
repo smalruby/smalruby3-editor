@@ -26,12 +26,21 @@ if [[ -f "${TMUX_CONF_SRC}" && ! -f "${TMUX_CONF_DST}" ]]; then
     echo "post-create: installed ${TMUX_CONF_DST}"
 fi
 
+PLUGINS_DIR="${HOME}/.tmux/plugins"
+
 if [[ ! -d "${TPM_DIR}" ]]; then
     echo "post-create: installing tpm..."
     git clone --depth=1 https://github.com/tmux-plugins/tpm "${TPM_DIR}"
-    # tmux サーバが不要な非インタラクティブインストール
-    "${TPM_DIR}/bin/install_plugins" || true
-    echo "post-create: tpm plugins installed"
+    echo "post-create: tpm installed"
+fi
+
+# tpm の install_plugins は tmux サーバが必要なため使えない。
+# tmux.conf に列挙したプラグインを直接 git clone する。
+# プラグインを追加したときはここも合わせて更新すること。
+if [[ ! -d "${PLUGINS_DIR}/tmux-sensible" ]]; then
+    echo "post-create: installing tmux-sensible..."
+    git clone --depth=1 https://github.com/tmux-plugins/tmux-sensible "${PLUGINS_DIR}/tmux-sensible"
+    echo "post-create: tmux-sensible installed"
 fi
 
 # ----- git / worktree セットアップ -----
