@@ -16,6 +16,7 @@ RUN \
     lv \
     vim \
     jq \
+    tmux \
     chromium \
     chromium-driver \
     libgl1-mesa-dri \
