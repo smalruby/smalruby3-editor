@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import ClassCodeDisplay from './class-code-display.jsx';
 import ErrorDisplay from './error-display.jsx';
+import TeacherCoTeachers from './teacher-co-teachers.jsx';
 import TeacherMemberDetail from './teacher-member-detail.jsx';
 
 import googleClassroomIcon from '../classroom-teacher-modal/google-classroom-icon.png';
@@ -41,6 +42,8 @@ const TeacherClassDetail = ({
     kickRequestsBySeat,
     onApproveKickRequest,
     onRejectKickRequest,
+    onAddCoTeacher,
+    onRemoveCoTeacher,
 }) => {
     const intl = useIntl();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -429,6 +432,16 @@ const TeacherClassDetail = ({
                                 )}
                             </div>
 
+                            {/* Co-teachers (shared classroom management) */}
+                            {onAddCoTeacher && onRemoveCoTeacher && (
+                                <TeacherCoTeachers
+                                    classroom={selectedClassroom}
+                                    isLoading={isLoading}
+                                    onAddCoTeacher={onAddCoTeacher}
+                                    onRemoveCoTeacher={onRemoveCoTeacher}
+                                />
+                            )}
+
                             {/* Delete classroom */}
                             <div className={styles.detailFooter}>
                                 <ErrorDisplay
@@ -636,6 +649,8 @@ TeacherClassDetail.propTypes = {
     kickRequestsBySeat: PropTypes.object,
     onApproveKickRequest: PropTypes.func,
     onRejectKickRequest: PropTypes.func,
+    onAddCoTeacher: PropTypes.func,
+    onRemoveCoTeacher: PropTypes.func,
     selectedClassroom: PropTypes.object.isRequired,
     selectedMember: PropTypes.string,
 };

@@ -74,6 +74,43 @@ class ClassroomAPI {
     }
 
     /**
+     * List co-teachers (shared managers) of a classroom (owner or co-teacher).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @returns {Promise<object>} {ownerSub, coTeacherEmails: string[]}
+     */
+    async listCoTeachers(idToken, classroomId) {
+        return this._request('GET', `/classrooms/${classroomId}/co-teachers`, null, idToken);
+    }
+
+    /**
+     * Invite a co-teacher by email (owner or co-teacher). Idempotent.
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @param {string} email - Email address to invite
+     * @returns {Promise<object>} {coTeacherEmails: string[]}
+     */
+    async addCoTeacher(idToken, classroomId, email) {
+        return this._request('POST', `/classrooms/${classroomId}/co-teachers`, { email }, idToken);
+    }
+
+    /**
+     * Remove a co-teacher by email (owner or co-teacher).
+     * @param {string} idToken - Teacher ID token
+     * @param {string} classroomId - Classroom ID
+     * @param {string} email - Email address to remove
+     * @returns {Promise<object>} {coTeacherEmails: string[]}
+     */
+    async removeCoTeacher(idToken, classroomId, email) {
+        return this._request(
+            'DELETE',
+            `/classrooms/${classroomId}/co-teachers/${encodeURIComponent(email)}`,
+            null,
+            idToken,
+        );
+    }
+
+    /**
      * Look up a classroom by join code (validates code, returns seat info).
      * @param {string} joinCode - 6-digit join code
      * @returns {Promise<object>} Classroom info with takenSeats

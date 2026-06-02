@@ -147,6 +147,10 @@ const useTeacherClassroom = ({
         handleApproveKickRequest: classrooms.handleApproveKickRequest,
         handleRejectKickRequest: classrooms.handleRejectKickRequest,
 
+        // Co-teachers (shared classroom management)
+        handleAddCoTeacher: classrooms.handleAddCoTeacher,
+        handleRemoveCoTeacher: classrooms.handleRemoveCoTeacher,
+
         // Submissions
         codeDisplayClassroom: submissions.codeDisplayClassroom,
         codeDisplayFullscreen: submissions.codeDisplayFullscreen,

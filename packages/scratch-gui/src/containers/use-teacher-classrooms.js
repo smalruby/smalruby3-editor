@@ -366,6 +366,44 @@ const useTeacherClassrooms = ({
         [idToken, selectedClassroom, clearError, showError, handleTeacher401, intl],
     );
 
+    // --- Co-teacher management ---
+
+    const handleAddCoTeacher = useCallback(
+        async (email) => {
+            if (!idToken || !selectedClassroom) return;
+            clearError();
+            try {
+                const data = await classroomAPI.addCoTeacher(idToken, selectedClassroom.classroomId, email);
+                setSelectedClassroom((prev) => ({ ...prev, coTeacherEmails: data.coTeacherEmails || [] }));
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    showError(translateError(intl, err));
+                }
+            }
+        },
+        [idToken, selectedClassroom, clearError, showError, handleTeacher401, intl],
+    );
+
+    const handleRemoveCoTeacher = useCallback(
+        async (email) => {
+            if (!idToken || !selectedClassroom) return;
+            clearError();
+            try {
+                const data = await classroomAPI.removeCoTeacher(idToken, selectedClassroom.classroomId, email);
+                setSelectedClassroom((prev) => ({ ...prev, coTeacherEmails: data.coTeacherEmails || [] }));
+            } catch (err) {
+                if (err.status === 401) {
+                    await handleTeacher401();
+                } else {
+                    showError(translateError(intl, err));
+                }
+            }
+        },
+        [idToken, selectedClassroom, clearError, showError, handleTeacher401, intl],
+    );
+
     // --- Kick request actions ---
 
     const handleApproveKickRequest = useCallback(
@@ -436,6 +474,8 @@ const useTeacherClassrooms = ({
         handleUpdateStudentCount,
         handleApproveKickRequest,
         handleRejectKickRequest,
+        handleAddCoTeacher,
+        handleRemoveCoTeacher,
         resetClassrooms,
     };
 };

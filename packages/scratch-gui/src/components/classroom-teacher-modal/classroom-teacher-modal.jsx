@@ -81,6 +81,8 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
         kickRequestsBySeat,
         onApproveKickRequest,
         onRejectKickRequest,
+        onAddCoTeacher,
+        onRemoveCoTeacher,
     } = containerProps;
 
     const renderMain = () => {
@@ -126,7 +128,9 @@ const ClassroomTeacherModal = ({ containerProps, onClose }) => {
                         noBackButton
                         selectedClassroom={selectedClassroom}
                         selectedMember={selectedMember}
+                        onAddCoTeacher={onAddCoTeacher}
                         onApproveKickRequest={onApproveKickRequest}
+                        onRemoveCoTeacher={onRemoveCoTeacher}
                         onCloseCodeDisplay={onCloseCodeDisplay}
                         onCopyInviteLink={onCopyInviteLink}
                         onDeleteClassroom={onDeleteClassroom}

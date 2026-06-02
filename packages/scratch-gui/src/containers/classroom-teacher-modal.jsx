@@ -167,6 +167,8 @@ const ClassroomTeacherModal = () => {
         kickRequestsBySeat: teacher.kickRequestsBySeat,
         onApproveKickRequest: teacher.handleApproveKickRequest,
         onRejectKickRequest: teacher.handleRejectKickRequest,
+        onAddCoTeacher: teacher.handleAddCoTeacher,
+        onRemoveCoTeacher: teacher.handleRemoveCoTeacher,
     };
     return <ClassroomTeacherModalComponent containerProps={teacherContainerProps} onClose={handleClose} />;
 };
