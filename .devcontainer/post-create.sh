@@ -43,6 +43,21 @@ if [[ ! -d "${PLUGINS_DIR}/tmux-sensible" ]]; then
     echo "post-create: tmux-sensible installed"
 fi
 
+# ----- SSH ログイン時の tmux 自動アタッチ -----
+# SSH_TTY が set されている（対話ログイン）ときだけ tmux に入る。
+# `devpod ssh -- command` のような非対話実行には干渉しない。
+BASH_PROFILE="${HOME}/.bash_profile"
+TMUX_AUTO_ATTACH='
+# Auto-attach to tmux on interactive SSH login (devpod devcontainer)
+if [[ -z "${TMUX:-}" ]] && command -v tmux &>/dev/null && [[ -n "${SSH_TTY:-}" ]]; then
+    exec tmux new-session -A -s work
+fi'
+
+if ! grep -q 'tmux new-session' "${BASH_PROFILE}" 2>/dev/null; then
+    echo "${TMUX_AUTO_ATTACH}" >> "${BASH_PROFILE}"
+    echo "post-create: tmux auto-attach configured in ${BASH_PROFILE}"
+fi
+
 # ----- git / worktree セットアップ -----
 GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || echo "")
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || echo "")

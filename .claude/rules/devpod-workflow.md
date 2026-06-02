@@ -40,8 +40,12 @@ devpod up . --ide none             # 初回 build はかかる、以降は数秒
 ### 3. tmux で入って作業
 
 ```bash
-devpod ssh smalruby3-editor -- bash -lc 'tmux new -A -s work'
+devpod ssh smalruby3-editor
 ```
+
+SSH ログイン時に `.bash_profile` の自動アタッチ設定が働き、`work` セッションに
+入る（なければ新規作成）。`-- bash -lc 'tmux ...'` は TTY が割り当てられないため
+tmux が起動しない。
 
 container 内で:
 ```bash
