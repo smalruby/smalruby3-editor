@@ -12,17 +12,22 @@ RUN \
     ca-certificates \
     git \
     curl \
-    less \
-    lv \
-    vim \
-    jq \
-    tmux \
     chromium \
     chromium-driver \
     libgl1-mesa-dri \
     libglapi-mesa \
     libosmesa6 \
     fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1
+
+# Development convenience tools (separate layer to avoid busting app build cache)
+RUN \
+  set -eux \
+  && apt install -y --no-install-recommends \
+    jq \
+    less \
+    lv \
+    tmux \
+    vim
 
 # Install Playwright and its dependencies
 RUN npx playwright install chromium --with-deps
