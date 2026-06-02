@@ -8,9 +8,19 @@
 |---|---|
 | 主用途 | devcontainer の中で開発 (Claude Code, npm, git すべて中で完結) |
 | エディタ | devpod ssh + tmux (VS Code Dev Containers でも可) |
+| **ホスト側ターミナル** | **iTerm2 必須**（macOS 標準 Terminal.app は OSC 52 非対応のためクリップボード連携不可） |
 | host から見える環境 | ブラウザ (port forwarding 経由)、git の push/PR (gh CLI 経由)、CDK deploy |
 | 採用していないもの | `docker compose run --rm app ...`, `bin/dx`, `bin/setup-worktree` (compose 前提なので不要) |
 | 例外的に host で必要 | `docker compose` 自体は dev server を host から開きたい人のために残してあるが、本人は使わない |
+
+### iTerm2 のクリップボード設定（初回のみ）
+
+```
+iTerm2 > Preferences > General > Selection >
+    ☑ Applications in terminal may access clipboard
+```
+
+これを有効にしないと tmux コピーがホストのクリップボードに届かない。
 
 ## 起動からの流れ (毎日のルーチン)
 
