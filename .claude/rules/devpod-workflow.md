@@ -22,6 +22,17 @@ iTerm2 > Preferences > General > Selection >
 
 これを有効にしないと tmux コピーがホストのクリップボードに届かない。
 
+### git の push 認証 (自動設定)
+
+コンテナ内の `git push` は **gh のクレデンシャルヘルパー経由**で認証する。`post-create.sh` が
+`git config --local credential.https://github.com.helper '!gh auth git-credential'` を設定するため、
+通常どおり `git push origin <branch>` で push できる（URL へのトークン埋め込み不要）。
+
+- ホストの `~/.gitconfig` は読み取り専用バインドマウント (`fakeowner ro`) なので
+  `gh auth setup-git`（global 書き込み）は使えない → repo-local 設定で回避している。
+- git push も `gh` の issue/PR 作成も同一の `GH_TOKEN` に一本化される。
+- `gh auth status` で `Logged in ... (GH_TOKEN)` を確認できれば push も通る。
+
 ## 起動からの流れ (毎日のルーチン)
 
 ### 1. 初回 / `devpod delete` 後のセットアップ

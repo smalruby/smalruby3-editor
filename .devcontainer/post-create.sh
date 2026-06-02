@@ -59,6 +59,21 @@ if ! grep -q 'tmux new-session' "${BASH_PROFILE}" 2>/dev/null; then
     echo "post-create: tmux auto-attach configured in ${BASH_PROFILE}"
 fi
 
+# ----- git クレデンシャル (HTTPS push 認証) -----
+# ホストの ~/.gitconfig は読み取り専用バインドマウント (fakeowner ro) のため
+# `gh auth setup-git` (global 書き込み) は失敗する。代わりに repo-local 設定で
+# gh をクレデンシャルヘルパーに指定し、gh が持つ GH_TOKEN 認証を git push でも
+# 使い回す。これで URL へのトークン埋め込みが不要になり、git も gh API
+# (issue/PR) も同一トークンに一本化される。github.com 向けに限定するので
+# origin / upstream (どちらも github.com) の両方をカバーする。
+if command -v gh &>/dev/null; then
+    CRED_HELPER='!gh auth git-credential'
+    if [[ "$(git config --local --get credential.https://github.com.helper 2>/dev/null)" != "${CRED_HELPER}" ]]; then
+        git config --local credential.https://github.com.helper "${CRED_HELPER}"
+        echo "post-create: configured gh as git credential helper for github.com"
+    fi
+fi
+
 # ----- git / worktree セットアップ -----
 GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null || echo "")
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || echo "")
