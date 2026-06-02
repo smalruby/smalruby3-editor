@@ -8,9 +8,30 @@
 |---|---|
 | 主用途 | devcontainer の中で開発 (Claude Code, npm, git すべて中で完結) |
 | エディタ | devpod ssh + tmux (VS Code Dev Containers でも可) |
+| **ホスト側ターミナル** | **iTerm2 必須**（macOS 標準 Terminal.app は OSC 52 非対応のためクリップボード連携不可） |
 | host から見える環境 | ブラウザ (port forwarding 経由)、git の push/PR (gh CLI 経由)、CDK deploy |
 | 採用していないもの | `docker compose run --rm app ...`, `bin/dx`, `bin/setup-worktree` (compose 前提なので不要) |
 | 例外的に host で必要 | `docker compose` 自体は dev server を host から開きたい人のために残してあるが、本人は使わない |
+
+### iTerm2 のクリップボード設定（初回のみ）
+
+```
+iTerm2 > Preferences > General > Selection >
+    ☑ Applications in terminal may access clipboard
+```
+
+これを有効にしないと tmux コピーがホストのクリップボードに届かない。
+
+### git の push 認証 (自動設定)
+
+コンテナ内の `git push` は **gh のクレデンシャルヘルパー経由**で認証する。`post-create.sh` が
+`git config --local credential.https://github.com.helper '!gh auth git-credential'` を設定するため、
+通常どおり `git push origin <branch>` で push できる（URL へのトークン埋め込み不要）。
+
+- ホストの `~/.gitconfig` は読み取り専用バインドマウント (`fakeowner ro`) なので
+  `gh auth setup-git`（global 書き込み）は使えない → repo-local 設定で回避している。
+- git push も `gh` の issue/PR 作成も同一の `GH_TOKEN` に一本化される。
+- `gh auth status` で `Logged in ... (GH_TOKEN)` を確認できれば push も通る。
 
 ## 起動からの流れ (毎日のルーチン)
 
@@ -40,8 +61,12 @@ devpod up . --ide none             # 初回 build はかかる、以降は数秒
 ### 3. tmux で入って作業
 
 ```bash
-devpod ssh smalruby3-editor -- bash -lc 'tmux new -A -s work'
+devpod ssh smalruby3-editor
 ```
+
+SSH ログイン時に `.bash_profile` の自動アタッチ設定が働き、`work` セッションに
+入る（なければ新規作成）。`-- bash -lc 'tmux ...'` は TTY が割り当てられないため
+tmux が起動しない。
 
 container 内で:
 ```bash
