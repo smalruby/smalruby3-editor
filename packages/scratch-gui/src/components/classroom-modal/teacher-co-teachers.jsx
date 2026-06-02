@@ -50,13 +50,6 @@ const TeacherCoTeachers = ({ classroom, isLoading, onAddCoTeacher, onRemoveCoTea
 
     return (
         <div className={styles.coTeachersSection} data-testid="classroom-co-teachers">
-            <div className={styles.phaseTitle}>
-                <FormattedMessage
-                    defaultMessage="Co-teachers"
-                    description="Heading for the shared classroom managers section"
-                    id="gui.classroom.coTeachers.title"
-                />
-            </div>
             <div className={styles.coTeachersHint}>
                 <FormattedMessage
                     defaultMessage="Invite other teachers by email to co-manage this class. They have the same permissions as you."

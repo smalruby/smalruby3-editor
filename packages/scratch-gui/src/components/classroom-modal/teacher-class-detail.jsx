@@ -49,6 +49,7 @@ const TeacherClassDetail = ({
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCodeDisplay, setShowCodeDisplay] = useState(false);
     const [showStudentCountDialog, setShowStudentCountDialog] = useState(false);
+    const [activeTab, setActiveTab] = useState('members');
     const [editStudentCount, setEditStudentCount] = useState(0);
     const [editAssignmentName, setEditAssignmentName] = useState(
         selectedClassroom.assignmentName || '',
@@ -60,7 +61,12 @@ const TeacherClassDetail = ({
         setShowDeleteConfirm(false);
         setShowCodeDisplay(false);
         setShowStudentCountDialog(false);
+        setActiveTab('members');
     }, [selectedClassroom.classroomId]);
+
+    const handleTabClick = useCallback((e) => {
+        setActiveTab(e.currentTarget.dataset.tab);
+    }, []);
 
     const memberMap = React.useMemo(() => {
         const map = {};
@@ -314,17 +320,58 @@ const TeacherClassDetail = ({
                                 </div>
                             )}
 
-                            {/* Members header + grid */}
-                            <div className={styles.membersHeader}>
-                                <div
-                                    className={styles.phaseTitle}
-                                    style={{ marginBottom: 0 }}
+                            {/* Tabs: Members / Co-teachers */}
+                            <div className={styles.detailTabs} role="tablist">
+                                <button
+                                    className={classNames(
+                                        styles.detailTab,
+                                        activeTab === 'members' && styles.detailTabActive,
+                                    )}
+                                    data-tab="members"
+                                    data-testid="classroom-tab-members"
+                                    onClick={handleTabClick}
                                 >
                                     <FormattedMessage
                                         defaultMessage="Members"
                                         description="Members list title"
                                         id="gui.classroom.members.title"
                                     />
+                                </button>
+                                {onAddCoTeacher && onRemoveCoTeacher && (
+                                    <button
+                                        className={classNames(
+                                            styles.detailTab,
+                                            activeTab === 'co-teachers' && styles.detailTabActive,
+                                        )}
+                                        data-tab="co-teachers"
+                                        data-testid="classroom-tab-co-teachers"
+                                        onClick={handleTabClick}
+                                    >
+                                        <FormattedMessage
+                                            defaultMessage="Co-teachers"
+                                            description="Co-teachers tab label"
+                                            id="gui.classroom.coTeachers.title"
+                                        />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Members tab: legend + count/refresh + seat grid */}
+                            {activeTab === 'members' && (
+                                <React.Fragment>
+                            <div className={styles.membersHeader}>
+                                <div className={styles.membersLegend}>
+                                    <span className={`${styles.legendItem} ${styles.memberCellJoined}`}>
+                                        <span className={styles.legendSeated}>
+                                            <FormattedMessage defaultMessage="Seated" description="Legend: seated" id="gui.classroom.teacherDetail.legend.seated" />
+                                        </span>
+                                    </span>
+                                    <span className={`${styles.legendItem} ${styles.memberCellSubmitted}`}>
+                                        <FormattedMessage defaultMessage="Submitted" description="Legend: submitted" id="gui.classroom.teacherDetail.legend.submitted" />
+                                    </span>
+                                    <span className={`${styles.legendItem} ${styles.memberCellReturned}`}>
+                                        <FormattedMessage defaultMessage="Returned" description="Legend: returned" id="gui.classroom.teacherDetail.legend.returned" />
+                                    </span>
                                 </div>
                                 <div className={styles.membersHeaderRight}>
                                     <span
@@ -349,19 +396,6 @@ const TeacherClassDetail = ({
                                         {'↻'}
                                     </button>
                                 </div>
-                            </div>
-                            <div className={styles.membersLegend}>
-                                <span className={`${styles.legendItem} ${styles.memberCellJoined}`}>
-                                    <span className={styles.legendSeated}>
-                                        <FormattedMessage defaultMessage="Seated" description="Legend: seated" id="gui.classroom.teacherDetail.legend.seated" />
-                                    </span>
-                                </span>
-                                <span className={`${styles.legendItem} ${styles.memberCellSubmitted}`}>
-                                    <FormattedMessage defaultMessage="Submitted" description="Legend: submitted" id="gui.classroom.teacherDetail.legend.submitted" />
-                                </span>
-                                <span className={`${styles.legendItem} ${styles.memberCellReturned}`}>
-                                    <FormattedMessage defaultMessage="Returned" description="Legend: returned" id="gui.classroom.teacherDetail.legend.returned" />
-                                </span>
                             </div>
                             <div
                                 className={styles.membersGrid}
@@ -431,9 +465,11 @@ const TeacherClassDetail = ({
                                     },
                                 )}
                             </div>
+                                </React.Fragment>
+                            )}
 
-                            {/* Co-teachers (shared classroom management) */}
-                            {onAddCoTeacher && onRemoveCoTeacher && (
+                            {/* Co-teachers tab */}
+                            {activeTab === 'co-teachers' && onAddCoTeacher && onRemoveCoTeacher && (
                                 <TeacherCoTeachers
                                     classroom={selectedClassroom}
                                     isLoading={isLoading}

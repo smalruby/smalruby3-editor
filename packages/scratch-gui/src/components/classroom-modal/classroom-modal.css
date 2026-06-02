@@ -1538,12 +1538,40 @@
     margin-bottom: 1rem;
 }
 
+/* --- Class detail tabs (Members / Co-teachers) --- */
+
+.detail-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid #e9edf2;
+    margin-bottom: 0.75rem;
+}
+
+.detail-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.95rem;
+    color: #575e75;
+    cursor: pointer;
+}
+
+.detail-tab:hover {
+    color: #855cd6;
+}
+
+.detail-tab-active {
+    color: #855cd6;
+    font-weight: bold;
+    border-bottom-color: #855cd6;
+}
+
 /* --- Co-teachers (shared classroom management) --- */
 
 .co-teachers-section {
-    margin-top: 1.25rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e9edf2;
+    padding-top: 0.25rem;
 }
 
 .co-teachers-hint {

@@ -144,9 +144,21 @@ try {
     await page.waitForSelector('[data-testid="classroom-phase-teacher-detail"]', { timeout: 15000 });
     await sleep(500);
 
-    // 1. Co-teacher section renders.
+    // Members/Co-teachers are tabbed; the Members tab is default.
+    const membersTab = await page.$('[data-testid="classroom-tab-members"]').then((el) => !!el);
+    const coTeacherTab = await page.$('[data-testid="classroom-tab-co-teachers"]').then((el) => !!el);
+    check('member/co-teacher tabs render', membersTab && coTeacherTab);
+    // Co-teacher section is hidden until its tab is selected.
+    const hiddenByDefault = await page.$('[data-testid="classroom-co-teachers"]').then((el) => !el);
+    check('co-teacher section hidden on the Members tab by default', hiddenByDefault);
+
+    // Switch to the Co-teachers tab.
+    await page.click('[data-testid="classroom-tab-co-teachers"]');
+    await sleep(400);
+
+    // 1. Co-teacher section renders once its tab is active.
     const sectionVisible = await page.$('[data-testid="classroom-co-teachers"]').then((el) => !!el);
-    check('co-teacher section renders in class detail', sectionVisible);
+    check('co-teacher section renders on the Co-teachers tab', sectionVisible);
     await page.screenshot({ path: resolve(SHOTS, 'co-teacher-section.png') });
 
     // 2. Invite a co-teacher (requires the co-teacher API on the stage).
