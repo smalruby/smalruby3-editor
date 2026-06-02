@@ -138,6 +138,7 @@ Google または Microsoft アカウントでサインインする画面。先�
 | 参加コード | 「3cexm5」 | `classroom-item-code-{classroomId}` | 青い等幅フォント、右上 |
 | 情報行 | 「35人  2026/4/5  有効期限: 2026/4/6」 | — | 人数・作成日・有効期限 |
 | 詳細ボタン | 「詳細」 | `classroom-item-details-{classroomId}` | → teacher-detail |
+| 共同管理バッジ | 「共同管理」(自分が co-teacher のクラスのみ) | `classroom-item-co-managed-badge-{classroomId}` | 作成者クラスと区別 |
 
 **フッターボタン:**
 
@@ -255,6 +256,21 @@ Google Classroom からインポートした場合は「インポート元: {コ
 | 画像インデックス | `classroom-member-detail-image-index` | 「1/3」等 |
 | 前の画像ボタン | `classroom-member-detail-prev` | — |
 | 次の画像ボタン | `classroom-member-detail-next` | — |
+
+**共同管理者セクション (co-teachers):**
+
+座席グリッドの下・フッター（全作品DL / クラス削除）の上に表示。owner または co-teacher が、別の先生を **email で招待**して共同管理できる（→ [architecture.md の共同管理](architecture.md#共同管理co-teacher)）。
+
+| 要素 | テキスト例 | data-testid | 操作 |
+|------|----------|-------------|------|
+| セクション全体 | 見出し「Co-teachers」 | `classroom-co-teachers` | — |
+| 未登録表示 | 「No co-teachers yet.」 | `classroom-co-teachers-empty` | co-teacher が0件時 |
+| 一覧の各項目 | 「co@example.com」 | `classroom-co-teacher-item-{email}` | — |
+| 解除ボタン | 「Remove」 | `classroom-co-teacher-remove-{email}` | 共同管理者を解除 |
+| 招待入力 | email 入力 (placeholder: teacher@example.com) | `classroom-co-teacher-invite-input` | Enter でも招待 |
+| 招待ボタン | 「Invite」 | `classroom-co-teacher-invite-submit` | email 未入力時は disabled |
+
+招待された先生は次回ログイン時、ダッシュボードに該当クラスが**「共同管理」バッジ**付きで表示される（即時反映・承認不要）。
 
 **コード表示 (全画面):**
 

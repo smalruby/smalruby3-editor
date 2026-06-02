@@ -164,6 +164,9 @@ sequenceDiagram
 | `GET` | `/classrooms/{id}` | クラス詳細 |
 | `PATCH` | `/classrooms/{id}` | クラス更新 |
 | `DELETE` | `/classrooms/{id}` | クラス削除 (アーカイブ) |
+| `GET` | `/classrooms/{id}/co-teachers` | 共同管理者一覧 (`{ownerSub, coTeacherEmails}`) |
+| `POST` | `/classrooms/{id}/co-teachers` | 共同管理者を email で招待 (`{email}`)。冪等・最大10・email 形式検証 |
+| `DELETE` | `/classrooms/{id}/co-teachers/{email}` | 共同管理者を解除 |
 | `GET` | `/classrooms/{id}/members` | メンバー一覧 (kicked 行は除外) |
 | `DELETE` | `/classrooms/{id}/members/{memberId}` | メンバー削除 = ソフト kick (1h tombstone を残し、`kicked: true` をマーク)。verify-session が 410 reason='kicked' を返せるようにするための仕様。lookup の takenSeats も即座に空く |
 | `GET` | `/classrooms/{id}/kick-requests` | 退室リクエスト一覧 (Issue #692) |
@@ -204,6 +207,7 @@ erDiagram
         string className "最大50文字"
         number studentCount "1-50"
         string googleClassroomCourseId "任意"
+        list coTeacherEmails "共同管理者の email 配列 (任意, 最大10)"
         string status "active / archived"
         string createdAt "ISO8601"
         string updatedAt "ISO8601"
@@ -213,7 +217,17 @@ erDiagram
 
 **GSI:**
 - `joinCode-index` — 参加コードでの検索
-- `teacherSub-index` — 先生のクラス一覧
+- `teacherSub-index` — 先生のクラス一覧（owner 分）
+
+### 共同管理（co-teacher）
+
+1 つのクラスを作成者（`teacherSub`）に加えて複数の先生で共同管理できる。
+
+- 招待は **email** で行い `coTeacherEmails: string[]`（正規化: 小文字）に保持する。ログイン前の相手も指定でき、Google / Microsoft の混在も可。
+- 先生トークン検証 (`verifyTeacherIdToken`) は `{sub, email}` を返す。Google は `email_verified` のときのみ email を採用、Microsoft は `email` / `preferred_username`。
+- 所有権判定は `canManageClassroom(classroom, identity)` = 「`teacherSub === sub` または `coTeacherEmails` に自分の email が含まれる」。全ての先生向け操作で使用。co-teacher は owner と**完全同等**（クラス削除・共同管理者の追加/解除も可）。
+- 作成者は `teacherSub` で管理され `coTeacherEmails` には含めないため、co-teacher API から作成者を外すことはできない（管理者ゼロを防止）。
+- `GET /classrooms` は owner 分（`teacherSub-index`）と co-taught 分（`coTeacherEmails` への Scan + `contains` フィルタ）の和集合。DynamoDB はリスト属性を GSI 化できないため Scan を使用。Classrooms テーブルは小規模（単一組織・30日 TTL）のため許容。各クラスは `role`（owner / co-teacher）を返し、フロントの「共同管理」バッジに使う。
 
 ### ClassroomMemberships テーブル
 
