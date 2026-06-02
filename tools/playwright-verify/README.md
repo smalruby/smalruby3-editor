@@ -28,6 +28,36 @@ node <script>.mjs
 rm -rf .profiles
 ```
 
+## 目視確認（ホストの Chrome で見ながら動かす）
+
+devpod コンテナは画面を持たない（`DISPLAY` 未設定）ので、コンテナ内で `headless:false`
+にしてもウィンドウは出ない。**ブラウザはホスト（Mac）側で開き、dev サーバはコンテナで動かす**
+構成にする。`/app` はホストのバインドマウントなので、ここのスクリプトはそのままホストにもある。
+
+前提:
+- dev サーバはコンテナ内で起動（`set -a; . ./.env; set +a; SMALRUBY3_HOST=0.0.0.0 PORT=8601 npm start`）
+- `devcontainer.json` の `forwardPorts: [8601]` により **ホストから `localhost:8601` に到達可能**
+  （普段ホストのブラウザでエディタを見ているのと同じ経路）
+
+ホスト（Mac）側で実行:
+
+```bash
+cd <repo>/tools/playwright-verify
+# 初回のみ: ホスト用のブラウザを用意（どちらか）
+#   a) 既存の Google Chrome を使う → 追加インストール不要（CHANNEL=chrome）
+#   b) Playwright 同梱 Chromium を使う → npx playwright install chromium
+
+# 目視モードで実行（実 Chrome ウィンドウが開く・ゆっくり動く・最後まで開いたまま）
+HEADLESS=false CHANNEL=chrome SLOWMO=300 KEEP_OPEN=1 node smoke-teacher-dashboard.mjs
+```
+
+同じスクリプトをコンテナ内では `node smoke-teacher-dashboard.mjs`（headless 既定）で回せる。
+env トグル: `HEADLESS=false` 表示 / `CHANNEL=chrome` 実 Chrome / `SLOWMO=<ms>` 低速 /
+`KEEP_OPEN=1` 終了後も開いたまま / `BASE_URL=...` 接続先上書き。
+
+> メモ: ホスト node が Linux 用に入った `node_modules` を読んで不具合が出たら、ホストで
+> `npm install` し直す（playwright 本体は JS なので通常はそのまま動く。ブラウザバイナリは OS 別キャッシュ）。
+
 ## スクリプト一覧
 
 | ファイル | 検証対象 |
