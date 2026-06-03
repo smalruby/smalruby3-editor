@@ -58,6 +58,39 @@ test('MeshV2Service Timestamp-based getRemoteVariable', (t) => {
         st.end();
     });
 
+    t.test('handleDataUpdate ignores own node data in legacy mode (default)', (st) => {
+        const legacy = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        // runtime.meshSelfInclusive is falsy by default → legacy behavior.
+        legacy.handleDataUpdate({
+            nodeId: 'node-self',
+            timestamp: new Date().toISOString(),
+            data: [{ key: 'self-var', value: 'mine' }],
+        });
+
+        st.notOk(legacy.remoteData['node-self'], 'own node data is not stored in legacy mode');
+        st.equal(legacy.getRemoteVariable('self-var'), null, 'own variable is not readable in legacy mode');
+        st.end();
+    });
+
+    t.test('handleDataUpdate stores own node data when self-inclusive (Issue #707)', (st) => {
+        const selfInclusive = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        selfInclusive.runtime.meshSelfInclusive = true;
+
+        const serverTimestamp = new Date().toISOString();
+        const expectedTimestamp = new Date(serverTimestamp).getTime();
+        selfInclusive.handleDataUpdate({
+            nodeId: 'node-self',
+            timestamp: serverTimestamp,
+            data: [{ key: 'self-var', value: 'mine' }],
+        });
+
+        st.ok(selfInclusive.remoteData['node-self'], 'own node is stored when self-inclusive');
+        st.equal(selfInclusive.remoteData['node-self']['self-var'].value, 'mine');
+        st.equal(selfInclusive.remoteData['node-self']['self-var'].timestamp, expectedTimestamp);
+        st.equal(selfInclusive.getRemoteVariable('self-var'), 'mine', 'own variable is readable');
+        st.end();
+    });
+
     t.test('fetchAllNodesData should add timestamp from status', async (st) => {
         const serverTimestamp = new Date().toISOString();
         const expectedTimestamp = new Date(serverTimestamp).getTime();

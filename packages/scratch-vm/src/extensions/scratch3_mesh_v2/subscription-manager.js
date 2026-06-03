@@ -61,7 +61,15 @@ const SubscriptionManagerMixin = {
     },
 
     handleDataUpdate(nodeStatus) {
-        if (!nodeStatus || nodeStatus.nodeId === this.meshId) return;
+        if (!nodeStatus) return;
+
+        // AppSync echoes the sender's own nodeStatus back. By default we drop it
+        // (legacy behavior: a node only reads other nodes' variables). Issue #707:
+        // when the project opts into self-inclusive mode, store own data too so
+        // the sensor value block reads this node's own global variables. Self and
+        // peer data are then treated uniformly (both arrive via the network with
+        // server timestamps), avoiding any client/server clock mismatch.
+        if (nodeStatus.nodeId === this.meshId && !this.runtime.meshSelfInclusive) return;
 
         const nodeId = nodeStatus.nodeId;
         if (!this.remoteData[nodeId]) {
