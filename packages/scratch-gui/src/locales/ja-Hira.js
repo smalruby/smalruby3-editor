@@ -60,6 +60,14 @@ export default {
     'gui.welcomeModal.learnMore': 'スモウルビーについてくわしく',
     'gui.welcomeModal.leadShort': 'ブロックからはじめて、Rubyのコードまでちょうせんできます。',
     'gui.welcomeModal.later': 'あとでみる',
+    'gui.meshV2UpgradeModal.title': 'メッシュの「センサーのあたい」について',
+    'gui.meshV2UpgradeModal.body':
+        'このプロジェクトはふるいうごきです。「センサーのあたい」ブロックは、つながっているほかのプロジェクトのへんすうだけをよみ、' +
+        'じぶんのへんすうはよみません。じぶんのへんすうもよむあたらしいうごきにきりかえられます。' +
+        'このままつづけますか？それともあたらしいうごきにきりかえますか？',
+    'gui.meshV2UpgradeModal.switchToNew': 'あたらしいうごきにきりかえる',
+    'gui.meshV2UpgradeModal.keepLegacy': 'このままつづける',
+    'gui.meshV2UpgradeModal.learnMore': 'くわしくはこちら',
     'gui.mobile.drawer.section.help': 'ヘルプ',
     'gui.mobile.drawer.help.showWelcome': 'ウェルカムをもういちどみる',
     'gui.classroom.management.title': 'クラスかんり',

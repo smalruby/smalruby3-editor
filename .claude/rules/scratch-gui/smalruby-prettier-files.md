@@ -22,6 +22,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`
 - `src/components/koshien-test-modal/`
+- `src/components/mesh-v2-upgrade-modal/`
 - `src/components/mobile-bottom-tabs/`
 - `src/components/mobile-drawer/`
 - `src/components/mobile-gui/`
@@ -76,6 +77,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/containers/use-teacher-submissions.js`
 - `src/containers/extension-library.css`
 - `src/containers/google-drive-loader-hoc.jsx`
+- `src/containers/mesh-v2-upgrade-modal.jsx`
 - `src/containers/google-drive-saver-hoc.jsx`
 - `src/containers/ruby-downloader.jsx`
 - `src/containers/ruby-tab.jsx`
@@ -208,6 +210,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/dncl-mode-notice.test.jsx`
 - `test/unit/components/extension-button-dncl.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
+- `test/unit/components/mesh-v2-upgrade-modal.test.jsx`
 - `test/unit/components/mobile-bottom-tabs.test.jsx`
 - `test/unit/components/mobile-drawer.test.jsx`
 - `test/unit/components/mobile-orientation-gate.test.jsx`

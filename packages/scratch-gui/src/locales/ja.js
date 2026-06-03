@@ -59,6 +59,14 @@ export default {
     'gui.welcomeModal.learnMore': 'スモウルビーについて詳しく',
     'gui.welcomeModal.leadShort': 'ブロックから始めて、Rubyのコードまで挑戦できます。',
     'gui.welcomeModal.later': 'あとで見る',
+    'gui.meshV2UpgradeModal.title': 'メッシュの「センサーの値」について',
+    'gui.meshV2UpgradeModal.body':
+        'このプロジェクトは古い動きです。「センサーの値」ブロックは、つながっているほかのプロジェクトの変数だけを読み、' +
+        '自分の変数は読みません。自分の変数も読む新しい動きに切り替えられます。' +
+        'このまま続けますか？それとも新しい動きに切り替えますか？',
+    'gui.meshV2UpgradeModal.switchToNew': '新しい動きに切り替える',
+    'gui.meshV2UpgradeModal.keepLegacy': 'このまま続ける',
+    'gui.meshV2UpgradeModal.learnMore': 'くわしくはこちら',
     'gui.mobile.drawer.section.help': 'ヘルプ',
     'gui.mobile.drawer.help.showWelcome': 'ウェルカムをもう一度見る',
     'gui.classroom.management.title': 'クラス管理',
