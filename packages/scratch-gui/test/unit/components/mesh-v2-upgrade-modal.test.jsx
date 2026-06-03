@@ -3,7 +3,6 @@ import '@testing-library/jest-dom';
 import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-
 import MeshV2UpgradeModal from '../../../src/components/mesh-v2-upgrade-modal/mesh-v2-upgrade-modal.jsx';
 
 const renderModal = (props) =>
