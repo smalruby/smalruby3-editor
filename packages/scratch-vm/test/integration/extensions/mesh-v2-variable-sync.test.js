@@ -126,6 +126,63 @@ test('MeshV2Service Variable Sync Integration', async (t) => {
     t.end();
 });
 
+// Issue #707: the sensor value block should read this node's own global
+// variables when the project opts into self-inclusive mode, while peer variable
+// reads stay unchanged. AppSync echoes the sender's own nodeStatus back, so we
+// simulate that echo via handleDataUpdate (the shared ingestion path for
+// subscription / polling / periodic-sync).
+test('MeshV2Service self-inclusive sensor value (Issue #707)', (t) => {
+    const ownEcho = {
+        nodeId: 'self-node',
+        timestamp: '2026-01-01T00:00:02Z',
+        data: [{ key: 'myScore', value: '100' }],
+    };
+    const peerData = {
+        nodeId: 'peer-node',
+        timestamp: '2026-01-01T00:00:01Z',
+        data: [{ key: 'peerScore', value: '7' }],
+    };
+
+    t.test('legacy mode (default): own data ignored, peer data read', (st) => {
+        const service = new MeshV2Service(createMockBlocks(), 'self-node', 'domain1');
+        service.handleDataUpdate({ ...ownEcho });
+        service.handleDataUpdate({ ...peerData });
+
+        st.equal(service.getRemoteVariable('myScore'), null, 'own variable is not readable');
+        st.equal(service.getRemoteVariable('peerScore'), '7', 'peer variable is read as before');
+        service.cleanup();
+        st.end();
+    });
+
+    t.test('new mode: own data read alongside peer data, latest timestamp wins', (st) => {
+        const service = new MeshV2Service(createMockBlocks(), 'self-node', 'domain1');
+        service.runtime.meshSelfInclusive = true;
+        service.handleDataUpdate({ ...peerData });
+        service.handleDataUpdate({ ...ownEcho });
+
+        st.equal(service.getRemoteVariable('myScore'), '100', 'own variable is now readable');
+        st.equal(service.getRemoteVariable('peerScore'), '7', 'peer variable unchanged (no regression)');
+
+        // A shared variable name resolves to the latest timestamp, self included.
+        service.handleDataUpdate({
+            nodeId: 'peer-node',
+            timestamp: '2026-01-01T00:00:05Z',
+            data: [{ key: 'shared', value: 'peer-newer' }],
+        });
+        service.handleDataUpdate({
+            nodeId: 'self-node',
+            timestamp: '2026-01-01T00:00:10Z',
+            data: [{ key: 'shared', value: 'self-newest' }],
+        });
+        st.equal(service.getRemoteVariable('shared'), 'self-newest', 'latest timestamp wins across self and peers');
+
+        service.cleanup();
+        st.end();
+    });
+
+    t.end();
+});
+
 test('MeshV2Service fetch existing nodes data on joinGroup', async (t) => {
     const blocks = {
         runtime: {
