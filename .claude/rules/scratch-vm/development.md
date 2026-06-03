@@ -216,6 +216,7 @@ The mesh v2 extension uses AWS AppSync for real-time collaboration:
 | `src/blocks/scratch3_operators.js` | regex support | operator_contains で正規表現マッチングをサポート |
 | `src/engine/comment.js` | toXML modernization | Blockly v12 対応: `pinned="${!minimized}"` (cherry-pick from upstream spork@29bdbd1fe) + (0,0) 時の x/y 属性省略 (Smalruby 独自) |
 | `src/engine/runtime.js` | toolboxitemid for extension categories | Blockly v12 対応: 拡張機能のカテゴリ XML に `toolboxitemid` 属性を追加。Blockly v12 の ContinuousToolbox は `toolboxitemid` から id を読むため、未指定だと `blockly-XXX` の auto-id が StatusIndicatorLabel.extensionId に伝搬し、`!` 接続モーダルが拡張機能を見つけられず scanning で固まる |
+| `src/serialization/sb3.js` | mesh self-inclusive flag | Mesh v2 センサーの値の自己参照モードを `meta.smalruby.meshSelfInclusive` として serialize/deserialize する (Issue #707)。`runtime.meshSelfInclusive` を読み書き |
 
 ### 関連ファイル
 

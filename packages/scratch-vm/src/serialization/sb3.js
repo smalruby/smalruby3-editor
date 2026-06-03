@@ -665,6 +665,15 @@ const serialize = function (runtime, targetId) {
     meta.agent = 'none';
     if (typeof navigator !== 'undefined') meta.agent = navigator.userAgent;
 
+    // === Smalruby: Start of mesh self-inclusive flag ===
+    // Persist whether the Mesh v2 "sensor value" block reads this node's own
+    // global variables (self-inclusive / new behavior). Absent or false means
+    // the legacy behavior where a node only reads other nodes' variables.
+    if (runtime.meshSelfInclusive) {
+        meta.smalruby = Object.assign(meta.smalruby || {}, {meshSelfInclusive: true});
+    }
+    // === Smalruby: End of mesh self-inclusive flag ===
+
     // Assemble payload and return
     obj.meta = meta;
     return obj;
@@ -1455,6 +1464,14 @@ const deserialize = function (json, runtime, zip, isSingleSprite) {
     } else {
         runtime.origin = null;
     }
+
+    // === Smalruby: Start of mesh self-inclusive flag ===
+    // Default to legacy behavior (a node does not read its own variables via the
+    // Mesh v2 sensor value block) unless the project explicitly opted in. Always
+    // set the flag so that loading a non-opted-in project after an opted-in one
+    // resets it (mirrors the origin handling above).
+    runtime.meshSelfInclusive = !!(json.meta && json.meta.smalruby && json.meta.smalruby.meshSelfInclusive);
+    // === Smalruby: End of mesh self-inclusive flag ===
 
     // First keep track of the current target order in the json,
     // then sort by the layer order property before parsing the targets

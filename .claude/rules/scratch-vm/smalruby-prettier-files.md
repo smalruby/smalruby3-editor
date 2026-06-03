@@ -57,6 +57,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/mesh_service_v2_subscription.js`
 - `test/unit/mesh_service_v2_timestamp.js`
 - `test/unit/mesh_service_v2.js`
+- `test/unit/mesh_v2_self_inclusive_serialization.js`
 - `test/unit/rate_limiter.js`
 - `test/unit/scratch3_mesh_v2_rate_limiter_repro.js`
 - `test/unit/smalruby_migration.js`
