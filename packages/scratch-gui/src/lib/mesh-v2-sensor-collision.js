@@ -7,6 +7,9 @@
 // first detected we show a one-time, non-blocking notice.
 
 const SENSOR_VALUE_OPCODE = 'meshV2_getSensorValue';
+// The sensor value block's NAME is an input wired to a shadow menu block of this
+// opcode, whose `variableNames` field holds the selected name.
+const SENSOR_VALUE_MENU_OPCODE = 'meshV2_menu_variableNames';
 // scratch-vm Variable.SCALAR_TYPE is the empty string.
 const SCALAR_TYPE = '';
 
@@ -37,16 +40,27 @@ const getGlobalScalarVariableNames = (vm) => {
  */
 const getSensorValueLookupNames = (vm) => {
     const names = new Set();
+    const add = (value) => {
+        if (typeof value === 'string' && value !== '') names.add(value);
+    };
     const targets = (vm && vm.runtime && vm.runtime.targets) || [];
     for (const target of targets) {
         const blocks = target && target.blocks && target.blocks._blocks;
         if (!blocks) continue;
         for (const blockId in blocks) {
             const block = blocks[blockId];
-            if (block && block.opcode === SENSOR_VALUE_OPCODE && block.fields && block.fields.NAME) {
-                const value = block.fields.NAME.value;
-                if (typeof value === 'string' && value !== '') names.add(value);
+            if (!block || block.opcode !== SENSOR_VALUE_OPCODE) continue;
+            // Real blocks store the selected name in a shadow menu block wired to
+            // the NAME input. Read that shadow's `variableNames` field.
+            const input = block.inputs && block.inputs.NAME;
+            if (input) {
+                const menu = blocks[input.shadow || input.block];
+                if (menu && menu.opcode === SENSOR_VALUE_MENU_OPCODE && menu.fields && menu.fields.variableNames) {
+                    add(menu.fields.variableNames.value);
+                }
             }
+            // Defensive: also accept a plain NAME field, should one ever appear.
+            if (block.fields && block.fields.NAME) add(block.fields.NAME.value);
         }
     }
     return names;

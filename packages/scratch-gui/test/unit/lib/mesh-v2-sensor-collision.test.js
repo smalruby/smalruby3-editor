@@ -1,9 +1,9 @@
 /* eslint-env jest */
 import { getSensorValueCollisions, hasSensorValueCollision } from '../../../src/lib/mesh-v2-sensor-collision.js';
 
-// Build a minimal VM-like object. Global scalar variables live on the stage;
-// sensor value blocks live on any target with opcode meshV2_getSensorValue and a
-// literal NAME field.
+// Build a minimal VM-like object matching the REAL block shape: the sensor value
+// block stores its selected name in a shadow menu block (meshV2_menu_variableNames)
+// wired to its NAME input. Global scalar variables live on the stage.
 const makeVm = ({ globals = [], sensorNames = [], lists = [] } = {}) => {
     const variables = {};
     globals.forEach((name, i) => {
@@ -14,7 +14,18 @@ const makeVm = ({ globals = [], sensorNames = [], lists = [] } = {}) => {
     });
     const blocks = {};
     sensorNames.forEach((name, i) => {
-        blocks[`b${i}`] = { opcode: 'meshV2_getSensorValue', fields: { NAME: { value: name } } };
+        const menuId = `m${i}`;
+        blocks[`b${i}`] = {
+            opcode: 'meshV2_getSensorValue',
+            fields: {},
+            inputs: { NAME: { name: 'NAME', block: menuId, shadow: menuId } },
+        };
+        blocks[menuId] = {
+            opcode: 'meshV2_menu_variableNames',
+            shadow: true,
+            fields: { variableNames: { name: 'variableNames', value: name } },
+            inputs: {},
+        };
     });
     const stage = { isStage: true, variables, blocks: { _blocks: {} } };
     const sprite = { isStage: false, variables: {}, blocks: { _blocks: blocks } };
