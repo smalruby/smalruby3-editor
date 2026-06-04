@@ -10,7 +10,9 @@ const fail = (m) => {
     process.exitCode = 1;
 };
 
-const browser = await chromium.launch({ headless: true });
+// HEADLESS=0 で headful 実行（手元の host など、ディスプレイがある環境向け）。
+const headful = process.env.HEADLESS === '0';
+const browser = await chromium.launch({ headless: !headful, slowMo: headful ? 500 : 0 });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 const page = await context.newPage();
 page.on('console', (m) => {
