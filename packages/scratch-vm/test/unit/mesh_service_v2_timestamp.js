@@ -58,6 +58,23 @@ test('MeshV2Service Timestamp-based getRemoteVariable', (t) => {
         st.end();
     });
 
+    t.test('handleDataUpdate stores own node data (self-inclusive, Issue #707)', (st) => {
+        // The sensor value block must read this node's own global variables, which
+        // arrive as the AppSync echo of our own nodeStatus.
+        const own = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        const serverTimestamp = new Date().toISOString();
+        own.handleDataUpdate({
+            nodeId: 'node-self',
+            timestamp: serverTimestamp,
+            data: [{ key: 'self-var', value: 'mine' }],
+        });
+
+        st.ok(own.remoteData['node-self'], 'own node is stored in remoteData');
+        st.equal(own.remoteData['node-self']['self-var'].value, 'mine');
+        st.equal(own.getRemoteVariable('self-var'), 'mine', 'own variable is readable');
+        st.end();
+    });
+
     t.test('fetchAllNodesData should add timestamp from status', async (st) => {
         const serverTimestamp = new Date().toISOString();
         const expectedTimestamp = new Date(serverTimestamp).getTime();
