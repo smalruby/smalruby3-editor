@@ -194,9 +194,13 @@ class Scratch3MeshV2Blocks {
     /* istanbul ignore next */
     getVariableNamesMenuItems () {
         if (!this.meshService) return [' '];
-        const names = Object.values(this.meshService.remoteData)
+        // Include this project's own global variables so the dropdown is useful
+        // immediately (e.g. the preset variable) before any network round-trip,
+        // in addition to names received from other nodes.
+        const ownNames = this.meshService.getGlobalVariables().map(v => v.key);
+        const remoteNames = Object.values(this.meshService.remoteData)
             .reduce((acc, nodeData) => acc.concat(Object.keys(nodeData)), []);
-        return [' '].concat([...new Set(names)]);
+        return [' '].concat([...new Set([...ownNames, ...remoteNames])]);
     }
 
     /* istanbul ignore next */

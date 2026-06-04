@@ -45,6 +45,10 @@ import ClassroomTeacherModal from '../../containers/classroom-teacher-modal.jsx'
 // === Smalruby: Start of meshV2 classroom binding ===
 import MeshV2ClassroomBinding from '../../lib/mesh-v2-classroom-binding.jsx';
 // === Smalruby: End of meshV2 classroom binding ===
+
+// === Smalruby: Start of meshV2 self-sensor notice ===
+import MeshSelfSensorNotice from '../../containers/mesh-self-sensor-notice.jsx';
+// === Smalruby: End of meshV2 self-sensor notice ===
 // === Smalruby: Start of welcome modal ===
 import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
 // === Smalruby: End of welcome modal ===
@@ -454,6 +458,9 @@ const GUIComponent = props => {
                     {/* === Smalruby: Start of meshV2 classroom binding === */}
                     <MeshV2ClassroomBinding />
                     {/* === Smalruby: End of meshV2 classroom binding === */}
+                    {/* === Smalruby: Start of meshV2 self-sensor notice === */}
+                    <MeshSelfSensorNotice />
+                    {/* === Smalruby: End of meshV2 self-sensor notice === */}
                     {/* === Smalruby: End of smalrubot firmware modal === */}
                     {/* === Smalruby: Start of welcome modal === */}
                     <WelcomeModalHOC />

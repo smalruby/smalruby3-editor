@@ -365,6 +365,27 @@ test('Mesh V2 Blocks', (t) => {
         st.end();
     });
 
+    t.test('getVariableNamesMenuItems includes own globals and remote names', (st) => {
+        const mockRuntime = createMockRuntime();
+        const blocks = new MeshV2Blocks(mockRuntime);
+        // Own global variables show immediately (no network round-trip needed).
+        blocks.meshService.getGlobalVariables = () => [
+            { key: 'score', value: '0' },
+            { key: '変数', value: '0' },
+        ];
+        blocks.meshService.remoteData = {
+            node2: { score: { value: '5' }, remoteOnly: { value: '1' } },
+        };
+
+        const items = blocks.getVariableNamesMenuItems();
+        st.equal(items[0], ' ', 'first item is the empty placeholder');
+        st.ok(items.includes('変数'), 'preset own variable is present');
+        st.ok(items.includes('score'), 'own variable is present');
+        st.ok(items.includes('remoteOnly'), 'remote-only variable is present');
+        st.equal(items.filter((n) => n === 'score').length, 1, 'shared name is de-duplicated');
+        st.end();
+    });
+
     t.test('variable synchronization', (st) => {
         const mockRuntime = createMockRuntime();
         const blocks = new MeshV2Blocks(mockRuntime);

@@ -61,7 +61,13 @@ const SubscriptionManagerMixin = {
     },
 
     handleDataUpdate(nodeStatus) {
-        if (!nodeStatus || nodeStatus.nodeId === this.meshId) return;
+        // Issue #707: store data from every node, including this node itself.
+        // AppSync echoes the sender's own nodeStatus back; we keep it so the
+        // "sensor value" block can read this node's own global variables, treating
+        // self and peers uniformly (all values arrive via the network with server
+        // timestamps). A one-time UI notice informs users whose project has a
+        // global variable name colliding with a sensor value lookup.
+        if (!nodeStatus) return;
 
         const nodeId = nodeStatus.nodeId;
         if (!this.remoteData[nodeId]) {
