@@ -47,7 +47,13 @@
     "containerEnv": {
         // container 内 Claude が host の ~/.claude.json のバージョンを
         // 勝手に書き換えるのを防ぐ。host との version drift 防止。
-        "DISABLE_AUTOUPDATER": "1"
+        "DISABLE_AUTOUPDATER": "1",
+
+        // devpod ssh (OpenSSH ではない独自プロキシ) 経由だと Claude Code の
+        // fullscreen レンダラが差分描画で全角セルを消し残し、行頭に前フレームの
+        // 全角文字 (例: "こ") が残るアーティファクトが出る。毎フレーム全画面を
+        // 描き直すことで解消する (Ctrl+L 相当を常時適用)。
+        "CLAUDE_CODE_ALT_SCREEN_FULL_REPAINT": "1"
     },
 
     "forwardPorts": [8601],
