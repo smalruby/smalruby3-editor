@@ -1,7 +1,6 @@
 # .devcontainer
 
 Claude Code をホスト直接実行せず、隔離されたコンテナ内で動かすための devcontainer 設定です。
-NaCl Claude Code 利用ガイドライン **階層 B（OSS / 自社開発）** に準拠します。
 
 ## 設計方針
 
@@ -75,6 +74,66 @@ devpod stop smalruby3-editor
 
 # 完全削除
 devpod delete smalruby3-editor
+```
+
+## コンテナ作成後の自動セットアップ (post-create.sh)
+
+`postCreateCommand` で `post-create.sh` がコンテナ内で実行され、以下を行う:
+
+1. **tmux セットアップ**: `tmux.conf` を `~/.tmux.conf` にインストールし、tpm
+   (TMUX Plugin Manager) とプラグイン (tmux-sensible) を git clone する
+2. **SSH ログイン時の tmux 自動アタッチ**: `~/.bash_profile` に追記。対話的な
+   `devpod ssh` で自動的に `work` セッションへ入る (`tmux new-session -A -s work`)。
+   `devpod ssh -- command` のような非対話実行には干渉しない
+3. **git クレデンシャル設定**: ホストの `~/.gitconfig` は読み取り専用マウントの
+   ため `gh auth setup-git` (global 書き込み) は使えない。代わりに repo-local
+   設定で `gh auth git-credential` をクレデンシャルヘルパーに指定し、`git push`
+   と `gh` (issue/PR) を同一の `GH_TOKEN` に一本化する
+4. **worktree セットアップ**: git worktree であれば `bin/setup-worktree` を実行
+   (env コピー + npm install + build:dev)。main checkout なら何もしない
+
+## tmux
+
+### 設定の構成
+
+| ファイル | 役割 |
+|---|---|
+| `tmux.conf` | tmux 設定本体。`post-create.sh` が `~/.tmux.conf` にインストール |
+| `osc52.sh` | コピーモードの選択テキストを OSC 52 (DCS パススルー) でホスト端末のクリップボードへ送るスクリプト |
+
+主な設定: prefix は `C-z`、`mode-keys emacs`、マウスモード ON (`prefix m` でトグル)。
+
+### クリップボード連携 (OSC 52)
+
+コンテナ内には pbcopy/xclip がないため、SSH 越しに **OSC 52** でホスト端末の
+クリップボードへコピーする。**ホスト側ターミナルは iTerm2 必須**
+(macOS 標準 Terminal.app は OSC 52 非対応)。初回のみ iTerm2 で以下を有効にする:
+
+```
+iTerm2 > Preferences > General > Selection >
+    ☑ Applications in terminal may access clipboard
+```
+
+### コピーモードのキー操作
+
+| キー | 動作 |
+|---|---|
+| `C-Space` | 選択開始 |
+| `y` / `M-w` | 選択をコピーしてコピーモード終了 (`osc52.sh` 経由でホストのクリップボードへ) |
+| `C-w` | 同上 (tmux デフォルト。`set-clipboard on` 経由) |
+| マウスドラッグを離す | 選択を自動コピーしてコピーモード終了 (`osc52.sh` 経由) |
+
+注意: tmux の emacs コピーモードのキーテーブル名は `copy-mode`
+(`copy-mode-emacs` というテーブルは存在しない。vi のみ `copy-mode-vi`)。
+
+### tmux.conf を更新したとき
+
+`post-create.sh` は **既存の `~/.tmux.conf` を上書きしない**。リポジトリ側の
+`tmux.conf` が更新された場合、既存コンテナでは手動で反映する:
+
+```bash
+cp /app/.devcontainer/tmux.conf ~/.tmux.conf
+tmux source-file ~/.tmux.conf   # または prefix r
 ```
 
 ## マウント解説
@@ -154,3 +213,8 @@ Dockerfile-only にすることで:
 - **`/ghq` が空 or マウントエラー**: `devcontainer.json` の `mounts` で ghq 行をアンコメントしているか確認。`ghq root` が `~/ghq` 以外を指している場合は source パスを書き換える
 - **node_modules が共有されない**: `docker compose run --rm app npm install` を一度実行して named volume を作ってから devcontainer を起動する
 - **`devcontainer.json` が無いと言われる**: `.example` からコピーする (上記「初回セットアップ」を参照)
+- **コピーモードの `y` でホストのクリップボードに届かない**: iTerm2 の
+  "Applications in terminal may access clipboard" が ON か確認 (上記「tmux」を参照)。
+  また `~/.tmux.conf` が古い可能性があるので `cp /app/.devcontainer/tmux.conf ~/.tmux.conf && tmux source-file ~/.tmux.conf` で更新する
+- **`M-w` が効かない**: iTerm2 の Profiles > Keys > General > **Left Option key を
+  「Esc+」** にすると Option+w が Meta-w として送信される (`y` で代用可能)
