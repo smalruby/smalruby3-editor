@@ -716,7 +716,14 @@ const RubyTab = (props) => {
                 showErrors(converter.errors);
                 return;
             }
-            await converter.apply();
+            try {
+                await converter.apply();
+            } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error('[handlePreviewRubyScript] Apply error:', error);
+                onShowAlert('convertRubyToBlocksError');
+                return;
+            }
             props.onChange(rubyCode.code);
         }
         const code = generatePreviewCode(vm.editingTarget, rubyVersion);
@@ -743,18 +750,27 @@ const RubyTab = (props) => {
         if (rubyCode.modified) {
             const converter = await targetCodeToBlocksHOC(intl);
             if (converter.result) {
-                converter.apply().then(async () => {
-                    clearErrors();
-                    if (rubyCode.target && String(newVersion) === '2') {
-                        try {
-                            await syncModules(vm, rubyCode.target, intl, newVersion);
-                        } catch (e) {
-                            // eslint-disable-next-line no-console
-                            console.error('Module sync error:', e);
+                converter
+                    .apply()
+                    .then(async () => {
+                        clearErrors();
+                        if (rubyCode.target && String(newVersion) === '2') {
+                            try {
+                                await syncModules(vm, rubyCode.target, intl, newVersion);
+                            } catch (e) {
+                                // eslint-disable-next-line no-console
+                                console.error('Module sync error:', e);
+                            }
                         }
-                    }
-                    updateRubyCodeTargetState(vm.editingTarget, newVersion);
-                });
+                        updateRubyCodeTargetState(vm.editingTarget, newVersion);
+                    })
+                    .catch((error) => {
+                        // eslint-disable-next-line no-console
+                        console.error('[handleRubyVersionChange] Apply error:', error);
+                        lastProcessedVersionRef.current = oldVersion;
+                        onRevertRubyVersion(oldVersion);
+                        onShowAlert('rubyVersionChangeFailed');
+                    });
             } else {
                 lastProcessedVersionRef.current = oldVersion;
                 onRevertRubyVersion(oldVersion);
@@ -1024,6 +1040,13 @@ const RubyTab = (props) => {
 
     // componentDidUpdate equivalent
     const prevPropsRef = useRef(null);
+    // Guard against starting a second Ruby→blocks conversion while one is
+    // already running. The conversion's own side effects (extension loads,
+    // emitWorkspaceUpdate, alerts) re-render this component while
+    // rubyCode.modified is still true, so without this guard the effect
+    // below starts the whole convert+apply pipeline twice per tab switch
+    // (issue #710).
+    const conversionInFlightRef = useRef(false);
     useEffect(() => {
         const prev = prevPropsRef.current;
         const savePrev = () => {
@@ -1107,36 +1130,50 @@ const RubyTab = (props) => {
                     }
                     onDismissV1Prompt();
                 }
-                targetCodeToBlocksHOC(intl).then((converter) => {
-                    if (converter.result) {
-                        converter.apply().then(async () => {
-                            modified = false;
-                            clearErrors();
-                            if (rubyCode.target && String(rubyVersion) === '2') {
-                                try {
-                                    await syncModules(vm, rubyCode.target, intl, rubyVersion);
-                                } catch (e) {
-                                    // eslint-disable-next-line no-console
-                                    console.error('Module sync error:', e);
-                                }
+                if (!conversionInFlightRef.current) {
+                    conversionInFlightRef.current = true;
+                    targetCodeToBlocksHOC(intl)
+                        .then((converter) => {
+                            if (converter.result) {
+                                return converter.apply().then(async () => {
+                                    modified = false;
+                                    clearErrors();
+                                    if (rubyCode.target && String(rubyVersion) === '2') {
+                                        try {
+                                            await syncModules(vm, rubyCode.target, intl, rubyVersion);
+                                        } catch (e) {
+                                            // eslint-disable-next-line no-console
+                                            console.error('Module sync error:', e);
+                                        }
+                                    }
+                                    if (!modified) {
+                                        const etChanged = editingTarget && editingTarget !== prev.editingTarget;
+                                        if ((isVisible && !prev.isVisible) || etChanged) {
+                                            updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
+                                        }
+                                    }
+                                    if (isVisible && !prev.isVisible) {
+                                        if (editorRef.current) {
+                                            editorRef.current.focus();
+                                            editorRef.current.layout();
+                                        }
+                                    }
+                                });
                             }
-                            if (!modified) {
-                                const etChanged = editingTarget && editingTarget !== prev.editingTarget;
-                                if ((isVisible && !prev.isVisible) || etChanged) {
-                                    updateRubyCodeTargetState(vm.editingTarget, rubyVersion);
-                                }
-                            }
-                            if (isVisible && !prev.isVisible) {
-                                if (editorRef.current) {
-                                    editorRef.current.focus();
-                                    editorRef.current.layout();
-                                }
-                            }
+                            showErrors(converter.errors);
+                        })
+                        .catch((error) => {
+                            // apply() failed and rolled the target back
+                            // (issue #710) — surface the error instead of
+                            // letting it vanish as an unhandled rejection.
+                            // eslint-disable-next-line no-console
+                            console.error('[RubyTab] Ruby to blocks apply error:', error);
+                            onShowAlert('convertRubyToBlocksError');
+                        })
+                        .finally(() => {
+                            conversionInFlightRef.current = false;
                         });
-                        return;
-                    }
-                    showErrors(converter.errors);
-                });
+                }
             }
         }
 

@@ -45,7 +45,16 @@ const RubyToBlocksConverterHOC = function (WrappedComponent) {
                     return converter;
                 }
                 this.props.updateRubyCodeErrorsState(converter.errors);
-                this.props.convertedRubyCodeState();
+                // Clear the modified flag only after the blocks were actually
+                // applied. Clearing it here (before apply) would skip
+                // re-conversion on the next tab switch when apply fails and
+                // silently lose the user's edits (issue #710).
+                const originalApply = converter.apply;
+                converter.apply = async (...args) => {
+                    const applied = await originalApply(...args);
+                    this.props.convertedRubyCodeState();
+                    return applied;
+                };
                 return converter;
             }
             return NullRubyToBlocksConverter;

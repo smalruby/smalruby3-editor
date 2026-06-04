@@ -186,14 +186,57 @@ const TargetApplier = {
             // If a newer applyTargetBlocks was started, skip this one
             if (target._smalrubyApplySeq !== applySeq) return;
 
-            Object.keys(target.blocks._blocks).forEach(blockId => {
-                target.blocks.deleteBlock(blockId);
-            });
-            target.comments = {};
-
+            // Validate the converted graph before touching the target: every
+            // non-top-level block must reference an existing parent. A broken
+            // graph would serialize to an empty workspace (orphan blocks)
+            // even though apply "succeeds" (issue #710).
             Object.keys(this._context.blocks).forEach(blockId => {
-                target.blocks.createBlock(this._context.blocks[blockId]);
+                const block = this._context.blocks[blockId];
+                if (block.parent && !this._context.blocks[block.parent]) {
+                    throw new Error(
+                        `Converted block graph is broken: block "${blockId}" ` +
+                        `(${block.opcode}) references missing parent "${block.parent}"`
+                    );
+                }
             });
+
+            // Replacing the target's blocks is delete-all-then-create and is
+            // NOT atomic. If createBlock throws midway the target would be
+            // left with a partial (or empty) program while the Ruby tab still
+            // shows the code (issue #710). Snapshot the current blocks and
+            // comments so any failure can be rolled back.
+            // Snapshot each block with a per-block shallow clone:
+            // deleteBlock mutates the block objects themselves
+            // (_deleteScript flips `topLevel` to false), so holding bare
+            // references would corrupt the snapshot.
+            const oldBlocks = {};
+            Object.keys(target.blocks._blocks).forEach(blockId => {
+                oldBlocks[blockId] = Object.assign({}, target.blocks._blocks[blockId]);
+            });
+            const oldScripts = target.blocks._scripts.slice();
+            const oldComments = target.comments;
+
+            try {
+                Object.keys(target.blocks._blocks).forEach(blockId => {
+                    target.blocks.deleteBlock(blockId);
+                });
+                target.comments = {};
+
+                Object.keys(this._context.blocks).forEach(blockId => {
+                    target.blocks.createBlock(this._context.blocks[blockId]);
+                });
+            } catch (error) {
+                // Roll back to the pre-apply state. Restore the internal
+                // containers directly instead of going through createBlock —
+                // if createBlock is what just failed, replaying it could
+                // fail again and leave the target empty.
+                target.blocks._blocks = oldBlocks;
+                target.blocks._scripts = oldScripts;
+                target.blocks.resetCache();
+                target.comments = oldComments;
+                this.vm.emitWorkspaceUpdate();
+                throw error;
+            }
 
             Object.keys(this._context.comments).forEach(commentId => {
                 const comment = this._context.comments[commentId];

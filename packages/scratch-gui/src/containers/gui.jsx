@@ -138,10 +138,25 @@ class GUI extends React.Component {
             ).then(converter => {
                 if (converter.result) {
                     this.props.updateRubyCodeErrorsState(converter.errors);
-                    this.props.convertedRubyCodeState();
-                    converter.apply().then(() => {
-                        this.props.onActivateTab(destinationTab);
-                    });
+                    converter.apply()
+                        .then(() => {
+                            // Only mark the Ruby code as converted after the
+                            // blocks were actually applied — clearing the
+                            // modified flag before a failed apply would skip
+                            // re-conversion on the next tab switch and lose
+                            // the user's edits (issue #710).
+                            this.props.convertedRubyCodeState();
+                            this.props.onActivateTab(destinationTab);
+                        })
+                        .catch(error => {
+                            // apply() failed and rolled the target's blocks
+                            // back (issue #710). Stay on the Ruby tab and
+                            // surface the error instead of silently dropping
+                            // the unhandled rejection.
+                            // eslint-disable-next-line no-console
+                            console.error('[GUI] Ruby to blocks apply error:', error);
+                            this.props.onShowConvertRubyToBlocksErrorAlert();
+                        });
                     return;
                 }
                 this.props.vm.setEditingTarget(prevProps.rubyCode.target.id);

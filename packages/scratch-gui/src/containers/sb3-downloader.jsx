@@ -42,7 +42,13 @@ class SB3Downloader extends React.Component {
                 }
                 downloadBlob(this.props.projectFilename, content);
             });
-        });
+        })
+            .catch(error => {
+                // apply() failed and rolled the target's blocks back
+                // (issue #710); log instead of an unhandled rejection.
+                // eslint-disable-next-line no-console
+                console.error('[SB3Downloader] Ruby to blocks apply error:', error);
+            });
     }
     render () {
         const {
