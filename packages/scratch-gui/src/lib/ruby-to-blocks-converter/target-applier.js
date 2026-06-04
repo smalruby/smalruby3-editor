@@ -186,14 +186,62 @@ const TargetApplier = {
             // If a newer applyTargetBlocks was started, skip this one
             if (target._smalrubyApplySeq !== applySeq) return;
 
-            Object.keys(target.blocks._blocks).forEach(blockId => {
-                target.blocks.deleteBlock(blockId);
+            // Validate the converted graph before touching the target: a
+            // non-empty graph with no top-level script serializes to an
+            // empty workspace even though apply "succeeds" (issue #710).
+            // Note: dangling `parent` references on individual blocks are
+            // routine converter output (e.g. re-parented shadows) and are
+            // harmless, so only this catastrophic whole-graph case is
+            // rejected.
+            const contextBlockIds = Object.keys(this._context.blocks);
+            const hasTopLevelScript = contextBlockIds.some(blockId => {
+                const block = this._context.blocks[blockId];
+                return block.topLevel && !block.shadow;
             });
-            target.comments = {};
+            if (contextBlockIds.length > 0 && !hasTopLevelScript) {
+                throw new Error(
+                    'Converted block graph is broken: ' +
+                    `${contextBlockIds.length} blocks but no top-level script`
+                );
+            }
 
-            Object.keys(this._context.blocks).forEach(blockId => {
-                target.blocks.createBlock(this._context.blocks[blockId]);
+            // Replacing the target's blocks is delete-all-then-create and is
+            // NOT atomic. If createBlock throws midway the target would be
+            // left with a partial (or empty) program while the Ruby tab still
+            // shows the code (issue #710). Snapshot the current blocks and
+            // comments so any failure can be rolled back.
+            // Snapshot each block with a per-block shallow clone:
+            // deleteBlock mutates the block objects themselves
+            // (_deleteScript flips `topLevel` to false), so holding bare
+            // references would corrupt the snapshot.
+            const oldBlocks = {};
+            Object.keys(target.blocks._blocks).forEach(blockId => {
+                oldBlocks[blockId] = Object.assign({}, target.blocks._blocks[blockId]);
             });
+            const oldScripts = target.blocks._scripts.slice();
+            const oldComments = target.comments;
+
+            try {
+                Object.keys(target.blocks._blocks).forEach(blockId => {
+                    target.blocks.deleteBlock(blockId);
+                });
+                target.comments = {};
+
+                Object.keys(this._context.blocks).forEach(blockId => {
+                    target.blocks.createBlock(this._context.blocks[blockId]);
+                });
+            } catch (error) {
+                // Roll back to the pre-apply state. Restore the internal
+                // containers directly instead of going through createBlock —
+                // if createBlock is what just failed, replaying it could
+                // fail again and leave the target empty.
+                target.blocks._blocks = oldBlocks;
+                target.blocks._scripts = oldScripts;
+                target.blocks.resetCache();
+                target.comments = oldComments;
+                this.vm.emitWorkspaceUpdate();
+                throw error;
+            }
 
             Object.keys(this._context.comments).forEach(commentId => {
                 const comment = this._context.comments[commentId];

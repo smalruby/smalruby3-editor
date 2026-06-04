@@ -51,6 +51,12 @@ class Controls extends React.Component {
                     }
                     // === Smalruby: End of block_run analytics ===
                 }
+            })
+            .catch(error => {
+                // apply() failed and rolled the target's blocks back
+                // (issue #710); log instead of an unhandled rejection.
+                // eslint-disable-next-line no-console
+                console.error('[Controls] Ruby to blocks apply error:', error);
             });
     }
     handleStopAllClick (e) {
