@@ -207,13 +207,16 @@
         }
         footer a { color: rgba(255,255,255,0.9); }
         .home { text-align: center; margin-top: 2rem; }
-        .home a {
+        .home a, .home button {
             display: inline-block;
             background: linear-gradient(135deg, var(--ruby-red), #b8000e);
             color: #fff;
             padding: 0.8rem 2rem;
+            border: none;
             border-radius: 50px;
             font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -338,7 +341,7 @@
     </section>
 
     <div class="home">
-        <a href="https://smalruby.app">スモウルビーを開く</a>
+        <button type="button" onclick="window.close()">閉じる</button>
     </div>
 </main>
 
