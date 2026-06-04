@@ -31,7 +31,7 @@ import { containsV1Code } from '../lib/ruby-to-blocks-converter/v1-detection';
 import { getUrlParams } from '../lib/url-params';
 import { showAlertWithTimeout, closeAlertWithId } from '../reducers/alerts';
 import { setDnclMode as setDnclModeAction, clearExternalExitDnclModeRequest } from '../reducers/dncl-mode';
-import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX } from '../reducers/editor-tab';
+import { BLOCKS_TAB_INDEX, RUBY_TAB_INDEX, activateTab } from '../reducers/editor-tab';
 import { setAiSaveStatus, clearAiSaveStatus } from '../reducers/koshien-file';
 import { closeFileMenu } from '../reducers/menus.js';
 import { setProjectChanged } from '../reducers/project-changed';
@@ -125,6 +125,7 @@ const RubyTab = (props) => {
         onSetDnclMode,
         exitDnclModeExternallyRequested,
         onClearExitDnclModeRequest,
+        onActivateTab,
     } = props;
 
     // --- State ---
@@ -1047,6 +1048,13 @@ const RubyTab = (props) => {
     // below starts the whole convert+apply pipeline twice per tab switch
     // (issue #710).
     const conversionInFlightRef = useRef(false);
+    // When the user leaves the Ruby tab with modified code, this holds the
+    // tab they were headed to. The effect below bounces back to the Ruby tab
+    // while the conversion runs and activates this destination once the
+    // blocks were applied successfully. RubyTab is the single owner of this
+    // transition (the equivalent hook that used to live in containers/gui.jsx
+    // was removed to stop the two pipelines from racing — issue #710).
+    const pendingDestinationTabRef = useRef(null);
     useEffect(() => {
         const prev = prevPropsRef.current;
         const savePrev = () => {
@@ -1093,6 +1101,16 @@ const RubyTab = (props) => {
             handleDismissBubbleStable();
         }
 
+        // Leaving the Ruby tab with modified code: remember the destination
+        // tab and immediately bounce back to the Ruby tab while the
+        // conversion runs. The conversion itself is started by the
+        // `modified` block below, and the destination is activated once the
+        // blocks were applied successfully.
+        if (prev.activeTabIndex === RUBY_TAB_INDEX && activeTabIndex !== RUBY_TAB_INDEX && rubyCode.modified) {
+            pendingDestinationTabRef.current = activeTabIndex;
+            onActivateTab(RUBY_TAB_INDEX);
+        }
+
         // Visibility off → clear errors
         if (prev.isVisible && !isVisible) {
             if (editorRef.current && monacoRef.current) {
@@ -1115,7 +1133,7 @@ const RubyTab = (props) => {
         if (modified) {
             const targetId = rubyCode.target ? rubyCode.target.id : null;
             const changedTarget = vm.editingTarget && rubyCode.target && vm.editingTarget.id !== targetId;
-            if (changedTarget || blocksTabVisible) {
+            if (changedTarget || blocksTabVisible || pendingDestinationTabRef.current !== null) {
                 if (String(rubyVersion) === '2' && !v1PromptDismissed && containsV1Code(rubyCode.code)) {
                     const message = intlRef.current.formatMessage({
                         id: 'gui.rubyTab.v1CodeDetected',
@@ -1125,6 +1143,9 @@ const RubyTab = (props) => {
                     });
                     // eslint-disable-next-line no-alert
                     if (window.confirm(message)) {
+                        // Stay on the Ruby tab after switching versions; the
+                        // version-change flow runs its own conversion.
+                        pendingDestinationTabRef.current = null;
                         onRevertRubyVersion('1');
                         return;
                     }
@@ -1158,6 +1179,14 @@ const RubyTab = (props) => {
                                             editorRef.current.layout();
                                         }
                                     }
+                                    // The user was headed to another tab when
+                                    // the conversion started — take them
+                                    // there now that the blocks are applied.
+                                    if (pendingDestinationTabRef.current !== null) {
+                                        const destination = pendingDestinationTabRef.current;
+                                        pendingDestinationTabRef.current = null;
+                                        onActivateTab(destination);
+                                    }
                                 });
                             }
                             showErrors(converter.errors);
@@ -1172,6 +1201,9 @@ const RubyTab = (props) => {
                         })
                         .finally(() => {
                             conversionInFlightRef.current = false;
+                            // Conversion failed or produced errors: stay on
+                            // the Ruby tab so the user can fix the code.
+                            pendingDestinationTabRef.current = null;
                         });
                 }
             }
@@ -1374,6 +1406,7 @@ RubyTab.propTypes = {
     onSetDnclMode: PropTypes.func,
     exitDnclModeExternallyRequested: PropTypes.bool,
     onClearExitDnclModeRequest: PropTypes.func,
+    onActivateTab: PropTypes.func,
 };
 
 const mapStateToProps = (state) => ({
@@ -1407,6 +1440,7 @@ const mapDispatchToProps = (dispatch) => ({
     onDismissV1Prompt: () => dispatch(dismissV1Prompt()),
     onSetDnclMode: (dnclMode) => dispatch(setDnclModeAction(dnclMode)),
     onClearExitDnclModeRequest: () => dispatch(clearExternalExitDnclModeRequest()),
+    onActivateTab: (tab) => dispatch(activateTab(tab)),
 });
 
 const ConnectedRubyTab = RubyteeModalHOC(
