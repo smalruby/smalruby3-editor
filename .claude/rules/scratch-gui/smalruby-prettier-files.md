@@ -22,6 +22,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`
 - `src/components/koshien-test-modal/`
+- `src/components/mesh-self-sensor-notice/`
 - `src/components/mobile-bottom-tabs/`
 - `src/components/mobile-drawer/`
 - `src/components/mobile-gui/`
@@ -76,6 +77,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/containers/use-teacher-submissions.js`
 - `src/containers/extension-library.css`
 - `src/containers/google-drive-loader-hoc.jsx`
+- `src/containers/mesh-self-sensor-notice.jsx`
 - `src/containers/google-drive-saver-hoc.jsx`
 - `src/containers/ruby-downloader.jsx`
 - `src/containers/ruby-tab.jsx`
@@ -119,6 +121,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/join-code-history.js`
 - `src/lib/log-suppression.js`
 - `src/lib/mesh-v2-classroom-binding.jsx`
+- `src/lib/mesh-v2-sensor-collision.js`
 - `src/lib/microsoft-auth.js`
 - `src/lib/microbit-more-update.js`
 - `src/lib/teacher-auth.js`
@@ -208,6 +211,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/dncl-mode-notice.test.jsx`
 - `test/unit/components/extension-button-dncl.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
+- `test/unit/components/mesh-self-sensor-notice.test.jsx`
 - `test/unit/components/mobile-bottom-tabs.test.jsx`
 - `test/unit/components/mobile-drawer.test.jsx`
 - `test/unit/components/mobile-orientation-gate.test.jsx`
@@ -258,6 +262,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/layout-constants.test.js`
 - `test/unit/lib/legacy-storage.test.js`
 - `test/unit/lib/mesh-v2-classroom-binding.test.js`
+- `test/unit/lib/mesh-v2-sensor-collision.test.js`
 - `test/unit/lib/make-toolbox-xml.test.js`
 - `test/unit/lib/module-sync.test.js`
 - `test/unit/lib/prism-parser.test.js`

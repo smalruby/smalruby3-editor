@@ -988,6 +988,10 @@ export default {
         '日本語モードでは拡張機能は使えません。\nRubyふりがなモードに戻すと拡張機能が使えるようになります。\n戻しますか？',
     'gui.dnclModeNotice.message': '日本語モード：ブロックが制限されています',
     'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードに戻す',
+    'gui.meshSelfSensorNotice.message':
+        'メッシュの「センサーの値」は、同じ名前のグローバル変数があると、自分の値も読むようになりました。',
+    'gui.meshSelfSensorNotice.learnMore': 'くわしくはこちら',
+    'gui.meshSelfSensorNotice.dismiss': '閉じる',
     'gui.rubyTab.dnclValidationError':
         '日本語モードでは対応していない記述です。\n対応している命令のみにしてから、モード切り替えを行ってください。',
     'gui.mobile.drawer.title': 'メニュー',

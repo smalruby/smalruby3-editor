@@ -1015,6 +1015,10 @@ export default {
         'にほんごモードではかくちょうきのうはつかえません。\nRubyふりがなモードにもどすとかくちょうきのうがつかえるようになります。\nもどしますか？',
     'gui.dnclModeNotice.message': 'にほんごモード：ブロックがせいげんされています',
     'gui.dnclModeNotice.exitButton': 'Rubyふりがなモードにもどす',
+    'gui.meshSelfSensorNotice.message':
+        'メッシュの「センサーのあたい」は、おなじなまえのグローバルへんすうがあると、じぶんのあたいもよむようになりました。',
+    'gui.meshSelfSensorNotice.learnMore': 'くわしくはこちら',
+    'gui.meshSelfSensorNotice.dismiss': 'とじる',
     'gui.rubyTab.dnclValidationError':
         'にほんごモードではたいおうしていないきじゅつです。\nたいおうしているめいれいのみにしてから、モードきりかえをおこなってください。',
     'gui.mobile.drawer.title': 'メニュー',
