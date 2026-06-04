@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { connect } from 'react-redux';
 import MeshV2UpgradeModal from '../components/mesh-v2-upgrade-modal/mesh-v2-upgrade-modal.jsx';
 import { closeMeshV2UpgradeModal, openMeshV2UpgradeModal } from '../reducers/mesh-v2.js';
