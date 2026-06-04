@@ -43,7 +43,7 @@
     white-space: nowrap;
     flex-shrink: 0;
     padding: 4px 6px;
-    min-height: 32px;
+    min-height: 44px;
 }
 
 .learnMore:hover {
@@ -59,7 +59,8 @@
     line-height: 1;
     flex-shrink: 0;
     padding: 4px 8px;
-    min-height: 32px;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .close:hover {
