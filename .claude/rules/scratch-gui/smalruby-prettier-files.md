@@ -134,6 +134,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/ruby-parser.js`
 - `src/lib/ruby-screenshot.js`
 - `src/lib/smalrubot-firmware-flasher.js`
+- `src/lib/stale-block-delete-guard.js`
 - `src/lib/smalrubot-firmware.hex.js`
 - `src/lib/storage-worker-timeout.js`
 - `src/lib/storage-worker-timeout-hoc.jsx`
@@ -281,6 +282,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/ruby-screenshot.test.js`
 - `test/unit/lib/smalruby-original-sprites.test.js`
 - `test/unit/lib/smalrubot-firmware-flasher.test.js`
+- `test/unit/lib/stale-block-delete-guard.test.js`
 - `test/unit/lib/ruby-script-preview.test.js`
 - `test/unit/lib/ruby-to-blocks-converter-version.test.js`
 - `test/unit/lib/rubytee-api.test.js`

@@ -103,6 +103,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/blocks.jsx` | palette-toggle initial render | `componentDidMount` 末尾で `_applyPaletteVisibility` を呼び `forceUpdate()` を起動。`this.workspace` はインスタンス変数なので `inject()` 後に再レンダーが走らず、初回 `render()` で workspace=null のまま PaletteToggle がスキップされる問題への対応 (issue #695) |
 | `src/containers/blocks.jsx` | iOS flyout touch bleed fix | MobileGui (SP) で「ブロックを作る」タップ時に iOS の SVG タッチイベントが「変数を作る」にも伝播する問題の修正。`handlePromptStart` を 50ms 遅延して `externalProcedureDefCallback` が先に呼ばれた場合にキャンセル (issue #698) |
 | `src/containers/blocks.jsx` | DNCL block filtering | `shouldComponentUpdate` に `dnclMode` を追加して日本語モード切り替え時に即時再レンダリングを保証。import・`getToolboxXML` 内フィルター・`mapStateToProps` への `dnclMode` 追加も含む |
+| `src/containers/blocks.jsx` | stale block delete event guard | scratch-blocks v2 の非同期イベント配送で、ワークスペースリロードを跨いで届いた stale な delete イベントが VM のスクリプトを消す問題のガード。`attachVM` で `vm.blockListener` を `createStaleBlockDeleteGuard` でラップ (issue #710)。import も含む |
 
 ## 関連ファイル
 

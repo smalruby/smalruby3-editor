@@ -47,6 +47,9 @@ import {downloadBlocksAsImage} from '../lib/blocks-screenshot';
 // === Smalruby: Start of DNCL block filtering ===
 import {DNCL_ALLOWED_BLOCKS} from '../lib/dncl/dncl-block-filter';
 // === Smalruby: End of DNCL block filtering ===
+// === Smalruby: Start of stale block delete event guard ===
+import {createStaleBlockDeleteGuard} from '../lib/stale-block-delete-guard';
+// === Smalruby: End of stale block delete event guard ===
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -557,7 +560,16 @@ class Blocks extends React.Component {
     }
 
     attachVM () {
-        this.workspace.addChangeListener(this.props.vm.blockListener);
+        // === Smalruby: Start of stale block delete event guard ===
+        // scratch-blocks v2 delivers events asynchronously (~1 frame later),
+        // so a queued delete can arrive after onWorkspaceUpdate reloaded the
+        // workspace and wipe the just-reloaded script from the VM
+        // (issue #710). Drop deletes for blocks that are still rendered —
+        // only possible when the event is stale.
+        this.workspace.addChangeListener(
+            createStaleBlockDeleteGuard(this.workspace, this.props.vm.blockListener)
+        );
+        // === Smalruby: End of stale block delete event guard ===
         this.flyoutWorkspace = this.workspace
             .getFlyout()
             .getWorkspace();
