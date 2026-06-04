@@ -178,16 +178,16 @@ describe('RubyToBlocksConverter/TargetApplier transaction (issue #710)', () => {
         expect(target.comments.oldcomment.text).toBe('keep me');
     });
 
-    test('should reject and keep old blocks when converted graph has a broken parent chain', async () => {
+    test('should reject and keep old blocks when converted graph has no top-level script', async () => {
         const result = await converter.targetCodeToBlocks(
             target,
             'when_flag_clicked do\n  move(10)\nend\n',
         );
         expect(result).toBe(true);
 
-        // Corrupt the converted graph: drop the hat block so the remaining
-        // blocks reference a missing parent. Such a graph serializes to an
-        // empty workspace even though apply "succeeds".
+        // Corrupt the converted graph: drop the hat block so no top-level
+        // script remains. Such a graph serializes to an empty workspace
+        // even though apply "succeeds".
         const contextBlocks = converter._context.blocks;
         const hatId = Object.keys(contextBlocks).find(
             (id) => contextBlocks[id].opcode === 'event_whenflagclicked',

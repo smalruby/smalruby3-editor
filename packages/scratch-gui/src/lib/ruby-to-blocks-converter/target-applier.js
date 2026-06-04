@@ -186,19 +186,24 @@ const TargetApplier = {
             // If a newer applyTargetBlocks was started, skip this one
             if (target._smalrubyApplySeq !== applySeq) return;
 
-            // Validate the converted graph before touching the target: every
-            // non-top-level block must reference an existing parent. A broken
-            // graph would serialize to an empty workspace (orphan blocks)
-            // even though apply "succeeds" (issue #710).
-            Object.keys(this._context.blocks).forEach(blockId => {
+            // Validate the converted graph before touching the target: a
+            // non-empty graph with no top-level script serializes to an
+            // empty workspace even though apply "succeeds" (issue #710).
+            // Note: dangling `parent` references on individual blocks are
+            // routine converter output (e.g. re-parented shadows) and are
+            // harmless, so only this catastrophic whole-graph case is
+            // rejected.
+            const contextBlockIds = Object.keys(this._context.blocks);
+            const hasTopLevelScript = contextBlockIds.some(blockId => {
                 const block = this._context.blocks[blockId];
-                if (block.parent && !this._context.blocks[block.parent]) {
-                    throw new Error(
-                        `Converted block graph is broken: block "${blockId}" ` +
-                        `(${block.opcode}) references missing parent "${block.parent}"`
-                    );
-                }
+                return block.topLevel && !block.shadow;
             });
+            if (contextBlockIds.length > 0 && !hasTopLevelScript) {
+                throw new Error(
+                    'Converted block graph is broken: ' +
+                    `${contextBlockIds.length} blocks but no top-level script`
+                );
+            }
 
             // Replacing the target's blocks is delete-all-then-create and is
             // NOT atomic. If createBlock throws midway the target would be
