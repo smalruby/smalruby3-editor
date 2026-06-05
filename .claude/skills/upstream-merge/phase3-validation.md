@@ -26,7 +26,39 @@ merge commit の hash を記録しておく（Phase 4 で使用）。
 
 ---
 
-## Step 2: Lint
+## Step 2: Upstream Divergence Audit（取り落とし検査）
+
+**背景**: git の 3-way merge は「過去に取り込み済みの upstream コードをローカルで変更（削除）した箇所」を尊重するため、ロールバックや restore コミットで upstream 修正を一度消すと、**以後どれだけ upstream merge を重ねても自動では戻らない**。実例: moveBlock の top-level shadow ガード（issue #710 / PR #717）は restore コミットで消えた後、upstream merge を経ても戻らず、ブロック全消失バグの根本原因になった。
+
+マージ直後に、upstream 由来の重要ファイルが「説明のつく差分」だけを持つことを検査する:
+
+```bash
+# <upstream-ref> は今回マージした upstream コミット (例: upstream/develop の merge 時点 SHA)
+bin/upstream-divergence-audit <upstream-ref>
+```
+
+- `OK` — upstream と一致。問題なし
+- `DIFF` — 差分あり。**各 hunk をレビュー**する:
+  ```bash
+  git diff <upstream-ref> HEAD -- <file>
+  ```
+  すべての hunk が以下のどれかで説明できること:
+  1. `=== Smalruby:` マーカーで囲まれた Smalruby 固有コード
+  2. `.claude/rules/` 等に文書化された意図的な divergence（cherry-pick 済みの先行修正など）
+  3. 今回のマージで意図的に解決した差分
+- **説明のつかない hunk が見つかった場合**: upstream 修正の取り落とし（または upstream 領域へのローカルコードの混入）。原因を特定し、復元コミットを作成してから次へ進む
+
+監査結果（DIFF ファイル一覧と各差分の説明）は PR 説明文に記載する。
+
+curated リスト以外でコンフリクトが発生したファイルがあれば、それらも個別に監査する:
+
+```bash
+bin/upstream-divergence-audit <upstream-ref> <conflicted-file>...
+```
+
+---
+
+## Step 3: Lint
 
 ```bash
 docker compose run --rm app npm run lint
@@ -47,7 +79,7 @@ PR も早めに作成すると CI が走る（Phase 4 の PR 作成を先にや�
 
 ---
 
-## Step 3: Build
+## Step 4: Build
 
 ```bash
 docker compose run --rm app npm run build:dev
@@ -58,7 +90,7 @@ docker compose run --rm app npm run build:dev
 
 ---
 
-## Step 4: Unit Tests
+## Step 5: Unit Tests
 
 ```bash
 docker compose run --rm app npm run test:unit
@@ -69,7 +101,7 @@ docker compose run --rm app npm run test:unit
 
 ---
 
-## Step 5: Integration Tests
+## Step 6: Integration Tests
 
 統合テストはタイムアウト回避のためバッチ実行する（5-6ファイルずつ）:
 
@@ -91,7 +123,7 @@ ls packages/scratch-vm/test/integration/*.js
 
 ---
 
-## Step 6: CI Status Check
+## Step 7: CI Status Check
 
 push 済みなら CI の状態を確認:
 

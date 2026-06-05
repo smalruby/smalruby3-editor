@@ -13,7 +13,7 @@ upstream scratch-editor の変更を Smalruby fork に取り込む半自動ワ�
 |-------|----------|------|
 | 1 | `phase1-prepare.md` | Prerequisites確認 → ブランチ作成 → マージ実行 |
 | 2 | `phase2-conflicts.md` | コンフリクト解決ガイド（既知パターン + ガイダンス） |
-| 3 | `phase3-validation.md` | コミット → lint → build → テスト → CI |
+| 3 | `phase3-validation.md` | コミット → divergence 監査 → lint → build → テスト → CI |
 | 4 | `phase4-finalize.md` | merge history更新 → PR作成 → 手動テスト |
 
 リファレンス（必要時に読み込む）:

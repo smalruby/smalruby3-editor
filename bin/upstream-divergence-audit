@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# bin/upstream-divergence-audit — detect unexplained divergence from upstream
+# in upstream-owned source files after an upstream merge.
+#
+# Why: git's 3-way merge respects local changes to lines upstream has not
+# touched since the merge base. If an upstream fix that was already merged
+# gets reverted locally (e.g. a rollback/restore commit), later upstream
+# merges will NEVER bring it back — the loss is invisible to `git merge`.
+# This happened with the moveBlock top-level shadow guard (issue #710 /
+# PR #717): the guard from upstream commit ae67b9bf was dropped by a local
+# restore commit and survived a full upstream merge unnoticed.
+#
+# What it does: for each audited file, diff HEAD against the given upstream
+# ref (the upstream commit being merged, e.g. `upstream/develop`). Files are
+# reported as:
+#   OK    — identical to upstream
+#   DIFF  — differs; every hunk must be explainable as a Smalruby change
+#           (marker comments, documented divergence) — review them manually
+#   SKIP  — file does not exist on the upstream ref
+#
+# The script only gathers facts; reviewing each DIFF hunk is the caller's
+# job (see .claude/skills/upstream-merge/phase3-validation.md).
+#
+# Usage:
+#   bin/upstream-divergence-audit <upstream-ref> [file...]
+#   bin/upstream-divergence-audit upstream/develop
+#   bin/upstream-divergence-audit upstream/develop packages/scratch-vm/src/engine/blocks.js
+#
+# With no file arguments, a curated list of high-risk upstream files is
+# audited (engine/runtime files where silent regressions are catastrophic).
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: bin/upstream-divergence-audit <upstream-ref> [file...]" >&2
+    exit 2
+fi
+
+REF="$1"
+shift
+
+if ! git rev-parse --verify --quiet "$REF^{commit}" > /dev/null; then
+    echo "error: '$REF' is not a commit (run 'git fetch -p upstream develop' first?)" >&2
+    exit 2
+fi
+
+# Curated high-risk upstream files: VM engine + the GUI containers that
+# wire Blockly to the VM. Extend as needed.
+DEFAULT_FILES=(
+    packages/scratch-vm/src/engine/blocks.js
+    packages/scratch-vm/src/engine/runtime.js
+    packages/scratch-vm/src/engine/target.js
+    packages/scratch-vm/src/engine/execute.js
+    packages/scratch-vm/src/virtual-machine.js
+    packages/scratch-vm/src/serialization/sb3.js
+    packages/scratch-vm/src/sprites/rendered-target.js
+    packages/scratch-gui/src/containers/blocks.jsx
+    packages/scratch-gui/src/containers/gui.jsx
+    packages/scratch-gui/src/lib/blocks.js
+    packages/scratch-gui/src/lib/vm-listener-hoc.jsx
+    packages/scratch-gui/src/lib/vm-manager-hoc.jsx
+)
+
+if [[ $# -gt 0 ]]; then
+    FILES=("$@")
+else
+    FILES=("${DEFAULT_FILES[@]}")
+fi
+
+diff_count=0
+for f in "${FILES[@]}"; do
+    if ! git cat-file -e "$REF:$f" 2> /dev/null; then
+        echo "SKIP  $f (not on $REF)"
+        continue
+    fi
+    if git diff --quiet "$REF" HEAD -- "$f"; then
+        echo "OK    $f"
+        continue
+    fi
+    diff_count=$((diff_count + 1))
+    stat=$(git diff --shortstat "$REF" HEAD -- "$f" | sed 's/^ //')
+    marker_lines=$(git diff "$REF" HEAD -- "$f" | grep -c "Smalruby" || true)
+    echo "DIFF  $f (${stat}; ${marker_lines} diff lines mention Smalruby)"
+done
+
+echo
+if [[ $diff_count -gt 0 ]]; then
+    echo "${diff_count} file(s) diverge from $REF."
+    echo "Review each hunk: git diff $REF HEAD -- <file>"
+    echo "Every hunk must be an intentional Smalruby change (marker comments"
+    echo "or documented divergence). An unexplained hunk means an upstream"
+    echo "fix was lost or local code leaked into upstream-owned regions."
+else
+    echo "No divergence in audited files."
+fi
