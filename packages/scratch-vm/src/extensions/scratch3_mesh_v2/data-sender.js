@@ -19,12 +19,29 @@ const { REPORT_DATA } = require('./gql-operations');
  * Mixed into MeshV2Service.prototype.
  */
 const DataSenderMixin = {
-    async sendData(dataArray) {
+    /**
+     * Queue global variable values for transmission to other nodes.
+     * @param {Array} dataArray - Array of {key, value} objects.
+     * @param {object} [options] - Options.
+     * @param {boolean} [options.force] - Issue #721: treat the set as a fresh
+     *   write even when the value is unchanged. Explicit sets from blocks/Ruby
+     *   (e.g. `$送信者 = "A"` before every broadcast) must bump the timestamp
+     *   locally AND on the network, or older same-value writes lose to other
+     *   nodes' newer writes forever. Bulk sync (sendAllGlobalVariables) stays
+     *   delta-filtered.
+     * @returns {Promise<void>} Resolves when the data is sent or queued.
+     */
+    async sendData(dataArray, options = {}) {
         if (!this.groupId || !this.client) return;
+
+        const force = !!options.force;
 
         // Delta transmission: Filter out items that haven't changed since they were LAST QUEUED.
         // This avoids redundant mutations if values change back within the rate-limit interval.
-        const filteredData = dataArray.filter(item => this.latestQueuedData[item.key] !== item.value);
+        // Forced items always pass: an explicit set is a fresh write by definition.
+        const filteredData = dataArray
+            .filter(item => force || this.latestQueuedData[item.key] !== item.value)
+            .map(item => (force ? { key: item.key, value: item.value, force: true } : item));
 
         debug(
             () =>
@@ -76,7 +93,9 @@ const DataSenderMixin = {
 
         // Final delta check: Filter out items that haven't changed since the LAST SUCCESSFUL transmission.
         // This handles cases where values changed back while an earlier mutation was in flight.
-        const finalPayload = payload.filter(item => this.lastSentData[item.key] !== item.value);
+        // Forced items (issue #721) always pass — the per-item tag survives the
+        // in-flight race where a completing mutation re-populates lastSentData.
+        const finalPayload = payload.filter(item => item.force || this.lastSentData[item.key] !== item.value);
 
         if (finalPayload.length === 0) {
             debug(() => 'Mesh V2: Skipping mutation as all data is already up-to-date on server');
@@ -104,7 +123,9 @@ const DataSenderMixin = {
                     groupId: this.groupId,
                     domain: this.domain,
                     nodeId: this.meshId,
-                    data: finalPayload,
+                    // Strip the internal `force` tag: SensorDataInput only
+                    // accepts {key, value}.
+                    data: finalPayload.map(({ key, value }) => ({ key, value })),
                 },
             });
 
