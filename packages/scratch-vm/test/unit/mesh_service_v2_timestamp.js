@@ -75,6 +75,127 @@ test('MeshV2Service Timestamp-based getRemoteVariable', (t) => {
         st.end();
     });
 
+    t.test('sendData seeds own value locally for immediate read (issue #713)', (st) => {
+        // mesh.sensor_value must return this node's own value immediately after
+        // a variable set, without waiting for the AppSync echo round-trip
+        // (RateLimiter 1s + network), because local broadcast fires synchronously.
+        const service2 = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        service2.groupId = 'group1';
+        service2.client = { mutate: () => Promise.resolve({}) };
+
+        service2.sendData([{ key: '送信者', value: 'A' }]);
+
+        // Synchronous check: no await — the seed must be visible before any echo
+        st.equal(service2.getRemoteVariable('送信者'), 'A', 'own value is readable immediately after sendData');
+        st.ok(service2.remoteData['node-self']['送信者'].timestamp > 0, 'seeded entry has a timestamp');
+        st.end();
+    });
+
+    t.test('newer value from another node wins over local seed (issue #713)', (st) => {
+        const service2 = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        service2.groupId = 'group1';
+        service2.client = { mutate: () => Promise.resolve({}) };
+
+        service2.sendData([{ key: 'shared', value: 'mine' }]);
+        // Another node reports a NEWER value (timestamp in the future relative to seed)
+        service2.remoteData['node-other'] = {
+            shared: { value: 'theirs-newer', timestamp: Date.now() + 10000 },
+        };
+
+        st.equal(service2.getRemoteVariable('shared'), 'theirs-newer', 'newer remote value wins by timestamp');
+        st.end();
+    });
+
+    t.test('local seed wins over older value from another node (issue #713)', (st) => {
+        const service2 = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        service2.groupId = 'group1';
+        service2.client = { mutate: () => Promise.resolve({}) };
+
+        // Another node reported a value earlier
+        service2.remoteData['node-other'] = {
+            shared: { value: 'theirs-older', timestamp: Date.now() - 10000 },
+        };
+        service2.sendData([{ key: 'shared', value: 'mine' }]);
+
+        st.equal(service2.getRemoteVariable('shared'), 'mine', 'fresh local seed wins over older remote value');
+        st.end();
+    });
+
+    t.test('delta-filtered same-value resend does not bump seed timestamp (issue #713)', async (st) => {
+        // Re-setting the same value is filtered by latestQueuedData and never
+        // reaches the network, so the local view must not change either:
+        // what this node reads stays consistent with what other nodes read.
+        const service2 = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        service2.groupId = 'group1';
+        service2.client = { mutate: () => Promise.resolve({}) };
+
+        service2.sendData([{ key: 'shared', value: 'same' }]);
+        const firstTimestamp = service2.remoteData['node-self'].shared.timestamp;
+
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        service2.sendData([{ key: 'shared', value: 'same' }]);
+
+        st.equal(
+            service2.remoteData['node-self'].shared.timestamp,
+            firstTimestamp,
+            'timestamp unchanged for delta-filtered resend',
+        );
+        st.end();
+    });
+
+    t.test('self-echo with matching value normalizes timestamp to server time (issue #713)', (st) => {
+        // The seed uses the client clock; other nodes' entries use the server
+        // clock. When our own echo comes back with the same value, adopt the
+        // server timestamp so cross-node comparison happens in one time domain.
+        const service2 = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        service2.groupId = 'group1';
+        service2.client = { mutate: () => Promise.resolve({}) };
+
+        service2.sendData([{ key: 'shared', value: 'A' }]);
+
+        const serverTimestamp = new Date(Date.now() + 5000).toISOString();
+        const expectedTimestamp = new Date(serverTimestamp).getTime();
+        service2.handleDataUpdate({
+            nodeId: 'node-self',
+            timestamp: serverTimestamp,
+            data: [{ key: 'shared', value: 'A' }],
+        });
+
+        st.equal(service2.remoteData['node-self'].shared.value, 'A', 'value unchanged');
+        st.equal(
+            service2.remoteData['node-self'].shared.timestamp,
+            expectedTimestamp,
+            'timestamp normalized to server time',
+        );
+        st.end();
+    });
+
+    t.test('stale self-echo with different value does not overwrite seed (issue #713)', (st) => {
+        // Own values always originate locally, so an echo can never carry newer
+        // information than the seed. A different value means it is the echo of
+        // an OLDER local write (rapid successive writes) — keep the seed.
+        const service2 = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        service2.groupId = 'group1';
+        service2.client = { mutate: () => Promise.resolve({}) };
+
+        service2.sendData([{ key: 'shared', value: 'old' }]);
+        service2.sendData([{ key: 'shared', value: 'new' }]);
+        const seedTimestamp = service2.remoteData['node-self'].shared.timestamp;
+
+        // Echo of the FIRST write arrives after the second local write,
+        // with a server timestamp that may even be in the future (clock skew)
+        service2.handleDataUpdate({
+            nodeId: 'node-self',
+            timestamp: new Date(Date.now() + 5000).toISOString(),
+            data: [{ key: 'shared', value: 'old' }],
+        });
+
+        st.equal(service2.remoteData['node-self'].shared.value, 'new', 'seeded value is protected');
+        st.equal(service2.remoteData['node-self'].shared.timestamp, seedTimestamp, 'seed timestamp is kept');
+        st.equal(service2.getRemoteVariable('shared'), 'new', 'sensor value still reads the latest local write');
+        st.end();
+    });
+
     t.test('fetchAllNodesData should add timestamp from status', async (st) => {
         const serverTimestamp = new Date().toISOString();
         const expectedTimestamp = new Date(serverTimestamp).getTime();
