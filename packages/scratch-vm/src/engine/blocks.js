@@ -801,14 +801,16 @@ class Blocks {
             } else if (oldParent.next === e.id) {
                 // This block was connected to the old parent's next connection.
                 oldParent.next = null;
+                this._blocks[e.id].parent = null;
             }
-            this._blocks[e.id].parent = null;
             didChange = true;
         }
 
         // Is this block a top-level block?
         if (typeof e.newParent === 'undefined') {
-            this._addScript(e.id);
+            if (!this._blocks[e.id].shadow) {
+                this._addScript(e.id);
+            }
         } else {
             // Remove script, if one exists.
             this._deleteScript(e.id);
