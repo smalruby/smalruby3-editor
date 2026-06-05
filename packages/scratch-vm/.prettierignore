@@ -70,6 +70,7 @@ test/integration/extensions/*
 # Level 2: test/unit/*
 test/unit/*
 !test/unit/extensions/
+!test/unit/blocks_move_top_level_shadow.js
 !test/unit/blocks_operators_regex.js
 !test/unit/extension_koshien.js
 !test/unit/extension_mesh_v2_delta_repro.js

@@ -36,6 +36,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/extensions/mesh-v1-migration.test.js`
 - `test/integration/extensions/mesh-v2-data-merge.test.js`
 - `test/integration/extensions/mesh-v2-variable-sync.test.js`
+- `test/unit/blocks_move_top_level_shadow.js`
 - `test/unit/blocks_operators_regex.js`
 - `test/unit/extension_koshien.js`
 - `test/unit/extension_mesh_v2_delta_repro.js`
