@@ -165,6 +165,70 @@ test('MeshV2Service self-inclusive sensor value (Issue #707)', (t) => {
     t.end();
 });
 
+// Issue #713: a when_receive handler triggered by a LOCAL broadcast runs
+// synchronously, before the AppSync echo (RateLimiter 1s + network) brings the
+// just-set variables back. The local seed in sendData makes them readable
+// immediately, while values from other nodes still win when newer.
+test('MeshV2Service immediate self sensor value after set (Issue #713)', async (t) => {
+    mockClient.mutate = ({ mutation, variables }) => {
+        if (mutation === CREATE_GROUP) {
+            return Promise.resolve({
+                data: {
+                    createGroup: {
+                        id: 'group1',
+                        name: variables.name,
+                        domain: variables.domain,
+                        expiresAt: FAR_FUTURE,
+                    },
+                },
+            });
+        }
+        return Promise.resolve({ data: {} });
+    };
+    mockClient.query = () => Promise.resolve({ data: { listGroupStatuses: [] } });
+
+    const service = new MeshV2Service(createMockBlocks(), 'host-node', 'domain1');
+    service.client = mockClient;
+    service.forcePolling = true; // Skip WebSocket test in unit test environment
+
+    await service.createGroup('my-group');
+
+    // First message: $送信者 = "A"; $送信メッセージ = answer; broadcast(...)
+    // — when_receive reads the sensor values in the same tick.
+    service.sendData([
+        { key: '送信者', value: 'A' },
+        { key: '送信メッセージ', value: 'こんにちは' },
+    ]);
+    t.equal(
+        `${service.getRemoteVariable('送信者')}：${service.getRemoteVariable('送信メッセージ')}`,
+        'A：こんにちは',
+        'first read works immediately, without waiting for the echo',
+    );
+
+    // Second message before any echo: must read the LATEST value, not the previous one.
+    service.sendData([{ key: '送信メッセージ', value: '2かいめ' }]);
+    t.equal(service.getRemoteVariable('送信メッセージ'), '2かいめ', 'second read returns the latest value');
+
+    // Stale echo of the first write arrives late: the seed must be protected.
+    service.handleDataUpdate({
+        nodeId: 'host-node',
+        timestamp: FAR_FUTURE,
+        data: [{ key: '送信メッセージ', value: 'こんにちは' }],
+    });
+    t.equal(service.getRemoteVariable('送信メッセージ'), '2かいめ', 'stale echo does not revert the value');
+
+    // A NEWER value from another node still wins by timestamp.
+    service.handleDataUpdate({
+        nodeId: 'peer-node',
+        timestamp: new Date(Date.now() + 7200000).toISOString(),
+        data: [{ key: '送信メッセージ', value: 'from-peer' }],
+    });
+    t.equal(service.getRemoteVariable('送信メッセージ'), 'from-peer', 'newer peer value wins');
+
+    service.cleanup();
+    t.end();
+});
+
 test('MeshV2Service fetch existing nodes data on joinGroup', async (t) => {
     const blocks = {
         runtime: {
