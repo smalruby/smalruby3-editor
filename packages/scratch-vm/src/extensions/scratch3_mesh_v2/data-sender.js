@@ -41,6 +41,16 @@ const DataSenderMixin = {
             this.latestQueuedData[item.key] = item.value;
         });
 
+        // Issue #713: seed own values into remoteData immediately so the
+        // "sensor value" block can read this node's own variables without
+        // waiting for the AppSync echo round-trip (RateLimiter 1s + network).
+        // Local broadcast fires synchronously, so the echo would arrive too
+        // late for a when_receive handler reading its own just-set variable.
+        // The seed uses the client clock; handleDataUpdate normalizes the
+        // timestamp to server time when the echo arrives, so cross-node
+        // timestamp comparison self-heals within ~1-2s even with clock skew.
+        this._seedLocalData(filteredData);
+
         try {
             // Save Promise to track completion (including queue time)
             this.lastDataSendPromise = this.dataRateLimiter.send(filteredData, this._reportDataBound);
@@ -117,6 +127,25 @@ const DataSenderMixin = {
             }
             throw error;
         }
+    },
+
+    /**
+     * Seed this node's own values into remoteData with a local timestamp.
+     * Allows getRemoteVariable to return own values immediately; values from
+     * other nodes still win when they carry a newer timestamp.
+     * @param {Array} items - Array of {key, value} objects being queued.
+     * @private
+     */
+    _seedLocalData(items) {
+        if (!this.remoteData[this.meshId]) {
+            this.remoteData[this.meshId] = {};
+        }
+        items.forEach(item => {
+            this.remoteData[this.meshId][item.key] = {
+                value: item.value,
+                timestamp: Date.now(),
+            };
+        });
     },
 
     /**
