@@ -100,6 +100,13 @@ const RubyToolbar = props => {
         }
     }, [props.editorRef, keyboardVisible]);
 
+    const handleKeyboardMouseDown = useCallback(e => {
+        // Keep focus on the editor: without this, pressing the button blurs
+        // Monaco at mousedown time, keyboardVisible flips to false before the
+        // click handler runs, and "hide" would re-focus instead.
+        e.preventDefault();
+    }, []);
+
     const handleDownload = useCallback(() => {
         setShowMoreMenu(false);
         if (props.onDismissBubble) props.onDismissBubble();
@@ -283,6 +290,7 @@ const RubyToolbar = props => {
                         className={styles.iconButton}
                         data-testid="ruby-toolbar-keyboard"
                         onClick={handleToggleKeyboard}
+                        onMouseDown={handleKeyboardMouseDown}
                         disabled={!props.editorRef}
                         aria-pressed={keyboardVisible}
                         aria-label={intl.formatMessage(

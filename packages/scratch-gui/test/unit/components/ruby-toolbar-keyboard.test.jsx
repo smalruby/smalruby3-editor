@@ -1,6 +1,6 @@
 /* eslint-env jest */
 import '@testing-library/jest-dom';
-import { render, fireEvent, act } from '@testing-library/react';
+import { render, fireEvent, createEvent, act } from '@testing-library/react';
 import React from 'react';
 import { IntlProvider } from 'react-intl';
 import RubyToolbar from '../../../src/components/ruby-toolbar/ruby-toolbar.jsx';
@@ -129,6 +129,21 @@ describe('ruby-toolbar keyboard toggle button', () => {
 
         expect(blurSpy).toHaveBeenCalled();
         expect(mock.editor.focus).not.toHaveBeenCalled();
+    });
+
+    test('prevents mousedown default so pressing the button does not blur the editor', () => {
+        // Without this, pressing the button steals focus from the editor at
+        // mousedown time; the blur event flips keyboardVisible to false
+        // before the click handler runs, so "hide" would re-focus instead.
+        isTouchDevice.mockReturnValue(true);
+        const { editor } = createEditorMock();
+        const { container } = renderToolbar({ editorRef: editor });
+        const button = getKeyboardButton(container);
+
+        const mouseDownEvent = createEvent.mouseDown(button);
+        fireEvent(button, mouseDownEvent);
+
+        expect(mouseDownEvent.defaultPrevented).toBe(true);
     });
 
     test('starts as pressed when the editor already has text focus', () => {
