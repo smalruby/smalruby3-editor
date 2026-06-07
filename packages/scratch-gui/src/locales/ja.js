@@ -764,6 +764,8 @@ export default {
     'gui.rubyToolbar.modeDncl': '日本語モード',
     'gui.rubyToolbar.stopExecution': '実行を停止',
     'gui.rubyToolbar.search': '検索',
+    'gui.rubyToolbar.keyboardShow': 'キーボードを表示',
+    'gui.rubyToolbar.keyboardHide': 'キーボードを隠す',
     'gui.rubyToolbar.prevSprite': '前のスプライト',
     'gui.rubyToolbar.nextSprite': '次のスプライト',
     'gui.rubyToolbar.undo': '元に戻す',

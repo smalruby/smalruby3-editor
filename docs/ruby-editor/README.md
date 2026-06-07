@@ -55,10 +55,15 @@ ruby-toolbar 上部のセグメントで切替：
 | 実行/停止 (`ruby-toolbar-execute`) | 緑旗を発火・停止 |
 | 元に戻す/やり直す | Monaco の undo/redo |
 | 検索 | Monaco の find |
+| キーボード (`ruby-toolbar-keyboard`) | ソフトウェアキーボードの表示/非表示（タッチデバイスのみ表示）。Monaco 組み込みの iPad キーボードウィジェットは zoom ボタンと重なるため CSS で非表示にしており、その代替 |
 | 自動置換 (`ruby-toolbar-auto-correct`) | 自動置換のオン/オフ |
 | ルビティー (`ruby-toolbar-rubytee`) | AI アシスタントを開く（[`docs/rubytee/`](../rubytee/) 参照）|
 | その他メニュー (`ruby-toolbar-more-menu`) | Ruby スクリプト保存、クラス挿入、プレビュー、自動置換設定 |
 | スプライト切替 | エディタ対象スプライトの prev/next |
+
+**タッチデバイス（iPad）での表示**（検索ボタンの右にキーボードトグルボタン）：
+
+![iPad のキーボードトグルボタン](screenshots/0104-keyboard-toggle-ipad-1180x820.png)
 
 ## 主要ファイル
 
@@ -108,6 +113,7 @@ ruby-toolbar 上部のセグメントで切替：
 | `packages/scratch-gui/src/lib/insert-class.js` | 「クラス挿入」機能 |
 | `packages/scratch-gui/src/lib/ruby-script-preview.js` | Ruby スクリプトのプレビュー生成 |
 | `packages/scratch-gui/src/lib/ruby-screenshot.js` | Ruby コードの画像化 |
+| `packages/scratch-gui/src/lib/touch-device.js` | タッチデバイス判定（キーボードトグルボタンの表示条件）|
 | `packages/scratch-gui/src/containers/ruby-downloader.jsx` | Ruby スクリプトの .rb ダウンロード |
 
 #### 状態管理

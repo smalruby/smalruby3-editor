@@ -42,6 +42,7 @@ expect(await isActiveByTestId(driver, 'ruby-toolbar-mode-dncl')).toBe(true);
 | `ruby-toolbar-undo` | button | 元に戻す |
 | `ruby-toolbar-redo` | button | やり直す |
 | `ruby-toolbar-search` | button | 検索 |
+| `ruby-toolbar-keyboard` | button | ソフトウェアキーボード表示/非表示トグル（タッチデバイスのみレンダリング） |
 | `ruby-toolbar-auto-correct` | button | 自動置換トグル |
 | `ruby-toolbar-rubytee` | button | ルビティー（AI） |
 | `ruby-toolbar-mode-furigana` | button | ふりがなモード |

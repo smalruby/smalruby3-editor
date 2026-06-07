@@ -16,14 +16,36 @@ import iconUndo from './icon--undo.svg';
 import iconRedo from './icon--redo.svg';
 import iconDownload from './icon--download.svg';
 import iconAutoCorrect from './icon--auto-correct.svg';
+import iconKeyboard from './icon--keyboard.svg';
 import iconRubytee from './icon--rubytee.svg';
 import Spinner from '../spinner/spinner.jsx';
 import {isJapaneseLocale} from '../../lib/locale-utils.js';
+import {isTouchDevice} from '../../lib/touch-device.js';
 
 const RubyToolbar = props => {
     const intl = useIntl();
     const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
     const moreMenuRef = useRef(null);
+
+    // Track Monaco focus so the keyboard toggle button reflects whether the
+    // software keyboard is shown (editor focused) on touch devices.
+    useEffect(() => {
+        const editor = props.editorRef;
+        if (!editor || typeof editor.onDidFocusEditorText !== 'function') {
+            setKeyboardVisible(false);
+            return () => {};
+        }
+        setKeyboardVisible(
+            typeof editor.hasTextFocus === 'function' && editor.hasTextFocus()
+        );
+        const focusDisposable = editor.onDidFocusEditorText(() => setKeyboardVisible(true));
+        const blurDisposable = editor.onDidBlurEditorText(() => setKeyboardVisible(false));
+        return () => {
+            focusDisposable.dispose();
+            blurDisposable.dispose();
+        };
+    }, [props.editorRef]);
 
     // Close more menu when clicking outside
     useEffect(() => {
@@ -60,6 +82,34 @@ const RubyToolbar = props => {
             props.editorRef.trigger('keyboard', 'redo', null);
         }
     }, [props]);
+
+    const handleToggleKeyboard = useCallback(() => {
+        const editor = props.editorRef;
+        if (!editor) return;
+        if (keyboardVisible) {
+            // Monaco has no public blur API. The focused element depends on
+            // its text input strategy (div.native-edit-context on 0.55+,
+            // textarea.inputarea before), so blur whichever element inside
+            // the editor currently has focus to dismiss the keyboard.
+            const domNode = typeof editor.getDomNode === 'function' && editor.getDomNode();
+            const active = document.activeElement;
+            if (domNode && active && domNode.contains(active)) {
+                active.blur();
+            }
+        } else {
+            // Focusing within the button's user gesture summons the software
+            // keyboard on iOS/Android (same mechanism as Monaco's built-in
+            // iPad show-keyboard widget, hidden via ruby-tab.css).
+            editor.focus();
+        }
+    }, [props.editorRef, keyboardVisible]);
+
+    const handleKeyboardMouseDown = useCallback(e => {
+        // Keep focus on the editor: without this, pressing the button blurs
+        // Monaco at mousedown time, keyboardVisible flips to false before the
+        // click handler runs, and "hide" would re-focus instead.
+        e.preventDefault();
+    }, []);
 
     const handleDownload = useCallback(() => {
         setShowMoreMenu(false);
@@ -239,6 +289,27 @@ const RubyToolbar = props => {
                         alt=""
                     />
                 </button>
+                {isTouchDevice() && (
+                    <button
+                        className={styles.iconButton}
+                        data-testid="ruby-toolbar-keyboard"
+                        onClick={handleToggleKeyboard}
+                        onMouseDown={handleKeyboardMouseDown}
+                        disabled={!props.editorRef}
+                        aria-pressed={keyboardVisible}
+                        aria-label={intl.formatMessage(
+                            keyboardVisible ? messages.keyboardHide : messages.keyboardShow
+                        )}
+                        title={intl.formatMessage(
+                            keyboardVisible ? messages.keyboardHide : messages.keyboardShow
+                        )}
+                    >
+                        <img
+                            src={iconKeyboard}
+                            alt=""
+                        />
+                    </button>
+                )}
             </div>
 
             {/* Auto Correct Toggle */}

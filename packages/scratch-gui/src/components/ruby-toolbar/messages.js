@@ -53,6 +53,16 @@ const messages = defineMessages({
         defaultMessage: 'Search',
         description: 'Tooltip for search button'
     },
+    keyboardShow: {
+        id: 'gui.rubyToolbar.keyboardShow',
+        defaultMessage: 'Show keyboard',
+        description: 'Tooltip for keyboard toggle button when the software keyboard is hidden'
+    },
+    keyboardHide: {
+        id: 'gui.rubyToolbar.keyboardHide',
+        defaultMessage: 'Hide keyboard',
+        description: 'Tooltip for keyboard toggle button when the software keyboard is shown'
+    },
     undo: {
         id: 'gui.rubyToolbar.undo',
         defaultMessage: 'Undo',

@@ -98,6 +98,14 @@ $arrow-rounding: 0.125rem;
     right: 48px !important;
 }
 
+/* Hide Monaco's built-in iPad show-keyboard widget. It is rendered at the
+   editor's bottom-right corner on iOS and overlaps the Smalruby zoom
+   controls (issue #727). The Ruby toolbar provides its own keyboard toggle
+   button instead. */
+.editorWrapper :global(.monaco-editor .iPadShowKeyboard) {
+    display: none;
+}
+
 .editorWrapper :global(.executing-line) {
     background-color: rgba(133, 92, 214, 0.2) !important;
 }

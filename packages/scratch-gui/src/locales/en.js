@@ -521,6 +521,8 @@ export default {
     'gui.rubyToolbar.executeLine': 'Execute current line',
     'gui.rubyToolbar.stopExecution': 'Stop execution',
     'gui.rubyToolbar.search': 'Search',
+    'gui.rubyToolbar.keyboardShow': 'Show keyboard',
+    'gui.rubyToolbar.keyboardHide': 'Hide keyboard',
     'gui.rubyToolbar.prevSprite': 'Previous sprite',
     'gui.rubyToolbar.nextSprite': 'Next sprite',
     'gui.rubyToolbar.undo': 'Undo',
