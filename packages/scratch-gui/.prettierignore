@@ -167,6 +167,7 @@ src/lib/*
 !src/lib/ruby-to-blocks-converter-hoc.jsx
 !src/lib/rubytee-api.js
 !src/lib/rubytee-context.js
+!src/lib/touch-device.js
 !src/lib/url-loader-hoc.jsx
 !src/lib/url-loader.js
 !src/lib/url-params.js
@@ -288,6 +289,7 @@ test/unit/components/*
 !test/unit/components/welcome-tooltip.test.jsx
 !test/unit/components/project-title-input.test.jsx
 !test/unit/components/ruby-toolbar-analytics.test.jsx
+!test/unit/components/ruby-toolbar-keyboard.test.jsx
 !test/unit/components/scanning-step-name-search.test.js
 !test/unit/components/student-join-form.test.js
 
@@ -333,6 +335,7 @@ test/unit/lib/*
 !test/unit/lib/furigana-annotator-perf.test.js
 !test/unit/lib/furigana-annotator.test.js
 !test/unit/lib/google-drive-api.test.js
+!test/unit/lib/touch-device.test.js
 !test/unit/lib/url-loader.test.js
 !test/unit/lib/insert-class.test.js
 !test/unit/lib/join-code-history.test.js

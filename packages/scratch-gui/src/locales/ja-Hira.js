@@ -789,6 +789,8 @@ export default {
     'gui.rubyToolbar.modeDncl': 'にほんごモード',
     'gui.rubyToolbar.stopExecution': 'じっこうをていし',
     'gui.rubyToolbar.search': 'けんさく',
+    'gui.rubyToolbar.keyboardShow': 'キーボードをひょうじ',
+    'gui.rubyToolbar.keyboardHide': 'キーボードをかくす',
     'gui.rubyToolbar.prevSprite': 'まえのスプライト',
     'gui.rubyToolbar.nextSprite': 'つぎのスプライト',
     'gui.rubyToolbar.undo': 'もとにもどす',

@@ -144,6 +144,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/scratch-blocks-comment-icon-patch.js`
 - `src/lib/rubytee-api.js`
 - `src/lib/rubytee-context.js`
+- `src/lib/touch-device.js`
 - `src/lib/url-loader-hoc.jsx`
 - `src/lib/url-loader.js`
 - `src/lib/url-params.js`
@@ -224,6 +225,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/components/palette-toggle.test.jsx`
 - `test/unit/components/welcome-tooltip.test.jsx`
 - `test/unit/components/ruby-toolbar-analytics.test.jsx`
+- `test/unit/components/ruby-toolbar-keyboard.test.jsx`
 - `test/unit/components/project-title-input.test.jsx`
 - `test/unit/components/scanning-step-name-search.test.js`
 - `test/unit/components/student-join-form.test.js`
@@ -258,6 +260,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/google-drive-api.test.js`
 - `test/unit/lib/responsive-gui.test.jsx`
 - `test/unit/lib/scratch-blocks-auto-style-patch.test.js`
+- `test/unit/lib/touch-device.test.js`
 - `test/unit/lib/url-loader.test.js`
 - `test/unit/lib/use-is-narrow-screen.test.js`
 - `test/unit/lib/insert-class.test.js`

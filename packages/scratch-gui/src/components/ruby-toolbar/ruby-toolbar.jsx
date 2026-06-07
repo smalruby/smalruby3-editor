@@ -16,14 +16,36 @@ import iconUndo from './icon--undo.svg';
 import iconRedo from './icon--redo.svg';
 import iconDownload from './icon--download.svg';
 import iconAutoCorrect from './icon--auto-correct.svg';
+import iconKeyboard from './icon--keyboard.svg';
 import iconRubytee from './icon--rubytee.svg';
 import Spinner from '../spinner/spinner.jsx';
 import {isJapaneseLocale} from '../../lib/locale-utils.js';
+import {isTouchDevice} from '../../lib/touch-device.js';
 
 const RubyToolbar = props => {
     const intl = useIntl();
     const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
     const moreMenuRef = useRef(null);
+
+    // Track Monaco focus so the keyboard toggle button reflects whether the
+    // software keyboard is shown (editor focused) on touch devices.
+    useEffect(() => {
+        const editor = props.editorRef;
+        if (!editor || typeof editor.onDidFocusEditorText !== 'function') {
+            setKeyboardVisible(false);
+            return () => {};
+        }
+        setKeyboardVisible(
+            typeof editor.hasTextFocus === 'function' && editor.hasTextFocus()
+        );
+        const focusDisposable = editor.onDidFocusEditorText(() => setKeyboardVisible(true));
+        const blurDisposable = editor.onDidBlurEditorText(() => setKeyboardVisible(false));
+        return () => {
+            focusDisposable.dispose();
+            blurDisposable.dispose();
+        };
+    }, [props.editorRef]);
 
     // Close more menu when clicking outside
     useEffect(() => {
@@ -60,6 +82,23 @@ const RubyToolbar = props => {
             props.editorRef.trigger('keyboard', 'redo', null);
         }
     }, [props]);
+
+    const handleToggleKeyboard = useCallback(() => {
+        const editor = props.editorRef;
+        if (!editor) return;
+        if (keyboardVisible) {
+            // Monaco has no public blur API; blur its hidden input textarea
+            // to dismiss the software keyboard.
+            const domNode = typeof editor.getDomNode === 'function' && editor.getDomNode();
+            const textarea = domNode && domNode.querySelector('textarea.inputarea');
+            if (textarea) textarea.blur();
+        } else {
+            // Focusing within the button's user gesture summons the software
+            // keyboard on iOS/Android (same mechanism as Monaco's built-in
+            // iPad show-keyboard widget, hidden via ruby-tab.css).
+            editor.focus();
+        }
+    }, [props.editorRef, keyboardVisible]);
 
     const handleDownload = useCallback(() => {
         setShowMoreMenu(false);
@@ -239,6 +278,26 @@ const RubyToolbar = props => {
                         alt=""
                     />
                 </button>
+                {isTouchDevice() && (
+                    <button
+                        className={styles.iconButton}
+                        data-testid="ruby-toolbar-keyboard"
+                        onClick={handleToggleKeyboard}
+                        disabled={!props.editorRef}
+                        aria-pressed={keyboardVisible}
+                        aria-label={intl.formatMessage(
+                            keyboardVisible ? messages.keyboardHide : messages.keyboardShow
+                        )}
+                        title={intl.formatMessage(
+                            keyboardVisible ? messages.keyboardHide : messages.keyboardShow
+                        )}
+                    >
+                        <img
+                            src={iconKeyboard}
+                            alt=""
+                        />
+                    </button>
+                )}
             </div>
 
             {/* Auto Correct Toggle */}
