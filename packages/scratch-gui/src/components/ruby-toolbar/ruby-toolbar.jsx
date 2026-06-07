@@ -87,11 +87,15 @@ const RubyToolbar = props => {
         const editor = props.editorRef;
         if (!editor) return;
         if (keyboardVisible) {
-            // Monaco has no public blur API; blur its hidden input textarea
-            // to dismiss the software keyboard.
+            // Monaco has no public blur API. The focused element depends on
+            // its text input strategy (div.native-edit-context on 0.55+,
+            // textarea.inputarea before), so blur whichever element inside
+            // the editor currently has focus to dismiss the keyboard.
             const domNode = typeof editor.getDomNode === 'function' && editor.getDomNode();
-            const textarea = domNode && domNode.querySelector('textarea.inputarea');
-            if (textarea) textarea.blur();
+            const active = document.activeElement;
+            if (domNode && active && domNode.contains(active)) {
+                active.blur();
+            }
         } else {
             // Focusing within the button's user gesture summons the software
             // keyboard on iOS/Android (same mechanism as Monaco's built-in

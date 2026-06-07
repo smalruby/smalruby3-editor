@@ -14,13 +14,19 @@ jest.mock('../../../src/lib/touch-device', () => ({
 /**
  * Create a minimal Monaco editor mock exposing the APIs the keyboard toggle
  * button uses: focus / hasTextFocus / getDomNode / focus-blur listeners.
+ * The dom node is attached to the document so that focus tracking via
+ * document.activeElement works in jsdom. Monaco 0.55+ focuses a
+ * div.native-edit-context (EditContext input strategy) rather than the
+ * legacy textarea.inputarea, so the mock uses a tabindex'd div.
  * @returns {object} editor mock plus helpers to fire focus/blur events.
  */
 const createEditorMock = () => {
     const domNode = document.createElement('div');
-    const textarea = document.createElement('textarea');
-    textarea.className = 'inputarea';
-    domNode.appendChild(textarea);
+    const editContext = document.createElement('div');
+    editContext.className = 'native-edit-context';
+    editContext.tabIndex = 0;
+    domNode.appendChild(editContext);
+    document.body.appendChild(domNode);
     let focusHandler = null;
     let blurHandler = null;
     const editor = {
@@ -40,9 +46,10 @@ const createEditorMock = () => {
     };
     return {
         editor,
-        textarea,
+        editContext,
         fireFocus: () => focusHandler && focusHandler(),
         fireBlur: () => blurHandler && blurHandler(),
+        cleanup: () => domNode.remove(),
     };
 };
 
@@ -116,12 +123,16 @@ describe('ruby-toolbar keyboard toggle button', () => {
         expect(button.getAttribute('aria-pressed')).toBe('false');
     });
 
-    test('blurs the editor textarea when clicked while the keyboard is shown', () => {
+    test('blurs the focused editor element when clicked while the keyboard is shown', () => {
         isTouchDevice.mockReturnValue(true);
         const mock = createEditorMock();
-        const blurSpy = jest.spyOn(mock.textarea, 'blur');
+        const blurSpy = jest.spyOn(mock.editContext, 'blur');
         const { container } = renderToolbar({ editorRef: mock.editor });
 
+        // Simulate Monaco having focus: its edit-context element is the
+        // document's active element.
+        mock.editContext.focus();
+        expect(document.activeElement).toBe(mock.editContext);
         act(() => {
             mock.fireFocus();
         });
@@ -129,6 +140,7 @@ describe('ruby-toolbar keyboard toggle button', () => {
 
         expect(blurSpy).toHaveBeenCalled();
         expect(mock.editor.focus).not.toHaveBeenCalled();
+        mock.cleanup();
     });
 
     test('prevents mousedown default so pressing the button does not blur the editor', () => {
