@@ -39,6 +39,24 @@ DNCL モードに切り替えると：
 
 DNCL モードと**ふりがな**は排他（DNCL 自体が日本語のためふりがな不要）。
 
+### ブロック制限の通知と DNCL モードからの復帰
+
+DNCL モードではコードタブのブロックが制限される（後述の「関連ブロック」参照）ため、想定外に DNCL モードになっているユーザーが「ブロックが少ない・拡張機能が選べない」状態に気づけるよう、2 つの復帰導線を用意している。
+
+**通知バナー（コードタブ）**: DNCL モード中はワークスペース右上に「日本語モード：ブロックが制限されています」バナー（`data-testid: dncl-mode-notice`）を常時表示する。「Rubyふりがなモードに戻す」ボタン（`data-testid: dncl-mode-notice-exit-button`）を押すと confirm ダイアログを表示し、OK でふりがなモードに戻してタブ切り替えなしで全ブロックを即時復元する。
+
+**拡張機能ボタンの confirm ダイアログ**: DNCL モード中に拡張機能ボタン（`data-testid: extension-button`）を押すと、「日本語モードでは拡張機能は使えません。Rubyふりがなモードに戻すと拡張機能が使えるようになります。戻しますか？」の confirm ダイアログを表示する。OK でふりがなモードに戻して拡張機能ライブラリを開く。キャンセルでは何も変わらない（DNCL モード継続）。
+
+どちらの導線も Redux signal パターンで実装している:
+
+```
+バナー / 拡張機能ボタン (OK)
+  → dispatch(setDnclMode(false))             ← blocks.jsx が即座に全ブロック表示に更新
+  → dispatch(requestExternalExitDnclMode())  ← ruby-tab の wasDncl 復元をスキップするシグナル
+```
+
+Ruby タブを次に開いたとき、`exitDnclModeExternallyRequested` フラグが立っていれば DNCL 表示の復元（wasDncl パス）をスキップして Ruby コードを表示し、フラグをクリアする。これにより「バナーで戻したのに Ruby タブを開くと日本語モードに戻ってしまう」事故を防ぐ。
+
 ## 主要ファイル
 
 ### scratch-gui
@@ -73,9 +91,13 @@ DNCL モードと**ふりがな**は排他（DNCL 自体が日本語のためふ
 #### UI / 状態管理
 
 - `packages/scratch-gui/src/components/ruby-toolbar/ruby-toolbar.jsx` — DNCL モード切替ボタン
-- `packages/scratch-gui/src/containers/ruby-tab.jsx` — DNCL モード state、エディタ切替制御
-- `packages/scratch-gui/src/reducers/dncl-mode.js` — DNCL モードの Redux state
+- `packages/scratch-gui/src/containers/ruby-tab.jsx` — DNCL モード state、エディタ切替制御、外部終了要求時の wasDncl 復元スキップ
+- `packages/scratch-gui/src/reducers/dncl-mode.js` — DNCL モードの Redux state（`dnclMode` + `exitDnclModeExternallyRequested` シグナル）
 - `packages/scratch-gui/src/lib/locale-utils.js` — `isJapaneseLocale` (DNCL は日本語ロケール限定)
+- `packages/scratch-gui/src/components/dncl-mode-notice/` — コードタブの「日本語モード：ブロックが制限されています」通知バナー
+- `packages/scratch-gui/src/components/extension-button/extension-button.jsx` — DNCL モード時の confirm ダイアログ（upstream ファイル、Smalruby マーカー付き）
+- `packages/scratch-gui/src/components/gui/gui.jsx` / `src/containers/gui.jsx` — DnclModeNotice の配置と `onRequestExitDnclMode` の Redux 配線（upstream ファイル、Smalruby マーカー付き）
+- `packages/scratch-gui/src/containers/blocks.jsx` — DNCL モードのブロックフィルタ適用と即時再レンダリング（upstream ファイル、Smalruby マーカー付き）
 
 ### scratch-vm
 
@@ -198,7 +220,11 @@ Smalruby は **DNCLv2 形式のプログラムをそのまま実行** できる�
   - `ruby-to-dncl.test.js` — Ruby → DNCL 逆変換ユニットテスト
   - `dncl-roundtrip.test.js` — DNCL ↔ Ruby round-trip 安定性
 - Round-trip テスト (左結合演算子の括弧除去): `packages/scratch-gui/test/unit/lib/ruby-roundtrip-puts-concat.test.js`
-- 結合テスト: `packages/scratch-gui/test/integration/dncl-mode-validation.test.js`
+- ブロック制限 UX の単体テスト:
+  - `packages/scratch-gui/test/unit/reducers/dncl-mode-reducer.test.js` — `exitDnclModeExternallyRequested` シグナル
+  - `packages/scratch-gui/test/unit/components/extension-button-dncl.test.jsx` — 拡張機能ボタンの confirm フロー
+  - `packages/scratch-gui/test/unit/components/dncl-mode-notice.test.jsx` — 通知バナー
+- 結合テスト: `packages/scratch-gui/test/integration/dncl-mode-validation.test.js`（DNCL バリデーション + 通知バナー/confirm フロー）
 
 ## 関連ドキュメント
 

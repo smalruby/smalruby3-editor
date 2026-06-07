@@ -2,9 +2,15 @@
     position: absolute;
     top: 0;
     right: 0;
-    z-index: 10;
+    /* Above .blocklyFlyout (z-index: 20): on narrow layouts (iPad portrait)
+       the workspace area is narrower than the banner, which would otherwise
+       slide under the flyout and become unreadable */
+    z-index: 25;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: calc(100% - 8px);
     padding: 6px 12px;
     background-color: rgba(255, 243, 205, 0.95);
     border-bottom: 1px solid #ffc107;

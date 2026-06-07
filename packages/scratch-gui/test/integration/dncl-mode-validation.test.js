@@ -58,6 +58,64 @@ const waitForActiveState = (d, testId, expected) =>
 const clickCodeTab = (d) => d.executeScript(`document.querySelector('[role="tab"]').click()`);
 
 /**
+ * Click the Ruby tab (last tab: Code / Costumes / Sounds / Ruby).
+ * Uses index instead of text matching because the label is locale-dependent.
+ * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ */
+const clickRubyTab = (d) =>
+    d.executeScript(`const tabs = document.querySelectorAll('[role="tab"]'); tabs[tabs.length - 1].click()`);
+
+const existsByTestId = (d, testId) =>
+    d.executeScript(`return document.querySelector('[data-testid="${testId}"]') !== null`);
+
+const waitForTestIdPresence = (d, testId, expected) =>
+    d.wait(
+        async () => (await existsByTestId(d, testId)) === expected,
+        10000,
+        `Element ${testId} did not become ${expected ? 'present' : 'absent'}`,
+    );
+
+/**
+ * Stub window.confirm so native dialogs do not block Selenium, recording call count.
+ * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
+ * @param {boolean} result - Value the stubbed confirm should return.
+ */
+const setConfirmResult = (d, result) =>
+    d.executeScript(
+        `window.__confirmCalls = 0; window.confirm = () => { window.__confirmCalls += 1; return ${result}; }`,
+    );
+
+const getConfirmCallCount = (d) => d.executeScript('return window.__confirmCalls || 0');
+
+const isExtensionButtonDisabled = (d) =>
+    d.executeScript(
+        `return document.querySelector('[data-testid="extension-button"]')` +
+            `?.className?.includes('disabled') ?? false`,
+    );
+
+const isExtensionLibraryOpen = (d) =>
+    d.executeScript(`return document.querySelector('[class*="library-scroll-grid"]') !== null`);
+
+const getToolboxCategoryCount = (d) =>
+    d.executeScript(
+        `const toolbox = document.querySelector('.blocklyToolbox');` +
+            `if (!toolbox || toolbox.style.display === 'none') return 0;` +
+            `return toolbox.querySelectorAll('.blocklyToolboxCategory').length;`,
+    );
+
+const waitForMonacoLanguage = (d, expected) =>
+    d.wait(
+        async () => {
+            const lang = await d.executeScript(
+                'return window.monacoEditor && window.monacoEditor.getModel().getLanguageId()',
+            );
+            return lang === expected;
+        },
+        10000,
+        `Monaco language did not become "${expected}"`,
+    );
+
+/**
  * Load the editor in Ruby mode (not DNCL), clearing any localStorage state.
  * Uses locale=ja because furigana/DNCL modes are only available in Japanese locales.
  * @param {import('selenium-webdriver').WebDriver} d - WebDriver instance.
@@ -172,6 +230,101 @@ describe('DNCL mode validation on switch', () => {
         );
         // Non-DNCL mode should have more categories than DNCL mode (which filters heavily)
         expect(categoryCount).toBeGreaterThan(3);
+    });
+
+    test('notice banner is shown on Code tab in DNCL mode', async () => {
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await clickCodeTab(driver);
+
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
+        // Extension button is rendered in disabled style while DNCL mode is on
+        expect(await isExtensionButtonDisabled(driver)).toBe(true);
+    });
+
+    test('banner exit button: cancel keeps DNCL mode', async () => {
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await clickCodeTab(driver);
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
+
+        await setConfirmResult(driver, false);
+        await clickByTestId(driver, 'dncl-mode-notice-exit-button');
+        expect(await getConfirmCallCount(driver)).toBe(1);
+
+        // Banner stays and blocks remain restricted
+        expect(await existsByTestId(driver, 'dncl-mode-notice')).toBe(true);
+        expect(await isExtensionButtonDisabled(driver)).toBe(true);
+    });
+
+    test('banner exit button: OK exits DNCL mode and restores full toolbox', async () => {
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await clickCodeTab(driver);
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
+
+        await setConfirmResult(driver, true);
+        await clickByTestId(driver, 'dncl-mode-notice-exit-button');
+
+        // Banner disappears and full toolbox is restored without tab switching
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', false);
+        await driver.wait(
+            async () => (await getToolboxCategoryCount(driver)) > 3,
+            10000,
+            'Toolbox categories were not restored after exiting DNCL mode via banner',
+        );
+        expect(await isExtensionButtonDisabled(driver)).toBe(false);
+    });
+
+    test('extension button: cancel keeps DNCL mode and does not open library', async () => {
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await clickCodeTab(driver);
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
+
+        await setConfirmResult(driver, false);
+        await clickByTestId(driver, 'extension-button');
+        expect(await getConfirmCallCount(driver)).toBe(1);
+
+        // Extension library does not open, DNCL mode continues
+        expect(await isExtensionLibraryOpen(driver)).toBe(false);
+        expect(await existsByTestId(driver, 'dncl-mode-notice')).toBe(true);
+        expect(await isExtensionButtonDisabled(driver)).toBe(true);
+    });
+
+    test('extension button: OK exits DNCL mode and opens extension library', async () => {
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await clickCodeTab(driver);
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
+
+        await setConfirmResult(driver, true);
+        await clickByTestId(driver, 'extension-button');
+
+        // Extension library opens and DNCL restriction is lifted
+        await driver.wait(
+            () => isExtensionLibraryOpen(driver),
+            10000,
+            'Extension library did not open after confirming exit from DNCL mode',
+        );
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', false);
+    });
+
+    test('Ruby tab shows Ruby code after exiting DNCL mode via banner', async () => {
+        await loadUri(`${uri}?rubyMode=dncl&locale=ja&tab=ruby`);
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', true);
+        await waitForMonacoLanguage(driver, 'dncl');
+
+        await clickCodeTab(driver);
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', true);
+        await setConfirmResult(driver, true);
+        await clickByTestId(driver, 'dncl-mode-notice-exit-button');
+        await waitForTestIdPresence(driver, 'dncl-mode-notice', false);
+
+        // Reopen the Ruby tab: the wasDncl restore path must be skipped
+        await clickRubyTab(driver);
+        await waitForMonacoLanguage(driver, 'smalruby');
+        await waitForActiveState(driver, 'ruby-toolbar-mode-dncl', false);
     });
 
     test('DNCL to furigana switch restores block palette on Code tab', async () => {
