@@ -61,6 +61,10 @@ ruby-toolbar 上部のセグメントで切替：
 | その他メニュー (`ruby-toolbar-more-menu`) | Ruby スクリプト保存、クラス挿入、プレビュー、自動置換設定 |
 | スプライト切替 | エディタ対象スプライトの prev/next |
 
+**タッチデバイス（iPad）での表示**（検索ボタンの右にキーボードトグルボタン）：
+
+![iPad のキーボードトグルボタン](screenshots/0104-keyboard-toggle-ipad-1180x820.png)
+
 ## 主要ファイル
 
 ### scratch-gui
