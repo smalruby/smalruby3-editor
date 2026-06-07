@@ -243,6 +243,7 @@ test/integration/*
 !test/integration/ruby-super.test.js
 !test/integration/ruby-tab-completion-and-indent.test.js
 !test/integration/ruby-tab-furigana-zoom.test.js
+!test/integration/ruby-tab-ipad-keyboard.test.js
 !test/integration/ruby-tab-monitor-sync.test.js
 !test/integration/ruby-tab.test.js
 !test/integration/smalrubot-firmware.test.js
