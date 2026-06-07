@@ -210,6 +210,15 @@ rm /tmp/feedback-graphql-query.txt
    gh api graphql -f query='mutation { addLabelsToLabelable(input: { labelableId: "<discussion-node-id>", labelIds: ["LA_kwDOFahn7M8AAAACakeKNg"] }) { clientMutationId } }'
    ```
 
+### 対応完了したもの（修正がデプロイされたもの）
+
+修正完了・デプロイ済みを伝えるフォローアップコメント（PR リンク + 変更内容の要約 + リロード依頼）を投稿した上で、**必ず以下の 2 つを行う**:
+
+1. **タイトルに「【修正済み】」prefix を付与する**（mutation は上記「対応しないもの」と同じ。prefix のみ異なる）
+2. **`close` ラベルを付与する**（同上）
+
+prefix の使い分け: 「【回答済み】」= 対応しないと回答してクローズ、「【修正済み】」= 修正を完了してクローズ。
+
 ### コメント投稿方法
 
 本文は Write ツールで `/tmp/comment-N.md` に書き出し、`-F body=@` で投稿する（Phase 5 と同じ理由）:
