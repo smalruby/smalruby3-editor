@@ -43,4 +43,23 @@ describe('Ruby tab Monaco iPad keyboard widget', () => {
 
         expect(display).toEqual('none');
     });
+
+    test('keyboard toggle button is not rendered on non-touch devices', async () => {
+        await loadUri(uri);
+        await clickText('Ruby', '*[@role="tab"]');
+
+        const result = await driver.executeScript(`
+            return {
+                maxTouchPoints: navigator.maxTouchPoints,
+                hasKeyboardButton: Boolean(
+                    document.querySelector('[data-testid="ruby-toolbar-keyboard"]')
+                )
+            };
+        `);
+
+        // Headless desktop Chrome reports no touch points, so the toggle
+        // button (touch-device-only UI) must not appear.
+        expect(result.maxTouchPoints).toEqual(0);
+        expect(result.hasKeyboardButton).toBe(false);
+    });
 });
