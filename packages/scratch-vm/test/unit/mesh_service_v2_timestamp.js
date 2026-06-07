@@ -143,6 +143,88 @@ test('MeshV2Service Timestamp-based getRemoteVariable', (t) => {
         st.end();
     });
 
+    t.test('forced same-value set bumps seed timestamp (issue #721)', async (st) => {
+        // An explicit variable set from blocks/Ruby is a fresh write even when
+        // the value is unchanged (e.g. $送信者 = "A" before every broadcast).
+        // The seed timestamp must advance so this node's own write wins over
+        // older values from other nodes.
+        const service2 = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        service2.groupId = 'group1';
+        service2.client = { mutate: () => Promise.resolve({}) };
+
+        service2.sendData([{ key: '送信者', value: 'A' }], { force: true });
+        const firstTimestamp = service2.remoteData['node-self']['送信者'].timestamp;
+
+        // Another node writes a newer value in between
+        service2.remoteData['node-other'] = {
+            送信者: { value: 'B', timestamp: firstTimestamp + 1 },
+        };
+        st.equal(service2.getRemoteVariable('送信者'), 'B', 'other node wins before the re-set');
+
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        service2.sendData([{ key: '送信者', value: 'A' }], { force: true });
+
+        st.ok(
+            service2.remoteData['node-self']['送信者'].timestamp > firstTimestamp,
+            'seed timestamp advances on forced same-value set',
+        );
+        st.equal(service2.getRemoteVariable('送信者'), 'A', 'own re-set wins again');
+        st.end();
+    });
+
+    t.test('forced same-value set re-sends REPORT_DATA (issue #721)', async (st) => {
+        // Even when lastSentData already holds the same value (server confirmed),
+        // a forced set must reach the network so other nodes get the fresh
+        // timestamp. Guards the in-flight race: lastSentData may be re-populated
+        // by a completing mutation after sendData was called.
+        const service2 = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        service2.groupId = 'group1';
+        service2.dataRateLimiter.intervalMs = 10; // speed up the test
+        const sentPayloads = [];
+        service2.client = {
+            mutate: ({ variables }) => {
+                sentPayloads.push(variables.data);
+                return Promise.resolve({});
+            },
+        };
+
+        await service2.sendData([{ key: '送信者', value: 'A' }], { force: true });
+        st.equal(sentPayloads.length, 1, 'first send goes out');
+
+        // Server already confirmed the same value
+        st.equal(service2.lastSentData['送信者'], 'A');
+
+        await service2.sendData([{ key: '送信者', value: 'A' }], { force: true });
+        st.equal(sentPayloads.length, 2, 'forced same-value set is re-sent');
+        st.same(
+            sentPayloads[1],
+            [{ key: '送信者', value: 'A' }],
+            'mutation payload contains only key/value (force tag stripped)',
+        );
+        st.end();
+    });
+
+    t.test('non-forced same-value send stays delta-filtered (issue #721)', async (st) => {
+        // sendAllGlobalVariables (bulk sync on connect) keeps the delta
+        // behavior: unchanged values are not re-sent.
+        const service2 = new MeshV2Service(createMockBlocks(), 'node-self', 'domain1');
+        service2.groupId = 'group1';
+        service2.dataRateLimiter.intervalMs = 10;
+        const sentPayloads = [];
+        service2.client = {
+            mutate: ({ variables }) => {
+                sentPayloads.push(variables.data);
+                return Promise.resolve({});
+            },
+        };
+
+        await service2.sendData([{ key: 'shared', value: 'same' }]);
+        await service2.sendData([{ key: 'shared', value: 'same' }]);
+
+        st.equal(sentPayloads.length, 1, 'unchanged value is sent only once without force');
+        st.end();
+    });
+
     t.test('self-echo with matching value normalizes timestamp to server time (issue #713)', (st) => {
         // The seed uses the client clock; other nodes' entries use the server
         // clock. When our own echo comes back with the same value, adopt the

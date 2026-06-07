@@ -229,6 +229,68 @@ test('MeshV2Service immediate self sensor value after set (Issue #713)', async (
     t.end();
 });
 
+// Issue #721: mutual messaging idiom — each node re-asserts its own 送信者
+// (always the same value) before broadcasting. The guard in the user program
+// is `if sensor_value("送信者") != $送信者`, so an explicit same-value set must
+// count as a fresh write locally AND on the network, or the other node's
+// write stays newest forever.
+test('MeshV2Service mutual messaging with same-value re-sets (Issue #721)', async (t) => {
+    const sentPayloads = [];
+    mockClient.mutate = ({ mutation, variables }) => {
+        if (mutation === CREATE_GROUP) {
+            return Promise.resolve({
+                data: {
+                    createGroup: {
+                        id: 'group1',
+                        name: variables.name,
+                        domain: variables.domain,
+                        expiresAt: FAR_FUTURE,
+                    },
+                },
+            });
+        }
+        if (mutation === REPORT_DATA) {
+            sentPayloads.push(variables.data);
+        }
+        return Promise.resolve({ data: {} });
+    };
+    mockClient.query = () => Promise.resolve({ data: { listGroupStatuses: [] } });
+
+    const nodeA = new MeshV2Service(createMockBlocks(), 'node-a', 'domain1');
+    nodeA.client = mockClient;
+    nodeA.forcePolling = true; // Skip WebSocket test in unit test environment
+    nodeA.dataRateLimiter.intervalMs = 10; // speed up the test
+
+    await nodeA.createGroup('grp');
+    sentPayloads.length = 0;
+
+    // A clicks: $送信者 = "A" (explicit set → force, as the HOC does)
+    await nodeA.sendData([{ key: '送信者', value: 'A' }], { force: true });
+    t.equal(nodeA.getRemoteVariable('送信者'), 'A', 'A reads own value');
+
+    // B clicks later: B's write arrives with a newer (server) timestamp
+    nodeA.handleDataUpdate({
+        nodeId: 'node-b',
+        timestamp: new Date(Date.now() + 1000).toISOString(),
+        data: [{ key: '送信者', value: 'B' }],
+    });
+    t.equal(nodeA.getRemoteVariable('送信者'), 'B', "B's newer write wins on A");
+
+    // A clicks again with the SAME value: must become A's fresh write again,
+    // both locally (guard skips own message) and on the network (B can see it).
+    await new Promise((resolve) => setTimeout(resolve, 1100 + 20));
+    await nodeA.sendData([{ key: '送信者', value: 'A' }], { force: true });
+    t.equal(nodeA.getRemoteVariable('送信者'), 'A', "A's same-value re-set wins locally");
+    t.ok(
+        sentPayloads.some((p) => p.some((item) => item.key === '送信者' && item.value === 'A')),
+        "A's same-value re-set is re-sent to the network",
+    );
+    t.equal(sentPayloads.length, 2, "both of A's sets reached REPORT_DATA");
+
+    nodeA.cleanup();
+    t.end();
+});
+
 test('MeshV2Service fetch existing nodes data on joinGroup', async (t) => {
     const blocks = {
         runtime: {
