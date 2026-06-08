@@ -59,9 +59,6 @@ export AWS_DEFAULT_REGION=ap-northeast-1
 export AWS_PROFILE=your-profile
 ```
 
-> AWS IAM Identity Center (SSO) でコンテナ内に一時クレデンシャルを用意する手順
-> （`bin/setup-aws-sso` + `infra/aws-sso.env`）は別 PR で整備中。マージ後はそちらを推奨。
-
 ## Stage Switching via `.env` Symlink
 
 Both projects use the same pattern: per-stage `.env` files (`.env.stg`, `.env.stg2`, `.env.prod`) with a `.env` symlink pointing to the active stage.
