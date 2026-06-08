@@ -32,6 +32,7 @@ src/components/*
 !src/components/auto-correct-modal/
 !src/components/block-display-modal/
 !src/components/bug-report-consent/
+!src/components/bug-report-modal/
 !src/components/classroom-modal/
 !src/components/classroom-teacher-modal/
 !src/components/classroom-tutorial/
@@ -91,6 +92,8 @@ src/containers/*
 !src/containers/ruby-tab/
 # Individual Smalruby files
 !src/containers/block-display-modal.jsx
+!src/containers/bug-report-modal.jsx
+!src/containers/use-bug-report-submit.js
 !src/containers/classroom-classcode-utils.js
 !src/containers/classroom-error-utils.js
 !src/containers/classroom-modal.jsx

@@ -16,6 +16,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/dncl-mode-notice/`
 - `src/components/block-display-modal/`
 - `src/components/bug-report-consent/`
+- `src/components/bug-report-modal/`
 - `src/components/classroom-modal/`
 - `src/components/classroom-teacher-modal/`
 - `src/components/classroom-tutorial/`
@@ -66,6 +67,8 @@ upstream (Scratch) ファイルは対象外。
 
 **個別ファイル:**
 - `src/containers/block-display-modal.jsx`
+- `src/containers/bug-report-modal.jsx`
+- `src/containers/use-bug-report-submit.js`
 - `src/containers/classroom-classcode-utils.js`
 - `src/containers/classroom-error-utils.js`
 - `src/containers/classroom-modal.jsx`
