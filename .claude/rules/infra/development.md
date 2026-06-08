@@ -47,15 +47,74 @@ CDK のコンテキストキャッシュファイル `cdk.context.json` は **�
 
 ## AWS Credentials
 
-Set credentials via environment variables before running infra commands:
+CDK の synth/diff/deploy には AWS クレデンシャルが必要。**devpod / devcontainer の中から
+直接デプロイできる**（AWS IAM Identity Center の SSO ログインでコンテナ内に一時クレデン
+シャルを取得する。ホストの `~/.aws` を mount する必要はない）。
+
+### 推奨: AWS IAM Identity Center (SSO)
+
+接続先の値（start URL / account ID / role など）は **`infra/aws-sso.env` の 1 ファイルに集約**
+されている（非秘密・コミット済み）。**fork して別の AWS 組織で動かす場合は、このファイルの
+値だけを書き換える。**
+
+```bash
+# 1. infra/aws-sso.env から ~/.aws/config を生成 (1 度だけ)
+bin/setup-aws-sso
+
+# 2. ログイン (コンテナにブラウザが無い場合は URL + code が表示される。
+#    ホストのブラウザで開いて承認する。code には数分の有効期限あり)
+aws sso login --sso-session smalruby --use-device-code
+
+# 3. 以降は AWS_PROFILE を指定して実行
+export AWS_PROFILE=smalruby
+aws sts get-caller-identity   # 疎通確認
+
+# 4. デプロイ例
+cd infra/smalruby-bug-report
+AWS_PROFILE=smalruby AWS_REGION=ap-northeast-1 npx cdk deploy --context stage=stg --require-approval never
+```
+
+- 値の実体は `infra/aws-sso.env`（`AWS_SSO_PROFILE` / `AWS_SSO_START_URL` / `AWS_SSO_REGION` /
+  `AWS_SSO_ACCOUNT_ID` / `AWS_SSO_ROLE`）。`bin/setup-aws-sso` がこれを読んで `~/.aws/config`
+  を生成する（ハードコードしない）。
+- アカウント/ロールが分からないときは `aws configure sso` で対話的に選ぶか、ログイン後に
+  `aws sso list-accounts` / `aws sso list-account-roles` で確認できる。
+- トークンは `~/.aws/sso/cache/` にキャッシュされ、期限切れ後は `aws sso login` で再取得。
+- CDK CLI はクレデンシャルから account/region を自動解決するため、`bin/*.ts` の
+  `CDK_DEFAULT_ACCOUNT`/`AWS_REGION` は明示不要（`AWS_PROFILE` だけで足りる）。
+
+### 代替: 環境変数 / 静的プロファイル
+
+一時的なアクセスキー (STS) や既存プロファイルがある場合:
 
 ```bash
 export AWS_ACCESS_KEY_ID=your-key-id
 export AWS_SECRET_ACCESS_KEY=your-secret-key
+export AWS_SESSION_TOKEN=your-session-token   # 一時認証情報の場合
 export AWS_DEFAULT_REGION=ap-northeast-1
 # or
 export AWS_PROFILE=your-profile
 ```
+
+長期 (無期限) のアクセスキーは可能な限り避け、SSO か STS の一時クレデンシャルを使う。
+
+### セキュリティ: 記録してよい情報 / いけない情報
+
+リポジトリ (rules / docs / `infra/aws-sso.env` / コミット) に書いてよいのは **認証フローを
+開始するだけの固定識別子** に限る。クレデンシャルそのものや一時的な認可アーティファクトは
+書かない。
+
+| 記録可 ✅ | 記録不可 ❌ |
+|----------|-----------|
+| SSO start URL / region | デバイス認証コード (`XXXX-XXXX`、即失効) |
+| AWS account ID (`cdk.context.json` にも既出) | SSO アクセストークン / セッショントークン |
+| 許可セット名 (`AdministratorAccess`) | 承認 URL の `clientId` / `deviceContextId` |
+| プロファイル名・手順コマンド | `DEV_BYPASS_TOKEN` 等の値 (名前のみ可、値は gitignore の .env) |
+
+理由: start URL や account ID は単体ではアクセスできず (IdP ログイン + デバイス承認が必須)、
+account ID は CDK の `cdk.context.json` コミット方針で既にリポジトリに含まれる。一方、
+トークン類・認証コードは短命でも秘密であり、`~/.aws/sso/cache/` の中身を含めコミットや
+チャット転記をしない。
 
 ## Stage Switching via `.env` Symlink
 
