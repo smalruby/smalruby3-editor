@@ -562,6 +562,47 @@ export default {
     'gui.smalruby3.feedbackConfirm':
         'スモウルビーをよりよくするためのフィードバック（ご意見）を送信する外部サイトを開きます。よろしいですか？',
 
+    // Bug Report (program bug report with attached project)
+    'gui.smalruby3.gui.bugReport': '不具合を報告',
+    'gui.bugReportModal.title': '不具合を報告する',
+    'gui.bugReportModal.loginIntro':
+        'ログインすると、作品を添付して送れます。直ったときにお知らせするためにも使います。',
+    'gui.bugReportModal.loginGoogle': 'Googleでログイン',
+    'gui.bugReportModal.loginMicrosoft': 'Microsoftでログイン',
+    'gui.bugReportModal.descriptionLabel': 'どんな不具合ですか？（何をしたか・どうなったか・どうなってほしかったか）',
+    'gui.bugReportModal.descriptionPlaceholder': '例：緑の旗を押したら、スプライトが消えてしまいました。',
+    'gui.bugReportModal.attachmentNote': '今編集している作品とブロックのスクリーンショットが自動で添付されます。',
+    'gui.bugReportModal.submit': '報告を送る',
+    'gui.bugReportModal.sending': '送信中…',
+    'gui.bugReportModal.successTitle': 'ありがとうございます！報告を送りました。',
+    'gui.bugReportModal.successBody': '開発者が確認します。返事は「わたしの不具合報告」からあとで確認できます。',
+    'gui.bugReportModal.viewMyReports': 'わたしの不具合報告',
+    'gui.bugReportModal.backToForm': '別の不具合を報告する',
+    'gui.bugReportModal.close': '閉じる',
+    'gui.bugReportModal.noReports': 'まだ不具合を報告していません。',
+    'gui.bugReportModal.reportsLoading': '読み込み中…',
+    'gui.bugReportModal.replyLabel': '開発者からの返事：',
+    'gui.bugReportModal.statusOpen': '受付ました',
+    'gui.bugReportModal.statusInProgress': '対応中',
+    'gui.bugReportModal.statusResolved': '直りました',
+    'gui.bugReportModal.statusWontFix': '対応終了',
+    'gui.bugReportModal.errorLogin': 'ログインに失敗しました。もう一度お試しください。',
+    'gui.bugReportModal.errorReauth': 'ログインの有効期限が切れました。もう一度ログインしてください。',
+    'gui.bugReportModal.errorFileTooLarge': '作品が大きすぎて送れません（最大10MB）。',
+    'gui.bugReportModal.errorGeneric': '問題が発生しました。しばらくしてからもう一度お試しください。',
+    'gui.bugReportConsent.title': '不具合を報告するまえに',
+    'gui.bugReportConsent.intro': '不具合を直すために、今編集している作品が開発者に共有されます。',
+    'gui.bugReportConsent.pointShared': '送った作品を見られるのは、あなたと開発者だけです。',
+    'gui.bugReportConsent.pointLogin': '直ったときにお知らせできるように、GoogleまたはMicrosoftでログインします。',
+    'gui.bugReportConsent.pointNoPersonalInfo': '説明には個人情報（名前・住所など）を書かないでください。',
+    'gui.bugReportConsent.detailsToggle': 'くわしく（保護者の方へ）',
+    'gui.bugReportConsent.detailsText':
+        '作品ファイル・サムネイル・スクリーンショット・説明文・アカウントのメールアドレスは安全に保管され、あなたと開発者だけが見られます。不具合の対応が終わったあとに削除されます。',
+    'gui.bugReportConsent.privacyLink': 'プライバシーポリシー',
+    'gui.bugReportConsent.consentCheckbox': '私は18歳以上、または保護者の同意があり、作品の共有に同意します。',
+    'gui.bugReportConsent.cancel': 'いまはやめる',
+    'gui.bugReportConsent.accept': 'OK',
+
     // Block Display Modal - Block Messages
     // Motion blocks
     'gui.smalruby3.blockDisplayModal.motion_movesteps': '(10) 歩動かす',

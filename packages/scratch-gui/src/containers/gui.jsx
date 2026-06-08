@@ -40,6 +40,9 @@ import { // === Smalruby: DNCL mode notice ===
     setDnclMode,
     requestExternalExitDnclMode,
 } from '../reducers/dncl-mode'; // === Smalruby: DNCL mode notice ===
+// === Smalruby: Start of bug report modal ===
+import {openBugReportModal} from '../reducers/bug-report';
+// === Smalruby: End of bug report modal ===
 
 import FontLoaderHOC from '../lib/font-loader-hoc.jsx';
 import LocalizationHOC from '../lib/localization-hoc.jsx';
@@ -304,8 +307,11 @@ const mapDispatchToProps = dispatch => ({
     onOpenClassroomModal: () => dispatch(openClassroomModal()),
     // === Smalruby: End of classcode auto-open ===
     // === Smalruby: Start of welcome modal ===
-    onShowWelcomeModal: () => dispatch(openWelcomeModal())
+    onShowWelcomeModal: () => dispatch(openWelcomeModal()),
     // === Smalruby: End of welcome modal ===
+    // === Smalruby: Start of bug report modal ===
+    onOpenBugReportModal: () => dispatch(openBugReportModal())
+    // === Smalruby: End of bug report modal ===
 });
 
 const ConnectedGUI = injectIntl(connect(
