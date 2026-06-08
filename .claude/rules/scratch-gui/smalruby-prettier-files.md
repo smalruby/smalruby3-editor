@@ -218,6 +218,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/version-update-notification.test.js`
 - `test/integration/workspace-glow-regression.test.js`
 - `test/unit/components/action-menu.test.jsx`
+- `test/unit/components/bug-report-consent.test.jsx`
 - `test/unit/components/dncl-mode-notice.test.jsx`
 - `test/unit/components/extension-button-dncl.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
