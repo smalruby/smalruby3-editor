@@ -12,6 +12,7 @@
  *
  * No changes needed in gui.ts - it imports this registry.
  */
+import bugReportReducer, { bugReportInitialState } from './bug-report';
 import cardsReducer, { cardsInitialState } from './cards';
 import classroomReducer, { classroomInitialState } from './classroom';
 import classroomTutorialReducer, { classroomTutorialInitialState } from './classroom-tutorial';
@@ -29,6 +30,7 @@ import tutorialOnboardingReducer, { tutorialOnboardingInitialState } from './tut
  * These will be spread into combineReducers() in gui.ts
  */
 export const smalrubyReducers = {
+    bugReport: bugReportReducer,
     classroom: classroomReducer,
     classroomTutorial: classroomTutorialReducer,
     dnclMode: dnclModeReducer,
@@ -47,6 +49,7 @@ export const smalrubyReducers = {
  * These will be spread into buildInitialState() in gui.ts
  */
 export const smalrubyInitialState = {
+    bugReport: bugReportInitialState,
     classroom: classroomInitialState,
     classroomTutorial: classroomTutorialInitialState,
     dnclMode: dnclModeInitialState,
