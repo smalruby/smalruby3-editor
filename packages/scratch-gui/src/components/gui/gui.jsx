@@ -470,7 +470,7 @@ const GUIComponent = props => {
                     {teacherModalVisible ? <ClassroomTeacherModal /> : null}
                     {/* === Smalruby: End of classroom modal === */}
                     {/* === Smalruby: Start of bug report modal === */}
-                    <BugReportModal />
+                    {isBugReportConfigured() ? <BugReportModal /> : null}
                     {/* === Smalruby: End of bug report modal === */}
                     {/* === Smalruby: Start of meshV2 classroom binding === */}
                     <MeshV2ClassroomBinding />
