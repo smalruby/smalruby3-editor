@@ -100,7 +100,7 @@ compose で動かしている場合に違いを理解しておくため。
 | `docker compose run` でテスト | `docker compose run --rm app npm test` | container 内で `npm test` |
 | 単独のフリー仕事 (curl 確認等) | host 上で実行 | 任意。container 内でも OK |
 | Playwright MCP | host の Playwright が動く想定 | host の Playwright が container の `localhost:8601` (forwardPorts) を見る |
-| CDK deploy | host の `aws-vault` 等で | **container 内で AWS IAM Identity Center (SSO) ログインして実行**。`aws sso login --sso-session smalruby --use-device-code` で表示される URL をホストのブラウザで承認 → 一時クレデンシャルがコンテナ内にキャッシュされる (詳細: `.claude/rules/infra/development.md` の AWS Credentials)。host で実行してもよい |
+| CDK deploy | host の `aws-vault` 等で | **同じく host で実行** (container には `~/.aws` を mount していないため) |
 
 ### named volume の共有挙動 (重要)
 
@@ -254,7 +254,7 @@ devpod では **複数 workspace が同時に container 起動可能**。これ�
 |---|---|---|
 | `bin/dx bash -c "..."` の手軽さ | container 内で同じことを 1 コマンドで | host 上 docker run が不便なので tmux に入って実行 |
 | 1 つの container で全 worktree を切替使用 | 各 worktree が独立 container | devpod の workspace 設計上 |
-| host の `~/.aws` を使った CDK deploy を container 内から | **container 内で SSO ログインして deploy** (`aws sso login --sso-session smalruby`) | host の `~/.aws` は mount しない (secret leak 防止)。代わりに IAM Identity Center の一時クレデンシャルをコンテナ内に取得する |
+| host の `~/.aws` を使った CDK deploy を container 内から | **そのまま host で実行** | secret leak 防止のため container には mount しない |
 | host の Claude Code 認証を共有 | container 内で別途ログイン | host secrets 持ち込み禁止原則 |
 | smalruby3 (Ruby gem) の SDL2 GUI | host で動かす (X server / SDL2 が container 内に無い) | devcontainer は GUI 想定外 |
 | docker compose の他サービス (`infra`, `smalruby3-gui`) との同時起動 | devpod は `app` 相当のみ。他サービスは host から `docker compose up <service>` | devcontainer は単一サービス |
