@@ -49,15 +49,61 @@ CDK のコンテキストキャッシュファイル `cdk.context.json` は **�
 
 ## AWS Credentials
 
-Set credentials via environment variables before running infra commands:
+CDK の synth/diff/deploy には AWS クレデンシャルが必要。**devpod / devcontainer の中から
+直接デプロイできる**（以前は「コンテナに `~/.aws` を mount しないのでホストで実行」と
+していたが、AWS IAM Identity Center の SSO ログインでコンテナ内に一時クレデンシャルを
+用意できるため、その制約は不要になった）。
+
+### 推奨: AWS IAM Identity Center (SSO) で一時クレデンシャル
+
+ブラウザで URL を開いて承認すると、コンテナ内に**一時クレデンシャル**がキャッシュされる。
+長期キーをファイルに残さないので安全。
+
+```bash
+# 1. SSO セッション設定 (~/.aws/config に 1 度だけ書く)
+cat > ~/.aws/config <<'EOF'
+[sso-session smalruby]
+sso_start_url = https://d-956792721c.awsapps.com/start
+sso_region = ap-northeast-1
+sso_registration_scopes = sso:account:access
+
+[profile smalruby]
+sso_session = smalruby
+sso_account_id = <ACCOUNT_ID>     # SSO ポータルのアカウント一覧で確認
+sso_role_name = <PERMISSION_SET>  # 例: AdministratorAccess
+region = ap-northeast-1
+output = json
+EOF
+
+# 2. ログイン (コンテナにブラウザが無い場合は URL + code が表示される。
+#    ホストのブラウザで開いて承認する)
+aws sso login --sso-session smalruby --use-device-code
+
+# 3. 以降は AWS_PROFILE を指定して実行
+export AWS_PROFILE=smalruby
+aws sts get-caller-identity   # 疎通確認
+```
+
+- SSO start URL: `https://d-956792721c.awsapps.com/start` / SSO region: `ap-northeast-1`
+- `aws configure sso` で対話的にアカウント/ロールを選んで設定してもよい（同じ結果）。
+- トークンは `~/.aws/sso/cache/` にキャッシュされ、期限切れ後は `aws sso login` で再取得。
+- CDK CLI はクレデンシャルから account/region を自動解決するため、`bin/*.ts` の
+  `CDK_DEFAULT_ACCOUNT`/`AWS_REGION` は明示不要（`AWS_PROFILE` だけで足りる）。
+
+### 代替: 環境変数 / 静的プロファイル
+
+一時的なアクセスキー (STS) や既存プロファイルがある場合:
 
 ```bash
 export AWS_ACCESS_KEY_ID=your-key-id
 export AWS_SECRET_ACCESS_KEY=your-secret-key
+export AWS_SESSION_TOKEN=your-session-token   # 一時認証情報の場合
 export AWS_DEFAULT_REGION=ap-northeast-1
 # or
 export AWS_PROFILE=your-profile
 ```
+
+長期 (無期限) のアクセスキーは可能な限り避け、SSO か STS の一時クレデンシャルを使う。
 
 ## Stage Switching via `.env` Symlink
 
