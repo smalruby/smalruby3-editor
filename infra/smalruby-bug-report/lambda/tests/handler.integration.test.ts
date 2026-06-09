@@ -81,4 +81,30 @@ describeIf('bug-report API (stg)', () => {
     expect(status).toBe(200);
     expect(String(json?.projectUrl)).toContain('X-Amz-Signature');
   });
+
+  test('owner can hide their report; it drops from the list but the admin still sees it', async () => {
+    if (!createdReportId) return;
+    // hide
+    const hide = await req('PATCH', `/bug-reports/${createdReportId}`, { token: DEV_TOKEN, body: { hidden: true } });
+    expect(hide.status).toBe(200);
+    expect(hide.json?.hiddenByOwner).toBe(true);
+
+    // gone from the reporter's list
+    const mine = await req('GET', '/bug-reports', { token: DEV_TOKEN });
+    const visibleIds = ((mine.json?.reports as Array<{ reportId: string }>) || []).map(r => r.reportId);
+    expect(visibleIds).not.toContain(createdReportId);
+
+    // still present for admins, flagged hiddenByOwner
+    const admin = await req('GET', '/admin/bug-reports', { token: DEV_TOKEN });
+    const adminRow = ((admin.json?.reports as Array<{ reportId: string; hiddenByOwner: boolean }>) || [])
+      .find(r => r.reportId === createdReportId);
+    expect(adminRow?.hiddenByOwner).toBe(true);
+
+    // unhide → back in the list
+    const unhide = await req('PATCH', `/bug-reports/${createdReportId}`, { token: DEV_TOKEN, body: { hidden: false } });
+    expect(unhide.status).toBe(200);
+    const mine2 = await req('GET', '/bug-reports', { token: DEV_TOKEN });
+    const visibleIds2 = ((mine2.json?.reports as Array<{ reportId: string }>) || []).map(r => r.reportId);
+    expect(visibleIds2).toContain(createdReportId);
+  });
 });

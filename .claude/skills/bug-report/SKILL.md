@@ -55,6 +55,11 @@ aws dynamodb query \
 各報告について以下を表で示す: `reportId`(先頭8桁) / `status` / `createdAt` / `ownerProvider` /
 `projectName` / 説明文の先頭60字 / `developerReply` の有無。`ownerEmail` はマスクして表示。
 
+**`hiddenByOwner` バッジ**: `hiddenByOwner === true` の報告には 🙈「報告者が一覧から非表示」を
+付ける。報告者はもうこの報告を自分の一覧で見ていない（「もういいや」or「対応済みと判断」）が、
+**サーバーには残っており対応は継続できる**。クローズ (`wont_fix`) してよいかの判断材料にする。
+非表示でも勝手に消さない — 報告者の意思とサーバー保持は別物。
+
 `status` でフィルタしたい場合はクライアント側で絞る (open のみ等)。
 
 ---
