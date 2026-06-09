@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+#
+# Generate ~/.aws/config for CDK deploys from the single, committed,
+# non-secret source of truth: infra/aws-sso.env.
+#
+# Fork users only need to edit infra/aws-sso.env (not this script).
+# The actual credentials are a short-lived SSO token obtained separately via
+# `aws sso login` — never stored by this script.
+#
+# Usage:
+#   bin/setup-aws-sso              # write/refresh ~/.aws/config
+#   aws sso login --sso-session <profile> --use-device-code
+#   export AWS_PROFILE=<profile>
+#
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="$ROOT/infra/aws-sso.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "error: $ENV_FILE not found" >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+. "$ENV_FILE"
+
+: "${AWS_SSO_PROFILE:?set AWS_SSO_PROFILE in infra/aws-sso.env}"
+: "${AWS_SSO_START_URL:?set AWS_SSO_START_URL in infra/aws-sso.env}"
+: "${AWS_SSO_REGION:?set AWS_SSO_REGION in infra/aws-sso.env}"
+: "${AWS_SSO_ACCOUNT_ID:?set AWS_SSO_ACCOUNT_ID in infra/aws-sso.env}"
+: "${AWS_SSO_ROLE:?set AWS_SSO_ROLE in infra/aws-sso.env}"
+
+mkdir -p "$HOME/.aws"
+CONFIG="$HOME/.aws/config"
+
+# Back up an existing config once (do not clobber unrelated profiles silently).
+if [ -f "$CONFIG" ] && ! grep -q "\[sso-session ${AWS_SSO_PROFILE}\]" "$CONFIG"; then
+  cp "$CONFIG" "$CONFIG.bak.$(date +%s)"
+  echo "note: existing ~/.aws/config backed up" >&2
+fi
+
+cat > "$CONFIG" <<EOF
+[sso-session ${AWS_SSO_PROFILE}]
+sso_start_url = ${AWS_SSO_START_URL}
+sso_region = ${AWS_SSO_REGION}
+sso_registration_scopes = sso:account:access
+
+[profile ${AWS_SSO_PROFILE}]
+sso_session = ${AWS_SSO_PROFILE}
+sso_account_id = ${AWS_SSO_ACCOUNT_ID}
+sso_role_name = ${AWS_SSO_ROLE}
+region = ${AWS_SSO_REGION}
+output = json
+EOF
+
+echo "Wrote ~/.aws/config (profile: ${AWS_SSO_PROFILE})."
+echo "Next:"
+echo "  aws sso login --sso-session ${AWS_SSO_PROFILE} --use-device-code"
+echo "  export AWS_PROFILE=${AWS_SSO_PROFILE}"
+echo "  aws sts get-caller-identity   # verify"
