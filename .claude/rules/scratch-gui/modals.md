@@ -40,10 +40,14 @@ Smalruby モーダルの**本文ラッパー**（`<Box>` など、Modal の chil
 - フルスクリーンモーダル (`fullScreen` prop) は `.full-screen` が `$ui-secondary` を持つので
   本文背景は必須ではないが、明示しておくと安全。
 
-## 根本対策（共有 Modal 側、検討中）
+## 根本対策（共有 Modal 側、適用済み）
 
-`.modal-content`（非フルスクリーン）にデフォルト背景 `$ui-white` を与えれば、本文側の
-設定漏れがあっても青透けしなくなる。ただし `src/components/modal/modal.css` は **upstream
-ファイル**なので、変更には Smalruby マーカーと upstream マージ時の差分管理が伴う。
-子要素が自前の背景を持つ既存モーダルには影響しない（後ろに白を敷くだけ）後方互換な変更
-だが、適用するかは upstream 追従コストとのトレードオフで判断する。
+`src/components/modal/modal.css` の `.modal-content`（非フルスクリーン）に既定背景
+`$ui-white` を **Smalruby マーカー付きで付与済み**（案X）。本文側の設定漏れがあっても
+青いオーバーレイが透けない。子要素が自前の背景を持つ既存モーダルには白を後ろに敷くだけ
+なので後方互換。`.full-screen` バリアントは `$ui-secondary` で上書きされる。
+
+ただし**保険であって免罪符ではない**: 各モーダルの本文には引き続き明示的に背景を設定する
+（フルスクリーンや特殊レイアウトでは既定が効かないことがあるため）。マーカー一覧は
+`.claude/rules/scratch-gui/smalruby-markers.md` を参照。upstream マージ時はこのマーカーの
+維持を確認する。

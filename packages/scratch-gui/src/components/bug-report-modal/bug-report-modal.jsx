@@ -199,14 +199,18 @@ const BugReportModal = (props) => {
         <Modal
             className={styles.modalContent}
             contentLabel={intl.formatMessage(messages.title)}
+            fullScreen
+            headerClassName={styles.header}
             id="bugReportModal"
             onRequestClose={onRequestClose}
         >
             <Box
                 className={styles.body}
+                grow={1}
                 data-testid="bug-report-modal"
                 data-phase={phase}
             >
+                <div className={styles.content}>
                 {error ? (
                     <div
                         className={styles.error}
@@ -361,6 +365,7 @@ const BugReportModal = (props) => {
                         </div>
                     </div>
                 )}
+                </div>
             </Box>
         </Modal>
     );

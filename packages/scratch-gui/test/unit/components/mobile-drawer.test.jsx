@@ -54,6 +54,8 @@ const baseProps = () => ({
     onSaveDirectlyToGoogleDrive: jest.fn(),
     onStartSavingToGoogleDrive: jest.fn(),
     onStartSelectingUrlLoad: jest.fn(),
+    onOpenWelcomeModal: jest.fn(),
+    onReportBug: jest.fn(),
     intl: fakeIntl,
 });
 
