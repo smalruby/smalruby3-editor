@@ -107,4 +107,22 @@ describeIf('bug-report API (stg)', () => {
     const visibleIds2 = ((mine2.json?.reports as Array<{ reportId: string }>) || []).map(r => r.reportId);
     expect(visibleIds2).toContain(createdReportId);
   });
+
+  test('an admin update re-shows a report the owner had hidden', async () => {
+    if (!createdReportId) return;
+    // owner hides it
+    await req('PATCH', `/bug-reports/${createdReportId}`, { token: DEV_TOKEN, body: { hidden: true } });
+    let mine = await req('GET', '/bug-reports', { token: DEV_TOKEN });
+    expect(((mine.json?.reports as Array<{ reportId: string }>) || []).map(r => r.reportId)).not.toContain(createdReportId);
+
+    // admin replies / changes status → should un-hide
+    const upd = await req('PATCH', `/admin/bug-reports/${createdReportId}`, {
+      token: DEV_TOKEN,
+      body: { status: 'in_progress', developerReply: 'みているよ' },
+    });
+    expect(upd.status).toBe(200);
+
+    mine = await req('GET', '/bug-reports', { token: DEV_TOKEN });
+    expect(((mine.json?.reports as Array<{ reportId: string }>) || []).map(r => r.reportId)).toContain(createdReportId);
+  });
 });

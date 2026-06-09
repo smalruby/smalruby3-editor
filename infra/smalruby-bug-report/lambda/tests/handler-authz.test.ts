@@ -204,6 +204,9 @@ describe('admin endpoints — bootstrap admin is allowed', () => {
     const updateCall = mockSend.mock.calls.find(c => c[0]?.constructor?.name === 'UpdateCommand');
     expect(updateCall[0].input.UpdateExpression).toContain('#ttl = :ttl');
     expect(updateCall[0].input.ExpressionAttributeValues[':ttl']).toBeGreaterThan(0);
+    // An admin update also un-hides the report so the reporter sees the change.
+    expect(updateCall[0].input.UpdateExpression).toContain('hiddenByOwner = :unhidden');
+    expect(updateCall[0].input.ExpressionAttributeValues[':unhidden']).toBe(false);
   });
 
   test('DELETE /admin/admins refuses to remove a bootstrap admin', async () => {

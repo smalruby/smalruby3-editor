@@ -141,25 +141,33 @@
 /* ✗ button: hide this report from the list (does not delete) */
 .hide-button {
     flex-shrink: 0;
-    width: 1.75rem;
-    height: 1.75rem;
-    min-width: 44px;
-    min-height: 44px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
     background: none;
-    border-radius: 4px;
+    padding: 0;
     cursor: pointer;
-    color: $text-primary-transparent;
-    font-size: 1rem;
-    line-height: 1;
 }
 
-.hide-button:hover {
-    background: $ui-black-transparent-10;
-    color: $text-primary;
+/* The standard Smalruby close icon: a white "+" on a colored circle, rotated
+   45° to read as ✗ (same asset/treatment as components/close-button). */
+.hide-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    box-sizing: border-box;
+    padding: 0.4rem;
+    background-color: $looks-secondary;
+    border-radius: 50%;
+    transform: rotate(45deg);
+    transition: opacity 0.15s ease-out;
+}
+
+.hide-button:hover .hide-icon,
+.hide-button:focus-visible .hide-icon {
+    opacity: 0.8;
 }
 
 /* Undo toast after hiding */

@@ -603,6 +603,11 @@ async function handleAdminUpdateReport(identity: Identity, reportId: string, bod
     throw new ValidationError('No fields to update');
   }
 
+  // An admin update (status change / reply) is news the reporter should see, so
+  // un-hide the report: if they had hidden it from their list, bring it back.
+  setParts.push('hiddenByOwner = :unhidden');
+  exprValues[':unhidden'] = false;
+
   // Terminal status → apply TTL so the report (and its files) auto-expire.
   // Re-opening clears the TTL so it is kept again.
   if (nextStatus) {

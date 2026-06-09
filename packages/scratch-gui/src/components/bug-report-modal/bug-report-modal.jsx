@@ -5,6 +5,7 @@ import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
 import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
 import intlShape from '../../lib/intlShape.js';
+import closeIcon from '../close-button/icon--close.svg';
 
 import styles from './bug-report-modal.css';
 
@@ -165,7 +166,12 @@ const ReportRow = ({ report, intl, onHide }) => {
                     onClick={handleHideClick}
                     data-testid="bug-report-item-hide"
                 >
-                    {'✗'}
+                    <img
+                        className={styles.hideIcon}
+                        src={closeIcon}
+                        alt=""
+                        draggable={false}
+                    />
                 </button>
             </div>
             <p className={styles.reportDescription}>{report.description}</p>
