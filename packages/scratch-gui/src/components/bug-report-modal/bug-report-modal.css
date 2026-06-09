@@ -133,9 +133,75 @@
 
 .report-row-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0.25rem;
+}
+
+/* ✗ button: hide this report from the list (does not delete) */
+.hide-button {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+/* The standard Smalruby close icon: a white "+" on a colored circle, rotated
+   45° to read as ✗ (same asset/treatment as components/close-button). */
+.hide-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    box-sizing: border-box;
+    padding: 0.4rem;
+    background-color: $looks-secondary;
+    border-radius: 50%;
+    transform: rotate(45deg);
+    transition: opacity 0.15s ease-out;
+}
+
+.hide-button:hover .hide-icon,
+.hide-button:focus-visible .hide-icon {
+    opacity: 0.8;
+}
+
+/* Undo toast after hiding */
+.undo-toast {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 6px;
+    background: $text-primary;
+    color: $ui-white;
+    font-size: 0.85rem;
+}
+
+.undo-toast-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.undo-button {
+    flex-shrink: 0;
+    border: 1px solid $ui-white-transparent;
+    background: transparent;
+    color: $ui-white;
+    border-radius: 4px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.undo-button:hover {
+    background: $ui-white-transparent;
 }
 
 .report-status {
@@ -157,6 +223,7 @@
 }
 
 .report-date {
+    margin-left: auto;
     font-size: 0.75rem;
     color: $text-primary-transparent;
 }

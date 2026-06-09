@@ -611,6 +611,10 @@ export default {
     'gui.bugReportModal.statusInProgress': 'たいおうちゅう',
     'gui.bugReportModal.statusResolved': 'なおりました',
     'gui.bugReportModal.statusWontFix': 'たいおうしゅうりょう',
+    'gui.bugReportModal.hideButton': 'いちらんから かくす',
+    'gui.bugReportModal.hideToast':
+        'いちらんから かくしました。けす わけ では ないので、かいはつしゃには とどいた ままです。',
+    'gui.bugReportModal.undo': 'もとに もどす',
     'gui.bugReportModal.errorLogin': 'ログインにしっぱいしました。もういちどおためしください。',
     'gui.bugReportModal.errorReauth': 'ログインのゆうこうきげんがきれました。もういちどログインしてください。',
     'gui.bugReportModal.errorFileTooLarge': 'さくひんがおおきすぎておくれません（さいだい10MB）。',

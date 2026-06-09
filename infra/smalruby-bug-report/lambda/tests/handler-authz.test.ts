@@ -204,6 +204,9 @@ describe('admin endpoints — bootstrap admin is allowed', () => {
     const updateCall = mockSend.mock.calls.find(c => c[0]?.constructor?.name === 'UpdateCommand');
     expect(updateCall[0].input.UpdateExpression).toContain('#ttl = :ttl');
     expect(updateCall[0].input.ExpressionAttributeValues[':ttl']).toBeGreaterThan(0);
+    // An admin update also un-hides the report so the reporter sees the change.
+    expect(updateCall[0].input.UpdateExpression).toContain('hiddenByOwner = :unhidden');
+    expect(updateCall[0].input.ExpressionAttributeValues[':unhidden']).toBe(false);
   });
 
   test('DELETE /admin/admins refuses to remove a bootstrap admin', async () => {
@@ -244,5 +247,83 @@ describe('admin endpoints — table-registered admin (non-bootstrap) is allowed'
     const res = await handler(makeEvent('GET', '/admin/admins', {}, undefined, DEV_TOKEN));
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body as string).admins.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('reporter hide/unhide (PATCH /bug-reports/{id})', () => {
+  beforeEach(() => {
+    process.env.DEV_BYPASS_TOKEN = DEV_TOKEN;
+    process.env.STAGE = 'stg';
+    process.env.BOOTSTRAP_ADMIN_EMAILS = '';
+    process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:8601';
+    mockSend.mockReset();
+  });
+
+  test('owner can hide their own report (200, writes hiddenByOwner=true)', async () => {
+    mockSend.mockImplementation(async (cmd: { constructor: { name: string } }) => {
+      if (cmd.constructor.name === 'UpdateCommand') return {};
+      return { Item: { reportId: 'r1', ownerSub: 'dev-test-user', status: 'open' } }; // GetCommand
+    });
+    const handler = loadHandler();
+    const res = await handler(makeEvent('PATCH', '/bug-reports/r1', { reportId: 'r1' }, { hidden: true }, DEV_TOKEN));
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body as string).hiddenByOwner).toBe(true);
+    const upd = mockSend.mock.calls.find(c => c[0]?.constructor?.name === 'UpdateCommand');
+    expect(upd[0].input.UpdateExpression).toContain('hiddenByOwner = :h');
+    expect(upd[0].input.ExpressionAttributeValues[':h']).toBe(true);
+  });
+
+  test('owner can unhide (hidden=false)', async () => {
+    mockSend.mockImplementation(async (cmd: { constructor: { name: string } }) => {
+      if (cmd.constructor.name === 'UpdateCommand') return {};
+      return { Item: { reportId: 'r1', ownerSub: 'dev-test-user' } };
+    });
+    const handler = loadHandler();
+    const res = await handler(makeEvent('PATCH', '/bug-reports/r1', { reportId: 'r1' }, { hidden: false }, DEV_TOKEN));
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body as string).hiddenByOwner).toBe(false);
+  });
+
+  test('hiding someone else\'s report is 404 and performs no write (IDOR)', async () => {
+    mockSend.mockResolvedValue({ Item: { reportId: 'r1', ownerSub: 'another-user' } });
+    const handler = loadHandler();
+    const res = await handler(makeEvent('PATCH', '/bug-reports/r1', { reportId: 'r1' }, { hidden: true }, DEV_TOKEN));
+    expect(res.statusCode).toBe(404);
+    expect(commandNames()).not.toContain('UpdateCommand');
+  });
+
+  test('hiding a non-existent report is 404', async () => {
+    mockSend.mockResolvedValue({}); // no Item
+    const handler = loadHandler();
+    const res = await handler(makeEvent('PATCH', '/bug-reports/missing', { reportId: 'missing' }, { hidden: true }, DEV_TOKEN));
+    expect(res.statusCode).toBe(404);
+  });
+
+  test('non-boolean hidden is rejected (400) before any read/write', async () => {
+    const handler = loadHandler();
+    const res = await handler(makeEvent('PATCH', '/bug-reports/r1', { reportId: 'r1' }, { hidden: 'yes' }, DEV_TOKEN));
+    expect(res.statusCode).toBe(400);
+    expect(commandNames()).not.toContain('UpdateCommand');
+  });
+
+  test('unauthenticated PATCH is 401', async () => {
+    const handler = loadHandler();
+    const res = await handler(makeEvent('PATCH', '/bug-reports/r1', { reportId: 'r1' }, { hidden: true }));
+    expect(res.statusCode).toBe(401);
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  test('GET /bug-reports omits reports hidden by the owner', async () => {
+    mockSend.mockResolvedValue({
+      Items: [
+        { reportId: 'visible', ownerSub: 'dev-test-user', description: 'a', status: 'open', createdAt: 't2' },
+        { reportId: 'hidden', ownerSub: 'dev-test-user', description: 'b', status: 'open', createdAt: 't1', hiddenByOwner: true },
+      ],
+    });
+    const handler = loadHandler();
+    const res = await handler(makeEvent('GET', '/bug-reports', {}, undefined, DEV_TOKEN));
+    expect(res.statusCode).toBe(200);
+    const ids = JSON.parse(res.body as string).reports.map((r: { reportId: string }) => r.reportId);
+    expect(ids).toEqual(['visible']);
   });
 });

@@ -447,17 +447,48 @@ async function handleListMyReports(identity: Identity): Promise<APIGatewayProxyS
     ScanIndexForward: false, // newest first
   }));
 
-  const reports = (result.Items || []).map(item => ({
-    reportId: item.reportId,
-    description: item.description,
-    projectName: item.projectName || null,
-    status: item.status,
-    developerReply: item.developerReply || '',
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-  }));
+  // Reports the owner has hidden from their own list are dropped here. The row
+  // is NOT deleted — it stays for the admins (so nothing is lost server-side).
+  const reports = (result.Items || [])
+    .filter(item => item.hiddenByOwner !== true)
+    .map(item => ({
+      reportId: item.reportId,
+      description: item.description,
+      projectName: item.projectName || null,
+      status: item.status,
+      developerReply: item.developerReply || '',
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }));
 
   return { statusCode: 200, body: JSON.stringify({ reports }) };
+}
+
+/**
+ * Hide/unhide one of the caller's OWN reports from their list. Sets the
+ * `hiddenByOwner` flag — never deletes. Ownership is enforced: a report that
+ * doesn't exist OR isn't owned by the caller returns 404 (no existence leak).
+ */
+async function handleSetReportHidden(
+  identity: Identity, reportId: string, body: Record<string, unknown>,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  if (typeof body.hidden !== 'boolean') {
+    throw new ValidationError('hidden must be a boolean');
+  }
+
+  const result = await docClient.send(new GetCommand({ TableName: REPORTS_TABLE, Key: { reportId } }));
+  if (!result.Item || result.Item.ownerSub !== identity.sub) {
+    throw new NotFoundError('Report not found');
+  }
+
+  await docClient.send(new UpdateCommand({
+    TableName: REPORTS_TABLE,
+    Key: { reportId },
+    UpdateExpression: 'SET hiddenByOwner = :h, updatedAt = :ua',
+    ExpressionAttributeValues: { ':h': body.hidden, ':ua': new Date().toISOString() },
+  }));
+
+  return { statusCode: 200, body: JSON.stringify({ reportId, hiddenByOwner: body.hidden }) };
 }
 
 // --- Admin handlers ---
@@ -490,6 +521,7 @@ function mapAdminReport(item: Record<string, unknown>) {
     screenshotCount: item.screenshotCount || 0,
     status: item.status,
     developerReply: item.developerReply || '',
+    hiddenByOwner: item.hiddenByOwner === true,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -570,6 +602,11 @@ async function handleAdminUpdateReport(identity: Identity, reportId: string, bod
   if (setParts.length === 1) {
     throw new ValidationError('No fields to update');
   }
+
+  // An admin update (status change / reply) is news the reporter should see, so
+  // un-hide the report: if they had hidden it from their list, bring it back.
+  setParts.push('hiddenByOwner = :unhidden');
+  exprValues[':unhidden'] = false;
 
   // Terminal status → apply TTL so the report (and its files) auto-expire.
   // Re-opening clears the TTL so it is kept again.
@@ -682,6 +719,11 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     } else if (method === 'GET' && path === '/bug-reports') {
       const identity = await verifyIdToken(extractBearerToken(event.headers?.authorization));
       result = await handleListMyReports(identity);
+
+    } else if (method === 'PATCH' && /^\/bug-reports\/[^/]+$/.test(path)) {
+      const identity = await verifyIdToken(extractBearerToken(event.headers?.authorization));
+      const reportId = event.pathParameters?.reportId || '';
+      result = await handleSetReportHidden(identity, reportId, body);
 
     } else if (method === 'GET' && path === '/admin/bug-reports') {
       const identity = await verifyIdToken(extractBearerToken(event.headers?.authorization));

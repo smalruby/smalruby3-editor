@@ -43,6 +43,19 @@ class BugReportAPI {
     }
 
     /**
+     * Hide or unhide one of the caller's own reports from their list. Does not
+     * delete — sets the server-side hiddenByOwner flag (the report stays for
+     * the developers).
+     * @param {string} idToken - Google/Microsoft ID token
+     * @param {string} reportId - Report ID (must be owned by the caller)
+     * @param {boolean} hidden - true to hide, false to unhide
+     * @returns {Promise<object>} {reportId, hiddenByOwner}
+     */
+    async setReportHidden(idToken, reportId, hidden) {
+        return this._request('PATCH', `/bug-reports/${reportId}`, { hidden }, idToken);
+    }
+
+    /**
      * Upload data to a presigned S3 URL.
      * @param {string} url - Presigned URL
      * @param {ArrayBuffer|Blob|string} data - Data to upload

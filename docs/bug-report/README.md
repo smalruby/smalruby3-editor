@@ -28,6 +28,25 @@ Google / Microsoft アカウントでログインし、開発者 (管理者) が
    今編集している作品 (sb3)・サムネイル・ブロックのスクリーンショットが自動添付される
 5. 後日、同じアカウントでログインして **「わたしの不具合報告」** を開くと、状態
    (受付ました / 対応中 / 直りました / 対応終了) と開発者からの返信を確認できる
+6. 各報告の **✗（一覧からかくす）** で、不要になった報告を自分の一覧から消せる。✗ を押すと
+   即座に一覧から消え、**「けすわけではない」**ことを伝える Undo トースト（「もとにもどす」）が
+   数秒表示される。**これは削除ではなく非表示**（サーバーには `hiddenByOwner` フラグで残り、
+   開発者は引き続き対応できる）。Undo トーストの「もとにもどす」だけが再表示手段。
+
+## 一覧からかくす（hiddenByOwner）
+
+報告者が ✗ を押すと `PATCH /bug-reports/{reportId}` (`{hidden:true}`、所有者のみ) で
+`hiddenByOwner` が立ち、`GET /bug-reports` の結果から除外される。**行は削除されず**、管理者
+(`GET /admin/bug-reports`) は `hiddenByOwner` 付きで全件を見られる（クローズ判断の材料）。
+「もとにもどす」は `{hidden:false}` で再表示する。サーバーに残すことで「削除したのに残って
+いて問題」を防ぐ設計。
+
+**管理者が更新したら自動で再表示**: 報告者が非表示にした後でも、管理者が
+`PATCH /admin/bug-reports/{reportId}`（状態変更・返信）を行うと `hiddenByOwner` が
+`false` に戻り、報告者の一覧に再び現れる。開発者からの進捗・返信を見逃さないため。
+
+✗ ボタンは Smalruby 標準のクローズアイコン（`components/close-button` と同じ「+」を 45°
+回転した白アイコン + 色付き円）を使用。
 
 ## アクセス制御・プライバシー
 
@@ -112,8 +131,9 @@ API では削除できない。
 | Path | Method | 認可 | 説明 |
 |------|--------|------|------|
 | `/bug-reports` | POST | 認証済み | 報告作成 + presigned upload URL |
-| `/bug-reports` | GET | 認証済み | 自分の報告一覧 (状態 + 返信、DL URL なし) |
-| `/admin/bug-reports` | GET | 管理者 | 全報告一覧 + サムネ DL |
+| `/bug-reports` | GET | 認証済み | 自分の報告一覧 (状態 + 返信、DL URL なし、非表示は除外) |
+| `/bug-reports/{reportId}` | PATCH | 認証済み (所有者) | `{hidden}` で一覧からかくす/もどす (削除ではない) |
+| `/admin/bug-reports` | GET | 管理者 | 全報告一覧 (非表示含む、`hiddenByOwner` 付き) + サムネ DL |
 | `/admin/bug-reports/{reportId}` | GET / PATCH | 管理者 | 詳細 (作品 DL) / 状態・返信更新 |
 | `/admin/admins` | GET / POST | 管理者 | 管理者一覧 / 追加 |
 | `/admin/admins/{email}` | DELETE | 管理者 | 管理者削除 |
