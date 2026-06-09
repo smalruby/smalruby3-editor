@@ -337,6 +337,49 @@ export default {
     'gui.smalruby3.feedbackConfirm':
         'You are about to open an external site to send feedback to help us improve Smalruby. Is it okay?',
 
+    // Bug Report (program bug report with attached project)
+    'gui.smalruby3.gui.bugReport': 'Report a bug',
+    'gui.bugReportModal.title': 'Report a bug',
+    'gui.bugReportModal.loginIntro': 'Sign in so we can attach your project and tell you when the bug is fixed.',
+    'gui.bugReportModal.loginGoogle': 'Sign in with Google',
+    'gui.bugReportModal.loginMicrosoft': 'Sign in with Microsoft',
+    'gui.bugReportModal.descriptionLabel': 'What happened? (what you did, what went wrong, what you expected)',
+    'gui.bugReportModal.descriptionPlaceholder': 'Example: When I clicked the green flag, the sprite disappeared.',
+    'gui.bugReportModal.attachmentNote': 'Your current project and block screenshots are attached automatically.',
+    'gui.bugReportModal.submit': 'Send report',
+    'gui.bugReportModal.sending': 'Sending…',
+    'gui.bugReportModal.successTitle': 'Thank you! Your report was sent.',
+    'gui.bugReportModal.successBody':
+        'The developers will look into it. You can check the reply later from "My bug reports".',
+    'gui.bugReportModal.viewMyReports': 'My bug reports',
+    'gui.bugReportModal.backToForm': 'Report another bug',
+    'gui.bugReportModal.close': 'Close',
+    'gui.bugReportModal.noReports': 'You have not reported any bugs yet.',
+    'gui.bugReportModal.reportsLoading': 'Loading…',
+    'gui.bugReportModal.replyLabel': 'Reply from the developers:',
+    'gui.bugReportModal.statusOpen': 'Received',
+    'gui.bugReportModal.statusInProgress': 'In progress',
+    'gui.bugReportModal.statusResolved': 'Fixed',
+    'gui.bugReportModal.statusWontFix': 'Closed',
+    'gui.bugReportModal.errorLogin': 'Sign-in failed. Please try again.',
+    'gui.bugReportModal.errorReauth': 'Your sign-in expired. Please sign in again.',
+    'gui.bugReportModal.errorFileTooLarge': 'The project is too large to send (maximum 10MB).',
+    'gui.bugReportModal.errorGeneric': 'Something went wrong. Please try again later.',
+    'gui.bugReportConsent.title': 'Before reporting a bug',
+    'gui.bugReportConsent.intro': 'To fix the bug, your current project is shared with the Smalruby developers.',
+    'gui.bugReportConsent.pointShared': 'Only you and the developers can see the project you send.',
+    'gui.bugReportConsent.pointLogin': 'You sign in with Google or Microsoft so we can tell you when it is fixed.',
+    'gui.bugReportConsent.pointNoPersonalInfo':
+        'Do not write personal information (name, address, etc.) in the description.',
+    'gui.bugReportConsent.detailsToggle': 'More details (for parents/guardians)',
+    'gui.bugReportConsent.detailsText':
+        'Your project file, a thumbnail, screenshots, your description and your account email are stored securely and are visible only to you and the Smalruby developers. They are deleted after the bug is resolved.',
+    'gui.bugReportConsent.privacyLink': 'Privacy Policy',
+    'gui.bugReportConsent.consentCheckbox':
+        'I am 18 or older, or I have permission from a parent/guardian, and I agree to share my project.',
+    'gui.bugReportConsent.cancel': 'Not now',
+    'gui.bugReportConsent.accept': 'OK',
+
     // Block Display Modal - Block Messages
     // Motion blocks
     'gui.smalruby3.blockDisplayModal.motion_movesteps': 'move (10) steps',

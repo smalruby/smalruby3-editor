@@ -31,6 +31,8 @@ src/components/*
 # Smalruby-only directories (all contents included)
 !src/components/auto-correct-modal/
 !src/components/block-display-modal/
+!src/components/bug-report-consent/
+!src/components/bug-report-modal/
 !src/components/classroom-modal/
 !src/components/classroom-teacher-modal/
 !src/components/classroom-tutorial/
@@ -90,6 +92,8 @@ src/containers/*
 !src/containers/ruby-tab/
 # Individual Smalruby files
 !src/containers/block-display-modal.jsx
+!src/containers/bug-report-modal.jsx
+!src/containers/use-bug-report-submit.js
 !src/containers/classroom-classcode-utils.js
 !src/containers/classroom-error-utils.js
 !src/containers/classroom-modal.jsx
@@ -125,6 +129,7 @@ src/lib/*
 # Individual Smalruby files
 !src/lib/auto-correct.js
 !src/lib/backpack-mesh-v1-migration.js
+!src/lib/bug-report-api.js
 !src/lib/deck-setup.js
 !src/lib/classroom-api.js
 !src/lib/classroom-kick-request-storage.js
@@ -202,6 +207,7 @@ src/locales/*
 # ============================================================
 src/reducers/*
 !src/reducers/block-display.js
+!src/reducers/bug-report.js
 !src/reducers/classroom.js
 !src/reducers/classroom-tutorial.js
 !src/reducers/dncl-mode.js
@@ -275,6 +281,7 @@ test/unit/*
 # Level 3: test/unit/components/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
+!test/unit/components/bug-report-consent.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
@@ -324,6 +331,7 @@ test/unit/lib/*
 !test/unit/lib/backpack-api.test.js
 !test/unit/lib/backpack-mesh-v1-migration.test.js
 !test/unit/lib/block-display-initialization.test.js
+!test/unit/lib/bug-report-api.test.js
 !test/unit/lib/blockly-private-api.test.js
 !test/unit/lib/blocks-gesture-recovery.test.js
 !test/unit/lib/classroom-api.test.js
@@ -376,6 +384,7 @@ test/unit/lib/*
 
 # Level 3: test/unit/reducers/*
 test/unit/reducers/*
+!test/unit/reducers/bug-report-reducer.test.js
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js

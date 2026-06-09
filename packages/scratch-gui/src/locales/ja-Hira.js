@@ -584,6 +584,53 @@ export default {
     'gui.smalruby3.feedbackConfirm':
         'スモウルビーをよりよくするためのフィードバック（ごいけん）をそうしんするがいぶサイトをひらきます。よろしいですか？',
 
+    // Bug Report (program bug report with attached project)
+    'gui.smalruby3.gui.bugReport': 'ふぐあいをほうこく',
+    'gui.bugReportModal.title': 'ふぐあいをほうこくする',
+    'gui.bugReportModal.loginIntro':
+        'ログインすると、さくひんをそえておくれます。なおったときにおしらせするためにもつかいます。',
+    'gui.bugReportModal.loginGoogle': 'Googleでログイン',
+    'gui.bugReportModal.loginMicrosoft': 'Microsoftでログイン',
+    'gui.bugReportModal.descriptionLabel':
+        'どんなふぐあいですか？（なにをしたか・どうなったか・どうなってほしかったか）',
+    'gui.bugReportModal.descriptionPlaceholder': 'れい：みどりのはたをおしたら、スプライトがきえてしまいました。',
+    'gui.bugReportModal.attachmentNote':
+        'いまへんしゅうしているさくひんとブロックのスクリーンショットがじどうでそえられます。',
+    'gui.bugReportModal.submit': 'ほうこくをおくる',
+    'gui.bugReportModal.sending': 'そうしんちゅう…',
+    'gui.bugReportModal.successTitle': 'ありがとうございます！ほうこくをおくりました。',
+    'gui.bugReportModal.successBody':
+        'かいはつしゃがかくにんします。へんじは「わたしのふぐあいほうこく」からあとでかくにんできます。',
+    'gui.bugReportModal.viewMyReports': 'わたしのふぐあいほうこく',
+    'gui.bugReportModal.backToForm': 'べつのふぐあいをほうこくする',
+    'gui.bugReportModal.close': 'とじる',
+    'gui.bugReportModal.noReports': 'まだふぐあいをほうこくしていません。',
+    'gui.bugReportModal.reportsLoading': 'よみこみちゅう…',
+    'gui.bugReportModal.replyLabel': 'かいはつしゃからのへんじ：',
+    'gui.bugReportModal.statusOpen': 'うけつけました',
+    'gui.bugReportModal.statusInProgress': 'たいおうちゅう',
+    'gui.bugReportModal.statusResolved': 'なおりました',
+    'gui.bugReportModal.statusWontFix': 'たいおうしゅうりょう',
+    'gui.bugReportModal.errorLogin': 'ログインにしっぱいしました。もういちどおためしください。',
+    'gui.bugReportModal.errorReauth': 'ログインのゆうこうきげんがきれました。もういちどログインしてください。',
+    'gui.bugReportModal.errorFileTooLarge': 'さくひんがおおきすぎておくれません（さいだい10MB）。',
+    'gui.bugReportModal.errorGeneric': 'もんだいがおきました。しばらくしてからもういちどおためしください。',
+    'gui.bugReportConsent.title': 'ふぐあいをほうこくするまえに',
+    'gui.bugReportConsent.intro':
+        'ふぐあいをなおすために、いまへんしゅうしているさくひんがかいはつしゃにきょうゆうされます。',
+    'gui.bugReportConsent.pointShared': 'おくったさくひんをみられるのは、あなたとかいはつしゃだけです。',
+    'gui.bugReportConsent.pointLogin': 'なおったときにおしらせできるように、GoogleまたはMicrosoftでログインします。',
+    'gui.bugReportConsent.pointNoPersonalInfo':
+        'せつめいにはこじんじょうほう（なまえ・じゅうしょなど）をかかないでください。',
+    'gui.bugReportConsent.detailsToggle': 'くわしく（ほごしゃのかたへ）',
+    'gui.bugReportConsent.detailsText':
+        'さくひんファイル・サムネイル・スクリーンショット・せつめいぶん・アカウントのメールアドレスはあんぜんにほかんされ、あなたとかいはつしゃだけがみられます。ふぐあいのたいおうがおわったあとにさくじょされます。',
+    'gui.bugReportConsent.privacyLink': 'プライバシーポリシー',
+    'gui.bugReportConsent.consentCheckbox':
+        'わたしは18さいいじょう、またはほごしゃのどういがあり、さくひんのきょうゆうにどういします。',
+    'gui.bugReportConsent.cancel': 'いまはやめる',
+    'gui.bugReportConsent.accept': 'OK',
+
     // Block Display Modal - Block Messages (Hiragana)
     // Motion blocks
     'gui.smalruby3.blockDisplayModal.motion_movesteps': '(10) ほうごかす',

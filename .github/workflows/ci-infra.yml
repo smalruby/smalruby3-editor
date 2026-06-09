@@ -210,3 +210,65 @@ jobs:
       - name: Run npm audit
         run: npm audit --audit-level=moderate
         continue-on-error: true
+
+  # ---------------------------------------------------------------------------
+  # smalruby-bug-report
+  # ---------------------------------------------------------------------------
+  smalruby-bug-report-unit-tests:
+    name: "[bug-report] Unit Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-bug-report
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/smalruby-bug-report/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-bug-report/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+
+  smalruby-bug-report-cdk-build:
+    name: "[bug-report] CDK Build & Synth"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-bug-report
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/smalruby-bug-report/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-bug-report/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build TypeScript
+        run: npm run build
+      - name: Synthesize CDK stack
+        env:
+          BUG_REPORT_CUSTOM_DOMAIN: 'false'
+        run: npx cdk synth --context stage=stg
+
+  smalruby-bug-report-security:
+    name: "[bug-report] Security Audit"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/smalruby-bug-report
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: infra/smalruby-bug-report/.node-version
+          cache: npm
+          cache-dependency-path: infra/smalruby-bug-report/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true

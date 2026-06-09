@@ -15,6 +15,8 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/auto-correct-modal/`
 - `src/components/dncl-mode-notice/`
 - `src/components/block-display-modal/`
+- `src/components/bug-report-consent/`
+- `src/components/bug-report-modal/`
 - `src/components/classroom-modal/`
 - `src/components/classroom-teacher-modal/`
 - `src/components/classroom-tutorial/`
@@ -65,6 +67,8 @@ upstream (Scratch) ファイルは対象外。
 
 **個別ファイル:**
 - `src/containers/block-display-modal.jsx`
+- `src/containers/bug-report-modal.jsx`
+- `src/containers/use-bug-report-submit.js`
 - `src/containers/classroom-classcode-utils.js`
 - `src/containers/classroom-error-utils.js`
 - `src/containers/classroom-modal.jsx`
@@ -102,6 +106,7 @@ upstream (Scratch) ファイルは対象外。
 **個別ファイル:**
 - `src/lib/auto-correct.js`
 - `src/lib/backpack-mesh-v1-migration.js`
+- `src/lib/bug-report-api.js`
 - `src/lib/classroom-api.js`
 - `src/lib/classroom-kick-request-storage.js`
 - `src/lib/deck-setup.js`
@@ -162,6 +167,7 @@ upstream (Scratch) ファイルは対象外。
 ### src/reducers/
 
 - `src/reducers/block-display.js`
+- `src/reducers/bug-report.js`
 - `src/reducers/classroom.js`
 - `src/reducers/classroom-tutorial.js`
 - `src/reducers/dncl-mode.js`
@@ -212,6 +218,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/version-update-notification.test.js`
 - `test/integration/workspace-glow-regression.test.js`
 - `test/unit/components/action-menu.test.jsx`
+- `test/unit/components/bug-report-consent.test.jsx`
 - `test/unit/components/dncl-mode-notice.test.jsx`
 - `test/unit/components/extension-button-dncl.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
@@ -245,6 +252,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/analytics.test.js`
 - `test/unit/lib/auto-correct.test.js`
 - `test/unit/lib/backpack-api.test.js`
+- `test/unit/lib/bug-report-api.test.js`
 - `test/unit/lib/backpack-mesh-v1-migration.test.js`
 - `test/unit/lib/block-display-initialization.test.js`
 - `test/unit/lib/blockly-private-api.test.js`
@@ -298,6 +306,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/make-toolbox-xml-exact-match.test.js`
 - `test/unit/make-toolbox-xml-hex.test.js`
 - `test/unit/only-blocks-initialization.test.js`
+- `test/unit/reducers/bug-report-reducer.test.js`
 - `test/unit/reducers/cards_reducer.test.js`
 - `test/unit/reducers/dncl-mode-reducer.test.js`
 - `test/unit/reducers/classroom-reducer.test.js`

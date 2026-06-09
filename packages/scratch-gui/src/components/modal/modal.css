@@ -24,6 +24,15 @@
     border-radius: $space;
     user-select: none;
 
+    /* === Smalruby: Start of default modal background === */
+    /* Give every (non-full-screen) modal an opaque default background so a
+       modal whose content body forgets to set one does not show the blue
+       .modal-overlay through it. Backward-compatible: modals whose content
+       sets its own background simply paint over this. The .full-screen rule
+       below overrides this with $ui-secondary. */
+    background-color: $ui-white;
+    /* === Smalruby: End of default modal background === */
+
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     color: $text-primary;
     overflow: hidden;

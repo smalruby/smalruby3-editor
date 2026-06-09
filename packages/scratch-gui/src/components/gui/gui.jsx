@@ -42,6 +42,10 @@ import SmalrubotFirmwareModal from '../../containers/smalrubot-firmware-modal.js
 import ClassroomModal from '../../containers/classroom-modal.jsx';
 import ClassroomTeacherModal from '../../containers/classroom-teacher-modal.jsx';
 // === Smalruby: End of classroom modal ===
+// === Smalruby: Start of bug report modal ===
+import BugReportModal from '../../containers/bug-report-modal.jsx';
+import {isBugReportConfigured} from '../../lib/bug-report-api.js';
+// === Smalruby: End of bug report modal ===
 // === Smalruby: Start of meshV2 classroom binding ===
 import MeshV2ClassroomBinding from '../../lib/mesh-v2-classroom-binding.jsx';
 // === Smalruby: End of meshV2 classroom binding ===
@@ -259,6 +263,7 @@ const GUIComponent = props => {
         onSetPlatform,
         onSetTheme,
         onOpenClassroomModal,
+        onOpenBugReportModal, // === Smalruby: bug report modal ===
         onRequestExitDnclMode,
         // === Smalruby: End of Redux action props prevention ===
         rubyTabVisible,
@@ -329,6 +334,15 @@ const GUIComponent = props => {
             e.preventDefault();
         }
     }, [intl]);
+
+    // === Smalruby: Start of bug report modal ===
+    const handleBugReportClick = useCallback(e => {
+        e.preventDefault();
+        if (onOpenBugReportModal) {
+            onOpenBugReportModal();
+        }
+    }, [onOpenBugReportModal]);
+    // === Smalruby: End of bug report modal ===
 
     if (isRendererSupported === null) {
         isRendererSupported = Renderer.isSupported();
@@ -455,6 +469,9 @@ const GUIComponent = props => {
                     {classroomModalVisible ? <ClassroomModal /> : null}
                     {teacherModalVisible ? <ClassroomTeacherModal /> : null}
                     {/* === Smalruby: End of classroom modal === */}
+                    {/* === Smalruby: Start of bug report modal === */}
+                    {isBugReportConfigured() ? <BugReportModal /> : null}
+                    {/* === Smalruby: End of bug report modal === */}
                     {/* === Smalruby: Start of meshV2 classroom binding === */}
                     <MeshV2ClassroomBinding />
                     {/* === Smalruby: End of meshV2 classroom binding === */}
@@ -656,6 +673,25 @@ const GUIComponent = props => {
                                                 id="gui.smalruby3.gui.feedback"
                                             />
                                         </a>
+                                        {/* === Smalruby: Start of bug report modal === */}
+                                        {isBugReportConfigured() ? (
+                                            <React.Fragment>
+                                                <span className={styles.linkSeparator}>{'|'}</span>
+                                                <a
+                                                    className={styles.feedbackLink}
+                                                    href="#"
+                                                    data-testid="bug-report-link"
+                                                    onClick={handleBugReportClick}
+                                                >
+                                                    <FormattedMessage
+                                                        defaultMessage="Report a bug"
+                                                        description="Link to report a program bug"
+                                                        id="gui.smalruby3.gui.bugReport"
+                                                    />
+                                                </a>
+                                            </React.Fragment>
+                                        ) : null}
+                                        {/* === Smalruby: End of bug report modal === */}
                                     </div>
                                 </Box>
                                 <TabPanel
@@ -807,6 +843,7 @@ GUIComponent.propTypes = {
     blockDisplayModalVisible: PropTypes.bool,
     classroomModalVisible: PropTypes.bool, // === Smalruby: classroom modal ===
     teacherModalVisible: PropTypes.bool, // === Smalruby: classroom modal ===
+    onOpenBugReportModal: PropTypes.func, // === Smalruby: bug report modal ===
     smalrubotFirmwareModalVisible: PropTypes.bool, // === Smalruby: smalrubot firmware modal ===
     blocksTabVisible: PropTypes.bool,
     dnclMode: PropTypes.bool, // === Smalruby: DNCL block filtering ===

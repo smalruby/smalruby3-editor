@@ -121,6 +121,9 @@ const baseConfig = new ScratchWebpackConfigBuilder(
         'process.env.CLASSROOM_REFRESH_INTERVAL_MS': `"${process.env.CLASSROOM_REFRESH_INTERVAL_MS || '30000'}"`,
         'process.env.MICROSOFT_CLIENT_ID': `"${process.env.MICROSOFT_CLIENT_ID || ''}"`,
         // === Smalruby: End of classroom API ===
+        // === Smalruby: Start of bug report API ===
+        'process.env.BUG_REPORT_API_ENDPOINT': `"${process.env.BUG_REPORT_API_ENDPOINT || ''}"`,
+        // === Smalruby: End of bug report API ===
         'process.env.MAX_USER_MESSAGE_LENGTH': `"${process.env.MAX_USER_MESSAGE_LENGTH || '250'}"`,
         'process.env.MIN_USER_MESSAGE_LENGTH': `"${process.env.MIN_USER_MESSAGE_LENGTH || '10'}"`,
         // === Smalruby: version update notification ===

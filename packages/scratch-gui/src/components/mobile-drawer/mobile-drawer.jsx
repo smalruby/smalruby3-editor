@@ -20,6 +20,8 @@ import {
 } from '../../lib/settings/ruby-version/index.js';
 import { persistRubyVersion } from '../../lib/settings/ruby-version/persistence.js';
 import sharedMessages from '../../lib/shared-messages';
+import { isBugReportConfigured } from '../../lib/bug-report-api.js';
+import { openBugReportModal } from '../../reducers/bug-report.js';
 import { openClassroomModal, openTeacherModal } from '../../reducers/classroom.js';
 import { setConnectionModalExtensionId } from '../../reducers/connection-modal.js';
 import { selectLocale } from '../../reducers/locales.js';
@@ -145,6 +147,11 @@ const messages = defineMessages({
         description: 'Mobile drawer item that re-opens the first-visit welcome modal',
         id: 'gui.mobile.drawer.help.showWelcome',
     },
+    helpReportBug: {
+        defaultMessage: 'Report a bug',
+        description: 'Mobile drawer item that opens the program bug report modal',
+        id: 'gui.smalruby3.gui.bugReport',
+    },
 });
 
 /**
@@ -232,6 +239,7 @@ const hasV2Features = vm => {
  * @param {Function} props.onStartSavingToGoogleDrive - GoogleDriveSaverHOC 注入
  * @param {Function} props.onStartSelectingUrlLoad - Scratch URL ローダーモーダル
  * @param {Function} props.onOpenWelcomeModal - ウェルカムモーダルを開く (#658)
+ * @param {Function} props.onReportBug - プログラム不具合報告モーダルを開く (#731)
  * @param {object} props.intl - react-intl
  * @returns {JSX.Element|null} portal 経由で body 直下にレンダリング
  */
@@ -254,6 +262,7 @@ const MobileDrawerComponent = ({
     onStartSavingToGoogleDrive,
     onStartSelectingUrlLoad,
     onOpenWelcomeModal,
+    onReportBug,
     intl,
 }) => {
     const [expandedSet, setExpandedSet] = useState(() => new Set());
@@ -359,6 +368,11 @@ const MobileDrawerComponent = ({
         onOpenWelcomeModal();
         onClose();
     }, [onOpenWelcomeModal, onClose]);
+
+    const handleClickReportBug = useCallback(() => {
+        onReportBug();
+        onClose();
+    }, [onReportBug, onClose]);
 
     if (typeof document === 'undefined') {
         return null;
@@ -695,6 +709,18 @@ const MobileDrawerComponent = ({
                                     <FormattedMessage {...messages.helpShowWelcome} />
                                 </button>
                             </li>
+                            {isBugReportConfigured() && (
+                                <li>
+                                    <button
+                                        type="button"
+                                        className={classNames(styles.menuItem, styles.indented)}
+                                        onClick={handleClickReportBug}
+                                        data-testid="mobile-drawer-help-report-bug"
+                                    >
+                                        <FormattedMessage {...messages.helpReportBug} />
+                                    </button>
+                                </li>
+                            )}
                         </>
                     )}
                 </ul>
@@ -723,6 +749,7 @@ MobileDrawerComponent.propTypes = {
     onStartSavingToGoogleDrive: PropTypes.func.isRequired,
     onStartSelectingUrlLoad: PropTypes.func.isRequired,
     onOpenWelcomeModal: PropTypes.func.isRequired,
+    onReportBug: PropTypes.func.isRequired,
     intl: intlShape.isRequired,
 };
 
@@ -748,6 +775,7 @@ const mapDispatchToProps = dispatch => ({
     },
     onStartSelectingUrlLoad: () => dispatch(openUrlLoaderModal()),
     onOpenWelcomeModal: () => dispatch(openWelcomeModal()),
+    onReportBug: () => dispatch(openBugReportModal()),
 });
 
 const MobileDrawer = compose(

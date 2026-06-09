@@ -1,0 +1,15 @@
+node_modules/
+dist/
+cdk.out/
+cdk.out.*
+
+# Environment variables (all are gitignored; use symlink: ln -s .env.stg .env)
+.env
+.env.prod
+.env.stg
+.env.stg2
+
+*.js.map
+*.d.ts
+!jest.config.js
+!jest.integration.config.js
