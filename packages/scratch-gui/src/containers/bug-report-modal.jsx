@@ -6,7 +6,7 @@
  * use-bug-report-submit), and the reporter's own "my reports" list. All state
  * is self-sourced from Redux; gui.jsx only needs to render it when visible.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
 import BugReportConsent from '../components/bug-report-consent/bug-report-consent.jsx';
@@ -82,6 +82,24 @@ const BugReportModal = () => {
     const [isBusy, setIsBusy] = useState(false);
     const [reports, setReports] = useState([]);
     const [reportsLoading, setReportsLoading] = useState(false);
+    // The report most recently hidden, kept so the Undo toast can restore it.
+    const [hiddenReport, setHiddenReport] = useState(null);
+    const hideTimerRef = useRef(null);
+
+    const clearHideTimer = useCallback(() => {
+        if (hideTimerRef.current) {
+            clearTimeout(hideTimerRef.current);
+            hideTimerRef.current = null;
+        }
+    }, []);
+
+    // Clear the auto-dismiss timer on unmount.
+    useEffect(() => clearHideTimer, [clearHideTimer]);
+
+    const insertSortedByNewest = useCallback(
+        (list, report) => [...list, report].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+        [],
+    );
 
     const loadReports = useCallback(
         async (token) => {
@@ -175,10 +193,12 @@ const BugReportModal = () => {
     }, [idToken, advanceAfterAuth]);
 
     const handleClose = useCallback(() => {
+        clearHideTimer();
+        setHiddenReport(null);
         setDescription('');
         setError(null);
         dispatch(closeBugReportModal());
-    }, [dispatch]);
+    }, [dispatch, clearHideTimer]);
 
     const handleDescriptionChange = useCallback((e) => setDescription(e.target.value), []);
 
@@ -219,9 +239,50 @@ const BugReportModal = () => {
     }, [dispatch, idToken, loadReports]);
 
     const handleShowForm = useCallback(() => {
+        clearHideTimer();
+        setHiddenReport(null);
         setPhase('form');
         setError(null);
-    }, []);
+    }, [clearHideTimer]);
+
+    // ✗ on a row: optimistically remove it, show the Undo toast, persist hide.
+    const handleHideReport = useCallback(
+        async (reportId) => {
+            if (!idToken) return;
+            const target = reports.find((r) => r.reportId === reportId);
+            if (!target) return;
+            setError(null);
+            setReports((prev) => prev.filter((r) => r.reportId !== reportId));
+            clearHideTimer();
+            setHiddenReport(target);
+            hideTimerRef.current = setTimeout(() => setHiddenReport(null), 6000);
+            try {
+                await bugReportAPI.setReportHidden(idToken, reportId, true);
+            } catch (err) {
+                // Roll back the optimistic removal.
+                clearHideTimer();
+                setHiddenReport(null);
+                setReports((prev) => insertSortedByNewest(prev, target));
+                setError(intl.formatMessage(err.status === 401 ? messages.errorReauth : messages.errorGeneric));
+            }
+        },
+        [idToken, reports, clearHideTimer, insertSortedByNewest, intl],
+    );
+
+    const handleUndoHide = useCallback(async () => {
+        if (!hiddenReport || !idToken) return;
+        const target = hiddenReport;
+        clearHideTimer();
+        setHiddenReport(null);
+        setReports((prev) => insertSortedByNewest(prev, target));
+        try {
+            await bugReportAPI.setReportHidden(idToken, target.reportId, false);
+        } catch (err) {
+            // Undo failed: remove it again and surface the error.
+            setReports((prev) => prev.filter((r) => r.reportId !== target.reportId));
+            setError(intl.formatMessage(err.status === 401 ? messages.errorReauth : messages.errorGeneric));
+        }
+    }, [hiddenReport, idToken, clearHideTimer, insertSortedByNewest, intl]);
 
     if (!modalVisible || !isBugReportConfigured()) {
         return null;
@@ -248,6 +309,9 @@ const BugReportModal = () => {
             onSubmit={handleSubmit}
             onShowMyReports={handleShowMyReports}
             onShowForm={handleShowForm}
+            onHideReport={handleHideReport}
+            onUndoHide={handleUndoHide}
+            hideToastVisible={!!hiddenReport}
         />
     );
 };

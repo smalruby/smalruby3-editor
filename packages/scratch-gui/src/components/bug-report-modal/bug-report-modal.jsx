@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
 
@@ -116,6 +116,21 @@ const messages = defineMessages({
         defaultMessage: 'Closed',
         description: 'Status: wont_fix',
     },
+    hideButton: {
+        id: 'gui.bugReportModal.hideButton',
+        defaultMessage: 'Hide from list',
+        description: 'Title/aria-label for the ✗ button that hides a report from the list',
+    },
+    hideToast: {
+        id: 'gui.bugReportModal.hideToast',
+        defaultMessage: "Hidden from your list. It's not deleted — the developers still have it.",
+        description: 'Toast shown after hiding a report, clarifying it is not deleted',
+    },
+    undo: {
+        id: 'gui.bugReportModal.undo',
+        defaultMessage: 'Undo',
+        description: 'Undo button in the hide toast',
+    },
 });
 
 const STATUS_MESSAGE = {
@@ -125,8 +140,9 @@ const STATUS_MESSAGE = {
     wont_fix: messages.statusWontFix,
 };
 
-const ReportRow = ({ report, intl }) => {
+const ReportRow = ({ report, intl, onHide }) => {
     const statusMsg = STATUS_MESSAGE[report.status] || messages.statusOpen;
+    const handleHideClick = useCallback(() => onHide(report.reportId), [onHide, report.reportId]);
     return (
         <li
             className={styles.reportRow}
@@ -141,6 +157,16 @@ const ReportRow = ({ report, intl }) => {
                     {intl.formatMessage(statusMsg)}
                 </span>
                 <span className={styles.reportDate}>{(report.createdAt || '').slice(0, 10)}</span>
+                <button
+                    type="button"
+                    className={styles.hideButton}
+                    title={intl.formatMessage(messages.hideButton)}
+                    aria-label={intl.formatMessage(messages.hideButton)}
+                    onClick={handleHideClick}
+                    data-testid="bug-report-item-hide"
+                >
+                    {'✗'}
+                </button>
             </div>
             <p className={styles.reportDescription}>{report.description}</p>
             {report.developerReply ? (
@@ -160,7 +186,9 @@ const ReportRow = ({ report, intl }) => {
 
 ReportRow.propTypes = {
     intl: intlShape.isRequired,
+    onHide: PropTypes.func.isRequired,
     report: PropTypes.shape({
+        reportId: PropTypes.string,
         status: PropTypes.string,
         createdAt: PropTypes.string,
         description: PropTypes.string,
@@ -193,6 +221,9 @@ const BugReportModal = (props) => {
         onSubmit,
         onShowMyReports,
         onShowForm,
+        onHideReport,
+        hideToastVisible,
+        onUndoHide,
     } = props;
 
     return (
@@ -350,10 +381,30 @@ const BugReportModal = (props) => {
                                         key={report.reportId}
                                         report={report}
                                         intl={intl}
+                                        onHide={onHideReport}
                                     />
                                 ))}
                             </ul>
                         )}
+                        {hideToastVisible ? (
+                            <div
+                                className={styles.undoToast}
+                                data-testid="bug-report-undo-toast"
+                                role="status"
+                            >
+                                <span className={styles.undoToastText}>
+                                    <FormattedMessage {...messages.hideToast} />
+                                </span>
+                                <button
+                                    type="button"
+                                    className={styles.undoButton}
+                                    onClick={onUndoHide}
+                                    data-testid="bug-report-undo"
+                                >
+                                    <FormattedMessage {...messages.undo} />
+                                </button>
+                            </div>
+                        ) : null}
                         <div className={styles.buttons}>
                             <button
                                 className={styles.secondaryButton}
@@ -388,6 +439,9 @@ BugReportModal.propTypes = {
     onSubmit: PropTypes.func.isRequired,
     onShowMyReports: PropTypes.func.isRequired,
     onShowForm: PropTypes.func.isRequired,
+    onHideReport: PropTypes.func.isRequired,
+    onUndoHide: PropTypes.func.isRequired,
+    hideToastVisible: PropTypes.bool,
 };
 
 BugReportModal.defaultProps = {
@@ -398,6 +452,7 @@ BugReportModal.defaultProps = {
     reports: [],
     reportsLoading: false,
     submitProgressLabel: null,
+    hideToastVisible: false,
 };
 
 export { messages };

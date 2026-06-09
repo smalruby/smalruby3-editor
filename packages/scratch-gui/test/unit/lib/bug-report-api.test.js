@@ -67,6 +67,22 @@ describe('BugReportAPI', () => {
         expect(global.fetch.mock.calls[0][0]).toContain('/admin/admins/a%2Btest%40b.com');
     });
 
+    test('setReportHidden PATCHes /bug-reports/{id} with {hidden}', async () => {
+        global.fetch.mockResolvedValue(okJson({ reportId: 'r1', hiddenByOwner: true }));
+        await api.setReportHidden('id-token', 'r1', true);
+        const [url, options] = global.fetch.mock.calls[0];
+        expect(url).toContain('/bug-reports/r1');
+        expect(options.method).toBe('PATCH');
+        expect(options.headers.Authorization).toBe('Bearer id-token');
+        expect(JSON.parse(options.body)).toEqual({ hidden: true });
+    });
+
+    test('setReportHidden supports unhide (hidden=false)', async () => {
+        global.fetch.mockResolvedValue(okJson({ reportId: 'r1', hiddenByOwner: false }));
+        await api.setReportHidden('id-token', 'r1', false);
+        expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({ hidden: false });
+    });
+
     test('uploadToPresignedUrl PUTs the body with the content type', async () => {
         global.fetch.mockResolvedValue({ ok: true, status: 200 });
         const buf = new ArrayBuffer(8);
