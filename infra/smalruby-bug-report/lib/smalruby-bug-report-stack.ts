@@ -213,6 +213,13 @@ export class SmalrubyBugReportStack extends cdk.Stack {
       integration,
     });
 
+    // Reporter hide/unhide of their own report (sets hiddenByOwner).
+    this.api.addRoutes({
+      path: '/bug-reports/{reportId}',
+      methods: [apigatewayv2.HttpMethod.PATCH],
+      integration,
+    });
+
     this.api.addRoutes({
       path: '/admin/bug-reports',
       methods: [apigatewayv2.HttpMethod.GET],
