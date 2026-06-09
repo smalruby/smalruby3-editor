@@ -49,6 +49,20 @@ const hasConsent = () => {
     }
 };
 
+// Local/dev only: `?devlogin=<token>` uses the token directly as the ID token,
+// skipping the Google/Microsoft OAuth flow (which requires the origin to be
+// registered with the provider — impractical on localhost). Mirrors the
+// classroom `?devlogin` affordance. The token only authenticates against
+// non-prod backends that accept DEV_BYPASS_TOKEN, and is never baked into the
+// bundle — it is supplied at runtime via the URL.
+const getDevLoginToken = () => {
+    try {
+        return typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('devlogin');
+    } catch {
+        return null;
+    }
+};
+
 const BugReportModal = () => {
     const dispatch = useDispatch();
     const intl = useIntl();
@@ -95,14 +109,17 @@ const BugReportModal = () => {
     useEffect(() => {
         if (!modalVisible) return;
         setError(null);
+        const effectiveToken = idToken || getDevLoginToken();
         if (!hasConsent()) {
             setPhase('consent');
-        } else if (!idToken) {
+        } else if (!effectiveToken) {
             setPhase('login');
         } else if (view === VIEW_MY_REPORTS) {
+            if (!idToken) setIdToken(effectiveToken);
             setPhase('myReports');
-            loadReports(idToken);
+            loadReports(effectiveToken);
         } else {
+            if (!idToken) setIdToken(effectiveToken);
             setPhase('form');
         }
         // Intentionally only react to open/close; in-modal navigation is handled
@@ -148,8 +165,10 @@ const BugReportModal = () => {
         } catch {
             // Ignore storage failures; consent simply re-prompts next time.
         }
-        if (idToken) {
-            advanceAfterAuth(idToken);
+        const effectiveToken = idToken || getDevLoginToken();
+        if (effectiveToken) {
+            if (!idToken) setIdToken(effectiveToken);
+            advanceAfterAuth(effectiveToken);
         } else {
             setPhase('login');
         }

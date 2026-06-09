@@ -7,6 +7,10 @@
 }
 
 .body {
+    /* The shared Modal's .modal-content / .box are transparent by default, so
+       the content body MUST set its own background or the blue .modal-overlay
+       shows through. */
+    background-color: $ui-white;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
