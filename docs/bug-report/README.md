@@ -118,8 +118,18 @@ API では削除できない。
 | `/admin/admins` | GET / POST | 管理者 | 管理者一覧 / 追加 |
 | `/admin/admins/{email}` | DELETE | 管理者 | 管理者削除 |
 
-## モバイルについて
+## 画面サイズ / モバイル対応
 
-`legalLinks` は既存仕様で 744〜1023px (iPad portrait) では非表示、MobileGui (スマホ) でも
-非表示。現行「フィードバックを送信」と同じ制約のため、不具合報告も当面 desktop 導線のみ
-(モバイル導線の追加は別 Issue 候補)。
+- モーダルは **全画面表示**（チュートリアル等と同じ `fullScreen` モーダル）。情報量が多い
+  ため全画面にし、本文は縦スクロール可能。中身は最大幅 640px で中央寄せ（デスクトップは
+  読みやすく、SP は画面幅にフィット）。
+- **PC / iPad**: 画面右下 `legalLinks` の「不具合を報告」リンクから開く。
+- **スマホ (MobileGui)**: `legalLinks` は非表示のため、**ハンバーガーメニュー → ヘルプ →
+  「不具合を報告」**（`mobile-drawer-help-report-bug`）から開く。全画面モーダルでフォーム・
+  ボタンが SP でもすべて表示・操作可能。
+
+### ローカル開発でのログイン
+
+Google/Microsoft の OAuth は `http://localhost:8601` が生成元として登録されていないため
+ローカルでは通らない。classroom と同様 **`?devlogin=<DEV_BYPASS_TOKEN>`** URL パラメータで
+バイパスできる（非 prod のみ。トークンはバンドルに焼き込まず URL から渡す）。
