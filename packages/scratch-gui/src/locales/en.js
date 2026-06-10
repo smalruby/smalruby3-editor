@@ -374,12 +374,9 @@ export default {
     'gui.bugReportConsent.pointLogin': 'You sign in with Google or Microsoft so we can tell you when it is fixed.',
     'gui.bugReportConsent.pointNoPersonalInfo':
         'Do not write personal information (name, address, etc.) in the description.',
-    'gui.bugReportConsent.detailsToggle': 'More details (for parents/guardians)',
-    'gui.bugReportConsent.detailsText':
-        'Your project file, a thumbnail, screenshots, your description and your account email are stored securely and are visible only to you and the Smalruby developers. They are deleted after the bug is resolved.',
+    'gui.bugReportConsent.guardianNote':
+        'For parents/guardians: the project, thumbnail, screenshots, description and account email are stored securely, handled only by the Smalruby developers, and deleted after the bug is resolved.',
     'gui.bugReportConsent.privacyLink': 'Privacy Policy',
-    'gui.bugReportConsent.consentCheckbox':
-        'I am 18 or older, or I have permission from a parent/guardian, and I agree to share my project.',
     'gui.bugReportConsent.cancel': 'Not now',
     'gui.bugReportConsent.accept': 'OK',
 

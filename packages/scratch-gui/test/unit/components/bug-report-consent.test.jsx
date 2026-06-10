@@ -18,20 +18,15 @@ describe('BugReportConsent', () => {
         expect(queryByTestId('bug-report-consent')).toBeInTheDocument();
     });
 
-    test('accept is disabled until the checkbox is checked', () => {
+    test('OK is enabled immediately (no consent checkbox) and calls onAccept', () => {
         const onAccept = jest.fn();
-        const { getByTestId } = renderConsent({ onAccept, onCancel: jest.fn() });
+        const { getByTestId, queryByTestId } = renderConsent({ onAccept, onCancel: jest.fn() });
+
+        // The lighter notice has no 18+/guardian-consent checkbox.
+        expect(queryByTestId('bug-report-consent-checkbox')).not.toBeInTheDocument();
 
         const acceptButton = getByTestId('bug-report-consent-accept');
-        expect(acceptButton).toBeDisabled();
-
-        // Clicking while disabled does nothing.
-        fireEvent.click(acceptButton);
-        expect(onAccept).not.toHaveBeenCalled();
-
-        fireEvent.click(getByTestId('bug-report-consent-checkbox'));
         expect(acceptButton).not.toBeDisabled();
-
         fireEvent.click(acceptButton);
         expect(onAccept).toHaveBeenCalledTimes(1);
     });

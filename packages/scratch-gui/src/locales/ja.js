@@ -598,11 +598,9 @@ export default {
     'gui.bugReportConsent.pointShared': '送った作品を見られるのは、あなたと開発者だけです。',
     'gui.bugReportConsent.pointLogin': '直ったときにお知らせできるように、GoogleまたはMicrosoftでログインします。',
     'gui.bugReportConsent.pointNoPersonalInfo': '説明には個人情報（名前・住所など）を書かないでください。',
-    'gui.bugReportConsent.detailsToggle': 'くわしく（保護者の方へ）',
-    'gui.bugReportConsent.detailsText':
-        '作品ファイル・サムネイル・スクリーンショット・説明文・アカウントのメールアドレスは安全に保管され、あなたと開発者だけが見られます。不具合の対応が終わったあとに削除されます。',
+    'gui.bugReportConsent.guardianNote':
+        '保護者の方へ：送られた作品・サムネイル・スクリーンショット・説明・アカウントのメールアドレスは安全に保管され、スモウルビーの開発者のみが扱います。対応が終わったあとに削除されます。',
     'gui.bugReportConsent.privacyLink': 'プライバシーポリシー',
-    'gui.bugReportConsent.consentCheckbox': '私は18歳以上、または保護者の同意があり、作品の共有に同意します。',
     'gui.bugReportConsent.cancel': 'いまはやめる',
     'gui.bugReportConsent.accept': 'OK',
 
