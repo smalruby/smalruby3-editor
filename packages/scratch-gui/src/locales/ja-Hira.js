@@ -626,12 +626,9 @@ export default {
     'gui.bugReportConsent.pointLogin': 'なおったときにおしらせできるように、GoogleまたはMicrosoftでログインします。',
     'gui.bugReportConsent.pointNoPersonalInfo':
         'せつめいにはこじんじょうほう（なまえ・じゅうしょなど）をかかないでください。',
-    'gui.bugReportConsent.detailsToggle': 'くわしく（ほごしゃのかたへ）',
-    'gui.bugReportConsent.detailsText':
-        'さくひんファイル・サムネイル・スクリーンショット・せつめいぶん・アカウントのメールアドレスはあんぜんにほかんされ、あなたとかいはつしゃだけがみられます。ふぐあいのたいおうがおわったあとにさくじょされます。',
+    'gui.bugReportConsent.guardianNote':
+        'ほごしゃのかたへ：おくられたさくひん・サムネイル・スクリーンショット・せつめい・アカウントのメールアドレスはあんぜんにほかんされ、スモウルビーのかいはつしゃのみがあつかいます。たいおうがおわったあとにさくじょされます。',
     'gui.bugReportConsent.privacyLink': 'プライバシーポリシー',
-    'gui.bugReportConsent.consentCheckbox':
-        'わたしは18さいいじょう、またはほごしゃのどういがあり、さくひんのきょうゆうにどういします。',
     'gui.bugReportConsent.cancel': 'いまはやめる',
     'gui.bugReportConsent.accept': 'OK',
 

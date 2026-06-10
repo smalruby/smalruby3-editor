@@ -21,8 +21,10 @@ Google / Microsoft アカウントでログインし、開発者 (管理者) が
 
 1. エディタ右下の「フィードバックを送信」の隣にある **「不具合を報告」** をクリック
    （`BUG_REPORT_API_ENDPOINT` が設定されているときのみ表示）
-2. 初回は **同意ダイアログ** が出る。「作品が開発者に共有される」「ログインが必要」
-   「説明に個人情報を書かない」ことに同意する (1 回だけ。`localStorage` に記録)
+2. 初回は **軽いおしらせ** が出る。「作品が開発者に送られる（公開はされない・見えるのは
+   本人と開発者だけ）」「直ったら知らせるのでログインが必要」「個人情報は書かない」を案内し、
+   **OK で進む**（18歳/保護者同意のチェックは無く、生徒が気軽に進められる。保護者向けの
+   1 行は情報提供のみ。1 回だけ表示、`localStorage` に記録）
 3. **Google または Microsoft でログイン**
 4. 不具合の説明 (何をした / どうなった / どうなってほしかった) を入力して送信。
    今編集している作品 (sb3)・サムネイル・ブロックのスクリーンショットが自動添付される
@@ -97,7 +99,7 @@ API では削除できない。
 |---------|------|
 | `src/components/gui/gui.jsx` | `legalLinks` の「不具合を報告」リンク + モーダル配置 (Smalruby マーカー) |
 | `src/components/bug-report-modal/bug-report-modal.jsx` | モーダル UI (login / form / submitting / success / myReports) |
-| `src/components/bug-report-consent/bug-report-consent.jsx` | 初回共有同意ダイアログ |
+| `src/components/bug-report-consent/bug-report-consent.jsx` | 初回の軽いおしらせダイアログ（同意ゲートなし） |
 | `src/containers/bug-report-modal.jsx` | 状態管理・同意・ログイン・送信・一覧のオーケストレーション |
 | `src/containers/use-bug-report-submit.js` | 作品 sb3 + サムネ + スクショの presigned アップロード |
 | `src/lib/bug-report-api.js` | API クライアント |
