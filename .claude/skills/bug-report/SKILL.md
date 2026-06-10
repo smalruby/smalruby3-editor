@@ -127,24 +127,31 @@ Phase 4 で報告者向けのやさしい返信を書く（Issue URL は内部�
 報告者のアプリ内「私の不具合報告」に反映される。`status` を `resolved` / `wont_fix` に
 すると **対応完了後 N 日 (RESOLVED_TTL_DAYS) で自動削除** される（TTL が付く）。
 
+**`hiddenByOwner = false` を必ず併せて立てる**: 報告者がすでに一覧から非表示にしていても、
+状態変更・返信は見せたいので再表示する。API ハンドラ (`PATCH /admin/bug-reports/{id}`) は
+自動でこれを行うが、ここでの DynamoDB 直接更新では **手動で含める**（漏らすと、開発者が
+対応したのに報告者の一覧に出てこない）。
+
 ```bash
 NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 TTL=$(( $(date +%s) + 30*24*60*60 ))   # resolved/wont_fix のときだけ付与
 
-# resolved にして返信を書き戻す例
+# resolved にして返信を書き戻す例（hiddenByOwner=false で再表示も込み）
 aws dynamodb update-item --region ap-northeast-1 --table-name BugReports \
   --key '{"reportId":{"S":"<reportId>"}}' \
-  --update-expression "SET #st = :st, developerReply = :dr, updatedAt = :ua, #ttl = :ttl" \
+  --update-expression "SET #st = :st, developerReply = :dr, hiddenByOwner = :unhidden, updatedAt = :ua, #ttl = :ttl" \
   --expression-attribute-names '{"#st":"status","#ttl":"ttl"}' \
   --expression-attribute-values "{
     \":st\":{\"S\":\"resolved\"},
     \":dr\":{\"S\":\"<やさしい日本語の返信>\"},
+    \":unhidden\":{\"BOOL\":false},
     \":ua\":{\"S\":\"$NOW\"},
     \":ttl\":{\"N\":\"$TTL\"}
   }"
 ```
 
-- `in_progress` にするだけ（返信なし）なら `developerReply` と `#ttl` を省く。
+- `in_progress` にするだけ（返信なし）なら `developerReply` と `#ttl` を省く。`hiddenByOwner = :unhidden`
+  は **状態だけ更新するときも残す**（再表示のため）。
 - `status` は `open` / `in_progress` / `resolved` / `wont_fix` のいずれか。
 - 返信文は子ども向け。例:「ほうこくありがとう！◯◯がなおりました。さいしんよみこみでつかえます。」
 
