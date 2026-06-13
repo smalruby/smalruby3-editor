@@ -86,7 +86,36 @@ const KoshienObjectName = {
 };
 
 /**
- * A client of Smalruby Koshien game server.
+ * The width/height of the Koshien map (15x15).
+ * @type {number}
+ */
+const MAP_SIZE = 15;
+
+/**
+ * Fixed positions used by the mock (disconnected) client so that every block
+ * returns a meaningful, stable value while editing an AI without a real server.
+ * @type {object}
+ */
+const MOCK_POSITIONS = {
+    player: {x: 1, y: 1},
+    goal: {x: 13, y: 13},
+    other_player: {x: 7, y: 7},
+    enemy: {x: 7, y: 7}
+};
+
+/**
+ * Format an {x, y} position as the Koshien "x:y" string.
+ * @param {object} pos - the position.
+ * @returns {string} - "x:y".
+ */
+const toPositionString = pos => `${pos.x}:${pos.y}`;
+
+/**
+ * Base class describing the surface a Koshien client must implement.
+ *
+ * Block methods talk to the game only through this interface, so the concrete
+ * implementation can be swapped between a mock (fixed values, used while
+ * disconnected) and a future remote client that speaks to a real game server.
  */
 class KoshienClient {
     /**
@@ -114,7 +143,6 @@ class KoshienClient {
 
     isConnected () {
         return this._isConnected;
-
     }
 
     connect (playerName) {
@@ -122,20 +150,124 @@ class KoshienClient {
         this._isConnected = true;
     }
 
-    // eslint-disable-next-line no-unused-vars
-    moveTo (position) {
-        return new Promise(resolve => resolve());
+    // --- Interface (overridden by concrete clients) ---
+
+    getMapArea () {}
+
+    moveTo () {
+        return Promise.resolve();
     }
 
-    // eslint-disable-next-line no-unused-vars
-    setMessage (message) {
-        return new Promise(resolve => resolve());
+    setItem () {}
+
+    setMessage () {
+        return Promise.resolve();
     }
 
+    turnOver () {}
+
+    map () {
+        return -1;
+    }
+
+    mapAll () {
+        return '';
+    }
+
+    mapFrom () {
+        return -1;
+    }
+
+    calcRoute () {
+        return [];
+    }
+
+    locateObjects () {
+        return [];
+    }
+
+    targetCoordinate () {
+        return null;
+    }
+}
+
+/**
+ * Mock client used while not connected to a real game server.
+ *
+ * It returns fixed but plausible values so that clicking/running any Koshien
+ * block behaves "as if" a game were in progress. No real communication occurs.
+ */
+class MockClient extends KoshienClient {
+    /**
+     * @returns {number} - map cell value (0 = space) for any position.
+     */
+    map () {
+        return 0;
+    }
+
+    /**
+     * @returns {string} - the whole 15x15 map as comma separated rows of '0'.
+     */
+    mapAll () {
+        const row = '0'.repeat(MAP_SIZE);
+        return new Array(MAP_SIZE).fill(row).join(',');
+    }
+
+    /**
+     * Read a cell out of a map string previously obtained from {@link mapAll}.
+     * @param {string} position - the queried "x:y" position.
+     * @param {string} mapString - a map string ("row,row,...", '-' = unexplored).
+     * @returns {number} - the cell value, or 0 when it cannot be resolved.
+     */
+    mapFrom (position, mapString) {
+        if (typeof mapString !== 'string' || mapString.length === 0) {
+            return 0;
+        }
+        const rows = mapString
+            .split(',')
+            .map(r => r.split('').map(c => (c === '-' ? -1 : Number(c))));
+        const [x, y] = String(position).split(':').map(Number);
+        if (rows[y] && typeof rows[y][x] !== 'undefined') {
+            return rows[y][x];
+        }
+        return 0;
+    }
+
+    /**
+     * @param {object} props - {src, dst} as "x:y" strings (both optional).
+     * @returns {Array<string>} - a route [start, ..., goal] of "x:y" strings.
+     */
     calcRoute (props) {
-        // eslint-disable-next-line no-unused-vars
-        const {src, dst, exceptCells, result} = props;
-        return new Promise(resolve => resolve());
+        const {src, dst} = props || {};
+        const start = src || toPositionString(MOCK_POSITIONS.player);
+        const goal = dst || toPositionString(MOCK_POSITIONS.goal);
+        return [start, goal];
+    }
+
+    /**
+     * @returns {Array<string>} - a fixed list of object coordinates.
+     */
+    locateObjects () {
+        return [toPositionString(MOCK_POSITIONS.other_player)];
+    }
+
+    /**
+     * @param {string} target - one of player/goal/other_player/enemy.
+     * @param {string} coordinate - one of position/x/y.
+     * @returns {string|number|null} - the requested coordinate, or null.
+     */
+    targetCoordinate (target, coordinate) {
+        const pos = MOCK_POSITIONS[target];
+        if (!pos) {
+            return null;
+        }
+        if (coordinate === 'x') {
+            return pos.x;
+        }
+        if (coordinate === 'y') {
+            return pos.y;
+        }
+        return toPositionString(pos);
     }
 }
 
@@ -412,7 +544,7 @@ class KoshienBlocks {
             formatMessage = runtime.formatMessage;
         }
 
-        this._client = new KoshienClient(this.runtime, KoshienBlocks.EXTENSION_ID);
+        this._client = new MockClient(this.runtime, KoshienBlocks.EXTENSION_ID);
     }
 
     /**
@@ -795,13 +927,68 @@ class KoshienBlocks {
     }
 
     /**
+     * Resolve the target used to read/write variables.
+     * @param {object} util - the block utility (may be undefined).
+     * @returns {?object} - the target, or null.
+     */
+    _resolveTarget (util) {
+        if (util && util.target) {
+            return util.target;
+        }
+        if (this.runtime && this.runtime.getEditingTarget) {
+            return this.runtime.getEditingTarget();
+        }
+        return null;
+    }
+
+    /**
+     * Replace the contents of a list variable (looked up by name) with values.
+     * No-op when the name is empty or the list cannot be found.
+     * @param {object} util - the block utility.
+     * @param {string} listName - the list variable name.
+     * @param {Array} values - the new list contents.
+     */
+    _writeListByName (util, listName, values) {
+        if (typeof listName !== 'string' || listName.trim() === '') {
+            return;
+        }
+        const target = this._resolveTarget(util);
+        if (!target || !target.lookupVariableByNameAndType) {
+            return;
+        }
+        const list = target.lookupVariableByNameAndType(listName, Variable.LIST_TYPE);
+        if (!list) {
+            return;
+        }
+        list.value = values.slice();
+        list._monitorUpToDate = false;
+    }
+
+    /**
+     * Read a scalar variable's value by name.
+     * @param {object} util - the block utility.
+     * @param {string} name - the variable name.
+     * @returns {(string|number|Array|null)} - the value, or null when not found.
+     */
+    _readVariableByName (util, name) {
+        if (typeof name !== 'string' || name.trim() === '') {
+            return null;
+        }
+        const target = this._resolveTarget(util);
+        if (!target || !target.lookupVariableByNameAndType) {
+            return null;
+        }
+        const variable = target.lookupVariableByNameAndType(name, Variable.SCALAR_TYPE);
+        return variable ? variable.value : null;
+    }
+
+    /**
      * get map information around position
      * @param {object} args - the block's arguments.
-     * @param {number} args.POSITION - position
+     * @param {string} args.POSITION - position
      */
-    // eslint-disable-next-line no-unused-vars
     getMapArea (args) {
-        // wip
+        this._client.getMapArea(args.POSITION);
     }
 
     /**
@@ -810,16 +997,14 @@ class KoshienBlocks {
      * @param {string} args.POSITION - position.
      * @returns {number} - map information.
      */
-    // eslint-disable-next-line no-unused-vars
     map (args) {
-        // wip
-        return -1;
+        return this._client.map(args.POSITION);
     }
 
     /**
      * move to x, y
      * @param {object} args - the block's arguments.
-     * @param {number} args.POSITION - position.
+     * @param {string} args.POSITION - position.
      * @returns {Promise} - promise
      */
     moveTo (args) {
@@ -827,30 +1012,28 @@ class KoshienBlocks {
     }
 
     /**
-     * shortest path between player and goal
+     * shortest path between player and goal, stored into the result list
      * @param {object} args - the block's arguments.
-     * @param {string} args.RESULT - result.
-     * @returns {Promise} - promise
+     * @param {string} args.RESULT - result list name.
+     * @param {object} util - the block utility.
      */
-     
-    calcGoalRoute (args) {
-        return this._client.calcRoute({result: args.RESULT});
+    calcGoalRoute (args, util) {
+        const route = this._client.calcRoute({});
+        this._writeListByName(util, args.RESULT, route);
     }
 
     /**
-     * shortest path between two points
+     * shortest path between two points, stored into the result list
      * @param {object} args - the block's arguments.
      * @param {string} args.SRC - src.
      * @param {string} args.DST - dst.
      * @param {string} args.EXCEPT_CELLS - except cells.
-     * @param {string} args.RESULT - result.
-     * @returns {Promise} - promise
+     * @param {string} args.RESULT - result list name.
+     * @param {object} util - the block utility.
      */
-     
-    calcRoute (args) {
-        return this._client.calcRoute(
-            {src: args.SRC, dst: args.DST, exceptCells: args.EXCEPT_CELLS, result: args.RESULT}
-        );
+    calcRoute (args, util) {
+        const route = this._client.calcRoute({src: args.SRC, dst: args.DST});
+        this._writeListByName(util, args.RESULT, route);
     }
 
     /**
@@ -859,42 +1042,47 @@ class KoshienBlocks {
      * @param {string} args.ITEM - item.
      * @param {string} args.POSITION - position.
      */
-    // eslint-disable-next-line no-unused-vars
     setItem (args) {
-        // wip
+        this._client.setItem(args.ITEM, args.POSITION);
     }
 
     /**
      * map from location at position
      * @param {object} args - the block's arguments.
-     * @param {string} args.MAP - map.
+     * @param {string} args.MAP - map variable name.
      * @param {string} args.POSITION - position.
+     * @param {object} util - the block utility.
      * @returns {number} - map information.
      */
-    // eslint-disable-next-line no-unused-vars
-    mapFrom (args) {
-        // wip
-        return -1;
+    mapFrom (args, util) {
+        const mapString = this._readVariableByName(util, args.MAP);
+        return this._client.mapFrom(args.POSITION, mapString);
     }
 
     /**
      * all map information
+     * @returns {string} - the whole map as a string.
      */
     mapAll () {
-        // wip
+        return this._client.mapAll();
     }
 
     /**
-     * terrain and items within range
+     * terrain and items within range, stored into the result list
      * @param {object} args - the block's arguments.
      * @param {string} args.POSITION - position.
      * @param {number} args.SQ_SIZE - size.
      * @param {string} args.OBJECTS - item.
-     * @param {string} args.RESULT - result.
+     * @param {string} args.RESULT - result list name.
+     * @param {object} util - the block utility.
      */
-    // eslint-disable-next-line no-unused-vars
-    locateObjects (args) {
-        // wip
+    locateObjects (args, util) {
+        const positions = this._client.locateObjects({
+            position: args.POSITION,
+            sqSize: args.SQ_SIZE,
+            objects: args.OBJECTS
+        });
+        this._writeListByName(util, args.RESULT, positions);
     }
 
     /**
@@ -902,19 +1090,17 @@ class KoshienBlocks {
      * @param {object} args - the block's arguments.
      * @param {string} args.TARGET - target.
      * @param {string} args.COORDINATE - coordinate.
+     * @returns {string|number|null} - the requested coordinate.
      */
-    // eslint-disable-next-line no-unused-vars
     targetCoordinate (args) {
-        // wip
+        return this._client.targetCoordinate(args.TARGET, args.COORDINATE);
     }
 
     /**
      * turn over
-     * @param {object} args - the block's arguments.
      */
-    // eslint-disable-next-line no-unused-vars
-    turnOver (args) {
-        // wip
+    turnOver () {
+        this._client.turnOver();
     }
 
     /**
