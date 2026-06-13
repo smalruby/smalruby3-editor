@@ -2,6 +2,7 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
+const RemoteClient = require('./remote-client.js');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -544,7 +545,18 @@ class KoshienBlocks {
             formatMessage = runtime.formatMessage;
         }
 
-        this._client = new MockClient(this.runtime, KoshienBlocks.EXTENSION_ID);
+        // Choose the backend: a real game server when an endpoint is configured
+        // (the GUI/connection flow supplies it via runtime.getKoshienRemoteOptions),
+        // otherwise the fixed-value MockClient so an AI can be built offline.
+        const remoteOptions =
+            runtime && typeof runtime.getKoshienRemoteOptions === 'function'
+                ? runtime.getKoshienRemoteOptions()
+                : null;
+        if (remoteOptions && remoteOptions.endpoint) {
+            this._client = new RemoteClient(this.runtime, KoshienBlocks.EXTENSION_ID, remoteOptions);
+        } else {
+            this._client = new MockClient(this.runtime, KoshienBlocks.EXTENSION_ID);
+        }
     }
 
     /**

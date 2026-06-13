@@ -39,6 +39,8 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/blocks_move_top_level_shadow.js`
 - `test/unit/blocks_operators_regex.js`
 - `test/unit/extension_koshien.js`
+- `test/unit/extensions/koshien_golden_contract.js`
+- `test/unit/extensions/koshien_remote_client.js`
 - `test/unit/extension_mesh_v2_delta_repro.js`
 - `test/unit/extension_mesh_v2_delta.js`
 - `test/unit/extension_mesh_v2_domain.js`

@@ -229,5 +229,27 @@ test('Koshien Blocks', (t) => {
         st.end();
     });
 
+    // --- Issue #741: backend selection (RemoteClient vs MockClient fallback) ---
+
+    t.test('uses RemoteClient when the runtime supplies a koshien endpoint', (st) => {
+        const rt = createMockRuntime();
+        rt.getKoshienRemoteOptions = () => ({
+            endpoint: 'http://example.test:3000',
+            playerId: 'uuid-1',
+            side: 1,
+        });
+        const blocks = new KoshienBlocks(rt);
+        st.equal(blocks._client._endpoint, 'http://example.test:3000', 'remote endpoint configured');
+        st.type(blocks._client.getMapArea, 'function');
+        st.end();
+    });
+
+    t.test('falls back to MockClient (fixed values) when no endpoint is configured', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime());
+        st.equal(blocks._client._endpoint, undefined, 'no remote endpoint');
+        st.equal(blocks.map({ POSITION: '0:0' }), 0, 'mock fixed value still works');
+        st.end();
+    });
+
     t.end();
 });
