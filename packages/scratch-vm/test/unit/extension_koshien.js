@@ -251,5 +251,51 @@ test('Koshien Blocks', (t) => {
         st.end();
     });
 
+    t.test('connectGame keeps the RemoteClient when the connection succeeds', async (st) => {
+        const okFetch = () =>
+            Promise.resolve({
+                text: () => Promise.resolve(JSON.stringify({ x: 5, y: 6, goal: [7, 8], map: [[0]] })),
+            });
+        const rt = createMockRuntime();
+        rt.getKoshienRemoteOptions = () => ({
+            endpoint: 'http://example.test:3000',
+            playerId: 'uuid-1',
+            side: 1,
+            fetchImpl: okFetch,
+        });
+        const blocks = new KoshienBlocks(rt);
+        const result = await blocks.connectGame({ NAME: 'player1' });
+        st.equal(result, true, 'connectGame resolves true');
+        st.equal(blocks._client, blocks._remoteClient, 'stays on the RemoteClient');
+        st.equal(
+            blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }),
+            '5:6',
+            'reports the real server position',
+        );
+        st.end();
+    });
+
+    t.test('connectGame falls back to MockClient when the connection fails', async (st) => {
+        const failingFetch = () => Promise.reject(new Error('network down'));
+        const rt = createMockRuntime();
+        rt.getKoshienRemoteOptions = () => ({
+            endpoint: 'http://example.test:3000',
+            playerId: 'uuid-1',
+            side: 1,
+            fetchImpl: failingFetch,
+        });
+        const blocks = new KoshienBlocks(rt);
+        const result = await blocks.connectGame({ NAME: 'player1' });
+        st.equal(result, true, 'connectGame still resolves true');
+        st.equal(blocks._client, blocks._mockClient, 'fell back to the MockClient');
+        st.equal(blocks.map({ POSITION: '0:0' }), 0, 'mock fixed values are used after fallback');
+        st.equal(
+            blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }),
+            '1:1',
+            'mock fixed player position after fallback',
+        );
+        st.end();
+    });
+
     t.end();
 });
