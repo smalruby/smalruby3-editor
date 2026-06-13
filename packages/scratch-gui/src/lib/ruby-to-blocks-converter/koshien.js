@@ -1,7 +1,38 @@
+import {convertToListBlock} from './variable-hash-ops';
+
 const Koshien = 'koshien';
+
+// convertToListBlock のみが参照する。version >= 2 でのみ呼ぶので実際には発火しない。
+const LIST_ARG_MESSAGES = {
+    arraySyntaxNotAvailableInV1: {
+        id: 'gui.smalruby3.rubyToBlocksConverter.koshien.arraySyntaxNotAvailableInV1',
+        defaultMessage: 'Array syntax is only available in Ruby version 2.',
+        description: 'Error when array syntax is used for a koshien list argument in Ruby version 1',
+    },
+};
 
 const KoshienConverter = {
     register: function (converter) {
+        // リスト引数の解決:
+        // - v1: `list("$名前")` … data_listcontents ブロック
+        // - v2: `$名前` … data_variable ブロックを data_listcontents に変換する
+        // 返り値 {ok, name}: ok=false は不正な引数。name=null は nil (リスト未指定)。
+        const resolveListArg = block => {
+            if (converter.isNil(block)) {
+                return {ok: true, name: null};
+            }
+            if (converter.isListBlock(block)) {
+                return {ok: true, name: converter.lookupListFromListBlock(block)?.name || ' '};
+            }
+            if (String(converter.version) === '2' && converter.isVariableBlock(block)) {
+                const {block: listBlock, converted} = convertToListBlock(converter, LIST_ARG_MESSAGES, block);
+                if (converted && listBlock) {
+                    return {ok: true, name: converter.lookupListFromListBlock(listBlock)?.name || ' '};
+                }
+            }
+            return {ok: false, name: null};
+        };
+
         converter.registerOnSend('self', Koshien, 0, params => {
             const {node} = params;
 
@@ -67,25 +98,28 @@ const KoshienConverter = {
             const result = args[0].get('sym:result');
 
             if (!src && !dst && !exceptCells) {
-                if (!converter.isListBlock(result) && !converter.isNil(result)) return null;
+                const r = resolveListArg(result);
+                if (!r.ok) return null;
 
                 const block = converter.changeRubyExpressionBlock(receiver, 'koshien_calcGoalRoute', 'statement');
-                converter.addField(block, 'RESULT', converter.lookupListFromListBlock(result)?.name || ' ');
+                converter.addField(block, 'RESULT', r.name || ' ');
                 converter.removeBlock(result);
                 return block;
             }
 
             if (!checkPosition(src)) return null;
             if (!checkPosition(dst)) return null;
-            if (!converter.isListBlock(exceptCells) && !converter.isNil(exceptCells)) return null;
-            if (!converter.isListBlock(result) && !converter.isNil(result)) return null;
+            const ec = resolveListArg(exceptCells);
+            if (!ec.ok) return null;
+            const r = resolveListArg(result);
+            if (!r.ok) return null;
 
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_calcRoute', 'statement');
             converter.addTextInput(block, 'SRC', src, '0:0');
             converter.addTextInput(block, 'DST', dst, '0:0');
-            converter.addField(block, 'EXCEPT_CELLS', converter.lookupListFromListBlock(exceptCells)?.name || ' ');
+            converter.addField(block, 'EXCEPT_CELLS', ec.name || ' ');
             converter.removeBlock(exceptCells);
-            converter.addField(block, 'RESULT', converter.lookupListFromListBlock(result)?.name || ' ');
+            converter.addField(block, 'RESULT', r.name || ' ');
             converter.removeBlock(result);
             return block;
         });
@@ -142,13 +176,14 @@ const KoshienConverter = {
             if (!converter.isNumberOrBlock(sqSize)) return null;
             if (!checkPosition(cent)) return null;
             if (!converter.isStringOrBlock(objects)) return null;
-            if (!converter.isListBlock(result) && !converter.isNil(result)) return null;
+            const r = resolveListArg(result);
+            if (!r.ok) return null;
 
             const block = converter.changeRubyExpressionBlock(receiver, 'koshien_locateObjects', 'statement');
             converter.addNumberInput(block, 'SQ_SIZE', 'math_number', sqSize, 0);
             converter.addTextInput(block, 'POSITION', cent, '0:0');
             converter.addTextInput(block, 'OBJECTS', objects, 'ABCD');
-            converter.addField(block, 'RESULT', converter.lookupListFromListBlock(result)?.name || ' ');
+            converter.addField(block, 'RESULT', r.name || ' ');
             converter.removeBlock(result);
             return block;
         });
