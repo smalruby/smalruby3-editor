@@ -269,6 +269,7 @@ export default {
     'gui.menuBar.saveAIAs': 'AIに名前をつけて保存...',
     'gui.menuBar.testAI': 'AIを試す',
     'gui.menuBar.koshienEntryForm': '参加申し込み',
+    'gui.menuBar.koshienSettings': '接続設定',
     'gui.menuBar.koshienCannotChangeRubyVersion':
         'スモウルビー甲子園拡張機能が読み込まれているときは、Rubyのバージョンを変更できません。',
     'gui.menuBar.aiSaving': 'ルビーを保存中...',
@@ -283,6 +284,13 @@ export default {
         '「<b>サムネイルを保存</b>」がここに移動しました。ステージのスナップショットを撮って、プロジェクトのサムネイルとして設定できます。',
 
     'gui.koshienTestModal.title': 'スモウルビー甲子園のAIを試す',
+    'gui.koshienSettingsModal.title': '甲子園の接続設定',
+    'gui.koshienSettingsModal.endpoint': 'ゲームサーバーのURL',
+    'gui.koshienSettingsModal.side': 'プレイヤーの側',
+    'gui.koshienSettingsModal.gameCode': 'ゲームコード',
+    'gui.koshienSettingsModal.test': '接続をテスト',
+    'gui.koshienSettingsModal.save': '保存',
+    'gui.koshienSettingsModal.testing': 'テスト中...',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトの読み込みに失敗しました。',
     'gui.googleDriveLoader.authError': 'Google ドライブの認証に失敗しました。もう一度お試しください。',
     'gui.googleDriveLoader.configError': 'Google ドライブが設定されていません。管理者に連絡してください。',

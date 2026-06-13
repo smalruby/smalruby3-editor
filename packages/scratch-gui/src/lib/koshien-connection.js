@@ -21,7 +21,7 @@ const generateUuid = () => {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         return crypto.randomUUID();
     }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
         const r = Math.floor(Math.random() * 16);
         const v = c === 'x' ? r : (r % 4) + 8;
         return v.toString(16);
@@ -46,7 +46,7 @@ const loadKoshienConnection = () => {
  * Persist the Koshien connection settings.
  * @param {object} settings - {endpoint, side, gameCode}.
  */
-const saveKoshienConnection = settings => {
+const saveKoshienConnection = (settings) => {
     if (!hasLocalStorage()) return;
     try {
         window.localStorage.setItem(
@@ -101,7 +101,7 @@ const buildKoshienRemoteOptions = () => {
  * extension can read them when it loads.
  * @param {VirtualMachine} vm - the scratch VM.
  */
-const wireKoshienRemoteOptions = vm => {
+const wireKoshienRemoteOptions = (vm) => {
     if (!vm || !vm.runtime) return;
     vm.runtime.getKoshienRemoteOptions = buildKoshienRemoteOptions;
 };
@@ -115,15 +115,15 @@ const wireKoshienRemoteOptions = vm => {
  */
 const testKoshienConnection = async (endpoint, fetchImpl) => {
     const doFetch = fetchImpl || (typeof fetch === 'function' ? fetch.bind(null) : null);
-    if (!endpoint) return {ok: false, message: 'no endpoint'};
-    if (!doFetch) return {ok: false, message: 'fetch unavailable'};
+    if (!endpoint) return { ok: false, message: 'no endpoint' };
+    if (!doFetch) return { ok: false, message: 'fetch unavailable' };
     const url = `${endpoint.replace(/\/$/, '')}/api/viewer/getAllMap`;
     try {
         // A reachable server responds (even 401 for the viewer-auth route means it's up).
-        const res = await doFetch(url, {method: 'GET'});
-        return {ok: true, message: `reachable (status ${res.status})`};
+        const res = await doFetch(url, { method: 'GET' });
+        return { ok: true, message: `reachable (status ${res.status})` };
     } catch (e) {
-        return {ok: false, message: e && e.message ? e.message : 'unreachable'};
+        return { ok: false, message: e && e.message ? e.message : 'unreachable' };
     }
 };
 

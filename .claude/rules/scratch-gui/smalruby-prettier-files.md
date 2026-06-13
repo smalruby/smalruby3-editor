@@ -24,6 +24,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`
 - `src/components/koshien-test-modal/`
+- `src/components/koshien-settings-modal/`
 - `src/components/mesh-self-sensor-notice/`
 - `src/components/mobile-bottom-tabs/`
 - `src/components/mobile-drawer/`
@@ -220,6 +221,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/workspace-glow-regression.test.js`
 - `test/unit/components/action-menu.test.jsx`
 - `test/unit/components/bug-report-consent.test.jsx`
+- `test/unit/components/koshien-settings-modal.test.jsx`
 - `test/unit/components/dncl-mode-notice.test.jsx`
 - `test/unit/components/extension-button-dncl.test.jsx`
 - `test/unit/components/connected-step.test.jsx`

@@ -13,15 +13,15 @@ describe('koshien-connection', () => {
     });
 
     test('save then load round-trips and normalizes side', () => {
-        saveKoshienConnection({endpoint: 'http://x:3000', side: '2', gameCode: 'g1'});
-        expect(loadKoshienConnection()).toEqual({endpoint: 'http://x:3000', side: 2, gameCode: 'g1'});
-        saveKoshienConnection({endpoint: 'http://x:3000', side: 'weird'});
+        saveKoshienConnection({ endpoint: 'http://x:3000', side: '2', gameCode: 'g1' });
+        expect(loadKoshienConnection()).toEqual({ endpoint: 'http://x:3000', side: 2, gameCode: 'g1' });
+        saveKoshienConnection({ endpoint: 'http://x:3000', side: 'weird' });
         expect(loadKoshienConnection().side).toBe(1);
     });
 
     test('buildKoshienRemoteOptions returns null with no endpoint, options when set', () => {
         expect(buildKoshienRemoteOptions()).toBeNull();
-        saveKoshienConnection({endpoint: 'http://x:3000', side: 2, gameCode: 'g1'});
+        saveKoshienConnection({ endpoint: 'http://x:3000', side: 2, gameCode: 'g1' });
         const opts = buildKoshienRemoteOptions();
         expect(opts.endpoint).toBe('http://x:3000');
         expect(opts.side).toBe(2);
@@ -33,11 +33,11 @@ describe('koshien-connection', () => {
     });
 
     test('wireKoshienRemoteOptions installs the getter on the runtime', () => {
-        const vm = {runtime: {}};
+        const vm = { runtime: {} };
         wireKoshienRemoteOptions(vm);
         expect(typeof vm.runtime.getKoshienRemoteOptions).toBe('function');
         expect(vm.runtime.getKoshienRemoteOptions()).toBeNull();
-        saveKoshienConnection({endpoint: 'http://y:3000'});
+        saveKoshienConnection({ endpoint: 'http://y:3000' });
         expect(vm.runtime.getKoshienRemoteOptions().endpoint).toBe('http://y:3000');
     });
 
@@ -47,7 +47,7 @@ describe('koshien-connection', () => {
     });
 
     test('testKoshienConnection reports reachable on response, unreachable on throw', async () => {
-        const okFetch = () => Promise.resolve({status: 401});
+        const okFetch = () => Promise.resolve({ status: 401 });
         await expect(testKoshienConnection('http://x:3000', okFetch)).resolves.toEqual({
             ok: true,
             message: 'reachable (status 401)',

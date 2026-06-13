@@ -13,6 +13,7 @@ const MODAL_SOUND_RECORDER = 'soundRecorder';
 const MODAL_CONNECTION = 'connectionModal';
 const MODAL_URL_LOADER = 'urlLoaderModal';
 const MODAL_KOSHIEN_TEST = 'koshienTestModal';
+const MODAL_KOSHIEN_SETTINGS = 'koshienSettingsModal';
 const MODAL_TIPS_LIBRARY = 'tipsLibrary';
 const MODAL_WELCOME = 'welcomeModal';
 
@@ -29,6 +30,7 @@ const initialState = {
     [MODAL_CONNECTION]: false,
     [MODAL_URL_LOADER]: false,
     [MODAL_KOSHIEN_TEST]: false,
+    [MODAL_KOSHIEN_SETTINGS]: false,
     [MODAL_TIPS_LIBRARY]: false,
     [MODAL_WELCOME]: false
 };
@@ -103,6 +105,9 @@ const openUrlLoaderModal = function () {
 const openKoshienTestModal = function () {
     return openModal(MODAL_KOSHIEN_TEST);
 };
+const openKoshienSettingsModal = function () {
+    return openModal(MODAL_KOSHIEN_SETTINGS);
+};
 const openTipsLibrary = function () {
     return openModal(MODAL_TIPS_LIBRARY);
 };
@@ -145,6 +150,9 @@ const closeUrlLoaderModal = function () {
 const closeKoshienTestModal = function () {
     return closeModal(MODAL_KOSHIEN_TEST);
 };
+const closeKoshienSettingsModal = function () {
+    return closeModal(MODAL_KOSHIEN_SETTINGS);
+};
 const closeTipsLibrary = function () {
     return closeModal(MODAL_TIPS_LIBRARY);
 };
@@ -166,6 +174,7 @@ export {
     openConnectionModal,
     openUrlLoaderModal,
     openKoshienTestModal,
+    openKoshienSettingsModal,
     openTipsLibrary,
     openWelcomeModal,
     closeBackdropLibrary,
@@ -180,6 +189,7 @@ export {
     closeConnectionModal,
     closeUrlLoaderModal,
     closeKoshienTestModal,
+    closeKoshienSettingsModal,
     closeTipsLibrary,
     closeWelcomeModal
 };
