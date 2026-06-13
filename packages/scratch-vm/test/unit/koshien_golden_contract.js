@@ -13,10 +13,9 @@ const test = require('tap').test;
 const fs = require('fs');
 const path = require('path');
 
-const GOLDEN_DIR = path.join(__dirname, '..', '..', 'fixtures', 'koshien', 'golden');
+const GOLDEN_DIR = path.join(__dirname, '..', 'fixtures', 'koshien', 'golden');
 
-const loadGolden = (name) =>
-    JSON.parse(fs.readFileSync(path.join(GOLDEN_DIR, `${name}.json`), 'utf8'));
+const loadGolden = (name) => JSON.parse(fs.readFileSync(path.join(GOLDEN_DIR, `${name}.json`), 'utf8'));
 
 const stepResponse = (scenario, label) => {
     const step = scenario.steps.find((s) => s.label === label);
