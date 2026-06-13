@@ -23,6 +23,13 @@ const koshienListArg = (Generator, listName) => {
 export default function (Generator) {
     Generator.koshien_connectGame = function (block) {
         const name = Generator.valueToCode(block, 'NAME', Generator.ORDER_NONE) || Generator.quote_('player1');
+        // v2: ゲーム接続をイベント hat として表現し、AI 本体を do...end (サブスタック) に包む。
+        // これによりクラス表現 (class < Smalruby3::Sprite) の中に配置できる。
+        // v1: 従来どおりフラットな文 (Sprite.new do...end の中で逐次実行)。
+        if (String(Generator.version) === '2') {
+            block.isStatement = true;
+            return `koshien.when_connect_game(name: ${name}) do\n`;
+        }
         return `koshien.connect_game(name: ${name})\n`;
     };
 
