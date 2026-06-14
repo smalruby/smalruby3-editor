@@ -217,12 +217,13 @@ class KoshienClient {
 /**
  * Mock client used while not connected to a real game server.
  *
- * It simulates a tiny, believable game on top of {@link MOCK_MAP} so that
- * clicking/running any Koshien block behaves "as if" a game were in progress:
- * readers return real map cells, routes are actual shortest paths, located
- * objects are the items really present on the map, and commands (move, set
- * item, turn over) mutate a small amount of state so repeated runs feel alive.
- * Everything is deterministic and can be reset to the initial state.
+ * It simulates a believable game on top of {@link MOCK_MAP} the same way the
+ * real server does: the player's "my map" starts fully unexplored (all -1) and
+ * is revealed 5x5 at a time by {@link getMapArea}. Readers (map / map_all /
+ * calc_route / locate_objects) all work off this gradually-revealed my map, so
+ * clicking blocks offline behaves like a real game in progress. Player moves
+ * and placed items update a small amount of state. Everything is deterministic
+ * and resets to the initial state.
  */
 class MockClient extends KoshienClient {
     /**
@@ -235,10 +236,14 @@ class MockClient extends KoshienClient {
     }
 
     /**
-     * Restore the mock world (map and actor positions) to its initial state.
+     * Restore the mock world to its initial state: a fresh ground-truth map and
+     * a fully-unexplored "my map".
      */
     reset () {
-        this._grid = mapUtils.parseMapString(MOCK_MAP.join(','));
+        this._fullGrid = mapUtils.parseMapString(MOCK_MAP.join(','));
+        const height = this._fullGrid.length;
+        const width = height ? this._fullGrid[0].length : 0;
+        this._grid = mapUtils.createUnexploredGrid(width, height);
         this._positions = Object.assign({}, MOCK_INITIAL_POSITIONS);
         this._turn = 0;
     }
@@ -249,13 +254,17 @@ class MockClient extends KoshienClient {
         this.reset();
     }
 
-    getMapArea () {
-        // The mock already knows the whole map; nothing to fetch.
+    /**
+     * Reveal the 5x5 area around a position into the player's my map.
+     * @param {string} position - the "x:y" center of the area to reveal.
+     */
+    getMapArea (position) {
+        mapUtils.revealArea(this._grid, this._fullGrid, position, 5);
     }
 
     /**
      * @param {string} position - the queried "x:y" position.
-     * @returns {(number|string)} - the cell value (-1 when out of bounds).
+     * @returns {(number|string)} - the my-map cell (-1 when unexplored).
      */
     map (position) {
         const p = mapUtils.parsePosition(position);
@@ -263,7 +272,8 @@ class MockClient extends KoshienClient {
     }
 
     /**
-     * @returns {string} - the current mock map as a "row,row,..." string.
+     * @returns {string} - the player's my map as a "row,row,..." string
+     *     ('-' marks cells not yet revealed by getMapArea).
      */
     mapAll () {
         return mapUtils.gridToMapString(this._grid);
@@ -286,7 +296,8 @@ class MockClient extends KoshienClient {
 
     /**
      * @param {object} props - {src, dst, exceptCells}; src/dst default to the
-     *     current player/goal positions when omitted.
+     *     current player/goal positions when omitted. Routes over the my map,
+     *     so unexplored cells are treated as passable (like the real game).
      * @returns {Array<string>} - the shortest route as "x:y" strings.
      */
     calcRoute (props) {
@@ -298,7 +309,8 @@ class MockClient extends KoshienClient {
 
     /**
      * @param {object} props - {position, sqSize, objects}; position defaults to
-     *     the current player position when omitted.
+     *     the current player position when omitted. Scans the my map, so only
+     *     already-revealed items are found (like the real game).
      * @returns {Array<string>} - the "x:y" positions of the matching objects.
      */
     locateObjects (props) {
@@ -330,12 +342,14 @@ class MockClient extends KoshienClient {
 
     /**
      * Pseudo-move the mock player so subsequent reads reflect the new position.
+     * Passability is checked against the ground-truth map (a real wall blocks
+     * the move even if that cell has not been revealed yet).
      * @param {string} position - the destination "x:y".
      * @returns {Promise} - resolved once the (instant) move is applied.
      */
     moveTo (position) {
         const p = mapUtils.parsePosition(position);
-        const cell = mapUtils.cellAt(this._grid, p.x, p.y);
+        const cell = mapUtils.cellAt(this._fullGrid, p.x, p.y);
         if (cell !== -1 && isFinite(mapUtils.moveCost(cell))) {
             this._positions.player = mapUtils.formatPosition(p.x, p.y);
         }
@@ -343,14 +357,15 @@ class MockClient extends KoshienClient {
     }
 
     /**
-     * Pseudo-place an item on the mock map (shown as a bomb marker).
+     * Pseudo-place an item on the ground-truth map (shown as a bomb marker).
+     * It becomes visible in the my map once that cell is revealed by getMapArea.
      * @param {string} item - the item kind (dynamite/bomb).
      * @param {string} position - the "x:y" position.
      */
     setItem (item, position) {
         const p = mapUtils.parsePosition(position);
-        if (mapUtils.cellAt(this._grid, p.x, p.y) !== -1 && this._grid[p.y]) {
-            this._grid[p.y][p.x] = 'D';
+        if (this._fullGrid[p.y] && mapUtils.cellAt(this._fullGrid, p.x, p.y) !== -1) {
+            this._fullGrid[p.y][p.x] = 'D';
         }
     }
 

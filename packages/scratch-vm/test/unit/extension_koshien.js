@@ -49,6 +49,16 @@ const createUtilWithVars = (vars) => {
     return { util: { target }, target };
 };
 
+// Reveal the whole 17x17 my-map by calling getMapArea over a covering grid of
+// centers (radius 2 windows; centers spaced to cover rows/cols 0..16).
+const revealAll = (blocks) => {
+    for (const cy of [2, 7, 12, 14]) {
+        for (const cx of [2, 7, 12, 14]) {
+            blocks.getMapArea({ POSITION: `${cx}:${cy}` });
+        }
+    }
+};
+
 test('Koshien Blocks', (t) => {
     t.test('constructor', (st) => {
         const mockRuntime = createMockRuntime();
@@ -127,34 +137,36 @@ test('Koshien Blocks', (t) => {
         st.end();
     });
 
-    // --- Issue #739: MockClient believable, self-consistent return values ---
+    // --- Issue #739: MockClient believable, fog-of-war return values ---
 
-    t.test('map returns the real cell value from the 17x17 sample map', (st) => {
+    t.test('map is unexplored (-1) until getMapArea reveals it', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
-        st.equal(blocks.map({ POSITION: '0:0' }), 2); // unbreakable border wall
-        st.equal(blocks.map({ POSITION: '5:1' }), 0); // player start (space)
-        st.equal(blocks.map({ POSITION: '8:9' }), 3); // goal
-        st.equal(blocks.map({ POSITION: '15:1' }), 'a'); // beneficial item
+        st.equal(blocks.map({ POSITION: '8:9' }), -1); // not yet revealed
+        blocks.getMapArea({ POSITION: '8:8' }); // reveal the 5x5 around (8,8)
+        st.equal(blocks.map({ POSITION: '8:9' }), 3); // goal now visible
+        st.equal(blocks.map({ POSITION: '8:8' }), 0); // space
+        st.equal(blocks.map({ POSITION: '0:0' }), -1); // far away, still unexplored
         st.end();
     });
 
-    t.test('mapAll returns the 17x17 sample map (walls/goal/items, not zeros)', (st) => {
+    t.test('mapAll starts fully unexplored and fills in as areas are revealed', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
-        const all = blocks.mapAll({});
-        st.type(all, 'string');
-        const rows = all.split(',');
-        st.equal(rows.length, 17);
-        rows.forEach((row) => st.equal(row.length, 17));
-        st.equal(rows[0], '22222222222222222'); // unbreakable top border
-        st.ok(all.includes('3')); // has a goal
-        st.ok(/[a-eA-D]/.test(all)); // has items
+        const before = blocks.mapAll({}).split(',');
+        st.equal(before.length, 17);
+        before.forEach((row) => st.equal(row, '-----------------')); // 17x17 of '-'
+        blocks.getMapArea({ POSITION: '8:8' });
+        const after = blocks.mapAll({});
+        st.ok(after.includes('3')); // the goal is now revealed
+        st.ok(after.includes('-')); // the rest is still unexplored
         st.end();
     });
 
-    t.test('the whole field is bordered by unbreakable walls (codes 1/2)', (st) => {
+    t.test('once fully revealed, the field is bordered by unbreakable walls (1/2)', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
+        revealAll(blocks);
         const rows = blocks.mapAll({}).split(',');
         const n = rows.length;
+        st.equal(n, 17);
         const unbreakable = (ch) => ch === '1' || ch === '2';
         for (let i = 0; i < n; i++) {
             st.ok(unbreakable(rows[0][i]), `top ${i}`);
@@ -167,6 +179,7 @@ test('Koshien Blocks', (t) => {
 
     t.test('mapFrom parses a map string variable, else returns -1', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
+        revealAll(blocks);
         const mapString = blocks.mapAll({});
         const { util } = createUtilWithVars({
             $all: { type: '', value: mapString },
@@ -187,28 +200,27 @@ test('Koshien Blocks', (t) => {
         st.equal(blocks.targetCoordinate({ TARGET: 'goal', COORDINATE: 'x' }), 8);
         st.equal(blocks.targetCoordinate({ TARGET: 'enemy', COORDINATE: 'position' }), '8:9');
         st.equal(blocks.targetCoordinate({ TARGET: 'other_player', COORDINATE: 'position' }), '10:1');
-        // goal coordinate matches the '3' cell on the map (self-consistency)
+        // goal coordinate matches the '3' cell once that area is explored
+        blocks.getMapArea({ POSITION: '8:8' });
         st.equal(blocks.map({ POSITION: '8:9' }), 3);
         st.end();
     });
 
-    t.test('calcGoalRoute writes a real shortest path (player -> goal)', (st) => {
+    t.test('calcGoalRoute writes a route from player to goal', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         const { util, target } = createUtilWithVars({
             route: { type: 'list', value: [] },
         });
         blocks.calcGoalRoute({ RESULT: 'route' }, util);
         const list = target.lookupVariableByNameAndType('route', 'list');
-        st.ok(list.value.length > 2); // a multi-step winding path, not just [src, dst]
+        st.ok(list.value.length > 2); // a multi-step path, not just [src, dst]
         st.equal(list.value[0], '5:1');
         st.equal(list.value[list.value.length - 1], '8:9');
-        // every cell on the route is walkable (not an unbreakable/breakable wall)
-        list.value.forEach((pos) => st.notOk([1, 2, 5].includes(blocks.map({ POSITION: pos }))));
         st.equal(list._monitorUpToDate, false);
         st.end();
     });
 
-    t.test('calcRoute writes a real path between two points', (st) => {
+    t.test('calcRoute writes a path between two points', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         const { util, target } = createUtilWithVars({
             route: { type: 'list', value: [] },
@@ -221,12 +233,16 @@ test('Koshien Blocks', (t) => {
         st.end();
     });
 
-    t.test('locateObjects finds the harmful items actually on the map', (st) => {
+    t.test('locateObjects finds harmful items only after they are revealed', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         const { util, target } = createUtilWithVars({
             objs: { type: 'list', value: [] },
         });
-        // scan the whole field (sq_size 17) for harmful items A-D
+        // before exploring, nothing on the my-map is known
+        blocks.locateObjects({ POSITION: '8:8', SQ_SIZE: 17, OBJECTS: 'ABCD', RESULT: 'objs' }, util);
+        st.same(target.lookupVariableByNameAndType('objs', 'list').value, []);
+        // explore the whole field, then the harmful items show up
+        revealAll(blocks);
         blocks.locateObjects({ POSITION: '8:8', SQ_SIZE: 17, OBJECTS: 'ABCD', RESULT: 'objs' }, util);
         const list = target.lookupVariableByNameAndType('objs', 'list');
         st.ok(list.value.length > 0);
@@ -273,11 +289,12 @@ test('Koshien Blocks', (t) => {
         st.end();
     });
 
-    t.test('setItem is reflected on the mock map', (st) => {
+    t.test('setItem places an item that becomes visible once revealed', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
-        st.equal(blocks.map({ POSITION: '1:5' }), 0);
         blocks.setItem({ ITEM: 'bomb', POSITION: '1:5' });
-        st.equal(blocks.map({ POSITION: '1:5' }), 'D');
+        st.equal(blocks.map({ POSITION: '1:5' }), -1); // not revealed yet
+        blocks.getMapArea({ POSITION: '1:5' });
+        st.equal(blocks.map({ POSITION: '1:5' }), 'D'); // now visible on the my-map
         st.end();
     });
 
@@ -285,13 +302,14 @@ test('Koshien Blocks', (t) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         blocks.moveTo({ POSITION: '1:3' });
         blocks.setItem({ ITEM: 'bomb', POSITION: '1:5' });
+        blocks.getMapArea({ POSITION: '1:5' });
         st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '1:3');
         st.equal(blocks.map({ POSITION: '1:5' }), 'D');
 
         blocks._resetMockWorld(); // fired by PROJECT_START / PROJECT_STOP_ALL
 
         st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '5:1');
-        st.equal(blocks.map({ POSITION: '1:5' }), 0);
+        st.equal(blocks.map({ POSITION: '1:5' }), -1); // unexplored again
         st.end();
     });
 
