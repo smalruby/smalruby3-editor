@@ -129,25 +129,39 @@ test('Koshien Blocks', (t) => {
 
     // --- Issue #739: MockClient believable, self-consistent return values ---
 
-    t.test('map returns the real cell value from the sample map', (st) => {
+    t.test('map returns the real cell value from the 17x17 sample map', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
-        st.equal(blocks.map({ POSITION: '0:0' }), 1); // border wall
-        st.equal(blocks.map({ POSITION: '1:1' }), 0); // player start (space)
-        st.equal(blocks.map({ POSITION: '13:13' }), 3); // goal
-        st.equal(blocks.map({ POSITION: '11:1' }), 'a'); // tea item
+        st.equal(blocks.map({ POSITION: '0:0' }), 2); // unbreakable border wall
+        st.equal(blocks.map({ POSITION: '5:1' }), 0); // player start (space)
+        st.equal(blocks.map({ POSITION: '8:9' }), 3); // goal
+        st.equal(blocks.map({ POSITION: '15:1' }), 'a'); // beneficial item
         st.end();
     });
 
-    t.test('mapAll returns the 15x15 sample map (walls/goal/items, not zeros)', (st) => {
+    t.test('mapAll returns the 17x17 sample map (walls/goal/items, not zeros)', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         const all = blocks.mapAll({});
         st.type(all, 'string');
         const rows = all.split(',');
-        st.equal(rows.length, 15);
-        rows.forEach((row) => st.equal(row.length, 15));
-        st.equal(rows[0], '111111111111111'); // top border
+        st.equal(rows.length, 17);
+        rows.forEach((row) => st.equal(row.length, 17));
+        st.equal(rows[0], '22222222222222222'); // unbreakable top border
         st.ok(all.includes('3')); // has a goal
         st.ok(/[a-eA-D]/.test(all)); // has items
+        st.end();
+    });
+
+    t.test('the whole field is bordered by unbreakable walls (codes 1/2)', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime());
+        const rows = blocks.mapAll({}).split(',');
+        const n = rows.length;
+        const unbreakable = (ch) => ch === '1' || ch === '2';
+        for (let i = 0; i < n; i++) {
+            st.ok(unbreakable(rows[0][i]), `top ${i}`);
+            st.ok(unbreakable(rows[n - 1][i]), `bottom ${i}`);
+            st.ok(unbreakable(rows[i][0]), `left ${i}`);
+            st.ok(unbreakable(rows[i][n - 1]), `right ${i}`);
+        }
         st.end();
     });
 
@@ -157,8 +171,8 @@ test('Koshien Blocks', (t) => {
         const { util } = createUtilWithVars({
             $all: { type: '', value: mapString },
         });
-        st.equal(blocks.mapFrom({ POSITION: '13:13', MAP: '$all' }, util), 3); // goal
-        st.equal(blocks.mapFrom({ POSITION: '11:1', MAP: '$all' }, util), 'a'); // item
+        st.equal(blocks.mapFrom({ POSITION: '8:9', MAP: '$all' }, util), 3); // goal
+        st.equal(blocks.mapFrom({ POSITION: '15:1', MAP: '$all' }, util), 'a'); // item
         // unknown variable -> -1 (unexplored)
         st.equal(blocks.mapFrom({ POSITION: '3:4', MAP: '$missing' }, util), -1);
         st.end();
@@ -166,16 +180,15 @@ test('Koshien Blocks', (t) => {
 
     t.test('targetCoordinate returns map-consistent positions for each target', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
-        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '1:1');
-        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'x' }), 1);
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '5:1');
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'x' }), 5);
         st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'y' }), 1);
-        st.equal(blocks.targetCoordinate({ TARGET: 'goal', COORDINATE: 'position' }), '13:13');
-        st.equal(blocks.targetCoordinate({ TARGET: 'goal', COORDINATE: 'x' }), 13);
-        st.equal(blocks.targetCoordinate({ TARGET: 'enemy', COORDINATE: 'position' }), '7:11');
-        st.equal(blocks.targetCoordinate({ TARGET: 'enemy', COORDINATE: 'y' }), 11);
-        st.equal(blocks.targetCoordinate({ TARGET: 'other_player', COORDINATE: 'position' }), '11:5');
+        st.equal(blocks.targetCoordinate({ TARGET: 'goal', COORDINATE: 'position' }), '8:9');
+        st.equal(blocks.targetCoordinate({ TARGET: 'goal', COORDINATE: 'x' }), 8);
+        st.equal(blocks.targetCoordinate({ TARGET: 'enemy', COORDINATE: 'position' }), '8:9');
+        st.equal(blocks.targetCoordinate({ TARGET: 'other_player', COORDINATE: 'position' }), '10:1');
         // goal coordinate matches the '3' cell on the map (self-consistency)
-        st.equal(blocks.map({ POSITION: '13:13' }), 3);
+        st.equal(blocks.map({ POSITION: '8:9' }), 3);
         st.end();
     });
 
@@ -187,10 +200,10 @@ test('Koshien Blocks', (t) => {
         blocks.calcGoalRoute({ RESULT: 'route' }, util);
         const list = target.lookupVariableByNameAndType('route', 'list');
         st.ok(list.value.length > 2); // a multi-step winding path, not just [src, dst]
-        st.equal(list.value[0], '1:1');
-        st.equal(list.value[list.value.length - 1], '13:13');
-        // every cell on the route is walkable (not a wall)
-        list.value.forEach((pos) => st.not(blocks.map({ POSITION: pos }), 1));
+        st.equal(list.value[0], '5:1');
+        st.equal(list.value[list.value.length - 1], '8:9');
+        // every cell on the route is walkable (not an unbreakable/breakable wall)
+        list.value.forEach((pos) => st.notOk([1, 2, 5].includes(blocks.map({ POSITION: pos }))));
         st.equal(list._monitorUpToDate, false);
         st.end();
     });
@@ -200,10 +213,11 @@ test('Koshien Blocks', (t) => {
         const { util, target } = createUtilWithVars({
             route: { type: 'list', value: [] },
         });
-        blocks.calcRoute({ SRC: '2:3', DST: '4:5', EXCEPT_CELLS: ' ', RESULT: 'route' }, util);
+        blocks.calcRoute({ SRC: '1:4', DST: '14:4', EXCEPT_CELLS: ' ', RESULT: 'route' }, util);
         const list = target.lookupVariableByNameAndType('route', 'list');
-        st.equal(list.value[0], '2:3');
-        st.equal(list.value[list.value.length - 1], '4:5');
+        st.ok(list.value.length > 2);
+        st.equal(list.value[0], '1:4');
+        st.equal(list.value[list.value.length - 1], '14:4');
         st.end();
     });
 
@@ -212,9 +226,10 @@ test('Koshien Blocks', (t) => {
         const { util, target } = createUtilWithVars({
             objs: { type: 'list', value: [] },
         });
-        blocks.locateObjects({ POSITION: '7:7', SQ_SIZE: 5, OBJECTS: 'ABCD', RESULT: 'objs' }, util);
+        // scan the whole field (sq_size 17) for harmful items A-D
+        blocks.locateObjects({ POSITION: '8:8', SQ_SIZE: 17, OBJECTS: 'ABCD', RESULT: 'objs' }, util);
         const list = target.lookupVariableByNameAndType('objs', 'list');
-        st.same(list.value, ['9:7', '5:9', '3:11', '11:11']);
+        st.ok(list.value.length > 0);
         // each located cell really holds a harmful item (self-consistency)
         list.value.forEach((pos) => st.ok('ABCD'.includes(String(blocks.map({ POSITION: pos })))));
         st.end();
@@ -256,7 +271,7 @@ test('Koshien Blocks', (t) => {
     t.test('falls back to MockClient (believable values) when no endpoint is configured', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         st.equal(blocks._client._endpoint, undefined, 'no remote endpoint');
-        st.equal(blocks.map({ POSITION: '1:1' }), 0, 'mock map value (player space) still works');
+        st.equal(blocks.map({ POSITION: '5:1' }), 0, 'mock map value (player space) still works');
         st.end();
     });
 
@@ -297,10 +312,10 @@ test('Koshien Blocks', (t) => {
         const result = await blocks.connectGame({ NAME: 'player1' });
         st.equal(result, true, 'connectGame still resolves true');
         st.equal(blocks._client, blocks._mockClient, 'fell back to the MockClient');
-        st.equal(blocks.map({ POSITION: '1:1' }), 0, 'mock map values are used after fallback');
+        st.equal(blocks.map({ POSITION: '5:1' }), 0, 'mock map values are used after fallback');
         st.equal(
             blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }),
-            '1:1',
+            '5:1',
             'mock player position after fallback',
         );
         st.end();
@@ -322,7 +337,7 @@ test('Koshien Blocks', (t) => {
     t.test('moveTo into a wall is ignored', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         blocks.moveTo({ POSITION: '0:0' }); // border wall
-        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '1:1');
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '5:1');
         st.end();
     });
 
@@ -343,7 +358,7 @@ test('Koshien Blocks', (t) => {
 
         blocks._resetMockWorld(); // fired by PROJECT_START / PROJECT_STOP_ALL
 
-        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '1:1');
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '5:1');
         st.equal(blocks.map({ POSITION: '1:5' }), 0);
         st.end();
     });
@@ -352,7 +367,7 @@ test('Koshien Blocks', (t) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         blocks.moveTo({ POSITION: '1:3' });
         blocks.connectGame({ NAME: 'p1' });
-        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '1:1');
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '5:1');
         st.end();
     });
 

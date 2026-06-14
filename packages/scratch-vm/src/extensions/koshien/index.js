@@ -88,44 +88,50 @@ const KoshienObjectName = {
 };
 
 /**
- * A fixed, believable 15x15 sample map used by the mock (disconnected) client.
+ * A fixed, believable 17x17 sample map used by the mock (disconnected) client.
  *
- * It is the single source of truth from which every mock reader derives its
- * value, so that clicking any block while editing an AI offline returns
- * game-like, self-consistent data (a real maze with walls, water, a goal and
- * scattered items) instead of placeholder zeros. Codes: 0 space, 1 wall,
- * 2 storehouse, 3 goal, 4 water, 5 breakable wall; a-e beneficial items,
- * A-D harmful items.
+ * This is the real Smalruby Koshien 2024 sample map ("map_01") with its item
+ * layer merged in, so that clicking any block while editing an AI offline
+ * returns game-like, self-consistent data instead of placeholder zeros. It is
+ * the single source of truth from which every mock reader derives its value.
+ *
+ * The whole 17x17 field is surrounded by an unbreakable wall border (codes 1/2;
+ * the original map uses 2 on the top/left edge and 1 on the bottom/right edge).
+ * Cell codes: 0 space, 1/2 unbreakable wall, 3 goal, 4 water, 5 breakable wall;
+ * a-e beneficial items, A-D harmful items (matching the real my_map encoding).
  * @type {Array<string>}
  */
 const MOCK_MAP = [
-    '111111111111111',
-    '10000000000a001',
-    '111211101111101',
-    '100000000440001',
-    '101111101115111',
-    '100000000440001',
-    '111111101111101',
-    '100b000e0B00001',
-    '101112101111111',
-    '10000A000000c01',
-    '111111101511101',
-    '100D0000000C001',
-    '101121101111111',
-    '100d00000000031',
-    '111111111111111'
+    '22222222222222222',
+    '2d0000000000000a1',
+    '200A4440B4440A001',
+    '20055555555555001',
+    '200000C0000000001',
+    '20100b00000C00101',
+    '201055505550001c1',
+    '20105000005000101',
+    '201050000050b0101',
+    '20105000305000101',
+    '2c1050c00050C0101',
+    '20105555055000101',
+    '20000000000000001',
+    '20455555D55555401',
+    '24000B00000B00041',
+    '204d0000e0000d401',
+    '21111111111111111'
 ];
 
 /**
- * Initial actor positions for the mock world. Kept consistent with MOCK_MAP
- * (player/enemy/other_player sit on space cells, goal on the goal cell).
+ * Initial actor positions for the mock world, taken from the real map_01:
+ * the two player start cells are (5,1) and (10,1), the goal cell ('3') is at
+ * (8,9), and the enemy guards the goal. Kept consistent with MOCK_MAP.
  * @type {object}
  */
 const MOCK_INITIAL_POSITIONS = {
-    player: '1:1',
-    goal: '13:13',
-    enemy: '7:11',
-    other_player: '11:5'
+    player: '5:1',
+    goal: '8:9',
+    enemy: '8:9',
+    other_player: '10:1'
 };
 
 /**

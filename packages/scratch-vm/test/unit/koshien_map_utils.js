@@ -103,13 +103,16 @@ test('koshien map-utils', (t) => {
         st.end();
     });
 
-    t.test('locateObjects scans a square window for the requested codes', (st) => {
+    t.test('locateObjects scans a square window (sq_size = full side) for codes', (st) => {
         const grid = mu.parseMapString(SAMPLE);
-        // items: a@1:1, b@3:1, D@3:3
-        st.same(mu.locateObjects(grid, '2:2', 2, 'abD'), ['1:1', '3:1', '3:3']);
-        st.same(mu.locateObjects(grid, '2:2', 2, 'D'), ['3:3']);
+        // items: a@1:1, b@3:1, D@3:3; sq_size 5 -> 5x5 window (radius 2) covers all
+        st.same(mu.locateObjects(grid, '2:2', 5, 'abD'), ['1:1', '3:1', '3:3']);
+        st.same(mu.locateObjects(grid, '2:2', 5, 'D'), ['3:3']);
+        // sq_size is the full side, not a radius: sq_size 1 -> only the center cell
+        st.same(mu.locateObjects(grid, '1:1', 1, 'ab'), ['1:1']);
+        st.same(mu.locateObjects(grid, '2:2', 1, 'ab'), []); // center (2,2) is a wall
         // empty codes -> everything in range that is not unexplored
-        st.ok(mu.locateObjects(grid, '2:2', 1, '').length > 0);
+        st.ok(mu.locateObjects(grid, '2:2', 3, '').length > 0);
         st.end();
     });
 

@@ -231,13 +231,15 @@ const normalizeObjectCodes = objects => {
  * Scan the grid around a center position for the requested object codes.
  * @param {Array<Array<(number|string)>>} grid - the grid.
  * @param {string} centerPos - the center "x:y".
- * @param {number} sqSize - the half-size of the square scan window.
+ * @param {number} sqSize - the full side length of the (square) scan window;
+ *     the scanned radius is (sqSize - 1) / 2, matching the real game.
  * @param {(string|Array)} objects - object codes to look for.
  * @returns {Array<string>} - matching "x:y" positions (top-left to bottom-right).
  */
 const locateObjects = (grid, centerPos, sqSize, objects) => {
     const center = parsePosition(centerPos);
-    const radius = Math.max(0, Math.floor(Number(sqSize) || 0));
+    const side = Math.max(1, Math.floor(Number(sqSize) || 1));
+    const radius = Math.floor((side - 1) / 2);
     const codes = normalizeObjectCodes(objects);
     const result = [];
     for (let y = center.y - radius; y <= center.y + radius; y++) {
