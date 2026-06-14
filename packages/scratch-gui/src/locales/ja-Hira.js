@@ -279,8 +279,6 @@ export default {
     'gui.menuBar.testAI': 'AIをためす',
     'gui.menuBar.koshienEntryForm': 'さんかもうしこみ',
     'gui.menuBar.koshienSettings': 'せつぞくせってい',
-    'gui.menuBar.koshienCannotChangeRubyVersion':
-        'スモウルビーこうしえんかくちょうきのうがよみこまれているときは、Rubyのバージョンをへんこうできません。',
     'gui.menuBar.aiSaving': 'ルビーをほぞんちゅう...',
     'gui.menuBar.aiSaved': 'ルビーがほぞんされました。',
     'gui.smalruby3.alerts.rubyVersionChangeFailed':

@@ -335,8 +335,6 @@ export default {
     'gui.koshienSettingsModal.test': 'Test connection',
     'gui.koshienSettingsModal.save': 'Save',
     'gui.koshienSettingsModal.testing': 'Testing...',
-    'gui.menuBar.koshienCannotChangeRubyVersion':
-        'The Ruby version cannot be changed when the Koshien extension is loaded.',
     'gui.rubyVersion.v1': 'v1',
     'gui.rubyVersion.v2': 'v2 (default)',
 
