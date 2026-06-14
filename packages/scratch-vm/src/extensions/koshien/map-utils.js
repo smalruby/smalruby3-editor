@@ -256,6 +256,43 @@ const locateObjects = (grid, centerPos, sqSize, objects) => {
     return result;
 };
 
+/**
+ * Build an all-unexplored grid (every cell -1) of the given size.
+ * @param {number} width - the grid width.
+ * @param {number} height - the grid height.
+ * @returns {Array<Array<number>>} - the unexplored grid.
+ */
+const createUnexploredGrid = (width, height) =>
+    Array.from({length: height}, () =>
+        Array.from({length: width}, () => -1),
+    );
+
+/**
+ * Reveal a square window of the source grid into the destination ("my map"),
+ * matching the real server's getMapArea (a sqSize-wide window, clamped at edges).
+ * @param {Array<Array<(number|string)>>} myMap - the grid to reveal into (mutated).
+ * @param {Array<Array<(number|string)>>} fullMap - the ground-truth grid.
+ * @param {string} centerPos - the "x:y" center of the area to reveal.
+ * @param {number} [sqSize] - the full side length of the revealed window.
+ */
+const revealArea = (myMap, fullMap, centerPos, sqSize = 5) => {
+    const center = parsePosition(centerPos);
+    const side = Math.max(1, Math.floor(Number(sqSize) || 1));
+    const radius = Math.floor((side - 1) / 2);
+    for (let y = center.y - radius; y <= center.y + radius; y++) {
+        if (y < 0 || y >= fullMap.length || !myMap[y]) {
+            continue;
+        }
+        const frow = fullMap[y];
+        for (let x = center.x - radius; x <= center.x + radius; x++) {
+            if (!frow || x < 0 || x >= frow.length) {
+                continue;
+            }
+            myMap[y][x] = frow[x];
+        }
+    }
+};
+
 module.exports = {
     IMPASSABLE_CODES,
     parsePosition,
@@ -267,4 +304,6 @@ module.exports = {
     calcRoute,
     normalizeObjectCodes,
     locateObjects,
+    createUnexploredGrid,
+    revealArea,
 };

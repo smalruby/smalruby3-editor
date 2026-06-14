@@ -103,6 +103,30 @@ test('koshien map-utils', (t) => {
         st.end();
     });
 
+    t.test('createUnexploredGrid builds an all -1 grid of the given size', (st) => {
+        const g = mu.createUnexploredGrid(3, 2);
+        st.equal(g.length, 2);
+        st.equal(g[0].length, 3);
+        st.same(g, [
+            [-1, -1, -1],
+            [-1, -1, -1],
+        ]);
+        st.end();
+    });
+
+    t.test('revealArea copies a clamped sqSize window from full into my map', (st) => {
+        const full = mu.parseMapString(SAMPLE); // 5x5
+        const my = mu.createUnexploredGrid(5, 5);
+        mu.revealArea(my, full, '1:1', 3); // 3x3 window around (1,1) -> x0..2, y0..2
+        st.equal(mu.cellAt(my, 1, 1), 'a'); // revealed
+        st.equal(mu.cellAt(my, 0, 0), 1); // revealed (top-left of window)
+        st.equal(mu.cellAt(my, 3, 3), -1); // outside window, still unexplored
+        // edge clamp: revealing around a corner does not go out of bounds
+        st.doesNotThrow(() => mu.revealArea(my, full, '0:0', 5));
+        st.equal(mu.cellAt(my, 0, 0), 1);
+        st.end();
+    });
+
     t.test('locateObjects scans a square window (sq_size = full side) for codes', (st) => {
         const grid = mu.parseMapString(SAMPLE);
         // items: a@1:1, b@3:1, D@3:3; sq_size 5 -> 5x5 window (radius 2) covers all
