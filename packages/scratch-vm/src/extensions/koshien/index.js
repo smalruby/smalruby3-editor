@@ -2,6 +2,7 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
+const mapUtils = require('./map-utils');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -86,29 +87,45 @@ const KoshienObjectName = {
 };
 
 /**
- * The width/height of the Koshien map (15x15).
- * @type {number}
+ * A fixed, believable 15x15 sample map used by the mock (disconnected) client.
+ *
+ * It is the single source of truth from which every mock reader derives its
+ * value, so that clicking any block while editing an AI offline returns
+ * game-like, self-consistent data (a real maze with walls, water, a goal and
+ * scattered items) instead of placeholder zeros. Codes: 0 space, 1 wall,
+ * 2 storehouse, 3 goal, 4 water, 5 breakable wall; a-e beneficial items,
+ * A-D harmful items.
+ * @type {Array<string>}
  */
-const MAP_SIZE = 15;
+const MOCK_MAP = [
+    '111111111111111',
+    '10000000000a001',
+    '111211101111101',
+    '100000000440001',
+    '101111101115111',
+    '100000000440001',
+    '111111101111101',
+    '100b000e0B00001',
+    '101112101111111',
+    '10000A000000c01',
+    '111111101511101',
+    '100D0000000C001',
+    '101121101111111',
+    '100d00000000031',
+    '111111111111111'
+];
 
 /**
- * Fixed positions used by the mock (disconnected) client so that every block
- * returns a meaningful, stable value while editing an AI without a real server.
+ * Initial actor positions for the mock world. Kept consistent with MOCK_MAP
+ * (player/enemy/other_player sit on space cells, goal on the goal cell).
  * @type {object}
  */
-const MOCK_POSITIONS = {
-    player: {x: 1, y: 1},
-    goal: {x: 13, y: 13},
-    other_player: {x: 7, y: 7},
-    enemy: {x: 7, y: 7}
+const MOCK_INITIAL_POSITIONS = {
+    player: '1:1',
+    goal: '13:13',
+    enemy: '7:11',
+    other_player: '11:5'
 };
-
-/**
- * Format an {x, y} position as the Koshien "x:y" string.
- * @param {object} pos - the position.
- * @returns {string} - "x:y".
- */
-const toPositionString = pos => `${pos.x}:${pos.y}`;
 
 /**
  * Base class describing the surface a Koshien client must implement.
@@ -194,61 +211,95 @@ class KoshienClient {
 /**
  * Mock client used while not connected to a real game server.
  *
- * It returns fixed but plausible values so that clicking/running any Koshien
- * block behaves "as if" a game were in progress. No real communication occurs.
+ * It simulates a tiny, believable game on top of {@link MOCK_MAP} so that
+ * clicking/running any Koshien block behaves "as if" a game were in progress:
+ * readers return real map cells, routes are actual shortest paths, located
+ * objects are the items really present on the map, and commands (move, set
+ * item, turn over) mutate a small amount of state so repeated runs feel alive.
+ * Everything is deterministic and can be reset to the initial state.
  */
 class MockClient extends KoshienClient {
     /**
-     * @returns {number} - map cell value (0 = space) for any position.
+     * @param {Runtime} runtime - the Scratch 3.0 runtime.
+     * @param {string} extensionId - the id of the extension.
      */
-    map () {
-        return 0;
+    constructor (runtime, extensionId) {
+        super(runtime, extensionId);
+        this.reset();
     }
 
     /**
-     * @returns {string} - the whole 15x15 map as comma separated rows of '0'.
+     * Restore the mock world (map and actor positions) to its initial state.
+     */
+    reset () {
+        this._grid = mapUtils.parseMapString(MOCK_MAP.join(','));
+        this._positions = Object.assign({}, MOCK_INITIAL_POSITIONS);
+        this._turn = 0;
+    }
+
+    connect (playerName) {
+        super.connect(playerName);
+        // Connecting starts a fresh game session.
+        this.reset();
+    }
+
+    getMapArea () {
+        // The mock already knows the whole map; nothing to fetch.
+    }
+
+    /**
+     * @param {string} position - the queried "x:y" position.
+     * @returns {(number|string)} - the cell value (-1 when out of bounds).
+     */
+    map (position) {
+        const p = mapUtils.parsePosition(position);
+        return mapUtils.cellAt(this._grid, p.x, p.y);
+    }
+
+    /**
+     * @returns {string} - the current mock map as a "row,row,..." string.
      */
     mapAll () {
-        const row = '0'.repeat(MAP_SIZE);
-        return new Array(MAP_SIZE).fill(row).join(',');
+        return mapUtils.gridToMapString(this._grid);
     }
 
     /**
      * Read a cell out of a map string previously obtained from {@link mapAll}.
      * @param {string} position - the queried "x:y" position.
      * @param {string} mapString - a map string ("row,row,...", '-' = unexplored).
-     * @returns {number} - the cell value, or 0 when it cannot be resolved.
+     * @returns {(number|string)} - the cell value (-1 when it cannot be resolved).
      */
     mapFrom (position, mapString) {
         if (typeof mapString !== 'string' || mapString.length === 0) {
-            return 0;
+            return -1;
         }
-        const rows = mapString
-            .split(',')
-            .map(r => r.split('').map(c => (c === '-' ? -1 : Number(c))));
-        const [x, y] = String(position).split(':').map(Number);
-        if (rows[y] && typeof rows[y][x] !== 'undefined') {
-            return rows[y][x];
-        }
-        return 0;
+        const grid = mapUtils.parseMapString(mapString);
+        const p = mapUtils.parsePosition(position);
+        return mapUtils.cellAt(grid, p.x, p.y);
     }
 
     /**
-     * @param {object} props - {src, dst} as "x:y" strings (both optional).
-     * @returns {Array<string>} - a route [start, ..., goal] of "x:y" strings.
+     * @param {object} props - {src, dst, exceptCells}; src/dst default to the
+     *     current player/goal positions when omitted.
+     * @returns {Array<string>} - the shortest route as "x:y" strings.
      */
     calcRoute (props) {
-        const {src, dst} = props || {};
-        const start = src || toPositionString(MOCK_POSITIONS.player);
-        const goal = dst || toPositionString(MOCK_POSITIONS.goal);
-        return [start, goal];
+        const {src, dst, exceptCells} = props || {};
+        const start = src && String(src).includes(':') ? src : this._positions.player;
+        const goal = dst && String(dst).includes(':') ? dst : this._positions.goal;
+        return mapUtils.calcRoute(this._grid, start, goal, exceptCells || []);
     }
 
     /**
-     * @returns {Array<string>} - a fixed list of object coordinates.
+     * @param {object} props - {position, sqSize, objects}; position defaults to
+     *     the current player position when omitted.
+     * @returns {Array<string>} - the "x:y" positions of the matching objects.
      */
-    locateObjects () {
-        return [toPositionString(MOCK_POSITIONS.other_player)];
+    locateObjects (props) {
+        const {position, sqSize, objects} = props || {};
+        const center =
+            position && String(position).includes(':') ? position : this._positions.player;
+        return mapUtils.locateObjects(this._grid, center, sqSize, objects);
     }
 
     /**
@@ -257,17 +308,51 @@ class MockClient extends KoshienClient {
      * @returns {string|number|null} - the requested coordinate, or null.
      */
     targetCoordinate (target, coordinate) {
-        const pos = MOCK_POSITIONS[target];
+        const pos = this._positions[target];
         if (!pos) {
             return null;
         }
+        const p = mapUtils.parsePosition(pos);
         if (coordinate === 'x') {
-            return pos.x;
+            return p.x;
         }
         if (coordinate === 'y') {
-            return pos.y;
+            return p.y;
         }
-        return toPositionString(pos);
+        return pos;
+    }
+
+    /**
+     * Pseudo-move the mock player so subsequent reads reflect the new position.
+     * @param {string} position - the destination "x:y".
+     * @returns {Promise} - resolved once the (instant) move is applied.
+     */
+    moveTo (position) {
+        const p = mapUtils.parsePosition(position);
+        const cell = mapUtils.cellAt(this._grid, p.x, p.y);
+        if (cell !== -1 && isFinite(mapUtils.moveCost(cell))) {
+            this._positions.player = mapUtils.formatPosition(p.x, p.y);
+        }
+        return Promise.resolve();
+    }
+
+    /**
+     * Pseudo-place an item on the mock map (shown as a bomb marker).
+     * @param {string} item - the item kind (dynamite/bomb).
+     * @param {string} position - the "x:y" position.
+     */
+    setItem (item, position) {
+        const p = mapUtils.parsePosition(position);
+        if (mapUtils.cellAt(this._grid, p.x, p.y) !== -1 && this._grid[p.y]) {
+            this._grid[p.y][p.x] = 'D';
+        }
+    }
+
+    /**
+     * Advance the mock turn counter.
+     */
+    turnOver () {
+        this._turn += 1;
     }
 }
 
@@ -545,6 +630,27 @@ class KoshienBlocks {
         }
 
         this._client = new MockClient(this.runtime, KoshienBlocks.EXTENSION_ID);
+
+        // Reset the mock world back to its initial state at the natural "new
+        // game" moments, so a teacher can demonstrate the blocks, then start
+        // over cleanly:
+        //   - green flag (PROJECT_START): re-run the AI from the beginning
+        //   - stop (PROJECT_STOP_ALL): leave a clean slate for the next run
+        // (connect_game also resets, see MockClient.connect.)
+        this._resetMockWorld = this._resetMockWorld.bind(this);
+        if (this.runtime && typeof this.runtime.on === 'function') {
+            this.runtime.on('PROJECT_START', this._resetMockWorld);
+            this.runtime.on('PROJECT_STOP_ALL', this._resetMockWorld);
+        }
+    }
+
+    /**
+     * Reset the mock world. No-op once connected to a real game server.
+     */
+    _resetMockWorld () {
+        if (this._client && typeof this._client.reset === 'function') {
+            this._client.reset();
+        }
     }
 
     /**
@@ -983,6 +1089,24 @@ class KoshienBlocks {
     }
 
     /**
+     * Read a list variable's contents by name.
+     * @param {object} util - the block utility.
+     * @param {string} name - the list variable name.
+     * @returns {Array} - the list contents, or [] when not found.
+     */
+    _readListByName (util, name) {
+        if (typeof name !== 'string' || name.trim() === '') {
+            return [];
+        }
+        const target = this._resolveTarget(util);
+        if (!target || !target.lookupVariableByNameAndType) {
+            return [];
+        }
+        const list = target.lookupVariableByNameAndType(name, Variable.LIST_TYPE);
+        return list && Array.isArray(list.value) ? list.value.slice() : [];
+    }
+
+    /**
      * get map information around position
      * @param {object} args - the block's arguments.
      * @param {string} args.POSITION - position
@@ -1032,7 +1156,12 @@ class KoshienBlocks {
      * @param {object} util - the block utility.
      */
     calcRoute (args, util) {
-        const route = this._client.calcRoute({src: args.SRC, dst: args.DST});
+        const exceptCells = this._readListByName(util, args.EXCEPT_CELLS);
+        const route = this._client.calcRoute({
+            src: args.SRC,
+            dst: args.DST,
+            exceptCells
+        });
         this._writeListByName(util, args.RESULT, route);
     }
 
