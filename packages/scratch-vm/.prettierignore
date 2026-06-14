@@ -76,6 +76,7 @@ test/unit/*
 !test/unit/koshien_golden_contract.js
 !test/unit/koshien_remote_client.js
 !test/unit/koshien_remote_client_http.js
+!test/unit/koshien_map_utils.js
 !test/fixtures/
 !test/fixtures/koshien/mock-server.js
 !test/unit/extension_mesh_v2_delta_repro.js
