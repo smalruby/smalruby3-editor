@@ -216,6 +216,7 @@ The mesh v2 extension uses AWS AppSync for real-time collaboration:
 | `src/blocks/scratch3_operators.js` | regex support | operator_contains で正規表現マッチングをサポート |
 | `src/engine/comment.js` | toXML modernization | Blockly v12 対応: `pinned="${!minimized}"` (cherry-pick from upstream spork@29bdbd1fe) + (0,0) 時の x/y 属性省略 (Smalruby 独自) |
 | `src/engine/runtime.js` | toolboxitemid for extension categories | Blockly v12 対応: 拡張機能のカテゴリ XML に `toolboxitemid` 属性を追加。Blockly v12 の ContinuousToolbox は `toolboxitemid` から id を読むため、未指定だと `blockly-XXX` の auto-id が StatusIndicatorLabel.extensionId に伝搬し、`!` 接続モーダルが拡張機能を見つけられず scanning で固まる |
+| `src/engine/runtime.js` | extension hat shape (modern Blockly) | Blockly v12 対応: 拡張機能の HAT/EVENT ブロックの blockJSON に `shape_hat` extension を付与。modern Blockly は `block.hat === 'cap'`（= `shape_hat` extension）でのみ帽子型を描画し、`ADD_START_HATS` は既定 false。未付与だと甲子園 `connect_game` や micro:bit/顔認識の `when ...` ブロックが帽子型にならず平らな上端で描画される |
 
 ### 関連ファイル
 

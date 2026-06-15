@@ -1156,6 +1156,16 @@ class Runtime extends EventEmitter {
             }
             blockJSON.outputShape = ScratchBlocksConstants.OUTPUT_SHAPE_SQUARE;
             blockJSON.nextStatement = null; // null = available connection; undefined = terminal
+            // === Smalruby: Start of extension hat shape (modern Blockly) ===
+            // In modern Blockly (scratch-blocks v2) the cap-hat shape is only
+            // drawn when the block carries the `shape_hat` extension (which sets
+            // block.hat = 'cap'); a missing previousConnection alone is no longer
+            // enough (ADD_START_HATS defaults to false). The built-in event blocks
+            // declare extensions: ['colours_event', 'shape_hat'], so mirror that
+            // here for extension HAT/EVENT blocks (e.g. koshien connect_game,
+            // micro:bit/face-sensing "when ..." blocks) so they render as hats.
+            blockJSON.extensions = (blockJSON.extensions || []).concat('shape_hat');
+            // === Smalruby: End of extension hat shape (modern Blockly) ===
             break;
         case BlockType.CONDITIONAL:
         case BlockType.LOOP:
