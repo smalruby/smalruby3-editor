@@ -10,6 +10,7 @@
 | エディタ | devpod ssh + tmux (VS Code Dev Containers でも可) |
 | **ホスト側ターミナル** | **iTerm2 必須**（macOS 標準 Terminal.app は OSC 52 非対応のためクリップボード連携不可） |
 | host から見える環境 | ブラウザ (port forwarding 経由)、git の push/PR (gh CLI 経由)、CDK deploy |
+| **通信 (egress)** | **無制限ではなく allowlist**。default-DROP の firewall で GitHub / npm / Anthropic / AWS のみ許可 (`init-firewall.sh`)。詳細は「egress allowlist firewall」 |
 | 採用していないもの | `docker compose run --rm app ...`, `bin/dx`, `bin/setup-worktree` (compose 前提なので不要) |
 | 例外的に host で必要 | `docker compose` 自体は dev server を host から開きたい人のために残してあるが、本人は使わない |
 
@@ -32,6 +33,57 @@ iTerm2 > Preferences > General > Selection >
   `gh auth setup-git`（global 書き込み）は使えない → repo-local 設定で回避している。
 - git push も `gh` の issue/PR 作成も同一の `GH_TOKEN` に一本化される。
 - `gh auth status` で `Logged in ... (GH_TOKEN)` を確認できれば push も通る。
+
+## egress allowlist firewall (重要・セキュリティ)
+
+このコンテナの外向き通信は **無制限ではなく allowlist** で限定する。
+`init-firewall.sh` を `postStartCommand` で**毎起動時**に実行し、iptables + ipset で
+**default-DROP** にして必要な宛先だけ通す。
+
+### なぜ必要か
+
+NaCl ガイドライン v0.2 は「隔離環境でもネットワーク接続先を限定する (firewall で
+ドメイン allowlist 等)」を **必須要件** とする。本 devcontainer は業務 PC 上で動き、
+かつ **AWS SSO の一時クレデンシャルをコンテナ内に取得** (`cdk deploy`) し、Claude も
+in-container ログインする。つまり **非公開認証情報がコンテナに到達する** ため、
+ガイドラインの考え方では firewall allowlist が必須になる。
+
+> 要件強度は階層ラベルではなく「隔離環境が到達できる資産の機微度」で決まる。
+> 顧客資産はディスク隔離で到達不能にし、非公開認証情報を持つ環境では egress を
+> allowlist で限定する。
+
+### 許可している宛先 (概要)
+
+- **GitHub** … `api.github.com/meta` の公開レンジ (git / gh / upstream fetch / 一部 npm 依存)
+- **npm** … `registry.npmjs.org` + バイナリ取得元 (`objects.githubusercontent.com` / `codeload.github.com` / `nodejs.org`)
+- **Anthropic** … `api.anthropic.com`, `sentry.io` (`statsig.anthropic.com` は A レコード無しなので除外)
+- **AWS** … `ip-ranges.json` の「デプロイリージョン + us-east-1 + GLOBAL」+ SSO 系。
+  リージョンと SSO ポータルは **`infra/aws-sso.env`** から自動取得 (fork 追従)
+- **DNS** … `/etc/resolv.conf` のリゾルバ + docker DNS のみ (任意 DNS への exfil 遮断)
+- IPv6 は egress 全遮断 (allowlist は IPv4 のみ。IPv6 を開けると抜け道になる)
+
+### 運用
+
+- **ビルド時の取得は firewall より前**に走る。影響するのは**起動後**の
+  `npm install` / `cdk` / `git fetch` など。取りこぼすと固まる/失敗するので
+  **段階的に allowlist を広げる**運用が現実的。
+- 詰まったら `curl -v <url>` で弾かれた宛先を特定し、`init-firewall.sh` の
+  `EXTRA_HOSTS`(全員)か `.devcontainer/firewall-allow.local`(自分だけ・gitignored)に足す。
+- 既存の自分の `devcontainer.json` には `runArgs` (`--cap-add=NET_ADMIN/NET_RAW`) と
+  `postStartCommand` を手で追記し、devcontainer を rebuild する。
+- 手順・検証・追加方法の詳細は `.devcontainer/README.md`「egress allowlist firewall」。
+
+## 認証はホストに rw マウントしない (原則)
+
+新しい認証をコンテナに持ち込むときは必ず守る:
+
+- **ホストの認証ディレクトリを rw bind マウントしない。** 「壊れた / 復号できない
+  認証を自動削除・再生成する」ツールは、コンテナ側で鍵が無く認証を誤って「壊れている」
+  と判定し削除すると、rw 共有では **ホスト側の認証ファイルまで巻き添えで消す**
+  (別案件で実際に発生した事故)。
+- 認証は **in-container login** で取得し、**コンテナ専用 fs / volume** に置いて分離する。
+- smalruby は既にこの原則に沿う: Claude=in-container ログイン、AWS=in-container SSO
+  ログイン、`~/.gitconfig`=read-only、gh=`GH_TOKEN` env のみ。**この方針を維持する。**
 
 ## 起動からの流れ (毎日のルーチン)
 
@@ -291,6 +343,27 @@ port 8601 は共有リソース** なので衝突しうる:
 
 `devpod stop` は container を止めるので session も消える。**永続化させる必要が
 ある作業 (長時間 build / 監視) は tmux + nohup or systemd など別途工夫が必要**。
+
+### firewall 導入後: `npm install` / `cdk deploy` / `git fetch` が固まる・失敗する
+
+egress allowlist で宛先が弾かれている可能性が高い (ビルド時ではなく**起動後**の取得が対象)。
+
+- 起動ログ末尾の `init-firewall: applied` / `verify OK` 行を確認
+- 弾かれた宛先を `curl -v <url>` で特定し、`init-firewall.sh` の `EXTRA_HOSTS` か
+  `.devcontainer/firewall-allow.local` に追加 → `init-firewall.sh` 再実行 (再起動でも可)
+- 一時的に切り分けたいときは `postStartCommand` をコメントアウトして無 firewall で再現確認
+- 詳細は `.devcontainer/README.md`「egress allowlist firewall」
+
+### firewall 適用後の `devpod ssh` で `Error tunneling to container ...` が出る
+
+コマンド出力自体は返っており、接続終了時の teardown の **cosmetic なメッセージ**。
+default-DROP が tunnel 終了パケットを落とすために出るだけで実害なし。
+
+### workspace 名が衝突する (同名 basename の worktree)
+
+devpod の workspace ID は **host の絶対パス** から生成されるが、basename が同じ
+リポジトリ (worktree 含む) が複数あると名前が衝突しうる。
+`devpod up . --id <一意な名前>` で明示すると安全。
 
 ## 参考
 
