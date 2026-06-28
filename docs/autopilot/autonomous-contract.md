@@ -161,7 +161,7 @@ PR を見ただけで連携 Issue の状態が分かるよう、**daemon が PR 
 |---|---|---|
 | `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象）の PR/Issue | 常時付与 |
 | `🙋 HITL` ラベル | 人間の対応待ち（レビュー/判断/マージ） | Project `HITL=Yes` のとき付与、`No` で除去 |
-| **Draft ⇄ Ready for review** | Draft=AI 作業中 / Ready=人間レビュー待ち | 実装中は Draft、HITL に渡すとき Ready |
+| **Draft ⇄ Ready for review** | Draft=AI 作業中 / Ready=人間レビュー待ち | Status が Review/DoD/Close→Ready、それ以外→Draft（HITL では決めない） |
 | **sticky ステータスコメント** | bot が1つのコメントを編集し続け、連携 Issue の Project 状態（Status / AI Status / HITL / Size）を投影 | フェーズ遷移ごとに更新 |
 
 - 専用の「作業中」ラベルは作らない（**Draft** が「AI 作業中・触らないで」を兼ねる）。
