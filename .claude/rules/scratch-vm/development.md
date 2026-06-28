@@ -216,6 +216,8 @@ The mesh v2 extension uses AWS AppSync for real-time collaboration:
 | `src/blocks/scratch3_operators.js` | regex support | operator_contains で正規表現マッチングをサポート |
 | `src/engine/comment.js` | toXML modernization | Blockly v12 対応: `pinned="${!minimized}"` + `collapsed="${minimized}"` (v2.1.19 deserializer が読む属性、v13.7.2 整合 #751) + (0,0) 時の x/y 属性省略 (Smalruby 独自) |
 | `src/engine/runtime.js` | toolboxitemid for extension categories | Blockly v12 対応: 拡張機能のカテゴリ XML に `toolboxitemid` 属性を追加。Blockly v12 の ContinuousToolbox は `toolboxitemid` から id を読むため、未指定だと `blockly-XXX` の auto-id が StatusIndicatorLabel.extensionId に伝搬し、`!` 接続モーダルが拡張機能を見つけられず scanning で固まる |
+| `src/engine/blocks.js` | XML coords guard | `blockToXML` で x/y が finite number のときだけ XML 属性を出力。Ruby → blocks 変換の x/y 未指定 (undefined) を scratch-blocks v2 に正しく伝え、`fromRuby` 再レイアウト経路を維持する |
+| `src/engine/blocks.js` | orphaned-parent guard | `getTopLevelScript` で `block.parent` が this._blocks に存在しない場合に停止。Ruby → blocks 変換中の孤立 parent id で `undefined.parent` 参照クラッシュを防ぐ |
 
 ### 関連ファイル
 
