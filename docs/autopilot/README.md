@@ -37,9 +37,9 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 | 要素 | 役割 | 実装 |
 |---|---|---|
 | **状態モデル** | フェーズの単一の真実 | GitHub Projects v2「Autopilot」 |
-| **daemon** | Project をポーリングし着手可能 item を処理。並行制御・pause/resume/force-stop・HTTP 割り込み | （実装予定） |
+| **daemon** | Project をポーリングし着手可能 item を処理。並行制御・pause/resume/force-stop・HTTP 割り込み | `tools/autopilot/src/daemon.js` |
 | **Claude runner** | 対話 Claude Code を tmux で起動し send-keys で駆動、watchdog で監視 | `tools/autopilot/src/runner.js` |
-| **Web モニタ** | item 一覧・状態・ログ閲覧・手動操作 | （実装予定） |
+| **Web モニタ** | item 一覧・状態・ログ閲覧・手動操作（daemon が `GET /` で配信） | `tools/autopilot/src/monitor.js` |
 | **CLI** | 単一フェーズを単一 Issue で実行（動作確認・ドライラン） | `tools/autopilot/bin/autopilot` |
 | **フェーズ・スキル** | 各フェーズの「頭脳」。非対話で1フェーズを遂行 | `.claude/skills/autopilot-*` |
 | **worktree** | Issue ごとの隔離作業場（軽量・即作成） | `bin/autopilot-worktree` |
@@ -55,13 +55,13 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 ### Status — 人間の Scrum ボード列（人間にとってのフェーズ）
 
 ```
-New Item(未設定) → Backlog / Icebox → Sprint Backlog(autopilot キュー)
+No Status(未設定) → Backlog / Icebox → Sprint Backlog(autopilot キュー)
   → In Progress → Review → DoD → Close
 ```
 
 | Status | 意味 |
 |---|---|
-| New Item | 起票直後・未トリアージ（Status 未設定 = No Status 列） |
+| No Status | 起票直後・未トリアージ（Status 未設定の列。Projects v2 UI では「No Status」列に並ぶ） |
 | Backlog | やると決めた |
 | Icebox | やらないと決めた（保留） |
 | Sprint Backlog | autopilot のキュー（着手対象） |
@@ -70,6 +70,10 @@ New Item(未設定) → Backlog / Icebox → Sprint Backlog(autopilot キュー)
 | DoD | approve 後の Playwright DoD |
 | Close | 完了（merge 後） |
 
+> 実装メモ: Status 未設定（UI の「No Status」列）は内部的に `'New Item'` という sentinel で
+> 正規化して扱う（`tools/autopilot/src/phases.js` の `status || 'New Item'`）。本ドキュメントの
+> 表記は UI に合わせて「No Status」で統一する。
+
 ### AI Status — AI 専用の細フェーズ（各値 ≈ 1 スキル）
 
 人間は Status を見れば十分。AI Status は daemon が「次に呼ぶスキル」を引くための内部状態で、
@@ -77,8 +81,8 @@ Issue を状態の正とすることで daemon が落ちても現在地が分か
 
 | AI Status | 対応スキル | 主な Status |
 |---|---|---|
-| Triaging | autopilot-triage | New Item |
-| Understanding | autopilot-understand | New Item / Backlog（EPIC） |
+| Triaging | autopilot-triage | No Status |
+| Understanding | autopilot-understand | No Status / Backlog（EPIC） |
 | Decomposing | autopilot-decompose | Backlog（EPIC→sub-issue） |
 | EPIC Decomposed | —（親トラッカー化） | In Progress（EPIC） |
 | Implementing / Creating PR | autopilot-implement | In Progress |
@@ -222,6 +226,73 @@ bin/autopilot-worktree list
 `npm install` / `build:dev` 無しで即作業できる（`@smalruby/*` は main の dist に解決される）。
 単一パッケージのソース編集を想定。クロスパッケージのソース編集は `--full`。
 
+### daemon（常駐・本番運用）
+
+実ワークロードは **常駐 daemon** が回す。Project をポーリングし、着手可能な item を並行上限内で
+拾って Claude runner にディスパッチし、結果を Project に反映する。pause/resume/force-stop と
+Web モニタは daemon が立てる HTTP サーバ（既定 `:8787`）で操作する。
+
+#### 起動
+
+```bash
+# 既定: owner=smalruby / project=4 / repo=smalruby/smalruby3-editor / concurrency=2 / interval=300s / port=8787
+node tools/autopilot/bin/autopilot daemon
+
+# オプション指定の例（並行 3・60 秒ポーリング・ポート 9000）
+node tools/autopilot/bin/autopilot daemon --concurrency 3 --interval 60 --port 9000
+
+# 1 サイクルだけ回して終了（動作確認・cron 的運用）
+node tools/autopilot/bin/autopilot daemon --once
+```
+
+daemon オプション: `--owner` / `--project` / `--repo` / `--concurrency` / `--interval`（秒）/
+`--port` / `--once`。起動すると PID ファイル（`$TMPDIR/autopilot-daemon.pid`、通常
+`/tmp/autopilot-daemon.pid`）を書き、ログを stderr に出す。バックグラウンド常駐は tmux か
+`nohup ... &` で。
+
+```bash
+# tmux で常駐させる例
+tmux new -d -s autopilot 'node tools/autopilot/bin/autopilot daemon 2>&1 | tee /tmp/autopilot-daemon.log'
+```
+
+#### 監視（Web モニタ）
+
+ブラウザで **`http://localhost:8787/`** を開くと自己完結 HTML のモニタが表示される
+（2 秒ごとに `/status` をポーリング）。実行中 item の一覧・phase・pause/resume・各 item の
+force-stop・pane ログ閲覧ができる。
+
+HTTP API（curl からも操作可能）:
+
+| メソッド・パス | 用途 |
+|---|---|
+| `GET /` | Web モニタ（HTML） |
+| `GET /status` | `{paused, concurrency, running:[{issue,phase}]}` を JSON で返す |
+| `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
+| `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
+| `POST /resume` | ポーリング再開 |
+| `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
+| `POST /inject?issue=<n>&phase=<p>` | 並行上限を超えて 1 フェーズを割り込み投入 |
+| `POST /shutdown` | daemon プロセスを安全停止 |
+
+```bash
+curl -s localhost:8787/status | jq          # 状態確認
+curl -X POST localhost:8787/pause            # 一時停止
+curl -X POST localhost:8787/resume           # 再開
+curl -X POST 'localhost:8787/stop?issue=123' # #123 を force-stop
+```
+
+#### 停止
+
+```bash
+# 安全停止（推奨）: HTTP で止める
+curl -X POST localhost:8787/shutdown
+
+# または PID ファイル経由（pkill -f は daemon 自身を巻き込むため使わない）
+kill "$(cat /tmp/autopilot-daemon.pid)"
+```
+
+SIGTERM / SIGINT でも終了し、PID ファイルは終了時に削除される。
+
 ### CLI（単発フェーズ実行・動作確認）
 
 ```bash
@@ -261,7 +332,9 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `tools/autopilot/src/phases.js` | フェーズ↔スキル、結果→フィールド意図、watchdog 判断、HITL 解除、merge-progression（純粋） |
 | `tools/autopilot/src/project.js` | GitHub Projects v2 への gh ラッパ |
 | `tools/autopilot/src/runner.js` | tmux runner + watchdog |
-| `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI |
+| `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・merge-progression） |
+| `tools/autopilot/src/monitor.js` | Web ステータスモニタ（自己完結 HTML） |
+| `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI（単発フェーズ + `daemon` サブコマンド） |
 | `tools/autopilot/test/` | unit テスト |
 
 ---
