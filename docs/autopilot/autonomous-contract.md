@@ -151,7 +151,26 @@ AUTOPILOT_DONE
 
 ---
 
-## 7. スキル実装のチェックリスト
+## 7. PR 側の状態可視化（Issue のみ Project 管理 + PR は投影）
+
+Project は **Issue のみ**を管理する（PR を Project に入れると二重管理になるため入れない）。
+PR を見ただけで連携 Issue の状態が分かるよう、**daemon が PR 側へ Issue の状態を投影**する。
+いずれも Project が真実で、PR 側は読み取り用の投影（単一ライター原則を保つ）。
+
+| 手段 | 意味 | 同期ルール |
+|---|---|---|
+| `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象）の PR/Issue | 常時付与 |
+| `🙋 HITL` ラベル | 人間の対応待ち（レビュー/判断/マージ） | Project `HITL=Yes` のとき付与、`No` で除去 |
+| **Draft ⇄ Ready for review** | Draft=AI 作業中 / Ready=人間レビュー待ち | 実装中は Draft、HITL に渡すとき Ready |
+| **sticky ステータスコメント** | bot が1つのコメントを編集し続け、連携 Issue の Project 状態（Status / AI Status / HITL / Size）を投影 | フェーズ遷移ごとに更新 |
+
+- 専用の「作業中」ラベルは作らない（**Draft** が「AI 作業中・触らないで」を兼ねる）。
+- スキルは PR を作るとき **Draft で作成**し、HITL に渡すフェーズ末で **Ready + `🙋 HITL`** を要求する
+  （実際のラベル付与・Draft 切替・sticky 更新は daemon が結果ファイルの意図を見て行う）。
+
+---
+
+## 8. スキル実装のチェックリスト
 
 - [ ] 冒頭で本コントラクトに従うと宣言している
 - [ ] `AskUserQuestion` を一切使っていない
