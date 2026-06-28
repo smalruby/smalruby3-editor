@@ -182,6 +182,21 @@ function evaluate(state, cfg) {
     return { action: 'wait', reason: 'in progress' };
 }
 
+/**
+ * スラッシュコマンド送信後に「受理されたか」を判定し、未達なら再送すべきかを返す（純粋関数）。
+ * claude TUI は起動直後に入力受付前のことがあり、最初の send-keys が捨てられる（課題1）。
+ * 受理確認（busy 表示 or 結果ファイル）が取れないまま acceptWindow を超えたら、上限まで再送する。
+ * @param {object} s
+ * @param {number} s.sinceSendMs 直近送信からの経過
+ * @param {number} s.attempts これまでの送信回数
+ * @param {number} s.maxAttempts 送信上限
+ * @param {number} s.acceptWindowMs 受理待ちの猶予
+ * @returns {boolean}
+ */
+function shouldResend(s) {
+    return s.sinceSendMs > s.acceptWindowMs && s.attempts < s.maxAttempts;
+}
+
 const DEFAULT_WATCHDOG = {
     tReadyMs: 60_000,
     // claude の思考/実行は数分に及ぶ。busy 検知（runner の BUSY_RE）が主防御で、
@@ -190,6 +205,9 @@ const DEFAULT_WATCHDOG = {
     tMaxMs: 1_800_000,
     maxRestarts: 2,
     pollMs: 3_000,
+    // 送信後この時間内に受理（busy/結果）が確認できなければ再送（課題1: cold-start 不達）
+    acceptWindowMs: 8_000,
+    maxSendAttempts: 4,
 };
 
 module.exports = {
@@ -201,6 +219,7 @@ module.exports = {
     phaseForItem,
     isActionable,
     selectActionable,
+    shouldResend,
     evaluate,
     DEFAULT_WATCHDOG,
 };
