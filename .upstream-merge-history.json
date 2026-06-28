@@ -9,7 +9,38 @@
     "mergeCommit": "c187b4060",
     "notes": "284 upstream commits merged - v13.7.2 production release. scratch-blocks downgrade reverted (v1.3.0 -> v2.1.19); argument-drag bug fixed in upstream issue #3450. ScratchBlocks v1 -> v2 API migration applied (Xml.* -> utils.xml.*, Variables/Procedures -> ScratchVariables/ScratchProcedures, statusButtonCallback on StatusIndicatorLabel, dialog.setPrompt). LegacyBackpackStorage extended with Smalruby localStorage support (markers added)."
   },
-  "postMergeReverts": [],
+  "postMergeReverts": [
+    {
+      "date": "2026-06-28",
+      "pr": "#751",
+      "trackingIssue": "#752",
+      "reference": ".claude/rules/upstream-tracking.md",
+      "reason": "pre-spork rollback (#270, commit 84f87e9152) re-alignment to v13.7.2 is staged. PR #751 re-aligned the color/blockJSON/hat path; the files below are STILL in pre-spork (classic Blockly v1.3.0) state and therefore diverge from the recorded v13.7.2 baseline ON PURPOSE.",
+      "affectedAreas": [
+        {
+          "category": "comment events (pre-spork dual-path)",
+          "files": ["packages/scratch-vm/src/engine/blocks.js"],
+          "detail": "v1 comment_* handling still present alongside modern block_comment_*; integrate to modern-only."
+        },
+        {
+          "category": "comment id contract",
+          "files": ["packages/scratch-vm/src/engine/adapter.js", "packages/scratch-vm/src/serialization/sb3.js", "packages/scratch-vm/src/engine/comment.js"],
+          "detail": "XML xmlChild.attribs.id vs JSON ${blockId}_comment mismatch; reconcile."
+        },
+        {
+          "category": "toolbox category names (cosmetic)",
+          "files": ["packages/scratch-gui/src/lib/make-toolbox-xml.js"],
+          "detail": "%{BKY_CATEGORY_*} vs ScratchMsgs.translate; works on v2.1.19, low priority."
+        },
+        {
+          "category": "band-aids pending removal",
+          "files": ["packages/scratch-gui/src/lib/scratch-blocks-auto-style-patch.js", "packages/scratch-gui/src/containers/blocks.jsx"],
+          "detail": "auto-style-patch + v2-bridge guards retained until full-modern verified."
+        }
+      ],
+      "nextMergeGuidance": "These files diverge from v13.7.2 by design (deferred re-alignment, #752), NOT lost upstream fixes. Do NOT treat their DIFF in bin/upstream-divergence-audit as a lost-fix regression. See .claude/rules/upstream-tracking.md."
+    }
+  ],
   "previousMerges": [
     {
       "date": "2026-03-08",

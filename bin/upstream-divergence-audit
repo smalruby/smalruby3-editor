@@ -50,12 +50,17 @@ DEFAULT_FILES=(
     packages/scratch-vm/src/engine/runtime.js
     packages/scratch-vm/src/engine/target.js
     packages/scratch-vm/src/engine/execute.js
+    packages/scratch-vm/src/engine/adapter.js
+    packages/scratch-vm/src/engine/comment.js
     packages/scratch-vm/src/virtual-machine.js
     packages/scratch-vm/src/serialization/sb3.js
     packages/scratch-vm/src/sprites/rendered-target.js
     packages/scratch-gui/src/containers/blocks.jsx
+    packages/scratch-gui/src/containers/custom-procedures.jsx
     packages/scratch-gui/src/containers/gui.jsx
     packages/scratch-gui/src/lib/blocks.js
+    packages/scratch-gui/src/lib/define-dynamic-block.js
+    packages/scratch-gui/src/lib/make-toolbox-xml.js
     packages/scratch-gui/src/lib/vm-listener-hoc.jsx
     packages/scratch-gui/src/lib/vm-manager-hoc.jsx
 )
