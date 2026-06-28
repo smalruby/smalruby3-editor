@@ -20,9 +20,16 @@ RUN \
     fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1
 
 # Development convenience tools (separate layer to avoid busting app build cache)
+#
+# iptables / ipset / dnsutils (dig) are required by .devcontainer/init-firewall.sh,
+# the egress allowlist firewall applied at devcontainer start. They are inert for the
+# docker-compose workflow (only exercised when that script runs under NET_ADMIN).
 RUN \
   set -eux \
   && apt install -y --no-install-recommends \
+    dnsutils \
+    iptables \
+    ipset \
     iputils-ping \
     jq \
     less \

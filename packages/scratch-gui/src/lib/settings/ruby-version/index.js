@@ -19,11 +19,6 @@ const messages = defineMessages({
         defaultMessage: 'Ruby',
         description: 'Ruby version sub-menu'
     },
-    koshienCannotChangeRubyVersion: {
-        id: 'gui.menuBar.koshienCannotChangeRubyVersion',
-        defaultMessage: 'The Ruby version cannot be changed when the Koshien extension is loaded.',
-        description: 'Alert message when trying to change Ruby version with Koshien extension'
-    },
     cannotSwitchToV1: {
         id: 'gui.menuBar.cannotSwitchToV1',
         defaultMessage: 'Cannot switch to v1 because v2 features (module, class) are in use.' +

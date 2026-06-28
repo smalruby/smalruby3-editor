@@ -729,7 +729,6 @@ export default {
     'gui.extensionLibrary.showAllExtensions': 'すべての拡張機能を表示',
     'gui.extensionLibrary.meshDeprecationWarning':
         '従来のメッシュ拡張機能は4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
-    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'スモウルビー甲子園拡張機能は Ruby v1 でのみ利用できます。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': '上に傾いた',

@@ -23,7 +23,11 @@ import DragConstants from '../lib/drag-constants';
 import defineDynamicBlock from '../lib/define-dynamic-block';
 import {DEFAULT_MODE, getColorsForMode, colorModeMap} from '../lib/settings/color-mode';
 import {CAT_BLOCKS_THEME} from '../lib/settings/theme';
-import {injectExtensionBlockIcons, injectExtensionCategoryMode} from '../lib/settings/color-mode/blockHelpers';
+import {
+    getExtensionColors,
+    injectExtensionBlockIcons,
+    injectExtensionCategoryMode
+} from '../lib/settings/color-mode/blockHelpers';
 
 import {connect} from 'react-redux';
 import {updateToolbox} from '../reducers/toolbox';
@@ -959,13 +963,46 @@ class Blocks extends React.Component {
                 .map(fieldTypeName => categoryInfo.customFieldTypes[fieldTypeName].scratchBlocksDefinition));
         defineBlocks(categoryInfo.menus);
         defineBlocks(categoryInfo.blocks);
-
+        // Note that Blockly uses the UK spelling of "colour", so fields that
+        // interact directly with Blockly follow that convention, while Scratch
+        // code uses the US spelling of "color".
+        let colourPrimary = categoryInfo.color1;
+        let colourSecondary = categoryInfo.color2;
+        let colourTertiary = categoryInfo.color3;
+        let colourQuaternary = categoryInfo.color3;
+        if (this.props.colorMode !== DEFAULT_MODE) {
+            const colors = getExtensionColors(this.props.colorMode);
+            colourPrimary = colors.colourPrimary;
+            colourSecondary = colors.colourSecondary;
+            colourTertiary = colors.colourTertiary;
+            colourQuaternary = colors.colourQuaternary;
+        }
+        this.ScratchBlocks.getMainWorkspace()
+            .getTheme()
+            .setBlockStyle(categoryInfo.id, {
+                colourPrimary,
+                colourSecondary,
+                colourTertiary,
+                colourQuaternary
+            });
+        this.ScratchBlocks.getMainWorkspace()
+            .getTheme()
+            .setBlockStyle(`${categoryInfo.id}_selected`, {
+                colourPrimary: colourQuaternary,
+                colourSecondary: colourQuaternary,
+                colourTertiary: colourQuaternary,
+                colourQuaternary: colourQuaternary
+            });
+        this.ScratchBlocks.getMainWorkspace().setTheme(
+            this.ScratchBlocks.getMainWorkspace().getTheme()
+        );
         // Update the toolbox with new blocks if possible
         const toolboxXML = this.getToolboxXML();
         if (toolboxXML) {
             this.props.updateToolboxState(toolboxXML);
         }
 
+        // === Smalruby: Start of extension category flyout scroll ===
         // After the toolbox finishes its async rebuild, scroll the flyout to
         // the newly added extension category. In scratch-blocks v1 the flyout
         // automatically focused the just-added category, but the v2
@@ -977,6 +1014,7 @@ class Blocks extends React.Component {
         // `componentDidUpdate` -> `requestToolboxUpdate` (setTimeout 0). Mark
         // the pending category and let the post-rebuild path scroll to it.
         this._pendingScrollToCategoryId = categoryInfo.id;
+        // === Smalruby: End of extension category flyout scroll ===
     }
     handleBlocksInfoUpdate (categoryInfo) {
         // @todo Later we should replace this to avoid all the warnings from redefining blocks.
@@ -1136,6 +1174,7 @@ class Blocks extends React.Component {
             paletteVisible,
             onTogglePalette: _onTogglePalette,
             projectTitle: _projectTitle,
+            colorMode,
             ...props
         } = this.props;
 
@@ -1195,6 +1234,7 @@ class Blocks extends React.Component {
                             media: options.media
                         }}
                         onRequestClose={this.handleCustomProceduresClose}
+                        colorMode={colorMode}
                     />
                 ) : null}
             </React.Fragment>

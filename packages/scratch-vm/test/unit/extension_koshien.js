@@ -49,6 +49,16 @@ const createUtilWithVars = (vars) => {
     return { util: { target }, target };
 };
 
+// Reveal the whole 17x17 my-map by calling getMapArea over a covering grid of
+// centers (radius 2 windows; centers spaced to cover rows/cols 0..16).
+const revealAll = (blocks) => {
+    for (const cy of [2, 7, 12, 14]) {
+        for (const cx of [2, 7, 12, 14]) {
+            blocks.getMapArea({ POSITION: `${cx}:${cy}` });
+        }
+    }
+};
+
 test('Koshien Blocks', (t) => {
     t.test('constructor', (st) => {
         const mockRuntime = createMockRuntime();
@@ -127,87 +137,117 @@ test('Koshien Blocks', (t) => {
         st.end();
     });
 
-    // --- Issue #739: MockClient fixed return values & list writing ---
+    // --- Issue #739: MockClient believable, fog-of-war return values ---
 
-    t.test('map returns a meaningful fixed value (space=0)', (st) => {
+    t.test('map is unexplored (-1) until getMapArea reveals it', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
-        st.equal(blocks.map({ POSITION: '0:0' }), 0);
-        st.equal(blocks.map({ POSITION: '5:9' }), 0);
+        st.equal(blocks.map({ POSITION: '8:9' }), -1); // not yet revealed
+        blocks.getMapArea({ POSITION: '8:8' }); // reveal the 5x5 around (8,8)
+        st.equal(blocks.map({ POSITION: '8:9' }), 3); // goal now visible
+        st.equal(blocks.map({ POSITION: '8:8' }), 0); // space
+        st.equal(blocks.map({ POSITION: '0:0' }), -1); // far away, still unexplored
         st.end();
     });
 
-    t.test('mapAll returns a 15-row, 15-col all-space string', (st) => {
+    t.test('mapAll starts fully unexplored and fills in as areas are revealed', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
-        const all = blocks.mapAll({});
-        st.type(all, 'string');
-        const rows = all.split(',');
-        st.equal(rows.length, 15);
-        rows.forEach((row) => {
-            st.equal(row.length, 15);
-            st.equal(row, '000000000000000');
-        });
+        const before = blocks.mapAll({}).split(',');
+        st.equal(before.length, 17);
+        before.forEach((row) => st.equal(row, '-----------------')); // 17x17 of '-'
+        blocks.getMapArea({ POSITION: '8:8' });
+        const after = blocks.mapAll({});
+        st.ok(after.includes('3')); // the goal is now revealed
+        st.ok(after.includes('-')); // the rest is still unexplored
         st.end();
     });
 
-    t.test('mapFrom parses a map string variable, else returns 0', (st) => {
+    t.test('once fully revealed, the field is bordered by unbreakable walls (1/2)', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
+        revealAll(blocks);
+        const rows = blocks.mapAll({}).split(',');
+        const n = rows.length;
+        st.equal(n, 17);
+        const unbreakable = (ch) => ch === '1' || ch === '2';
+        for (let i = 0; i < n; i++) {
+            st.ok(unbreakable(rows[0][i]), `top ${i}`);
+            st.ok(unbreakable(rows[n - 1][i]), `bottom ${i}`);
+            st.ok(unbreakable(rows[i][0]), `left ${i}`);
+            st.ok(unbreakable(rows[i][n - 1]), `right ${i}`);
+        }
+        st.end();
+    });
+
+    t.test('mapFrom parses a map string variable, else returns -1', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime());
+        revealAll(blocks);
         const mapString = blocks.mapAll({});
         const { util } = createUtilWithVars({
             $all: { type: '', value: mapString },
         });
-        // all-space map -> any cell is 0
-        st.equal(blocks.mapFrom({ POSITION: '3:4', MAP: '$all' }, util), 0);
-        // unknown variable -> fixed 0
-        st.equal(blocks.mapFrom({ POSITION: '3:4', MAP: '$missing' }, util), 0);
+        st.equal(blocks.mapFrom({ POSITION: '8:9', MAP: '$all' }, util), 3); // goal
+        st.equal(blocks.mapFrom({ POSITION: '15:1', MAP: '$all' }, util), 'a'); // item
+        // unknown variable -> -1 (unexplored)
+        st.equal(blocks.mapFrom({ POSITION: '3:4', MAP: '$missing' }, util), -1);
         st.end();
     });
 
-    t.test('targetCoordinate returns fixed positions for each target', (st) => {
+    t.test('targetCoordinate returns map-consistent positions for each target', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
-        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '1:1');
-        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'x' }), 1);
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '5:1');
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'x' }), 5);
         st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'y' }), 1);
-        st.equal(blocks.targetCoordinate({ TARGET: 'goal', COORDINATE: 'position' }), '13:13');
-        st.equal(blocks.targetCoordinate({ TARGET: 'goal', COORDINATE: 'x' }), 13);
-        st.equal(blocks.targetCoordinate({ TARGET: 'enemy', COORDINATE: 'position' }), '7:7');
-        st.equal(blocks.targetCoordinate({ TARGET: 'enemy', COORDINATE: 'y' }), 7);
-        st.equal(blocks.targetCoordinate({ TARGET: 'other_player', COORDINATE: 'position' }), '7:7');
+        st.equal(blocks.targetCoordinate({ TARGET: 'goal', COORDINATE: 'position' }), '8:9');
+        st.equal(blocks.targetCoordinate({ TARGET: 'goal', COORDINATE: 'x' }), 8);
+        st.equal(blocks.targetCoordinate({ TARGET: 'enemy', COORDINATE: 'position' }), '8:9');
+        st.equal(blocks.targetCoordinate({ TARGET: 'other_player', COORDINATE: 'position' }), '10:1');
+        // goal coordinate matches the '3' cell once that area is explored
+        blocks.getMapArea({ POSITION: '8:8' });
+        st.equal(blocks.map({ POSITION: '8:9' }), 3);
         st.end();
     });
 
-    t.test('calcGoalRoute writes [player, goal] to the result list', (st) => {
+    t.test('calcGoalRoute writes a route from player to goal', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         const { util, target } = createUtilWithVars({
             route: { type: 'list', value: [] },
         });
         blocks.calcGoalRoute({ RESULT: 'route' }, util);
         const list = target.lookupVariableByNameAndType('route', 'list');
-        st.same(list.value, ['1:1', '13:13']);
+        st.ok(list.value.length > 2); // a multi-step path, not just [src, dst]
+        st.equal(list.value[0], '5:1');
+        st.equal(list.value[list.value.length - 1], '8:9');
         st.equal(list._monitorUpToDate, false);
         st.end();
     });
 
-    t.test('calcRoute writes [src, dst] to the result list', (st) => {
+    t.test('calcRoute writes a path between two points', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         const { util, target } = createUtilWithVars({
             route: { type: 'list', value: [] },
         });
-        blocks.calcRoute({ SRC: '2:3', DST: '4:5', EXCEPT_CELLS: ' ', RESULT: 'route' }, util);
+        blocks.calcRoute({ SRC: '1:4', DST: '14:4', EXCEPT_CELLS: ' ', RESULT: 'route' }, util);
         const list = target.lookupVariableByNameAndType('route', 'list');
-        st.same(list.value, ['2:3', '4:5']);
+        st.ok(list.value.length > 2);
+        st.equal(list.value[0], '1:4');
+        st.equal(list.value[list.value.length - 1], '14:4');
         st.end();
     });
 
-    t.test('locateObjects writes a fixed coordinate list to the result list', (st) => {
+    t.test('locateObjects finds harmful items only after they are revealed', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         const { util, target } = createUtilWithVars({
             objs: { type: 'list', value: [] },
         });
-        blocks.locateObjects({ POSITION: '7:7', SQ_SIZE: 5, OBJECTS: 'ABCD', RESULT: 'objs' }, util);
+        // before exploring, nothing on the my-map is known
+        blocks.locateObjects({ POSITION: '8:8', SQ_SIZE: 17, OBJECTS: 'ABCD', RESULT: 'objs' }, util);
+        st.same(target.lookupVariableByNameAndType('objs', 'list').value, []);
+        // explore the whole field, then the harmful items show up
+        revealAll(blocks);
+        blocks.locateObjects({ POSITION: '8:8', SQ_SIZE: 17, OBJECTS: 'ABCD', RESULT: 'objs' }, util);
         const list = target.lookupVariableByNameAndType('objs', 'list');
-        st.ok(Array.isArray(list.value));
-        st.ok(list.value.length >= 1);
-        st.same(list.value, ['7:7']);
+        st.ok(list.value.length > 0);
+        // each located cell really holds a harmful item (self-consistency)
+        list.value.forEach((pos) => st.ok('ABCD'.includes(String(blocks.map({ POSITION: pos })))));
         st.end();
     });
 
@@ -247,7 +287,7 @@ test('Koshien Blocks', (t) => {
     t.test('falls back to MockClient (fixed values) when no endpoint is configured', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
         st.equal(blocks._client._endpoint, undefined, 'no remote endpoint');
-        st.equal(blocks.map({ POSITION: '0:0' }), 0, 'mock fixed value still works');
+        st.equal(blocks.map({ POSITION: '0:0' }), -1, 'mock value (unexplored) still works');
         st.end();
     });
 
@@ -288,12 +328,75 @@ test('Koshien Blocks', (t) => {
         const result = await blocks.connectGame({ NAME: 'player1' });
         st.equal(result, true, 'connectGame still resolves true');
         st.equal(blocks._client, blocks._mockClient, 'fell back to the MockClient');
-        st.equal(blocks.map({ POSITION: '0:0' }), 0, 'mock fixed values are used after fallback');
+        st.equal(blocks.map({ POSITION: '0:0' }), -1, 'mock values are used after fallback');
         st.equal(
             blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }),
-            '1:1',
-            'mock fixed player position after fallback',
+            '5:1',
+            'mock initial player position after fallback',
         );
+        st.end();
+    });
+
+    // --- Phase 2: pseudo state updates + reset ---
+
+    t.test('moveTo updates the mock player position', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime());
+        blocks.moveTo({ POSITION: '1:3' }); // a walkable space
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '1:3');
+        // a fresh goal route now starts from the moved position
+        const { util, target } = createUtilWithVars({ route: { type: 'list', value: [] } });
+        blocks.calcGoalRoute({ RESULT: 'route' }, util);
+        st.equal(target.lookupVariableByNameAndType('route', 'list').value[0], '1:3');
+        st.end();
+    });
+
+    t.test('moveTo into a wall is ignored', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime());
+        blocks.moveTo({ POSITION: '0:0' }); // border wall
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '5:1');
+        st.end();
+    });
+
+    t.test('setItem places an item that becomes visible once revealed', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime());
+        blocks.setItem({ ITEM: 'bomb', POSITION: '1:5' });
+        st.equal(blocks.map({ POSITION: '1:5' }), -1); // not revealed yet
+        blocks.getMapArea({ POSITION: '1:5' });
+        st.equal(blocks.map({ POSITION: '1:5' }), 'D'); // now visible on the my-map
+        st.end();
+    });
+
+    t.test('green flag / stop resets the mock world to its initial state', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime());
+        blocks.moveTo({ POSITION: '1:3' });
+        blocks.setItem({ ITEM: 'bomb', POSITION: '1:5' });
+        blocks.getMapArea({ POSITION: '1:5' });
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '1:3');
+        st.equal(blocks.map({ POSITION: '1:5' }), 'D');
+
+        blocks._resetMockWorld(); // fired by PROJECT_START / PROJECT_STOP_ALL
+
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '5:1');
+        st.equal(blocks.map({ POSITION: '1:5' }), -1); // unexplored again
+        st.end();
+    });
+
+    t.test('connecting resets the mock world', (st) => {
+        const blocks = new KoshienBlocks(createMockRuntime());
+        blocks.moveTo({ POSITION: '1:3' });
+        blocks.connectGame({ NAME: 'p1' });
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '5:1');
+        st.end();
+    });
+
+    t.test('reset triggers are registered on the runtime', (st) => {
+        const events = [];
+        const runtime = createMockRuntime();
+        runtime.on = (event) => events.push(event);
+        // eslint-disable-next-line no-new
+        new KoshienBlocks(runtime);
+        st.ok(events.includes('PROJECT_START'));
+        st.ok(events.includes('PROJECT_STOP_ALL'));
         st.end();
     });
 

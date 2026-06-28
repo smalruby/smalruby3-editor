@@ -78,8 +78,6 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/blocks.js` | gesture recovery | ジェスチャー復旧ハンドラーのインストール |
 | `src/lib/blocks.js` | comment icon patch import | ScratchCommentIcon パッチモジュールの import |
 | `src/lib/blocks.js` | comment icon patch | ScratchCommentIcon.fireCreateEvent をオーバーライドして create 後に block_comment_change を re-fire (Blockly v12 の create payload に text が含まれない問題のフォロー) |
-| `src/lib/blocks.js` | auto style selected patch import | auto_<hex>_selected スタイル登録パッチの import |
-| `src/lib/blocks.js` | auto style selected patch | ConstantProvider.getBlockStyle をラップして `auto_<hex>_selected` を要求された際に on-the-fly で selected variant を登録 (Mesh sensor value のような defaultExtensionColors を使う shadow ドロップダウンを開くと "Invalid colour" で止まる問題の修正) |
 | `src/playground/index.ejs` | interactive-widget viewport for Android keyboard | meta viewport に `interactive-widget=resizes-content` を追加。Android Chrome 108+ でキーボード出現時に layout viewport が縮み、`100dvh` 等の dvh 系単位が追従するようになる |
 | `src/playground/render-gui.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/playground/render-gui.jsx` | no_beforeunload URL param | beforeunload 無効化 |
@@ -110,6 +108,8 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/blocks.jsx` | DNCL block filtering | `shouldComponentUpdate` に `dnclMode` を追加して日本語モード切り替え時に即時再レンダリングを保証。import・`getToolboxXML` 内フィルター・`mapStateToProps` への `dnclMode` 追加も含む |
 | `src/containers/blocks.jsx` | stale block delete event guard | scratch-blocks v2 の非同期イベント配送で、ワークスペースリロードを跨いで届いた stale な delete イベントが VM のスクリプトを消す問題のガード。`attachVM` で `vm.blockListener` を `createStaleBlockDeleteGuard` でラップ (issue #710)。import も含む |
 | `src/containers/blocks.jsx` | Ruby-converted toolbox update deferral | `onWorkspaceUpdate` の fromRuby 分岐の `updateToolbox()` を `Events.disable()` 窓の外 (finally 後) へ移動。窓内では flyout 再構築の create イベントが破棄され、新規変数が `runtime.monitorBlocks` / `flyoutBlocks` に登録されずモニタチェックボックスが無反応になる問題の修正 (issue #719)。フラグ宣言部と実行部の 2 箇所 |
+| `src/containers/blocks.jsx` | extension category flyout scroll | `handleExtensionAdded` 末尾で `_pendingScrollToCategoryId` をセット。scratch-blocks v1 は追加カテゴリへ自動でフォーカスしたが v2 continuous toolbox はしないため、post-rebuild で新カテゴリへスクロールさせる (Issue #749 の v13.7.2 再整合で `setBlockStyle` 復元と共存) |
+| `src/containers/custom-procedures.jsx` | cat-blocks theme for custom procedures | `setBlocks` で `workspaceConfig.scratchTheme` に catblocks/classic を設定し、定義モーダルのブロックをメインエディタと同じテーマにする (Issue #749 の v13.7.2 再整合で upstream の `workspaceConfig.theme = theme` 採用と共存) |
 
 | `src/lib/vm-manager-hoc.jsx` | koshien remote options wiring | VM 初期化時に `wireKoshienRemoteOptions(vm)` を呼び、甲子園拡張機能が接続設定を読めるよう runtime に getter を差し込む (import + componentDidMount) |
 

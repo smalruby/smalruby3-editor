@@ -7,6 +7,11 @@ description: "/upstream:merge - Interactive Upstream Merge Workflow. upstream sc
 
 upstream scratch-editor の変更を Smalruby fork に取り込む半自動ワークフロー。
 
+> ⚠️ **必読・絶対ルール**: 差分比較の基準は **release タグ / recorded `lastMerge.upstreamCommit`**。
+> ghq ローカルの `develop` は stale で誤判定の原因になる（develop-trap、過去2回発生）。また
+> `postMergeReverts` に登録された pre-spork 残債は lost-fix ではない。詳細:
+> `.claude/rules/upstream-tracking.md`。
+
 ## ワークフロー全体像
 
 | Phase | ファイル | 内容 |

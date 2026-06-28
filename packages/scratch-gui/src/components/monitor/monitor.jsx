@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Draggable from 'react-draggable';
 import {FormattedMessage} from 'react-intl';
-import ContextMenu from '../../lib/radix-ui-context-menu.js';
+import * as ContextMenu from '@radix-ui/react-context-menu';
 import Box from '../box/box.jsx';
 import DefaultMonitor from './default-monitor.jsx';
 import LargeMonitor from './large-monitor.jsx';

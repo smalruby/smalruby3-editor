@@ -136,7 +136,6 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/monaco-i18n-helper.js`
 - `src/lib/prism-parser.js`
 - `src/lib/project-loader-utils.js`
-- `src/lib/radix-ui-context-menu.js`
 - `src/lib/responsive-gui.jsx`
 - `src/lib/ruby-parser.js`
 - `src/lib/ruby-screenshot.js`
@@ -147,7 +146,6 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/storage-worker-timeout-hoc.jsx`
 - `src/lib/ruby-script-preview.js`
 - `src/lib/ruby-to-blocks-converter-hoc.jsx`
-- `src/lib/scratch-blocks-auto-style-patch.js`
 - `src/lib/scratch-blocks-comment-icon-patch.js`
 - `src/lib/rubytee-api.js`
 - `src/lib/rubytee-context.js`
@@ -270,7 +268,6 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/furigana-annotator.test.js`
 - `test/unit/lib/google-drive-api.test.js`
 - `test/unit/lib/responsive-gui.test.jsx`
-- `test/unit/lib/scratch-blocks-auto-style-patch.test.js`
 - `test/unit/lib/touch-device.test.js`
 - `test/unit/lib/url-loader.test.js`
 - `test/unit/lib/use-is-narrow-screen.test.js`
