@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# bot-git — run git AS the GitHub App bot (smalruby3-editor-bot[bot]) for a SINGLE
+# invocation, WITHOUT mutating shared repo config. Plain `git` stays human-owned.
+#
+# Use this for Claude's autonomous commits/pushes:
+#   bin/bot-git commit -m "..."
+#   bin/bot-git push -u origin <branch>
+#
+# A human running plain `git` (outside Claude) keeps their own identity/credentials.
+#
+# Identity/credentials are injected via `-c` (command-line config, highest priority).
+# `credential.helper=` (empty) first RESETS any helper inherited from config files
+# (e.g. the human's `gh auth git-credential`), then the bot helper is added, so the
+# bot token always wins for this invocation only.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+botname="smalruby3-editor-bot[bot]"
+# Bot commit email (stable; user-id from GET /users/smalruby3-editor-bot[bot]).
+# Override with SMALRUBY_BOT_EMAIL if the app is ever recreated.
+botmail="${SMALRUBY_BOT_EMAIL:-297607354+smalruby3-editor-bot[bot]@users.noreply.github.com}"
+
+exec git \
+  -c "user.name=${botname}" \
+  -c "user.email=${botmail}" \
+  -c "credential.helper=" \
+  -c "credential.https://github.com.helper=!f(){ echo username=x-access-token; echo \"password=\$(${here}/bot-token)\"; };f" \
+  "$@"
