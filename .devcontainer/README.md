@@ -8,6 +8,7 @@ Claude Code をホスト直接実行せず、隔離されたコンテナ内で�
 - **既存 `docker compose` ワークフローには影響なし**: `docker compose up app` / `docker compose run --rm app ...` / `bin/dx` は従来通り使える。devcontainer はそれと**別の経路**で動く。
 - **named volume を共有**: `docker compose run app npm install` で作った `node_modules` を devcontainer も使う。`bin/dx` の起動高速化メリットと同じ。git worktree 切替時も再インストール不要。
 - **個人別設定はテンプレート方式**: `.devcontainer/devcontainer.json` は `.gitignore` 対象。`devcontainer.json.example` をコピーして自分の mount を編集する。
+- **egress allowlist firewall**: コンテナの外向き通信を default-DROP にし、GitHub / npm / Anthropic / AWS など必要な宛先だけ許可する (`init-firewall.sh`)。AWS SSO の一時クレデンシャルや in-container Claude ログインなど非公開認証情報がコンテナに到達するため、隔離ガイドラインに沿って到達先を限定する。詳細は下記「egress allowlist firewall」。
 
 ## 利用者の前提
 
@@ -91,6 +92,89 @@ devpod delete smalruby3-editor
    と `gh` (issue/PR) を同一の `GH_TOKEN` に一本化する
 4. **worktree セットアップ**: git worktree であれば `bin/setup-worktree` を実行
    (env コピー + npm install + build:dev)。main checkout なら何もしない
+
+## egress allowlist firewall
+
+コンテナの外向き通信を **default-DROP** にし、必要な宛先のみ許可する firewall を
+`postStartCommand` で**毎起動時**に張る (`init-firewall.sh`)。iptables ルールは
+コンテナの network namespace に属し `devpod stop`/`up` で消えるため、起動のたびに
+張り直す必要がある。
+
+### なぜ必要か
+
+このコンテナは **非公開認証情報** を保持する:
+
+- `cdk deploy` 用の AWS SSO 一時クレデンシャル (in-container で `aws sso login`)
+- in-container でログインする Claude Code の認証
+
+NaCl の隔離ガイドラインでは「非公開認証情報が到達する隔離環境は egress を allowlist で
+限定する」ことが必須要件。よって本 devcontainer では firewall を**既定で有効**にしている。
+
+### 許可している宛先
+
+| 区分 | 宛先 | 用途 |
+|---|---|---|
+| GitHub | `api.github.com/meta` の公開レンジ (web/api/git) | git / gh / upstream fetch / 一部 npm 依存 |
+| npm | `registry.npmjs.org`, `objects.githubusercontent.com`, `codeload.github.com`, `nodejs.org` | `npm install` とバイナリ取得 |
+| Anthropic | `api.anthropic.com`, `sentry.io` | Claude Code |
+| AWS | `ip-ranges.json` のうち **デプロイリージョン + us-east-1 + GLOBAL**、加えて SSO 系 (`oidc/portal.sso/sso.<region>.amazonaws.com`, SSO ポータル) | `cdk deploy` / `aws sso login` |
+| DNS | `/etc/resolv.conf` のリゾルバ + docker DNS (127.0.0.11) の 53 番のみ | 名前解決 (任意 DNS への exfil を遮断) |
+
+- AWS のリージョンと SSO ポータルは **`infra/aws-sso.env`** から自動取得する
+  (fork 時はそのファイルだけ書き換えれば firewall も追従)。
+- IPv4 allowlist のみ。**IPv6 は egress を全遮断**する (allowlist を IPv4 で組むため、
+  IPv6 を開けると素通りの抜け道になる)。
+- **fail-closed**: allowlist の構築に一部失敗しても、最後の DROP は必ず適用される。
+
+### 重要な性質 (ハマりポイント)
+
+- **ビルド時 (Dockerfile / 最初の `postCreate`) の取得は firewall より前**に走るので
+  影響を受けない。影響するのは **コンテナ起動後**の `npm install` / `cdk` / `git fetch` など。
+- 取りこぼすと「npm install が固まる」「cdk deploy が失敗」になる。**段階的に
+  allowlist を広げる**運用が現実的。
+- `forwardPorts` (dev server の `localhost:8601` 転送) は firewall と無関係。
+
+### 許可先を追加する
+
+詰まったら、弾かれた宛先を `curl -v <url>` で特定して以下のいずれかに足す:
+
+1. **全員に効かせる**: `init-firewall.sh` の `EXTRA_HOSTS`(dig 解決する小規模サービス)
+   か、GitHub/AWS のようにレンジで取り込む箇所を編集する。
+2. **自分だけ一時的に**: `.devcontainer/firewall-allow.local` (gitignored) に
+   ホスト名か CIDR を 1 行ずつ書く (`#` でコメント可)。再起動 or `init-firewall.sh`
+   再実行で反映。
+
+```text
+# .devcontainer/firewall-allow.local の例
+example.internal.service.com
+203.0.113.0/24
+```
+
+### 検証
+
+起動ログ末尾に以下が出れば成功:
+
+```
+init-firewall: applied. allowlist entries: <N>
+init-firewall: verify OK: github reachable
+init-firewall: verify OK: example.com blocked
+```
+
+手動で張り直す / 状態を見るには (コンテナ内、root):
+
+```bash
+.devcontainer/init-firewall.sh          # 張り直す
+ipset list allowed-dst | head           # 許可宛先を確認
+iptables -L OUTPUT -n --line-numbers    # ルールを確認
+```
+
+### 既存コンテナへの反映 / 一時無効化
+
+- `.example` から作った**自分の `devcontainer.json`** に `runArgs` と
+  `postStartCommand` を追記する必要がある (テンプレ更新前に作った人は手で足す)。
+  `runArgs` を足したら devcontainer を rebuild (`devpod delete` → `devpod up`)。
+- 一時的に切りたいときは `devcontainer.json` の `postStartCommand` 行をコメントアウト
+  (非推奨)。次回起動から firewall 無しになる。
 
 ## tmux
 
@@ -182,6 +266,20 @@ Claude は自動アップデートしない。version 固定は IDE 側で featu
 `~/.claude/sessions/`, `~/.claude/history.jsonl`, `~/.claude/file-history/`,
 `~/.claude/shell-snapshots/`** (他プロジェクトの転写・履歴の漏れを防ぐ)。
 
+### 原則: ホストの認証ディレクトリを rw でマウントしない
+
+新たに何かの認証をコンテナに持ち込むときは、必ず次を守る:
+
+- **ホストの認証ディレクトリを rw bind マウントしない。** 特に「壊れた / 復号できない
+  認証ファイルを自動削除・再生成する」タイプのツールは危険。コンテナ側の環境 (鍵が
+  無い等) で認証を「壊れている」と誤判定して削除すると、rw 共有では **ホスト側の認証
+  ファイルまで巻き添えで消える** (別案件で実際に発生し、ホストの認証が切れた)。
+- 認証は **コンテナ内で取得 (in-container login)** し、**コンテナ専用の fs / volume** に
+  置いてホストと分離する。
+- 本 devcontainer はこの原則に沿っている: Claude 認証は in-container ログイン、AWS は
+  in-container SSO ログイン、`~/.gitconfig` は **read-only**、gh は `GH_TOKEN` env のみ
+  (`~/.config/gh` には PAT 本体を含めない)。
+
 ### Claude Code memory の共有メカニズム
 
 このプロジェクトの memory (`~/.claude/projects/<host slug>/memory/`) はホスト側スラッグがユーザーのパスに依存するため、`initialize.sh` がホスト側に
@@ -204,8 +302,24 @@ Dockerfile-only にすることで:
 
 ## AWS CDK deploy について
 
-`~/.aws` は **マウントしません**。`cdk deploy` は人間が diff を見て発動する操作なので、
-**ホスト側で実行** することを推奨します。コンテナ内では `cdk synth` / `cdk diff` まで (AWS 認証不要)。
+**ホストの `~/.aws` は mount しません** (host secrets をコンテナに持ち込まない原則)。
+コンテナ内で deploy する場合は、in-container で SSO ログインして一時クレデンシャルを
+取得する:
+
+```bash
+bin/setup-aws-sso                                       # ~/.aws/config を生成
+aws sso login --sso-session smalruby --use-device-code  # URL をホストのブラウザで承認
+export AWS_PROFILE=smalruby
+cdk diff && cdk deploy
+```
+
+egress firewall は `infra/aws-sso.env` のリージョンと SSO ポータルを allowlist に
+取り込むため、in-container での `aws sso login` / `cdk deploy` は通る。詰まる宛先が
+あれば「egress allowlist firewall」の手順で追加する。`cdk synth` / `cdk diff` は AWS
+認証不要なので firewall とも無関係に動く。ホスト側で deploy しても構わない。
+
+> 取得した一時クレデンシャル (`~/.aws/sso/cache`) はコンテナ fs に残り、ホストとは
+> 分離される。短命トークンなので volume 永続化は不要 (`devpod delete` で消えてよい)。
 
 ## トラブルシューティング
 

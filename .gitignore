@@ -162,3 +162,5 @@ infra/**/cdk-out-*/
 
 # devcontainer の個人別設定 (各自で .example からコピーして mounts を編集する)
 .devcontainer/devcontainer.json
+# egress allowlist firewall の個人別追加宛先 (host or CIDR を 1 行ずつ)
+.devcontainer/firewall-allow.local
