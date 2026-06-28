@@ -91,7 +91,7 @@ test('applyMergeProgression: a failing merge check on one item does not block ot
 });
 
 test('applyPrProjection: Review handoff (HITL=Yes) -> ensure HITL label + Ready + sticky', () => {
-    const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitl: 'Yes', aiStatus: null, size: 'small' }];
+    const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitlLabel: true, aiStatus: null, size: 'small' }];
     const deps = makeProjectionDeps({
         prByIssue: { 1: { number: 100 } },
         prInfo: { 100: { isDraft: true, labels: [AUTOPILOT_LABEL] } },
@@ -112,7 +112,7 @@ test('applyPrProjection: Review handoff (HITL=Yes) -> ensure HITL label + Ready 
 });
 
 test('applyPrProjection: per-tick on Review does NOT re-add a human-removed HITL label', () => {
-    const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitl: 'Yes' }];
+    const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitlLabel: true }];
     const deps = makeProjectionDeps({
         prByIssue: { 1: { number: 100 } },
         // human removed the HITL label from the PR (release gesture); only autopilot label remains
@@ -128,7 +128,7 @@ test('applyPrProjection: per-tick on Review does NOT re-add a human-removed HITL
 });
 
 test('applyPrProjection: HITL=No reconciles labels off and PR back to Draft', () => {
-    const items = [{ issue: 1, itemId: 'i1', status: 'In Progress', kind: 'Issue', hitl: 'No', aiStatus: 'Implementing' }];
+    const items = [{ issue: 1, itemId: 'i1', status: 'In Progress', kind: 'Issue', hitlLabel: false, aiStatus: 'Implementing' }];
     const deps = makeProjectionDeps({
         prByIssue: { 1: { number: 100 } },
         prInfo: { 100: { isDraft: false, labels: [AUTOPILOT_LABEL, HITL_LABEL] } },
@@ -144,7 +144,7 @@ test('applyPrProjection: HITL=No reconciles labels off and PR back to Draft', ()
 });
 
 test('applyPrProjection: skips running items (does not fight a live phase)', () => {
-    const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitl: 'Yes' }];
+    const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitlLabel: true }];
     const deps = makeProjectionDeps({ prByIssue: { 1: { number: 100 } } });
     const state = { running: new Map([[1, { phase: 'review' }]]) };
     applyPrProjection(items, makeCfg(), state, () => {}, deps);
@@ -154,7 +154,7 @@ test('applyPrProjection: skips running items (does not fight a live phase)', () 
 });
 
 test('applyPrProjection: no PR yet -> only the issue label is reconciled', () => {
-    const items = [{ issue: 1, itemId: 'i1', status: 'Blocked', kind: 'Issue', hitl: 'Yes' }];
+    const items = [{ issue: 1, itemId: 'i1', status: 'Blocked', kind: 'Issue', hitlLabel: true }];
     const deps = makeProjectionDeps({ issueLabels: { 1: [AUTOPILOT_LABEL] } });
     const state = { running: new Map() };
     applyPrProjection(items, makeCfg(), state, () => {}, deps);
@@ -211,8 +211,8 @@ test('runTickOnce: releases the ticking flag even when tick throws', async () =>
 
 test('applyPrProjection: a failing item does not block others', () => {
     const items = [
-        { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitl: 'Yes' },
-        { issue: 2, itemId: 'i2', status: 'In Progress', kind: 'Issue', hitl: 'No' },
+        { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitlLabel: true },
+        { issue: 2, itemId: 'i2', status: 'In Progress', kind: 'Issue', hitlLabel: false },
     ];
     const deps = makeProjectionDeps({
         prByIssue: { 1: { number: 100 }, 2: { number: 200 } },

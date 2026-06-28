@@ -5,6 +5,7 @@ const {
     PHASE_BY_COMMAND,
     DEFAULT_CLAUDE_COMMAND,
     applyResult,
+    hitlDesireFromResult,
     isHitlReleased,
     progressOnMerge,
     reviewPhase,
@@ -49,8 +50,8 @@ test('phaseForItem: Sprint Backlog -> decompose(EPIC) / implement(Issue)', () =>
     assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'Issue' }), 'implement');
 });
 
-test('phaseForItem: HITL=Yes or human-driven states -> null', () => {
-    assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'Issue', hitl: 'Yes' }), null);
+test('phaseForItem: 🙋 ラベルあり or human-driven states -> null', () => {
+    assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'Issue', hitlLabel: true }), null);
     assert.equal(phaseForItem({ status: 'Review' }), null); // ctx 無し（レビュー状態不明）
     assert.equal(phaseForItem({ status: 'Backlog' }), null);
     assert.equal(phaseForItem({ status: 'In Progress' }), null);
@@ -59,14 +60,14 @@ test('phaseForItem: HITL=Yes or human-driven states -> null', () => {
 test('phaseForItem: In Progress + Self-Reviewing -> review (auto self-review dispatch)', () => {
     // implement 完了後の状態（#805）: daemon が autopilot-review を自動ディスパッチする
     assert.equal(
-        phaseForItem({ status: 'In Progress', aiStatus: 'Self-Reviewing', hitl: 'No' }),
+        phaseForItem({ status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false }),
         'review',
     );
     // 他の AI Status の In Progress は実行中の run が所有するので null のまま
     assert.equal(phaseForItem({ status: 'In Progress', aiStatus: 'Implementing' }), null);
-    // Self-Reviewing でも HITL=Yes なら人間の番（review へ渡さない）
+    // Self-Reviewing でも 🙋 ラベルあり（人間の番）なら review へ渡さない
     assert.equal(
-        phaseForItem({ status: 'In Progress', aiStatus: 'Self-Reviewing', hitl: 'Yes' }),
+        phaseForItem({ status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: true }),
         null,
     );
 });
@@ -90,45 +91,45 @@ test('reviewPhase: no signal / null -> null (conservative wait)', () => {
     assert.equal(reviewPhase({ approved: false, unresolvedHumanComments: 0 }), null);
 });
 
-test('phaseForItem: Review still HITL=Yes (project field) -> null', () => {
+test('phaseForItem: Review still 🙋 ラベルあり (no signals) -> null', () => {
     assert.equal(
-        phaseForItem({ status: 'Review', hitl: 'Yes' }, { review: { approved: true } }),
+        phaseForItem({ status: 'Review', hitlLabel: true }, { review: { approved: true } }),
         null,
     );
 });
 
-test('phaseForItem: Review released (project field No) dispatches by review state', () => {
+test('phaseForItem: Review released (Issue label removed) dispatches by review state', () => {
     assert.equal(
-        phaseForItem({ status: 'Review', hitl: 'No' }, { review: { approved: true } }),
+        phaseForItem({ status: 'Review', hitlLabel: false }, { review: { approved: true } }),
         'verify',
     );
     assert.equal(
-        phaseForItem({ status: 'Review', hitl: 'No' }, { review: { changesRequested: true } }),
+        phaseForItem({ status: 'Review', hitlLabel: false }, { review: { changesRequested: true } }),
         'address-review',
     );
 });
 
 test('phaseForItem: Review released via PR label only (OR semantics) -> dispatched', () => {
-    // Project HITL フィールドは Yes のままだが、PR の HITL ラベルが外れている
-    const item = { status: 'Review', hitl: 'Yes' };
+    // Issue の 🙋 ラベルは残っているが、PR の 🙋 ラベルが外れている（人間の解除ジェスチャ）
+    const item = { status: 'Review', hitlLabel: true };
     const ctx = {
-        hitlSignals: { projectField: true, issueLabel: true, prLabel: false },
+        hitlSignals: { issueLabel: true, prLabel: false },
         review: { approved: true },
     };
     assert.equal(phaseForItem(item, ctx), 'verify');
 });
 
 test('phaseForItem: Review with all HITL signals waiting -> null', () => {
-    const item = { status: 'Review', hitl: 'Yes' };
+    const item = { status: 'Review', hitlLabel: true };
     const ctx = {
-        hitlSignals: { projectField: true, issueLabel: true, prLabel: true },
+        hitlSignals: { issueLabel: true, prLabel: true },
         review: { approved: true },
     };
     assert.equal(phaseForItem(item, ctx), null);
 });
 
 test('phaseForItem: Review released but review state unknown -> null (wait)', () => {
-    assert.equal(phaseForItem({ status: 'Review', hitl: 'No' }, {}), null);
+    assert.equal(phaseForItem({ status: 'Review', hitlLabel: false }, {}), null);
 });
 
 test('isActionable: paused -> false', () => {
@@ -142,7 +143,7 @@ test('selectActionable: respects concurrency limit and running set', () => {
         { issue: 2, status: 'Sprint Backlog', kind: 'Issue' },
         { issue: 3, status: 'Sprint Backlog', kind: 'EPIC' },
         { issue: 4, status: 'Review' }, // not actionable
-        { issue: 5, status: 'Sprint Backlog', kind: 'Issue', hitl: 'Yes' }, // human's turn
+        { issue: 5, status: 'Sprint Backlog', kind: 'Issue', hitlLabel: true }, // human's turn
     ];
     const picked = selectActionable(items, { limit: 2, running: new Set() });
     assert.deepEqual(picked.map((p) => [p.issue, p.phase]), [[1, 'triage'], [2, 'implement']]);
@@ -153,9 +154,9 @@ test('selectActionable: respects concurrency limit and running set', () => {
 
 test('selectActionable: Review items dispatch via contexts (review state + HITL signals)', () => {
     const items = [
-        { issue: 10, status: 'Review', hitl: 'No' }, // approve -> verify
-        { issue: 11, status: 'Review', hitl: 'No' }, // comments -> address-review
-        { issue: 12, status: 'Review', hitl: 'Yes' }, // still human's turn -> skipped
+        { issue: 10, status: 'Review', hitlLabel: false }, // approve -> verify
+        { issue: 11, status: 'Review', hitlLabel: false }, // comments -> address-review
+        { issue: 12, status: 'Review', hitlLabel: true }, // still human's turn -> skipped
     ];
     const contexts = {
         10: { review: { approved: true }, pr: 100 },
@@ -200,12 +201,13 @@ test('selectMergeCandidates: leaf items in post-PR statuses; excludes EPIC and t
     assert.deepEqual(selectMergeCandidates(items).map((i) => i.issue), [1, 2, 3]);
 });
 
-test('mergeProgressionIntents: merged leaf -> Close, clear AI Status, HITL No', () => {
+test('mergeProgressionIntents: merged leaf -> Close, clear AI Status (no HITL field)', () => {
     const intents = mergeProgressionIntents({ issue: 1, status: 'Review', kind: 'Issue' }, true);
     const m = Object.fromEntries(intents.map((i) => [i.field, i.value]));
     assert.equal(m.Status, 'Close');
     assert.equal(m['AI Status'], null);
-    assert.equal(m.HITL, 'No');
+    // HITL は Project フィールドではなく 🙋 ラベル（#813）。Project 意図に HITL は含めない。
+    assert.ok(!('HITL' in m));
 });
 
 test('mergeProgressionIntents: not merged -> no intents', () => {
@@ -220,7 +222,7 @@ test('mergeProgressionIntents: already at target Status -> no intents (idempoten
     assert.deepEqual(mergeProgressionIntents({ status: 'Close', kind: 'Issue' }, true), []);
 });
 
-test('applyResult: done sets Status/HITL/Size/Kind and clears AI Status', () => {
+test('applyResult: done sets Status/Size/Kind, clears AI Status, no HITL field (#813)', () => {
     const intents = applyResult({
         issue: 1, phase: 'triage', signal: 'done', summary: 's',
         nextStatus: 'Backlog', nextAiStatus: null, hitl: false, size: 'middle', kind: 'Issue', createdSubIssues: [],
@@ -228,39 +230,48 @@ test('applyResult: done sets Status/HITL/Size/Kind and clears AI Status', () => 
     const m = Object.fromEntries(intents.map(i => [i.field, i.value]));
     assert.equal(m.Status, 'Backlog');
     assert.equal(m['AI Status'], null);
-    assert.equal(m.HITL, 'No');
+    assert.ok(!('HITL' in m)); // HITL は 🙋 ラベルで表現（Project 意図に含めない）
     assert.equal(m.Size, 'middle');
     assert.equal(m.Kind, 'Issue');
 });
 
-test('applyResult: hitl sets HITL=Yes and optional Status', () => {
+test('applyResult: hitl sets optional Status but no HITL field', () => {
     const intents = applyResult({ issue: 1, phase: 'triage', signal: 'hitl', summary: 's', reason: 'r', nextStatus: 'Icebox' });
     const m = Object.fromEntries(intents.map(i => [i.field, i.value]));
-    assert.equal(m.HITL, 'Yes');
+    assert.ok(!('HITL' in m));
     assert.equal(m.Status, 'Icebox');
 });
 
-test('applyResult: error blocks and flags HITL', () => {
+test('applyResult: error blocks (HITL handled via label, not field)', () => {
     const intents = applyResult({ issue: 1, phase: 'triage', signal: 'error', summary: 's', error: 'boom' });
     const m = Object.fromEntries(intents.map(i => [i.field, i.value]));
     assert.equal(m.Status, 'Blocked');
-    assert.equal(m.HITL, 'Yes');
+    assert.ok(!('HITL' in m));
 });
 
-test('isHitlReleased: all signals waiting -> not released', () => {
-    assert.equal(isHitlReleased({ projectField: true, issueLabel: true, prLabel: true }), false);
+test('hitlDesireFromResult: done follows result.hitl; hitl/error -> true', () => {
+    assert.equal(hitlDesireFromResult({ signal: 'done', hitl: true }), true);
+    assert.equal(hitlDesireFromResult({ signal: 'done', hitl: false }), false);
+    assert.equal(hitlDesireFromResult({ signal: 'done' }), false); // missing -> false
+    assert.equal(hitlDesireFromResult({ signal: 'hitl', reason: 'r' }), true);
+    assert.equal(hitlDesireFromResult({ signal: 'error', error: 'boom' }), true);
+    assert.equal(hitlDesireFromResult(null), false);
 });
 
-test('isHitlReleased: any one signal cleared -> released (OR semantics)', () => {
-    assert.equal(isHitlReleased({ projectField: true, issueLabel: true, prLabel: false }), true);
-    assert.equal(isHitlReleased({ projectField: false, issueLabel: true, prLabel: true }), true);
-    assert.equal(isHitlReleased({ projectField: true, issueLabel: false }), true);
+test('isHitlReleased: all label signals waiting -> not released', () => {
+    assert.equal(isHitlReleased({ issueLabel: true, prLabel: true }), false);
+});
+
+test('isHitlReleased: any one label cleared -> released (OR semantics)', () => {
+    assert.equal(isHitlReleased({ issueLabel: true, prLabel: false }), true);
+    assert.equal(isHitlReleased({ issueLabel: false, prLabel: true }), true);
+    assert.equal(isHitlReleased({ issueLabel: false, prLabel: false }), true);
 });
 
 test('isHitlReleased: non-applicable (undefined) signals are ignored', () => {
     // PR が無い（prLabel undefined）ときに誤って released にしない
-    assert.equal(isHitlReleased({ projectField: true, issueLabel: true, prLabel: undefined }), false);
-    assert.equal(isHitlReleased({ projectField: false, prLabel: undefined }), true);
+    assert.equal(isHitlReleased({ issueLabel: true, prLabel: undefined }), false);
+    assert.equal(isHitlReleased({ issueLabel: false, prLabel: undefined }), true);
 });
 
 test('isHitlReleased: no applicable signals -> not released (conservative)', () => {
@@ -283,62 +294,62 @@ test('selectPrSyncCandidates: non-EPIC items in post-PR statuses', () => {
     assert.deepEqual(selectPrSyncCandidates(null), []);
 });
 
-test('desiredDraft: Draft while AI works, Ready when HITL=Yes (human turn)', () => {
-    assert.equal(desiredDraft({ status: 'In Progress', hitl: 'No' }), true);
-    assert.equal(desiredDraft({ status: 'Review', hitl: 'Yes' }), false);
-    assert.equal(desiredDraft({ status: 'In Progress' }), true); // hitl unset -> draft
+test('desiredDraft: Draft while AI works, Ready when 🙋 ラベルあり (human turn)', () => {
+    assert.equal(desiredDraft({ status: 'In Progress', hitlLabel: false }), true);
+    assert.equal(desiredDraft({ status: 'Review', hitlLabel: true }), false);
+    assert.equal(desiredDraft({ status: 'In Progress' }), true); // hitlLabel unset -> draft
 });
 
 test('draftAction: only acts on a diff (idempotent)', () => {
     // currently draft, want draft -> no change
-    assert.equal(draftAction(true, { hitl: 'No' }), null);
-    // currently draft, want ready (HITL=Yes) -> ready
-    assert.equal(draftAction(true, { hitl: 'Yes' }), 'ready');
+    assert.equal(draftAction(true, { hitlLabel: false }), null);
+    // currently draft, want ready (🙋 ラベルあり) -> ready
+    assert.equal(draftAction(true, { hitlLabel: true }), 'ready');
     // currently ready, want draft -> draft
-    assert.equal(draftAction(false, { hitl: 'No' }), 'draft');
+    assert.equal(draftAction(false, { hitlLabel: false }), 'draft');
     // currently ready, want ready -> no change
-    assert.equal(draftAction(false, { hitl: 'Yes' }), null);
+    assert.equal(draftAction(false, { hitlLabel: true }), null);
 });
 
-test('hitlLabelAction: non-Review reconciles toward Project field', () => {
-    assert.equal(hitlLabelAction({ status: 'Blocked', hitl: 'Yes' }, false), 'add');
-    assert.equal(hitlLabelAction({ status: 'Blocked', hitl: 'Yes' }, true), null);
-    assert.equal(hitlLabelAction({ status: 'In Progress', hitl: 'No' }, true), 'remove');
-    assert.equal(hitlLabelAction({ status: 'In Progress', hitl: 'No' }, false), null);
+test('hitlLabelAction: non-Review reconciles toward the Issue canonical (hitlLabel)', () => {
+    assert.equal(hitlLabelAction({ status: 'Blocked', hitlLabel: true }, false), 'add');
+    assert.equal(hitlLabelAction({ status: 'Blocked', hitlLabel: true }, true), null);
+    assert.equal(hitlLabelAction({ status: 'In Progress', hitlLabel: false }, true), 'remove');
+    assert.equal(hitlLabelAction({ status: 'In Progress', hitlLabel: false }, false), null);
 });
 
 test('hitlLabelAction: Review label is human-controlled in steady-state (no re-add)', () => {
-    // field=Yes but label removed by human (release gesture) -> do NOT re-add per-tick
-    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'Yes' }, false), null);
-    // field=No -> still allow removal toward No
-    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'No' }, true), 'remove');
-    // already present + field=Yes -> nothing to do
-    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'Yes' }, true), null);
+    // canonical=Yes but label removed by human (release gesture) -> do NOT re-add per-tick
+    assert.equal(hitlLabelAction({ status: 'Review', hitlLabel: true }, false), null);
+    // canonical=No -> still allow removal toward No
+    assert.equal(hitlLabelAction({ status: 'Review', hitlLabel: false }, true), 'remove');
+    // already present + canonical=Yes -> nothing to do
+    assert.equal(hitlLabelAction({ status: 'Review', hitlLabel: true }, true), null);
 });
 
 test('hitlLabelAction: Review with force (authoritative handoff) sets the label', () => {
     // entering Review at handoff -> force-add the label even though status is Review
-    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'Yes' }, false, { force: true }), 'add');
-    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'No' }, true, { force: true }), 'remove');
+    assert.equal(hitlLabelAction({ status: 'Review', hitlLabel: true }, false, { force: true }), 'add');
+    assert.equal(hitlLabelAction({ status: 'Review', hitlLabel: false }, true, { force: true }), 'remove');
 });
 
 test('labelActions: ensures autopilot label and reconciles HITL label', () => {
-    // missing both labels, HITL=Yes (non-Review) -> add both
-    let d = labelActions({ status: 'Blocked', hitl: 'Yes' }, []);
+    // missing both labels, 🙋 canonical=Yes (non-Review) -> add both
+    let d = labelActions({ status: 'Blocked', hitlLabel: true }, []);
     assert.deepEqual(d.add.sort(), [AUTOPILOT_LABEL, HITL_LABEL].sort());
     assert.deepEqual(d.remove, []);
-    // autopilot present, HITL present but field=No -> remove HITL only
-    d = labelActions({ status: 'In Progress', hitl: 'No' }, [AUTOPILOT_LABEL, HITL_LABEL]);
+    // autopilot present, HITL present but canonical=No -> remove HITL only
+    d = labelActions({ status: 'In Progress', hitlLabel: false }, [AUTOPILOT_LABEL, HITL_LABEL]);
     assert.deepEqual(d.add, []);
     assert.deepEqual(d.remove, [HITL_LABEL]);
-    // Review steady-state with field=Yes, HITL label absent -> leave alone, still ensure autopilot
-    d = labelActions({ status: 'Review', hitl: 'Yes' }, []);
+    // Review steady-state with canonical=Yes, HITL label absent -> leave alone, still ensure autopilot
+    d = labelActions({ status: 'Review', hitlLabel: true }, []);
     assert.deepEqual(d.add, [AUTOPILOT_LABEL]);
     assert.deepEqual(d.remove, []);
 });
 
 test('renderSticky: includes marker and projects Status/AI Status/HITL/Size', () => {
-    const body = renderSticky({ issue: 794, status: 'Review', aiStatus: null, hitl: 'Yes', size: 'small' });
+    const body = renderSticky({ issue: 794, status: 'Review', aiStatus: null, hitlLabel: true, size: 'small' });
     assert.match(body, new RegExp(STICKY_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(body, /Review/);
     assert.match(body, /Yes/);
@@ -348,27 +359,28 @@ test('renderSticky: includes marker and projects Status/AI Status/HITL/Size', ()
 });
 
 test('applyIntentsToItem: applies field intents onto a copy (null clears)', () => {
-    const item = { issue: 1, status: 'In Progress', aiStatus: 'Implementing', hitl: 'No', size: 'small', kind: 'Issue' };
+    const item = { issue: 1, status: 'In Progress', aiStatus: 'Implementing', hitlLabel: false, size: 'small', kind: 'Issue' };
     const out = applyIntentsToItem(item, [
         { field: 'Status', value: 'Review' },
         { field: 'AI Status', value: null },
-        { field: 'HITL', value: 'Yes' },
     ]);
     assert.equal(out.status, 'Review');
     assert.equal(out.aiStatus, null);
-    assert.equal(out.hitl, 'Yes');
+    assert.equal(out.hitlLabel, false); // HITL はラベルなので intent では触らない
     assert.equal(out.size, 'small'); // untouched
     assert.equal(item.status, 'In Progress'); // original not mutated
 });
 
-test('applyIntentsToItem composes with applyResult (review handoff projection)', () => {
-    const item = { issue: 1, status: 'In Progress', aiStatus: 'Self-Reviewing', hitl: 'No', kind: 'Issue' };
-    const out = applyIntentsToItem(item, applyResult({
+test('applyIntentsToItem composes with applyResult + hitlDesireFromResult (review handoff)', () => {
+    const item = { issue: 1, status: 'In Progress', aiStatus: 'Self-Reviewing', hitlLabel: false, kind: 'Issue' };
+    const result = {
         issue: 1, phase: 'review', signal: 'done', summary: 's',
         nextStatus: 'Review', nextAiStatus: null, hitl: true,
-    }));
+    };
+    // daemon は結果から導いた HITL 希望を hitlLabel として item に載せてから投影する（#813）
+    const out = applyIntentsToItem({ ...item, hitlLabel: hitlDesireFromResult(result) }, applyResult(result));
     assert.equal(out.status, 'Review');
-    assert.equal(out.hitl, 'Yes');
+    assert.equal(out.hitlLabel, true);
     assert.equal(desiredDraft(out), false); // -> Ready for review
 });
 
