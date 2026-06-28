@@ -78,8 +78,6 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/lib/blocks.js` | gesture recovery | ジェスチャー復旧ハンドラーのインストール |
 | `src/lib/blocks.js` | comment icon patch import | ScratchCommentIcon パッチモジュールの import |
 | `src/lib/blocks.js` | comment icon patch | ScratchCommentIcon.fireCreateEvent をオーバーライドして create 後に block_comment_change を re-fire (Blockly v12 の create payload に text が含まれない問題のフォロー) |
-| `src/lib/blocks.js` | auto style selected patch import | auto_<hex>_selected スタイル登録パッチの import |
-| `src/lib/blocks.js` | auto style selected patch | ConstantProvider.getBlockStyle をラップして `auto_<hex>_selected` を要求された際に on-the-fly で selected variant を登録 (Mesh sensor value のような defaultExtensionColors を使う shadow ドロップダウンを開くと "Invalid colour" で止まる問題の修正) |
 | `src/playground/index.ejs` | interactive-widget viewport for Android keyboard | meta viewport に `interactive-widget=resizes-content` を追加。Android Chrome 108+ でキーボード出現時に layout viewport が縮み、`100dvh` 等の dvh 系単位が追従するようになる |
 | `src/playground/render-gui.jsx` | URL params for Playwright | URL パラメーター import |
 | `src/playground/render-gui.jsx` | no_beforeunload URL param | beforeunload 無効化 |

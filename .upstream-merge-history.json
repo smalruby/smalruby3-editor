@@ -34,8 +34,8 @@
         },
         {
           "category": "band-aids pending removal",
-          "files": ["packages/scratch-gui/src/lib/scratch-blocks-auto-style-patch.js", "packages/scratch-gui/src/containers/blocks.jsx"],
-          "detail": "auto-style-patch + v2-bridge guards retained until full-modern verified."
+          "files": ["packages/scratch-gui/src/containers/blocks.jsx"],
+          "detail": "blocks.jsx v2-bridge guards (forceRerender try/catch, componentWillUnmount optional-chaining, My Blocks rebuild) retained until full-modern verified. scratch-blocks-auto-style-patch.js was REMOVED once setBlockStyle restored named styles (Step 3)."
         }
       ],
       "nextMergeGuidance": "These files diverge from v13.7.2 by design (deferred re-alignment, #752), NOT lost upstream fixes. Do NOT treat their DIFF in bin/upstream-divergence-audit as a lost-fix regression. See .claude/rules/upstream-tracking.md."
