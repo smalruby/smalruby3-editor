@@ -16,7 +16,8 @@ const { execFileSync } = require('child_process');
 const { setTimeout: sleep } = require('timers/promises');
 const { PHASE_BY_COMMAND, selectActionable, applyResult } = require('./phases');
 const { readResultFile } = require('./contract');
-const { runPhase, killSession } = require('./runner');
+const { runPhase, killSession, capture } = require('./runner');
+const { MONITOR_HTML } = require('./monitor');
 const project = require('./project');
 
 const WORKTREE_BIN = path.join(project.REPO_ROOT, 'bin', 'autopilot-worktree');
@@ -93,6 +94,16 @@ function startHttp(cfg, state, log) {
             res.writeHead(code, { 'content-type': 'application/json' });
             res.end(JSON.stringify(obj));
         };
+        if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
+            res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+            return res.end(MONITOR_HTML);
+        }
+        if (req.method === 'GET' && url.pathname === '/log') {
+            const issue = Number(url.searchParams.get('issue'));
+            const r = state.running.get(issue);
+            res.writeHead(r ? 200 : 404, { 'content-type': 'text/plain; charset=utf-8' });
+            return res.end(r ? capture(r.session) : `#${issue} は実行中ではありません`);
+        }
         if (req.method === 'GET' && url.pathname === '/status') {
             return send(200, {
                 paused: state.paused,
