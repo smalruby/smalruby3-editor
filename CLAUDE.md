@@ -41,9 +41,59 @@ The `ruby/` directory contains the smalruby3 Ruby gem and its native dependencie
 - **Development builds**: Always use `build:dev` for development builds, never the default `build` command.
 - **Test runner**: Tests in `scratch-gui` use `jest` (not `tap`). Do not confuse test runners or their assertion APIs (e.g., use `expect().toEqual()` not `t.deepEqual()`). Only `scratch-vm` uses `tap`.
 
-## Docker Environment
+## Development Environment
 
-**CRITICAL**: All npm commands MUST be run inside Docker containers. Never run npm commands directly on the host.
+**この開発は devpod / devcontainer の中で行うのが基本** です（詳細・運用は `.claude/rules/devpod-workflow.md`）。
+**コンテナの中にいる場合（= 既定。Claude Code もコンテナ内で動く）は、npm コマンドを `docker compose run --rm app` や `bin/dx` で包まず、そのまま直接実行する**:
+
+```bash
+# コンテナ内（devpod）— これが既定の実行方法
+npm run lint
+cd packages/scratch-vm && npm exec tap -- test/unit/specific-file.js --disable-coverage
+cd packages/scratch-gui && npm exec jest test/unit/specific-file.test.js
+```
+
+### 自分がコンテナ内かホストかを判定する（最初に必ず確認）
+
+実行方法を選ぶ前に、**まず今いる場所を判定する**。次のワンライナーで分岐できる:
+
+```bash
+if [ -f /.dockerenv ] || [ -n "$DEVPOD" ]; then
+  echo "INSIDE container → npm コマンドは直接実行（docker compose / bin/dx を付けない）"
+  # 例: npm run lint
+  #     cd packages/scratch-vm && npm exec tap -- test/unit/specific-file.js --disable-coverage
+  #     cd packages/scratch-gui && npm exec jest test/unit/specific-file.test.js
+else
+  echo "ON host → docker compose run --rm app / bin/dx 経由で実行（または devpod ssh で入る）"
+  # 例: docker compose run --rm app npm run lint
+fi
+```
+
+判定シグナル（コンテナ内での実測値）:
+
+| シグナル | コンテナ内 | ホスト | 備考 |
+|---|---|---|---|
+| `[ -f /.dockerenv ]` | 存在する | 無い | 最も確実な普遍マーカー |
+| `$DEVPOD` | `true` | 未設定 | devpod が注入。最も明確 |
+| `$REMOTE_CONTAINERS` | `true` | 未設定 | devcontainer が設定 |
+| `pwd` | `/app` 配下 | `/Users/.../smalruby3-editor` | cd で変わるので補助のみ |
+| `command -v docker` | **無い** | あり | ⚠️ **「docker が無い＝テスト不可」ではない**。docker が無いのは「コンテナ内にいる」証拠であり、npm を直接実行すればよい |
+
+> ⚠️ **よくある誤認（再発防止）**: コンテナ内では `docker` コマンドが無い。これを見て
+> 「環境が壊れている / テストを実行できない」と早合点しないこと。`/.dockerenv` か `$DEVPOD`
+> があれば**コンテナ内**であり、`npm run lint` 等を**ラッパー無しで直接実行できる**。
+
+> **読み替え規約**: 本ドキュメント（および `.claude/rules/`）の例で `docker compose run --rm app <CMD>`
+> や `bin/dx bash -c "<CMD>"` と書かれていても、**コンテナ内では先頭のラッパーを外して `<CMD>` を直接実行する**。
+> ラッパー付きの形は、devpod を使わず**ホストから docker compose で動かす旧ワークフロー**向けの等価表現。
+>
+> 注意点:
+> - tap のカバレッジ無効化フラグは `--disable-coverage`（`--no-coverage` は不可）。`--` の後ろに置く。
+> - `npm test` / `test:unit` / `test:integration` はファイル引数を取らない。個別ファイルは上記のように `npm exec` を使う。
+
+### Docker (legacy / host) — devpod を使わない場合のみ
+
+以下の `docker compose` / `bin/dx` は **ホストから動かす旧ワークフロー** の手順。devpod 内では不要。
 
 ### Docker Service
 
@@ -80,6 +130,9 @@ bin/dx bash -c "cd packages/scratch-gui && npm exec jest test/unit/your-test.tes
 `docker compose run` is still preferred when you need the full setup (port mapping, container reuse, etc.). Use `bin/dx` for one-shot commands where startup speed matters.
 
 ## Development Commands
+
+> 以下の例は `docker compose run --rm app` 付きで書いてあるが、**devpod コンテナ内では先頭ラッパーを外して直接実行する**
+> （上記「読み替え規約」を参照）。例: `docker compose run --rm app npm run lint` → `npm run lint`。
 
 ### Installation
 
