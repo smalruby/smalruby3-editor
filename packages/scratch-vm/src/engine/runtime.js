@@ -520,6 +520,10 @@ class Runtime extends EventEmitter {
         return 'PROJECT_STOP_ALL';
     }
 
+    // === Smalruby: Start of BEFORE_STEP event ===
+    // Upstream v13.7.2 removed BEFORE_STEP, but Smalruby's Mesh v2 extension
+    // depends on it (broadcast-receiver.js / mesh-service.js subscribe to it to
+    // drain queued remote events once per frame). Keep it as a Smalruby event.
     /**
      * Event name for when a frame step is about to begin.
      * @constant {string}
@@ -527,6 +531,7 @@ class Runtime extends EventEmitter {
     static get BEFORE_STEP () {
         return 'BEFORE_STEP';
     }
+    // === Smalruby: End of BEFORE_STEP event ===
 
     /**
      * Event name for target being stopped by a stop for target call.
@@ -687,6 +692,10 @@ class Runtime extends EventEmitter {
      */
     static get MIC_LISTENING () {
         return 'MIC_LISTENING';
+    }
+
+    static get EXTENSION_DATA_LOADING () {
+        return 'EXTENSION_DATA_LOADING';
     }
 
     /**
@@ -1602,6 +1611,10 @@ class Runtime extends EventEmitter {
         this.emit(Runtime.MIC_LISTENING, listening);
     }
 
+    emitExtensionLoading (loading) {
+        this.emit(Runtime.EXTENSION_DATA_LOADING, loading);
+    }
+
     /**
      * Retrieve the function associated with the given opcode.
      * @param {!string} opcode The opcode to look up.
@@ -2158,7 +2171,10 @@ class Runtime extends EventEmitter {
             this.profiler.start(stepProfilerId);
         }
 
+        // === Smalruby: Start of BEFORE_STEP event ===
+        // Mesh v2 listens to this to drain queued remote events once per frame.
         this.emit(Runtime.BEFORE_STEP);
+        // === Smalruby: End of BEFORE_STEP event ===
 
         // Clean up threads that were told to stop during or since the last step
         this.threads = this.threads.filter(thread => !thread.isKilled);
