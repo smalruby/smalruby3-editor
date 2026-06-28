@@ -184,7 +184,9 @@ function evaluate(state, cfg) {
 
 const DEFAULT_WATCHDOG = {
     tReadyMs: 60_000,
-    tIdleMs: 120_000,
+    // claude の思考/実行は数分に及ぶ。busy 検知（runner の BUSY_RE）が主防御で、
+    // これは pane が完全停止した場合の保険なので長め（10 分）にする。
+    tIdleMs: 600_000,
     tMaxMs: 1_800_000,
     maxRestarts: 2,
     pollMs: 3_000,
