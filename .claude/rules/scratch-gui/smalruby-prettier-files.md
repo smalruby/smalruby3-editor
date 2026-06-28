@@ -126,6 +126,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/insert-class.js`
 - `src/lib/join-code-history.js`
 - `src/lib/koshien-connection.js`
+- `src/lib/koshien-test-url.js`
 - `src/lib/log-suppression.js`
 - `src/lib/mesh-v2-classroom-binding.jsx`
 - `src/lib/mesh-v2-sensor-collision.js`
@@ -274,6 +275,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/insert-class.test.js`
 - `test/unit/lib/join-code-history.test.js`
 - `test/unit/lib/koshien-connection.test.js`
+- `test/unit/lib/koshien-test-url.test.js`
 - `test/unit/lib/layout-constants.test.js`
 - `test/unit/lib/legacy-storage.test.js`
 - `test/unit/lib/mesh-v2-classroom-binding.test.js`
