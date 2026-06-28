@@ -11,6 +11,7 @@
 
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { setTimeout: sleep } = require('timers/promises');
@@ -34,7 +35,16 @@ async function dispatch(item, cfg, state, log) {
     if (!meta) return;
     const session = `autopilot-${phase}-${item.issue}`;
     state.running.set(item.issue, { phase, session, since: cfg.now() });
+    const ctx = { projectId: cfg.projectId, fields: cfg.fields };
+    const itemId = item.itemId || project.findItemId(cfg.owner, cfg.project, item.issue, project.botToken());
+    const mark = (field, value) => {
+        try { project.setField(ctx, itemId, field, value, project.botToken()); }
+        catch (e) { log(`#${item.issue}: mark ${field} failed: ${e.message}`); }
+    };
     try {
+        // 着手を即可視化（Issue を状態の正に）: In Progress + AI Status=xxxing
+        mark('Status', 'In Progress');
+        mark('AI Status', meta.aiStatus);
         const cwd = ensureWorktree(item.issue);
         const resultDir = path.join(cwd, 'tmp');
         fs.mkdirSync(resultDir, { recursive: true });
@@ -50,19 +60,20 @@ async function dispatch(item, cfg, state, log) {
         const res = await runPhase({ session, cwd, env, skill: meta.skill, issue: item.issue, resultFile, log });
         if (!res.ok) {
             log(`#${item.issue}: runner failed (${res.reason})`);
+            mark('Status', 'Blocked'); mark('HITL', 'Yes');
             return;
         }
         const parsed = readResultFile(resultFile);
         if (!parsed.ok) {
             log(`#${item.issue}: invalid result (${parsed.errors.join('; ')})`);
+            mark('Status', 'Blocked'); mark('HITL', 'Yes');
             return;
         }
-        const token = project.botToken();
-        const itemId = item.itemId || project.findItemId(cfg.owner, cfg.project, item.issue, token);
-        const applied = project.applyIntents({ projectId: cfg.projectId, fields: cfg.fields }, itemId, applyResult(parsed.result), token);
+        const applied = project.applyIntents(ctx, itemId, applyResult(parsed.result), project.botToken());
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
     } catch (e) {
         log(`#${item.issue}: error ${e.message}`);
+        mark('Status', 'Blocked'); mark('HITL', 'Yes');
     } finally {
         state.running.delete(item.issue);
     }
@@ -129,10 +140,22 @@ function startHttp(cfg, state, log) {
             log(`injected #${issue} (${phase})`);
             return send(202, { injected: issue, phase });
         }
+        if (req.method === 'POST' && url.pathname === '/shutdown') {
+            // 安全停止: pkill -f は自己 kill するため使わず、この HTTP か PID ファイルで止める
+            log('shutdown requested');
+            send(200, { shutdown: true });
+            setTimeout(() => process.exit(0), 100);
+            return;
+        }
         send(404, { error: 'not found' });
     });
     server.listen(cfg.port, () => log(`control server on :${cfg.port}`));
     return server;
+}
+
+/** PID ファイルのパス（停止スクリプトが参照） */
+function pidFilePath() {
+    return path.join(os.tmpdir(), 'autopilot-daemon.pid');
 }
 
 /** デーモン起動 */
@@ -145,15 +168,24 @@ async function main(opts = {}) {
         project: opts.project || 4,
         repo: opts.repo || 'smalruby/smalruby3-editor',
         concurrency: opts.concurrency || 2,
-        intervalMs: opts.intervalMs || 15_000,
+        // 既定 5 分（単位は秒で CLI 指定 → ms）。実運用で 20 秒等の高頻度ポーリングは API を無駄に叩く。
+        intervalMs: opts.intervalMs || 300_000,
         port: opts.port || 8787,
         projectId: proj.id,
         fields: project.getFields(opts.owner || 'smalruby', opts.project || 4, token),
         now: () => Date.now(),
     };
     const state = { paused: false, running: new Map() };
+    // PID ファイルを書き、安全停止（kill "$(cat <pidfile>)" / POST /shutdown）を可能にする
+    try {
+        fs.writeFileSync(pidFilePath(), String(process.pid));
+        const cleanup = () => { try { fs.rmSync(pidFilePath(), { force: true }); } catch { /* noop */ } };
+        process.on('exit', cleanup);
+        process.on('SIGTERM', () => process.exit(0));
+        process.on('SIGINT', () => process.exit(0));
+    } catch (e) { log(`pid file warn: ${e.message}`); }
     startHttp(cfg, state, log);
-    log(`daemon up: project #${cfg.project}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms`);
+    log(`daemon up: project #${cfg.project}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms, pid ${process.pid} (${pidFilePath()})`);
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
         await tick(cfg, state, log);
