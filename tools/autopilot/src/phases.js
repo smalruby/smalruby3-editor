@@ -222,8 +222,39 @@ function selectActionable(items, opts = {}) {
 const AUTOPILOT_LABEL = '🤖 autopilot';
 /** 人間の対応待ちを示すラベル（Project HITL=Yes を投影） */
 const HITL_LABEL = '🙋 HITL';
-/** sticky ステータスコメントの識別マーカー（bot が1コメントを upsert し続ける目印） */
-const STICKY_MARKER = '<!-- autopilot:sticky -->';
+/**
+ * sticky ステータスコメントの識別マーカー（bot が1コメントを upsert し続ける目印）。
+ * コントラクト `docs/autopilot/autonomous-contract.md` §2/§7 が規定する正準マーカー。
+ */
+const STICKY_MARKER = '<!-- autopilot-sticky-status -->';
+/**
+ * 過去の実装（daemon #794 の PR 同期）が使っていた旧マーカー。
+ * 検出時は正準マーカーへ集約するため、引き続きマッチ対象に含める（#809）。
+ */
+const LEGACY_STICKY_MARKERS = ['<!-- autopilot:sticky -->'];
+/** 検出に使う全マーカー（正準 + 旧）。upsert はこのいずれかにマッチした既存コメントを吸収する。 */
+const STICKY_MARKERS = [STICKY_MARKER, ...LEGACY_STICKY_MARKERS];
+
+/**
+ * コメント本文が sticky ステータスコメントか判定する（純粋関数）。
+ * 正準・旧いずれのマーカーにもマッチする（#809: マーカー不一致による重複投稿の防止）。
+ * @param {string} body コメント本文
+ * @returns {boolean}
+ */
+function isStickyComment(body) {
+    if (!body) return false;
+    return STICKY_MARKERS.some((m) => body.includes(m));
+}
+
+/**
+ * コメント一覧から sticky ステータスコメントの id を抽出する（純粋関数）。
+ * 返る順序は入力順。先頭を残して残りは重複として集約する想定（upsert 側で処理）。
+ * @param {Array<{id: *, body: string}>} comments
+ * @returns {Array<*>} マッチしたコメントの id 配列
+ */
+function selectStickyCommentIds(comments) {
+    return (comments || []).filter((c) => c && isStickyComment(c.body)).map((c) => c.id);
+}
 
 /**
  * PR 投影を行う対象 Status（= 連携 PR が存在しうる post-PR ステータス）。
@@ -447,6 +478,10 @@ module.exports = {
     AUTOPILOT_LABEL,
     HITL_LABEL,
     STICKY_MARKER,
+    LEGACY_STICKY_MARKERS,
+    STICKY_MARKERS,
+    isStickyComment,
+    selectStickyCommentIds,
     PR_SYNC_STATUSES,
     selectPrSyncCandidates,
     desiredDraft,

@@ -19,7 +19,7 @@ function makeProjectionDeps({ prByIssue = {}, prInfo = {}, issueLabels = {} } = 
         getIssueLabels: (repo, issue) => issueLabels[issue] || [],
         editLabels: (repo, number, type, diff) => calls.editLabels.push({ number, type, ...diff }),
         setPrDraft: (repo, prNumber, action) => calls.setPrDraft.push({ prNumber, action }),
-        upsertStickyComment: (repo, prNumber, body) => calls.sticky.push({ prNumber, hasMarker: /autopilot:sticky/.test(body) }),
+        upsertStickyComment: (repo, prNumber, body) => calls.sticky.push({ prNumber, hasMarker: /autopilot-sticky-status/.test(body) }),
     };
 }
 
