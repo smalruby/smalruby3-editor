@@ -176,7 +176,10 @@ function phaseForItem(item, ctx = {}) {
     if (status === 'Sprint Backlog') {
         return item.kind === 'EPIC' ? 'decompose' : 'implement';
     }
-    // In Progress は実行中の run が所有。DoD/Close 等は人間駆動。
+    // In Progress で AI Status=Self-Reviewing は implement 完了直後の状態（#805）。
+    // daemon が autopilot-review（敵対的レビュー）を自動ディスパッチして人間レビュー待ちまで進める。
+    // それ以外の In Progress は実行中の run が所有する。DoD/Close 等は人間駆動。
+    if (status === 'In Progress' && item.aiStatus === 'Self-Reviewing') return 'review';
     return null;
 }
 
