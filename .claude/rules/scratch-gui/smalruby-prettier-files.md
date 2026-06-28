@@ -24,6 +24,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/components/blocks-screenshot-button/`
 - `src/components/google-drive-save-dialog/`
 - `src/components/koshien-test-modal/`
+- `src/components/koshien-settings-modal/`
 - `src/components/mesh-self-sensor-notice/`
 - `src/components/mobile-bottom-tabs/`
 - `src/components/mobile-drawer/`
@@ -124,6 +125,7 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/google-script-loader.js`
 - `src/lib/insert-class.js`
 - `src/lib/join-code-history.js`
+- `src/lib/koshien-connection.js`
 - `src/lib/log-suppression.js`
 - `src/lib/mesh-v2-classroom-binding.jsx`
 - `src/lib/mesh-v2-sensor-collision.js`
@@ -217,6 +219,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/integration/workspace-glow-regression.test.js`
 - `test/unit/components/action-menu.test.jsx`
 - `test/unit/components/bug-report-consent.test.jsx`
+- `test/unit/components/koshien-settings-modal.test.jsx`
 - `test/unit/components/dncl-mode-notice.test.jsx`
 - `test/unit/components/extension-button-dncl.test.jsx`
 - `test/unit/components/connected-step.test.jsx`
@@ -270,6 +273,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/lib/use-is-narrow-screen.test.js`
 - `test/unit/lib/insert-class.test.js`
 - `test/unit/lib/join-code-history.test.js`
+- `test/unit/lib/koshien-connection.test.js`
 - `test/unit/lib/layout-constants.test.js`
 - `test/unit/lib/legacy-storage.test.js`
 - `test/unit/lib/mesh-v2-classroom-binding.test.js`

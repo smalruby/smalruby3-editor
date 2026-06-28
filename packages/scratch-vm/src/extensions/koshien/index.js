@@ -2,6 +2,7 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
+const RemoteClient = require('./remote-client.js');
 const mapUtils = require('./map-utils');
 
 /**
@@ -650,7 +651,21 @@ class KoshienBlocks {
             formatMessage = runtime.formatMessage;
         }
 
-        this._client = new MockClient(this.runtime, KoshienBlocks.EXTENSION_ID);
+        // Backends: the fixed-value MockClient is always available so an AI can be
+        // built/run offline. When a real game server endpoint is configured
+        // (the GUI/connection flow supplies it via runtime.getKoshienRemoteOptions),
+        // a RemoteClient is also created and used while connected; if the connection
+        // fails the extension falls back to the MockClient ("つながなくても作れる").
+        this._mockClient = new MockClient(this.runtime, KoshienBlocks.EXTENSION_ID);
+        const remoteOptions =
+            runtime && typeof runtime.getKoshienRemoteOptions === 'function'
+                ? runtime.getKoshienRemoteOptions()
+                : null;
+        this._remoteClient =
+            remoteOptions && remoteOptions.endpoint
+                ? new RemoteClient(this.runtime, KoshienBlocks.EXTENSION_ID, remoteOptions)
+                : null;
+        this._client = this._remoteClient || this._mockClient;
 
         // Reset the mock world back to its initial state at the natural "new
         // game" moments, so a teacher can demonstrate the blocks, then start
@@ -658,11 +673,19 @@ class KoshienBlocks {
         //   - green flag (PROJECT_START): re-run the AI from the beginning
         //   - stop (PROJECT_STOP_ALL): leave a clean slate for the next run
         // (connect_game also resets, see MockClient.connect.)
+        // No-op once connected to a real game server (RemoteClient has no reset).
         this._resetMockWorld = this._resetMockWorld.bind(this);
         if (this.runtime && typeof this.runtime.on === 'function') {
             this.runtime.on('PROJECT_START', this._resetMockWorld);
             this.runtime.on('PROJECT_STOP_ALL', this._resetMockWorld);
         }
+    }
+
+    /**
+     * Fall back to the offline MockClient (e.g. when the server is unreachable).
+     */
+    _fallbackToMock () {
+        this._client = this._mockClient;
     }
 
     /**
@@ -1049,8 +1072,22 @@ class KoshienBlocks {
             return false;
         }
 
-        this._client.connect(args.NAME);
-        return true;
+        // Offline (mock) backend: connect synchronously with fixed state.
+        if (this._client !== this._remoteClient) {
+            this._client.connect(args.NAME);
+            return true;
+        }
+
+        // Remote backend: attempt a real connection to the game server.
+        // If it fails (server unreachable / CORS / error), fall back to the
+        // offline MockClient so the AI keeps returning sensible fixed values.
+        return Promise.resolve(this._remoteClient.connectGame(args.NAME))
+            .then(() => true)
+            .catch(() => {
+                this._fallbackToMock();
+                this._mockClient.connect(args.NAME);
+                return true;
+            });
     }
 
     /**
@@ -1131,9 +1168,10 @@ class KoshienBlocks {
      * get map information around position
      * @param {object} args - the block's arguments.
      * @param {string} args.POSITION - position
+     * @returns {(Promise|undefined)} - resolves when fetched (remote); undefined for mock.
      */
     getMapArea (args) {
-        this._client.getMapArea(args.POSITION);
+        return this._client.getMapArea(args.POSITION);
     }
 
     /**
@@ -1191,9 +1229,10 @@ class KoshienBlocks {
      * @param {object} args - the block's arguments.
      * @param {string} args.ITEM - item.
      * @param {string} args.POSITION - position.
+     * @returns {(Promise|undefined)} - resolves when placed (remote); undefined for mock.
      */
     setItem (args) {
-        this._client.setItem(args.ITEM, args.POSITION);
+        return this._client.setItem(args.ITEM, args.POSITION);
     }
 
     /**
@@ -1248,9 +1287,10 @@ class KoshienBlocks {
 
     /**
      * turn over
+     * @returns {(Promise|undefined)} - resolves on next turn (remote); undefined for mock.
      */
     turnOver () {
-        this._client.turnOver();
+        return this._client.turnOver();
     }
 
     /**

@@ -7,6 +7,9 @@ import VM from '@smalruby/scratch-vm';
 import AudioEngine from 'scratch-audio';
 
 import {setProjectUnchanged} from '../reducers/project-changed';
+// === Smalruby: Start of koshien remote options wiring ===
+import {wireKoshienRemoteOptions} from './koshien-connection';
+// === Smalruby: End of koshien remote options wiring ===
 import {
     LoadingStates,
     getIsLoadingWithId,
@@ -34,6 +37,10 @@ const vmManagerHOC = function (WrappedComponent) {
                 this.props.vm.setCompatibilityMode(true);
                 this.props.vm.initialized = true;
                 this.props.vm.setLocale(this.props.locale, this.props.messages);
+                // === Smalruby: Start of koshien remote options wiring ===
+                // 甲子園拡張機能が runtime から接続設定を読めるよう getter を差し込む。
+                wireKoshienRemoteOptions(this.props.vm);
+                // === Smalruby: End of koshien remote options wiring ===
             }
             if (!this.props.isPlayerOnly && !this.props.isStarted) {
                 this.props.vm.start();

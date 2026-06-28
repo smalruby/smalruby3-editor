@@ -58,6 +58,7 @@ import WelcomeModalHOC from '../../containers/welcome-modal-hoc.jsx';
 // === Smalruby: End of welcome modal ===
 import URLLoaderModal from '../url-loader-modal/url-loader-modal.jsx';
 import KoshienTestModal from '../koshien-test-modal/koshien-test-modal.jsx';
+import KoshienSettingsModal from '../koshien-settings-modal/koshien-settings-modal.jsx';
 import RubyTab from '../../containers/ruby-tab.jsx';
 
 import layout, {STAGE_DISPLAY_SIZES, STAGE_SIZE_MODES} from '../../lib/layout-constants';
@@ -211,6 +212,7 @@ const GUIComponent = props => {
         isTelemetryEnabled,
         isTotallyNormal,
         koshienTestModalVisible,
+        koshienSettingsModalVisible,
         loading,
         logo,
         manuallySaveThumbnails,
@@ -242,6 +244,7 @@ const GUIComponent = props => {
         onRequestCloseCostumeLibrary,
         onRequestCloseDebugModal,
         onRequestCloseKoshienTestModal,
+        onRequestCloseKoshienSettingsModal,
         onRequestCloseTelemetryModal,
         onRequestCloseTipsLibrary,
         onRequestCloseUrlLoaderModal,
@@ -384,6 +387,12 @@ const GUIComponent = props => {
                         onRequestClose={onRequestCloseKoshienTestModal}
                     />
                 ) : null}
+                {koshienSettingsModalVisible ? (
+                    <KoshienSettingsModal
+                        vm={vm}
+                        onRequestClose={onRequestCloseKoshienSettingsModal}
+                    />
+                ) : null}
             </StageWrapper>
         ) : (
             <ModalFocusProvider>
@@ -412,6 +421,12 @@ const GUIComponent = props => {
                     {koshienTestModalVisible ? (
                         <KoshienTestModal
                             onRequestClose={onRequestCloseKoshienTestModal}
+                        />
+                    ) : null}
+                    {koshienSettingsModalVisible ? (
+                        <KoshienSettingsModal
+                            vm={vm}
+                            onRequestClose={onRequestCloseKoshienSettingsModal}
                         />
                     ) : null}
                     {loading ? (
@@ -876,6 +891,7 @@ GUIComponent.propTypes = {
     isShared: PropTypes.bool,
     isTotallyNormal: PropTypes.bool,
     koshienTestModalVisible: PropTypes.bool,
+    koshienSettingsModalVisible: PropTypes.bool,
     loading: PropTypes.bool,
     logo: PropTypes.string,
     manuallySaveThumbnails: PropTypes.bool,
@@ -900,6 +916,7 @@ GUIComponent.propTypes = {
     onRequestCloseCostumeLibrary: PropTypes.func,
     onRequestCloseDebugModal: PropTypes.func,
     onRequestCloseKoshienTestModal: PropTypes.func,
+    onRequestCloseKoshienSettingsModal: PropTypes.func,
     onRequestCloseTelemetryModal: PropTypes.func,
     onRequestCloseTipsLibrary: PropTypes.func,
     onRequestCloseUrlLoaderModal: PropTypes.func,

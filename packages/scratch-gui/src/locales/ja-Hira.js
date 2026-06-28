@@ -278,6 +278,9 @@ export default {
     'gui.menuBar.saveAIAs': 'AIになまえをつけてほぞん...',
     'gui.menuBar.testAI': 'AIをためす',
     'gui.menuBar.koshienEntryForm': 'さんかもうしこみ',
+    'gui.menuBar.koshienSettings': 'せつぞくせってい',
+    'gui.menuBar.koshienCannotChangeRubyVersion':
+        'スモウルビーこうしえんかくちょうきのうがよみこまれているときは、Rubyのバージョンをへんこうできません。',
     'gui.menuBar.aiSaving': 'ルビーをほぞんちゅう...',
     'gui.menuBar.aiSaved': 'ルビーがほぞんされました。',
     'gui.smalruby3.alerts.rubyVersionChangeFailed':
@@ -290,6 +293,13 @@ export default {
         '「<b>サムネイルをほぞん</b>」がここにいどうしました。ステージのスナップショットをとって、プロジェクトのサムネイルとしてせっていできます。',
 
     'gui.koshienTestModal.title': 'スモウルビーこうしえんのAIをためす',
+    'gui.koshienSettingsModal.title': 'こうしえんのせつぞくせってい',
+    'gui.koshienSettingsModal.endpoint': 'ゲームサーバーのURL',
+    'gui.koshienSettingsModal.side': 'プレイヤーのがわ',
+    'gui.koshienSettingsModal.gameCode': 'ゲームコード',
+    'gui.koshienSettingsModal.test': 'せつぞくをテスト',
+    'gui.koshienSettingsModal.save': 'ほぞん',
+    'gui.koshienSettingsModal.testing': 'テストちゅう...',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトのよみこみにしっぱいしました。',
     'gui.googleDriveLoader.authError': 'Google ドライブのにんしょうにしっぱいしました。もういちどおためしください。',
     'gui.googleDriveLoader.configError':
