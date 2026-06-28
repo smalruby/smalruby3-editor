@@ -168,6 +168,19 @@ PR を見ただけで連携 Issue の状態が分かるよう、**daemon が PR 
 - スキルは PR を作るとき **Draft で作成**し、HITL に渡すフェーズ末で **Ready + `🙋 HITL`** を要求する
   （実際のラベル付与・Draft 切替・sticky 更新は daemon が結果ファイルの意図を見て行う）。
 
+### HITL の解除は OR セマンティクス（人間は1つ外すだけでよい）
+
+HITL は複数面（Project の HITL フィールド / Issue の `🙋 HITL` ラベル / PR の `🙋 HITL` ラベル）に
+投影されるが、人間が**全部**を No にするのは二重管理で大変。そこで:
+
+- **set（人間に渡す）**: daemon が**全面を一括 Yes**にして整合を保つ（atomic）。
+- **release（AI に戻す）**: 適用される signal の**いずれか1つでも No/除去**されたら autopilot は
+  処理を進める（= `tools/autopilot/src/phases.js` の `isHitlReleased` の OR 判定）。その後 daemon が
+  残りの面も No に正規化する。
+
+→ 人間はレビュー中に**目の前の PR の `🙋 HITL` ラベルを外すだけ**（または Project の HITL を No に
+するだけ）で autopilot に差し戻せる。PR の無い段階（triage/decompose 等）では PR ラベルは非適用。
+
 ---
 
 ## 8. スキル実装のチェックリスト

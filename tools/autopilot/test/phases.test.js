@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { PHASE_BY_COMMAND, applyResult, evaluate, DEFAULT_WATCHDOG } = require('../src/phases');
+const { PHASE_BY_COMMAND, applyResult, isHitlReleased, evaluate, DEFAULT_WATCHDOG } = require('../src/phases');
 
 test('PHASE_BY_COMMAND maps triage to the skill and AI status', () => {
     assert.deepEqual(PHASE_BY_COMMAND.triage, { skill: 'autopilot-triage', aiStatus: 'Triaging' });
@@ -33,6 +33,26 @@ test('applyResult: error blocks and flags HITL', () => {
     const m = Object.fromEntries(intents.map(i => [i.field, i.value]));
     assert.equal(m.Status, 'Blocked');
     assert.equal(m.HITL, 'Yes');
+});
+
+test('isHitlReleased: all signals waiting -> not released', () => {
+    assert.equal(isHitlReleased({ projectField: true, issueLabel: true, prLabel: true }), false);
+});
+
+test('isHitlReleased: any one signal cleared -> released (OR semantics)', () => {
+    assert.equal(isHitlReleased({ projectField: true, issueLabel: true, prLabel: false }), true);
+    assert.equal(isHitlReleased({ projectField: false, issueLabel: true, prLabel: true }), true);
+    assert.equal(isHitlReleased({ projectField: true, issueLabel: false }), true);
+});
+
+test('isHitlReleased: non-applicable (undefined) signals are ignored', () => {
+    // PR が無い（prLabel undefined）ときに誤って released にしない
+    assert.equal(isHitlReleased({ projectField: true, issueLabel: true, prLabel: undefined }), false);
+    assert.equal(isHitlReleased({ projectField: false, prLabel: undefined }), true);
+});
+
+test('isHitlReleased: no applicable signals -> not released (conservative)', () => {
+    assert.equal(isHitlReleased({}), false);
 });
 
 const cfg = { ...DEFAULT_WATCHDOG };

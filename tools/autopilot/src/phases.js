@@ -45,6 +45,27 @@ function applyResult(result) {
 }
 
 /**
+ * HITL の解除判定（OR セマンティクス）。
+ *
+ * HITL は複数面に投影される（Project の HITL フィールド / Issue の `🙋 HITL` ラベル /
+ * PR の `🙋 HITL` ラベル）。人間がそれら全部を No にするのは二重管理で大変なので、
+ * **適用される signal のいずれか1つでも No（解除）になったら処理を進める**。
+ * 逆に「人間に渡す（set）」ときは daemon が全面を一括 Yes にして整合を保つ。
+ *
+ * @param {object} signals 各面の "まだ人間待ちか"。true=待ち / false=解除 / undefined=非適用
+ * @param {boolean} [signals.projectField] Project HITL フィールド（Yes→true / No→false）
+ * @param {boolean} [signals.issueLabel] Issue に HITL ラベルが付いているか
+ * @param {boolean} [signals.prLabel] PR に HITL ラベルが付いているか（PR 無しは undefined）
+ * @returns {boolean} 解除されたら true（autopilot は処理を進める）
+ */
+function isHitlReleased(signals) {
+    const applicable = [signals.projectField, signals.issueLabel, signals.prLabel].filter(
+        (v) => v !== undefined,
+    );
+    return applicable.some((v) => v === false);
+}
+
+/**
  * watchdog の状態を評価して次アクションを返す（純粋関数）。
  * 完了の権威は「結果ファイルの存在」。それ以外はタイマーで stuck を処理する。
  * @param {object} state
@@ -100,4 +121,4 @@ const DEFAULT_WATCHDOG = {
     pollMs: 3_000,
 };
 
-module.exports = { PHASE_BY_COMMAND, applyResult, evaluate, DEFAULT_WATCHDOG };
+module.exports = { PHASE_BY_COMMAND, applyResult, isHitlReleased, evaluate, DEFAULT_WATCHDOG };
