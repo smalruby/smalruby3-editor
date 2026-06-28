@@ -102,6 +102,91 @@ function setField(ctx, itemId, fieldName, value, token) {
 }
 
 /**
+ * bot の GraphQL author login（= App slug。コメント作者の human/bot 判定に使う）。
+ * `bin/bot-token --bot-email` は "<slug>[bot]\t<id>+<slug>[bot]@..." を返すので slug を取り出す。
+ * @returns {string}
+ */
+function botLogin() {
+    const out = execFileSync(BOT_TOKEN_BIN, ['--bot-email'], { encoding: 'utf8' }).trim();
+    const name = (out.split(/\s+/)[0] || '').trim();
+    return name.replace(/\[bot\]$/, '');
+}
+
+/**
+ * Issue にひも付く open PR を返す（implement が PR 本文に `Closes #N` を書く規約）。
+ * @returns {{number:number, labels:Array<{name:string}>}|null} 無ければ null
+ */
+function findPrForIssue(repo, issueNumber, token) {
+    const out = gh(
+        ['pr', 'list', '--repo', repo, '--search', `Closes #${issueNumber} in:body`,
+            '--state', 'open', '--json', 'number,labels', '--limit', '1'],
+        { token },
+    );
+    const prs = JSON.parse(out);
+    return prs.length ? prs[0] : null;
+}
+
+/**
+ * PR のレビュー状態を reviewPhase 用に正規化して返す。
+ * - approved: GitHub の集約判定 reviewDecision === 'APPROVED'
+ * - changesRequested: reviewDecision === 'CHANGES_REQUESTED'
+ * - unresolvedHumanComments: 人間が立てた未解決レビュースレッド数（bot は除外）
+ * @returns {{approved:boolean, changesRequested:boolean, unresolvedHumanComments:number}}
+ */
+function getPrReviewState(repo, prNumber, token) {
+    const [owner, name] = repo.split('/');
+    const query = `query($owner:String!,$name:String!,$pr:Int!){
+      repository(owner:$owner,name:$name){
+        pullRequest(number:$pr){
+          reviewDecision
+          reviewThreads(first:100){nodes{isResolved comments(first:1){nodes{author{login}}}}}
+        }
+      }
+    }`;
+    const out = gh(
+        ['api', 'graphql', '-f', `query=${query}`,
+            '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `pr=${prNumber}`],
+        { token },
+    );
+    const pr = JSON.parse(out).data.repository.pullRequest;
+    const bot = botLogin();
+    const isHuman = (login) => Boolean(login) && login !== bot && !login.endsWith('[bot]');
+    const threads = (pr.reviewThreads && pr.reviewThreads.nodes) || [];
+    const unresolvedHumanComments = threads.filter(
+        (t) => !t.isResolved && (t.comments.nodes || []).some((c) => isHuman(c.author && c.author.login)),
+    ).length;
+    return {
+        approved: pr.reviewDecision === 'APPROVED',
+        changesRequested: pr.reviewDecision === 'CHANGES_REQUESTED',
+        unresolvedHumanComments,
+    };
+}
+
+/**
+ * Review item の付帯情報（HITL 解除シグナル + PR レビュー状態 + PR 番号）を集める。
+ * phaseForItem の ctx として渡す。PR が無ければ null（Review なのに PR 無し＝待つ）。
+ *
+ * 解除の権威シグナルは **Project の HITL フィールド** のみにする。`🙋 HITL` ラベルでの
+ * OR 解除（contract §7）は、ラベルを atomic に同期する #794 が入って初めて健全に機能する
+ * （ラベル未同期の今は「未設定ラベル＝解除」と誤判定する）。phaseForItem 側は OR を扱えるので、
+ * #794 で hitlSignals に prLabel/issueLabel を足せば拡張できる。
+ * @param {string} repo
+ * @param {number} issueNumber
+ * @param {string} projectHitl Project の HITL フィールド値（'Yes'/'No' 等）
+ * @param {string} token
+ * @returns {{hitlSignals:object, review:object, pr:number}|null}
+ */
+function getReviewContext(repo, issueNumber, projectHitl, token) {
+    const pr = findPrForIssue(repo, issueNumber, token);
+    if (!pr) return null;
+    return {
+        hitlSignals: { projectField: projectHitl === 'Yes' },
+        review: getPrReviewState(repo, pr.number, token),
+        pr: pr.number,
+    };
+}
+
+/**
  * 指定 Issue に紐付く PR の中に merge 済みのものがあるか。
  * GitHub の "Development" リンク（PR 本文の `Closes #<issue>` など）を
  * `closedByPullRequestsReferences` で辿る。autopilot は自動 merge しないので、
@@ -137,5 +222,5 @@ function applyIntents(ctx, itemId, intents, token) {
 
 module.exports = {
     botToken, gh, getProject, getFields, listItems, findItemId, addIssue, setField, applyIntents,
-    hasMergedPullRequest, REPO_ROOT,
+    botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
 };

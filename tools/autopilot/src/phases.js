@@ -128,49 +128,87 @@ function mergeProgressionIntents(item, prMerged) {
 }
 
 /**
- * Project item から「次に autopilot が自律実行すべきフェーズ」を決める（純粋関数）。
- * 人間駆動の状態（Review/DoD/Close/Backlog/Icebox/Paused）や HITL=Yes では null（何もしない）。
- * @param {object} item { status, aiStatus, hitl, kind }
- * @returns {string|null} フェーズ名（triage/decompose/implement ...）または null
+ * 人間が HITL を解除した Review item で、PR のレビュー状態から次フェーズを決める（純粋関数）。
+ * - 変更要求 / 未対応の人間コメントがあれば address-review（指摘対応へ）
+ * - approve のみ（未対応コメントなし）なら verify（DoD 確認へ）
+ * - どちらの signal も無ければ null（保守的に待つ。誤って前進させない）
+ *
+ * コメントは approve より優先する（approve しつつ未対応コメントを残したときは指摘対応が先）。
+ * @param {object} review { unresolvedHumanComments, changesRequested, approved }
+ * @returns {'address-review'|'verify'|null}
  */
-function phaseForItem(item) {
+function reviewPhase(review) {
+    if (!review) return null;
+    const {
+        unresolvedHumanComments = 0,
+        changesRequested = false,
+        approved = false,
+    } = review;
+    if (changesRequested || unresolvedHumanComments > 0) return 'address-review';
+    if (approved) return 'verify';
+    return null;
+}
+
+/**
+ * Project item から「次に autopilot が自律実行すべきフェーズ」を決める（純粋関数）。
+ * 人間駆動の状態（DoD/Close/Backlog/Icebox/Paused）や HITL=Yes では null（何もしない）。
+ *
+ * Review だけは特別: 人間がレビューを終えて HITL を解除したとき、autopilot が再開して
+ * 指摘対応（address-review）か DoD 確認（verify）へ進める。解除判定は OR セマンティクス
+ * （Project HITL フィールド / Issue・PR の HITL ラベルのいずれか1つでも解除）で、
+ * 解除シグナルと PR レビュー状態は ctx 経由で daemon が渡す（純粋性を保つため I/O は外）。
+ * @param {object} item { status, aiStatus, hitl, kind }
+ * @param {object} [ctx] { review, hitlSignals } — Review item の付帯情報
+ * @returns {string|null} フェーズ名（triage/decompose/implement/address-review/verify ...）または null
+ */
+function phaseForItem(item, ctx = {}) {
     if (!item) return null;
-    if (item.hitl === 'Yes') return null; // 人間の番
     const status = item.status || 'New Item';
+    if (status === 'Review') {
+        // 解除シグナルがあれば OR 判定、無ければ Project HITL フィールド単独で判定。
+        const released = ctx.hitlSignals
+            ? isHitlReleased(ctx.hitlSignals)
+            : item.hitl !== 'Yes';
+        return released ? reviewPhase(ctx.review) : null;
+    }
+    if (item.hitl === 'Yes') return null; // 人間の番
     if (status === 'New Item') return 'triage';
     if (status === 'Sprint Backlog') {
         return item.kind === 'EPIC' ? 'decompose' : 'implement';
     }
-    // In Progress は実行中の run が所有。Review/DoD/Close 等は人間駆動。
+    // In Progress は実行中の run が所有。DoD/Close 等は人間駆動。
     return null;
 }
 
 /**
  * item が今 autopilot の処理対象か（純粋関数）。
  * @param {object} item
- * @param {object} [opts] { paused }
+ * @param {object} [opts] { paused, ctx } — ctx は Review item の付帯情報（review/hitlSignals）
  * @returns {boolean}
  */
 function isActionable(item, opts = {}) {
     if (opts.paused) return false;
-    return phaseForItem(item) !== null;
+    return phaseForItem(item, opts.ctx || {}) !== null;
 }
 
 /**
  * 着手すべき item を並行上限内で選ぶ（純粋関数）。
  * @param {object[]} items 各 { issue, status, aiStatus, hitl, kind }
- * @param {object} opts { paused, running:Set<number>, limit }
- * @returns {object[]} 実行対象（issue + phase）
+ * @param {object} opts { paused, running:Set<number>, limit, contexts }
+ *   contexts は issue 番号 → { review, hitlSignals, pr } の map（Review item の付帯情報）。
+ * @returns {object[]} 実行対象（issue + phase）。Review 由来は pr 番号も付く。
  */
 function selectActionable(items, opts = {}) {
     const running = opts.running || new Set();
     const limit = opts.limit ?? 2;
+    const contexts = opts.contexts || {};
     const out = [];
     for (const item of items) {
         if (out.length >= Math.max(0, limit - running.size)) break;
         if (running.has(item.issue)) continue;
-        if (!isActionable(item, opts)) continue;
-        out.push({ ...item, phase: phaseForItem(item) });
+        const ctx = contexts[item.issue] || {};
+        if (!isActionable(item, { paused: opts.paused, ctx })) continue;
+        out.push({ ...item, phase: phaseForItem(item, ctx), pr: ctx.pr });
     }
     return out;
 }
@@ -257,6 +295,7 @@ module.exports = {
     applyResult,
     isHitlReleased,
     progressOnMerge,
+    reviewPhase,
     MERGE_CHECK_STATUSES,
     selectMergeCandidates,
     mergeProgressionIntents,

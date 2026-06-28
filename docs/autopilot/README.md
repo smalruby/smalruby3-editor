@@ -126,6 +126,25 @@ daemon の `applyMergeProgression`。実行中（run が所有する）item は�
 
 ---
 
+## Review 解除後の自動遷移（address-review / verify）
+
+`Review` の item は人間レビュー待ち（HITL=Yes）。人間がレビューを終えて HITL を解除すると、
+daemon が PR のレビュー状態を見て次フェーズを自動ディスパッチする（`phaseForItem` + `getReviewContext`）。
+
+| PR レビュー状態（HITL 解除後） | 自動ディスパッチ |
+|---|---|
+| 変更要求 / 未対応の人間レビューコメントが残る | `autopilot-address-review`（指摘対応へ） |
+| approve のみ（未対応コメントなし） | `autopilot-verify`（DoD 確認へ） |
+| どちらの signal も無い | 何もしない（保守的に待つ） |
+
+- コメントは approve より優先する（approve しつつ未対応コメントを残したら指摘対応が先）。
+- 解除の権威シグナルは当面 **Project の HITL フィールド** のみ。`🙋 HITL` ラベルでの OR 解除は
+  ラベルを atomic に同期する変更（PR ラベル/Draft/sticky 同期）が入って初めて健全に効く。
+  判定ロジック（`phaseForItem`）は OR 解除を扱えるので、その時点で `hitlSignals` を足せば拡張できる。
+- address-review / verify は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
+
+---
+
 ## EPIC の扱い
 
 EPIC は「作業項目」ではなく「**トラッカー**」。
