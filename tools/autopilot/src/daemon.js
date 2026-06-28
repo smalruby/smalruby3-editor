@@ -231,15 +231,20 @@ function syncFacesAfterIntents(item, intents, cfg, log) {
     }
 }
 
-/** 1 ポーリングサイクル */
+/**
+ * 1 ポーリングサイクル。
+ * @returns {{paused: boolean, picked: number[]}} このサイクルの要約
+ *   - paused: pause 中で早期 return した（no-op）か
+ *   - picked: このサイクルで dispatch を起動した issue 番号（並行上限内の actionable）
+ */
 async function tick(cfg, state, log) {
-    if (state.paused) return;
+    if (state.paused) return { paused: true, picked: [] };
     let items;
     try {
         items = project.listItems(cfg.owner, cfg.project, project.botToken());
     } catch (e) {
         log(`poll error: ${e.message}`);
-        return;
+        return { paused: false, picked: [] };
     }
     const running = new Set(state.running.keys());
     const contexts = collectReviewContexts(cfg, items, running, log);
@@ -252,6 +257,28 @@ async function tick(cfg, state, log) {
     applyMergeProgression(items, cfg, state, log);
     // PR/Issue の面（ラベル/Draft/sticky）を Project 状態へ投影（dispatch 後なので running は除外される）
     applyPrProjection(items, cfg, state, log);
+    return { paused: false, picked: picked.map((it) => it.issue) };
+}
+
+/**
+ * tick を1回だけ実行する（再入防止つき）。HTTP `POST /tick` と interval ループの両方から使い、
+ * 手動 tick と定期 tick が重ならないようにする。実行中（state.ticking）なら tick を呼ばず busy を返す。
+ * @param {object} cfg
+ * @param {object} state running/paused/ticking を持つ可変状態
+ * @param {function} log
+ * @param {object} [deps] テスト用に tick を差し替え可能
+ * @returns {Promise<object>} `{ran:false, busy:true}`（実行中）または `{ran:true, ...summary, running:number[]}`
+ */
+async function runTickOnce(cfg, state, log, deps = {}) {
+    const tickFn = deps.tick || tick;
+    if (state.ticking) return { ran: false, busy: true };
+    state.ticking = true;
+    try {
+        const summary = await tickFn(cfg, state, log);
+        return { ran: true, ...summary, running: [...state.running.keys()] };
+    } finally {
+        state.ticking = false;
+    }
 }
 
 /** HTTP 制御サーバ（pause/resume/stop/inject/status） */
@@ -278,6 +305,17 @@ function startHttp(cfg, state, log) {
                 concurrency: cfg.concurrency,
                 running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
             });
+        }
+        if (req.method === 'POST' && url.pathname === '/tick') {
+            // 即時 tick: interval を待たずに 1 サイクル実行する（Web モニタの「今すぐ確認」）。
+            // 再入防止つき。実行中なら 409 busy。pause 中は tick が早期 return し no-op（paused:true で返る）。
+            runTickOnce(cfg, state, log)
+                .then((result) => {
+                    if (result.busy) return send(409, { ran: false, busy: true, error: 'tick already running' });
+                    send(200, result);
+                })
+                .catch((e) => { log(`tick error: ${e.message}`); send(500, { error: e.message }); });
+            return;
         }
         if (req.method === 'POST' && url.pathname === '/pause') { state.paused = true; log('paused'); return send(200, { paused: true }); }
         if (req.method === 'POST' && url.pathname === '/resume') { state.paused = false; log('resumed'); return send(200, { paused: false }); }
@@ -332,7 +370,7 @@ async function main(opts = {}) {
         fields: project.getFields(opts.owner || 'smalruby', opts.project || 4, token),
         now: () => Date.now(),
     };
-    const state = { paused: false, running: new Map() };
+    const state = { paused: false, running: new Map(), ticking: false };
     // PID ファイルを書き、安全停止（kill "$(cat <pidfile>)" / POST /shutdown）を可能にする
     try {
         fs.writeFileSync(pidFilePath(), String(process.pid));
@@ -345,10 +383,11 @@ async function main(opts = {}) {
     log(`daemon up: project #${cfg.project}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms, pid ${process.pid} (${pidFilePath()})`);
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
-        await tick(cfg, state, log);
+        // runTickOnce 経由にして、定期 tick と手動 POST /tick が重ならないようにする（再入防止）
+        await runTickOnce(cfg, state, log);
         await sleep(cfg.intervalMs);
     }
-    if (opts.once) await tick(cfg, state, log);
+    if (opts.once) await runTickOnce(cfg, state, log);
 }
 
-module.exports = { main, tick, dispatch, applyMergeProgression, applyPrProjection };
+module.exports = { main, tick, runTickOnce, dispatch, applyMergeProgression, applyPrProjection };
