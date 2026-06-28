@@ -131,6 +131,11 @@ devpod 利用の場合は:
 - README に「次のステップ」として以下を提示:
   - VS Code: `Cmd+Shift+P` → `Dev Containers: Reopen in Container`
   - devpod: `devpod up . --ide none`
+  - **egress allowlist firewall (既定で有効)**: `.example` には `runArgs`
+    (`--cap-add=NET_ADMIN/NET_RAW`) と `postStartCommand` (`init-firewall.sh`) が
+    含まれる。コンテナの外向き通信は default-DROP で GitHub / npm / Anthropic / AWS のみ
+    許可される。`npm install` / `cdk` が固まったら弾かれた宛先を allowlist に追加する
+    (詳細は `.devcontainer/README.md`「egress allowlist firewall」)
   - 詳細は `.devcontainer/README.md`
 
 ## 設計上の注意
