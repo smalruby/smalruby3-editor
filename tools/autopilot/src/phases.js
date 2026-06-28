@@ -206,7 +206,7 @@ function isActionable(item, opts = {}) {
 
 /**
  * 着手すべき item を並行上限内で選ぶ（純粋関数）。
- * @param {object[]} items 各 { issue, status, aiStatus, hitl, kind }
+ * @param {object[]} items 各 { issue, status, aiStatus, hitlLabel, kind }
  * @param {object} opts { paused, running:Set<number>, limit, contexts }
  *   contexts は issue 番号 → { review, hitlSignals, pr } の map（Review item の付帯情報）。
  * @returns {object[]} 実行対象（issue + phase）。Review 由来は pr 番号も付く。

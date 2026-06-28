@@ -176,7 +176,7 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
  * 同期する（contract §7 の投影）。判定は phases.js の純粋関数、書き込みはここ（単一ライター）。
  * deps は injection 可能（テスト用）。force=true は権威的な遷移（Review への handoff 等）で、
  * Review でも HITL ラベルを明示的に付与する。
- * @param {object} item Project item（status/aiStatus/hitl/size/kind を含む）
+ * @param {object} item Project item（status/aiStatus/hitlLabel/size/kind を含む）
  * @param {object} io 束ねた I/O（token + project 関数群）
  * @param {object} cfg
  * @param {function} log
