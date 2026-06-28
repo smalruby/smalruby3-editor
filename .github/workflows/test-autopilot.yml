@@ -1,0 +1,33 @@
+name: Test autopilot
+
+# tools/autopilot/ は packages とは独立した開発ツール（依存なし・node:test）。
+# 変更時にだけ tools/autopilot/test/ を実行する。packages の CI/CD (ci-cd.yml) は
+# paths-ignore で tools/** を除外しているため、ここで個別にテストする。
+on:
+  pull_request:
+    paths:
+      - 'tools/autopilot/**'
+      - '.github/workflows/test-autopilot.yml'
+  push:
+    branches: [main, master, develop, hotfix/*]
+    paths:
+      - 'tools/autopilot/**'
+      - '.github/workflows/test-autopilot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test tools/autopilot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        with:
+          node-version-file: '.nvmrc'
+      # 依存パッケージは無い（Node 標準の node:test のみ）。install しない。
+      - name: Run unit tests
+        working-directory: tools/autopilot
+        run: node --test

@@ -1,0 +1,13 @@
+{
+  "name": "@smalruby/autopilot",
+  "version": "0.0.0",
+  "private": true,
+  "description": "autopilot — Claude による Issue ライフサイクル自律オーケストレーター（spike walking skeleton）",
+  "bin": {
+    "autopilot": "bin/autopilot"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "AGPL-3.0"
+}
