@@ -132,6 +132,7 @@ src/lib/*
 !src/lib/backpack-mesh-v1-migration.js
 !src/lib/bug-report-api.js
 !src/lib/koshien-connection.js
+!src/lib/koshien-test-url.js
 !src/lib/deck-setup.js
 !src/lib/classroom-api.js
 !src/lib/classroom-kick-request-storage.js
@@ -334,6 +335,7 @@ test/unit/lib/*
 !test/unit/lib/block-display-initialization.test.js
 !test/unit/lib/bug-report-api.test.js
 !test/unit/lib/koshien-connection.test.js
+!test/unit/lib/koshien-test-url.test.js
 !test/unit/lib/blockly-private-api.test.js
 !test/unit/lib/blocks-gesture-recovery.test.js
 !test/unit/lib/classroom-api.test.js
