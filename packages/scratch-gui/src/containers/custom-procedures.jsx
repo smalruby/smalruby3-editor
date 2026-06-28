@@ -5,7 +5,7 @@ import React from 'react';
 import CustomProceduresComponent from '../components/custom-procedures/custom-procedures.jsx';
 import * as ScratchBlocks from 'scratch-blocks';
 import {connect} from 'react-redux';
-import {DEFAULT_MODE, getColorsForMode} from '../lib/settings/color-mode';
+import {getColorsForMode} from '../lib/settings/color-mode';
 import {CAT_BLOCKS_THEME} from '../lib/settings/theme';
 
 class CustomProcedures extends React.Component {
@@ -48,29 +48,23 @@ class CustomProcedures extends React.Component {
     setBlocks (blocksRef) {
         if (!blocksRef) return;
         this.blocks = blocksRef;
-        // scratch-blocks v2 renders blocks with the default (black) theme
-        // unless an explicit theme is supplied to `inject`. The main editor
-        // workspace passes `theme` + `scratchTheme`; we mirror that here so
-        // the procedure declaration block in the modal uses the same colours
-        // as the rest of the editor.
         const workspaceConfig = defaultsDeep({},
             CustomProcedures.defaultOptions,
             this.props.options,
-            {
-                rtl: this.props.isRtl,
-                theme: new ScratchBlocks.Theme(
-                    this.props.colorMode || DEFAULT_MODE,
-                    getColorsForMode(this.props.colorMode || DEFAULT_MODE),
-                ),
-                scratchTheme: this.props.useCatBlocks ? 'catblocks' : 'classic',
-            }
+            {rtl: this.props.isRtl}
         );
 
-        // @todo This is a hack to make there be no toolbox.
-        const oldDefaultToolbox = ScratchBlocks.Blocks.defaultToolbox;
-        ScratchBlocks.Blocks.defaultToolbox = null;
+        const theme = new ScratchBlocks.Theme(
+            this.props.colorMode,
+            getColorsForMode(this.props.colorMode)
+        );
+        workspaceConfig.theme = theme;
+        // === Smalruby: Start of cat-blocks theme for custom procedures ===
+        // Mirror the main editor's catblocks/classic theme choice so the
+        // procedure declaration block in the modal matches the rest of the editor.
+        workspaceConfig.scratchTheme = this.props.useCatBlocks ? 'catblocks' : 'classic';
+        // === Smalruby: End of cat-blocks theme for custom procedures ===
         this.workspace = ScratchBlocks.inject(this.blocks, workspaceConfig);
-        ScratchBlocks.Blocks.defaultToolbox = oldDefaultToolbox;
 
         // Create the procedure declaration block for editing the mutation.
         this.mutationRoot = this.workspace.newBlock('procedures_declaration');
@@ -209,7 +203,9 @@ CustomProcedures.defaultOptions = {
     },
     comments: false,
     collapse: false,
-    scrollbars: true
+    scrollbars: true,
+    modalInputs: false,
+    sounds: false
 };
 
 CustomProcedures.defaultProps = {

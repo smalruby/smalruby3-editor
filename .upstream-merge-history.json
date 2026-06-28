@@ -9,7 +9,43 @@
     "mergeCommit": "c187b4060",
     "notes": "284 upstream commits merged - v13.7.2 production release. scratch-blocks downgrade reverted (v1.3.0 -> v2.1.19); argument-drag bug fixed in upstream issue #3450. ScratchBlocks v1 -> v2 API migration applied (Xml.* -> utils.xml.*, Variables/Procedures -> ScratchVariables/ScratchProcedures, statusButtonCallback on StatusIndicatorLabel, dialog.setPrompt). LegacyBackpackStorage extended with Smalruby localStorage support (markers added)."
   },
-  "postMergeReverts": [],
+  "postMergeReverts": [
+    {
+      "date": "2026-06-28",
+      "pr": "#751",
+      "trackingIssue": "#752",
+      "reference": ".claude/rules/upstream-tracking.md",
+      "reason": "pre-spork rollback (#270, commit 84f87e9152) re-aligned to v13.7.2 across PR #751/#753/#754 (Steps 1-3). The areas below now either match v13.7.2 (resolved) or diverge ON PURPOSE (intentional keeps). The only removable pre-spork band-aid (scratch-blocks-auto-style-patch.js) was removed in Step 3.",
+      "affectedAreas": [
+        {
+          "category": "RESOLVED: comment events (now modern-only)",
+          "files": ["packages/scratch-vm/src/engine/blocks.js"],
+          "detail": "Step 2 (#753): block_comment_* handlers re-aligned to v13.7.2 modern-only shape."
+        },
+        {
+          "category": "RESOLVED: comment id contract",
+          "files": ["packages/scratch-vm/src/engine/adapter.js", "packages/scratch-vm/src/serialization/sb3.js", "packages/scratch-vm/src/engine/comment.js"],
+          "detail": "Step 2 (#753): adapter.js now uses ${block.id}_comment, matching sb3.js + v13.7.2. comment.js emits collapsed=. Verified by Ruby-comment round-trip."
+        },
+        {
+          "category": "INTENTIONAL KEEP: toolbox category names",
+          "files": ["packages/scratch-gui/src/lib/make-toolbox-xml.js"],
+          "detail": "%{BKY_CATEGORY_*} is a benign Smalruby simplification — v2.1.19's replaceMessageReferences resolves it to the same translated name as upstream's ScratchMsgs.translate. Not debt; left as-is."
+        },
+        {
+          "category": "INTENTIONAL KEEP: legitimate scratch-blocks v2.1.19 compat fixes (NOT pre-spork band-aids)",
+          "files": ["packages/scratch-gui/src/containers/blocks.jsx"],
+          "detail": "componentWillUnmount focus guard (fixes scratch-blocks#3460 'focus unregistered tree' crash) and updateToolbox forceRerender try/catch (prevents an intermittent v2 flyout-recycling freeze on Ruby list scripts). These fix real v2.1.19 bugs that exist regardless of pre-spork; removing them reintroduces crashes. Verified empirically + documented. Marked Smalruby; keep across upstream merges."
+        },
+        {
+          "category": "INTENTIONAL KEEP: BEFORE_STEP event (runtime.js)",
+          "files": ["packages/scratch-vm/src/engine/runtime.js"],
+          "detail": "v13.7.2 removed BEFORE_STEP; Mesh v2 depends on it. Kept + marked (#752 remainder)."
+        }
+      ],
+      "nextMergeGuidance": "Steps 1-3 (#751/#753/#754) + #752 remainder re-aligned the actionable pre-spork debt; auto-style-patch (the only removable band-aid) was removed. The remaining divergences (make-toolbox category names, blocks.jsx v2-bridge guards, runtime BEFORE_STEP, plus the marked Ruby/palette/etc. features) are INTENTIONAL — NOT lost upstream fixes. Do NOT treat their DIFF in bin/upstream-divergence-audit as a regression. See .claude/rules/upstream-tracking.md."
+    }
+  ],
   "previousMerges": [
     {
       "date": "2026-03-08",
