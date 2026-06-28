@@ -22,8 +22,14 @@ const project = require('./project');
 
 const WORKTREE_BIN = path.join(project.REPO_ROOT, 'bin', 'autopilot-worktree');
 
-function ensureWorktree(issue) {
-    execFileSync(WORKTREE_BIN, ['create', String(issue)], { stdio: 'ignore' });
+/** 既存 PR ブランチで作業するフェーズ（新ブランチを切らず PR ヘッドを checkout する） */
+const PR_BRANCH_PHASES = new Set(['review', 'address-review', 'verify']);
+
+function ensureWorktree(issue, pr) {
+    const args = ['create', String(issue)];
+    // address-review / verify 等は既存 PR ブランチで作業する（新ブランチを切らない）
+    if (pr) args.push('--pr', String(pr));
+    execFileSync(WORKTREE_BIN, args, { stdio: 'ignore' });
     return execFileSync(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' }).trim();
 }
 
@@ -35,7 +41,12 @@ async function dispatch(item, cfg, state, log) {
     const session = `autopilot-${phase}-${item.issue}`;
     state.running.set(item.issue, { phase, session, since: cfg.now() });
     try {
-        const cwd = ensureWorktree(item.issue);
+        // PR ブランチで作業するフェーズは PR 番号を解決（inject 経由など item.pr 未設定時はここで取得）
+        let pr;
+        if (PR_BRANCH_PHASES.has(phase)) {
+            pr = item.pr || (project.findPrForIssue(cfg.repo, item.issue, project.botToken()) || {}).number;
+        }
+        const cwd = ensureWorktree(item.issue, pr);
         const resultDir = path.join(cwd, 'tmp');
         fs.mkdirSync(resultDir, { recursive: true });
         const resultFile = path.join(resultDir, `autopilot-result-${item.issue}.json`);
@@ -68,6 +79,28 @@ async function dispatch(item, cfg, state, log) {
     }
 }
 
+/**
+ * Review 状態かつ未実行の item について PR レビュー状態 + HITL 解除シグナルを集める。
+ * これを phaseForItem の ctx として渡すと、人間が HITL を解除した Review item を
+ * address-review / verify に振り分けできる（#792）。I/O はここに閉じ込め、判定は phases.js の純粋関数。
+ * @returns {object} issue 番号 → { review, hitlSignals, pr } の map
+ */
+function collectReviewContexts(cfg, items, running, log) {
+    const contexts = {};
+    const token = project.botToken();
+    for (const item of items) {
+        if (item.status !== 'Review') continue;
+        if (running.has(item.issue)) continue;
+        try {
+            const ctx = project.getReviewContext(cfg.repo, item.issue, item.hitl, token);
+            if (ctx) contexts[item.issue] = ctx;
+        } catch (e) {
+            log(`#${item.issue}: review context error ${e.message}`);
+        }
+    }
+    return contexts;
+}
+
 /** 1 ポーリングサイクル */
 async function tick(cfg, state, log) {
     if (state.paused) return;
@@ -79,7 +112,8 @@ async function tick(cfg, state, log) {
         return;
     }
     const running = new Set(state.running.keys());
-    const picked = selectActionable(items, { paused: state.paused, running, limit: cfg.concurrency });
+    const contexts = collectReviewContexts(cfg, items, running, log);
+    const picked = selectActionable(items, { paused: state.paused, running, limit: cfg.concurrency, contexts });
     for (const item of picked) {
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);

@@ -7,6 +7,7 @@ const {
     applyResult,
     isHitlReleased,
     progressOnMerge,
+    reviewPhase,
     phaseForItem,
     isActionable,
     selectActionable,
@@ -26,9 +27,69 @@ test('phaseForItem: Sprint Backlog -> decompose(EPIC) / implement(Issue)', () =>
 
 test('phaseForItem: HITL=Yes or human-driven states -> null', () => {
     assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'Issue', hitl: 'Yes' }), null);
-    assert.equal(phaseForItem({ status: 'Review' }), null);
+    assert.equal(phaseForItem({ status: 'Review' }), null); // ctx 無し（レビュー状態不明）
     assert.equal(phaseForItem({ status: 'Backlog' }), null);
     assert.equal(phaseForItem({ status: 'In Progress' }), null);
+});
+
+test('reviewPhase: unaddressed comments / changes-requested -> address-review', () => {
+    assert.equal(reviewPhase({ unresolvedHumanComments: 1 }), 'address-review');
+    assert.equal(reviewPhase({ changesRequested: true }), 'address-review');
+    // コメントは approve より優先（approve しつつ未対応コメントを残したケース）
+    assert.equal(reviewPhase({ approved: true, unresolvedHumanComments: 2 }), 'address-review');
+});
+
+test('reviewPhase: approve only -> verify', () => {
+    assert.equal(reviewPhase({ approved: true }), 'verify');
+    assert.equal(reviewPhase({ approved: true, unresolvedHumanComments: 0, changesRequested: false }), 'verify');
+});
+
+test('reviewPhase: no signal / null -> null (conservative wait)', () => {
+    assert.equal(reviewPhase(null), null);
+    assert.equal(reviewPhase(undefined), null);
+    assert.equal(reviewPhase({}), null);
+    assert.equal(reviewPhase({ approved: false, unresolvedHumanComments: 0 }), null);
+});
+
+test('phaseForItem: Review still HITL=Yes (project field) -> null', () => {
+    assert.equal(
+        phaseForItem({ status: 'Review', hitl: 'Yes' }, { review: { approved: true } }),
+        null,
+    );
+});
+
+test('phaseForItem: Review released (project field No) dispatches by review state', () => {
+    assert.equal(
+        phaseForItem({ status: 'Review', hitl: 'No' }, { review: { approved: true } }),
+        'verify',
+    );
+    assert.equal(
+        phaseForItem({ status: 'Review', hitl: 'No' }, { review: { changesRequested: true } }),
+        'address-review',
+    );
+});
+
+test('phaseForItem: Review released via PR label only (OR semantics) -> dispatched', () => {
+    // Project HITL フィールドは Yes のままだが、PR の HITL ラベルが外れている
+    const item = { status: 'Review', hitl: 'Yes' };
+    const ctx = {
+        hitlSignals: { projectField: true, issueLabel: true, prLabel: false },
+        review: { approved: true },
+    };
+    assert.equal(phaseForItem(item, ctx), 'verify');
+});
+
+test('phaseForItem: Review with all HITL signals waiting -> null', () => {
+    const item = { status: 'Review', hitl: 'Yes' };
+    const ctx = {
+        hitlSignals: { projectField: true, issueLabel: true, prLabel: true },
+        review: { approved: true },
+    };
+    assert.equal(phaseForItem(item, ctx), null);
+});
+
+test('phaseForItem: Review released but review state unknown -> null (wait)', () => {
+    assert.equal(phaseForItem({ status: 'Review', hitl: 'No' }, {}), null);
 });
 
 test('isActionable: paused -> false', () => {
@@ -49,6 +110,24 @@ test('selectActionable: respects concurrency limit and running set', () => {
     // 1 running -> only 1 more slot
     const picked2 = selectActionable(items, { limit: 2, running: new Set([1]) });
     assert.deepEqual(picked2.map((p) => p.issue), [2]);
+});
+
+test('selectActionable: Review items dispatch via contexts (review state + HITL signals)', () => {
+    const items = [
+        { issue: 10, status: 'Review', hitl: 'No' }, // approve -> verify
+        { issue: 11, status: 'Review', hitl: 'No' }, // comments -> address-review
+        { issue: 12, status: 'Review', hitl: 'Yes' }, // still human's turn -> skipped
+    ];
+    const contexts = {
+        10: { review: { approved: true }, pr: 100 },
+        11: { review: { unresolvedHumanComments: 2 }, pr: 101 },
+        12: { review: { approved: true }, pr: 102 },
+    };
+    const picked = selectActionable(items, { limit: 5, running: new Set(), contexts });
+    assert.deepEqual(
+        picked.map((p) => [p.issue, p.phase, p.pr]),
+        [[10, 'verify', 100], [11, 'address-review', 101]],
+    );
 });
 
 test('PHASE_BY_COMMAND maps triage to the skill and AI status', () => {
