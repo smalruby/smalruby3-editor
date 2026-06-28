@@ -83,11 +83,6 @@ const SettingsMenu = ({
     const availableThemesLength = useMemo(() => Object.keys(availableThemesMap).length, [availableThemesMap]);
 
     const handleChangeRubyVersion = useCallback(rubyVersion => {
-        if (rubyVersion === '2' && vm.extensionManager && vm.extensionManager.isExtensionLoaded('koshien')) {
-            // eslint-disable-next-line no-alert
-            alert(intl.formatMessage(rubyVersionMessages.koshienCannotChangeRubyVersion));
-            return;
-        }
         // === Smalruby: Start of v1 switch prevention ===
         // Prevent switching to v1 when v2 features (module/class) are in use
         if (rubyVersion === '1' && vm.runtime) { // eslint-disable-line react/prop-types

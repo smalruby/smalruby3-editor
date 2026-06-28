@@ -323,14 +323,6 @@ const MobileDrawerComponent = ({
                 onClose();
                 return;
             }
-            // v1 へ切替時は v2 機能が使われていないか確認する。
-            // koshien 拡張のチェックは settings-menu 側でもやっているので、
-            // モバイルでもそちらのフローに合わせて同じ guard を入れる。
-            if (version === '2' && vm?.extensionManager?.isExtensionLoaded?.('koshien')) {
-                // eslint-disable-next-line no-alert
-                alert(intl.formatMessage(rubyVersionMessages.koshienCannotChangeRubyVersion));
-                return;
-            }
             if (version === VERSION_1 && hasV2Features(vm)) {
                 // eslint-disable-next-line no-alert
                 alert(intl.formatMessage(rubyVersionMessages.cannotSwitchToV1));

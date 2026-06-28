@@ -1,4 +1,21 @@
 /**
+ * Render a list-typed argument for a koshien block.
+ *
+ * Lists differ between Ruby versions:
+ * - v1: `list("$名前")` (Smalruby3::List wrapper)
+ * - v2: `$名前` (plain global array variable; `list()` syntax is rejected in v2)
+ * @param {RubyGenerator} Generator - the RubyGenerator.
+ * @param {?string} listName - the resolved list name (e.g. "$名前") or null.
+ * @returns {string} - the argument expression, or 'nil' when no list.
+ */
+const koshienListArg = (Generator, listName) => {
+    if (!listName) {
+        return 'nil';
+    }
+    return String(Generator.version) === '2' ? listName : `list(${Generator.quote_(listName)})`;
+};
+
+/**
  * Define Ruby code generator for Microbit More Blocks
  * @param {RubyGenerator} Generator The RubyGenerator
  * @returns {RubyGenerator} same as param.
@@ -6,6 +23,13 @@
 export default function (Generator) {
     Generator.koshien_connectGame = function (block) {
         const name = Generator.valueToCode(block, 'NAME', Generator.ORDER_NONE) || Generator.quote_('player1');
+        // v2: ゲーム接続をイベント hat として表現し、AI 本体を do...end (サブスタック) に包む。
+        // これによりクラス表現 (class < Smalruby3::Sprite) の中に配置できる。
+        // v1: 従来どおりフラットな文 (Sprite.new do...end の中で逐次実行)。
+        if (String(Generator.version) === '2') {
+            block.isStatement = true;
+            return `koshien.when_connect_game(name: ${name}) do\n`;
+        }
         return `koshien.connect_game(name: ${name})\n`;
     };
 
@@ -28,7 +52,7 @@ export default function (Generator) {
         const resultListName = Generator.listNameByName(
             Generator.getFieldValue(block, 'RESULT', Generator.ORDER_NONE)
         );
-        const result = resultListName ? `list(${Generator.quote_(resultListName)})` : 'nil';
+        const result = koshienListArg(Generator, resultListName);
 
         return `koshien.calc_route(result: ${result})\n`;
     };
@@ -39,11 +63,11 @@ export default function (Generator) {
         const exceptCellsListName = Generator.listNameByName(
             Generator.getFieldValue(block, 'EXCEPT_CELLS', Generator.ORDER_NONE)
         );
-        const exceptCells = exceptCellsListName ? `list(${Generator.quote_(exceptCellsListName)})` : 'nil';
+        const exceptCells = koshienListArg(Generator, exceptCellsListName);
         const resultListName = Generator.listNameByName(
             Generator.getFieldValue(block, 'RESULT', Generator.ORDER_NONE)
         );
-        const result = resultListName ? `list(${Generator.quote_(resultListName)})` : 'nil';
+        const result = koshienListArg(Generator, resultListName);
 
         return `koshien.calc_route(result: ${result}, src: ${src}, dst: ${dst}, except_cells: ${exceptCells})\n`;
     };
@@ -74,7 +98,7 @@ export default function (Generator) {
         const resultListName = Generator.listNameByName(
             Generator.getFieldValue(block, 'RESULT', Generator.ORDER_NONE)
         );
-        const result = resultListName ? `list(${Generator.quote_(resultListName)})` : 'nil';
+        const result = koshienListArg(Generator, resultListName);
 
          
         return `koshien.locate_objects(result: ${result}, sq_size: ${sqSize}, cent: ${position}, objects: ${objects})\n`;

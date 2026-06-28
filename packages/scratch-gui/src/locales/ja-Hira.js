@@ -278,8 +278,6 @@ export default {
     'gui.menuBar.saveAIAs': 'AIになまえをつけてほぞん...',
     'gui.menuBar.testAI': 'AIをためす',
     'gui.menuBar.koshienEntryForm': 'さんかもうしこみ',
-    'gui.menuBar.koshienCannotChangeRubyVersion':
-        'スモウルビーこうしえんかくちょうきのうがよみこまれているときは、Rubyのバージョンをへんこうできません。',
     'gui.menuBar.aiSaving': 'ルビーをほぞんちゅう...',
     'gui.menuBar.aiSaved': 'ルビーがほぞんされました。',
     'gui.smalruby3.alerts.rubyVersionChangeFailed':
@@ -750,8 +748,6 @@ export default {
     'gui.extensionLibrary.showAllExtensions': 'すべてのかくちょうきのうをひょうじ',
     'gui.extensionLibrary.meshDeprecationWarning':
         'じゅうらいのメッシュかくちょうきのうは4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
-    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1':
-        'スモウルビーこうしえんかくちょうきのうは Ruby v1 でのみりようできます。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': 'うえにかたむいた',
