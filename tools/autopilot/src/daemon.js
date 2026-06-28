@@ -15,7 +15,13 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { setTimeout: sleep } = require('timers/promises');
-const { PHASE_BY_COMMAND, selectActionable, applyResult } = require('./phases');
+const {
+    PHASE_BY_COMMAND,
+    selectActionable,
+    applyResult,
+    selectMergeCandidates,
+    mergeProgressionIntents,
+} = require('./phases');
 const { readResultFile } = require('./contract');
 const { runPhase, killSession, capture } = require('./runner');
 const { MONITOR_HTML } = require('./monitor');
@@ -79,6 +85,39 @@ async function dispatch(item, cfg, state, log) {
     }
 }
 
+/**
+ * merge-progression: 連携 PR が人間に merge された leaf を Close へ前進させる。
+ * autopilot は自動 merge しない（人間の手動 merge を検知して後処理するだけ）。
+ * 判定は phases.js の純粋関数、GitHub 問い合わせ・Project 書き込みは project.js。
+ * deps は injection できる（テスト用）。実行中の item は触らない（live phase と競合しない）。
+ */
+function applyMergeProgression(items, cfg, state, log, deps = {}) {
+    const token = deps.token || project.botToken();
+    const hasMerged = deps.hasMergedPullRequest || project.hasMergedPullRequest;
+    const applyIntents = deps.applyIntents || project.applyIntents;
+    const findItemId = deps.findItemId || project.findItemId;
+    const ctx = { projectId: cfg.projectId, fields: cfg.fields };
+    for (const item of selectMergeCandidates(items)) {
+        if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
+        let merged;
+        try {
+            merged = hasMerged(cfg.repo, item.issue, token);
+        } catch (e) {
+            log(`#${item.issue}: merge check failed: ${e.message}`);
+            continue;
+        }
+        const intents = mergeProgressionIntents(item, merged);
+        if (!intents.length) continue;
+        const itemId = item.itemId || findItemId(cfg.owner, cfg.project, item.issue, token);
+        try {
+            const applied = applyIntents(ctx, itemId, intents, token);
+            log(`#${item.issue}: PR merged → ${applied.join(', ')}`);
+        } catch (e) {
+            log(`#${item.issue}: merge progression failed: ${e.message}`);
+        }
+    }
+}
+
 /** 1 ポーリングサイクル */
 async function tick(cfg, state, log) {
     if (state.paused) return;
@@ -95,6 +134,8 @@ async function tick(cfg, state, log) {
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
     }
+    // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）
+    applyMergeProgression(items, cfg, state, log);
 }
 
 /** HTTP 制御サーバ（pause/resume/stop/inject/status） */
@@ -194,4 +235,4 @@ async function main(opts = {}) {
     if (opts.once) await tick(cfg, state, log);
 }
 
-module.exports = { main, tick, dispatch };
+module.exports = { main, tick, dispatch, applyMergeProgression };
