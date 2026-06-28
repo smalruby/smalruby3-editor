@@ -11,7 +11,7 @@
 const { execFileSync } = require('child_process');
 const { setTimeout: sleep } = require('timers/promises');
 const fs = require('fs');
-const { evaluate, DEFAULT_WATCHDOG } = require('./phases');
+const { evaluate, DEFAULT_WATCHDOG, DEFAULT_CLAUDE_COMMAND } = require('./phases');
 
 function tmux(args, { check = true } = {}) {
     // stderr は握りつぶす（has-session 等の "can't find session" は想定内）
@@ -68,7 +68,7 @@ function sendLine(session, text) {
 async function runPhase(opts) {
     const cfg = { ...DEFAULT_WATCHDOG, ...(opts.watchdog || {}) };
     const log = opts.log || (() => {});
-    const command = opts.command || 'claude --permission-mode acceptEdits';
+    const command = opts.command || DEFAULT_CLAUDE_COMMAND;
     const minBootMs = cfg.minBootMs || 4000;
 
     // 前回の結果ファイルが残っていると誤検出するので消す

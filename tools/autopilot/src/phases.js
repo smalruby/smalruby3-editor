@@ -4,6 +4,15 @@
  * watchdog の判断ロジック。すべて純粋関数（I/O なし）でテスト可能にする。
  */
 
+/**
+ * 子 claude を起動する既定コマンド。
+ * **非対話**で動かすため `--allowedTools` を広げ、`gh`/`git` 等の Bash 実行で
+ * 権限プロンプト（= 課題2 の停止要因）が出ないようにする。コントラクト §1 準拠。
+ * 上書きは CLI の `--command` または env `AUTOPILOT_CLAUDE_CMD`。
+ */
+const DEFAULT_CLAUDE_COMMAND =
+    'claude --permission-mode acceptEdits --allowedTools Bash Edit Read Glob Grep WebFetch';
+
 /** CLI コマンド名 → { skill, aiStatus }（AI Status は実行中に設定する細フェーズ） */
 const PHASE_BY_COMMAND = {
     triage: { skill: 'autopilot-triage', aiStatus: 'Triaging' },
@@ -66,6 +75,18 @@ function isHitlReleased(signals) {
 }
 
 /**
+ * merge は HITL と独立した「前進シグナル」。PR が merge されたとき、ひも付く Issue を
+ * どの Status へ進めるかを返す（純粋関数）。
+ * - leaf（Kind=Issue）: `Close`（HITL ラベル/フィールドが残っていても進める）
+ * - EPIC: `null`（子 PR の merge では完了しない。EPIC 運用 原則3/4）
+ * @param {string} kind `EPIC` | `Issue`（未指定は leaf 扱い）
+ * @returns {string|null} 進める先の Status、または進めない場合 null
+ */
+function progressOnMerge(kind) {
+    return kind === 'EPIC' ? null : 'Close';
+}
+
+/**
  * watchdog の状態を評価して次アクションを返す（純粋関数）。
  * 完了の権威は「結果ファイルの存在」。それ以外はタイマーで stuck を処理する。
  * @param {object} state
@@ -121,4 +142,12 @@ const DEFAULT_WATCHDOG = {
     pollMs: 3_000,
 };
 
-module.exports = { PHASE_BY_COMMAND, applyResult, isHitlReleased, evaluate, DEFAULT_WATCHDOG };
+module.exports = {
+    PHASE_BY_COMMAND,
+    DEFAULT_CLAUDE_COMMAND,
+    applyResult,
+    isHitlReleased,
+    progressOnMerge,
+    evaluate,
+    DEFAULT_WATCHDOG,
+};
