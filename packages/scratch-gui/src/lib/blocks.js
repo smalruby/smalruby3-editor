@@ -4,9 +4,6 @@ import {installGestureRecovery} from './blocks-gesture-recovery.js';
 // === Smalruby: Start of comment icon patch import ===
 import {installCommentIconPatch} from './scratch-blocks-comment-icon-patch.js';
 // === Smalruby: End of comment icon patch import ===
-// === Smalruby: Start of auto style selected patch import ===
-import {installAutoStyleSelectedPatch} from './scratch-blocks-auto-style-patch.js';
-// === Smalruby: End of auto style selected patch import ===
 
 /**
  * Connect scratch blocks with the vm
@@ -355,10 +352,6 @@ export default function (vm) {
     // === Smalruby: Start of comment icon patch ===
     installCommentIconPatch(ScratchBlocks);
     // === Smalruby: End of comment icon patch ===
-
-    // === Smalruby: Start of auto style selected patch ===
-    installAutoStyleSelectedPatch(ScratchBlocks);
-    // === Smalruby: End of auto style selected patch ===
 
     return ScratchBlocks;
 }

@@ -136,7 +136,6 @@ src/lib/*
 !src/lib/google-classroom-auth.js
 !src/lib/block-utils.js
 !src/lib/blocks-gesture-recovery.js
-!src/lib/scratch-blocks-auto-style-patch.js
 !src/lib/scratch-blocks-comment-icon-patch.js
 !src/lib/blocks-screenshot.js
 !src/lib/furigana-annotator.js
@@ -352,7 +351,6 @@ test/unit/lib/*
 !test/unit/lib/mesh-v2-classroom-binding.test.js
 !test/unit/lib/mesh-v2-sensor-collision.test.js
 !test/unit/lib/responsive-gui.test.jsx
-!test/unit/lib/scratch-blocks-auto-style-patch.test.js
 !test/unit/lib/use-is-narrow-screen.test.js
 !test/unit/lib/module-sync.test.js
 !test/unit/lib/prism-parser.test.js
