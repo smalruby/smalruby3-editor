@@ -27,6 +27,7 @@ const MONITOR_HTML = `<!doctype html>
   <span id="state"></span>
   <button id="pause">⏸ pause</button>
   <button id="resume">▶ resume</button>
+  <button id="ticknow" title="interval を待たず今すぐ 1 tick 実行">⚡ 今すぐ確認</button>
   <span class="muted" id="meta"></span>
 </div>
 <table><thead><tr><th>Issue</th><th>Phase</th><th>操作</th></tr></thead><tbody id="rows"></tbody></table>
@@ -54,6 +55,15 @@ async function showlog(i) {
 }
 document.getElementById('pause').onclick = () => j('/pause', 'POST').then(refresh);
 document.getElementById('resume').onclick = () => j('/resume', 'POST').then(refresh);
+async function ticknow() {
+  const btn = document.getElementById('ticknow');
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ 確認中…';
+  try { await fetch('/tick', { method: 'POST' }); } catch (e) { /* daemon 応答待ちは refresh 側で表示 */ }
+  btn.disabled = false; btn.textContent = label;
+  refresh();
+}
+document.getElementById('ticknow').onclick = ticknow;
 refresh(); setInterval(refresh, 2000);
 </script></body></html>`;
 

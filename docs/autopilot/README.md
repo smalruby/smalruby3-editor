@@ -282,8 +282,12 @@ tmux new -d -s autopilot 'node tools/autopilot/bin/autopilot daemon 2>&1 | tee /
 #### 監視（Web モニタ）
 
 ブラウザで **`http://localhost:8787/`** を開くと自己完結 HTML のモニタが表示される
-（2 秒ごとに `/status` をポーリング）。実行中 item の一覧・phase・pause/resume・各 item の
-force-stop・pane ログ閲覧ができる。
+（2 秒ごとに `/status` をポーリング）。実行中 item の一覧・phase・pause/resume・**今すぐ確認
+（即時 tick）**・各 item の force-stop・pane ログ閲覧ができる。
+
+「⚡ 今すぐ確認」ボタンは interval（既定 5 分）を待たず `POST /tick` を叩いて 1 サイクルだけ
+即実行する（レビュー直後など「今すぐ次を処理させたい」とき用）。実行中は再入防止で `409 busy`、
+pause 中は no-op（`paused:true` で返る）。
 
 HTTP API（curl からも操作可能）:
 
@@ -292,6 +296,7 @@ HTTP API（curl からも操作可能）:
 | `GET /` | Web モニタ（HTML） |
 | `GET /status` | `{paused, concurrency, running:[{issue,phase}]}` を JSON で返す |
 | `GET /log?issue=<n>` | 実行中 item の tmux pane キャプチャ（人間観測用） |
+| `POST /tick` | interval を待たず 1 サイクル即実行。`{ran, paused, picked:[...], running:[...]}` を返す。実行中は `409 {busy:true}`、pause 中は `{ran:true, paused:true, picked:[]}` の no-op |
 | `POST /pause` | 新規ディスパッチを止める（実行中はそのまま） |
 | `POST /resume` | ポーリング再開 |
 | `POST /stop?issue=<n>` | その item の tmux セッションを kill して force-stop |
@@ -300,6 +305,7 @@ HTTP API（curl からも操作可能）:
 
 ```bash
 curl -s localhost:8787/status | jq          # 状態確認
+curl -X POST localhost:8787/tick | jq        # 今すぐ 1 tick 実行
 curl -X POST localhost:8787/pause            # 一時停止
 curl -X POST localhost:8787/resume           # 再開
 curl -X POST 'localhost:8787/stop?issue=123' # #123 を force-stop

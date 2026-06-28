@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { applyMergeProgression, applyPrProjection } = require('../src/daemon');
+const { applyMergeProgression, applyPrProjection, runTickOnce } = require('../src/daemon');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
 
 function makeCfg() {
@@ -162,6 +162,51 @@ test('applyPrProjection: no PR yet -> only the issue label is reconciled', () =>
     assert.deepEqual(deps.calls.sticky, []);
     const issueEdit = deps.calls.editLabels.find((e) => e.type === 'issue');
     assert.ok(issueEdit.add.includes(HITL_LABEL));
+});
+
+test('runTickOnce: runs tick once and returns its summary (ran:true)', async () => {
+    const state = { paused: false, running: new Map(), ticking: false };
+    let calls = 0;
+    let tickingDuringRun = null;
+    const fakeTick = async () => {
+        calls += 1;
+        tickingDuringRun = state.ticking; // re-entrancy flag must be held during the run
+        return { paused: false, picked: [1, 2] };
+    };
+    const result = await runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick });
+    assert.equal(calls, 1);
+    assert.equal(tickingDuringRun, true);
+    assert.equal(result.ran, true);
+    assert.equal(result.paused, false);
+    assert.deepEqual(result.picked, [1, 2]);
+    // flag released after completion
+    assert.equal(state.ticking, false);
+});
+
+test('runTickOnce: re-entrancy guard returns busy (409) without calling tick', async () => {
+    const state = { paused: false, running: new Map(), ticking: true }; // a tick is already in flight
+    let calls = 0;
+    const fakeTick = async () => { calls += 1; return { paused: false, picked: [] }; };
+    const result = await runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick });
+    assert.equal(calls, 0);
+    assert.equal(result.ran, false);
+    assert.equal(result.busy, true);
+});
+
+test('runTickOnce: paused tick is a no-op surfaced in the response', async () => {
+    const state = { paused: true, running: new Map(), ticking: false };
+    const fakeTick = async () => ({ paused: true, picked: [] });
+    const result = await runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick });
+    assert.equal(result.ran, true);
+    assert.equal(result.paused, true);
+    assert.deepEqual(result.picked, []);
+});
+
+test('runTickOnce: releases the ticking flag even when tick throws', async () => {
+    const state = { paused: false, running: new Map(), ticking: false };
+    const fakeTick = async () => { throw new Error('boom'); };
+    await assert.rejects(() => runTickOnce(makeCfg(), state, () => {}, { tick: fakeTick }), /boom/);
+    assert.equal(state.ticking, false);
 });
 
 test('applyPrProjection: a failing item does not block others', () => {

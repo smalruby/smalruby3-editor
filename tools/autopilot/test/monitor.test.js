@@ -12,7 +12,13 @@ test('MONITOR_HTML is a self-contained html document', () => {
 });
 
 test('MONITOR_HTML wires the daemon control endpoints', () => {
-    for (const ep of ['/status', '/pause', '/resume', '/stop?issue=', '/log?issue=']) {
+    for (const ep of ['/status', '/pause', '/resume', '/stop?issue=', '/log?issue=', '/tick']) {
         assert.ok(MONITOR_HTML.includes(ep), `should reference ${ep}`);
     }
+});
+
+test('MONITOR_HTML exposes a "poll now" (即時 tick) control', () => {
+    assert.match(MONITOR_HTML, /id="ticknow"/);
+    // the button posts to /tick
+    assert.match(MONITOR_HTML, /'\/tick',\s*'POST'|\/tick['"],\s*\{\s*method:\s*'POST'/);
 });
