@@ -138,9 +138,10 @@ daemon が PR のレビュー状態を見て次フェーズを自動ディスパ
 | どちらの signal も無い | 何もしない（保守的に待つ） |
 
 - コメントは approve より優先する（approve しつつ未対応コメントを残したら指摘対応が先）。
-- 解除の権威シグナルは当面 **Project の HITL フィールド** のみ。`🙋 HITL` ラベルでの OR 解除は
-  ラベルを atomic に同期する変更（PR ラベル/Draft/sticky 同期）が入って初めて健全に効く。
-  判定ロジック（`phaseForItem`）は OR 解除を扱えるので、その時点で `hitlSignals` を足せば拡張できる。
+- 解除シグナルは **OR セマンティクス**: Project の HITL フィールド / Issue の `🙋 HITL` ラベル /
+  PR の `🙋 HITL` ラベルの **いずれか1つでも No/除去**なら解除（`getReviewContext` が3面を集め、
+  `phaseForItem` が `isHitlReleased` で判定）。daemon が3面を atomic に同期する（後述「PR 側の
+  状態可視化」）ので、人間は目の前の PR ラベルを外すだけで差し戻せる。
 - address-review / verify は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
 
 ---
@@ -162,16 +163,25 @@ EPIC は「作業項目」ではなく「**トラッカー**」。
 ## PR 側の状態可視化（Issue のみ Project 管理 + PR は投影）
 
 PR を見ただけで連携 Issue の状態が分かるよう、daemon が PR へ状態を投影する（Project が真実、
-PR 側は読み取り投影）。
+PR 側は読み取り投影）。実装は daemon の `applyPrProjection`（ポーリングのたびに走る per-tick 同期）
+と、フェーズ適用後・merge 前進後の権威的な同期 `syncFacesAfterIntents`（force）。判定は
+`phases.js` の純粋関数（`labelActions` / `draftAction` / `renderSticky` / `selectPrSyncCandidates`）、
+書き込みは `project.js`（`editLabels` / `setPrDraft` / `upsertStickyComment`）。実行中（run が
+所有する）item は触らない（live phase と競合しない）。
 
-| 手段 | 意味 |
-|---|---|
-| `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象） |
-| `🙋 HITL` ラベル | 人間の対応待ち |
-| Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間レビュー待ち |
-| sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 |
+| 手段 | 意味 | 同期ルール |
+|---|---|---|
+| `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象） | Issue/PR に常時担保 |
+| `🙋 HITL` ラベル | 人間の対応待ち | Project HITL=Yes で付与 / No で除去（Issue + PR の両面） |
+| Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間レビュー待ち | HITL=Yes→Ready / それ以外→Draft |
+| sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 | Status / AI Status / HITL / Size をマーカー付き 1 コメントに upsert |
 
-「作業中」専用ラベルは作らない（Draft が兼ねる）。
+- 対象は連携 PR を持ちうる post-PR ステータス（In Progress / Review / DoD / Blocked）の leaf。
+  EPIC は実装 PR を持たないので除外（`selectPrSyncCandidates`）。
+- **Review 中の `🙋 HITL` ラベルは人間の「解除ジェスチャ」を兼ねる**ため、steady-state（per-tick）の
+  同期では**人間が外したラベルを再付与しない**（解除シグナルを潰さない）。Review への handoff は
+  force 同期で明示的に付与する（`hitlLabelAction` の `force` 分岐）。
+- 「作業中」専用ラベルは作らない（Draft が兼ねる）。
 
 ---
 
@@ -258,8 +268,8 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `.claude/skills/autopilot-*/` | 各フェーズのスキル |
 | `bin/autopilot-worktree` | 軽量 worktree スクリプト |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
-| `tools/autopilot/src/phases.js` | フェーズ↔スキル、結果→フィールド意図、watchdog 判断、HITL 解除、merge-progression（純粋） |
-| `tools/autopilot/src/project.js` | GitHub Projects v2 への gh ラッパ |
+| `tools/autopilot/src/phases.js` | フェーズ↔スキル、結果→フィールド意図、watchdog 判断、HITL 解除、merge-progression、PR 投影（純粋） |
+| `tools/autopilot/src/project.js` | GitHub Projects v2 + Issue/PR ラベル・Draft・sticky への gh ラッパ |
 | `tools/autopilot/src/runner.js` | tmux runner + watchdog |
 | `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI |
 | `tools/autopilot/test/` | unit テスト |

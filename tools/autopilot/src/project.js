@@ -8,6 +8,7 @@
 
 const { execFileSync } = require('child_process');
 const path = require('path');
+const { HITL_LABEL, STICKY_MARKER } = require('./phases');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const BOT_TOKEN_BIN = path.join(REPO_ROOT, 'bin', 'bot-token');
@@ -114,16 +115,19 @@ function botLogin() {
 
 /**
  * Issue にひも付く open PR を返す（implement が PR 本文に `Closes #N` を書く規約）。
- * @returns {{number:number, labels:Array<{name:string}>}|null} 無ければ null
+ * labels は名前配列に正規化して返す。
+ * @returns {{number:number, labels:string[], isDraft:boolean}|null} 無ければ null
  */
 function findPrForIssue(repo, issueNumber, token) {
     const out = gh(
         ['pr', 'list', '--repo', repo, '--search', `Closes #${issueNumber} in:body`,
-            '--state', 'open', '--json', 'number,labels', '--limit', '1'],
+            '--state', 'open', '--json', 'number,labels,isDraft', '--limit', '1'],
         { token },
     );
     const prs = JSON.parse(out);
-    return prs.length ? prs[0] : null;
+    if (!prs.length) return null;
+    const pr = prs[0];
+    return { number: pr.number, labels: (pr.labels || []).map((l) => l.name), isDraft: pr.isDraft };
 }
 
 /**
@@ -166,10 +170,10 @@ function getPrReviewState(repo, prNumber, token) {
  * Review item の付帯情報（HITL 解除シグナル + PR レビュー状態 + PR 番号）を集める。
  * phaseForItem の ctx として渡す。PR が無ければ null（Review なのに PR 無し＝待つ）。
  *
- * 解除の権威シグナルは **Project の HITL フィールド** のみにする。`🙋 HITL` ラベルでの
- * OR 解除（contract §7）は、ラベルを atomic に同期する #794 が入って初めて健全に機能する
- * （ラベル未同期の今は「未設定ラベル＝解除」と誤判定する）。phaseForItem 側は OR を扱えるので、
- * #794 で hitlSignals に prLabel/issueLabel を足せば拡張できる。
+ * 解除シグナルは OR セマンティクス（contract §7）: Project の HITL フィールド /
+ * Issue の `🙋 HITL` ラベル / PR の `🙋 HITL` ラベルのいずれか1つでも No/除去なら解除。
+ * #794 で daemon が全面を atomic に同期するようになったため、ラベルでの OR 解除が
+ * 健全に機能する（人間は目の前の PR ラベルを外すだけで差し戻せる）。
  * @param {string} repo
  * @param {number} issueNumber
  * @param {string} projectHitl Project の HITL フィールド値（'Yes'/'No' 等）
@@ -179,11 +183,79 @@ function getPrReviewState(repo, prNumber, token) {
 function getReviewContext(repo, issueNumber, projectHitl, token) {
     const pr = findPrForIssue(repo, issueNumber, token);
     if (!pr) return null;
+    const issueLabels = getIssueLabels(repo, issueNumber, token);
     return {
-        hitlSignals: { projectField: projectHitl === 'Yes' },
+        hitlSignals: {
+            projectField: projectHitl === 'Yes',
+            issueLabel: issueLabels.includes(HITL_LABEL),
+            prLabel: (pr.labels || []).includes(HITL_LABEL),
+        },
         review: getPrReviewState(repo, pr.number, token),
         pr: pr.number,
     };
+}
+
+/**
+ * PR の現在の面状態（Draft かどうか + ラベル名配列）を返す。投影の差分計算に使う。
+ * @returns {{isDraft:boolean, labels:string[]}}
+ */
+function getPrInfo(repo, prNumber, token) {
+    const out = gh(['pr', 'view', String(prNumber), '--repo', repo, '--json', 'isDraft,labels'], { token });
+    const j = JSON.parse(out);
+    return { isDraft: Boolean(j.isDraft), labels: (j.labels || []).map((l) => l.name) };
+}
+
+/**
+ * Issue の現在のラベル名配列を返す。
+ * @returns {string[]}
+ */
+function getIssueLabels(repo, issueNumber, token) {
+    const out = gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'labels'], { token });
+    return (JSON.parse(out).labels || []).map((l) => l.name);
+}
+
+/**
+ * Issue または PR のラベルを編集する（add/remove の差分。空なら何もしない）。
+ * @param {string} type 'issue' | 'pr'
+ * @param {{add?:string[], remove?:string[]}} diff
+ */
+function editLabels(repo, number, type, diff, token) {
+    const add = diff.add || [];
+    const remove = diff.remove || [];
+    if (!add.length && !remove.length) return;
+    const args = [type, 'edit', String(number), '--repo', repo];
+    for (const l of add) args.push('--add-label', l);
+    for (const l of remove) args.push('--remove-label', l);
+    gh(args, { token });
+}
+
+/**
+ * PR の Draft/Ready を切り替える。'ready' → レビュー受付、'draft' → Draft へ戻す。
+ * @param {'ready'|'draft'} action
+ */
+function setPrDraft(repo, prNumber, action, token) {
+    const args = ['pr', 'ready', String(prNumber), '--repo', repo];
+    if (action === 'draft') args.push('--undo');
+    gh(args, { token });
+}
+
+/**
+ * sticky ステータスコメントを upsert する（マーカー付きの 1 コメントを編集し続ける）。
+ * 既存（マーカーを含むコメント）があれば PATCH、無ければ新規 POST。PR/Issue 共通の
+ * issues コメント API を使う。
+ */
+function upsertStickyComment(repo, number, body, token) {
+    const listed = gh(
+        ['api', '--paginate', `repos/${repo}/issues/${number}/comments`,
+            '--jq', `.[] | select(.body | contains("${STICKY_MARKER}")) | .id`],
+        { token },
+    ).trim();
+    const id = listed ? listed.split('\n')[0].trim() : '';
+    if (id) {
+        gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${id}`, '-f', `body=${body}`], { token });
+    } else {
+        gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
+    }
 }
 
 /**
@@ -223,4 +295,5 @@ function applyIntents(ctx, itemId, intents, token) {
 module.exports = {
     botToken, gh, getProject, getFields, listItems, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
+    getPrInfo, getIssueLabels, editLabels, setPrDraft, upsertStickyComment,
 };

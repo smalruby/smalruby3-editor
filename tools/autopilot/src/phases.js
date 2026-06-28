@@ -213,6 +213,142 @@ function selectActionable(items, opts = {}) {
     return out;
 }
 
+// ---- PR projection (#794): Issue 状態を PR/Issue の面へ投影する純粋ロジック ----
+
+/** autopilot が管理する PR/Issue に常時付ける管理ラベル */
+const AUTOPILOT_LABEL = '🤖 autopilot';
+/** 人間の対応待ちを示すラベル（Project HITL=Yes を投影） */
+const HITL_LABEL = '🙋 HITL';
+/** sticky ステータスコメントの識別マーカー（bot が1コメントを upsert し続ける目印） */
+const STICKY_MARKER = '<!-- autopilot:sticky -->';
+
+/**
+ * PR 投影を行う対象 Status（= 連携 PR が存在しうる post-PR ステータス）。
+ * New Item/Backlog/Sprint Backlog はまだ PR が無い、Close/Done は終端なので除外。
+ * Blocked は PR がある状態で HITL=Yes になるため含める。
+ */
+const PR_SYNC_STATUSES = new Set(['In Progress', 'Review', 'DoD', 'Blocked']);
+
+/**
+ * PR 投影の対象 item を選ぶ（純粋関数）。EPIC は実装 PR を持たないので除外。
+ * @param {object[]} items
+ * @returns {object[]}
+ */
+function selectPrSyncCandidates(items) {
+    return (items || []).filter(
+        (it) => it && it.kind !== 'EPIC' && PR_SYNC_STATUSES.has(it.status),
+    );
+}
+
+/**
+ * PR は AI 作業中は Draft、人間の番（HITL=Yes）のとき Ready にする。
+ * @param {object} item { hitl }
+ * @returns {boolean} Draft であるべきか
+ */
+function desiredDraft(item) {
+    return (item && item.hitl) !== 'Yes';
+}
+
+/**
+ * 現在の draft 状態と望ましい状態を比べ、必要な操作を返す（冪等。差分が無ければ null）。
+ * @param {boolean} currentIsDraft
+ * @param {object} item
+ * @returns {'draft'|'ready'|null}
+ */
+function draftAction(currentIsDraft, item) {
+    const want = desiredDraft(item);
+    if (Boolean(currentIsDraft) === want) return null;
+    return want ? 'draft' : 'ready';
+}
+
+/**
+ * 🙋 HITL ラベルの操作を決める（純粋関数）。
+ *
+ * Review 中の HITL ラベルは「人間の解除ジェスチャ」を兼ねる（contract §7 の OR 解除）。
+ * よって steady-state（force でない per-tick 同期）では、人間が外したラベルを **再付与しない**
+ * （= 解除シグナルを潰さない）。Review へ渡す権威的な遷移は force=true で明示的に付与する。
+ * @param {object} item { status, hitl }
+ * @param {boolean} present 現在ラベルが付いているか
+ * @param {object} [opts] { force }
+ * @returns {'add'|'remove'|null}
+ */
+function hitlLabelAction(item, present, opts = {}) {
+    const wantYes = item && item.hitl === 'Yes';
+    if (item && item.status === 'Review' && !opts.force) {
+        // steady-state: No への正規化（除去）だけ許可。Yes の再付与はしない。
+        return !wantYes && present ? 'remove' : null;
+    }
+    if (wantYes) return present ? null : 'add';
+    return present ? 'remove' : null;
+}
+
+/**
+ * Issue/PR のラベルを Project 状態へ合わせる差分を返す（純粋関数）。
+ * autopilot ラベルは常時担保し、HITL ラベルは {@link hitlLabelAction} に従う。
+ * @param {object} item
+ * @param {string[]} currentLabels 現在付いているラベル名
+ * @param {object} [opts] { force }
+ * @returns {{add: string[], remove: string[]}}
+ */
+function labelActions(item, currentLabels, opts = {}) {
+    const cur = currentLabels || [];
+    const add = [];
+    const remove = [];
+    if (!cur.includes(AUTOPILOT_LABEL)) add.push(AUTOPILOT_LABEL);
+    const h = hitlLabelAction(item, cur.includes(HITL_LABEL), opts);
+    if (h === 'add') add.push(HITL_LABEL);
+    else if (h === 'remove') remove.push(HITL_LABEL);
+    return { add, remove };
+}
+
+/**
+ * sticky ステータスコメント本文を組み立てる（純粋関数）。
+ * 連携 Issue の Project 状態（Status / AI Status / HITL / Size）を投影する。
+ * @param {object} item { issue, status, aiStatus, hitl, size }
+ * @returns {string}
+ */
+function renderSticky(item) {
+    const v = (x) => (x == null || x === '' ? '—' : String(x));
+    return [
+        STICKY_MARKER,
+        '## 🤖 autopilot status',
+        '',
+        '| field | value |',
+        '| --- | --- |',
+        `| Status | ${v(item.status)} |`,
+        `| AI Status | ${v(item.aiStatus)} |`,
+        `| HITL | ${v(item.hitl)} |`,
+        `| Size | ${v(item.size)} |`,
+        '',
+        `_Linked issue #${item.issue}. Maintained by autopilot (single writer); do not edit._`,
+    ].join('\n');
+}
+
+/** Project フィールド名 → listItems が返す item キーの対応 */
+const FIELD_TO_ITEM_KEY = {
+    Status: 'status',
+    'AI Status': 'aiStatus',
+    HITL: 'hitl',
+    Size: 'size',
+    Kind: 'kind',
+};
+
+/**
+ * フィールド設定意図（applyResult / mergeProgressionIntents の戻り）を item のコピーに適用する。
+ * 投影用に「フェーズ適用後の item 像」を I/O なしで得るための純粋関数（value=null はクリア）。
+ * @param {object} item
+ * @param {Array<{field: string, value: string|null}>} intents
+ * @returns {object} 新しい item（元は破壊しない）
+ */
+function applyIntentsToItem(item, intents) {
+    const out = { ...item };
+    for (const { field, value } of intents || []) {
+        const key = FIELD_TO_ITEM_KEY[field];
+        if (key) out[key] = value;
+    }
+    return out;
+}
+
 /**
  * watchdog の状態を評価して次アクションを返す（純粋関数）。
  * 完了の権威は「結果ファイルの存在」。それ以外はタイマーで stuck を処理する。
@@ -305,4 +441,15 @@ module.exports = {
     shouldResend,
     evaluate,
     DEFAULT_WATCHDOG,
+    AUTOPILOT_LABEL,
+    HITL_LABEL,
+    STICKY_MARKER,
+    PR_SYNC_STATUSES,
+    selectPrSyncCandidates,
+    desiredDraft,
+    draftAction,
+    hitlLabelAction,
+    labelActions,
+    renderSticky,
+    applyIntentsToItem,
 };
