@@ -8,12 +8,25 @@ const {
     isHitlReleased,
     progressOnMerge,
     reviewPhase,
+    mergeProgressionIntents,
+    selectMergeCandidates,
     phaseForItem,
     isActionable,
     selectActionable,
+    shouldResend,
     evaluate,
     DEFAULT_WATCHDOG,
 } = require('../src/phases');
+
+test('shouldResend: resend after accept window if attempts remain', () => {
+    const cfg = { maxAttempts: 4, acceptWindowMs: 8000 };
+    // まだ猶予内 -> 再送しない
+    assert.equal(shouldResend({ sinceSendMs: 5000, attempts: 1, ...cfg }), false);
+    // 猶予超過 & 上限内 -> 再送
+    assert.equal(shouldResend({ sinceSendMs: 9000, attempts: 1, ...cfg }), true);
+    // 上限到達 -> 再送しない
+    assert.equal(shouldResend({ sinceSendMs: 9000, attempts: 4, ...cfg }), false);
+});
 
 test('phaseForItem: New Item -> triage', () => {
     assert.equal(phaseForItem({ status: 'New Item' }), 'triage');
@@ -146,6 +159,39 @@ test('progressOnMerge: leaf Issue -> Close, EPIC -> null', () => {
     assert.equal(progressOnMerge('EPIC'), null);
     // 未指定は leaf 扱い
     assert.equal(progressOnMerge(undefined), 'Close');
+});
+
+test('selectMergeCandidates: leaf items in post-PR statuses; excludes EPIC and terminal/pre-PR', () => {
+    const items = [
+        { issue: 1, status: 'In Progress', kind: 'Issue' }, // yes
+        { issue: 2, status: 'Review', kind: 'Issue' }, // yes
+        { issue: 3, status: 'DoD', kind: 'Issue' }, // yes
+        { issue: 4, status: 'Review', kind: 'EPIC' }, // no (EPIC, 子 PR では閉じない)
+        { issue: 5, status: 'Close', kind: 'Issue' }, // no (terminal)
+        { issue: 6, status: 'Sprint Backlog', kind: 'Issue' }, // no (まだ PR 無し)
+        { issue: 7, status: 'New Item', kind: 'Issue' }, // no
+    ];
+    assert.deepEqual(selectMergeCandidates(items).map((i) => i.issue), [1, 2, 3]);
+});
+
+test('mergeProgressionIntents: merged leaf -> Close, clear AI Status, HITL No', () => {
+    const intents = mergeProgressionIntents({ issue: 1, status: 'Review', kind: 'Issue' }, true);
+    const m = Object.fromEntries(intents.map((i) => [i.field, i.value]));
+    assert.equal(m.Status, 'Close');
+    assert.equal(m['AI Status'], null);
+    assert.equal(m.HITL, 'No');
+});
+
+test('mergeProgressionIntents: not merged -> no intents', () => {
+    assert.deepEqual(mergeProgressionIntents({ status: 'Review', kind: 'Issue' }, false), []);
+});
+
+test('mergeProgressionIntents: EPIC merged -> no intents (child PR does not close EPIC)', () => {
+    assert.deepEqual(mergeProgressionIntents({ status: 'Review', kind: 'EPIC' }, true), []);
+});
+
+test('mergeProgressionIntents: already at target Status -> no intents (idempotent)', () => {
+    assert.deepEqual(mergeProgressionIntents({ status: 'Close', kind: 'Issue' }, true), []);
 });
 
 test('applyResult: done sets Status/HITL/Size/Kind and clears AI Status', () => {

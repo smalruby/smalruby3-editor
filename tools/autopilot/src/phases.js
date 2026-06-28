@@ -87,6 +87,47 @@ function progressOnMerge(kind) {
 }
 
 /**
+ * merge 後の前進をチェックすべき Status の集合。
+ * PR が出た後〜Close 前の leaf だけを対象にする（New Item/Backlog/Sprint Backlog はまだ PR が
+ * 無いので除外、Close/Done は終端なので除外）。人間は Review でも DoD でも手動 merge しうるため
+ * In Progress / Review / DoD の 3 つを見る。
+ */
+const MERGE_CHECK_STATUSES = new Set(['In Progress', 'Review', 'DoD']);
+
+/**
+ * Project item から「merge 検知の対象（連携 PR が merge 済みか問い合わせる価値がある）」を選ぶ。
+ * 純粋関数。GitHub への問い合わせは I/O 側（daemon）が行うので、ここでは候補の絞り込みだけ。
+ * @param {object[]} items 各 { issue, status, kind, ... }
+ * @returns {object[]} merge チェック対象
+ */
+function selectMergeCandidates(items) {
+    return (items || []).filter(
+        (it) => it && it.kind !== 'EPIC' && MERGE_CHECK_STATUSES.has(it.status),
+    );
+}
+
+/**
+ * 連携 PR の merge を検知したときに Project へ書く意図を返す（純粋関数）。
+ * leaf（Kind=Issue）で PR が merge 済みなら Close へ前進し、AI Status をクリア、HITL を No にする
+ * （merge は HITL と独立した前進シグナルなので、人間が別途 HITL を外す必要はない）。
+ * EPIC・未 merge・既に target の場合は空配列（冪等）。
+ * @param {object} item { status, kind }
+ * @param {boolean} prMerged 連携 PR が merge 済みか
+ * @returns {Array<{field: string, value: string|null}>}
+ */
+function mergeProgressionIntents(item, prMerged) {
+    if (!prMerged) return [];
+    const target = progressOnMerge(item && item.kind);
+    if (target == null) return []; // EPIC は子 PR の merge で閉じない
+    if (item && item.status === target) return []; // 冪等: 既に Close なら何もしない
+    return [
+        { field: 'Status', value: target },
+        { field: 'AI Status', value: null },
+        { field: 'HITL', value: 'No' },
+    ];
+}
+
+/**
  * 人間が HITL を解除した Review item で、PR のレビュー状態から次フェーズを決める（純粋関数）。
  * - 変更要求 / 未対応の人間コメントがあれば address-review（指摘対応へ）
  * - approve のみ（未対応コメントなし）なら verify（DoD 確認へ）
@@ -220,12 +261,32 @@ function evaluate(state, cfg) {
     return { action: 'wait', reason: 'in progress' };
 }
 
+/**
+ * スラッシュコマンド送信後に「受理されたか」を判定し、未達なら再送すべきかを返す（純粋関数）。
+ * claude TUI は起動直後に入力受付前のことがあり、最初の send-keys が捨てられる（課題1）。
+ * 受理確認（busy 表示 or 結果ファイル）が取れないまま acceptWindow を超えたら、上限まで再送する。
+ * @param {object} s
+ * @param {number} s.sinceSendMs 直近送信からの経過
+ * @param {number} s.attempts これまでの送信回数
+ * @param {number} s.maxAttempts 送信上限
+ * @param {number} s.acceptWindowMs 受理待ちの猶予
+ * @returns {boolean}
+ */
+function shouldResend(s) {
+    return s.sinceSendMs > s.acceptWindowMs && s.attempts < s.maxAttempts;
+}
+
 const DEFAULT_WATCHDOG = {
     tReadyMs: 60_000,
-    tIdleMs: 120_000,
+    // claude の思考/実行は数分に及ぶ。busy 検知（runner の BUSY_RE）が主防御で、
+    // これは pane が完全停止した場合の保険なので長め（10 分）にする。
+    tIdleMs: 600_000,
     tMaxMs: 1_800_000,
     maxRestarts: 2,
     pollMs: 3_000,
+    // 送信後この時間内に受理（busy/結果）が確認できなければ再送（課題1: cold-start 不達）
+    acceptWindowMs: 8_000,
+    maxSendAttempts: 4,
 };
 
 module.exports = {
@@ -235,9 +296,13 @@ module.exports = {
     isHitlReleased,
     progressOnMerge,
     reviewPhase,
+    MERGE_CHECK_STATUSES,
+    selectMergeCandidates,
+    mergeProgressionIntents,
     phaseForItem,
     isActionable,
     selectActionable,
+    shouldResend,
     evaluate,
     DEFAULT_WATCHDOG,
 };

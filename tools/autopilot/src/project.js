@@ -186,6 +186,30 @@ function getReviewContext(repo, issueNumber, projectHitl, token) {
     };
 }
 
+/**
+ * 指定 Issue に紐付く PR の中に merge 済みのものがあるか。
+ * GitHub の "Development" リンク（PR 本文の `Closes #<issue>` など）を
+ * `closedByPullRequestsReferences` で辿る。autopilot は自動 merge しないので、
+ * これは人間の手動 merge を検知するための読み取り。
+ * @param {string} repo `owner/name`
+ * @param {number} issueNumber
+ * @returns {boolean} merge 済み PR が 1 つでもあれば true
+ */
+function hasMergedPullRequest(repo, issueNumber, token) {
+    const [owner, name] = repo.split('/');
+    const query =
+        'query($owner:String!,$name:String!,$num:Int!){' +
+        'repository(owner:$owner,name:$name){issue(number:$num){' +
+        'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{merged}}}}}';
+    const out = gh(
+        ['api', 'graphql', '-f', `query=${query}`, '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
+        { token },
+    );
+    const issue = JSON.parse(out)?.data?.repository?.issue;
+    const nodes = (issue && issue.closedByPullRequestsReferences && issue.closedByPullRequestsReferences.nodes) || [];
+    return nodes.some((n) => n.merged === true);
+}
+
 /** applyResult が返す意図配列を Project に反映する */
 function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
@@ -198,5 +222,5 @@ function applyIntents(ctx, itemId, intents, token) {
 
 module.exports = {
     botToken, gh, getProject, getFields, listItems, findItemId, addIssue, setField, applyIntents,
-    botLogin, findPrForIssue, getPrReviewState, getReviewContext, REPO_ROOT,
+    botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
 };
