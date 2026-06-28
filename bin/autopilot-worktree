@@ -52,6 +52,30 @@ BRANCH_PREFIX="${AUTOPILOT_BRANCH_PREFIX:-topic/autopilot-}"
 wt_path() { echo "${WT_ROOT}/issue-$1"; }
 wt_branch() { echo "${BRANCH_PREFIX}$1"; }
 
+# worktree の git exclude に node_modules を追記（冪等・コミット不要）。
+# 理由: node_modules を main へ symlink して共有するが、古い base ブランチの
+# `.gitignore` は `node_modules/`（末尾スラッシュ=ディレクトリのみ）で symlink を
+# 無視できず、`git add -A` で誤ってステージされる（Issue #801 / PR #800）。
+# `.gitignore` 側も symlink を無視するよう修正済みだが、修正前の base から切った
+# worktree でも確実に無視されるよう保険として exclude にも入れる。
+# info/exclude は共有 (git-common-dir) なので 1 度書けば全 worktree に効く。
+exclude_node_modules() {
+    local wt="$1"
+    local exclude
+    exclude=$(cd "${wt}" && git rev-parse --git-path info/exclude 2>/dev/null) || return 0
+    [[ -n "${exclude}" ]] || return 0
+    mkdir -p "$(dirname "${exclude}")"
+    touch "${exclude}"
+    local marker="# autopilot: ignore shared node_modules symlinks (Issue #801)"
+    grep -qxF "${marker}" "${exclude}" 2>/dev/null && return 0
+    {
+        echo "${marker}"
+        echo "node_modules"
+        echo "packages/*/node_modules"
+    } >> "${exclude}"
+    echo "excluded: node_modules symlinks via ${exclude}"
+}
+
 # 各 packages/*/node_modules を main へ symlink（無い場合のみ）
 link_package_node_modules() {
     local wt="$1"
@@ -123,6 +147,9 @@ cmd_create() {
         # 各 package の node_modules も symlink
         link_package_node_modules "${wt}"
     fi
+
+    # symlink した node_modules を確実に無視させる保険（base が古くても効く）
+    exclude_node_modules "${wt}"
 
     echo ""
     echo "ready: ${wt}"

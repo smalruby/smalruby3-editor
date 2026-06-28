@@ -44,7 +44,9 @@ bower_components
 build/Release
 
 # Dependency directories
-node_modules/
+# No trailing slash: also ignores a `node_modules` *symlink* (autopilot
+# worktrees symlink node_modules to share build artifacts — Issue #801).
+node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
