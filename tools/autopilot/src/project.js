@@ -131,9 +131,37 @@ function findPrForIssue(repo, issueNumber, token) {
 }
 
 /**
+ * reviewDecision と人間レビュー一覧から approved/changesRequested を導く（純粋関数）。
+ *
+ * #811: ブランチ保護で「レビュー必須」でないリポジトリでは reviewDecision が空になり、
+ * APPROVED レビューがあっても `reviewDecision === 'APPROVED'` 判定では approved=false に
+ * 落ちて daemon が verify に進めなかった。reviewDecision が決定的でないときは各レビュアーの
+ * 最新状態から判定する（CHANGES_REQUESTED が無く APPROVED があれば approved）。
+ * @param {string|null} reviewDecision 集約判定（APPROVED/CHANGES_REQUESTED/REVIEW_REQUIRED/null）
+ * @param {Array<{login:string,state:string}>} humanReviews 人間レビューの (login,state) を時系列順で
+ * @returns {{approved:boolean, changesRequested:boolean}}
+ */
+function computeReviewApproval(reviewDecision, humanReviews) {
+    if (reviewDecision === 'APPROVED') return { approved: true, changesRequested: false };
+    if (reviewDecision === 'CHANGES_REQUESTED') return { approved: false, changesRequested: true };
+    // reviewDecision が空（レビュー必須でない等）: 各人間レビュアーの最新状態で判定する。
+    // COMMENTED/PENDING は承認状態を変えない（GitHub と同じ挙動）。DISMISSED は承認を取り消す。
+    const latest = new Map();
+    for (const r of humanReviews || []) {
+        if (!r || !r.login) continue;
+        if (r.state === 'APPROVED' || r.state === 'CHANGES_REQUESTED' || r.state === 'DISMISSED') {
+            latest.set(r.login, r.state);
+        }
+    }
+    const states = [...latest.values()];
+    const changesRequested = states.includes('CHANGES_REQUESTED');
+    const approved = !changesRequested && states.includes('APPROVED');
+    return { approved, changesRequested };
+}
+
+/**
  * PR のレビュー状態を reviewPhase 用に正規化して返す。
- * - approved: GitHub の集約判定 reviewDecision === 'APPROVED'
- * - changesRequested: reviewDecision === 'CHANGES_REQUESTED'
+ * - approved / changesRequested: {@link computeReviewApproval}（reviewDecision が空でも reviews で補強）
  * - unresolvedHumanComments: 人間が立てた未解決レビュースレッド数（bot は除外）
  * @returns {{approved:boolean, changesRequested:boolean, unresolvedHumanComments:number}}
  */
@@ -143,6 +171,7 @@ function getPrReviewState(repo, prNumber, token) {
       repository(owner:$owner,name:$name){
         pullRequest(number:$pr){
           reviewDecision
+          reviews(first:100){nodes{author{login} state}}
           reviewThreads(first:100){nodes{isResolved comments(first:1){nodes{author{login}}}}}
         }
       }
@@ -159,11 +188,11 @@ function getPrReviewState(repo, prNumber, token) {
     const unresolvedHumanComments = threads.filter(
         (t) => !t.isResolved && (t.comments.nodes || []).some((c) => isHuman(c.author && c.author.login)),
     ).length;
-    return {
-        approved: pr.reviewDecision === 'APPROVED',
-        changesRequested: pr.reviewDecision === 'CHANGES_REQUESTED',
-        unresolvedHumanComments,
-    };
+    const humanReviews = ((pr.reviews && pr.reviews.nodes) || [])
+        .map((r) => ({ login: r.author && r.author.login, state: r.state }))
+        .filter((r) => isHuman(r.login));
+    const { approved, changesRequested } = computeReviewApproval(pr.reviewDecision, humanReviews);
+    return { approved, changesRequested, unresolvedHumanComments };
 }
 
 /**
@@ -294,6 +323,6 @@ function applyIntents(ctx, itemId, intents, token) {
 
 module.exports = {
     botToken, gh, getProject, getFields, listItems, findItemId, addIssue, setField, applyIntents,
-    botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
+    botLogin, findPrForIssue, getPrReviewState, computeReviewApproval, getReviewContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, editLabels, setPrDraft, upsertStickyComment,
 };

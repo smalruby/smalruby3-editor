@@ -191,7 +191,7 @@ PR 側は読み取り投影）。実装は daemon の `applyPrProjection`（ポ�
 |---|---|---|
 | `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象） | Issue/PR に常時担保 |
 | `🙋 HITL` ラベル | 人間の対応待ち | Project HITL=Yes で付与 / No で除去（Issue + PR の両面） |
-| Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間レビュー待ち | HITL=Yes→Ready / それ以外→Draft |
+| Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間レビュー待ち | Status が Review/DoD/Close→Ready / それ以外→Draft（HITL では決めない） |
 | sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 | Status / AI Status / HITL / Size をマーカー付き 1 コメントに upsert |
 
 - 対象は連携 PR を持ちうる post-PR ステータス（In Progress / Review / DoD / Blocked）の leaf。

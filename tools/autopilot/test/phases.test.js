@@ -283,21 +283,34 @@ test('selectPrSyncCandidates: non-EPIC items in post-PR statuses', () => {
     assert.deepEqual(selectPrSyncCandidates(null), []);
 });
 
-test('desiredDraft: Draft while AI works, Ready when HITL=Yes (human turn)', () => {
+test('desiredDraft: Status-based — Draft while AI works, Ready once handed to humans', () => {
+    // AI 作業中/未着手 -> Draft
     assert.equal(desiredDraft({ status: 'In Progress', hitl: 'No' }), true);
-    assert.equal(desiredDraft({ status: 'Review', hitl: 'Yes' }), false);
+    assert.equal(desiredDraft({ status: 'Backlog' }), true);
+    assert.equal(desiredDraft({ status: 'New Item' }), true);
+    assert.equal(desiredDraft({ status: 'Icebox' }), true);
+    assert.equal(desiredDraft({ status: 'Sprint Backlog' }), true);
     assert.equal(desiredDraft({ status: 'In Progress' }), true); // hitl unset -> draft
+    // 人間に渡った後 -> Ready（HITL の有無に依存しない）
+    assert.equal(desiredDraft({ status: 'Review', hitl: 'Yes' }), false);
+    // #811: approve + HITL 除去（HITL=No）でも Review なら Ready のまま（Draft に戻さない）
+    assert.equal(desiredDraft({ status: 'Review', hitl: 'No' }), false);
+    assert.equal(desiredDraft({ status: 'Review' }), false);
+    assert.equal(desiredDraft({ status: 'DoD', hitl: 'No' }), false);
+    assert.equal(desiredDraft({ status: 'Close', hitl: 'No' }), false);
 });
 
 test('draftAction: only acts on a diff (idempotent)', () => {
-    // currently draft, want draft -> no change
-    assert.equal(draftAction(true, { hitl: 'No' }), null);
-    // currently draft, want ready (HITL=Yes) -> ready
-    assert.equal(draftAction(true, { hitl: 'Yes' }), 'ready');
-    // currently ready, want draft -> draft
-    assert.equal(draftAction(false, { hitl: 'No' }), 'draft');
+    // currently draft, want draft (AI working) -> no change
+    assert.equal(draftAction(true, { status: 'In Progress', hitl: 'No' }), null);
+    // currently draft, want ready (handed to humans) -> ready
+    assert.equal(draftAction(true, { status: 'Review', hitl: 'Yes' }), 'ready');
+    // currently ready, want draft (AI working) -> draft
+    assert.equal(draftAction(false, { status: 'In Progress', hitl: 'No' }), 'draft');
     // currently ready, want ready -> no change
-    assert.equal(draftAction(false, { hitl: 'Yes' }), null);
+    assert.equal(draftAction(false, { status: 'Review', hitl: 'Yes' }), null);
+    // #811: approved Review PR with HITL removed must NOT be reverted to Draft
+    assert.equal(draftAction(false, { status: 'Review', hitl: 'No' }), null);
 });
 
 test('hitlLabelAction: non-Review reconciles toward Project field', () => {

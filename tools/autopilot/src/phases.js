@@ -244,12 +244,22 @@ function selectPrSyncCandidates(items) {
 }
 
 /**
- * PR は AI 作業中は Draft、人間の番（HITL=Yes）のとき Ready にする。
- * @param {object} item { hitl }
+ * 人間に渡った後の Status（PR は Ready であるべき）。
+ * Review/DoD/Close は人間レビュー・マージ・終端なので Draft を解除する。
+ */
+const READY_STATUSES = new Set(['Review', 'DoD', 'Close']);
+
+/**
+ * PR は AI 作業中は Draft、人間に渡った後（Status が Review/DoD/Close）は Ready にする。
+ *
+ * #811: 以前は HITL=Yes のときだけ Ready としていたため、人間が approve して
+ * 🙋 HITL を外す（HITL=No）と次の sync で Ready→Draft に戻り、マージ待ちの承認済み
+ * PR が Draft 化してマージ不可になっていた。Draft 判定は HITL ではなく Status で行う。
+ * @param {object} item { status }
  * @returns {boolean} Draft であるべきか
  */
 function desiredDraft(item) {
-    return (item && item.hitl) !== 'Yes';
+    return !READY_STATUSES.has(item && item.status);
 }
 
 /**
