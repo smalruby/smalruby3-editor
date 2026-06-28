@@ -2,6 +2,16 @@
 
 > **SP / iPad 対応の動作確認は最初に [`docs/mobile-ui/playwright.md`](../../../docs/mobile-ui/playwright.md) を参照する。** viewport プリセット、Mobile* 系コンポーネントの data-testid 一覧、共通操作パターン、リグレッションチェックリストがすべて集約してある。本ファイルは SP に限らない一般則 (data-testid 命名規則、Ruby Toolbar / Classroom Modal の testid、Monaco 操作) を扱う。レビュー観点や影響範囲は [`.claude/rules/scratch-gui/mobile-ui.md`](mobile-ui.md) を参照。
 
+## 準備済み E2E / リグレッションスクリプトの置き場所: `tools/playwright-verify/`
+
+複数タブ連動 (Mesh v2 ↔ クラス管理) など unit/integration で網羅しづらい挙動の **スタンドアロン Playwright スクリプト** は `tools/playwright-verify/` にある（CI 非組込・手動 `node <script>.mjs`、独自 browser を起動）。一覧と前提・実行方法は **`tools/playwright-verify/README.md`**。機能を変更したらまず該当スクリプトを探す:
+
+- **mesh** リグレッション → `mesh-v2-classroom-binding.mjs` ほか（詳細は [`mesh.md`](mesh.md) の「準備済み E2E リグレッションスクリプト」）
+- classroom → `smoke-teacher-dashboard.mjs` / `verify-co-teacher.mjs`
+- Ruby 基礎 → `verify-ruby-basics-1.mjs` / iPad キーボード → `verify-issue-727-ipad-keyboard.mjs`
+
+**コンテナ（devpod）は画面が無いので headless で実行**（`HEADLESS=false CHANNEL=chrome` はホスト側で目視するとき）。`xvfb-run` は使わない。Playwright MCP でホスト Chrome を直接操作する方法は memory `reference_host_playwright_mcp.md` 参照。
+
 ## data-testid Convention
 
 **Playwright MCP と Selenium integration tests の両方で `data-testid` 属性を使用する。**
