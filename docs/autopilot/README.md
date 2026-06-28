@@ -130,6 +130,20 @@ daemon の `applyMergeProgression`。実行中（run が所有する）item は�
 
 ---
 
+## implement→review の自動ディスパッチ（自己レビュー）
+
+`autopilot-implement` が完了すると Status=`In Progress` / AI Status=`Self-Reviewing` / HITL=`No`
+になる。daemon はこの状態を検知して **`autopilot-review`（敵対的レビュー）を自動ディスパッチ**し、
+人間の介入なしに implement→review→（人間レビュー待ちの）Review/HITL まで前進させる。
+
+- 判定は `phases.js` の `phaseForItem`（純粋関数）: `status==='In Progress' && aiStatus==='Self-Reviewing'`
+  → `'review'`。HITL=Yes のときは人間の番なので渡さない。
+- review は **既存 PR ブランチ**で作業する（`PR_BRANCH_PHASES` に含む）。
+- 二重起動は daemon の running セットで防止（review 実行中も In Progress / Self-Reviewing のままだが
+  `selectActionable` が running の item を除外する）。
+
+---
+
 ## Review 解除後の自動遷移（address-review / verify）
 
 `Review` の item は人間レビュー待ち（HITL=Yes）。人間がレビューを終えて HITL を解除すると、

@@ -56,6 +56,21 @@ test('phaseForItem: HITL=Yes or human-driven states -> null', () => {
     assert.equal(phaseForItem({ status: 'In Progress' }), null);
 });
 
+test('phaseForItem: In Progress + Self-Reviewing -> review (auto self-review dispatch)', () => {
+    // implement 完了後の状態（#805）: daemon が autopilot-review を自動ディスパッチする
+    assert.equal(
+        phaseForItem({ status: 'In Progress', aiStatus: 'Self-Reviewing', hitl: 'No' }),
+        'review',
+    );
+    // 他の AI Status の In Progress は実行中の run が所有するので null のまま
+    assert.equal(phaseForItem({ status: 'In Progress', aiStatus: 'Implementing' }), null);
+    // Self-Reviewing でも HITL=Yes なら人間の番（review へ渡さない）
+    assert.equal(
+        phaseForItem({ status: 'In Progress', aiStatus: 'Self-Reviewing', hitl: 'Yes' }),
+        null,
+    );
+});
+
 test('reviewPhase: unaddressed comments / changes-requested -> address-review', () => {
     assert.equal(reviewPhase({ unresolvedHumanComments: 1 }), 'address-review');
     assert.equal(reviewPhase({ changesRequested: true }), 'address-review');
