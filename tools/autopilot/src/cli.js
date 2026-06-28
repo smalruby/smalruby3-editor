@@ -129,17 +129,40 @@ async function runTriageLike(command, opts) {
     return result.signal === 'error' ? 1 : 0;
 }
 
+function parseDaemonArgs(argv) {
+    const o = { owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor', concurrency: 2, intervalMs: 15000, port: 8787, once: false };
+    for (let i = 0; i < argv.length; i++) {
+        const a = argv[i];
+        if (a === '--owner') o.owner = argv[++i];
+        else if (a === '--project') o.project = Number(argv[++i]);
+        else if (a === '--repo') o.repo = argv[++i];
+        else if (a === '--concurrency') o.concurrency = Number(argv[++i]);
+        else if (a === '--interval') o.intervalMs = Number(argv[++i]) * 1000;
+        else if (a === '--port') o.port = Number(argv[++i]);
+        else if (a === '--once') o.once = true;
+    }
+    return o;
+}
+
 async function main(argv) {
     const command = argv[0];
     if (!command || command === '--help' || command === '-h') {
         process.stdout.write(
-            'usage: autopilot <phase> <issue> [options]\n' +
+            'usage:\n' +
+            '  autopilot <phase> <issue> [options]   run a single phase for one issue\n' +
+            '  autopilot daemon [options]            run the resident daemon\n' +
             `  phases: ${Object.keys(PHASE_BY_COMMAND).join(', ')}\n` +
-            '  options: --owner --project --repo --command --worktree --no-worktree --dry-run --no-apply\n');
+            '  phase options:  --owner --project --repo --command --worktree --no-worktree --dry-run --no-apply\n' +
+            '  daemon options: --owner --project --repo --concurrency --interval(sec) --port --once\n');
+        return 0;
+    }
+    if (command === 'daemon') {
+        const daemon = require('./daemon');
+        await daemon.main(parseDaemonArgs(argv.slice(1)));
         return 0;
     }
     if (!PHASE_BY_COMMAND[command]) {
-        process.stderr.write(`unknown phase: ${command}\n`);
+        process.stderr.write(`unknown command: ${command}\n`);
         return 2;
     }
     const opts = parseArgs(argv.slice(1));

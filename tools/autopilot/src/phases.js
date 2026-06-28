@@ -87,6 +87,54 @@ function progressOnMerge(kind) {
 }
 
 /**
+ * Project item から「次に autopilot が自律実行すべきフェーズ」を決める（純粋関数）。
+ * 人間駆動の状態（Review/DoD/Close/Backlog/Icebox/Paused）や HITL=Yes では null（何もしない）。
+ * @param {object} item { status, aiStatus, hitl, kind }
+ * @returns {string|null} フェーズ名（triage/decompose/implement ...）または null
+ */
+function phaseForItem(item) {
+    if (!item) return null;
+    if (item.hitl === 'Yes') return null; // 人間の番
+    const status = item.status || 'New Item';
+    if (status === 'New Item') return 'triage';
+    if (status === 'Sprint Backlog') {
+        return item.kind === 'EPIC' ? 'decompose' : 'implement';
+    }
+    // In Progress は実行中の run が所有。Review/DoD/Close 等は人間駆動。
+    return null;
+}
+
+/**
+ * item が今 autopilot の処理対象か（純粋関数）。
+ * @param {object} item
+ * @param {object} [opts] { paused }
+ * @returns {boolean}
+ */
+function isActionable(item, opts = {}) {
+    if (opts.paused) return false;
+    return phaseForItem(item) !== null;
+}
+
+/**
+ * 着手すべき item を並行上限内で選ぶ（純粋関数）。
+ * @param {object[]} items 各 { issue, status, aiStatus, hitl, kind }
+ * @param {object} opts { paused, running:Set<number>, limit }
+ * @returns {object[]} 実行対象（issue + phase）
+ */
+function selectActionable(items, opts = {}) {
+    const running = opts.running || new Set();
+    const limit = opts.limit ?? 2;
+    const out = [];
+    for (const item of items) {
+        if (out.length >= Math.max(0, limit - running.size)) break;
+        if (running.has(item.issue)) continue;
+        if (!isActionable(item, opts)) continue;
+        out.push({ ...item, phase: phaseForItem(item) });
+    }
+    return out;
+}
+
+/**
  * watchdog の状態を評価して次アクションを返す（純粋関数）。
  * 完了の権威は「結果ファイルの存在」。それ以外はタイマーで stuck を処理する。
  * @param {object} state
@@ -148,6 +196,9 @@ module.exports = {
     applyResult,
     isHitlReleased,
     progressOnMerge,
+    phaseForItem,
+    isActionable,
+    selectActionable,
     evaluate,
     DEFAULT_WATCHDOG,
 };

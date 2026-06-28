@@ -49,6 +49,28 @@ function findItemId(owner, number, issueNumber, token) {
     return it ? it.id : null;
 }
 
+/**
+ * Project の全 item をフィールド値つきで返す（daemon のポーリング用）。
+ * gh の item-list JSON のキー揺れ（"aI Status" / "hITL"）を正規化する。
+ * @returns {Array<{issue, itemId, status, aiStatus, hitl, kind, size, title}>}
+ */
+function listItems(owner, number, token) {
+    const out = gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
+    const items = JSON.parse(out).items || [];
+    return items
+        .filter((i) => i.content && typeof i.content.number === 'number')
+        .map((i) => ({
+            issue: i.content.number,
+            itemId: i.id,
+            title: i.content.title,
+            status: i.status,
+            aiStatus: i['aI Status'] ?? i.aiStatus,
+            hitl: i.hITL ?? i.hitl,
+            kind: i.kind,
+            size: i.size,
+        }));
+}
+
 /** Issue を project に追加して item id を返す（既にあれば既存を返す） */
 function addIssue(owner, number, repo, issueNumber, token) {
     const existing = findItemId(owner, number, issueNumber, token);
@@ -90,5 +112,5 @@ function applyIntents(ctx, itemId, intents, token) {
 }
 
 module.exports = {
-    botToken, gh, getProject, getFields, findItemId, addIssue, setField, applyIntents, REPO_ROOT,
+    botToken, gh, getProject, getFields, listItems, findItemId, addIssue, setField, applyIntents, REPO_ROOT,
 };
