@@ -23,8 +23,10 @@
 #     場合は `--full` を使う（worktree 内で実 npm install + build:dev、symlink 無し）。
 #
 # Usage:
-#   bin/autopilot-worktree create <issue> [base-ref]   # 既定 base: origin/develop
+#   bin/autopilot-worktree create <issue> [base-ref]   # 既定 base: origin/develop（新ブランチ）
 #   bin/autopilot-worktree create <issue> --full        # 重い完全セットアップ
+#   bin/autopilot-worktree create <issue> --branch <name>  # 既存ブランチを checkout
+#   bin/autopilot-worktree create <issue> --pr <number>    # PR のヘッドブランチを checkout（address-review 用）
 #   bin/autopilot-worktree path <issue>                 # worktree パスを表示
 #   bin/autopilot-worktree remove <issue> [--delete-branch]
 #   bin/autopilot-worktree list
@@ -70,25 +72,44 @@ cmd_create() {
     local issue="$1"; shift || true
     local base="origin/develop"
     local full=false
+    local explicit_branch=""   # --branch <name>: 既存ブランチを checkout
+    local pr_number=""         # --pr <number>: PR のヘッドブランチを checkout
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --full) full=true ;;
+            --branch) explicit_branch="$2"; shift ;;
+            --pr) pr_number="$2"; shift ;;
             *) base="$1" ;;
         esac
         shift
     done
-    [[ -n "${issue}" ]] || { echo "usage: autopilot-worktree create <issue> [base-ref] [--full]" >&2; exit 2; }
+    [[ -n "${issue}" ]] || { echo "usage: autopilot-worktree create <issue> [base-ref] [--full] [--branch <name>] [--pr <n>]" >&2; exit 2; }
+
+    # --pr: PR のヘッドブランチ名を解決（address-review 等で既存 PR ブランチを使う）
+    if [[ -n "${pr_number}" ]]; then
+        local tok; tok="$("${MAIN_CHECKOUT}/bin/bot-token")"
+        explicit_branch="$(GH_TOKEN="${tok}" gh pr view "${pr_number}" --repo smalruby/smalruby3-editor --json headRefName -q .headRefName)"
+        [[ -n "${explicit_branch}" ]] || { echo "error: could not resolve PR #${pr_number} head branch" >&2; exit 1; }
+    fi
 
     local wt branch
     wt=$(wt_path "${issue}")
-    branch=$(wt_branch "${issue}")
+    if [[ -n "${explicit_branch}" ]]; then branch="${explicit_branch}"; else branch=$(wt_branch "${issue}"); fi
 
     git -C "${MAIN_CHECKOUT}" fetch -p origin develop >/dev/null 2>&1 || true
+    if [[ -n "${explicit_branch}" ]]; then
+        git -C "${MAIN_CHECKOUT}" fetch origin "${explicit_branch}" >/dev/null 2>&1 || true
+    fi
 
     if git -C "${MAIN_CHECKOUT}" worktree list --porcelain | grep -qx "worktree ${wt}"; then
         echo "info: worktree already exists: ${wt} (re-preparing)"
     elif git -C "${MAIN_CHECKOUT}" show-ref --verify --quiet "refs/heads/${branch}"; then
         git -C "${MAIN_CHECKOUT}" worktree add "${wt}" "${branch}"
+    elif [[ -n "${explicit_branch}" ]] && git -C "${MAIN_CHECKOUT}" show-ref --verify --quiet "refs/remotes/origin/${branch}"; then
+        # 既存リモートブランチ（既存ブランチ / PR ヘッド）を追跡 checkout
+        git -C "${MAIN_CHECKOUT}" worktree add -b "${branch}" "${wt}" "origin/${branch}"
+    elif [[ -n "${explicit_branch}" ]]; then
+        echo "error: branch not found locally or on origin: ${branch}" >&2; exit 1
     else
         git -C "${MAIN_CHECKOUT}" worktree add -b "${branch}" "${wt}" "${base}"
     fi
@@ -141,7 +162,7 @@ case "${1:-}" in
     list)   shift; cmd_list "$@" ;;
     *)
         echo "usage: autopilot-worktree {create|path|remove|list} ..." >&2
-        echo "  create <issue> [base-ref] [--full]" >&2
+        echo "  create <issue> [base-ref] [--full] [--branch <name>] [--pr <n>]" >&2
         echo "  path <issue>" >&2
         echo "  remove <issue> [--delete-branch]" >&2
         echo "  list" >&2
