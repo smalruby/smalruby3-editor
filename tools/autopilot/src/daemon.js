@@ -21,6 +21,11 @@ const {
     applyResult,
     selectMergeCandidates,
     mergeProgressionIntents,
+    selectPrSyncCandidates,
+    labelActions,
+    draftAction,
+    renderSticky,
+    applyIntentsToItem,
 } = require('./phases');
 const { readResultFile } = require('./contract');
 const { runPhase, killSession, capture } = require('./runner');
@@ -86,8 +91,11 @@ async function dispatch(item, cfg, state, log) {
             mark('Status', 'Blocked'); mark('HITL', 'Yes');
             return;
         }
-        const applied = project.applyIntents(ctx, itemId, applyResult(parsed.result), project.botToken());
+        const intents = applyResult(parsed.result);
+        const applied = project.applyIntents(ctx, itemId, intents, project.botToken());
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
+        // 権威的な面同期（contract §7）: ラベル/Draft/sticky を Project 状態へ合わせる
+        syncFacesAfterIntents(item, intents, cfg, log);
     } catch (e) {
         log(`#${item.issue}: error ${e.message}`);
         mark('Status', 'Blocked'); mark('HITL', 'Yes');
@@ -129,6 +137,8 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
     const hasMerged = deps.hasMergedPullRequest || project.hasMergedPullRequest;
     const applyIntents = deps.applyIntents || project.applyIntents;
     const findItemId = deps.findItemId || project.findItemId;
+    // merge 後の面正規化（Issue の HITL ラベルを落とす等）。テストは no-op を注入できる。
+    const syncFaces = deps.syncFaces || ((item, intents) => syncFacesAfterIntents(item, intents, cfg, log));
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
     for (const item of selectMergeCandidates(items)) {
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
@@ -145,9 +155,79 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
         try {
             const applied = applyIntents(ctx, itemId, intents, token);
             log(`#${item.issue}: PR merged → ${applied.join(', ')}`);
+            syncFaces(item, intents);
         } catch (e) {
             log(`#${item.issue}: merge progression failed: ${e.message}`);
         }
+    }
+}
+
+/**
+ * Issue/PR の面（🙋 HITL / 🤖 autopilot ラベル・Draft/Ready・sticky コメント）を Project 状態へ
+ * 同期する（contract §7 の投影）。判定は phases.js の純粋関数、書き込みはここ（単一ライター）。
+ * deps は injection 可能（テスト用）。force=true は権威的な遷移（Review への handoff 等）で、
+ * Review でも HITL ラベルを明示的に付与する。
+ * @param {object} item Project item（status/aiStatus/hitl/size/kind を含む）
+ * @param {object} io 束ねた I/O（token + project 関数群）
+ * @param {object} cfg
+ * @param {function} log
+ * @param {object} [opts] { force }
+ */
+function syncFacesForItem(item, io, cfg, log, opts = {}) {
+    // 1) Issue 側のラベル（PR が無くても投影する。HITL handoff を可視化）
+    const issueLabels = io.getIssueLabels(cfg.repo, item.issue, io.token);
+    io.editLabels(cfg.repo, item.issue, 'issue', labelActions(item, issueLabels, opts), io.token);
+    // 2) 連携 PR の面（ラベル・Draft/Ready・sticky）
+    const pr = io.findPrForIssue(cfg.repo, item.issue, io.token);
+    if (!pr) return;
+    const info = io.getPrInfo(cfg.repo, pr.number, io.token);
+    io.editLabels(cfg.repo, pr.number, 'pr', labelActions(item, info.labels, opts), io.token);
+    const da = draftAction(info.isDraft, item);
+    if (da) io.setPrDraft(cfg.repo, pr.number, da, io.token);
+    io.upsertStickyComment(cfg.repo, pr.number, renderSticky(item), io.token);
+}
+
+/** project.js 実関数を束ねた I/O オブジェクトを返す（deps 差し替えがあれば優先） */
+function projectionIo(deps = {}) {
+    return {
+        token: deps.token || project.botToken(),
+        findPrForIssue: deps.findPrForIssue || project.findPrForIssue,
+        getPrInfo: deps.getPrInfo || project.getPrInfo,
+        getIssueLabels: deps.getIssueLabels || project.getIssueLabels,
+        editLabels: deps.editLabels || project.editLabels,
+        setPrDraft: deps.setPrDraft || project.setPrDraft,
+        upsertStickyComment: deps.upsertStickyComment || project.upsertStickyComment,
+    };
+}
+
+/**
+ * per-tick の面投影: PR を持ちうる item の面を Project 状態へ揃える（contract §7）。
+ * 実行中の item は live phase が所有するので触らない。1 件の失敗は他を止めない。
+ * deps.force を渡すと全件 force 同期（通常は per-tick=非 force）。
+ */
+function applyPrProjection(items, cfg, state, log, deps = {}) {
+    const io = projectionIo(deps);
+    const opts = { force: Boolean(deps.force) };
+    for (const item of selectPrSyncCandidates(items)) {
+        if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
+        try {
+            syncFacesForItem(item, io, cfg, log, opts);
+        } catch (e) {
+            log(`#${item.issue}: pr projection failed: ${e.message}`);
+        }
+    }
+}
+
+/**
+ * フェーズ適用後・merge 前進後の権威的な面同期（force）。結果の意図を item に反映してから
+ * 投影する。PR が無ければ Issue ラベルのみ。失敗は warn に留める（Project 反映は別途済み）。
+ */
+function syncFacesAfterIntents(item, intents, cfg, log) {
+    try {
+        const projected = applyIntentsToItem(item, intents);
+        syncFacesForItem(projected, projectionIo(), cfg, log, { force: true });
+    } catch (e) {
+        log(`#${item.issue}: face sync failed: ${e.message}`);
     }
 }
 
@@ -170,6 +250,8 @@ async function tick(cfg, state, log) {
     }
     // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）
     applyMergeProgression(items, cfg, state, log);
+    // PR/Issue の面（ラベル/Draft/sticky）を Project 状態へ投影（dispatch 後なので running は除外される）
+    applyPrProjection(items, cfg, state, log);
 }
 
 /** HTTP 制御サーバ（pause/resume/stop/inject/status） */
@@ -269,4 +351,4 @@ async function main(opts = {}) {
     if (opts.once) await tick(cfg, state, log);
 }
 
-module.exports = { main, tick, dispatch, applyMergeProgression };
+module.exports = { main, tick, dispatch, applyMergeProgression, applyPrProjection };

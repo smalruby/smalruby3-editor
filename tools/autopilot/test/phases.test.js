@@ -16,6 +16,17 @@ const {
     shouldResend,
     evaluate,
     DEFAULT_WATCHDOG,
+    HITL_LABEL,
+    AUTOPILOT_LABEL,
+    STICKY_MARKER,
+    PR_SYNC_STATUSES,
+    selectPrSyncCandidates,
+    desiredDraft,
+    draftAction,
+    hitlLabelAction,
+    labelActions,
+    renderSticky,
+    applyIntentsToItem,
 } = require('../src/phases');
 
 test('shouldResend: resend after accept window if attempts remain', () => {
@@ -239,6 +250,111 @@ test('isHitlReleased: non-applicable (undefined) signals are ignored', () => {
 
 test('isHitlReleased: no applicable signals -> not released (conservative)', () => {
     assert.equal(isHitlReleased({}), false);
+});
+
+// ---- PR projection (#794): labels / Draft-Ready / sticky ----
+
+test('selectPrSyncCandidates: non-EPIC items in post-PR statuses', () => {
+    const items = [
+        { issue: 1, status: 'In Progress', kind: 'Issue' }, // yes
+        { issue: 2, status: 'Review', kind: 'Issue' }, // yes
+        { issue: 3, status: 'DoD', kind: 'Issue' }, // yes
+        { issue: 4, status: 'Blocked', kind: 'Issue' }, // yes (HITL=Yes, PR may exist)
+        { issue: 5, status: 'Review', kind: 'EPIC' }, // no (EPIC has no impl PR)
+        { issue: 6, status: 'Sprint Backlog', kind: 'Issue' }, // no (no PR yet)
+        { issue: 7, status: 'Close', kind: 'Issue' }, // no (terminal)
+    ];
+    assert.deepEqual(selectPrSyncCandidates(items).map((i) => i.issue), [1, 2, 3, 4]);
+    assert.deepEqual(selectPrSyncCandidates(null), []);
+});
+
+test('desiredDraft: Draft while AI works, Ready when HITL=Yes (human turn)', () => {
+    assert.equal(desiredDraft({ status: 'In Progress', hitl: 'No' }), true);
+    assert.equal(desiredDraft({ status: 'Review', hitl: 'Yes' }), false);
+    assert.equal(desiredDraft({ status: 'In Progress' }), true); // hitl unset -> draft
+});
+
+test('draftAction: only acts on a diff (idempotent)', () => {
+    // currently draft, want draft -> no change
+    assert.equal(draftAction(true, { hitl: 'No' }), null);
+    // currently draft, want ready (HITL=Yes) -> ready
+    assert.equal(draftAction(true, { hitl: 'Yes' }), 'ready');
+    // currently ready, want draft -> draft
+    assert.equal(draftAction(false, { hitl: 'No' }), 'draft');
+    // currently ready, want ready -> no change
+    assert.equal(draftAction(false, { hitl: 'Yes' }), null);
+});
+
+test('hitlLabelAction: non-Review reconciles toward Project field', () => {
+    assert.equal(hitlLabelAction({ status: 'Blocked', hitl: 'Yes' }, false), 'add');
+    assert.equal(hitlLabelAction({ status: 'Blocked', hitl: 'Yes' }, true), null);
+    assert.equal(hitlLabelAction({ status: 'In Progress', hitl: 'No' }, true), 'remove');
+    assert.equal(hitlLabelAction({ status: 'In Progress', hitl: 'No' }, false), null);
+});
+
+test('hitlLabelAction: Review label is human-controlled in steady-state (no re-add)', () => {
+    // field=Yes but label removed by human (release gesture) -> do NOT re-add per-tick
+    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'Yes' }, false), null);
+    // field=No -> still allow removal toward No
+    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'No' }, true), 'remove');
+    // already present + field=Yes -> nothing to do
+    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'Yes' }, true), null);
+});
+
+test('hitlLabelAction: Review with force (authoritative handoff) sets the label', () => {
+    // entering Review at handoff -> force-add the label even though status is Review
+    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'Yes' }, false, { force: true }), 'add');
+    assert.equal(hitlLabelAction({ status: 'Review', hitl: 'No' }, true, { force: true }), 'remove');
+});
+
+test('labelActions: ensures autopilot label and reconciles HITL label', () => {
+    // missing both labels, HITL=Yes (non-Review) -> add both
+    let d = labelActions({ status: 'Blocked', hitl: 'Yes' }, []);
+    assert.deepEqual(d.add.sort(), [AUTOPILOT_LABEL, HITL_LABEL].sort());
+    assert.deepEqual(d.remove, []);
+    // autopilot present, HITL present but field=No -> remove HITL only
+    d = labelActions({ status: 'In Progress', hitl: 'No' }, [AUTOPILOT_LABEL, HITL_LABEL]);
+    assert.deepEqual(d.add, []);
+    assert.deepEqual(d.remove, [HITL_LABEL]);
+    // Review steady-state with field=Yes, HITL label absent -> leave alone, still ensure autopilot
+    d = labelActions({ status: 'Review', hitl: 'Yes' }, []);
+    assert.deepEqual(d.add, [AUTOPILOT_LABEL]);
+    assert.deepEqual(d.remove, []);
+});
+
+test('renderSticky: includes marker and projects Status/AI Status/HITL/Size', () => {
+    const body = renderSticky({ issue: 794, status: 'Review', aiStatus: null, hitl: 'Yes', size: 'small' });
+    assert.match(body, new RegExp(STICKY_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(body, /Review/);
+    assert.match(body, /Yes/);
+    assert.match(body, /small/);
+    assert.match(body, /#794/);
+    assert.match(body, /—/); // null AI Status rendered as em dash
+});
+
+test('applyIntentsToItem: applies field intents onto a copy (null clears)', () => {
+    const item = { issue: 1, status: 'In Progress', aiStatus: 'Implementing', hitl: 'No', size: 'small', kind: 'Issue' };
+    const out = applyIntentsToItem(item, [
+        { field: 'Status', value: 'Review' },
+        { field: 'AI Status', value: null },
+        { field: 'HITL', value: 'Yes' },
+    ]);
+    assert.equal(out.status, 'Review');
+    assert.equal(out.aiStatus, null);
+    assert.equal(out.hitl, 'Yes');
+    assert.equal(out.size, 'small'); // untouched
+    assert.equal(item.status, 'In Progress'); // original not mutated
+});
+
+test('applyIntentsToItem composes with applyResult (review handoff projection)', () => {
+    const item = { issue: 1, status: 'In Progress', aiStatus: 'Self-Reviewing', hitl: 'No', kind: 'Issue' };
+    const out = applyIntentsToItem(item, applyResult({
+        issue: 1, phase: 'review', signal: 'done', summary: 's',
+        nextStatus: 'Review', nextAiStatus: null, hitl: true,
+    }));
+    assert.equal(out.status, 'Review');
+    assert.equal(out.hitl, 'Yes');
+    assert.equal(desiredDraft(out), false); // -> Ready for review
 });
 
 const cfg = { ...DEFAULT_WATCHDOG };
