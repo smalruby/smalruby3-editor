@@ -20,6 +20,9 @@ on:
       - 'TRADEMARK'
       - 'infra/**'
       - 'ruby/**'
+      - 'tools/**'
+      - 'docs/**'
+      - 'bin/**'
   push:
     branches: [main, master, develop, hotfix/*]
     paths-ignore:
@@ -40,6 +43,9 @@ on:
       - 'TRADEMARK'
       - 'infra/**'
       - 'ruby/**'
+      - 'tools/**'
+      - 'docs/**'
+      - 'bin/**'
   workflow_dispatch:
 
 concurrency:
