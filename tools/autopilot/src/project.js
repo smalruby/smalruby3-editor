@@ -8,7 +8,7 @@
 
 const { execFileSync } = require('child_process');
 const path = require('path');
-const { HITL_LABEL, STICKY_MARKER } = require('./phases');
+const { HITL_LABEL, selectStickyCommentIds } = require('./phases');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const BOT_TOKEN_BIN = path.join(REPO_ROOT, 'bin', 'bot-token');
@@ -240,21 +240,45 @@ function setPrDraft(repo, prNumber, action, token) {
 }
 
 /**
- * sticky ステータスコメントを upsert する（マーカー付きの 1 コメントを編集し続ける）。
- * 既存（マーカーを含むコメント）があれば PATCH、無ければ新規 POST。PR/Issue 共通の
- * issues コメント API を使う。
+ * Issue/PR の全コメントを {id, body} の配列で取得する。
+ * body は改行を含むため @base64 で 1 行にエンコードして取り出し、JS 側でデコードする
+ * （`--paginate` + `--jq` でページ跨ぎの改行混入を避ける）。
+ * @param {string} repo `owner/name`
+ * @param {number} number Issue/PR 番号
+ * @param {string} token
+ * @returns {Array<{id: string, body: string}>}
  */
-function upsertStickyComment(repo, number, body, token) {
-    const listed = gh(
+function listIssueComments(repo, number, token) {
+    const out = gh(
         ['api', '--paginate', `repos/${repo}/issues/${number}/comments`,
-            '--jq', `.[] | select(.body | contains("${STICKY_MARKER}")) | .id`],
+            '--jq', '.[] | "\\(.id) \\(.body | @base64)"'],
         { token },
     ).trim();
-    const id = listed ? listed.split('\n')[0].trim() : '';
-    if (id) {
-        gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${id}`, '-f', `body=${body}`], { token });
-    } else {
+    if (!out) return [];
+    return out.split('\n').filter(Boolean).map((line) => {
+        const sp = line.indexOf(' ');
+        const id = sp === -1 ? line : line.slice(0, sp);
+        const b64 = sp === -1 ? '' : line.slice(sp + 1);
+        return { id, body: Buffer.from(b64, 'base64').toString('utf8') };
+    });
+}
+
+/**
+ * sticky ステータスコメントを upsert する（マーカー付きの 1 コメントを編集し続ける）。
+ * 正準・旧いずれのマーカーを含む既存コメントも吸収して in-place 更新する（#809）。
+ * 複数見つかった場合は先頭を残して PATCH し、残りは DELETE して 1 つに集約する。
+ * いずれも無ければ新規 POST。PR/Issue 共通の issues コメント API を使う。
+ */
+function upsertStickyComment(repo, number, body, token) {
+    const ids = selectStickyCommentIds(listIssueComments(repo, number, token));
+    if (ids.length === 0) {
         gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
+        return;
+    }
+    const [keep, ...dupes] = ids;
+    gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${keep}`, '-f', `body=${body}`], { token });
+    for (const dup of dupes) {
+        gh(['api', '--method', 'DELETE', `repos/${repo}/issues/comments/${dup}`], { token });
     }
 }
 
@@ -295,5 +319,5 @@ function applyIntents(ctx, itemId, intents, token) {
 module.exports = {
     botToken, gh, getProject, getFields, listItems, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
-    getPrInfo, getIssueLabels, editLabels, setPrDraft, upsertStickyComment,
+    getPrInfo, getIssueLabels, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
 };
