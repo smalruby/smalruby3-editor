@@ -134,7 +134,6 @@ upstream (Scratch) ファイルは対象外。
 - `src/lib/monaco-i18n-helper.js`
 - `src/lib/prism-parser.js`
 - `src/lib/project-loader-utils.js`
-- `src/lib/radix-ui-context-menu.js`
 - `src/lib/responsive-gui.jsx`
 - `src/lib/ruby-parser.js`
 - `src/lib/ruby-screenshot.js`
