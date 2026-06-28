@@ -11,7 +11,7 @@
 const { execFileSync } = require('child_process');
 const { setTimeout: sleep } = require('timers/promises');
 const fs = require('fs');
-const { evaluate, DEFAULT_WATCHDOG, DEFAULT_CLAUDE_COMMAND } = require('./phases');
+const { evaluate, shouldResend, DEFAULT_WATCHDOG, DEFAULT_CLAUDE_COMMAND } = require('./phases');
 
 // claude TUI が「実行中」のときに pane に出る指標（spinner のトークンカウンタ "· ↓"、
 // 中断ヒント "esc to interrupt"）。これらが見えていれば、テキストが変わらなくても
@@ -89,8 +89,12 @@ async function runPhase(opts) {
         const startedAt = Date.now();
         let ready = false;
         let sent = false;
+        let accepted = false;
+        let sentAt = 0;
+        let sendAttempts = 0;
         let prevPane = null;
         let lastChangeAt = Date.now();
+        const slash = `/${opts.skill} ${opts.issue}`;
 
         let outcome = null;
         while (!outcome) {
@@ -113,10 +117,29 @@ async function runPhase(opts) {
                     sendLine(opts.session,
                         '# 注意: 対話質問しないこと。判断が要れば AUTOPILOT_RESULT_FILE に signal=hitl を書きコメントして終了。');
                 }
-                log(`ready (${elapsedMs}ms) -> send: /${opts.skill} ${opts.issue}`);
-                sendLine(opts.session, `/${opts.skill} ${opts.issue}`);
+                log(`ready (${elapsedMs}ms) -> send: ${slash}`);
+                sendLine(opts.session, slash);
                 sent = true;
+                sentAt = Date.now();
+                sendAttempts = 1;
                 lastChangeAt = Date.now();
+            }
+
+            // 送信の到達確認と再送（課題1: cold-start で最初の send-keys が捨てられる）
+            if (sent && !accepted) {
+                if (busy || resultPresent) {
+                    accepted = true;
+                    log(`command accepted (#${opts.issue}, attempt ${sendAttempts})`);
+                } else if (shouldResend({
+                    sinceSendMs: Date.now() - sentAt, attempts: sendAttempts,
+                    maxAttempts: cfg.maxSendAttempts, acceptWindowMs: cfg.acceptWindowMs,
+                })) {
+                    sendLine(opts.session, slash);
+                    sendAttempts += 1;
+                    sentAt = Date.now();
+                    lastChangeAt = Date.now();
+                    log(`resend ${slash} (#${opts.issue}, attempt ${sendAttempts})`);
+                }
             }
 
             const action = evaluate({ resultPresent, ready, dead, elapsedMs, idleMs, restarts }, cfg);
