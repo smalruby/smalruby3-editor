@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+# bin/autopilot-worktree — しゅっと作れる軽量 worktree（autopilot 用）。
+#
+# autopilot は Issue ごとに git worktree を切って隔離作業する。毎回
+# `npm install` / `build:dev` していたら遅いので、**ビルド成果物は共有**し、
+# **状態 (.env) はコピー**して、最小の手順で即作業可能にする。
+#
+# 仕組み（なぜ install/build が要らないか）:
+#   - root `node_modules` を main checkout のものへ symlink（devpod の named
+#     volume 実体を共有）。npm workspaces のリンク `node_modules/@smalruby/<pkg>`
+#     は相対 symlink なので、main checkout の `packages/<pkg>`（dist ビルド済み）
+#     に解決される。→ worktree 側で build:dev 不要。
+#   - 各 `packages/<pkg>/node_modules` も main へ symlink（scratch-gui の
+#     scratch-blocks 等 local 依存の解決用）。
+#   - `.env.*` は `bin/sync-worktree-env` で**コピー**（symlink にしない:
+#     誤書き込みで main の秘密を壊さないため。`.claude/rules/env-file.md`）。
+#
+# 制約（lightweight モードの前提）:
+#   - **単一パッケージのソース編集**を想定。`@smalruby/<pkg>` は main checkout に
+#     解決されるため、worktree で scratch-vm のソースを編集しても scratch-gui の
+#     テストはそれを見ない（main の dist を見る）。
+#   - **クロスパッケージのソース編集**（編集した sibling を再ビルドして参照させたい）
+#     場合は `--full` を使う（worktree 内で実 npm install + build:dev、symlink 無し）。
+#
+# Usage:
+#   bin/autopilot-worktree create <issue> [base-ref]   # 既定 base: origin/develop
+#   bin/autopilot-worktree create <issue> --full        # 重い完全セットアップ
+#   bin/autopilot-worktree path <issue>                 # worktree パスを表示
+#   bin/autopilot-worktree remove <issue> [--delete-branch]
+#   bin/autopilot-worktree list
+#
+# 環境変数:
+#   AUTOPILOT_WORKTREE_ROOT  worktree を作る親dir（既定: $HOME/autopilot-worktrees）
+#   AUTOPILOT_BRANCH_PREFIX  ブランチ接頭辞（既定: topic/autopilot-）
+set -euo pipefail
+
+MAIN_CHECKOUT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [[ -z "${MAIN_CHECKOUT}" ]]; then
+    echo "error: not inside a git repository" >&2
+    exit 1
+fi
+# worktree の中で実行された場合も main checkout を基準にする
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
+GIT_COMMON_ABS=$(cd "${GIT_COMMON_DIR}" && pwd)
+MAIN_CHECKOUT=$(dirname "${GIT_COMMON_ABS}")
+
+WT_ROOT="${AUTOPILOT_WORKTREE_ROOT:-${HOME}/autopilot-worktrees}"
+BRANCH_PREFIX="${AUTOPILOT_BRANCH_PREFIX:-topic/autopilot-}"
+
+wt_path() { echo "${WT_ROOT}/issue-$1"; }
+wt_branch() { echo "${BRANCH_PREFIX}$1"; }
+
+# 各 packages/*/node_modules を main へ symlink（無い場合のみ）
+link_package_node_modules() {
+    local wt="$1"
+    for pkgdir in "${MAIN_CHECKOUT}"/packages/*/; do
+        local pkg
+        pkg=$(basename "${pkgdir}")
+        local src="${MAIN_CHECKOUT}/packages/${pkg}/node_modules"
+        local dst="${wt}/packages/${pkg}/node_modules"
+        [[ -d "${src}" ]] || continue
+        if [[ -e "${dst}" || -L "${dst}" ]]; then continue; fi
+        mkdir -p "$(dirname "${dst}")"
+        ln -s "${src}" "${dst}"
+        echo "linked: packages/${pkg}/node_modules -> main"
+    done
+}
+
+cmd_create() {
+    local issue="$1"; shift || true
+    local base="origin/develop"
+    local full=false
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --full) full=true ;;
+            *) base="$1" ;;
+        esac
+        shift
+    done
+    [[ -n "${issue}" ]] || { echo "usage: autopilot-worktree create <issue> [base-ref] [--full]" >&2; exit 2; }
+
+    local wt branch
+    wt=$(wt_path "${issue}")
+    branch=$(wt_branch "${issue}")
+
+    git -C "${MAIN_CHECKOUT}" fetch -p origin develop >/dev/null 2>&1 || true
+
+    if git -C "${MAIN_CHECKOUT}" worktree list --porcelain | grep -qx "worktree ${wt}"; then
+        echo "info: worktree already exists: ${wt} (re-preparing)"
+    elif git -C "${MAIN_CHECKOUT}" show-ref --verify --quiet "refs/heads/${branch}"; then
+        git -C "${MAIN_CHECKOUT}" worktree add "${wt}" "${branch}"
+    else
+        git -C "${MAIN_CHECKOUT}" worktree add -b "${branch}" "${wt}" "${base}"
+    fi
+
+    if [[ "${full}" == "true" ]]; then
+        echo "=== full setup (npm install + build:dev) in ${wt} ==="
+        ( cd "${wt}" && bin/setup-worktree )
+    else
+        # lightweight: copy .env.* + symlink root node_modules（sync-worktree-env）
+        ( cd "${wt}" && "${MAIN_CHECKOUT}/bin/sync-worktree-env" )
+        # 各 package の node_modules も symlink
+        link_package_node_modules "${wt}"
+    fi
+
+    echo ""
+    echo "ready: ${wt}"
+    echo "branch: ${branch}"
+}
+
+cmd_path() {
+    local issue="$1"
+    [[ -n "${issue}" ]] || { echo "usage: autopilot-worktree path <issue>" >&2; exit 2; }
+    wt_path "${issue}"
+}
+
+cmd_remove() {
+    local issue="$1"; shift || true
+    local del_branch=false
+    [[ "${1:-}" == "--delete-branch" ]] && del_branch=true
+    [[ -n "${issue}" ]] || { echo "usage: autopilot-worktree remove <issue> [--delete-branch]" >&2; exit 2; }
+    local wt branch
+    wt=$(wt_path "${issue}")
+    branch=$(wt_branch "${issue}")
+    git -C "${MAIN_CHECKOUT}" worktree remove --force "${wt}" 2>/dev/null \
+        && echo "removed worktree: ${wt}" || echo "info: worktree not found: ${wt}"
+    if [[ "${del_branch}" == "true" ]]; then
+        git -C "${MAIN_CHECKOUT}" branch -D "${branch}" 2>/dev/null \
+            && echo "deleted branch: ${branch}" || echo "info: branch not found: ${branch}"
+    fi
+}
+
+cmd_list() {
+    git -C "${MAIN_CHECKOUT}" worktree list | grep -E "autopilot-worktrees|${BRANCH_PREFIX%/*}" || true
+}
+
+case "${1:-}" in
+    create) shift; cmd_create "$@" ;;
+    path)   shift; cmd_path "$@" ;;
+    remove) shift; cmd_remove "$@" ;;
+    list)   shift; cmd_list "$@" ;;
+    *)
+        echo "usage: autopilot-worktree {create|path|remove|list} ..." >&2
+        echo "  create <issue> [base-ref] [--full]" >&2
+        echo "  path <issue>" >&2
+        echo "  remove <issue> [--delete-branch]" >&2
+        echo "  list" >&2
+        exit 2
+        ;;
+esac
