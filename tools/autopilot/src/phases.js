@@ -87,6 +87,47 @@ function progressOnMerge(kind) {
 }
 
 /**
+ * merge 後の前進をチェックすべき Status の集合。
+ * PR が出た後〜Close 前の leaf だけを対象にする（New Item/Backlog/Sprint Backlog はまだ PR が
+ * 無いので除外、Close/Done は終端なので除外）。人間は Review でも DoD でも手動 merge しうるため
+ * In Progress / Review / DoD の 3 つを見る。
+ */
+const MERGE_CHECK_STATUSES = new Set(['In Progress', 'Review', 'DoD']);
+
+/**
+ * Project item から「merge 検知の対象（連携 PR が merge 済みか問い合わせる価値がある）」を選ぶ。
+ * 純粋関数。GitHub への問い合わせは I/O 側（daemon）が行うので、ここでは候補の絞り込みだけ。
+ * @param {object[]} items 各 { issue, status, kind, ... }
+ * @returns {object[]} merge チェック対象
+ */
+function selectMergeCandidates(items) {
+    return (items || []).filter(
+        (it) => it && it.kind !== 'EPIC' && MERGE_CHECK_STATUSES.has(it.status),
+    );
+}
+
+/**
+ * 連携 PR の merge を検知したときに Project へ書く意図を返す（純粋関数）。
+ * leaf（Kind=Issue）で PR が merge 済みなら Close へ前進し、AI Status をクリア、HITL を No にする
+ * （merge は HITL と独立した前進シグナルなので、人間が別途 HITL を外す必要はない）。
+ * EPIC・未 merge・既に target の場合は空配列（冪等）。
+ * @param {object} item { status, kind }
+ * @param {boolean} prMerged 連携 PR が merge 済みか
+ * @returns {Array<{field: string, value: string|null}>}
+ */
+function mergeProgressionIntents(item, prMerged) {
+    if (!prMerged) return [];
+    const target = progressOnMerge(item && item.kind);
+    if (target == null) return []; // EPIC は子 PR の merge で閉じない
+    if (item && item.status === target) return []; // 冪等: 既に Close なら何もしない
+    return [
+        { field: 'Status', value: target },
+        { field: 'AI Status', value: null },
+        { field: 'HITL', value: 'No' },
+    ];
+}
+
+/**
  * Project item から「次に autopilot が自律実行すべきフェーズ」を決める（純粋関数）。
  * 人間駆動の状態（Review/DoD/Close/Backlog/Icebox/Paused）や HITL=Yes では null（何もしない）。
  * @param {object} item { status, aiStatus, hitl, kind }
@@ -216,6 +257,9 @@ module.exports = {
     applyResult,
     isHitlReleased,
     progressOnMerge,
+    MERGE_CHECK_STATUSES,
+    selectMergeCandidates,
+    mergeProgressionIntents,
     phaseForItem,
     isActionable,
     selectActionable,

@@ -117,6 +117,13 @@ PR が merge されたら、HITL ラベル/フィールドが残っていても 
   クリアする必要はない）。
 - **EPIC**: 子 PR の merge では完了しない（後述の EPIC 運用）。
 
+autopilot は **自動 merge しない**。daemon はポーリングのたびに「PR が出た後〜Close 前」の leaf
+（Status が In Progress / Review / DoD）について、`Closes #<issue>` などで紐付く PR が **人間に
+merge 済みか**を GitHub に問い合わせ（`closedByPullRequestsReferences`）、merge 済みなら Status を
+**Close**・AI Status をクリア・HITL を No にする。判定は `phases.js` の `selectMergeCandidates` /
+`mergeProgressionIntents`（純粋関数）、問い合わせと書き込みは `project.hasMergedPullRequest` と
+daemon の `applyMergeProgression`。実行中（run が所有する）item は触らない。
+
 ---
 
 ## EPIC の扱い
@@ -232,7 +239,7 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | `.claude/skills/autopilot-*/` | 各フェーズのスキル |
 | `bin/autopilot-worktree` | 軽量 worktree スクリプト |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
-| `tools/autopilot/src/phases.js` | フェーズ↔スキル、結果→フィールド意図、watchdog 判断、HITL 解除（純粋） |
+| `tools/autopilot/src/phases.js` | フェーズ↔スキル、結果→フィールド意図、watchdog 判断、HITL 解除、merge-progression（純粋） |
 | `tools/autopilot/src/project.js` | GitHub Projects v2 への gh ラッパ |
 | `tools/autopilot/src/runner.js` | tmux runner + watchdog |
 | `tools/autopilot/src/cli.js`, `bin/autopilot` | CLI |
