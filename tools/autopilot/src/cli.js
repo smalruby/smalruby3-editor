@@ -21,7 +21,7 @@
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { PHASE_BY_COMMAND, applyResult } = require('./phases');
+const { PHASE_BY_COMMAND, applyResult, DEFAULT_CLAUDE_COMMAND } = require('./phases');
 const { readResultFile } = require('./contract');
 const { runPhase } = require('./runner');
 const project = require('./project');
@@ -29,7 +29,7 @@ const project = require('./project');
 function parseArgs(argv) {
     const o = {
         owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor',
-        command: process.env.AUTOPILOT_CLAUDE_CMD || 'claude --permission-mode acceptEdits',
+        command: process.env.AUTOPILOT_CLAUDE_CMD || DEFAULT_CLAUDE_COMMAND,
         dryRun: false, apply: true, worktree: null, useWorktree: true,
     };
     const rest = [];

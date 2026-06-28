@@ -1,11 +1,32 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { PHASE_BY_COMMAND, applyResult, isHitlReleased, evaluate, DEFAULT_WATCHDOG } = require('../src/phases');
+const {
+    PHASE_BY_COMMAND,
+    DEFAULT_CLAUDE_COMMAND,
+    applyResult,
+    isHitlReleased,
+    progressOnMerge,
+    evaluate,
+    DEFAULT_WATCHDOG,
+} = require('../src/phases');
 
 test('PHASE_BY_COMMAND maps triage to the skill and AI status', () => {
     assert.deepEqual(PHASE_BY_COMMAND.triage, { skill: 'autopilot-triage', aiStatus: 'Triaging' });
     assert.equal(PHASE_BY_COMMAND['address-review'].skill, 'autopilot-address-review');
+});
+
+test('DEFAULT_CLAUDE_COMMAND is non-interactive (allows Bash so gh/git do not prompt)', () => {
+    assert.match(DEFAULT_CLAUDE_COMMAND, /^claude /);
+    assert.match(DEFAULT_CLAUDE_COMMAND, /--allowedTools\b/);
+    assert.match(DEFAULT_CLAUDE_COMMAND, /\bBash\b/);
+});
+
+test('progressOnMerge: leaf Issue -> Close, EPIC -> null', () => {
+    assert.equal(progressOnMerge('Issue'), 'Close');
+    assert.equal(progressOnMerge('EPIC'), null);
+    // 未指定は leaf 扱い
+    assert.equal(progressOnMerge(undefined), 'Close');
 });
 
 test('applyResult: done sets Status/HITL/Size/Kind and clears AI Status', () => {
