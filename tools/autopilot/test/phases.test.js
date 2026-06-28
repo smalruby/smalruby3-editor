@@ -7,9 +7,49 @@ const {
     applyResult,
     isHitlReleased,
     progressOnMerge,
+    phaseForItem,
+    isActionable,
+    selectActionable,
     evaluate,
     DEFAULT_WATCHDOG,
 } = require('../src/phases');
+
+test('phaseForItem: New Item -> triage', () => {
+    assert.equal(phaseForItem({ status: 'New Item' }), 'triage');
+    assert.equal(phaseForItem({}), 'triage'); // status 未設定も New Item 扱い
+});
+
+test('phaseForItem: Sprint Backlog -> decompose(EPIC) / implement(Issue)', () => {
+    assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'EPIC' }), 'decompose');
+    assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'Issue' }), 'implement');
+});
+
+test('phaseForItem: HITL=Yes or human-driven states -> null', () => {
+    assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'Issue', hitl: 'Yes' }), null);
+    assert.equal(phaseForItem({ status: 'Review' }), null);
+    assert.equal(phaseForItem({ status: 'Backlog' }), null);
+    assert.equal(phaseForItem({ status: 'In Progress' }), null);
+});
+
+test('isActionable: paused -> false', () => {
+    assert.equal(isActionable({ status: 'New Item' }, { paused: true }), false);
+    assert.equal(isActionable({ status: 'New Item' }, { paused: false }), true);
+});
+
+test('selectActionable: respects concurrency limit and running set', () => {
+    const items = [
+        { issue: 1, status: 'New Item' },
+        { issue: 2, status: 'Sprint Backlog', kind: 'Issue' },
+        { issue: 3, status: 'Sprint Backlog', kind: 'EPIC' },
+        { issue: 4, status: 'Review' }, // not actionable
+        { issue: 5, status: 'Sprint Backlog', kind: 'Issue', hitl: 'Yes' }, // human's turn
+    ];
+    const picked = selectActionable(items, { limit: 2, running: new Set() });
+    assert.deepEqual(picked.map((p) => [p.issue, p.phase]), [[1, 'triage'], [2, 'implement']]);
+    // 1 running -> only 1 more slot
+    const picked2 = selectActionable(items, { limit: 2, running: new Set([1]) });
+    assert.deepEqual(picked2.map((p) => p.issue), [2]);
+});
 
 test('PHASE_BY_COMMAND maps triage to the skill and AI status', () => {
     assert.deepEqual(PHASE_BY_COMMAND.triage, { skill: 'autopilot-triage', aiStatus: 'Triaging' });
