@@ -113,6 +113,28 @@ Object.assign(MeshV2Service.prototype, NewMixin);
 
 mesh 関連の変更時は必ず実行する。 **5 分以内** に完了すること (heartbeat TTL 制約)。
 
+### 準備済み E2E リグレッションスクリプト (`tools/playwright-verify/`)
+
+mesh のリグレッション確認には `tools/playwright-verify/` の **スタンドアロン Playwright スクリプト**が用意されている（CI 非組込・手動 `node <script>.mjs`、各自の browser を起動）。一覧は `tools/playwright-verify/README.md`。
+
+| スクリプト | 検証対象 |
+|-----------|---------|
+| `mesh-v2-classroom-binding.mjs` | **mesh v2 ↔ クラス管理ドメイン連動の本命リグレッション**。teacher/student 2 タブで参加コード→ `state.scratchGui.meshV2.domain` 一致、接続モーダル入力欄 disabled、解除時の復元 |
+| `verify-mesh-collision-paths.mjs` | mesh センサー衝突パス |
+| `verify-mesh-self-sensor-notice.mjs` | グローバル変数名と mesh センサー値の重複通知 (#707) |
+| `verify-tutorial-mesh-categories.mjs` | チュートリアルの mesh カテゴリ |
+
+実行（dev server 起動 + `.env` の `DEV_BYPASS_TOKEN`/mesh/classroom エンドポイントが前提）:
+
+```bash
+cd tools/playwright-verify
+node mesh-v2-classroom-binding.mjs           # コンテナ内: headless 既定で実行・assert 後 exit 0
+HEADLESS=false CHANNEL=chrome node mesh-v2-classroom-binding.mjs   # ホスト: 実 Chrome で目視
+```
+
+- **コンテナ（devpod）は画面が無いので必ず headless で実行**。`xvfb-run` は使わない。headful で見たいときはホスト側で `HEADLESS=false CHANNEL=chrome`（`KEEP_OPEN=1` で終了後も開いたまま）。
+- mesh の**ユニット/インテグレーション**回帰は `bin/dx`/コンテナ内で: `npm exec tap -- test/unit/mesh_service_v2*.js test/unit/extension_mesh_v2*.js` と `test/integration/extensions/mesh-v2-*.test.js`。
+
 ### 事前準備
 
 1. dev server を **対象の worktree** からマウントする:

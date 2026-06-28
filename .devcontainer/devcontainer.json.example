@@ -58,8 +58,20 @@
 
     "forwardPorts": [8601],
 
+    // egress allowlist firewall (.devcontainer/init-firewall.sh) が iptables/ipset を
+    // 操作するための capability。これが無いと firewall は張られず警告で終わる。
+    "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
+
     "initializeCommand": ".devcontainer/initialize.sh",
     "postCreateCommand": ".devcontainer/post-create.sh",
+
+    // 毎起動時に egress allowlist firewall を張り直す (iptables ルールは
+    // コンテナの network namespace に属し stop/start で消えるため)。default-DROP で
+    // GitHub / npm / Anthropic / AWS (このリージョン) のみ許可する。許可先の調整は
+    // .devcontainer/init-firewall.sh の EXTRA_HOSTS か .devcontainer/firewall-allow.local
+    // (gitignored) で行う。詳細は .devcontainer/README.md「egress allowlist firewall」。
+    // 一時的に無効化したい場合のみこの行をコメントアウトする (非推奨)。
+    "postStartCommand": ".devcontainer/init-firewall.sh",
 
     "mounts": [
         // ----- 全員共通 (必須) -----

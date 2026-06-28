@@ -67,9 +67,16 @@ const getState = (page, path) =>
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// HEADLESS defaults to true so the script runs in the (display-less) devpod
+// container. Set HEADLESS=false (and optionally CHANNEL=chrome) on the host to
+// watch it run in a real window.
+const HEADLESS = process.env.HEADLESS !== 'false';
+const extraLaunch = process.env.CHANNEL ? { channel: process.env.CHANNEL } : {};
+
 // Use persistent contexts so the Google login survives script restarts.
 const teacherCtx = await chromium.launchPersistentContext(resolve(PROFILE_DIR, 'teacher'), {
-    headless: false,
+    headless: HEADLESS,
+    ...extraLaunch,
     viewport: { width: 1280, height: 800 },
     args: ['--window-position=0,0'],
 });
@@ -83,7 +90,8 @@ let student = null;
 const ensureStudent = async () => {
     if (student && !student.isClosed()) return student;
     studentCtx = await chromium.launchPersistentContext(resolve(PROFILE_DIR, 'student'), {
-        headless: false,
+        headless: HEADLESS,
+        ...extraLaunch,
         viewport: { width: 1280, height: 800 },
         args: ['--window-position=640,40'],
     });
@@ -410,6 +418,15 @@ log('teacher domain:', teacherMeshDomain, 'student domain:', studentMeshDomain);
 log('teacher input:', teacherInput);
 log('student input:', studentInput);
 
-log('done. browser will stay open for inspection. Ctrl+C to exit.');
-// Keep the browser open so the user can inspect both tabs.
-await new Promise(() => {});
+// Keep the browser open for inspection only when running headful (or when
+// KEEP_OPEN=1). In headless/container runs, close cleanly and exit 0 so the
+// script is usable as a regression check (no hanging on the timeout).
+if (!HEADLESS || process.env.KEEP_OPEN === '1') {
+    log('done. browser will stay open for inspection. Ctrl+C to exit.');
+    await new Promise(() => {});
+} else {
+    log('done (headless). all checks passed.');
+    await teacherCtx.close();
+    if (studentCtx) await studentCtx.close();
+    process.exit(0);
+}

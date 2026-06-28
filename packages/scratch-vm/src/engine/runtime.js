@@ -520,6 +520,10 @@ class Runtime extends EventEmitter {
         return 'PROJECT_STOP_ALL';
     }
 
+    // === Smalruby: Start of BEFORE_STEP event ===
+    // Upstream v13.7.2 removed BEFORE_STEP, but Smalruby's Mesh v2 extension
+    // depends on it (broadcast-receiver.js / mesh-service.js subscribe to it to
+    // drain queued remote events once per frame). Keep it as a Smalruby event.
     /**
      * Event name for when a frame step is about to begin.
      * @constant {string}
@@ -527,6 +531,7 @@ class Runtime extends EventEmitter {
     static get BEFORE_STEP () {
         return 'BEFORE_STEP';
     }
+    // === Smalruby: End of BEFORE_STEP event ===
 
     /**
      * Event name for target being stopped by a stop for target call.
@@ -687,6 +692,10 @@ class Runtime extends EventEmitter {
      */
     static get MIC_LISTENING () {
         return 'MIC_LISTENING';
+    }
+
+    static get EXTENSION_DATA_LOADING () {
+        return 'EXTENSION_DATA_LOADING';
     }
 
     /**
@@ -993,9 +1002,7 @@ class Runtime extends EventEmitter {
                 type: menuId,
                 inputsInline: true,
                 output: 'String',
-                colour: categoryInfo.color1,
-                colourSecondary: categoryInfo.color2,
-                colourTertiary: categoryInfo.color3,
+                style: categoryInfo.id,
                 outputShape: menuInfo.acceptReporters ?
                     ScratchBlocksConstants.OUTPUT_SHAPE_ROUND : ScratchBlocksConstants.OUTPUT_SHAPE_SQUARE,
                 args0: [
@@ -1046,9 +1053,7 @@ class Runtime extends EventEmitter {
                 message0: '%1',
                 inputsInline: true,
                 output: output,
-                colour: categoryInfo.color1,
-                colourSecondary: categoryInfo.color2,
-                colourTertiary: categoryInfo.color3,
+                style: categoryInfo.id,
                 outputShape: outputShape,
                 args0: [
                     {
@@ -1093,9 +1098,8 @@ class Runtime extends EventEmitter {
             type: extendedOpcode,
             inputsInline: true,
             category: categoryInfo.name,
-            colour: categoryInfo.color1,
-            colourSecondary: categoryInfo.color2,
-            colourTertiary: categoryInfo.color3
+            style: categoryInfo.id,
+            extensions: []
         };
         const context = {
             // TODO: store this somewhere so that we can map args appropriately after translation.
@@ -1115,7 +1119,7 @@ class Runtime extends EventEmitter {
         const iconURI = blockInfo.blockIconURI || categoryInfo.blockIconURI;
 
         if (iconURI) {
-            blockJSON.extensions = ['scratch_extension'];
+            blockJSON.extensions.push('scratch_extension');
             blockJSON.message0 = '%1 %2';
             const iconJSON = {
                 type: 'field_image',
@@ -1156,6 +1160,7 @@ class Runtime extends EventEmitter {
             }
             blockJSON.outputShape = ScratchBlocksConstants.OUTPUT_SHAPE_SQUARE;
             blockJSON.nextStatement = null; // null = available connection; undefined = terminal
+            blockJSON.extensions.push('shape_hat');
             break;
         case BlockType.CONDITIONAL:
         case BlockType.LOOP:
@@ -1202,7 +1207,7 @@ class Runtime extends EventEmitter {
 
         if (blockInfo.blockType === BlockType.REPORTER) {
             if (!blockInfo.disableMonitor && context.inputList.length === 0) {
-                blockJSON.checkboxInFlyout = true;
+                blockJSON.extensions.push('monitor_block');
             }
         } else if (blockInfo.blockType === BlockType.LOOP) {
             // Add icon to the bottom right of a loop block
@@ -1604,6 +1609,10 @@ class Runtime extends EventEmitter {
      */
     emitMicListening (listening) {
         this.emit(Runtime.MIC_LISTENING, listening);
+    }
+
+    emitExtensionLoading (loading) {
+        this.emit(Runtime.EXTENSION_DATA_LOADING, loading);
     }
 
     /**
@@ -2162,7 +2171,10 @@ class Runtime extends EventEmitter {
             this.profiler.start(stepProfilerId);
         }
 
+        // === Smalruby: Start of BEFORE_STEP event ===
+        // Mesh v2 listens to this to drain queued remote events once per frame.
         this.emit(Runtime.BEFORE_STEP);
+        // === Smalruby: End of BEFORE_STEP event ===
 
         // Clean up threads that were told to stop during or since the last step
         this.threads = this.threads.filter(thread => !thread.isKilled);
