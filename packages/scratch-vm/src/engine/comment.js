@@ -36,6 +36,9 @@ class Comment {
         // it is now "bubble shown"). Therefore `pinned` should be
         // `!minimized`, not `blockId !== null` (which was the v1 meaning).
         //
+        // The minimized state is carried by the `collapsed` attribute (which
+        // the v2.1.19 deserializer reads), matching upstream v13.7.2.
+        //
         // Additionally, the deserializer applies `setBubbleLocation(x, y)`
         // from the parsed XML attributes via `setTimeout(1)` — for
         // `@ruby:*` comments created by the converter, x/y default to
@@ -47,7 +50,7 @@ class Comment {
         const xyAttr =
             this.x === 0 && this.y === 0 ? '' : ` x="${this.x}" y="${this.y}"`;
         return `<comment id="${this.id}"${xyAttr} w="${this.width}" h="${
-            this.height}" pinned="${pinned}" minimized="${
+            this.height}" pinned="${pinned}" collapsed="${
             this.minimized}">${xmlEscape(this.text)}</comment>`;
         // === Smalruby: End of toXML modernization ===
     }

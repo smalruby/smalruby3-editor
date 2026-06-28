@@ -52,6 +52,13 @@ git remote add upstream https://github.com/scratchfoundation/scratch-editor.git
 **目的**: upstream/develop HEAD ではなく、scratch.mit.edu で実際にリリースされているバージョンまでマージする。
 未リリースの機能（例: scratch-blocks v2.0.x）を誤って取り込むことを防止する。
 
+> ⚠️ **develop-trap（バージョン誤認の常習犯・過去2回発生）**: 差分比較の基準は必ず
+> **release タグ (`TARGET_COMMIT` = `v${SCRATCH_GUI_VERSION}`)** と recorded
+> `lastMerge.upstreamCommit`。**ghq ローカルの `scratch-editor` `develop` は stale で
+> scratch-blocks 1.3.0（pre-spork）を指すことがあり**、これを基準にすると「smalruby は
+> v1.3.0 / `colour` が正しい」と誤判定する。手動 diff は `git fetch upstream tag v${VERSION}`
+> 後の **タグ ref のみ** を使う。詳細・恒久ルール: `.claude/rules/upstream-tracking.md`。
+
 #### 1.4.1 Production デプロイのコミットを取得
 
 GitHub Deployments API で scratch-www の production デプロイを確認する:
