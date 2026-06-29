@@ -150,23 +150,32 @@ merge 済みか**を GitHub に問い合わせ（`closedByPullRequestsReferences
 
 ---
 
-## Review 解除後の自動遷移（address-review / verify）
+## Review 解除後の自動遷移（address-review に一本化・#815）
 
 `Review` の item は人間レビュー待ち（`🙋 HITL` ラベルあり）。人間がレビューを終えてラベルを外すと、
-daemon が PR のレビュー状態を見て次フェーズを自動ディスパッチする（`phaseForItem` + `getReviewContext`）。
+daemon は **構造化シグナル（approve/changes-requested）で機械的に分岐せず、必ず
+`autopilot-address-review` を起動する**（`phaseForItem` が Review 解除 → `address-review`）。
 
-| PR レビュー状態（HITL 解除後） | 自動ディスパッチ |
+approve でも本文に改善依頼が書かれていたり、"changes requested" でも実質 LGTM だったりと、
+自由文の意図は構造化シグナルでは判定できない。そこで**判断はスキル側に置く**: address-review が
+PR の **diff と全コメント（Issue/レビュー本文/インライン）**を読んで分類する。
+
+| スキルの分類（HITL 解除後） | 対応 |
 |---|---|
-| 変更要求 / 未対応の人間レビューコメントが残る | `autopilot-address-review`（指摘対応へ） |
-| approve のみ（未対応コメントなし） | `autopilot-verify`（DoD 確認へ） |
-| どちらの signal も無い | 何もしない（保守的に待つ） |
+| 質問 | bot で返信（必要ならコード修正）→ 再レビューへ |
+| 改善依頼 / 変更要求 | worktree で修正・push → 再レビューへ |
+| LGTM / 対応不要 | 何もしない → 人間のマージ待ち |
+| 判断がつかない | 論点を整理してコメント + `AUTOPILOT_HITL`（人間に質問） |
 
-- コメントは approve より優先する（approve しつつ未対応コメントを残したら指摘対応が先）。
 - 解除シグナルは **OR セマンティクス**: Issue の `🙋 HITL` ラベル / PR の `🙋 HITL` ラベルの
   **いずれか1つでも除去**なら解除（`getReviewContext` が2面を集め、`phaseForItem` が `isHitlReleased`
   で判定）。daemon が両面を atomic に同期する（後述「PR 側の状態可視化」）ので、人間は目の前の
   PR ラベルを外すだけで差し戻せる。
-- address-review / verify は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
+- address-review は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
+- **コンフリクトは autopilot で解消しない**（rebase/merge コンフリクトは人間の役割）。スキルは
+  解消を試みず HITL で人間に渡す。
+- `autopilot-verify`（DoD 確認）は Review 解除では自動起動しない。必要なら人間が手動で
+  inject する（多くの PR は DoD が Playwright 不要なため、自動 verify は外した）。
 
 ---
 
@@ -197,7 +206,7 @@ PR 側は読み取り投影）。実装は daemon の `applyPrProjection`（ポ�
 |---|---|---|
 | `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象） | Issue/PR に常時担保 |
 | `🙋 HITL` ラベル | 人間の対応待ち（**HITL の唯一の真実**・#813） | 人間に渡すとき Issue/PR の両面に付与 / release・merge で除去 |
-| Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間レビュー待ち | `🙋 HITL` ラベルあり→Ready / それ以外→Draft |
+| Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間が見る段階 | **Status 基準**（#815）: `Review`/`DoD`/`Close`/`Blocked`→Ready / それ以外（`In Progress` 等）→Draft |
 | sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 | Status / AI Status / HITL（ラベル由来）/ Size をマーカー付き 1 コメントに upsert |
 
 - 対象は連携 PR を持ちうる post-PR ステータス（In Progress / Review / DoD / Blocked）の leaf。

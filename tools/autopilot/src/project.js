@@ -8,7 +8,7 @@
 
 const { execFileSync } = require('child_process');
 const path = require('path');
-const { HITL_LABEL, selectStickyCommentIds } = require('./phases');
+const { HITL_LABEL, selectStickyCommentIds, computeReviewApproval } = require('./phases');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const BOT_TOKEN_BIN = path.join(REPO_ROOT, 'bin', 'bot-token');
@@ -145,9 +145,10 @@ function findPrForIssue(repo, issueNumber, token) {
 }
 
 /**
- * PR のレビュー状態を reviewPhase 用に正規化して返す。
- * - approved: GitHub の集約判定 reviewDecision === 'APPROVED'
- * - changesRequested: reviewDecision === 'CHANGES_REQUESTED'
+ * PR のレビュー状態を正規化して返す。
+ * - approved / changesRequested: {@link computeReviewApproval} で導く。reviewDecision は
+ *   ブランチ保護でレビュー必須でないと空になり approve を検知できないため、空のときは
+ *   個々の review の著者ごと最新 state から判定する（#815）。
  * - unresolvedHumanComments: 人間が立てた未解決レビュースレッド数（bot は除外）
  * @returns {{approved:boolean, changesRequested:boolean, unresolvedHumanComments:number}}
  */
@@ -157,6 +158,7 @@ function getPrReviewState(repo, prNumber, token) {
       repository(owner:$owner,name:$name){
         pullRequest(number:$pr){
           reviewDecision
+          reviews(last:100){nodes{author{login} state}}
           reviewThreads(first:100){nodes{isResolved comments(first:1){nodes{author{login}}}}}
         }
       }
@@ -173,11 +175,9 @@ function getPrReviewState(repo, prNumber, token) {
     const unresolvedHumanComments = threads.filter(
         (t) => !t.isResolved && (t.comments.nodes || []).some((c) => isHuman(c.author && c.author.login)),
     ).length;
-    return {
-        approved: pr.reviewDecision === 'APPROVED',
-        changesRequested: pr.reviewDecision === 'CHANGES_REQUESTED',
-        unresolvedHumanComments,
-    };
+    const reviews = (pr.reviews && pr.reviews.nodes) || [];
+    const { approved, changesRequested } = computeReviewApproval(reviews, pr.reviewDecision, isHuman);
+    return { approved, changesRequested, unresolvedHumanComments };
 }
 
 /**
@@ -294,6 +294,18 @@ function upsertStickyComment(repo, number, body, token) {
 }
 
 /**
+ * Issue にプレーンなコメントを投稿する（bot 名義）。
+ * daemon が run 失敗で Blocked にするとき「何が起きたか・人間は何をすべきか」を残すのに使う
+ * （#816。コメント無しで 🙋 だけ付くと人間が状況を把握できない）。
+ * @param {string} repo `owner/name`
+ * @param {number} number Issue 番号
+ * @param {string} body コメント本文
+ */
+function postIssueComment(repo, number, body, token) {
+    gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
+}
+
+/**
  * 指定 Issue に紐付く PR の中に merge 済みのものがあるか。
  * GitHub の "Development" リンク（PR 本文の `Closes #<issue>` など）を
  * `closedByPullRequestsReferences` で辿る。autopilot は自動 merge しないので、
@@ -331,4 +343,5 @@ module.exports = {
     botToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
+    postIssueComment,
 };
