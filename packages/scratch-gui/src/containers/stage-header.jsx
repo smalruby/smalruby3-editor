@@ -11,7 +11,7 @@ import {connect} from 'react-redux';
 import StageHeaderComponent from '../components/stage-header/stage-header.jsx';
 import {showAlertWithTimeout, showStandardAlert} from '../reducers/alerts.js';
 // === Smalruby: Start of classroom submission thumbnail ===
-import {setSubmissionThumbnail} from '../reducers/classroom';
+import {setSubmissionThumbnail} from '../reducers/classroom.js';
 
 // A student is "joined" to a classroom once they hold an active student session.
 // In that state we surface the upstream "Set Thumbnail" button so the student can

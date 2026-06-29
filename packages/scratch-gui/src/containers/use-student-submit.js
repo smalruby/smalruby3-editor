@@ -9,7 +9,7 @@ import analytics from '../lib/analytics';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
-import { clearClassroomSession, setSubmissionStatus } from '../reducers/classroom.js';
+import { clearClassroomSession, clearSubmissionThumbnail, setSubmissionStatus } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
 /**
@@ -159,6 +159,9 @@ const useStudentSubmit = ({
 
             setSubmitProgress(null);
             dispatch(setSubmissionStatus('submitted', submissionData.submittedAt));
+            // The manually picked thumbnail is consumed by this submission. Clear it so a
+            // later submit auto-captures the then-current stage frame unless re-picked (#631).
+            dispatch(clearSubmissionThumbnail());
             setPhase('student-status');
             try {
                 analytics.event({
