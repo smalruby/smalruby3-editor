@@ -139,6 +139,35 @@ describe('RubyToBlocksConverter/Sensing', () => {
             expect(converter.errors).toHaveLength(1);
             expect(res).toBeFalsy();
         });
+
+        // Regression for #834: named / shorthand colors normalize to #rrggbb here too.
+        test('named colors normalize to #rrggbb', async () => {
+            code = 'color_is_touching_color?("red", "#00f")';
+            expected = [
+                {
+                    opcode: 'sensing_coloristouchingcolor',
+                    inputs: [
+                        {
+                            name: 'COLOR',
+                            block: {
+                                opcode: 'colour_picker',
+                                fields: [{name: 'COLOUR', value: '#ff0000'}],
+                                shadow: true
+                            }
+                        },
+                        {
+                            name: 'COLOR2',
+                            block: {
+                                opcode: 'colour_picker',
+                                fields: [{name: 'COLOUR', value: '#0000ff'}],
+                                shadow: true
+                            }
+                        }
+                    ]
+                }
+            ];
+            await convertAndExpectToEqualBlocks(converter, target, code, expected);
+        });
     });
 
     describe('sensing_distanceto', () => {

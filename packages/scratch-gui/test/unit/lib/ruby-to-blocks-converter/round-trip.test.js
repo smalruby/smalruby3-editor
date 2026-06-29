@@ -121,6 +121,16 @@ describe('Ruby Round Trip', () => {
         await expectRoundTrip('if touching?("_edge_")\n  move(10)\nend');
     });
 
+    // Regression for #834: pen color code that uses named / shorthand / rgb() colors must
+    // survive Ruby -> Blocks -> Ruby, normalizing to the `#rrggbb` form the colour_picker
+    // stores. A 6-digit hex round-trips unchanged.
+    test('pen color round trip normalizes to #rrggbb', async () => {
+        await expectRoundTrip('pen.color = "#e36e1a"');
+        await expectRoundTrip('pen.color = "red"', 'pen.color = "#ff0000"');
+        await expectRoundTrip('pen.color = "#f00"', 'pen.color = "#ff0000"');
+        await expectRoundTrip('pen.color = "rgb(0, 128, 0)"', 'pen.color = "#008000"');
+    });
+
     test('string variable concatenation uses operator_join (regression for #181)', async () => {
         await expectRoundTrip('a = "He"\nb = "llo"\na + b', 'a = "He"\nb = "llo"\n\na + b');
         await expectRoundTrip('a = "He"\na + "llo"', 'a = "He"\n\na + "llo"');
