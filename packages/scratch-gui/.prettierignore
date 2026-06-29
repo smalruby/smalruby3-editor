@@ -4,8 +4,9 @@
 # How it works: ignore everything, then re-include Smalruby directories/files
 # level by level (gitignore requires parent dirs to be un-ignored first).
 #
-# Canonical file list: .claude/rules/scratch-gui/smalruby-prettier-files.md
-# When adding new Smalruby-specific files, update both this file and the doc.
+# This file is the canonical whitelist of Smalruby-specific files for Prettier.
+# (The .claude/rules mirror was removed; this file is the single source of truth.)
+# When adding a new Smalruby-specific file, add it here.
 
 # ============================================================
 # Level 0: Ignore everything at root
