@@ -51,25 +51,39 @@ function findItemId(owner, number, issueNumber, token) {
 }
 
 /**
+ * gh project item-list の生 item を daemon 用の正規化形へ変換する純粋関数。
+ * gh の JSON はキー揺れ（"aI Status"）があるので吸収する。HITL は Project フィールドではなく
+ * 🙋 ラベルで管理する（#813）ので、item-list が返す `labels` から `hitlLabel` を導く
+ * （追加の API 呼び出し不要）。HITL フィールドは読まない。I/O が無いので unit テスト可能。
+ * @param {object} i 生 item（content / labels / status などを持つ）
+ * @returns {{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title}}
+ */
+function normalizeProjectItem(i) {
+    const labels = Array.isArray(i.labels) ? i.labels : [];
+    return {
+        issue: i.content.number,
+        itemId: i.id,
+        title: i.content.title,
+        status: i.status,
+        aiStatus: i['aI Status'] ?? i.aiStatus,
+        labels,
+        hitlLabel: labels.includes(HITL_LABEL),
+        kind: i.kind,
+        size: i.size,
+    };
+}
+
+/**
  * Project の全 item をフィールド値つきで返す（daemon のポーリング用）。
- * gh の item-list JSON のキー揺れ（"aI Status" / "hITL"）を正規化する。
- * @returns {Array<{issue, itemId, status, aiStatus, hitl, kind, size, title}>}
+ * 正規化は {@link normalizeProjectItem}（純粋）に委譲する。
+ * @returns {Array<{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title}>}
  */
 function listItems(owner, number, token) {
     const out = gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
     const items = JSON.parse(out).items || [];
     return items
         .filter((i) => i.content && typeof i.content.number === 'number')
-        .map((i) => ({
-            issue: i.content.number,
-            itemId: i.id,
-            title: i.content.title,
-            status: i.status,
-            aiStatus: i['aI Status'] ?? i.aiStatus,
-            hitl: i.hITL ?? i.hitl,
-            kind: i.kind,
-            size: i.size,
-        }));
+        .map(normalizeProjectItem);
 }
 
 /** Issue を project に追加して item id を返す（既にあれば既存を返す） */
@@ -170,23 +184,20 @@ function getPrReviewState(repo, prNumber, token) {
  * Review item の付帯情報（HITL 解除シグナル + PR レビュー状態 + PR 番号）を集める。
  * phaseForItem の ctx として渡す。PR が無ければ null（Review なのに PR 無し＝待つ）。
  *
- * 解除シグナルは OR セマンティクス（contract §7）: Project の HITL フィールド /
- * Issue の `🙋 HITL` ラベル / PR の `🙋 HITL` ラベルのいずれか1つでも No/除去なら解除。
- * #794 で daemon が全面を atomic に同期するようになったため、ラベルでの OR 解除が
- * 健全に機能する（人間は目の前の PR ラベルを外すだけで差し戻せる）。
+ * 解除シグナルは OR セマンティクス（contract §7・#813 でラベル一本化）: Issue の `🙋 HITL`
+ * ラベル / PR の `🙋 HITL` ラベルのいずれか1つでも除去なら解除。daemon が両面を atomic に
+ * 同期するため、人間は目の前の PR ラベルを外すだけで差し戻せる。HITL フィールドは見ない。
  * @param {string} repo
  * @param {number} issueNumber
- * @param {string} projectHitl Project の HITL フィールド値（'Yes'/'No' 等）
  * @param {string} token
  * @returns {{hitlSignals:object, review:object, pr:number}|null}
  */
-function getReviewContext(repo, issueNumber, projectHitl, token) {
+function getReviewContext(repo, issueNumber, token) {
     const pr = findPrForIssue(repo, issueNumber, token);
     if (!pr) return null;
     const issueLabels = getIssueLabels(repo, issueNumber, token);
     return {
         hitlSignals: {
-            projectField: projectHitl === 'Yes',
             issueLabel: issueLabels.includes(HITL_LABEL),
             prLabel: (pr.labels || []).includes(HITL_LABEL),
         },
@@ -317,7 +328,7 @@ function applyIntents(ctx, itemId, intents, token) {
 }
 
 module.exports = {
-    botToken, gh, getProject, getFields, listItems, findItemId, addIssue, setField, applyIntents,
+    botToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
 };

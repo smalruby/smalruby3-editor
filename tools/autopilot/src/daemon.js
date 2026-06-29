@@ -19,6 +19,7 @@ const {
     PHASE_BY_COMMAND,
     selectActionable,
     applyResult,
+    hitlDesireFromResult,
     selectMergeCandidates,
     mergeProgressionIntents,
     selectPrSyncCandidates,
@@ -58,6 +59,11 @@ async function dispatch(item, cfg, state, log) {
         try { project.setField(ctx, itemId, field, value, project.botToken()); }
         catch (e) { log(`#${item.issue}: mark ${field} failed: ${e.message}`); }
     };
+    // ブロック時の人間ハンドオフ: Status=Blocked + 🙋 ラベル付与（HITL フィールドは使わない・#813）。
+    const blockToHuman = () => {
+        mark('Status', 'Blocked');
+        syncFacesAfterIntents({ ...item, status: 'Blocked', hitlLabel: true }, [], cfg, log);
+    };
     try {
         // 着手を即可視化（Issue を状態の正に）: In Progress + AI Status=xxxing
         mark('Status', 'In Progress');
@@ -82,23 +88,25 @@ async function dispatch(item, cfg, state, log) {
         const res = await runPhase({ session, cwd, env, skill: meta.skill, issue: item.issue, resultFile, log });
         if (!res.ok) {
             log(`#${item.issue}: runner failed (${res.reason})`);
-            mark('Status', 'Blocked'); mark('HITL', 'Yes');
+            blockToHuman();
             return;
         }
         const parsed = readResultFile(resultFile);
         if (!parsed.ok) {
             log(`#${item.issue}: invalid result (${parsed.errors.join('; ')})`);
-            mark('Status', 'Blocked'); mark('HITL', 'Yes');
+            blockToHuman();
             return;
         }
         const intents = applyResult(parsed.result);
         const applied = project.applyIntents(ctx, itemId, intents, project.botToken());
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
-        // 権威的な面同期（contract §7）: ラベル/Draft/sticky を Project 状態へ合わせる
-        syncFacesAfterIntents(item, intents, cfg, log);
+        // 権威的な面同期（contract §7）: 🙋/🤖 ラベル・Draft・sticky を Project 状態 + HITL 希望へ合わせる。
+        // HITL は Project フィールドではなくラベルなので、結果から導いた希望を hitlLabel として渡す（#813）。
+        const wantHitl = hitlDesireFromResult(parsed.result);
+        syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
     } catch (e) {
         log(`#${item.issue}: error ${e.message}`);
-        mark('Status', 'Blocked'); mark('HITL', 'Yes');
+        blockToHuman();
     } finally {
         state.running.delete(item.issue);
     }
@@ -117,7 +125,7 @@ function collectReviewContexts(cfg, items, running, log) {
         if (item.status !== 'Review') continue;
         if (running.has(item.issue)) continue;
         try {
-            const ctx = project.getReviewContext(cfg.repo, item.issue, item.hitl, token);
+            const ctx = project.getReviewContext(cfg.repo, item.issue, token);
             if (ctx) contexts[item.issue] = ctx;
         } catch (e) {
             log(`#${item.issue}: review context error ${e.message}`);
@@ -155,7 +163,8 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
         try {
             const applied = applyIntents(ctx, itemId, intents, token);
             log(`#${item.issue}: PR merged → ${applied.join(', ')}`);
-            syncFaces(item, intents);
+            // merge は前進シグナル → 人間の番は解除。🙋 ラベルを両面から落とす（force 同期・#813）。
+            syncFaces({ ...item, hitlLabel: false }, intents);
         } catch (e) {
             log(`#${item.issue}: merge progression failed: ${e.message}`);
         }
@@ -167,7 +176,7 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
  * 同期する（contract §7 の投影）。判定は phases.js の純粋関数、書き込みはここ（単一ライター）。
  * deps は injection 可能（テスト用）。force=true は権威的な遷移（Review への handoff 等）で、
  * Review でも HITL ラベルを明示的に付与する。
- * @param {object} item Project item（status/aiStatus/hitl/size/kind を含む）
+ * @param {object} item Project item（status/aiStatus/hitlLabel/size/kind を含む）
  * @param {object} io 束ねた I/O（token + project 関数群）
  * @param {object} cfg
  * @param {function} log

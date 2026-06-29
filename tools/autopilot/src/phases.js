@@ -35,42 +35,52 @@ function applyResult(result) {
     const intents = [];
     const set = (field, value) => intents.push({ field, value });
 
+    // HITL は Project フィールドではなく 🙋 ラベルで表現する（#813）。よって applyResult は
+    // HITL 意図を返さない。HITL の希望は {@link hitlDesireFromResult} が結果から導き、
+    // daemon が face sync（ラベル付与/除去）として反映する（単一ライター）。
     if (result.signal === 'done') {
         if (result.nextStatus !== undefined) set('Status', result.nextStatus);
         // 完了時は AI Status をクリア（明示指定があればそれを使う）
         set('AI Status', result.nextAiStatus != null ? result.nextAiStatus : null);
-        set('HITL', result.hitl ? 'Yes' : 'No');
         if (result.size != null) set('Size', result.size);
         if (result.kind != null) set('Kind', result.kind);
     } else if (result.signal === 'hitl') {
-        set('HITL', 'Yes');
         if (result.nextStatus != null) set('Status', result.nextStatus);
         if (result.nextAiStatus != null) set('AI Status', result.nextAiStatus);
     } else if (result.signal === 'error') {
         set('Status', 'Blocked');
-        set('HITL', 'Yes');
     }
     return intents;
 }
 
 /**
- * HITL の解除判定（OR セマンティクス）。
+ * 結果から「完了後に人間の番（HITL）になるか」を導く（純粋関数・#813）。
+ * done は result.hitl の真偽、hitl / error は常に人間の番（true）。
+ * daemon はこの真偽を face sync に渡し、🙋 ラベルの付与/除去を決める。
+ * @param {object} result 検証済み結果ペイロード
+ * @returns {boolean}
+ */
+function hitlDesireFromResult(result) {
+    if (!result) return false;
+    if (result.signal === 'done') return Boolean(result.hitl);
+    // signal=hitl / error は人間の対応待ち
+    return result.signal === 'hitl' || result.signal === 'error';
+}
+
+/**
+ * HITL の解除判定（OR セマンティクス・#813 でラベル一本化）。
  *
- * HITL は複数面に投影される（Project の HITL フィールド / Issue の `🙋 HITL` ラベル /
- * PR の `🙋 HITL` ラベル）。人間がそれら全部を No にするのは二重管理で大変なので、
- * **適用される signal のいずれか1つでも No（解除）になったら処理を進める**。
- * 逆に「人間に渡す（set）」ときは daemon が全面を一括 Yes にして整合を保つ。
+ * HITL は 🙋 ラベルで表現され、Issue と PR の両面に投影される。人間が両方を外すのは
+ * 二重管理で大変なので、**適用される signal のいずれか1つでも No（ラベル除去）になったら
+ * 処理を進める**。逆に「人間に渡す（set）」ときは daemon が両面に一括でラベルを付与する。
  *
- * @param {object} signals 各面の "まだ人間待ちか"。true=待ち / false=解除 / undefined=非適用
- * @param {boolean} [signals.projectField] Project HITL フィールド（Yes→true / No→false）
- * @param {boolean} [signals.issueLabel] Issue に HITL ラベルが付いているか
- * @param {boolean} [signals.prLabel] PR に HITL ラベルが付いているか（PR 無しは undefined）
+ * @param {object} signals 各面の "まだ人間待ちか"。true=ラベルあり / false=除去 / undefined=非適用
+ * @param {boolean} [signals.issueLabel] Issue に `🙋 HITL` ラベルが付いているか
+ * @param {boolean} [signals.prLabel] PR に `🙋 HITL` ラベルが付いているか（PR 無しは undefined）
  * @returns {boolean} 解除されたら true（autopilot は処理を進める）
  */
 function isHitlReleased(signals) {
-    const applicable = [signals.projectField, signals.issueLabel, signals.prLabel].filter(
-        (v) => v !== undefined,
-    );
+    const applicable = [signals.issueLabel, signals.prLabel].filter((v) => v !== undefined);
     return applicable.some((v) => v === false);
 }
 
@@ -108,8 +118,9 @@ function selectMergeCandidates(items) {
 
 /**
  * 連携 PR の merge を検知したときに Project へ書く意図を返す（純粋関数）。
- * leaf（Kind=Issue）で PR が merge 済みなら Close へ前進し、AI Status をクリア、HITL を No にする
- * （merge は HITL と独立した前進シグナルなので、人間が別途 HITL を外す必要はない）。
+ * leaf（Kind=Issue）で PR が merge 済みなら Close へ前進し、AI Status をクリアする
+ * （merge は HITL と独立した前進シグナル）。HITL の解除（🙋 ラベル除去）は Project フィールド
+ * ではなく face sync が行う（#813）ので、ここでは Project 意図に HITL を含めない。
  * EPIC・未 merge・既に target の場合は空配列（冪等）。
  * @param {object} item { status, kind }
  * @param {boolean} prMerged 連携 PR が merge 済みか
@@ -123,7 +134,6 @@ function mergeProgressionIntents(item, prMerged) {
     return [
         { field: 'Status', value: target },
         { field: 'AI Status', value: null },
-        { field: 'HITL', value: 'No' },
     ];
 }
 
@@ -151,13 +161,13 @@ function reviewPhase(review) {
 
 /**
  * Project item から「次に autopilot が自律実行すべきフェーズ」を決める（純粋関数）。
- * 人間駆動の状態（DoD/Close/Backlog/Icebox/Paused）や HITL=Yes では null（何もしない）。
+ * 人間駆動の状態（DoD/Close/Backlog/Icebox/Paused）や 🙋 ラベルあり（人間の番）では null（何もしない）。
  *
  * Review だけは特別: 人間がレビューを終えて HITL を解除したとき、autopilot が再開して
  * 指摘対応（address-review）か DoD 確認（verify）へ進める。解除判定は OR セマンティクス
- * （Project HITL フィールド / Issue・PR の HITL ラベルのいずれか1つでも解除）で、
- * 解除シグナルと PR レビュー状態は ctx 経由で daemon が渡す（純粋性を保つため I/O は外）。
- * @param {object} item { status, aiStatus, hitl, kind }
+ * （Issue・PR の 🙋 ラベルのいずれか1つでも除去なら解除・#813）で、解除シグナルと
+ * PR レビュー状態は ctx 経由で daemon が渡す（純粋性を保つため I/O は外）。
+ * @param {object} item { status, aiStatus, hitlLabel, kind }
  * @param {object} [ctx] { review, hitlSignals } — Review item の付帯情報
  * @returns {string|null} フェーズ名（triage/decompose/implement/address-review/verify ...）または null
  */
@@ -165,13 +175,13 @@ function phaseForItem(item, ctx = {}) {
     if (!item) return null;
     const status = item.status || 'New Item';
     if (status === 'Review') {
-        // 解除シグナルがあれば OR 判定、無ければ Project HITL フィールド単独で判定。
+        // 解除シグナルがあれば OR 判定、無ければ Issue の 🙋 ラベル単独で判定（#813）。
         const released = ctx.hitlSignals
             ? isHitlReleased(ctx.hitlSignals)
-            : item.hitl !== 'Yes';
+            : !item.hitlLabel;
         return released ? reviewPhase(ctx.review) : null;
     }
-    if (item.hitl === 'Yes') return null; // 人間の番
+    if (item.hitlLabel) return null; // 人間の番（🙋 ラベルあり）
     if (status === 'New Item') return 'triage';
     if (status === 'Sprint Backlog') {
         return item.kind === 'EPIC' ? 'decompose' : 'implement';
@@ -196,7 +206,7 @@ function isActionable(item, opts = {}) {
 
 /**
  * 着手すべき item を並行上限内で選ぶ（純粋関数）。
- * @param {object[]} items 各 { issue, status, aiStatus, hitl, kind }
+ * @param {object[]} items 各 { issue, status, aiStatus, hitlLabel, kind }
  * @param {object} opts { paused, running:Set<number>, limit, contexts }
  *   contexts は issue 番号 → { review, hitlSignals, pr } の map（Review item の付帯情報）。
  * @returns {object[]} 実行対象（issue + phase）。Review 由来は pr 番号も付く。
@@ -275,12 +285,12 @@ function selectPrSyncCandidates(items) {
 }
 
 /**
- * PR は AI 作業中は Draft、人間の番（HITL=Yes）のとき Ready にする。
- * @param {object} item { hitl }
+ * PR は AI 作業中は Draft、人間の番（🙋 ラベルあり）のとき Ready にする。
+ * @param {object} item { hitlLabel }
  * @returns {boolean} Draft であるべきか
  */
 function desiredDraft(item) {
-    return (item && item.hitl) !== 'Yes';
+    return !(item && item.hitlLabel);
 }
 
 /**
@@ -298,21 +308,22 @@ function draftAction(currentIsDraft, item) {
 /**
  * 🙋 HITL ラベルの操作を決める（純粋関数）。
  *
- * Review 中の HITL ラベルは「人間の解除ジェスチャ」を兼ねる（contract §7 の OR 解除）。
- * よって steady-state（force でない per-tick 同期）では、人間が外したラベルを **再付与しない**
- * （= 解除シグナルを潰さない）。Review へ渡す権威的な遷移は force=true で明示的に付与する。
- * @param {object} item { status, hitl }
- * @param {boolean} present 現在ラベルが付いているか
+ * HITL の真実は 🙋 ラベルそのもの（#813）。canonical は Issue の 🙋 ラベル（item.hitlLabel）で、
+ * per-tick 同期は PR 面をそこへ合わせる。ただし Review 中の HITL ラベルは「人間の解除ジェスチャ」を
+ * 兼ねるため、steady-state（force でない per-tick 同期）では人間が外したラベルを **再付与しない**
+ * （= 解除シグナルを潰さない）。Review へ渡す権威的な遷移・merge 後の解除は force=true で明示する。
+ * @param {object} item { status, hitlLabel }
+ * @param {boolean} present 現在その面にラベルが付いているか
  * @param {object} [opts] { force }
  * @returns {'add'|'remove'|null}
  */
 function hitlLabelAction(item, present, opts = {}) {
-    const wantYes = item && item.hitl === 'Yes';
+    const want = Boolean(item && item.hitlLabel);
     if (item && item.status === 'Review' && !opts.force) {
         // steady-state: No への正規化（除去）だけ許可。Yes の再付与はしない。
-        return !wantYes && present ? 'remove' : null;
+        return !want && present ? 'remove' : null;
     }
-    if (wantYes) return present ? null : 'add';
+    if (want) return present ? null : 'add';
     return present ? 'remove' : null;
 }
 
@@ -337,8 +348,8 @@ function labelActions(item, currentLabels, opts = {}) {
 
 /**
  * sticky ステータスコメント本文を組み立てる（純粋関数）。
- * 連携 Issue の Project 状態（Status / AI Status / HITL / Size）を投影する。
- * @param {object} item { issue, status, aiStatus, hitl, size }
+ * 連携 Issue の Project 状態（Status / AI Status / Size）と HITL（🙋 ラベル）を投影する。
+ * @param {object} item { issue, status, aiStatus, hitlLabel, size }
  * @returns {string}
  */
 function renderSticky(item) {
@@ -351,18 +362,17 @@ function renderSticky(item) {
         '| --- | --- |',
         `| Status | ${v(item.status)} |`,
         `| AI Status | ${v(item.aiStatus)} |`,
-        `| HITL | ${v(item.hitl)} |`,
+        `| HITL | ${item.hitlLabel ? 'Yes' : 'No'} |`,
         `| Size | ${v(item.size)} |`,
         '',
         `_Linked issue #${item.issue}. Maintained by autopilot (single writer); do not edit._`,
     ].join('\n');
 }
 
-/** Project フィールド名 → listItems が返す item キーの対応 */
+/** Project フィールド名 → listItems が返す item キーの対応（HITL はラベルなので含めない・#813） */
 const FIELD_TO_ITEM_KEY = {
     Status: 'status',
     'AI Status': 'aiStatus',
-    HITL: 'hitl',
     Size: 'size',
     Kind: 'kind',
 };
@@ -463,6 +473,7 @@ module.exports = {
     PHASE_BY_COMMAND,
     DEFAULT_CLAUDE_COMMAND,
     applyResult,
+    hitlDesireFromResult,
     isHitlReleased,
     progressOnMerge,
     reviewPhase,

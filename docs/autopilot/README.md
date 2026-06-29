@@ -92,52 +92,58 @@ Issue を状態の正とすることで daemon が落ちても現在地が分か
 
 ### その他フィールド
 
-- **HITL**（Yes/No）— 人間の番か（後述）
 - **Size**（small / middle / large）— leaf Issue の重み付け（EPIC は付けない）
 - **Kind**（EPIC / Issue）
 - **Current Step / Worktree / Tmux Window**（text, observability）
 
 ---
 
-## HITL（Human In The Loop）
+## HITL（Human In The Loop）— `🙋 HITL` ラベルに一本化（#813）
 
-HITL は「人間の番」を表す。set と release で非対称のルールを持つ。
+HITL は「人間の番」を表す。状態は **`🙋 HITL` ラベル**が唯一の真実で、Issue と PR の両面に投影される
+（Project に HITL フィールドは設けない／daemon は読まない・書かない）。**PR は Project フィールドを
+持てない**ため、ラベルなら 1 系統で Issue/PR を賄え、成果物ページにも見える。set と release で
+非対称のルールを持つ。
 
-- **set（人間に渡す）**: daemon が **全面を一括 Yes** にして整合を保つ（Project フィールド +
-  Issue/PR の `🙋 HITL` ラベル）。
-- **release（AI に戻す）**: 適用される signal の **いずれか1つでも No/除去**されたら autopilot は
-  処理を進める（OR 解除）。人間はレビュー中、目の前の PR ラベルを外すだけでよい。実装は
-  `tools/autopilot/src/phases.js` の `isHitlReleased`。
+- **set（人間に渡す）**: daemon が **Issue/PR の両面に一括で `🙋 HITL` ラベルを付与**して整合を保つ。
+- **release（AI に戻す）**: 適用される signal の **いずれか1つでも除去**されたら autopilot は
+  処理を進める（OR 解除。signal は Issue ラベル / PR ラベルの 2 面）。人間はレビュー中、目の前の
+  PR ラベルを外すだけでよい。実装は `tools/autopilot/src/phases.js` の `isHitlReleased`。
 
 人間が判断/レビューに使う HITL ゲート: EPIC 理解・分解承認・人間レビュー（approve）・merge。
+
+> **移行注意（#813）**: 走行中 daemon は再起動するまで旧コード（HITL フィールド読み）。この変更を
+> merge + daemon 再起動して初めてラベル主体に切り替わる。既存の HITL フィールド値が残っていても
+> daemon はラベルだけを見るので実害はない（Project の HITL 単一選択フィールドは将来削除可）。
 
 ---
 
 ## merge は独立した「前進シグナル」
 
-PR が merge されたら、HITL ラベル/フィールドが残っていても autopilot は前進する。
+PR が merge されたら、`🙋 HITL` ラベルが残っていても autopilot は前進する。
 
-- **leaf Issue**: ひも付く PR が merge されたら Issue を **Close** へ進める（人間が HITL を別途
-  クリアする必要はない）。
+- **leaf Issue**: ひも付く PR が merge されたら Issue を **Close** へ進める（人間が `🙋 HITL` ラベルを
+  別途外す必要はない。daemon が両面のラベルを除去する）。
 - **EPIC**: 子 PR の merge では完了しない（後述の EPIC 運用）。
 
 autopilot は **自動 merge しない**。daemon はポーリングのたびに「PR が出た後〜Close 前」の leaf
 （Status が In Progress / Review / DoD）について、`Closes #<issue>` などで紐付く PR が **人間に
 merge 済みか**を GitHub に問い合わせ（`closedByPullRequestsReferences`）、merge 済みなら Status を
-**Close**・AI Status をクリア・HITL を No にする。判定は `phases.js` の `selectMergeCandidates` /
-`mergeProgressionIntents`（純粋関数）、問い合わせと書き込みは `project.hasMergedPullRequest` と
-daemon の `applyMergeProgression`。実行中（run が所有する）item は触らない。
+**Close**・AI Status をクリアし、両面の `🙋 HITL` ラベルを除去する。判定は `phases.js` の
+`selectMergeCandidates` / `mergeProgressionIntents`（純粋関数）、問い合わせと書き込みは
+`project.hasMergedPullRequest` と daemon の `applyMergeProgression`（ラベル除去は force 同期）。
+実行中（run が所有する）item は触らない。
 
 ---
 
 ## implement→review の自動ディスパッチ（自己レビュー）
 
-`autopilot-implement` が完了すると Status=`In Progress` / AI Status=`Self-Reviewing` / HITL=`No`
-になる。daemon はこの状態を検知して **`autopilot-review`（敵対的レビュー）を自動ディスパッチ**し、
-人間の介入なしに implement→review→（人間レビュー待ちの）Review/HITL まで前進させる。
+`autopilot-implement` が完了すると Status=`In Progress` / AI Status=`Self-Reviewing` / `🙋 HITL`
+ラベル無しになる。daemon はこの状態を検知して **`autopilot-review`（敵対的レビュー）を自動ディスパッチ**
+し、人間の介入なしに implement→review→（人間レビュー待ちの）Review/HITL まで前進させる。
 
 - 判定は `phases.js` の `phaseForItem`（純粋関数）: `status==='In Progress' && aiStatus==='Self-Reviewing'`
-  → `'review'`。HITL=Yes のときは人間の番なので渡さない。
+  → `'review'`。`🙋 HITL` ラベルがあるときは人間の番なので渡さない。
 - review は **既存 PR ブランチ**で作業する（`PR_BRANCH_PHASES` に含む）。
 - 二重起動は daemon の running セットで防止（review 実行中も In Progress / Self-Reviewing のままだが
   `selectActionable` が running の item を除外する）。
@@ -146,7 +152,7 @@ daemon の `applyMergeProgression`。実行中（run が所有する）item は�
 
 ## Review 解除後の自動遷移（address-review / verify）
 
-`Review` の item は人間レビュー待ち（HITL=Yes）。人間がレビューを終えて HITL を解除すると、
+`Review` の item は人間レビュー待ち（`🙋 HITL` ラベルあり）。人間がレビューを終えてラベルを外すと、
 daemon が PR のレビュー状態を見て次フェーズを自動ディスパッチする（`phaseForItem` + `getReviewContext`）。
 
 | PR レビュー状態（HITL 解除後） | 自動ディスパッチ |
@@ -156,10 +162,10 @@ daemon が PR のレビュー状態を見て次フェーズを自動ディスパ
 | どちらの signal も無い | 何もしない（保守的に待つ） |
 
 - コメントは approve より優先する（approve しつつ未対応コメントを残したら指摘対応が先）。
-- 解除シグナルは **OR セマンティクス**: Project の HITL フィールド / Issue の `🙋 HITL` ラベル /
-  PR の `🙋 HITL` ラベルの **いずれか1つでも No/除去**なら解除（`getReviewContext` が3面を集め、
-  `phaseForItem` が `isHitlReleased` で判定）。daemon が3面を atomic に同期する（後述「PR 側の
-  状態可視化」）ので、人間は目の前の PR ラベルを外すだけで差し戻せる。
+- 解除シグナルは **OR セマンティクス**: Issue の `🙋 HITL` ラベル / PR の `🙋 HITL` ラベルの
+  **いずれか1つでも除去**なら解除（`getReviewContext` が2面を集め、`phaseForItem` が `isHitlReleased`
+  で判定）。daemon が両面を atomic に同期する（後述「PR 側の状態可視化」）ので、人間は目の前の
+  PR ラベルを外すだけで差し戻せる。
 - address-review / verify は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
 
 ---
@@ -190,9 +196,9 @@ PR 側は読み取り投影）。実装は daemon の `applyPrProjection`（ポ�
 | 手段 | 意味 | 同期ルール |
 |---|---|---|
 | `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象） | Issue/PR に常時担保 |
-| `🙋 HITL` ラベル | 人間の対応待ち | Project HITL=Yes で付与 / No で除去（Issue + PR の両面） |
-| Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間レビュー待ち | HITL=Yes→Ready / それ以外→Draft |
-| sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 | Status / AI Status / HITL / Size をマーカー付き 1 コメントに upsert |
+| `🙋 HITL` ラベル | 人間の対応待ち（**HITL の唯一の真実**・#813） | 人間に渡すとき Issue/PR の両面に付与 / release・merge で除去 |
+| Draft ⇄ Ready for review | Draft=AI 作業中 / Ready=人間レビュー待ち | `🙋 HITL` ラベルあり→Ready / それ以外→Draft |
+| sticky ステータスコメント | bot が1コメントを編集し続け、連携 Issue の Project 状態を投影 | Status / AI Status / HITL（ラベル由来）/ Size をマーカー付き 1 コメントに upsert |
 
 - 対象は連携 PR を持ちうる post-PR ステータス（In Progress / Review / DoD / Blocked）の leaf。
   EPIC は実装 PR を持たないので除外（`selectPrSyncCandidates`）。
