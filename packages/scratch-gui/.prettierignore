@@ -259,6 +259,7 @@ test/integration/*
 !test/integration/palette-toggle-position.test.js
 !test/integration/version-update-notification.test.js
 !test/integration/workspace-glow-regression.test.js
+!test/integration/sounds-direct-nav.test.js
 
 # ============================================================
 # Level 2: test/unit/*
@@ -378,6 +379,7 @@ test/unit/lib/*
 !test/unit/lib/smalruby-original-sprites.test.js
 !test/unit/lib/setup-prism.js
 !test/unit/lib/version-checker.test.js
+!test/unit/lib/audio-buffer-player.test.js
 
 # Level 3: test/unit/reducers/*
 test/unit/reducers/*

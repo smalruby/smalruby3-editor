@@ -212,31 +212,30 @@ http://localhost:8601?no_beforeunload=1&tab=ruby&ruby_version=2&rubyMode=ruby
 | `rubyMode` | `ruby`, `furigana`, `dncl` | Ruby タブの初期モード |
 | `features` | カンマ区切り | 隠し機能の有効化（現在は未使用） |
 
-### ❌ `?tab=sounds` で直接アクセスしてはいけない（AudioContext autoplay policy）
+### ✅ `?tab=sounds` で直接アクセスしてよい（issue #633 で crash 修正済み）
 
-**やらないこと**: Playwright や手動デバッグで `?tab=sounds` を URL に直接指定してロードする。
+**現状**: `?tab=sounds` での直接遷移は **crash しない**。`AudioBufferPlayer`（`src/lib/audio/audio-buffer-player.js`）を null-safe 化し、user gesture 前で `SharedAudioContext` がまだ `AudioContext` を作っていなくても、buffer を遅延生成するようにした（issue #633）。音タブ UI（waveform / 再生ボタン / エフェクトボタン）は gesture 前でも表示され、初回 gesture 後に再生が動く。
 
-**理由**: `SharedAudioContext` は upstream の設計により、ユーザー gesture (mousedown/touchstart/keydown) が発生するまで `AudioContext` を作成しない。`?tab=sounds` で直接遷移すると最初の gesture 前に `SoundEditor` が render され、`AudioBufferPlayer.constructor` が `audioContext.createBuffer()` を呼ぶときに `AudioContext` が `undefined` で TypeError になる。
+そのため Playwright / Selenium で `loadUri(`${uri}?tab=sounds`)` のような直接遷移を **使ってよい**（リグレッションは `test/integration/sounds-direct-nav.test.js` で担保）。
 
-**過去にハマったパターン**:
+**⚠️ ただし `SharedAudioContext` を gesture 前に lazy 作成する改造は絶対にしない**（下記の失敗パターン参照）。直すのは常に **`AudioBufferPlayer` 側を null-safe にする**方向で、`SharedAudioContext` の upstream 挙動（gesture 待ち）は維持する。
+
+**過去にハマったパターン（将来の改造防止のため記録を残す）**:
 
 - 「`?tab=sounds` 直接アクセスでクラッシュするから」と言って `SharedAudioContext` を gesture 前に lazy 作成するように改造すると、Chrome の autoplay policy で **新しく作られる `AudioContext` は `state: 'suspended'`** になる。
 - `StartAudioContext` ライブラリは gesture 後に `resume()` を呼ぶが、`resume()` は **async**（数 ms〜数十 ms の遅延）なので、同じ click handler の中で即座に `source.start()` を呼ぶ sound block (例: 旗を押した直後の音再生) は **suspended state に当たって無音**。
 - 結果: 「音タブで再生ボタンを押しても音が出ない」「旗を押した瞬間の音再生ブロックが無音」という不具合が再発する。
 - 過去に少なくとも 2 回試され、毎回同じ原因で revert している（直近: PR #630 の commit `cc2a8dab7e` → `79dd6be827` で revert）。
-- Playwright の Chromium は autoplay policy が緩く `state: 'running'` で見えるため、Playwright での検証は信用できない。実機 (本番 Chrome) で旗→音再生フローを必ず確認する必要がある。
+- Playwright の Chromium は autoplay policy が緩く `state: 'running'` で見えるため、Playwright での **音が鳴るか** の検証は信用できない。直接遷移で crash しないことは Playwright/Selenium で確認できるが、**旗→即時音再生が無音にならないか** は実機 (本番 Chrome) で確認する必要がある。
 
-**正しいやり方**:
+**音タブを確認する際の推奨手順**（クリック切り替えでも直接遷移でもよい）:
 
 | やりたいこと | 推奨手順 |
 |---|---|
-| 音タブの状態確認 | 通常ロード（`?tab=ruby` などまたはデフォルト = コードタブ）で開いてから、音タブの DOM (`li[role="tab"]` で「音」テキストを含む要素) を **クリック**で切り替える。これは user gesture なので AudioContext が正しく `state: 'running'` で作成される。 |
-| 自動テストでの音タブ移動 | Selenium の `clickText('音')` / `clickText('Sounds')` を使う。`loadUri(uri + '?tab=sounds')` のような直接遷移は禁止。 |
-| Playwright MCP でのスクリーンショット | `browser_navigate` で通常 URL を開いてから `browser_evaluate` で `tabs.find(t => t.textContent.includes('音')).click()` のように DOM クリックで切り替える。 |
-
-**修正していいケース**:
-
-`SharedAudioContext` の lazy 作成は **絶対にしない**。upstream の挙動を維持する。直接アクセス時のクラッシュを直したい場合は、`AudioContext` ではなく **`AudioBufferPlayer` 側を `audioContext` が `undefined` でも crash しない null-safe 実装にする**方向で検討する（が、その場合も実機での旗→音テストを必須）。
+| 音タブの状態確認 | `?tab=sounds` 直接遷移、または通常ロード後に音タブ DOM (`li[role="tab"]` で「音」テキストを含む要素) を **クリック**で切り替える。どちらも crash しない。 |
+| 自動テストでの音タブ移動 | Selenium の `clickText('音')` / `clickText('Sounds')`、または `loadUri(`${uri}?tab=sounds`)` を使う。 |
+| Playwright MCP でのスクリーンショット | `browser_navigate` で `?tab=sounds` を直接開く、または通常 URL を開いてから音タブをクリックで切り替える。 |
+| 旗→即時音再生が無音にならないか | **実機 (本番 Chrome)** で確認する（Playwright/Selenium の Chromium は autoplay policy が緩く信用できない）。 |
 
 ### クラスルーム機能
 
