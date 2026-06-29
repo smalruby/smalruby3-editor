@@ -88,7 +88,7 @@ Smalruby のエディタ全体に影響する**設定**を管理する仕組み�
 - [`docs/ruby-editor/`](../ruby-editor/) — Ruby v1/v2 の差異
 - [`docs/smalruby-language-spec-v1-diff.ja.md`](../smalruby-language-spec-v1-diff.ja.md) — v1/v2 言語仕様差分
 - [`docs/menu-bar/`](../menu-bar/) — 設定メニュー UI
-- `.claude/rules/scratch-gui/smalruby-markers.md` — upstream マーカー一覧
+- `docs/maintenance/smalruby-markers-gui.md` — upstream マーカー一覧
 
 ## 関連 Issue / PR
 

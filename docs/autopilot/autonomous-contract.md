@@ -28,8 +28,8 @@ autopilot のスキルは、**人間が enter を押すのと同じ形で tmux �
    何を判断してほしいかを具体的に書く。
 2. **HITL シグナル**（`AUTOPILOT_HITL`）を出して**終了**する。
 
-人間はそのコメントを読み、Project の **HITL フィールドを No に戻す**（=「Claude に差し戻す」）
-ことで、autopilot が次に対応コメントを処理する。
+人間はそのコメントを読み、**`🙋 HITL` ラベルを外す**（=「Claude に差し戻す」）ことで、
+autopilot が次に対応コメントを処理する（#813。Issue/PR どちらかのラベルを外すだけでよい）。
 
 ---
 
@@ -50,7 +50,7 @@ Runner は環境変数 **`AUTOPILOT_RESULT_FILE`**（書き込み先の絶対パ
 | トークン | 意味 |
 |---|---|
 | `AUTOPILOT_DONE` | フェーズが正常完了した |
-| `AUTOPILOT_HITL` | 人間の対応待ち（コメント済み）。HITL=Yes へ |
+| `AUTOPILOT_HITL` | 人間の対応待ち（コメント済み）。`🙋 HITL` ラベル付与へ |
 | `AUTOPILOT_ERROR` | 回復不能なエラーで中断した |
 
 Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を読み、権威ある結果とする。
@@ -72,7 +72,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 |---|---|---|
 | `nextStatus` | string \| null | 提案する人間ボードの Status（例 `Backlog` / `In Progress` / `Review` / `DoD`） |
 | `nextAiStatus` | string \| null | 提案する AI Status（例 `Implementing` / `Self-Reviewing`） |
-| `hitl` | boolean | 完了後に人間の番になるか（true なら HITL=Yes） |
+| `hitl` | boolean | 完了後に人間の番になるか（true なら daemon が `🙋 HITL` ラベルを付与） |
 | `size` | `"small"`\|`"middle"`\|`"large"`\| null | 判定した size（triage / decompose） |
 | `kind` | `"EPIC"`\|`"Issue"`\| null | 判定した種別 |
 | `createdSubIssues` | number[] | decompose で作成した sub-issue 番号 |
@@ -109,9 +109,10 @@ AUTOPILOT_DONE
 
 ## 3. 状態の書き込み責務（単一ライター原則）
 
-- **Project フィールド（Status / AI Status / HITL / Size / Kind ...）の書き込みは daemon（または CLI）が行う。**
-  スキルは**結果ファイルで「こうしてほしい」という意図を伝えるだけ**で、Project を直接書き換えない
-  （二重ライターによる競合を避ける）。
+- **Project フィールド（Status / AI Status / Size / Kind ...）と HITL（`🙋 HITL` ラベル）の書き込みは
+  daemon（または CLI）が行う。** スキルは**結果ファイルで「こうしてほしい」という意図を伝えるだけ**で、
+  Project やラベルを直接書き換えない（二重ライターによる競合を避ける）。HITL は Project フィールドではなく
+  `🙋 HITL` ラベルで一本化する（#813。理由: PR は Project フィールドを持てないため）。
 - **GitHub の Issue / PR への副作用**（コメント投稿・PR 作成・sub-issue 作成・コミット）は
   **スキルが行う**。これらは Project 状態とは別物。
 - daemon が落ちても **Issue / PR / Project が状態の正**。スキルは再実行されうる前提で冪等にする（次節）。
@@ -160,26 +161,43 @@ PR を見ただけで連携 Issue の状態が分かるよう、**daemon が PR 
 | 手段 | 意味 | 同期ルール |
 |---|---|---|
 | `🤖 autopilot` ラベル | autopilot 管理対象（AI 処理対象）の PR/Issue | 常時付与 |
-| `🙋 HITL` ラベル | 人間の対応待ち（レビュー/判断/マージ） | Project `HITL=Yes` のとき付与、`No` で除去 |
-| **Draft ⇄ Ready for review** | Draft=AI 作業中 / Ready=人間レビュー待ち | 実装中は Draft、HITL に渡すとき Ready |
+| `🙋 HITL` ラベル | 人間の対応待ち（レビュー/判断/マージ）。**HITL の唯一の真実**（#813） | 人間に渡すとき Issue/PR の両面に付与、release で除去 |
+| **Draft ⇄ Ready for review** | Draft=AI 作業中 / Ready=人間が見る段階 | **Status 基準**（#815）: `Review`/`DoD`/`Close`/`Blocked`→Ready、それ以外（`In Progress` 等）→Draft。HITL ラベルでは判定しない（解除しても Status が Review なら Ready を維持） |
 | **sticky ステータスコメント** | bot が1つのコメントを編集し続け、連携 Issue の Project 状態（Status / AI Status / HITL / Size）を投影 | フェーズ遷移ごとに更新 |
 
 - 専用の「作業中」ラベルは作らない（**Draft** が「AI 作業中・触らないで」を兼ねる）。
 - スキルは PR を作るとき **Draft で作成**し、HITL に渡すフェーズ末で **Ready + `🙋 HITL`** を要求する
   （実際のラベル付与・Draft 切替・sticky 更新は daemon が結果ファイルの意図を見て行う）。
 
-### HITL の解除は OR セマンティクス（人間は1つ外すだけでよい）
+### HITL は `🙋 HITL` ラベルに一本化（#813）
 
-HITL は複数面（Project の HITL フィールド / Issue の `🙋 HITL` ラベル / PR の `🙋 HITL` ラベル）に
-投影されるが、人間が**全部**を No にするのは二重管理で大変。そこで:
+HITL の状態は **`🙋 HITL` ラベル**で表現する（Project に HITL フィールドは設けない／daemon は
+読まない・書かない）。理由は **PR が Project フィールドを持てない**こと。ラベルなら 1 系統で
+Issue/PR の両面を賄え、成果物ページにも見える。ラベルは Issue と PR の両面に投影される。
 
-- **set（人間に渡す）**: daemon が**全面を一括 Yes**にして整合を保つ（atomic）。
-- **release（AI に戻す）**: 適用される signal の**いずれか1つでも No/除去**されたら autopilot は
-  処理を進める（= `tools/autopilot/src/phases.js` の `isHitlReleased` の OR 判定）。その後 daemon が
-  残りの面も No に正規化する。
+- **set（人間に渡す）**: daemon が **Issue/PR の両面に一括で `🙋 HITL` ラベルを付与**して整合を保つ。
+- **release（AI に戻す）**: 適用される signal の **いずれか1つでも除去**されたら autopilot は
+  処理を進める（= `tools/autopilot/src/phases.js` の `isHitlReleased` の OR 判定。signal は
+  Issue ラベル / PR ラベルの 2 面）。その後 daemon が残りの面のラベルも除去して正規化する。
 
-→ 人間はレビュー中に**目の前の PR の `🙋 HITL` ラベルを外すだけ**（または Project の HITL を No に
-するだけ）で autopilot に差し戻せる。PR の無い段階（triage/decompose 等）では PR ラベルは非適用。
+→ 人間はレビュー中に**目の前の PR の `🙋 HITL` ラベルを外すだけ**で autopilot に差し戻せる。
+PR の無い段階（triage/decompose 等）では PR ラベルは非適用（Issue ラベルのみで判定）。
+
+### DoD は daemon が headful 引き継ぎを生成する（スキル run ではない・#821）
+
+DoD（実機ブラウザでの最終確認）は**コンテナ内 daemon が headless で実ブラウザを動かせない**ため、
+**スキル run ではなく daemon の tick ステップ**（`applyDodHandoffs`）として扱う。`Status=DoD` の leaf に
+対し、daemon が「プレビュー URL ＋ Issue の DoD チェックリスト ＋ 定型 headful 手順 ＋ 報告の出口」を
+**テンプレート生成**して `autopilot:dod-handoff` マーカー付きコメントを PR に投稿する（child Claude を
+起動せず、純粋な I/O + 文字列テンプレートで完結。冪等）。これを**ホスト側の Claude（headful Playwright）**
+が実施し、結果を PR にコメントする。
+
+- **OK** → 人間が merge → merge-progression が leaf を Close。
+- **NG** → ホスト/人間が PR にコメントし `🙋 HITL` を外す → **DoD 解除 → `address-review`**（Review と対称。
+  `phaseForItem` の DoD 解除パス。OR セマンティクスも同じ）。
+
+`autopilot-verify` スキルは手動 inject 用に残置（自動経路は使わない）。詳細は
+[`README.md`](./README.md) の「DoD — headful 検証の引き継ぎ生成」。
 
 ---
 

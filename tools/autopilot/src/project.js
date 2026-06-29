@@ -8,7 +8,7 @@
 
 const { execFileSync } = require('child_process');
 const path = require('path');
-const { HITL_LABEL, STICKY_MARKER } = require('./phases');
+const { HITL_LABEL, selectStickyCommentIds, computeReviewApproval } = require('./phases');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const BOT_TOKEN_BIN = path.join(REPO_ROOT, 'bin', 'bot-token');
@@ -51,25 +51,39 @@ function findItemId(owner, number, issueNumber, token) {
 }
 
 /**
+ * gh project item-list の生 item を daemon 用の正規化形へ変換する純粋関数。
+ * gh の JSON はキー揺れ（"aI Status"）があるので吸収する。HITL は Project フィールドではなく
+ * 🙋 ラベルで管理する（#813）ので、item-list が返す `labels` から `hitlLabel` を導く
+ * （追加の API 呼び出し不要）。HITL フィールドは読まない。I/O が無いので unit テスト可能。
+ * @param {object} i 生 item（content / labels / status などを持つ）
+ * @returns {{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title}}
+ */
+function normalizeProjectItem(i) {
+    const labels = Array.isArray(i.labels) ? i.labels : [];
+    return {
+        issue: i.content.number,
+        itemId: i.id,
+        title: i.content.title,
+        status: i.status,
+        aiStatus: i['aI Status'] ?? i.aiStatus,
+        labels,
+        hitlLabel: labels.includes(HITL_LABEL),
+        kind: i.kind,
+        size: i.size,
+    };
+}
+
+/**
  * Project の全 item をフィールド値つきで返す（daemon のポーリング用）。
- * gh の item-list JSON のキー揺れ（"aI Status" / "hITL"）を正規化する。
- * @returns {Array<{issue, itemId, status, aiStatus, hitl, kind, size, title}>}
+ * 正規化は {@link normalizeProjectItem}（純粋）に委譲する。
+ * @returns {Array<{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title}>}
  */
 function listItems(owner, number, token) {
     const out = gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
     const items = JSON.parse(out).items || [];
     return items
         .filter((i) => i.content && typeof i.content.number === 'number')
-        .map((i) => ({
-            issue: i.content.number,
-            itemId: i.id,
-            title: i.content.title,
-            status: i.status,
-            aiStatus: i['aI Status'] ?? i.aiStatus,
-            hitl: i.hITL ?? i.hitl,
-            kind: i.kind,
-            size: i.size,
-        }));
+        .map(normalizeProjectItem);
 }
 
 /** Issue を project に追加して item id を返す（既にあれば既存を返す） */
@@ -114,26 +128,56 @@ function botLogin() {
 }
 
 /**
- * Issue にひも付く open PR を返す（implement が PR 本文に `Closes #N` を書く規約）。
- * labels は名前配列に正規化して返す。
- * @returns {{number:number, labels:string[], isDraft:boolean}|null} 無ければ null
+ * closedByPullRequestsReferences のノード群から、projection 対象の PR を 1 つ選ぶ純粋関数（#825）。
+ * GitHub が「この Issue を閉じる」と認識した PR だけが渡る前提（本文で `#N` に言及しただけの
+ * 無関係 PR は含まれない）。open を最優先し、複数 open なら新しい方（番号が大きい方）を選ぶ。
+ * open が無ければ null（projection 対象は open PR のみ）。
+ * @param {Array<{number:number, state:string, isDraft:boolean, headRefName:string,
+ *   labels:{nodes:Array<{name:string}>}}>} nodes
+ * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null}
  */
-function findPrForIssue(repo, issueNumber, token) {
-    const out = gh(
-        ['pr', 'list', '--repo', repo, '--search', `Closes #${issueNumber} in:body`,
-            '--state', 'open', '--json', 'number,labels,isDraft', '--limit', '1'],
-        { token },
-    );
-    const prs = JSON.parse(out);
-    if (!prs.length) return null;
-    const pr = prs[0];
-    return { number: pr.number, labels: (pr.labels || []).map((l) => l.name), isDraft: pr.isDraft };
+function selectClosingPr(nodes) {
+    const open = (Array.isArray(nodes) ? nodes : []).filter((n) => n && n.state === 'OPEN');
+    if (!open.length) return null;
+    const pr = open.sort((a, b) => b.number - a.number)[0];
+    return {
+        number: pr.number,
+        labels: ((pr.labels && pr.labels.nodes) || []).map((l) => l.name),
+        isDraft: Boolean(pr.isDraft),
+        branch: pr.headRefName,
+    };
 }
 
 /**
- * PR のレビュー状態を reviewPhase 用に正規化して返す。
- * - approved: GitHub の集約判定 reviewDecision === 'APPROVED'
- * - changesRequested: reviewDecision === 'CHANGES_REQUESTED'
+ * Issue にひも付く open PR を返す（implement が PR 本文に `Closes #N` を書く規約）。
+ * 解決には GitHub が認識する「この Issue を閉じる PR」リンク
+ * （`closedByPullRequestsReferences`、{@link hasMergedPullRequest} と同経路）を使う。
+ * 旧実装は `Closes #N in:body` の全文あいまい検索で、本文が `#N` に言及しただけの無関係 PR を
+ * 誤ヒットしていた（#825）。labels は名前配列、branch（headRefName）は DoD 引き継ぎで使う（#821）。
+ * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null} 無ければ null
+ */
+function findPrForIssue(repo, issueNumber, token) {
+    const [owner, name] = repo.split('/');
+    const query =
+        'query($owner:String!,$name:String!,$num:Int!){' +
+        'repository(owner:$owner,name:$name){issue(number:$num){' +
+        'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{' +
+        'number state isDraft headRefName labels(first:20){nodes{name}}}}}}}';
+    const out = gh(
+        ['api', 'graphql', '-f', `query=${query}`,
+            '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
+        { token },
+    );
+    const issue = JSON.parse(out)?.data?.repository?.issue;
+    const nodes = (issue && issue.closedByPullRequestsReferences && issue.closedByPullRequestsReferences.nodes) || [];
+    return selectClosingPr(nodes);
+}
+
+/**
+ * PR のレビュー状態を正規化して返す。
+ * - approved / changesRequested: {@link computeReviewApproval} で導く。reviewDecision は
+ *   ブランチ保護でレビュー必須でないと空になり approve を検知できないため、空のときは
+ *   個々の review の著者ごと最新 state から判定する（#815）。
  * - unresolvedHumanComments: 人間が立てた未解決レビュースレッド数（bot は除外）
  * @returns {{approved:boolean, changesRequested:boolean, unresolvedHumanComments:number}}
  */
@@ -143,6 +187,7 @@ function getPrReviewState(repo, prNumber, token) {
       repository(owner:$owner,name:$name){
         pullRequest(number:$pr){
           reviewDecision
+          reviews(last:100){nodes{author{login} state}}
           reviewThreads(first:100){nodes{isResolved comments(first:1){nodes{author{login}}}}}
         }
       }
@@ -159,34 +204,29 @@ function getPrReviewState(repo, prNumber, token) {
     const unresolvedHumanComments = threads.filter(
         (t) => !t.isResolved && (t.comments.nodes || []).some((c) => isHuman(c.author && c.author.login)),
     ).length;
-    return {
-        approved: pr.reviewDecision === 'APPROVED',
-        changesRequested: pr.reviewDecision === 'CHANGES_REQUESTED',
-        unresolvedHumanComments,
-    };
+    const reviews = (pr.reviews && pr.reviews.nodes) || [];
+    const { approved, changesRequested } = computeReviewApproval(reviews, pr.reviewDecision, isHuman);
+    return { approved, changesRequested, unresolvedHumanComments };
 }
 
 /**
  * Review item の付帯情報（HITL 解除シグナル + PR レビュー状態 + PR 番号）を集める。
  * phaseForItem の ctx として渡す。PR が無ければ null（Review なのに PR 無し＝待つ）。
  *
- * 解除シグナルは OR セマンティクス（contract §7）: Project の HITL フィールド /
- * Issue の `🙋 HITL` ラベル / PR の `🙋 HITL` ラベルのいずれか1つでも No/除去なら解除。
- * #794 で daemon が全面を atomic に同期するようになったため、ラベルでの OR 解除が
- * 健全に機能する（人間は目の前の PR ラベルを外すだけで差し戻せる）。
+ * 解除シグナルは OR セマンティクス（contract §7・#813 でラベル一本化）: Issue の `🙋 HITL`
+ * ラベル / PR の `🙋 HITL` ラベルのいずれか1つでも除去なら解除。daemon が両面を atomic に
+ * 同期するため、人間は目の前の PR ラベルを外すだけで差し戻せる。HITL フィールドは見ない。
  * @param {string} repo
  * @param {number} issueNumber
- * @param {string} projectHitl Project の HITL フィールド値（'Yes'/'No' 等）
  * @param {string} token
  * @returns {{hitlSignals:object, review:object, pr:number}|null}
  */
-function getReviewContext(repo, issueNumber, projectHitl, token) {
+function getReviewContext(repo, issueNumber, token) {
     const pr = findPrForIssue(repo, issueNumber, token);
     if (!pr) return null;
     const issueLabels = getIssueLabels(repo, issueNumber, token);
     return {
         hitlSignals: {
-            projectField: projectHitl === 'Yes',
             issueLabel: issueLabels.includes(HITL_LABEL),
             prLabel: (pr.labels || []).includes(HITL_LABEL),
         },
@@ -215,6 +255,15 @@ function getIssueLabels(repo, issueNumber, token) {
 }
 
 /**
+ * Issue の本文（Markdown）を返す。DoD 引き継ぎでチェックリストを抜き出すのに使う（#821）。
+ * @returns {string}
+ */
+function getIssueBody(repo, issueNumber, token) {
+    const out = gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'body'], { token });
+    return JSON.parse(out).body || '';
+}
+
+/**
  * Issue または PR のラベルを編集する（add/remove の差分。空なら何もしない）。
  * @param {string} type 'issue' | 'pr'
  * @param {{add?:string[], remove?:string[]}} diff
@@ -240,22 +289,58 @@ function setPrDraft(repo, prNumber, action, token) {
 }
 
 /**
- * sticky ステータスコメントを upsert する（マーカー付きの 1 コメントを編集し続ける）。
- * 既存（マーカーを含むコメント）があれば PATCH、無ければ新規 POST。PR/Issue 共通の
- * issues コメント API を使う。
+ * Issue/PR の全コメントを {id, body} の配列で取得する。
+ * body は改行を含むため @base64 で 1 行にエンコードして取り出し、JS 側でデコードする
+ * （`--paginate` + `--jq` でページ跨ぎの改行混入を避ける）。
+ * @param {string} repo `owner/name`
+ * @param {number} number Issue/PR 番号
+ * @param {string} token
+ * @returns {Array<{id: string, body: string}>}
  */
-function upsertStickyComment(repo, number, body, token) {
-    const listed = gh(
+function listIssueComments(repo, number, token) {
+    const out = gh(
         ['api', '--paginate', `repos/${repo}/issues/${number}/comments`,
-            '--jq', `.[] | select(.body | contains("${STICKY_MARKER}")) | .id`],
+            '--jq', '.[] | "\\(.id) \\(.body | @base64)"'],
         { token },
     ).trim();
-    const id = listed ? listed.split('\n')[0].trim() : '';
-    if (id) {
-        gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${id}`, '-f', `body=${body}`], { token });
-    } else {
+    if (!out) return [];
+    return out.split('\n').filter(Boolean).map((line) => {
+        const sp = line.indexOf(' ');
+        const id = sp === -1 ? line : line.slice(0, sp);
+        const b64 = sp === -1 ? '' : line.slice(sp + 1);
+        return { id, body: Buffer.from(b64, 'base64').toString('utf8') };
+    });
+}
+
+/**
+ * sticky ステータスコメントを upsert する（マーカー付きの 1 コメントを編集し続ける）。
+ * 正準・旧いずれのマーカーを含む既存コメントも吸収して in-place 更新する（#809）。
+ * 複数見つかった場合は先頭を残して PATCH し、残りは DELETE して 1 つに集約する。
+ * いずれも無ければ新規 POST。PR/Issue 共通の issues コメント API を使う。
+ */
+function upsertStickyComment(repo, number, body, token) {
+    const ids = selectStickyCommentIds(listIssueComments(repo, number, token));
+    if (ids.length === 0) {
         gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
+        return;
     }
+    const [keep, ...dupes] = ids;
+    gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${keep}`, '-f', `body=${body}`], { token });
+    for (const dup of dupes) {
+        gh(['api', '--method', 'DELETE', `repos/${repo}/issues/comments/${dup}`], { token });
+    }
+}
+
+/**
+ * Issue にプレーンなコメントを投稿する（bot 名義）。
+ * daemon が run 失敗で Blocked にするとき「何が起きたか・人間は何をすべきか」を残すのに使う
+ * （#816。コメント無しで 🙋 だけ付くと人間が状況を把握できない）。
+ * @param {string} repo `owner/name`
+ * @param {number} number Issue 番号
+ * @param {string} body コメント本文
+ */
+function postIssueComment(repo, number, body, token) {
+    gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
 }
 
 /**
@@ -293,7 +378,8 @@ function applyIntents(ctx, itemId, intents, token) {
 }
 
 module.exports = {
-    botToken, gh, getProject, getFields, listItems, findItemId, addIssue, setField, applyIntents,
-    botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
-    getPrInfo, getIssueLabels, editLabels, setPrDraft, upsertStickyComment,
+    botToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
+    botLogin, findPrForIssue, selectClosingPr, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
+    getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
+    postIssueComment,
 };

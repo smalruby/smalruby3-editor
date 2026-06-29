@@ -227,7 +227,7 @@ docker compose run --rm app npm run format
 docker compose run --rm app npm run format:check
 ```
 
-**When adding new Smalruby-specific files**, update the `.prettierignore` whitelist and `.claude/rules/<package>/smalruby-prettier-files.md`. See `.claude/rules/code-style.md` for details.
+**When adding new Smalruby-specific files**, add them to the `.prettierignore` whitelist (the single source of truth; the old per-package mirror list was removed). See `.claude/rules/code-style.md` for details.
 
 ### Clean
 

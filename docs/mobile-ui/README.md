@@ -83,7 +83,7 @@ const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';
 | `src/components/menu-bar/menu-bar.css` | narrow-height menu bar compression (`max-height: 800px` で menu-bar 48→40px) |
 | `src/playground/index.css` | narrow viewport vertical scroll lock (`overflow-y: clip`) |
 
-詳細マーカー一覧: `.claude/rules/scratch-gui/smalruby-markers.md`
+詳細マーカー一覧: `docs/maintenance/smalruby-markers-gui.md`
 
 ### scratch-vm
 

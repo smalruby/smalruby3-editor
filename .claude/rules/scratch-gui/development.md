@@ -116,9 +116,7 @@ Rubytee（ルビティー）は Anthropic Claude API を利用した AI コー�
 
 Smalruby 固有ファイルのみに Prettier を適用。upstream ファイルは `.prettierignore` で除外。
 
-**新しい Smalruby 固有ファイルを追加した場合は、必ず以下を更新すること:**
-1. `packages/scratch-gui/.prettierignore` — ホワイトリストに追加
-2. `.claude/rules/scratch-gui/smalruby-prettier-files.md` — 一覧に追加
+**新しい Smalruby 固有ファイルを追加した場合は、`packages/scratch-gui/.prettierignore` のホワイトリストに追加すること**（`.prettierignore` が対象ファイルの唯一の真実 #820）。
 
 ```bash
 # フォーマット実行

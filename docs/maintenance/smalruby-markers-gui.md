@@ -1,23 +1,13 @@
----
-paths:
-  - "packages/scratch-gui/src/reducers/**"
-  - "packages/scratch-gui/src/containers/**"
-  - "packages/scratch-gui/src/components/**"
-  - "packages/scratch-gui/src/lib/blocks*"
-  - "packages/scratch-gui/src/playground/**"
-  - "packages/scratch-gui/src/lib/project-saver*"
-  - "packages/scratch-gui/src/lib/project-fetcher*"
-  - "packages/scratch-gui/src/lib/url-params*"
-description: "Smalruby マーカーコメントの一覧と規約。upstream ファイルへの Smalruby 固有コード追加や upstream merge 時に使用。"
----
-
 # Smalruby Marker Blocks (scratch-gui)
 
 upstream ファイルに追加した Smalruby 固有コードのマーカー一覧。
 マーカーの書式・ルールは `.claude/rules/code-style.md` の「Smalruby Marker Comments」を参照。
 
-**重要**: Smalruby 固有ファイル（`smalruby-prettier-files.md` に記載されたファイル）にはマーカー不要。
-このファイルに記載するのは **upstream ファイルに埋め込んだマーカーのみ**。
+> このファイルは `.claude/` の外（`docs/maintenance/`）に置く。実装中に頻繁に編集するため、
+> Claude Code の「設定ファイル編集」確認プロンプトで自動実行が止まらないようにするのが目的。
+
+**重要**: Smalruby 固有ファイル（`packages/scratch-gui/.prettierignore` のホワイトリストに含まれるファイル）には
+マーカー不要。このファイルに記載するのは **upstream ファイルに埋め込んだマーカーのみ**。
 
 マーカーを追加・削除した場合は、下記の一覧を更新すること。
 
