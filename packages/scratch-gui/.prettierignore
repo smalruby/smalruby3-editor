@@ -314,6 +314,7 @@ test/unit/containers/*
 !test/unit/containers/ruby-downloader.test.jsx
 !test/unit/containers/ruby-tab-project-changed.test.js
 !test/unit/containers/rubytee-modal-hoc-sanitize.test.js
+!test/unit/containers/stage-header.test.jsx
 
 # Level 3: test/unit/helpers/* — Smalruby-only, no filter needed
 

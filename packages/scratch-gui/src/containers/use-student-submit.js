@@ -9,7 +9,7 @@ import analytics from '../lib/analytics';
 import { renderBlocksToCanvas } from '../lib/blocks-screenshot.js';
 import classroomAPI from '../lib/classroom-api.js';
 import { getProjectThumbnail } from '../lib/store-project-thumbnail.js';
-import { clearClassroomSession, setSubmissionStatus } from '../reducers/classroom.js';
+import { clearClassroomSession, clearSubmissionThumbnail, setSubmissionStatus } from '../reducers/classroom.js';
 import translateError from './classroom-error-utils.js';
 
 /**
@@ -45,14 +45,20 @@ const useStudentSubmit = ({
 
     const handleStartSubmit = useCallback(() => {
         clearError();
-        setThumbnailDataUrl(null);
-        if (vm && vm.renderer) {
-            getProjectThumbnail(vm, (dataUrl) => {
-                setThumbnailDataUrl(dataUrl);
-            });
+        // If the student manually picked a submission thumbnail (stage-header button),
+        // reuse it; otherwise auto-capture the current stage frame as before (#631).
+        if (classroomState.submissionThumbnail) {
+            setThumbnailDataUrl(classroomState.submissionThumbnail);
+        } else {
+            setThumbnailDataUrl(null);
+            if (vm && vm.renderer) {
+                getProjectThumbnail(vm, (dataUrl) => {
+                    setThumbnailDataUrl(dataUrl);
+                });
+            }
         }
         setPhase('student-submit-confirm');
-    }, [vm, clearError, setPhase]);
+    }, [vm, clearError, setPhase, classroomState.submissionThumbnail]);
 
     const captureBlockScreenshots = useCallback(async () => {
         if (!vm || !scratchBlocks) return [];
@@ -153,6 +159,9 @@ const useStudentSubmit = ({
 
             setSubmitProgress(null);
             dispatch(setSubmissionStatus('submitted', submissionData.submittedAt));
+            // The manually picked thumbnail is consumed by this submission. Clear it so a
+            // later submit auto-captures the then-current stage frame unless re-picked (#631).
+            dispatch(clearSubmissionThumbnail());
             setPhase('student-status');
             try {
                 analytics.event({

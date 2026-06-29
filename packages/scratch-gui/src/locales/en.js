@@ -6,6 +6,11 @@ export default {
     'gui.sharedMessages.meshV1BackpackAutoMigrated':
         '{count, plural, one {# legacy Mesh item in your backpack was} other {# legacy Mesh items in your backpack were}} automatically replaced with the new Mesh blocks.',
     'gui.stageHeader.stageSizeMiddle': 'Switch to middle stage',
+    'gui.stageHeader.saveThumbnail': 'Set submission thumbnail',
+    'gui.stageHeader.saveThumbnailMessage': 'Use the current stage as your submission thumbnail?',
+    'gui.alerts.settingThumbnail': 'Setting submission thumbnail…',
+    'gui.alerts.thumbnailSuccess': 'Submission thumbnail set.',
+    'gui.alerts.thumbnailError': 'Couldn’t set the submission thumbnail. Please try again later.',
     'gui.sharedMessages.changedRubyVersionByKoshien':
         'This project contains the Smalruby Koshien extension, so the Ruby version has been changed to version 1.',
 

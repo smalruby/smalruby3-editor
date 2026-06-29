@@ -276,11 +276,14 @@ export default {
     'gui.smalruby3.alerts.rubyVersionChangeFailed':
         'ルビーのバージョンを変更できません：先にルビーのコードのエラーを直してください。',
     'gui.stageHeader.stageSizeMiddle': '中サイズのステージに切り替える',
-    'gui.stageHeader.saveThumbnail': 'サムネイルを保存',
-    'gui.stageHeader.saveThumbnailMessage': 'サムネイルを設定してもよいですか？',
+    'gui.stageHeader.saveThumbnail': '提出サムネイルを設定',
+    'gui.stageHeader.saveThumbnailMessage': 'いまの実行画面を提出サムネイルにしますか？',
     'gui.stageHeader.thumbnailTooltipTitle': 'お知らせ 👋',
     'gui.stageHeader.thumbnailTooltipBody':
-        '「<b>サムネイルを保存</b>」がここに移動しました。ステージのスナップショットを撮って、プロジェクトのサムネイルとして設定できます。',
+        '「<b>提出サムネイルを設定</b>」がここに移動しました。ステージのスナップショットを撮って、提出時のサムネイルとして設定できます。',
+    'gui.alerts.settingThumbnail': 'サムネイルを設定しています…',
+    'gui.alerts.thumbnailSuccess': 'サムネイルを設定しました。',
+    'gui.alerts.thumbnailError': 'サムネイルを設定できませんでした。あとでもう一度お試しください。',
 
     'gui.koshienTestModal.title': 'スモウルビー甲子園のAIを試す',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトの読み込みに失敗しました。',

@@ -149,6 +149,7 @@ AUTOPILOT_DONE
 | `AUTOPILOT_RESULT_FILE` | 結果 JSON の書き込み先パス |
 | `AUTOPILOT_PROJECT` | Project 番号（参照のみ。書き込みは daemon） |
 | `AUTOPILOT_REPO` | `smalruby/smalruby3-editor` |
+| `AUTOPILOT_BASE_BRANCH` | PR 先・worktree 分岐元のベースブランチ（既定 `develop`）。Issue 本文の `autopilot-base:` ディレクティブや「ベースブランチ」宣言があれば daemon が渡す（EPIC サブ Issue を親 epic ブランチに積む用）。implement は `gh pr create --base` にこれを使う |
 
 ---
 
