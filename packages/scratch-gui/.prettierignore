@@ -338,6 +338,7 @@ test/unit/lib/*
 !test/unit/lib/classroom-kick-request-storage.test.js
 !test/unit/lib/deck-setup.test.js
 !test/unit/lib/blocks-screenshot.test.js
+!test/unit/lib/download-blob.test.js
 !test/unit/lib/calculate-popup-position.test.js
 !test/unit/lib/calculate-popup-position-regression.test.js
 !test/unit/lib/furigana-annotator-perf.test.js
