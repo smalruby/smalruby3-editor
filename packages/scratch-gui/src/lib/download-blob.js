@@ -100,10 +100,12 @@ const downloadBlob = (filename, blob) => {
     });
 
     if (strategy === 'share') {
-        navigator.share({ files: [file], title: filename }).catch(() => {
-            // User cancelled, or share failed (e.g. transient activation
-            // expired because blob generation took too long) → fall back to
-            // opening the blob so it can still be saved.
+        navigator.share({ files: [file], title: filename }).catch((err) => {
+            // A deliberate user cancel rejects with AbortError; don't surprise
+            // the user by popping a new tab in that case. Only fall back on a
+            // genuine failure (e.g. transient activation expired because blob
+            // generation took too long) so the blob can still be saved.
+            if (err && err.name === 'AbortError') return;
             openBlobInNewTab(blob);
         });
         return;
