@@ -174,29 +174,37 @@ function computeReviewApproval(reviews, reviewDecision, isHuman = () => true) {
 }
 
 /**
+ * 人間がレビュー/検証して 🙋 を外すと autopilot が再開する「人間ゲート」状態。
+ * Review（コードレビュー）と DoD（headful 検証）が該当し、いずれも 🙋 解除 = NG 差し戻しで
+ * address-review へ渡す（OR セマンティクスも同じ・#821）。OK のときは人間が merge して
+ * merge-progression が Close する（解除ではなく前進シグナル）。
+ */
+const HUMAN_GATE_STATUSES = new Set(['Review', 'DoD']);
+
+/**
  * Project item から「次に autopilot が自律実行すべきフェーズ」を決める（純粋関数）。
- * 人間駆動の状態（DoD/Close/Backlog/Icebox/Paused）や 🙋 ラベルあり（人間の番）では null（何もしない）。
+ * 人間駆動の状態（Close/Backlog/Icebox/Paused）や 🙋 ラベルあり（人間の番）では null（何もしない）。
  *
- * Review だけは特別: 人間がレビューを終えて HITL を解除したとき、autopilot が再開して
- * 指摘対応（address-review）か DoD 確認（verify）へ進める。解除判定は OR セマンティクス
- * （Issue・PR の 🙋 ラベルのいずれか1つでも除去なら解除・#813）で、解除シグナルと
- * PR レビュー状態は ctx 経由で daemon が渡す（純粋性を保つため I/O は外）。
+ * Review / DoD は特別: 人間がレビュー/検証を終えて HITL を解除したとき、autopilot が再開して
+ * 指摘対応（address-review）へ進める。解除判定は OR セマンティクス（Issue・PR の 🙋 ラベルの
+ * いずれか1つでも除去なら解除・#813）で、解除シグナルと PR レビュー状態は ctx 経由で daemon が
+ * 渡す（純粋性を保つため I/O は外）。DoD は headful 検証の NG 差し戻しで、Review と対称（#821）。
  * @param {object} item { status, aiStatus, hitlLabel, kind }
- * @param {object} [ctx] { review, hitlSignals } — Review item の付帯情報
- * @returns {string|null} フェーズ名（triage/decompose/implement/address-review/verify ...）または null
+ * @param {object} [ctx] { review, hitlSignals } — Review/DoD item の付帯情報
+ * @returns {string|null} フェーズ名（triage/decompose/implement/address-review ...）または null
  */
 function phaseForItem(item, ctx = {}) {
     if (!item) return null;
     const status = item.status || 'New Item';
-    if (status === 'Review') {
+    if (HUMAN_GATE_STATUSES.has(status)) {
         // 解除シグナルがあれば OR 判定、無ければ Issue の 🙋 ラベル単独で判定（#813）。
         const released = ctx.hitlSignals
             ? isHitlReleased(ctx.hitlSignals)
             : !item.hitlLabel;
         // 人間が HITL を解除したら、構造化シグナル（approve/changes-requested 等）で機械的に
-        // 分岐せず、必ず address-review へ渡す（#815）。address-review スキルが PR の diff と
+        // 分岐せず、必ず address-review へ渡す（#815/#821）。address-review スキルが PR の diff と
         // **全コメント（Issue/レビュー本文/インライン）**を読んで意図を分類する:
-        //   - 質問・改善依頼 → 対応（コード修正 or 返信）
+        //   - 質問・改善依頼 / DoD NG → 対応（コード修正 or 返信）
         //   - LGTM など対応不要 → 何もせず人間の merge を待つ
         //   - 判断がつかない → 人間に質問（HITL）
         // 自由文の分類は純粋関数では不可能なため、判断はスキル側に置く（daemon は dispatch のみ）。
@@ -363,9 +371,10 @@ function draftAction(currentIsDraft, item) {
  * 🙋 HITL ラベルの操作を決める（純粋関数）。
  *
  * HITL の真実は 🙋 ラベルそのもの（#813）。canonical は Issue の 🙋 ラベル（item.hitlLabel）で、
- * per-tick 同期は PR 面をそこへ合わせる。ただし Review 中の HITL ラベルは「人間の解除ジェスチャ」を
- * 兼ねるため、steady-state（force でない per-tick 同期）では人間が外したラベルを **再付与しない**
- * （= 解除シグナルを潰さない）。Review へ渡す権威的な遷移・merge 後の解除は force=true で明示する。
+ * per-tick 同期は PR 面をそこへ合わせる。ただし Review / DoD 中の HITL ラベルは「人間の解除
+ * ジェスチャ」を兼ねるため、steady-state（force でない per-tick 同期）では人間が外したラベルを
+ * **再付与しない**（= 解除シグナルを潰さない・#821 で DoD も対象）。Review/DoD へ渡す権威的な遷移・
+ * merge 後の解除は force=true で明示する。
  * @param {object} item { status, hitlLabel }
  * @param {boolean} present 現在その面にラベルが付いているか
  * @param {object} [opts] { force }
@@ -373,7 +382,7 @@ function draftAction(currentIsDraft, item) {
  */
 function hitlLabelAction(item, present, opts = {}) {
     const want = Boolean(item && item.hitlLabel);
-    if (item && item.status === 'Review' && !opts.force) {
+    if (item && HUMAN_GATE_STATUSES.has(item.status) && !opts.force) {
         // steady-state: No への正規化（除去）だけ許可。Yes の再付与はしない。
         return !want && present ? 'remove' : null;
     }
@@ -408,7 +417,7 @@ function labelActions(item, currentLabels, opts = {}) {
  */
 function renderSticky(item) {
     const v = (x) => (x == null || x === '' ? '—' : String(x));
-    return [
+    const lines = [
         STICKY_MARKER,
         '## 🤖 autopilot status',
         '',
@@ -418,9 +427,21 @@ function renderSticky(item) {
         `| AI Status | ${v(item.aiStatus)} |`,
         `| HITL | ${item.hitlLabel ? 'Yes' : 'No'} |`,
         `| Size | ${v(item.size)} |`,
+    ];
+    // DoD では daemon が headful 検証手順を別コメント（autopilot:dod-handoff マーカー）として
+    // 生成する（sticky 本体は上書きしない）。sticky には 1 行ポインタだけ足す（#821）。
+    if (item && item.status === 'DoD') {
+        lines.push(
+            '',
+            '> 🧪 **DoD 引き継ぎあり** — このスレッドの `autopilot:dod-handoff` コメント'
+                + '（headful Playwright の検証手順）を参照。',
+        );
+    }
+    lines.push(
         '',
         `_Linked issue #${item.issue}. Maintained by autopilot (single writer); do not edit._`,
-    ].join('\n');
+    );
+    return lines.join('\n');
 }
 
 /** Project フィールド名 → listItems が返す item キーの対応（HITL はラベルなので含めない・#813） */
@@ -445,6 +466,170 @@ function applyIntentsToItem(item, intents) {
         if (key) out[key] = value;
     }
     return out;
+}
+
+// ---- DoD handoff (#821): headful 検証をホスト Claude へ渡す引き継ぎ生成 ----
+
+/**
+ * DoD 引き継ぎコメントの識別マーカーを組む（冪等性の判定に使う）。手動実演（PR #818）と同形式。
+ * @param {number} issue
+ * @param {number} pr
+ * @returns {string}
+ */
+function dodHandoffMarker(issue, pr) {
+    return `<!-- autopilot:dod-handoff issue=${issue} pr=${pr} -->`;
+}
+
+/**
+ * コメント本文が DoD 引き継ぎコメントか判定する（純粋関数）。issue/pr 番号には依存しない
+ * （マーカーの接頭辞のみで判定するので、再投稿の冪等チェックに使える）。
+ * @param {string} body
+ * @returns {boolean}
+ */
+function isDodHandoffComment(body) {
+    if (!body) return false;
+    return body.includes('<!-- autopilot:dod-handoff');
+}
+
+/**
+ * コメント一覧に DoD 引き継ぎコメントが既にあるか（純粋関数・冪等性の判定）。
+ * @param {Array<{body: string}>} comments
+ * @returns {boolean}
+ */
+function hasDodHandoffComment(comments) {
+    return (comments || []).some((c) => c && isDodHandoffComment(c.body));
+}
+
+/** CI のブランチプレビュー URL（`https://smalruby.jp/smalruby3-editor/<branch>/`）のパターン。 */
+const PREVIEW_URL_RE = /https:\/\/smalruby\.jp\/smalruby3-editor\/[^\s)<>"'`]+/;
+
+/**
+ * PR のコメント群から CI が貼ったブランチプレビュー URL を拾う（純粋関数）。
+ * 先に現れたものを採用する。見つからなければ null。
+ * @param {Array<{body: string}>} comments
+ * @returns {string|null}
+ */
+function extractPreviewUrl(comments) {
+    for (const c of comments || []) {
+        const m = c && c.body && c.body.match(PREVIEW_URL_RE);
+        if (m) return m[0];
+    }
+    return null;
+}
+
+/**
+ * Issue 本文から DoD チェックリストのブロックを抜き出す（純粋関数）。
+ * `## DoD`（または `Definition of Done`）見出しの次行から次の見出しまでを返す。
+ * 見つからなければ null（呼び出し側がフォールバック文言を入れる）。
+ * @param {string} body Issue 本文（Markdown）
+ * @returns {string|null}
+ */
+function extractDodChecklist(body) {
+    if (!body) return null;
+    const lines = body.split(/\r?\n/);
+    let start = -1;
+    for (let i = 0; i < lines.length; i++) {
+        if (/^#{1,6}\s+(DoD|Definition of Done)\b/i.test(lines[i].trim())) {
+            start = i + 1;
+            break;
+        }
+    }
+    if (start === -1) return null;
+    const block = [];
+    for (let i = start; i < lines.length; i++) {
+        if (/^#{1,6}\s/.test(lines[i].trim())) break; // 次の見出しで打ち切り
+        block.push(lines[i]);
+    }
+    const text = block.join('\n').trim();
+    return text || null;
+}
+
+/**
+ * DoD 引き継ぎが必要か判定する（純粋関数）。DoD + 連携 PR あり + 未生成（引き継ぎコメント無し）
+ * で true。EPIC は実装 PR を持たないので対象外。生成済みなら false（冪等・二重投稿防止）。
+ * @param {object} item { status, kind }
+ * @param {object} ctx { hasHandoffComment: boolean, hasPr: boolean }
+ * @returns {boolean}
+ */
+function needsDodHandoff(item, ctx = {}) {
+    if (!item || item.kind === 'EPIC') return false;
+    if (item.status !== 'DoD') return false;
+    if (!ctx.hasPr) return false;
+    return !ctx.hasHandoffComment;
+}
+
+/**
+ * DoD 引き継ぎコメントの本文をテンプレート生成する（純粋関数・LLM 不使用）。
+ * コンテナ内 daemon は headless なので、ホスト側 Claude（headful Playwright）に渡す
+ * 検証手順をそのまま投稿できる文面にする。具体手順は host Claude が Issue/PR を読んで補完する前提
+ * の雛形（プレビュー URL ＋ Issue の DoD チェックリスト転記 ＋ 定型 headful 手順 ＋ 報告の出口）。
+ * @param {object} p
+ * @param {number} p.issue 連携 Issue 番号
+ * @param {number} p.pr PR 番号
+ * @param {string} [p.repo] `owner/name`（PR リンク用。省略時は番号のみ）
+ * @param {string} [p.branch] PR のブランチ名（省略可）
+ * @param {string|null} [p.previewUrl] CI のブランチプレビュー URL（無ければフォールバック文言）
+ * @param {string|null} [p.dodChecklist] Issue の DoD チェックリスト（無ければフォールバック文言）
+ * @returns {string}
+ */
+function dodHandoffBody({ issue, pr, repo, branch, previewUrl, dodChecklist }) {
+    const prRef = repo ? `${repo} #${pr}` : `#${pr}`;
+    const branchLine = branch ? ` / ブランチ \`${branch}\`` : '';
+    const preview = previewUrl
+        ? `\`${previewUrl}\``
+        : '_（プレビュー URL を CI コメントから取得できませんでした。CI のビルド完了を待つか、'
+            + 'ローカル dev server で確認してください。）_';
+    const checklist = dodChecklist && dodChecklist.trim()
+        ? dodChecklist.trim()
+        : '_（Issue 本文に DoD チェックリストが見つかりませんでした。Issue と PR 本文を読んで'
+            + '検証項目を補完してください。）_';
+    return [
+        dodHandoffMarker(issue, pr),
+        '## 🧪 DoD 引き継ぎ（headful Playwright / ホスト Claude 用）',
+        '',
+        'このコメントは **DoD フェーズの引き継ぎドキュメント**です。コンテナ内 autopilot は headless の',
+        'ため実ブラウザ確認ができません。**ホスト側のあなたの Claude（headful Playwright MCP）**で以下を',
+        '実施し、結果をこの PR にコメントしてください。',
+        '',
+        '`---` 以下をそのままホストの Claude に貼り付けてください。',
+        '',
+        '---',
+        '',
+        `**役割**: PR ${prRef}（Issue #${issue}）の **DoD を headful Playwright MCP（ホストの実 Chrome）で`,
+        '検証**してください。autopilot はコンテナ内で headless のためあなたに引き継ぎます。',
+        '',
+        '### 対象',
+        '',
+        `- PR: ${prRef}${branchLine}`,
+        `- プレビュー（CI ビルド済み・dev server 不要）: ${preview}`,
+        '- 変更点の要約は PR 本文を参照。**検証前に PR の CI が green であることを確認すること**',
+        '  （daemon は CI 状態をチェックせずこの引き継ぎを生成している）。',
+        '',
+        '### 事前準備',
+        '',
+        '- ホストの Chrome を Playwright MCP で headful 操作する（`reference_host_playwright_mcp.md` の構成）。',
+        '- URL には常に `?no_beforeunload=1` を付ける。',
+        '- **秘密情報（バイパストークン等）は本文・ログに残さないこと**。必要ならローカル `.env` の値を',
+        '  読み、URL パラメータに使うだけにする（値はコメントに書かない）。',
+        '',
+        '### 検証手順（Issue の DoD チェックリスト）',
+        '',
+        `以下は Issue #${issue} の DoD をそのまま転記したもの。各項目を headful で確認し、結果を記録する。`,
+        'スクショは `tmp/` に保存し、UI に視覚的変更があれば `docs/<feature>/screenshots/` に既存の命名規則',
+        '（`docs/_screenshot-guidelines.md`）で追加してブランチに追加コミット（あなたの手元で commit/push）する。',
+        '',
+        checklist,
+        '',
+        '### 報告（完了の出口）',
+        '',
+        `- **すべて OK**: この PR ${prRef} に「DoD 検証 OK」+ スクショ要約をコメント。スクショ commit を push。`,
+        '  → 人間が merge して Close（既存 merge-progression が leaf を Close）。',
+        '- **NG / 要修正**: NG 項目を PR にコメントし、`🙋 HITL` ラベルを外す → autopilot が **DoD を解除して',
+        '  address-review** を起動し、差分と全コメントを読んで対応します（Review と対称）。',
+        '- **判断に迷う**: 論点を PR にコメントして人間に確認。',
+        '',
+        '検証は **本番 Chrome** で行うこと（Playwright の Chromium はポリシーが緩く誤検知することがある）。',
+    ].join('\n');
 }
 
 /**
@@ -548,6 +733,14 @@ module.exports = {
     STICKY_MARKERS,
     isStickyComment,
     selectStickyCommentIds,
+    HUMAN_GATE_STATUSES,
+    dodHandoffMarker,
+    isDodHandoffComment,
+    hasDodHandoffComment,
+    extractPreviewUrl,
+    extractDodChecklist,
+    needsDodHandoff,
+    dodHandoffBody,
     PR_SYNC_STATUSES,
     READY_STATUSES,
     selectPrSyncCandidates,

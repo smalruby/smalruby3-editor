@@ -66,7 +66,7 @@
 `src/components/connection-modal/connected-step.jsx` 内：
 - meshV2 connected message
 
-詳細マーカー一覧: `.claude/rules/scratch-gui/smalruby-markers.md`
+詳細マーカー一覧: `docs/maintenance/smalruby-markers-gui.md`
 
 #### State 管理
 
@@ -96,7 +96,7 @@
 - [`docs/extension-microbit/`](../extension-microbit/) — 標準 micro:bit 接続
 - [`docs/extension-ev3/`](../extension-ev3/), [`docs/extension-boost/`](../extension-boost/), [`docs/extension-wedo2/`](../extension-wedo2/) — LEGO 系接続
 - [`docs/extension-gdxfor/`](../extension-gdxfor/) — Vernier センサ接続
-- `.claude/rules/scratch-gui/smalruby-markers.md` — upstream マーカー一覧
+- `docs/maintenance/smalruby-markers-gui.md` — upstream マーカー一覧
 
 ## 関連 Issue / PR
 

@@ -111,7 +111,7 @@ window._batchRt = async (tests) => { /* ... */ };
 
 1. **翻訳の仕組み**: VM の `setupTranslations` は `formatMessage.setup()` の既存翻訳に `Object.assign` でマージする (koshien パターン)。`default` 値は英語にすること。
 
-2. **Prettier**: 新ファイル追加時は `.prettierignore` と `smalruby-prettier-files.md` の更新が必要。ただし `ruby-to-blocks-converter/` や `smalruby_ruby/` はディレクトリ単位でホワイトリスト済み。
+2. **Prettier**: 新ファイル追加時は `.prettierignore` の更新が必要。ただし `ruby-to-blocks-converter/` や `smalruby_ruby/` はディレクトリ単位でホワイトリスト済み。
 
 3. **テスト**: Docker 内で実行。`docker compose run --rm app bash -c "cd packages/scratch-gui && npm exec jest --no-coverage test/unit/lib/ruby-roundtrip/smalruby-ruby.test.js"`
 

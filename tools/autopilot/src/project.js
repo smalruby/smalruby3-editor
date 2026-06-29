@@ -129,19 +129,24 @@ function botLogin() {
 
 /**
  * Issue にひも付く open PR を返す（implement が PR 本文に `Closes #N` を書く規約）。
- * labels は名前配列に正規化して返す。
- * @returns {{number:number, labels:string[], isDraft:boolean}|null} 無ければ null
+ * labels は名前配列に正規化して返す。branch（headRefName）は DoD 引き継ぎ等で使う（#821）。
+ * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null} 無ければ null
  */
 function findPrForIssue(repo, issueNumber, token) {
     const out = gh(
         ['pr', 'list', '--repo', repo, '--search', `Closes #${issueNumber} in:body`,
-            '--state', 'open', '--json', 'number,labels,isDraft', '--limit', '1'],
+            '--state', 'open', '--json', 'number,labels,isDraft,headRefName', '--limit', '1'],
         { token },
     );
     const prs = JSON.parse(out);
     if (!prs.length) return null;
     const pr = prs[0];
-    return { number: pr.number, labels: (pr.labels || []).map((l) => l.name), isDraft: pr.isDraft };
+    return {
+        number: pr.number,
+        labels: (pr.labels || []).map((l) => l.name),
+        isDraft: pr.isDraft,
+        branch: pr.headRefName,
+    };
 }
 
 /**
@@ -223,6 +228,15 @@ function getPrInfo(repo, prNumber, token) {
 function getIssueLabels(repo, issueNumber, token) {
     const out = gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'labels'], { token });
     return (JSON.parse(out).labels || []).map((l) => l.name);
+}
+
+/**
+ * Issue の本文（Markdown）を返す。DoD 引き継ぎでチェックリストを抜き出すのに使う（#821）。
+ * @returns {string}
+ */
+function getIssueBody(repo, issueNumber, token) {
+    const out = gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'body'], { token });
+    return JSON.parse(out).body || '';
 }
 
 /**
@@ -342,6 +356,6 @@ function applyIntents(ctx, itemId, intents, token) {
 module.exports = {
     botToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
-    getPrInfo, getIssueLabels, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
+    getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
     postIssueComment,
 };

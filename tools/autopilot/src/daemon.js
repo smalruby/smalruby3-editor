@@ -28,6 +28,11 @@ const {
     draftAction,
     renderSticky,
     applyIntentsToItem,
+    needsDodHandoff,
+    hasDodHandoffComment,
+    extractPreviewUrl,
+    extractDodChecklist,
+    dodHandoffBody,
 } = require('./phases');
 const { readResultFile } = require('./contract');
 const { runPhase, killSession, capture } = require('./runner');
@@ -193,16 +198,17 @@ async function dispatch(item, cfg, state, log) {
 }
 
 /**
- * Review 状態かつ未実行の item について PR レビュー状態 + HITL 解除シグナルを集める。
- * これを phaseForItem の ctx として渡すと、人間が HITL を解除した Review item を
- * address-review / verify に振り分けできる（#792）。I/O はここに閉じ込め、判定は phases.js の純粋関数。
+ * 人間ゲート状態（Review / DoD）かつ未実行の item について PR レビュー状態 + HITL 解除シグナルを
+ * 集める。これを phaseForItem の ctx として渡すと、人間が HITL を解除した item を address-review に
+ * 振り分けできる（#792/#821: DoD NG 差し戻しも OR セマンティクスで解除できる）。
+ * I/O はここに閉じ込め、判定は phases.js の純粋関数。
  * @returns {object} issue 番号 → { review, hitlSignals, pr } の map
  */
 function collectReviewContexts(cfg, items, running, log) {
     const contexts = {};
     const token = project.botToken();
     for (const item of items) {
-        if (item.status !== 'Review') continue;
+        if (item.status !== 'Review' && item.status !== 'DoD') continue;
         if (running.has(item.issue)) continue;
         try {
             const ctx = project.getReviewContext(cfg.repo, item.issue, token);
@@ -247,6 +253,51 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
             syncFaces({ ...item, hitlLabel: false }, intents);
         } catch (e) {
             log(`#${item.issue}: merge progression failed: ${e.message}`);
+        }
+    }
+}
+
+/**
+ * DoD 引き継ぎ生成（#821）: Status=DoD の leaf について、連携 PR に headful 検証手順の引き継ぎ
+ * コメント（`autopilot:dod-handoff` マーカー付き）を **1 回だけ** 投稿する。コンテナ内 daemon は
+ * headless で実ブラウザ確認ができないため、ホスト側 Claude（headful Playwright）に渡す文面を
+ * テンプレート生成する（child Claude を起動せず純粋な I/O + 文字列テンプレートで完結）。
+ *
+ * - プレビュー URL は PR の CI コメントから拾う（無ければフォールバック文言）。
+ * - DoD チェックリストは Issue 本文から転記する（無ければフォールバック文言）。
+ * - 冪等: 既に引き継ぎコメントがあれば再投稿しない（`hasDodHandoffComment`）。
+ * - 🙋 HITL はそのまま維持（ホスト/人間の番）。sticky の DoD ポインタは renderSticky が出す。
+ * - 実行中（run が所有する）item は触らない。1 件の失敗は他を止めない。
+ * deps は injection 可能（テスト用）。
+ */
+function applyDodHandoffs(items, cfg, state, log, deps = {}) {
+    const token = deps.token || project.botToken();
+    const findPrForIssue = deps.findPrForIssue || project.findPrForIssue;
+    const listIssueComments = deps.listIssueComments || project.listIssueComments;
+    const getIssueBody = deps.getIssueBody || project.getIssueBody;
+    const postIssueComment = deps.postIssueComment || project.postIssueComment;
+    for (const item of items) {
+        if (!item || item.kind === 'EPIC' || item.status !== 'DoD') continue;
+        if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
+        try {
+            const pr = findPrForIssue(cfg.repo, item.issue, token);
+            const prComments = pr ? listIssueComments(cfg.repo, pr.number, token) : [];
+            const ctx = { hasHandoffComment: hasDodHandoffComment(prComments), hasPr: Boolean(pr) };
+            if (!needsDodHandoff(item, ctx)) continue;
+            const previewUrl = extractPreviewUrl(prComments);
+            const dodChecklist = extractDodChecklist(getIssueBody(cfg.repo, item.issue, token));
+            const body = dodHandoffBody({
+                issue: item.issue,
+                pr: pr.number,
+                repo: cfg.repo,
+                branch: pr.branch,
+                previewUrl,
+                dodChecklist,
+            });
+            postIssueComment(cfg.repo, pr.number, body, token);
+            log(`#${item.issue}: posted DoD handoff on PR #${pr.number}`);
+        } catch (e) {
+            log(`#${item.issue}: DoD handoff failed: ${e.message}`);
         }
     }
 }
@@ -346,6 +397,8 @@ async function tick(cfg, state, log) {
     applyMergeProgression(items, cfg, state, log);
     // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
     detectStuck(items, cfg, state, log);
+    // Status=DoD の leaf に headful 検証の引き継ぎコメントを 1 回だけ投稿（#821・冪等）
+    applyDodHandoffs(items, cfg, state, log);
     // PR/Issue の面（ラベル/Draft/sticky）を Project 状態へ投影（dispatch 後なので running は除外される）
     applyPrProjection(items, cfg, state, log);
     return { paused: false, picked: picked.map((it) => it.issue) };
@@ -483,5 +536,5 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyPrProjection,
-    detectStuck, markBlocked,
+    applyDodHandoffs, detectStuck, markBlocked,
 };

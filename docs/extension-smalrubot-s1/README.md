@@ -90,7 +90,7 @@
 - `src/containers/connection-modal.jsx` — S1 ファームウェアフラッシュ起動
 - `src/components/connection-modal/error-step.jsx` — エラーステップでのファームウェアボタン
 
-詳細マーカー一覧: `.claude/rules/scratch-gui/smalruby-markers.md`
+詳細マーカー一覧: `docs/maintenance/smalruby-markers-gui.md`
 
 #### Ruby Generator / Converter
 
@@ -136,7 +136,7 @@
 ## 関連ドキュメント
 
 - [`docs/device-connection/`](../device-connection/) — connection-modal 共通基盤 (準備中)
-- `.claude/rules/scratch-gui/smalruby-markers.md` — upstream マーカー一覧
+- `docs/maintenance/smalruby-markers-gui.md` — upstream マーカー一覧
 
 ## 関連 Issue / PR
 

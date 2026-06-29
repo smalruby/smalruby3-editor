@@ -14,12 +14,9 @@
 - **Formatter**: Prettier with `prettierConfigScratch.recommended` from `eslint-config-scratch`
 - **対象**: Smalruby 固有ファイルのみ（upstream ファイルは対象外）
 - **設定**: `tabWidth: 4`, `semi: true`, `singleQuote: true`, `trailingComma: 'all'`, import sorting 有効
-- **`.prettierignore`**: ホワイトリスト方式 — デフォルトで全ファイルを無視し、Smalruby 固有ファイルのみ対象に含める
-- **ファイル一覧**: `.claude/rules/scratch-gui/smalruby-prettier-files.md` / `.claude/rules/scratch-vm/smalruby-prettier-files.md`
+- **`.prettierignore`**: ホワイトリスト方式 — デフォルトで全ファイルを無視し、Smalruby 固有ファイルのみ対象に含める。**Prettier 対象ファイルの唯一の真実は各パッケージの `.prettierignore`**（旧 `smalruby-prettier-files.md` ミラーは二重管理だったため廃止 #820）
 
-**新しい Smalruby 固有ファイルを追加する際は、必ず以下の 2 つを更新すること:**
-1. 該当パッケージの `.prettierignore`（ホワイトリストに追加）
-2. `.claude/rules/<package>/smalruby-prettier-files.md`（一覧に追加）
+**新しい Smalruby 固有ファイルを追加する際は、該当パッケージの `.prettierignore`（ホワイトリスト）に追加すること。** これだけで Prettier 対象になる（別途の一覧ファイルは持たない）。
 
 ```bash
 # フォーマット実行
@@ -87,7 +84,7 @@ export default MyComponent;
 
 **Smalruby 固有ファイル（＝ Prettier 対象ファイル）にはマーカー不要。**
 
-- Prettier 対象ファイル一覧（`smalruby-prettier-files.md`）に含まれるファイルは Smalruby 独自ファイル
+- Prettier 対象ファイル（各パッケージの `.prettierignore` のホワイトリストに含まれるファイル）は Smalruby 独自ファイル
 - これらのファイルを修正する際、`=== Smalruby:` マーカーは **一切不要**（ファイル内のどこにも付けない）
 - upstream（Scratch）のファイルを修正する際のみ、修正箇所にマーカーコメントを付ける
 
@@ -105,9 +102,9 @@ upstream のファイルに Smalruby 固有のコードを追加する際は、�
 - `<機能名>` は英語で、何の機能かわかる名前にする
 - マーカーを追加・削除したら、該当パッケージのマーカー一覧を更新する
 
-マーカー一覧:
-- `.claude/rules/scratch-gui/smalruby-markers.md` — scratch-gui のマーカー一覧
-- `.claude/rules/scratch-vm/development.md` — scratch-vm のマーカー一覧
+マーカー一覧（`.claude/` の外に置く。実装時に編集しても確認プロンプトで止まらないため #820）:
+- `docs/maintenance/smalruby-markers-gui.md` — scratch-gui のマーカー一覧
+- `docs/maintenance/smalruby-markers-vm.md` — scratch-vm のマーカー一覧
 
 ## Documentation
 
