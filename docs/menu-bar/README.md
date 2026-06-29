@@ -57,7 +57,7 @@
 
 #### Smalruby マーカー (upstream への埋め込み)
 
-主な箇所（詳細は `.claude/rules/scratch-gui/smalruby-markers.md`）：
+主な箇所（詳細は `docs/maintenance/smalruby-markers-gui.md`）：
 
 - smalrubot firmware menu — Smalrubot ファームウェアメニュー
 - classroom button — クラスルームボタン
@@ -90,7 +90,7 @@
 - [`docs/extension-smalrubot-s1/`](../extension-smalrubot-s1/) — Smalrubot ファームウェアメニュー
 - [`docs/tutorial/`](../tutorial/) — チュートリアルツールチップ
 - [`docs/mobile-ui/`](../mobile-ui/) — mobile での menu-bar 圧縮
-- `.claude/rules/scratch-gui/smalruby-markers.md` — upstream マーカー一覧
+- `docs/maintenance/smalruby-markers-gui.md` — upstream マーカー一覧
 
 ## 関連 Issue / PR
 

@@ -80,7 +80,7 @@ smalruby3-editor のドキュメントは「**ユーザーストーリー単位*
 | 新しいファイルを追加した | `docs/<feature>/README.md` の「主要ファイル」セクションを更新 |
 | 設定 (localStorage / URL パラメータ / 環境変数) を増減した | 「設定・データ永続化」セクションを更新 |
 | ブロック (opcode) を増減した | 「関連ブロック」セクションを更新 + 言語仕様 docs (`docs/smalruby-language-spec*.ja.md`) も検討 |
-| upstream マーカーを追加・削除した | `.claude/rules/scratch-gui/smalruby-markers.md` を更新 |
+| upstream マーカーを追加・削除した | `docs/maintenance/smalruby-markers-gui.md` を更新 |
 | upstream との差分が増減した | `docs/<feature>/README.md` 冒頭の **🆕 / 🔧 / ⬆️** 区分を見直し |
 
 ### スクリーンショット更新

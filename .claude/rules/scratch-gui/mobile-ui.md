@@ -65,7 +65,7 @@ URL パラメータ `?mobile_gui=1` のような **オプトインフラグは�
 
 [`docs/mobile-ui/ui-ux.md`](../../../docs/mobile-ui/ui-ux.md) §4 と整合:
 
-1. **upstream は加筆だけ**: `=== Smalruby: Start of <feature> === / End ===` で囲む。一覧 `.claude/rules/scratch-gui/smalruby-markers.md` を更新する。
+1. **upstream は加筆だけ**: `=== Smalruby: Start of <feature> === / End ===` で囲む。一覧 `docs/maintenance/smalruby-markers-gui.md` を更新する。
 2. **オプトインフラグ (`?mobile_gui=1` 等) を増やさない**: viewport 自動判定で完結させる。
 3. **「PC 表示が崩れている」警告バナーを置かない**: リサイズ可能な PC ブラウザでの誤検知が多い。viewport 自動判定で MobileGui に切り替わるならバナー不要。
 4. **MobileGui は横向き専用**: 縦は orientation gate で止める。MobileGui に縦レイアウトを抱え込まない。
@@ -117,7 +117,7 @@ dev server を起動 → `docs/mobile-ui/playwright.md` の操作パターンを
 | iPad 用 menu-bar 圧縮                          | `src/components/menu-bar/menu-bar.css` (max-height: 800px) |
 | 横スクロール抑止 + min-width 解除              | `src/playground/index.css`                                 |
 
-upstream ファイル内のマーカーは `.claude/rules/scratch-gui/smalruby-markers.md` を参照。
+upstream ファイル内のマーカーは `docs/maintenance/smalruby-markers-gui.md` を参照。
 
 ---
 
@@ -125,6 +125,6 @@ upstream ファイル内のマーカーは `.claude/rules/scratch-gui/smalruby-m
 
 - [`docs/mobile-ui/ui-ux.md`](../../../docs/mobile-ui/ui-ux.md) — 設計意図 + 全画面の説明 (対外ドキュメント)
 - [`docs/mobile-ui/playwright.md`](../../../docs/mobile-ui/playwright.md) — Playwright での確認手順と data-testid 一覧
-- `.claude/rules/scratch-gui/smalruby-markers.md` — upstream マーカー一覧
+- `docs/maintenance/smalruby-markers-gui.md` — upstream マーカー一覧
 - `.claude/rules/scratch-gui/e2e-test.md` — data-testid 命名規則 (SP に限らない一般則)
 - `.claude/rules/scratch-gui/development.md` — scratch-gui の基本コマンド

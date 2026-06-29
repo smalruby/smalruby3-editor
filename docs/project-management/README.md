@@ -106,7 +106,7 @@ VM 側の `loadProject`, `saveProjectSb3` を呼ぶ。Smalruby 独自の Marker 
 
 ## upstream との差分（マーカー）
 
-主な Smalruby マーカーは `.claude/rules/scratch-gui/smalruby-markers.md` を参照：
+主な Smalruby マーカーは `docs/maintenance/smalruby-markers-gui.md` を参照：
 
 - `src/lib/project-fetcher-hoc.jsx` — URL params, initial tab
 - `src/lib/project-saver-hoc.jsx` — URL params, no_beforeunload

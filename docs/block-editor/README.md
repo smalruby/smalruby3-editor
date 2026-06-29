@@ -85,7 +85,7 @@ Smalruby のメインのブロックプログラミング画面。upstream の S
 
 ## upstream との差分（マーカー）
 
-主な Smalruby マーカーは `.claude/rules/scratch-gui/smalruby-markers.md` 参照：
+主な Smalruby マーカーは `docs/maintenance/smalruby-markers-gui.md` 参照：
 
 - `src/lib/blocks.js` — gesture recovery import + install
 
@@ -114,7 +114,7 @@ Smalruby のメインのブロックプログラミング画面。upstream の S
 - [`docs/ruby-editor/`](../ruby-editor/) — Ruby ↔ Blocks 変換
 - [`docs/smalruby-language-spec.ja.md`](../smalruby-language-spec.ja.md) — 言語仕様（ブロック詳細）
 - [`docs/mobile-ui/`](../mobile-ui/) — モバイル時のパレット表示
-- `.claude/rules/scratch-gui/smalruby-markers.md` — upstream マーカー一覧
+- `docs/maintenance/smalruby-markers-gui.md` — upstream マーカー一覧
 
 ## 関連 Issue / PR
 

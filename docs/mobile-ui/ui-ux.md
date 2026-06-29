@@ -55,7 +55,7 @@ const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';
 | `src/components/menu-bar/menu-bar.css`          | narrow-height menu bar compression           | `max-height: 800px` で menu-bar を 48→40px に圧縮                        |
 | `src/playground/index.css`                      | narrow viewport vertical scroll lock         | 狭幅で `overflow-y: clip`、ピンチ拡大などの縦スクロール暴発を抑止        |
 
-詳細マーカーは `.claude/rules/scratch-gui/smalruby-markers.md` を参照。
+詳細マーカーは `docs/maintenance/smalruby-markers-gui.md` を参照。
 
 ### なぜこういう構造にしたか (設計意図)
 
@@ -326,7 +326,7 @@ iPad は `useIsNarrowScreen` の閾値超え (短辺 ≥ 744 かつ高さ > 500)
 SP/iPad 対応で確立した運用ルール。今後の改善も以下を踏襲する。
 
 1. **upstream は触らない、加筆だけする**
-   `=== Smalruby: Start of <feature> === / End ===` のマーカーで囲む。一覧は `.claude/rules/scratch-gui/smalruby-markers.md`。SP 対応のために upstream のロジックを書き換えると後の merge で衝突する。
+   `=== Smalruby: Start of <feature> === / End ===` のマーカーで囲む。一覧は `docs/maintenance/smalruby-markers-gui.md`。SP 対応のために upstream のロジックを書き換えると後の merge で衝突する。
 2. **URL パラメータでのオプトインを増やさない**
    viewport で自動判定する。flag を知らないと UI が出ない構造を作らない。
 3. **「PC が崩れている」警告バナーを置かない**
@@ -348,6 +348,6 @@ SP/iPad 対応で確立した運用ルール。今後の改善も以下を踏襲
 
 - [`docs/mobile-ui/playwright.md`](playwright.md) — Playwright での確認手順と data-testid 一覧
 - `.claude/rules/scratch-gui/mobile-ui.md` — SP / iPad 関連 PR のレビュー観点と影響範囲
-- `.claude/rules/scratch-gui/smalruby-markers.md` — upstream ファイルへのマーカー一覧
+- `docs/maintenance/smalruby-markers-gui.md` — upstream ファイルへのマーカー一覧
 - `.claude/rules/scratch-gui/e2e-test.md` — data-testid 命名規則と URL parameter 一覧
 - `.claude/rules/scratch-gui/development.md` — scratch-gui の開発フロー全般
