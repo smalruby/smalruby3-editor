@@ -72,7 +72,7 @@ const PenConverter = {
             }
 
             const block = converter.changeRubyExpressionBlock(receiver, 'pen_setPenColorToColor', 'statement');
-            converter.addFieldInput(block, 'COLOR', 'colour_picker', 'COLOUR', args[0], '#43066f');
+            converter.addColorFieldInput(block, 'COLOR', args[0], '#43066f');
             return block;
         });
 
@@ -90,7 +90,7 @@ const PenConverter = {
                 return block;
             } else if (converter.isColorOrBlock(args[0])) {
                 const block = converter.createBlock('pen_setPenColorToColor', 'statement');
-                converter.addFieldInput(block, 'COLOR', 'colour_picker', 'COLOUR', args[0], '#43066f');
+                converter.addColorFieldInput(block, 'COLOR', args[0], '#43066f');
                 return block;
             }
             return null;

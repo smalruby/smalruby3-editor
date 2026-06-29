@@ -1,6 +1,8 @@
 // === Smalruby: This file is Smalruby-specific (type-checking methods for RubyToBlocksConverter) ===
 import _ from 'lodash';
 
+import {normalizeColorString} from './color-utils';
+
 /**
  * Type-checking utilities for RubyToBlocksConverter.
  * @mixes RubyToBlocksConverter
@@ -211,8 +213,15 @@ const NodeTypeChecks = {
     },
 
     _isColorOrBlock (colorOrBlock) {
-        const ColorRegexp = /^#[0-9a-fA-F]{6}$/;
-        return this._isBlock(colorOrBlock) || (this._isString(colorOrBlock) && ColorRegexp.test(colorOrBlock));
+        return this._isBlock(colorOrBlock) ||
+            (this._isString(colorOrBlock) && normalizeColorString(colorOrBlock) !== null);
+    },
+
+    // Normalize a color string (named color, #rgb, rgb(), #rrggbb) into the `#rrggbb`
+    // form the `colour_picker` field expects. Returns the input unchanged if it is not a
+    // recognized color string (callers only pass strings that `_isColorOrBlock` accepted).
+    normalizeColor (colorString) {
+        return normalizeColorString(colorString);
     },
 
     _isFalseOrBooleanBlock (block) {

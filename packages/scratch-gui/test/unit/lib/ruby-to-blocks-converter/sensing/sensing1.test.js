@@ -171,11 +171,34 @@ describe('RubyToBlocksConverter/Sensing', () => {
             await convertAndExpectToEqualBlocks(converter, target, code, expected);
         });
 
+        // Regression for #834: named colors and shorthand #rgb normalize to #rrggbb.
+        test('named colors and shorthand hex normalize to #rrggbb', async () => {
+            for (const {code: caseCode, value} of [
+                {code: 'touching_color?("red")', value: '#ff0000'},
+                {code: 'touching_color?("#0f0")', value: '#00ff00'}
+            ]) {
+                await convertAndExpectToEqualBlocks(converter, target, caseCode, [
+                    {
+                        opcode: 'sensing_touchingcolor',
+                        inputs: [
+                            {
+                                name: 'COLOR',
+                                block: {
+                                    opcode: 'colour_picker',
+                                    fields: [{name: 'COLOUR', value}],
+                                    shadow: true
+                                }
+                            }
+                        ]
+                    }
+                ]);
+            }
+        });
+
         test('invalid', async () => {
             { for (const c of [
                 'touching_color?()',
                 'touching_color?(1)',
-                'touching_color?("#0f0")',
                 'touching_color?("#0")',
                 'touching_color?("43066f")',
                 'touching_color?("#43066f0")',
