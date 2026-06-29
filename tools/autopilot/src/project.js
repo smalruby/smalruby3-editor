@@ -128,25 +128,49 @@ function botLogin() {
 }
 
 /**
+ * closedByPullRequestsReferences のノード群から、projection 対象の PR を 1 つ選ぶ純粋関数（#825）。
+ * GitHub が「この Issue を閉じる」と認識した PR だけが渡る前提（本文で `#N` に言及しただけの
+ * 無関係 PR は含まれない）。open を最優先し、複数 open なら新しい方（番号が大きい方）を選ぶ。
+ * open が無ければ null（projection 対象は open PR のみ）。
+ * @param {Array<{number:number, state:string, isDraft:boolean, headRefName:string,
+ *   labels:{nodes:Array<{name:string}>}}>} nodes
+ * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null}
+ */
+function selectClosingPr(nodes) {
+    const open = (Array.isArray(nodes) ? nodes : []).filter((n) => n && n.state === 'OPEN');
+    if (!open.length) return null;
+    const pr = open.sort((a, b) => b.number - a.number)[0];
+    return {
+        number: pr.number,
+        labels: ((pr.labels && pr.labels.nodes) || []).map((l) => l.name),
+        isDraft: Boolean(pr.isDraft),
+        branch: pr.headRefName,
+    };
+}
+
+/**
  * Issue にひも付く open PR を返す（implement が PR 本文に `Closes #N` を書く規約）。
- * labels は名前配列に正規化して返す。branch（headRefName）は DoD 引き継ぎ等で使う（#821）。
+ * 解決には GitHub が認識する「この Issue を閉じる PR」リンク
+ * （`closedByPullRequestsReferences`、{@link hasMergedPullRequest} と同経路）を使う。
+ * 旧実装は `Closes #N in:body` の全文あいまい検索で、本文が `#N` に言及しただけの無関係 PR を
+ * 誤ヒットしていた（#825）。labels は名前配列、branch（headRefName）は DoD 引き継ぎで使う（#821）。
  * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null} 無ければ null
  */
 function findPrForIssue(repo, issueNumber, token) {
+    const [owner, name] = repo.split('/');
+    const query =
+        'query($owner:String!,$name:String!,$num:Int!){' +
+        'repository(owner:$owner,name:$name){issue(number:$num){' +
+        'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{' +
+        'number state isDraft headRefName labels(first:20){nodes{name}}}}}}}';
     const out = gh(
-        ['pr', 'list', '--repo', repo, '--search', `Closes #${issueNumber} in:body`,
-            '--state', 'open', '--json', 'number,labels,isDraft,headRefName', '--limit', '1'],
+        ['api', 'graphql', '-f', `query=${query}`,
+            '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
         { token },
     );
-    const prs = JSON.parse(out);
-    if (!prs.length) return null;
-    const pr = prs[0];
-    return {
-        number: pr.number,
-        labels: (pr.labels || []).map((l) => l.name),
-        isDraft: pr.isDraft,
-        branch: pr.headRefName,
-    };
+    const issue = JSON.parse(out)?.data?.repository?.issue;
+    const nodes = (issue && issue.closedByPullRequestsReferences && issue.closedByPullRequestsReferences.nodes) || [];
+    return selectClosingPr(nodes);
 }
 
 /**
@@ -355,7 +379,7 @@ function applyIntents(ctx, itemId, intents, token) {
 
 module.exports = {
     botToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
-    botLogin, findPrForIssue, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
+    botLogin, findPrForIssue, selectClosingPr, getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
     postIssueComment,
 };
