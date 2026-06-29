@@ -27,6 +27,10 @@ const {
     labelActions,
     renderSticky,
     applyIntentsToItem,
+    STICKY_MARKERS,
+    LEGACY_STICKY_MARKERS,
+    isStickyComment,
+    selectStickyCommentIds,
 } = require('../src/phases');
 
 test('shouldResend: resend after accept window if attempts remain', () => {
@@ -358,6 +362,42 @@ test('renderSticky: includes marker and projects Status/AI Status/HITL/Size', ()
     assert.match(body, /small/);
     assert.match(body, /#794/);
     assert.match(body, /—/); // null AI Status rendered as em dash
+});
+
+test('STICKY_MARKER: canonical marker matches the contract spec', () => {
+    // #809: implementation must conform to the contract-specified marker.
+    assert.equal(STICKY_MARKER, '<!-- autopilot-sticky-status -->');
+    // The legacy daemon (#794) marker stays recognized for absorption.
+    assert.ok(LEGACY_STICKY_MARKERS.includes('<!-- autopilot:sticky -->'));
+    assert.ok(STICKY_MARKERS.includes(STICKY_MARKER));
+    assert.ok(STICKY_MARKERS.includes('<!-- autopilot:sticky -->'));
+});
+
+test('renderSticky: emits the canonical marker, not the legacy one', () => {
+    const body = renderSticky({ issue: 1, status: 'Review', aiStatus: null, hitl: 'No', size: null });
+    assert.ok(body.includes('<!-- autopilot-sticky-status -->'));
+    assert.ok(!body.includes('<!-- autopilot:sticky -->'));
+});
+
+test('isStickyComment: matches both canonical and legacy markers (#809)', () => {
+    assert.equal(isStickyComment('foo\n<!-- autopilot-sticky-status -->\nbar'), true);
+    assert.equal(isStickyComment('foo\n<!-- autopilot:sticky -->\nbar'), true);
+    assert.equal(isStickyComment('just a normal comment'), false);
+    assert.equal(isStickyComment(''), false);
+    assert.equal(isStickyComment(null), false);
+    assert.equal(isStickyComment(undefined), false);
+});
+
+test('selectStickyCommentIds: returns ids of comments matching either marker (#809)', () => {
+    const comments = [
+        { id: 1, body: 'normal comment' },
+        { id: 2, body: '<!-- autopilot:sticky -->\nlegacy daemon sticky' },
+        { id: 3, body: 'another normal' },
+        { id: 4, body: '<!-- autopilot-sticky-status -->\ncanonical sticky' },
+    ];
+    assert.deepEqual(selectStickyCommentIds(comments), [2, 4]);
+    assert.deepEqual(selectStickyCommentIds([]), []);
+    assert.deepEqual(selectStickyCommentIds(null), []);
 });
 
 test('applyIntentsToItem: applies field intents onto a copy (null clears)', () => {
