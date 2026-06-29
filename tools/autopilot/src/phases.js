@@ -16,6 +16,22 @@ const DEFAULT_CLAUDE_COMMAND =
 /** 既定のベースブランチ（PR 先・worktree 分岐元） */
 const DEFAULT_BASE_BRANCH = 'develop';
 
+/** autopilot が Issue ごとに切る head ブランチの既定接頭辞（bin/autopilot-worktree と同一規約）。 */
+const AUTOPILOT_BRANCH_PREFIX = 'topic/autopilot-';
+
+/**
+ * Issue 番号 → autopilot の head ブランチ名（純粋関数）。
+ * autopilot の PR は base に関わらず必ずこの head ブランチを持つ（bin/autopilot-worktree が
+ * `topic/autopilot-<N>` を切る）。これを使うと PR が非デフォルト base 宛て（EPIC サブ Issue を
+ * 親 epic ブランチに積む等）でも base 非依存に PR を特定できる（#831）。
+ * @param {number} issueNumber Issue 番号
+ * @param {string} [prefix] ブランチ接頭辞（既定 `topic/autopilot-`。呼び出し側が env で上書き可）
+ * @returns {string} head ブランチ名
+ */
+function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
+    return `${prefix}${issueNumber}`;
+}
+
 /**
  * Issue 本文から「明示的に宣言されたベースブランチ」を抽出する（純粋関数）。
  *
@@ -740,6 +756,8 @@ module.exports = {
     DEFAULT_CLAUDE_COMMAND,
     DEFAULT_BASE_BRANCH,
     parseBaseBranch,
+    AUTOPILOT_BRANCH_PREFIX,
+    autopilotHeadBranch,
     applyResult,
     hitlDesireFromResult,
     isHitlReleased,

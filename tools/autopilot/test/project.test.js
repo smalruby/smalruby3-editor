@@ -1,8 +1,15 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { normalizeProjectItem, selectClosingPr } = require('../src/project');
-const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
+const {
+    normalizeProjectItem,
+    selectClosingPr,
+    selectHeadPr,
+    hasMergedHeadPr,
+    findPrForIssue,
+    hasMergedPullRequest,
+} = require('../src/project');
+const { HITL_LABEL, AUTOPILOT_LABEL, autopilotHeadBranch } = require('../src/phases');
 
 test('normalizeProjectItem: surfaces labels and derives hitlLabel from 🙋 label (#813)', () => {
     const raw = {
@@ -86,4 +93,112 @@ test('selectClosingPr: returns null when no open PR closes the issue', () => {
     assert.equal(selectClosingPr([prNode(822, 'MERGED'), prNode(700, 'CLOSED')]), null);
     assert.equal(selectClosingPr([]), null);
     assert.equal(selectClosingPr(null), null);
+});
+
+// --- #831: base 非依存の head ブランチ解決 -------------------------------------
+// GitHub は PR が非デフォルトブランチ宛て（EPIC サブ Issue を epic ブランチに積む等）の場合、
+// 本文の `Closes #N` を closedByPullRequestsReferences に登録しない。autopilot の PR は必ず
+// head ブランチが topic/autopilot-<N> なので、close リンクが空のときはこれで base 非依存に解決する。
+
+test('autopilotHeadBranch: composes topic/autopilot-<N> (matches bin/autopilot-worktree)', () => {
+    assert.equal(autopilotHeadBranch(827), 'topic/autopilot-827');
+    assert.equal(autopilotHeadBranch(827, 'topic/foo-'), 'topic/foo-827');
+});
+
+// selectHeadPr normalizes the `gh pr list --json` shape (labels is a flat array of {name},
+// unlike the GraphQL `labels.nodes` shape that selectClosingPr consumes).
+test('selectHeadPr: normalizes gh pr list shape; picks newest open', () => {
+    const pr = selectHeadPr([
+        { number: 828, isDraft: true, headRefName: 'topic/autopilot-827', labels: [{ name: '🤖 autopilot' }, { name: '🙋 HITL' }] },
+    ]);
+    assert.equal(pr.number, 828);
+    assert.equal(pr.isDraft, true);
+    assert.equal(pr.branch, 'topic/autopilot-827');
+    assert.deepEqual(pr.labels, ['🤖 autopilot', '🙋 HITL']);
+});
+
+test('selectHeadPr: multiple -> highest number; empty/null -> null', () => {
+    const mk = (n) => ({ number: n, isDraft: false, headRefName: `topic/autopilot-${n}`, labels: [] });
+    assert.equal(selectHeadPr([mk(810), mk(905), mk(870)]).number, 905);
+    assert.equal(selectHeadPr([]), null);
+    assert.equal(selectHeadPr(null), null);
+});
+
+test('hasMergedHeadPr: true iff a merged PR is present', () => {
+    assert.equal(hasMergedHeadPr([{ number: 828, state: 'MERGED' }]), true);
+    assert.equal(hasMergedHeadPr([{ number: 828, state: 'OPEN' }]), false);
+    assert.equal(hasMergedHeadPr([]), false);
+    assert.equal(hasMergedHeadPr(null), false);
+});
+
+// findPrForIssue: close リンク優先 → 無ければ head ブランチ検索（base 非依存）。
+test('findPrForIssue: falls back to head search when close link is empty (#831)', () => {
+    const calls = [];
+    const fakeGh = (args) => {
+        calls.push(args);
+        if (args.includes('graphql')) {
+            return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: { nodes: [] } } } } });
+        }
+        return JSON.stringify([
+            { number: 828, isDraft: true, headRefName: 'topic/autopilot-827', labels: [{ name: '🙋 HITL' }] },
+        ]);
+    };
+    const pr = findPrForIssue('smalruby/smalruby3-editor', 827, 'tok', { gh: fakeGh });
+    assert.equal(pr.number, 828);
+    assert.deepEqual(pr.labels, ['🙋 HITL']);
+    const listCall = calls.find((a) => a.includes('list'));
+    assert.ok(listCall, 'head search (pr list) must run when close link is empty');
+    assert.ok(listCall.includes('topic/autopilot-827'), 'head search must target topic/autopilot-<N>');
+    assert.ok(listCall.includes('open'), 'head search must filter to open PRs');
+});
+
+test('findPrForIssue: close link wins; head search is not performed (regression)', () => {
+    const calls = [];
+    const fakeGh = (args) => {
+        calls.push(args);
+        return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: { nodes: [
+            { number: 900, state: 'OPEN', isDraft: false, headRefName: 'topic/autopilot-900', labels: { nodes: [] } },
+        ] } } } } });
+    };
+    const pr = findPrForIssue('o/r', 900, 'tok', { gh: fakeGh });
+    assert.equal(pr.number, 900);
+    assert.equal(calls.length, 1, 'must short-circuit on close link (no fallback gh call)');
+});
+
+// hasMergedPullRequest: close リンクの merged → 無ければ head ブランチの merged PR を見る。
+test('hasMergedPullRequest: detects merge to non-default base via head branch (#831)', () => {
+    const calls = [];
+    const fakeGh = (args) => {
+        calls.push(args);
+        if (args.includes('graphql')) {
+            return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: { nodes: [] } } } } });
+        }
+        return JSON.stringify([{ number: 828, state: 'MERGED' }]);
+    };
+    assert.equal(hasMergedPullRequest('o/r', 827, 'tok', { gh: fakeGh }), true);
+    const listCall = calls.find((a) => a.includes('list'));
+    assert.ok(listCall.includes('topic/autopilot-827'));
+});
+
+test('hasMergedPullRequest: close-link merged short-circuits head search', () => {
+    let listCalled = false;
+    const fakeGh = (args) => {
+        if (args.includes('graphql')) {
+            return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: { nodes: [{ merged: true }] } } } } });
+        }
+        listCalled = true;
+        return '[]';
+    };
+    assert.equal(hasMergedPullRequest('o/r', 1, 'tok', { gh: fakeGh }), true);
+    assert.equal(listCalled, false);
+});
+
+test('hasMergedPullRequest: false when neither close link nor head branch is merged', () => {
+    const fakeGh = (args) => {
+        if (args.includes('graphql')) {
+            return JSON.stringify({ data: { repository: { issue: { closedByPullRequestsReferences: { nodes: [{ merged: false }] } } } } });
+        }
+        return JSON.stringify([]);
+    };
+    assert.equal(hasMergedPullRequest('o/r', 5, 'tok', { gh: fakeGh }), false);
 });
