@@ -67,7 +67,7 @@ No Status(未設定) → Backlog / Icebox → Sprint Backlog(autopilot キュー
 | Sprint Backlog | autopilot のキュー（着手対象） |
 | In Progress | 実装〜PR〜敵対的レビュー |
 | Review | 人間レビュー待ち |
-| DoD | approve 後の Playwright DoD |
+| DoD | approve 後の headful 検証（daemon が引き継ぎ生成 → ホスト Claude が検証・#821） |
 | Close | 完了（merge 後） |
 
 > 実装メモ: Status 未設定（UI の「No Status」列）は内部的に `'New Item'` という sentinel で
@@ -87,8 +87,8 @@ Issue を状態の正とすることで daemon が落ちても現在地が分か
 | EPIC Decomposed | —（親トラッカー化） | In Progress（EPIC） |
 | Implementing / Creating PR | autopilot-implement | In Progress |
 | Self-Reviewing | autopilot-review | In Progress |
-| Addressing Comments | autopilot-address-review | Review |
-| Running DoD | autopilot-verify | DoD |
+| Addressing Comments | autopilot-address-review | Review / DoD（NG 差し戻し） |
+| Running DoD | daemon `applyDodHandoffs`（引き継ぎ生成。autopilot-verify は手動 inject 用に残置） | DoD |
 
 ### その他フィールド
 
@@ -174,8 +174,45 @@ PR の **diff と全コメント（Issue/レビュー本文/インライン）**
 - address-review は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
 - **コンフリクトは autopilot で解消しない**（rebase/merge コンフリクトは人間の役割）。スキルは
   解消を試みず HITL で人間に渡す。
-- `autopilot-verify`（DoD 確認）は Review 解除では自動起動しない。必要なら人間が手動で
-  inject する（多くの PR は DoD が Playwright 不要なため、自動 verify は外した）。
+
+---
+
+## DoD — headful 検証の引き継ぎ生成（#821）
+
+DoD（Definition of Done）は実機ブラウザでの確認が要る最終ゲート。**コンテナ内の daemon は
+headless なので実ブラウザを動かせない**。そこで daemon は DoD を「自分で検証するフェーズ」では
+なく「**ホスト側 Claude（headful Playwright）に渡す引き継ぎを生成するフェーズ**」として扱う。
+LLM は in-container で回さず、**純粋な I/O + 文字列テンプレート**で完結する（child Claude 不要）。
+
+### トリガと生成（daemon の tick ステップ）
+
+人間がコードレビューを終え「次は DoD 検証」と判断して Status を **Review → DoD** にすると、daemon は
+ポーリングのたびに `Status=DoD` の leaf について次を行う（`applyDodHandoffs`、`🙋 HITL` は維持）:
+
+1. 連携 PR と Issue 本文の **DoD チェックリスト**を取得（`extractDodChecklist`）。
+2. **プレビュー URL** を PR の CI コメントから拾う（`extractPreviewUrl`。
+   `https://smalruby.jp/smalruby3-editor/<branch>/`）。
+3. **テンプレートで引き継ぎ本文を生成**（`dodHandoffBody`）して `autopilot:dod-handoff` マーカー付き
+   コメントを PR に投稿する。本文は「プレビュー URL ＋ Issue の DoD チェックリスト転記 ＋ 定型 headful
+   手順（`?no_beforeunload=1`、スクショは `tmp/`→`docs/<feature>/screenshots/`、秘密情報は本文に
+   書かずローカル `.env` 参照、本番 Chrome で確認）＋ 報告の出口」。
+4. sticky ステータスコメントに「DoD 引き継ぎあり」の 1 行ポインタが出る（`renderSticky`。sticky 本体は
+   上書きされない別コメント）。
+
+**冪等**: 既に `autopilot:dod-handoff` コメントがあれば再投稿しない（`hasDodHandoffComment` /
+`needsDodHandoff`）。判定は `phases.js` の純粋関数、I/O と投稿は `project.js` / daemon の
+`applyDodHandoffs`。実行中（run が所有する）item は触らない。
+
+### 報告の出口（ホスト Claude → 人間）
+
+- **OK**: ホスト Claude が PR に「DoD 検証 OK」+ スクショ要約をコメントし、必要なスクショ commit を
+  push。人間が merge → 既存 merge-progression が leaf を **Close**（DoD は `MERGE_CHECK_STATUSES`）。
+- **NG**: ホスト/人間が PR に NG をコメントし `🙋 HITL` を外す → daemon が **DoD 解除 → address-review**
+  を起動（Review と対称。`phaseForItem` が DoD 解除 → `address-review`、OR セマンティクスも同じ）。
+
+> 既存の `autopilot-verify` スキル（`.claude/skills/`）は手動 inject 用に残してよいが、自動経路は
+> この daemon 生成を使う（スキル本体は `.claude/` にあり、書き換えると autopilot 自身の implement が
+> 確認プロンプトで止まるため・#820/#821）。
 
 ---
 

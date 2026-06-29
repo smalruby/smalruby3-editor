@@ -183,6 +183,22 @@ Issue/PR の両面を賄え、成果物ページにも見える。ラベルは I
 → 人間はレビュー中に**目の前の PR の `🙋 HITL` ラベルを外すだけ**で autopilot に差し戻せる。
 PR の無い段階（triage/decompose 等）では PR ラベルは非適用（Issue ラベルのみで判定）。
 
+### DoD は daemon が headful 引き継ぎを生成する（スキル run ではない・#821）
+
+DoD（実機ブラウザでの最終確認）は**コンテナ内 daemon が headless で実ブラウザを動かせない**ため、
+**スキル run ではなく daemon の tick ステップ**（`applyDodHandoffs`）として扱う。`Status=DoD` の leaf に
+対し、daemon が「プレビュー URL ＋ Issue の DoD チェックリスト ＋ 定型 headful 手順 ＋ 報告の出口」を
+**テンプレート生成**して `autopilot:dod-handoff` マーカー付きコメントを PR に投稿する（child Claude を
+起動せず、純粋な I/O + 文字列テンプレートで完結。冪等）。これを**ホスト側の Claude（headful Playwright）**
+が実施し、結果を PR にコメントする。
+
+- **OK** → 人間が merge → merge-progression が leaf を Close。
+- **NG** → ホスト/人間が PR にコメントし `🙋 HITL` を外す → **DoD 解除 → `address-review`**（Review と対称。
+  `phaseForItem` の DoD 解除パス。OR セマンティクスも同じ）。
+
+`autopilot-verify` スキルは手動 inject 用に残置（自動経路は使わない）。詳細は
+[`README.md`](./README.md) の「DoD — headful 検証の引き継ぎ生成」。
+
 ---
 
 ## 8. スキル実装のチェックリスト
