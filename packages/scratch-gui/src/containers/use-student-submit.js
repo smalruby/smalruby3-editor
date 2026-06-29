@@ -45,14 +45,20 @@ const useStudentSubmit = ({
 
     const handleStartSubmit = useCallback(() => {
         clearError();
-        setThumbnailDataUrl(null);
-        if (vm && vm.renderer) {
-            getProjectThumbnail(vm, (dataUrl) => {
-                setThumbnailDataUrl(dataUrl);
-            });
+        // If the student manually picked a submission thumbnail (stage-header button),
+        // reuse it; otherwise auto-capture the current stage frame as before (#631).
+        if (classroomState.submissionThumbnail) {
+            setThumbnailDataUrl(classroomState.submissionThumbnail);
+        } else {
+            setThumbnailDataUrl(null);
+            if (vm && vm.renderer) {
+                getProjectThumbnail(vm, (dataUrl) => {
+                    setThumbnailDataUrl(dataUrl);
+                });
+            }
         }
         setPhase('student-submit-confirm');
-    }, [vm, clearError, setPhase]);
+    }, [vm, clearError, setPhase, classroomState.submissionThumbnail]);
 
     const captureBlockScreenshots = useCallback(async () => {
         if (!vm || !scratchBlocks) return [];

@@ -246,6 +246,7 @@ upstream (Scratch) ファイルは対象外。
 - `test/unit/containers/ruby-downloader.test.jsx`
 - `test/unit/containers/ruby-tab-project-changed.test.js`
 - `test/unit/containers/rubytee-modal-hoc-sanitize.test.js`
+- `test/unit/containers/stage-header.test.jsx`
 - `test/unit/empty-block-selection.test.js`
 - `test/unit/lib/analytics.test.js`
 - `test/unit/lib/auto-correct.test.js`

@@ -5,6 +5,8 @@ import reducer, {
     setClassroomSession,
     clearClassroomSession,
     setSubmissionStatus,
+    setSubmissionThumbnail,
+    clearSubmissionThumbnail,
     setTeacherSelection,
     clearTeacherSelection,
 } from '../../../src/reducers/classroom';
@@ -111,6 +113,51 @@ describe('classroom reducer', () => {
         const state = reducer(withSubmission, clearClassroomSession());
         expect(state.submissionStatus).toBeNull();
         expect(state.lastSubmittedAt).toBeNull();
+    });
+
+    describe('submission thumbnail', () => {
+        const DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANS';
+
+        test('initial state has null submissionThumbnail', () => {
+            const state = reducer(undefined, { type: 'UNKNOWN' });
+            expect(state.submissionThumbnail).toBeNull();
+        });
+
+        test('should set submission thumbnail', () => {
+            const state = reducer(classroomInitialState, setSubmissionThumbnail(DATA_URI));
+            expect(state.submissionThumbnail).toBe(DATA_URI);
+        });
+
+        test('should clear submission thumbnail', () => {
+            const withThumbnail = { ...classroomInitialState, submissionThumbnail: DATA_URI };
+            const state = reducer(withThumbnail, clearSubmissionThumbnail());
+            expect(state.submissionThumbnail).toBeNull();
+        });
+
+        test('should clear submission thumbnail when clearing session', () => {
+            const withThumbnail = {
+                ...classroomInitialState,
+                role: 'student',
+                sessionToken: 'token',
+                submissionThumbnail: DATA_URI,
+            };
+            const state = reducer(withThumbnail, clearClassroomSession());
+            expect(state.submissionThumbnail).toBeNull();
+        });
+
+        test('does not persist submissionThumbnail to localStorage', () => {
+            const stateWithSession = {
+                ...classroomInitialState,
+                role: 'student',
+                sessionToken: 'token-abc',
+                classroomId: 'class-123',
+                submissionThumbnail: DATA_URI,
+            };
+            // SET_SUBMISSION_STATUS persists the whole session; the thumbnail must be stripped.
+            reducer(stateWithSession, setSubmissionStatus('submitted', '2026-05-21T01:30:00.000Z'));
+            const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+            expect(stored.submissionThumbnail).toBeUndefined();
+        });
     });
 
     describe('teacher selection', () => {
