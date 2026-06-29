@@ -67,7 +67,7 @@
 - componentDidMount でマイグレーション呼び出し
 - ローディング state の追加
 
-詳細は `.claude/rules/scratch-gui/smalruby-markers.md` 参照。
+詳細は `docs/maintenance/smalruby-markers-gui.md` 参照。
 
 ### scratch-vm
 
@@ -105,7 +105,7 @@
 
 ## upstream との差分
 
-`.claude/rules/scratch-gui/smalruby-markers.md` で全マーカーを把握できる。バックパック関連の主な差分：
+`docs/maintenance/smalruby-markers-gui.md` で全マーカーを把握できる。バックパック関連の主な差分：
 
 | 場所 | 差分 |
 |---|---|
@@ -121,7 +121,7 @@
 ## 関連ドキュメント
 
 - [`docs/mesh-v2/`](../mesh-v2/) — Mesh v2 ネットワーク（マイグレーション先）
-- `.claude/rules/scratch-gui/smalruby-markers.md` — upstream マーカー一覧
+- `docs/maintenance/smalruby-markers-gui.md` — upstream マーカー一覧
 
 ## 関連 Issue / PR
 

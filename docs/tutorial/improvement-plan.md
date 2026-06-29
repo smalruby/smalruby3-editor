@@ -431,7 +431,7 @@ deck 定義に `setup` オブジェクトを追加し、起動時の前提条件
 
 ### locale 更新
 
-すべての変更で `ja.js` / `ja-Hira.js` / `en.js` の 3 ファイルを必ず更新する (`smalruby-prettier-files.md` 記載のファイル)。
+すべての変更で `ja.js` / `ja-Hira.js` / `en.js` の 3 ファイルを必ず更新する (`.prettierignore` のホワイトリスト記載のファイル)。
 
 ### Prettier ホワイトリスト
 
@@ -439,7 +439,7 @@ deck 定義に `setup` オブジェクトを追加し、起動時の前提条件
 
 ### Smalruby マーカー
 
-`decks/index.jsx` / `tutorial-tags.js` / `tag-messages.js` は upstream ファイルなので、新規追加部分のうち **Smalruby 独自カテゴリ・deck** はマーカーで囲む。`.claude/rules/scratch-gui/smalruby-markers.md` に追記する。
+`decks/index.jsx` / `tutorial-tags.js` / `tag-messages.js` は upstream ファイルなので、新規追加部分のうち **Smalruby 独自カテゴリ・deck** はマーカーで囲む。`docs/maintenance/smalruby-markers-gui.md` に追記する。
 
 ### テスト
 

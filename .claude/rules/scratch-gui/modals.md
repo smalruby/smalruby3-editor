@@ -49,5 +49,5 @@ Smalruby モーダルの**本文ラッパー**（`<Box>` など、Modal の chil
 
 ただし**保険であって免罪符ではない**: 各モーダルの本文には引き続き明示的に背景を設定する
 （フルスクリーンや特殊レイアウトでは既定が効かないことがあるため）。マーカー一覧は
-`.claude/rules/scratch-gui/smalruby-markers.md` を参照。upstream マージ時はこのマーカーの
+`docs/maintenance/smalruby-markers-gui.md` を参照。upstream マージ時はこのマーカーの
 維持を確認する。

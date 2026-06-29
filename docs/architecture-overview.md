@@ -164,7 +164,7 @@ ruby script.rb (or smalruby exec)
 差分管理：
 - **Smalruby 独自ファイル**: 専用ディレクトリ (`smalruby_ruby/`, `koshien/`, `mesh_v2/` 等) または専用ファイル (`smalruby-extensions.js`, `smalruby-migration.js`)
 - **upstream ファイルへの追加**: `// === Smalruby: Start of <feature> ===` マーカーで囲む
-- **マーカー一覧**: `.claude/rules/scratch-gui/smalruby-markers.md`、`.claude/rules/scratch-vm/development.md`
+- **マーカー一覧**: `docs/maintenance/smalruby-markers-gui.md`、`docs/maintenance/smalruby-markers-vm.md`
 
 upstream マージ時の競合を最小化するための設計指針：
 1. Smalruby 独自コードは**専用ファイルに集約** (`smalruby-extensions.js` パターン)

@@ -140,8 +140,8 @@ SP ではメニューバーが表示されないため、`☰` から開く Mobi
 
 ## 関連ドキュメント
 
-- `.claude/rules/scratch-gui/smalruby-markers.md` — `gui.jsx` / `containers/gui.jsx` のマーカー一覧
-- `.claude/rules/scratch-gui/smalruby-prettier-files.md` — 対象ファイル一覧
+- `docs/maintenance/smalruby-markers-gui.md` — `gui.jsx` / `containers/gui.jsx` のマーカー一覧
+- `packages/scratch-gui/.prettierignore` — Prettier 対象ファイルのホワイトリスト
 - `docs/mobile-ui/` — MobileDrawer / MobileOrientationGate の設計
 - Issue #658 — 機能設計の出発点
 - Discussion #88 — 「どういうサイトかわからない」フィードバック（機能の発端）

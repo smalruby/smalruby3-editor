@@ -81,14 +81,14 @@ scratch-vm は **Scratch プロジェクトを実行する仮想マシン**。�
 
 ## upstream マーカー
 
-upstream ファイルに埋め込んだ Smalruby 固有コードは `=== Smalruby:` マーカーで囲まれている。VM 側のマーカー一覧は **`.claude/rules/scratch-vm/development.md`** を参照。
+upstream ファイルに埋め込んだ Smalruby 固有コードは `=== Smalruby:` マーカーで囲まれている。VM 側のマーカー一覧は **`docs/maintenance/smalruby-markers-vm.md`** を参照。
 
 ## 関連ドキュメント
 
 - [`packages/scratch-vm/docs/extensions.md`](../../packages/scratch-vm/docs/extensions.md) — upstream の拡張機能仕様（Scratch 3.0 Extension Specification）
 - [`docs/extension-*/`](../) — 各拡張機能のユーザー視点ドキュメント
 - `.claude/rules/scratch-vm/development.md` — VM 開発ワークフロー
-- `.claude/rules/scratch-vm/smalruby-prettier-files.md` — Smalruby 独自ファイル一覧
+- `packages/scratch-vm/.prettierignore` — Prettier 対象ファイルのホワイトリスト（Smalruby 独自ファイル）
 
 ## 関連 Issue
 
