@@ -38,6 +38,7 @@ RUN \
     netcat-openbsd \
     openssh-client \
     procps \
+    python3 \
     tmux \
     vim
 
