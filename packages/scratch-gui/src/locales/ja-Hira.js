@@ -285,11 +285,14 @@ export default {
     'gui.smalruby3.alerts.rubyVersionChangeFailed':
         'ルビーのバージョンをへんこうできません：さきにルビーのコードのエラーをなおしてください。',
     'gui.stageHeader.stageSizeMiddle': 'ちゅうサイズのステージにきりかえる',
-    'gui.stageHeader.saveThumbnail': 'サムネイルをほぞん',
-    'gui.stageHeader.saveThumbnailMessage': 'サムネイルをせっていしてもよいですか？',
+    'gui.stageHeader.saveThumbnail': 'ていしゅつサムネイルをせってい',
+    'gui.stageHeader.saveThumbnailMessage': 'いまのじっこうがめんをていしゅつサムネイルにしますか？',
     'gui.stageHeader.thumbnailTooltipTitle': 'おしらせ 👋',
     'gui.stageHeader.thumbnailTooltipBody':
-        '「<b>サムネイルをほぞん</b>」がここにいどうしました。ステージのスナップショットをとって、プロジェクトのサムネイルとしてせっていできます。',
+        '「<b>ていしゅつサムネイルをせってい</b>」がここにいどうしました。ステージのスナップショットをとって、ていしゅつときのサムネイルとしてせっていできます。',
+    'gui.alerts.settingThumbnail': 'サムネイルをせっていしています…',
+    'gui.alerts.thumbnailSuccess': 'サムネイルをせっていしました。',
+    'gui.alerts.thumbnailError': 'サムネイルをせっていできませんでした。あとでもういちどおためしください。',
 
     'gui.koshienTestModal.title': 'スモウルビーこうしえんのAIをためす',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトのよみこみにしっぱいしました。',
