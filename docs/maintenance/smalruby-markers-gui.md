@@ -15,6 +15,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 
 | ファイル | 機能名 | 説明 |
 |----------|--------|------|
+| `src/lib/audio/audio-buffer-player.js` | null-safe AudioContext (issue #633) | `?tab=sounds` 直接遷移時 (user gesture 前) に `SharedAudioContext` が createBuffer を持たない空オブジェクトを返しても crash しないよう、buffer を遅延生成にする。`buffer` getter / `ensureBuffer` / `_hasAudioContext` の追加と `play` のガード。`SharedAudioContext` 自体は変更しない (autoplay policy の既知不具合回避) |
 | `src/reducers/gui.ts` | Redux state registry | Smalruby reducer の import |
 | `src/reducers/gui.ts` | initial state | Smalruby 初期 state の展開 |
 | `src/reducers/gui.ts` | reducers | Smalruby reducer の登録 |
