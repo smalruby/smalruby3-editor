@@ -129,7 +129,10 @@ PR が merge されたら、`🙋 HITL` ラベルが残っていても autopilot
 autopilot は **自動 merge しない**。daemon はポーリングのたびに「PR が出た後〜Close 前」の leaf
 （Status が In Progress / Review / DoD）について、`Closes #<issue>` などで紐付く PR が **人間に
 merge 済みか**を GitHub に問い合わせ（`closedByPullRequestsReferences`）、merge 済みなら Status を
-**Close**・AI Status をクリアし、両面の `🙋 HITL` ラベルを除去する。判定は `phases.js` の
+**Close**・AI Status をクリアし、両面の `🙋 HITL` ラベルを除去する。close リンクは PR が
+**非デフォルト base 宛て**（EPIC サブ Issue を親 epic ブランチに積む等）だと登録されないため、
+close リンクで見つからなければ head ブランチ `topic/autopilot-<N>` の merged PR も見て base 非依存に
+検知する（#831）。判定は `phases.js` の
 `selectMergeCandidates` / `mergeProgressionIntents`（純粋関数）、問い合わせと書き込みは
 `project.hasMergedPullRequest` と daemon の `applyMergeProgression`（ラベル除去は force 同期）。
 実行中（run が所有する）item は触らない。
