@@ -28,6 +28,12 @@
 
 開発・デバッグ用の **Koshien テストモーダル** (`koshien-test-modal`) があり、競技サーバなしでローカルテストができる。
 
+「AIを試す」では、編集中スプライト単体ではなく **ステージ + 編集中スプライト** を 1 つの
+プログラムとして出力する。これにより「すべてのスプライトでつかう」グローバル変数・リスト
+（例: `$最短経路`）がステージの `def initialize` で初期化され、スプライト単体送信でも実行可能に
+なる（v1 / v2 両対応）。ステージにスクリプトが無くグローバル変数/リストだけがある場合でも、
+v2 で `class Stage` + `def initialize` を生成して初期化する。
+
 ## 主要ファイル
 
 ### scratch-gui
@@ -35,6 +41,7 @@
 #### コンポーネント
 
 - `packages/scratch-gui/src/components/koshien-test-modal/koshien-test-modal.jsx` — テスト用モーダル
+- `packages/scratch-gui/src/lib/ruby-script-preview.js` — 「AIを試す」用コード生成（ステージ + 編集中スプライトを出力）
 
 #### ライブラリ
 

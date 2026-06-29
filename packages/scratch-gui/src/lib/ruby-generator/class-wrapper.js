@@ -337,6 +337,20 @@ export default function (Generator) {
         return lines;
     };
 
+    /**
+     * Whether the target has variables/lists (or an `@ruby:initialize` comment)
+     * that _generateInitialize would emit as a def initialize. Used to decide
+     * whether to auto-wrap a scriptless target (e.g. a Stage holding only
+     * global lists) so its initialization is not dropped.
+     * @param {object} target - VM target
+     * @returns {boolean} True if a def initialize would be generated.
+     */
+    Generator._hasInitializableState = function (target) {
+        if (!target) return false;
+        const commentTexts = this.getTargetCommentTexts ? this.getTargetCommentTexts() || [] : [];
+        return this._generateInitialize(target, commentTexts).length > 0;
+    };
+
     Generator._generateStageSetXxx = function (target, setLines, allowedAttributes, autoAll) {
         const has = attr => autoAll || allowedAttributes.indexOf(attr) >= 0;
         if (has('current_backdrop') && target.currentCostume > 0) {
