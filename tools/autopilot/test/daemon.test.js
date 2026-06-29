@@ -1,8 +1,23 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { applyMergeProgression, applyPrProjection, runTickOnce } = require('../src/daemon');
+const {
+    applyMergeProgression, applyPrProjection, runTickOnce, detectStuck, markBlocked,
+} = require('../src/daemon');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
+
+/** Build an injectable double for markBlocked/detectStuck that records side effects. */
+function makeBlockDeps() {
+    const calls = { setField: [], comments: [], syncFaces: [] };
+    return {
+        calls,
+        token: 't',
+        findItemId: () => 'x',
+        setField: (ctx, itemId, field, value) => calls.setField.push({ itemId, field, value }),
+        postIssueComment: (repo, number, body) => calls.comments.push({ number, body }),
+        syncFaces: (item) => calls.syncFaces.push(item),
+    };
+}
 
 function makeCfg() {
     return { owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor', projectId: 'P', fields: {} };
@@ -225,4 +240,62 @@ test('applyPrProjection: a failing item does not block others', () => {
     applyPrProjection(items, makeCfg(), state, () => {}, deps);
     // issue 2 still processed (sticky on PR 200)
     assert.ok(deps.calls.sticky.some((s) => s.prNumber === 200));
+});
+
+// === #816: markBlocked / detectStuck（失敗・stall 時の人間ハンドオフ） ===
+
+test('markBlocked: Blocked + 説明コメント + 🙋 face sync を行う', () => {
+    const deps = makeBlockDeps();
+    const item = { issue: 9, itemId: 'i9', status: 'In Progress', kind: 'Issue' };
+    markBlocked(item, 'run が失敗しました', makeCfg(), () => {}, deps);
+    assert.deepEqual(deps.calls.setField, [{ itemId: 'i9', field: 'Status', value: 'Blocked' }]);
+    assert.equal(deps.calls.comments.length, 1);
+    assert.match(deps.calls.comments[0].body, /run が失敗しました/);
+    // face sync は Blocked + hitlLabel:true（人間の番）で呼ばれる
+    assert.equal(deps.calls.syncFaces[0].status, 'Blocked');
+    assert.equal(deps.calls.syncFaces[0].hitlLabel, true);
+});
+
+test('markBlocked: body 無しならコメントしない（Status と face sync のみ）', () => {
+    const deps = makeBlockDeps();
+    markBlocked({ issue: 9, itemId: 'i9' }, null, makeCfg(), () => {}, deps);
+    assert.equal(deps.calls.comments.length, 0);
+    assert.equal(deps.calls.setField.length, 1);
+});
+
+test('detectStuck: stuckMs 未満は記録のみ、超過で Blocked + コメント (#816)', () => {
+    const deps = makeBlockDeps();
+    const cfg = { ...makeCfg(), now: () => 1000, stuckMs: 5000 };
+    const state = { running: new Map() };
+    const items = [{ issue: 7, itemId: 'i7', status: 'In Progress', aiStatus: 'Implementing' }];
+    // 1 回目: 初観測 -> 記録のみ、まだ block しない
+    detectStuck(items, cfg, state, () => {}, deps);
+    assert.equal(deps.calls.setField.length, 0);
+    assert.equal(state.stuckSince.get(7), 1000);
+    // stuckMs 経過後 -> Blocked + コメント
+    cfg.now = () => 1000 + 5000;
+    detectStuck(items, cfg, state, () => {}, deps);
+    assert.deepEqual(deps.calls.setField, [{ itemId: 'i7', field: 'Status', value: 'Blocked' }]);
+    assert.match(deps.calls.comments[0].body, /In Progress/);
+    assert.equal(state.stuckSince.has(7), false); // 追跡解除
+});
+
+test('detectStuck: 実行中の run が所有する item は触らない', () => {
+    const deps = makeBlockDeps();
+    const cfg = { ...makeCfg(), now: () => 0, stuckMs: 1 };
+    const state = { running: new Map([[7, { phase: 'implement' }]]), stuckSince: new Map([[7, -10000]]) };
+    const items = [{ issue: 7, itemId: 'i7', status: 'In Progress', aiStatus: 'Implementing' }];
+    detectStuck(items, cfg, state, () => {}, deps);
+    assert.equal(deps.calls.setField.length, 0);
+});
+
+test('detectStuck: 候補でなくなった item は追跡から外す', () => {
+    const deps = makeBlockDeps();
+    const cfg = { ...makeCfg(), now: () => 0, stuckMs: 1000 };
+    const state = { running: new Map(), stuckSince: new Map([[7, -100]]) };
+    // status が Review に進んだ -> stuck 候補ではない
+    const items = [{ issue: 7, itemId: 'i7', status: 'Review', aiStatus: null }];
+    detectStuck(items, cfg, state, () => {}, deps);
+    assert.equal(deps.calls.setField.length, 0);
+    assert.equal(state.stuckSince.has(7), false);
 });

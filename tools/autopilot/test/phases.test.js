@@ -8,11 +8,12 @@ const {
     hitlDesireFromResult,
     isHitlReleased,
     progressOnMerge,
-    reviewPhase,
+    computeReviewApproval,
     mergeProgressionIntents,
     selectMergeCandidates,
     phaseForItem,
     isActionable,
+    isStuckCandidate,
     selectActionable,
     shouldResend,
     evaluate,
@@ -21,6 +22,7 @@ const {
     AUTOPILOT_LABEL,
     STICKY_MARKER,
     PR_SYNC_STATUSES,
+    READY_STATUSES,
     selectPrSyncCandidates,
     desiredDraft,
     draftAction,
@@ -56,7 +58,7 @@ test('phaseForItem: Sprint Backlog -> decompose(EPIC) / implement(Issue)', () =>
 
 test('phaseForItem: 🙋 ラベルあり or human-driven states -> null', () => {
     assert.equal(phaseForItem({ status: 'Sprint Backlog', kind: 'Issue', hitlLabel: true }), null);
-    assert.equal(phaseForItem({ status: 'Review' }), null); // ctx 無し（レビュー状態不明）
+    assert.equal(phaseForItem({ status: 'Review', hitlLabel: true }), null); // 🙋 あり=人間の番
     assert.equal(phaseForItem({ status: 'Backlog' }), null);
     assert.equal(phaseForItem({ status: 'In Progress' }), null);
 });
@@ -76,36 +78,20 @@ test('phaseForItem: In Progress + Self-Reviewing -> review (auto self-review dis
     );
 });
 
-test('reviewPhase: unaddressed comments / changes-requested -> address-review', () => {
-    assert.equal(reviewPhase({ unresolvedHumanComments: 1 }), 'address-review');
-    assert.equal(reviewPhase({ changesRequested: true }), 'address-review');
-    // コメントは approve より優先（approve しつつ未対応コメントを残したケース）
-    assert.equal(reviewPhase({ approved: true, unresolvedHumanComments: 2 }), 'address-review');
-});
-
-test('reviewPhase: approve only -> verify', () => {
-    assert.equal(reviewPhase({ approved: true }), 'verify');
-    assert.equal(reviewPhase({ approved: true, unresolvedHumanComments: 0, changesRequested: false }), 'verify');
-});
-
-test('reviewPhase: no signal / null -> null (conservative wait)', () => {
-    assert.equal(reviewPhase(null), null);
-    assert.equal(reviewPhase(undefined), null);
-    assert.equal(reviewPhase({}), null);
-    assert.equal(reviewPhase({ approved: false, unresolvedHumanComments: 0 }), null);
-});
-
-test('phaseForItem: Review still 🙋 ラベルあり (no signals) -> null', () => {
+// #815: Review 解除時は構造化シグナルで分岐せず、必ず address-review へ渡す
+// （diff + 全コメントを読んでスキルが分類する）。
+test('phaseForItem: Review still 🙋 ラベルあり -> null (human turn)', () => {
     assert.equal(
         phaseForItem({ status: 'Review', hitlLabel: true }, { review: { approved: true } }),
         null,
     );
 });
 
-test('phaseForItem: Review released (Issue label removed) dispatches by review state', () => {
+test('phaseForItem: Review released (Issue label removed) -> address-review (#815)', () => {
+    // approve だろうが changes-requested だろうが、解除されたら一律 address-review
     assert.equal(
         phaseForItem({ status: 'Review', hitlLabel: false }, { review: { approved: true } }),
-        'verify',
+        'address-review',
     );
     assert.equal(
         phaseForItem({ status: 'Review', hitlLabel: false }, { review: { changesRequested: true } }),
@@ -113,27 +99,22 @@ test('phaseForItem: Review released (Issue label removed) dispatches by review s
     );
 });
 
-test('phaseForItem: Review released via PR label only (OR semantics) -> dispatched', () => {
+test('phaseForItem: Review released via PR label only (OR semantics) -> address-review (#815)', () => {
     // Issue の 🙋 ラベルは残っているが、PR の 🙋 ラベルが外れている（人間の解除ジェスチャ）
     const item = { status: 'Review', hitlLabel: true };
-    const ctx = {
-        hitlSignals: { issueLabel: true, prLabel: false },
-        review: { approved: true },
-    };
-    assert.equal(phaseForItem(item, ctx), 'verify');
+    const ctx = { hitlSignals: { issueLabel: true, prLabel: false }, review: { approved: true } };
+    assert.equal(phaseForItem(item, ctx), 'address-review');
 });
 
 test('phaseForItem: Review with all HITL signals waiting -> null', () => {
     const item = { status: 'Review', hitlLabel: true };
-    const ctx = {
-        hitlSignals: { issueLabel: true, prLabel: true },
-        review: { approved: true },
-    };
+    const ctx = { hitlSignals: { issueLabel: true, prLabel: true }, review: { approved: true } };
     assert.equal(phaseForItem(item, ctx), null);
 });
 
-test('phaseForItem: Review released but review state unknown -> null (wait)', () => {
-    assert.equal(phaseForItem({ status: 'Review', hitlLabel: false }, {}), null);
+test('phaseForItem: Review released even without review state -> address-review (#815)', () => {
+    // 旧実装は review 状態不明だと null（待ち）。新実装は解除されたらスキルに判断を委ねる。
+    assert.equal(phaseForItem({ status: 'Review', hitlLabel: false }, {}), 'address-review');
 });
 
 test('isActionable: paused -> false', () => {
@@ -156,10 +137,10 @@ test('selectActionable: respects concurrency limit and running set', () => {
     assert.deepEqual(picked2.map((p) => p.issue), [2]);
 });
 
-test('selectActionable: Review items dispatch via contexts (review state + HITL signals)', () => {
+test('selectActionable: released Review items dispatch address-review via contexts (#815)', () => {
     const items = [
-        { issue: 10, status: 'Review', hitlLabel: false }, // approve -> verify
-        { issue: 11, status: 'Review', hitlLabel: false }, // comments -> address-review
+        { issue: 10, status: 'Review', hitlLabel: false }, // released -> address-review
+        { issue: 11, status: 'Review', hitlLabel: false }, // released -> address-review
         { issue: 12, status: 'Review', hitlLabel: true }, // still human's turn -> skipped
     ];
     const contexts = {
@@ -170,7 +151,7 @@ test('selectActionable: Review items dispatch via contexts (review state + HITL 
     const picked = selectActionable(items, { limit: 5, running: new Set(), contexts });
     assert.deepEqual(
         picked.map((p) => [p.issue, p.phase, p.pr]),
-        [[10, 'verify', 100], [11, 'address-review', 101]],
+        [[10, 'address-review', 100], [11, 'address-review', 101]],
     );
 });
 
@@ -298,21 +279,86 @@ test('selectPrSyncCandidates: non-EPIC items in post-PR statuses', () => {
     assert.deepEqual(selectPrSyncCandidates(null), []);
 });
 
-test('desiredDraft: Draft while AI works, Ready when 🙋 ラベルあり (human turn)', () => {
-    assert.equal(desiredDraft({ status: 'In Progress', hitlLabel: false }), true);
-    assert.equal(desiredDraft({ status: 'Review', hitlLabel: true }), false);
-    assert.equal(desiredDraft({ status: 'In Progress' }), true); // hitlLabel unset -> draft
+// #815: Draft/Ready は Status 基準（HITL ラベルではない）。Review で approve しつつ 🙋 を
+// 外して AI に差し戻しても Status は Review のまま → Ready を維持する（旧バグ #808 の回避）。
+test('desiredDraft: Status 基準（Review/DoD/Close/Blocked のみ Ready）(#815)', () => {
+    assert.equal(desiredDraft({ status: 'In Progress' }), true); // AI 作業中 -> Draft
+    assert.equal(desiredDraft({ status: 'Sprint Backlog' }), true);
+    assert.equal(desiredDraft({ status: 'Review' }), false); // 人間が見る -> Ready
+    assert.equal(desiredDraft({ status: 'DoD' }), false);
+    assert.equal(desiredDraft({ status: 'Close' }), false);
+    assert.equal(desiredDraft({ status: 'Blocked' }), false);
+    // HITL ラベルの有無に依らず Status だけで決まる（解除しても Review のままなら Ready）
+    assert.equal(desiredDraft({ status: 'Review', hitlLabel: false }), false);
+    assert.equal(desiredDraft({ status: 'In Progress', hitlLabel: true }), true);
+    assert.ok(READY_STATUSES.has('Review') && !READY_STATUSES.has('In Progress'));
 });
 
-test('draftAction: only acts on a diff (idempotent)', () => {
-    // currently draft, want draft -> no change
-    assert.equal(draftAction(true, { hitlLabel: false }), null);
-    // currently draft, want ready (🙋 ラベルあり) -> ready
-    assert.equal(draftAction(true, { hitlLabel: true }), 'ready');
-    // currently ready, want draft -> draft
-    assert.equal(draftAction(false, { hitlLabel: false }), 'draft');
-    // currently ready, want ready -> no change
-    assert.equal(draftAction(false, { hitlLabel: true }), null);
+test('draftAction: only acts on a diff (idempotent, Status 基準) (#815)', () => {
+    // Review = Ready 希望。currently draft -> ready
+    assert.equal(draftAction(true, { status: 'Review' }), 'ready');
+    // Review, currently ready -> no change
+    assert.equal(draftAction(false, { status: 'Review' }), null);
+    // In Progress = Draft 希望。currently ready -> draft
+    assert.equal(draftAction(false, { status: 'In Progress' }), 'draft');
+    // In Progress, currently draft -> no change
+    assert.equal(draftAction(true, { status: 'In Progress' }), null);
+});
+
+// #815: reviewDecision が空でも reviews から approve を導く
+test('computeReviewApproval: reviewDecision 優先 (APPROVED/CHANGES_REQUESTED)', () => {
+    assert.deepEqual(computeReviewApproval([], 'APPROVED'), { approved: true, changesRequested: false });
+    assert.deepEqual(
+        computeReviewApproval([{ author: { login: 'x' }, state: 'APPROVED' }], 'CHANGES_REQUESTED'),
+        { approved: false, changesRequested: true },
+    );
+});
+
+test('computeReviewApproval: reviewDecision 空なら reviews の著者別最新 state で判定 (#815)', () => {
+    const isHuman = (l) => l !== 'bot';
+    // approve のみ -> approved
+    assert.deepEqual(
+        computeReviewApproval([{ author: { login: 'ko' }, state: 'APPROVED' }], '', isHuman),
+        { approved: true, changesRequested: false },
+    );
+    // 同一著者の最新が優先（古い→新しい順）。後の CHANGES_REQUESTED が勝つ
+    assert.deepEqual(
+        computeReviewApproval(
+            [{ author: { login: 'ko' }, state: 'APPROVED' }, { author: { login: 'ko' }, state: 'CHANGES_REQUESTED' }],
+            '', isHuman,
+        ),
+        { approved: false, changesRequested: true },
+    );
+    // COMMENTED は承認判断に効かない。bot の approve は人間判定で除外
+    assert.deepEqual(
+        computeReviewApproval(
+            [{ author: { login: 'ko' }, state: 'COMMENTED' }, { author: { login: 'bot' }, state: 'APPROVED' }],
+            null, isHuman,
+        ),
+        { approved: false, changesRequested: false },
+    );
+    // 変更要求が1人でもあれば approve より優先
+    assert.deepEqual(
+        computeReviewApproval(
+            [{ author: { login: 'a' }, state: 'APPROVED' }, { author: { login: 'b' }, state: 'CHANGES_REQUESTED' }],
+            '', isHuman,
+        ),
+        { approved: false, changesRequested: true },
+    );
+});
+
+// #816: In Progress + AI 作業中マーカーのまま止まった item の検知（純粋部分）
+test('isStuckCandidate: In Progress + 作業中 AI Status のみ true', () => {
+    assert.equal(isStuckCandidate({ status: 'In Progress', aiStatus: 'Implementing' }), true);
+    assert.equal(isStuckCandidate({ status: 'In Progress', aiStatus: 'Decomposing' }), true);
+    // Self-Reviewing は次 tick で自動 dispatch されるので対象外
+    assert.equal(isStuckCandidate({ status: 'In Progress', aiStatus: 'Self-Reviewing' }), false);
+    // AI Status 空の In Progress（人間操作）は対象外
+    assert.equal(isStuckCandidate({ status: 'In Progress', aiStatus: null }), false);
+    assert.equal(isStuckCandidate({ status: 'In Progress' }), false);
+    // In Progress 以外は対象外
+    assert.equal(isStuckCandidate({ status: 'Review', aiStatus: 'Implementing' }), false);
+    assert.equal(isStuckCandidate(null), false);
 });
 
 test('hitlLabelAction: non-Review reconciles toward the Issue canonical (hitlLabel)', () => {

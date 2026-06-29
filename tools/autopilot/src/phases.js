@@ -138,25 +138,39 @@ function mergeProgressionIntents(item, prMerged) {
 }
 
 /**
- * 人間が HITL を解除した Review item で、PR のレビュー状態から次フェーズを決める（純粋関数）。
- * - 変更要求 / 未対応の人間コメントがあれば address-review（指摘対応へ）
- * - approve のみ（未対応コメントなし）なら verify（DoD 確認へ）
- * - どちらの signal も無ければ null（保守的に待つ。誤って前進させない）
+ * PR の承認状態を導く（純粋関数・#815）。
  *
- * コメントは approve より優先する（approve しつつ未対応コメントを残したときは指摘対応が先）。
- * @param {object} review { unresolvedHumanComments, changesRequested, approved }
- * @returns {'address-review'|'verify'|null}
+ * GitHub の集約判定 `reviewDecision` は **ブランチ保護でレビューが必須でないと空**になり、
+ * 人間が approve しても APPROVED にならない（approved 検知漏れ → approved な PR が前進しない
+ * バグの原因だった）。そこで reviewDecision が決め手にならないときは、**個々のレビューの
+ * 著者ごとの最新 state** から導く。
+ *
+ * - reviewDecision が APPROVED / CHANGES_REQUESTED ならそれを尊重（ブランチ保護で必須の場合）。
+ * - それ以外（空・REVIEW_REQUIRED 等）は人間レビューの著者ごと最新 state で判定:
+ *   - 誰か1人でも最新が CHANGES_REQUESTED → changesRequested（approve より優先）。
+ *   - 変更要求が無く、誰か1人でも最新が APPROVED → approved。
+ * - COMMENTED / PENDING は承認判断に効かない（コメントは approve を取り消さない）。
+ *   DISMISSED は approve でも変更要求でもない中立に戻す。
+ * @param {Array<{author?:{login?:string}, state?:string}>} reviews PR の review ノード（古い→新しい順）
+ * @param {string} reviewDecision GitHub 集約判定（APPROVED/CHANGES_REQUESTED/REVIEW_REQUIRED/空）
+ * @param {(login:string)=>boolean} [isHuman] 人間判定（bot/[bot] を除外）。既定は全員 true
+ * @returns {{approved:boolean, changesRequested:boolean}}
  */
-function reviewPhase(review) {
-    if (!review) return null;
-    const {
-        unresolvedHumanComments = 0,
-        changesRequested = false,
-        approved = false,
-    } = review;
-    if (changesRequested || unresolvedHumanComments > 0) return 'address-review';
-    if (approved) return 'verify';
-    return null;
+function computeReviewApproval(reviews, reviewDecision, isHuman = () => true) {
+    if (reviewDecision === 'APPROVED') return { approved: true, changesRequested: false };
+    if (reviewDecision === 'CHANGES_REQUESTED') return { approved: false, changesRequested: true };
+    const latestByAuthor = new Map();
+    for (const r of reviews || []) {
+        const login = r && r.author && r.author.login;
+        if (!login || !isHuman(login)) continue;
+        const state = r.state;
+        if (state === 'APPROVED' || state === 'CHANGES_REQUESTED' || state === 'DISMISSED') {
+            latestByAuthor.set(login, state); // 古い→新しい順なので最後の代入が最新
+        }
+    }
+    const states = [...latestByAuthor.values()];
+    const changesRequested = states.includes('CHANGES_REQUESTED');
+    return { approved: !changesRequested && states.includes('APPROVED'), changesRequested };
 }
 
 /**
@@ -179,7 +193,14 @@ function phaseForItem(item, ctx = {}) {
         const released = ctx.hitlSignals
             ? isHitlReleased(ctx.hitlSignals)
             : !item.hitlLabel;
-        return released ? reviewPhase(ctx.review) : null;
+        // 人間が HITL を解除したら、構造化シグナル（approve/changes-requested 等）で機械的に
+        // 分岐せず、必ず address-review へ渡す（#815）。address-review スキルが PR の diff と
+        // **全コメント（Issue/レビュー本文/インライン）**を読んで意図を分類する:
+        //   - 質問・改善依頼 → 対応（コード修正 or 返信）
+        //   - LGTM など対応不要 → 何もせず人間の merge を待つ
+        //   - 判断がつかない → 人間に質問（HITL）
+        // 自由文の分類は純粋関数では不可能なため、判断はスキル側に置く（daemon は dispatch のみ）。
+        return released ? 'address-review' : null;
     }
     if (item.hitlLabel) return null; // 人間の番（🙋 ラベルあり）
     if (status === 'New Item') return 'triage';
@@ -202,6 +223,24 @@ function phaseForItem(item, ctx = {}) {
 function isActionable(item, opts = {}) {
     if (opts.paused) return false;
     return phaseForItem(item, opts.ctx || {}) !== null;
+}
+
+/**
+ * 「In Progress + AI が作業中マーカー」のまま実行中の run が無い＝stall した可能性がある item か
+ * （純粋関数・#816）。daemon が再起動して in-memory の running を失った／run が catch を通らず
+ * 死んだ場合、Status が In Progress + AI Status=xxxing のまま誰も再 dispatch せず固まる
+ * （phaseForItem は In Progress を Self-Reviewing 以外では再開しないため）。
+ *
+ * Self-Reviewing は次 tick で自動 dispatch（review）されるので stuck 対象外。AI Status が
+ * 空の In Progress（人間が手で In Progress にした等）も対象外。実際に「実行中の run が無いか」
+ * 「十分な時間が経過したか」は I/O・時間を持つ daemon 側で判定する（ここは形だけ見る）。
+ * @param {object} item { status, aiStatus }
+ * @returns {boolean}
+ */
+function isStuckCandidate(item) {
+    if (!item || item.status !== 'In Progress') return false;
+    if (!item.aiStatus || item.aiStatus === 'Self-Reviewing') return false;
+    return true;
 }
 
 /**
@@ -274,6 +313,16 @@ function selectStickyCommentIds(comments) {
 const PR_SYNC_STATUSES = new Set(['In Progress', 'Review', 'DoD', 'Blocked']);
 
 /**
+ * PR を Ready for review にすべき Status（= 人間が見る段階）。
+ * これ以外（In Progress 等の AI 作業中）は Draft に保つ（#815）。
+ * Draft/Ready は「いま AI が作業中か / 人間が見る番か」を Status で表す（HITL ラベルでは
+ * 表さない）。Review で人間が approve しつつ 🙋 を外しても Status は Review のまま →
+ * Ready を維持する（旧実装は HITL ラベル基準で、解除のたびに Draft へ戻すバグがあった）。
+ * Blocked も人間が PR を見て対処する段階なので Ready にする。
+ */
+const READY_STATUSES = new Set(['Review', 'DoD', 'Close', 'Blocked']);
+
+/**
  * PR 投影の対象 item を選ぶ（純粋関数）。EPIC は実装 PR を持たないので除外。
  * @param {object[]} items
  * @returns {object[]}
@@ -285,12 +334,17 @@ function selectPrSyncCandidates(items) {
 }
 
 /**
- * PR は AI 作業中は Draft、人間の番（🙋 ラベルあり）のとき Ready にする。
- * @param {object} item { hitlLabel }
+ * PR は AI 作業中（In Progress 等）は Draft、人間が見る段階（Review/DoD/Close/Blocked）で
+ * Ready for review にする。判定は **Status 基準**（#815）。
+ *
+ * 旧実装は 🙋 HITL ラベル基準だったため、Review 中に人間が approve して 🙋 を外した
+ * （= AI に差し戻した）瞬間に Draft へ戻り、approved な PR が Draft のまま merge されない
+ * バグ（#808）があった。Status は解除では変わらない（Review のまま）ので Ready を維持できる。
+ * @param {object} item { status }
  * @returns {boolean} Draft であるべきか
  */
 function desiredDraft(item) {
-    return !(item && item.hitlLabel);
+    return !READY_STATUSES.has(item && item.status);
 }
 
 /**
@@ -476,12 +530,13 @@ module.exports = {
     hitlDesireFromResult,
     isHitlReleased,
     progressOnMerge,
-    reviewPhase,
     MERGE_CHECK_STATUSES,
     selectMergeCandidates,
     mergeProgressionIntents,
+    computeReviewApproval,
     phaseForItem,
     isActionable,
+    isStuckCandidate,
     selectActionable,
     shouldResend,
     evaluate,
@@ -494,6 +549,7 @@ module.exports = {
     isStickyComment,
     selectStickyCommentIds,
     PR_SYNC_STATUSES,
+    READY_STATUSES,
     selectPrSyncCandidates,
     desiredDraft,
     draftAction,

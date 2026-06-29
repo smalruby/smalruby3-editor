@@ -18,6 +18,7 @@ const { setTimeout: sleep } = require('timers/promises');
 const {
     PHASE_BY_COMMAND,
     selectActionable,
+    isStuckCandidate,
     applyResult,
     hitlDesireFromResult,
     selectMergeCandidates,
@@ -46,6 +47,85 @@ function ensureWorktree(issue, pr) {
     return execFileSync(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' }).trim();
 }
 
+// In Progress + AI 作業中のまま run が無くなってから Blocked にするまでの猶予（#816）。
+// 1 回の run の最大時間（watchdog tMaxMs=30分）より長くして、生きている run を誤って
+// 止めない。daemon 再起動後はこの daemon が初めて観測した時刻から測り直す（保守的）。
+const DEFAULT_STUCK_MS = 35 * 60 * 1000;
+
+/**
+ * item を Blocked にして人間へハンドオフする（Status=Blocked + 🙋 ラベル + 説明コメント）。
+ * dispatch の run 失敗と tick の stuck 検知の両方から使う（#813/#816）。
+ * @param {object} item Project item
+ * @param {string|null} body 投稿する bot コメント本文（null ならコメントしない）
+ */
+function markBlocked(item, body, cfg, log, deps = {}) {
+    const token = deps.token || project.botToken();
+    const findItemId = deps.findItemId || project.findItemId;
+    const setField = deps.setField || project.setField;
+    const postIssueComment = deps.postIssueComment || project.postIssueComment;
+    const syncFaces = deps.syncFaces || ((it) => syncFacesAfterIntents(it, [], cfg, log));
+    const ctx = { projectId: cfg.projectId, fields: cfg.fields };
+    const itemId = item.itemId || findItemId(cfg.owner, cfg.project, item.issue, token);
+    try { setField(ctx, itemId, 'Status', 'Blocked', token); }
+    catch (e) { log(`#${item.issue}: mark Status failed: ${e.message}`); }
+    if (body) {
+        try { postIssueComment(cfg.repo, item.issue, body, token); }
+        catch (e) { log(`#${item.issue}: block comment failed: ${e.message}`); }
+    }
+    syncFaces({ ...item, status: 'Blocked', hitlLabel: true });
+}
+
+/** run 失敗時の Blocked コメント本文（#816） */
+function failureBlockBody(skill, issue, reason) {
+    return (
+        `🤖 autopilot: \`${skill}\` フェーズの run が完了できなかったため **Blocked** にしました。\n\n` +
+        `**理由**: ${reason}\n\n` +
+        `**人間の対応**: ログ（\`/log?issue=${issue}\`）と worktree を確認し、原因を取り除いた上で ` +
+        'Status を戻す（例: Sprint Backlog で再実装、Review で再開）か、不要なら Icebox / Close に ' +
+        'してください。準備ができたら `🙋 HITL` を外すと autopilot が再開します。'
+    );
+}
+
+/** stuck 検知時の Blocked コメント本文（#816） */
+function stuckBlockBody(item, stuckMinutes) {
+    return (
+        `🤖 autopilot: Status が **In Progress** / AI Status=\`${item.aiStatus}\` のまま約 ` +
+        `${stuckMinutes} 分進行が止まっていました（run が見当たりません。daemon 再起動や run の異常終了が原因）。` +
+        '安全のため **Blocked** にしました。\n\n' +
+        `**人間の対応**: ログ（\`/log?issue=${item.issue}\`）と worktree を確認し、再実装するなら ` +
+        'Sprint Backlog へ、続きから再開するなら Review へ Status を戻してください。' +
+        '準備ができたら `🙋 HITL` を外すと autopilot が再開します。'
+    );
+}
+
+/**
+ * In Progress + AI 作業中のまま run が無く、一定時間動かない item を検知して Blocked にする（#816）。
+ * 観測した時刻を state.stuckSince に記録し、DEFAULT_STUCK_MS を超えたら markBlocked。
+ * 候補でなくなった（status が進んだ等）issue は追跡から外す。
+ */
+function detectStuck(items, cfg, state, log, deps = {}) {
+    const now = cfg.now();
+    const stuckMs = cfg.stuckMs || DEFAULT_STUCK_MS;
+    if (!state.stuckSince) state.stuckSince = new Map();
+    const seen = state.stuckSince;
+    const live = new Set();
+    for (const item of items) {
+        if (!isStuckCandidate(item)) continue;
+        if (state.running.has(item.issue)) continue; // この daemon が実行中の run を所有
+        live.add(item.issue);
+        if (!seen.has(item.issue)) { seen.set(item.issue, now); continue; }
+        const elapsed = now - seen.get(item.issue);
+        if (elapsed >= stuckMs) {
+            const minutes = Math.round(elapsed / 60000);
+            log(`#${item.issue}: stuck at In Progress/${item.aiStatus} for ${minutes}min -> Blocked`);
+            seen.delete(item.issue);
+            try { markBlocked(item, stuckBlockBody(item, minutes), cfg, log, deps); }
+            catch (e) { log(`#${item.issue}: stuck block failed: ${e.message}`); }
+        }
+    }
+    for (const issue of [...seen.keys()]) if (!live.has(issue)) seen.delete(issue);
+}
+
 /** 1 つの item を 1 フェーズ実行し、結果を Project に反映する */
 async function dispatch(item, cfg, state, log) {
     const phase = item.phase;
@@ -55,15 +135,15 @@ async function dispatch(item, cfg, state, log) {
     state.running.set(item.issue, { phase, session, since: cfg.now() });
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
     const itemId = item.itemId || project.findItemId(cfg.owner, cfg.project, item.issue, project.botToken());
+    item.itemId = itemId; // markBlocked が再解決しないよう保持
     const mark = (field, value) => {
         try { project.setField(ctx, itemId, field, value, project.botToken()); }
         catch (e) { log(`#${item.issue}: mark ${field} failed: ${e.message}`); }
     };
-    // ブロック時の人間ハンドオフ: Status=Blocked + 🙋 ラベル付与（HITL フィールドは使わない・#813）。
-    const blockToHuman = () => {
-        mark('Status', 'Blocked');
-        syncFacesAfterIntents({ ...item, status: 'Blocked', hitlLabel: true }, [], cfg, log);
-    };
+    // ブロック時の人間ハンドオフ（#813/#816）: run が失敗・stall したとき、コメント無しで 🙋 だけ
+    // 付くと人間が状況を把握できない（#815 の発端）。必ず説明コメントを残して Blocked にする。
+    const blockToHuman = (reason) =>
+        markBlocked(item, reason ? failureBlockBody(meta.skill, item.issue, reason) : null, cfg, log);
     try {
         // 着手を即可視化（Issue を状態の正に）: In Progress + AI Status=xxxing
         mark('Status', 'In Progress');
@@ -88,13 +168,13 @@ async function dispatch(item, cfg, state, log) {
         const res = await runPhase({ session, cwd, env, skill: meta.skill, issue: item.issue, resultFile, log });
         if (!res.ok) {
             log(`#${item.issue}: runner failed (${res.reason})`);
-            blockToHuman();
+            blockToHuman(`run（${meta.skill}）が失敗・停止しました（watchdog: ${res.reason}）。`);
             return;
         }
         const parsed = readResultFile(resultFile);
         if (!parsed.ok) {
             log(`#${item.issue}: invalid result (${parsed.errors.join('; ')})`);
-            blockToHuman();
+            blockToHuman(`run は終了しましたが結果ファイルが不正でした: ${parsed.errors.join('; ')}`);
             return;
         }
         const intents = applyResult(parsed.result);
@@ -106,7 +186,7 @@ async function dispatch(item, cfg, state, log) {
         syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
     } catch (e) {
         log(`#${item.issue}: error ${e.message}`);
-        blockToHuman();
+        blockToHuman(`dispatch が例外で停止しました: ${e.message}`);
     } finally {
         state.running.delete(item.issue);
     }
@@ -264,6 +344,8 @@ async function tick(cfg, state, log) {
     }
     // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）
     applyMergeProgression(items, cfg, state, log);
+    // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
+    detectStuck(items, cfg, state, log);
     // PR/Issue の面（ラベル/Draft/sticky）を Project 状態へ投影（dispatch 後なので running は除外される）
     applyPrProjection(items, cfg, state, log);
     return { paused: false, picked: picked.map((it) => it.issue) };
@@ -399,4 +481,7 @@ async function main(opts = {}) {
     if (opts.once) await runTickOnce(cfg, state, log);
 }
 
-module.exports = { main, tick, runTickOnce, dispatch, applyMergeProgression, applyPrProjection };
+module.exports = {
+    main, tick, runTickOnce, dispatch, applyMergeProgression, applyPrProjection,
+    detectStuck, markBlocked,
+};
