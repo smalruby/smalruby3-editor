@@ -34,6 +34,13 @@ const {
     LEGACY_STICKY_MARKERS,
     isStickyComment,
     selectStickyCommentIds,
+    dodHandoffMarker,
+    isDodHandoffComment,
+    hasDodHandoffComment,
+    extractPreviewUrl,
+    extractDodChecklist,
+    needsDodHandoff,
+    dodHandoffBody,
 } = require('../src/phases');
 
 test('shouldResend: resend after accept window if attempts remain', () => {
@@ -468,6 +475,146 @@ test('applyIntentsToItem composes with applyResult + hitlDesireFromResult (revie
     assert.equal(out.status, 'Review');
     assert.equal(out.hitlLabel, true);
     assert.equal(desiredDraft(out), false); // -> Ready for review
+});
+
+// ---- DoD handoff (#821) ----
+
+test('phaseForItem: DoD still 🙋 ラベルあり -> null (human/host turn)', () => {
+    assert.equal(phaseForItem({ status: 'DoD', hitlLabel: true }), null);
+});
+
+test('phaseForItem: DoD released (🙋 removed) -> address-review (NG 差し戻し・#821)', () => {
+    // Review と対称: DoD で人間が NG 判断して 🙋 を外したら address-review へ
+    assert.equal(phaseForItem({ status: 'DoD', hitlLabel: false }), 'address-review');
+});
+
+test('phaseForItem: DoD released via PR label only (OR semantics) -> address-review (#821)', () => {
+    const item = { status: 'DoD', hitlLabel: true };
+    const ctx = { hitlSignals: { issueLabel: true, prLabel: false } };
+    assert.equal(phaseForItem(item, ctx), 'address-review');
+});
+
+test('phaseForItem: DoD with all HITL signals waiting -> null', () => {
+    const item = { status: 'DoD', hitlLabel: true };
+    const ctx = { hitlSignals: { issueLabel: true, prLabel: true } };
+    assert.equal(phaseForItem(item, ctx), null);
+});
+
+test('hitlLabelAction: DoD steady-state does NOT re-add a human-removed label (#821)', () => {
+    // canonical=Yes but label removed by human (NG 差し戻しジェスチャ) -> do NOT re-add per-tick
+    assert.equal(hitlLabelAction({ status: 'DoD', hitlLabel: true }, false), null);
+    // canonical=No -> still allow removal toward No
+    assert.equal(hitlLabelAction({ status: 'DoD', hitlLabel: false }, true), 'remove');
+});
+
+test('hitlLabelAction: DoD with force (authoritative) sets the label', () => {
+    assert.equal(hitlLabelAction({ status: 'DoD', hitlLabel: true }, false, { force: true }), 'add');
+});
+
+test('renderSticky: DoD adds a 1-line handoff pointer (separate comment, not overwritten)', () => {
+    const body = renderSticky({ issue: 821, status: 'DoD', aiStatus: null, hitlLabel: true, size: 'small' });
+    assert.match(body, /DoD 引き継ぎあり/);
+    assert.match(body, /autopilot:dod-handoff/);
+    // sticky body itself keeps its own marker (it is not the handoff comment)
+    assert.match(body, new RegExp(STICKY_MARKER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
+
+test('renderSticky: non-DoD has no handoff pointer', () => {
+    const body = renderSticky({ issue: 1, status: 'Review', aiStatus: null, hitlLabel: true, size: null });
+    assert.ok(!/DoD 引き継ぎあり/.test(body));
+});
+
+test('dodHandoffMarker / isDodHandoffComment / hasDodHandoffComment', () => {
+    assert.equal(dodHandoffMarker(631, 818), '<!-- autopilot:dod-handoff issue=631 pr=818 -->');
+    assert.equal(isDodHandoffComment('<!-- autopilot:dod-handoff issue=1 pr=2 -->\n...'), true);
+    // 接頭辞のみで判定（issue/pr 番号に依存しない＝冪等チェックに使える）
+    assert.equal(isDodHandoffComment('<!-- autopilot:dod-handoff -->'), true);
+    assert.equal(isDodHandoffComment('just a comment'), false);
+    assert.equal(isDodHandoffComment(''), false);
+    assert.equal(isDodHandoffComment(null), false);
+    assert.equal(hasDodHandoffComment([{ body: 'x' }, { body: '<!-- autopilot:dod-handoff issue=1 pr=2 -->' }]), true);
+    assert.equal(hasDodHandoffComment([{ body: 'x' }, { body: 'y' }]), false);
+    assert.equal(hasDodHandoffComment([]), false);
+    assert.equal(hasDodHandoffComment(null), false);
+});
+
+test('extractPreviewUrl: finds branch preview URL from CI comments', () => {
+    const comments = [
+        { body: 'some build log' },
+        { body: 'Preview: https://smalruby.jp/smalruby3-editor/topic/autopilot-631/ ready' },
+    ];
+    assert.equal(extractPreviewUrl(comments), 'https://smalruby.jp/smalruby3-editor/topic/autopilot-631/');
+    assert.equal(extractPreviewUrl([{ body: 'no url here' }]), null);
+    assert.equal(extractPreviewUrl([]), null);
+    assert.equal(extractPreviewUrl(null), null);
+});
+
+test('extractDodChecklist: extracts the DoD section until the next heading', () => {
+    const body = [
+        '## 概要', 'foo', '', '## DoD', '', '- [ ] item A', '- [ ] item B', '', '## 備考', 'bar',
+    ].join('\n');
+    const checklist = extractDodChecklist(body);
+    assert.match(checklist, /- \[ \] item A/);
+    assert.match(checklist, /- \[ \] item B/);
+    assert.ok(!/概要/.test(checklist));
+    assert.ok(!/備考/.test(checklist)); // 次の見出しで打ち切る
+});
+
+test('extractDodChecklist: missing section -> null', () => {
+    assert.equal(extractDodChecklist('## 概要\nno dod here'), null);
+    assert.equal(extractDodChecklist(''), null);
+    assert.equal(extractDodChecklist(null), null);
+});
+
+test('needsDodHandoff: DoD + PR + not yet generated -> true; otherwise false (idempotent)', () => {
+    const leaf = { status: 'DoD', kind: 'Issue' };
+    assert.equal(needsDodHandoff(leaf, { hasHandoffComment: false, hasPr: true }), true);
+    // 生成済み -> false（二重投稿しない）
+    assert.equal(needsDodHandoff(leaf, { hasHandoffComment: true, hasPr: true }), false);
+    // PR 無し -> false
+    assert.equal(needsDodHandoff(leaf, { hasHandoffComment: false, hasPr: false }), false);
+    // DoD 以外 -> false
+    assert.equal(needsDodHandoff({ status: 'Review', kind: 'Issue' }, { hasHandoffComment: false, hasPr: true }), false);
+    // EPIC -> false（実装 PR を持たない）
+    assert.equal(needsDodHandoff({ status: 'DoD', kind: 'EPIC' }, { hasHandoffComment: false, hasPr: true }), false);
+    assert.equal(needsDodHandoff(null, { hasHandoffComment: false, hasPr: true }), false);
+});
+
+test('dodHandoffBody: includes marker, preview URL, checklist, headful steps, report exits', () => {
+    const body = dodHandoffBody({
+        issue: 631, pr: 818, repo: 'smalruby/smalruby3-editor', branch: 'topic/autopilot-631',
+        previewUrl: 'https://smalruby.jp/smalruby3-editor/topic/autopilot-631/',
+        dodChecklist: '- [ ] ボタンが表示される\n- [ ] クリックでキャッシュ',
+    });
+    // 冪等判定に使うマーカー
+    assert.match(body, /<!-- autopilot:dod-handoff issue=631 pr=818 -->/);
+    // プレビュー URL
+    assert.match(body, /https:\/\/smalruby\.jp\/smalruby3-editor\/topic\/autopilot-631\//);
+    // Issue の DoD チェックリストの転記
+    assert.match(body, /- \[ \] ボタンが表示される/);
+    // 定型 headful 手順
+    assert.match(body, /\?no_beforeunload=1/);
+    assert.match(body, /headful/);
+    assert.match(body, /tmp\//);
+    assert.match(body, /docs\/<feature>\/screenshots\//);
+    assert.match(body, /\.env/); // 秘密情報はローカル .env 参照
+    // 報告の出口（OK / NG→address-review / 判断に迷う）
+    assert.match(body, /すべて OK/);
+    assert.match(body, /address-review/);
+    assert.match(body, /🙋 HITL/);
+    // PR/Issue 参照
+    assert.match(body, /#818/);
+    assert.match(body, /#631/);
+    assert.match(body, /topic\/autopilot-631/);
+});
+
+test('dodHandoffBody: graceful fallbacks when previewUrl / checklist are missing', () => {
+    const body = dodHandoffBody({ issue: 5, pr: 9, previewUrl: null, dodChecklist: null });
+    assert.match(body, /<!-- autopilot:dod-handoff issue=5 pr=9 -->/);
+    assert.match(body, /プレビュー URL を CI コメントから取得できませんでした/);
+    assert.match(body, /DoD チェックリストが見つかりませんでした/);
+    // repo/branch 省略でも壊れない
+    assert.match(body, /#9/);
 });
 
 const cfg = { ...DEFAULT_WATCHDOG };

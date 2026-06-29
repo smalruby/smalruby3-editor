@@ -2,7 +2,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const {
-    applyMergeProgression, applyPrProjection, runTickOnce, detectStuck, markBlocked,
+    applyMergeProgression, applyPrProjection, applyDodHandoffs, runTickOnce, detectStuck, markBlocked,
 } = require('../src/daemon');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
 
@@ -240,6 +240,79 @@ test('applyPrProjection: a failing item does not block others', () => {
     applyPrProjection(items, makeCfg(), state, () => {}, deps);
     // issue 2 still processed (sticky on PR 200)
     assert.ok(deps.calls.sticky.some((s) => s.prNumber === 200));
+});
+
+// === #821: applyDodHandoffs（DoD 引き継ぎ生成） ===
+
+/** Build an injectable double for applyDodHandoffs that records posted comments. */
+function makeDodDeps({ prByIssue = {}, commentsByPr = {}, issueBody = {} } = {}) {
+    const calls = { posted: [] };
+    return {
+        calls,
+        token: 't',
+        findPrForIssue: (repo, issue) => prByIssue[issue] || null,
+        listIssueComments: (repo, prNumber) => commentsByPr[prNumber] || [],
+        getIssueBody: (repo, issue) => issueBody[issue] || '',
+        postIssueComment: (repo, prNumber, body) => calls.posted.push({ prNumber, body }),
+    };
+}
+
+test('applyDodHandoffs: DoD leaf with PR + no handoff -> posts one handoff comment', () => {
+    const items = [{ issue: 631, itemId: 'i', status: 'DoD', kind: 'Issue', hitlLabel: true }];
+    const deps = makeDodDeps({
+        prByIssue: { 631: { number: 818, branch: 'topic/autopilot-631' } },
+        commentsByPr: { 818: [{ id: 1, body: 'Preview: https://smalruby.jp/smalruby3-editor/topic/autopilot-631/' }] },
+        issueBody: { 631: '## DoD\n\n- [ ] ボタンが表示される\n\n## 備考\nx' },
+    });
+    const state = { running: new Map() };
+    applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
+    assert.equal(deps.calls.posted.length, 1);
+    assert.equal(deps.calls.posted[0].prNumber, 818);
+    assert.match(deps.calls.posted[0].body, /<!-- autopilot:dod-handoff issue=631 pr=818 -->/);
+    assert.match(deps.calls.posted[0].body, /https:\/\/smalruby\.jp\/smalruby3-editor\/topic\/autopilot-631\//);
+    assert.match(deps.calls.posted[0].body, /- \[ \] ボタンが表示される/);
+});
+
+test('applyDodHandoffs: idempotent — existing handoff comment is not reposted', () => {
+    const items = [{ issue: 631, itemId: 'i', status: 'DoD', kind: 'Issue', hitlLabel: true }];
+    const deps = makeDodDeps({
+        prByIssue: { 631: { number: 818, branch: 'b' } },
+        commentsByPr: { 818: [{ id: 1, body: '<!-- autopilot:dod-handoff issue=631 pr=818 -->\nalready here' }] },
+        issueBody: { 631: '## DoD\n- [ ] x' },
+    });
+    const state = { running: new Map() };
+    applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
+    assert.equal(deps.calls.posted.length, 0);
+});
+
+test('applyDodHandoffs: skips non-DoD, EPIC, no-PR, and running items', () => {
+    const items = [
+        { issue: 1, status: 'Review', kind: 'Issue' }, // not DoD
+        { issue: 2, status: 'DoD', kind: 'EPIC' }, // EPIC
+        { issue: 3, status: 'DoD', kind: 'Issue' }, // no PR
+        { issue: 4, status: 'DoD', kind: 'Issue' }, // running
+    ];
+    const deps = makeDodDeps({ prByIssue: { 4: { number: 404, branch: 'b' } }, issueBody: { 4: '## DoD\n- [ ] y' } });
+    const state = { running: new Map([[4, { phase: 'address-review' }]]) };
+    applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
+    assert.equal(deps.calls.posted.length, 0);
+});
+
+test('applyDodHandoffs: a failing item does not block others', () => {
+    const items = [
+        { issue: 1, status: 'DoD', kind: 'Issue' }, // findPr throws
+        { issue: 2, status: 'DoD', kind: 'Issue' }, // ok -> posts
+    ];
+    const deps = makeDodDeps({
+        prByIssue: { 2: { number: 200, branch: 'b' } },
+        commentsByPr: { 200: [] },
+        issueBody: { 2: '## DoD\n- [ ] z' },
+    });
+    const origFind = deps.findPrForIssue;
+    deps.findPrForIssue = (repo, issue) => { if (issue === 1) throw new Error('boom'); return origFind(repo, issue); };
+    const state = { running: new Map() };
+    applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
+    assert.deepEqual(deps.calls.posted.map((p) => p.prNumber), [200]);
 });
 
 // === #816: markBlocked / detectStuck（失敗・stall 時の人間ハンドオフ） ===
