@@ -13,6 +13,33 @@
 const DEFAULT_CLAUDE_COMMAND =
     'claude --permission-mode acceptEdits --allowedTools Bash Edit Read Glob Grep WebFetch';
 
+/** 既定のベースブランチ（PR 先・worktree 分岐元） */
+const DEFAULT_BASE_BRANCH = 'develop';
+
+/**
+ * Issue 本文から「明示的に宣言されたベースブランチ」を抽出する（純粋関数）。
+ *
+ * 既定では develop から分岐し PR も develop 宛てにするが、EPIC のサブ Issue など
+ * 「親 epic ブランチに積みたい」ケースでは、Issue 本文で base を明示できる。実装フェーズの
+ * 振る舞いを人間（implement スキルの判断）任せにせず、宣言があれば確実に効かせるための防御策。
+ *
+ * 認識する書式（いずれか）:
+ *  1. ディレクティブ: `autopilot-base: <branch>`（HTML コメント内でも可）。最優先。
+ *  2. 「## ベースブランチ」/「base branch」見出し・ラベルの直後にあるバッククォート囲みのブランチ。
+ *
+ * いずれも無ければ null（= 既定 develop）。誤検出を避けるため、明示宣言があるときだけ返す。
+ * @param {string} body Issue 本文
+ * @returns {string|null} 宣言されたベースブランチ名、無ければ null
+ */
+function parseBaseBranch(body) {
+    if (!body) return null;
+    const directive = body.match(/autopilot-base:\s*`?([\w.\/-]+)`?/i);
+    if (directive) return directive[1];
+    const section = body.match(/(?:ベースブランチ|base[ -]?branch)[^\n]*\n+[^\n]*?`([\w.\/-]+)`/i);
+    if (section) return section[1];
+    return null;
+}
+
 /** CLI コマンド名 → { skill, aiStatus }（AI Status は実行中に設定する細フェーズ） */
 const PHASE_BY_COMMAND = {
     triage: { skill: 'autopilot-triage', aiStatus: 'Triaging' },
@@ -711,6 +738,8 @@ const DEFAULT_WATCHDOG = {
 module.exports = {
     PHASE_BY_COMMAND,
     DEFAULT_CLAUDE_COMMAND,
+    DEFAULT_BASE_BRANCH,
+    parseBaseBranch,
     applyResult,
     hitlDesireFromResult,
     isHitlReleased,

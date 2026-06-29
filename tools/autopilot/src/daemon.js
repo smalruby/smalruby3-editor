@@ -17,6 +17,8 @@ const { execFileSync } = require('child_process');
 const { setTimeout: sleep } = require('timers/promises');
 const {
     PHASE_BY_COMMAND,
+    DEFAULT_BASE_BRANCH,
+    parseBaseBranch,
     selectActionable,
     isStuckCandidate,
     applyResult,
@@ -44,8 +46,10 @@ const WORKTREE_BIN = path.join(project.REPO_ROOT, 'bin', 'autopilot-worktree');
 /** 既存 PR ブランチで作業するフェーズ（新ブランチを切らず PR ヘッドを checkout する） */
 const PR_BRANCH_PHASES = new Set(['review', 'address-review', 'verify']);
 
-function ensureWorktree(issue, pr) {
+function ensureWorktree(issue, pr, base) {
     const args = ['create', String(issue)];
+    // base が明示されていれば新ブランチをそこから分岐（EPIC サブ Issue 等）。既定は develop。
+    if (base && base !== DEFAULT_BASE_BRANCH) args.push(base);
     // address-review / verify 等は既存 PR ブランチで作業する（新ブランチを切らない）
     if (pr) args.push('--pr', String(pr));
     execFileSync(WORKTREE_BIN, args, { stdio: 'ignore' });
@@ -158,7 +162,16 @@ async function dispatch(item, cfg, state, log) {
         if (PR_BRANCH_PHASES.has(phase)) {
             pr = item.pr || (project.findPrForIssue(cfg.repo, item.issue, project.botToken()) || {}).number;
         }
-        const cwd = ensureWorktree(item.issue, pr);
+        // 新ブランチを切るフェーズ（implement）は Issue 本文の base 宣言を尊重する（#827・EPIC サブ）。
+        // 既定は develop。PR ブランチ作業フェーズは PR の base を継ぐので解決不要。
+        let baseBranch = DEFAULT_BASE_BRANCH;
+        if (!pr) {
+            try {
+                const declared = parseBaseBranch(project.getIssueBody(cfg.repo, item.issue, project.botToken()));
+                if (declared) { baseBranch = declared; log(`#${item.issue}: base branch = ${baseBranch} (declared)`); }
+            } catch (e) { log(`#${item.issue}: base parse failed: ${e.message}`); }
+        }
+        const cwd = ensureWorktree(item.issue, pr, baseBranch);
         const resultDir = path.join(cwd, 'tmp');
         fs.mkdirSync(resultDir, { recursive: true });
         const resultFile = path.join(resultDir, `autopilot-result-${item.issue}.json`);
@@ -168,6 +181,7 @@ async function dispatch(item, cfg, state, log) {
             AUTOPILOT_RESULT_FILE: resultFile,
             AUTOPILOT_PROJECT: String(cfg.project),
             AUTOPILOT_REPO: cfg.repo,
+            AUTOPILOT_BASE_BRANCH: baseBranch,
         };
         log(`#${item.issue}: run ${phase} (${meta.skill})`);
         const res = await runPhase({ session, cwd, env, skill: meta.skill, issue: item.issue, resultFile, log });

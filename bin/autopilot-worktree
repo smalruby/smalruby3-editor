@@ -124,6 +124,12 @@ cmd_create() {
     if [[ -n "${explicit_branch}" ]]; then
         git -C "${MAIN_CHECKOUT}" fetch origin "${explicit_branch}" >/dev/null 2>&1 || true
     fi
+    # 明示 base（develop 以外。EPIC サブ Issue 等）はそのブランチを fetch し origin/ ref に正規化
+    if [[ "${base}" != "origin/develop" ]]; then
+        local base_branch="${base#origin/}"
+        git -C "${MAIN_CHECKOUT}" fetch origin "${base_branch}" >/dev/null 2>&1 || true
+        base="origin/${base_branch}"
+    fi
 
     if git -C "${MAIN_CHECKOUT}" worktree list --porcelain | grep -qx "worktree ${wt}"; then
         echo "info: worktree already exists: ${wt} (re-preparing)"
