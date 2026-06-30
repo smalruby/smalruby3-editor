@@ -17,11 +17,12 @@ jest.mock('../../../src/containers/modal.jsx', () => {
     return FakeModal;
 });
 
-// generatePreviewCode is driven per-test via this mock so we can simulate a
-// short AI (URL path) vs. a large AI (download fallback).
-const mockGeneratePreviewCode = jest.fn();
+// generateProjectCode is driven per-test via this mock so we can simulate a
+// short AI (URL path) vs. a large AI (download fallback). It generates the
+// whole project (all targets), not just the editing target.
+const mockGenerateProjectCode = jest.fn();
 jest.mock('../../../src/lib/ruby-script-preview', () => ({
-    generatePreviewCode: (...args) => mockGeneratePreviewCode(...args),
+    generateProjectCode: (...args) => mockGenerateProjectCode(...args),
 }));
 
 const mockDownloadBlob = jest.fn();
@@ -36,8 +37,11 @@ const renderModal = (props) =>
             <KoshienTestModal
                 intl={{ formatMessage: (m) => m.defaultMessage }}
                 onRequestClose={jest.fn()}
-                vm={{ editingTarget: { getName: () => 'Sprite1' } }}
+                vm={{ runtime: { targets: [] }, editingTarget: { getName: () => 'Sprite1' } }}
                 rubyVersion="2"
+                stage={{ id: 'stage' }}
+                sprites={{ sprite1: { id: 'sprite1', order: 0 } }}
+                rubyCode={{ modified: false, code: '', target: { id: 'sprite1' } }}
                 {...props}
             />
         </IntlProvider>,
@@ -45,12 +49,25 @@ const renderModal = (props) =>
 
 describe('KoshienTestModal', () => {
     beforeEach(() => {
-        mockGeneratePreviewCode.mockReset();
+        mockGenerateProjectCode.mockReset();
         mockDownloadBlob.mockReset();
     });
 
+    test('generates the whole-project AI code (all targets), not just the editing target', () => {
+        mockGenerateProjectCode.mockReturnValue('koshien.move_to("1:1")\n');
+        renderModal();
+        expect(mockGenerateProjectCode).toHaveBeenCalledTimes(1);
+        const [vmArg, params] = mockGenerateProjectCode.mock.calls[0];
+        expect(vmArg).toHaveProperty('runtime');
+        expect(params).toMatchObject({
+            stage: { id: 'stage' },
+            sprites: { sprite1: { id: 'sprite1', order: 0 } },
+            version: '2',
+        });
+    });
+
     test('renders the viewer iframe with a short AI in the URL and no fallback banner', () => {
-        mockGeneratePreviewCode.mockReturnValue('koshien.move_to("1:1")\n');
+        mockGenerateProjectCode.mockReturnValue('koshien.move_to("1:1")\n');
         const { getByTitle, queryByTestId } = renderModal();
         const iframe = getByTitle('Test AI');
         expect(iframe.getAttribute('src')).toContain('player1=');
@@ -58,7 +75,7 @@ describe('KoshienTestModal', () => {
     });
 
     test('a large AI shows the download fallback banner and loads the viewer without the AI', () => {
-        mockGeneratePreviewCode.mockReturnValue('koshien.move_to("1:1")\n'.repeat(600));
+        mockGenerateProjectCode.mockReturnValue('koshien.move_to("1:1")\n'.repeat(600));
         const { getByTitle, getByTestId } = renderModal();
         const iframe = getByTitle('Test AI');
         expect(iframe.getAttribute('src')).not.toContain('player1=');
@@ -67,12 +84,22 @@ describe('KoshienTestModal', () => {
 
     test('the download button writes the AI as a .rb file named after the sprite', () => {
         const bigCode = 'koshien.move_to("1:1")\n'.repeat(600);
-        mockGeneratePreviewCode.mockReturnValue(bigCode);
+        mockGenerateProjectCode.mockReturnValue(bigCode);
         const { getByTestId } = renderModal();
         fireEvent.click(getByTestId('koshien-test-download-ai'));
         expect(mockDownloadBlob).toHaveBeenCalledTimes(1);
         const [filename, blob] = mockDownloadBlob.mock.calls[0];
         expect(filename).toBe('Sprite1.rb');
         expect(blob).toBeInstanceOf(Blob);
+    });
+
+    test('falls back to the default AI (no banner) when generation throws', () => {
+        mockGenerateProjectCode.mockImplementation(() => {
+            throw new Error('boom');
+        });
+        const { getByTitle, queryByTestId } = renderModal();
+        const iframe = getByTitle('Test AI');
+        expect(iframe.getAttribute('src')).not.toContain('player1=');
+        expect(queryByTestId('koshien-test-too-long-banner')).toBeNull();
     });
 });

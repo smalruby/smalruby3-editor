@@ -4,7 +4,7 @@ import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import RubyGenerator from '../lib/ruby-generator';
+import { generateProjectCode } from '../lib/ruby-script-preview';
 import { targetCodeToBlocks } from '../lib/ruby-to-blocks-converter';
 import { setKoshienFileHandle, clearKoshienFileHandle } from '../reducers/koshien-file';
 import { projectTitleInitialState } from '../reducers/project-title';
@@ -56,30 +56,18 @@ class RubyDownloader extends React.Component {
         }
     }
     saveRuby() {
-        const idToTarget = {};
-        this.props.vm.runtime.targets.forEach((target) => {
-            idToTarget[target.id] = target;
-        });
-        const targets = [idToTarget[this.props.stage.id]];
-        for (const id in this.props.sprites) {
-            const sprite = this.props.sprites[id];
-            targets[sprite.order + 1] = idToTarget[id];
-        }
-        const options = {
-            requires: ['smalruby3'],
-            withSpriteNew: true,
-            version: this.props.rubyVersion,
-            forSave: true,
-        };
+        // Generate the whole-project AI code. The exact same generator backs the
+        // koshien "Test AI" modal, so testing and saving never diverge.
         // After validateAndConvert, blocks are already applied and
-        // rubyCode.modified is reset, so targetsCode is not needed.
-        // This branch remains for safety in non-validated paths.
-        if (this.props.rubyCode.modified) {
-            options.targetsCode = {
-                [this.props.rubyCode.target.id]: this.props.rubyCode.code,
-            };
-        }
-        const code = RubyGenerator.targetsToCode(targets, options);
+        // rubyCode.modified is reset, so the pending-code injection inside
+        // generateProjectCode is a no-op; it remains for non-validated paths.
+        const code = generateProjectCode(this.props.vm, {
+            stage: this.props.stage,
+            sprites: this.props.sprites,
+            version: this.props.rubyVersion,
+            rubyCode: this.props.rubyCode,
+            forSave: true,
+        });
 
         return new Blob([code], {
             type: 'text/x-ruby-script',

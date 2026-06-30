@@ -9,7 +9,7 @@ import Box from '../box/box.jsx';
 import Button from '../button/button.jsx';
 import Modal from '../../containers/modal.jsx';
 
-import { generatePreviewCode } from '../../lib/ruby-script-preview';
+import { generateProjectCode } from '../../lib/ruby-script-preview';
 import { buildKoshienTestPlan } from '../../lib/koshien-test-url';
 import downloadBlob from '../../lib/download-blob';
 
@@ -39,27 +39,31 @@ const aiFilename = (vm) => {
 };
 
 export const KoshienTestModal = (props) => {
-    const { intl, onRequestClose, vm, rubyVersion } = props;
+    const { intl, onRequestClose, vm, rubyVersion, stage, sprites, rubyCode } = props;
     const [iframeKey, setIframeKey] = React.useState(0);
     const [loading, setLoading] = React.useState(true);
 
-    // Generate the current sprite's AI program (current Ruby version). Short AIs
-    // ride along in the player1 query parameter so the user's own AI is played.
-    // A complex AI would overflow the URL length limit, so in that case we load
-    // the viewer without the AI (default AI) and surface a download fallback.
-    // Regenerated whenever the modal (re)loads via the reload button. Falls back
-    // to the default AI if generation fails or yields nothing.
+    // Generate the WHOLE project's AI program (stage + every sprite, plus any
+    // unsaved Ruby-tab edits) — the same code "Save AI" writes. Testing the
+    // editing target alone would miss code in other targets (e.g. an AI whose
+    // logic lives in a sprite while the stage is selected), making a large AI
+    // look small and skipping the download fallback below. Short AIs still ride
+    // along in the player1 query parameter so the user's own AI is played. A
+    // complex AI overflows the URL length limit, so we then load the viewer
+    // without the AI (default AI) and surface a download fallback. Regenerated
+    // whenever the modal (re)loads via the reload button. Falls back to the
+    // default AI if generation fails or yields nothing.
     const { iframeSrc, code, tooLong } = React.useMemo(() => {
         let generated = '';
         try {
-            generated = generatePreviewCode(vm && vm.editingTarget, rubyVersion) || '';
+            generated = generateProjectCode(vm, { stage, sprites, version: rubyVersion, rubyCode }) || '';
         } catch (e) {
             generated = '';
         }
         const plan = buildKoshienTestPlan(generated);
         return { iframeSrc: plan.url, code: generated, tooLong: plan.tooLong };
         // iframeKey is intentionally included so Reload re-reads the latest code.
-    }, [vm, rubyVersion, iframeKey]);
+    }, [vm, stage, sprites, rubyCode, rubyVersion, iframeKey]);
 
     const handleDownloadAi = React.useCallback(() => {
         downloadBlob(aiFilename(vm), new Blob([code], { type: 'text/plain' }));
@@ -160,13 +164,28 @@ export const KoshienTestModal = (props) => {
 KoshienTestModal.propTypes = {
     intl: intlShape.isRequired,
     onRequestClose: PropTypes.func.isRequired,
+    rubyCode: PropTypes.shape({
+        modified: PropTypes.bool,
+        code: PropTypes.string,
+        target: PropTypes.shape({ id: PropTypes.string }),
+    }),
     rubyVersion: PropTypes.string,
+    sprites: PropTypes.objectOf(
+        PropTypes.shape({
+            id: PropTypes.string.isRequired,
+            order: PropTypes.number.isRequired,
+        }),
+    ),
+    stage: PropTypes.shape({ id: PropTypes.string }),
     vm: PropTypes.instanceOf(VM),
 };
 
 const mapStateToProps = (state) => ({
     vm: state.scratchGui.vm,
     rubyVersion: state.scratchGui.settings.rubyVersion,
+    stage: state.scratchGui.targets.stage,
+    sprites: state.scratchGui.targets.sprites,
+    rubyCode: state.scratchGui.rubyCode,
 });
 
 export default injectIntl(connect(mapStateToProps)(KoshienTestModal));
