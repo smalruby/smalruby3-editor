@@ -105,13 +105,6 @@ describe('Ruby Roundtrip: while/until/if with variables and empty?', () => {
             else
               say("not empty")
             end
-        `, dedent`
-            @list.clear
-            if @list.empty?
-              say("empty")
-            else
-              say("not empty")
-            end
         `);
     });
 });

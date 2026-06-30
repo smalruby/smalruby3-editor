@@ -68,4 +68,24 @@ describe('Ruby Roundtrip (v1): Koshien stays flat (backward compatible)', () => 
             {version: 1}
         );
     });
+
+    // #839: v1 list element read must round-trip using list("$name")[1-indexed],
+    // not the v2 array syntax $name[0-indexed] (which the v1 converter rejects).
+    test('list element read round-trips with list() syntax (1-indexed)', async () => {
+        const {target, runtime} = makeSpriteTarget();
+        setupRubyGenerator();
+        const converter = makeConverter(target, runtime, {version: 1});
+        await expectRoundTrip(
+            converter,
+            target,
+            dedent`
+                koshien.connect_game(name: "player1")
+                koshien.calc_route(result: list("$最短経路"))
+                koshien.move_to(list("$最短経路")[2])
+                koshien.turn_over
+            `,
+            null,
+            {version: 1}
+        );
+    });
 });
