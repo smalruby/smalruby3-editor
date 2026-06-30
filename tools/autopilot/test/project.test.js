@@ -8,6 +8,8 @@ const {
     hasMergedHeadPr,
     findPrForIssue,
     hasMergedPullRequest,
+    listClosedIssueNumbers,
+    closeIssue,
 } = require('../src/project');
 const { HITL_LABEL, AUTOPILOT_LABEL, autopilotHeadBranch } = require('../src/phases');
 
@@ -201,4 +203,28 @@ test('hasMergedPullRequest: false when neither close link nor head branch is mer
         return JSON.stringify([]);
     };
     assert.equal(hasMergedPullRequest('o/r', 5, 'tok', { gh: fakeGh }), false);
+});
+
+test('listClosedIssueNumbers: returns a Set of closed issue numbers (#843)', () => {
+    let captured;
+    const fakeGh = (args) => {
+        captured = args;
+        return JSON.stringify([{ number: 738 }, { number: 839 }, { number: 840 }]);
+    };
+    const set = listClosedIssueNumbers('smalruby/smalruby3-editor', 'tok', { gh: fakeGh });
+    assert.ok(set instanceof Set);
+    assert.deepEqual([...set].sort((a, b) => a - b), [738, 839, 840]);
+    assert.ok(captured.includes('--state') && captured.includes('closed'));
+    assert.ok(captured.includes('--repo') && captured.includes('smalruby/smalruby3-editor'));
+});
+
+test('listClosedIssueNumbers: empty/non-array output -> empty Set', () => {
+    assert.deepEqual([...listClosedIssueNumbers('o/r', 't', { gh: () => '[]' })], []);
+    assert.deepEqual([...listClosedIssueNumbers('o/r', 't', { gh: () => 'null' })], []);
+});
+
+test('closeIssue: runs `gh issue close` for the given issue (#843)', () => {
+    let captured;
+    closeIssue('o/r', 839, 'tok', { gh: (args) => { captured = args; return ''; } });
+    assert.deepEqual(captured, ['issue', 'close', '839', '--repo', 'o/r']);
 });

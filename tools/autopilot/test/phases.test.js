@@ -12,6 +12,8 @@ const {
     computeReviewApproval,
     mergeProgressionIntents,
     selectMergeCandidates,
+    selectClosedToReconcile,
+    TERMINAL_STATUSES,
     phaseForItem,
     isActionable,
     isStuckCandidate,
@@ -213,6 +215,39 @@ test('mergeProgressionIntents: EPIC merged -> no intents (child PR does not clos
 
 test('mergeProgressionIntents: already at target Status -> no intents (idempotent)', () => {
     assert.deepEqual(mergeProgressionIntents({ status: 'Close', kind: 'Issue' }, true), []);
+});
+
+test('selectClosedToReconcile: GitHub-closed items not yet at a terminal Status (incl. EPIC)', () => {
+    const items = [
+        { issue: 1, status: 'Review', kind: 'Issue' }, // closed + non-terminal -> reconcile
+        { issue: 2, status: 'Close', kind: 'Issue' }, // closed but already terminal -> skip (idempotent)
+        { issue: 3, status: 'Done', kind: 'Issue' }, // closed but terminal -> skip
+        { issue: 4, status: 'Review', kind: 'EPIC' }, // closed EPIC + non-terminal -> reconcile (EPIC included)
+        { issue: 5, status: 'In Progress', kind: 'Issue' }, // open on GitHub -> skip
+        { issue: 6, status: undefined, kind: 'Issue' }, // closed, no Status -> reconcile
+    ];
+    const closedSet = new Set([1, 2, 3, 4, 6]);
+    assert.deepEqual(
+        selectClosedToReconcile(items, closedSet).map((i) => i.issue),
+        [1, 4, 6],
+    );
+});
+
+test('selectClosedToReconcile: accepts an array (not only a Set) as closedSet', () => {
+    const items = [{ issue: 7, status: 'DoD', kind: 'Issue' }];
+    assert.deepEqual(selectClosedToReconcile(items, [7]).map((i) => i.issue), [7]);
+});
+
+test('selectClosedToReconcile: empty/missing inputs -> empty array', () => {
+    assert.deepEqual(selectClosedToReconcile([], new Set([1])), []);
+    assert.deepEqual(selectClosedToReconcile(null, null), []);
+    assert.deepEqual(selectClosedToReconcile([{ issue: 1, status: 'Review' }], new Set()), []);
+});
+
+test('TERMINAL_STATUSES: Close and Done are terminal', () => {
+    assert.ok(TERMINAL_STATUSES.has('Close'));
+    assert.ok(TERMINAL_STATUSES.has('Done'));
+    assert.ok(!TERMINAL_STATUSES.has('Review'));
 });
 
 test('applyResult: done sets Status/Size/Kind, clears AI Status, no HITL field (#813)', () => {

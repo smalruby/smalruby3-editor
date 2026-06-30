@@ -25,6 +25,7 @@ const {
     hitlDesireFromResult,
     selectMergeCandidates,
     mergeProgressionIntents,
+    selectClosedToReconcile,
     selectPrSyncCandidates,
     labelActions,
     draftAction,
@@ -245,6 +246,7 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
     const hasMerged = deps.hasMergedPullRequest || project.hasMergedPullRequest;
     const applyIntents = deps.applyIntents || project.applyIntents;
     const findItemId = deps.findItemId || project.findItemId;
+    const closeIssue = deps.closeIssue || project.closeIssue;
     // merge 後の面正規化（Issue の HITL ラベルを落とす等）。テストは no-op を注入できる。
     const syncFaces = deps.syncFaces || ((item, intents) => syncFacesAfterIntents(item, intents, cfg, log));
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
@@ -263,10 +265,56 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
         try {
             const applied = applyIntents(ctx, itemId, intents, token);
             log(`#${item.issue}: PR merged → ${applied.join(', ')}`);
+            // Fix A（#843）: 非デフォルト base 宛て PR（EPIC サブ）では GitHub の `Closes #N` 自動
+            // close が効かないため、Project を Close へ進めたら GitHub issue も明示的に閉じる（冪等）。
+            try { closeIssue(cfg.repo, item.issue, token); }
+            catch (e) { log(`#${item.issue}: gh issue close failed: ${e.message}`); }
+            // 反映済みを in-memory item にも映す → 同 tick の closed-reconcile が二重処理しない（冪等）
+            item.status = 'Close';
             // merge は前進シグナル → 人間の番は解除。🙋 ラベルを両面から落とす（force 同期・#813）。
             syncFaces({ ...item, hitlLabel: false }, intents);
         } catch (e) {
             log(`#${item.issue}: merge progression failed: ${e.message}`);
+        }
+    }
+}
+
+/**
+ * Fix B（#843）: 「GitHub issue が closed ⇄ Project Status=Close」の整合パス。
+ * merge-progression は leaf の連携 PR merge しか見ないため、(A) 非デフォルト base 宛て PR で手動 close
+ * した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) 人手で閉じた issue が取り残される。
+ * ここは closed という事実だけを根拠に整合する（EPIC も対象）。判定は phases.js の純粋関数
+ * （selectClosedToReconcile）、I/O は project.js。実行中の item は触らない。1 件の失敗は他を止めない。
+ * deps は injection 可能（テスト用）。
+ */
+function applyClosedReconcile(items, cfg, state, log, deps = {}) {
+    const token = deps.token || project.botToken();
+    const listClosed = deps.listClosedIssueNumbers || project.listClosedIssueNumbers;
+    const applyIntents = deps.applyIntents || project.applyIntents;
+    const findItemId = deps.findItemId || project.findItemId;
+    const syncFaces = deps.syncFaces || ((item, intents) => syncFacesAfterIntents(item, intents, cfg, log));
+    let closedSet;
+    try {
+        closedSet = listClosed(cfg.repo, token);
+    } catch (e) {
+        log(`closed issue list failed: ${e.message}`);
+        return;
+    }
+    const ctx = { projectId: cfg.projectId, fields: cfg.fields };
+    const intents = [
+        { field: 'Status', value: 'Close' },
+        { field: 'AI Status', value: null },
+    ];
+    for (const item of selectClosedToReconcile(items, closedSet)) {
+        if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
+        const itemId = item.itemId || findItemId(cfg.owner, cfg.project, item.issue, token);
+        try {
+            const applied = applyIntents(ctx, itemId, intents, token);
+            log(`#${item.issue}: closed issue → ${applied.join(', ')}`);
+            // closed は終端シグナル → 人間の番は解除。🙋 ラベルを落とす（force 同期）。
+            syncFaces({ ...item, status: 'Close', hitlLabel: false }, intents);
+        } catch (e) {
+            log(`#${item.issue}: closed reconcile failed: ${e.message}`);
         }
     }
 }
@@ -407,8 +455,10 @@ async function tick(cfg, state, log) {
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
     }
-    // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）
+    // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）+ GitHub issue も close（#843 Fix A）
     applyMergeProgression(items, cfg, state, log);
+    // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
+    applyClosedReconcile(items, cfg, state, log);
     // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
     detectStuck(items, cfg, state, log);
     // Status=DoD の leaf に headful 検証の引き継ぎコメントを 1 回だけ投稿（#821・冪等）
@@ -549,6 +599,6 @@ async function main(opts = {}) {
 }
 
 module.exports = {
-    main, tick, runTickOnce, dispatch, applyMergeProgression, applyPrProjection,
+    main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
     applyDodHandoffs, detectStuck, markBlocked,
 };
