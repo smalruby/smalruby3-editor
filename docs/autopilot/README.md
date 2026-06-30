@@ -437,3 +437,10 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 - **worktree のスキル可用性**: `autopilot-*` スキルが対象ブランチに存在する必要がある（develop に
   マージ済みなら worktree でも解決可能）。
 - **非対話権限**: runner は権限プロンプトで止まらない設定（許可ツール指定など）で claude を起動する。
+
+---
+
+## ライセンス
+
+autopilot のツール群（`tools/autopilot/**`）と autopilot スキル（`.claude/skills/autopilot-*/**`）は、
+リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**とする。詳細は `tools/autopilot/LICENSE` を参照。

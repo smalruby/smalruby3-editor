@@ -69,3 +69,9 @@ echo AUTOPILOT_HITL
 - `AskUserQuestion` を使わない。確認は番兵 + コメントで。
 - 冪等: 既に同じ確認コメントを出していれば二重投稿しない。
 - `gh` は `GH_TOKEN="$(bin/bot-token)"`、コミットは `bin/bot-git`。Project は直接書かない。
+
+---
+
+## License
+
+This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.
