@@ -1,4 +1,4 @@
-import { generatePreviewCode } from '../../../src/lib/ruby-script-preview';
+import { generatePreviewCode, generateProjectCode } from '../../../src/lib/ruby-script-preview';
 import {
     makeSpriteTarget,
     makeStageTarget,
@@ -156,5 +156,65 @@ describe('generatePreviewCode', () => {
         const code = generatePreviewCode(stage, '2');
 
         expect(code).not.toMatch(/class Stage/);
+    });
+});
+
+describe('generateProjectCode', () => {
+    beforeEach(() => {
+        setupRubyGenerator();
+    });
+
+    test('returns empty string when vm is missing', () => {
+        expect(generateProjectCode(null, { stage: { id: 'stage' }, version: '2' })).toBe('');
+    });
+
+    test('returns empty string when stage is missing', () => {
+        const vm = { runtime: { targets: [] } };
+        expect(generateProjectCode(vm, { version: '2' })).toBe('');
+    });
+
+    test('generates the WHOLE project (sprite code is included even when the stage is empty)', async () => {
+        // The AI logic lives in the sprite; the stage is empty. The single-target
+        // preview path would only see the stage when the stage is selected — this
+        // path must always include the sprite. (The bug behind issue #845.)
+        const { target: sprite, stage, runtime } = makeSpriteTarget();
+        enrichTarget(sprite, 'Sprite1');
+        enrichTarget(stage, 'Stage');
+        stage.sprite.name = 'Stage';
+
+        const converter = makeConverter(sprite, runtime, { version: '2' });
+        await converter.targetCodeToBlocks(sprite, 'self.when(:flag_clicked) { move(10) }');
+        await converter.applyTargetBlocks(sprite);
+
+        const vm = { runtime: { targets: [stage, sprite] } };
+        const code = generateProjectCode(vm, {
+            stage: { id: 'stage' },
+            sprites: { sprite1: { id: 'sprite1', order: 0 } },
+            version: '2',
+        });
+
+        expect(code).toMatch(/^require "smalruby3"/);
+        expect(code).toMatch(/class Sprite1 < ::Smalruby3::Sprite/);
+        expect(code).toMatch(/move\s*\(\s*10\s*\)/);
+    });
+
+    test('injects unsaved Ruby-tab edits verbatim for the edited target', () => {
+        // No blocks are applied; the pending Ruby code must drive the output so
+        // testing reflects what the user currently sees in the editor.
+        const { target: sprite, stage } = makeSpriteTarget();
+        enrichTarget(sprite, 'Sprite1');
+        enrichTarget(stage, 'Stage');
+        stage.sprite.name = 'Stage';
+
+        const vm = { runtime: { targets: [stage, sprite] } };
+        const code = generateProjectCode(vm, {
+            stage: { id: 'stage' },
+            sprites: { sprite1: { id: 'sprite1', order: 0 } },
+            version: '2',
+            rubyCode: { modified: true, code: 'move(42)', target: { id: 'sprite1' } },
+        });
+
+        expect(code).toMatch(/class Sprite1 < ::Smalruby3::Sprite/);
+        expect(code).toMatch(/move\(42\)/);
     });
 });

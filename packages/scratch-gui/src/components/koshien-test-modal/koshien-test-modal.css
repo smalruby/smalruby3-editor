@@ -27,6 +27,30 @@
     font-size: 0.75rem;
 }
 
+.too-long-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.75rem;
+    background-color: $ui-secondary;
+    border-bottom: 1px solid $ui-black-transparent;
+    color: $text-primary;
+    font-size: 0.8125rem;
+}
+
+.too-long-text {
+    flex: 1;
+    min-width: 12rem;
+}
+
+.download-button {
+    font-weight: normal;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
 .stop-icon {
     position: relative;
     margin: 0.25rem;
