@@ -211,3 +211,10 @@ DoD（実機ブラウザでの最終確認）は**コンテナ内 daemon が hea
 - [ ] Project フィールドを直接書き換えていない（意図は結果ファイルで伝える）
 - [ ] 冪等（再実行で重複副作用を出さない）
 - [ ] bot 認証（`bin/bot-git` / `bin/bot-token`）を使っている
+
+---
+
+## ライセンス
+
+autopilot のツール群（`tools/autopilot/**`）と autopilot スキル（`.claude/skills/autopilot-*/**`）は、
+リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**とする。詳細は `tools/autopilot/LICENSE` を参照。

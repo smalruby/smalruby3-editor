@@ -75,3 +75,9 @@ echo AUTOPILOT_ERROR
 - `AskUserQuestion` を使わない。判断は HITL（コメント + 番兵）。
 - Project フィールド・PR ラベル/Ready/Draft の切替は daemon が結果を見て行う（単一ライター）。
 - bot 認証（`bin/bot-git` / `bin/bot-token`）。
+
+---
+
+## License
+
+This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

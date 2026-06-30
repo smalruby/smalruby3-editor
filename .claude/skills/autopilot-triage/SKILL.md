@@ -106,3 +106,9 @@ echo AUTOPILOT_ERROR
 - **Project フィールドは書き換えない**（Status/AI Status/Size 等の反映は daemon/CLI が結果ファイルを見て行う）。
 - `gh` には必ず `GH_TOKEN="$(bin/bot-token)"` を付ける。コミットが要る場面では `bin/bot-git`。
 - `AskUserQuestion` を使わない。判断は番兵 + コメントで返す。
+
+---
+
+## License
+
+This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.
