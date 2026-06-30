@@ -149,6 +149,7 @@ AUTOPILOT_DONE
 | `AUTOPILOT_RESULT_FILE` | 結果 JSON の書き込み先パス |
 | `AUTOPILOT_PROJECT` | Project 番号（参照のみ。書き込みは daemon） |
 | `AUTOPILOT_REPO` | `smalruby/smalruby3-editor` |
+| `AUTOPILOT_BASE_BRANCH` | PR 先・worktree 分岐元のベースブランチ（既定 `develop`）。Issue 本文の `autopilot-base:` ディレクティブや「ベースブランチ」宣言があれば daemon が渡す（EPIC サブ Issue を親 epic ブランチに積む用）。implement は `gh pr create --base` にこれを使う |
 
 ---
 
@@ -210,3 +211,10 @@ DoD（実機ブラウザでの最終確認）は**コンテナ内 daemon が hea
 - [ ] Project フィールドを直接書き換えていない（意図は結果ファイルで伝える）
 - [ ] 冪等（再実行で重複副作用を出さない）
 - [ ] bot 認証（`bin/bot-git` / `bin/bot-token`）を使っている
+
+---
+
+## ライセンス
+
+autopilot のツール群（`tools/autopilot/**`）と autopilot スキル（`.claude/skills/autopilot-*/**`）は、
+リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**とする。詳細は `tools/autopilot/LICENSE` を参照。

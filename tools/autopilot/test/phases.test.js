@@ -3,6 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     PHASE_BY_COMMAND,
+    parseBaseBranch,
     DEFAULT_CLAUDE_COMMAND,
     applyResult,
     hitlDesireFromResult,
@@ -648,4 +649,37 @@ test('evaluate: ready but idle beyond tIdle -> restart (課題2)', () => {
 test('evaluate: normal in-progress -> wait', () => {
     const a = evaluate({ resultPresent: false, ready: true, dead: false, elapsedMs: 5000, idleMs: 1000, restarts: 0 }, cfg);
     assert.equal(a.action, 'wait');
+});
+
+// === #827: Issue 本文からの base ブランチ宣言の抽出 ===
+
+test('parseBaseBranch: 宣言が無ければ null（= 既定 develop）', () => {
+    assert.equal(parseBaseBranch(''), null);
+    assert.equal(parseBaseBranch(null), null);
+    assert.equal(parseBaseBranch('ふつうの issue 本文。develop で実装する。'), null);
+});
+
+test('parseBaseBranch: autopilot-base ディレクティブ（最優先）', () => {
+    assert.equal(parseBaseBranch('autopilot-base: topic/koshien-epic-738'), 'topic/koshien-epic-738');
+    assert.equal(parseBaseBranch('<!-- autopilot-base: `feature/x` -->'), 'feature/x');
+    assert.equal(parseBaseBranch('blah\nAutopilot-Base:  topic/abc \nblah'), 'topic/abc');
+});
+
+test('parseBaseBranch: 「## ベースブランチ」セクション（#827 形式）', () => {
+    const body = [
+        '## やること', '...',
+        '## ベースブランチ', '',
+        '- **`topic/koshien-epic-738`**（Epic #738 の一部。PR はこの epic ブランチを対象にする）',
+        '## 関連',
+    ].join('\n');
+    assert.equal(parseBaseBranch(body), 'topic/koshien-epic-738');
+});
+
+test('parseBaseBranch: 英語 "Base branch" ラベルも認識', () => {
+    assert.equal(parseBaseBranch('Base branch\n`topic/foo-bar`'), 'topic/foo-bar');
+});
+
+test('parseBaseBranch: ディレクティブはセクションより優先', () => {
+    const body = 'autopilot-base: topic/win\n## ベースブランチ\n- `topic/lose`';
+    assert.equal(parseBaseBranch(body), 'topic/win');
 });

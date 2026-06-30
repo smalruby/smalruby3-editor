@@ -39,10 +39,13 @@ bin/bot-git commit -m "<type>(<scope>): <subject>" -m "<body 各行 ≤100 字>"
 ### 3. Draft PR を作成
 
 ```bash
-GH_TOKEN="$(bin/bot-token)" gh pr create --repo "$AUTOPILOT_REPO" --draft --base develop \
+GH_TOKEN="$(bin/bot-token)" gh pr create --repo "$AUTOPILOT_REPO" --draft --base "${AUTOPILOT_BASE_BRANCH:-develop}" \
   --head "<branch>" --title "<type>(<scope>): <title> (#$AUTOPILOT_ISSUE)" --body-file <(...)
 ```
 
+- **ベースブランチ**: `--base` は **`$AUTOPILOT_BASE_BRANCH`（既定 `develop`）** を使う。daemon が Issue 本文の
+  `autopilot-base:` ディレクティブや「## ベースブランチ」宣言を読み、worktree もこの base から分岐させて渡す。
+  EPIC のサブ Issue を親 epic ブランチに積むケースで使う。宣言が無ければ develop。
 - 本文に **`Closes #<issue>`**（merge で leaf を自動 Close = merge-progression）。
 - **Draft で作成**（AI 作業中の合図）。Ready 化と `🙋 HITL` は人間レビューに渡すフェーズで行う（daemon が反映）。
 
@@ -72,3 +75,9 @@ echo AUTOPILOT_ERROR
 - `AskUserQuestion` を使わない。判断は HITL（コメント + 番兵）。
 - Project フィールド・PR ラベル/Ready/Draft の切替は daemon が結果を見て行う（単一ライター）。
 - bot 認証（`bin/bot-git` / `bin/bot-token`）。
+
+---
+
+## License
+
+This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

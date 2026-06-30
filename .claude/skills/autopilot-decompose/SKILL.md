@@ -85,3 +85,9 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 - size は **leaf にのみ**付ける（EPIC は付けない）。
 - `AskUserQuestion` を使わない。承認は HITL（番兵 + コメント）で待つ。
 - `gh` には `GH_TOKEN="$(bin/bot-token)"`、コミットは `bin/bot-git`。
+
+---
+
+## License
+
+This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

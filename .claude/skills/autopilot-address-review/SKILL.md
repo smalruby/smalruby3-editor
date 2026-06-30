@@ -105,3 +105,9 @@ echo AUTOPILOT_HITL
 - 冪等: 同じ指摘に二重対応・二重コメントしない。既存の bot まとめコメントがあれば編集して使う。
 - `AskUserQuestion` を使わない。Project/PR の状態反映は daemon（単一ライター）。
 - bot 認証（`bin/bot-git` / `bin/bot-token`）。
+
+---
+
+## License
+
+This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

@@ -5,6 +5,8 @@ const CLOSE_TEACHER_MODAL = 'scratch-gui/classroom/CLOSE_TEACHER_MODAL';
 const SET_SESSION = 'scratch-gui/classroom/SET_SESSION';
 const CLEAR_SESSION = 'scratch-gui/classroom/CLEAR_SESSION';
 const SET_SUBMISSION_STATUS = 'scratch-gui/classroom/SET_SUBMISSION_STATUS';
+const SET_SUBMISSION_THUMBNAIL = 'scratch-gui/classroom/SET_SUBMISSION_THUMBNAIL';
+const CLEAR_SUBMISSION_THUMBNAIL = 'scratch-gui/classroom/CLEAR_SUBMISSION_THUMBNAIL';
 const REQUEST_RELOGIN = 'scratch-gui/classroom/REQUEST_RELOGIN';
 const SET_TEACHER_SELECTION = 'scratch-gui/classroom/SET_TEACHER_SELECTION';
 const CLEAR_TEACHER_SELECTION = 'scratch-gui/classroom/CLEAR_TEACHER_SELECTION';
@@ -75,7 +77,11 @@ const loadSession = () => {
 const saveSession = (session) => {
     if (!hasLocalStorage()) return;
     try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        // submissionThumbnail is a (potentially large) transient in-memory data URI used
+        // only for the current submission; it must never be persisted to localStorage.
+        const persistable = { ...session };
+        delete persistable.submissionThumbnail;
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
     } catch {
         // Ignore storage errors
     }
@@ -118,6 +124,9 @@ const initialState = {
     joinedAt: storedSession?.joinedAt || null,
     submissionStatus: storedSession?.submissionStatus || null,
     lastSubmittedAt: storedSession?.lastSubmittedAt || null,
+    // Data URI of the stage frame the student manually picked as their submission
+    // thumbnail. Transient (not persisted); null falls back to auto-capture at submit.
+    submissionThumbnail: null,
     reloginRequested: false,
     teacherSelection: null,
 };
@@ -165,8 +174,13 @@ const reducer = (state, action) => {
                 joinedAt: null,
                 submissionStatus: null,
                 lastSubmittedAt: null,
+                submissionThumbnail: null,
                 reloginRequested: false,
             };
+        case SET_SUBMISSION_THUMBNAIL:
+            return { ...state, submissionThumbnail: action.submissionThumbnail };
+        case CLEAR_SUBMISSION_THUMBNAIL:
+            return { ...state, submissionThumbnail: null };
         case SET_SUBMISSION_STATUS: {
             const updates = {
                 submissionStatus: action.submissionStatus,
@@ -233,6 +247,13 @@ const setSubmissionStatus = (submissionStatus, lastSubmittedAt) => ({
     lastSubmittedAt,
 });
 
+const setSubmissionThumbnail = (submissionThumbnail) => ({
+    type: SET_SUBMISSION_THUMBNAIL,
+    submissionThumbnail,
+});
+
+const clearSubmissionThumbnail = () => ({ type: CLEAR_SUBMISSION_THUMBNAIL });
+
 const setTeacherSelection = ({ classroomId, joinCode, className, assignmentName }) => ({
     type: SET_TEACHER_SELECTION,
     classroomId,
@@ -254,6 +275,8 @@ export {
     clearClassroomSession,
     requestRelogin,
     setSubmissionStatus,
+    setSubmissionThumbnail,
+    clearSubmissionThumbnail,
     setTeacherSelection,
     clearTeacherSelection,
 };

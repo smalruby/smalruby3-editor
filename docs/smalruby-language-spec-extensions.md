@@ -35,7 +35,7 @@ Draw with your sprites using the pen.
 | `pen.stamp` | Stamp | `pen.stamp` |
 | `pen.down` | Pen down | `pen.down` |
 | `pen.up` | Pen up | `pen.up` |
-| `pen.color = color` | Set pen color (hex string) | `pen.color = "#ff0000"` |
+| `pen.color = color` | Set pen color (hex `"#ff0000"` / shorthand `"#f00"` / name `"red"` / `"rgb(255,0,0)"`) | `pen.color = "#ff0000"` |
 | `pen.color = value` | Set pen color parameter | `pen.color = 50` |
 | `pen.color += value` | Change pen color parameter | `pen.color += 10` |
 | `pen.saturation = value` | Set saturation | `pen.saturation = 100` |

@@ -15,6 +15,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 
 | ファイル | 機能名 | 説明 |
 |----------|--------|------|
+| `src/lib/audio/audio-buffer-player.js` | null-safe AudioContext (issue #633) | `?tab=sounds` 直接遷移時 (user gesture 前) に `SharedAudioContext` が createBuffer を持たない空オブジェクトを返しても crash しないよう、buffer を遅延生成にする。`buffer` getter / `ensureBuffer` / `_hasAudioContext` の追加と `play` のガード。`SharedAudioContext` 自体は変更しない (autoplay policy の既知不具合回避) |
 | `src/reducers/gui.ts` | Redux state registry | Smalruby reducer の import |
 | `src/reducers/gui.ts` | initial state | Smalruby 初期 state の展開 |
 | `src/reducers/gui.ts` | reducers | Smalruby reducer の登録 |
@@ -100,6 +101,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/blocks.jsx` | Ruby-converted toolbox update deferral | `onWorkspaceUpdate` の fromRuby 分岐の `updateToolbox()` を `Events.disable()` 窓の外 (finally 後) へ移動。窓内では flyout 再構築の create イベントが破棄され、新規変数が `runtime.monitorBlocks` / `flyoutBlocks` に登録されずモニタチェックボックスが無反応になる問題の修正 (issue #719)。フラグ宣言部と実行部の 2 箇所 |
 | `src/containers/blocks.jsx` | extension category flyout scroll | `handleExtensionAdded` 末尾で `_pendingScrollToCategoryId` をセット。scratch-blocks v1 は追加カテゴリへ自動でフォーカスしたが v2 continuous toolbox はしないため、post-rebuild で新カテゴリへスクロールさせる (Issue #749 の v13.7.2 再整合で `setBlockStyle` 復元と共存) |
 | `src/containers/custom-procedures.jsx` | cat-blocks theme for custom procedures | `setBlocks` で `workspaceConfig.scratchTheme` に catblocks/classic を設定し、定義モーダルのブロックをメインエディタと同じテーマにする (Issue #749 の v13.7.2 再整合で upstream の `workspaceConfig.theme = theme` 採用と共存) |
+| `src/containers/stage-header.jsx` | classroom submission thumbnail | クラスルーム参加中の生徒にだけ upstream の「提出サムネイルを設定」ボタンを表示。`isStudentJoined` ヘルパー + import、`manuallySaveThumbnails`/`userOwnsProject` を joined 由来の props にマップ、`onUpdateProjectThumbnail` でキャプチャを redux にキャッシュ、`isStudentJoined` の named export (issue #631) |
 
 | `src/lib/vm-manager-hoc.jsx` | koshien remote options wiring | VM 初期化時に `wireKoshienRemoteOptions(vm)` を呼び、甲子園拡張機能が接続設定を読めるよう runtime に getter を差し込む (import + componentDidMount) |
 

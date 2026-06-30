@@ -52,6 +52,39 @@ describe('RubyToBlocksConverter/Pen', () => {
         } }
     });
 
+    // Regression for #834: AI-generated (Rubytee) / hand-written pen color code uses
+    // named colors, shorthand #rgb, uppercase hex and rgb() notation. These must convert
+    // to a pen_setPenColorToColor block with a normalized #rrggbb colour_picker value
+    // instead of erroring.
+    test('pen_setPenColorToColor accepts named / shorthand / rgb() colors', async () => {
+        const cases = [
+            {code: 'pen.color = "red"', value: '#ff0000'},
+            {code: 'pen.color = "Blue"', value: '#0000ff'},
+            {code: 'pen.color = "LIME"', value: '#00ff00'},
+            {code: 'pen.color = "#f00"', value: '#ff0000'},
+            {code: 'pen.color = "#FF0000"', value: '#ff0000'},
+            {code: 'pen.color = "rgb(255, 0, 0)"', value: '#ff0000'},
+            {code: 'pen.color = "rgb(0,128,0)"', value: '#008000'}
+        ];
+        for (const {code: caseCode, value} of cases) {
+            await convertAndExpectToEqualBlocks(converter, target, caseCode, [
+                {
+                    opcode: 'pen_setPenColorToColor',
+                    inputs: [
+                        {
+                            name: 'COLOR',
+                            block: {
+                                opcode: 'colour_picker',
+                                fields: [{name: 'COLOUR', value}],
+                                shadow: true
+                            }
+                        }
+                    ]
+                }
+            ]);
+        }
+    });
+
     describe('backward compatibility', () => {
         test('pen_clear', async () => {
             code = 'pen_clear';

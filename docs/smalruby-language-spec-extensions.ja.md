@@ -35,7 +35,7 @@
 | `pen.stamp` | スタンプ | `pen.stamp` |
 | `pen.down` | ペンを下ろす | `pen.down` |
 | `pen.up` | ペンを上げる | `pen.up` |
-| `pen.color = 色` | ペンの色を設定（16進文字列） | `pen.color = "#ff0000"` |
+| `pen.color = 色` | ペンの色を設定（16進文字列 `"#ff0000"` / 短縮形 `"#f00"` / 色名 `"red"` / `"rgb(255,0,0)"`） | `pen.color = "#ff0000"` |
 | `pen.color = 数値` | ペンの色パラメータを設定 | `pen.color = 50` |
 | `pen.color += 数値` | ペンの色パラメータを変化させる | `pen.color += 10` |
 | `pen.saturation = 数値` | 彩度を設定 | `pen.saturation = 100` |

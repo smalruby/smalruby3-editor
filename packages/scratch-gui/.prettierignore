@@ -263,6 +263,7 @@ test/integration/*
 !test/integration/palette-toggle-position.test.js
 !test/integration/version-update-notification.test.js
 !test/integration/workspace-glow-regression.test.js
+!test/integration/sounds-direct-nav.test.js
 
 # ============================================================
 # Level 2: test/unit/*
@@ -318,6 +319,7 @@ test/unit/containers/*
 !test/unit/containers/ruby-downloader.test.jsx
 !test/unit/containers/ruby-tab-project-changed.test.js
 !test/unit/containers/rubytee-modal-hoc-sanitize.test.js
+!test/unit/containers/stage-header.test.jsx
 
 # Level 3: test/unit/helpers/* — Smalruby-only, no filter needed
 
@@ -385,6 +387,7 @@ test/unit/lib/*
 !test/unit/lib/smalruby-original-sprites.test.js
 !test/unit/lib/setup-prism.js
 !test/unit/lib/version-checker.test.js
+!test/unit/lib/audio-buffer-player.test.js
 
 # Level 3: test/unit/reducers/*
 test/unit/reducers/*

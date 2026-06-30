@@ -68,3 +68,9 @@ echo AUTOPILOT_HITL
 - **merge はしない**（モデル: DoD 後に人間が merge）。本スキルは DoD 確認まで。
 - `?tab=sounds` 直アクセス禁止等、`.claude/rules/scratch-gui/e2e-test.md` の Playwright 注意を尊重。
 - `AskUserQuestion` を使わない。Project/PR の状態反映は daemon（単一ライター）。bot 認証必須。
+
+---
+
+## License
+
+This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

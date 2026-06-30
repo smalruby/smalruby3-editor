@@ -59,3 +59,9 @@ echo AUTOPILOT_DONE
 - レビューは **batch-tools を直接 monkey-patch しない**等、`.claude/rules` の E2E 注意も尊重。
 - `AskUserQuestion` を使わない。Project/PR の状態反映は daemon（単一ライター）。
 - bot 認証（`bin/bot-git` / `bin/bot-token`）。
+
+---
+
+## License
+
+This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.
