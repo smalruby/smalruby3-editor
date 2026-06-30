@@ -273,9 +273,7 @@ class MenuBar extends React.Component {
             'getSaveToComputerHandler',
             'getSaveAIHandler',
             'getSaveAIAsHandler',
-            'getTestAIHandler',
             'handleAISaveFinished',
-            'handleTestAISaveFinished',
             'handleAISaveAsFinished',
             'handleAISaveError',
             'handleConversionError',
@@ -507,17 +505,6 @@ class MenuBar extends React.Component {
             // Call download callback
             downloadProjectCallback();
         };
-    }
-    getTestAIHandler (downloadProjectCallback) {
-        return () => {
-            // Save first, then open modal via onSaveFinished callback
-            this.props.onSetAiSaveStatus('saving');
-            downloadProjectCallback();
-        };
-    }
-    handleTestAISaveFinished () {
-        this.handleAISaveFinished();
-        this.props.onOpenKoshienTestModal();
     }
     handleAISaveAsFinished () {
         // Set AI save status to 'saved'
@@ -1364,24 +1351,18 @@ class MenuBar extends React.Component {
                                         </RubyDownloader>
                                     </MenuSection>
                                     <MenuSection>
-                                        <RubyDownloader
-                                            onConversionError={this.handleConversionError}
-                                            onSaveError={this.handleAISaveError}
-                                            onSaveFinished={this.handleTestAISaveFinished}
+                                        {/* "Test AI" passes the current AI to the game server via a
+                                            base64 URL parameter, so it does not save. It just opens the
+                                            modal directly. */}
+                                        <MenuItem
+                                            onClick={this.props.onOpenKoshienTestModal}
                                         >
-                                            {(className, downloadProjectCallback) => (
-                                                <MenuItem
-                                                    className={className}
-                                                    onClick={this.getTestAIHandler(downloadProjectCallback)}
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Test AI"
-                                                        description="Menu bar item for testing AI"
-                                                        id="gui.menuBar.testAI"
-                                                    />
-                                                </MenuItem>
-                                            )}
-                                        </RubyDownloader>
+                                            <FormattedMessage
+                                                defaultMessage="Test AI"
+                                                description="Menu bar item for testing AI"
+                                                id="gui.menuBar.testAI"
+                                            />
+                                        </MenuItem>
                                     </MenuSection>
                                     <MenuSection>
                                         <MenuItem
