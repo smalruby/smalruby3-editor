@@ -34,6 +34,15 @@
 なる（v1 / v2 両対応）。ステージにスクリプトが無くグローバル変数/リストだけがある場合でも、
 v2 で `class Stage` + `def initialize` を生成して初期化する。
 
+AI ソースは base64 化してビューアの `?player1=data:<base64>` クエリパラメータに渡す
+（`src/lib/koshien-test-url.js` の `buildKoshienTestUrl` / `encodeAiToPlayerParam`）。
+ただし複雑な AI（経路探索など）はソースが長く、URL 長制限（`MAX_KOSHIEN_TEST_URL_LENGTH`
+= 8000 文字）を超えてビューアの起動に失敗しうる。そのため URL が長すぎる場合は
+`buildKoshienTestPlan` が `tooLong: true` を返し、モーダルは **AI 無しの URL でビューアを
+ロード**（デフォルト AI）したうえで、**AI を `.rb` ファイルとして保存する導線**
+（`koshien-test-too-long-banner` / `koshien-test-download-ai`）を表示する。
+ユーザーは保存した `.rb` をビューアから読み込んで試す。単純な AI の従来挙動（URL 直結）は維持される。
+
 ## 主要ファイル
 
 ### scratch-gui

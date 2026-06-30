@@ -296,6 +296,9 @@ export default {
     'gui.alerts.thumbnailError': 'サムネイルをせっていできませんでした。あとでもういちどおためしください。',
 
     'gui.koshienTestModal.title': 'スモウルビーこうしえんのAIをためす',
+    'gui.koshienTestModal.tooLong':
+        'このAIは おおきすぎて、URLで ビューアに わたせません。Ruby（.rb）ファイルとして ほぞんし、ビューアから よみこんで ためしてください。',
+    'gui.koshienTestModal.downloadAi': 'AIを ファイルに ほぞん',
     'gui.koshienSettingsModal.title': 'こうしえんのせつぞくせってい',
     'gui.koshienSettingsModal.endpoint': 'ゲームサーバーのURL',
     'gui.koshienSettingsModal.side': 'プレイヤーのがわ',

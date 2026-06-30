@@ -287,6 +287,9 @@ export default {
     'gui.alerts.thumbnailError': 'サムネイルを設定できませんでした。あとでもう一度お試しください。',
 
     'gui.koshienTestModal.title': 'スモウルビー甲子園のAIを試す',
+    'gui.koshienTestModal.tooLong':
+        'このAIは大きすぎて、URLでビューアに渡せません。Ruby（.rb）ファイルとして保存し、ビューアから読み込んで試してください。',
+    'gui.koshienTestModal.downloadAi': 'AIをファイルに保存',
     'gui.koshienSettingsModal.title': '甲子園の接続設定',
     'gui.koshienSettingsModal.endpoint': 'ゲームサーバーのURL',
     'gui.koshienSettingsModal.side': 'プレイヤーの側',
