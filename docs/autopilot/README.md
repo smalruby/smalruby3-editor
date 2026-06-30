@@ -137,6 +137,20 @@ close リンクで見つからなければ head ブランチ `topic/autopilot-<N
 `project.hasMergedPullRequest` と daemon の `applyMergeProgression`（ラベル除去は force 同期）。
 実行中（run が所有する）item は触らない。
 
+非デフォルト base 宛て PR では GitHub の `Closes #N` 自動 close が効かないため、Status を **Close**
+へ進めた leaf は `project.closeIssue`（`gh issue close`・冪等）で **GitHub issue も明示的に閉じる**
+（#843 Fix A）。
+
+### closed-issue → Project Close 整合（#843 Fix B）
+
+merge-progression は leaf の連携 PR merge しか見ないため、(A) 非デフォルト base 宛て PR で手動
+close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) 人手で閉じた issue が Project に
+取り残される。daemon はポーリングのたびに `applyClosedReconcile` で **GitHub 上で closed な issue**
+（`project.listClosedIssueNumbers`）のうち Project Status が終端（Close / Done）でないものを
+**Status=Close + AI Status クリア**へ整合する。closed という事実だけを根拠にするので **EPIC も対象**。
+判定は `phases.js` の `selectClosedToReconcile`（純粋関数・終端は `TERMINAL_STATUSES`）。実行中
+（run が所有する）item は触らない。冪等。
+
 ---
 
 ## implement→review の自動ディスパッチ（自己レビュー）

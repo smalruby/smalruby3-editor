@@ -2,7 +2,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const {
-    applyMergeProgression, applyPrProjection, applyDodHandoffs, runTickOnce, detectStuck, markBlocked,
+    applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
+    detectStuck, markBlocked,
 } = require('../src/daemon');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
 
@@ -63,6 +64,120 @@ test('applyMergeProgression: closes leaf with merged PR; skips not-merged/EPIC/t
     const m = Object.fromEntries(applied[0].intents.map((i) => [i.field, i.value]));
     assert.equal(m.Status, 'Close');
     assert.equal(m['AI Status'], null);
+});
+
+test('applyMergeProgression: also closes the GitHub issue (Fix A, #843)', () => {
+    // 非デフォルト base 宛て PR では GitHub の `Closes #N` 自動 close が効かないので、
+    // leaf を Close へ前進させたら GitHub issue も明示 close する（冪等）。
+    const items = [
+        { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue' }, // merged -> Close + gh close
+        { issue: 2, itemId: 'i2', status: 'Review', kind: 'Issue' }, // not merged -> no close
+    ];
+    const mergedMap = { 1: true, 2: false };
+    const closed = [];
+    const state = { running: new Map() };
+    applyMergeProgression(items, makeCfg(), state, () => {}, {
+        token: 't',
+        hasMergedPullRequest: (repo, issue) => mergedMap[issue],
+        applyIntents: (ctx, itemId, intents) => intents.map((i) => `${i.field}=${i.value}`),
+        findItemId: () => 'x',
+        closeIssue: (repo, issue) => closed.push(issue),
+        syncFaces: () => {},
+    });
+    assert.deepEqual(closed, [1]);
+});
+
+test('applyMergeProgression: a failing gh close does not abort the loop (#843)', () => {
+    const items = [
+        { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue' },
+        { issue: 2, itemId: 'i2', status: 'Review', kind: 'Issue' },
+    ];
+    const applied = [];
+    const state = { running: new Map() };
+    applyMergeProgression(items, makeCfg(), state, () => {}, {
+        token: 't',
+        hasMergedPullRequest: () => true,
+        applyIntents: (ctx, itemId) => { applied.push(itemId); return []; },
+        findItemId: () => 'x',
+        closeIssue: (repo, issue) => { if (issue === 1) throw new Error('boom'); },
+        syncFaces: () => {},
+    });
+    assert.deepEqual(applied, ['i1', 'i2']);
+});
+
+test('applyClosedReconcile: closed non-terminal items -> Status=Close + clear AI Status (incl. EPIC)', () => {
+    const items = [
+        { issue: 738, itemId: 'e1', status: 'Review', kind: 'EPIC' }, // closed EPIC -> reconcile
+        { issue: 839, itemId: 'i1', status: 'Review', kind: 'Issue' }, // closed leaf -> reconcile
+        { issue: 900, itemId: 'i2', status: 'Close', kind: 'Issue' }, // closed but terminal -> skip
+        { issue: 901, itemId: 'i3', status: 'In Progress', kind: 'Issue' }, // open on GitHub -> skip
+    ];
+    const applied = [];
+    const faces = [];
+    const state = { running: new Map() };
+    applyClosedReconcile(items, makeCfg(), state, () => {}, {
+        token: 't',
+        listClosedIssueNumbers: () => new Set([738, 839, 900]),
+        applyIntents: (ctx, itemId, intents) => { applied.push({ itemId, intents }); return []; },
+        findItemId: () => 'x',
+        syncFaces: (item) => faces.push(item.issue),
+    });
+    assert.deepEqual(applied.map((a) => a.itemId).sort(), ['e1', 'i1']);
+    for (const a of applied) {
+        const m = Object.fromEntries(a.intents.map((i) => [i.field, i.value]));
+        assert.equal(m.Status, 'Close');
+        assert.equal(m['AI Status'], null);
+    }
+    assert.deepEqual(faces.sort((x, y) => x - y), [738, 839]);
+});
+
+test('applyClosedReconcile: skips running items (does not fight a live phase)', () => {
+    const items = [{ issue: 839, itemId: 'i1', status: 'Review', kind: 'Issue' }];
+    const applied = [];
+    const state = { running: new Map([[839, { phase: 'review' }]]) };
+    applyClosedReconcile(items, makeCfg(), state, () => {}, {
+        token: 't',
+        listClosedIssueNumbers: () => new Set([839]),
+        applyIntents: (ctx, itemId) => { applied.push(itemId); return []; },
+        findItemId: () => 'x',
+        syncFaces: () => {},
+    });
+    assert.deepEqual(applied, []);
+});
+
+test('applyClosedReconcile: a failing listClosedIssueNumbers is a no-op (does not throw)', () => {
+    const items = [{ issue: 839, itemId: 'i1', status: 'Review', kind: 'Issue' }];
+    const applied = [];
+    const state = { running: new Map() };
+    assert.doesNotThrow(() => applyClosedReconcile(items, makeCfg(), state, () => {}, {
+        token: 't',
+        listClosedIssueNumbers: () => { throw new Error('rate limit'); },
+        applyIntents: (ctx, itemId) => { applied.push(itemId); return []; },
+        findItemId: () => 'x',
+        syncFaces: () => {},
+    }));
+    assert.deepEqual(applied, []);
+});
+
+test('applyClosedReconcile: one failing item does not block others', () => {
+    const items = [
+        { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue' }, // apply throws
+        { issue: 2, itemId: 'i2', status: 'Review', kind: 'Issue' }, // ok
+    ];
+    const applied = [];
+    const state = { running: new Map() };
+    applyClosedReconcile(items, makeCfg(), state, () => {}, {
+        token: 't',
+        listClosedIssueNumbers: () => new Set([1, 2]),
+        applyIntents: (ctx, itemId) => {
+            if (itemId === 'i1') throw new Error('boom');
+            applied.push(itemId);
+            return [];
+        },
+        findItemId: () => 'x',
+        syncFaces: () => {},
+    });
+    assert.deepEqual(applied, ['i2']);
 });
 
 test('applyMergeProgression: skips items currently running (does not fight a live phase)', () => {

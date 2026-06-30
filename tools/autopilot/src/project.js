@@ -435,6 +435,38 @@ function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
     return hasMergedHeadPr(JSON.parse(listOut));
 }
 
+/**
+ * GitHub で closed な issue 番号の集合を返す（#843）。`gh project item-list` の content には
+ * open/closed の state が無いため、Project とは別に issue 一覧から closed を引く。
+ * @param {string} repo `owner/name`
+ * @param {string} token
+ * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
+ * @returns {Set<number>} closed な issue 番号の集合
+ */
+function listClosedIssueNumbers(repo, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = ghFn(
+        ['issue', 'list', '--repo', repo, '--state', 'closed', '--limit', '1000', '--json', 'number'],
+        { token },
+    );
+    const arr = JSON.parse(out);
+    return new Set((Array.isArray(arr) ? arr : []).map((i) => i.number));
+}
+
+/**
+ * Issue を close する（#843・冪等）。非デフォルト base 宛て PR では GitHub の `Closes #N` 自動 close が
+ * 効かないため、merge-progression が leaf を Close へ前進させたとき GitHub issue も明示的に閉じる。
+ * 既に closed なら `gh issue close` は no-op で成功する（冪等）。
+ * @param {string} repo `owner/name`
+ * @param {number} issueNumber
+ * @param {string} token
+ * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
+ */
+function closeIssue(repo, issueNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    ghFn(['issue', 'close', String(issueNumber), '--repo', repo], { token });
+}
+
 /** applyResult が返す意図配列を Project に反映する */
 function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
@@ -450,5 +482,5 @@ module.exports = {
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
     getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
-    postIssueComment,
+    postIssueComment, listClosedIssueNumbers, closeIssue,
 };

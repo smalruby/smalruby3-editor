@@ -181,6 +181,32 @@ function mergeProgressionIntents(item, prMerged) {
 }
 
 /**
+ * 終端 Status の集合。GitHub issue が close 済みでも、Project がこれらなら整合済みとみなす
+ * （Close は完了、Done は upstream 由来の完了。これ以外は GitHub と乖離なので reconcile 対象）。
+ */
+const TERMINAL_STATUSES = new Set(['Close', 'Done']);
+
+/**
+ * GitHub で closed な issue のうち、Project Status がまだ終端（Close/Done）でない item を選ぶ
+ * （純粋関数・#843）。「GitHub issue 状態 → Project Close」の整合パス用。
+ *
+ * merge-progression（{@link selectMergeCandidates}）は **leaf の連携 PR merge** だけを見るため、
+ * (A) 非デフォルト base 宛て PR で GitHub の `Closes #N` が効かず手動 close した leaf、
+ * (B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) 人手で閉じた issue が Project に取り残される。
+ * ここは **closed という事実だけ**を根拠に整合するので EPIC も対象に含める（子 PR merge とは別経路）。
+ * 既に終端の item は除外（冪等）。実行中 item の除外は I/O 側（daemon）が行う。
+ * @param {object[]} items 各 { issue, status, kind, ... }
+ * @param {Set<number>|number[]} closedSet GitHub で closed な issue 番号の集合（配列も可）
+ * @returns {object[]} reconcile 対象（closed かつ非終端）
+ */
+function selectClosedToReconcile(items, closedSet) {
+    const closed = closedSet instanceof Set ? closedSet : new Set(closedSet || []);
+    return (items || []).filter(
+        (it) => it && closed.has(it.issue) && !TERMINAL_STATUSES.has(it.status),
+    );
+}
+
+/**
  * PR の承認状態を導く（純粋関数・#815）。
  *
  * GitHub の集約判定 `reviewDecision` は **ブランチ保護でレビューが必須でないと空**になり、
@@ -765,6 +791,8 @@ module.exports = {
     MERGE_CHECK_STATUSES,
     selectMergeCandidates,
     mergeProgressionIntents,
+    TERMINAL_STATUSES,
+    selectClosedToReconcile,
     computeReviewApproval,
     phaseForItem,
     isActionable,
