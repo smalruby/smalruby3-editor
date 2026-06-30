@@ -193,7 +193,12 @@ export default function (Generator) {
             }
         }
         const list = Generator.listName(Generator.getFieldId(block, 'LIST'));
-        return [list, Generator.ORDER_COLLECTION];
+        // v1 uses the `list("$name")` wrapper (Smalruby3::List); v2 uses the
+        // plain global/instance array variable `$name`.
+        if (String(Generator.version) === '2') {
+            return [list, Generator.ORDER_COLLECTION];
+        }
+        return [`list(${Generator.quote_(list)})`, Generator.ORDER_COLLECTION];
     };
 
     // Register list operation generators

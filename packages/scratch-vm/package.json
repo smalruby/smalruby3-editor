@@ -56,6 +56,7 @@
     "test": "npm run lint && npm run tap",
     "test:unit": "tap ./test/unit/*.js",
     "test:integration": "tap './test/integration/*.js' './test/integration/**/*.js'",
+    "koshien:mock-server": "node ./test/fixtures/koshien/mock-server.js",
     "watch": "webpack --progress --watch"
   },
   "browserslist": [

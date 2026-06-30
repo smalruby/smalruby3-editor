@@ -42,6 +42,7 @@ import WelcomeTooltip from '../welcome-tooltip/welcome-tooltip.jsx';
 import {
     openDebugModal,
     openKoshienTestModal,
+    openKoshienSettingsModal,
     openUrlLoaderModal,
     openConnectionModal,
     // === Smalruby: Start of welcome tooltip ===
@@ -272,9 +273,7 @@ class MenuBar extends React.Component {
             'getSaveToComputerHandler',
             'getSaveAIHandler',
             'getSaveAIAsHandler',
-            'getTestAIHandler',
             'handleAISaveFinished',
-            'handleTestAISaveFinished',
             'handleAISaveAsFinished',
             'handleAISaveError',
             'handleConversionError',
@@ -283,6 +282,7 @@ class MenuBar extends React.Component {
             'handleSaveDirectlyToGoogleDrive',
             'handleExtensionAdded',
             'handleClickKoshienEntryForm',
+            'handleClickKoshienSettings',
             'handleMeshV2MenuClick',
             'handleSmalrubotS1FirmwareFlash',
             'handleClickTutorials',
@@ -480,6 +480,10 @@ class MenuBar extends React.Component {
     handleClickKoshienEntryForm () {
         window.open('https://smalruby-koshien.netlab.jp/entry-form.html', '_blank', 'noopener,noreferrer');
     }
+    handleClickKoshienSettings () {
+        this.props.onRequestCloseKoshien();
+        this.props.onOpenKoshienSettingsModal();
+    }
     handleClickTutorials () {
         if (this.props.showTutorialTooltip) {
             // First-time user: activate tutorial directly
@@ -501,17 +505,6 @@ class MenuBar extends React.Component {
             // Call download callback
             downloadProjectCallback();
         };
-    }
-    getTestAIHandler (downloadProjectCallback) {
-        return () => {
-            // Save first, then open modal via onSaveFinished callback
-            this.props.onSetAiSaveStatus('saving');
-            downloadProjectCallback();
-        };
-    }
-    handleTestAISaveFinished () {
-        this.handleAISaveFinished();
-        this.props.onOpenKoshienTestModal();
     }
     handleAISaveAsFinished () {
         // Set AI save status to 'saved'
@@ -1358,26 +1351,29 @@ class MenuBar extends React.Component {
                                         </RubyDownloader>
                                     </MenuSection>
                                     <MenuSection>
-                                        <RubyDownloader
-                                            onConversionError={this.handleConversionError}
-                                            onSaveError={this.handleAISaveError}
-                                            onSaveFinished={this.handleTestAISaveFinished}
+                                        {/* "Test AI" passes the current AI to the game server via a
+                                            base64 URL parameter, so it does not save. It just opens the
+                                            modal directly. */}
+                                        <MenuItem
+                                            onClick={this.props.onOpenKoshienTestModal}
                                         >
-                                            {(className, downloadProjectCallback) => (
-                                                <MenuItem
-                                                    className={className}
-                                                    onClick={this.getTestAIHandler(downloadProjectCallback)}
-                                                >
-                                                    <FormattedMessage
-                                                        defaultMessage="Test AI"
-                                                        description="Menu bar item for testing AI"
-                                                        id="gui.menuBar.testAI"
-                                                    />
-                                                </MenuItem>
-                                            )}
-                                        </RubyDownloader>
+                                            <FormattedMessage
+                                                defaultMessage="Test AI"
+                                                description="Menu bar item for testing AI"
+                                                id="gui.menuBar.testAI"
+                                            />
+                                        </MenuItem>
                                     </MenuSection>
                                     <MenuSection>
+                                        <MenuItem
+                                            onClick={this.handleClickKoshienSettings}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Connection settings"
+                                                description="Menu bar item for Smalruby Koshien connection settings"
+                                                id="gui.menuBar.koshienSettings"
+                                            />
+                                        </MenuItem>
                                         <MenuItem
                                             onClick={this.handleClickKoshienEntryForm}
                                         >
@@ -1758,6 +1754,7 @@ MenuBar.propTypes = {
     onOpenConnectionModal: PropTypes.func,
     onOpenDebugModal: PropTypes.func,
     onOpenKoshienTestModal: PropTypes.func,
+    onOpenKoshienSettingsModal: PropTypes.func,
     onProjectTelemetryEvent: PropTypes.func,
     onRequestCloseAbout: PropTypes.func,
     onRequestCloseAccount: PropTypes.func,
@@ -1889,6 +1886,7 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     },
     onOpenBlockDisplayModal: () => dispatch(openBlockDisplayModal()),
     onOpenKoshienTestModal: () => dispatch(openKoshienTestModal()),
+    onOpenKoshienSettingsModal: () => dispatch(openKoshienSettingsModal()),
     onClickAccount: () => dispatch(openAccountMenu()),
     onRequestCloseAccount: () => dispatch(closeAccountMenu()),
     onClickFile: () => dispatch(toggleFileMenu()),

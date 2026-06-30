@@ -91,8 +91,13 @@ export default function (Generator) {
                 code, classComment, options && options.withSpriteNew
             );
         } else if (this.version !== '1' && options && options.withSpriteNew) {
-            // Version 2: auto-wrap with class (both sprite and stage)
-            if (code.length > 0) {
+            // Version 2: auto-wrap with class (both sprite and stage).
+            // Wrap even with no scripts when the target has variables/lists (or
+            // an @ruby:initialize comment) to initialize — e.g. a Stage that
+            // only holds global lists used by sprites. Without this the
+            // def initialize is dropped and globals such as $最短経路 stay nil.
+            // v1 emits the equivalent via Stage.new(lists: [...]).
+            if (code.length > 0 || this._hasInitializableState(this.currentTarget)) {
                 code = this._wrapWithClass(code, '@ruby:class', true);
             }
         } else if (options && options.withSpriteNew) {

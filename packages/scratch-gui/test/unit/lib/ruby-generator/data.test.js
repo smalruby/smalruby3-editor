@@ -10,6 +10,9 @@ describe('RubyGenerator/Data', () => {
         RubyGenerator.functionNames_ = {};
         RubyGenerator.emptyCallCache_ = {};
         RubyGenerator.currentTarget = null;
+        // Default to v2 (plain $name array syntax) for the list tests below.
+        // The v1 list("$name") wrapper form is covered in its own describe block.
+        RubyGenerator.version = '2';
         DataBlocks(RubyGenerator);
     });
 
@@ -417,6 +420,103 @@ describe('RubyGenerator/Data', () => {
                 .mockReturnValueOnce('"thing"');
             expect(RubyGenerator.data_insertatlist(block))
                 .toEqual('@my_list.insert(rand(0..@my_list.length), "thing")\n');
+        });
+    });
+
+    // #839: in v1, list operations must emit the list("$name") wrapper form with
+    // 1-indexed element access. The plain array syntax $name[...] (0-indexed) is
+    // v2-only and is rejected by the v1 Ruby -> Blocks converter.
+    describe('list operations - list() syntax (v1)', () => {
+        const makeListBlock = (opcode, extraInputs = {}) => ({
+            id: 'block-id',
+            opcode: opcode,
+            fields: {LIST: {id: 'list-id', value: 'my list'}},
+            inputs: extraInputs
+        });
+
+        beforeEach(() => {
+            RubyGenerator.version = '1';
+            RubyGenerator.listName = jest.fn().mockReturnValue('$my_list');
+            RubyGenerator.getFieldId = jest.fn().mockReturnValue('list-id');
+            RubyGenerator.quote_ = jest.fn(v => `"${v}"`);
+            RubyGenerator.nosToCode = jest.fn(v => v);
+        });
+
+        test('data_listcontents returns list() wrapper', () => {
+            const block = makeListBlock('data_listcontents');
+            expect(RubyGenerator.data_listcontents(block))
+                .toEqual(['list("$my_list")', RubyGenerator.ORDER_COLLECTION]);
+        });
+
+        test('data_addtolist generates list().push', () => {
+            const block = makeListBlock('data_addtolist', {ITEM: {block: 'item-block-id'}});
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"thing"');
+            expect(RubyGenerator.data_addtolist(block))
+                .toEqual('list("$my_list").push("thing")\n');
+        });
+
+        test('data_deleteoflist keeps 1-indexed inside list()', () => {
+            const block = makeListBlock('data_deleteoflist', {INDEX: {block: 'index-block-id'}});
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('1');
+            expect(RubyGenerator.data_deleteoflist(block))
+                .toEqual('list("$my_list").delete_at(1)\n');
+        });
+
+        test('data_deletealloflist generates list().clear', () => {
+            const block = makeListBlock('data_deletealloflist');
+            expect(RubyGenerator.data_deletealloflist(block))
+                .toEqual('list("$my_list").clear\n');
+        });
+
+        test('data_insertatlist keeps 1-indexed inside list()', () => {
+            const block = makeListBlock('data_insertatlist', {
+                INDEX: {block: 'index-block-id'},
+                ITEM: {block: 'item-block-id'}
+            });
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('1')
+                .mockReturnValueOnce('"thing"');
+            expect(RubyGenerator.data_insertatlist(block))
+                .toEqual('list("$my_list").insert(1, "thing")\n');
+        });
+
+        test('data_replaceitemoflist keeps 1-indexed inside list()', () => {
+            const block = makeListBlock('data_replaceitemoflist', {
+                INDEX: {block: 'index-block-id'},
+                ITEM: {block: 'item-block-id'}
+            });
+            RubyGenerator.valueToCode = jest.fn()
+                .mockReturnValueOnce('1')
+                .mockReturnValueOnce('"thing"');
+            expect(RubyGenerator.data_replaceitemoflist(block))
+                .toEqual('list("$my_list")[1] = "thing"\n');
+        });
+
+        test('data_itemoflist keeps 1-indexed inside list()', () => {
+            const block = makeListBlock('data_itemoflist', {INDEX: {block: 'index-block-id'}});
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('2');
+            expect(RubyGenerator.data_itemoflist(block))
+                .toEqual(['list("$my_list")[2]', RubyGenerator.ORDER_FUNCTION_CALL]);
+        });
+
+        test('data_itemnumoflist generates list().index', () => {
+            const block = makeListBlock('data_itemnumoflist', {ITEM: {block: 'item-block-id'}});
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"thing"');
+            expect(RubyGenerator.data_itemnumoflist(block))
+                .toEqual(['list("$my_list").index("thing")', RubyGenerator.ORDER_FUNCTION_CALL]);
+        });
+
+        test('data_lengthoflist generates list().length', () => {
+            const block = makeListBlock('data_lengthoflist');
+            expect(RubyGenerator.data_lengthoflist(block))
+                .toEqual(['list("$my_list").length', RubyGenerator.ORDER_FUNCTION_CALL]);
+        });
+
+        test('data_listcontainsitem generates list().include?', () => {
+            const block = makeListBlock('data_listcontainsitem', {ITEM: {block: 'item-block-id'}});
+            RubyGenerator.valueToCode = jest.fn().mockReturnValue('"thing"');
+            expect(RubyGenerator.data_listcontainsitem(block))
+                .toEqual(['list("$my_list").include?("thing")', RubyGenerator.ORDER_FUNCTION_CALL]);
         });
     });
 });

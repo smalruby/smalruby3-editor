@@ -269,6 +269,7 @@ export default {
     'gui.menuBar.saveAIAs': 'AIに名前をつけて保存...',
     'gui.menuBar.testAI': 'AIを試す',
     'gui.menuBar.koshienEntryForm': '参加申し込み',
+    'gui.menuBar.koshienSettings': '接続設定',
     'gui.menuBar.koshienCannotChangeRubyVersion':
         'スモウルビー甲子園拡張機能が読み込まれているときは、Rubyのバージョンを変更できません。',
     'gui.menuBar.aiSaving': 'ルビーを保存中...',
@@ -286,6 +287,13 @@ export default {
     'gui.alerts.thumbnailError': 'サムネイルを設定できませんでした。あとでもう一度お試しください。',
 
     'gui.koshienTestModal.title': 'スモウルビー甲子園のAIを試す',
+    'gui.koshienSettingsModal.title': '甲子園の接続設定',
+    'gui.koshienSettingsModal.endpoint': 'ゲームサーバーのURL',
+    'gui.koshienSettingsModal.side': 'プレイヤーの側',
+    'gui.koshienSettingsModal.gameCode': 'ゲームコード',
+    'gui.koshienSettingsModal.test': '接続をテスト',
+    'gui.koshienSettingsModal.save': '保存',
+    'gui.koshienSettingsModal.testing': 'テスト中...',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトの読み込みに失敗しました。',
     'gui.googleDriveLoader.authError': 'Google ドライブの認証に失敗しました。もう一度お試しください。',
     'gui.googleDriveLoader.configError': 'Google ドライブが設定されていません。管理者に連絡してください。',
@@ -724,7 +732,6 @@ export default {
     'gui.extensionLibrary.showAllExtensions': 'すべての拡張機能を表示',
     'gui.extensionLibrary.meshDeprecationWarning':
         '従来のメッシュ拡張機能は4月30日までしか使えません。このまま従来のメッシュ拡張機能を利用する場合はOKを選択します。そうではなく、あたらしいメッシュ拡張機能を使う場合はキャンセルを選択します。',
-    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'スモウルビー甲子園拡張機能は Ruby v1 でのみ利用できます。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': '上に傾いた',
