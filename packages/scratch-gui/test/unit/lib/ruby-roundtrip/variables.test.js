@@ -92,32 +92,32 @@ describe('Ruby Roundtrip: Variables category blocks', () => {
             show_variable("@sprite_only_variable")
             hide_variable("$my_variable")
             hide_variable("@sprite_only_variable")
-            $my_list.push("thing")
-            $sprite_only_list.push("thing")
-            $my_list.delete_at(0)
-            $sprite_only_list.delete_at(0)
-            $my_list.clear
-            $sprite_only_list.clear
-            $my_list.insert(0, "thing")
-            $sprite_only_list.insert(0, "thing")
-            $my_list[0] = "thing"
-            $sprite_only_list[0] = "thing"
+            list("$my_list").push("thing")
+            list("$sprite_only_list").push("thing")
+            list("$my_list").delete_at(1)
+            list("$sprite_only_list").delete_at(1)
+            list("$my_list").clear
+            list("$sprite_only_list").clear
+            list("$my_list").insert(1, "thing")
+            list("$sprite_only_list").insert(1, "thing")
+            list("$my_list")[1] = "thing"
+            list("$sprite_only_list")[1] = "thing"
 
-            $my_list[0]
+            list("$my_list")[1]
 
-            $sprite_only_list[0]
+            list("$sprite_only_list")[1]
 
-            $my_list.index("thing")
+            list("$my_list").index("thing")
 
-            $sprite_only_list.index("thing")
+            list("$sprite_only_list").index("thing")
 
-            $my_list.length
+            list("$my_list").length
 
-            $sprite_only_list.length
+            list("$sprite_only_list").length
 
-            $my_list.include?("thing")
+            list("$my_list").include?("thing")
 
-            $sprite_only_list.include?("thing")
+            list("$sprite_only_list").include?("thing")
 
             show_list("$my_list")
             show_list("$sprite_only_list")
@@ -128,9 +128,9 @@ describe('Ruby Roundtrip: Variables category blocks', () => {
 
             @sprite_only_variable
 
-            $my_list
+            list("$my_list")
 
-            $sprite_only_list
+            list("$sprite_only_list")
         `);
     });
 });
