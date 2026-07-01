@@ -7,6 +7,9 @@ import {
     RUBY_TAB_INDEX,
     SOUNDS_TAB_INDEX,
 } from '../reducers/editor-tab';
+import { setRubyVersion } from '../reducers/settings';
+import { VERSION_1, VERSION_2 } from './settings/ruby-version';
+import { persistRubyVersion } from './settings/ruby-version/persistence';
 
 const FURIGANA_ENABLED_KEY = 'smalruby:furiganaEnabled';
 
@@ -20,6 +23,14 @@ const TAB_INDEX_MAP = {
 
 const VALID_RUBY_MODES = new Set(['ruby', 'furigana', 'dncl']);
 
+// setup.rubyVersion may be given as a number (1 | 2) per the design doc, or
+// as the string form ('1' | '2') used internally by the settings reducer.
+// Normalize to the internal string form, or null if unsupported.
+const normalizeRubyVersion = (value) => {
+    const asString = String(value);
+    return asString === VERSION_1 || asString === VERSION_2 ? asString : null;
+};
+
 /**
  * Apply tutorial deck setup: switch editor tab, set Ruby mode, load
  * required extensions. Each operation is idempotent — calling this with the
@@ -32,6 +43,7 @@ const VALID_RUBY_MODES = new Set(['ruby', 'furigana', 'dncl']);
  *             tab: 'ruby',                       // 'code' | 'costumes' | 'sounds' | 'ruby'
  *             rubyMode: 'dncl',                  // 'ruby' | 'furigana' | 'dncl'
  *             extensions: ['pen', 'microbitMore'],
+ *             rubyVersion: 2,                    // 1 | 2 (omit to keep current)
  *         },
  *         // ...
  *     }
@@ -88,8 +100,12 @@ export const applyDeckSetup = async (setup, dispatch, vm) => {
         }
     }
 
-    // 4. Ruby version is intentionally not handled in Phase 2 foundation —
-    // no deck currently needs it. The hook is left here as a documentation
-    // marker for future expansion (would dispatch settings reducer action).
-    // if (setup.rubyVersion === 1 || setup.rubyVersion === 2) { /* TBD */ }
+    // 4. Ruby version (optional). Mirrors how the settings menu / URL loader
+    // switch versions: dispatch the reducer action and persist the choice so
+    // it survives a remount. Unsupported values are ignored.
+    const rubyVersion = normalizeRubyVersion(setup.rubyVersion);
+    if (rubyVersion) {
+        dispatch(setRubyVersion(rubyVersion));
+        persistRubyVersion(rubyVersion);
+    }
 };
