@@ -1,6 +1,7 @@
 # 拡張機能: 音声合成 (Text to Speech)
 
-> **⬆️ upstream そのまま** — upstream の実装をほぼそのまま利用
+> **🔧 upstream 改良** — upstream にあるが Smalruby で機能を改良・拡張している
+> 改良点: 音声合成リクエストの送信先を Smalruby の CORS 回避プロキシ (`api.smalruby.app/scratch-api-proxy/synth`) に上書き。Scratch の音声合成サービスは CORS を scratch.mit.edu 限定にしたため、smalruby.app からの直叩きが CORS で失敗する。
 
 - **Smalruby ランタイム対応**: ❌（smalruby3 gem 未対応。AWS Polly API + ブラウザ音声再生）
 - **デフォルト表示**: ✅（拡張機能ライブラリにデフォルトで表示される）
@@ -9,6 +10,17 @@
 ## 概要
 
 入力したテキストを**音声で読み上げる**拡張機能。AWS Polly を使った音声合成（複数の声・言語対応）。upstream Scratch 標準。
+
+### Smalruby 独自: CORS 回避プロキシ経由
+
+Scratch の音声合成サービス (`synthesis-service.scratch.mit.edu`) は `Access-Control-Allow-Origin` を
+`scratch.mit.edu` 限定に締めたため、`smalruby.app` から直接叩くと CORS でブロックされる。
+そこで VM 実装 `scratch3_text2speech/index.js` の `SERVER_HOST` を Smalruby プロキシ
+`https://api.smalruby.app/scratch-api-proxy` に上書きしている（`=== Smalruby: Start/End of synthesis CORS proxy ===`
+マーカーで囲む）。拡張は `${SERVER_HOST}/synth?...` を組むため base の差し替えだけで proxy 経由になる。
+プロキシはサーバ側で `synthesis-service.scratch.mit.edu` を叩き、バイナリ音声 (mp3) を Base64 で返却し
+（API Gateway HTTP API v2 がクライアントへバイト列にデコード）、built-in CORS でレスポンスを返す
+（`infra/smalruby-api` の `GET /scratch-api-proxy/synth`）。translate (#857) と同じ根本原因・方針。
 
 ## ユーザーストーリー
 
