@@ -1,16 +1,10 @@
----
-name: autopilot-review
-description: autopilot の敵対的レビュー・フェーズ。自分が作った PR を別 claude として批判的にレビュー(/code-review + /security-review)し、指摘を修正してから人間レビューに渡す。autopilot Runner から非対話で起動される。
-argument-hint: "[issue number]"
-disable-model-invocation: true
----
 
 # /autopilot-review — Adversarial review phase
 
 **Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`.**
 対話的に質問しない。終了時に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークンを出す。
 
-対象 Issue は `$ARGUMENTS` または `AUTOPILOT_ISSUE`。作業は割り当てられた worktree（その Issue の PR ブランチ）の中で行う。
+対象 Issue は 環境変数 `AUTOPILOT_ISSUE`。作業は割り当てられた worktree（その Issue の PR ブランチ）の中で行う。
 
 ゴール: **実装フェーズが作った PR を「別の批判的レビュアー」として敵対的にレビューし、明白な問題を自分で直してから人間レビューに渡す。** 人間の負担を、AI が先に潰せる指摘で減らす。
 
@@ -64,4 +58,4 @@ echo AUTOPILOT_DONE
 
 ## License
 
-This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.
+This phase prompt is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

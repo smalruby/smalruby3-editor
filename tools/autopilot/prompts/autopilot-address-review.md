@@ -1,16 +1,10 @@
----
-name: autopilot-address-review
-description: autopilot のレビュー対応フェーズ。人間が HITL を解除した PR について diff と全コメントを理解し、質問・改善依頼に対応し、再び人間に渡す。autopilot Runner から非対話で起動される。
-argument-hint: "[issue number]"
-disable-model-invocation: true
----
 
 # /autopilot-address-review — Review handling phase
 
 **Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`.**
 対話的に質問しない。終了時に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークンを出す。
 
-対象 Issue は `$ARGUMENTS` または `AUTOPILOT_ISSUE`。人間が **`🙋 HITL` を外した（差し戻した）** PR を扱う。
+対象 Issue は 環境変数 `AUTOPILOT_ISSUE`。人間が **`🙋 HITL` を外した（差し戻した）** PR を扱う。
 
 このフェーズは Review 解除時の**唯一の入口**（#815）。daemon は approve / changes-requested などの
 構造化シグナルで分岐せず、解除されたら必ずこのスキルを起動する。**何をすべきかはここで判断する**:
@@ -110,4 +104,4 @@ echo AUTOPILOT_HITL
 
 ## License
 
-This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.
+This phase prompt is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

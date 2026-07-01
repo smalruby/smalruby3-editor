@@ -56,7 +56,12 @@ function parseBaseBranch(body) {
     return null;
 }
 
-/** CLI コマンド名 → { skill, aiStatus }（AI Status は実行中に設定する細フェーズ） */
+/**
+ * CLI コマンド名 → { skill, aiStatus }。
+ * `skill` は **フェーズプロンプトのファイル basename**（`tools/autopilot/prompts/<skill>.md`）。
+ * 以前は `.claude/skills/` の Skill だったが、開発者が誤ってスラッシュ起動するのを防ぐため
+ * `tools/autopilot/prompts/` に移動し、Runner がそのファイルを読ませて実行する（Skill ではない）。
+ */
 const PHASE_BY_COMMAND = {
     triage: { skill: 'autopilot-triage', aiStatus: 'Triaging' },
     understand: { skill: 'autopilot-understand', aiStatus: 'Understanding' },
@@ -66,6 +71,23 @@ const PHASE_BY_COMMAND = {
     'address-review': { skill: 'autopilot-address-review', aiStatus: 'Addressing Comments' },
     verify: { skill: 'autopilot-verify', aiStatus: 'Running DoD' },
 };
+
+/** フェーズプロンプトファイルの配置ディレクトリ（worktree/repo 内の相対パス） */
+const PROMPT_DIR = 'tools/autopilot/prompts';
+
+/**
+ * Runner が対話 Claude に送る起動メッセージを組み立てる（純粋関数）。
+ * Skill のスラッシュコマンドではなく、**プロンプトファイルを Read して従わせる**指示にする
+ * （プロンプトは Skill ではないので `/autopilot-*` は存在しない）。対象 Issue は env の
+ * `AUTOPILOT_ISSUE` にも入るが、確実性のためメッセージにも番号を含める。
+ * @param {string} skill プロンプト basename（例 'autopilot-triage'）
+ * @param {number|string} issue 対象 Issue 番号
+ * @returns {string} 送信メッセージ
+ */
+function phasePromptCommand(skill, issue) {
+    return `${PROMPT_DIR}/${skill}.md を Read して、その手順に厳密に従ってください。` +
+        `対象 Issue は AUTOPILOT_ISSUE=${issue} です。`;
+}
 
 /**
  * 結果ペイロードを Project フィールドの設定意図に変換する。
@@ -779,6 +801,8 @@ const DEFAULT_WATCHDOG = {
 
 module.exports = {
     PHASE_BY_COMMAND,
+    PROMPT_DIR,
+    phasePromptCommand,
     DEFAULT_CLAUDE_COMMAND,
     DEFAULT_BASE_BRANCH,
     parseBaseBranch,

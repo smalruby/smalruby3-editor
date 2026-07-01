@@ -3,6 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     PHASE_BY_COMMAND,
+    phasePromptCommand,
     parseBaseBranch,
     DEFAULT_CLAUDE_COMMAND,
     applyResult,
@@ -717,4 +718,13 @@ test('parseBaseBranch: 英語 "Base branch" ラベルも認識', () => {
 test('parseBaseBranch: ディレクティブはセクションより優先', () => {
     const body = 'autopilot-base: topic/win\n## ベースブランチ\n- `topic/lose`';
     assert.equal(parseBaseBranch(body), 'topic/win');
+});
+
+// === プロンプト起動メッセージ（Skill スラッシュではなくファイル参照） ===
+
+test('phasePromptCommand: プロンプトファイルを Read させ Issue 番号を含む（スラッシュではない）', () => {
+    const cmd = phasePromptCommand('autopilot-triage', 833);
+    assert.match(cmd, /tools\/autopilot\/prompts\/autopilot-triage\.md/);
+    assert.match(cmd, /AUTOPILOT_ISSUE=833/);
+    assert.ok(!cmd.startsWith('/'), 'スラッシュコマンドではない');
 });

@@ -1,16 +1,10 @@
----
-name: autopilot-understand
-description: autopilot の理解フェーズ。EPIC/Issue の内容を理解し、不明点があれば bot コメント + HITL で人間に確認する。明確なら次フェーズ可と判定。autopilot Runner から非対話で起動される。
-argument-hint: "[issue number]"
-disable-model-invocation: true
----
 
 # /autopilot-understand — Understand phase
 
 **Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`.**
 対話的に質問しない。終了時に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークンを出す。
 
-対象は `$ARGUMENTS` または `AUTOPILOT_ISSUE`。リポジトリは `AUTOPILOT_REPO`（既定 `smalruby/smalruby3-editor`）。
+対象は 環境変数 `AUTOPILOT_ISSUE`。リポジトリは `AUTOPILOT_REPO`（既定 `smalruby/smalruby3-editor`）。
 
 ゴール: **Issue/EPIC の意図・スコープ・受け入れ条件を把握し、自律的に進められるだけ明確かを判定する。** 不明・曖昧なら人間に確認（HITL）。
 
@@ -74,4 +68,4 @@ echo AUTOPILOT_HITL
 
 ## License
 
-This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.
+This phase prompt is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.
