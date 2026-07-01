@@ -27,7 +27,17 @@ const blockIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNv
  * The url of the synthesis server.
  * @type {string}
  */
-const SERVER_HOST = 'https://synthesis-service.scratch.mit.edu';
+// === Smalruby: Start of synthesis CORS proxy ===
+// Scratch's synthesis service is CORS-locked to scratch.mit.edu, so calling it
+// directly from smalruby.app fails ('Access-Control-Allow-Origin' mismatch).
+// Route through the Smalruby proxy (infra/smalruby-api scratch-api-proxy/synth)
+// which forwards to synthesis-service.scratch.mit.edu server-side and returns the
+// binary audio (Base64-decoded by API Gateway) with permissive CORS headers.
+// The extension builds `${SERVER_HOST}/synth?...`, so pointing SERVER_HOST at the
+// proxy base yields `https://api.smalruby.app/scratch-api-proxy/synth?...`.
+// Keep this override across upstream merges (same root cause as translate #857).
+const SERVER_HOST = 'https://api.smalruby.app/scratch-api-proxy';
+// === Smalruby: End of synthesis CORS proxy ===
 
 /**
  * How long to wait in ms before timing out requests to synthesis server.

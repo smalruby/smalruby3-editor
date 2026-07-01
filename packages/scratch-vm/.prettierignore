@@ -90,6 +90,7 @@ test/unit/*
 !test/unit/extension_mesh_v2.js
 !test/unit/extension_smalrubot_s1.js
 !test/unit/extension_translate_proxy.js
+!test/unit/extension_text2speech_proxy.js
 !test/unit/extension_smalruby_ruby_each.js
 !test/unit/mesh_service_v2_cost.js
 !test/unit/mesh_service_v2_global_vars.js

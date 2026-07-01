@@ -4,7 +4,7 @@
 
 ## 概要
 
-`infra/smalruby-api/` は Smalruby のフロントエンド (smalruby.app) が利用する**汎用バックエンド機能**を提供する 4 つの Lambda を束ねた **HTTP API v2** スタック。
+`infra/smalruby-api/` は Smalruby のフロントエンド (smalruby.app) が利用する**汎用バックエンド機能**を提供する 5 つの Lambda を束ねた **HTTP API v2** スタック。
 
 | エンドポイント | Lambda | 用途 |
 |---|---|---|
@@ -12,6 +12,7 @@
 | `GET /mesh-domain` | `smalruby-api-mesh-zone{stageSuffix}` | クライアント IP から Mesh ドメイン (CRC32 ハッシュ) を生成 |
 | `GET /scratch-api-proxy/projects/{projectId}` | `smalruby-api-scratch-projects{stageSuffix}` | Scratch 公式 API (project info) のステータス透過プロキシ |
 | `GET /scratch-api-proxy/translate` | `smalruby-api-scratch-translate{stageSuffix}` | Scratch 公式翻訳サービスのプロキシ |
+| `GET /scratch-api-proxy/synth` | `smalruby-api-scratch-synthesis{stageSuffix}` | Scratch 公式音声合成サービスのプロキシ (バイナリ音声を Base64 返却) |
 
 `OPTIONS` (preflight) は HTTP API v2 の **built-in CORS** が自動処理。旧 SAM の `cors-for-smalruby` Lambda は不要。
 
@@ -65,6 +66,16 @@ Scratch Foundation 公式 API (`https://api.scratch.mit.edu/projects/{projectId}
 Scratch translate サービス (`https://translate-service.scratch.mit.edu/translate`) のプロキシ。
 
 実装: `infra/smalruby-api/lambda/scratch-api-translate.ts`
+
+### `GET /scratch-api-proxy/synth`
+
+Scratch 音声合成サービス (`https://synthesis-service.scratch.mit.edu/synth`) のプロキシ。text2speech (「音声で話す」) 拡張が利用する。
+
+**入力**: `?locale=<>&gender=<>&text=<>`
+
+**処理**: サーバ側で synthesis サービスを fetch し、**バイナリ音声 (mp3) を Base64 エンコードして返す** (`isBase64Encoded: true` + `Content-Type: audio/mpeg`)。API Gateway が Base64 をデコードしてクライアントにはバイナリで届く。translate (テキスト) と違い応答がバイナリな点が最大の差 (cors-proxy のバイナリ Base64 化と同じ考え方)。
+
+実装: `infra/smalruby-api/lambda/scratch-api-synthesis.ts`
 
 ## 環境変数
 
