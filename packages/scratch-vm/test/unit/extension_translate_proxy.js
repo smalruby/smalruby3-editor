@@ -5,10 +5,11 @@ const extPath = require.resolve('../../src/extensions/scratch3_translate');
 
 // The Translate extension is an upstream Scratch file whose translate service is
 // CORS-locked to scratch.mit.edu. Smalruby must route requests through its own
-// proxy (api.smalruby.app/scratch-api-proxy/) so smalruby.app is not blocked by
-// CORS. This test guards that the override is not silently reverted by an
-// upstream merge (as happened during the v13.7.2 merge; see issue #857).
-test('translate extension routes fetch through the Smalruby CORS proxy', (t) => {
+// generic CORS proxy (api.smalruby.app/cors-proxy?url=<encoded translate URL>) so
+// smalruby.app is not blocked by CORS. This test guards that the proxy wrapping is
+// not silently reverted by an upstream merge (same root cause as text2speech; see
+// issue #862 / #859 / #857).
+test('translate extension routes fetch through the generic Smalruby CORS proxy', (t) => {
     // Stub fetchWithTimeout before the extension captures it via destructuring at
     // module load time, then fresh-require the extension so it picks up the stub.
     const fetchModule = require(fetchModulePath);
@@ -31,13 +32,19 @@ test('translate extension routes fetch through the Smalruby CORS proxy', (t) => 
         t.ok(capturedUrl, 'fetchWithTimeout was called');
         t.match(
             capturedUrl,
-            /^https:\/\/api\.smalruby\.app\/scratch-api-proxy\/translate\?/,
-            'serverURL points to the Smalruby CORS proxy',
+            /^https:\/\/api\.smalruby\.app\/cors-proxy\?url=/,
+            'request goes to the generic Smalruby CORS proxy',
+        );
+        // The translate URL (with its query) is carried as the encoded `url` param.
+        t.match(
+            capturedUrl,
+            /url=https%3A%2F%2Ftranslate-service\.scratch\.mit\.edu%2Ftranslate/,
+            'the CORS-locked translate URL is wrapped as the proxy `url` param',
         );
         t.notMatch(
             capturedUrl,
-            /translate-service\.scratch\.mit\.edu/,
-            'does not call the CORS-locked Scratch translate service directly',
+            /^https:\/\/translate-service\.scratch\.mit\.edu/,
+            'the browser does not call the CORS-locked Scratch translate service directly',
         );
         t.end();
     });

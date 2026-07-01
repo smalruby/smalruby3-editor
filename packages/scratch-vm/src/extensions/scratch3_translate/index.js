@@ -24,14 +24,19 @@ const blockIconURI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYA
  * The url of the translate server.
  * @type {string}
  */
+const serverURL = 'https://translate-service.scratch.mit.edu/';
+
 // === Smalruby: Start of translate CORS proxy ===
 // Scratch's translate service is CORS-locked to scratch.mit.edu, so calling it
 // directly from smalruby.app fails ('Access-Control-Allow-Origin' mismatch).
-// Route through the Smalruby proxy (infra/smalruby-api scratch-api-proxy/translate)
-// which forwards to translate-service.scratch.mit.edu server-side and returns the
-// response with permissive CORS headers. Keep this override across upstream merges
-// (it was silently reverted during the v13.7.2 merge — see issue #857).
-const serverURL = 'https://api.smalruby.app/scratch-api-proxy/';
+// Instead of a dedicated per-service Lambda, we reuse Smalruby's *generic* CORS
+// proxy (infra/smalruby-api `GET /cors-proxy?url=<encoded target URL>`). It fetches
+// the target server-side and returns the (text) response with permissive CORS
+// headers. See where the translate request URL is built (search for CORS_PROXY_HOST).
+// serverURL stays at the upstream value so upstream merges only touch the URL-build
+// site (guarded by test/unit/extension_translate_proxy.js). Same root cause as
+// text2speech (#857/#859), which the dedicated translate Lambda now replaces (#862).
+const CORS_PROXY_HOST = 'https://api.smalruby.app/cors-proxy';
 // === Smalruby: End of translate CORS proxy ===
 
 /**
@@ -271,6 +276,13 @@ class Scratch3TranslateBlocks {
         urlBase += lang;
         urlBase += '&text=';
         urlBase += encodeURIComponent(args.WORDS);
+
+        // === Smalruby: Start of translate CORS proxy ===
+        // Wrap the translate URL in the generic Smalruby CORS proxy so smalruby.app
+        // is not blocked by the CORS-locked Scratch service. The whole translate URL
+        // (including its query string) becomes the encoded `url` param.
+        urlBase = `${CORS_PROXY_HOST}?url=${encodeURIComponent(urlBase)}`;
+        // === Smalruby: End of translate CORS proxy ===
 
         const tempThis = this;
         const translatePromise = fetchWithTimeout(urlBase, {}, serverTimeoutMs)
