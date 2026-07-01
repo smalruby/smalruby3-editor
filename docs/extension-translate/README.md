@@ -16,7 +16,7 @@
 Scratch の翻訳サービス (`translate-service.scratch.mit.edu`) は `Access-Control-Allow-Origin` を
 `scratch.mit.edu` 限定に締めたため、`smalruby.app` から直接叩くと CORS でブロックされる。
 そこで VM 実装 `scratch3_translate/index.js` の `serverURL` を Smalruby プロキシ
-`https://api.smalruby.app/scratch-api-proxy/` に上書きしている（`=== Smalruby: translate CORS proxy ===`
+`https://api.smalruby.app/scratch-api-proxy/` に上書きしている（`=== Smalruby: Start/End of translate CORS proxy ===`
 マーカーで囲む）。プロキシはサーバ側で `translate-service.scratch.mit.edu` を叩き、built-in CORS で
 レスポンスを返す（`infra/smalruby-api` の `GET /scratch-api-proxy/translate`）。
 
