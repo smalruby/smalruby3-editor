@@ -20,9 +20,11 @@ scratch-vm の **upstream ファイルに埋め込んだ Smalruby マーカー**
 | `src/engine/runtime.js` | BEFORE_STEP event | upstream v13.7.2 が削除した `BEFORE_STEP` イベント（getter + `_step` での emit）を維持。Mesh v2 (broadcast-receiver.js / mesh-service.js) が毎フレーム queued remote events を流すために購読している |
 | `src/engine/blocks.js` | XML coords guard | `blockToXML` で x/y が finite number のときだけ XML 属性を出力。Ruby → blocks 変換の x/y 未指定 (undefined) を scratch-blocks v2 に正しく伝え、`fromRuby` 再レイアウト経路を維持する |
 | `src/engine/blocks.js` | orphaned-parent guard | `getTopLevelScript` で `block.parent` が this._blocks に存在しない場合に停止。Ruby → blocks 変換中の孤立 parent id で `undefined.parent` 参照クラッシュを防ぐ |
+| `src/extensions/scratch3_translate/index.js` | translate CORS proxy | `serverURL` を Smalruby プロキシ (`https://api.smalruby.app/scratch-api-proxy/`) に上書き。Scratch の翻訳サービスは CORS を scratch.mit.edu 限定にしたため smalruby.app からの直叩きが失敗する。マーカー無しで上書きしていた過去の版が v13.7.2 upstream マージで静かに revert された (#857) ため、次回以降のマージで検知できるようマーカーで囲む |
 
 ## 関連ファイル
 
 マーカーで囲まれたコードが参照するファイル:
 - `src/extension-support/smalruby-extensions.js` — extension-manager.js のマーカーから参照
 - `test/unit/blocks_operators_regex.js` — scratch3_operators.js の regex support のテスト
+- `test/unit/extension_translate_proxy.js` — scratch3_translate/index.js の translate CORS proxy のテスト
