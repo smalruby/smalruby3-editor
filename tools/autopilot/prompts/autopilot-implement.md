@@ -1,16 +1,10 @@
----
-name: autopilot-implement
-description: autopilot の実装フェーズ。leaf Issue を TDD で実装し Draft PR を作成する。完了後は自己(敵対的)レビューへ。autopilot Runner から非対話で起動される。
-argument-hint: "[issue number]"
-disable-model-invocation: true
----
 
 # /autopilot-implement — Implement phase
 
 **Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`.**
 対話的に質問しない。終了時に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークンを出す。
 
-対象 leaf Issue は `$ARGUMENTS` または `AUTOPILOT_ISSUE`。作業は **割り当てられた worktree（cwd）**の中だけで行う。
+対象 leaf Issue は 環境変数 `AUTOPILOT_ISSUE`。作業は **割り当てられた worktree（cwd）**の中だけで行う。
 
 ゴール: **Issue を TDD で実装し、Draft PR を作成する。** 実装が終わったら自己（敵対的）レビュー（`autopilot-review`）に渡す。
 
@@ -75,3 +69,9 @@ echo AUTOPILOT_ERROR
 - `AskUserQuestion` を使わない。判断は HITL（コメント + 番兵）。
 - Project フィールド・PR ラベル/Ready/Draft の切替は daemon が結果を見て行う（単一ライター）。
 - bot 認証（`bin/bot-git` / `bin/bot-token`）。
+
+---
+
+## License
+
+This phase prompt is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

@@ -4,8 +4,9 @@
 # How it works: ignore everything, then re-include Smalruby directories/files
 # level by level (gitignore requires parent dirs to be un-ignored first).
 #
-# Canonical file list: .claude/rules/scratch-gui/smalruby-prettier-files.md
-# When adding new Smalruby-specific files, update both this file and the doc.
+# This file is the canonical whitelist of Smalruby-specific files for Prettier.
+# (The .claude/rules mirror was removed; this file is the single source of truth.)
+# When adding a new Smalruby-specific file, add it here.
 
 # ============================================================
 # Level 0: Ignore everything at root
@@ -41,6 +42,7 @@ src/components/*
 !src/components/google-drive-save-dialog/
 !src/components/dncl-mode-notice/
 !src/components/koshien-test-modal/
+!src/components/koshien-settings-modal/
 !src/components/mesh-self-sensor-notice/
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-drawer/
@@ -130,6 +132,8 @@ src/lib/*
 !src/lib/auto-correct.js
 !src/lib/backpack-mesh-v1-migration.js
 !src/lib/bug-report-api.js
+!src/lib/koshien-connection.js
+!src/lib/koshien-test-url.js
 !src/lib/deck-setup.js
 !src/lib/classroom-api.js
 !src/lib/classroom-kick-request-storage.js
@@ -281,6 +285,8 @@ test/unit/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
 !test/unit/components/bug-report-consent.test.jsx
+!test/unit/components/koshien-settings-modal.test.jsx
+!test/unit/components/koshien-test-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
 !test/unit/components/extension-button-dncl.test.jsx
 !test/unit/components/connected-step.test.jsx
@@ -332,6 +338,8 @@ test/unit/lib/*
 !test/unit/lib/backpack-mesh-v1-migration.test.js
 !test/unit/lib/block-display-initialization.test.js
 !test/unit/lib/bug-report-api.test.js
+!test/unit/lib/koshien-connection.test.js
+!test/unit/lib/koshien-test-url.test.js
 !test/unit/lib/blockly-private-api.test.js
 !test/unit/lib/blocks-gesture-recovery.test.js
 !test/unit/lib/classroom-api.test.js

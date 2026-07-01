@@ -1,16 +1,10 @@
----
-name: autopilot-triage
-description: autopilot のトリアージ・フェーズ。New Item の Issue を分類（EPIC/Issue）・スコープ判定（Backlog/Icebox）・Size 重み付け（small/middle/large）し、結果を autopilot コントラクトの番兵で返す。autopilot Runner から非対話で起動される。
-argument-hint: "[issue number]"
-disable-model-invocation: true
----
 
 # /autopilot-triage — Triage phase
 
 **Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`.**
 特に「対話的に質問しない」「終了時に `AUTOPILOT_RESULT_FILE` へ JSON を書き pane に signal トークンを出す」を厳守する。
 
-対象 Issue 番号は `$ARGUMENTS` または環境変数 `AUTOPILOT_ISSUE`。リポジトリは `AUTOPILOT_REPO`（既定 `smalruby/smalruby3-editor`）。
+対象 Issue 番号は 環境変数 `AUTOPILOT_ISSUE`。リポジトリは `AUTOPILOT_REPO`（既定 `smalruby/smalruby3-editor`）。
 
 このフェーズのゴール: **New Item の Issue を読み、(1) EPIC か通常 Issue か、(2) やる(Backlog)かやらない(Icebox)か、(3) leaf Issue なら Size を、判定して番兵で返す。**
 
@@ -106,3 +100,9 @@ echo AUTOPILOT_ERROR
 - **Project フィールドは書き換えない**（Status/AI Status/Size 等の反映は daemon/CLI が結果ファイルを見て行う）。
 - `gh` には必ず `GH_TOKEN="$(bin/bot-token)"` を付ける。コミットが要る場面では `bin/bot-git`。
 - `AskUserQuestion` を使わない。判断は番兵 + コメントで返す。
+
+---
+
+## License
+
+This phase prompt is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

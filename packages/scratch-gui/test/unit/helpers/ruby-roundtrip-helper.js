@@ -167,7 +167,13 @@ export const rubyToBlocksToRuby = async (converter, target, code, options = {}) 
     }
     await converter.applyTargetBlocks(target);
     RubyGenerator.currentTarget = target;
-    return RubyGenerator.targetToCode(target, options).trim();
+    // Keep the generator's Ruby version aligned with the converter's by default,
+    // mirroring production where both share one version setting. Tests that set
+    // the converter to v2 (makeConverter(..., {version: 2})) then get v2 output
+    // without having to also pass {version} to expectRoundTrip. Explicit
+    // options.version still wins.
+    const genOptions = {version: converter.version, ...options};
+    return RubyGenerator.targetToCode(target, genOptions).trim();
 };
 
 /**

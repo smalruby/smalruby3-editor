@@ -138,7 +138,7 @@ const SensingConverter = {
             if (!converter.isColorOrBlock(args[0])) return null;
 
             const block = converter.createBlock('sensing_touchingcolor', 'value_boolean');
-            converter.addFieldInput(block, 'COLOR', 'colour_picker', 'COLOUR', args[0], '#43066f');
+            converter.addColorFieldInput(block, 'COLOR', args[0], '#43066f');
             return block;
         });
 
@@ -148,8 +148,8 @@ const SensingConverter = {
             if (!converter.isColorOrBlock(args[0]) || !converter.isColorOrBlock(args[1])) return null;
 
             const block = converter.createBlock('sensing_coloristouchingcolor', 'value_boolean');
-            converter.addFieldInput(block, 'COLOR', 'colour_picker', 'COLOUR', args[0], '#aad315');
-            converter.addFieldInput(block, 'COLOR2', 'colour_picker', 'COLOUR', args[1], '#fca3bf');
+            converter.addColorFieldInput(block, 'COLOR', args[0], '#aad315');
+            converter.addColorFieldInput(block, 'COLOR2', args[1], '#fca3bf');
             return block;
         });
 

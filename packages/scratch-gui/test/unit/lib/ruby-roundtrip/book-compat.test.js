@@ -105,9 +105,8 @@ describe('Ruby Roundtrip: Book code compatibility (v1)', () => {
     // --- Lists / Variables ---
 
     test('Program 6: prefecture quiz with list()', async () => {
-        // v1 known incompatibility: list("$xxx")[index] is accepted by the converter
-        // but the generator outputs $xxx[index - 1] (0-based array access).
-        // TODO: #363 - make v1 generator preserve list() function format
+        // v1 preserves the list("$xxx")[index] function format (1-indexed) on
+        // round-trip; the plain array syntax $xxx[index] is v2-only (#839 / #363).
         await expectRoundTrip(converter, target, dedent`
             self.when(:flag_clicked) do
               loop do
@@ -117,19 +116,6 @@ describe('Ruby Roundtrip: Book code compatibility (v1)', () => {
                   say("正解！", 2)
                 else
                   say(list("$けんちょうしょざいち")[$えらんだけんのばんごう] + "がせいかいだよ", 2)
-                end
-                wait
-              end
-            end
-        `, dedent`
-            self.when(:flag_clicked) do
-              loop do
-                $えらんだけんめい = rand(1..18)
-                ask($けんめい[$えらんだけんのばんごう - 1] + "のけんちょうしょざいちのけんはどこかな")
-                if answer == $けんちょうしょざいち[$えらんだけんのばんごう - 1]
-                  say("正解！", 2)
-                else
-                  say($けんちょうしょざいち[$えらんだけんのばんごう - 1] + "がせいかいだよ", 2)
                 end
                 wait
               end

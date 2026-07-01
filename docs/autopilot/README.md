@@ -10,7 +10,7 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 専用 **GitHub Projects v2「Autopilot」** のフィールドで一元管理する。
 
 設計の出発点となった課題と意思決定の経緯は Issue #760（EPIC）に集約されている。
-スキル/Runner が従う詳細な契約は [`autonomous-contract.md`](./autonomous-contract.md) を参照。
+プロンプト/Runner が従う詳細な契約は [`autonomous-contract.md`](./autonomous-contract.md) を参照。
 
 ---
 
@@ -41,7 +41,7 @@ autopilot は、複数の GitHub Issue を Claude が**並行**して
 | **Claude runner** | 対話 Claude Code を tmux で起動し send-keys で駆動、watchdog で監視 | `tools/autopilot/src/runner.js` |
 | **Web モニタ** | item 一覧・状態・ログ閲覧・手動操作（daemon が `GET /` で配信） | `tools/autopilot/src/monitor.js` |
 | **CLI** | 単一フェーズを単一 Issue で実行（動作確認・ドライラン） | `tools/autopilot/bin/autopilot` |
-| **フェーズ・スキル** | 各フェーズの「頭脳」。非対話で1フェーズを遂行 | `.claude/skills/autopilot-*` |
+| **フェーズ・プロンプト** | 各フェーズの「頭脳」。非対話で1フェーズを遂行 | `tools/autopilot/prompts/autopilot-*` |
 | **worktree** | Issue ごとの隔離作業場（軽量・即作成） | `bin/autopilot-worktree` |
 
 > daemon は常駐の単独プロセスとして起動する。並行数は設定可能（既定 2、必要に応じて増やす）。
@@ -74,12 +74,12 @@ No Status(未設定) → Backlog / Icebox → Sprint Backlog(autopilot キュー
 > 正規化して扱う（`tools/autopilot/src/phases.js` の `status || 'New Item'`）。本ドキュメントの
 > 表記は UI に合わせて「No Status」で統一する。
 
-### AI Status — AI 専用の細フェーズ（各値 ≈ 1 スキル）
+### AI Status — AI 専用の細フェーズ（各値 ≈ 1 プロンプト）
 
-人間は Status を見れば十分。AI Status は daemon が「次に呼ぶスキル」を引くための内部状態で、
+人間は Status を見れば十分。AI Status は daemon が「次に呼ぶプロンプト」を引くための内部状態で、
 Issue を状態の正とすることで daemon が落ちても現在地が分かる。
 
-| AI Status | 対応スキル | 主な Status |
+| AI Status | 対応プロンプト | 主な Status |
 |---|---|---|
 | Triaging | autopilot-triage | No Status |
 | Understanding | autopilot-understand | No Status / Backlog（EPIC） |
@@ -137,6 +137,20 @@ close リンクで見つからなければ head ブランチ `topic/autopilot-<N
 `project.hasMergedPullRequest` と daemon の `applyMergeProgression`（ラベル除去は force 同期）。
 実行中（run が所有する）item は触らない。
 
+非デフォルト base 宛て PR では GitHub の `Closes #N` 自動 close が効かないため、Status を **Close**
+へ進めた leaf は `project.closeIssue`（`gh issue close`・冪等）で **GitHub issue も明示的に閉じる**
+（#843 Fix A）。
+
+### closed-issue → Project Close 整合（#843 Fix B）
+
+merge-progression は leaf の連携 PR merge しか見ないため、(A) 非デフォルト base 宛て PR で手動
+close した leaf、(B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) 人手で閉じた issue が Project に
+取り残される。daemon はポーリングのたびに `applyClosedReconcile` で **GitHub 上で closed な issue**
+（`project.listClosedIssueNumbers`）のうち Project Status が終端（Close / Done）でないものを
+**Status=Close + AI Status クリア**へ整合する。closed という事実だけを根拠にするので **EPIC も対象**。
+判定は `phases.js` の `selectClosedToReconcile`（純粋関数・終端は `TERMINAL_STATUSES`）。実行中
+（run が所有する）item は触らない。冪等。
+
 ---
 
 ## implement→review の自動ディスパッチ（自己レビュー）
@@ -160,10 +174,10 @@ daemon は **構造化シグナル（approve/changes-requested）で機械的に
 `autopilot-address-review` を起動する**（`phaseForItem` が Review 解除 → `address-review`）。
 
 approve でも本文に改善依頼が書かれていたり、"changes requested" でも実質 LGTM だったりと、
-自由文の意図は構造化シグナルでは判定できない。そこで**判断はスキル側に置く**: address-review が
+自由文の意図は構造化シグナルでは判定できない。そこで**判断はプロンプト側に置く**: address-review が
 PR の **diff と全コメント（Issue/レビュー本文/インライン）**を読んで分類する。
 
-| スキルの分類（HITL 解除後） | 対応 |
+| プロンプトの分類（HITL 解除後） | 対応 |
 |---|---|
 | 質問 | bot で返信（必要ならコード修正）→ 再レビューへ |
 | 改善依頼 / 変更要求 | worktree で修正・push → 再レビューへ |
@@ -175,7 +189,7 @@ PR の **diff と全コメント（Issue/レビュー本文/インライン）**
   で判定）。daemon が両面を atomic に同期する（後述「PR 側の状態可視化」）ので、人間は目の前の
   PR ラベルを外すだけで差し戻せる。
 - address-review は **既存 PR ブランチ**で作業する（daemon が worktree を `--pr` で用意）。
-- **コンフリクトは autopilot で解消しない**（rebase/merge コンフリクトは人間の役割）。スキルは
+- **コンフリクトは autopilot で解消しない**（rebase/merge コンフリクトは人間の役割）。プロンプトは
   解消を試みず HITL で人間に渡す。
 
 ---
@@ -213,9 +227,8 @@ LLM は in-container で回さず、**純粋な I/O + 文字列テンプレー�
 - **NG**: ホスト/人間が PR に NG をコメントし `🙋 HITL` を外す → daemon が **DoD 解除 → address-review**
   を起動（Review と対称。`phaseForItem` が DoD 解除 → `address-review`、OR セマンティクスも同じ）。
 
-> 既存の `autopilot-verify` スキル（`.claude/skills/`）は手動 inject 用に残してよいが、自動経路は
-> この daemon 生成を使う（スキル本体は `.claude/` にあり、書き換えると autopilot 自身の implement が
-> 確認プロンプトで止まるため・#820/#821）。
+> 既存の `autopilot-verify` プロンプト（`tools/autopilot/prompts/`）は手動 inject 用に残してよいが、
+> 自動経路はこの daemon 生成（`applyDodHandoffs`）を使う（#821）。
 
 ---
 
@@ -278,7 +291,7 @@ watchdog が次を処理する:
 
 ## 自律コントラクト
 
-すべての `autopilot-*` スキルは [`autonomous-contract.md`](./autonomous-contract.md) に従う。要点:
+すべての `autopilot-*` プロンプトは [`autonomous-contract.md`](./autonomous-contract.md) に従う。要点:
 
 - **対話的に人間へ質問しない**。判断が要れば bot で Issue/PR にコメントし `AUTOPILOT_HITL` で終了。
 - 終了直前に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークン（`AUTOPILOT_DONE` /
@@ -410,11 +423,11 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 | パス | 内容 |
 |---|---|
 | `docs/autopilot/README.md` | 本ドキュメント（機能全体の入口） |
-| `docs/autopilot/autonomous-contract.md` | スキル/Runner の契約 |
-| `.claude/skills/autopilot-*/` | 各フェーズのスキル |
+| `docs/autopilot/autonomous-contract.md` | プロンプト/Runner の契約 |
+| `tools/autopilot/prompts/autopilot-*/` | 各フェーズのプロンプト |
 | `bin/autopilot-worktree` | 軽量 worktree スクリプト |
 | `tools/autopilot/src/contract.js` | 番兵/結果ファイルの検証（純粋） |
-| `tools/autopilot/src/phases.js` | フェーズ↔スキル、結果→フィールド意図、watchdog 判断、HITL 解除、merge-progression、PR 投影（純粋） |
+| `tools/autopilot/src/phases.js` | フェーズ↔プロンプト、結果→フィールド意図、watchdog 判断、HITL 解除、merge-progression、PR 投影（純粋） |
 | `tools/autopilot/src/project.js` | GitHub Projects v2 + Issue/PR ラベル・Draft・sticky への gh ラッパ |
 | `tools/autopilot/src/runner.js` | tmux runner + watchdog |
 | `tools/autopilot/src/daemon.js` | 常駐 daemon（ポーリング・ディスパッチ・HTTP 制御・merge-progression） |
@@ -434,6 +447,13 @@ cd tools/autopilot && node --test    # 純粋ロジックの unit テスト（�
 
 ## 運用上の注意（実地で得た知見）
 
-- **worktree のスキル可用性**: `autopilot-*` スキルが対象ブランチに存在する必要がある（develop に
+- **worktree のプロンプト可用性**: `autopilot-*` プロンプトが対象ブランチに存在する必要がある（develop に
   マージ済みなら worktree でも解決可能）。
 - **非対話権限**: runner は権限プロンプトで止まらない設定（許可ツール指定など）で claude を起動する。
+
+---
+
+## ライセンス
+
+autopilot のツール群（`tools/autopilot/**`）と autopilot プロンプト（`tools/autopilot/prompts/autopilot-*/**`）は、
+リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**とする。詳細は `tools/autopilot/LICENSE` を参照。

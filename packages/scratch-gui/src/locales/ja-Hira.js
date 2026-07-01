@@ -278,6 +278,7 @@ export default {
     'gui.menuBar.saveAIAs': 'AIになまえをつけてほぞん...',
     'gui.menuBar.testAI': 'AIをためす',
     'gui.menuBar.koshienEntryForm': 'さんかもうしこみ',
+    'gui.menuBar.koshienSettings': 'せつぞくせってい',
     'gui.menuBar.koshienCannotChangeRubyVersion':
         'スモウルビーこうしえんかくちょうきのうがよみこまれているときは、Rubyのバージョンをへんこうできません。',
     'gui.menuBar.aiSaving': 'ルビーをほぞんちゅう...',
@@ -295,6 +296,16 @@ export default {
     'gui.alerts.thumbnailError': 'サムネイルをせっていできませんでした。あとでもういちどおためしください。',
 
     'gui.koshienTestModal.title': 'スモウルビーこうしえんのAIをためす',
+    'gui.koshienTestModal.tooLong':
+        'このAIは おおきすぎて、URLで ビューアに わたせません。Ruby（.rb）ファイルとして ほぞんし、ビューアから よみこんで ためしてください。',
+    'gui.koshienTestModal.downloadAi': 'AIを ファイルに ほぞん',
+    'gui.koshienSettingsModal.title': 'こうしえんのせつぞくせってい',
+    'gui.koshienSettingsModal.endpoint': 'ゲームサーバーのURL',
+    'gui.koshienSettingsModal.side': 'プレイヤーのがわ',
+    'gui.koshienSettingsModal.gameCode': 'ゲームコード',
+    'gui.koshienSettingsModal.test': 'せつぞくをテスト',
+    'gui.koshienSettingsModal.save': 'ほぞん',
+    'gui.koshienSettingsModal.testing': 'テストちゅう...',
     'gui.googleDriveLoader.loadError': 'Google ドライブからプロジェクトのよみこみにしっぱいしました。',
     'gui.googleDriveLoader.authError': 'Google ドライブのにんしょうにしっぱいしました。もういちどおためしください。',
     'gui.googleDriveLoader.configError':
@@ -753,8 +764,6 @@ export default {
     'gui.extensionLibrary.showAllExtensions': 'すべてのかくちょうきのうをひょうじ',
     'gui.extensionLibrary.meshDeprecationWarning':
         'じゅうらいのメッシュかくちょうきのうは4がつ30にちまでしかつかえません。このままじゅうらいのメッシュかくちょうきのうをりようするばあいはOKをせんたくします。そうではなく、あたらしいメッシュかくちょうきのうをつかうばあいはキャンセルをせんたくします。',
-    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1':
-        'スモウルビーこうしえんかくちょうきのうは Ruby v1 でのみりようできます。',
 
     // MicroBit More - Tilt gesture labels (override to match microbit extension)
     'mbitMore.gesturesMenu.tiltUp': 'うえにかたむいた',

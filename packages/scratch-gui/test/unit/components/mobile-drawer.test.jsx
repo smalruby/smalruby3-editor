@@ -290,7 +290,7 @@ describe('MobileDrawer', () => {
             }
         });
 
-        test('switching to v2 with koshien loaded shows alert', () => {
+        test('switching to v2 with koshien loaded is allowed (koshien supports v2)', () => {
             const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
             const vm = {
                 runtime: { targets: [] },
@@ -301,8 +301,8 @@ describe('MobileDrawer', () => {
                 fireEvent.click(getByTestId('mobile-drawer-toggle-settings'));
                 fireEvent.click(getByTestId('mobile-drawer-toggle-settings-ruby'));
                 fireEvent.click(getByTestId('mobile-drawer-ruby-version-2'));
-                expect(alertSpy).toHaveBeenCalledTimes(1);
-                expect(props.onChangeRubyVersion).not.toHaveBeenCalled();
+                expect(alertSpy).not.toHaveBeenCalled();
+                expect(props.onChangeRubyVersion).toHaveBeenCalledWith('2');
             } finally {
                 alertSpy.mockRestore();
             }

@@ -132,6 +132,20 @@ const BlockUtils = {
         this._context.currentNode = previousNode;
     },
 
+    addColorFieldInput (block, name, inputValue, shadowValue) {
+        return this._addColorFieldInput(block, name, inputValue, shadowValue);
+    },
+
+    // Like _addFieldInput for a `colour_picker` field, but normalizes string color
+    // values (named colors, #rgb, rgb()) into `#rrggbb` so AI-generated/hand-written
+    // color code does not error. Non-string inputs (e.g. variable blocks) pass through.
+    _addColorFieldInput (block, name, inputValue, shadowValue) {
+        const normalized = this._isString(inputValue) ?
+            (this.normalizeColor(inputValue) || inputValue) :
+            inputValue;
+        return this._addFieldInput(block, name, 'colour_picker', 'COLOUR', normalized, shadowValue);
+    },
+
     _addSubstack (block, substackBlock, num = 1) {
         let name = 'SUBSTACK';
         if (num > 1) {

@@ -1,16 +1,10 @@
----
-name: autopilot-decompose
-description: autopilot の分解フェーズ。EPIC を sub-issue に分解し size を重み付けする。分解案は人間承認(HITL)を経てから作成する2フェーズ。autopilot Runner から非対話で起動される。
-argument-hint: "[epic issue number]"
-disable-model-invocation: true
----
 
 # /autopilot-decompose — Decompose phase
 
 **Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`.**
 対話的に質問しない。終了時に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークンを出す。
 
-対象 EPIC は `$ARGUMENTS` または `AUTOPILOT_ISSUE`。リポジトリは `AUTOPILOT_REPO`（既定 `smalruby/smalruby3-editor`）。
+対象 EPIC は 環境変数 `AUTOPILOT_ISSUE`。リポジトリは `AUTOPILOT_REPO`（既定 `smalruby/smalruby3-editor`）。
 
 ゴール: **EPIC を leaf sub-issue に分解し、各 leaf に size(small/middle/large) を付ける。** 分解は
 人間の承認ゲート（HITL）を挟むため **2 フェーズ**で動く。フェーズは「自分の分解案コメントが既にあるか」で判定する（冪等）。
@@ -85,3 +79,9 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 - size は **leaf にのみ**付ける（EPIC は付けない）。
 - `AskUserQuestion` を使わない。承認は HITL（番兵 + コメント）で待つ。
 - `gh` には `GH_TOKEN="$(bin/bot-token)"`、コミットは `bin/bot-git`。
+
+---
+
+## License
+
+This phase prompt is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

@@ -1,11 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {defineMessages, injectIntl, FormattedMessage} from 'react-intl';
+import { connect } from 'react-redux';
+import { defineMessages, injectIntl, FormattedMessage } from 'react-intl';
+import VM from '@smalruby/scratch-vm';
 import intlShape from '../../lib/intlShape.js';
 
 import Box from '../box/box.jsx';
 import Button from '../button/button.jsx';
 import Modal from '../../containers/modal.jsx';
+
+import { generateProjectCode } from '../../lib/ruby-script-preview';
+import { buildKoshienTestPlan } from '../../lib/koshien-test-url';
+import downloadBlob from '../../lib/download-blob';
 
 import reloadIcon from '../../lib/assets/icon--reload.svg';
 import stopIcon from '../close-button/icon--close.svg';
@@ -16,17 +22,55 @@ const messages = defineMessages({
     title: {
         defaultMessage: 'Test AI',
         description: 'Title for the Koshien test modal',
-        id: 'gui.koshienTestModal.title'
-    }
+        id: 'gui.koshienTestModal.title',
+    },
 });
 
-const KoshienTestModal = props => {
-    const {intl, onRequestClose} = props;
+/**
+ * Build a safe `<sprite>.rb` filename for the downloaded AI program.
+ * @param {object} vm - The Scratch VM.
+ * @returns {string} The download filename.
+ */
+const aiFilename = (vm) => {
+    const target = vm && vm.editingTarget;
+    const name = target && typeof target.getName === 'function' ? target.getName() : '';
+    const safe = (name || 'koshien_ai').replace(/[\\/:*?"<>|]/g, '_');
+    return `${safe}.rb`;
+};
+
+export const KoshienTestModal = (props) => {
+    const { intl, onRequestClose, vm, rubyVersion, stage, sprites, rubyCode } = props;
     const [iframeKey, setIframeKey] = React.useState(0);
     const [loading, setLoading] = React.useState(true);
 
+    // Generate the WHOLE project's AI program (stage + every sprite, plus any
+    // unsaved Ruby-tab edits) — the same code "Save AI" writes. Testing the
+    // editing target alone would miss code in other targets (e.g. an AI whose
+    // logic lives in a sprite while the stage is selected), making a large AI
+    // look small and skipping the download fallback below. Short AIs still ride
+    // along in the player1 query parameter so the user's own AI is played. A
+    // complex AI overflows the URL length limit, so we then load the viewer
+    // without the AI (default AI) and surface a download fallback. Regenerated
+    // whenever the modal (re)loads via the reload button. Falls back to the
+    // default AI if generation fails or yields nothing.
+    const { iframeSrc, code, tooLong } = React.useMemo(() => {
+        let generated = '';
+        try {
+            generated = generateProjectCode(vm, { stage, sprites, version: rubyVersion, rubyCode }) || '';
+        } catch (e) {
+            generated = '';
+        }
+        const plan = buildKoshienTestPlan(generated);
+        return { iframeSrc: plan.url, code: generated, tooLong: plan.tooLong };
+        // iframeKey is intentionally included so Reload re-reads the latest code.
+    }, [vm, stage, sprites, rubyCode, rubyVersion, iframeKey]);
+
+    const handleDownloadAi = React.useCallback(() => {
+        downloadBlob(aiFilename(vm), new Blob([code], { type: 'text/plain' }));
+    }, [vm, code]);
+
     const handleReload = React.useCallback(() => {
-        setIframeKey(prevKey => prevKey + 1);
+        setIframeKey((prevKey) => prevKey + 1);
         setLoading(true);
     }, []);
 
@@ -80,10 +124,35 @@ const KoshienTestModal = props => {
                 className={styles.body}
                 grow={1}
             >
+                {tooLong && (
+                    <div
+                        className={styles.tooLongBanner}
+                        data-testid="koshien-test-too-long-banner"
+                    >
+                        <div className={styles.tooLongText}>
+                            <FormattedMessage
+                                defaultMessage="This AI is too large to pass to the viewer through the URL. Save it as a Ruby (.rb) file and load it from the viewer to test it."
+                                description="Notice shown when the AI program is too long to embed in the Test AI viewer URL"
+                                id="gui.koshienTestModal.tooLong"
+                            />
+                        </div>
+                        <Button
+                            className={styles.downloadButton}
+                            data-testid="koshien-test-download-ai"
+                            onClick={handleDownloadAi}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Save AI to a file"
+                                description="Button to download the AI program as a .rb file"
+                                id="gui.koshienTestModal.downloadAi"
+                            />
+                        </Button>
+                    </div>
+                )}
                 <iframe
                     key={iframeKey}
                     className={styles.iframe}
-                    src="https://smalruby-koshien-web.netlab.jp/"
+                    src={iframeSrc}
                     title={intl.formatMessage(messages.title)}
                     onLoad={handleLoad}
                 />
@@ -94,7 +163,29 @@ const KoshienTestModal = props => {
 
 KoshienTestModal.propTypes = {
     intl: intlShape.isRequired,
-    onRequestClose: PropTypes.func.isRequired
+    onRequestClose: PropTypes.func.isRequired,
+    rubyCode: PropTypes.shape({
+        modified: PropTypes.bool,
+        code: PropTypes.string,
+        target: PropTypes.shape({ id: PropTypes.string }),
+    }),
+    rubyVersion: PropTypes.string,
+    sprites: PropTypes.objectOf(
+        PropTypes.shape({
+            id: PropTypes.string.isRequired,
+            order: PropTypes.number.isRequired,
+        }),
+    ),
+    stage: PropTypes.shape({ id: PropTypes.string }),
+    vm: PropTypes.instanceOf(VM),
 };
 
-export default injectIntl(KoshienTestModal);
+const mapStateToProps = (state) => ({
+    vm: state.scratchGui.vm,
+    rubyVersion: state.scratchGui.settings.rubyVersion,
+    stage: state.scratchGui.targets.stage,
+    sprites: state.scratchGui.targets.sprites,
+    rubyCode: state.scratchGui.rubyCode,
+});
+
+export default injectIntl(connect(mapStateToProps)(KoshienTestModal));

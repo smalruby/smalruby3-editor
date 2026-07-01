@@ -251,7 +251,6 @@ export default {
     'gui.extensionLibrary.showAllExtensions': 'Show all extensions',
     'gui.extensionLibrary.meshDeprecationWarning':
         'The legacy mesh extension can only be used until April 30. If you want to continue using the legacy mesh extension, select OK. Otherwise, if you want to use the new mesh extension, select Cancel.',
-    'gui.extensionLibrary.koshienOnlyAvailableForRubyV1': 'The Koshien extension is only available for Ruby v1',
     'gui.smalruby3.rubyToBlocksConverter.couldNotConvertPrimitive': '"{ SOURCE }" could not be converted the block.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstruction': '"{ SOURCE }" is the wrong instruction.',
     'gui.smalruby3.rubyToBlocksConverter.wrongInstructionInClass':
@@ -332,6 +331,14 @@ export default {
     'gui.menuBar.blockDisplay': 'Block Display...',
     'gui.menuBar.tutorials': 'Tutorials',
     'gui.menuBar.koshienEntryForm': 'Entry Form',
+    'gui.menuBar.koshienSettings': 'Connection settings',
+    'gui.koshienSettingsModal.title': 'Koshien connection settings',
+    'gui.koshienSettingsModal.endpoint': 'Game server URL',
+    'gui.koshienSettingsModal.side': 'Player side',
+    'gui.koshienSettingsModal.gameCode': 'Game code',
+    'gui.koshienSettingsModal.test': 'Test connection',
+    'gui.koshienSettingsModal.save': 'Save',
+    'gui.koshienSettingsModal.testing': 'Testing...',
     'gui.menuBar.koshienCannotChangeRubyVersion':
         'The Ruby version cannot be changed when the Koshien extension is loaded.',
     'gui.rubyVersion.v1': 'v1',

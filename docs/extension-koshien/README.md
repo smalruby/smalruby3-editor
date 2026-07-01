@@ -28,6 +28,26 @@
 
 開発・デバッグ用の **Koshien テストモーダル** (`koshien-test-modal`) があり、競技サーバなしでローカルテストができる。
 
+「AIを試す」では、編集中スプライト単体ではなく **プロジェクト全体（ステージ + すべての
+スプライト）** を 1 つのプログラムとして出力する。これは「AIを保存」が書き出す `.rb` と
+**同一の生成結果**であり、競技で実際に動く AI そのもの。「試す」と「保存」が同じコードに
+なるよう、両者は `generateProjectCode`（`src/lib/ruby-script-preview.js`）を共有する。
+編集中スプライトだけを出力すると、AI 本体が別スプライトにある場合やステージ選択中に
+「中身が空の小さな AI」と誤判定され、後述のフォールバック導線も出ない（Issue #845）。
+ステージを先頭に出力するので「すべてのスプライトでつかう」グローバル変数・リスト
+（例: `$最短経路`）がステージの `def initialize` で初期化され、実行可能になる（v1 / v2 両対応）。
+Ruby タブで編集中の未保存コードも `targetsCode` で取り込むため、ブロックへ変換する前の
+状態でもそのまま試せる。
+
+AI ソースは base64 化してビューアの `?player1=data:<base64>` クエリパラメータに渡す
+（`src/lib/koshien-test-url.js` の `buildKoshienTestUrl` / `encodeAiToPlayerParam`）。
+ただし複雑な AI（経路探索など）はソースが長く、URL 長制限（`MAX_KOSHIEN_TEST_URL_LENGTH`
+= 8000 文字）を超えてビューアの起動に失敗しうる。そのため URL が長すぎる場合は
+`buildKoshienTestPlan` が `tooLong: true` を返し、モーダルは **AI 無しの URL でビューアを
+ロード**（デフォルト AI）したうえで、**AI を `.rb` ファイルとして保存する導線**
+（`koshien-test-too-long-banner` / `koshien-test-download-ai`）を表示する。
+ユーザーは保存した `.rb` をビューアから読み込んで試す。単純な AI の従来挙動（URL 直結）は維持される。
+
 ## 主要ファイル
 
 ### scratch-gui
@@ -35,6 +55,7 @@
 #### コンポーネント
 
 - `packages/scratch-gui/src/components/koshien-test-modal/koshien-test-modal.jsx` — テスト用モーダル
+- `packages/scratch-gui/src/lib/ruby-script-preview.js` — コード生成。`generatePreviewCode`（編集中スプライトのプレビュー用）と `generateProjectCode`（プロジェクト全体。「AIを試す」「AIを保存」が共有）
 
 #### ライブラリ
 

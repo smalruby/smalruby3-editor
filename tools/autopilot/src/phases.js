@@ -56,7 +56,12 @@ function parseBaseBranch(body) {
     return null;
 }
 
-/** CLI コマンド名 → { skill, aiStatus }（AI Status は実行中に設定する細フェーズ） */
+/**
+ * CLI コマンド名 → { skill, aiStatus }。
+ * `skill` は **フェーズプロンプトのファイル basename**（`tools/autopilot/prompts/<skill>.md`）。
+ * 以前は `.claude/skills/` の Skill だったが、開発者が誤ってスラッシュ起動するのを防ぐため
+ * `tools/autopilot/prompts/` に移動し、Runner がそのファイルを読ませて実行する（Skill ではない）。
+ */
 const PHASE_BY_COMMAND = {
     triage: { skill: 'autopilot-triage', aiStatus: 'Triaging' },
     understand: { skill: 'autopilot-understand', aiStatus: 'Understanding' },
@@ -66,6 +71,23 @@ const PHASE_BY_COMMAND = {
     'address-review': { skill: 'autopilot-address-review', aiStatus: 'Addressing Comments' },
     verify: { skill: 'autopilot-verify', aiStatus: 'Running DoD' },
 };
+
+/** フェーズプロンプトファイルの配置ディレクトリ（worktree/repo 内の相対パス） */
+const PROMPT_DIR = 'tools/autopilot/prompts';
+
+/**
+ * Runner が対話 Claude に送る起動メッセージを組み立てる（純粋関数）。
+ * Skill のスラッシュコマンドではなく、**プロンプトファイルを Read して従わせる**指示にする
+ * （プロンプトは Skill ではないので `/autopilot-*` は存在しない）。対象 Issue は env の
+ * `AUTOPILOT_ISSUE` にも入るが、確実性のためメッセージにも番号を含める。
+ * @param {string} skill プロンプト basename（例 'autopilot-triage'）
+ * @param {number|string} issue 対象 Issue 番号
+ * @returns {string} 送信メッセージ
+ */
+function phasePromptCommand(skill, issue) {
+    return `${PROMPT_DIR}/${skill}.md を Read して、その手順に厳密に従ってください。` +
+        `対象 Issue は AUTOPILOT_ISSUE=${issue} です。`;
+}
 
 /**
  * 結果ペイロードを Project フィールドの設定意図に変換する。
@@ -178,6 +200,32 @@ function mergeProgressionIntents(item, prMerged) {
         { field: 'Status', value: target },
         { field: 'AI Status', value: null },
     ];
+}
+
+/**
+ * 終端 Status の集合。GitHub issue が close 済みでも、Project がこれらなら整合済みとみなす
+ * （Close は完了、Done は upstream 由来の完了。これ以外は GitHub と乖離なので reconcile 対象）。
+ */
+const TERMINAL_STATUSES = new Set(['Close', 'Done']);
+
+/**
+ * GitHub で closed な issue のうち、Project Status がまだ終端（Close/Done）でない item を選ぶ
+ * （純粋関数・#843）。「GitHub issue 状態 → Project Close」の整合パス用。
+ *
+ * merge-progression（{@link selectMergeCandidates}）は **leaf の連携 PR merge** だけを見るため、
+ * (A) 非デフォルト base 宛て PR で GitHub の `Closes #N` が効かず手動 close した leaf、
+ * (B) 統合 PR の `Closes #<epic>` で閉じた EPIC、(C) 人手で閉じた issue が Project に取り残される。
+ * ここは **closed という事実だけ**を根拠に整合するので EPIC も対象に含める（子 PR merge とは別経路）。
+ * 既に終端の item は除外（冪等）。実行中 item の除外は I/O 側（daemon）が行う。
+ * @param {object[]} items 各 { issue, status, kind, ... }
+ * @param {Set<number>|number[]} closedSet GitHub で closed な issue 番号の集合（配列も可）
+ * @returns {object[]} reconcile 対象（closed かつ非終端）
+ */
+function selectClosedToReconcile(items, closedSet) {
+    const closed = closedSet instanceof Set ? closedSet : new Set(closedSet || []);
+    return (items || []).filter(
+        (it) => it && closed.has(it.issue) && !TERMINAL_STATUSES.has(it.status),
+    );
 }
 
 /**
@@ -753,6 +801,8 @@ const DEFAULT_WATCHDOG = {
 
 module.exports = {
     PHASE_BY_COMMAND,
+    PROMPT_DIR,
+    phasePromptCommand,
     DEFAULT_CLAUDE_COMMAND,
     DEFAULT_BASE_BRANCH,
     parseBaseBranch,
@@ -765,6 +815,8 @@ module.exports = {
     MERGE_CHECK_STATUSES,
     selectMergeCandidates,
     mergeProgressionIntents,
+    TERMINAL_STATUSES,
+    selectClosedToReconcile,
     computeReviewApproval,
     phaseForItem,
     isActionable,

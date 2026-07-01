@@ -48,6 +48,34 @@ export default function (Generator) {
         return `${index} - 1`;
     };
 
+    const isV2 = () => String(Generator.version) === '2';
+
+    /**
+     * Render a list reference respecting the Ruby version.
+     * - v1: `list("$name")` (Smalruby3::List wrapper). The v1 converter rejects
+     *   plain array syntax `$name[...]`, so list ops must use this wrapper form.
+     * - v2: `$name` (plain global/instance array variable; current behavior).
+     * @param {string} list - The resolved list name (e.g. "$名前").
+     * @returns {string} The list expression as written in source.
+     */
+    const renderList = function (list) {
+        return isV2() ? list : `list(${Generator.quote_(list)})`;
+    };
+
+    /**
+     * Get the element index respecting the Ruby version.
+     * - v1: keep the raw 1-indexed Scratch value (`list("$a")[1]` style).
+     * - v2: convert to 0-indexed Ruby array index via getListIndex (`$a[0]`).
+     * @param {object} block - The block containing the INDEX input.
+     * @returns {(string|number)} The index expression.
+     */
+    const getVersionedIndex = function (block) {
+        if (isV2()) {
+            return getListIndex(block);
+        }
+        return Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE) || 1;
+    };
+
     /**
      * Get the raw text value from a block's text input.
      * @param {object} block - The block containing the input.
@@ -110,7 +138,7 @@ export default function (Generator) {
 
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
-        return `${list}.push(${Generator.nosToCode(item)})\n`;
+        return `${renderList(list)}.push(${Generator.nosToCode(item)})\n`;
     };
 
     Generator.data_deleteoflist = function (block) {
@@ -167,24 +195,25 @@ export default function (Generator) {
         }
 
         const list = getListName(block);
+        const listExpr = renderList(list);
 
         // Check for round-trip comments (stored as block comments, not inline)
         if (comment && comment.includes('@ruby:array:delete_at:last')) {
-            return `${list}.delete_at(-1)\n`;
+            return `${listExpr}.delete_at(-1)\n`;
         }
         if (comment && comment.includes('@ruby:array:delete_at:random')) {
-            return `${list}.delete_at(rand(0...${list}.length))\n`;
+            return `${listExpr}.delete_at(rand(0...${listExpr}.length))\n`;
         }
 
         const rawIndex = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE) || 1;
         if (rawIndex === 'last') {
-            return `${list}.delete_at(-1)\n`;
+            return `${listExpr}.delete_at(-1)\n`;
         }
         if (rawIndex === 'random') {
-            return `${list}.delete_at(rand(0...${list}.length))\n`;
+            return `${listExpr}.delete_at(rand(0...${listExpr}.length))\n`;
         }
-        const index = getListIndex(block);
-        return `${list}.delete_at(${Generator.nosToCode(index)})\n`;
+        const index = getVersionedIndex(block);
+        return `${listExpr}.delete_at(${Generator.nosToCode(index)})\n`;
     };
 
     Generator.data_deletealloflist = function (block) {
@@ -267,42 +296,43 @@ export default function (Generator) {
             return `${hashVarName} = {${entries.join(', ')}}\n`;
         }
 
-        return `${list}.clear\n`;
+        return `${renderList(list)}.clear\n`;
     };
 
     Generator.data_insertatlist = function (block) {
         const list = getListName(block);
+        const listExpr = renderList(list);
         const comment = Generator.getCommentText(block);
 
         // Check for round-trip comments (stored as block comments, not inline)
         if (comment && comment.includes('@ruby:array:insert:last')) {
             const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
-            return `${list}.push(${Generator.nosToCode(item)})\n`;
+            return `${listExpr}.push(${Generator.nosToCode(item)})\n`;
         }
         if (comment && comment.includes('@ruby:array:insert:random')) {
             const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
-            const randExpr = `rand(0..${list}.length)`;
-            return `${list}.insert(${randExpr}, ${Generator.nosToCode(item)})\n`;
+            const randExpr = `rand(0..${listExpr}.length)`;
+            return `${listExpr}.insert(${randExpr}, ${Generator.nosToCode(item)})\n`;
         }
 
         const rawIndex = Generator.valueToCode(block, 'INDEX', Generator.ORDER_NONE) || 1;
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         if (rawIndex === 'last') {
-            return `${list}.push(${Generator.nosToCode(item)})\n`;
+            return `${listExpr}.push(${Generator.nosToCode(item)})\n`;
         }
         if (rawIndex === 'random') {
-            const randExpr = `rand(0..${list}.length)`;
-            return `${list}.insert(${randExpr}, ${Generator.nosToCode(item)})\n`;
+            const randExpr = `rand(0..${listExpr}.length)`;
+            return `${listExpr}.insert(${randExpr}, ${Generator.nosToCode(item)})\n`;
         }
-        const index = getListIndex(block);
-        return `${list}.insert(${index}, ${Generator.nosToCode(item)})\n`;
+        const index = getVersionedIndex(block);
+        return `${listExpr}.insert(${index}, ${Generator.nosToCode(item)})\n`;
     };
 
     Generator.data_replaceitemoflist = function (block) {
-        const index = getListIndex(block);
+        const index = getVersionedIndex(block);
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
-        return `${list}[${index}] = ${Generator.nosToCode(item)}\n`;
+        return `${renderList(list)}[${index}] = ${Generator.nosToCode(item)}\n`;
     };
 
     Generator.data_itemoflist = function (block) {
@@ -344,9 +374,9 @@ export default function (Generator) {
             }
         }
 
-        const index = getListIndex(block);
+        const index = getVersionedIndex(block);
         const list = getListName(block);
-        return [`${list}[${index}]`, Generator.ORDER_FUNCTION_CALL];
+        return [`${renderList(list)}[${index}]`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.data_itemnumoflist = function (block) {
@@ -357,7 +387,7 @@ export default function (Generator) {
         }
         const item = Generator.valueToCode(block, 'ITEM', Generator.ORDER_NONE) || '0';
         const list = getListName(block);
-        return [`${list}.index(${Generator.nosToCode(item)})`, Generator.ORDER_FUNCTION_CALL];
+        return [`${renderList(list)}.index(${Generator.nosToCode(item)})`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.data_lengthoflist = function (block) {
@@ -365,17 +395,19 @@ export default function (Generator) {
         const comment = Generator.getCommentText(block);
         if (comment && comment.startsWith('@ruby:method:empty?:')) {
             const index = comment.substring(20);
-            Generator.emptyCallCache_[index] = list;
+            // Store the version-aware list expression so operator_equals renders
+            // list("$a").empty? in v1 and $a.empty? in v2.
+            Generator.emptyCallCache_[index] = renderList(list);
             return [`@ruby:method:empty?:${index}`, Generator.ORDER_FUNCTION_CALL];
         }
-        return [`${list}.length`, Generator.ORDER_FUNCTION_CALL];
+        return [`${renderList(list)}.length`, Generator.ORDER_FUNCTION_CALL];
     };
 
     Generator.data_listcontainsitem = function (block) {
         const order = Generator.ORDER_FUNCTION_CALL;
         const item = Generator.valueToCode(block, 'ITEM', order) || '0';
         const list = getListName(block);
-        return [`${list}.include?(${Generator.nosToCode(item)})`, order];
+        return [`${renderList(list)}.include?(${Generator.nosToCode(item)})`, order];
     };
 
     Generator.data_showlist = function (block) {

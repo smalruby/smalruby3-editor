@@ -4,8 +4,9 @@
 # How it works: ignore everything, then re-include Smalruby directories/files
 # level by level (gitignore requires parent dirs to be un-ignored first).
 #
-# Canonical file list: .claude/rules/scratch-vm/smalruby-prettier-files.md
-# When adding new Smalruby-specific files, update both this file and the doc.
+# This file is the canonical whitelist of Smalruby-specific files for Prettier.
+# (The .claude/rules mirror was removed; this file is the single source of truth.)
+# When adding a new Smalruby-specific file, add it here.
 
 # ============================================================
 # Level 0: Ignore everything at root
@@ -74,6 +75,12 @@ test/unit/*
 !test/unit/blocks_operators_regex.js
 !test/unit/runtime_extension_hat_shape.js
 !test/unit/extension_koshien.js
+!test/unit/koshien_map_utils.js
+!test/unit/koshien_golden_contract.js
+!test/unit/koshien_remote_client.js
+!test/unit/koshien_remote_client_http.js
+!test/fixtures/
+!test/fixtures/koshien/mock-server.js
 !test/unit/extension_mesh_v2_delta_repro.js
 !test/unit/extension_mesh_v2_delta.js
 !test/unit/extension_mesh_v2_domain.js

@@ -2,6 +2,8 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
+const RemoteClient = require('./remote-client.js');
+const mapUtils = require('./map-utils');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -86,7 +88,58 @@ const KoshienObjectName = {
 };
 
 /**
- * A client of Smalruby Koshien game server.
+ * A fixed, believable 17x17 sample map used by the mock (disconnected) client.
+ *
+ * This is the real Smalruby Koshien 2024 sample map ("map_01") with its item
+ * layer merged in, so that clicking any block while editing an AI offline
+ * returns game-like, self-consistent data instead of placeholder zeros. It is
+ * the single source of truth from which every mock reader derives its value.
+ *
+ * The whole 17x17 field is surrounded by an unbreakable wall border (codes 1/2;
+ * the original map uses 2 on the top/left edge and 1 on the bottom/right edge).
+ * Cell codes: 0 space, 1/2 unbreakable wall, 3 goal, 4 water, 5 breakable wall;
+ * a-e beneficial items, A-D harmful items (matching the real my_map encoding).
+ * @type {Array<string>}
+ */
+const MOCK_MAP = [
+    '22222222222222222',
+    '2d0000000000000a1',
+    '200A4440B4440A001',
+    '20055555555555001',
+    '200000C0000000001',
+    '20100b00000C00101',
+    '201055505550001c1',
+    '20105000005000101',
+    '201050000050b0101',
+    '20105000305000101',
+    '2c1050c00050C0101',
+    '20105555055000101',
+    '20000000000000001',
+    '20455555D55555401',
+    '24000B00000B00041',
+    '204d0000e0000d401',
+    '21111111111111111'
+];
+
+/**
+ * Initial actor positions for the mock world, taken from the real map_01:
+ * the two player start cells are (5,1) and (10,1), the goal cell ('3') is at
+ * (8,9), and the enemy guards the goal. Kept consistent with MOCK_MAP.
+ * @type {object}
+ */
+const MOCK_INITIAL_POSITIONS = {
+    player: '5:1',
+    goal: '8:9',
+    enemy: '8:9',
+    other_player: '10:1'
+};
+
+/**
+ * Base class describing the surface a Koshien client must implement.
+ *
+ * Block methods talk to the game only through this interface, so the concrete
+ * implementation can be swapped between a mock (fixed values, used while
+ * disconnected) and a future remote client that speaks to a real game server.
  */
 class KoshienClient {
     /**
@@ -114,7 +167,6 @@ class KoshienClient {
 
     isConnected () {
         return this._isConnected;
-
     }
 
     connect (playerName) {
@@ -122,20 +174,207 @@ class KoshienClient {
         this._isConnected = true;
     }
 
-    // eslint-disable-next-line no-unused-vars
-    moveTo (position) {
-        return new Promise(resolve => resolve());
+    // --- Interface (overridden by concrete clients) ---
+
+    getMapArea () {}
+
+    moveTo () {
+        return Promise.resolve();
     }
 
-    // eslint-disable-next-line no-unused-vars
-    setMessage (message) {
-        return new Promise(resolve => resolve());
+    setItem () {}
+
+    setMessage () {
+        return Promise.resolve();
     }
 
+    turnOver () {}
+
+    map () {
+        return -1;
+    }
+
+    mapAll () {
+        return '';
+    }
+
+    mapFrom () {
+        return -1;
+    }
+
+    calcRoute () {
+        return [];
+    }
+
+    locateObjects () {
+        return [];
+    }
+
+    targetCoordinate () {
+        return null;
+    }
+}
+
+/**
+ * Mock client used while not connected to a real game server.
+ *
+ * It simulates a believable game on top of {@link MOCK_MAP} the same way the
+ * real server does: the player's "my map" starts fully unexplored (all -1) and
+ * is revealed 5x5 at a time by {@link getMapArea}. Readers (map / map_all /
+ * calc_route / locate_objects) all work off this gradually-revealed my map, so
+ * clicking blocks offline behaves like a real game in progress. Player moves
+ * and placed items update a small amount of state. Everything is deterministic
+ * and resets to the initial state.
+ */
+class MockClient extends KoshienClient {
+    /**
+     * @param {Runtime} runtime - the Scratch 3.0 runtime.
+     * @param {string} extensionId - the id of the extension.
+     */
+    constructor (runtime, extensionId) {
+        super(runtime, extensionId);
+        this.reset();
+    }
+
+    /**
+     * Restore the mock world to its initial state: a fresh ground-truth map and
+     * a fully-unexplored "my map".
+     */
+    reset () {
+        this._fullGrid = mapUtils.parseMapString(MOCK_MAP.join(','));
+        const height = this._fullGrid.length;
+        const width = height ? this._fullGrid[0].length : 0;
+        this._grid = mapUtils.createUnexploredGrid(width, height);
+        this._positions = Object.assign({}, MOCK_INITIAL_POSITIONS);
+        this._turn = 0;
+    }
+
+    connect (playerName) {
+        super.connect(playerName);
+        // Connecting starts a fresh game session.
+        this.reset();
+    }
+
+    /**
+     * Reveal the 5x5 area around a position into the player's my map.
+     * @param {string} position - the "x:y" center of the area to reveal.
+     */
+    getMapArea (position) {
+        mapUtils.revealArea(this._grid, this._fullGrid, position, 5);
+    }
+
+    /**
+     * @param {string} position - the queried "x:y" position.
+     * @returns {(number|string)} - the my-map cell (-1 when unexplored).
+     */
+    map (position) {
+        const p = mapUtils.parsePosition(position);
+        return mapUtils.cellAt(this._grid, p.x, p.y);
+    }
+
+    /**
+     * @returns {string} - the player's my map as a "row,row,..." string
+     *     ('-' marks cells not yet revealed by getMapArea).
+     */
+    mapAll () {
+        return mapUtils.gridToMapString(this._grid);
+    }
+
+    /**
+     * Read a cell out of a map string previously obtained from {@link mapAll}.
+     * @param {string} position - the queried "x:y" position.
+     * @param {string} mapString - a map string ("row,row,...", '-' = unexplored).
+     * @returns {(number|string)} - the cell value (-1 when it cannot be resolved).
+     */
+    mapFrom (position, mapString) {
+        if (typeof mapString !== 'string' || mapString.length === 0) {
+            return -1;
+        }
+        const grid = mapUtils.parseMapString(mapString);
+        const p = mapUtils.parsePosition(position);
+        return mapUtils.cellAt(grid, p.x, p.y);
+    }
+
+    /**
+     * @param {object} props - {src, dst, exceptCells}; src/dst default to the
+     *     current player/goal positions when omitted. Routes over the my map,
+     *     so unexplored cells are treated as passable (like the real game).
+     * @returns {Array<string>} - the shortest route as "x:y" strings.
+     */
     calcRoute (props) {
-        // eslint-disable-next-line no-unused-vars
-        const {src, dst, exceptCells, result} = props;
-        return new Promise(resolve => resolve());
+        const {src, dst, exceptCells} = props || {};
+        const start = src && String(src).includes(':') ? src : this._positions.player;
+        const goal = dst && String(dst).includes(':') ? dst : this._positions.goal;
+        return mapUtils.calcRoute(this._grid, start, goal, exceptCells || []);
+    }
+
+    /**
+     * @param {object} props - {position, sqSize, objects}; position defaults to
+     *     the current player position when omitted. Scans the my map, so only
+     *     already-revealed items are found (like the real game).
+     * @returns {Array<string>} - the "x:y" positions of the matching objects.
+     */
+    locateObjects (props) {
+        const {position, sqSize, objects} = props || {};
+        const center =
+            position && String(position).includes(':') ? position : this._positions.player;
+        return mapUtils.locateObjects(this._grid, center, sqSize, objects);
+    }
+
+    /**
+     * @param {string} target - one of player/goal/other_player/enemy.
+     * @param {string} coordinate - one of position/x/y.
+     * @returns {string|number|null} - the requested coordinate, or null.
+     */
+    targetCoordinate (target, coordinate) {
+        const pos = this._positions[target];
+        if (!pos) {
+            return null;
+        }
+        const p = mapUtils.parsePosition(pos);
+        if (coordinate === 'x') {
+            return p.x;
+        }
+        if (coordinate === 'y') {
+            return p.y;
+        }
+        return pos;
+    }
+
+    /**
+     * Pseudo-move the mock player so subsequent reads reflect the new position.
+     * Passability is checked against the ground-truth map (a real wall blocks
+     * the move even if that cell has not been revealed yet).
+     * @param {string} position - the destination "x:y".
+     * @returns {Promise} - resolved once the (instant) move is applied.
+     */
+    moveTo (position) {
+        const p = mapUtils.parsePosition(position);
+        const cell = mapUtils.cellAt(this._fullGrid, p.x, p.y);
+        if (cell !== -1 && isFinite(mapUtils.moveCost(cell))) {
+            this._positions.player = mapUtils.formatPosition(p.x, p.y);
+        }
+        return Promise.resolve();
+    }
+
+    /**
+     * Pseudo-place an item on the ground-truth map (shown as a bomb marker).
+     * It becomes visible in the my map once that cell is revealed by getMapArea.
+     * @param {string} item - the item kind (dynamite/bomb).
+     * @param {string} position - the "x:y" position.
+     */
+    setItem (item, position) {
+        const p = mapUtils.parsePosition(position);
+        if (this._fullGrid[p.y] && mapUtils.cellAt(this._fullGrid, p.x, p.y) !== -1) {
+            this._fullGrid[p.y][p.x] = 'D';
+        }
+    }
+
+    /**
+     * Advance the mock turn counter.
+     */
+    turnOver () {
+        this._turn += 1;
     }
 }
 
@@ -412,7 +651,50 @@ class KoshienBlocks {
             formatMessage = runtime.formatMessage;
         }
 
-        this._client = new KoshienClient(this.runtime, KoshienBlocks.EXTENSION_ID);
+        // Backends: the fixed-value MockClient is always available so an AI can be
+        // built/run offline. When a real game server endpoint is configured
+        // (the GUI/connection flow supplies it via runtime.getKoshienRemoteOptions),
+        // a RemoteClient is also created and used while connected; if the connection
+        // fails the extension falls back to the MockClient ("つながなくても作れる").
+        this._mockClient = new MockClient(this.runtime, KoshienBlocks.EXTENSION_ID);
+        const remoteOptions =
+            runtime && typeof runtime.getKoshienRemoteOptions === 'function'
+                ? runtime.getKoshienRemoteOptions()
+                : null;
+        this._remoteClient =
+            remoteOptions && remoteOptions.endpoint
+                ? new RemoteClient(this.runtime, KoshienBlocks.EXTENSION_ID, remoteOptions)
+                : null;
+        this._client = this._remoteClient || this._mockClient;
+
+        // Reset the mock world back to its initial state at the natural "new
+        // game" moments, so a teacher can demonstrate the blocks, then start
+        // over cleanly:
+        //   - green flag (PROJECT_START): re-run the AI from the beginning
+        //   - stop (PROJECT_STOP_ALL): leave a clean slate for the next run
+        // (connect_game also resets, see MockClient.connect.)
+        // No-op once connected to a real game server (RemoteClient has no reset).
+        this._resetMockWorld = this._resetMockWorld.bind(this);
+        if (this.runtime && typeof this.runtime.on === 'function') {
+            this.runtime.on('PROJECT_START', this._resetMockWorld);
+            this.runtime.on('PROJECT_STOP_ALL', this._resetMockWorld);
+        }
+    }
+
+    /**
+     * Fall back to the offline MockClient (e.g. when the server is unreachable).
+     */
+    _fallbackToMock () {
+        this._client = this._mockClient;
+    }
+
+    /**
+     * Reset the mock world. No-op once connected to a real game server.
+     */
+    _resetMockWorld () {
+        if (this._client && typeof this._client.reset === 'function') {
+            this._client.reset();
+        }
     }
 
     /**
@@ -790,18 +1072,106 @@ class KoshienBlocks {
             return false;
         }
 
-        this._client.connect(args.NAME);
-        return true;
+        // Offline (mock) backend: connect synchronously with fixed state.
+        if (this._client !== this._remoteClient) {
+            this._client.connect(args.NAME);
+            return true;
+        }
+
+        // Remote backend: attempt a real connection to the game server.
+        // If it fails (server unreachable / CORS / error), fall back to the
+        // offline MockClient so the AI keeps returning sensible fixed values.
+        return Promise.resolve(this._remoteClient.connectGame(args.NAME))
+            .then(() => true)
+            .catch(() => {
+                this._fallbackToMock();
+                this._mockClient.connect(args.NAME);
+                return true;
+            });
+    }
+
+    /**
+     * Resolve the target used to read/write variables.
+     * @param {object} util - the block utility (may be undefined).
+     * @returns {?object} - the target, or null.
+     */
+    _resolveTarget (util) {
+        if (util && util.target) {
+            return util.target;
+        }
+        if (this.runtime && this.runtime.getEditingTarget) {
+            return this.runtime.getEditingTarget();
+        }
+        return null;
+    }
+
+    /**
+     * Replace the contents of a list variable (looked up by name) with values.
+     * No-op when the name is empty or the list cannot be found.
+     * @param {object} util - the block utility.
+     * @param {string} listName - the list variable name.
+     * @param {Array} values - the new list contents.
+     */
+    _writeListByName (util, listName, values) {
+        if (typeof listName !== 'string' || listName.trim() === '') {
+            return;
+        }
+        const target = this._resolveTarget(util);
+        if (!target || !target.lookupVariableByNameAndType) {
+            return;
+        }
+        const list = target.lookupVariableByNameAndType(listName, Variable.LIST_TYPE);
+        if (!list) {
+            return;
+        }
+        list.value = values.slice();
+        list._monitorUpToDate = false;
+    }
+
+    /**
+     * Read a scalar variable's value by name.
+     * @param {object} util - the block utility.
+     * @param {string} name - the variable name.
+     * @returns {(string|number|Array|null)} - the value, or null when not found.
+     */
+    _readVariableByName (util, name) {
+        if (typeof name !== 'string' || name.trim() === '') {
+            return null;
+        }
+        const target = this._resolveTarget(util);
+        if (!target || !target.lookupVariableByNameAndType) {
+            return null;
+        }
+        const variable = target.lookupVariableByNameAndType(name, Variable.SCALAR_TYPE);
+        return variable ? variable.value : null;
+    }
+
+    /**
+     * Read a list variable's contents by name.
+     * @param {object} util - the block utility.
+     * @param {string} name - the list variable name.
+     * @returns {Array} - the list contents, or [] when not found.
+     */
+    _readListByName (util, name) {
+        if (typeof name !== 'string' || name.trim() === '') {
+            return [];
+        }
+        const target = this._resolveTarget(util);
+        if (!target || !target.lookupVariableByNameAndType) {
+            return [];
+        }
+        const list = target.lookupVariableByNameAndType(name, Variable.LIST_TYPE);
+        return list && Array.isArray(list.value) ? list.value.slice() : [];
     }
 
     /**
      * get map information around position
      * @param {object} args - the block's arguments.
-     * @param {number} args.POSITION - position
+     * @param {string} args.POSITION - position
+     * @returns {(Promise|undefined)} - resolves when fetched (remote); undefined for mock.
      */
-    // eslint-disable-next-line no-unused-vars
     getMapArea (args) {
-        // wip
+        return this._client.getMapArea(args.POSITION);
     }
 
     /**
@@ -810,16 +1180,14 @@ class KoshienBlocks {
      * @param {string} args.POSITION - position.
      * @returns {number} - map information.
      */
-    // eslint-disable-next-line no-unused-vars
     map (args) {
-        // wip
-        return -1;
+        return this._client.map(args.POSITION);
     }
 
     /**
      * move to x, y
      * @param {object} args - the block's arguments.
-     * @param {number} args.POSITION - position.
+     * @param {string} args.POSITION - position.
      * @returns {Promise} - promise
      */
     moveTo (args) {
@@ -827,30 +1195,33 @@ class KoshienBlocks {
     }
 
     /**
-     * shortest path between player and goal
+     * shortest path between player and goal, stored into the result list
      * @param {object} args - the block's arguments.
-     * @param {string} args.RESULT - result.
-     * @returns {Promise} - promise
+     * @param {string} args.RESULT - result list name.
+     * @param {object} util - the block utility.
      */
-     
-    calcGoalRoute (args) {
-        return this._client.calcRoute({result: args.RESULT});
+    calcGoalRoute (args, util) {
+        const route = this._client.calcRoute({});
+        this._writeListByName(util, args.RESULT, route);
     }
 
     /**
-     * shortest path between two points
+     * shortest path between two points, stored into the result list
      * @param {object} args - the block's arguments.
      * @param {string} args.SRC - src.
      * @param {string} args.DST - dst.
      * @param {string} args.EXCEPT_CELLS - except cells.
-     * @param {string} args.RESULT - result.
-     * @returns {Promise} - promise
+     * @param {string} args.RESULT - result list name.
+     * @param {object} util - the block utility.
      */
-     
-    calcRoute (args) {
-        return this._client.calcRoute(
-            {src: args.SRC, dst: args.DST, exceptCells: args.EXCEPT_CELLS, result: args.RESULT}
-        );
+    calcRoute (args, util) {
+        const exceptCells = this._readListByName(util, args.EXCEPT_CELLS);
+        const route = this._client.calcRoute({
+            src: args.SRC,
+            dst: args.DST,
+            exceptCells
+        });
+        this._writeListByName(util, args.RESULT, route);
     }
 
     /**
@@ -858,43 +1229,49 @@ class KoshienBlocks {
      * @param {object} args - the block's arguments.
      * @param {string} args.ITEM - item.
      * @param {string} args.POSITION - position.
+     * @returns {(Promise|undefined)} - resolves when placed (remote); undefined for mock.
      */
-    // eslint-disable-next-line no-unused-vars
     setItem (args) {
-        // wip
+        return this._client.setItem(args.ITEM, args.POSITION);
     }
 
     /**
      * map from location at position
      * @param {object} args - the block's arguments.
-     * @param {string} args.MAP - map.
+     * @param {string} args.MAP - map variable name.
      * @param {string} args.POSITION - position.
+     * @param {object} util - the block utility.
      * @returns {number} - map information.
      */
-    // eslint-disable-next-line no-unused-vars
-    mapFrom (args) {
-        // wip
-        return -1;
+    mapFrom (args, util) {
+        const mapString = this._readVariableByName(util, args.MAP);
+        return this._client.mapFrom(args.POSITION, mapString);
     }
 
     /**
      * all map information
+     * @returns {string} - the whole map as a string.
      */
     mapAll () {
-        // wip
+        return this._client.mapAll();
     }
 
     /**
-     * terrain and items within range
+     * terrain and items within range, stored into the result list
      * @param {object} args - the block's arguments.
      * @param {string} args.POSITION - position.
      * @param {number} args.SQ_SIZE - size.
      * @param {string} args.OBJECTS - item.
-     * @param {string} args.RESULT - result.
+     * @param {string} args.RESULT - result list name.
+     * @param {object} util - the block utility.
      */
-    // eslint-disable-next-line no-unused-vars
-    locateObjects (args) {
-        // wip
+    locateObjects (args, util) {
+        const positions = this._client.locateObjects({
+            position: args.POSITION,
+            sqSize: args.SQ_SIZE,
+            objects: args.OBJECTS
+        });
+        this._writeListByName(util, args.RESULT, positions);
     }
 
     /**
@@ -902,19 +1279,18 @@ class KoshienBlocks {
      * @param {object} args - the block's arguments.
      * @param {string} args.TARGET - target.
      * @param {string} args.COORDINATE - coordinate.
+     * @returns {string|number|null} - the requested coordinate.
      */
-    // eslint-disable-next-line no-unused-vars
     targetCoordinate (args) {
-        // wip
+        return this._client.targetCoordinate(args.TARGET, args.COORDINATE);
     }
 
     /**
      * turn over
-     * @param {object} args - the block's arguments.
+     * @returns {(Promise|undefined)} - resolves on next turn (remote); undefined for mock.
      */
-    // eslint-disable-next-line no-unused-vars
-    turnOver (args) {
-        // wip
+    turnOver () {
+        return this._client.turnOver();
     }
 
     /**
