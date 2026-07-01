@@ -24,7 +24,15 @@ const blockIconURI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYA
  * The url of the translate server.
  * @type {string}
  */
-const serverURL = 'https://translate-service.scratch.mit.edu/';
+// === Smalruby: Start of translate CORS proxy ===
+// Scratch's translate service is CORS-locked to scratch.mit.edu, so calling it
+// directly from smalruby.app fails ('Access-Control-Allow-Origin' mismatch).
+// Route through the Smalruby proxy (infra/smalruby-api scratch-api-proxy/translate)
+// which forwards to translate-service.scratch.mit.edu server-side and returns the
+// response with permissive CORS headers. Keep this override across upstream merges
+// (it was silently reverted during the v13.7.2 merge — see issue #857).
+const serverURL = 'https://api.smalruby.app/scratch-api-proxy/';
+// === Smalruby: End of translate CORS proxy ===
 
 /**
  * How long to wait in ms before timing out requests to translate server.
