@@ -397,6 +397,9 @@ test('isStuckCandidate: In Progress + 作業中 AI Status のみ true', () => {
     assert.equal(isStuckCandidate({ status: 'In Progress', aiStatus: 'Decomposing' }), true);
     // Self-Reviewing は次 tick で自動 dispatch されるので対象外
     assert.equal(isStuckCandidate({ status: 'In Progress', aiStatus: 'Self-Reviewing' }), false);
+    // EPIC Decomposed は decompose 完了済み EPIC の resting 状態（子の実装待ち）で
+    // run が無くて当然 → stuck 対象外（#856）
+    assert.equal(isStuckCandidate({ status: 'In Progress', aiStatus: 'EPIC Decomposed' }), false);
     // AI Status 空の In Progress（人間操作）は対象外
     assert.equal(isStuckCandidate({ status: 'In Progress', aiStatus: null }), false);
     assert.equal(isStuckCandidate({ status: 'In Progress' }), false);

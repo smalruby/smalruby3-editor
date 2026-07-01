@@ -330,15 +330,18 @@ function isActionable(item, opts = {}) {
  * 死んだ場合、Status が In Progress + AI Status=xxxing のまま誰も再 dispatch せず固まる
  * （phaseForItem は In Progress を Self-Reviewing 以外では再開しないため）。
  *
- * Self-Reviewing は次 tick で自動 dispatch（review）されるので stuck 対象外。AI Status が
- * 空の In Progress（人間が手で In Progress にした等）も対象外。実際に「実行中の run が無いか」
- * 「十分な時間が経過したか」は I/O・時間を持つ daemon 側で判定する（ここは形だけ見る）。
+ * Self-Reviewing は次 tick で自動 dispatch（review）されるので stuck 対象外。EPIC Decomposed は
+ * decompose が正常終了した EPIC の resting 状態（子の実装待ち）で、run を持たなくて当然なので
+ * 対象外（#856）。AI Status が空の In Progress（人間が手で In Progress にした等）も対象外。
+ * 実際に「実行中の run が無いか」「十分な時間が経過したか」は I/O・時間を持つ daemon 側で
+ * 判定する（ここは形だけ見る）。
  * @param {object} item { status, aiStatus }
  * @returns {boolean}
  */
+const STUCK_EXEMPT_AI_STATUSES = new Set(['Self-Reviewing', 'EPIC Decomposed']);
 function isStuckCandidate(item) {
     if (!item || item.status !== 'In Progress') return false;
-    if (!item.aiStatus || item.aiStatus === 'Self-Reviewing') return false;
+    if (!item.aiStatus || STUCK_EXEMPT_AI_STATUSES.has(item.aiStatus)) return false;
     return true;
 }
 
