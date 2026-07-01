@@ -3,18 +3,23 @@
 > **🆕 Smalruby 独自** — autopilot（Claude による Issue ライフサイクル自律オーケストレーター）の
 > 中核規約。upstream には存在しない。設計の出発点は Issue #760。
 
-このドキュメントは、autopilot の各**フェーズ・スキル**（`autopilot-triage` / `autopilot-understand` /
+このドキュメントは、autopilot の各**フェーズ・プロンプト**（`autopilot-triage` / `autopilot-understand` /
 `autopilot-decompose` / `autopilot-implement` / `autopilot-review` / `autopilot-address-review` /
 `autopilot-verify`）と、それらを tmux 上で駆動する **Claude Runner** の間の**契約**を定める。
 
-すべての `autopilot-*` スキルは本コントラクトに従う。スキルの冒頭は必ず
+すべての `autopilot-*` プロンプトは本コントラクトに従う。プロンプトの冒頭は必ず
 「**Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`**」を宣言する。
+
+> **これらは `tools/autopilot/prompts/<phase>.md` に置く Markdown プロンプトであり、Claude Code の
+> Skill ではない**（`.claude/skills/` には置かない）。開発者が誤って `/autopilot-*` としてスラッシュ
+> 起動すると期待どおり動かないため、Skill として登録しない。Runner は各プロンプトファイルを
+> 対話 Claude に **Read させて手順に従わせる**（起動メッセージは `phases.js` の `phasePromptCommand`）。
 
 ---
 
 ## 1. 最重要不変条件: 対話的に人間へ質問しない
 
-autopilot のスキルは、**人間が enter を押すのと同じ形で tmux 経由に起動された対話 Claude Code**
+autopilot のプロンプトは、**人間が enter を押すのと同じ形で tmux 経由に起動された対話 Claude Code**
 の中で動く。したがって次を**絶対**に守る:
 
 - **`AskUserQuestion` を使わない。** いかなる対話的プロンプト・選択 UI も出さない。
@@ -41,7 +46,7 @@ tmux pane のテキストは長い行が**折り返される**ため、JSON を 
 ### 2.1 ペイロードファイル
 
 Runner は環境変数 **`AUTOPILOT_RESULT_FILE`**（書き込み先の絶対パス）を渡す。
-スキルは**終了直前に、まずこのファイルへ単一の JSON オブジェクトを書き込む**。
+プロンプトは**終了直前に、まずこのファイルへ単一の JSON オブジェクトを書き込む**。
 
 ### 2.2 pane signal トークン（最後の出力・1 行・折り返さない短語）
 
@@ -62,7 +67,7 @@ Runner はこの短語を pane で検出してから `AUTOPILOT_RESULT_FILE` を
 | key | 型 | 説明 |
 |---|---|---|
 | `issue` | number | 対象 Issue 番号 |
-| `phase` | string | 実行したスキル（`triage`/`decompose`/`implement`/`review`/`address-review`/`verify`/`understand`） |
+| `phase` | string | 実行したプロンプト（`triage`/`decompose`/`implement`/`review`/`address-review`/`verify`/`understand`） |
 | `signal` | string | `done` / `hitl` / `error`（pane トークンと一致させる） |
 | `summary` | string | 人間向け 1 行要約 |
 
@@ -110,24 +115,24 @@ AUTOPILOT_DONE
 ## 3. 状態の書き込み責務（単一ライター原則）
 
 - **Project フィールド（Status / AI Status / Size / Kind ...）と HITL（`🙋 HITL` ラベル）の書き込みは
-  daemon（または CLI）が行う。** スキルは**結果ファイルで「こうしてほしい」という意図を伝えるだけ**で、
+  daemon（または CLI）が行う。** プロンプトは**結果ファイルで「こうしてほしい」という意図を伝えるだけ**で、
   Project やラベルを直接書き換えない（二重ライターによる競合を避ける）。HITL は Project フィールドではなく
   `🙋 HITL` ラベルで一本化する（#813。理由: PR は Project フィールドを持てないため）。
 - **GitHub の Issue / PR への副作用**（コメント投稿・PR 作成・sub-issue 作成・コミット）は
-  **スキルが行う**。これらは Project 状態とは別物。
-- daemon が落ちても **Issue / PR / Project が状態の正**。スキルは再実行されうる前提で冪等にする（次節）。
+  **プロンプトが行う**。これらは Project 状態とは別物。
+- daemon が落ちても **Issue / PR / Project が状態の正**。プロンプトは再実行されうる前提で冪等にする（次節）。
 
 ---
 
 ## 4. 冪等性・再入可能性
 
-スキルはクラッシュ・再起動後に**同じ Issue に対して再実行されうる**。よって:
+プロンプトはクラッシュ・再起動後に**同じ Issue に対して再実行されうる**。よって:
 
 - 副作用を出す前に**現状を確認**する（既に同種コメントを出していないか、PR が既にあるか、
   sub-issue を既に作っていないか）。
 - 重複投稿・重複 PR・重複 sub-issue を作らない。判定には GitHub 上の既存状態を使う。
 - 途中再開時、Runner は**再投入プロンプトに強めの no-interview 注意**を前置する（課題2 対策）。
-  スキルはこの前置きがある前提で、同じインタビューで再停止しないこと。
+  プロンプトはこの前置きがある前提で、同じインタビューで再停止しないこと。
 
 ---
 
@@ -140,7 +145,7 @@ AUTOPILOT_DONE
 
 ---
 
-## 6. Runner が渡す環境（スキルが参照してよい）
+## 6. Runner が渡す環境（プロンプトが参照してよい）
 
 | 環境変数 | 内容 |
 |---|---|
@@ -167,7 +172,7 @@ PR を見ただけで連携 Issue の状態が分かるよう、**daemon が PR 
 | **sticky ステータスコメント** | bot が1つのコメントを編集し続け、連携 Issue の Project 状態（Status / AI Status / HITL / Size）を投影 | フェーズ遷移ごとに更新 |
 
 - 専用の「作業中」ラベルは作らない（**Draft** が「AI 作業中・触らないで」を兼ねる）。
-- スキルは PR を作るとき **Draft で作成**し、HITL に渡すフェーズ末で **Ready + `🙋 HITL`** を要求する
+- プロンプトは PR を作るとき **Draft で作成**し、HITL に渡すフェーズ末で **Ready + `🙋 HITL`** を要求する
   （実際のラベル付与・Draft 切替・sticky 更新は daemon が結果ファイルの意図を見て行う）。
 
 ### HITL は `🙋 HITL` ラベルに一本化（#813）
@@ -184,10 +189,10 @@ Issue/PR の両面を賄え、成果物ページにも見える。ラベルは I
 → 人間はレビュー中に**目の前の PR の `🙋 HITL` ラベルを外すだけ**で autopilot に差し戻せる。
 PR の無い段階（triage/decompose 等）では PR ラベルは非適用（Issue ラベルのみで判定）。
 
-### DoD は daemon が headful 引き継ぎを生成する（スキル run ではない・#821）
+### DoD は daemon が headful 引き継ぎを生成する（プロンプト run ではない・#821）
 
 DoD（実機ブラウザでの最終確認）は**コンテナ内 daemon が headless で実ブラウザを動かせない**ため、
-**スキル run ではなく daemon の tick ステップ**（`applyDodHandoffs`）として扱う。`Status=DoD` の leaf に
+**プロンプト run ではなく daemon の tick ステップ**（`applyDodHandoffs`）として扱う。`Status=DoD` の leaf に
 対し、daemon が「プレビュー URL ＋ Issue の DoD チェックリスト ＋ 定型 headful 手順 ＋ 報告の出口」を
 **テンプレート生成**して `autopilot:dod-handoff` マーカー付きコメントを PR に投稿する（child Claude を
 起動せず、純粋な I/O + 文字列テンプレートで完結。冪等）。これを**ホスト側の Claude（headful Playwright）**
@@ -197,12 +202,12 @@ DoD（実機ブラウザでの最終確認）は**コンテナ内 daemon が hea
 - **NG** → ホスト/人間が PR にコメントし `🙋 HITL` を外す → **DoD 解除 → `address-review`**（Review と対称。
   `phaseForItem` の DoD 解除パス。OR セマンティクスも同じ）。
 
-`autopilot-verify` スキルは手動 inject 用に残置（自動経路は使わない）。詳細は
+`autopilot-verify` プロンプトは手動 inject 用に残置（自動経路は使わない）。詳細は
 [`README.md`](./README.md) の「DoD — headful 検証の引き継ぎ生成」。
 
 ---
 
-## 8. スキル実装のチェックリスト
+## 8. プロンプト実装のチェックリスト
 
 - [ ] 冒頭で本コントラクトに従うと宣言している
 - [ ] `AskUserQuestion` を一切使っていない
@@ -216,5 +221,5 @@ DoD（実機ブラウザでの最終確認）は**コンテナ内 daemon が hea
 
 ## ライセンス
 
-autopilot のツール群（`tools/autopilot/**`）と autopilot スキル（`.claude/skills/autopilot-*/**`）は、
+autopilot のツール群（`tools/autopilot/**`）と autopilot プロンプト（`tools/autopilot/prompts/autopilot-*/**`）は、
 リポジトリ全体の AGPL-3.0 ではなく **MIT ライセンス**とする。詳細は `tools/autopilot/LICENSE` を参照。

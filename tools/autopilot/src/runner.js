@@ -11,7 +11,9 @@
 const { execFileSync } = require('child_process');
 const { setTimeout: sleep } = require('timers/promises');
 const fs = require('fs');
-const { evaluate, shouldResend, DEFAULT_WATCHDOG, DEFAULT_CLAUDE_COMMAND } = require('./phases');
+const {
+    evaluate, shouldResend, DEFAULT_WATCHDOG, DEFAULT_CLAUDE_COMMAND, phasePromptCommand,
+} = require('./phases');
 
 // claude TUI が「実行中」のときに pane に出る指標（spinner のトークンカウンタ "· ↓"、
 // 中断ヒント "esc to interrupt"）。これらが見えていれば、テキストが変わらなくても
@@ -63,7 +65,7 @@ function sendLine(session, text) {
  * @param {string} opts.cwd worktree パス
  * @param {object} opts.env claude に渡す環境（AUTOPILOT_* 等）
  * @param {string} opts.command claude 起動コマンド（既定 'claude --permission-mode acceptEdits'）
- * @param {string} opts.skill 実行スキル名（例 'autopilot-triage'）
+ * @param {string} opts.skill フェーズプロンプト basename（例 'autopilot-triage'。`tools/autopilot/prompts/<skill>.md`）
  * @param {number} opts.issue 対象 Issue 番号
  * @param {string} opts.resultFile 結果ファイルの絶対パス
  * @param {object} [opts.watchdog] タイマー設定（既定 DEFAULT_WATCHDOG）
@@ -94,7 +96,8 @@ async function runPhase(opts) {
         let sendAttempts = 0;
         let prevPane = null;
         let lastChangeAt = Date.now();
-        const slash = `/${opts.skill} ${opts.issue}`;
+        // Skill のスラッシュコマンドではなく、プロンプトファイルを読ませる指示を送る（#プロンプト移設）
+        const slash = phasePromptCommand(opts.skill, opts.issue);
 
         let outcome = null;
         while (!outcome) {

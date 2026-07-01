@@ -1,16 +1,10 @@
----
-name: autopilot-verify
-description: autopilot の DoD フェーズ。approve 後に Playwright MCP でブラウザ上の DoD を確認する。完了後は人間の merge 待ち。autopilot Runner から非対話で起動される。
-argument-hint: "[issue number]"
-disable-model-invocation: true
----
 
 # /autopilot-verify — DoD (Playwright) phase
 
 **Follow the autopilot autonomous contract: `docs/autopilot/autonomous-contract.md`.**
 対話的に質問しない。終了時に `AUTOPILOT_RESULT_FILE` へ JSON を書き、pane に signal トークンを出す。
 
-対象 Issue は `$ARGUMENTS` または `AUTOPILOT_ISSUE`。approve 済みの PR の **DoD（Definition of Done）** を確認する。
+対象 Issue は 環境変数 `AUTOPILOT_ISSUE`。approve 済みの PR の **DoD（Definition of Done）** を確認する。
 
 ゴール: **Issue/PR に定義された DoD を、CI green 確認 + 必要なら Playwright MCP のブラウザ確認で満たす。** 満たせば人間の merge 待ち（HITL）へ。
 
@@ -73,4 +67,4 @@ echo AUTOPILOT_HITL
 
 ## License
 
-This skill is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.
+This phase prompt is part of the Smalruby autopilot and is licensed under the **MIT License** (not the repository's AGPL-3.0). See `tools/autopilot/LICENSE`.

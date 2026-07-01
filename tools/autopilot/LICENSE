@@ -3,7 +3,6 @@ MIT License
 This license applies to the Smalruby autopilot tooling, specifically:
 
   - tools/autopilot/**
-  - .claude/skills/autopilot-*/**
 
 These files are licensed under the MIT License below, which takes precedence
 over the repository's top-level AGPL-3.0 license (LICENSE) for this subtree.
