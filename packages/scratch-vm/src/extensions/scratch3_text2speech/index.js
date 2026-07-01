@@ -29,6 +29,19 @@ const blockIconURI = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNv
  */
 const SERVER_HOST = 'https://synthesis-service.scratch.mit.edu';
 
+// === Smalruby: Start of synthesis CORS proxy ===
+// Scratch's synthesis service is CORS-locked to scratch.mit.edu, so calling it
+// directly from smalruby.app fails ('Access-Control-Allow-Origin' mismatch).
+// Instead of a dedicated per-service Lambda, we reuse Smalruby's *generic* CORS
+// proxy (infra/smalruby-api `GET /cors-proxy?url=<encoded target URL>`). It fetches
+// the target server-side and Base64-encodes binary audio (API Gateway decodes it
+// back to bytes for the client), returning permissive CORS headers. See where the
+// synth request URL is built (search for CORS_PROXY_HOST). SERVER_HOST stays at the
+// upstream value so upstream merges only touch the URL-build site (guarded by
+// test/unit/extension_text2speech_proxy.js). Same root cause as translate (#857/#859).
+const CORS_PROXY_HOST = 'https://api.smalruby.app/cors-proxy';
+// === Smalruby: End of synthesis CORS proxy ===
+
 /**
  * How long to wait in ms before timing out requests to synthesis server.
  * @type {int}
@@ -720,6 +733,13 @@ class Scratch3Text2SpeechBlocks {
         path += `?locale=${locale}`;
         path += `&gender=${gender}`;
         path += `&text=${encodeURIComponent(words.substring(0, 128))}`;
+
+        // === Smalruby: Start of synthesis CORS proxy ===
+        // Wrap the synthesis URL in the generic Smalruby CORS proxy so smalruby.app
+        // is not blocked by the CORS-locked Scratch service. The whole synth URL
+        // (including its query string) becomes the encoded `url` param.
+        path = `${CORS_PROXY_HOST}?url=${encodeURIComponent(path)}`;
+        // === Smalruby: End of synthesis CORS proxy ===
 
         // Perform HTTP request to get audio file
         return fetchWithTimeout(path, {}, SERVER_TIMEOUT)

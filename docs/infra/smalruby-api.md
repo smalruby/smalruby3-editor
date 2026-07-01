@@ -8,7 +8,7 @@
 
 | エンドポイント | Lambda | 用途 |
 |---|---|---|
-| `GET /cors-proxy` | `smalruby-api-cors-proxy{stageSuffix}` | 任意 URL の CORS フリーフェッチ + Google Drive URL 変換 + バイナリ Base64 化 |
+| `GET /cors-proxy` | `smalruby-api-cors-proxy{stageSuffix}` | 任意 URL の CORS フリーフェッチ + Google Drive URL 変換 + バイナリ Base64 化。音声合成 (text2speech) もこの汎用プロキシ経由で `synthesis-service.scratch.mit.edu` を叩く |
 | `GET /mesh-domain` | `smalruby-api-mesh-zone{stageSuffix}` | クライアント IP から Mesh ドメイン (CRC32 ハッシュ) を生成 |
 | `GET /scratch-api-proxy/projects/{projectId}` | `smalruby-api-scratch-projects{stageSuffix}` | Scratch 公式 API (project info) のステータス透過プロキシ |
 | `GET /scratch-api-proxy/translate` | `smalruby-api-scratch-translate{stageSuffix}` | Scratch 公式翻訳サービスのプロキシ |
@@ -65,6 +65,8 @@ Scratch Foundation 公式 API (`https://api.scratch.mit.edu/projects/{projectId}
 Scratch translate サービス (`https://translate-service.scratch.mit.edu/translate`) のプロキシ。
 
 実装: `infra/smalruby-api/lambda/scratch-api-translate.ts`
+
+> **音声合成 (text2speech) について**: 音声合成サービス (`https://synthesis-service.scratch.mit.edu/synth`) も同じ CORS 制約があるが、専用 Lambda は作らず**汎用 `GET /cors-proxy?url=<encoded 合成URL>`** を再利用する。`cors-proxy` は `audio/*` をバイナリと判定して Base64 返却 (`isBase64Encoded: true`) するため、API Gateway 側でバイト列にデコードされ、拡張の `arrayBuffer()` がそのまま音声を得られる。フロント側の実装は `packages/scratch-vm/src/extensions/scratch3_text2speech/index.js` を参照 (#859)。
 
 ## 環境変数
 
