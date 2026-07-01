@@ -5,10 +5,11 @@ const extPath = require.resolve('../../src/extensions/scratch3_text2speech');
 
 // The Text2Speech extension is an upstream Scratch file whose synthesis service is
 // CORS-locked to scratch.mit.edu. Smalruby must route requests through its own
-// proxy (api.smalruby.app/scratch-api-proxy/synth) so smalruby.app is not blocked
-// by CORS. This test guards that the SERVER_HOST override is not silently reverted
-// by an upstream merge (same root cause as translate; see issue #859 / #857).
-test('text2speech extension routes fetch through the Smalruby CORS proxy', (t) => {
+// generic CORS proxy (api.smalruby.app/cors-proxy?url=<encoded synth URL>) so
+// smalruby.app is not blocked by CORS. This test guards that the proxy wrapping is
+// not silently reverted by an upstream merge (same root cause as translate; see
+// issue #859 / #857).
+test('text2speech extension routes fetch through the generic Smalruby CORS proxy', (t) => {
     // Stub fetchWithTimeout before the extension captures it via destructuring at
     // module load time, then fresh-require the extension so it picks up the stub.
     const fetchModule = require(fetchModulePath);
@@ -49,13 +50,19 @@ test('text2speech extension routes fetch through the Smalruby CORS proxy', (t) =
         t.ok(capturedUrl, 'fetchWithTimeout was called');
         t.match(
             capturedUrl,
-            /^https:\/\/api\.smalruby\.app\/scratch-api-proxy\/synth\?/,
-            'SERVER_HOST points to the Smalruby CORS proxy',
+            /^https:\/\/api\.smalruby\.app\/cors-proxy\?url=/,
+            'request goes to the generic Smalruby CORS proxy',
+        );
+        // The synth URL (with its query) is carried as the encoded `url` param.
+        t.match(
+            capturedUrl,
+            /url=https%3A%2F%2Fsynthesis-service\.scratch\.mit\.edu%2Fsynth/,
+            'the CORS-locked synthesis URL is wrapped as the proxy `url` param',
         );
         t.notMatch(
             capturedUrl,
-            /synthesis-service\.scratch\.mit\.edu/,
-            'does not call the CORS-locked Scratch synthesis service directly',
+            /^https:\/\/synthesis-service\.scratch\.mit\.edu/,
+            'the browser does not call the CORS-locked Scratch service directly',
         );
         t.end();
     });

@@ -21,7 +21,7 @@ scratch-vm の **upstream ファイルに埋め込んだ Smalruby マーカー**
 | `src/engine/blocks.js` | XML coords guard | `blockToXML` で x/y が finite number のときだけ XML 属性を出力。Ruby → blocks 変換の x/y 未指定 (undefined) を scratch-blocks v2 に正しく伝え、`fromRuby` 再レイアウト経路を維持する |
 | `src/engine/blocks.js` | orphaned-parent guard | `getTopLevelScript` で `block.parent` が this._blocks に存在しない場合に停止。Ruby → blocks 変換中の孤立 parent id で `undefined.parent` 参照クラッシュを防ぐ |
 | `src/extensions/scratch3_translate/index.js` | translate CORS proxy | `serverURL` を Smalruby プロキシ (`https://api.smalruby.app/scratch-api-proxy/`) に上書き。Scratch の翻訳サービスは CORS を scratch.mit.edu 限定にしたため smalruby.app からの直叩きが失敗する。マーカー無しで上書きしていた過去の版が v13.7.2 upstream マージで静かに revert された (#857) ため、次回以降のマージで検知できるようマーカーで囲む |
-| `src/extensions/scratch3_text2speech/index.js` | synthesis CORS proxy | `SERVER_HOST` を Smalruby プロキシ (`https://api.smalruby.app/scratch-api-proxy`) に上書き。Scratch の音声合成サービスは CORS を scratch.mit.edu 限定にしたため smalruby.app からの直叩きが失敗する。拡張が `${SERVER_HOST}/synth?...` を組むため base を差し替えるだけで proxy 経由になる。プロキシはバイナリ音声を Base64 返却する (`infra/smalruby-api` scratch-api-synthesis)。translate (#857) と同じ根本原因なので同様にマーカーで囲む (#859) |
+| `src/extensions/scratch3_text2speech/index.js` | synthesis CORS proxy | 音声合成 URL を Smalruby の**汎用** CORS プロキシ (`https://api.smalruby.app/cors-proxy?url=<encoded 合成URL>`) で包む。Scratch の音声合成サービスは CORS を scratch.mit.edu 限定にしたため smalruby.app からの直叩きが失敗する。汎用 cors-proxy はバイナリ音声を Base64 で返却する (API Gateway がバイト列にデコード) ので専用 Lambda は不要。`SERVER_HOST` は upstream の値のまま維持し、URL 組み立て箇所だけラップするので upstream 差分が最小。translate (#857) と同じ根本原因 (#859) |
 
 ## 関連ファイル
 

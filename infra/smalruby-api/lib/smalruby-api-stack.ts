@@ -104,12 +104,6 @@ export class SmalrubyApiStack extends cdk.Stack {
             'scratch-api-translate.ts',
         );
 
-        const scratchSynthesisFn = makeLambda(
-            'ScratchApiSynthesis',
-            `smalruby-api-scratch-synthesis${stageSuffix}`,
-            'scratch-api-synthesis.ts',
-        );
-
         // --- Custom Domain ---
 
         const parentZoneName = process.env.ROUTE53_PARENT_ZONE_NAME || 'api.smalruby.app';
@@ -205,12 +199,6 @@ export class SmalrubyApiStack extends cdk.Stack {
             path: '/scratch-api-proxy/translate',
             methods: [apigatewayv2.HttpMethod.GET],
             integration: integrationFor('ScratchApiTranslateIntegration', scratchTranslateFn),
-        });
-
-        this.api.addRoutes({
-            path: '/scratch-api-proxy/synth',
-            methods: [apigatewayv2.HttpMethod.GET],
-            integration: integrationFor('ScratchApiSynthesisIntegration', scratchSynthesisFn),
         });
 
         // Throttling
