@@ -1,0 +1,101 @@
+.notice {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top, 8px));
+    /* 左 56px のサイドレールを避けて、その右側に配置する。 */
+    left: calc(56px + 8px);
+    right: max(8px, env(safe-area-inset-right, 8px));
+    /*
+     * サイドレール (9200) より上、ドロワー (9501) / 各種モーダル overlay (10000)
+     * より下に重ねる。案内であって操作を塞がないので overlay にはしない。
+     */
+    z-index: 9300;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+    background: #4c97ff;
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+}
+
+.switch-button {
+    /* フィッツの法則: タッチターゲット最低 44x44px を確保。 */
+    min-height: 36px;
+    padding: 0.375rem 0.75rem;
+    background: white;
+    color: #4c97ff;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.switch-button:hover,
+.switch-button:focus {
+    background: rgba(255, 255, 255, 0.9);
+    outline: none;
+}
+
+.dismiss-button {
+    min-height: 36px;
+    padding: 0.375rem 0.625rem;
+    background: transparent;
+    color: white;
+    font-size: 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.dismiss-button:hover,
+.dismiss-button:focus {
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+}
+
+.close-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+}
+
+.close-button:hover,
+.close-button:focus {
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+}
+
+.close-icon {
+    width: 14px;
+    height: 14px;
+    /* icon--close.svg は暗色線画なので白背景バー上で反転して白くする。 */
+    filter: brightness(0) invert(1);
+}

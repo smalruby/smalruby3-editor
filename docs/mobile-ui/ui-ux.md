@@ -79,8 +79,9 @@ viewport 自動判定に加えて、**ユーザーが表示モードを明示指
 - `persistDisplayMode()` が `smalruby:displayModeChanged` イベントを発火し、`useDisplayMode` hook 経由で `ResponsiveGui` がリアルタイムに切り替える (リロード不要)。
 - **切り替え口**:
   - スマホモード中: モバイルドロワー (☰) の目立つ「PCモードに切り替える」ボタン (`mobile-drawer-switch-to-desktop`)。
-  - どちらのモードでも: 設定メニュー → 「表示モード」の 自動 / PCモード / スマホモード (`settings-display-mode-{auto,desktop,mobile}`)。
-- 関連ファイル: `src/lib/settings/display-mode/`、`src/lib/use-display-mode.js`、`src/lib/responsive-gui.jsx`、`src/components/mobile-drawer/mobile-drawer.jsx`、`src/components/menu-bar/settings-menu.jsx`。
+  - どちらのモードでも: 設定メニュー → 「表示モード」。テーマ / Ruby バージョンと同じ **`PreferenceMenu` サブメニュー**形式で、専用アイコン付き。クリックすると 自動 / PCモード / スマホモード のサブメニューが開き、現在値にチェックが付く。
+- **スマホモードの気付き**: スマホモードに入ると、一度きりの案内バー **`MobileModeNotice`** (`mobile-mode-notice`) が出て「いまはスマホ用の画面である / PC とは表示が違う / ここから PC モードへ切り替えられる」ことを伝える。閉じると localStorage (`smalruby:mobileModeNoticeDismissed`) に記録し、そのマシンでは以後出さない。§4「PC 表示が崩れている警告バナーを置かない」原則とは異なり、これは *スマホモード側で* 現在の状態と脱出口を知らせる中立的な案内であり、警告ではない。
+- 関連ファイル: `src/lib/settings/display-mode/`、`src/lib/use-display-mode.js`、`src/lib/responsive-gui.jsx`、`src/components/mobile-drawer/mobile-drawer.jsx`、`src/components/mobile-mode-notice/mobile-mode-notice.jsx`、`src/components/menu-bar/settings-menu.jsx`、`src/reducers/menus.js`。
 
 > **設計原則との関係**: これは「URL オプトインフラグ」ではなく **UI から操作する永続ユーザー設定** であり、§4「オプトインフラグを増やさない」に反しない。既定はあくまで viewport 自動判定で、明示指定したユーザーだけが固定される。
 

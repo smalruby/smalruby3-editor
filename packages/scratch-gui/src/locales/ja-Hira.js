@@ -1107,6 +1107,9 @@ export default {
     'gui.displayMode.auto': 'じどう',
     'gui.displayMode.desktop': 'パソコンモード',
     'gui.displayMode.mobile': 'スマホモード',
+    'gui.mobile.modeNotice.body': 'いまはスマホようのがめんです（パソコンとはひょうじがちがいます）。',
+    'gui.mobile.modeNotice.dismiss': 'とじる',
+    'gui.mobile.modeNotice.close': 'あんないをとじる',
     // 旧キー (互換のため残す)
     'gui.mobile.drawer.section.tools': 'ツール',
     'gui.mobile.drawer.section.rubyVersion': 'ルビー バージョン',

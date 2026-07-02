@@ -47,6 +47,7 @@ src/components/*
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-drawer/
 !src/components/mobile-gui/
+!src/components/mobile-mode-notice/
 !src/components/mobile-orientation-gate/
 !src/components/mobile-paint-toolbar-toggle/
 !src/components/mobile-side-rail/
@@ -294,6 +295,7 @@ test/unit/components/*
 !test/unit/components/mesh-self-sensor-notice.test.jsx
 !test/unit/components/mobile-bottom-tabs.test.jsx
 !test/unit/components/mobile-drawer.test.jsx
+!test/unit/components/mobile-mode-notice.test.jsx
 !test/unit/components/mobile-orientation-gate.test.jsx
 !test/unit/components/mobile-side-rail.test.jsx
 !test/unit/components/mobile-sprite-panel.test.jsx
