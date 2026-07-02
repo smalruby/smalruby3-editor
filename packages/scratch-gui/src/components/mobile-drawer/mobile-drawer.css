@@ -183,3 +183,21 @@
     color: #855cd6;
     font-weight: bold;
 }
+
+/*
+ * PC モードへ切り替える項目 (Issue #865)。意図せずスマホモードに入った
+ * ユーザーが見つけやすいよう、他の項目より目立つ塗りつぶしにする。
+ */
+.switch-to-desktop {
+    margin: 0.5rem 0.75rem;
+    width: auto;
+    border-radius: 0.5rem;
+    background-color: #855cd6;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+}
+
+.switch-to-desktop:active {
+    background-color: #714fc0;
+}

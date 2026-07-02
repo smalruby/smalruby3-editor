@@ -13,6 +13,9 @@ const MENU_SETTINGS = 'settingsMenu';
 const MENU_COLOR_MODE = 'colorModeMenu';
 const MENU_THEME = 'themeMenu';
 const MENU_RUBY_VERSION = 'rubyVersionMenu';
+// === Smalruby: Start of display mode menu ===
+const MENU_DISPLAY_MODE = 'displayModeMenu';
+// === Smalruby: End of display mode menu ===
 const MENU_KOSHIEN = 'koshienMenu';
 const MENU_MESH_V2 = 'meshV2Menu';
 const MENU_SMALRUBOT_S1 = 'smalrubotS1Menu';
@@ -60,6 +63,9 @@ const rootMenu = new Menu('root')
             .addChild(new Menu(MENU_COLOR_MODE))
             .addChild(new Menu(MENU_THEME))
             .addChild(new Menu(MENU_RUBY_VERSION))
+            // === Smalruby: Start of display mode menu ===
+            .addChild(new Menu(MENU_DISPLAY_MODE))
+            // === Smalruby: End of display mode menu ===
     )
     .addChild(new Menu(MENU_FILE))
     .addChild(new Menu(MENU_EDIT))
@@ -84,6 +90,9 @@ const initialState = {
     [MENU_COLOR_MODE]: false,
     [MENU_THEME]: false,
     [MENU_RUBY_VERSION]: false,
+    // === Smalruby: Start of display mode menu ===
+    [MENU_DISPLAY_MODE]: false,
+    // === Smalruby: End of display mode menu ===
     [MENU_KOSHIEN]: false,
     [MENU_MESH_V2]: false,
     [MENU_SMALRUBOT_S1]: false
@@ -195,6 +204,12 @@ const openRubyVersionMenu = () => openMenu(MENU_RUBY_VERSION);
 const closeRubyVersionMenu = () => closeMenu(MENU_RUBY_VERSION);
 const rubyVersionMenuOpen = state => state.scratchGui.menus[MENU_RUBY_VERSION];
 
+// === Smalruby: Start of display mode menu ===
+const openDisplayModeMenu = () => openMenu(MENU_DISPLAY_MODE);
+const closeDisplayModeMenu = () => closeMenu(MENU_DISPLAY_MODE);
+const displayModeMenuOpen = state => state.scratchGui.menus[MENU_DISPLAY_MODE];
+// === Smalruby: End of display mode menu ===
+
 const openKoshienMenu = () => openMenu(MENU_KOSHIEN);
 const closeKoshienMenu = () => closeMenu(MENU_KOSHIEN);
 const koshienMenuOpen = state => state.scratchGui.menus[MENU_KOSHIEN];
@@ -246,6 +261,11 @@ export {
     openRubyVersionMenu,
     closeRubyVersionMenu,
     rubyVersionMenuOpen,
+    // === Smalruby: Start of display mode menu ===
+    openDisplayModeMenu,
+    closeDisplayModeMenu,
+    displayModeMenuOpen,
+    // === Smalruby: End of display mode menu ===
     openKoshienMenu,
     closeKoshienMenu,
     koshienMenuOpen,

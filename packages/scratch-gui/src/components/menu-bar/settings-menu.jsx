@@ -8,6 +8,12 @@ import LanguageMenu from './language-menu.jsx';
 import MenuBarMenu from './menu-bar-menu.jsx';
 import {MenuSection, MenuItem} from '../menu/menu.jsx';
 import PreferenceMenu from './preference-menu.jsx';
+// === Smalruby: Start of display mode menu ===
+import useDisplayMode from '../../lib/use-display-mode.js';
+import {displayModeMap, messages as displayModeMessages} from '../../lib/settings/display-mode/index.js';
+import {persistDisplayMode} from '../../lib/settings/display-mode/persistence.js';
+import displayModeIcon from './icon--display-mode.svg';
+// === Smalruby: End of display mode menu ===
 
 import {DEFAULT_MODE, HIGH_CONTRAST_MODE, colorModeMap} from '../../lib/settings/color-mode/index.js';
 import {themeMap} from '../../lib/settings/theme/index.js';
@@ -36,7 +42,11 @@ import {
     rubyVersionMenuOpen,
     openColorModeMenu,
     openThemeMenu,
-    openRubyVersionMenu
+    openRubyVersionMenu,
+    // === Smalruby: Start of display mode menu ===
+    displayModeMenuOpen,
+    openDisplayModeMenu
+    // === Smalruby: End of display mode menu ===
 } from '../../reducers/menus.js';
 
 const enabledColorModes = [DEFAULT_MODE, HIGH_CONTRAST_MODE];
@@ -51,6 +61,7 @@ const SettingsMenu = ({
     isColorModeMenuOpen,
     isThemeMenuOpen,
     isRubyVersionMenuOpen,
+    isDisplayModeMenuOpen,
     activeColorMode,
     activeRubyVersion,
     onChangeColorMode,
@@ -58,6 +69,7 @@ const SettingsMenu = ({
     onRequestOpenColorMode,
     onRequestOpenTheme,
     onRequestOpenRubyVersion,
+    onRequestOpenDisplayMode,
     onOpenBlockDisplayModal,
     onOpenTeacherModal,
     activeTheme,
@@ -67,6 +79,17 @@ const SettingsMenu = ({
     settingsMenuOpen
 }) => {
     const intl = useIntl();
+    // === Smalruby: Start of display mode menu ===
+    // 表示モード (auto / PC / スマホ) の現在値と切替ハンドラ (Issue #865)。
+    // 他の設定メニュー (テーマ / Ruby バージョン) と同じ PreferenceMenu の
+    // サブメニューとして出す。表示モードは Redux ではなく localStorage 駆動
+    // (useDisplayMode で購読) なので、選択時は persistDisplayMode するだけ。
+    const activeDisplayMode = useDisplayMode();
+    const handleChangeDisplayMode = useCallback(mode => {
+        persistDisplayMode(mode);
+        onRequestClose();
+    }, [onRequestClose]);
+    // === Smalruby: End of display mode menu ===
     const enabledColorModesMap = useMemo(() => Object.keys(colorModeMap).reduce((acc, colorMode) => {
         if (enabledColorModes.includes(colorMode)) {
             acc[colorMode] = colorModeMap[colorMode];
@@ -176,6 +199,25 @@ const SettingsMenu = ({
                         onRequestCloseSettings={onRequestClose}
                         onRequestOpen={onRequestOpenRubyVersion}
                     />
+                    {/* === Smalruby: Start of display mode menu === */}
+                    {/*
+                     * 表示モード切替 (Issue #865)。auto / PC / スマホ を選べる。
+                     * テーマ / Ruby バージョンと同じ PreferenceMenu サブメニュー形式。
+                     * Chromebook 等で意図せずスマホモードに入ったユーザーが、ここから
+                     * いつでも PC モードへ固定できる (localStorage に保存)。
+                     */}
+                    <PreferenceMenu
+                        open={isDisplayModeMenuOpen}
+                        itemsMap={displayModeMap}
+                        onChange={handleChangeDisplayMode}
+                        defaultMenuIconSrc={displayModeIcon}
+                        submenuLabel={displayModeMessages.displayModeMenu}
+                        selectedItemKey={activeDisplayMode}
+                        isRtl={isRtl}
+                        onRequestCloseSettings={onRequestClose}
+                        onRequestOpen={onRequestOpenDisplayMode}
+                    />
+                    {/* === Smalruby: End of display mode menu === */}
                     <MenuItem onClick={onOpenBlockDisplayModal}>
                         <div className={styles.option}>
                             <img
@@ -231,6 +273,8 @@ SettingsMenu.propTypes = {
     onRequestOpenColorMode: PropTypes.func,
     isColorModeMenuOpen: PropTypes.bool,
     isRubyVersionMenuOpen: PropTypes.bool,
+    isDisplayModeMenuOpen: PropTypes.bool,
+    onRequestOpenDisplayMode: PropTypes.func,
     onOpenBlockDisplayModal: PropTypes.func,
     onOpenTeacherModal: PropTypes.func,
     activeTheme: PropTypes.string,
@@ -252,7 +296,10 @@ const mapStateToProps = state => ({
     activeRubyVersion: state.scratchGui.settings.rubyVersion,
     isColorModeMenuOpen: colorModeMenuOpen(state),
     isThemeMenuOpen: themeMenuOpen(state),
-    isRubyVersionMenuOpen: rubyVersionMenuOpen(state)
+    isRubyVersionMenuOpen: rubyVersionMenuOpen(state),
+    // === Smalruby: Start of display mode menu ===
+    isDisplayModeMenuOpen: displayModeMenuOpen(state)
+    // === Smalruby: End of display mode menu ===
 });
 
 const mapDispatchToProps = (dispatch, ownProps) => ({
@@ -265,6 +312,11 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onRequestOpenRubyVersion: () => {
         dispatch(openRubyVersionMenu());
     },
+    // === Smalruby: Start of display mode menu ===
+    onRequestOpenDisplayMode: () => {
+        dispatch(openDisplayModeMenu());
+    },
+    // === Smalruby: End of display mode menu ===
     onOpenBlockDisplayModal: () => {
         ownProps.onOpenBlockDisplayModal();
     },

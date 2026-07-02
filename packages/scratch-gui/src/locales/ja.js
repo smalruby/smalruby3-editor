@@ -1070,6 +1070,14 @@ export default {
     'gui.mobile.drawer.settings.ruby': 'ルビー',
     'gui.mobile.drawer.settings.ruby.v1': 'バージョン 1',
     'gui.mobile.drawer.settings.ruby.v2': 'バージョン 2',
+    'gui.mobile.drawer.switchToDesktop': 'PCモードに切り替える',
+    'gui.menuBar.displayMode': '表示モード',
+    'gui.displayMode.auto': '自動',
+    'gui.displayMode.desktop': 'PCモード',
+    'gui.displayMode.mobile': 'スマホモード',
+    'gui.mobile.modeNotice.body': 'いまはスマホ用の画面です（PCとは表示が違います）。',
+    'gui.mobile.modeNotice.dismiss': 'とじる',
+    'gui.mobile.modeNotice.close': '案内を閉じる',
     // 旧キー (削除した section.tools / section.rubyVersion / section.language) は
     // 互換のため残しておく (未使用)。
     'gui.mobile.drawer.section.tools': 'ツール',

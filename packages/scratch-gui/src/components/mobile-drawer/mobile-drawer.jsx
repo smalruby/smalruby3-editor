@@ -19,6 +19,8 @@ import {
     VERSION_1,
 } from '../../lib/settings/ruby-version/index.js';
 import { persistRubyVersion } from '../../lib/settings/ruby-version/persistence.js';
+import { DISPLAY_MODE_DESKTOP } from '../../lib/settings/display-mode/index.js';
+import { persistDisplayMode } from '../../lib/settings/display-mode/persistence.js';
 import sharedMessages from '../../lib/shared-messages';
 import { isBugReportConfigured } from '../../lib/bug-report-api.js';
 import { openBugReportModal } from '../../reducers/bug-report.js';
@@ -151,6 +153,12 @@ const messages = defineMessages({
         defaultMessage: 'Report a bug',
         description: 'Mobile drawer item that opens the program bug report modal',
         id: 'gui.smalruby3.gui.bugReport',
+    },
+    switchToDesktop: {
+        defaultMessage: 'Switch to PC mode',
+        description:
+            'Mobile drawer item that switches from the smartphone layout to the PC (desktop) layout and remembers it',
+        id: 'gui.mobile.drawer.switchToDesktop',
     },
 });
 
@@ -366,6 +374,14 @@ const MobileDrawerComponent = ({
         onClose();
     }, [onReportBug, onClose]);
 
+    // PC モードへ切り替える (Issue #865)。localStorage に desktop 固定を保存し、
+    // ResponsiveGui がイベントを受けて desktop GUI に切り替える。このマシンでは
+    // 以後ずっと PC モード (設定メニューからいつでも変更可能)。
+    const handleClickSwitchToDesktop = useCallback(() => {
+        persistDisplayMode(DISPLAY_MODE_DESKTOP);
+        onClose();
+    }, [onClose]);
+
     if (typeof document === 'undefined') {
         return null;
     }
@@ -566,6 +582,24 @@ const MobileDrawerComponent = ({
                                 </button>
                             )}
                         </TurboMode>
+                    </li>
+
+                    {/* ===== 表示モード (PC モードへ切り替え, Issue #865) ===== */}
+                    {/*
+                     * Chromebook 等で意図せずスマホモードに入ってしまったユーザーが
+                     * PC モードへ抜け出すための単独項目。切り替えると localStorage に
+                     * 保存され、そのマシンでは以後ずっと PC モードになる (設定メニュー
+                     * からいつでも戻せる)。
+                     */}
+                    <li>
+                        <button
+                            type="button"
+                            className={classNames(styles.menuItem, styles.switchToDesktop)}
+                            onClick={handleClickSwitchToDesktop}
+                            data-testid="mobile-drawer-switch-to-desktop"
+                        >
+                            <FormattedMessage {...messages.switchToDesktop} />
+                        </button>
                     </li>
 
                     {/* ===== クラス / メッシュ (単独項目) ===== */}

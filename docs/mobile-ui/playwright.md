@@ -103,8 +103,20 @@ active 状態は `[data-active="true"]` 属性で表現される。
 | `mobile-drawer-toggle-${key}`              | button   | アコーディオン開閉 (`language` / `ruby-version` など)    |
 | `mobile-drawer-locale-${code}`             | button   | locale 選択 (`ja` / `ja-Hira` / `en` ほか)               |
 | `mobile-drawer-ruby-version-${version}`    | button   | Ruby version 切替 (`1` / `2`)                            |
+| `mobile-drawer-switch-to-desktop`          | button   | PC モードに切り替える (表示モードを desktop に固定, #865) |
 
-### 3.3 MobileBottomTabs (`mobile-bottom-tabs.jsx`)
+### 3.3 MobileModeNotice (`mobile-mode-notice.jsx`)
+
+スマホモードで一度だけ表示される案内バー (#865)。「いまはスマホ用の画面である / PC とは違う / メニューから PC モードへ切り替えられる」ことを伝える。閉じると `localStorage['smalruby:mobileModeNoticeDismissed']='true'` に記録し以後出さない。
+
+| data-testid                    | 要素   | 役割                                              |
+| ------------------------------ | ------ | ------------------------------------------------- |
+| `mobile-mode-notice`           | div    | 案内バー本体 (dismiss 済みなら DOM に無い)        |
+| `mobile-mode-notice-switch`    | button | PC モードに切り替える (desktop に固定 + 閉じる)   |
+| `mobile-mode-notice-dismiss`   | button | 案内を閉じる (スマホモードのまま)                 |
+| `mobile-mode-notice-close`     | button | × で閉じる (dismiss と同じ)                       |
+
+### 3.4 MobileBottomTabs (`mobile-bottom-tabs.jsx`)
 
 旧構成で使っていたボトムタブ。現在は MobileSideRail に統合済みで MobileGui からはレンダリングされないが、コンポーネント本体は残っているため data-testid も保持されている。
 
@@ -113,7 +125,7 @@ active 状態は `[data-active="true"]` 属性で表現される。
 | `mobile-bottom-tabs`                 | div    | ボトムタブコンテナ  |
 | `mobile-bottom-tabs-${tab.key}`      | button | 各タブボタン        |
 
-### 3.4 MobileTopBar (`mobile-top-bar.jsx`)
+### 3.5 MobileTopBar (`mobile-top-bar.jsx`)
 
 旧フェーズで使っていた上部バー。同じく現在は MobileSideRail 統合済み。
 
@@ -124,7 +136,7 @@ active 状態は `[data-active="true"]` 属性で表現される。
 | `mobile-top-bar-title`  | span   | プロジェクト名表示            |
 | `mobile-top-bar-play`   | button | 実行/停止 (現在 MobileSideRail に移動) |
 
-### 3.5 MobileSpritePanel (`mobile-sprite-panel.jsx`)
+### 3.6 MobileSpritePanel (`mobile-sprite-panel.jsx`)
 
 | data-testid             | 要素 | 役割                           |
 | ----------------------- | ---- | ------------------------------ |
@@ -132,19 +144,19 @@ active 状態は `[data-active="true"]` 属性で表現される。
 
 中身は upstream `<TargetPane>`。スプライト一覧・追加 FAB・ステージ列は upstream のセレクタで指す。
 
-### 3.6 MobileOrientationGate (`mobile-orientation-gate.jsx`)
+### 3.7 MobileOrientationGate (`mobile-orientation-gate.jsx`)
 
 | data-testid                  | 要素 | 役割                     |
 | ---------------------------- | ---- | ------------------------ |
 | `mobile-orientation-gate`    | div  | 縦持ち警告オーバーレイ   |
 
-### 3.7 MobilePaintToolbarToggle (`mobile-paint-toolbar-toggle.jsx`)
+### 3.8 MobilePaintToolbarToggle (`mobile-paint-toolbar-toggle.jsx`)
 
 | data-testid                       | 要素   | 役割                                  |
 | --------------------------------- | ------ | ------------------------------------- |
 | `mobile-paint-toolbar-toggle`     | button | コスチュームタブの ▼/▲ トグル         |
 
-### 3.8 RubyToolbar (`ruby-toolbar.jsx`)
+### 3.9 RubyToolbar (`ruby-toolbar.jsx`)
 
 ルビータブの上部ツールバー。SP/desktop で同じセレクタが使える。
 

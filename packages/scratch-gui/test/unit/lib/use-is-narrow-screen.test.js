@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom';
 import { act, render } from '@testing-library/react';
 import React from 'react';
-import useIsNarrowScreen from '../../../src/lib/use-is-narrow-screen.js';
+import useIsNarrowScreen, { NARROW_SCREEN_QUERY } from '../../../src/lib/use-is-narrow-screen.js';
 
 const setMatchMedia = (matches) => {
     const listeners = new Set();
@@ -25,6 +25,22 @@ const ProbeComponent = ({ onValue }) => {
     onValue(value);
     return null;
 };
+
+describe('NARROW_SCREEN_QUERY', () => {
+    // Issue #865: the bare `(max-height: 500px)` clause wrongly caught wide but
+    // short screens (e.g. a zoomed Chromebook at 1380x480), forcing mobile mode.
+    // The height clause must be bounded by a phone-ish max-width so wide screens
+    // stay in desktop mode.
+    test('narrow-width clause stays at 743px', () => {
+        expect(NARROW_SCREEN_QUERY).toContain('(max-width: 743px)');
+    });
+
+    test('height clause is bounded by a phone-ish max-width (no bare max-height)', () => {
+        expect(NARROW_SCREEN_QUERY).toContain('(max-width: 950px) and (max-height: 500px)');
+        // guard against regressing to an unbounded height clause
+        expect(NARROW_SCREEN_QUERY).not.toMatch(/,\s*\(max-height: 500px\)/);
+    });
+});
 
 describe('useIsNarrowScreen', () => {
     test('returns true when matchMedia matches', () => {

@@ -9,6 +9,7 @@ import { saveBackpackObject } from '../../lib/backpack-api.js';
 import ConnectedIntlProvider from '../../lib/connected-intl-provider.jsx';
 import { COSTUMES_TAB_INDEX } from '../../reducers/editor-tab.js';
 import MobileDrawer from '../mobile-drawer/mobile-drawer.jsx';
+import MobileModeNotice from '../mobile-mode-notice/mobile-mode-notice.jsx';
 import MobileOrientationGate from '../mobile-orientation-gate/mobile-orientation-gate.jsx';
 import MobilePaintToolbarToggle from '../mobile-paint-toolbar-toggle/mobile-paint-toolbar-toggle.jsx';
 import MobileSideRail from '../mobile-side-rail/mobile-side-rail.jsx';
@@ -294,6 +295,12 @@ const MobileGui = ({ activeTabIndex, isFullScreen, vm, ...props }) => {
                         onToggleBackpack={handleToggleBackpack}
                     />
                     <MobileDrawer open={drawerOpen} onClose={handleCloseDrawer} />
+                    {/*
+                     * スマホモードであることと PC モードへ切り替えられることを
+                     * 伝える一度きりの案内 (Issue #865)。閉じたら localStorage に
+                     * 記録して以後出さない。
+                     */}
+                    <MobileModeNotice />
                     <MobileSpritePanel active={spriteTabActive} />
                     {/*
                      * コスチュームタブで上部ツールバーを出し入れするトグル。
