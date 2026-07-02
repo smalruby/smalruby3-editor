@@ -103,6 +103,7 @@ active 状態は `[data-active="true"]` 属性で表現される。
 | `mobile-drawer-toggle-${key}`              | button   | アコーディオン開閉 (`language` / `ruby-version` など)    |
 | `mobile-drawer-locale-${code}`             | button   | locale 選択 (`ja` / `ja-Hira` / `en` ほか)               |
 | `mobile-drawer-ruby-version-${version}`    | button   | Ruby version 切替 (`1` / `2`)                            |
+| `mobile-drawer-switch-to-desktop`          | button   | PC モードに切り替える (表示モードを desktop に固定, #865) |
 
 ### 3.3 MobileBottomTabs (`mobile-bottom-tabs.jsx`)
 

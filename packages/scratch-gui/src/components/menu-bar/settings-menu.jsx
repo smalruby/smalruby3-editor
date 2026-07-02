@@ -8,6 +8,12 @@ import LanguageMenu from './language-menu.jsx';
 import MenuBarMenu from './menu-bar-menu.jsx';
 import {MenuSection, MenuItem} from '../menu/menu.jsx';
 import PreferenceMenu from './preference-menu.jsx';
+// === Smalruby: Start of display mode menu ===
+import check from './check.svg';
+import useDisplayMode from '../../lib/use-display-mode.js';
+import {displayModeMap, messages as displayModeMessages} from '../../lib/settings/display-mode/index.js';
+import {persistDisplayMode} from '../../lib/settings/display-mode/persistence.js';
+// === Smalruby: End of display mode menu ===
 
 import {DEFAULT_MODE, HIGH_CONTRAST_MODE, colorModeMap} from '../../lib/settings/color-mode/index.js';
 import {themeMap} from '../../lib/settings/theme/index.js';
@@ -67,6 +73,17 @@ const SettingsMenu = ({
     settingsMenuOpen
 }) => {
     const intl = useIntl();
+    // === Smalruby: Start of display mode menu ===
+    // 表示モード (auto / PC / スマホ) の現在値と切替ハンドラ (Issue #865)。
+    const activeDisplayMode = useDisplayMode();
+    const handleChangeDisplayMode = useCallback(event => {
+        const mode = event.currentTarget.dataset.displayMode;
+        if (mode) {
+            persistDisplayMode(mode);
+        }
+        onRequestClose();
+    }, [onRequestClose]);
+    // === Smalruby: End of display mode menu ===
     const enabledColorModesMap = useMemo(() => Object.keys(colorModeMap).reduce((acc, colorMode) => {
         if (enabledColorModes.includes(colorMode)) {
             acc[colorMode] = colorModeMap[colorMode];
@@ -210,6 +227,40 @@ const SettingsMenu = ({
                     )}
                     {/* === Smalruby: End of classroom management menu === */}
                 </MenuSection>
+                {/* === Smalruby: Start of display mode menu === */}
+                {/*
+                 * 表示モード切替 (Issue #865)。auto / PC / スマホ を選べる。
+                 * Chromebook 等で意図せずスマホモードに入った場合でも、ここから
+                 * いつでも PC モードへ固定できる (localStorage に保存)。
+                 */}
+                <MenuSection>
+                    <MenuItem closeOnClick={false}>
+                        <div className={styles.option}>
+                            <span className={styles.submenuLabel}>
+                                <FormattedMessage {...displayModeMessages.displayModeMenu} />
+                            </span>
+                        </div>
+                    </MenuItem>
+                    {Object.keys(displayModeMap).map(mode => (
+                        <MenuItem key={mode}>
+                            <div
+                                className={styles.option}
+                                data-display-mode={mode}
+                                data-testid={`settings-display-mode-${mode}`}
+                                onClick={handleChangeDisplayMode}
+                            >
+                                <img
+                                    className={classNames(styles.check, {
+                                        [styles.selected]: activeDisplayMode === mode
+                                    })}
+                                    src={check}
+                                />
+                                <FormattedMessage {...displayModeMap[mode].label} />
+                            </div>
+                        </MenuItem>
+                    ))}
+                </MenuSection>
+                {/* === Smalruby: End of display mode menu === */}
             </MenuBarMenu>
         </div>
     );

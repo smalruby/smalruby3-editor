@@ -13,14 +13,14 @@
 
 ## 1. 切り替えロジック (どのモードがいつ出るか)
 
-切り替えは **viewport ベースで自動**。URL パラメータでのオプトインは設けない。`useIsNarrowScreen` の `matchMedia` がリアルタイムに反応するので、ブラウザリサイズ・端末回転に追従する。
+切り替えは **viewport ベースで自動**。URL パラメータでのオプトインは設けない。`useIsNarrowScreen` の `matchMedia` がリアルタイムに反応するので、ブラウザリサイズ・端末回転に追従する。ただし、ユーザーが表示モードを明示指定した場合はそれを優先する (下記「ユーザーによる表示モードの固定」)。
 
 ### 切り替え式
 
 `packages/scratch-gui/src/lib/use-is-narrow-screen.js`:
 
 ```js
-const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';
+const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-width: 950px) and (max-height: 500px)';
 ```
 
 `packages/scratch-gui/src/lib/responsive-gui.jsx` がこの hook の結果で `<MobileGui>` と `<GUI>` (upstream desktop) を出し分ける。
@@ -29,8 +29,9 @@ const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';
 
 | Viewport (例)             | 短辺幅   | 高さ    | 出るモード                      | スクリーンショット |
 | ------------------------- | -------- | ------- | ------------------------------- | ------------------ |
-| iPhone 14 横 (844×390)    | 844      | 390     | **MobileGui** (高さ ≤ 500 で発火) | 02〜11             |
+| iPhone 14 横 (844×390)    | 844      | 390     | **MobileGui** (幅 ≤ 950 かつ 高さ ≤ 500 で発火) | 02〜11             |
 | iPhone 14 縦 (390×844)    | 390      | 844     | **MobileGui** + 縦持ち警告       | 11                 |
+| Chromebook ズーム (1380×480) | 1380 | 480     | **desktop GUI** (幅 > 950 なので高さ条件は無効) | —                  |
 | iPad mini portrait (744×1133) | 744 | 1133    | desktop GUI (iPad 調整)         | 23                 |
 | iPad portrait (768×1024)  | 768      | 1024    | desktop GUI (iPad 調整)         | 20                 |
 | iPad landscape (1024×768) | 1024     | 768     | desktop GUI (高さ調整あり)       | 21、22             |
@@ -38,8 +39,8 @@ const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';
 
 ### しきい値の根拠
 
-- **幅 743px** は iPad mini portrait (744) を **MobileGui に落とさない** ための境界。MobileGui は横向き専用 UI なので、iPad portrait のような縦長を強制的に MobileGui で見せると逆に使いにくい。
-- **高さ 500px** はスマホ横持ち (390 高さ) を確実に拾う保険。デスクトップで縦を 500 以下に縮めるのは一般的でないので副作用は小さい。
+- **幅 743px** は iPad mini portrait (744) を **MobileGui に落とさない** ための境界。MobileGui は横向き専用 UI なので、iPad portrait のような縦長を強制的に MobileGui で見せると逆に使いにくい。iPhone 縦持ちのように横が極端に狭い端末をスマホモードにする主条件。
+- **高さ 500px は幅 950px 以下に限定する**。スマホ横持ち (390 高さ) を確実に拾いつつ、**Chromebook をズームして高さだけ縮んだ広い画面 (例 1380×480) を誤ってスマホモードにしない** ため (Issue #865)。以前は `(max-height: 500px)` を無条件で OR していたため、Chromebook のズームで高さが 500px 以下になると意図せずスマホモードに入る不具合があった。950px はスマホ横持ちの最大級 (iPhone Pro Max 系 ~932px) を含み、Chromebook / ノート PC の一般的な幅 (≥1280px) を確実に除外する。
 
 ### iPad モードでの追加調整 (744〜1023px の desktop GUI)
 
@@ -63,6 +64,25 @@ const NARROW_SCREEN_QUERY = '(max-width: 743px), (max-height: 500px)';
 - **オプトインフラグを増やさない**: ユーザーが flag を知らないと SP で見られないため、viewport 自動判定で完結させる。同様に「PC 表示が崩れている」警告バナーも置かない (リサイズ可能な PC ブラウザでの誤検知が多いため)。
 - **MobileGui は別コンポーネントに分離**: desktop GUI の一部だけを CSS で隠すアプローチでは「右ペインも見えないのに React tree には残る → 余計なリスナーや HMR コスト」が累積するため、MobileGui を独立したコンポーネントにして一度差し替える方式にした。
 - **iPad は desktop GUI のまま**: iPad は横幅 768〜1024px 程度あり、MobileGui の縦タブ集約より desktop の従来 UI のほうが学習コストが低い。なので iPad は desktop GUI に CSS/レイアウト調整を当てる方針。
+
+### ユーザーによる表示モードの固定 (Issue #865)
+
+viewport 自動判定に加えて、**ユーザーが表示モードを明示指定して固定できる**。Chromebook のズーム等で意図せずスマホモードに入ってしまったユーザーが、自力で PC モードへ抜け出すための逃げ道。
+
+| モード | 値 | 挙動 |
+| ------ | -- | ---- |
+| 自動 | `auto` (既定) | viewport 自動判定 (上記の切り替え式) |
+| PC モード | `desktop` | viewport に関係なく常に desktop GUI |
+| スマホモード | `mobile` | viewport に関係なく常に MobileGui |
+
+- 設定は **localStorage `smalruby:displayMode`** に保存され、そのマシンでは以後ずっと維持される (`auto` はキー削除 = 未設定と等価)。
+- `persistDisplayMode()` が `smalruby:displayModeChanged` イベントを発火し、`useDisplayMode` hook 経由で `ResponsiveGui` がリアルタイムに切り替える (リロード不要)。
+- **切り替え口**:
+  - スマホモード中: モバイルドロワー (☰) の目立つ「PCモードに切り替える」ボタン (`mobile-drawer-switch-to-desktop`)。
+  - どちらのモードでも: 設定メニュー → 「表示モード」の 自動 / PCモード / スマホモード (`settings-display-mode-{auto,desktop,mobile}`)。
+- 関連ファイル: `src/lib/settings/display-mode/`、`src/lib/use-display-mode.js`、`src/lib/responsive-gui.jsx`、`src/components/mobile-drawer/mobile-drawer.jsx`、`src/components/menu-bar/settings-menu.jsx`。
+
+> **設計原則との関係**: これは「URL オプトインフラグ」ではなく **UI から操作する永続ユーザー設定** であり、§4「オプトインフラグを増やさない」に反しない。既定はあくまで viewport 自動判定で、明示指定したユーザーだけが固定される。
 
 ---
 

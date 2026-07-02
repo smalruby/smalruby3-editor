@@ -1102,6 +1102,11 @@ export default {
     'gui.mobile.drawer.settings.ruby': 'ルビー',
     'gui.mobile.drawer.settings.ruby.v1': 'バージョン 1',
     'gui.mobile.drawer.settings.ruby.v2': 'バージョン 2',
+    'gui.mobile.drawer.switchToDesktop': 'パソコンモードにきりかえる',
+    'gui.menuBar.displayMode': 'ひょうじモード',
+    'gui.displayMode.auto': 'じどう',
+    'gui.displayMode.desktop': 'パソコンモード',
+    'gui.displayMode.mobile': 'スマホモード',
     // 旧キー (互換のため残す)
     'gui.mobile.drawer.section.tools': 'ツール',
     'gui.mobile.drawer.section.rubyVersion': 'ルビー バージョン',
