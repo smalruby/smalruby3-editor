@@ -5,6 +5,8 @@ const {
     PHASE_BY_COMMAND,
     phasePromptCommand,
     parseBaseBranch,
+    parseAfterIssues,
+    unresolvedAfterIssues,
     DEFAULT_CLAUDE_COMMAND,
     applyResult,
     hitlDesireFromResult,
@@ -801,6 +803,43 @@ test('parseBaseBranch: 英語 "Base branch" ラベルも認識', () => {
 test('parseBaseBranch: ディレクティブはセクションより優先', () => {
     const body = 'autopilot-base: topic/win\n## ベースブランチ\n- `topic/lose`';
     assert.equal(parseBaseBranch(body), 'topic/win');
+});
+
+test('parseBaseBranch: ディレクティブは行頭のみ反応（本文中の言及では発火しない）', () => {
+    // 例: 「この修正を autopilot に任せる」Issue の説明に仕様として書かれた場合
+    assert.equal(parseBaseBranch('説明のために autopilot-base: topic/x と書くとブランチを指定できる'), null);
+    assert.equal(parseBaseBranch('- リスト内の autopilot-base: topic/x も無効'), null);
+    // 行頭なら反応する（HTML コメントも行頭からなら可）
+    assert.equal(parseBaseBranch('前置き\nautopilot-base: topic/ok\n後書き'), 'topic/ok');
+    assert.equal(parseBaseBranch('前置き\n<!-- autopilot-base: topic/ok -->'), 'topic/ok');
+    // 行頭に空白があるものは行頭扱いしない
+    assert.equal(parseBaseBranch('  autopilot-base: topic/indented'), null);
+});
+
+test('parseAfterIssues: 行頭の autopilot-after 宣言から依存 Issue を抽出', () => {
+    assert.deepEqual(parseAfterIssues('autopilot-after: #123'), [123]);
+    assert.deepEqual(parseAfterIssues('autopilot-after: #12, #34 56'), [12, 34, 56]);
+    assert.deepEqual(parseAfterIssues('<!-- autopilot-after: #7 -->'), [7]);
+    // 複数行の宣言は合算・重複除去
+    assert.deepEqual(parseAfterIssues('autopilot-after: #1\n本文\nautopilot-after: #2 #1'), [1, 2]);
+    // 行頭以外の言及では発火しない
+    assert.deepEqual(parseAfterIssues('説明: autopilot-after: #99 と書ける'), []);
+    assert.deepEqual(parseAfterIssues(''), []);
+    assert.deepEqual(parseAfterIssues(null), []);
+});
+
+test('unresolvedAfterIssues: closed or 終端 Status の依存は解決済み', () => {
+    const ctx = {
+        closedSet: new Set([10]),
+        statusByIssue: { 11: 'Close', 12: 'In Progress', 13: 'Done' },
+    };
+    // 10=closed, 11=Close, 13=Done は解決済み。12=In Progress と 99=不明 は未解決
+    assert.deepEqual(unresolvedAfterIssues([10, 11, 12, 13, 99], ctx), [12, 99]);
+    assert.deepEqual(unresolvedAfterIssues([], ctx), []);
+    // 情報が無い依存は保守的に「未完了」扱い
+    assert.deepEqual(unresolvedAfterIssues([10], {}), [10]);
+    // closedSet が配列でも動く
+    assert.deepEqual(unresolvedAfterIssues([10, 12], { closedSet: [10] }), [12]);
 });
 
 // === プロンプト起動メッセージ（Skill スラッシュではなくファイル参照） ===

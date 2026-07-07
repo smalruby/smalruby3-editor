@@ -40,7 +40,9 @@ function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
  * 振る舞いを人間（implement スキルの判断）任せにせず、宣言があれば確実に効かせるための防御策。
  *
  * 認識する書式（いずれか）:
- *  1. ディレクティブ: `autopilot-base: <branch>`（HTML コメント内でも可）。最優先。
+ *  1. ディレクティブ: `autopilot-base: <branch>`。**行頭のみ**反応する（HTML コメントが
+ *     行頭から始まる場合は `<!-- autopilot-base: x -->` も可）。本文の途中で
+ *     「autopilot-base: と書くと…」のように**言及**しただけでは発火しない。最優先。
  *  2. 「## ベースブランチ」/「base branch」見出し・ラベルの直後にあるバッククォート囲みのブランチ。
  *
  * いずれも無ければ null（= 既定 develop）。誤検出を避けるため、明示宣言があるときだけ返す。
@@ -49,11 +51,51 @@ function autopilotHeadBranch(issueNumber, prefix = AUTOPILOT_BRANCH_PREFIX) {
  */
 function parseBaseBranch(body) {
     if (!body) return null;
-    const directive = body.match(/autopilot-base:\s*`?([\w.\/-]+)`?/i);
+    const directive = body.match(/^(?:<!--\s*)?autopilot-base:\s*`?([\w.\/-]+)`?/im);
     if (directive) return directive[1];
     const section = body.match(/(?:ベースブランチ|base[ -]?branch)[^\n]*\n+[^\n]*?`([\w.\/-]+)`/i);
     if (section) return section[1];
     return null;
+}
+
+/**
+ * Issue 本文から `autopilot-after:` ディレクティブ（着手順の依存宣言）を抽出する（純粋関数）。
+ *
+ * `autopilot-after: #123` と宣言すると、その Issue（依存）が完了（GitHub closed または
+ * Project Status が終端）するまで autopilot はこの Issue に着手しない。
+ * `autopilot-base:` と同じく**行頭のみ**反応する（行頭 HTML コメントも可）。
+ * 複数依存はカンマ/空白区切り（`autopilot-after: #12, #34`）、複数行の宣言も合算する。
+ * `#` は省略可。重複は除去する。
+ * @param {string} body Issue 本文
+ * @returns {number[]} 依存 Issue 番号（宣言順・重複なし）
+ */
+function parseAfterIssues(body) {
+    if (!body) return [];
+    const out = [];
+    const re = /^(?:<!--\s*)?autopilot-after:\s*([^\n]*)/gim;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+        for (const t of m[1].matchAll(/#?(\d+)/g)) out.push(Number(t[1]));
+    }
+    return [...new Set(out)];
+}
+
+/**
+ * `autopilot-after:` の依存のうち、まだ完了していないものを返す（純粋関数）。
+ * 完了 = GitHub で closed（closedSet に含まれる）または Project Status が終端
+ * （{@link TERMINAL_STATUSES}）。Project にも closedSet にも見つからない依存は
+ * 「まだ完了していない」と保守的に扱う（依存の消し忘れ・番号ミスを人間が気付ける）。
+ * @param {number[]} after 依存 Issue 番号
+ * @param {object} ctx { closedSet: Set<number>|number[], statusByIssue: {[issue]: string} }
+ * @returns {number[]} 未完了の依存 Issue 番号
+ */
+function unresolvedAfterIssues(after, ctx = {}) {
+    const closed = ctx.closedSet instanceof Set ? ctx.closedSet : new Set(ctx.closedSet || []);
+    const statusByIssue = ctx.statusByIssue || {};
+    return (after || []).filter((n) => {
+        if (closed.has(n)) return false;
+        return !TERMINAL_STATUSES.has(statusByIssue[n]);
+    });
 }
 
 /**
@@ -872,6 +914,8 @@ module.exports = {
     DEFAULT_CLAUDE_COMMAND,
     DEFAULT_BASE_BRANCH,
     parseBaseBranch,
+    parseAfterIssues,
+    unresolvedAfterIssues,
     AUTOPILOT_BRANCH_PREFIX,
     autopilotHeadBranch,
     applyResult,

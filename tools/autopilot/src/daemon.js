@@ -19,6 +19,8 @@ const {
     PHASE_BY_COMMAND,
     DEFAULT_BASE_BRANCH,
     parseBaseBranch,
+    parseAfterIssues,
+    unresolvedAfterIssues,
     selectActionable,
     isStuckCandidate,
     applyResult,
@@ -62,6 +64,33 @@ function ensureWorktree(issue, pr, base) {
 // 1 回の run の最大時間（watchdog tMaxMs=30分）より長くして、生きている run を誤って
 // 止めない。daemon 再起動後はこの daemon が初めて観測した時刻から測り直す（保守的）。
 const DEFAULT_STUCK_MS = 35 * 60 * 1000;
+
+// Issue 本文ディレクティブ（autopilot-base / autopilot-after）のキャッシュ TTL。
+// 人間が本文を編集した変更は最大この時間で反映される。tick ごとの本文 fetch を避ける。
+const DIRECTIVE_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Issue 本文から導いたディレクティブ（base / after）を TTL キャッシュ付きで返す。
+ * 失敗時は空ディレクティブ（既定動作）にフォールバックし、次回また取りに行く。
+ * @returns {{base: string|null, after: number[]}}
+ */
+function getDirectives(cfg, state, issue, log, deps = {}) {
+    const getIssueBody = deps.getIssueBody || project.getIssueBody;
+    if (!state.directives) state.directives = new Map();
+    const cached = state.directives.get(issue);
+    const now = cfg.now();
+    if (cached && now - cached.at < (cfg.directiveTtlMs || DIRECTIVE_TTL_MS)) return cached;
+    let entry = { base: null, after: [], at: now };
+    try {
+        const body = getIssueBody(cfg.repo, issue, deps.token || project.botToken());
+        entry = { base: parseBaseBranch(body), after: parseAfterIssues(body), at: now };
+    } catch (e) {
+        log(`#${issue}: directive fetch failed: ${e.message}`);
+        entry.at = now - (cfg.directiveTtlMs || DIRECTIVE_TTL_MS); // 失敗は次 tick で再取得
+    }
+    state.directives.set(issue, entry);
+    return entry;
+}
 
 /**
  * item を Blocked にして人間へハンドオフする（Status=Blocked + 🙋 ラベル + 説明コメント）。
@@ -168,10 +197,8 @@ async function dispatch(item, cfg, state, log) {
         // 既定は develop。PR ブランチ作業フェーズは PR の base を継ぐので解決不要。
         let baseBranch = DEFAULT_BASE_BRANCH;
         if (!pr) {
-            try {
-                const declared = parseBaseBranch(project.getIssueBody(cfg.repo, item.issue, project.botToken()));
-                if (declared) { baseBranch = declared; log(`#${item.issue}: base branch = ${baseBranch} (declared)`); }
-            } catch (e) { log(`#${item.issue}: base parse failed: ${e.message}`); }
+            const declared = getDirectives(cfg, state, item.issue, log).base;
+            if (declared) { baseBranch = declared; log(`#${item.issue}: base branch = ${baseBranch} (declared)`); }
         }
         const cwd = ensureWorktree(item.issue, pr, baseBranch);
         const resultDir = path.join(cwd, 'tmp');
@@ -296,12 +323,15 @@ function applyClosedReconcile(items, cfg, state, log, deps = {}) {
     const applyIntents = deps.applyIntents || project.applyIntents;
     const findItemId = deps.findItemId || project.findItemId;
     const syncFaces = deps.syncFaces || ((item, intents) => syncFacesAfterIntents(item, intents, cfg, log));
-    let closedSet;
-    try {
-        closedSet = listClosed(cfg.repo, token);
-    } catch (e) {
-        log(`closed issue list failed: ${e.message}`);
-        return;
+    // tick が事前計算した closedSet があれば再取得しない（after 依存判定と共用・API 節約）
+    let closedSet = deps.closedSet;
+    if (!closedSet) {
+        try {
+            closedSet = listClosed(cfg.repo, token);
+        } catch (e) {
+            log(`closed issue list failed: ${e.message}`);
+            return;
+        }
     }
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
     const intents = [
@@ -453,14 +483,36 @@ async function tick(cfg, state, log) {
     }
     const running = new Set(state.running.keys());
     const contexts = collectReviewContexts(cfg, items, running, log);
-    const picked = selectActionable(items, {
+    // closed issue 集合は after 依存の判定と closed-reconcile の両方で使う（1 tick 1 回だけ取得）
+    let closedSet = new Set();
+    try {
+        closedSet = project.listClosedIssueNumbers(cfg.repo, project.botToken());
+    } catch (e) {
+        log(`closed issue list failed: ${e.message}`);
+    }
+    // 候補は上限なしで Board 順に列挙し、autopilot-after の未完了依存を持つ item を
+    // スキップしながら空き容量まで拾う（依存でブロックされた分は次点候補が繰り上がる）
+    const candidates = selectActionable(items, {
         paused: state.paused,
         running,
-        limit: cfg.concurrency,
+        limit: Infinity,
         contexts,
         assignee: cfg.assignee,
         statusOrder: cfg.statusOrder,
     });
+    const statusByIssue = Object.fromEntries(items.map((it) => [it.issue, it.status]));
+    const capacity = Math.max(0, cfg.concurrency - state.running.size);
+    const picked = [];
+    for (const item of candidates) {
+        if (picked.length >= capacity) break;
+        const after = getDirectives(cfg, state, item.issue, log).after;
+        const unresolved = unresolvedAfterIssues(after, { closedSet, statusByIssue });
+        if (unresolved.length) {
+            log(`#${item.issue}: autopilot-after 待ち (未完了: ${unresolved.map((n) => `#${n}`).join(', ')})`);
+            continue;
+        }
+        picked.push(item);
+    }
     for (const item of picked) {
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
@@ -468,7 +520,7 @@ async function tick(cfg, state, log) {
     // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）+ GitHub issue も close（#843 Fix A）
     applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
-    applyClosedReconcile(items, cfg, state, log);
+    applyClosedReconcile(items, cfg, state, log, { closedSet });
     // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
     detectStuck(items, cfg, state, log);
     // Status=DoD の leaf に headful 検証の引き継ぎコメントを 1 回だけ投稿（#821・冪等）
@@ -616,5 +668,5 @@ async function main(opts = {}) {
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
-    applyDodHandoffs, detectStuck, markBlocked,
+    applyDodHandoffs, detectStuck, markBlocked, getDirectives,
 };

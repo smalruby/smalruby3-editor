@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, markBlocked,
+    detectStuck, markBlocked, getDirectives,
 } = require('../src/daemon');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
 
@@ -428,6 +428,47 @@ test('applyDodHandoffs: a failing item does not block others', () => {
     const state = { running: new Map() };
     applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
     assert.deepEqual(deps.calls.posted.map((p) => p.prNumber), [200]);
+});
+
+// === directives: getDirectives（autopilot-base / autopilot-after の TTL キャッシュ） ===
+
+test('getDirectives: 本文から base/after を導き TTL 内はキャッシュを返す', () => {
+    let fetches = 0;
+    let now = 0;
+    const cfg = { ...makeCfg(), now: () => now, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = {
+        token: 't',
+        getIssueBody: () => { fetches += 1; return 'autopilot-base: topic/x\nautopilot-after: #9'; },
+    };
+    const d1 = getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(d1.base, 'topic/x');
+    assert.deepEqual(d1.after, [9]);
+    assert.equal(fetches, 1);
+    // TTL 内は再取得しない
+    now = 999;
+    getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(fetches, 1);
+    // TTL 超過で再取得
+    now = 1001;
+    getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(fetches, 2);
+});
+
+test('getDirectives: 取得失敗は空ディレクティブへフォールバックし次回再取得', () => {
+    let calls = 0;
+    const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
+    const state = {};
+    const deps = {
+        token: 't',
+        getIssueBody: () => { calls += 1; if (calls === 1) throw new Error('boom'); return 'autopilot-after: #3'; },
+    };
+    const d1 = getDirectives(cfg, state, 5, () => {}, deps);
+    assert.equal(d1.base, null);
+    assert.deepEqual(d1.after, []);
+    // 失敗エントリは TTL 切れ扱い → 次回すぐ再取得して成功する
+    const d2 = getDirectives(cfg, state, 5, () => {}, deps);
+    assert.deepEqual(d2.after, [3]);
 });
 
 // === #816: markBlocked / detectStuck（失敗・stall 時の人間ハンドオフ） ===
