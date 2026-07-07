@@ -154,6 +154,16 @@ const messages = defineMessages({
         defaultMessage: 'Log',
         description: 'Label for the action/error log in the koshien panel',
     },
+    expandLog: {
+        id: 'gui.koshienMockPanel.expandLog',
+        defaultMessage: 'Expand the log',
+        description: 'Button that hides the player panes so the log gets tall',
+    },
+    shrinkLog: {
+        id: 'gui.koshienMockPanel.shrinkLog',
+        defaultMessage: 'Shrink the log',
+        description: 'Button that restores the normal panel layout',
+    },
     statusPlaying: {
         id: 'gui.koshienMockPanel.statusPlaying',
         defaultMessage: 'playing',
@@ -355,6 +365,7 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
     const intl = useIntl();
     const [expanded, setExpanded] = useState(true);
     const [view, setView] = useState('all');
+    const [logExpanded, setLogExpanded] = useState(false);
     const canvasRef = useRef(null);
     const nodeRef = useRef(null);
     const journalRef = useRef(null);
@@ -363,6 +374,7 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
     const handleToggleExpanded = useCallback(() => setExpanded(value => !value), []);
     const handleViewAll = useCallback(() => setView('all'), []);
     const handleViewMine = useCallback(() => setView('mine'), []);
+    const handleToggleLogExpanded = useCallback(() => setLogExpanded(value => !value), []);
 
     const game = snapshot && snapshot.game;
     const boardSize = game ? game.rows.length * TILE : 17 * TILE;
@@ -458,7 +470,7 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                     className={styles.side}
                                     style={{height: `${boardSize}px`}}
                                 >
-                                    <div className={styles.viewRow}>
+                                    {logExpanded ? null : <div className={styles.viewRow}>
                                         <button
                                             aria-pressed={view === 'all'}
                                             className={view === 'all' ? styles.viewButtonActive : styles.viewButton}
@@ -475,7 +487,7 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                         >
                                             {intl.formatMessage(messages.viewMine)}
                                         </button>
-                                    </div>
+                                    </div>}
                                     <div
                                         className={styles.turnRow}
                                         data-testid="koshien-mock-panel-turn"
@@ -487,7 +499,7 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                             </span>
                                         ) : null}
                                     </div>
-                                    {me ? (
+                                    {me && !logExpanded ? (
                                         <div
                                             className={styles.pawnCard}
                                             data-testid="koshien-mock-panel-me"
@@ -518,7 +530,7 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                             </div>
                                         </div>
                                     ) : null}
-                                    {rival ? (
+                                    {rival && !logExpanded ? (
                                         <div
                                             className={styles.pawnCard}
                                             data-testid="koshien-mock-panel-rival"
@@ -534,8 +546,25 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                             </div>
                                         </div>
                                     ) : null}
-                                    <div className={styles.journalTitle}>
-                                        {intl.formatMessage(messages.journal)}
+                                    <div className={styles.journalTitleRow}>
+                                        <span className={styles.journalTitle}>
+                                            {intl.formatMessage(messages.journal)}
+                                        </span>
+                                        <button
+                                            className={styles.logToggleButton}
+                                            data-testid="koshien-mock-panel-log-toggle"
+                                            title={intl.formatMessage(
+                                                logExpanded ? messages.shrinkLog : messages.expandLog
+                                            )}
+                                            onClick={handleToggleLogExpanded}
+                                        >
+                                            <img
+                                                alt={intl.formatMessage(
+                                                    logExpanded ? messages.shrinkLog : messages.expandLog
+                                                )}
+                                                src={logExpanded ? shrinkIcon : expandIcon}
+                                            />
+                                        </button>
                                     </div>
                                     <div
                                         className={styles.journal}

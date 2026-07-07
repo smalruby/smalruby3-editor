@@ -107,6 +107,20 @@ describe('KoshienMockPanel', () => {
         expect(queryByTestId('koshien-mock-panel-canvas')).toBeInTheDocument();
     });
 
+    test('the log expand button hides the pawn cards and restores them', () => {
+        const { getByTestId, queryByTestId } = renderPanel({ snapshot: fakeSnapshot() });
+        expect(getByTestId('koshien-mock-panel-me')).toBeInTheDocument();
+        fireEvent.click(getByTestId('koshien-mock-panel-log-toggle'));
+        expect(queryByTestId('koshien-mock-panel-me')).not.toBeInTheDocument();
+        expect(queryByTestId('koshien-mock-panel-rival')).not.toBeInTheDocument();
+        expect(queryByTestId('koshien-mock-panel-view-all')).not.toBeInTheDocument();
+        expect(getByTestId('koshien-mock-panel-turn')).toBeInTheDocument();
+        expect(getByTestId('koshien-mock-panel-journal')).toBeInTheDocument();
+        fireEvent.click(getByTestId('koshien-mock-panel-log-toggle'));
+        expect(getByTestId('koshien-mock-panel-me')).toBeInTheDocument();
+        expect(getByTestId('koshien-mock-panel-view-all')).toBeInTheDocument();
+    });
+
     test('the all / my-AI view switch renders and toggles without crashing', () => {
         const { getByTestId } = renderPanel({ snapshot: fakeSnapshot() });
         expect(getByTestId('koshien-mock-panel-view-all')).toHaveAttribute('aria-pressed', 'true');

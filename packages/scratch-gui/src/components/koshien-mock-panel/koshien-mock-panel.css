@@ -161,8 +161,31 @@
     font-weight: bold;
 }
 
+.journal-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .journal-title {
     font-weight: bold;
+}
+
+.log-toggle-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    padding: 0.2rem;
+    border: none;
+    border-radius: 0.25rem;
+    background-color: $looks-secondary;
+    cursor: pointer;
+}
+
+.log-toggle-button img {
+    width: 100%;
 }
 
 .journal {

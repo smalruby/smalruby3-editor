@@ -329,6 +329,8 @@ export default {
     'gui.koshienMockPanel.bomb': 'ばくだん',
     'gui.koshienMockPanel.inWater': 'すいちゅう！',
     'gui.koshienMockPanel.journal': 'ログ',
+    'gui.koshienMockPanel.expandLog': 'ログをひろくする',
+    'gui.koshienMockPanel.shrinkLog': 'ログをもとにもどす',
     'gui.koshienMockPanel.statusPlaying': 'プレイちゅう',
     'gui.koshienMockPanel.statusCompleted': 'ゴール！',
     'gui.koshienMockPanel.statusTimeup': 'タイムアップ',
