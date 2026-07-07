@@ -8,7 +8,9 @@
 
 const { execFileSync } = require('child_process');
 const path = require('path');
-const { HITL_LABEL, selectStickyCommentIds, computeReviewApproval, autopilotHeadBranch } = require('./phases');
+const {
+    HITL_LABEL, selectStickyCommentIds, selectMarkedCommentIds, computeReviewApproval, autopilotHeadBranch,
+} = require('./phases');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const BOT_TOKEN_BIN = path.join(REPO_ROOT, 'bin', 'bot-token');
@@ -134,9 +136,9 @@ function botLogin() {
  * GitHub が「この Issue を閉じる」と認識した PR だけが渡る前提（本文で `#N` に言及しただけの
  * 無関係 PR は含まれない）。open を最優先し、複数 open なら新しい方（番号が大きい方）を選ぶ。
  * open が無ければ null（projection 対象は open PR のみ）。
- * @param {Array<{number:number, state:string, isDraft:boolean, headRefName:string,
+ * @param {Array<{number:number, state:string, isDraft:boolean, headRefName:string, baseRefName:string,
  *   labels:{nodes:Array<{name:string}>}}>} nodes
- * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null}
+ * @returns {{number:number, labels:string[], isDraft:boolean, branch:string, base:string}|null}
  */
 function selectClosingPr(nodes) {
     const open = (Array.isArray(nodes) ? nodes : []).filter((n) => n && n.state === 'OPEN');
@@ -147,6 +149,7 @@ function selectClosingPr(nodes) {
         labels: ((pr.labels && pr.labels.nodes) || []).map((l) => l.name),
         isDraft: Boolean(pr.isDraft),
         branch: pr.headRefName,
+        base: pr.baseRefName,
     };
 }
 
@@ -155,9 +158,9 @@ function selectClosingPr(nodes) {
  * head ブランチ検索のフォールバック用。{@link selectClosingPr} と返り値の形を揃えるが、入力の
  * labels が GraphQL の `labels.nodes` ではなく `gh pr list` の flat な `[{name}]` である点が異なる。
  * 複数あれば新しい方（番号が大きい方）を選ぶ。空/null なら null。
- * @param {Array<{number:number, isDraft:boolean, headRefName:string,
+ * @param {Array<{number:number, isDraft:boolean, headRefName:string, baseRefName:string,
  *   labels:Array<{name:string}>}>} prs `gh pr list --json ...` の配列
- * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null}
+ * @returns {{number:number, labels:string[], isDraft:boolean, branch:string, base:string}|null}
  */
 function selectHeadPr(prs) {
     const list = (Array.isArray(prs) ? prs : []).filter(Boolean);
@@ -168,6 +171,7 @@ function selectHeadPr(prs) {
         labels: (pr.labels || []).map((l) => l.name),
         isDraft: Boolean(pr.isDraft),
         branch: pr.headRefName,
+        base: pr.baseRefName,
     };
 }
 
@@ -209,7 +213,7 @@ function findPrForIssue(repo, issueNumber, token, deps = {}) {
         'query($owner:String!,$name:String!,$num:Int!){' +
         'repository(owner:$owner,name:$name){issue(number:$num){' +
         'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{' +
-        'number state isDraft headRefName labels(first:20){nodes{name}}}}}}}';
+        'number state isDraft headRefName baseRefName labels(first:20){nodes{name}}}}}}}';
     const out = ghFn(
         ['api', 'graphql', '-f', `query=${query}`,
             '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
@@ -222,7 +226,7 @@ function findPrForIssue(repo, issueNumber, token, deps = {}) {
     // close リンクが無い（非デフォルト base 宛て PR 等）→ head ブランチで base 非依存に解決（#831）
     const listOut = ghFn(
         ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'open',
-            '--json', 'number,isDraft,headRefName,labels', '--limit', '10'],
+            '--json', 'number,isDraft,headRefName,baseRefName,labels', '--limit', '10'],
         { token },
     );
     return selectHeadPr(JSON.parse(listOut));
@@ -374,7 +378,23 @@ function listIssueComments(repo, number, token) {
  * いずれも無ければ新規 POST。PR/Issue 共通の issues コメント API を使う。
  */
 function upsertStickyComment(repo, number, body, token) {
-    const ids = selectStickyCommentIds(listIssueComments(repo, number, token));
+    upsertByIds(repo, number, selectStickyCommentIds(listIssueComments(repo, number, token)), body, token);
+}
+
+/**
+ * 任意マーカーの 1 コメントを upsert する（汎用版）。対応 PR リンク sticky（PR_LINK_MARKER）等、
+ * sticky ステータス以外のマーカー付き管理コメントに使う。重複は先頭に集約する。
+ * @param {string} repo `owner/name`
+ * @param {number} number Issue/PR 番号
+ * @param {string[]} markers 識別マーカー（いずれかを含む既存コメントを更新対象にする）
+ * @param {string} body 新しい本文（マーカーを含めること）
+ */
+function upsertMarkedComment(repo, number, markers, body, token) {
+    upsertByIds(repo, number, selectMarkedCommentIds(listIssueComments(repo, number, token), markers), body, token);
+}
+
+/** upsert の共通処理: 既存 id 群の先頭を PATCH（無ければ POST）、残りは DELETE で集約 */
+function upsertByIds(repo, number, ids, body, token) {
     if (ids.length === 0) {
         gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
         return;
@@ -483,6 +503,7 @@ module.exports = {
     botToken, gh, getProject, getFields, listItems, normalizeProjectItem, findItemId, addIssue, setField, applyIntents,
     botLogin, findPrForIssue, selectClosingPr, selectHeadPr, hasMergedHeadPr,
     getPrReviewState, getReviewContext, hasMergedPullRequest, REPO_ROOT,
-    getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, listIssueComments,
+    getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,
+    listIssueComments,
     postIssueComment, listClosedIssueNumbers, closeIssue,
 };

@@ -553,7 +553,56 @@ function isStickyComment(body) {
  * @returns {Array<*>} マッチしたコメントの id 配列
  */
 function selectStickyCommentIds(comments) {
-    return (comments || []).filter((c) => c && isStickyComment(c.body)).map((c) => c.id);
+    return selectMarkedCommentIds(comments, STICKY_MARKERS);
+}
+
+/**
+ * コメント一覧から任意マーカーを含むコメントの id を抽出する（純粋関数・汎用版）。
+ * @param {Array<{id: *, body: string}>} comments
+ * @param {string[]} markers いずれかを含めばマッチ
+ * @returns {Array<*>} マッチしたコメントの id 配列（入力順）
+ */
+function selectMarkedCommentIds(comments, markers) {
+    const ms = markers || [];
+    return (comments || [])
+        .filter((c) => c && c.body && ms.some((m) => c.body.includes(m)))
+        .map((c) => c.id);
+}
+
+/**
+ * 対応 PR リンク sticky（Issue 側）の識別マーカー。
+ * 非デフォルト base 宛て PR は GitHub の Development 欄・`Closes #N` リンクに出ないため、
+ * Issue から対応 PR へ辿れるように daemon が 1 コメントを upsert する。
+ */
+const PR_LINK_MARKER = '<!-- autopilot-pr-link -->';
+
+/**
+ * Issue に対応 PR リンク sticky を投稿すべきか（純粋関数）。
+ * **base 非デフォルト時のみ** true（デフォルト base 宛ては GitHub の Development 欄に
+ * 自動表示されるため、重複情報のコメントを増やさない）。
+ * @param {object} pr { number, base }（base は PR の baseRefName）
+ * @param {string} [defaultBase] 既定 develop
+ * @returns {boolean}
+ */
+function needsPrLinkSticky(pr, defaultBase = DEFAULT_BASE_BRANCH) {
+    return Boolean(pr && pr.base && pr.base !== defaultBase);
+}
+
+/**
+ * 対応 PR リンク sticky の本文を組み立てる（純粋関数）。
+ * @param {object} pr { number, base }
+ * @param {string} [repo] `owner/name`（リンク生成用。省略時は `#N` 参照のみ）
+ * @returns {string}
+ */
+function renderPrLinkSticky(pr, repo) {
+    const link = repo ? `https://github.com/${repo}/pull/${pr.number}` : `#${pr.number}`;
+    return [
+        PR_LINK_MARKER,
+        `🤖 **対応 PR**: ${link} （base: \`${pr.base}\`）`,
+        '',
+        '_この PR は非デフォルト base 宛てのため GitHub の Development 欄に表示されません。'
+            + 'このコメントは autopilot が管理します（編集しないでください）。_',
+    ].join('\n');
 }
 
 /**
@@ -999,6 +1048,10 @@ module.exports = {
     STICKY_MARKERS,
     isStickyComment,
     selectStickyCommentIds,
+    selectMarkedCommentIds,
+    PR_LINK_MARKER,
+    needsPrLinkSticky,
+    renderPrLinkSticky,
     HUMAN_GATE_STATUSES,
     dodHandoffMarker,
     isDodHandoffComment,

@@ -33,6 +33,9 @@ const {
     TRACKING_LABEL,
     TERMINAL_STATUSES,
     isTrackerItem,
+    needsPrLinkSticky,
+    renderPrLinkSticky,
+    PR_LINK_MARKER,
     labelActions,
     draftAction,
     renderSticky,
@@ -457,6 +460,12 @@ function syncFacesForItem(item, io, cfg, log, opts = {}) {
     const da = draftAction(info.isDraft, item);
     if (da) io.setPrDraft(cfg.repo, pr.number, da, io.token);
     io.upsertStickyComment(cfg.repo, pr.number, renderSticky(item), io.token);
+    // 3) 対応 PR リンク sticky（Issue 側・base 非デフォルト時のみ）: 非デフォルト base 宛て PR は
+    // GitHub の Development 欄に出ないため、Issue から PR へ辿れるリンクを 1 コメント upsert する。
+    // デフォルト base 宛てでは投稿しない（Development 欄と重複する情報を増やさない）。
+    if (needsPrLinkSticky(pr)) {
+        io.upsertMarkedComment(cfg.repo, item.issue, [PR_LINK_MARKER], renderPrLinkSticky(pr, cfg.repo), io.token);
+    }
 }
 
 /** project.js 実関数を束ねた I/O オブジェクトを返す（deps 差し替えがあれば優先） */
@@ -469,6 +478,7 @@ function projectionIo(deps = {}) {
         editLabels: deps.editLabels || project.editLabels,
         setPrDraft: deps.setPrDraft || project.setPrDraft,
         upsertStickyComment: deps.upsertStickyComment || project.upsertStickyComment,
+        upsertMarkedComment: deps.upsertMarkedComment || project.upsertMarkedComment,
     };
 }
 

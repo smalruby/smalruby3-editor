@@ -47,6 +47,10 @@ const {
     LEGACY_STICKY_MARKERS,
     isStickyComment,
     selectStickyCommentIds,
+    selectMarkedCommentIds,
+    PR_LINK_MARKER,
+    needsPrLinkSticky,
+    renderPrLinkSticky,
     dodHandoffMarker,
     isDodHandoffComment,
     hasDodHandoffComment,
@@ -211,6 +215,34 @@ test('labelActions: Kind=EPIC には 🧭 tracking を担保する（自動で�
     // leaf に人間が手動で付けた tracking は剥がさない
     const leaf = { kind: 'Issue', hitlLabel: false, status: 'In Progress' };
     assert.ok(!labelActions(leaf, [AUTOPILOT_LABEL, TRACKING_LABEL]).remove.includes(TRACKING_LABEL));
+});
+
+test('needsPrLinkSticky: base 非デフォルト時のみ true', () => {
+    assert.equal(needsPrLinkSticky({ number: 1, base: 'topic/epic-738' }), true);
+    assert.equal(needsPrLinkSticky({ number: 1, base: 'develop' }), false);
+    assert.equal(needsPrLinkSticky({ number: 1 }), false); // base 不明は投稿しない
+    assert.equal(needsPrLinkSticky(null), false);
+    // defaultBase の上書き
+    assert.equal(needsPrLinkSticky({ number: 1, base: 'main' }, 'main'), false);
+});
+
+test('renderPrLinkSticky: マーカー + PR リンク + base を含む', () => {
+    const body = renderPrLinkSticky({ number: 870, base: 'topic/epic-738' }, 'smalruby/smalruby3-editor');
+    assert.ok(body.startsWith(PR_LINK_MARKER));
+    assert.match(body, /https:\/\/github\.com\/smalruby\/smalruby3-editor\/pull\/870/);
+    assert.match(body, /topic\/epic-738/);
+});
+
+test('selectMarkedCommentIds: 任意マーカーでコメント id を抽出', () => {
+    const comments = [
+        { id: 1, body: 'ふつうのコメント' },
+        { id: 2, body: `${PR_LINK_MARKER}\n対応 PR: #870` },
+        { id: 3, body: 'また別' },
+        { id: 4, body: `${PR_LINK_MARKER} dup` },
+    ];
+    assert.deepEqual(selectMarkedCommentIds(comments, [PR_LINK_MARKER]), [2, 4]);
+    assert.deepEqual(selectMarkedCommentIds(comments, ['<!-- other -->']), []);
+    assert.deepEqual(selectMarkedCommentIds(null, [PR_LINK_MARKER]), []);
 });
 
 test('itemOwner: 辞書順先頭の assignee が決定的な単一オーナー', () => {
