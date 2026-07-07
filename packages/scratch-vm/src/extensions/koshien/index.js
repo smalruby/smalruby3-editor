@@ -2,7 +2,6 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
-const RemoteClient = require('./remote-client.js');
 const mapUtils = require('./map-utils');
 
 /**
@@ -137,9 +136,8 @@ const MOCK_INITIAL_POSITIONS = {
 /**
  * Base class describing the surface a Koshien client must implement.
  *
- * Block methods talk to the game only through this interface, so the concrete
- * implementation can be swapped between a mock (fixed values, used while
- * disconnected) and a future remote client that speaks to a real game server.
+ * Block methods talk to the game only through this interface, keeping the
+ * game simulation itself swappable and independently testable.
  */
 class KoshienClient {
     /**
@@ -651,21 +649,10 @@ class KoshienBlocks {
             formatMessage = runtime.formatMessage;
         }
 
-        // Backends: the fixed-value MockClient is always available so an AI can be
-        // built/run offline. When a real game server endpoint is configured
-        // (the GUI/connection flow supplies it via runtime.getKoshienRemoteOptions),
-        // a RemoteClient is also created and used while connected; if the connection
-        // fails the extension falls back to the MockClient ("つながなくても作れる").
+        // Backend: the built-in mock game runs everything locally, so an AI can
+        // be built and debugged without any game server.
         this._mockClient = new MockClient(this.runtime, KoshienBlocks.EXTENSION_ID);
-        const remoteOptions =
-            runtime && typeof runtime.getKoshienRemoteOptions === 'function'
-                ? runtime.getKoshienRemoteOptions()
-                : null;
-        this._remoteClient =
-            remoteOptions && remoteOptions.endpoint
-                ? new RemoteClient(this.runtime, KoshienBlocks.EXTENSION_ID, remoteOptions)
-                : null;
-        this._client = this._remoteClient || this._mockClient;
+        this._client = this._mockClient;
 
         // Reset the mock world back to its initial state at the natural "new
         // game" moments, so a teacher can demonstrate the blocks, then start
@@ -673,7 +660,6 @@ class KoshienBlocks {
         //   - green flag (PROJECT_START): re-run the AI from the beginning
         //   - stop (PROJECT_STOP_ALL): leave a clean slate for the next run
         // (connect_game also resets, see MockClient.connect.)
-        // No-op once connected to a real game server (RemoteClient has no reset).
         this._resetMockWorld = this._resetMockWorld.bind(this);
         if (this.runtime && typeof this.runtime.on === 'function') {
             this.runtime.on('PROJECT_START', this._resetMockWorld);
@@ -682,14 +668,7 @@ class KoshienBlocks {
     }
 
     /**
-     * Fall back to the offline MockClient (e.g. when the server is unreachable).
-     */
-    _fallbackToMock () {
-        this._client = this._mockClient;
-    }
-
-    /**
-     * Reset the mock world. No-op once connected to a real game server.
+     * Reset the mock world.
      */
     _resetMockWorld () {
         if (this._client && typeof this._client.reset === 'function') {
@@ -1072,22 +1051,9 @@ class KoshienBlocks {
             return false;
         }
 
-        // Offline (mock) backend: connect synchronously with fixed state.
-        if (this._client !== this._remoteClient) {
-            this._client.connect(args.NAME);
-            return true;
-        }
-
-        // Remote backend: attempt a real connection to the game server.
-        // If it fails (server unreachable / CORS / error), fall back to the
-        // offline MockClient so the AI keeps returning sensible fixed values.
-        return Promise.resolve(this._remoteClient.connectGame(args.NAME))
-            .then(() => true)
-            .catch(() => {
-                this._fallbackToMock();
-                this._mockClient.connect(args.NAME);
-                return true;
-            });
+        // Start a fresh mock game session.
+        this._client.connect(args.NAME);
+        return true;
     }
 
     /**

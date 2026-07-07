@@ -269,71 +269,10 @@ test('Koshien Blocks', (t) => {
         st.end();
     });
 
-    // --- Issue #741: backend selection (RemoteClient vs MockClient fallback) ---
-
-    t.test('uses RemoteClient when the runtime supplies a koshien endpoint', (st) => {
-        const rt = createMockRuntime();
-        rt.getKoshienRemoteOptions = () => ({
-            endpoint: 'http://example.test:3000',
-            playerId: 'uuid-1',
-            side: 1,
-        });
-        const blocks = new KoshienBlocks(rt);
-        st.equal(blocks._client._endpoint, 'http://example.test:3000', 'remote endpoint configured');
-        st.type(blocks._client.getMapArea, 'function');
-        st.end();
-    });
-
-    t.test('falls back to MockClient (fixed values) when no endpoint is configured', (st) => {
+    t.test('always uses the built-in mock game (no remote backend)', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime());
-        st.equal(blocks._client._endpoint, undefined, 'no remote endpoint');
-        st.equal(blocks.map({ POSITION: '0:0' }), -1, 'mock value (unexplored) still works');
-        st.end();
-    });
-
-    t.test('connectGame keeps the RemoteClient when the connection succeeds', async (st) => {
-        const okFetch = () =>
-            Promise.resolve({
-                text: () => Promise.resolve(JSON.stringify({ x: 5, y: 6, goal: [7, 8], map: [[0]] })),
-            });
-        const rt = createMockRuntime();
-        rt.getKoshienRemoteOptions = () => ({
-            endpoint: 'http://example.test:3000',
-            playerId: 'uuid-1',
-            side: 1,
-            fetchImpl: okFetch,
-        });
-        const blocks = new KoshienBlocks(rt);
-        const result = await blocks.connectGame({ NAME: 'player1' });
-        st.equal(result, true, 'connectGame resolves true');
-        st.equal(blocks._client, blocks._remoteClient, 'stays on the RemoteClient');
-        st.equal(
-            blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }),
-            '5:6',
-            'reports the real server position',
-        );
-        st.end();
-    });
-
-    t.test('connectGame falls back to MockClient when the connection fails', async (st) => {
-        const failingFetch = () => Promise.reject(new Error('network down'));
-        const rt = createMockRuntime();
-        rt.getKoshienRemoteOptions = () => ({
-            endpoint: 'http://example.test:3000',
-            playerId: 'uuid-1',
-            side: 1,
-            fetchImpl: failingFetch,
-        });
-        const blocks = new KoshienBlocks(rt);
-        const result = await blocks.connectGame({ NAME: 'player1' });
-        st.equal(result, true, 'connectGame still resolves true');
-        st.equal(blocks._client, blocks._mockClient, 'fell back to the MockClient');
-        st.equal(blocks.map({ POSITION: '0:0' }), -1, 'mock values are used after fallback');
-        st.equal(
-            blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }),
-            '5:1',
-            'mock initial player position after fallback',
-        );
+        st.equal(blocks._client, blocks._mockClient, 'the mock client is the only backend');
+        st.equal(blocks.map({ POSITION: '0:0' }), -1, 'mock value (unexplored) works');
         st.end();
     });
 
