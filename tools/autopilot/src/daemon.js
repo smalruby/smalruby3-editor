@@ -31,6 +31,10 @@ const {
     selectClosedToReconcile,
     selectPrSyncCandidates,
     ownsItem,
+    itemOwner,
+    orderItemsLikeBoard,
+    selectBoardItems,
+    PR_SYNC_STATUSES,
     humanSpokeLast,
     TRACKING_LABEL,
     TERMINAL_STATUSES,
@@ -235,13 +239,32 @@ async function detectStuck(items, cfg, state, log, deps = {}) {
     for (const issue of [...seen.keys()]) if (!live.has(issue)) seen.delete(issue);
 }
 
+/** 実行履歴の上限（モニタ最下部の表示用。ログとしての意味のみ） */
+const HISTORY_LIMIT = 100;
+
+/** 実行履歴に 1 run を記録する（新しいものが先頭）。note はサニタイズ済み短文のみ */
+function recordHistory(state, entry) {
+    if (!state.history) state.history = [];
+    state.history.unshift(entry);
+    if (state.history.length > HISTORY_LIMIT) state.history.length = HISTORY_LIMIT;
+}
+
 /** 1 つの item を 1 フェーズ実行し、結果を Project に反映する */
 async function dispatch(item, cfg, state, log) {
     const phase = item.phase;
     const meta = PHASE_BY_COMMAND[phase];
     if (!meta) return;
     const session = `autopilot-${phase}-${item.issue}`;
-    state.running.set(item.issue, { phase, session, since: cfg.now() });
+    const startedAt = cfg.now();
+    state.running.set(item.issue, { phase, session, since: startedAt });
+    const record = (outcome, note) => recordHistory(state, {
+        issue: item.issue,
+        phase,
+        outcome,
+        note: note ? sanitizeForSurface(note, 200) : null,
+        startedAt,
+        endedAt: cfg.now(),
+    });
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
     const itemId = item.itemId || await project.findItemId(cfg.owner, cfg.project, item.issue, await project.botToken());
     item.itemId = itemId; // markBlocked が再解決しないよう保持
@@ -300,18 +323,21 @@ async function dispatch(item, cfg, state, log) {
         });
         if (!res.ok) {
             log(`#${item.issue}: runner failed (${res.reason})`);
+            record('failed', res.reason);
             await blockToHuman(`run（${meta.skill}）が失敗・停止しました（watchdog: ${res.reason}）。`);
             return;
         }
         const parsed = readResultFile(resultFile);
         if (!parsed.ok) {
             log(`#${item.issue}: invalid result (${parsed.errors.join('; ')})`);
+            record('invalid-result', parsed.errors.join('; '));
             await blockToHuman(`run は終了しましたが結果ファイルが不正でした: ${parsed.errors.join('; ')}`);
             return;
         }
         const intents = applyResult(parsed.result);
         const applied = await project.applyIntents(ctx, itemId, intents, await project.botToken());
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
+        record(parsed.result.signal, parsed.result.summary);
         // signal=error は Blocked で surface する（churn を止める）。理由はサニタイズ済みの
         // 要約だけを GitHub に出し、生ログ（機密を含みうる）はローカル参照に誘導する。
         if (parsed.result.signal === 'error') {
@@ -325,6 +351,7 @@ async function dispatch(item, cfg, state, log) {
         await syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
     } catch (e) {
         log(`#${item.issue}: error ${e.message}`);
+        record('exception', e.message);
         await blockToHuman(`dispatch が例外で停止しました: ${e.message}`);
     } finally {
         state.running.delete(item.issue);
@@ -681,6 +708,66 @@ async function tick(cfg, state, log) {
     return { paused: false, picked: picked.map((it) => it.issue) };
 }
 
+// 俯瞰ボードの再取得間隔（tick の 5 分より短くして live 感を出す。listItems + バッチ
+// GraphQL の 2〜3 API 呼び出し / 回なので 60 秒でも軽い）
+const BOARD_REFRESH_MS = 60 * 1000;
+
+/**
+ * 俯瞰ボードのデータを再構築して state.board に置く（Web モニタの `GET /board` が返す）。
+ * 表示対象は非終端・非 Icebox の item（selectBoardItems）を Board view の見た目順に並べ、
+ * sub-issue 進捗と連携 PR 群（state/draft）をバッチ GraphQL で enrich する。
+ * 非デフォルト base 宛て PR は close リンクに出ないため、PR を持ちうる Status なのに
+ * PR が見つからない item は head ブランチ検索で補完する（#831 と同じ理由）。
+ * 再入防止つき（前回の refresh が走っていればスキップ）。読み取り専用（Project は書かない）。
+ */
+async function refreshBoard(cfg, state, log, deps = {}) {
+    if (state.boardRefreshing) return;
+    state.boardRefreshing = true;
+    try {
+        const token = deps.token || await project.botToken();
+        const listItems = deps.listItems || project.listItems;
+        const getBoardEnrichment = deps.getBoardEnrichment || project.getBoardEnrichment;
+        const listHeadPrs = deps.listHeadPrs || project.listHeadPrs;
+        const items = await listItems(cfg.owner, cfg.project, token);
+        const boardItems = orderItemsLikeBoard(selectBoardItems(items), cfg.statusOrder);
+        let enrichment = {};
+        try {
+            enrichment = await getBoardEnrichment(cfg.repo, boardItems.map((i) => i.issue), token);
+        } catch (e) {
+            log(`board enrichment failed: ${e.message}`);
+        }
+        const enriched = [];
+        for (const it of boardItems) {
+            const extra = enrichment[it.issue] || { subIssues: { total: 0, completed: 0, percent: 0 }, prs: [] };
+            // close リンクに PR が出ない（非デフォルト base 宛て等）item は head ブランチで補完
+            if (!extra.prs.length && PR_SYNC_STATUSES.has(it.status) && !isTrackerItem(it)) {
+                try { extra.prs = await listHeadPrs(cfg.repo, it.issue, token); }
+                catch (e) { log(`#${it.issue}: board head pr lookup failed: ${e.message}`); }
+            }
+            enriched.push({
+                issue: it.issue,
+                title: it.title,
+                url: `https://github.com/${cfg.repo}/issues/${it.issue}`,
+                status: it.status || 'New Item',
+                aiStatus: it.aiStatus || null,
+                hitl: Boolean(it.hitlLabel),
+                kind: it.kind || null,
+                size: it.size || null,
+                assignees: it.assignees || [],
+                tracker: isTrackerItem(it),
+                owner: itemOwner(it),
+                subIssues: extra.subIssues,
+                prs: extra.prs,
+            });
+        }
+        state.board = { updatedAt: cfg.now(), items: enriched };
+    } catch (e) {
+        log(`board refresh failed: ${e.message}`);
+    } finally {
+        state.boardRefreshing = false;
+    }
+}
+
 /**
  * tick を1回だけ実行する（再入防止つき）。HTTP `POST /tick` と interval ループの両方から使い、
  * 手動 tick と定期 tick が重ならないようにする。実行中（state.ticking）なら tick を呼ばず busy を返す。
@@ -720,6 +807,21 @@ function startHttp(cfg, state, log) {
             res.writeHead(r ? 200 : 404, { 'content-type': 'text/plain; charset=utf-8' });
             return res.end(r ? capture(r.session) : `#${issue} は実行中ではありません`);
         }
+        if (req.method === 'GET' && url.pathname === '/board') {
+            // 俯瞰ボード（読み取り専用）。items は refreshBoard のキャッシュ、running/paused は live。
+            return send(200, {
+                updatedAt: state.board ? state.board.updatedAt : null,
+                paused: state.paused,
+                pausedBy: state.pausedBy || (state.paused ? 'human' : null),
+                authError: state.authError || null,
+                reauthHint: state.authError ? REAUTH_HINT : null,
+                assignee: cfg.assignee,
+                concurrency: cfg.concurrency,
+                running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase, since: v.since })),
+                items: state.board ? state.board.items : [],
+                history: state.history || [],
+            });
+        }
         if (req.method === 'GET' && url.pathname === '/status') {
             return send(200, {
                 paused: state.paused,
@@ -738,6 +840,7 @@ function startHttp(cfg, state, log) {
                 .then((result) => {
                     if (result.busy) return send(409, { ran: false, busy: true, error: 'tick already running' });
                     send(200, result);
+                    refreshBoard(cfg, state, log); // 手動 tick 後もボードを追従（fire-and-forget）
                 })
                 .catch((e) => { log(`tick error: ${e.message}`); send(500, { error: e.message }); });
             return;
@@ -830,6 +933,10 @@ async function main(opts = {}) {
     } catch (e) { log(`pid file warn: ${e.message}`); }
     startHttp(cfg, state, log);
     log(`daemon up: project #${cfg.project}, assignee ${cfg.assignee || '(all)'}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms, pid ${process.pid} (${pidFilePath()})`);
+    // 俯瞰ボードは tick（5 分）より短い周期で live 更新する（初回は即時）。
+    refreshBoard(cfg, state, log);
+    const boardTimer = setInterval(() => refreshBoard(cfg, state, log), cfg.boardRefreshMs || BOARD_REFRESH_MS);
+    if (boardTimer.unref) boardTimer.unref();
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
         // 認証ヘルスチェック（失効 → auto-pause / 回復 → auto-resume）を tick の前に行う。
@@ -837,11 +944,14 @@ async function main(opts = {}) {
         await checkAuthHealth(cfg, state, log);
         // runTickOnce 経由にして、定期 tick と手動 POST /tick が重ならないようにする（再入防止）
         await runTickOnce(cfg, state, log);
+        // tick で Project が動いた直後はボードも追従させる（fire-and-forget）
+        refreshBoard(cfg, state, log);
         await sleep(cfg.intervalMs);
     }
     if (opts.once) {
         await checkAuthHealth(cfg, state, log);
         await runTickOnce(cfg, state, log);
+        clearInterval(boardTimer);
     }
 }
 
@@ -849,4 +959,5 @@ module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
     applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyEpicTracking,
     isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
+    refreshBoard, recordHistory,
 };

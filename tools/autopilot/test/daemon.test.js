@@ -464,6 +464,65 @@ test('applyEpicTracking: 1 件の失敗は他を止めない', async () => {
     assert.deepEqual(added, [2]);
 });
 
+// === 俯瞰ボード: refreshBoard / recordHistory ===
+
+test('refreshBoard: 非終端 item を Board 順で enrich し state.board に置く', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 1234, statusOrder: ['Backlog', 'Sprint Backlog', 'In Progress', 'Blocked', 'Review', 'DoD', 'Close', 'Icebox'] };
+    const state = { running: new Map() };
+    const items = [
+        { issue: 1, status: 'Review', kind: 'Issue', title: 'r', labels: [], assignees: ['me'] },
+        { issue: 2, status: 'Close', kind: 'Issue', title: 'c', labels: [] }, // 終端 → 除外
+        { issue: 3, status: 'Sprint Backlog', kind: 'Issue', title: 's', labels: [] },
+        { issue: 4, status: 'Icebox', kind: 'Issue', title: 'i', labels: [] }, // 保留 → 除外
+        { issue: 5, status: 'In Progress', kind: 'EPIC', title: 'e', labels: ['🧭 tracking'] },
+    ];
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => items,
+        getBoardEnrichment: () => ({
+            1: { subIssues: { total: 0, completed: 0, percent: 0 }, prs: [{ number: 100, state: 'OPEN', isDraft: false }] },
+            5: { subIssues: { total: 4, completed: 2, percent: 50 }, prs: [] },
+        }),
+        listHeadPrs: () => [],
+    });
+    // Board 順: Sprint Backlog(3) → In Progress(5) → Review(1)。Close/Icebox は除外
+    assert.deepEqual(state.board.items.map((i) => i.issue), [3, 5, 1]);
+    assert.equal(state.board.updatedAt, 1234);
+    const r1 = state.board.items.find((i) => i.issue === 1);
+    assert.deepEqual(r1.prs, [{ number: 100, state: 'OPEN', isDraft: false }]);
+    assert.deepEqual(r1.assignees, ['me']);
+    const r5 = state.board.items.find((i) => i.issue === 5);
+    assert.equal(r5.subIssues.percent, 50);
+    assert.equal(r5.tracker, true);
+});
+
+test('refreshBoard: close リンクに PR が無い post-PR item は head ブランチで補完', async () => {
+    const { refreshBoard } = require('../src/daemon');
+    const cfg = { ...makeCfg(), now: () => 0, statusOrder: [] };
+    const state = { running: new Map() };
+    const headCalls = [];
+    await refreshBoard(cfg, state, () => {}, {
+        token: 't',
+        listItems: () => [
+            { issue: 7, status: 'Review', kind: 'Issue', title: 'x', labels: [] }, // PR 無し → head 補完
+            { issue: 8, status: 'Backlog', kind: 'Issue', title: 'y', labels: [] }, // pre-PR → 補完しない
+        ],
+        getBoardEnrichment: () => ({}),
+        listHeadPrs: (repo, issue) => { headCalls.push(issue); return [{ number: 70, state: 'MERGED', isDraft: false }]; },
+    });
+    assert.deepEqual(headCalls, [7]);
+    assert.deepEqual(state.board.items.find((i) => i.issue === 7).prs[0].state, 'MERGED');
+});
+
+test('recordHistory: 新しい run が先頭、上限 100 件', () => {
+    const { recordHistory } = require('../src/daemon');
+    const state = {};
+    for (let i = 0; i < 105; i++) recordHistory(state, { issue: i, phase: 'triage', outcome: 'done' });
+    assert.equal(state.history.length, 100);
+    assert.equal(state.history[0].issue, 104); // 最新が先頭
+});
+
 // === 認証ヘルスチェック: checkAuthHealth（SSO 無人運用の auto-pause / auto-resume） ===
 
 test('checkAuthHealth: 失効で auto-pause、回復で auto-resume', async () => {

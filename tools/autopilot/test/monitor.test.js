@@ -12,13 +12,40 @@ test('MONITOR_HTML is a self-contained html document', () => {
 });
 
 test('MONITOR_HTML wires the daemon control endpoints', () => {
-    for (const ep of ['/status', '/pause', '/resume', '/stop?issue=', '/log?issue=', '/tick']) {
+    for (const ep of ['/board', '/pause', '/resume', '/log?issue=', '/tick']) {
         assert.ok(MONITOR_HTML.includes(ep), `should reference ${ep}`);
     }
 });
 
 test('MONITOR_HTML exposes a "poll now" (即時 tick) control', () => {
     assert.match(MONITOR_HTML, /id="ticknow"/);
-    // the button posts to /tick
-    assert.match(MONITOR_HTML, /'\/tick',\s*'POST'|\/tick['"],\s*\{\s*method:\s*'POST'/);
+    assert.match(MONITOR_HTML, /\/tick['"],\s*\{\s*method:\s*'POST'/);
+});
+
+test('MONITOR_HTML: 俯瞰ボード構造（first view はボード、履歴は最下部、log はモーダル）', () => {
+    // 俯瞰ボード（縦並びテーブル）+ 実行履歴 + log モーダル
+    assert.match(MONITOR_HTML, /id="board"/);
+    assert.match(MONITOR_HTML, /id="hist"/);
+    assert.match(MONITOR_HTML, /id="modal"/);
+    // ボードがモーダル・履歴より前（first view）にある
+    const iBoard = MONITOR_HTML.indexOf('id="board"');
+    const iHist = MONITOR_HTML.indexOf('実行履歴');
+    assert.ok(iBoard < iHist, 'board must render before history');
+    // PR chips（draft/ready/merged/closed の色分け）と sub-issue バー
+    for (const cls of ['pr-draft', 'pr-ready', 'pr-merged', 'pr-closed', 'class="bar"']) {
+        assert.ok(MONITOR_HTML.includes(cls), `should include ${cls}`);
+    }
+});
+
+test('MONITOR_HTML: アラート表示と check autopilot ショートカット', () => {
+    assert.match(MONITOR_HTML, /check autopilot/);
+    assert.match(MONITOR_HTML, /authError/);
+    assert.match(MONITOR_HTML, /Blocked/);
+});
+
+test('MONITOR_HTML: インライン script が構文的に妥当', () => {
+    const m = MONITOR_HTML.match(/<script>([\s\S]*)<\/script>/);
+    assert.ok(m, 'script block exists');
+    // DOM は無い環境なので Function コンストラクタで構文チェックのみ行う
+    assert.doesNotThrow(() => new Function(m[1]));
 });

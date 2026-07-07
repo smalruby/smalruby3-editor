@@ -15,7 +15,7 @@ const { promisify } = require('util');
 const path = require('path');
 const {
     HITL_LABEL, selectStickyCommentIds, selectMarkedCommentIds, computeReviewApproval, autopilotHeadBranch,
-    mergeActivity,
+    mergeActivity, normalizeBoardEnrichment,
 } = require('./phases');
 
 const execFileP = promisify(execFile);
@@ -566,6 +566,62 @@ async function closeIssue(repo, issueNumber, token, deps = {}) {
     await ghFn(['issue', 'close', String(issueNumber), '--repo', repo], { token });
 }
 
+/**
+ * 俯瞰ボード用の enrichment（sub-issue 進捗 + 連携 PR 群）を **1〜数回の GraphQL** で
+ * まとめて取得する（#Web モニタ）。issue ごとに個別クエリを撃つと item 数に比例して
+ * 遅くなるため、alias で 50 件ずつバッチする。
+ * @param {string} repo `owner/name`
+ * @param {number[]} issueNumbers
+ * @param {string} token
+ * @param {{gh?:Function}} [deps]
+ * @returns {Promise<object>} issue 番号 → normalizeBoardEnrichment の結果
+ */
+async function getBoardEnrichment(repo, issueNumbers, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const [owner, name] = repo.split('/');
+    const out = {};
+    const nums = [...new Set(issueNumbers)].filter((n) => Number.isInteger(n));
+    for (let i = 0; i < nums.length; i += 50) {
+        const chunk = nums.slice(i, i + 50);
+        const fields = chunk.map((n) =>
+            `i${n}: issue(number:${n}){ number state ` +
+            'subIssuesSummary{ total completed percentCompleted } ' +
+            'closedByPullRequestsReferences(first:10,includeClosedPrs:true){nodes{number state isDraft}} }',
+        ).join(' ');
+        const query = `query{repository(owner:"${owner}",name:"${name}"){ ${fields} }}`;
+        const res = JSON.parse(await ghFn(
+            ['api', 'graphql', '-H', 'GraphQL-Features: sub_issues', '-f', `query=${query}`],
+            { token },
+        ));
+        const repoData = (res.data && res.data.repository) || {};
+        for (const n of chunk) {
+            const node = repoData[`i${n}`];
+            if (node) out[n] = normalizeBoardEnrichment(node);
+        }
+    }
+    return out;
+}
+
+/**
+ * autopilot の head ブランチ（topic/autopilot-<N>）の PR を全状態で列挙する。
+ * 非デフォルト base 宛て PR は close リンクに出ないため、ボード表示の補完に使う（#831 と同じ理由）。
+ * @returns {Promise<Array<{number:number, state:string, isDraft:boolean}>>}
+ */
+async function listHeadPrs(repo, issueNumber, token, deps = {}) {
+    const ghFn = deps.gh || gh;
+    const out = await ghFn(
+        ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'all',
+            '--json', 'number,state,isDraft', '--limit', '10'],
+        { token },
+    );
+    const arr = JSON.parse(out);
+    return (Array.isArray(arr) ? arr : []).map((p) => ({
+        number: p.number,
+        state: p.state,
+        isDraft: Boolean(p.isDraft),
+    }));
+}
+
 /** applyResult が返す意図配列を Project に反映する */
 async function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
@@ -582,5 +638,5 @@ module.exports = {
     getPrReviewState, getGateContext, getIssueActivity, hasMergedPullRequest, REPO_ROOT,
     getPrInfo, getIssueLabels, getIssueBody, editLabels, setPrDraft, upsertStickyComment, upsertMarkedComment,
     listIssueComments,
-    postIssueComment, listClosedIssueNumbers, closeIssue,
+    postIssueComment, listClosedIssueNumbers, closeIssue, getBoardEnrichment, listHeadPrs,
 };

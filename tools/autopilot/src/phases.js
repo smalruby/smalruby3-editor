@@ -850,6 +850,45 @@ function applyIntentsToItem(item, intents) {
     return out;
 }
 
+// ---- Web モニタ俯瞰ボード: 表示対象の選別と enrichment の正規化（純粋） ----
+
+/**
+ * 俯瞰ボードに表示する item を選ぶ（純粋関数）。
+ * 終端（Close/Done）と保留（Icebox）は除外する — 溜まり続けると表示も enrichment も
+ * 重くなるため。操作は GitHub Projects で行う（ボードは読み取り専用）。
+ * @param {object[]} items
+ * @returns {object[]}
+ */
+function selectBoardItems(items) {
+    return (items || []).filter(
+        (it) => it && !TERMINAL_STATUSES.has(it.status) && it.status !== 'Icebox',
+    );
+}
+
+/**
+ * 俯瞰ボード enrichment（GraphQL ノード）を表示用に正規化する（純粋関数）。
+ * @param {object} node issue(number:N){ state, subIssuesSummary, closedByPullRequestsReferences }
+ * @returns {{issueState: string, subIssues: {total:number, completed:number, percent:number},
+ *   prs: Array<{number:number, state:string, isDraft:boolean}>}}
+ */
+function normalizeBoardEnrichment(node) {
+    const summary = (node && node.subIssuesSummary) || {};
+    const nodes = (node && node.closedByPullRequestsReferences && node.closedByPullRequestsReferences.nodes) || [];
+    return {
+        issueState: (node && node.state) || null,
+        subIssues: {
+            total: summary.total || 0,
+            completed: summary.completed || 0,
+            percent: summary.percentCompleted || 0,
+        },
+        prs: nodes.filter(Boolean).map((n) => ({
+            number: n.number,
+            state: n.state,
+            isDraft: Boolean(n.isDraft),
+        })),
+    };
+}
+
 // ---- DoD handoff (#821): headful 検証をホスト Claude へ渡す引き継ぎ生成 ----
 
 /**
@@ -1200,6 +1239,8 @@ module.exports = {
     PR_SYNC_STATUSES,
     READY_STATUSES,
     selectPrSyncCandidates,
+    selectBoardItems,
+    normalizeBoardEnrichment,
     desiredDraft,
     draftAction,
     hitlLabelAction,
