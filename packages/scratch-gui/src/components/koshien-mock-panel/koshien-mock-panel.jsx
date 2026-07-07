@@ -442,14 +442,22 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                     {expanded ? <div className={styles.body}>
                         {game ? (
                             <React.Fragment>
+                                {/* The CSS size is pinned to the bitmap size so
+                                    flex stretching can never distort the 1:1 tiles. */}
                                 <canvas
                                     className={styles.board}
                                     data-testid="koshien-mock-panel-canvas"
                                     height={boardSize}
                                     ref={canvasRef}
+                                    style={{width: `${boardSize}px`, height: `${boardSize}px`}}
                                     width={boardSize}
                                 />
-                                <div className={styles.side}>
+                                {/* Matches the board height so the journal scrolls
+                                    instead of growing the panel. */}
+                                <div
+                                    className={styles.side}
+                                    style={{height: `${boardSize}px`}}
+                                >
                                     <div className={styles.viewRow}>
                                         <button
                                             aria-pressed={view === 'all'}

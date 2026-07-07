@@ -71,6 +71,10 @@
 
 .body {
     display: flex;
+    /* Center both columns so a larger panel never distorts the board;
+       the canvas keeps its own fixed 1:1 size. */
+    align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     padding: 0.5rem;
     /* board (374px) + padding stays under a 600px-tall viewport */
@@ -79,10 +83,12 @@
 
 .board {
     flex: none;
+    align-self: center;
     border-radius: 0.25rem;
 }
 
 .side {
+    flex: none;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;

@@ -42,7 +42,10 @@ const readState = () =>
         const fiberKey = Object.keys(fiberRoot).find(k => k.startsWith('__reactContainer'));
         let blocksInst = null;
         function walk(fiber, depth) {
-            if (!fiber || depth > 100) return;
+            // The depth guard only protects against cycles; the traversal
+            // counts every visited child/sibling, so keep it well above the
+            // GUI's total fiber path length (it grows as components are added).
+            if (!fiber || depth > 5000) return;
             const inst = fiber.stateNode;
             if (inst && typeof inst === 'object' && inst.workspace && inst.flyoutWorkspace) {
                 blocksInst = inst;
