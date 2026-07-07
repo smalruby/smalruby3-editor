@@ -790,7 +790,9 @@ function shouldResend(s) {
 }
 
 const DEFAULT_WATCHDOG = {
-    tReadyMs: 60_000,
+    // worker（claude TUI）の起動は環境負荷が高いと 60s を超えることがあるため 150s。
+    // 起動失敗の検知が遅れるコストより、生きている起動を誤 kill するコストの方が高い。
+    tReadyMs: 150_000,
     // claude の思考/実行は数分に及ぶ。busy 検知（runner の BUSY_RE）が主防御で、
     // これは pane が完全停止した場合の保険なので長め（10 分）にする。
     tIdleMs: 600_000,
