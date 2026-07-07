@@ -55,8 +55,9 @@ function findItemId(owner, number, issueNumber, token) {
  * gh の JSON はキー揺れ（"aI Status"）があるので吸収する。HITL は Project フィールドではなく
  * 🙋 ラベルで管理する（#813）ので、item-list が返す `labels` から `hitlLabel` を導く
  * （追加の API 呼び出し不要）。HITL フィールドは読まない。I/O が無いので unit テスト可能。
- * @param {object} i 生 item（content / labels / status などを持つ）
- * @returns {{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title}}
+ * `assignees` は enroll モデル（担当者の daemon だけが処理する）の判定に使う。
+ * @param {object} i 生 item（content / labels / assignees / status などを持つ）
+ * @returns {{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title, assignees}}
  */
 function normalizeProjectItem(i) {
     const labels = Array.isArray(i.labels) ? i.labels : [];
@@ -70,6 +71,7 @@ function normalizeProjectItem(i) {
         hitlLabel: labels.includes(HITL_LABEL),
         kind: i.kind,
         size: i.size,
+        assignees: Array.isArray(i.assignees) ? i.assignees : [],
     };
 }
 

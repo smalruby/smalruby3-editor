@@ -57,6 +57,17 @@ test('normalizeProjectItem: missing labels array defaults to empty (hitlLabel fa
     assert.equal(item.hitlLabel, false);
 });
 
+test('normalizeProjectItem: assignees を配列で表面化する（enroll モデル用）', () => {
+    const withAssignees = normalizeProjectItem({
+        id: 'a', content: { number: 3, title: 't' }, status: 'Sprint Backlog',
+        assignees: ['takaokouji', 'other'],
+    });
+    assert.deepEqual(withAssignees.assignees, ['takaokouji', 'other']);
+    // 未 assign（gh はキー自体を返さない）は空配列
+    const without = normalizeProjectItem({ id: 'b', content: { number: 4, title: 't' }, status: 'New Item' });
+    assert.deepEqual(without.assignees, []);
+});
+
 // selectClosingPr (#825): pick the PR that GitHub recognizes as actually closing the
 // issue (closedByPullRequestsReferences), preferring open over merged/closed. This
 // replaces the old `Closes #N in:body` full-text search that false-hit on PRs which

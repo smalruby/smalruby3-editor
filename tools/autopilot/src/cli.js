@@ -130,7 +130,7 @@ async function runTriageLike(command, opts) {
 }
 
 function parseDaemonArgs(argv) {
-    const o = { owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor', concurrency: 2, intervalMs: 15000, port: 8787, once: false };
+    const o = { owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor', concurrency: 2, intervalMs: 15000, port: 8787, once: false, assignee: null };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
         if (a === '--owner') o.owner = argv[++i];
@@ -140,6 +140,7 @@ function parseDaemonArgs(argv) {
         else if (a === '--interval') o.intervalMs = Number(argv[++i]) * 1000;
         else if (a === '--port') o.port = Number(argv[++i]);
         else if (a === '--once') o.once = true;
+        else if (a === '--assignee') o.assignee = argv[++i];
     }
     return o;
 }
@@ -153,7 +154,7 @@ async function main(argv) {
             '  autopilot daemon [options]            run the resident daemon\n' +
             `  phases: ${Object.keys(PHASE_BY_COMMAND).join(', ')}\n` +
             '  phase options:  --owner --project --repo --command --worktree --no-worktree --dry-run --no-apply\n' +
-            '  daemon options: --owner --project --repo --concurrency --interval(sec) --port --once\n');
+            '  daemon options: --owner --project --repo --concurrency --interval(sec) --port --once --assignee <login>\n');
         return 0;
     }
     if (command === 'daemon') {

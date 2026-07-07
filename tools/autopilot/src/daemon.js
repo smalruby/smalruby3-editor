@@ -27,6 +27,7 @@ const {
     mergeProgressionIntents,
     selectClosedToReconcile,
     selectPrSyncCandidates,
+    ownsItem,
     labelActions,
     draftAction,
     renderSticky,
@@ -225,6 +226,8 @@ function collectReviewContexts(cfg, items, running, log) {
     for (const item of items) {
         if (item.status !== 'Review' && item.status !== 'DoD') continue;
         if (running.has(item.issue)) continue;
+        // enroll モデル: 自分がオーナーでない item の付帯情報は集めない（API 節約 + 越権防止）
+        if (!ownsItem(item, cfg.assignee)) continue;
         try {
             const ctx = project.getReviewContext(cfg.repo, item.issue, token);
             if (ctx) contexts[item.issue] = ctx;
@@ -450,7 +453,14 @@ async function tick(cfg, state, log) {
     }
     const running = new Set(state.running.keys());
     const contexts = collectReviewContexts(cfg, items, running, log);
-    const picked = selectActionable(items, { paused: state.paused, running, limit: cfg.concurrency, contexts });
+    const picked = selectActionable(items, {
+        paused: state.paused,
+        running,
+        limit: cfg.concurrency,
+        contexts,
+        assignee: cfg.assignee,
+        statusOrder: cfg.statusOrder,
+    });
     for (const item of picked) {
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
@@ -510,6 +520,7 @@ function startHttp(cfg, state, log) {
         if (req.method === 'GET' && url.pathname === '/status') {
             return send(200, {
                 paused: state.paused,
+                assignee: cfg.assignee,
                 concurrency: cfg.concurrency,
                 running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
             });
@@ -566,6 +577,7 @@ async function main(opts = {}) {
     const log = opts.log || ((m) => process.stderr.write(`[autopilot-daemon] ${m}\n`));
     const token = project.botToken();
     const proj = project.getProject(opts.owner || 'smalruby', opts.project || 4, token);
+    const fields = project.getFields(opts.owner || 'smalruby', opts.project || 4, token);
     const cfg = {
         owner: opts.owner || 'smalruby',
         project: opts.project || 4,
@@ -575,7 +587,11 @@ async function main(opts = {}) {
         intervalMs: opts.intervalMs || 300_000,
         port: opts.port || 8787,
         projectId: proj.id,
-        fields: project.getFields(opts.owner || 'smalruby', opts.project || 4, token),
+        fields,
+        // enroll モデル: 開発者個人の daemon は自分がオーナーの item だけ処理する（未設定=全件）
+        assignee: opts.assignee || process.env.AUTOPILOT_ASSIGNEE || null,
+        // 投入順を Board view の見た目に揃えるための Status 列順（= option 定義順）
+        statusOrder: Object.keys((fields.Status && fields.Status.options) || {}),
         now: () => Date.now(),
     };
     const state = { paused: false, running: new Map(), ticking: false };
@@ -588,7 +604,7 @@ async function main(opts = {}) {
         process.on('SIGINT', () => process.exit(0));
     } catch (e) { log(`pid file warn: ${e.message}`); }
     startHttp(cfg, state, log);
-    log(`daemon up: project #${cfg.project}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms, pid ${process.pid} (${pidFilePath()})`);
+    log(`daemon up: project #${cfg.project}, assignee ${cfg.assignee || '(all)'}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms, pid ${process.pid} (${pidFilePath()})`);
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
         // runTickOnce 経由にして、定期 tick と手動 POST /tick が重ならないようにする（再入防止）

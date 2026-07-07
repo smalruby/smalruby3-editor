@@ -346,20 +346,81 @@ function isStuckCandidate(item) {
 }
 
 /**
+ * item の決定的な単一オーナーを返す（純粋関数・enroll モデル）。
+ * assignee の**辞書順先頭**をオーナーとする。複数 assignee の Issue を複数開発者の
+ * daemon が同時に拾わないための決定的なタイブレーク。未 assign は null（オーナー不在）。
+ * @param {object} item { assignees?: string[] }
+ * @returns {string|null} オーナーの GitHub login、未 assign なら null
+ */
+function itemOwner(item) {
+    const assignees = (item && item.assignees) || [];
+    if (!assignees.length) return null;
+    return [...assignees].sort()[0];
+}
+
+/**
+ * enroll 判定: assignee=login で起動した daemon がこの item を処理してよいか（純粋関数）。
+ * プロジェクトに携わる開発者が**個人ごとに autopilot を起動する**想定で、
+ * 「自分が決定的な単一オーナー（{@link itemOwner}）」の item だけ処理する。
+ * 未 assign の item は誰も拾わない（先に assign して enroll する運用）。
+ * login 未設定（従来運用・単一 daemon）は全件処理する。
+ * @param {object} item { assignees?: string[] }
+ * @param {string|null} login 自分の GitHub login（daemon の --assignee）
+ * @returns {boolean}
+ */
+function ownsItem(item, login) {
+    if (!login) return true;
+    return itemOwner(item) === login;
+}
+
+/**
+ * Status の表示順ランク（純粋関数）。Project Board view の列順 = Status フィールドの
+ * option 定義順に合わせる。'New Item'（No Status）は Board の最左列なので先頭扱い。
+ * 未知の Status は末尾。
+ * @param {string} status
+ * @param {string[]} statusOrder Status フィールドの option 名（定義順）
+ * @returns {number}
+ */
+function statusRank(status, statusOrder) {
+    const s = status || 'New Item';
+    if (s === 'New Item') return -1;
+    const idx = (statusOrder || []).indexOf(s);
+    return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+}
+
+/**
+ * item の並びを Project Board view の見た目（Status 列順 + 列内は手動並び順）に揃える
+ * （純粋関数）。items は `gh project item-list` の手動並び順で渡ってくる前提。
+ * Array.prototype.sort は安定なので、同 Status 内の相対順（手動並び順）は保存される。
+ * @param {object[]} items
+ * @param {string[]} statusOrder Status フィールドの option 名（定義順）
+ * @returns {object[]} 新しい配列（元は破壊しない）
+ */
+function orderItemsLikeBoard(items, statusOrder) {
+    return [...(items || [])].sort(
+        (a, b) => statusRank(a && a.status, statusOrder) - statusRank(b && b.status, statusOrder),
+    );
+}
+
+/**
  * 着手すべき item を並行上限内で選ぶ（純粋関数）。
- * @param {object[]} items 各 { issue, status, aiStatus, hitlLabel, kind }
- * @param {object} opts { paused, running:Set<number>, limit, contexts }
+ * @param {object[]} items 各 { issue, status, aiStatus, hitlLabel, kind, assignees }
+ * @param {object} opts { paused, running:Set<number>, limit, contexts, assignee, statusOrder }
  *   contexts は issue 番号 → { review, hitlSignals, pr } の map（Review item の付帯情報）。
+ *   assignee を渡すと enroll フィルタ（{@link ownsItem}）が効く。
+ *   statusOrder を渡すと投入順を Board view の見た目（{@link orderItemsLikeBoard}）に揃える。
  * @returns {object[]} 実行対象（issue + phase）。Review 由来は pr 番号も付く。
  */
 function selectActionable(items, opts = {}) {
     const running = opts.running || new Set();
     const limit = opts.limit ?? 2;
     const contexts = opts.contexts || {};
+    const ordered = opts.statusOrder ? orderItemsLikeBoard(items, opts.statusOrder) : (items || []);
     const out = [];
-    for (const item of items) {
+    for (const item of ordered) {
         if (out.length >= Math.max(0, limit - running.size)) break;
         if (running.has(item.issue)) continue;
+        if (!ownsItem(item, opts.assignee)) continue;
         const ctx = contexts[item.issue] || {};
         if (!isActionable(item, { paused: opts.paused, ctx })) continue;
         out.push({ ...item, phase: phaseForItem(item, ctx), pr: ctx.pr });
@@ -826,6 +887,10 @@ module.exports = {
     phaseForItem,
     isActionable,
     isStuckCandidate,
+    itemOwner,
+    ownsItem,
+    statusRank,
+    orderItemsLikeBoard,
     selectActionable,
     shouldResend,
     evaluate,
