@@ -43,6 +43,7 @@ src/components/*
 !src/components/dncl-mode-notice/
 !src/components/koshien-test-modal/
 !src/components/koshien-settings-modal/
+!src/components/koshien-mock-panel/
 !src/components/mesh-self-sensor-notice/
 !src/components/mobile-bottom-tabs/
 !src/components/mobile-drawer/
@@ -109,6 +110,7 @@ src/containers/*
 !src/containers/use-teacher-submissions.js
 !src/containers/extension-library.css
 !src/containers/google-drive-loader-hoc.jsx
+!src/containers/koshien-mock-panel.jsx
 !src/containers/mesh-self-sensor-notice.jsx
 !src/containers/google-drive-saver-hoc.jsx
 !src/containers/ruby-downloader.jsx
@@ -218,6 +220,7 @@ src/reducers/*
 !src/reducers/extension-filter.js
 !src/reducers/google-drive-file.js
 !src/reducers/koshien-file.js
+!src/reducers/koshien-mock-panel.js
 !src/reducers/mesh-v2.js
 !src/reducers/palette-visibility.js
 !src/reducers/ruby-code.js
@@ -287,6 +290,7 @@ test/unit/*
 test/unit/components/*
 !test/unit/components/action-menu.test.jsx
 !test/unit/components/bug-report-consent.test.jsx
+!test/unit/components/koshien-mock-panel.test.jsx
 !test/unit/components/koshien-settings-modal.test.jsx
 !test/unit/components/koshien-test-modal.test.jsx
 !test/unit/components/dncl-mode-notice.test.jsx
@@ -399,6 +403,7 @@ test/unit/lib/*
 # Level 3: test/unit/reducers/*
 test/unit/reducers/*
 !test/unit/reducers/bug-report-reducer.test.js
+!test/unit/reducers/koshien-mock-panel-reducer.test.js
 !test/unit/reducers/cards_reducer.test.js
 !test/unit/reducers/dncl-mode-reducer.test.js
 !test/unit/reducers/classroom-reducer.test.js

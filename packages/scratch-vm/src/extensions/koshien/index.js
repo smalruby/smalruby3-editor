@@ -308,6 +308,9 @@ class MockClient extends KoshienClient {
             strategy: this._strategy,
             finished: this._finished,
             game: this._session ? this._session.snapshot() : null,
+            // The user's own (fog-of-war) map, so viewers can show which
+            // cells the AI has actually explored.
+            myMap: this._myMap,
             journal: this._journal.slice()
         };
         this.runtime.koshienMockState = snapshot;

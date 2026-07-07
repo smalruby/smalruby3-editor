@@ -78,6 +78,7 @@ import {
     setAiSaveStatus,
     clearAiSaveStatus
 } from '../../reducers/koshien-file';
+import {openKoshienMockPanel} from '../../reducers/koshien-mock-panel';
 import {
     openAboutMenu,
     closeAboutMenu,
@@ -283,6 +284,7 @@ class MenuBar extends React.Component {
             'handleExtensionAdded',
             'handleClickKoshienEntryForm',
             'handleClickKoshienSettings',
+            'handleClickKoshienMockPanel',
             'handleMeshV2MenuClick',
             'handleSmalrubotS1FirmwareFlash',
             'handleClickTutorials',
@@ -483,6 +485,10 @@ class MenuBar extends React.Component {
     handleClickKoshienSettings () {
         this.props.onRequestCloseKoshien();
         this.props.onOpenKoshienSettingsModal();
+    }
+    handleClickKoshienMockPanel () {
+        this.props.onRequestCloseKoshien();
+        this.props.onOpenKoshienMockPanel();
     }
     handleClickTutorials () {
         if (this.props.showTutorialTooltip) {
@@ -1366,6 +1372,15 @@ class MenuBar extends React.Component {
                                     </MenuSection>
                                     <MenuSection>
                                         <MenuItem
+                                            onClick={this.handleClickKoshienMockPanel}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="Practice game panel"
+                                                description="Menu bar item to reopen the Smalruby Koshien practice game panel"
+                                                id="gui.menuBar.koshienMockPanel"
+                                            />
+                                        </MenuItem>
+                                        <MenuItem
                                             onClick={this.handleClickKoshienSettings}
                                         >
                                             <FormattedMessage
@@ -1755,6 +1770,7 @@ MenuBar.propTypes = {
     onOpenDebugModal: PropTypes.func,
     onOpenKoshienTestModal: PropTypes.func,
     onOpenKoshienSettingsModal: PropTypes.func,
+    onOpenKoshienMockPanel: PropTypes.func,
     onProjectTelemetryEvent: PropTypes.func,
     onRequestCloseAbout: PropTypes.func,
     onRequestCloseAccount: PropTypes.func,
@@ -1924,6 +1940,7 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
     onClickSave: () => dispatch(manualUpdateProject()),
     onClickSaveAsCopy: () => dispatch(saveProjectAsCopy()),
     onExtensionLoaded: () => dispatch(incrementExtensionLoad()),
+    onOpenKoshienMockPanel: () => dispatch(openKoshienMockPanel()),
     onSetMeshV2Domain: domain => dispatch(setMeshV2Domain(domain)),
     onSetAiSaveStatus: status => dispatch(setAiSaveStatus(status)),
     onClearAiSaveStatus: () => dispatch(clearAiSaveStatus()),
