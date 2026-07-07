@@ -156,12 +156,12 @@ const messages = defineMessages({
     },
     expandLog: {
         id: 'gui.koshienMockPanel.expandLog',
-        defaultMessage: 'Expand the log',
+        defaultMessage: '🔲 Expand',
         description: 'Button that hides the player panes so the log gets tall',
     },
     shrinkLog: {
         id: 'gui.koshienMockPanel.shrinkLog',
-        defaultMessage: 'Shrink the log',
+        defaultMessage: '🔳 Normal',
         description: 'Button that restores the normal panel layout',
     },
     statusPlaying: {
@@ -553,17 +553,11 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                         <button
                                             className={styles.logToggleButton}
                                             data-testid="koshien-mock-panel-log-toggle"
-                                            title={intl.formatMessage(
-                                                logExpanded ? messages.shrinkLog : messages.expandLog
-                                            )}
                                             onClick={handleToggleLogExpanded}
                                         >
-                                            <img
-                                                alt={intl.formatMessage(
-                                                    logExpanded ? messages.shrinkLog : messages.expandLog
-                                                )}
-                                                src={logExpanded ? shrinkIcon : expandIcon}
-                                            />
+                                            {intl.formatMessage(
+                                                logExpanded ? messages.shrinkLog : messages.expandLog
+                                            )}
                                         </button>
                                     </div>
                                     <div

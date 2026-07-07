@@ -172,20 +172,14 @@
 }
 
 .log-toggle-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.4rem;
-    height: 1.4rem;
-    padding: 0.2rem;
-    border: none;
+    padding: 0.1rem 0.4rem;
+    border: 1px solid $looks-secondary;
     border-radius: 0.25rem;
-    background-color: $looks-secondary;
+    font-size: 0.7rem;
+    font-weight: bold;
     cursor: pointer;
-}
-
-.log-toggle-button img {
-    width: 100%;
+    background-color: $ui-white;
+    color: $looks-secondary;
 }
 
 .journal {
