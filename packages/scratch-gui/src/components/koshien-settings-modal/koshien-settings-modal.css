@@ -46,37 +46,17 @@
     margin-top: 0.5rem;
 }
 
-.test-button,
 .save-button {
     padding: 0.5rem 1rem;
     border: none;
     border-radius: 0.25rem;
     font-weight: bold;
     cursor: pointer;
-}
-
-.test-button {
-    background-color: $ui-secondary;
-    color: $text-primary;
-}
-
-.test-button:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-
-.save-button {
     background-color: $motion-primary;
     color: $ui-white;
 }
 
-.result-ok {
-    color: $data-primary;
-    font-size: 0.875rem;
-}
-
-.result-ng {
-    color: $error-primary;
-    font-size: 0.875rem;
-    word-break: break-all;
+.hint {
+    font-size: 0.75rem;
+    color: $text-primary-transparent;
 }

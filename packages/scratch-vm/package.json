@@ -21,6 +21,7 @@
       "default": "./src/index.js"
     },
     "./src/extension-support/block-type": "./src/extension-support/block-type",
+    "./src/extensions/koshien/mock-maps": "./src/extensions/koshien/mock-maps.js",
     "./src/import/load-costume": "./src/import/load-costume.js",
     "./src/import/load-sound": "./src/import/load-sound.js"
   },

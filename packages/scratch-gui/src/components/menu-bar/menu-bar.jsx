@@ -1369,8 +1369,8 @@ class MenuBar extends React.Component {
                                             onClick={this.handleClickKoshienSettings}
                                         >
                                             <FormattedMessage
-                                                defaultMessage="Connection settings"
-                                                description="Menu bar item for Smalruby Koshien connection settings"
+                                                defaultMessage="Practice settings"
+                                                description="Menu bar item for Smalruby Koshien practice settings"
                                                 id="gui.menuBar.koshienSettings"
                                             />
                                         </MenuItem>
