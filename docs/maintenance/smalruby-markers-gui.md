@@ -106,7 +106,7 @@ upstream ファイルに追加した Smalruby 固有コードのマーカー一�
 | `src/containers/custom-procedures.jsx` | cat-blocks theme for custom procedures | `setBlocks` で `workspaceConfig.scratchTheme` に catblocks/classic を設定し、定義モーダルのブロックをメインエディタと同じテーマにする (Issue #749 の v13.7.2 再整合で upstream の `workspaceConfig.theme = theme` 採用と共存) |
 | `src/containers/stage-header.jsx` | classroom submission thumbnail | クラスルーム参加中の生徒にだけ upstream の「提出サムネイルを設定」ボタンを表示。`isStudentJoined` ヘルパー + import、`manuallySaveThumbnails`/`userOwnsProject` を joined 由来の props にマップ、`onUpdateProjectThumbnail` でキャプチャを redux にキャッシュ、`isStudentJoined` の named export (issue #631) |
 
-| `src/lib/vm-manager-hoc.jsx` | koshien remote options wiring | VM 初期化時に `wireKoshienRemoteOptions(vm)` を呼び、甲子園拡張機能が接続設定を読めるよう runtime に getter を差し込む (import + componentDidMount) |
+| `src/lib/vm-manager-hoc.jsx` | koshien mock config wiring | VM 初期化時に `wireKoshienMockConfig(vm)` を呼び、甲子園拡張機能が練習ゲーム設定（マップ/自機サイド/相手AI）を読めるよう runtime に getter を差し込む (import + componentDidMount) |
 
 ## 関連ファイル
 

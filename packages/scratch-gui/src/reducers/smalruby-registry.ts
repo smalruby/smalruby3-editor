@@ -19,6 +19,7 @@ import classroomTutorialReducer, { classroomTutorialInitialState } from './class
 import dnclModeReducer, { dnclModeInitialState } from './dncl-mode';
 import googleDriveFileReducer, { googleDriveFileInitialState } from './google-drive-file';
 import koshienFileReducer, { koshienFileInitialState } from './koshien-file';
+import koshienMockPanelReducer, { koshienMockPanelInitialState } from './koshien-mock-panel';
 import meshV2Reducer, { meshV2InitialState } from './mesh-v2';
 import paletteVisibilityReducer, { initialState as paletteVisibilityInitialState } from './palette-visibility';
 import rubyCodeReducer, { rubyCodeInitialState } from './ruby-code';
@@ -37,6 +38,7 @@ export const smalrubyReducers = {
     meshV2: meshV2Reducer,
     googleDriveFile: googleDriveFileReducer,
     koshienFile: koshienFileReducer,
+    koshienMockPanel: koshienMockPanelReducer,
     rubyCode: rubyCodeReducer,
     smalrubotFirmware: smalrubotFirmwareReducer,
     cards: cardsReducer,
@@ -56,6 +58,7 @@ export const smalrubyInitialState = {
     meshV2: meshV2InitialState,
     googleDriveFile: googleDriveFileInitialState,
     koshienFile: koshienFileInitialState,
+    koshienMockPanel: koshienMockPanelInitialState,
     rubyCode: rubyCodeInitialState,
     smalrubotFirmware: smalrubotFirmwareInitialState,
     cards: cardsInitialState,

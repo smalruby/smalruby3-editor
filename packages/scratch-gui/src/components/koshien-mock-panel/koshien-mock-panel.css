@@ -1,0 +1,270 @@
+@import "../../css/colors.css";
+@import "../../css/z-index.css";
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: $z-index-card;
+}
+
+.panel-container {
+    pointer-events: auto;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0.5rem;
+    box-shadow: 0px 5px 25px 5px hsla(0, 0%, 0%, 0.25);
+    background-color: $ui-white;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    background-color: $looks-secondary;
+    color: $ui-white;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: move;
+    user-select: none;
+}
+
+.header-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.header-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0.2rem;
+    border: none;
+    border-radius: 0.25rem;
+    background: transparent;
+    cursor: pointer;
+}
+
+.header-button:hover {
+    background-color: hsla(0, 100%, 100%, 0.25);
+}
+
+.header-button img {
+    width: 100%;
+}
+
+.body {
+    display: flex;
+    /* Center both columns so a larger panel never distorts the board;
+       the canvas keeps its own fixed 1:1 size. */
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    /* board (374px) + padding stays under a 600px-tall viewport */
+    max-height: calc(100vh - 6rem);
+}
+
+.board-wrap {
+    flex: none;
+    align-self: center;
+    position: relative;
+}
+
+.board {
+    display: block;
+    border-radius: 0.25rem;
+}
+
+.cell-tip {
+    position: absolute;
+    z-index: 1;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    background-color: $ui-white;
+    box-shadow: 0 2px 10px 2px hsla(0, 0%, 0%, 0.35);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: $text-primary;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.side {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 15rem;
+    min-width: 0;
+    font-size: 0.75rem;
+    color: $text-primary;
+}
+
+.view-row {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.view-button,
+.view-button-active {
+    flex: 1;
+    padding: 0.2rem 0.4rem;
+    border: 1px solid $looks-secondary;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: $ui-white;
+    color: $looks-secondary;
+}
+
+.view-button-active {
+    background-color: $looks-secondary;
+    color: $ui-white;
+}
+
+.turn-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.run-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.run-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0.15rem;
+    border: none;
+    border-radius: 0.25rem;
+    background: transparent;
+    cursor: pointer;
+}
+
+.run-button:hover {
+    background-color: $ui-black-transparent;
+}
+
+.run-button img {
+    width: 100%;
+}
+
+.game-over {
+    color: $error-primary;
+}
+
+.pawn-card {
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    padding: 0.3rem 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.pawn-name {
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pawn-status {
+    color: $motion-primary;
+}
+
+.pawn-stats {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.in-water {
+    color: $error-primary;
+    font-weight: bold;
+}
+
+.journal-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.journal-title {
+    font-weight: bold;
+}
+
+.log-toggle-button {
+    padding: 0.1rem 0.4rem;
+    border: 1px solid $looks-secondary;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: $ui-white;
+    color: $looks-secondary;
+}
+
+.journal {
+    flex: 1;
+    min-height: 3rem;
+    overflow-y: auto;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.4rem;
+    background-color: $ui-primary;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.journal-action {
+    color: $text-primary;
+}
+
+.journal-event {
+    color: $motion-primary;
+}
+
+.journal-error {
+    color: $error-primary;
+    font-weight: bold;
+}
+
+.not-connected {
+    padding: 1rem;
+    max-width: 20rem;
+    font-size: 0.8rem;
+    color: $text-primary;
+}
+
+.not-connected-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
+}

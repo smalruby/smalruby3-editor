@@ -6,56 +6,74 @@ import intlShape from '../../lib/intlShape.js';
 import Box from '../box/box.jsx';
 import Modal from '../../containers/modal.jsx';
 import {
-    loadKoshienConnection,
-    saveKoshienConnection,
-    wireKoshienRemoteOptions,
-    testKoshienConnection,
-} from '../../lib/koshien-connection.js';
+    KOSHIEN_MOCK_MAPS,
+    loadKoshienMockConfig,
+    saveKoshienMockConfig,
+    wireKoshienMockConfig,
+} from '../../lib/koshien-mock-config.js';
 
 import styles from './koshien-settings-modal.css';
 
 const messages = defineMessages({
     title: {
-        defaultMessage: 'Koshien connection settings',
-        description: 'Title for the Koshien connection settings modal',
+        defaultMessage: 'Koshien practice settings',
+        description: 'Title for the Koshien practice settings modal',
         id: 'gui.koshienSettingsModal.title',
+    },
+    rivalGoal: {
+        defaultMessage: 'Heads for the goal',
+        description: 'Rival AI option: goes straight for the goal',
+        id: 'gui.koshienSettingsModal.rivalGoal',
+    },
+    rivalItem: {
+        defaultMessage: 'Hunts for items',
+        description: 'Rival AI option: prioritizes items',
+        id: 'gui.koshienSettingsModal.rivalItem',
+    },
+    rivalStop: {
+        defaultMessage: 'Stands still',
+        description: 'Rival AI option: never moves',
+        id: 'gui.koshienSettingsModal.rivalStop',
+    },
+    rivalRandom: {
+        defaultMessage: 'Moves randomly',
+        description: 'Rival AI option: moves at random',
+        id: 'gui.koshienSettingsModal.rivalRandom',
     },
 });
 
 /**
- * Modal to configure how the Koshien AI connects to a game server.
- * Settings are stored in localStorage and exposed to the VM extension via
- * vm.runtime.getKoshienRemoteOptions (see lib/koshien-connection).
+ * Modal to configure the Koshien practice game: which practice map to play,
+ * which side the user's AI takes and how the built-in rival behaves.
+ * Settings are stored in localStorage and read by the VM extension every
+ * time the AI connects (see lib/koshien-mock-config).
  * @param {object} props - component props.
  * @returns {object} - the rendered modal.
  */
 const KoshienSettingsModal = props => {
     const {intl, vm, onRequestClose} = props;
-    const initial = loadKoshienConnection();
-    const [endpoint, setEndpoint] = React.useState(initial.endpoint || '');
-    const [side, setSide] = React.useState(Number(initial.side) === 2 ? 2 : 1);
-    const [gameCode, setGameCode] = React.useState(initial.gameCode || '');
-    const [testState, setTestState] = React.useState({status: 'idle', message: ''});
+    const initial = loadKoshienMockConfig();
+    const [mapId, setMapId] = React.useState(initial.mapId);
+    const [side, setSide] = React.useState(initial.side);
+    const [rival, setRival] = React.useState(initial.rival);
 
-    const handleEndpointChange = React.useCallback(e => setEndpoint(e.target.value), []);
+    const handleMapChange = React.useCallback(e => setMapId(e.target.value), []);
     const handleSideChange = React.useCallback(e => setSide(Number(e.target.value)), []);
-    const handleGameCodeChange = React.useCallback(e => setGameCode(e.target.value), []);
-
-    const handleTest = React.useCallback(async () => {
-        setTestState({status: 'testing', message: ''});
-        const result = await testKoshienConnection(endpoint.trim());
-        setTestState({
-            status: result.ok ? 'ok' : 'ng',
-            message: result.message,
-        });
-    }, [endpoint]);
+    const handleRivalChange = React.useCallback(e => setRival(e.target.value), []);
 
     const handleSave = React.useCallback(() => {
-        saveKoshienConnection({endpoint: endpoint.trim(), side, gameCode: gameCode.trim()});
+        saveKoshienMockConfig({mapId, side, rival});
         // Re-install the runtime getter so the extension reads the latest settings.
-        if (vm) wireKoshienRemoteOptions(vm);
+        if (vm) wireKoshienMockConfig(vm);
         onRequestClose();
-    }, [endpoint, side, gameCode, vm, onRequestClose]);
+    }, [mapId, side, rival, vm, onRequestClose]);
+
+    const rivalLabels = {
+        goal: intl.formatMessage(messages.rivalGoal),
+        item: intl.formatMessage(messages.rivalItem),
+        stop: intl.formatMessage(messages.rivalStop),
+        random: intl.formatMessage(messages.rivalRandom),
+    };
 
     return (
         <Modal
@@ -68,25 +86,32 @@ const KoshienSettingsModal = props => {
                 <label className={styles.field}>
                     <span className={styles.label}>
                         <FormattedMessage
-                            defaultMessage="Game server URL"
-                            description="Label for the koshien game server URL field"
-                            id="gui.koshienSettingsModal.endpoint"
+                            defaultMessage="Practice map"
+                            description="Label for the koshien practice map field"
+                            id="gui.koshienSettingsModal.map"
                         />
                     </span>
-                    <input
+                    <select
                         className={styles.input}
-                        data-testid="koshien-settings-endpoint"
-                        placeholder="https://example.com:3000"
-                        type="text"
-                        value={endpoint}
-                        onChange={handleEndpointChange}
-                    />
+                        data-testid="koshien-settings-map"
+                        value={mapId}
+                        onChange={handleMapChange}
+                    >
+                        {KOSHIEN_MOCK_MAPS.map(map => (
+                            <option
+                                key={map.id}
+                                value={map.id}
+                            >
+                                {map.name}
+                            </option>
+                        ))}
+                    </select>
                 </label>
 
                 <label className={styles.field}>
                     <span className={styles.label}>
                         <FormattedMessage
-                            defaultMessage="Player side"
+                            defaultMessage="Your player"
                             description="Label for the koshien player side field"
                             id="gui.koshienSettingsModal.side"
                         />
@@ -105,33 +130,37 @@ const KoshienSettingsModal = props => {
                 <label className={styles.field}>
                     <span className={styles.label}>
                         <FormattedMessage
-                            defaultMessage="Game code"
-                            description="Label for the koshien game code field"
-                            id="gui.koshienSettingsModal.gameCode"
+                            defaultMessage="Rival AI"
+                            description="Label for the koshien rival AI field"
+                            id="gui.koshienSettingsModal.rival"
                         />
                     </span>
-                    <input
+                    <select
                         className={styles.input}
-                        data-testid="koshien-settings-game-code"
-                        type="text"
-                        value={gameCode}
-                        onChange={handleGameCodeChange}
-                    />
+                        data-testid="koshien-settings-rival"
+                        value={rival}
+                        onChange={handleRivalChange}
+                    >
+                        {['goal', 'item', 'stop', 'random'].map(value => (
+                            <option
+                                key={value}
+                                value={value}
+                            >
+                                {rivalLabels[value]}
+                            </option>
+                        ))}
+                    </select>
                 </label>
 
+                <div className={styles.hint}>
+                    <FormattedMessage
+                        defaultMessage="The settings apply the next time your AI connects to the game server."
+                        description="Hint that saved koshien settings apply from the next connect"
+                        id="gui.koshienSettingsModal.hint"
+                    />
+                </div>
+
                 <Box className={styles.buttonRow}>
-                    <button
-                        className={styles.testButton}
-                        data-testid="koshien-settings-test"
-                        disabled={!endpoint.trim() || testState.status === 'testing'}
-                        onClick={handleTest}
-                    >
-                        <FormattedMessage
-                            defaultMessage="Test connection"
-                            description="Button to test the koshien game server connection"
-                            id="gui.koshienSettingsModal.test"
-                        />
-                    </button>
                     <button
                         className={styles.saveButton}
                         data-testid="koshien-settings-save"
@@ -139,28 +168,11 @@ const KoshienSettingsModal = props => {
                     >
                         <FormattedMessage
                             defaultMessage="Save"
-                            description="Button to save the koshien connection settings"
+                            description="Button to save the koshien practice settings"
                             id="gui.koshienSettingsModal.save"
                         />
                     </button>
                 </Box>
-
-                {testState.status !== 'idle' && (
-                    <div
-                        className={testState.status === 'ok' ? styles.resultOk : styles.resultNg}
-                        data-testid="koshien-settings-test-result"
-                    >
-                        {testState.status === 'testing' ? (
-                            <FormattedMessage
-                                defaultMessage="Testing..."
-                                description="Status while testing the koshien connection"
-                                id="gui.koshienSettingsModal.testing"
-                            />
-                        ) : (
-                            testState.message
-                        )}
-                    </div>
-                )}
             </Box>
         </Modal>
     );
