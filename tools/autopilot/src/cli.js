@@ -21,7 +21,8 @@
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { PHASE_BY_COMMAND, applyResult, DEFAULT_CLAUDE_COMMAND } = require('./phases');
+const { PHASE_BY_COMMAND, applyResult } = require('./phases');
+const { loadSettings, buildClaudeCommand } = require('./settings');
 const { readResultFile } = require('./contract');
 const { runPhase } = require('./runner');
 const project = require('./project');
@@ -29,7 +30,8 @@ const project = require('./project');
 function parseArgs(argv) {
     const o = {
         owner: 'smalruby', project: 4, repo: 'smalruby/smalruby3-editor',
-        command: process.env.AUTOPILOT_CLAUDE_CMD || DEFAULT_CLAUDE_COMMAND,
+        // null なら実行時に settings（フェーズ別 model/effort）から組み立てる
+        command: process.env.AUTOPILOT_CLAUDE_CMD || null,
         dryRun: false, apply: true, worktree: null, useWorktree: true,
     };
     const rest = [];
@@ -64,6 +66,9 @@ async function runTriageLike(command, opts) {
 
     const phase = PHASE_BY_COMMAND[command];
     if (!phase) throw new Error(`unknown phase: ${command}`);
+
+    // --command / env が無ければ settings（フェーズ別 model/effort・addDirs）から組み立てる
+    if (!opts.command) opts.command = buildClaudeCommand(loadSettings({ log }), command);
 
     // worktree
     let cwd = process.cwd();

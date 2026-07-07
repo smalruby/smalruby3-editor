@@ -124,10 +124,12 @@ const PROMPT_DIR = 'tools/autopilot/prompts';
  * `AUTOPILOT_ISSUE` にも入るが、確実性のためメッセージにも番号を含める。
  * @param {string} skill プロンプト basename（例 'autopilot-triage'）
  * @param {number|string} issue 対象 Issue 番号
+ * @param {string} [promptDir] プロンプト配置ディレクトリ。daemon は起動時スナップショットの
+ *   絶対パスを渡す（checkout のブランチ切り替えに非依存）。省略時は worktree 内の相対パス。
  * @returns {string} 送信メッセージ
  */
-function phasePromptCommand(skill, issue) {
-    return `${PROMPT_DIR}/${skill}.md を Read して、その手順に厳密に従ってください。` +
+function phasePromptCommand(skill, issue, promptDir = PROMPT_DIR) {
+    return `${promptDir}/${skill}.md を Read して、その手順に厳密に従ってください。` +
         `対象 Issue は AUTOPILOT_ISSUE=${issue} です。`;
 }
 

@@ -46,6 +46,7 @@ const {
 const { readResultFile } = require('./contract');
 const { runPhase, killSession, capture } = require('./runner');
 const { MONITOR_HTML } = require('./monitor');
+const { loadSettings, buildClaudeCommand, snapshotRunAssets } = require('./settings');
 const project = require('./project');
 
 const WORKTREE_BIN = path.join(project.REPO_ROOT, 'bin', 'autopilot-worktree');
@@ -215,8 +216,17 @@ async function dispatch(item, cfg, state, log) {
             AUTOPILOT_REPO: cfg.repo,
             AUTOPILOT_BASE_BRANCH: baseBranch,
         };
+        // worker 起動コマンド: env AUTOPILOT_CLAUDE_CMD が最優先（従来互換・その場合は worktree 内の
+        // プロンプトを使う）。無ければ settings からフェーズ別に組み立て、スナップショットの
+        // プロンプトを --add-dir で許可して使う（checkout のブランチ切り替えに非依存）。
+        const envCmd = process.env.AUTOPILOT_CLAUDE_CMD;
+        const command = envCmd
+            || buildClaudeCommand(cfg.settings, phase, { extraDirs: cfg.snapshotDir ? [cfg.snapshotDir] : [] });
+        const promptDir = envCmd ? undefined : cfg.promptDir;
         log(`#${item.issue}: run ${phase} (${meta.skill})`);
-        const res = await runPhase({ session, cwd, env, skill: meta.skill, issue: item.issue, resultFile, log });
+        const res = await runPhase({
+            session, cwd, env, command, promptDir, skill: meta.skill, issue: item.issue, resultFile, log,
+        });
         if (!res.ok) {
             log(`#${item.issue}: runner failed (${res.reason})`);
             blockToHuman(`run（${meta.skill}）が失敗・停止しました（watchdog: ${res.reason}）。`);
@@ -675,6 +685,19 @@ async function main(opts = {}) {
         statusOrder: Object.keys((fields.Status && fields.Status.options) || {}),
         now: () => Date.now(),
     };
+    // worker 設定（フェーズ別 model/effort・追加許可ディレクトリ）を読み込み、
+    // プロンプト一式 + 解決済み設定を tmpdir へスナップショット（ブランチ切り替え非依存・C13）
+    cfg.settings = loadSettings({ log });
+    try {
+        const snap = snapshotRunAssets({ settings: cfg.settings });
+        cfg.snapshotDir = snap.dir;
+        cfg.promptDir = snap.promptDir;
+        log(`run assets snapshot: ${snap.dir}`);
+    } catch (e) {
+        log(`snapshot failed (worktree 内プロンプトへフォールバック): ${e.message}`);
+        cfg.snapshotDir = null;
+        cfg.promptDir = undefined;
+    }
     const state = { paused: false, running: new Map(), ticking: false };
     // PID ファイルを書き、安全停止（kill "$(cat <pidfile>)" / POST /shutdown）を可能にする
     try {
