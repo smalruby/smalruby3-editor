@@ -30,6 +30,7 @@ const {
     selectClosedToReconcile,
     selectPrSyncCandidates,
     ownsItem,
+    humanSpokeLast,
     TRACKING_LABEL,
     TERMINAL_STATUSES,
     isTrackerItem,
@@ -128,8 +129,9 @@ function failureBlockBody(skill, issue, reason) {
         `🤖 autopilot: \`${skill}\` フェーズの run が完了できなかったため **Blocked** にしました。\n\n` +
         `**理由**: ${reason}\n\n` +
         `**人間の対応**: ログ（\`/log?issue=${issue}\`）と worktree を確認し、原因を取り除いた上で ` +
-        'Status を戻す（例: Sprint Backlog で再実装、Review で再開）か、不要なら Icebox / Close に ' +
-        'してください。準備ができたら `🙋 HITL` を外すと autopilot が再開します。'
+        '`🙋 HITL` を外す（またはこの Issue/PR にコメントする）と autopilot が再開します' +
+        '（PR があれば指摘対応、無ければ再トリアージ）。手動で Status を動かして再ルートしても、' +
+        '不要なら Icebox / Close にしても構いません。'
     );
 }
 
@@ -139,9 +141,10 @@ function stuckBlockBody(item, stuckMinutes) {
         `🤖 autopilot: Status が **In Progress** / AI Status=\`${item.aiStatus}\` のまま約 ` +
         `${stuckMinutes} 分進行が止まっていました（run が見当たりません。daemon 再起動や run の異常終了が原因）。` +
         '安全のため **Blocked** にしました。\n\n' +
-        `**人間の対応**: ログ（\`/log?issue=${item.issue}\`）と worktree を確認し、再実装するなら ` +
-        'Sprint Backlog へ、続きから再開するなら Review へ Status を戻してください。' +
-        '準備ができたら `🙋 HITL` を外すと autopilot が再開します。'
+        `**人間の対応**: ログ（\`/log?issue=${item.issue}\`）と worktree を確認してください。` +
+        '`🙋 HITL` を外す（またはコメントする）と autopilot が再開します（PR があれば指摘対応、' +
+        '無ければ再トリアージ）。再実装なら Sprint Backlog へ、続きから再開なら Review へ ' +
+        'Status を動かしても構いません。'
     );
 }
 
@@ -257,25 +260,45 @@ async function dispatch(item, cfg, state, log) {
 }
 
 /**
- * 人間ゲート状態（Review / DoD）かつ未実行の item について PR レビュー状態 + HITL 解除シグナルを
- * 集める。これを phaseForItem の ctx として渡すと、人間が HITL を解除した item を address-review に
- * 振り分けできる（#792/#821: DoD NG 差し戻しも OR セマンティクスで解除できる）。
- * I/O はここに閉じ込め、判定は phases.js の純粋関数。
- * @returns {object} issue 番号 → { review, hitlSignals, pr } の map
+ * item が人間ゲート状態（付帯情報の収集が要る状態）か。
+ * Review / DoD（レビュー・検証待ち）、Blocked（人間の対処待ち）、
+ * Discussing（実装前ディスカッションの返信待ち）が該当する。
  */
-function collectReviewContexts(cfg, items, running, log) {
+function isGateItem(item) {
+    if (!item) return false;
+    if (item.status === 'Review' || item.status === 'DoD' || item.status === 'Blocked') return true;
+    const status = item.status || 'New Item';
+    return (status === 'New Item' || status === 'Backlog') && item.aiStatus === 'Discussing';
+}
+
+/**
+ * 人間ゲート状態（Review / DoD / Blocked / Discussing）かつ未実行の item について、
+ * HITL 解除シグナル + PR レビュー状態 + 発言アクティビティを集める。phaseForItem の ctx として
+ * 渡すと、(1) ラベル解除、(2) **人間がコメントだけ出してラベルを触らない**操作、のどちらでも
+ * ゲートが解除され、状態が固着しない（状態遷移ドキュメント参照）。
+ * humanSpokeLast は「bot の最終発言・処理済み watermark（state.gateHandled）より後に人間が
+ * 発言したか」で導く。I/O はここに閉じ込め、判定は phases.js の純粋関数。
+ * @returns {object} issue 番号 → { review, hitlSignals, pr, activity, humanSpokeLast } の map
+ */
+function collectGateContexts(cfg, items, running, state, log, deps = {}) {
     const contexts = {};
-    const token = project.botToken();
+    const token = deps.token || project.botToken();
+    const getGateContext = deps.getGateContext || project.getGateContext;
+    const handled = state.gateHandled || (state.gateHandled = new Map());
     for (const item of items) {
-        if (item.status !== 'Review' && item.status !== 'DoD') continue;
+        if (!isGateItem(item)) continue;
         if (running.has(item.issue)) continue;
         // enroll モデル: 自分がオーナーでない item の付帯情報は集めない（API 節約 + 越権防止）
         if (!ownsItem(item, cfg.assignee)) continue;
         try {
-            const ctx = project.getReviewContext(cfg.repo, item.issue, token);
-            if (ctx) contexts[item.issue] = ctx;
+            const ctx = getGateContext(cfg.repo, item.issue, token);
+            if (!ctx) continue;
+            contexts[item.issue] = {
+                ...ctx,
+                humanSpokeLast: humanSpokeLast({ ...ctx.activity, handledAt: handled.get(item.issue) }),
+            };
         } catch (e) {
-            log(`#${item.issue}: review context error ${e.message}`);
+            log(`#${item.issue}: gate context error ${e.message}`);
         }
     }
     return contexts;
@@ -529,7 +552,7 @@ async function tick(cfg, state, log) {
         return { paused: false, picked: [] };
     }
     const running = new Set(state.running.keys());
-    const contexts = collectReviewContexts(cfg, items, running, log);
+    const contexts = collectGateContexts(cfg, items, running, state, log);
     // closed issue 集合は after 依存の判定と closed-reconcile の両方で使う（1 tick 1 回だけ取得）
     let closedSet = new Set();
     try {
@@ -561,6 +584,13 @@ async function tick(cfg, state, log) {
         picked.push(item);
     }
     for (const item of picked) {
+        // ゲート item を dispatch したら「人間の発言をここまで処理した」watermark を進める。
+        // 発言解除（humanSpokeLast）が同じ発言で毎 tick 再発火してループするのを防ぐ
+        // （bot がコメントを返さない LGTM 分類などでも固着・空回りしない）。
+        if (contexts[item.issue]) {
+            if (!state.gateHandled) state.gateHandled = new Map();
+            state.gateHandled.set(item.issue, cfg.now());
+        }
         // fire-and-forget（running で重複防止）
         dispatch(item, cfg, state, log);
     }
@@ -731,4 +761,5 @@ async function main(opts = {}) {
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
     applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyEpicTracking,
+    isGateItem, collectGateContexts,
 };

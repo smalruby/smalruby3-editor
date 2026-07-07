@@ -195,6 +195,65 @@ function isHitlReleased(signals) {
 }
 
 /**
+ * 時刻値（ms epoch または ISO 文字列）を ms に正規化する（純粋関数）。不正・欠損は 0。
+ * @param {number|string|null|undefined} t
+ * @returns {number}
+ */
+function toMs(t) {
+    if (typeof t === 'number' && Number.isFinite(t)) return t;
+    if (typeof t === 'string') {
+        const ms = Date.parse(t);
+        return Number.isNaN(ms) ? 0 : ms;
+    }
+    return 0;
+}
+
+/**
+ * 「ゲート開放中に人間が最後に発言したか」（純粋関数・状態固着の防止）。
+ *
+ * 人間ゲート（Review / DoD / Blocked / Discussing）の解除はラベル操作（{@link isHitlReleased}）
+ * だけだと、**人間がコメント（レビュー送信・返信）だけしてラベルを触らない**ケースで
+ * ステートが固着する。そこで「bot の最後の発言・処理済み watermark より **後に** 人間が
+ * 発言した」場合も解除シグナルとみなす。bot が応答（コメント）すると lastBotAt が進み、
+ * daemon が dispatch すると handledAt（watermark）が進むので、同じ発言で再発火しない。
+ * @param {object} activity { lastHumanAt, lastBotAt, handledAt }（ms epoch または ISO 文字列）
+ * @returns {boolean}
+ */
+function humanSpokeLast(activity = {}) {
+    const human = toMs(activity.lastHumanAt);
+    if (!human) return false;
+    return human > Math.max(toMs(activity.lastBotAt), toMs(activity.handledAt));
+}
+
+/**
+ * 2 つの活動記録（Issue 側と PR 側など）をマージして新しい方を採る（純粋関数）。
+ * @param {object} a { lastHumanAt, lastBotAt }
+ * @param {object} b { lastHumanAt, lastBotAt }
+ * @returns {{lastHumanAt: number, lastBotAt: number}} ms epoch（欠損は 0）
+ */
+function mergeActivity(a = {}, b = {}) {
+    return {
+        lastHumanAt: Math.max(toMs(a.lastHumanAt), toMs(b.lastHumanAt)),
+        lastBotAt: Math.max(toMs(a.lastBotAt), toMs(b.lastBotAt)),
+    };
+}
+
+/**
+ * 人間ゲートの解除判定（純粋関数・2 系統の OR）。
+ * 1. ラベル解除: Issue/PR の 🙋 ラベルのいずれかが除去された（{@link isHitlReleased}）
+ * 2. 発言解除: ゲート開放中に人間が最後に発言した（{@link humanSpokeLast} を daemon が
+ *    計算して ctx.humanSpokeLast として渡す）
+ * どちらでも「人間の番が終わった」とみなし autopilot が処理を進める。
+ * @param {object} item { hitlLabel }
+ * @param {object} ctx { hitlSignals, humanSpokeLast }
+ * @returns {boolean}
+ */
+function isGateReleased(item, ctx = {}) {
+    const labelReleased = ctx.hitlSignals ? isHitlReleased(ctx.hitlSignals) : !(item && item.hitlLabel);
+    return labelReleased || ctx.humanSpokeLast === true;
+}
+
+/**
  * merge は HITL と独立した「前進シグナル」。PR が merge されたとき、ひも付く Issue を
  * どの Status へ進めるかを返す（純粋関数）。
  * - leaf（Kind=Issue）: `Close`（HITL ラベル/フィールドが残っていても進める）
@@ -337,28 +396,34 @@ function phaseForItem(item, ctx = {}) {
     if (hasTrackingLabel(item)) return null;
     const status = item.status || 'New Item';
     if (HUMAN_GATE_STATUSES.has(status)) {
-        // 解除シグナルがあれば OR 判定、無ければ Issue の 🙋 ラベル単独で判定（#813）。
-        const released = ctx.hitlSignals
-            ? isHitlReleased(ctx.hitlSignals)
-            : !item.hitlLabel;
-        // 人間が HITL を解除したら、構造化シグナル（approve/changes-requested 等）で機械的に
+        // 解除は 2 系統の OR（ラベル解除 / 人間の発言・isGateReleased）。ラベルを触らず
+        // レビューコメントだけ出す人間の操作でも固着しない（状態遷移ドキュメント参照）。
+        // 人間がゲートを解除したら、構造化シグナル（approve/changes-requested 等）で機械的に
         // 分岐せず、必ず address-review へ渡す（#815/#821）。address-review スキルが PR の diff と
         // **全コメント（Issue/レビュー本文/インライン）**を読んで意図を分類する:
         //   - 質問・改善依頼 / DoD NG → 対応（コード修正 or 返信）
         //   - LGTM など対応不要 → 何もせず人間の merge を待つ
         //   - 判断がつかない → 人間に質問（HITL）
         // 自由文の分類は純粋関数では不可能なため、判断はスキル側に置く（daemon は dispatch のみ）。
-        return released ? 'address-review' : null;
+        return isGateReleased(item, ctx) ? 'address-review' : null;
     }
-    if (item.hitlLabel) return null; // 人間の番（🙋 ラベルあり）
+    // Blocked も人間ゲート: run 失敗・stall 時に autopilot が入れる状態で、Blocked コメントは
+    // 「🙋 を外すと再開」と案内する。解除されたら PR があれば address-review（スレッドを読んで
+    // 対応）、無ければ triage（再トリアージして Backlog/Sprint Backlog へ再ルート）で再開する。
+    // 以前は Blocked に出口が無く、ラベルを外しても何も起きない固着状態だった。
+    if (status === 'Blocked') {
+        if (!isGateReleased(item, ctx)) return null;
+        return ctx.pr ? 'address-review' : 'triage';
+    }
     // 実装前ディスカッション（discuss）: triage が方針提案を出し AI Status=Discussing で
-    // 人間に渡した item は、人間が 🙋 を外す（= 返信した）たびにここへ戻ってくる。
+    // 人間に渡した item は、人間が返信する（🙋 を外す or コメントする）たびにここへ戻ってくる。
     // 議論の往復中も Status は動かさない（Backlog / New Item に固定）ので、triage との
     // 再提案ループでステータスが固着・振動しない。承認されたら discuss が
     // Sprint Backlog を返し、implement へ直接ハンドオフされる。
     if ((status === 'New Item' || status === 'Backlog') && item.aiStatus === 'Discussing') {
-        return 'discuss';
+        return isGateReleased(item, ctx) ? 'discuss' : null;
     }
+    if (item.hitlLabel) return null; // 人間の番（🙋 ラベルあり）
     if (status === 'New Item') return 'triage';
     if (status === 'Sprint Backlog') {
         return item.kind === 'EPIC' ? 'decompose' : 'implement';
@@ -1020,6 +1085,10 @@ module.exports = {
     applyResult,
     hitlDesireFromResult,
     isHitlReleased,
+    isGateReleased,
+    humanSpokeLast,
+    mergeActivity,
+    toMs,
     progressOnMerge,
     MERGE_CHECK_STATUSES,
     selectMergeCandidates,

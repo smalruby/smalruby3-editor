@@ -101,12 +101,13 @@ EOF
 echo AUTOPILOT_DONE
 ```
 
-Icebox 提案（人間確認）:
+Icebox 提案（人間確認。**Status は動かさない** — 提案段階で Icebox へ動かすと、人間が
+ラベルだけ外したときに出口の無い状態に固着する。Icebox への遷移は人間の確定操作のみ）:
 
 ```bash
 cat > "$AUTOPILOT_RESULT_FILE" <<EOF
 {"issue":$AUTOPILOT_ISSUE,"phase":"triage","signal":"hitl","summary":"スコープ外の可能性。人間確認を依頼。",
-"reason":"重複の可能性があり Icebox を提案。確認のうえ HITL=No で差し戻してください。","commentUrl":"<投稿したコメントURL>","nextStatus":"Icebox"}
+"reason":"重複の可能性があり Icebox を提案。同意なら Status を Icebox へ。再検討させるなら 🙋 HITL を外す（またはコメントで指示）と再トリアージします。","commentUrl":"<投稿したコメントURL>","nextStatus":null}
 EOF
 echo AUTOPILOT_HITL
 ```

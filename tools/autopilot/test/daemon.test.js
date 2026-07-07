@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const {
     applyMergeProgression, applyClosedReconcile, applyPrProjection, applyDodHandoffs, runTickOnce,
-    detectStuck, markBlocked, getDirectives, applyEpicTracking,
+    detectStuck, markBlocked, getDirectives, applyEpicTracking, collectGateContexts,
 } = require('../src/daemon');
 const { HITL_LABEL, AUTOPILOT_LABEL } = require('../src/phases');
 
@@ -462,6 +462,57 @@ test('applyEpicTracking: 1 件の失敗は他を止めない', () => {
         editLabels: (repo, number) => { if (number === 1) throw new Error('boom'); added.push(number); },
     });
     assert.deepEqual(added, [2]);
+});
+
+// === 人間ゲート: collectGateContexts（コメント解除 + watermark） ===
+
+test('collectGateContexts: 発言アクティビティから humanSpokeLast を導く（コメント解除の配線）', () => {
+    const { isGateItem } = require('../src/daemon');
+    const items = [
+        { issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }, // 人間が最後に発言 → 解除
+        { issue: 2, status: 'DoD', kind: 'Issue', hitlLabel: true }, // bot が最後 → 待ち
+        { issue: 3, status: 'Blocked', kind: 'Issue', hitlLabel: true }, // PR 無しゲートも収集
+        { issue: 4, status: 'Backlog', aiStatus: 'Discussing', kind: 'Issue', hitlLabel: true }, // 議論ゲート
+        { issue: 5, status: 'Sprint Backlog', kind: 'Issue' }, // ゲートではない
+    ];
+    assert.equal(isGateItem(items[4]), false);
+    const gateCtx = {
+        1: { hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 10, activity: { lastHumanAt: 200, lastBotAt: 100 } },
+        2: { hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 20, activity: { lastHumanAt: 100, lastBotAt: 200 } },
+        3: { hitlSignals: { issueLabel: true }, review: null, pr: null, activity: { lastHumanAt: 300, lastBotAt: 100 } },
+        4: { hitlSignals: { issueLabel: true }, review: null, pr: null, activity: { lastHumanAt: 400, lastBotAt: 100 } },
+    };
+    const state = { running: new Map() };
+    const contexts = collectGateContexts(makeCfg(), items, new Set(), state, () => {}, {
+        token: 't',
+        getGateContext: (repo, issue) => gateCtx[issue],
+    });
+    assert.equal(contexts[1].humanSpokeLast, true);
+    assert.equal(contexts[2].humanSpokeLast, false);
+    assert.equal(contexts[3].humanSpokeLast, true);
+    assert.equal(contexts[4].humanSpokeLast, true);
+    assert.ok(!(5 in contexts));
+});
+
+test('collectGateContexts: watermark（gateHandled）より古い発言では再発火しない', () => {
+    const items = [{ issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }];
+    const state = { running: new Map(), gateHandled: new Map([[1, 250]]) };
+    const deps = {
+        token: 't',
+        getGateContext: () => ({
+            hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 10,
+            activity: { lastHumanAt: 200, lastBotAt: 100 },
+        }),
+    };
+    const contexts = collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
+    assert.equal(contexts[1].humanSpokeLast, false); // 200 < watermark 250
+    // watermark 後に人間がさらに発言 → 再度解除
+    deps.getGateContext = () => ({
+        hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 10,
+        activity: { lastHumanAt: 300, lastBotAt: 100 },
+    });
+    const contexts2 = collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
+    assert.equal(contexts2[1].humanSpokeLast, true);
 });
 
 // === directives: getDirectives（autopilot-base / autopilot-after の TTL キャッシュ） ===

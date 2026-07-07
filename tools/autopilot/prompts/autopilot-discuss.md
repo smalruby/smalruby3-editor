@@ -30,12 +30,12 @@ GH_TOKEN="$(bin/bot-token)" gh issue view "$AUTOPILOT_ISSUE" --repo "${AUTOPILOT
 | **承認** | 「承認」「approve」「LGTM」「この方針で」「進めて」など、提案への明確な同意 | 追加コメント不要（必要なら短い着手宣言のみ）。**`signal=done` + `nextStatus: "Sprint Backlog"`** で終了 → daemon が implement へ直接ハンドオフ |
 | **修正・条件付き同意** | 「〜は変えて」「この部分はこうして」など方針の部分修正 | 修正を織り込んだ**改訂方針**を 1 コメントで返す（差分を明示）。**`signal=hitl`（`nextStatus: "Backlog"`, `nextAiStatus: "Discussing"`）** で再び人間へ |
 | **質問** | 提案内容への質問 | 質問に答えるコメントを 1 件投稿。**`signal=hitl`（同上）** |
-| **見送り** | 「やらない」「不要」など | 確認コメントを投稿し **`signal=hitl` + `nextStatus: "Icebox"`** を提案（人間が Status を確定） |
+| **見送り** | 「やらない」「不要」など | 確認コメント（「同意なら Status を Icebox へ」）を投稿し **`signal=hitl`（`nextStatus: "Backlog"`, `nextAiStatus: "Discussing"`）**。**Status は動かさない**（Icebox への遷移は人間の確定操作のみ。提案段階で動かすと出口の無い状態に固着する） |
 | **判断不能** | 返信が無い・意図が読めない | 論点を箇条書きで整理したコメントを投稿し **`signal=hitl`（`nextStatus: "Backlog"`, `nextAiStatus: "Discussing"`）** |
 
 **重要**:
-- 往復中に Status を Backlog 以外へ動かす提案をしない（承認 → Sprint Backlog と、見送り → Icebox の 2 つだけが例外）。
-  これにより triage との再提案ループでステータスが固着・振動しない。
+- 往復中に Status を Backlog 以外へ動かす提案をしない（例外は承認 → Sprint Backlog のみ。
+  Icebox への遷移は人間の確定操作）。これにより triage との再提案ループでステータスが固着・振動しない。
 - 承認の判断は保守的に。**明確な同意が読み取れないときは承認扱いしない**（hitl で聞き直す）。
 - 改訂方針は**同じ 1 スレッドに積む**（新しい Issue や重複コメントを作らない・冪等）。
 
