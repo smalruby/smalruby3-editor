@@ -27,6 +27,7 @@ const {
     selectActionable,
     shouldResend,
     evaluate,
+    sanitizeForSurface,
     DEFAULT_WATCHDOG,
     HITL_LABEL,
     AUTOPILOT_LABEL,
@@ -243,6 +244,42 @@ test('selectMarkedCommentIds: 任意マーカーでコメント id を抽出', (
     assert.deepEqual(selectMarkedCommentIds(comments, [PR_LINK_MARKER]), [2, 4]);
     assert.deepEqual(selectMarkedCommentIds(comments, ['<!-- other -->']), []);
     assert.deepEqual(selectMarkedCommentIds(null, [PR_LINK_MARKER]), []);
+});
+
+test('sanitizeForSurface: トークン・鍵・機密変数・URL クエリを redact する', () => {
+    const raw = [
+        'push failed: remote rejected with GH_TOKEN=ghs_abcdefghijklmnopqrstuvwx1234',
+        'aws error: AKIAIOSFODNN7EXAMPLE not authorized',
+        'header Authorization: Bearer abcdef1234567890abcdef',
+        'GOOGLE_API_KEY=AIzaSyA-1234567890abcdefghijklmnopqrs',
+        'presigned https://s3.amazonaws.com/bucket/key?X-Amz-Signature=deadbeef&X-Amz-Credential=AKID',
+        'jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N',
+        '-----BEGIN RSA PRIVATE KEY-----\nMIIEow...\n-----END RSA PRIVATE KEY-----',
+        'MY_SECRET: "hunter2" DB_PASSWORD=p@ssw0rd!',
+    ].join('\n');
+    const s = sanitizeForSurface(raw, 5000);
+    assert.doesNotMatch(s, /ghs_abcdefghijklmnopqrstuvwx1234/);
+    assert.doesNotMatch(s, /AKIAIOSFODNN7EXAMPLE/);
+    assert.doesNotMatch(s, /Bearer abcdef1234567890abcdef/);
+    assert.doesNotMatch(s, /AIzaSyA-1234567890abcdefghijklmnopqrs/);
+    assert.doesNotMatch(s, /X-Amz-Signature/);
+    assert.doesNotMatch(s, /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\./);
+    assert.doesNotMatch(s, /MIIEow/);
+    assert.doesNotMatch(s, /hunter2/);
+    assert.doesNotMatch(s, /p@ssw0rd!/);
+    // 無害な情報（何が起きたか）は残る
+    assert.match(s, /push failed/);
+    assert.match(s, /not authorized/);
+    assert.match(s, /https:\/\/s3\.amazonaws\.com\/bucket\/key\?\[REDACTED\]/);
+});
+
+test('sanitizeForSurface: 長文は切り詰め、空入力は空文字', () => {
+    assert.equal(sanitizeForSurface(''), '');
+    assert.equal(sanitizeForSurface(null), '');
+    const long = 'x'.repeat(1000);
+    const s = sanitizeForSurface(long, 100);
+    assert.ok(s.length < 200);
+    assert.match(s, /切り詰め/);
 });
 
 test('itemOwner: 辞書順先頭の assignee が決定的な単一オーナー', () => {

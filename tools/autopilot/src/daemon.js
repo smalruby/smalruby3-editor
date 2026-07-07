@@ -37,6 +37,7 @@ const {
     needsPrLinkSticky,
     renderPrLinkSticky,
     PR_LINK_MARKER,
+    sanitizeForSurface,
     labelActions,
     draftAction,
     renderSticky,
@@ -123,7 +124,7 @@ function markBlocked(item, body, cfg, log, deps = {}) {
     syncFaces({ ...item, status: 'Blocked', hitlLabel: true });
 }
 
-/** run 失敗時の Blocked コメント本文（#816） */
+/** run 失敗時の Blocked コメント本文（#816）。reason は呼び出し側でサニタイズ済みであること。 */
 function failureBlockBody(skill, issue, reason) {
     return (
         `🤖 autopilot: \`${skill}\` フェーズの run が完了できなかったため **Blocked** にしました。\n\n` +
@@ -132,6 +133,21 @@ function failureBlockBody(skill, issue, reason) {
         '`🙋 HITL` を外す（またはこの Issue/PR にコメントする）と autopilot が再開します' +
         '（PR があれば指摘対応、無ければ再トリアージ）。手動で Status を動かして再ルートしても、' +
         '不要なら Icebox / Close にしても構いません。'
+    );
+}
+
+/**
+ * signal=error 時の Blocked コメント本文。reason は呼び出し側でサニタイズ済みであること。
+ * 生ログは機密を含みうるため GitHub に全文を載せず、ローカル参照へ誘導する。
+ */
+function errorBlockBody(skill, reason) {
+    return (
+        `🤖 autopilot: \`${skill}\` フェーズが回復不能なエラーを報告したため **Blocked** にしました。\n\n` +
+        `**理由（サニタイズ済み要約）**: ${reason || '（ローカルログ参照）'}\n\n` +
+        '詳細な生ログは機密情報を含む可能性があるため GitHub には載せていません。' +
+        'ローカルの daemon ログと worktree を確認してください。\n\n' +
+        '**人間の対応**: 原因を取り除いた上で `🙋 HITL` を外す（またはコメントする）と ' +
+        'autopilot が再開します（PR があれば指摘対応、無ければ再トリアージ）。'
     );
 }
 
@@ -192,8 +208,9 @@ async function dispatch(item, cfg, state, log) {
     };
     // ブロック時の人間ハンドオフ（#813/#816）: run が失敗・stall したとき、コメント無しで 🙋 だけ
     // 付くと人間が状況を把握できない（#815 の発端）。必ず説明コメントを残して Blocked にする。
+    // GitHub へ出す理由は必ずサニタイズする（コマンド出力由来の機密を含みうる）。生ログはローカル。
     const blockToHuman = (reason) =>
-        markBlocked(item, reason ? failureBlockBody(meta.skill, item.issue, reason) : null, cfg, log);
+        markBlocked(item, reason ? failureBlockBody(meta.skill, item.issue, sanitizeForSurface(reason)) : null, cfg, log);
     try {
         // 着手を即可視化（Issue を状態の正に）: In Progress + AI Status=xxxing
         mark('Status', 'In Progress');
@@ -247,6 +264,13 @@ async function dispatch(item, cfg, state, log) {
         const intents = applyResult(parsed.result);
         const applied = project.applyIntents(ctx, itemId, intents, project.botToken());
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
+        // signal=error は Blocked で surface する（churn を止める）。理由はサニタイズ済みの
+        // 要約だけを GitHub に出し、生ログ（機密を含みうる）はローカル参照に誘導する。
+        if (parsed.result.signal === 'error') {
+            const body = errorBlockBody(meta.skill, sanitizeForSurface(parsed.result.error || parsed.result.summary || ''));
+            try { project.postIssueComment(cfg.repo, item.issue, body, project.botToken()); }
+            catch (e) { log(`#${item.issue}: error block comment failed: ${e.message}`); }
+        }
         // 権威的な面同期（contract §7）: 🙋/🤖 ラベル・Draft・sticky を Project 状態 + HITL 希望へ合わせる。
         // HITL は Project フィールドではなくラベルなので、結果から導いた希望を hitlLabel として渡す（#813）。
         const wantHitl = hitlDesireFromResult(parsed.result);

@@ -994,6 +994,49 @@ function dodHandoffBody({ issue, pr, repo, branch, previewUrl, dodChecklist }) {
 }
 
 /**
+ * GitHub に surface してよい文字列へサニタイズする（純粋関数）。
+ *
+ * worker の error 理由・watchdog の失敗理由には、コマンド出力由来の機密
+ * （トークン・API キー・秘密鍵・URL クエリ等）が混入しうる。Blocked コメントとして
+ * GitHub に投稿する前に必ずこれを通す。完全性より安全側に倒す（過剰 redact は許容）。
+ * 生ログはローカル（daemon ログ / worktree）で確認する運用。
+ * @param {string} text
+ * @param {number} [maxLen] 最大長（既定 600。超過は切り詰めて明示）
+ * @returns {string}
+ */
+function sanitizeForSurface(text, maxLen = 600) {
+    if (!text) return '';
+    let s = String(text);
+    const patterns = [
+        // GitHub トークン（ghp_/gho_/ghu_/ghs_/ghr_ + fine-grained PAT）
+        /gh[pousr]_[A-Za-z0-9_]{16,}/g,
+        /github_pat_[A-Za-z0-9_]{20,}/g,
+        // AWS アクセスキー / セッションキー
+        /(?:AKIA|ASIA)[0-9A-Z]{16}/g,
+        // Google API キー
+        /AIza[0-9A-Za-z_-]{30,}/g,
+        // Slack トークン
+        /xox[baprs]-[A-Za-z0-9-]{10,}/g,
+        // Authorization ヘッダ
+        /Bearer\s+[A-Za-z0-9._-]{16,}/gi,
+        // JWT
+        /eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
+        // PEM 秘密鍵ブロック
+        /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g,
+    ];
+    for (const re of patterns) s = s.replace(re, '[REDACTED]');
+    // 機密らしい変数名の KEY=value / KEY: value
+    s = s.replace(
+        /([A-Za-z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|API_?KEY|PRIVATE_?KEY)[A-Za-z0-9_]*\s*[=:]\s*)("[^"]*"|'[^']*'|\S+)/gi,
+        '$1[REDACTED]',
+    );
+    // URL のクエリ文字列（presigned URL / トークン入り URL 対策）
+    s = s.replace(/(https?:\/\/[^\s?"'<>]+)\?[^\s"'<>]*/g, '$1?[REDACTED]');
+    if (s.length > maxLen) s = `${s.slice(0, maxLen)}…（切り詰め。全文はローカルログ参照）`;
+    return s;
+}
+
+/**
  * watchdog の状態を評価して次アクションを返す（純粋関数）。
  * 完了の権威は「結果ファイルの存在」。それ以外はタイマーで stuck を処理する。
  * @param {object} state
@@ -1106,6 +1149,7 @@ module.exports = {
     selectActionable,
     shouldResend,
     evaluate,
+    sanitizeForSurface,
     DEFAULT_WATCHDOG,
     AUTOPILOT_LABEL,
     HITL_LABEL,
