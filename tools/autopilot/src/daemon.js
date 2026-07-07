@@ -105,6 +105,45 @@ async function getDirectives(cfg, state, issue, log, deps = {}) {
     return entry;
 }
 
+/** 認証失効時にモニタ・status へ出す再認証手順（SSO 無人運用の出口） */
+const REAUTH_HINT =
+    'コンテナ内で `aws sso login --sso-session smalruby --use-device-code` を実行して再認証し、' +
+    '`bin/bot-token --whoami` で確認してください。回復すると autopilot は自動で再開します。';
+
+/**
+ * 認証ヘルスチェック（SSO 無人運用）。bot トークンの取得を試み、
+ * - 失敗（SSO 失効・Secrets Manager 不達等）→ **auto-pause**（pausedBy='auth'）し、
+ *   サニタイズ済みエラーと再認証手順を /status・モニタに surface する
+ * - 回復（auth で pause 中に成功）→ **auto-resume**
+ * 人間が明示的に pause した状態（pausedBy='human'）は上書きしない。
+ * @returns {Promise<boolean>} 認証が健全なら true
+ */
+async function checkAuthHealth(cfg, state, log, deps = {}) {
+    const getToken = deps.botToken || project.botToken;
+    try {
+        await getToken();
+        if (state.pausedBy === 'auth') {
+            state.paused = false;
+            state.pausedBy = null;
+            state.authError = null;
+            log('auth recovered — auto-resume');
+        }
+        return true;
+    } catch (e) {
+        const msg = sanitizeForSurface(`${e.message || e}${e.stderr ? `: ${e.stderr}` : ''}`, 300);
+        if (state.pausedBy === 'human') {
+            // 人間の pause を尊重しつつエラーだけ記録する
+            state.authError = msg;
+            return false;
+        }
+        if (state.pausedBy !== 'auth') log(`auth failure — auto-pause: ${msg}`);
+        state.paused = true;
+        state.pausedBy = 'auth';
+        state.authError = msg;
+        return false;
+    }
+}
+
 /**
  * item を Blocked にして人間へハンドオフする（Status=Blocked + 🙋 ラベル + 説明コメント）。
  * dispatch の run 失敗と tick の stuck 検知の両方から使う（#813/#816）。
@@ -684,6 +723,9 @@ function startHttp(cfg, state, log) {
         if (req.method === 'GET' && url.pathname === '/status') {
             return send(200, {
                 paused: state.paused,
+                pausedBy: state.pausedBy || (state.paused ? 'human' : null),
+                authError: state.authError || null,
+                reauthHint: state.authError ? REAUTH_HINT : null,
                 assignee: cfg.assignee,
                 concurrency: cfg.concurrency,
                 running: [...state.running.entries()].map(([issue, v]) => ({ issue, phase: v.phase })),
@@ -700,8 +742,14 @@ function startHttp(cfg, state, log) {
                 .catch((e) => { log(`tick error: ${e.message}`); send(500, { error: e.message }); });
             return;
         }
-        if (req.method === 'POST' && url.pathname === '/pause') { state.paused = true; log('paused'); return send(200, { paused: true }); }
-        if (req.method === 'POST' && url.pathname === '/resume') { state.paused = false; log('resumed'); return send(200, { paused: false }); }
+        if (req.method === 'POST' && url.pathname === '/pause') {
+            state.paused = true; state.pausedBy = 'human'; log('paused');
+            return send(200, { paused: true, pausedBy: 'human' });
+        }
+        if (req.method === 'POST' && url.pathname === '/resume') {
+            state.paused = false; state.pausedBy = null; state.authError = null; log('resumed');
+            return send(200, { paused: false });
+        }
         if (req.method === 'POST' && url.pathname === '/stop') {
             const issue = Number(url.searchParams.get('issue'));
             const r = state.running.get(issue);
@@ -771,7 +819,7 @@ async function main(opts = {}) {
         cfg.snapshotDir = null;
         cfg.promptDir = undefined;
     }
-    const state = { paused: false, running: new Map(), ticking: false };
+    const state = { paused: false, pausedBy: null, authError: null, running: new Map(), ticking: false };
     // PID ファイルを書き、安全停止（kill "$(cat <pidfile>)" / POST /shutdown）を可能にする
     try {
         fs.writeFileSync(pidFilePath(), String(process.pid));
@@ -784,15 +832,21 @@ async function main(opts = {}) {
     log(`daemon up: project #${cfg.project}, assignee ${cfg.assignee || '(all)'}, concurrency ${cfg.concurrency}, interval ${cfg.intervalMs}ms, pid ${process.pid} (${pidFilePath()})`);
     /* eslint-disable no-constant-condition */
     while (!opts.once) {
+        // 認証ヘルスチェック（失効 → auto-pause / 回復 → auto-resume）を tick の前に行う。
+        // auth で pause 中も interval ごとに再試行し、人間が再認証すれば自動で再開する。
+        await checkAuthHealth(cfg, state, log);
         // runTickOnce 経由にして、定期 tick と手動 POST /tick が重ならないようにする（再入防止）
         await runTickOnce(cfg, state, log);
         await sleep(cfg.intervalMs);
     }
-    if (opts.once) await runTickOnce(cfg, state, log);
+    if (opts.once) {
+        await checkAuthHealth(cfg, state, log);
+        await runTickOnce(cfg, state, log);
+    }
 }
 
 module.exports = {
     main, tick, runTickOnce, dispatch, applyMergeProgression, applyClosedReconcile, applyPrProjection,
     applyDodHandoffs, detectStuck, markBlocked, getDirectives, applyEpicTracking,
-    isGateItem, collectGateContexts,
+    isGateItem, collectGateContexts, checkAuthHealth, REAUTH_HINT,
 };

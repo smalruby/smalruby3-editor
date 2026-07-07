@@ -464,6 +464,49 @@ test('applyEpicTracking: 1 件の失敗は他を止めない', async () => {
     assert.deepEqual(added, [2]);
 });
 
+// === 認証ヘルスチェック: checkAuthHealth（SSO 無人運用の auto-pause / auto-resume） ===
+
+test('checkAuthHealth: 失効で auto-pause、回復で auto-resume', async () => {
+    const { checkAuthHealth } = require('../src/daemon');
+    const state = { paused: false, pausedBy: null, authError: null, running: new Map() };
+    let ok = false;
+    const deps = { botToken: async () => { if (!ok) throw new Error('AWS 認証が失効しています'); return 't'; } };
+    // 失効 → auto-pause + エラー surface
+    assert.equal(await checkAuthHealth({}, state, () => {}, deps), false);
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'auth');
+    assert.match(state.authError, /失効/);
+    // 再認証後 → auto-resume
+    ok = true;
+    assert.equal(await checkAuthHealth({}, state, () => {}, deps), true);
+    assert.equal(state.paused, false);
+    assert.equal(state.pausedBy, null);
+    assert.equal(state.authError, null);
+});
+
+test('checkAuthHealth: 人間の pause は上書きしない（回復しても勝手に resume しない）', async () => {
+    const { checkAuthHealth } = require('../src/daemon');
+    const state = { paused: true, pausedBy: 'human', authError: null, running: new Map() };
+    // 失敗してもエラー記録のみ（pausedBy は human のまま）
+    await checkAuthHealth({}, state, () => {}, { botToken: async () => { throw new Error('boom'); } });
+    assert.equal(state.pausedBy, 'human');
+    assert.equal(state.paused, true);
+    // 成功しても human pause は解除しない
+    await checkAuthHealth({}, state, () => {}, { botToken: async () => 't' });
+    assert.equal(state.paused, true);
+    assert.equal(state.pausedBy, 'human');
+});
+
+test('checkAuthHealth: 機密はサニタイズして surface する', async () => {
+    const { checkAuthHealth } = require('../src/daemon');
+    const state = { paused: false, pausedBy: null, running: new Map() };
+    await checkAuthHealth({}, state, () => {}, {
+        botToken: async () => { throw new Error('token ghs_abcdefghijklmnopqrstuvwx1234 rejected'); },
+    });
+    assert.doesNotMatch(state.authError, /ghs_abcdefghijklmnopqrstuvwx1234/);
+    assert.match(state.authError, /rejected/);
+});
+
 // === 人間ゲート: collectGateContexts（コメント解除 + watermark） ===
 
 test('collectGateContexts: 発言アクティビティから humanSpokeLast を導く（コメント解除の配線）', async () => {
