@@ -39,7 +39,7 @@ function makeProjectionDeps({ prByIssue = {}, prInfo = {}, issueLabels = {} } = 
     };
 }
 
-test('applyMergeProgression: closes leaf with merged PR; skips not-merged/EPIC/terminal', () => {
+test('applyMergeProgression: closes leaf with merged PR; skips not-merged/EPIC/terminal', async () => {
     const items = [
         { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue' }, // merged -> Close
         { issue: 2, itemId: 'i2', status: 'DoD', kind: 'Issue' }, // not merged -> skip
@@ -49,7 +49,7 @@ test('applyMergeProgression: closes leaf with merged PR; skips not-merged/EPIC/t
     const mergedMap = { 1: true, 2: false };
     const applied = [];
     const state = { running: new Map() };
-    applyMergeProgression(items, makeCfg(), state, () => {}, {
+    await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
         hasMergedPullRequest: (repo, issue) => mergedMap[issue],
         applyIntents: (ctx, itemId, intents) => {
@@ -66,7 +66,7 @@ test('applyMergeProgression: closes leaf with merged PR; skips not-merged/EPIC/t
     assert.equal(m['AI Status'], null);
 });
 
-test('applyMergeProgression: also closes the GitHub issue (Fix A, #843)', () => {
+test('applyMergeProgression: also closes the GitHub issue (Fix A, #843)', async () => {
     // 非デフォルト base 宛て PR では GitHub の `Closes #N` 自動 close が効かないので、
     // leaf を Close へ前進させたら GitHub issue も明示 close する（冪等）。
     const items = [
@@ -76,7 +76,7 @@ test('applyMergeProgression: also closes the GitHub issue (Fix A, #843)', () => 
     const mergedMap = { 1: true, 2: false };
     const closed = [];
     const state = { running: new Map() };
-    applyMergeProgression(items, makeCfg(), state, () => {}, {
+    await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
         hasMergedPullRequest: (repo, issue) => mergedMap[issue],
         applyIntents: (ctx, itemId, intents) => intents.map((i) => `${i.field}=${i.value}`),
@@ -87,14 +87,14 @@ test('applyMergeProgression: also closes the GitHub issue (Fix A, #843)', () => 
     assert.deepEqual(closed, [1]);
 });
 
-test('applyMergeProgression: a failing gh close does not abort the loop (#843)', () => {
+test('applyMergeProgression: a failing gh close does not abort the loop (#843)', async () => {
     const items = [
         { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue' },
         { issue: 2, itemId: 'i2', status: 'Review', kind: 'Issue' },
     ];
     const applied = [];
     const state = { running: new Map() };
-    applyMergeProgression(items, makeCfg(), state, () => {}, {
+    await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
         hasMergedPullRequest: () => true,
         applyIntents: (ctx, itemId) => { applied.push(itemId); return []; },
@@ -105,7 +105,7 @@ test('applyMergeProgression: a failing gh close does not abort the loop (#843)',
     assert.deepEqual(applied, ['i1', 'i2']);
 });
 
-test('applyClosedReconcile: closed non-terminal items -> Status=Close + clear AI Status (incl. EPIC)', () => {
+test('applyClosedReconcile: closed non-terminal items -> Status=Close + clear AI Status (incl. EPIC)', async () => {
     const items = [
         { issue: 738, itemId: 'e1', status: 'Review', kind: 'EPIC' }, // closed EPIC -> reconcile
         { issue: 839, itemId: 'i1', status: 'Review', kind: 'Issue' }, // closed leaf -> reconcile
@@ -115,7 +115,7 @@ test('applyClosedReconcile: closed non-terminal items -> Status=Close + clear AI
     const applied = [];
     const faces = [];
     const state = { running: new Map() };
-    applyClosedReconcile(items, makeCfg(), state, () => {}, {
+    await applyClosedReconcile(items, makeCfg(), state, () => {}, {
         token: 't',
         listClosedIssueNumbers: () => new Set([738, 839, 900]),
         applyIntents: (ctx, itemId, intents) => { applied.push({ itemId, intents }); return []; },
@@ -131,11 +131,11 @@ test('applyClosedReconcile: closed non-terminal items -> Status=Close + clear AI
     assert.deepEqual(faces.sort((x, y) => x - y), [738, 839]);
 });
 
-test('applyClosedReconcile: skips running items (does not fight a live phase)', () => {
+test('applyClosedReconcile: skips running items (does not fight a live phase)', async () => {
     const items = [{ issue: 839, itemId: 'i1', status: 'Review', kind: 'Issue' }];
     const applied = [];
     const state = { running: new Map([[839, { phase: 'review' }]]) };
-    applyClosedReconcile(items, makeCfg(), state, () => {}, {
+    await applyClosedReconcile(items, makeCfg(), state, () => {}, {
         token: 't',
         listClosedIssueNumbers: () => new Set([839]),
         applyIntents: (ctx, itemId) => { applied.push(itemId); return []; },
@@ -145,11 +145,11 @@ test('applyClosedReconcile: skips running items (does not fight a live phase)', 
     assert.deepEqual(applied, []);
 });
 
-test('applyClosedReconcile: a failing listClosedIssueNumbers is a no-op (does not throw)', () => {
+test('applyClosedReconcile: a failing listClosedIssueNumbers is a no-op (does not throw)', async () => {
     const items = [{ issue: 839, itemId: 'i1', status: 'Review', kind: 'Issue' }];
     const applied = [];
     const state = { running: new Map() };
-    assert.doesNotThrow(() => applyClosedReconcile(items, makeCfg(), state, () => {}, {
+    await assert.doesNotReject(() => applyClosedReconcile(items, makeCfg(), state, () => {}, {
         token: 't',
         listClosedIssueNumbers: () => { throw new Error('rate limit'); },
         applyIntents: (ctx, itemId) => { applied.push(itemId); return []; },
@@ -159,14 +159,14 @@ test('applyClosedReconcile: a failing listClosedIssueNumbers is a no-op (does no
     assert.deepEqual(applied, []);
 });
 
-test('applyClosedReconcile: one failing item does not block others', () => {
+test('applyClosedReconcile: one failing item does not block others', async () => {
     const items = [
         { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue' }, // apply throws
         { issue: 2, itemId: 'i2', status: 'Review', kind: 'Issue' }, // ok
     ];
     const applied = [];
     const state = { running: new Map() };
-    applyClosedReconcile(items, makeCfg(), state, () => {}, {
+    await applyClosedReconcile(items, makeCfg(), state, () => {}, {
         token: 't',
         listClosedIssueNumbers: () => new Set([1, 2]),
         applyIntents: (ctx, itemId) => {
@@ -180,11 +180,11 @@ test('applyClosedReconcile: one failing item does not block others', () => {
     assert.deepEqual(applied, ['i2']);
 });
 
-test('applyMergeProgression: skips items currently running (does not fight a live phase)', () => {
+test('applyMergeProgression: skips items currently running (does not fight a live phase)', async () => {
     const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue' }];
     const applied = [];
     const state = { running: new Map([[1, { phase: 'review' }]]) };
-    applyMergeProgression(items, makeCfg(), state, () => {}, {
+    await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
         hasMergedPullRequest: () => true,
         applyIntents: (ctx, itemId, intents) => {
@@ -197,14 +197,14 @@ test('applyMergeProgression: skips items currently running (does not fight a liv
     assert.equal(applied.length, 0);
 });
 
-test('applyMergeProgression: a failing merge check on one item does not block others', () => {
+test('applyMergeProgression: a failing merge check on one item does not block others', async () => {
     const items = [
         { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue' }, // check throws
         { issue: 2, itemId: 'i2', status: 'Review', kind: 'Issue' }, // merged -> Close
     ];
     const applied = [];
     const state = { running: new Map() };
-    applyMergeProgression(items, makeCfg(), state, () => {}, {
+    await applyMergeProgression(items, makeCfg(), state, () => {}, {
         token: 't',
         hasMergedPullRequest: (repo, issue) => {
             if (issue === 1) throw new Error('boom');
@@ -220,7 +220,7 @@ test('applyMergeProgression: a failing merge check on one item does not block ot
     assert.deepEqual(applied, ['i2']);
 });
 
-test('applyPrProjection: Review handoff (HITL=Yes) -> ensure HITL label + Ready + sticky', () => {
+test('applyPrProjection: Review handoff (HITL=Yes) -> ensure HITL label + Ready + sticky', async () => {
     const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitlLabel: true, aiStatus: null, size: 'small' }];
     const deps = makeProjectionDeps({
         prByIssue: { 1: { number: 100 } },
@@ -229,7 +229,7 @@ test('applyPrProjection: Review handoff (HITL=Yes) -> ensure HITL label + Ready 
     });
     const state = { running: new Map() };
     // force=true models the authoritative handoff transition
-    applyPrProjection(items, makeCfg(), state, () => {}, { ...deps, force: true });
+    await applyPrProjection(items, makeCfg(), state, () => {}, { ...deps, force: true });
     // PR converted to Ready (was draft, HITL=Yes wants Ready)
     assert.deepEqual(deps.calls.setPrDraft, [{ prNumber: 100, action: 'ready' }]);
     // HITL label added on both issue and PR
@@ -241,7 +241,7 @@ test('applyPrProjection: Review handoff (HITL=Yes) -> ensure HITL label + Ready 
     assert.deepEqual(deps.calls.sticky, [{ prNumber: 100, hasMarker: true }]);
 });
 
-test('applyPrProjection: per-tick on Review does NOT re-add a human-removed HITL label', () => {
+test('applyPrProjection: per-tick on Review does NOT re-add a human-removed HITL label', async () => {
     const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitlLabel: true }];
     const deps = makeProjectionDeps({
         prByIssue: { 1: { number: 100 } },
@@ -250,14 +250,14 @@ test('applyPrProjection: per-tick on Review does NOT re-add a human-removed HITL
         issueLabels: { 1: [AUTOPILOT_LABEL, HITL_LABEL] },
     });
     const state = { running: new Map() };
-    applyPrProjection(items, makeCfg(), state, () => {}, deps); // non-force (steady-state)
+    await applyPrProjection(items, makeCfg(), state, () => {}, deps); // non-force (steady-state)
     // no HITL label add anywhere (release must survive)
     for (const e of deps.calls.editLabels) assert.ok(!(e.add || []).includes(HITL_LABEL));
     // draft unchanged (already Ready), so no toggle
     assert.deepEqual(deps.calls.setPrDraft, []);
 });
 
-test('applyPrProjection: HITL=No reconciles labels off and PR back to Draft', () => {
+test('applyPrProjection: HITL=No reconciles labels off and PR back to Draft', async () => {
     const items = [{ issue: 1, itemId: 'i1', status: 'In Progress', kind: 'Issue', hitlLabel: false, aiStatus: 'Implementing' }];
     const deps = makeProjectionDeps({
         prByIssue: { 1: { number: 100 } },
@@ -265,7 +265,7 @@ test('applyPrProjection: HITL=No reconciles labels off and PR back to Draft', ()
         issueLabels: { 1: [AUTOPILOT_LABEL, HITL_LABEL] },
     });
     const state = { running: new Map() };
-    applyPrProjection(items, makeCfg(), state, () => {}, deps);
+    await applyPrProjection(items, makeCfg(), state, () => {}, deps);
     // PR back to Draft (was Ready)
     assert.deepEqual(deps.calls.setPrDraft, [{ prNumber: 100, action: 'draft' }]);
     // HITL label removed on issue and PR
@@ -273,21 +273,21 @@ test('applyPrProjection: HITL=No reconciles labels off and PR back to Draft', ()
     assert.ok(deps.calls.editLabels.find((e) => e.type === 'issue').remove.includes(HITL_LABEL));
 });
 
-test('applyPrProjection: skips running items (does not fight a live phase)', () => {
+test('applyPrProjection: skips running items (does not fight a live phase)', async () => {
     const items = [{ issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitlLabel: true }];
     const deps = makeProjectionDeps({ prByIssue: { 1: { number: 100 } } });
     const state = { running: new Map([[1, { phase: 'review' }]]) };
-    applyPrProjection(items, makeCfg(), state, () => {}, deps);
+    await applyPrProjection(items, makeCfg(), state, () => {}, deps);
     assert.deepEqual(deps.calls.editLabels, []);
     assert.deepEqual(deps.calls.setPrDraft, []);
     assert.deepEqual(deps.calls.sticky, []);
 });
 
-test('applyPrProjection: no PR yet -> only the issue label is reconciled', () => {
+test('applyPrProjection: no PR yet -> only the issue label is reconciled', async () => {
     const items = [{ issue: 1, itemId: 'i1', status: 'Blocked', kind: 'Issue', hitlLabel: true }];
     const deps = makeProjectionDeps({ issueLabels: { 1: [AUTOPILOT_LABEL] } });
     const state = { running: new Map() };
-    applyPrProjection(items, makeCfg(), state, () => {}, deps);
+    await applyPrProjection(items, makeCfg(), state, () => {}, deps);
     assert.deepEqual(deps.calls.setPrDraft, []);
     assert.deepEqual(deps.calls.sticky, []);
     const issueEdit = deps.calls.editLabels.find((e) => e.type === 'issue');
@@ -339,7 +339,7 @@ test('runTickOnce: releases the ticking flag even when tick throws', async () =>
     assert.equal(state.ticking, false);
 });
 
-test('applyPrProjection: a failing item does not block others', () => {
+test('applyPrProjection: a failing item does not block others', async () => {
     const items = [
         { issue: 1, itemId: 'i1', status: 'Review', kind: 'Issue', hitlLabel: true },
         { issue: 2, itemId: 'i2', status: 'In Progress', kind: 'Issue', hitlLabel: false },
@@ -352,7 +352,7 @@ test('applyPrProjection: a failing item does not block others', () => {
     const origGetPrInfo = deps.getPrInfo;
     deps.getPrInfo = (repo, n) => { if (n === 100) throw new Error('boom'); return origGetPrInfo(repo, n); };
     const state = { running: new Map() };
-    applyPrProjection(items, makeCfg(), state, () => {}, deps);
+    await applyPrProjection(items, makeCfg(), state, () => {}, deps);
     // issue 2 still processed (sticky on PR 200)
     assert.ok(deps.calls.sticky.some((s) => s.prNumber === 200));
 });
@@ -372,7 +372,7 @@ function makeDodDeps({ prByIssue = {}, commentsByPr = {}, issueBody = {} } = {})
     };
 }
 
-test('applyDodHandoffs: DoD leaf with PR + no handoff -> posts one handoff comment', () => {
+test('applyDodHandoffs: DoD leaf with PR + no handoff -> posts one handoff comment', async () => {
     const items = [{ issue: 631, itemId: 'i', status: 'DoD', kind: 'Issue', hitlLabel: true }];
     const deps = makeDodDeps({
         prByIssue: { 631: { number: 818, branch: 'topic/autopilot-631' } },
@@ -380,7 +380,7 @@ test('applyDodHandoffs: DoD leaf with PR + no handoff -> posts one handoff comme
         issueBody: { 631: '## DoD\n\n- [ ] ボタンが表示される\n\n## 備考\nx' },
     });
     const state = { running: new Map() };
-    applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
+    await applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
     assert.equal(deps.calls.posted.length, 1);
     assert.equal(deps.calls.posted[0].prNumber, 818);
     assert.match(deps.calls.posted[0].body, /<!-- autopilot:dod-handoff issue=631 pr=818 -->/);
@@ -388,7 +388,7 @@ test('applyDodHandoffs: DoD leaf with PR + no handoff -> posts one handoff comme
     assert.match(deps.calls.posted[0].body, /- \[ \] ボタンが表示される/);
 });
 
-test('applyDodHandoffs: idempotent — existing handoff comment is not reposted', () => {
+test('applyDodHandoffs: idempotent — existing handoff comment is not reposted', async () => {
     const items = [{ issue: 631, itemId: 'i', status: 'DoD', kind: 'Issue', hitlLabel: true }];
     const deps = makeDodDeps({
         prByIssue: { 631: { number: 818, branch: 'b' } },
@@ -396,11 +396,11 @@ test('applyDodHandoffs: idempotent — existing handoff comment is not reposted'
         issueBody: { 631: '## DoD\n- [ ] x' },
     });
     const state = { running: new Map() };
-    applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
+    await applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
     assert.equal(deps.calls.posted.length, 0);
 });
 
-test('applyDodHandoffs: skips non-DoD, EPIC, no-PR, and running items', () => {
+test('applyDodHandoffs: skips non-DoD, EPIC, no-PR, and running items', async () => {
     const items = [
         { issue: 1, status: 'Review', kind: 'Issue' }, // not DoD
         { issue: 2, status: 'DoD', kind: 'EPIC' }, // EPIC
@@ -409,11 +409,11 @@ test('applyDodHandoffs: skips non-DoD, EPIC, no-PR, and running items', () => {
     ];
     const deps = makeDodDeps({ prByIssue: { 4: { number: 404, branch: 'b' } }, issueBody: { 4: '## DoD\n- [ ] y' } });
     const state = { running: new Map([[4, { phase: 'address-review' }]]) };
-    applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
+    await applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
     assert.equal(deps.calls.posted.length, 0);
 });
 
-test('applyDodHandoffs: a failing item does not block others', () => {
+test('applyDodHandoffs: a failing item does not block others', async () => {
     const items = [
         { issue: 1, status: 'DoD', kind: 'Issue' }, // findPr throws
         { issue: 2, status: 'DoD', kind: 'Issue' }, // ok -> posts
@@ -426,13 +426,13 @@ test('applyDodHandoffs: a failing item does not block others', () => {
     const origFind = deps.findPrForIssue;
     deps.findPrForIssue = (repo, issue) => { if (issue === 1) throw new Error('boom'); return origFind(repo, issue); };
     const state = { running: new Map() };
-    applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
+    await applyDodHandoffs(items, makeCfg(), state, () => {}, deps);
     assert.deepEqual(deps.calls.posted.map((p) => p.prNumber), [200]);
 });
 
 // === 🧭 tracking: applyEpicTracking（分解済み親のトラッカー化） ===
 
-test('applyEpicTracking: ラベル無し EPIC に 🧭 tracking を付与、終端/付与済み/実行中/leaf はスキップ', () => {
+test('applyEpicTracking: ラベル無し EPIC に 🧭 tracking を付与、終端/付与済み/実行中/leaf はスキップ', async () => {
     const { TRACKING_LABEL } = require('../src/phases');
     const items = [
         { issue: 1, status: 'In Progress', kind: 'EPIC', labels: [] }, // 付与
@@ -443,21 +443,21 @@ test('applyEpicTracking: ラベル無し EPIC に 🧭 tracking を付与、終�
     ];
     const added = [];
     const state = { running: new Map([[5, { phase: 'decompose' }]]) };
-    applyEpicTracking(items, makeCfg(), state, () => {}, {
+    await applyEpicTracking(items, makeCfg(), state, () => {}, {
         token: 't',
         editLabels: (repo, number, type, diff) => added.push({ number, type, ...diff }),
     });
     assert.deepEqual(added, [{ number: 1, type: 'issue', add: [TRACKING_LABEL] }]);
 });
 
-test('applyEpicTracking: 1 件の失敗は他を止めない', () => {
+test('applyEpicTracking: 1 件の失敗は他を止めない', async () => {
     const items = [
         { issue: 1, status: 'Backlog', kind: 'EPIC', labels: [] },
         { issue: 2, status: 'Backlog', kind: 'EPIC', labels: [] },
     ];
     const added = [];
     const state = { running: new Map() };
-    applyEpicTracking(items, makeCfg(), state, () => {}, {
+    await applyEpicTracking(items, makeCfg(), state, () => {}, {
         token: 't',
         editLabels: (repo, number) => { if (number === 1) throw new Error('boom'); added.push(number); },
     });
@@ -466,7 +466,7 @@ test('applyEpicTracking: 1 件の失敗は他を止めない', () => {
 
 // === 人間ゲート: collectGateContexts（コメント解除 + watermark） ===
 
-test('collectGateContexts: 発言アクティビティから humanSpokeLast を導く（コメント解除の配線）', () => {
+test('collectGateContexts: 発言アクティビティから humanSpokeLast を導く（コメント解除の配線）', async () => {
     const { isGateItem } = require('../src/daemon');
     const items = [
         { issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }, // 人間が最後に発言 → 解除
@@ -483,7 +483,7 @@ test('collectGateContexts: 発言アクティビティから humanSpokeLast を�
         4: { hitlSignals: { issueLabel: true }, review: null, pr: null, activity: { lastHumanAt: 400, lastBotAt: 100 } },
     };
     const state = { running: new Map() };
-    const contexts = collectGateContexts(makeCfg(), items, new Set(), state, () => {}, {
+    const contexts = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, {
         token: 't',
         getGateContext: (repo, issue) => gateCtx[issue],
     });
@@ -494,7 +494,7 @@ test('collectGateContexts: 発言アクティビティから humanSpokeLast を�
     assert.ok(!(5 in contexts));
 });
 
-test('collectGateContexts: watermark（gateHandled）より古い発言では再発火しない', () => {
+test('collectGateContexts: watermark（gateHandled）より古い発言では再発火しない', async () => {
     const items = [{ issue: 1, status: 'Review', kind: 'Issue', hitlLabel: true }];
     const state = { running: new Map(), gateHandled: new Map([[1, 250]]) };
     const deps = {
@@ -504,20 +504,20 @@ test('collectGateContexts: watermark（gateHandled）より古い発言では再
             activity: { lastHumanAt: 200, lastBotAt: 100 },
         }),
     };
-    const contexts = collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
+    const contexts = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
     assert.equal(contexts[1].humanSpokeLast, false); // 200 < watermark 250
     // watermark 後に人間がさらに発言 → 再度解除
     deps.getGateContext = () => ({
         hitlSignals: { issueLabel: true, prLabel: true }, review: {}, pr: 10,
         activity: { lastHumanAt: 300, lastBotAt: 100 },
     });
-    const contexts2 = collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
+    const contexts2 = await collectGateContexts(makeCfg(), items, new Set(), state, () => {}, deps);
     assert.equal(contexts2[1].humanSpokeLast, true);
 });
 
 // === directives: getDirectives（autopilot-base / autopilot-after の TTL キャッシュ） ===
 
-test('getDirectives: 本文から base/after を導き TTL 内はキャッシュを返す', () => {
+test('getDirectives: 本文から base/after を導き TTL 内はキャッシュを返す', async () => {
     let fetches = 0;
     let now = 0;
     const cfg = { ...makeCfg(), now: () => now, directiveTtlMs: 1000 };
@@ -526,21 +526,21 @@ test('getDirectives: 本文から base/after を導き TTL 内はキャッシュ
         token: 't',
         getIssueBody: () => { fetches += 1; return 'autopilot-base: topic/x\nautopilot-after: #9'; },
     };
-    const d1 = getDirectives(cfg, state, 5, () => {}, deps);
+    const d1 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.equal(d1.base, 'topic/x');
     assert.deepEqual(d1.after, [9]);
     assert.equal(fetches, 1);
     // TTL 内は再取得しない
     now = 999;
-    getDirectives(cfg, state, 5, () => {}, deps);
+    await getDirectives(cfg, state, 5, () => {}, deps);
     assert.equal(fetches, 1);
     // TTL 超過で再取得
     now = 1001;
-    getDirectives(cfg, state, 5, () => {}, deps);
+    await getDirectives(cfg, state, 5, () => {}, deps);
     assert.equal(fetches, 2);
 });
 
-test('getDirectives: 取得失敗は空ディレクティブへフォールバックし次回再取得', () => {
+test('getDirectives: 取得失敗は空ディレクティブへフォールバックし次回再取得', async () => {
     let calls = 0;
     const cfg = { ...makeCfg(), now: () => 0, directiveTtlMs: 1000 };
     const state = {};
@@ -548,20 +548,20 @@ test('getDirectives: 取得失敗は空ディレクティブへフォールバ�
         token: 't',
         getIssueBody: () => { calls += 1; if (calls === 1) throw new Error('boom'); return 'autopilot-after: #3'; },
     };
-    const d1 = getDirectives(cfg, state, 5, () => {}, deps);
+    const d1 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.equal(d1.base, null);
     assert.deepEqual(d1.after, []);
     // 失敗エントリは TTL 切れ扱い → 次回すぐ再取得して成功する
-    const d2 = getDirectives(cfg, state, 5, () => {}, deps);
+    const d2 = await getDirectives(cfg, state, 5, () => {}, deps);
     assert.deepEqual(d2.after, [3]);
 });
 
 // === #816: markBlocked / detectStuck（失敗・stall 時の人間ハンドオフ） ===
 
-test('markBlocked: Blocked + 説明コメント + 🙋 face sync を行う', () => {
+test('markBlocked: Blocked + 説明コメント + 🙋 face sync を行う', async () => {
     const deps = makeBlockDeps();
     const item = { issue: 9, itemId: 'i9', status: 'In Progress', kind: 'Issue' };
-    markBlocked(item, 'run が失敗しました', makeCfg(), () => {}, deps);
+    await markBlocked(item, 'run が失敗しました', makeCfg(), () => {}, deps);
     assert.deepEqual(deps.calls.setField, [{ itemId: 'i9', field: 'Status', value: 'Blocked' }]);
     assert.equal(deps.calls.comments.length, 1);
     assert.match(deps.calls.comments[0].body, /run が失敗しました/);
@@ -570,46 +570,46 @@ test('markBlocked: Blocked + 説明コメント + 🙋 face sync を行う', () 
     assert.equal(deps.calls.syncFaces[0].hitlLabel, true);
 });
 
-test('markBlocked: body 無しならコメントしない（Status と face sync のみ）', () => {
+test('markBlocked: body 無しならコメントしない（Status と face sync のみ）', async () => {
     const deps = makeBlockDeps();
-    markBlocked({ issue: 9, itemId: 'i9' }, null, makeCfg(), () => {}, deps);
+    await markBlocked({ issue: 9, itemId: 'i9' }, null, makeCfg(), () => {}, deps);
     assert.equal(deps.calls.comments.length, 0);
     assert.equal(deps.calls.setField.length, 1);
 });
 
-test('detectStuck: stuckMs 未満は記録のみ、超過で Blocked + コメント (#816)', () => {
+test('detectStuck: stuckMs 未満は記録のみ、超過で Blocked + コメント (#816)', async () => {
     const deps = makeBlockDeps();
     const cfg = { ...makeCfg(), now: () => 1000, stuckMs: 5000 };
     const state = { running: new Map() };
     const items = [{ issue: 7, itemId: 'i7', status: 'In Progress', aiStatus: 'Implementing' }];
     // 1 回目: 初観測 -> 記録のみ、まだ block しない
-    detectStuck(items, cfg, state, () => {}, deps);
+    await detectStuck(items, cfg, state, () => {}, deps);
     assert.equal(deps.calls.setField.length, 0);
     assert.equal(state.stuckSince.get(7), 1000);
     // stuckMs 経過後 -> Blocked + コメント
     cfg.now = () => 1000 + 5000;
-    detectStuck(items, cfg, state, () => {}, deps);
+    await detectStuck(items, cfg, state, () => {}, deps);
     assert.deepEqual(deps.calls.setField, [{ itemId: 'i7', field: 'Status', value: 'Blocked' }]);
     assert.match(deps.calls.comments[0].body, /In Progress/);
     assert.equal(state.stuckSince.has(7), false); // 追跡解除
 });
 
-test('detectStuck: 実行中の run が所有する item は触らない', () => {
+test('detectStuck: 実行中の run が所有する item は触らない', async () => {
     const deps = makeBlockDeps();
     const cfg = { ...makeCfg(), now: () => 0, stuckMs: 1 };
     const state = { running: new Map([[7, { phase: 'implement' }]]), stuckSince: new Map([[7, -10000]]) };
     const items = [{ issue: 7, itemId: 'i7', status: 'In Progress', aiStatus: 'Implementing' }];
-    detectStuck(items, cfg, state, () => {}, deps);
+    await detectStuck(items, cfg, state, () => {}, deps);
     assert.equal(deps.calls.setField.length, 0);
 });
 
-test('detectStuck: 候補でなくなった item は追跡から外す', () => {
+test('detectStuck: 候補でなくなった item は追跡から外す', async () => {
     const deps = makeBlockDeps();
     const cfg = { ...makeCfg(), now: () => 0, stuckMs: 1000 };
     const state = { running: new Map(), stuckSince: new Map([[7, -100]]) };
     // status が Review に進んだ -> stuck 候補ではない
     const items = [{ issue: 7, itemId: 'i7', status: 'Review', aiStatus: null }];
-    detectStuck(items, cfg, state, () => {}, deps);
+    await detectStuck(items, cfg, state, () => {}, deps);
     assert.equal(deps.calls.setField.length, 0);
     assert.equal(state.stuckSince.has(7), false);
 });

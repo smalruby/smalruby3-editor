@@ -4,37 +4,54 @@
  * 認証は bin/bot-token のインストールトークン。書き込みは gh project item-edit
  * を使う（手動検証済みの経路）。Status/AI Status/HITL/Size/Kind の単一ライターは
  * この層（daemon/CLI）であり、スキルは触らない。
+ *
+ * I/O はすべて **非同期**（execFile）。旧実装の execFileSync は 1 呼び出しごとに
+ * イベントループを止め、tick 中の daemon が HTTP（Web モニタ）に応答できなくなる
+ * ため全廃した。純粋関数（normalize / select 系）は同期のまま。
  */
 
-const { execFileSync } = require('child_process');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
 const path = require('path');
 const {
     HITL_LABEL, selectStickyCommentIds, selectMarkedCommentIds, computeReviewApproval, autopilotHeadBranch,
     mergeActivity,
 } = require('./phases');
 
+const execFileP = promisify(execFile);
+
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const BOT_TOKEN_BIN = path.join(REPO_ROOT, 'bin', 'bot-token');
 
-function botToken() {
-    return execFileSync(BOT_TOKEN_BIN, [], { encoding: 'utf8' }).trim();
+// bot-token の in-process キャッシュ。bin/bot-token 自体もディスクキャッシュを持つが、
+// tick ごとに何十回も node プロセスを spawn しないよう短時間だけメモ化する。
+let tokenCache = { token: null, at: 0 };
+const TOKEN_CACHE_MS = 60 * 1000;
+
+async function botToken() {
+    const now = Date.now();
+    if (tokenCache.token && now - tokenCache.at < TOKEN_CACHE_MS) return tokenCache.token;
+    const { stdout } = await execFileP(BOT_TOKEN_BIN, [], { encoding: 'utf8' });
+    tokenCache = { token: stdout.trim(), at: now };
+    return tokenCache.token;
 }
 
-function gh(args, { token } = {}) {
-    const env = { ...process.env, GH_TOKEN: token || botToken() };
-    return execFileSync('gh', args, { encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024 });
+async function gh(args, { token } = {}) {
+    const env = { ...process.env, GH_TOKEN: token || await botToken() };
+    const { stdout } = await execFileP('gh', args, { encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024 });
+    return stdout;
 }
 
 /** Project の id と number を取得 */
-function getProject(owner, number, token) {
-    const out = gh(['project', 'view', String(number), '--owner', owner, '--format', 'json'], { token });
+async function getProject(owner, number, token) {
+    const out = await gh(['project', 'view', String(number), '--owner', owner, '--format', 'json'], { token });
     const j = JSON.parse(out);
     return { id: j.id, number: j.number, title: j.title, url: j.url };
 }
 
 /** フィールド定義を name -> {id, type, options:{optName:id}} で返す */
-function getFields(owner, number, token) {
-    const out = gh(['project', 'field-list', String(number), '--owner', owner, '--format', 'json'], { token });
+async function getFields(owner, number, token) {
+    const out = await gh(['project', 'field-list', String(number), '--owner', owner, '--format', 'json'], { token });
     const fields = JSON.parse(out).fields;
     const map = {};
     for (const f of fields) {
@@ -46,8 +63,8 @@ function getFields(owner, number, token) {
 }
 
 /** 指定 Issue 番号に対応する project item id を返す（無ければ null） */
-function findItemId(owner, number, issueNumber, token) {
-    const out = gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
+async function findItemId(owner, number, issueNumber, token) {
+    const out = await gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
     const items = JSON.parse(out).items || [];
     const it = items.find(i => i.content && i.content.number === issueNumber);
     return it ? it.id : null;
@@ -83,8 +100,8 @@ function normalizeProjectItem(i) {
  * 正規化は {@link normalizeProjectItem}（純粋）に委譲する。
  * @returns {Array<{issue, itemId, status, aiStatus, labels, hitlLabel, kind, size, title}>}
  */
-function listItems(owner, number, token) {
-    const out = gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
+async function listItems(owner, number, token) {
+    const out = await gh(['project', 'item-list', String(number), '--owner', owner, '--format', 'json', '--limit', '1000'], { token });
     const items = JSON.parse(out).items || [];
     return items
         .filter((i) => i.content && typeof i.content.number === 'number')
@@ -92,11 +109,11 @@ function listItems(owner, number, token) {
 }
 
 /** Issue を project に追加して item id を返す（既にあれば既存を返す） */
-function addIssue(owner, number, repo, issueNumber, token) {
-    const existing = findItemId(owner, number, issueNumber, token);
+async function addIssue(owner, number, repo, issueNumber, token) {
+    const existing = await findItemId(owner, number, issueNumber, token);
     if (existing) return existing;
     const url = `https://github.com/${repo}/issues/${issueNumber}`;
-    const out = gh(['project', 'item-add', String(number), '--owner', owner, '--url', url, '--format', 'json'], { token });
+    const out = await gh(['project', 'item-add', String(number), '--owner', owner, '--url', url, '--format', 'json'], { token });
     return JSON.parse(out).id;
 }
 
@@ -104,20 +121,20 @@ function addIssue(owner, number, repo, issueNumber, token) {
  * 1 フィールドを設定する。value=null はクリア。
  * @param {object} ctx { projectId, fields }（getFields 結果）
  */
-function setField(ctx, itemId, fieldName, value, token) {
+async function setField(ctx, itemId, fieldName, value, token) {
     const f = ctx.fields[fieldName];
     if (!f) throw new Error(`unknown field: ${fieldName}`);
     const base = ['project', 'item-edit', '--id', itemId, '--project-id', ctx.projectId, '--field-id', f.id];
     if (value === null) {
-        gh([...base, '--clear'], { token });
+        await gh([...base, '--clear'], { token });
         return;
     }
     if (f.type === 'ProjectV2SingleSelectField') {
         const optId = f.options[value];
         if (!optId) throw new Error(`field ${fieldName} has no option "${value}"`);
-        gh([...base, '--single-select-option-id', optId], { token });
+        await gh([...base, '--single-select-option-id', optId], { token });
     } else {
-        gh([...base, '--text', String(value)], { token });
+        await gh([...base, '--text', String(value)], { token });
     }
 }
 
@@ -126,10 +143,13 @@ function setField(ctx, itemId, fieldName, value, token) {
  * `bin/bot-token --bot-email` は "<slug>[bot]\t<id>+<slug>[bot]@..." を返すので slug を取り出す。
  * @returns {string}
  */
-function botLogin() {
-    const out = execFileSync(BOT_TOKEN_BIN, ['--bot-email'], { encoding: 'utf8' }).trim();
-    const name = (out.split(/\s+/)[0] || '').trim();
-    return name.replace(/\[bot\]$/, '');
+let botLoginCache = null;
+async function botLogin() {
+    if (botLoginCache) return botLoginCache;
+    const { stdout } = await execFileP(BOT_TOKEN_BIN, ['--bot-email'], { encoding: 'utf8' });
+    const name = (stdout.trim().split(/\s+/)[0] || '').trim();
+    botLoginCache = name.replace(/\[bot\]$/, '');
+    return botLoginCache;
 }
 
 /**
@@ -207,7 +227,7 @@ function headBranchFor(issueNumber) {
  * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
  * @returns {{number:number, labels:string[], isDraft:boolean, branch:string}|null} 無ければ null
  */
-function findPrForIssue(repo, issueNumber, token, deps = {}) {
+async function findPrForIssue(repo, issueNumber, token, deps = {}) {
     const ghFn = deps.gh || gh;
     const [owner, name] = repo.split('/');
     const query =
@@ -215,7 +235,7 @@ function findPrForIssue(repo, issueNumber, token, deps = {}) {
         'repository(owner:$owner,name:$name){issue(number:$num){' +
         'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{' +
         'number state isDraft headRefName baseRefName labels(first:20){nodes{name}}}}}}}';
-    const out = ghFn(
+    const out = await ghFn(
         ['api', 'graphql', '-f', `query=${query}`,
             '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
         { token },
@@ -225,7 +245,7 @@ function findPrForIssue(repo, issueNumber, token, deps = {}) {
     const viaLink = selectClosingPr(nodes);
     if (viaLink) return viaLink;
     // close リンクが無い（非デフォルト base 宛て PR 等）→ head ブランチで base 非依存に解決（#831）
-    const listOut = ghFn(
+    const listOut = await ghFn(
         ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'open',
             '--json', 'number,isDraft,headRefName,baseRefName,labels', '--limit', '10'],
         { token },
@@ -241,7 +261,7 @@ function findPrForIssue(repo, issueNumber, token, deps = {}) {
  * - unresolvedHumanComments: 人間が立てた未解決レビュースレッド数（bot は除外）
  * @returns {{approved:boolean, changesRequested:boolean, unresolvedHumanComments:number}}
  */
-function getPrReviewState(repo, prNumber, token) {
+async function getPrReviewState(repo, prNumber, token) {
     const [owner, name] = repo.split('/');
     const query = `query($owner:String!,$name:String!,$pr:Int!){
       repository(owner:$owner,name:$name){
@@ -253,13 +273,13 @@ function getPrReviewState(repo, prNumber, token) {
         }
       }
     }`;
-    const out = gh(
+    const out = await gh(
         ['api', 'graphql', '-f', `query=${query}`,
             '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `pr=${prNumber}`],
         { token },
     );
     const pr = JSON.parse(out).data.repository.pullRequest;
-    const bot = botLogin();
+    const bot = await botLogin();
     const isHuman = (login) => Boolean(login) && login !== bot && !login.endsWith('[bot]');
     const threads = (pr.reviewThreads && pr.reviewThreads.nodes) || [];
     const unresolvedHumanComments = threads.filter(
@@ -292,13 +312,13 @@ function getPrReviewState(repo, prNumber, token) {
  * @param {string} token
  * @returns {{lastHumanAt: number, lastBotAt: number}} ms epoch（無ければ 0）
  */
-function getIssueActivity(repo, issueNumber, token) {
-    const out = gh(
+async function getIssueActivity(repo, issueNumber, token) {
+    const out = (await gh(
         ['api', '--paginate', `repos/${repo}/issues/${issueNumber}/comments`,
             '--jq', '.[] | "\\(.created_at) \\(.user.login)"'],
         { token },
-    ).trim();
-    const bot = botLogin();
+    )).trim();
+    const bot = await botLogin();
     const activity = { lastHumanAt: 0, lastBotAt: 0 };
     if (!out) return activity;
     for (const line of out.split('\n')) {
@@ -327,10 +347,10 @@ function getIssueActivity(repo, issueNumber, token) {
  * @returns {{hitlSignals:object, review:object|null, pr:number|null,
  *   activity:{lastHumanAt:number, lastBotAt:number}}}
  */
-function getGateContext(repo, issueNumber, token) {
-    const pr = findPrForIssue(repo, issueNumber, token);
-    const issueLabels = getIssueLabels(repo, issueNumber, token);
-    const issueActivity = getIssueActivity(repo, issueNumber, token);
+async function getGateContext(repo, issueNumber, token) {
+    const pr = await findPrForIssue(repo, issueNumber, token);
+    const issueLabels = await getIssueLabels(repo, issueNumber, token);
+    const issueActivity = await getIssueActivity(repo, issueNumber, token);
     if (!pr) {
         return {
             hitlSignals: { issueLabel: issueLabels.includes(HITL_LABEL) },
@@ -339,7 +359,7 @@ function getGateContext(repo, issueNumber, token) {
             activity: issueActivity,
         };
     }
-    const review = getPrReviewState(repo, pr.number, token);
+    const review = await getPrReviewState(repo, pr.number, token);
     return {
         hitlSignals: {
             issueLabel: issueLabels.includes(HITL_LABEL),
@@ -355,8 +375,8 @@ function getGateContext(repo, issueNumber, token) {
  * PR の現在の面状態（Draft かどうか + ラベル名配列）を返す。投影の差分計算に使う。
  * @returns {{isDraft:boolean, labels:string[]}}
  */
-function getPrInfo(repo, prNumber, token) {
-    const out = gh(['pr', 'view', String(prNumber), '--repo', repo, '--json', 'isDraft,labels'], { token });
+async function getPrInfo(repo, prNumber, token) {
+    const out = await gh(['pr', 'view', String(prNumber), '--repo', repo, '--json', 'isDraft,labels'], { token });
     const j = JSON.parse(out);
     return { isDraft: Boolean(j.isDraft), labels: (j.labels || []).map((l) => l.name) };
 }
@@ -365,8 +385,8 @@ function getPrInfo(repo, prNumber, token) {
  * Issue の現在のラベル名配列を返す。
  * @returns {string[]}
  */
-function getIssueLabels(repo, issueNumber, token) {
-    const out = gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'labels'], { token });
+async function getIssueLabels(repo, issueNumber, token) {
+    const out = await gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'labels'], { token });
     return (JSON.parse(out).labels || []).map((l) => l.name);
 }
 
@@ -374,8 +394,8 @@ function getIssueLabels(repo, issueNumber, token) {
  * Issue の本文（Markdown）を返す。DoD 引き継ぎでチェックリストを抜き出すのに使う（#821）。
  * @returns {string}
  */
-function getIssueBody(repo, issueNumber, token) {
-    const out = gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'body'], { token });
+async function getIssueBody(repo, issueNumber, token) {
+    const out = await gh(['issue', 'view', String(issueNumber), '--repo', repo, '--json', 'body'], { token });
     return JSON.parse(out).body || '';
 }
 
@@ -384,24 +404,24 @@ function getIssueBody(repo, issueNumber, token) {
  * @param {string} type 'issue' | 'pr'
  * @param {{add?:string[], remove?:string[]}} diff
  */
-function editLabels(repo, number, type, diff, token) {
+async function editLabels(repo, number, type, diff, token) {
     const add = diff.add || [];
     const remove = diff.remove || [];
     if (!add.length && !remove.length) return;
     const args = [type, 'edit', String(number), '--repo', repo];
     for (const l of add) args.push('--add-label', l);
     for (const l of remove) args.push('--remove-label', l);
-    gh(args, { token });
+    await gh(args, { token });
 }
 
 /**
  * PR の Draft/Ready を切り替える。'ready' → レビュー受付、'draft' → Draft へ戻す。
  * @param {'ready'|'draft'} action
  */
-function setPrDraft(repo, prNumber, action, token) {
+async function setPrDraft(repo, prNumber, action, token) {
     const args = ['pr', 'ready', String(prNumber), '--repo', repo];
     if (action === 'draft') args.push('--undo');
-    gh(args, { token });
+    await gh(args, { token });
 }
 
 /**
@@ -413,12 +433,12 @@ function setPrDraft(repo, prNumber, action, token) {
  * @param {string} token
  * @returns {Array<{id: string, body: string}>}
  */
-function listIssueComments(repo, number, token) {
-    const out = gh(
+async function listIssueComments(repo, number, token) {
+    const out = (await gh(
         ['api', '--paginate', `repos/${repo}/issues/${number}/comments`,
             '--jq', '.[] | "\\(.id) \\(.body | @base64)"'],
         { token },
-    ).trim();
+    )).trim();
     if (!out) return [];
     return out.split('\n').filter(Boolean).map((line) => {
         const sp = line.indexOf(' ');
@@ -434,8 +454,8 @@ function listIssueComments(repo, number, token) {
  * 複数見つかった場合は先頭を残して PATCH し、残りは DELETE して 1 つに集約する。
  * いずれも無ければ新規 POST。PR/Issue 共通の issues コメント API を使う。
  */
-function upsertStickyComment(repo, number, body, token) {
-    upsertByIds(repo, number, selectStickyCommentIds(listIssueComments(repo, number, token)), body, token);
+async function upsertStickyComment(repo, number, body, token) {
+    await upsertByIds(repo, number, selectStickyCommentIds(await listIssueComments(repo, number, token)), body, token);
 }
 
 /**
@@ -446,20 +466,20 @@ function upsertStickyComment(repo, number, body, token) {
  * @param {string[]} markers 識別マーカー（いずれかを含む既存コメントを更新対象にする）
  * @param {string} body 新しい本文（マーカーを含めること）
  */
-function upsertMarkedComment(repo, number, markers, body, token) {
-    upsertByIds(repo, number, selectMarkedCommentIds(listIssueComments(repo, number, token), markers), body, token);
+async function upsertMarkedComment(repo, number, markers, body, token) {
+    await upsertByIds(repo, number, selectMarkedCommentIds(await listIssueComments(repo, number, token), markers), body, token);
 }
 
 /** upsert の共通処理: 既存 id 群の先頭を PATCH（無ければ POST）、残りは DELETE で集約 */
-function upsertByIds(repo, number, ids, body, token) {
+async function upsertByIds(repo, number, ids, body, token) {
     if (ids.length === 0) {
-        gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
+        await gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
         return;
     }
     const [keep, ...dupes] = ids;
-    gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${keep}`, '-f', `body=${body}`], { token });
+    await gh(['api', '--method', 'PATCH', `repos/${repo}/issues/comments/${keep}`, '-f', `body=${body}`], { token });
     for (const dup of dupes) {
-        gh(['api', '--method', 'DELETE', `repos/${repo}/issues/comments/${dup}`], { token });
+        await gh(['api', '--method', 'DELETE', `repos/${repo}/issues/comments/${dup}`], { token });
     }
 }
 
@@ -471,8 +491,8 @@ function upsertByIds(repo, number, ids, body, token) {
  * @param {number} number Issue 番号
  * @param {string} body コメント本文
  */
-function postIssueComment(repo, number, body, token) {
-    gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
+async function postIssueComment(repo, number, body, token) {
+    await gh(['api', '--method', 'POST', `repos/${repo}/issues/${number}/comments`, '-f', `body=${body}`], { token });
 }
 
 /**
@@ -491,14 +511,14 @@ function postIssueComment(repo, number, body, token) {
  * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
  * @returns {boolean} merge 済み PR が 1 つでもあれば true
  */
-function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
+async function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
     const ghFn = deps.gh || gh;
     const [owner, name] = repo.split('/');
     const query =
         'query($owner:String!,$name:String!,$num:Int!){' +
         'repository(owner:$owner,name:$name){issue(number:$num){' +
         'closedByPullRequestsReferences(first:20,includeClosedPrs:true){nodes{merged}}}}}';
-    const out = ghFn(
+    const out = await ghFn(
         ['api', 'graphql', '-f', `query=${query}`, '-F', `owner=${owner}`, '-F', `name=${name}`, '-F', `num=${issueNumber}`],
         { token },
     );
@@ -506,7 +526,7 @@ function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
     const nodes = (issue && issue.closedByPullRequestsReferences && issue.closedByPullRequestsReferences.nodes) || [];
     if (nodes.some((n) => n.merged === true)) return true;
     // close リンクに無い → head ブランチで非デフォルト base への merge を検知（#831）
-    const listOut = ghFn(
+    const listOut = await ghFn(
         ['pr', 'list', '--repo', repo, '--head', headBranchFor(issueNumber), '--state', 'merged',
             '--json', 'number,state', '--limit', '10'],
         { token },
@@ -522,9 +542,9 @@ function hasMergedPullRequest(repo, issueNumber, token, deps = {}) {
  * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
  * @returns {Set<number>} closed な issue 番号の集合
  */
-function listClosedIssueNumbers(repo, token, deps = {}) {
+async function listClosedIssueNumbers(repo, token, deps = {}) {
     const ghFn = deps.gh || gh;
-    const out = ghFn(
+    const out = await ghFn(
         ['issue', 'list', '--repo', repo, '--state', 'closed', '--limit', '1000', '--json', 'number'],
         { token },
     );
@@ -541,16 +561,16 @@ function listClosedIssueNumbers(repo, token, deps = {}) {
  * @param {string} token
  * @param {{gh?:Function}} [deps] gh 実行を差し替え可能（テスト用）
  */
-function closeIssue(repo, issueNumber, token, deps = {}) {
+async function closeIssue(repo, issueNumber, token, deps = {}) {
     const ghFn = deps.gh || gh;
-    ghFn(['issue', 'close', String(issueNumber), '--repo', repo], { token });
+    await ghFn(['issue', 'close', String(issueNumber), '--repo', repo], { token });
 }
 
 /** applyResult が返す意図配列を Project に反映する */
-function applyIntents(ctx, itemId, intents, token) {
+async function applyIntents(ctx, itemId, intents, token) {
     const applied = [];
     for (const { field, value } of intents) {
-        setField(ctx, itemId, field, value, token);
+        await setField(ctx, itemId, field, value, token);
         applied.push(`${field}=${value === null ? '(clear)' : value}`);
     }
     return applied;

@@ -13,7 +13,8 @@ const http = require('http');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
 const { setTimeout: sleep } = require('timers/promises');
 const {
     PHASE_BY_COMMAND,
@@ -54,19 +55,22 @@ const { MONITOR_HTML } = require('./monitor');
 const { loadSettings, buildClaudeCommand, snapshotRunAssets } = require('./settings');
 const project = require('./project');
 
+const execFileP = promisify(execFile);
+
 const WORKTREE_BIN = path.join(project.REPO_ROOT, 'bin', 'autopilot-worktree');
 
 /** 既存 PR ブランチで作業するフェーズ（新ブランチを切らず PR ヘッドを checkout する） */
 const PR_BRANCH_PHASES = new Set(['review', 'address-review', 'verify']);
 
-function ensureWorktree(issue, pr, base) {
+async function ensureWorktree(issue, pr, base) {
     const args = ['create', String(issue)];
     // base が明示されていれば新ブランチをそこから分岐（EPIC サブ Issue 等）。既定は develop。
     if (base && base !== DEFAULT_BASE_BRANCH) args.push(base);
     // address-review / verify 等は既存 PR ブランチで作業する（新ブランチを切らない）
     if (pr) args.push('--pr', String(pr));
-    execFileSync(WORKTREE_BIN, args, { stdio: 'ignore' });
-    return execFileSync(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' }).trim();
+    await execFileP(WORKTREE_BIN, args, { maxBuffer: 16 * 1024 * 1024 });
+    const { stdout } = await execFileP(WORKTREE_BIN, ['path', String(issue)], { encoding: 'utf8' });
+    return stdout.trim();
 }
 
 // In Progress + AI 作業中のまま run が無くなってから Blocked にするまでの猶予（#816）。
@@ -83,7 +87,7 @@ const DIRECTIVE_TTL_MS = 10 * 60 * 1000;
  * 失敗時は空ディレクティブ（既定動作）にフォールバックし、次回また取りに行く。
  * @returns {{base: string|null, after: number[]}}
  */
-function getDirectives(cfg, state, issue, log, deps = {}) {
+async function getDirectives(cfg, state, issue, log, deps = {}) {
     const getIssueBody = deps.getIssueBody || project.getIssueBody;
     if (!state.directives) state.directives = new Map();
     const cached = state.directives.get(issue);
@@ -91,7 +95,7 @@ function getDirectives(cfg, state, issue, log, deps = {}) {
     if (cached && now - cached.at < (cfg.directiveTtlMs || DIRECTIVE_TTL_MS)) return cached;
     let entry = { base: null, after: [], at: now };
     try {
-        const body = getIssueBody(cfg.repo, issue, deps.token || project.botToken());
+        const body = await getIssueBody(cfg.repo, issue, deps.token || await project.botToken());
         entry = { base: parseBaseBranch(body), after: parseAfterIssues(body), at: now };
     } catch (e) {
         log(`#${issue}: directive fetch failed: ${e.message}`);
@@ -107,21 +111,21 @@ function getDirectives(cfg, state, issue, log, deps = {}) {
  * @param {object} item Project item
  * @param {string|null} body 投稿する bot コメント本文（null ならコメントしない）
  */
-function markBlocked(item, body, cfg, log, deps = {}) {
-    const token = deps.token || project.botToken();
+async function markBlocked(item, body, cfg, log, deps = {}) {
+    const token = deps.token || await project.botToken();
     const findItemId = deps.findItemId || project.findItemId;
     const setField = deps.setField || project.setField;
     const postIssueComment = deps.postIssueComment || project.postIssueComment;
     const syncFaces = deps.syncFaces || ((it) => syncFacesAfterIntents(it, [], cfg, log));
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
-    const itemId = item.itemId || findItemId(cfg.owner, cfg.project, item.issue, token);
-    try { setField(ctx, itemId, 'Status', 'Blocked', token); }
+    const itemId = item.itemId || await findItemId(cfg.owner, cfg.project, item.issue, token);
+    try { await setField(ctx, itemId, 'Status', 'Blocked', token); }
     catch (e) { log(`#${item.issue}: mark Status failed: ${e.message}`); }
     if (body) {
-        try { postIssueComment(cfg.repo, item.issue, body, token); }
+        try { await postIssueComment(cfg.repo, item.issue, body, token); }
         catch (e) { log(`#${item.issue}: block comment failed: ${e.message}`); }
     }
-    syncFaces({ ...item, status: 'Blocked', hitlLabel: true });
+    await syncFaces({ ...item, status: 'Blocked', hitlLabel: true });
 }
 
 /** run 失敗時の Blocked コメント本文（#816）。reason は呼び出し側でサニタイズ済みであること。 */
@@ -169,7 +173,7 @@ function stuckBlockBody(item, stuckMinutes) {
  * 観測した時刻を state.stuckSince に記録し、DEFAULT_STUCK_MS を超えたら markBlocked。
  * 候補でなくなった（status が進んだ等）issue は追跡から外す。
  */
-function detectStuck(items, cfg, state, log, deps = {}) {
+async function detectStuck(items, cfg, state, log, deps = {}) {
     const now = cfg.now();
     const stuckMs = cfg.stuckMs || DEFAULT_STUCK_MS;
     if (!state.stuckSince) state.stuckSince = new Map();
@@ -185,7 +189,7 @@ function detectStuck(items, cfg, state, log, deps = {}) {
             const minutes = Math.round(elapsed / 60000);
             log(`#${item.issue}: stuck at In Progress/${item.aiStatus} for ${minutes}min -> Blocked`);
             seen.delete(item.issue);
-            try { markBlocked(item, stuckBlockBody(item, minutes), cfg, log, deps); }
+            try { await markBlocked(item, stuckBlockBody(item, minutes), cfg, log, deps); }
             catch (e) { log(`#${item.issue}: stuck block failed: ${e.message}`); }
         }
     }
@@ -200,34 +204,39 @@ async function dispatch(item, cfg, state, log) {
     const session = `autopilot-${phase}-${item.issue}`;
     state.running.set(item.issue, { phase, session, since: cfg.now() });
     const ctx = { projectId: cfg.projectId, fields: cfg.fields };
-    const itemId = item.itemId || project.findItemId(cfg.owner, cfg.project, item.issue, project.botToken());
+    const itemId = item.itemId || await project.findItemId(cfg.owner, cfg.project, item.issue, await project.botToken());
     item.itemId = itemId; // markBlocked が再解決しないよう保持
-    const mark = (field, value) => {
-        try { project.setField(ctx, itemId, field, value, project.botToken()); }
+    const mark = async (field, value) => {
+        try { await project.setField(ctx, itemId, field, value, await project.botToken()); }
         catch (e) { log(`#${item.issue}: mark ${field} failed: ${e.message}`); }
     };
     // ブロック時の人間ハンドオフ（#813/#816）: run が失敗・stall したとき、コメント無しで 🙋 だけ
     // 付くと人間が状況を把握できない（#815 の発端）。必ず説明コメントを残して Blocked にする。
     // GitHub へ出す理由は必ずサニタイズする（コマンド出力由来の機密を含みうる）。生ログはローカル。
-    const blockToHuman = (reason) =>
-        markBlocked(item, reason ? failureBlockBody(meta.skill, item.issue, sanitizeForSurface(reason)) : null, cfg, log);
+    const blockToHuman = async (reason) => {
+        try {
+            await markBlocked(item, reason ? failureBlockBody(meta.skill, item.issue, sanitizeForSurface(reason)) : null, cfg, log);
+        } catch (e) {
+            log(`#${item.issue}: blockToHuman failed: ${e.message}`);
+        }
+    };
     try {
         // 着手を即可視化（Issue を状態の正に）: In Progress + AI Status=xxxing
-        mark('Status', 'In Progress');
-        mark('AI Status', meta.aiStatus);
+        await mark('Status', 'In Progress');
+        await mark('AI Status', meta.aiStatus);
         // PR ブランチで作業するフェーズは PR 番号を解決（inject 経由など item.pr 未設定時はここで取得）
         let pr;
         if (PR_BRANCH_PHASES.has(phase)) {
-            pr = item.pr || (project.findPrForIssue(cfg.repo, item.issue, project.botToken()) || {}).number;
+            pr = item.pr || (await project.findPrForIssue(cfg.repo, item.issue, await project.botToken()) || {}).number;
         }
         // 新ブランチを切るフェーズ（implement）は Issue 本文の base 宣言を尊重する（#827・EPIC サブ）。
         // 既定は develop。PR ブランチ作業フェーズは PR の base を継ぐので解決不要。
         let baseBranch = DEFAULT_BASE_BRANCH;
         if (!pr) {
-            const declared = getDirectives(cfg, state, item.issue, log).base;
+            const declared = (await getDirectives(cfg, state, item.issue, log)).base;
             if (declared) { baseBranch = declared; log(`#${item.issue}: base branch = ${baseBranch} (declared)`); }
         }
-        const cwd = ensureWorktree(item.issue, pr, baseBranch);
+        const cwd = await ensureWorktree(item.issue, pr, baseBranch);
         const resultDir = path.join(cwd, 'tmp');
         fs.mkdirSync(resultDir, { recursive: true });
         const resultFile = path.join(resultDir, `autopilot-result-${item.issue}.json`);
@@ -252,32 +261,32 @@ async function dispatch(item, cfg, state, log) {
         });
         if (!res.ok) {
             log(`#${item.issue}: runner failed (${res.reason})`);
-            blockToHuman(`run（${meta.skill}）が失敗・停止しました（watchdog: ${res.reason}）。`);
+            await blockToHuman(`run（${meta.skill}）が失敗・停止しました（watchdog: ${res.reason}）。`);
             return;
         }
         const parsed = readResultFile(resultFile);
         if (!parsed.ok) {
             log(`#${item.issue}: invalid result (${parsed.errors.join('; ')})`);
-            blockToHuman(`run は終了しましたが結果ファイルが不正でした: ${parsed.errors.join('; ')}`);
+            await blockToHuman(`run は終了しましたが結果ファイルが不正でした: ${parsed.errors.join('; ')}`);
             return;
         }
         const intents = applyResult(parsed.result);
-        const applied = project.applyIntents(ctx, itemId, intents, project.botToken());
+        const applied = await project.applyIntents(ctx, itemId, intents, await project.botToken());
         log(`#${item.issue}: ${parsed.result.signal} — applied: ${applied.join(', ')}`);
         // signal=error は Blocked で surface する（churn を止める）。理由はサニタイズ済みの
         // 要約だけを GitHub に出し、生ログ（機密を含みうる）はローカル参照に誘導する。
         if (parsed.result.signal === 'error') {
             const body = errorBlockBody(meta.skill, sanitizeForSurface(parsed.result.error || parsed.result.summary || ''));
-            try { project.postIssueComment(cfg.repo, item.issue, body, project.botToken()); }
+            try { await project.postIssueComment(cfg.repo, item.issue, body, await project.botToken()); }
             catch (e) { log(`#${item.issue}: error block comment failed: ${e.message}`); }
         }
         // 権威的な面同期（contract §7）: 🙋/🤖 ラベル・Draft・sticky を Project 状態 + HITL 希望へ合わせる。
         // HITL は Project フィールドではなくラベルなので、結果から導いた希望を hitlLabel として渡す（#813）。
         const wantHitl = hitlDesireFromResult(parsed.result);
-        syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
+        await syncFacesAfterIntents({ ...item, hitlLabel: wantHitl }, intents, cfg, log);
     } catch (e) {
         log(`#${item.issue}: error ${e.message}`);
-        blockToHuman(`dispatch が例外で停止しました: ${e.message}`);
+        await blockToHuman(`dispatch が例外で停止しました: ${e.message}`);
     } finally {
         state.running.delete(item.issue);
     }
@@ -304,9 +313,9 @@ function isGateItem(item) {
  * 発言したか」で導く。I/O はここに閉じ込め、判定は phases.js の純粋関数。
  * @returns {object} issue 番号 → { review, hitlSignals, pr, activity, humanSpokeLast } の map
  */
-function collectGateContexts(cfg, items, running, state, log, deps = {}) {
+async function collectGateContexts(cfg, items, running, state, log, deps = {}) {
     const contexts = {};
-    const token = deps.token || project.botToken();
+    const token = deps.token || await project.botToken();
     const getGateContext = deps.getGateContext || project.getGateContext;
     const handled = state.gateHandled || (state.gateHandled = new Map());
     for (const item of items) {
@@ -315,7 +324,7 @@ function collectGateContexts(cfg, items, running, state, log, deps = {}) {
         // enroll モデル: 自分がオーナーでない item の付帯情報は集めない（API 節約 + 越権防止）
         if (!ownsItem(item, cfg.assignee)) continue;
         try {
-            const ctx = getGateContext(cfg.repo, item.issue, token);
+            const ctx = await getGateContext(cfg.repo, item.issue, token);
             if (!ctx) continue;
             contexts[item.issue] = {
                 ...ctx,
@@ -334,8 +343,8 @@ function collectGateContexts(cfg, items, running, state, log, deps = {}) {
  * 判定は phases.js の純粋関数、GitHub 問い合わせ・Project 書き込みは project.js。
  * deps は injection できる（テスト用）。実行中の item は触らない（live phase と競合しない）。
  */
-function applyMergeProgression(items, cfg, state, log, deps = {}) {
-    const token = deps.token || project.botToken();
+async function applyMergeProgression(items, cfg, state, log, deps = {}) {
+    const token = deps.token || await project.botToken();
     const hasMerged = deps.hasMergedPullRequest || project.hasMergedPullRequest;
     const applyIntents = deps.applyIntents || project.applyIntents;
     const findItemId = deps.findItemId || project.findItemId;
@@ -347,25 +356,25 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
         let merged;
         try {
-            merged = hasMerged(cfg.repo, item.issue, token);
+            merged = await hasMerged(cfg.repo, item.issue, token);
         } catch (e) {
             log(`#${item.issue}: merge check failed: ${e.message}`);
             continue;
         }
         const intents = mergeProgressionIntents(item, merged);
         if (!intents.length) continue;
-        const itemId = item.itemId || findItemId(cfg.owner, cfg.project, item.issue, token);
+        const itemId = item.itemId || await findItemId(cfg.owner, cfg.project, item.issue, token);
         try {
-            const applied = applyIntents(ctx, itemId, intents, token);
+            const applied = await applyIntents(ctx, itemId, intents, token);
             log(`#${item.issue}: PR merged → ${applied.join(', ')}`);
             // Fix A（#843）: 非デフォルト base 宛て PR（EPIC サブ）では GitHub の `Closes #N` 自動
             // close が効かないため、Project を Close へ進めたら GitHub issue も明示的に閉じる（冪等）。
-            try { closeIssue(cfg.repo, item.issue, token); }
+            try { await closeIssue(cfg.repo, item.issue, token); }
             catch (e) { log(`#${item.issue}: gh issue close failed: ${e.message}`); }
             // 反映済みを in-memory item にも映す → 同 tick の closed-reconcile が二重処理しない（冪等）
             item.status = 'Close';
             // merge は前進シグナル → 人間の番は解除。🙋 ラベルを両面から落とす（force 同期・#813）。
-            syncFaces({ ...item, hitlLabel: false }, intents);
+            await syncFaces({ ...item, hitlLabel: false }, intents);
         } catch (e) {
             log(`#${item.issue}: merge progression failed: ${e.message}`);
         }
@@ -380,8 +389,8 @@ function applyMergeProgression(items, cfg, state, log, deps = {}) {
  * （selectClosedToReconcile）、I/O は project.js。実行中の item は触らない。1 件の失敗は他を止めない。
  * deps は injection 可能（テスト用）。
  */
-function applyClosedReconcile(items, cfg, state, log, deps = {}) {
-    const token = deps.token || project.botToken();
+async function applyClosedReconcile(items, cfg, state, log, deps = {}) {
+    const token = deps.token || await project.botToken();
     const listClosed = deps.listClosedIssueNumbers || project.listClosedIssueNumbers;
     const applyIntents = deps.applyIntents || project.applyIntents;
     const findItemId = deps.findItemId || project.findItemId;
@@ -390,7 +399,7 @@ function applyClosedReconcile(items, cfg, state, log, deps = {}) {
     let closedSet = deps.closedSet;
     if (!closedSet) {
         try {
-            closedSet = listClosed(cfg.repo, token);
+            closedSet = await listClosed(cfg.repo, token);
         } catch (e) {
             log(`closed issue list failed: ${e.message}`);
             return;
@@ -403,12 +412,12 @@ function applyClosedReconcile(items, cfg, state, log, deps = {}) {
     ];
     for (const item of selectClosedToReconcile(items, closedSet)) {
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
-        const itemId = item.itemId || findItemId(cfg.owner, cfg.project, item.issue, token);
+        const itemId = item.itemId || await findItemId(cfg.owner, cfg.project, item.issue, token);
         try {
-            const applied = applyIntents(ctx, itemId, intents, token);
+            const applied = await applyIntents(ctx, itemId, intents, token);
             log(`#${item.issue}: closed issue → ${applied.join(', ')}`);
             // closed は終端シグナル → 人間の番は解除。🙋 ラベルを落とす（force 同期）。
-            syncFaces({ ...item, status: 'Close', hitlLabel: false }, intents);
+            await syncFaces({ ...item, status: 'Close', hitlLabel: false }, intents);
         } catch (e) {
             log(`#${item.issue}: closed reconcile failed: ${e.message}`);
         }
@@ -428,8 +437,8 @@ function applyClosedReconcile(items, cfg, state, log, deps = {}) {
  * - 実行中（run が所有する）item は触らない。1 件の失敗は他を止めない。
  * deps は injection 可能（テスト用）。
  */
-function applyDodHandoffs(items, cfg, state, log, deps = {}) {
-    const token = deps.token || project.botToken();
+async function applyDodHandoffs(items, cfg, state, log, deps = {}) {
+    const token = deps.token || await project.botToken();
     const findPrForIssue = deps.findPrForIssue || project.findPrForIssue;
     const listIssueComments = deps.listIssueComments || project.listIssueComments;
     const getIssueBody = deps.getIssueBody || project.getIssueBody;
@@ -438,12 +447,12 @@ function applyDodHandoffs(items, cfg, state, log, deps = {}) {
         if (!item || isTrackerItem(item) || item.status !== 'DoD') continue;
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
         try {
-            const pr = findPrForIssue(cfg.repo, item.issue, token);
-            const prComments = pr ? listIssueComments(cfg.repo, pr.number, token) : [];
+            const pr = await findPrForIssue(cfg.repo, item.issue, token);
+            const prComments = pr ? await listIssueComments(cfg.repo, pr.number, token) : [];
             const ctx = { hasHandoffComment: hasDodHandoffComment(prComments), hasPr: Boolean(pr) };
             if (!needsDodHandoff(item, ctx)) continue;
             const previewUrl = extractPreviewUrl(prComments);
-            const dodChecklist = extractDodChecklist(getIssueBody(cfg.repo, item.issue, token));
+            const dodChecklist = extractDodChecklist(await getIssueBody(cfg.repo, item.issue, token));
             const body = dodHandoffBody({
                 issue: item.issue,
                 pr: pr.number,
@@ -452,7 +461,7 @@ function applyDodHandoffs(items, cfg, state, log, deps = {}) {
                 previewUrl,
                 dodChecklist,
             });
-            postIssueComment(cfg.repo, pr.number, body, token);
+            await postIssueComment(cfg.repo, pr.number, body, token);
             log(`#${item.issue}: posted DoD handoff on PR #${pr.number}`);
         } catch (e) {
             log(`#${item.issue}: DoD handoff failed: ${e.message}`);
@@ -467,8 +476,8 @@ function applyDodHandoffs(items, cfg, state, log, deps = {}) {
  * （人間の手動トラッカー指定を潰さない。外すのは人間）。終端（Close/Done）は触らない。
  * deps は injection 可能（テスト用）。実行中の item は触らない。1 件の失敗は他を止めない。
  */
-function applyEpicTracking(items, cfg, state, log, deps = {}) {
-    const token = deps.token || project.botToken();
+async function applyEpicTracking(items, cfg, state, log, deps = {}) {
+    const token = deps.token || await project.botToken();
     const editLabels = deps.editLabels || project.editLabels;
     for (const item of items) {
         if (!item || item.kind !== 'EPIC') continue;
@@ -476,7 +485,7 @@ function applyEpicTracking(items, cfg, state, log, deps = {}) {
         if ((item.labels || []).includes(TRACKING_LABEL)) continue;
         if (state.running.has(item.issue)) continue;
         try {
-            editLabels(cfg.repo, item.issue, 'issue', { add: [TRACKING_LABEL] }, token);
+            await editLabels(cfg.repo, item.issue, 'issue', { add: [TRACKING_LABEL] }, token);
             log(`#${item.issue}: EPIC に ${TRACKING_LABEL} を付与`);
         } catch (e) {
             log(`#${item.issue}: tracking label failed: ${e.message}`);
@@ -495,30 +504,30 @@ function applyEpicTracking(items, cfg, state, log, deps = {}) {
  * @param {function} log
  * @param {object} [opts] { force }
  */
-function syncFacesForItem(item, io, cfg, log, opts = {}) {
+async function syncFacesForItem(item, io, cfg, log, opts = {}) {
     // 1) Issue 側のラベル（PR が無くても投影する。HITL handoff を可視化）
-    const issueLabels = io.getIssueLabels(cfg.repo, item.issue, io.token);
-    io.editLabels(cfg.repo, item.issue, 'issue', labelActions(item, issueLabels, opts), io.token);
+    const issueLabels = await io.getIssueLabels(cfg.repo, item.issue, io.token);
+    await io.editLabels(cfg.repo, item.issue, 'issue', labelActions(item, issueLabels, opts), io.token);
     // 2) 連携 PR の面（ラベル・Draft/Ready・sticky）
-    const pr = io.findPrForIssue(cfg.repo, item.issue, io.token);
+    const pr = await io.findPrForIssue(cfg.repo, item.issue, io.token);
     if (!pr) return;
-    const info = io.getPrInfo(cfg.repo, pr.number, io.token);
-    io.editLabels(cfg.repo, pr.number, 'pr', labelActions(item, info.labels, opts), io.token);
+    const info = await io.getPrInfo(cfg.repo, pr.number, io.token);
+    await io.editLabels(cfg.repo, pr.number, 'pr', labelActions(item, info.labels, opts), io.token);
     const da = draftAction(info.isDraft, item);
-    if (da) io.setPrDraft(cfg.repo, pr.number, da, io.token);
-    io.upsertStickyComment(cfg.repo, pr.number, renderSticky(item), io.token);
+    if (da) await io.setPrDraft(cfg.repo, pr.number, da, io.token);
+    await io.upsertStickyComment(cfg.repo, pr.number, renderSticky(item), io.token);
     // 3) 対応 PR リンク sticky（Issue 側・base 非デフォルト時のみ）: 非デフォルト base 宛て PR は
     // GitHub の Development 欄に出ないため、Issue から PR へ辿れるリンクを 1 コメント upsert する。
     // デフォルト base 宛てでは投稿しない（Development 欄と重複する情報を増やさない）。
     if (needsPrLinkSticky(pr)) {
-        io.upsertMarkedComment(cfg.repo, item.issue, [PR_LINK_MARKER], renderPrLinkSticky(pr, cfg.repo), io.token);
+        await io.upsertMarkedComment(cfg.repo, item.issue, [PR_LINK_MARKER], renderPrLinkSticky(pr, cfg.repo), io.token);
     }
 }
 
 /** project.js 実関数を束ねた I/O オブジェクトを返す（deps 差し替えがあれば優先） */
-function projectionIo(deps = {}) {
+async function projectionIo(deps = {}) {
     return {
-        token: deps.token || project.botToken(),
+        token: deps.token || await project.botToken(),
         findPrForIssue: deps.findPrForIssue || project.findPrForIssue,
         getPrInfo: deps.getPrInfo || project.getPrInfo,
         getIssueLabels: deps.getIssueLabels || project.getIssueLabels,
@@ -534,13 +543,13 @@ function projectionIo(deps = {}) {
  * 実行中の item は live phase が所有するので触らない。1 件の失敗は他を止めない。
  * deps.force を渡すと全件 force 同期（通常は per-tick=非 force）。
  */
-function applyPrProjection(items, cfg, state, log, deps = {}) {
-    const io = projectionIo(deps);
+async function applyPrProjection(items, cfg, state, log, deps = {}) {
+    const io = await projectionIo(deps);
     const opts = { force: Boolean(deps.force) };
     for (const item of selectPrSyncCandidates(items)) {
         if (state.running.has(item.issue)) continue; // live phase が所有中は触らない
         try {
-            syncFacesForItem(item, io, cfg, log, opts);
+            await syncFacesForItem(item, io, cfg, log, opts);
         } catch (e) {
             log(`#${item.issue}: pr projection failed: ${e.message}`);
         }
@@ -551,10 +560,10 @@ function applyPrProjection(items, cfg, state, log, deps = {}) {
  * フェーズ適用後・merge 前進後の権威的な面同期（force）。結果の意図を item に反映してから
  * 投影する。PR が無ければ Issue ラベルのみ。失敗は warn に留める（Project 反映は別途済み）。
  */
-function syncFacesAfterIntents(item, intents, cfg, log) {
+async function syncFacesAfterIntents(item, intents, cfg, log) {
     try {
         const projected = applyIntentsToItem(item, intents);
-        syncFacesForItem(projected, projectionIo(), cfg, log, { force: true });
+        await syncFacesForItem(projected, await projectionIo(), cfg, log, { force: true });
     } catch (e) {
         log(`#${item.issue}: face sync failed: ${e.message}`);
     }
@@ -570,17 +579,17 @@ async function tick(cfg, state, log) {
     if (state.paused) return { paused: true, picked: [] };
     let items;
     try {
-        items = project.listItems(cfg.owner, cfg.project, project.botToken());
+        items = await project.listItems(cfg.owner, cfg.project, await project.botToken());
     } catch (e) {
         log(`poll error: ${e.message}`);
         return { paused: false, picked: [] };
     }
     const running = new Set(state.running.keys());
-    const contexts = collectGateContexts(cfg, items, running, state, log);
+    const contexts = await collectGateContexts(cfg, items, running, state, log);
     // closed issue 集合は after 依存の判定と closed-reconcile の両方で使う（1 tick 1 回だけ取得）
     let closedSet = new Set();
     try {
-        closedSet = project.listClosedIssueNumbers(cfg.repo, project.botToken());
+        closedSet = await project.listClosedIssueNumbers(cfg.repo, await project.botToken());
     } catch (e) {
         log(`closed issue list failed: ${e.message}`);
     }
@@ -599,7 +608,7 @@ async function tick(cfg, state, log) {
     const picked = [];
     for (const item of candidates) {
         if (picked.length >= capacity) break;
-        const after = getDirectives(cfg, state, item.issue, log).after;
+        const after = (await getDirectives(cfg, state, item.issue, log)).after;
         const unresolved = unresolvedAfterIssues(after, { closedSet, statusByIssue });
         if (unresolved.length) {
             log(`#${item.issue}: autopilot-after 待ち (未完了: ${unresolved.map((n) => `#${n}`).join(', ')})`);
@@ -619,17 +628,17 @@ async function tick(cfg, state, log) {
         dispatch(item, cfg, state, log);
     }
     // 人間が手動 merge した leaf を Close へ前進（自動 merge はしない）+ GitHub issue も close（#843 Fix A）
-    applyMergeProgression(items, cfg, state, log);
+    await applyMergeProgression(items, cfg, state, log);
     // GitHub で closed な issue（EPIC・人手 close 含む）の Project Status を Close へ整合（#843 Fix B）
-    applyClosedReconcile(items, cfg, state, log, { closedSet });
+    await applyClosedReconcile(items, cfg, state, log, { closedSet });
     // Kind=EPIC に 🧭 tracking ラベルを担保（以後の判定を低コスト化）
-    applyEpicTracking(items, cfg, state, log);
+    await applyEpicTracking(items, cfg, state, log);
     // In Progress + AI 作業中のまま止まった item を検知して Blocked へ（#816）
-    detectStuck(items, cfg, state, log);
+    await detectStuck(items, cfg, state, log);
     // Status=DoD の leaf に headful 検証の引き継ぎコメントを 1 回だけ投稿（#821・冪等）
-    applyDodHandoffs(items, cfg, state, log);
+    await applyDodHandoffs(items, cfg, state, log);
     // PR/Issue の面（ラベル/Draft/sticky）を Project 状態へ投影（dispatch 後なので running は除外される）
-    applyPrProjection(items, cfg, state, log);
+    await applyPrProjection(items, cfg, state, log);
     return { paused: false, picked: picked.map((it) => it.issue) };
 }
 
@@ -730,9 +739,9 @@ function pidFilePath() {
 /** デーモン起動 */
 async function main(opts = {}) {
     const log = opts.log || ((m) => process.stderr.write(`[autopilot-daemon] ${m}\n`));
-    const token = project.botToken();
-    const proj = project.getProject(opts.owner || 'smalruby', opts.project || 4, token);
-    const fields = project.getFields(opts.owner || 'smalruby', opts.project || 4, token);
+    const token = await project.botToken();
+    const proj = await project.getProject(opts.owner || 'smalruby', opts.project || 4, token);
+    const fields = await project.getFields(opts.owner || 'smalruby', opts.project || 4, token);
     const cfg = {
         owner: opts.owner || 'smalruby',
         project: opts.project || 4,

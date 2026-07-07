@@ -124,11 +124,11 @@ async function runTriageLike(command, opts) {
     }
 
     // Project へ反映
-    const token = project.botToken();
-    const proj = project.getProject(opts.owner, opts.project, token);
-    const fields = project.getFields(opts.owner, opts.project, token);
-    const itemId = project.addIssue(opts.owner, opts.project, opts.repo, issue, token);
-    const applied = project.applyIntents({ projectId: proj.id, fields }, itemId, intents, token);
+    const token = await project.botToken();
+    const proj = await project.getProject(opts.owner, opts.project, token);
+    const fields = await project.getFields(opts.owner, opts.project, token);
+    const itemId = await project.addIssue(opts.owner, opts.project, opts.repo, issue, token);
+    const applied = await project.applyIntents({ projectId: proj.id, fields }, itemId, intents, token);
     log(`applied to Project #${opts.project}: ${applied.join(', ')}`);
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     return result.signal === 'error' ? 1 : 0;
