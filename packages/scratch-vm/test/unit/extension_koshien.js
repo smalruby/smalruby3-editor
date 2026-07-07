@@ -456,6 +456,26 @@ test('Koshien Blocks', (t) => {
         st.end();
     });
 
+    t.test('the green flag resets the world and fires the connect-game hats', (st) => {
+        const runtime = createMockRuntime({ rival: 'stop' });
+        const started = [];
+        runtime.startHats = (opcode) => started.push(opcode);
+        const blocks = new KoshienBlocks(runtime);
+        connectDefault(blocks);
+        blocks.moveTo({ POSITION: '4:2' });
+        blocks.turnOver({});
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '4:2');
+
+        blocks._handleProjectStart(); // fired by PROJECT_START (green flag)
+
+        st.notOk(blocks._client.isConnected(), 'world reset');
+        st.same(started, ['koshien_connectGame'], 'connect-game hats started');
+        // The hat block then reconnects and the script below it replays.
+        st.equal(blocks.connectGame({ NAME: 'p1' }), true);
+        st.equal(blocks.targetCoordinate({ TARGET: 'player', COORDINATE: 'position' }), '3:2');
+        st.end();
+    });
+
     t.test('setMessage', (st) => {
         const blocks = new KoshienBlocks(createMockRuntime({ rival: 'stop' }));
         connectDefault(blocks);

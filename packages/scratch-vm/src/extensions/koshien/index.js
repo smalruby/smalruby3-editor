@@ -2,6 +2,7 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
+const log = require('../../util/log');
 const mapUtils = require('./map-utils');
 const {MockGame, ACT_LIMIT} = require('./mock-game');
 const {findMockMap} = require('./mock-maps');
@@ -881,10 +882,29 @@ class KoshienBlocks {
         //   - green flag (PROJECT_START): re-run the AI from the beginning
         //   - stop (PROJECT_STOP_ALL): leave a clean slate for the next run
         // (connect_game also resets, see MockClient.connect.)
+        // The green flag also fires the connect-game hat: the AI script under
+        // "connect to game server" runs from the start, like a real match.
         this._resetMockWorld = this._resetMockWorld.bind(this);
+        this._handleProjectStart = this._handleProjectStart.bind(this);
         if (this.runtime && typeof this.runtime.on === 'function') {
-            this.runtime.on('PROJECT_START', this._resetMockWorld);
+            this.runtime.on('PROJECT_START', this._handleProjectStart);
             this.runtime.on('PROJECT_STOP_ALL', this._resetMockWorld);
+        }
+    }
+
+    /**
+     * Green flag: start a fresh mock world and run the connect-game hats.
+     *
+     * Note: runtime.startHats executes each started hat block immediately, so
+     * the connection is already made when this returns; the blocks under the
+     * hat run on the following runtime steps. Extra connect-game hats find
+     * the client already connected, report false and retire their thread.
+     */
+    _handleProjectStart () {
+        this._resetMockWorld();
+        if (this.runtime && typeof this.runtime.startHats === 'function') {
+            const threads = this.runtime.startHats(`${EXTENSION_ID}_connectGame`) || [];
+            log.info(`koshien: green flag started ${threads.length} connect-game thread(s)`);
         }
     }
 
