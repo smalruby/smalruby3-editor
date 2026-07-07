@@ -92,6 +92,29 @@
     color: $text-primary;
 }
 
+.view-row {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.view-button,
+.view-button-active {
+    flex: 1;
+    padding: 0.2rem 0.4rem;
+    border: 1px solid $looks-secondary;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: $ui-white;
+    color: $looks-secondary;
+}
+
+.view-button-active {
+    background-color: $looks-secondary;
+    color: $ui-white;
+}
+
 .turn-row {
     font-weight: bold;
     font-size: 0.85rem;

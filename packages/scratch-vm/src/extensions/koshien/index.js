@@ -308,9 +308,12 @@ class MockClient extends KoshienClient {
             strategy: this._strategy,
             finished: this._finished,
             game: this._session ? this._session.snapshot() : null,
-            // The user's own (fog-of-war) map, so viewers can show which
-            // cells the AI has actually explored.
+            // What the user's AI actually knows: its own (fog-of-war) map —
+            // cells keep the value from when they were last scanned — and
+            // the rival/fiend positions as of the last look-around.
             myMap: this._myMap,
+            myRival: this._rivalPos,
+            myFiend: this._fiend,
             journal: this._journal.slice()
         };
         this.runtime.koshienMockState = snapshot;

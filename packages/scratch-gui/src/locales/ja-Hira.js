@@ -316,6 +316,8 @@ export default {
     'gui.koshienMockPanel.close': 'とじる',
     'gui.koshienMockPanel.notConnected':
         '「プレイヤーめいを◯◯にしてゲームサーバーへせつぞくする」をじっこうすると、れんしゅうゲームがはじまります。',
+    'gui.koshienMockPanel.viewAll': 'すべて',
+    'gui.koshienMockPanel.viewMine': 'じぶん',
     'gui.koshienMockPanel.turn': 'ターン',
     'gui.koshienMockPanel.gameOver': 'ゲームしゅうりょう',
     'gui.koshienMockPanel.you': 'じぶん',

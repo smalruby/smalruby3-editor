@@ -307,6 +307,8 @@ export default {
     'gui.koshienMockPanel.close': '閉じる',
     'gui.koshienMockPanel.notConnected':
         '「プレイヤー名を◯◯にしてゲームサーバーへ接続する」を実行すると、練習ゲームが始まります。',
+    'gui.koshienMockPanel.viewAll': 'すべて',
+    'gui.koshienMockPanel.viewMine': 'じぶん',
     'gui.koshienMockPanel.turn': 'ターン',
     'gui.koshienMockPanel.gameOver': 'ゲーム終了',
     'gui.koshienMockPanel.you': 'じぶん',

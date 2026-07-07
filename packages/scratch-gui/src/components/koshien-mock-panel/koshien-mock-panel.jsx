@@ -45,6 +45,12 @@ const ITEM_SPRITES = {
 };
 
 /**
+ * Fill color for cells the AI has not explored yet ('mine' view).
+ * @type {string}
+ */
+const UNEXPLORED_COLOR = '#2b2f36';
+
+/**
  * Flat terrain colors for the top-down grid.
  * @type {object}
  */
@@ -82,6 +88,16 @@ const messages = defineMessages({
         id: 'gui.koshienMockPanel.notConnected',
         defaultMessage: 'Run "connect to game server" to start a practice game.',
         description: 'Shown in the koshien panel before the AI connects',
+    },
+    viewAll: {
+        id: 'gui.koshienMockPanel.viewAll',
+        defaultMessage: 'All',
+        description: 'Board view showing the whole true game state',
+    },
+    viewMine: {
+        id: 'gui.koshienMockPanel.viewMine',
+        defaultMessage: 'My AI',
+        description: 'Board view showing only what the AI has explored',
     },
     turn: {
         id: 'gui.koshienMockPanel.turn',
@@ -179,30 +195,77 @@ const loadSprites = () => {
 let spriteCache = null;
 
 /**
- * Draw the whole practice game onto the canvas: terrain, items, actors and
- * a dark veil over the cells the user's AI has not explored yet.
+ * Fill one board cell (terrain color + item sprite when present).
+ * @param {CanvasRenderingContext2D} ctx - the 2d context.
+ * @param {object} sprites - preloaded sprite images.
+ * @param {number} x - the cell x.
+ * @param {number} y - the cell y.
+ * @param {(number|string)} cell - terrain code or item mark.
+ */
+const drawCell = (ctx, sprites, x, y, cell) => {
+    const ch = String(cell);
+    const isItem = !!ITEM_SPRITES[ch];
+    ctx.fillStyle = isItem ? TERRAIN_COLORS[0] : TERRAIN_COLORS[ch] || TERRAIN_COLORS[0];
+    ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+    if (isItem && sprites[ch] && sprites[ch].complete) {
+        ctx.drawImage(sprites[ch], x * TILE + 2, y * TILE + 2, TILE - 4, TILE - 4);
+    }
+};
+
+/**
+ * Draw the fiend sprite for its state.
+ * @param {CanvasRenderingContext2D} ctx - the 2d context.
+ * @param {object} sprites - preloaded sprite images.
+ * @param {object} fiend - {x, y, state} (skipped when slain).
+ */
+const drawFiend = (ctx, sprites, fiend) => {
+    if (!fiend || fiend.state === 'done') return;
+    const sprite =
+        fiend.state === 'angry' ? sprites.enemyAngry
+            : fiend.state === 'kill' ? sprites.enemyKill
+                : sprites.enemyNormal;
+    if (sprite && sprite.complete) {
+        ctx.drawImage(sprite, fiend.x * TILE, fiend.y * TILE, TILE, TILE);
+    }
+};
+
+/**
+ * Draw the whole practice game onto the canvas.
+ *
+ * The 'all' view shows the true game state (with a light veil over the cells
+ * the AI has not explored). The 'mine' view shows exactly what the user's AI
+ * knows: each cell as of its last scan (a taken item stays visible until the
+ * cell is scanned again), unexplored cells dark, and the rival only at the
+ * position it was last seen.
  * @param {HTMLCanvasElement} canvas - the target canvas.
  * @param {object} snapshot - the mock state snapshot from the VM.
  * @param {object} sprites - preloaded sprite images.
+ * @param {string} view - 'all' or 'mine'.
  */
-const drawGame = (canvas, snapshot, sprites) => {
+const drawGame = (canvas, snapshot, sprites, view) => {
     const game = snapshot.game;
     if (!canvas || !game) return;
     const ctx = canvas.getContext && canvas.getContext('2d');
     if (!ctx) return; // e.g. jsdom in unit tests
     const rows = game.rows;
     const size = rows.length;
+    const myMap = snapshot.myMap;
+    const mine = view === 'mine';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Terrain + items.
+    // Board cells.
     for (let y = 0; y < size; y++) {
         for (let x = 0; x < rows[y].length; x++) {
-            const ch = rows[y][x];
-            const isItem = !!ITEM_SPRITES[ch];
-            ctx.fillStyle = isItem ? TERRAIN_COLORS[0] : TERRAIN_COLORS[ch] || TERRAIN_COLORS[0];
-            ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
-            if (isItem && sprites[ch] && sprites[ch].complete) {
-                ctx.drawImage(sprites[ch], x * TILE + 2, y * TILE + 2, TILE - 4, TILE - 4);
+            if (mine) {
+                const known = Array.isArray(myMap) && myMap[y] ? myMap[y][x] : -1;
+                if (known === -1) {
+                    ctx.fillStyle = UNEXPLORED_COLOR;
+                    ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+                } else {
+                    drawCell(ctx, sprites, x, y, known);
+                }
+            } else {
+                drawCell(ctx, sprites, x, y, rows[y][x]);
             }
         }
     }
@@ -221,17 +284,35 @@ const drawGame = (canvas, snapshot, sprites) => {
         ctx.stroke();
     }
 
-    // Fiend (hidden once slain).
-    const fiend = game.fiend;
-    if (fiend && fiend.state !== 'done') {
-        const sprite =
-            fiend.state === 'angry' ? sprites.enemyAngry
-                : fiend.state === 'kill' ? sprites.enemyKill
-                    : sprites.enemyNormal;
-        if (sprite && sprite.complete) {
-            ctx.drawImage(sprite, fiend.x * TILE, fiend.y * TILE, TILE, TILE);
+    if (mine) {
+        // Only what the AI knows: the goal (told on connect), the fiend and
+        // the rival as of the last look-around, and the own pawn.
+        const goal = game.goal;
+        ctx.strokeStyle = TERRAIN_COLORS[3];
+        ctx.lineWidth = 2;
+        ctx.strokeRect(goal[0] * TILE + 1, goal[1] * TILE + 1, TILE - 2, TILE - 2);
+        drawFiend(ctx, sprites, snapshot.myFiend);
+        const me = game.pawns.find(pawn => pawn.isUser);
+        const rival = game.pawns.find(pawn => !pawn.isUser);
+        if (snapshot.myRival && rival) {
+            const sprite = rival.side === 1 ? sprites.player1 : sprites.player2;
+            if (sprite && sprite.complete) {
+                ctx.globalAlpha = 0.8;
+                ctx.drawImage(sprite, snapshot.myRival[0] * TILE, snapshot.myRival[1] * TILE - 2, TILE, TILE);
+                ctx.globalAlpha = 1;
+            }
         }
+        if (me) {
+            const sprite = me.side === 1 ? sprites.player1 : sprites.player2;
+            if (sprite && sprite.complete) {
+                ctx.drawImage(sprite, me.x * TILE, me.y * TILE - 2, TILE, TILE);
+            }
+        }
+        return;
     }
+
+    // Fiend (hidden once slain).
+    drawFiend(ctx, sprites, game.fiend);
 
     // Pawns (both on one cell -> nudge apart; finished pawns fade).
     const together =
@@ -248,7 +329,6 @@ const drawGame = (canvas, snapshot, sprites) => {
     });
 
     // Veil the cells the user's AI has not explored yet.
-    const myMap = snapshot.myMap;
     if (Array.isArray(myMap) && myMap.length === size) {
         ctx.fillStyle = 'rgba(20, 20, 30, 0.35)';
         for (let y = 0; y < size; y++) {
@@ -274,12 +354,15 @@ const drawGame = (canvas, snapshot, sprites) => {
 const KoshienMockPanel = ({snapshot, onClose}) => {
     const intl = useIntl();
     const [expanded, setExpanded] = useState(true);
+    const [view, setView] = useState('all');
     const canvasRef = useRef(null);
     const nodeRef = useRef(null);
     const journalRef = useRef(null);
     if (!spriteCache) spriteCache = loadSprites();
 
     const handleToggleExpanded = useCallback(() => setExpanded(value => !value), []);
+    const handleViewAll = useCallback(() => setView('all'), []);
+    const handleViewMine = useCallback(() => setView('mine'), []);
 
     const game = snapshot && snapshot.game;
     const boardSize = game ? game.rows.length * TILE : 17 * TILE;
@@ -287,13 +370,13 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
     useEffect(() => {
         if (!expanded || !game) return;
         const canvas = canvasRef.current;
-        drawGame(canvas, snapshot, spriteCache);
+        drawGame(canvas, snapshot, spriteCache, view);
         // Redraw once more when sprites finish loading the first time.
         const pending = Object.values(spriteCache).filter(img => img && !img.complete);
         pending.forEach(img => {
-            img.addEventListener('load', () => drawGame(canvas, snapshot, spriteCache), {once: true});
+            img.addEventListener('load', () => drawGame(canvas, snapshot, spriteCache, view), {once: true});
         });
-    }, [snapshot, expanded, game]);
+    }, [snapshot, expanded, game, view]);
 
     useEffect(() => {
         // Keep the newest journal entry in view.
@@ -367,6 +450,24 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                     width={boardSize}
                                 />
                                 <div className={styles.side}>
+                                    <div className={styles.viewRow}>
+                                        <button
+                                            aria-pressed={view === 'all'}
+                                            className={view === 'all' ? styles.viewButtonActive : styles.viewButton}
+                                            data-testid="koshien-mock-panel-view-all"
+                                            onClick={handleViewAll}
+                                        >
+                                            {intl.formatMessage(messages.viewAll)}
+                                        </button>
+                                        <button
+                                            aria-pressed={view === 'mine'}
+                                            className={view === 'mine' ? styles.viewButtonActive : styles.viewButton}
+                                            data-testid="koshien-mock-panel-view-mine"
+                                            onClick={handleViewMine}
+                                        >
+                                            {intl.formatMessage(messages.viewMine)}
+                                        </button>
+                                    </div>
                                     <div
                                         className={styles.turnRow}
                                         data-testid="koshien-mock-panel-turn"
@@ -470,6 +571,8 @@ KoshienMockPanel.propTypes = {
         strategy: PropTypes.string,
         game: PropTypes.object,
         myMap: PropTypes.array,
+        myRival: PropTypes.array,
+        myFiend: PropTypes.object,
         journal: PropTypes.arrayOf(
             PropTypes.shape({
                 turn: PropTypes.number,

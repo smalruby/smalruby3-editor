@@ -106,4 +106,15 @@ describe('KoshienMockPanel', () => {
         fireEvent.click(getByTestId('koshien-mock-panel-toggle'));
         expect(queryByTestId('koshien-mock-panel-canvas')).toBeInTheDocument();
     });
+
+    test('the all / my-AI view switch renders and toggles without crashing', () => {
+        const { getByTestId } = renderPanel({ snapshot: fakeSnapshot() });
+        expect(getByTestId('koshien-mock-panel-view-all')).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(getByTestId('koshien-mock-panel-view-mine'));
+        expect(getByTestId('koshien-mock-panel-view-mine')).toHaveAttribute('aria-pressed', 'true');
+        expect(getByTestId('koshien-mock-panel-view-all')).toHaveAttribute('aria-pressed', 'false');
+        expect(getByTestId('koshien-mock-panel-canvas')).toBeInTheDocument();
+        fireEvent.click(getByTestId('koshien-mock-panel-view-all'));
+        expect(getByTestId('koshien-mock-panel-view-all')).toHaveAttribute('aria-pressed', 'true');
+    });
 });
