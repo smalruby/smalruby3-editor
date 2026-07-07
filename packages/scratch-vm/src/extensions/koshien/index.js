@@ -3,6 +3,9 @@ const BlockType = require('../../extension-support/block-type');
 const TargetType = require('../../extension-support/target-type');
 const Variable = require('../../engine/variable');
 const mapUtils = require('./map-utils');
+const {MockGame, ACT_LIMIT} = require('./mock-game');
+const {findMockMap} = require('./mock-maps');
+const {playRivalTurn} = require('./mock-rival');
 
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
@@ -87,51 +90,24 @@ const KoshienObjectName = {
 };
 
 /**
- * A fixed, believable 17x17 sample map used by the mock (disconnected) client.
- *
- * This is the real Smalruby Koshien 2024 sample map ("map_01") with its item
- * layer merged in, so that clicking any block while editing an AI offline
- * returns game-like, self-consistent data instead of placeholder zeros. It is
- * the single source of truth from which every mock reader derives its value.
- *
- * The whole 17x17 field is surrounded by an unbreakable wall border (codes 1/2;
- * the original map uses 2 on the top/left edge and 1 on the bottom/right edge).
- * Cell codes: 0 space, 1/2 unbreakable wall, 3 goal, 4 water, 5 breakable wall;
- * a-e beneficial items, A-D harmful items (matching the real my_map encoding).
- * @type {Array<string>}
+ * Runtime event emitted whenever the mock game's state changes. The GUI's
+ * Koshien panel listens for it to redraw the board, scores and error log.
+ * The latest snapshot is also kept on `runtime.koshienMockState`.
+ * @type {string}
  */
-const MOCK_MAP = [
-    '22222222222222222',
-    '2d0000000000000a1',
-    '200A4440B4440A001',
-    '20055555555555001',
-    '200000C0000000001',
-    '20100b00000C00101',
-    '201055505550001c1',
-    '20105000005000101',
-    '201050000050b0101',
-    '20105000305000101',
-    '2c1050c00050C0101',
-    '20105555055000101',
-    '20000000000000001',
-    '20455555D55555401',
-    '24000B00000B00041',
-    '204d0000e0000d401',
-    '21111111111111111'
-];
+const MOCK_STATE_EVENT = 'KOSHIEN_MOCK_STATE';
 
 /**
- * Initial actor positions for the mock world, taken from the real map_01:
- * the two player start cells are (5,1) and (10,1), the goal cell ('3') is at
- * (8,9), and the enemy guards the goal. Kept consistent with MOCK_MAP.
- * @type {object}
+ * Rival strategies the mock game accepts (see mock-rival.js).
+ * @type {Array<string>}
  */
-const MOCK_INITIAL_POSITIONS = {
-    player: '5:1',
-    goal: '8:9',
-    enemy: '8:9',
-    other_player: '10:1'
-};
+const RIVAL_STRATEGIES = ['goal', 'item', 'stop', 'random'];
+
+/**
+ * How many entries the mock journal keeps (actions, errors, turn events).
+ * @type {number}
+ */
+const JOURNAL_LIMIT = 300;
 
 /**
  * Base class describing the surface a Koshien client must implement.
@@ -214,15 +190,15 @@ class KoshienClient {
 }
 
 /**
- * Mock client used while not connected to a real game server.
+ * Client for the built-in mock game (mock-game.js).
  *
- * It simulates a believable game on top of {@link MOCK_MAP} the same way the
- * real server does: the player's "my map" starts fully unexplored (all -1) and
- * is revealed 5x5 at a time by {@link getMapArea}. Readers (map / map_all /
- * calc_route / locate_objects) all work off this gradually-revealed my map, so
- * clicking blocks offline behaves like a real game in progress. Player moves
- * and placed items update a small amount of state. Everything is deterministic
- * and resets to the initial state.
+ * It behaves like the real Koshien player library: readers (map / map_all /
+ * calc_route / locate_objects / player position) work off a client-side cache
+ * that only updates when the game answers an action, moves are reservations
+ * that resolve on turn over, and the two-actions/one-move per turn limits are
+ * enforced on the client side too (an over-limit block call is suppressed and
+ * reported instead of silently working). Every state change is journaled and
+ * broadcast on the runtime so the GUI panel can visualize the whole game.
  */
 class MockClient extends KoshienClient {
     /**
@@ -235,30 +211,170 @@ class MockClient extends KoshienClient {
     }
 
     /**
-     * Restore the mock world to its initial state: a fresh ground-truth map and
-     * a fully-unexplored "my map".
+     * Drop the current game session (a new one starts on connect).
      */
     reset () {
-        this._fullGrid = mapUtils.parseMapString(MOCK_MAP.join(','));
-        const height = this._fullGrid.length;
-        const width = height ? this._fullGrid[0].length : 0;
-        this._grid = mapUtils.createUnexploredGrid(width, height);
-        this._positions = Object.assign({}, MOCK_INITIAL_POSITIONS);
-        this._turn = 0;
-    }
-
-    connect (playerName) {
-        super.connect(playerName);
-        // Connecting starts a fresh game session.
-        this.reset();
+        this._session = null;
+        this._isConnected = false;
+        this._playerName = null;
+        this._side = 1;
+        this._strategy = 'goal';
+        this._myMap = [];
+        this._pos = null;
+        this._goal = null;
+        this._rivalPos = null;
+        this._fiend = null;
+        this._sent = 0;
+        this._stepped = false;
+        this._finished = false;
+        this._journal = [];
+        this._emitState();
     }
 
     /**
-     * Reveal the 5x5 area around a position into the player's my map.
+     * Start a fresh mock game using the GUI-provided settings (map, side,
+     * rival strategy) when available.
+     * @param {string} playerName - the player name from the connect block.
+     */
+    connect (playerName) {
+        this.reset();
+        super.connect(playerName);
+        const config =
+            this.runtime && typeof this.runtime.getKoshienMockConfig === 'function'
+                ? this.runtime.getKoshienMockConfig() || {}
+                : {};
+        const map = findMockMap(config.mapId);
+        this._side = Number(config.side) === 2 ? 2 : 1;
+        this._strategy = RIVAL_STRATEGIES.includes(config.rival) ? config.rival : 'goal';
+        this._session = new MockGame({
+            map,
+            userSide: this._side,
+            seed: config.seed
+        });
+        this._session.join(this._rivalSide(), 'rival');
+        const {info} = this._session.join(this._side, playerName);
+        this._absorb(info);
+        this._journalPush('event', `ゲーム開始: マップ「${map.name}」 / プレイヤー${this._side} / 相手AI: ${this._strategy}`);
+        this._emitState();
+    }
+
+    /**
+     * @returns {number} - the rival's side (the one the user did not take).
+     */
+    _rivalSide () {
+        return this._side === 1 ? 2 : 1;
+    }
+
+    /**
+     * Update the client cache from a player state answer.
+     * @param {object} info - the state returned by the mock game.
+     */
+    _absorb (info) {
+        this._pos = {x: info.x, y: info.y};
+        this._goal = info.goal.slice();
+        this._myMap = info.map;
+        if (info.status !== 'playing') {
+            this._finished = true;
+        }
+    }
+
+    /**
+     * Append an entry to the visible journal.
+     * @param {string} kind - action | error | event.
+     * @param {string} text - the human-readable entry.
+     */
+    _journalPush (kind, text) {
+        this._journal.push({
+            turn: this._session ? this._session.turn : 0,
+            kind,
+            text
+        });
+        if (this._journal.length > JOURNAL_LIMIT) {
+            this._journal.splice(0, this._journal.length - JOURNAL_LIMIT);
+        }
+    }
+
+    /**
+     * Broadcast the full state so the GUI panel can redraw.
+     */
+    _emitState () {
+        if (!this.runtime || typeof this.runtime.emit !== 'function') {
+            return;
+        }
+        const snapshot = {
+            connected: this._isConnected,
+            playerName: this._playerName,
+            side: this._side,
+            strategy: this._strategy,
+            finished: this._finished,
+            game: this._session ? this._session.snapshot() : null,
+            journal: this._journal.slice()
+        };
+        this.runtime.koshienMockState = snapshot;
+        this.runtime.emit(MOCK_STATE_EVENT, snapshot);
+    }
+
+    /**
+     * Report and refuse a block executed before connecting.
+     * @param {string} label - the attempted operation (for the journal).
+     * @returns {boolean} - true when connected.
+     */
+    _requireSession (label) {
+        if (this._session) {
+            return true;
+        }
+        this._journalPush('error', `${label}: さきに「プレイヤー名を◯◯にしてゲームサーバーへ接続する」を実行してください`);
+        this._emitState();
+        return false;
+    }
+
+    /**
+     * Enforce the two-actions-per-turn limit on the client side, like the
+     * real player library (the over-limit call is suppressed and reported).
+     * @param {string} label - the attempted operation (for the journal).
+     * @returns {boolean} - true when the action may be sent.
+     */
+    _spendClientAct (label) {
+        if (this._sent >= ACT_LIMIT) {
+            this._journalPush('error', `${label}: このターンではもう行動できません（行動は1ターンに${ACT_LIMIT}回まで。「ターンを終了する」を実行してください）`);
+            this._emitState();
+            return false;
+        }
+        this._sent += 1;
+        return true;
+    }
+
+    /**
+     * Journal a rule violation answered by the game.
+     * @param {string} label - the attempted operation.
+     * @param {object} error - {code, message} from the mock game.
+     */
+    _journalRefusal (label, error) {
+        this._journalPush('error', `${label}: ${error.message}`);
+    }
+
+    /**
+     * Look around a position (counts as one of the two actions per turn).
      * @param {string} position - the "x:y" center of the area to reveal.
      */
     getMapArea (position) {
-        mapUtils.revealArea(this._grid, this._fullGrid, position, 5);
+        if (!this._requireSession('マップ取得')) {
+            return;
+        }
+        if (!this._spendClientAct('マップ取得')) {
+            return;
+        }
+        const p = mapUtils.parsePosition(position);
+        const res = this._session.scan(this._side, p.x, p.y);
+        if (res.error) {
+            this._journalRefusal(`マップ取得 (${position})`, res.error);
+        } else {
+            this._myMap = res.map;
+            this._rivalPos = res.rivalSeen;
+            this._fiend = res.fiend;
+            this._journalPush('action', `マップ取得 (${position})`);
+        }
+        this._emitState();
     }
 
     /**
@@ -267,7 +383,7 @@ class MockClient extends KoshienClient {
      */
     map (position) {
         const p = mapUtils.parsePosition(position);
-        return mapUtils.cellAt(this._grid, p.x, p.y);
+        return mapUtils.cellAt(this._myMap, p.x, p.y);
     }
 
     /**
@@ -275,7 +391,10 @@ class MockClient extends KoshienClient {
      *     ('-' marks cells not yet revealed by getMapArea).
      */
     mapAll () {
-        return mapUtils.gridToMapString(this._grid);
+        if (this._myMap.length === 0) {
+            return '';
+        }
+        return mapUtils.gridToMapString(this._myMap);
     }
 
     /**
@@ -296,14 +415,22 @@ class MockClient extends KoshienClient {
     /**
      * @param {object} props - {src, dst, exceptCells}; src/dst default to the
      *     current player/goal positions when omitted. Routes over the my map,
-     *     so unexplored cells are treated as passable (like the real game).
-     * @returns {Array<string>} - the shortest route as "x:y" strings.
+     *     so unexplored cells are crossable at a cost (like the real game).
+     * @returns {Array<string>} - the route as "x:y" strings (single element
+     *     when unreachable, empty before connecting).
      */
     calcRoute (props) {
+        if (!this._session || !this._pos || !this._goal) {
+            return [];
+        }
         const {src, dst, exceptCells} = props || {};
-        const start = src && String(src).includes(':') ? src : this._positions.player;
-        const goal = dst && String(dst).includes(':') ? dst : this._positions.goal;
-        return mapUtils.calcRoute(this._grid, start, goal, exceptCells || []);
+        const start = src && String(src).includes(':')
+            ? src
+            : mapUtils.formatPosition(this._pos.x, this._pos.y);
+        const goal = dst && String(dst).includes(':')
+            ? dst
+            : mapUtils.formatPosition(this._goal[0], this._goal[1]);
+        return mapUtils.calcRoute(this._myMap, start, goal, exceptCells || []);
     }
 
     /**
@@ -313,66 +440,147 @@ class MockClient extends KoshienClient {
      * @returns {Array<string>} - the "x:y" positions of the matching objects.
      */
     locateObjects (props) {
+        if (!this._session || !this._pos) {
+            return [];
+        }
         const {position, sqSize, objects} = props || {};
-        const center =
-            position && String(position).includes(':') ? position : this._positions.player;
-        return mapUtils.locateObjects(this._grid, center, sqSize, objects);
+        const center = position && String(position).includes(':')
+            ? position
+            : mapUtils.formatPosition(this._pos.x, this._pos.y);
+        return mapUtils.locateObjects(this._myMap, center, sqSize, objects);
     }
 
     /**
      * @param {string} target - one of player/goal/other_player/enemy.
      * @param {string} coordinate - one of position/x/y.
-     * @returns {string|number|null} - the requested coordinate, or null.
+     * @returns {string|number|null} - the requested coordinate, or null when
+     *     that target has not been seen yet (like the real game).
      */
     targetCoordinate (target, coordinate) {
-        const pos = this._positions[target];
-        if (!pos) {
+        let pair = null;
+        if (target === 'player' && this._pos) {
+            pair = [this._pos.x, this._pos.y];
+        } else if (target === 'goal' && this._goal) {
+            pair = this._goal;
+        } else if (target === 'other_player' && this._rivalPos) {
+            pair = this._rivalPos;
+        } else if (target === 'enemy' && this._fiend) {
+            pair = [this._fiend.x, this._fiend.y];
+        }
+        if (!pair) {
             return null;
         }
-        const p = mapUtils.parsePosition(pos);
         if (coordinate === 'x') {
-            return p.x;
+            return pair[0];
         }
         if (coordinate === 'y') {
-            return p.y;
+            return pair[1];
         }
-        return pos;
+        return mapUtils.formatPosition(pair[0], pair[1]);
     }
 
     /**
-     * Pseudo-move the mock player so subsequent reads reflect the new position.
-     * Passability is checked against the ground-truth map (a real wall blocks
-     * the move even if that cell has not been revealed yet).
+     * Reserve a move; the position only changes when the turn is over,
+     * exactly like a real match.
      * @param {string} position - the destination "x:y".
-     * @returns {Promise} - resolved once the (instant) move is applied.
+     * @returns {Promise} - resolved once the reservation is recorded.
      */
     moveTo (position) {
-        const p = mapUtils.parsePosition(position);
-        const cell = mapUtils.cellAt(this._fullGrid, p.x, p.y);
-        if (cell !== -1 && isFinite(mapUtils.moveCost(cell))) {
-            this._positions.player = mapUtils.formatPosition(p.x, p.y);
+        if (!this._requireSession('移動')) {
+            return Promise.resolve();
         }
+        if (this._stepped) {
+            this._journalPush('error', `移動 (${position}): 移動は1ターンに一度しかできません（「ターンを終了する」を実行してください）`);
+            this._emitState();
+            return Promise.resolve();
+        }
+        if (!this._spendClientAct('移動')) {
+            return Promise.resolve();
+        }
+        this._stepped = true;
+        const p = mapUtils.parsePosition(position);
+        const res = this._session.step(this._side, p.x, p.y);
+        if (res.error) {
+            this._journalRefusal(`移動 (${position})`, res.error);
+        } else {
+            this._absorb(res.info);
+            this._journalPush('action', `移動よやく (${position}) — ターンを終了すると移動します`);
+        }
+        this._emitState();
         return Promise.resolve();
     }
 
     /**
-     * Pseudo-place an item on the ground-truth map (shown as a bomb marker).
-     * It becomes visible in the my map once that cell is revealed by getMapArea.
+     * Place dynamite or a bomb (counts as one of the two actions per turn).
      * @param {string} item - the item kind (dynamite/bomb).
      * @param {string} position - the "x:y" position.
      */
     setItem (item, position) {
-        const p = mapUtils.parsePosition(position);
-        if (this._fullGrid[p.y] && mapUtils.cellAt(this._fullGrid, p.x, p.y) !== -1) {
-            this._fullGrid[p.y][p.x] = 'D';
+        const kind = item === 'bomb' ? 'bomb' : 'dynamite';
+        const label = kind === 'bomb' ? 'ばくだん設置' : 'ダイナマイト設置';
+        if (!this._requireSession(label)) {
+            return;
         }
+        if (!this._spendClientAct(label)) {
+            return;
+        }
+        const p = mapUtils.parsePosition(position);
+        const res = this._session.plant(this._side, kind, p.x, p.y);
+        if (res.error) {
+            this._journalRefusal(`${label} (${position})`, res.error);
+        } else {
+            this._journalPush('action', `${label}よやく (${position}) — ターンを終了すると置かれます`);
+        }
+        this._emitState();
     }
 
     /**
-     * Advance the mock turn counter.
+     * Set the player's message (does not count as an action).
+     * @param {string} message - the message.
+     * @returns {Promise} - resolved once recorded.
+     */
+    setMessage (message) {
+        if (!this._requireSession('メッセージ')) {
+            return Promise.resolve();
+        }
+        const res = this._session.say(this._side, message);
+        if (res.error) {
+            this._journalRefusal('メッセージ', res.error);
+        } else {
+            this._journalPush('action', `メッセージ「${res.ok ? String(message) : ''}」`);
+        }
+        this._emitState();
+        return Promise.resolve();
+    }
+
+    /**
+     * End the turn: the rival AI takes its turn and the whole turn resolves
+     * (moves apply, items are picked up, the fiend moves, scores update).
      */
     turnOver () {
-        this._turn += 1;
+        if (!this._requireSession('ターン終了')) {
+            return;
+        }
+        if (!this._finished && !this._session.over) {
+            playRivalTurn(this._session, this._rivalSide(), this._strategy);
+        }
+        const {info} = this._session.finishTurn(this._side);
+        this._absorb(info);
+        this._sent = 0;
+        this._stepped = false;
+        const snapshot = this._session.snapshot();
+        this._journalPush('event', `ターン終了 → ターン${snapshot.turn} (じぶん: ${info.x}:${info.y} / スコア ${info.score})`);
+        for (const [name, mark, x, y] of snapshot.events) {
+            if (name === 'got_item') {
+                this._journalPush('event', `アイテム「${mark}」を取得 (${x}:${y})`);
+            }
+        }
+        if (info.status === 'completed') {
+            this._journalPush('event', `ゴールしました！ さいしゅうスコア ${info.score}`);
+        } else if (info.status === 'timeup') {
+            this._journalPush('event', `50ターンをすぎました（タイムアップ、スコア ${info.score}）`);
+        }
+        this._emitState();
     }
 }
 
@@ -406,6 +614,13 @@ class KoshienBlocks {
      */
     static get EXTENSION_ID () {
         return EXTENSION_ID;
+    }
+
+    /**
+     * @returns {string} - the runtime event emitted on mock state changes.
+     */
+    static get MOCK_STATE_EVENT () {
+        return MOCK_STATE_EVENT;
     }
 
     get ITEMS_MENU () {

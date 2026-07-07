@@ -46,12 +46,13 @@ test('koshien map-utils', (t) => {
         st.end();
     });
 
-    t.test('moveCost: walls impassable, water 2, unexplored 4, else 1', (st) => {
+    t.test('moveCost: walls impassable, water 2, unexplored 4, goal 3, else 1', (st) => {
         st.equal(mu.moveCost(1), Infinity);
         st.equal(mu.moveCost(2), Infinity);
         st.equal(mu.moveCost(5), Infinity);
         st.equal(mu.moveCost(4), 2);
         st.equal(mu.moveCost(-1), 4);
+        st.equal(mu.moveCost(3), 3); // the goal costs 3, like the real client
         st.equal(mu.moveCost(0), 1);
         st.equal(mu.moveCost('a'), 1); // items are walkable
         st.end();
@@ -76,11 +77,12 @@ test('koshien map-utils', (t) => {
         st.end();
     });
 
-    t.test('calcRoute returns [] when unreachable', (st) => {
-        // a target fully boxed by walls
+    t.test('calcRoute returns a single-element list when unreachable', (st) => {
+        // a target fully boxed by walls -> the destination alone, like the
+        // real client library
         const boxed = ['111', '101', '111'].join(',');
         const grid = mu.parseMapString(boxed);
-        st.same(mu.calcRoute(grid, '1:1', '0:0'), []);
+        st.same(mu.calcRoute(grid, '1:1', '0:0'), ['0:0']);
         st.end();
     });
 
@@ -88,9 +90,9 @@ test('koshien map-utils', (t) => {
         const open = ['1111', '1001', '1001', '1111'].join(',');
         const grid = mu.parseMapString(open);
         const blocked = mu.calcRoute(grid, '1:1', '2:2', ['2:1', '1:2']);
-        // both immediate neighbors blocked -> still reachable via the diagonal-free
-        // open cells? 1:1 neighbors are 2:1 and 1:2 (both blocked) -> unreachable
-        st.same(blocked, []);
+        // 1:1's only neighbors (2:1 and 1:2) are blocked -> unreachable ->
+        // a single-element list holding the destination
+        st.same(blocked, ['2:2']);
         st.end();
     });
 
