@@ -366,6 +366,8 @@ export default {
     'gui.koshienMockPanel.statusPlaying': 'playing',
     'gui.koshienMockPanel.statusCompleted': 'GOAL!',
     'gui.koshienMockPanel.statusTimeup': 'time up',
+    'gui.koshienMockPanel.greenFlag': 'Go (green flag)',
+    'gui.koshienMockPanel.stopAll': 'Stop',
     'gui.koshienMockPanel.tipCoordinate': 'Cell',
     'gui.koshienMockPanel.tipMap': 'Map',
     'gui.koshienMockPanel.tipItem': 'Item',

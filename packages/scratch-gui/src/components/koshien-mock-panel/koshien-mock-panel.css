@@ -141,8 +141,37 @@
 }
 
 .turn-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     font-weight: bold;
     font-size: 0.85rem;
+}
+
+.run-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.run-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0.15rem;
+    border: none;
+    border-radius: 0.25rem;
+    background: transparent;
+    cursor: pointer;
+}
+
+.run-button:hover {
+    background-color: $ui-black-transparent;
+}
+
+.run-button img {
+    width: 100%;
 }
 
 .game-over {
@@ -232,4 +261,10 @@
     max-width: 20rem;
     font-size: 0.8rem;
     color: $text-primary;
+}
+
+.not-connected-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
 }

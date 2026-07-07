@@ -26,6 +26,8 @@ class KoshienMockPanel extends React.Component {
         };
         this.handleMockState = this.handleMockState.bind(this);
         this.handleExtensionAdded = this.handleExtensionAdded.bind(this);
+        this.handleGreenFlag = this.handleGreenFlag.bind(this);
+        this.handleStopAll = this.handleStopAll.bind(this);
     }
 
     componentDidMount() {
@@ -57,9 +59,31 @@ class KoshienMockPanel extends React.Component {
         }
     }
 
+    // Same behavior as the stage's green flag / stop buttons (the stage may
+    // be hidden behind the panel while debugging a koshien AI).
+    handleGreenFlag() {
+        const vm = this.props.vm;
+        if (!vm) return;
+        vm.start();
+        vm.greenFlag();
+    }
+
+    handleStopAll() {
+        const vm = this.props.vm;
+        if (!vm) return;
+        vm.stopAll();
+    }
+
     render() {
         if (!this.props.visible) return null;
-        return <KoshienMockPanelComponent snapshot={this.state.snapshot} onClose={this.props.onClose} />;
+        return (
+            <KoshienMockPanelComponent
+                snapshot={this.state.snapshot}
+                onClose={this.props.onClose}
+                onGreenFlag={this.handleGreenFlag}
+                onStopAll={this.handleStopAll}
+            />
+        );
     }
 }
 
@@ -69,6 +93,9 @@ KoshienMockPanel.propTypes = {
     visible: PropTypes.bool.isRequired,
     vm: PropTypes.shape({
         runtime: PropTypes.object,
+        start: PropTypes.func,
+        greenFlag: PropTypes.func,
+        stopAll: PropTypes.func,
     }).isRequired,
 };
 

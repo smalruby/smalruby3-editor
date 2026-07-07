@@ -334,6 +334,8 @@ export default {
     'gui.koshienMockPanel.statusPlaying': 'プレイちゅう',
     'gui.koshienMockPanel.statusCompleted': 'ゴール！',
     'gui.koshienMockPanel.statusTimeup': 'タイムアップ',
+    'gui.koshienMockPanel.greenFlag': 'スタート（みどりのはた）',
+    'gui.koshienMockPanel.stopAll': 'とめる',
     'gui.koshienMockPanel.tipCoordinate': 'ざひょう',
     'gui.koshienMockPanel.tipMap': 'マップ',
     'gui.koshienMockPanel.tipItem': 'アイテム',

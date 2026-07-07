@@ -9,6 +9,8 @@ import styles from './koshien-mock-panel.css';
 import closeIcon from '../cards/icon--close.svg';
 import shrinkIcon from '../cards/icon--shrink.svg';
 import expandIcon from '../cards/icon--expand.svg';
+import greenFlagIcon from '../green-flag/icon--green-flag.svg';
+import stopAllIcon from '../stop-all/icon--stop-all.svg';
 
 import itemTea from './item-tea.png';
 import itemSweets from './item-sweets.png';
@@ -178,6 +180,16 @@ const messages = defineMessages({
         id: 'gui.koshienMockPanel.statusTimeup',
         defaultMessage: 'time up',
         description: 'Player status: ran out of turns',
+    },
+    greenFlag: {
+        id: 'gui.koshienMockPanel.greenFlag',
+        defaultMessage: 'Go (green flag)',
+        description: 'Panel button that acts like the stage green flag',
+    },
+    stopAll: {
+        id: 'gui.koshienMockPanel.stopAll',
+        defaultMessage: 'Stop',
+        description: 'Panel button that acts like the stage stop button',
     },
     tipCoordinate: {
         id: 'gui.koshienMockPanel.tipCoordinate',
@@ -502,9 +514,11 @@ const drawGame = (canvas, snapshot, sprites, view) => {
  * @param {object} props - component props.
  * @param {object} props.snapshot - the latest mock state snapshot (or null).
  * @param {Function} props.onClose - called when the close button is pressed.
+ * @param {Function} props.onGreenFlag - green flag (start) button handler.
+ * @param {Function} props.onStopAll - stop button handler.
  * @returns {JSX.Element} - the rendered panel.
  */
-const KoshienMockPanel = ({snapshot, onClose}) => {
+const KoshienMockPanel = ({snapshot, onClose, onGreenFlag, onStopAll}) => {
     const intl = useIntl();
     const [expanded, setExpanded] = useState(true);
     const [view, setView] = useState('all');
@@ -638,6 +652,37 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
         : Math.max(0, window.innerWidth - (boardSize + 300))
     ;
 
+    // The stage may be hidden behind the panel, so its green flag / stop pair
+    // lives here too — including before the AI has connected.
+    const runButtons = (
+        <span className={styles.runButtons}>
+            <button
+                className={styles.runButton}
+                data-testid="koshien-mock-panel-green-flag"
+                title={intl.formatMessage(messages.greenFlag)}
+                onClick={onGreenFlag}
+            >
+                <img
+                    alt={intl.formatMessage(messages.greenFlag)}
+                    draggable={false}
+                    src={greenFlagIcon}
+                />
+            </button>
+            <button
+                className={styles.runButton}
+                data-testid="koshien-mock-panel-stop-all"
+                title={intl.formatMessage(messages.stopAll)}
+                onClick={onStopAll}
+            >
+                <img
+                    alt={intl.formatMessage(messages.stopAll)}
+                    draggable={false}
+                    src={stopAllIcon}
+                />
+            </button>
+        </span>
+    );
+
     return (
         <div className={styles.overlay}>
             <Draggable
@@ -735,16 +780,16 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                             {intl.formatMessage(messages.viewMine)}
                                         </button>
                                     </div>
-                                    <div
-                                        className={styles.turnRow}
-                                        data-testid="koshien-mock-panel-turn"
-                                    >
-                                        {`${intl.formatMessage(messages.turn)} ${game.turn} / 50`}
-                                        {game.over ? (
-                                            <span className={styles.gameOver}>
-                                                {` ${intl.formatMessage(messages.gameOver)}`}
-                                            </span>
-                                        ) : null}
+                                    <div className={styles.turnRow}>
+                                        <span data-testid="koshien-mock-panel-turn">
+                                            {`${intl.formatMessage(messages.turn)} ${game.turn} / 50`}
+                                            {game.over ? (
+                                                <span className={styles.gameOver}>
+                                                    {` ${intl.formatMessage(messages.gameOver)}`}
+                                                </span>
+                                            ) : null}
+                                        </span>
+                                        {runButtons}
                                     </div>
                                     {me && !logExpanded ? (
                                         <div
@@ -832,6 +877,9 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
                                 className={styles.notConnected}
                                 data-testid="koshien-mock-panel-not-connected"
                             >
+                                <div className={styles.notConnectedButtons}>
+                                    {runButtons}
+                                </div>
                                 {intl.formatMessage(messages.notConnected)}
                             </div>
                         )}
@@ -844,6 +892,8 @@ const KoshienMockPanel = ({snapshot, onClose}) => {
 
 KoshienMockPanel.propTypes = {
     onClose: PropTypes.func.isRequired,
+    onGreenFlag: PropTypes.func.isRequired,
+    onStopAll: PropTypes.func.isRequired,
     snapshot: PropTypes.shape({
         connected: PropTypes.bool,
         strategy: PropTypes.string,

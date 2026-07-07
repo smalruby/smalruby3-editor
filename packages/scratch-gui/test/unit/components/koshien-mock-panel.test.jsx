@@ -9,7 +9,7 @@ import KoshienMockPanel from '../../../src/components/koshien-mock-panel/koshien
 const renderPanel = (props) =>
     render(
         <IntlProvider locale="en">
-            <KoshienMockPanel onClose={jest.fn()} {...props} />
+            <KoshienMockPanel onClose={jest.fn()} onGreenFlag={jest.fn()} onStopAll={jest.fn()} {...props} />
         </IntlProvider>,
     );
 
@@ -119,6 +119,20 @@ describe('KoshienMockPanel', () => {
         expect(getByTestId('koshien-mock-panel-journal')).toBeInTheDocument();
         fireEvent.click(getByTestId('koshien-mock-panel-log-toggle'));
         expect(getByTestId('koshien-mock-panel-me')).toBeInTheDocument();
+    });
+
+    test('the green flag / stop buttons call their handlers and survive log mode', () => {
+        const onGreenFlag = jest.fn();
+        const onStopAll = jest.fn();
+        const { getByTestId } = renderPanel({ snapshot: fakeSnapshot(), onGreenFlag, onStopAll });
+        fireEvent.click(getByTestId('koshien-mock-panel-green-flag'));
+        expect(onGreenFlag).toHaveBeenCalled();
+        fireEvent.click(getByTestId('koshien-mock-panel-stop-all'));
+        expect(onStopAll).toHaveBeenCalled();
+        // Still there in the expanded-log layout.
+        fireEvent.click(getByTestId('koshien-mock-panel-log-toggle'));
+        expect(getByTestId('koshien-mock-panel-green-flag')).toBeInTheDocument();
+        expect(getByTestId('koshien-mock-panel-stop-all')).toBeInTheDocument();
     });
 
     test('hovering a cell shows its tooltip after a beat and hides it after leaving', () => {
